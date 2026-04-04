@@ -61,9 +61,9 @@ if "val_qth" not in st.session_state: st.session_state.val_qth = "JN37"
 if "val_band" not in st.session_state: st.session_state.val_band = "20m"
 if "val_time_mode" not in st.session_state: st.session_state.val_time_mode = T["en"]["opt_last_x"]
 if "val_hours" not in st.session_state: st.session_state.val_hours = 24
-if "val_start_d" not in st.session_state: st.session_state.val_start_d = datetime.utcnow().date() - timedelta(days=1)
+if "val_start_d" not in st.session_state: st.session_state.val_start_d = datetime.now(timezone.utc).date() - timedelta(days=1)
 if "val_start_t" not in st.session_state: st.session_state.val_start_t = dt_time(0, 0)
-if "val_end_d" not in st.session_state: st.session_state.val_end_d = datetime.utcnow().date()
+if "val_end_d" not in st.session_state: st.session_state.val_end_d = datetime.now(timezone.utc).date()
 if "val_end_t" not in st.session_state: st.session_state.val_end_t = dt_time(23, 59)
 if "val_solar" not in st.session_state: st.session_state.val_solar = T["en"]["opt_solar_all"]
 if "val_comp_mode" not in st.session_state: st.session_state.val_comp_mode = T["en"]["opt_comp_radius"]
@@ -250,7 +250,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 
             ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
             fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
-            st.pyplot(fig_hist, use_container_width=True)
+            st.pyplot(fig_hist, width='stretch')
             plt.close(fig_hist)
         else:
             st.info(t["lbl_no_joint"], icon="ℹ️")
@@ -535,7 +535,7 @@ with st.expander(t["exp_core"], expanded=True):
         if time_mode == t["opt_last_x"]: hours = st.slider(t["lbl_hours"], 1, 168, key="val_hours", on_change=reset_audit)
         else:
             c_start, c_end = st.columns(2)
-            today_utc = datetime.utcnow().date()
+            today_utc = datetime.now(timezone.utc).date()
             with c_start:
                 start_d = st.date_input(t["lbl_start_d"], key="val_start_d", max_value=today_utc, on_change=reset_audit)
                 start_t_input = st.time_input(t["lbl_start_t"], key="val_start_t", on_change=reset_audit)
