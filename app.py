@@ -447,7 +447,11 @@ st.markdown("""
     
     @media (max-width: 768px) {
         .block-container { padding-top: 1.5rem !important; } 
-
+        
+        /*Mobile List Indentation Fix: Weniger Padding spart Platz */
+        .stMarkdown ol, .stMarkdown ul { padding-left: 1.1rem !important; }
+        .stMarkdown li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+            
         .header-container { 
             flex-wrap: wrap !important; 
             padding-bottom: 0.3rem !important; 
