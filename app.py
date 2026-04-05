@@ -20,7 +20,7 @@ from config import (
     COMPASS, BAND_MAP,
     DEMO_CALLSIGN, DEMO_QTH, DEMO_BAND, DEMO_START_D, DEMO_END_D, 
     DEMO_START_T, DEMO_END_T, DEMO_HOURS, DEMO_REF_RADIUS, DEMO_REF_CALLSIGN,
-    DEMO_SELF_QTH_A, DEMO_SELF_QTH_B, DEMO_MAX_DIST, 
+    DEMO_SELF_CALL_B, DEMO_MAX_DIST, 
     DEMO_MIN_SPOTS, DEMO_MIN_STATIONS, DEMO_WILCOXON
 )
 from i18n import T
@@ -70,8 +70,7 @@ if "val_comp_mode" not in st.session_state: st.session_state.val_comp_mode = T["
 if "val_ref_radius" not in st.session_state: st.session_state.val_ref_radius = 250
 if "val_ref_callsign" not in st.session_state: st.session_state.val_ref_callsign = "DL2XYZ"
 if "val_self_test_mode" not in st.session_state: st.session_state.val_self_test_mode = T["en"]["opt_self_rx"]
-if "val_self_qth_a" not in st.session_state: st.session_state.val_self_qth_a = st.session_state.get("val_qth", "")
-if "val_self_qth_b" not in st.session_state: st.session_state.val_self_qth_b = ""
+if "val_self_call_b" not in st.session_state: st.session_state.val_self_call_b = ""
 if "val_slot_u" not in st.session_state: st.session_state.val_slot_u = T["en"]["opt_slot_even"]
 if "val_slot_r" not in st.session_state: st.session_state.val_slot_r = T["en"]["opt_slot_odd"]
 if "val_max_dist" not in st.session_state: st.session_state.val_max_dist = 22000
@@ -137,8 +136,7 @@ def set_demo_config():
     st.session_state.val_ref_radius = DEMO_REF_RADIUS
     st.session_state.val_ref_callsign = DEMO_REF_CALLSIGN
     st.session_state.val_self_test_mode = t["opt_self_rx"]
-    st.session_state.val_self_qth_a = DEMO_SELF_QTH_A
-    st.session_state.val_self_qth_b = DEMO_SELF_QTH_B
+    st.session_state.val_self_call_b = DEMO_SELF_CALL_B
     st.session_state.val_slot_u = t["opt_slot_even"]
     st.session_state.val_slot_r = t["opt_slot_odd"]
     st.session_state.val_max_dist = DEMO_MAX_DIST
@@ -191,15 +189,15 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         # Setup specific labels based on the active test mode
         if st.session_state.val_comp_mode == t["opt_comp_self"]:
             if st.session_state.val_self_test_mode == t["opt_self_rx"]:
-                lbl_only_me = t['leg_only_me'].format(callsign=st.session_state.val_self_qth_a)
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign=st.session_state.val_self_qth_b)
-                ref_header = st.session_state.val_self_qth_b
-                col_u_name = st.session_state.val_self_qth_a
+                lbl_only_me = t['leg_only_me'].format(callsign=target_call)
+                lbl_only_ref = t['leg_only_ref'].format(ref_callsign=st.session_state.val_self_call_b.upper())
+                ref_header = st.session_state.val_self_call_b.upper()
+                col_u_name = target_call
             else:
-                lbl_only_me = t['leg_only_me'].format(callsign="Ant A")
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign="Ant B")
-                ref_header = "Ant B"
-                col_u_name = "Ant A"
+                lbl_only_me = t['leg_only_me'].format(callsign="Setup A")
+                lbl_only_ref = t['leg_only_ref'].format(ref_callsign="Setup B")
+                ref_header = "Setup B"
+                col_u_name = "Setup A"
         else:
             lbl_only_me = t['leg_only_me'].format(callsign=target_call)
             col_u_name = target_call
@@ -570,19 +568,12 @@ with st.expander(t["exp_comp"], expanded=True):
             
             if self_test_mode == t["opt_self_rx"]:
                 cs1, cs2 = st.columns(2)
-                with cs1: self_qth_a = st.text_input(t["lbl_qth_a"], key="val_self_qth_a", max_chars=6, placeholder="e.g. JN37AA", on_change=reset_audit).upper()
-                with cs2: self_qth_b = st.text_input(t["lbl_qth_b"], key="val_self_qth_b", max_chars=6, placeholder="e.g. JN37AB", on_change=reset_audit).upper()
+                with cs1: st.text_input("Setup A Callsign (Your Callsign)", value=callsign, disabled=True)
+                with cs2: self_call_b = st.text_input("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", on_change=reset_audit).upper()
                 
-                # Defensive UI validation for locators
-                if len(self_qth_a) > 0 and len(self_qth_b) > 0:
-                    if len(self_qth_a) != 6 or len(self_qth_b) != 6:
-                        st.warning(t["err_loc_length"])
-                    elif not is_valid_6char_locator(self_qth_a) or not is_valid_6char_locator(self_qth_b):
-                        st.error(t["err_loc_format"])
-                    elif self_qth_a[:4] != self_qth_b[:4]:
-                        st.error(t["err_loc_match"])
-                    elif self_qth_a == self_qth_b:
-                        st.error(t["err_loc_identical"])
+                # Defensive UI validation for callsigns
+                if len(self_call_b) > 0 and self_call_b == callsign:
+                    st.error("Setup B callsign must be different from Setup A (e.g., use a /P suffix).")
             else:
                 cs1, cs2 = st.columns(2)
                 with cs1: st.selectbox(t["lbl_slot_u"], [t["opt_slot_even"], t["opt_slot_odd"]], key="val_slot_u", on_change=swap_tx_slots_u)
@@ -649,9 +640,9 @@ if run_rx_clicked:
         st.error(t["err_wrong_run"].format(cfg="TX", run="RX"))
         st.stop()
     if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
-        qa, qb = st.session_state.val_self_qth_a, st.session_state.val_self_qth_b
-        if len(qa) != 6 or len(qb) != 6 or qa[:4] != qb[:4] or qa == qb or not is_valid_6char_locator(qa) or not is_valid_6char_locator(qb):
-            st.error(t["err_loc_incomplete"])
+        cb = st.session_state.val_self_call_b
+        if not cb or cb == callsign:
+            st.error("Please configure a distinct callsign for Setup B (e.g., DL1MKS/P).")
             st.stop()
     st.session_state.run_mode = "RX"
     st.session_state.run_id = int(time.time())
@@ -682,7 +673,6 @@ if st.session_state.run_mode:
     time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
     
     is_sequential = False
-    rx_strict_grid = False
     
     if comp_mode == t["opt_comp_radius"]:
         ref_radius = st.session_state.val_ref_radius
@@ -693,8 +683,7 @@ if st.session_state.run_mode:
         if st.session_state.val_self_test_mode == t["opt_self_tx"]:
             is_sequential = True
         elif st.session_state.val_self_test_mode == t["opt_self_rx"]:
-            rx_strict_grid = True
-            ref_qth = st.session_state.val_self_qth_b
+            ref_callsign = st.session_state.val_self_call_b
     
     def get_slot_sql(slot_val):
         if slot_val == t["opt_slot_even"]: return "AND toMinute(time) % 4 = 0"
@@ -705,10 +694,13 @@ if st.session_state.run_mode:
     slot_sql_r = get_slot_sql(st.session_state.val_slot_r) if is_sequential else ""
     
     # Target SQL Filters
-    tx_target_sql = f"tx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
-    rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
-    if rx_strict_grid and st.session_state.run_mode == "RX":
-        rx_target_sql += f" AND rx_loc = '{st.session_state.val_self_qth_a}'"
+    if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
+        # Strict exact match needed to prevent 'DL1MKS%' from swallowing 'DL1MKS/P' spots
+        tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}"
+        rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}"
+    else:
+        tx_target_sql = f"tx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
+        rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
 
     # Peer SQL Filters
     if comp_mode == t["opt_comp_radius"]:
@@ -718,18 +710,20 @@ if st.session_state.run_mode:
         comp_title = t["comp_title_ref_radius"].format(radius=ref_radius)
         display_callsign = callsign
     else:
-        tx_peer_sql = f"tx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
-        rx_peer_sql = f"rx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
-        if rx_strict_grid and st.session_state.run_mode == "RX":
-            rx_peer_sql += f" AND rx_loc = '{ref_qth}'"
+        if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
+            tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}"
+            rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}"
+        else:
+            tx_peer_sql = f"tx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
+            rx_peer_sql = f"rx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
             
         if comp_mode == t["opt_comp_self"]:
             if st.session_state.val_self_test_mode == t["opt_self_rx"]:
-                display_callsign = f"{callsign} ({st.session_state.val_self_qth_a})"
-                comp_title = f"{callsign} ({st.session_state.val_self_qth_b})"
+                display_callsign = f"{callsign} (Setup A)"
+                comp_title = f"{ref_callsign} (Setup B)"
             else:
-                display_callsign = f"{callsign} (Ant A)"
-                comp_title = f"{callsign} (Ant B)"
+                display_callsign = f"{callsign} (Setup A)"
+                comp_title = f"{callsign} (Setup B)"
         else:
             display_callsign = callsign
             comp_title = t["comp_title_ref"].format(callsign=ref_callsign)

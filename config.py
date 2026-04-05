@@ -8,7 +8,7 @@ from datetime import date, time as dt_time
 # ==========================================
 # APP METADATA & URLs
 # ==========================================
-APP_VERSION = "v1.0.1"  
+APP_VERSION = "v1.1.0"  
 LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
 APP_URL = "https://wspradar.streamlit.app" 
 DB_URL = "https://db1.wspr.live/"
@@ -36,8 +36,7 @@ DEMO_END_T = dt_time(0, 0)
 DEMO_HOURS = 24  # Neu: Fallback für den Time-Slider
 DEMO_REF_RADIUS = 250
 DEMO_REF_CALLSIGN = "DL2XYZ"  # Neu: Fallback für Buddy Mode
-DEMO_SELF_QTH_A = "JN37"      # Neu: Fallback für Self-Test A
-DEMO_SELF_QTH_B = ""          # Neu: Fallback für Self-Test B
+DEMO_SELF_CALL_B = "DL1MKS/P" # Neu: Fallback für Self-Test B
 DEMO_MAX_DIST = 22000
 DEMO_MIN_SPOTS = 1
 DEMO_MIN_STATIONS = 1

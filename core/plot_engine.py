@@ -204,14 +204,14 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     # UI Texts
     t_lang = T[st.session_state.lang]
     target_call = st.session_state.val_callsign.upper()
-    
+    # Setup specific labels based on the active test mode
     if st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
         if st.session_state.val_self_test_mode == t_lang["opt_self_rx"]:
-            lbl_only_me = t_lang['leg_only_me'].format(callsign=st.session_state.val_self_qth_a)
-            lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign=st.session_state.val_self_qth_b)
+            lbl_only_me = t_lang['leg_only_me'].format(callsign=st.session_state.val_callsign.upper())
+            lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign=st.session_state.val_self_call_b.upper())
         else:
-            lbl_only_me = t_lang['leg_only_me'].format(callsign="Ant A")
-            lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign="Ant B")
+            lbl_only_me = t_lang['leg_only_me'].format(callsign="Setup A")
+            lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign="Setup B")
     else:
         lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
         if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
