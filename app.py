@@ -220,34 +220,99 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         else:
             seg_line2 = f"{t['txt_total_decodes']}: {int(df_seg['spot_count'].sum())}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
 
-        # Render Histogram
-        if not vals.empty:
+        # Render Histogram & Yield Chart
+        has_plot_data = False
+        if not vals.empty: 
+            has_plot_data = True
+        elif is_compare and 'count_only_u' in df_seg.columns and (df_seg['count_only_u'].sum() > 0 or df_seg['count_only_r'].sum() > 0): 
+            has_plot_data = True
+
+        if has_plot_data:
             fig_hist = plt.figure(figsize=(12, 4.5), facecolor='black')
-            fig_hist.subplots_adjust(left=0.05, right=0.85, bottom=0.25, top=0.85)
-            ax_hist = fig_hist.add_subplot(1,1,1)
+            
+            # Setup Layout based on Absolute vs. Compare Mode
+            if is_compare and 'count_only_u' in df_seg.columns:
+                fig_hist.subplots_adjust(left=0.05, right=0.95, bottom=0.25, top=0.80, wspace=0.3)
+                gs = fig_hist.add_gridspec(1, 3)
+                ax_yield = fig_hist.add_subplot(gs[0, 0])
+                ax_hist = fig_hist.add_subplot(gs[0, 1:])
+                
+                # 1. Setup Yield Bar Chart (Left)
+                ax_yield.set_facecolor('black')
+                ax_yield.tick_params(colors='white')
+                for spine in ax_yield.spines.values(): spine.set_color('#444444')
+                
+                cnt_u = int(df_seg['count_only_u'].sum())
+                cnt_r = int(df_seg['count_only_r'].sum())
+                
+                if is_sequential:
+                    cnt_shared = len(df_seg[(df_seg['count_only_u']>0) & (df_seg['count_only_r']>0)])
+                    lbl_shared = "Async"
+                else:
+                    cnt_shared = int(df_seg['spot_count'].sum())
+                    lbl_shared = "Joint"
+                
+                yield_counts = [cnt_u, cnt_shared, cnt_r]
+                yield_labels = [col_u_name, lbl_shared, ref_header]
+                bar_colors = ["#36aaf9", "#36aaf9", "#36aaf9"]  # Monochrome Blue matching the histogram
+                
+                bars = ax_yield.bar(yield_labels, yield_counts, color=bar_colors, alpha=0.8, edgecolor='black')
+                ax_yield.set_ylabel(t["lbl_hist_count"], color='white')
+                ax_yield.set_title("System Sensitivity (Yield)", color='white', fontweight='bold', pad=10)
+                
+                # Add percentages on top of the bars
+                total_yield = sum(yield_counts)
+                if total_yield > 0:
+                    for bar in bars:
+                        height = bar.get_height()
+                        ax_yield.text(bar.get_x() + bar.get_width()/2., height + (max(yield_counts)*0.02),
+                                f'{(height/total_yield)*100:.1f}%',
+                                ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
+                
+                # Adjust Titles for Dual Plot
+                ax_hist.set_title("Hardware Linearity (Δ SNR)", color='white', fontweight='bold', pad=10)
+                fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
+                
+            else:
+                # Fallback for Absolute Mode (Single Plot)
+                fig_hist.subplots_adjust(left=0.05, right=0.85, bottom=0.25, top=0.85)
+                ax_hist = fig_hist.add_subplot(1,1,1)
+                ax_hist.set_title(f"{title} - {selected_seg}", color='white', fontweight='bold', pad=15)
+
+            # 2. Common Histogram Setup (Right / Full)
             ax_hist.set_facecolor('black')
             ax_hist.tick_params(colors='white')
             for spine in ax_hist.spines.values(): spine.set_color('#444444')
-                
-            med = vals.median()
-            val_counts = vals.value_counts().sort_index()
-            ax_hist.bar(val_counts.index, val_counts.values, width=0.4, align='center', color='#36aaf9', alpha=0.8, edgecolor='black')
             
-            if (vals.max() - vals.min()) <= 30:
-                ticks = np.arange(np.floor(vals.min()), np.ceil(vals.max()) + 1, 1.0)
-                ax_hist.set_xticks(ticks)
+            if not vals.empty:
+                med = vals.median()
+                val_counts = vals.value_counts().sort_index()
+                ax_hist.bar(val_counts.index, val_counts.values, width=0.4, align='center', color='#36aaf9', alpha=0.8, edgecolor='black')
                 
-            ax_hist.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-            ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=2, label=t["lbl_med_seg"].format(med=med))
-            ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
-            ax_hist.set_title(f"{title} - {selected_seg}", color='white', fontweight='bold', pad=15)
-            
+                if (vals.max() - vals.min()) <= 30:
+                    ticks = np.arange(np.floor(vals.min()), np.ceil(vals.max()) + 1, 1.0)
+                    ax_hist.set_xticks(ticks)
+                    
+                ax_hist.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=2, label=t["lbl_med_seg"].format(med=med))
+                ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
+            else:
+                # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
+                ax_hist.text(0.5, 0.5, t["lbl_no_joint"], color='white', ha='center', va='center', fontsize=12)
+                ax_hist.set_xticks([])
+                ax_hist.set_yticks([])
+                
             station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
-            if not is_compare: ax_hist.set_xlabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
-            else: ax_hist.set_xlabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
-                
-            ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
+            if not is_compare: 
+                ax_hist.set_xlabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
+                ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
+            else: 
+                ax_hist.set_xlabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
+                ax_hist.set_ylabel("Joint Spots", color='white')
+            
+            # 3. Add Common Footer Text
             fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
+            
             st.pyplot(fig_hist, width='stretch')
             plt.close(fig_hist)
         else:
@@ -797,6 +862,31 @@ if st.session_state.run_mode:
                     
                     if df.empty:
                         st.warning(t["warn_no_data"].format(title=analysis['title']))
+                        continue
+
+                # ==========================================
+                # GLOBAL MIN. SPOTS FILTER (Unique Cycles)
+                # ==========================================
+                min_spots = st.session_state.val_min_spots
+                if min_spots > 1:
+                    # Dynamische Bestimmung der 2-Minuten-Zeitfenster
+                    if 'time_slot' in df.columns:
+                        cycle_col = 'time_slot'
+                    else:
+                        # 100% Pandas-Version agnostische Berechnung der 2-Minuten Zyklen
+                        df['tmp_cycle'] = (pd.to_datetime(df['time'], utc=True) - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta('120s')
+                        cycle_col = 'tmp_cycle'
+                    
+                    # Zählen der einzigartigen Zyklen pro Remote-Station
+                    unique_cycles = df.groupby('peer_sign')[cycle_col].nunique()
+                    valid_peers = unique_cycles[unique_cycles >= min_spots].index
+                    df = df[df['peer_sign'].isin(valid_peers)]
+                    
+                    if 'tmp_cycle' in df.columns:
+                        df = df.drop(columns=['tmp_cycle'])
+                    
+                    if df.empty:
+                        st.warning(f"Keine Stationen mit mindestens {min_spots} Spots (Zyklen) gefunden für {analysis['title']}.")
                         continue
 
                 # Dump current valid data frame to disk-cache for ultra-fast inspector drill-downs later

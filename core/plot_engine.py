@@ -258,11 +258,12 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         df_only_u = df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] > 0) & (df_plot['count_only_r'] == 0)]
         df_only_r = df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] == 0) & (df_plot['count_only_r'] > 0)]
         
+        # Draw Scatter Dots Legend
         if not df_joint.empty: ax.scatter(df_joint['peer_lon'], df_joint['peer_lat'], c=COLOR_JOINT, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=t_lang['leg_joint'])
         if not df_both.empty: ax.scatter(df_both['peer_lon'], df_both['peer_lat'], c=COLOR_BOTH_ASYNC, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=9, label=lbl_both_async)
         if not df_only_u.empty: ax.scatter(df_only_u['peer_lon'], df_only_u['peer_lat'], c=COLOR_ONLY_ME, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=8, label=lbl_only_me)
         if not df_only_r.empty: ax.scatter(df_only_r['peer_lon'], df_only_r['peer_lat'], c=COLOR_ONLY_REF, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=8, label=lbl_only_ref)
-        leg = ax.legend(loc='lower center', bbox_to_anchor=LEG_BBOX, facecolor='#121212', edgecolor='#444444', labelcolor='white', fontsize=FONT_LEGEND)
+        leg = ax.legend(loc='lower center', bbox_to_anchor=LEG_BBOX, facecolor='#121212', edgecolor='#444444', labelcolor='white', fontsize=FONT_LEGEND, markerscale=2.0)        
         leg.set_zorder(15)
     else:
         ax.scatter(df_plot['peer_lon'], df_plot['peer_lat'], c=COLOR_ONLY_ME, s=5, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=lbl_only_me)
@@ -301,13 +302,80 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     line1_str = " | ".join(meta_parts)
     remote_str = t_lang['txt_rx_stations'] if analysis_id.startswith("TX") else t_lang['txt_tx_stations']
     
+    # ==========================================
+    # RENDER FOOTER METRICS & PARAMETERS
+    # ==========================================
     if is_compare and 'count_only_u' in df_plot.columns:
-        if is_sequential:
-            line2 = f"Both (Async): {len(df_both)}  |  {lbl_only_me}: {int(df_plot['count_only_u'].sum())}  |  {lbl_only_ref}: {int(df_plot['count_only_r'].sum())}  |  {t_lang['txt_remote']} {remote_str}: {len(df_plot)}"
-        else:
-            line2 = f"{t_lang['txt_joint_decodes']}: {int(df_plot['spot_count'].sum())}  |  {lbl_only_me}: {int(df_plot['count_only_u'].sum())}  |  {lbl_only_ref}: {int(df_plot['count_only_r'].sum())}  |  {t_lang['txt_joint']} {remote_str}: {len(df_joint)}  |  {t_lang['txt_remote']} {remote_str}: {len(df_plot)}"
-    else:
-        line2 = f"{t_lang['txt_total_decodes']}: {int(df_plot['spot_count'].sum())}  |  {t_lang['txt_remote']} {remote_str}: {len(df_plot)}"
+        # 1. Metriken extrahieren (Spots & Stations)
+        cnt_u = int(df_plot['count_only_u'].sum())
+        cnt_r = int(df_plot['count_only_r'].sum())
         
-    fig.text(0.05, 0.02, f"{line1_str}\n{line2}", fontsize=FONT_FOOTER, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
+        if is_sequential:
+            cnt_shared = len(df_plot[(df_plot['count_only_u']>0) & (df_plot['count_only_r']>0)])
+            lbl_shared = "ASYNC"
+            
+            j_stat = len(df_plot[(df_plot['count_only_u']>0) & (df_plot['count_only_r']>0)])
+            stat_u = len(df_plot[(df_plot['count_only_u']>0) & (df_plot['count_only_r']==0)])
+            stat_r = len(df_plot[(df_plot['count_only_u']==0) & (df_plot['count_only_r']>0)])
+        else:
+            cnt_shared = int(df_plot['spot_count'].sum())
+            lbl_shared = "JOINT"
+            
+            j_stat = len(df_plot[df_plot['spot_count'] > 0])
+            stat_u = len(df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] > 0)])
+            stat_r = len(df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_r'] > 0)])
+            
+        tot_spots = cnt_u + cnt_shared + cnt_r
+        tot_stats = stat_u + j_stat + stat_r
+        
+        # 2. Legende / Header über den Balken platzieren (Schrift wie Map-Legende, nach unten verschoben für die Leerzeile)
+        #fig.text(0.24, 0.085, f"{lbl_only_me}", color="#cc00ff", ha="right", fontsize=FONT_LEGEND, fontweight="bold")
+        #fig.text(0.50, 0.085, f"{lbl_shared}", color="#00ff00", ha="center", fontsize=FONT_LEGEND, fontweight="bold")
+        #fig.text(0.76, 0.085, f"{lbl_only_ref}", color="#ffffff", ha="left", fontsize=FONT_LEGEND, fontweight="bold")
+
+        # 3. Neues Achsensystem für die Balken (weiter unten platziert)
+        # Format: [left, bottom, width, height]
+        ax_bars = fig.add_axes([0.25, 0.035, 0.5, 0.04])
+        ax_bars.set_facecolor('black')
+        for spine in ax_bars.spines.values(): spine.set_visible(False)
+        ax_bars.set_xticks([])
+        ax_bars.set_yticks([0, 1])
+        ax_bars.set_yticklabels(['STATIONS', 'SPOTS'], color='#cccccc', fontsize=FONT_LEGEND)
+        ax_bars.tick_params(axis='y', length=0, pad=10)
+        
+        # Prozentuale Breiten für 100%-Skalierung berechnen
+        w_u_spot = cnt_u / tot_spots if tot_spots > 0 else 0
+        w_j_spot = cnt_shared / tot_spots if tot_spots > 0 else 0
+        w_r_spot = cnt_r / tot_spots if tot_spots > 0 else 0
+        
+        w_u_stat = stat_u / tot_stats if tot_stats > 0 else 0
+        w_j_stat = j_stat / tot_stats if tot_stats > 0 else 0
+        w_r_stat = stat_r / tot_stats if tot_stats > 0 else 0
+        
+        # Balken zeichnen
+        y_pos = [1, 0]
+        ax_bars.barh(y_pos, [w_u_spot, w_u_stat], color='#cc00ff', left=[0, 0], height=0.6)
+        ax_bars.barh(y_pos, [w_j_spot, w_j_stat], color='#00ff00', left=[w_u_spot, w_u_stat], height=0.6)
+        ax_bars.barh(y_pos, [w_r_spot, w_r_stat], color='#ffffff', left=[w_u_spot+w_j_spot, w_u_stat+w_j_stat], height=0.6)
+        
+        # Labels in die Balken schreiben (Schriftgröße wie Legende)
+        def add_bar_label(ax, x_center, y, val, text_color):
+            if val > 0:
+                ax.text(x_center, y-0.04, str(val), color=text_color, ha='center', va='center', fontsize=FONT_LEGEND-2)
+
+        add_bar_label(ax_bars, w_u_spot/2, 1, cnt_u, 'white')
+        add_bar_label(ax_bars, w_u_spot + w_j_spot/2, 1, cnt_shared, 'black')
+        add_bar_label(ax_bars, w_u_spot + w_j_spot + w_r_spot/2, 1, cnt_r, 'black')
+
+        add_bar_label(ax_bars, w_u_stat/2, 0, stat_u, 'white')
+        add_bar_label(ax_bars, w_u_stat + w_j_stat/2, 0, j_stat, 'black')
+        add_bar_label(ax_bars, w_u_stat + w_j_stat + w_r_stat/2, 0, stat_r, 'black')
+        
+        # 4. Konfigurations-String zentriert am alleruntersten Rand (mit FONT_FOOTER)
+        fig.text(0.50, 0.01, line1_str, color='#888888', ha='center', fontsize=FONT_FOOTER)
+        
+    else:
+        # Fallback für Absolute Maps
+        fig.text(0.50, 0.02, line1_str, color='#cccccc', ha='center', fontsize=FONT_FOOTER)
+
     return fig, df_plot, segs, line1_str

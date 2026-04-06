@@ -8,7 +8,7 @@ from datetime import date, time as dt_time
 # ==========================================
 # APP METADATA & URLs
 # ==========================================
-APP_VERSION = "v1.1.0"  
+APP_VERSION = "v1.2.0"  
 LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
 APP_URL = "https://wspradar.streamlit.app" 
 DB_URL = "https://db1.wspr.live/"
@@ -52,10 +52,10 @@ EARTH_RADIUS_M = 6371000.0
 # PLOT RENDERING SETTINGS
 # ==========================================
 PLOT_DPI = 150
-FIG_SIZE = (12, 12)                  
+FIG_SIZE = (12, 12.5)                  
 MAP_BBOX = [0.0, 0.1, 0.9, 0.8]     
 CBAR_BBOX = [0.88, 0.20, 0.02, 0.55]  
-LEG_BBOX = (1.05, 0.90)               
+LEG_BBOX = (1.02, 0.90)               
 TITLE_POS = (0.45, 0.95)             
 COMPASS_LABEL_OFFSET = 0.97          
 
