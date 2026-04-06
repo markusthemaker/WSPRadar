@@ -33,7 +33,7 @@ from ui.components.config_panel import render_core_expander, render_compare_expa
 from ui.components.segment_inspector import render_segment_inspector, render_lazy_download
 
 # Core Execution Engines
-from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time
+from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time, is_valid_callsign, is_valid_locator
 from core.data_engine import fetch_wspr_data, cleanup_old_parquets
 from core.analysis_runner import build_analysis_batches, apply_post_fetch_filters
 from core.plot_engine import generate_map_plot
@@ -216,7 +216,19 @@ status_ui = st.empty()
 # ANALYSIS EXECUTION BLOCK
 # ==========================================
 if st.session_state.run_mode:
-    
+
+    # Validations before execution (greift NUR, wenn eine Analyse gestartet wird)
+    if not is_valid_callsign(callsign):
+        st.error(f"Invalid callsign '{callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 chars).")
+        st.session_state.run_mode = None  # Reset state
+        st.stop()
+
+    if not is_valid_locator(qth_locator):
+        err_msg = "Fehler: Bitte einen gültigen 4- oder 6-stelligen Locator (z.B. JN37 oder JN37AA) eingeben." if st.session_state.lang == "de" else "Error: Please enter a valid 4- or 6-character locator (e.g., JN37 or JN37AA)."
+        st.error(err_msg)
+        st.session_state.run_mode = None  # Reset state
+        st.stop()
+        
     # Storage Management: Purge expired parquet cache files before starting a new run
     cleanup_old_parquets()
     

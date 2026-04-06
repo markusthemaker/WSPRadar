@@ -99,6 +99,6 @@ def render_advanced_expander(t):
             st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
             st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
         with col4:
-            st.slider(t["lbl_min_spots"], 1, 50, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
+            st.slider(t["lbl_min_spots"], 1, 25, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
             st.slider(t["lbl_min_stations"], 1, 20, key="val_min_stations", help=t["hlp_min_stations"], on_change=reset_audit)
             st.select_slider(t["lbl_wilcoxon"], options=["OFF", "80%", "90%", "95%", "99%"], key="val_wilcoxon", on_change=reset_audit)

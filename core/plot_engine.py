@@ -20,6 +20,8 @@ import streamlit as st
 from config import *
 from i18n import T
 
+MIN_LABEL_CUTOFF_PCT = 0.02
+
 def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_dist_km, analysis_id, wilcox_level, base_min_stations, lat_0, lon_0):
     """Hauptfunktion zum Berechnen der Aggregate und Plotten der Radar-Karte."""
     
@@ -64,46 +66,90 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         segs = segs[segs['cnt'] >= base_min_stations]
         df_plot = reporter_medians 
     else:
-        # Compare Logik: Joint Spots / Sequential vs Simultaneous
+        # Compare Logik: Joint Spots / Sequential vs Simultaneous (High-Performance Vectorized)
         df_plot = df.copy()
+        min_s = st.session_state.val_min_spots
+        
+        # Gruppierungsschlüssel und Aggregations-Regeln für die Geometrie-Metadaten
+        group_keys = ['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign']
+        spatial_agg = {
+            'peer_lat': 'first',
+            'peer_lon': 'first',
+            'peer_grid': 'first',
+            'calc_dist': 'first',
+            'calc_azimuth': 'first'
+        }
         
         if is_sequential:
-            def agg_func_seq(x):
-                u_spots = x[x['is_me'] == 1]['stat_val']
-                r_spots = x[x['is_me'] == 0]['stat_val']
-                med_u = u_spots.median()
-                med_r = r_spots.median()
-                diff = med_u - med_r if (len(u_spots)>0 and len(r_spots)>0) else np.nan
-                return pd.Series({
-                    'peer_lat': x['peer_lat'].iloc[0] if not x.empty else 0.0,
-                    'peer_lon': x['peer_lon'].iloc[0] if not x.empty else 0.0,
-                    'peer_grid': x['peer_grid'].iloc[0] if not x.empty else "",
-                    'calc_dist': x['calc_dist'].iloc[0] if not x.empty else 0.0,
-                    'calc_azimuth': x['calc_azimuth'].iloc[0] if not x.empty else 0.0,
-                    'stat_val': diff,
-                    'spot_count': 0, 
-                    'count_only_u': len(u_spots),
-                    'count_only_r': len(r_spots)
-                })
-            df_plot = df_plot.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign']).apply(agg_func_seq).reset_index()
-            df_plot['stat_val'] = df_plot['stat_val'].round(1)
+            # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Werte
+            df_plot['is_u_spot'] = (df_plot['is_me'] == 1).astype(int)
+            df_plot['is_r_spot'] = (df_plot['is_me'] == 0).astype(int)
+            df_plot['u_val'] = np.where(df_plot['is_me'] == 1, df_plot['stat_val'], np.nan)
+            df_plot['r_val'] = np.where(df_plot['is_me'] == 0, df_plot['stat_val'], np.nan)
+            
+            # 2. C-optimierte Aggregation (ersetzt die langsame pandas .apply Schleife)
+            agg_ops = {
+                'is_u_spot': 'sum',
+                'is_r_spot': 'sum',
+                'u_val': 'median',
+                'r_val': 'median',
+                **spatial_agg
+            }
+            df_agg = df_plot.groupby(group_keys, dropna=False).agg(agg_ops).reset_index()
+            
+            # 3. Symmetrische Filter-Logik anwenden
+            cnt_u = df_agg['is_u_spot']
+            cnt_r = df_agg['is_r_spot']
+            
+            is_joint = (cnt_u >= min_s) & (cnt_r >= min_s)
+            is_u = cnt_u >= min_s
+            is_r = cnt_r >= min_s
+            
+            df_agg['spot_count'] = 0
+            df_agg['count_only_u'] = np.where(is_u, cnt_u, 0)
+            df_agg['count_only_r'] = np.where(is_r, cnt_r, 0)
+            df_agg['stat_val'] = np.where(is_joint, df_agg['u_val'] - df_agg['r_val'], np.nan)
+            
+            # 4. Temporäre Rechenspalten bereinigen
+            df_agg = df_agg.drop(columns=['is_u_spot', 'is_r_spot', 'u_val', 'r_val'])
+            
         else:
-            def agg_func_sim(x):
-                joint = x[(x['has_u'] > 0) & (x['has_r'] > 0)]
-                diff = joint['snr_u_norm'] - joint['snr_r_norm']
-                return pd.Series({
-                    'peer_lat': x['peer_lat'].iloc[0] if not x.empty else 0.0,
-                    'peer_lon': x['peer_lon'].iloc[0] if not x.empty else 0.0,
-                    'peer_grid': x['peer_grid'].iloc[0] if not x.empty else "",
-                    'calc_dist': x['calc_dist'].iloc[0] if not x.empty else 0.0,
-                    'calc_azimuth': x['calc_azimuth'].iloc[0] if not x.empty else 0.0,
-                    'stat_val': diff.median() if len(diff) > 0 else np.nan,
-                    'spot_count': len(joint),
-                    'count_only_u': ((x['has_u'] > 0) & (x['has_r'] == 0)).sum(),
-                    'count_only_r': ((x['has_u'] == 0) & (x['has_r'] > 0)).sum()
-                })
-            df_plot = df_plot.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign']).apply(agg_func_sim).reset_index()
-            df_plot['stat_val'] = df_plot['stat_val'].round(1)
+            # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Spot-Differenz
+            df_plot['is_joint_spot'] = ((df_plot['has_u'] > 0) & (df_plot['has_r'] > 0)).astype(int)
+            df_plot['is_u_spot'] = ((df_plot['has_u'] > 0) & (df_plot['has_r'] == 0)).astype(int)
+            df_plot['is_r_spot'] = ((df_plot['has_u'] == 0) & (df_plot['has_r'] > 0)).astype(int)
+            df_plot['spot_diff'] = np.where(df_plot['is_joint_spot'] == 1, df_plot['snr_u_norm'] - df_plot['snr_r_norm'], np.nan)
+            
+            # 2. C-optimierte Aggregation
+            agg_ops = {
+                'is_joint_spot': 'sum',
+                'is_u_spot': 'sum',
+                'is_r_spot': 'sum',
+                'spot_diff': 'median',
+                **spatial_agg
+            }
+            df_agg = df_plot.groupby(group_keys, dropna=False).agg(agg_ops).reset_index()
+            
+            # 3. Symmetrische Filter-Logik anwenden
+            cnt_j = df_agg['is_joint_spot']
+            cnt_u = df_agg['is_u_spot']
+            cnt_r = df_agg['is_r_spot']
+            
+            is_joint = cnt_j >= min_s
+            is_u = cnt_u >= min_s
+            is_r = cnt_r >= min_s
+            
+            df_agg['spot_count'] = np.where(is_joint, cnt_j, 0)
+            df_agg['count_only_u'] = np.where(is_u, cnt_u, 0)
+            df_agg['count_only_r'] = np.where(is_r, cnt_r, 0)
+            df_agg['stat_val'] = np.where(is_joint, df_agg['spot_diff'], np.nan)
+            
+            # 4. Temporäre Rechenspalten bereinigen
+            df_agg = df_agg.drop(columns=['is_joint_spot', 'is_u_spot', 'is_r_spot', 'spot_diff'])
+
+        # Radikale Bereinigung: Wirf jede Station weg, deren Zähler in ALLEN drei Kategorien auf 0 gefallen sind
+        df_plot = df_agg[(df_agg['spot_count'] > 0) | (df_agg['count_only_u'] > 0) | (df_agg['count_only_r'] > 0)].copy()
+        df_plot['stat_val'] = df_plot['stat_val'].round(1)
         
         def segment_agg(x):
             vals = x['stat_val'].dropna()
@@ -169,6 +215,8 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     ax.add_feature(cfeature.OCEAN, facecolor='#0d0d0d')
     ax.add_feature(cfeature.LAND, facecolor='#202020')
     ax.add_feature(cfeature.COASTLINE, linewidth=0.9, edgecolor='#999999', zorder=5, alpha=0.9)
+    #slows down plotting - keep borders off for now
+    ax.add_feature(cfeature.BORDERS, linewidth=0.6, edgecolor='#666666', zorder=5, alpha=0.7)
     
     # Draw Rings
     for r_km in THICK_RINGS:
@@ -306,24 +354,28 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     # RENDER FOOTER METRICS & PARAMETERS
     # ==========================================
     if is_compare and 'count_only_u' in df_plot.columns:
+        
+        # Filter dataframe strictly to the rendered map bounds to match the Segment Inspector
+        df_footer = df_plot[df_plot['r_min'] < max_dist_km]
+        
         # 1. Metriken extrahieren (Spots & Stations)
-        cnt_u = int(df_plot['count_only_u'].sum())
-        cnt_r = int(df_plot['count_only_r'].sum())
+        cnt_u = int(df_footer['count_only_u'].sum())
+        cnt_r = int(df_footer['count_only_r'].sum())
         
         if is_sequential:
-            cnt_shared = len(df_plot[(df_plot['count_only_u']>0) & (df_plot['count_only_r']>0)])
+            cnt_shared = len(df_footer[(df_footer['count_only_u']>0) & (df_footer['count_only_r']>0)])
             lbl_shared = "ASYNC"
             
-            j_stat = len(df_plot[(df_plot['count_only_u']>0) & (df_plot['count_only_r']>0)])
-            stat_u = len(df_plot[(df_plot['count_only_u']>0) & (df_plot['count_only_r']==0)])
-            stat_r = len(df_plot[(df_plot['count_only_u']==0) & (df_plot['count_only_r']>0)])
+            j_stat = len(df_footer[(df_footer['count_only_u']>0) & (df_footer['count_only_r']>0)])
+            stat_u = len(df_footer[(df_footer['count_only_u']>0) & (df_footer['count_only_r']==0)])
+            stat_r = len(df_footer[(df_footer['count_only_u']==0) & (df_footer['count_only_r']>0)])
         else:
-            cnt_shared = int(df_plot['spot_count'].sum())
+            cnt_shared = int(df_footer['spot_count'].sum())
             lbl_shared = "JOINT"
             
-            j_stat = len(df_plot[df_plot['spot_count'] > 0])
-            stat_u = len(df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] > 0)])
-            stat_r = len(df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_r'] > 0)])
+            j_stat = len(df_footer[df_footer['spot_count'] > 0])
+            stat_u = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0)])
+            stat_r = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_r'] > 0)])
             
         tot_spots = cnt_u + cnt_shared + cnt_r
         tot_stats = stat_u + j_stat + stat_r
@@ -333,45 +385,60 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         #fig.text(0.50, 0.085, f"{lbl_shared}", color="#00ff00", ha="center", fontsize=FONT_LEGEND, fontweight="bold")
         #fig.text(0.76, 0.085, f"{lbl_only_ref}", color="#ffffff", ha="left", fontsize=FONT_LEGEND, fontweight="bold")
 
-        # 3. Neues Achsensystem für die Balken (weiter unten platziert)
-        # Format: [left, bottom, width, height]
-        ax_bars = fig.add_axes([0.25, 0.035, 0.5, 0.04])
+        # 3. Native Categorical Axes setup
+        ax_bars = fig.add_axes([0.12, 0.035, 0.85, 0.045])
         ax_bars.set_facecolor('black')
         for spine in ax_bars.spines.values(): spine.set_visible(False)
         ax_bars.set_xticks([])
-        ax_bars.set_yticks([0, 1])
-        ax_bars.set_yticklabels(['STATIONS', 'SPOTS'], color='#cccccc', fontsize=FONT_LEGEND)
-        ax_bars.tick_params(axis='y', length=0, pad=10)
+        ax_bars.tick_params(axis='y', length=0, pad=10, colors='#cccccc', labelsize=FONT_LEGEND)
         
-        # Prozentuale Breiten für 100%-Skalierung berechnen
-        w_u_spot = cnt_u / tot_spots if tot_spots > 0 else 0
-        w_j_spot = cnt_shared / tot_spots if tot_spots > 0 else 0
-        w_r_spot = cnt_r / tot_spots if tot_spots > 0 else 0
+        # Prozentuale Breiten (0-100%) für sauberes Matplotlib-Skalieren
+        pct_u_spot = (cnt_u / tot_spots * 100) if tot_spots > 0 else 0
+        pct_j_spot = (cnt_shared / tot_spots * 100) if tot_spots > 0 else 0
+        pct_r_spot = (cnt_r / tot_spots * 100) if tot_spots > 0 else 0
         
-        w_u_stat = stat_u / tot_stats if tot_stats > 0 else 0
-        w_j_stat = j_stat / tot_stats if tot_stats > 0 else 0
-        w_r_stat = stat_r / tot_stats if tot_stats > 0 else 0
+        pct_u_stat = (stat_u / tot_stats * 100) if tot_stats > 0 else 0
+        pct_j_stat = (j_stat / tot_stats * 100) if tot_stats > 0 else 0
+        pct_r_stat = (stat_r / tot_stats * 100) if tot_stats > 0 else 0
         
-        # Balken zeichnen
-        y_pos = [1, 0]
-        ax_bars.barh(y_pos, [w_u_spot, w_u_stat], color='#cc00ff', left=[0, 0], height=0.6)
-        ax_bars.barh(y_pos, [w_j_spot, w_j_stat], color='#00ff00', left=[w_u_spot, w_u_stat], height=0.6)
-        ax_bars.barh(y_pos, [w_r_spot, w_r_stat], color='#ffffff', left=[w_u_spot+w_j_spot, w_u_stat+w_j_stat], height=0.6)
+        # Radius Modus Check: Spots-Venn ausblenden, wenn wir gegen die Referenz-Wolke vergleichen
+        is_radius_mode = (st.session_state.val_comp_mode == t_lang["opt_comp_radius"])
         
-        # Labels in die Balken schreiben (Schriftgröße wie Legende)
-        def add_bar_label(ax, x_center, y, val, text_color):
-            if val > 0:
-                ax.text(x_center, y-0.04, str(val), color=text_color, ha='center', va='center', fontsize=FONT_LEGEND-2)
+        # Dynamische Farbe für den gemeinsamen Balken (Grün für Simultan, Orange für Sequenziell)
+        color_shared = COLOR_BOTH_ASYNC if is_sequential else COLOR_JOINT
+        
+        if is_radius_mode:
+            # Dummy-Kategorie einfügen und Breite auf 0 setzen, damit Matplotlib die Balkendicke nicht skaliert
+            categories = ['STATIONS', ' ']
+            p1 = ax_bars.barh(categories, [pct_u_stat, 0], color=COLOR_ONLY_ME, height=0.6)
+            p2 = ax_bars.barh(categories, [pct_j_stat, 0], left=[pct_u_stat, 0], color=color_shared, height=0.6)
+            p3 = ax_bars.barh(categories, [pct_r_stat, 0], left=[pct_u_stat+pct_j_stat, 0], color=COLOR_ONLY_REF, height=0.6)
+        else:
+            categories = ['STATIONS', 'SPOTS']
+            p1 = ax_bars.barh(categories, [pct_u_stat, pct_u_spot], color=COLOR_ONLY_ME, height=0.6)
+            p2 = ax_bars.barh(categories, [pct_j_stat, pct_j_spot], left=[pct_u_stat, pct_u_spot], color=color_shared, height=0.6)
+            p3 = ax_bars.barh(categories, [pct_r_stat, pct_r_spot], left=[pct_u_stat+pct_j_stat, pct_u_spot+pct_j_spot], color=COLOR_ONLY_REF, height=0.6)
+        
+        # Dynamisches Zentrieren der echten Zahlenwerte in den Boxen
+        def add_labels(rects, real_values, text_color):
+            for rect, val in zip(rects, real_values):
+                width = rect.get_width()
+                if val > 0 and width >= 2.5:  # Keine Labels bei winzigen Slivers
+                    x = rect.get_x() + (width / 2)
+                    y = rect.get_y() + (rect.get_height() / 2)
+                    ax_bars.text(x, y, str(val), color=text_color, ha='center', va='center', fontsize=FONT_LEGEND-2)
 
-        add_bar_label(ax_bars, w_u_spot/2, 1, cnt_u, 'white')
-        add_bar_label(ax_bars, w_u_spot + w_j_spot/2, 1, cnt_shared, 'black')
-        add_bar_label(ax_bars, w_u_spot + w_j_spot + w_r_spot/2, 1, cnt_r, 'black')
-
-        add_bar_label(ax_bars, w_u_stat/2, 0, stat_u, 'white')
-        add_bar_label(ax_bars, w_u_stat + w_j_stat/2, 0, j_stat, 'black')
-        add_bar_label(ax_bars, w_u_stat + w_j_stat + w_r_stat/2, 0, stat_r, 'black')
-        
-        # 4. Konfigurations-String zentriert am alleruntersten Rand (mit FONT_FOOTER)
+        # Die berechneten, absoluten Werte in die Render-Rechtecke injizieren
+        if is_radius_mode:
+            add_labels(p1, [stat_u], 'white')
+            add_labels(p2, [j_stat], 'black')
+            add_labels(p3, [stat_r], 'black')
+        else:
+            add_labels(p1, [stat_u, cnt_u], 'white')
+            add_labels(p2, [j_stat, cnt_shared], 'black')
+            add_labels(p3, [stat_r, cnt_r], 'black')
+            
+        # 4. Config string zentriert am unteren Rand
         fig.text(0.50, 0.01, line1_str, color='#888888', ha='center', fontsize=FONT_FOOTER)
         
     else:

@@ -2,8 +2,23 @@
 Mathematische Hilfsfunktionen (Geometrie, Astronomie, Zeit).
 """
 import numpy as np
+import math
+import re  # Wichtig für die Rufzeichen-Validierung
 import ephem
 from datetime import datetime
+
+# Strict allowlist for amateur-radio callsigns.
+# Valid characters: A-Z, 0-9, and the portable/mobile suffix separator '/'.
+# Length range: 3 (e.g. "W1A") to 15 (e.g. "VK2FXXX/MM") characters.
+_CALLSIGN_RE = re.compile(r'^[A-Z0-9/]{3,15}$')
+
+def is_valid_callsign(call: str) -> bool:
+    """Returns True only if *call* consists solely of A-Z, 0-9, and '/' (3-15 chars).
+
+    Used as a defense-in-depth guard before callsigns are interpolated into
+    ClickHouse SQL queries to prevent SQL injection.
+    """
+    return bool(_CALLSIGN_RE.match(call.upper().strip()))
 
 def locator_to_latlon(grid: str) -> tuple:
     """Konvertiert einen Maidenhead Locator (4 oder 6 Stellen) in Lat/Lon."""
@@ -18,6 +33,16 @@ def locator_to_latlon(grid: str) -> tuple:
         lon += 1.0
         lat += 0.5
     return lat, lon
+
+# LOCATOR VALIDATION (Defense-in-Depth)
+_LOCATOR_RE = re.compile(r'^[A-Z]{2}[0-9]{2}([A-Z]{2})?$')
+
+def is_valid_locator(loc: str) -> bool:
+    """
+    Returns True if the string is a valid 4- or 6-character Maidenhead locator 
+    (e.g., 'JN37' or 'JN37AA'). Case-insensitive.
+    """
+    return bool(_LOCATOR_RE.match(loc.upper().strip()))
 
 def is_valid_6char_locator(grid: str) -> bool:
     """Prüft, ob der Locator exakt 6 gültige Zeichen hat."""

@@ -1,20 +1,25 @@
 """
 Analysis Runner Module.
 Handles the construction of complex ClickHouse SQL queries based on user UI state,
-and provides data-filtering utilities (Solar, Min-Spots) before plotting.
+and provides data-filtering utilities (Solar) before plotting.
 """
 
 import pandas as pd
 import numpy as np
 import streamlit as st
 from core.data_engine import fetch_wspr_data
-from core.math_utils import get_solar_state
+from core.math_utils import get_solar_state, is_valid_callsign
 
 def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign):
     """
     Reads the user configuration from the session state and generates the necessary
     SQL queries and execution batches for the map plots (Absolute & Comparison).
     """
+    # --- Defense-in-depth: validate callsign before any SQL is assembled ---
+    if not is_valid_callsign(callsign):
+        st.error(f"Invalid callsign '{callsign}'. Only A–Z, 0–9, and '/' are allowed (3–15 characters).")
+        return []
+
     comp_mode = st.session_state.val_comp_mode
     is_demo_run = st.session_state.get("is_demo_mode", False)
     time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
@@ -25,13 +30,19 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     if comp_mode == t["opt_comp_radius"]:
         ref_radius = st.session_state.val_ref_radius
     elif comp_mode == t["opt_comp_buddy"]:
-        ref_callsign = st.session_state.val_ref_callsign.upper()
+        ref_callsign = st.session_state.val_ref_callsign.upper().strip()
+        if not is_valid_callsign(ref_callsign):
+            st.error(f"Invalid reference callsign '{ref_callsign}'. Only A–Z, 0–9, and '/' are allowed (3–15 characters).")
+            return []
     elif comp_mode == t["opt_comp_self"]:
-        ref_callsign = callsign
+        ref_callsign = callsign  # defaults to target callsign (already validated above)
         if st.session_state.val_self_test_mode == t["opt_self_tx"]:
             is_sequential = True
         elif st.session_state.val_self_test_mode == t["opt_self_rx"]:
-            ref_callsign = st.session_state.val_self_call_b
+            ref_callsign = st.session_state.val_self_call_b.upper().strip()
+            if not is_valid_callsign(ref_callsign):
+                st.error(f"Invalid Setup B callsign '{ref_callsign}'. Only A–Z, 0–9, and '/' are allowed (3–15 characters).")
+                return []
     
     def get_slot_sql(slot_val):
         if slot_val == t["opt_slot_even"]: return "AND toMinute(time) % 4 = 0"
@@ -40,7 +51,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
 
     slot_sql_u = get_slot_sql(st.session_state.val_slot_u) if is_sequential else ""
     slot_sql_r = get_slot_sql(st.session_state.val_slot_r) if is_sequential else ""
-    
+        
     # Target SQL Filters
     if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
         # Strict exact match needed to prevent 'DL1MKS%' from swallowing 'DL1MKS/P' spots
@@ -115,9 +126,10 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
 
 def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
     """
-    Applies mathematical and logical filters (Solar, Min-Spots) to the fetched dataframe
+    Applies mathematical and logical filters (Solar) to the fetched dataframe
     before it is handed over to the plotting engine.
-    Returns the filtered dataframe and an optional warning string if data was depleted.
+    Note: The global min-spots filter has been removed from this stage to allow 
+    for strict, symmetric statistical classification downstream in the plot engine.
     """
     # Apply Solar Filtering locally
     if st.session_state.val_solar != t["opt_solar_all"]:
@@ -133,23 +145,5 @@ def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
         if df.empty:
             return df, t["warn_no_data"].format(title=analysis['title'])
 
-    # Apply Global Min. Spots Filter (Unique Cycles)
-    min_spots = st.session_state.val_min_spots
-    if min_spots > 1:
-        if 'time_slot' in df.columns:
-            cycle_col = 'time_slot'
-        else:
-            df['tmp_cycle'] = (pd.to_datetime(df['time'], utc=True) - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta('120s')
-            cycle_col = 'tmp_cycle'
-        
-        unique_cycles = df.groupby('peer_sign')[cycle_col].nunique()
-        valid_peers = unique_cycles[unique_cycles >= min_spots].index
-        df = df[df['peer_sign'].isin(valid_peers)]
-        
-        if 'tmp_cycle' in df.columns:
-            df = df.drop(columns=['tmp_cycle'])
-        
-        if df.empty:
-            return df, f"Keine Stationen mit mindestens {min_spots} Spots (Zyklen) gefunden für {analysis['title']}."
-
+    # NO global spot filtering here anymore. Filtering is strictly enforced in plot_engine.py
     return df, None

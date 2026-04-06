@@ -121,14 +121,16 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_yield.tick_params(colors='white')
                 for spine in ax_yield.spines.values(): spine.set_color('#444444')
                 
-                cnt_u = int(df_seg['count_only_u'].sum())
-                cnt_r = int(df_seg['count_only_r'].sum())
-                
+                # System Sensitivity (Yield) counts unique STATIONS, not spots
                 if is_sequential:
-                    cnt_shared = len(df_seg[(df_seg['count_only_u']>0) & (df_seg['count_only_r']>0)])
+                    cnt_shared = len(df_seg[(df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] > 0)])
+                    cnt_u = len(df_seg[(df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] == 0)])
+                    cnt_r = len(df_seg[(df_seg['count_only_u'] == 0) & (df_seg['count_only_r'] > 0)])
                     lbl_shared = "Async"
                 else:
-                    cnt_shared = int(df_seg['spot_count'].sum())
+                    cnt_shared = len(df_seg[df_seg['spot_count'] > 0])
+                    cnt_u = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0)])
+                    cnt_r = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_r'] > 0)])
                     lbl_shared = "Joint"
                 
                 yield_counts = [cnt_u, cnt_shared, cnt_r]
@@ -237,14 +239,14 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 # Load the raw spots straight from the parquet cache for blazing fast drill-downs
                 station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', sel_stations)])
                 
-                # Merge logic to append metrics from the aggregated dataframe to the raw spots
-                meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_med_snr']]] if not is_compare else sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_med_delta']]]
-                station_df = station_df.merge(meta_df, left_on='peer_sign', right_on=station_col, how='left')
+                # Merge logic to append calculated distance and azimuth from the aggregated dataframe to the raw spots
+                meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]]
+                station_df = station_df.merge(meta_df, left_on='peer_sign', right_on=station_col, how='inner')
                 
                 if not is_compare:
                     station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
-                    drill_df = station_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr', 'power', 'stat_val', t['tbl_col_med_snr']]].copy()
-                    drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm. SNR (dB)', t['tbl_col_med_snr']]
+                    drill_df = station_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr', 'power', 'stat_val']].copy()
+                    drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm. SNR (dB)']
                     st.dataframe(drill_df, width='stretch', hide_index=True)
                     
                 else:
@@ -256,22 +258,28 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             col_r = f'{ref_header} SNR (dB)'
                             joint_df[col_u] = np.where(joint_df['is_me'] == 1, joint_df['stat_val'], np.nan)
                             joint_df[col_r] = np.where(joint_df['is_me'] == 0, joint_df['stat_val'], np.nan)
-                            col_delta_lbl = t['tbl_col_med_delta'].replace("Median ", "")
+                            
+                            # Keine Deltas für asynchrone Einzel-Spots berechnen, da sie in der Zeit nicht matchen
+                            col_delta_lbl = "Δ SNR (Async)"
                             joint_df[col_delta_lbl] = np.nan
-                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl, t['tbl_col_med_delta']]].copy()
+                            
+                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl]].copy()
                             st.dataframe(drill_df, width='stretch', hide_index=True)
                         else: 
                             st.info("No spots available for the selected station(s).", icon="ℹ️")
                     else:
+                        # Für Simultane Vergleiche: Nur echte zeitgleiche Spots (Joint) für das SNR Delta anzeigen
                         joint_df = station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
                         if not joint_df.empty:
                             joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
                             joint_df['Δ SNR (dB)'] = (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1)
+                            
                             col_u = f'{col_u_name} SNR (dB)'
                             col_r = f'{ref_header} SNR (dB)'
-                            col_delta_lbl = t['tbl_col_med_delta'].replace("Median ", "")
-                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)', t['tbl_col_med_delta']]].copy()
-                            drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl, t['tbl_col_med_delta']]
+                            col_delta_lbl = "Δ SNR (dB)"
+                            
+                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)']].copy()
+                            drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl]
                             st.dataframe(drill_df, width='stretch', hide_index=True)
                         else: 
                             st.info("No joint spots available for the selected station(s).", icon="ℹ️")
