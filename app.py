@@ -20,9 +20,25 @@ from config import (
     COMPASS, BAND_MAP, DEMO_PROFILES
 )
 from i18n import T
-from core.math_utils import locator_to_latlon, is_valid_6char_locator, get_solar_state, quantize_time
+
+# UI Modules
+from ui.css import apply_custom_css
+from ui.state_manager import init_session_state
+from ui.callbacks import (
+    reset_audit, swap_tx_slots_u, swap_tx_slots_r, update_lang,
+    handle_comp_mode_change, handle_self_test_mode_change,
+    set_reset_config, set_demo_config
+)
+from ui.components.config_panel import render_core_expander, render_compare_expander, render_advanced_expander
+from ui.components.segment_inspector import render_segment_inspector, render_lazy_download
+
+# Core Execution Engines
+from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time
 from core.data_engine import fetch_wspr_data, cleanup_old_parquets
+from core.analysis_runner import build_analysis_batches, apply_post_fetch_filters
 from core.plot_engine import generate_map_plot
+
+# Documentation & Export
 from docs.pdf_generator import generate_pdf_doc, get_docs
 
 # ==========================================
@@ -37,404 +53,12 @@ def get_base64_of_bin_file(bin_file):
         return "" 
 
 # ==========================================
-# STATE MANAGEMENT & CALLBACKS
-# ==========================================
-def get_browser_language():
-    """Attempts to determine the user's preferred language from browser request headers."""
-    try:
-        if hasattr(st, 'context') and hasattr(st.context, 'headers'):
-            accept_lang = st.context.headers.get("Accept-Language", "").lower()
-            if accept_lang.startswith("de"): return "de"
-    except Exception: 
-        pass
-    return "en"
-
-# Initialize default session states to persist values across reruns
-if "run_mode" not in st.session_state: st.session_state.run_mode = None
-if "lang" not in st.session_state: st.session_state.lang = get_browser_language()
-if "val_callsign" not in st.session_state: st.session_state.val_callsign = "DL1MKS"
-if "val_qth" not in st.session_state: st.session_state.val_qth = "JN37"
-if "val_band" not in st.session_state: st.session_state.val_band = "20m"
-if "val_time_mode" not in st.session_state: st.session_state.val_time_mode = T["en"]["opt_last_x"]
-if "val_hours" not in st.session_state: st.session_state.val_hours = 24
-if "val_start_d" not in st.session_state: st.session_state.val_start_d = datetime.now(timezone.utc).date() - timedelta(days=1)
-if "val_start_t" not in st.session_state: st.session_state.val_start_t = dt_time(0, 0)
-if "val_end_d" not in st.session_state: st.session_state.val_end_d = datetime.now(timezone.utc).date()
-if "val_end_t" not in st.session_state: st.session_state.val_end_t = dt_time(23, 59)
-if "val_solar" not in st.session_state: st.session_state.val_solar = T["en"]["opt_solar_all"]
-if "val_comp_mode" not in st.session_state: st.session_state.val_comp_mode = T["en"]["opt_comp_radius"]
-if "val_ref_radius" not in st.session_state: st.session_state.val_ref_radius = 250
-if "val_ref_callsign" not in st.session_state: st.session_state.val_ref_callsign = "DL2XYZ"
-if "val_self_test_mode" not in st.session_state: st.session_state.val_self_test_mode = T["en"]["opt_self_rx"]
-if "val_self_call_b" not in st.session_state: st.session_state.val_self_call_b = ""
-if "val_slot_u" not in st.session_state: st.session_state.val_slot_u = T["en"]["opt_slot_even"]
-if "val_slot_r" not in st.session_state: st.session_state.val_slot_r = T["en"]["opt_slot_odd"]
-if "val_max_dist" not in st.session_state: st.session_state.val_max_dist = 22000
-if "val_min_spots" not in st.session_state: st.session_state.val_min_spots = 1
-if "val_min_stations" not in st.session_state: st.session_state.val_min_stations = 1
-if "val_wilcoxon" not in st.session_state: st.session_state.val_wilcoxon = "OFF"
-
-def reset_audit():
-    """Cancels the active analysis and returns the app to the idle/configuration state."""
-    st.session_state.run_mode = None
-
-def swap_tx_slots_u():
-    """Swaps the target's transmission time slot for Sequential A/B testing."""
-    reset_audit()
-    t_loc = T[st.session_state.lang]
-    st.session_state.val_slot_r = t_loc["opt_slot_odd"] if st.session_state.val_slot_u == t_loc["opt_slot_even"] else t_loc["opt_slot_even"]
-
-def swap_tx_slots_r():
-    """Swaps the reference's transmission time slot for Sequential A/B testing."""
-    reset_audit()
-    t_loc = T[st.session_state.lang]
-    st.session_state.val_slot_u = t_loc["opt_slot_odd"] if st.session_state.val_slot_r == t_loc["opt_slot_even"] else t_loc["opt_slot_even"]
-
-def update_lang():
-    """Handles UI language changes and gracefully resets dependent dropdown states."""
-    lang_map = {"EN": "en", "DE": "de"}
-    st.session_state.lang = lang_map[st.session_state.lang_selector_ui]
-    st.session_state.val_comp_mode = T[st.session_state.lang]["opt_comp_radius"]
-    st.session_state.val_self_test_mode = T[st.session_state.lang]["opt_self_rx"]
-    st.session_state.run_mode = None  
-
-if "is_demo_mode" not in st.session_state: st.session_state.is_demo_mode = False
-# ... (deine restlichen if "xyz" not in st.session_state Zeilen bleiben bestehen)
-
-def apply_demo_profile():
-    """Wendet das passende Demo-Profil basierend auf dem gewählten Vergleichsmodus an."""
-    if not st.session_state.get("is_demo_mode", False): return
-    
-    t = T[st.session_state.lang]
-    mode = st.session_state.val_comp_mode
-    
-    if mode == t["opt_comp_radius"]:
-        p = DEMO_PROFILES["radius"]
-        st.session_state.val_ref_radius = p["ref_radius"]
-    elif mode == t["opt_comp_buddy"]:
-        p = DEMO_PROFILES["buddy"]
-        st.session_state.val_ref_callsign = p["ref_callsign"]
-    elif mode == t["opt_comp_self"]:
-        # Prüfen, welcher Sub-Modus (RX oder TX) aktiv ist
-        if st.session_state.get("val_self_test_mode", t["opt_self_rx"]) == t["opt_self_rx"]:
-            p = DEMO_PROFILES["self_rx"]
-            st.session_state.val_self_call_b = p["self_call_b"]
-        else:
-            p = DEMO_PROFILES["self_tx"]
-    else: return
-
-    # Globale Parameter mit dem Profil überschreiben
-    st.session_state.val_callsign = p["callsign"]
-    st.session_state.val_qth = p["qth"]
-    st.session_state.val_band = p["band"]
-    st.session_state.val_time_mode = t["opt_custom"]
-    st.session_state.val_start_d = p["start_d"]
-    st.session_state.val_end_d = p["end_d"]
-    st.session_state.val_start_t = p["start_t"]
-    st.session_state.val_end_t = p["end_t"]
-
-def handle_comp_mode_change():
-    """Wird getriggert, wenn der Nutzer den Haupt-Vergleichsmodus umstellt."""
-    reset_audit()
-    apply_demo_profile()
-
-def handle_self_test_mode_change():
-    """Wird getriggert, wenn der Nutzer im A/B-Test zwischen RX und TX umschaltet."""
-    reset_audit()
-    apply_demo_profile()
-
-def set_reset_config():
-    """Resets all user inputs and configurations back to their default factory state."""
-    st.session_state.is_demo_mode = False
-    t = T[st.session_state.lang]
-    st.session_state.val_callsign = ""
-    st.session_state.val_qth = ""
-    st.session_state.val_band = "20m"
-    st.session_state.val_time_mode = t["opt_last_x"]
-    st.session_state.val_hours = 24
-    st.session_state.val_solar = t["opt_solar_all"]
-    st.session_state.val_comp_mode = t["opt_comp_radius"]
-    st.session_state.val_ref_radius = 100
-    st.session_state.val_max_dist = 22000
-    st.session_state.val_min_spots = 1
-    st.session_state.val_min_stations = 1
-    st.session_state.val_wilcoxon = "OFF"
-    st.session_state.run_mode = None
-
-def set_demo_config():
-    """Aktiviert die Guided Sandbox und lädt das initiale Profil."""
-    st.session_state.is_demo_mode = True
-    st.session_state.run_mode = None
-    apply_demo_profile()
-
-# ==========================================
-# UI COMPONENTS (FRAGMENTS)
-# ==========================================
-@st.fragment
-def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enriched_df, segs_df, parquet_path, line1_str, t, max_dist_km):
-    """
-    Renders the interactive Segment Inspector directly below the map.
-    Allows drill-down into specific Azimuth/Distance chunks to show histograms and tabular data.
-    Runs as an independent Streamlit fragment to prevent full-page reruns on interaction.
-    """
-    run_id = st.session_state.get("run_id", 0)
-    valid_distances = sorted([d for d in segs_df['dist_label'].dropna().unique()], key=lambda x: int(x.strip('[]km').split('-')[0]))
-    filtered_distances = [d for d in valid_distances if int(d.strip('[]km').split('-')[0]) < max_dist_km]
-    
-    lbl_dist = t.get("opt_insp_dist", "---")
-    lbl_dir = t.get("opt_insp_dir", "---")
-    opt_full = t.get("opt_full_range", "Full Range")
-    opt_all_dir = t.get("opt_all_dirs", "All Directions")
-    
-    col_insp1, col_insp2 = st.columns(2)
-    with col_insp1: sel_dist = st.selectbox("Distance", [lbl_dist] + filtered_distances + [opt_full], key=f"dist_{analysis_id}_{run_id}", label_visibility="collapsed")
-    with col_insp2:
-        if sel_dist != lbl_dist:
-            if sel_dist == opt_full: valid_dirs = sorted([d for d in segs_df['dir_name'].dropna().unique() if d in COMPASS], key=lambda x: COMPASS.index(x))
-            else: valid_dirs = sorted([d for d in segs_df[segs_df['dist_label'] == sel_dist]['dir_name'].dropna().unique() if d in COMPASS], key=lambda x: COMPASS.index(x))
-            if not valid_dirs: valid_dirs = [t.get("opt_no_station", "No Stations")]
-            if valid_dirs != [t.get("opt_no_station", "No Stations")]: sel_dir = st.selectbox("Direction", [lbl_dir] + valid_dirs + [opt_all_dir], key=f"dir_{analysis_id}_{run_id}", label_visibility="collapsed")
-            else: sel_dir = st.selectbox("Direction", [lbl_dir] + valid_dirs, key=f"dir_{analysis_id}_{run_id}", disabled=True, label_visibility="collapsed")
-        else: sel_dir = st.selectbox("Direction", [lbl_dir], key=f"dir_{analysis_id}_{run_id}", disabled=True, label_visibility="collapsed")
-
-    # If user selected a valid segment, process the inspection data
-    if sel_dist != lbl_dist and sel_dir != lbl_dir and sel_dir != t.get("opt_no_station", "No Stations"):
-        selected_seg = f"{sel_dist if sel_dist != opt_full else t['opt_full_range']} | {sel_dir if sel_dir != opt_all_dir else t['opt_all_dirs']}"
-        df_seg = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
-        
-        if sel_dist != opt_full: df_seg = df_seg[df_seg['dist_label'] == sel_dist]
-        if sel_dir != opt_all_dir: df_seg = df_seg[df_seg['dir_name'] == sel_dir]
-            
-        vals = df_seg['stat_val'].dropna()
-        target_call = st.session_state.val_callsign.upper()
-        
-        # Setup specific labels based on the active test mode
-        if st.session_state.val_comp_mode == t["opt_comp_self"]:
-            if st.session_state.val_self_test_mode == t["opt_self_rx"]:
-                lbl_only_me = t['leg_only_me'].format(callsign=target_call)
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign=st.session_state.val_self_call_b.upper())
-                ref_header = st.session_state.val_self_call_b.upper()
-                col_u_name = target_call
-            else:
-                lbl_only_me = t['leg_only_me'].format(callsign="Setup A")
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign="Setup B")
-                ref_header = "Setup B"
-                col_u_name = "Setup A"
-        else:
-            lbl_only_me = t['leg_only_me'].format(callsign=target_call)
-            col_u_name = target_call
-            if st.session_state.val_comp_mode == t["opt_comp_radius"]: 
-                lbl_only_ref = t['leg_only_ref_radius']
-                ref_header = t['tbl_col_only_ref']
-            else: 
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign=st.session_state.val_ref_callsign.upper())
-                ref_header = st.session_state.val_ref_callsign.upper()
-
-        remote_str = t['txt_rx_stations'] if analysis_id.startswith("TX") else t['txt_tx_stations']
-        
-        # Build the sub-footer info string detailing decode counts
-        if is_compare and 'count_only_u' in df_seg.columns:
-            if is_sequential:
-                seg_line2 = f"Both (Async): {len(df_seg[(df_seg['count_only_u']>0) & (df_seg['count_only_r']>0)])}  |  {lbl_only_me}: {int(df_seg['count_only_u'].sum())}  |  {lbl_only_ref}: {int(df_seg['count_only_r'].sum())}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
-            else:
-                seg_joint = df_seg[df_seg['spot_count'] > 0]
-                seg_line2 = f"{t['txt_joint_decodes']}: {int(df_seg['spot_count'].sum())}  |  {lbl_only_me}: {int(df_seg['count_only_u'].sum())}  |  {lbl_only_ref}: {int(df_seg['count_only_r'].sum())}  |  {t['txt_joint']} {remote_str}: {len(seg_joint)}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
-        else:
-            seg_line2 = f"{t['txt_total_decodes']}: {int(df_seg['spot_count'].sum())}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
-
-        # Render Histogram & Yield Chart
-        has_plot_data = False
-        if not vals.empty: 
-            has_plot_data = True
-        elif is_compare and 'count_only_u' in df_seg.columns and (df_seg['count_only_u'].sum() > 0 or df_seg['count_only_r'].sum() > 0): 
-            has_plot_data = True
-
-        if has_plot_data:
-            fig_hist = plt.figure(figsize=(12, 4.5), facecolor='black')
-            
-            # Setup Layout based on Absolute vs. Compare Mode
-            if is_compare and 'count_only_u' in df_seg.columns:
-                fig_hist.subplots_adjust(left=0.05, right=0.95, bottom=0.25, top=0.80, wspace=0.3)
-                gs = fig_hist.add_gridspec(1, 3)
-                ax_yield = fig_hist.add_subplot(gs[0, 0])
-                ax_hist = fig_hist.add_subplot(gs[0, 1:])
-                
-                # 1. Setup Yield Bar Chart (Left)
-                ax_yield.set_facecolor('black')
-                ax_yield.tick_params(colors='white')
-                for spine in ax_yield.spines.values(): spine.set_color('#444444')
-                
-                cnt_u = int(df_seg['count_only_u'].sum())
-                cnt_r = int(df_seg['count_only_r'].sum())
-                
-                if is_sequential:
-                    cnt_shared = len(df_seg[(df_seg['count_only_u']>0) & (df_seg['count_only_r']>0)])
-                    lbl_shared = "Async"
-                else:
-                    cnt_shared = int(df_seg['spot_count'].sum())
-                    lbl_shared = "Joint"
-                
-                yield_counts = [cnt_u, cnt_shared, cnt_r]
-                yield_labels = [col_u_name, lbl_shared, ref_header]
-                bar_colors = ["#36aaf9", "#36aaf9", "#36aaf9"]  # Monochrome Blue matching the histogram
-                
-                bars = ax_yield.bar(yield_labels, yield_counts, color=bar_colors, alpha=0.8, edgecolor='black')
-                ax_yield.set_ylabel(t["lbl_hist_count"], color='white')
-                ax_yield.set_title("System Sensitivity (Yield)", color='white', fontweight='bold', pad=10)
-                
-                # Add percentages on top of the bars
-                total_yield = sum(yield_counts)
-                if total_yield > 0:
-                    for bar in bars:
-                        height = bar.get_height()
-                        ax_yield.text(bar.get_x() + bar.get_width()/2., height + (max(yield_counts)*0.02),
-                                f'{(height/total_yield)*100:.1f}%',
-                                ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
-                
-                # Adjust Titles for Dual Plot
-                ax_hist.set_title("Hardware Linearity (Δ SNR)", color='white', fontweight='bold', pad=10)
-                fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
-                
-            else:
-                # Fallback for Absolute Mode (Single Plot)
-                fig_hist.subplots_adjust(left=0.05, right=0.85, bottom=0.25, top=0.85)
-                ax_hist = fig_hist.add_subplot(1,1,1)
-                ax_hist.set_title(f"{title} - {selected_seg}", color='white', fontweight='bold', pad=15)
-
-            # 2. Common Histogram Setup (Right / Full)
-            ax_hist.set_facecolor('black')
-            ax_hist.tick_params(colors='white')
-            for spine in ax_hist.spines.values(): spine.set_color('#444444')
-            
-            if not vals.empty:
-                med = vals.median()
-                val_counts = vals.value_counts().sort_index()
-                ax_hist.bar(val_counts.index, val_counts.values, width=0.4, align='center', color='#36aaf9', alpha=0.8, edgecolor='black')
-                
-                if (vals.max() - vals.min()) <= 30:
-                    ticks = np.arange(np.floor(vals.min()), np.ceil(vals.max()) + 1, 1.0)
-                    ax_hist.set_xticks(ticks)
-                    
-                ax_hist.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=2, label=t["lbl_med_seg"].format(med=med))
-                ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
-            else:
-                # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
-                ax_hist.text(0.5, 0.5, t["lbl_no_joint"], color='white', ha='center', va='center', fontsize=12)
-                ax_hist.set_xticks([])
-                ax_hist.set_yticks([])
-                
-            station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
-            if not is_compare: 
-                ax_hist.set_xlabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
-                ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
-            else: 
-                ax_hist.set_xlabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
-                ax_hist.set_ylabel("Joint Spots", color='white')
-            
-            # 3. Add Common Footer Text
-            fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
-            
-            st.pyplot(fig_hist, width='stretch')
-            plt.close(fig_hist)
-        else:
-            st.info(t["lbl_no_joint"], icon="ℹ️")
-            st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
-
-        st.markdown(f"**{t['lbl_insights']}**{t['lbl_insights_sub']}")
-        
-        station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
-        
-        # Render Interactive Master Table
-        if not is_compare:
-            disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'stat_val']].copy()
-            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_spots'], t['tbl_col_med_snr']]
-        else:
-            disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
-            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_joint'], t['tbl_col_only_u'].format(callsign=col_u_name), lbl_only_ref, t['tbl_col_med_delta']]
-        
-        km_col = t['tbl_col_km']
-        az_col = t['tbl_col_az']
-        disp_df[km_col] = disp_df[km_col].round(0).astype(int)
-        disp_df[az_col] = disp_df[az_col].round(1)
-        
-        sorted_disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
-        
-        tbl_event = st.dataframe(sorted_disp_df, width='stretch', hide_index=True, selection_mode="multi-row", on_select="rerun", key=f"tbl_{analysis_id}_{run_id}_{selected_seg}")
-        
-        # Render Raw Drill-Down Data (if user clicks a row)
-        sel_rows = tbl_event.selection.rows
-        if sel_rows:
-            if len(sel_rows) == 1: st.markdown(t['lbl_drill_single'].format(station=sorted_disp_df.iloc[sel_rows[0]][station_col]))
-            else: st.markdown(t['lbl_drill_multi'].format(count=len(sel_rows)))
-            sel_stations = sorted_disp_df.iloc[sel_rows][station_col].tolist()
-            
-            try:
-                # Load the raw spots straight from the parquet cache for blazing fast drill-downs
-                station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', sel_stations)])
-                meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_med_snr']]] if not is_compare else sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_med_delta']]]
-                station_df = station_df.merge(meta_df, left_on='peer_sign', right_on=station_col, how='left')
-                
-                if not is_compare:
-                    station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
-                    drill_df = station_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr', 'power', 'stat_val', t['tbl_col_med_snr']]].copy()
-                    drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm. SNR (dB)', t['tbl_col_med_snr']]
-                    st.dataframe(drill_df, width='stretch', hide_index=True)
-                    
-                else:
-                    if is_sequential:
-                        joint_df = station_df.copy()
-                        if not joint_df.empty:
-                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
-                            col_u = f'{col_u_name} SNR (dB)'
-                            col_r = f'{ref_header} SNR (dB)'
-                            joint_df[col_u] = np.where(joint_df['is_me'] == 1, joint_df['stat_val'], np.nan)
-                            joint_df[col_r] = np.where(joint_df['is_me'] == 0, joint_df['stat_val'], np.nan)
-                            col_delta_lbl = t['tbl_col_med_delta'].replace("Median ", "")
-                            joint_df[col_delta_lbl] = np.nan
-                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl, t['tbl_col_med_delta']]].copy()
-                            st.dataframe(drill_df, width='stretch', hide_index=True)
-                        else: st.info("No spots available for the selected station(s).", icon="ℹ️")
-                    else:
-                        joint_df = station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
-                        if not joint_df.empty:
-                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
-                            joint_df['Δ SNR (dB)'] = (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1)
-                            col_u = f'{col_u_name} SNR (dB)'
-                            col_r = f'{ref_header} SNR (dB)'
-                            col_delta_lbl = t['tbl_col_med_delta'].replace("Median ", "")
-                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)', t['tbl_col_med_delta']]].copy()
-                            drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl, t['tbl_col_med_delta']]
-                            st.dataframe(drill_df, width='stretch', hide_index=True)
-                        else: st.info("No joint spots available for the selected station(s).", icon="ℹ️")
-            except FileNotFoundError: st.warning("Cache file expired. Please Run Analysis again.")
-
-@st.fragment
-def render_lazy_download(analysis_id, fig, callsign, t):
-    """
-    Renders a subtle 'Render High-Res Map' button that dynamically generates
-    a 300 DPI PNG map for download upon user request without blocking the UI layout.
-    """
-    run_id = st.session_state.get("run_id", 0)
-    buf_key = f"img_buf_{analysis_id}_{run_id}"
-    if buf_key in st.session_state:
-        st.download_button("💾 Download", data=st.session_state[buf_key], file_name=f"WSPR_Map_{analysis_id}_{callsign}.png", mime="image/png", type="tertiary", width='stretch', key=f"dl_{analysis_id}_{run_id}")
-    else:
-        if st.button("Render High-Res Map ⚙️", key=f"prep_{analysis_id}_{run_id}", type="tertiary", width='stretch'):
-            with st.spinner("⏳"):
-                if fig.axes:
-                    ax = fig.axes[0]
-                    # Apply country borders explicitly for the high-res export
-                    ax.add_feature(cfeature.BORDERS, linewidth=0.6, edgecolor="#414040", zorder=5, alpha=0.5)
-                img_buf = io.BytesIO()
-                fig.savefig(img_buf, format="png", dpi=300, facecolor='black', edgecolor='none')
-                st.session_state[buf_key] = img_buf.getvalue()
-            st.rerun(scope="fragment")
-
-# ==========================================
 # MAIN UI & APPLICATION FLOW
 # ==========================================
 st.set_page_config(page_title="WSPRadar.org | Antenna Benchmarking", page_icon="📡", layout="centered")
+
+# Bootstrap the session state explicitly AFTER page config and BEFORE any UI rendering
+init_session_state()
 
 # Open Graph Meta Tags for rich sharing previews
 st.markdown(f"""
@@ -452,146 +76,10 @@ st.markdown(f"""
 # Select the appropriate localization dictionary
 t = T[st.session_state.lang]
 
-# Main Custom CSS injection
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
-    html, body, [class*="css"] { font-family: 'Space Mono', monospace !important; }
-    .stApp { background-color: #050a15; background-image: radial-gradient(circle at 50% 50%, #0a1428 0%, #02040a 100%); color: #e0e0e0; }
-    
-    .block-container { max-width: 1024px !important; padding-top: 2rem !important; }
-    
-    div.stButton > button[kind="primary"] {
-        background-color: transparent !important; color: #39ff14 !important; border: 2px solid #39ff14 !important;
-        font-family: 'Space Mono', monospace !important; font-size: 1.0rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 1px; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2), inset 0 0 10px rgba(57, 255, 20, 0.1); transition: all 0.3s ease;
-    }
-    div.stButton > button[kind="primary"]:hover { background-color: rgba(57, 255, 20, 0.1) !important; box-shadow: 0 0 20px rgba(57, 255, 20, 0.6), inset 0 0 15px rgba(57, 255, 20, 0.3); }
-    
-    /* Sekundäre Buttons (Reset, Demo) */
-    div.stButton > button[kind="secondary"] { border-color: rgba(57, 255, 20, 0.5) !important; color: #e0e0e0 !important; font-size: 0.85rem !important; padding: 0.2rem 0.5rem !important; margin-top: 10px; transition: all 0.3s ease; }
-    div.stButton > button[kind="secondary"]:hover { border-color: #39ff14 !important; color: #39ff14 !important; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important; }
+# Apply global custom CSS styling
+apply_custom_css()
 
-    /* Selectbox (Sprachauswahl) an den Button-Style anpassen */
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-        background-color: transparent !important;
-        border: 1px solid rgba(57, 255, 20, 0.5) !important;
-        border-radius: 0.5rem !important;
-        color: #e0e0e0 !important;
-        font-family: 'Space Mono', monospace !important;
-        min-height: 40px !important; 
-        margin-top: 10px; 
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {
-        border-color: #39ff14 !important;
-        box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important;
-    }
-    
-    /* NEU: Zwingt den inneren Text-Container der Selectbox zur absoluten Zentrierung */
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div > div:first-child {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        width: 100% !important;
-        padding-left: 24px; /* Visueller Ausgleich für das Pfeil-Icon rechts */
-    }
-
-    /* Die Schriftart und Größe im geschlossenen Select-Feld erzwingen */
-    div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
-        font-family: 'Space Mono', monospace !important;
-        font-size: 0.85rem !important;
-        color: inherit !important;
-        text-align: center !important;
-    }
-            
-    /* Das Dropdown-Pfeil-Icon einfärben */
-    div[data-testid="stSelectbox"] svg {
-        fill: #39ff14 !important;
-    }
-    
-    /* NEU: Disabled State via :has() Pseudo-Klasse */
-    div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div {
-        border-color: rgba(255, 255, 255, 0.2) !important;
-        background-color: transparent !important;
-        cursor: not-allowed !important;
-    }
-    div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div:hover {
-        border-color: rgba(255, 255, 255, 0.2) !important;
-        box-shadow: none !important;
-    }
-    div[data-testid="stSelectbox"]:has(input[disabled]) svg {
-        fill: #888888 !important;
-    }
-    
-    /* Das geöffnete Dropdown-Menü (Popover) stylen */
-    div[data-baseweb="popover"] ul {
-        background-color: #0a1428 !important;
-        border: 1px solid #39ff14 !important;
-        border-radius: 0.5rem !important;
-    }
-    div[data-baseweb="popover"] ul li {
-        font-family: 'Space Mono', monospace !important;
-        font-size: 0.85rem !important;
-        color: #e0e0e0 !important;
-        background-color: transparent !important;
-        text-align: center !important;
-    }
-    div[data-baseweb="popover"] ul li:hover {
-        color: #39ff14 !important;
-        background-color: rgba(57, 255, 20, 0.1) !important;
-    }
-
-    label[data-testid="stWidgetLabel"] p, label[data-testid="stWidgetLabel"] div, div[data-testid="stRadio"] p, label[data-testid="stCheckbox"] p, label[data-testid="stCheckbox"] span { font-family: 'Space Mono', monospace !important; font-size: 14px !important; font-weight: 700 !important; color: #cccccc !important; }
-    summary[data-testid="stExpanderToggle"] p { font-family: 'Space Mono', monospace !important; font-size: 16px !important; font-weight: 700 !important; color: #39ff14 !important; text-transform: uppercase; letter-spacing: 1px; }
-    h3.section-title { font-family: 'Rajdhani', sans-serif !important; font-size: 2rem !important; color: #ffffff !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 10px; margin-top: 1.5rem; margin-bottom: 1.5rem; letter-spacing: 1px; }
-    .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }
-    .stMarkdown h4 { color: #ffffff !important; margin-top: 1.8rem; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
-    .stMarkdown ol, .stMarkdown ul { padding-left: 2.5rem !important; margin-top: 0.5rem; }
-    .stMarkdown li { margin-bottom: 0.8rem; }
-    
-    a.header-anchor { display: none !important; }
-    
-    .pc-break { display: inline; }
-    .mobile-pipe { display: none; }
-    
-    @media (max-width: 768px) {
-        .block-container { padding-top: 1.5rem !important; } 
-        
-        /*Mobile List Indentation Fix: Weniger Padding spart Platz */
-        .stMarkdown ol, .stMarkdown ul { padding-left: 1.1rem !important; }
-        .stMarkdown li { margin-bottom: 0.5rem; font-size: 0.9rem; }
-            
-        .header-container { 
-            flex-wrap: wrap !important; 
-            padding-bottom: 0.3rem !important; 
-            margin-bottom: 0.5rem !important; 
-            justify-content: center !important;
-            align-items: center !important;
-        }
-        .text-container { display: contents !important; }
-        img.main-logo { display: block !important; width: 65px !important; height: 65px !important; margin-right: 12px !important; margin-bottom: 0 !important; }
-        h1.main-title { font-size: 2.8rem !important; text-align: left !important; line-height: 1.0 !important; margin: 0 !important; }
-        h2.main-subtitle { 
-            width: 100% !important; 
-            font-size: 0.83rem !important; 
-            letter-spacing: 0.5px !important; 
-            margin-top: 2px !important; 
-            text-align: center !important; 
-            margin-left: 0px !important; 
-            white-space: normal !important; 
-            line-height: 1.3 !important; 
-        }
-        
-        .dev-credit-container { font-size: 0.7rem !important; line-height: 1.3 !important; padding: 0 5px !important; margin-bottom: 1rem !important; }
-        .pc-break { display: none !important; }
-        .mobile-pipe { display: inline !important; }
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Header Section: Logo and Titles for PC 
+# Header Section: Logo and Titles for PC
 logo_base64 = get_base64_of_bin_file("img/WSPRadar.png")
 st.markdown(f"""
 <div class="header-container" style="display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-top: 0px;">
@@ -639,96 +127,29 @@ if st.session_state.is_demo_mode:
     </style>
     """, unsafe_allow_html=True)
 
-# ----------------------------------------
-# Expander 1: Core Parameters
-# ----------------------------------------
-with st.expander(t["exp_core"], expanded=True):
-    # Zeile 1: Callsign & Time Mode (Immer 2 Spalten)
-    r1c1, r1c2 = st.columns(2)
-    with r1c1:
-        callsign = st.text_input(t["lbl_callsign"], key="val_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit).upper()
-    with r1c2:
-        time_mode = st.radio(t["lbl_time_mode"], [t["opt_last_x"], t["opt_custom"]], key="val_time_mode", horizontal=True, disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+# ==========================================
+# UI COMPONENTS RENDER BLOCK
+# ==========================================
+render_core_expander(t)
+render_compare_expander(t)
+render_advanced_expander(t)
 
-    # Zeile 2 & 3: Dynamisches flaches Layout (ohne Nesting für pixelperfekte Ausrichtung)
-    if time_mode == t["opt_last_x"]:
-        # Layout für relative Zeit (2 Spalten pro Zeile)
-        r2c1, r2c2 = st.columns(2)
-        with r2c1: qth_locator = st.text_input(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        with r2c2: hours = st.slider(t["lbl_hours"], 1, 168, key="val_hours", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        
-        r3c1, r3c2 = st.columns(2)
-        with r3c1: band = st.selectbox(t["lbl_band"], ["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "All"], key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        
-    else:
-        # Layout für Custom Zeit (Asymmetrisch 3 Spalten pro Zeile: 50% | 25% | 25%)
-        today_utc = datetime.now(timezone.utc).date()
-        
-        # Zeile 2: QTH, Start Datum, End Datum
-        r2c1, r2c2, r2c3 = st.columns([0.5, 0.25, 0.25], vertical_alignment="bottom")
-        with r2c1: qth_locator = st.text_input(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        with r2c2: start_d = st.date_input(t["lbl_start_d"], key="val_start_d", max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
-        with r2c3:
-            max_allowed_end = min(start_d + timedelta(days=MAX_DAYS_HISTORY), today_utc)
-            min_allowed_end = start_d
-            if st.session_state.val_end_d > max_allowed_end: st.session_state.val_end_d = max_allowed_end
-            elif st.session_state.val_end_d < min_allowed_end: st.session_state.val_end_d = min_allowed_end
-            end_d = st.date_input(t["lbl_end_d"], key="val_end_d", min_value=min_allowed_end, max_value=max_allowed_end, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
-
-        # Zeile 3: Band, Start Zeit, End Zeit
-        r3c1, r3c2, r3c3 = st.columns([0.5, 0.25, 0.25], vertical_alignment="bottom")
-        with r3c1: band = st.selectbox(t["lbl_band"], ["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "All"], key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        with r3c2: start_t_input = st.time_input(t["lbl_start_t"], key="val_start_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        with r3c3: end_t_input = st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-
-# ----------------------------------------
-# Expander 2: Compare Engine
-# ----------------------------------------
-with st.expander(t["exp_comp"], expanded=True):
-    col_comp_l, col_comp_r = st.columns([0.4, 0.6])
-    with col_comp_l:
-        comp_mode = st.radio(t["lbl_comp_mode"], [t["opt_comp_radius"], t["opt_comp_buddy"], t["opt_comp_self"]], key="val_comp_mode", on_change=handle_comp_mode_change)
-    
-    with col_comp_r:
-        if comp_mode == t["opt_comp_radius"]:
-            st.slider(t["lbl_radius"], 10, 250, key="val_ref_radius", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        
-        elif comp_mode == t["opt_comp_buddy"]:
-            # Sperrt das Feld NUR, wenn Demo-Modus aktiv ist UND ein String konfiguriert wurde.
-            buddy_locked = st.session_state.is_demo_mode and bool(DEMO_PROFILES["buddy"]["ref_callsign"])
-            ref_callsign_input = st.text_input(t["lbl_ref_call"], key="val_ref_callsign", disabled=buddy_locked, on_change=reset_audit).upper()
-            if ref_callsign_input == callsign and callsign != "":
-                st.error(t["err_self_test"])
-                
-        elif comp_mode == t["opt_comp_self"]:
-            disp_call = callsign if callsign else "..."
-            # Schalter bleibt im Demo-Modus offen, damit zwischen RX und TX Profil gewechselt werden kann
-            self_test_mode = st.radio(t["lbl_self_test_mode"].format(callsign=disp_call), [t["opt_self_rx"], t["opt_self_tx"]], key="val_self_test_mode", on_change=handle_self_test_mode_change)
-            
-            if self_test_mode == t["opt_self_rx"]:
-                cs1, cs2 = st.columns(2)
-                with cs1: st.text_input("Setup A Callsign (Your Callsign)", value=callsign, disabled=True)
-                with cs2: self_call_b = st.text_input("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", disabled=st.session_state.is_demo_mode, on_change=reset_audit).upper()
-                # Defensive UI validation for callsigns
-                if len(self_call_b) > 0 and self_call_b == callsign:
-                    st.error("Setup B callsign must be different from Setup A (e.g., use a /P suffix).")
-            else:
-                cs1, cs2 = st.columns(2)
-                with cs1: st.selectbox(t["lbl_slot_u"], [t["opt_slot_even"], t["opt_slot_odd"]], key="val_slot_u", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_u)
-                with cs2: st.selectbox(t["lbl_slot_r"], [t["opt_slot_odd"], t["opt_slot_even"]], key="val_slot_r", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_r)
-
-# ----------------------------------------
-# Expander 3: Advanced Configurations
-# ----------------------------------------
-with st.expander(t["exp_adv"], expanded=True):
-    col3, col4 = st.columns(2)
-    with col3: 
-        st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
-        max_dist_km = st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
-    with col4:
-        min_spots = st.slider(t["lbl_min_spots"], 1, 50, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
-        min_stations = st.slider(t["lbl_min_stations"], 1, 20, key="val_min_stations", help=t["hlp_min_stations"], on_change=reset_audit)
-        st.select_slider(t["lbl_wilcoxon"], options=["OFF", "80%", "90%", "95%", "99%"], key="val_wilcoxon", on_change=reset_audit)
+# ==========================================
+# STATE TO LOCAL VARIABLES BRIDGE
+# ==========================================
+# Extract values from session state to local variables so the execution engine 
+# below can run without any structural changes.
+callsign = st.session_state.val_callsign.upper()
+qth_locator = st.session_state.val_qth
+band = st.session_state.val_band
+time_mode = st.session_state.val_time_mode
+hours = st.session_state.val_hours
+start_d = st.session_state.val_start_d
+end_d = st.session_state.val_end_d
+start_t_input = st.session_state.val_start_t
+end_t_input = st.session_state.val_end_t
+comp_mode = st.session_state.val_comp_mode
+max_dist_km = st.session_state.val_max_dist
 
 # ==========================================
 # MATHEMATICAL PREPARATIONS
@@ -796,173 +217,56 @@ status_ui = st.empty()
 # ==========================================
 if st.session_state.run_mode:
     
-    # Speichermanagement: Veraltete Parquet-Dateien vor dem neuen Lauf bereinigen
+    # Storage Management: Purge expired parquet cache files before starting a new run
     cleanup_old_parquets()
     
-    # Strikte Prüfung auf Demo-Run komplett ohne Hardcoding (inklusive Band-Check für mehr Präzision)
-    # Direkte, kugelsichere Prüfung über unseren Guided Sandbox State
+    # Delegate complex SQL query generation to the analysis runner engine
+    analyses = build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign)
     is_demo_run = st.session_state.get("is_demo_mode", False)
 
-    time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
-    
-    is_sequential = False
-    
-    if comp_mode == t["opt_comp_radius"]:
-        ref_radius = st.session_state.val_ref_radius
-    elif comp_mode == t["opt_comp_buddy"]:
-        ref_callsign = st.session_state.val_ref_callsign.upper()
-    elif comp_mode == t["opt_comp_self"]:
-        ref_callsign = callsign
-        if st.session_state.val_self_test_mode == t["opt_self_tx"]:
-            is_sequential = True
-        elif st.session_state.val_self_test_mode == t["opt_self_rx"]:
-            ref_callsign = st.session_state.val_self_call_b
-    
-    def get_slot_sql(slot_val):
-        if slot_val == t["opt_slot_even"]: return "AND toMinute(time) % 4 = 0"
-        if slot_val == t["opt_slot_odd"]: return "AND toMinute(time) % 4 = 2"
-        return ""
-
-    slot_sql_u = get_slot_sql(st.session_state.val_slot_u) if is_sequential else ""
-    slot_sql_r = get_slot_sql(st.session_state.val_slot_r) if is_sequential else ""
-    
-    # Target SQL Filters
-    if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
-        # Strict exact match needed to prevent 'DL1MKS%' from swallowing 'DL1MKS/P' spots
-        tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}"
-        rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}"
-    else:
-        tx_target_sql = f"tx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
-        rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
-
-    # Peer SQL Filters
-    if comp_mode == t["opt_comp_radius"]:
-        lat_diff, lon_diff = ref_radius / 111.0, ref_radius / (111.0 * np.cos(np.radians(lat_0)))
-        tx_peer_sql = f"tx_sign NOT LIKE '{callsign}%' {band_filter} AND tx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND tx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff} AND {time_filter}"
-        rx_peer_sql = f"rx_sign NOT LIKE '{callsign}%' {band_filter} AND rx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND rx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff} AND {time_filter}"
-        comp_title = t["comp_title_ref_radius"].format(radius=ref_radius)
-        display_callsign = callsign
-    else:
-        if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
-            tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}"
-            rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}"
-        else:
-            tx_peer_sql = f"tx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
-            rx_peer_sql = f"rx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
-            
-        if comp_mode == t["opt_comp_self"]:
-            if st.session_state.val_self_test_mode == t["opt_self_rx"]:
-                display_callsign = f"{callsign} (Setup A)"
-                comp_title = f"{ref_callsign} (Setup B)"
-            else:
-                display_callsign = f"{callsign} (Setup A)"
-                comp_title = f"{callsign} (Setup B)"
-        else:
-            display_callsign = callsign
-            comp_title = t["comp_title_ref"].format(callsign=ref_callsign)
-
-    rx_cycle_filter = ""
-    # Explicit synchronization layer for RX tests
-    if st.session_state.run_mode == "RX" and not is_sequential:
-        with st.spinner(t["msg_sync"]):
-            rx_cycles_query = f"SELECT DISTINCT floor(toUnixTimestamp(time)/120) AS ts FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 FORMAT CSVWithNames"
-            rx_cycles_df = fetch_wspr_data(rx_cycles_query, is_demo=is_demo_run)
-            rx_cycle_filter = f"AND floor(toUnixTimestamp(time)/120) IN ({','.join(rx_cycles_df['ts'].astype(int).astype(str))})" if rx_cycles_df is not None and not rx_cycles_df.empty else "AND 1=0"
-
-    # Assemble Analysis Batches
-    analyses = []
-    
-    if st.session_state.run_mode == "TX":
-        analyses.append({
-            "id": "TX_ABS", "title": t["fig_tx_abs"].format(callsign=callsign), "is_compare": False, "is_sequential": False,
-            "query": f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val FROM wspr.rx WHERE {tx_target_sql} {slot_sql_u} AND rx_lat != 0 FORMAT CSVWithNames"
-        })
-        if is_sequential:
-            tx_comp_query = f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} {slot_sql_u} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} {slot_sql_r} AND rx_lat != 0 FORMAT CSVWithNames"
-        else:
-            tx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, any(peer_grid) AS peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, maxIf(snr - power + 30, is_me = 0) AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r FROM (SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} AND rx_lat != 0) GROUP BY time_slot, peer_sign FORMAT CSVWithNames"
-        
-        analyses.append({"id": "TX_COMP", "title": t["fig_tx_comp"].format(callsign=display_callsign, comp_title=comp_title), "is_compare": True, "is_sequential": is_sequential, "query": tx_comp_query})
-
-    elif st.session_state.run_mode == "RX":
-        analyses.append({
-            "id": "RX_ABS", "title": t["fig_rx_abs"].format(callsign=callsign), "is_compare": False, "is_sequential": False,
-            "query": f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val FROM wspr.rx WHERE {rx_target_sql} {slot_sql_u} AND tx_lat != 0 FORMAT CSVWithNames"
-        })
-        if is_sequential:
-            rx_comp_query = f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} {slot_sql_u} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} {slot_sql_r} AND tx_lat != 0 FORMAT CSVWithNames"
-        else:
-            rx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, any(peer_grid) AS peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, maxIf(snr - power + 30, is_me = 0) AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r FROM (SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} {rx_cycle_filter} AND tx_lat != 0) GROUP BY time_slot, peer_sign FORMAT CSVWithNames"
-        
-        analyses.append({"id": "RX_COMP", "title": t["fig_rx_comp"].format(callsign=display_callsign, comp_title=comp_title), "is_compare": True, "is_sequential": is_sequential, "query": rx_comp_query})
-
-    # Prepare batch rendering buffers
+    # Buffers to hold UI fragments that must be rendered AFTER the maps are drawn
     deferred_render_data = []
     lbl_wait_seg = "⏳ Lade..." if st.session_state.lang == "de" else "⏳ Loading..."
 
+    # Initialize the visual audit log for the user
     status_log = ["**📡 System Audit Status:**"]
     status_ui.markdown("  \n".join(status_log))
     
-    # Process Map Loop
+    # Iterate through the generated SQL batches (e.g., Target vs. Reference)
     for i, analysis in enumerate(analyses):
         st.session_state._db_hit = False 
         t_start = time.time() 
         
         with st.spinner(t["msg_proc"].format(id=analysis['id'])):
-            # 1. Fetch raw data from backend module
+            
+            # Step 1: Fetch raw spot data from the backend (Cache or ClickHouse)
             df = fetch_wspr_data(analysis['query'], is_demo=is_demo_run)
             fetch_time = time.time() - t_start 
             
+            # Update the UI audit log with fetch performance metrics
             source_str = "🌐 wspr.live DB" if st.session_state.get("_db_hit", False) else "⚡ RAM Cache"
             status_log.append(f"- Map {i+1}/2 ({analysis['title']}): Loaded from **{source_str}** in {fetch_time:.2f}s")
             status_ui.markdown("  \n".join(status_log))
             
             if df is not None and not df.empty:
                 
-                # Apply Solar Filtering locally if requested
-                if st.session_state.val_solar != t["opt_solar_all"]:
-                    if analysis['is_compare'] and not analysis['is_sequential']: df['dt_time'] = pd.to_datetime(df['time_slot'] * 120, unit='s')
-                    else: df['dt_time'] = pd.to_datetime(df['time'])
-                    
-                    df['solar'] = df['dt_time'].apply(lambda dt: get_solar_state(dt, lat_0, lon_0))
-                    target_state = 'day' if st.session_state.val_solar == t["opt_solar_day"] else ('night' if st.session_state.val_solar == t["opt_solar_night"] else 'grey')
-                    df = df[df['solar'] == target_state]
-                    
-                    if df.empty:
-                        st.warning(t["warn_no_data"].format(title=analysis['title']))
-                        continue
+                # Step 2: Apply mathematical filters (Solar, Minimum Spot thresholds)
+                df, warning_msg = apply_post_fetch_filters(df, analysis, lat_0, lon_0, t)
+                
+                # Halt execution for this specific map if filters depleted all valid data
+                if warning_msg or df.empty:
+                    st.warning(warning_msg or t["warn_no_data"].format(title=analysis['title']))
+                    continue
 
-                # ==========================================
-                # GLOBAL MIN. SPOTS FILTER (Unique Cycles)
-                # ==========================================
-                min_spots = st.session_state.val_min_spots
-                if min_spots > 1:
-                    # Dynamische Bestimmung der 2-Minuten-Zeitfenster
-                    if 'time_slot' in df.columns:
-                        cycle_col = 'time_slot'
-                    else:
-                        # 100% Pandas-Version agnostische Berechnung der 2-Minuten Zyklen
-                        df['tmp_cycle'] = (pd.to_datetime(df['time'], utc=True) - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta('120s')
-                        cycle_col = 'tmp_cycle'
-                    
-                    # Zählen der einzigartigen Zyklen pro Remote-Station
-                    unique_cycles = df.groupby('peer_sign')[cycle_col].nunique()
-                    valid_peers = unique_cycles[unique_cycles >= min_spots].index
-                    df = df[df['peer_sign'].isin(valid_peers)]
-                    
-                    if 'tmp_cycle' in df.columns:
-                        df = df.drop(columns=['tmp_cycle'])
-                    
-                    if df.empty:
-                        st.warning(f"Keine Stationen mit mindestens {min_spots} Spots (Zyklen) gefunden für {analysis['title']}.")
-                        continue
-
-                # Dump current valid data frame to disk-cache for ultra-fast inspector drill-downs later
+                # Step 3: Dump the validated dataframe to disk (Parquet) 
+                # This enables ultra-fast, memory-efficient drill-downs in the segment inspector later
                 parquet_path = f"{CACHE_DIR}/spots_{analysis['id']}_{st.session_state.run_id}.parquet"
-                try: df.to_parquet(parquet_path, index=False)
-                except Exception as e: st.error(f"Error writing cache: {e}")
+                try: 
+                    df.to_parquet(parquet_path, index=False)
+                except Exception as e: 
+                    st.error(f"Error writing cache: {e}")
 
-                # 2. Fire up the backend plotting engine
+                # Step 4: Pass the data to the backend plotting engine to generate the Matplotlib figure
                 plot_result = generate_map_plot(
                     df, analysis['title'], analysis['is_compare'], analysis['is_sequential'], 
                     start_t, end_t, max_dist_km, analysis['id'], 
@@ -970,6 +274,7 @@ if st.session_state.run_mode:
                     lat_0, lon_0
                 )
                 
+                # Force garbage collection to free up RAM immediately after plotting
                 del df
                 gc.collect()
                 
@@ -977,14 +282,19 @@ if st.session_state.run_mode:
                     st.warning(t["warn_no_data"].format(title=analysis['title']))
                     continue
                     
+                # Unpack the results from the plotting engine
                 fig, enriched_df, segs_df, line1_str = plot_result
                 run_id = st.session_state.get("run_id", 0)
                 
+                # Render the map and the high-res download button to the UI
                 col_spacer, col_btn = st.columns([0.76, 0.24], vertical_alignment="bottom")
-                with col_btn: render_lazy_download(analysis['id'], fig, callsign, t)
+                with col_btn: 
+                    render_lazy_download(analysis['id'], fig, callsign, t)
                 st.pyplot(fig, width='stretch', bbox_inches=None)
                 
-                # Prepare skeleton placeholders for the interactive inspector fragment
+                # Step 5: Setup placeholder containers for the interactive Segment Inspector.
+                # We defer the actual rendering of the inspector until the loop finishes 
+                # to prevent layout jumping while the second map is still loading.
                 inspector_container = st.container()
                 skeleton_ph = inspector_container.empty()
                 
@@ -993,6 +303,7 @@ if st.session_state.run_mode:
                     with c_wait1: st.selectbox("Distance", [lbl_wait_seg], key=f"w_dist_{analysis['id']}_{run_id}", disabled=True, label_visibility="collapsed")
                     with c_wait2: st.selectbox("Direction", [lbl_wait_seg], key=f"w_dir_{analysis['id']}_{run_id}", disabled=True, label_visibility="collapsed")
                 
+                # Append all necessary data to the buffer for deferred rendering
                 deferred_render_data.append({
                     'analysis': analysis, 'enriched_df': enriched_df, 'segs_df': segs_df, 
                     'parquet_path': parquet_path, 'line1_str': line1_str, 'skeleton_ph': skeleton_ph, 'inspector_container': inspector_container
