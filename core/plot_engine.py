@@ -277,7 +277,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     
     # Meta Footer
     lbl_time = "Zeitraum" if st.session_state.lang == "de" else "Time"
-    t_time = f"{start_t.strftime('%d.%m.%Y')} - {end_t.strftime('%d.%m.%Y')}"
+    t_time = f"{start_t.strftime('%d-%b-%Y')} - {end_t.strftime('%d-%b-%Y')}"
     t_band = st.session_state.val_band
     t_solar = st.session_state.val_solar.split(" ")[0]
 

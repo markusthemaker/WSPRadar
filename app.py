@@ -17,11 +17,7 @@ import streamlit as st
 # ==========================================
 from config import (
     APP_VERSION, LOGO_URL, APP_URL, DB_URL, CACHE_DIR, MAX_DAYS_HISTORY,
-    COMPASS, BAND_MAP,
-    DEMO_CALLSIGN, DEMO_QTH, DEMO_BAND, DEMO_START_D, DEMO_END_D, 
-    DEMO_START_T, DEMO_END_T, DEMO_HOURS, DEMO_REF_RADIUS, DEMO_REF_CALLSIGN,
-    DEMO_SELF_CALL_B, DEMO_MAX_DIST, 
-    DEMO_MIN_SPOTS, DEMO_MIN_STATIONS, DEMO_WILCOXON
+    COMPASS, BAND_MAP, DEMO_PROFILES
 )
 from i18n import T
 from core.math_utils import locator_to_latlon, is_valid_6char_locator, get_solar_state, quantize_time
@@ -102,8 +98,54 @@ def update_lang():
     st.session_state.val_self_test_mode = T[st.session_state.lang]["opt_self_rx"]
     st.session_state.run_mode = None  
 
+if "is_demo_mode" not in st.session_state: st.session_state.is_demo_mode = False
+# ... (deine restlichen if "xyz" not in st.session_state Zeilen bleiben bestehen)
+
+def apply_demo_profile():
+    """Wendet das passende Demo-Profil basierend auf dem gewählten Vergleichsmodus an."""
+    if not st.session_state.get("is_demo_mode", False): return
+    
+    t = T[st.session_state.lang]
+    mode = st.session_state.val_comp_mode
+    
+    if mode == t["opt_comp_radius"]:
+        p = DEMO_PROFILES["radius"]
+        st.session_state.val_ref_radius = p["ref_radius"]
+    elif mode == t["opt_comp_buddy"]:
+        p = DEMO_PROFILES["buddy"]
+        st.session_state.val_ref_callsign = p["ref_callsign"]
+    elif mode == t["opt_comp_self"]:
+        # Prüfen, welcher Sub-Modus (RX oder TX) aktiv ist
+        if st.session_state.get("val_self_test_mode", t["opt_self_rx"]) == t["opt_self_rx"]:
+            p = DEMO_PROFILES["self_rx"]
+            st.session_state.val_self_call_b = p["self_call_b"]
+        else:
+            p = DEMO_PROFILES["self_tx"]
+    else: return
+
+    # Globale Parameter mit dem Profil überschreiben
+    st.session_state.val_callsign = p["callsign"]
+    st.session_state.val_qth = p["qth"]
+    st.session_state.val_band = p["band"]
+    st.session_state.val_time_mode = t["opt_custom"]
+    st.session_state.val_start_d = p["start_d"]
+    st.session_state.val_end_d = p["end_d"]
+    st.session_state.val_start_t = p["start_t"]
+    st.session_state.val_end_t = p["end_t"]
+
+def handle_comp_mode_change():
+    """Wird getriggert, wenn der Nutzer den Haupt-Vergleichsmodus umstellt."""
+    reset_audit()
+    apply_demo_profile()
+
+def handle_self_test_mode_change():
+    """Wird getriggert, wenn der Nutzer im A/B-Test zwischen RX und TX umschaltet."""
+    reset_audit()
+    apply_demo_profile()
+
 def set_reset_config():
     """Resets all user inputs and configurations back to their default factory state."""
+    st.session_state.is_demo_mode = False
     t = T[st.session_state.lang]
     st.session_state.val_callsign = ""
     st.session_state.val_qth = ""
@@ -120,30 +162,10 @@ def set_reset_config():
     st.session_state.run_mode = None
 
 def set_demo_config():
-    """Pre-populates the configuration with specific values from config.py to showcase a successful test run, ensuring 100% deterministic UI state."""
-    t = T[st.session_state.lang]
-    st.session_state.val_callsign = DEMO_CALLSIGN
-    st.session_state.val_qth = DEMO_QTH
-    st.session_state.val_band = DEMO_BAND
-    st.session_state.val_time_mode = t["opt_custom"]
-    st.session_state.val_hours = DEMO_HOURS
-    st.session_state.val_start_d = DEMO_START_D
-    st.session_state.val_end_d = DEMO_END_D
-    st.session_state.val_start_t = DEMO_START_T
-    st.session_state.val_end_t = DEMO_END_T
-    st.session_state.val_solar = t["opt_solar_all"]
-    st.session_state.val_comp_mode = t["opt_comp_radius"]
-    st.session_state.val_ref_radius = DEMO_REF_RADIUS
-    st.session_state.val_ref_callsign = DEMO_REF_CALLSIGN
-    st.session_state.val_self_test_mode = t["opt_self_rx"]
-    st.session_state.val_self_call_b = DEMO_SELF_CALL_B
-    st.session_state.val_slot_u = t["opt_slot_even"]
-    st.session_state.val_slot_r = t["opt_slot_odd"]
-    st.session_state.val_max_dist = DEMO_MAX_DIST
-    st.session_state.val_min_spots = DEMO_MIN_SPOTS
-    st.session_state.val_min_stations = DEMO_MIN_STATIONS
-    st.session_state.val_wilcoxon = DEMO_WILCOXON
+    """Aktiviert die Guided Sandbox und lädt das initiale Profil."""
+    st.session_state.is_demo_mode = True
     st.session_state.run_mode = None
+    apply_demo_profile()
 
 # ==========================================
 # UI COMPONENTS (FRAGMENTS)
@@ -354,7 +376,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 station_df = station_df.merge(meta_df, left_on='peer_sign', right_on=station_col, how='left')
                 
                 if not is_compare:
-                    station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+                    station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
                     drill_df = station_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr', 'power', 'stat_val', t['tbl_col_med_snr']]].copy()
                     drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm. SNR (dB)', t['tbl_col_med_snr']]
                     st.dataframe(drill_df, width='stretch', hide_index=True)
@@ -363,7 +385,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     if is_sequential:
                         joint_df = station_df.copy()
                         if not joint_df.empty:
-                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time']).dt.strftime('%Y-%m-%d %H:%M:%S')
+                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
                             col_u = f'{col_u_name} SNR (dB)'
                             col_r = f'{ref_header} SNR (dB)'
                             joint_df[col_u] = np.where(joint_df['is_me'] == 1, joint_df['stat_val'], np.nan)
@@ -376,7 +398,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     else:
                         joint_df = station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
                         if not joint_df.empty:
-                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
+                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
                             joint_df['Δ SNR (dB)'] = (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1)
                             col_u = f'{col_u_name} SNR (dB)'
                             col_r = f'{ref_header} SNR (dB)'
@@ -483,9 +505,24 @@ st.markdown("""
         color: inherit !important;
         text-align: center !important;
     }
+            
     /* Das Dropdown-Pfeil-Icon einfärben */
     div[data-testid="stSelectbox"] svg {
         fill: #39ff14 !important;
+    }
+    
+    /* NEU: Disabled State via :has() Pseudo-Klasse */
+    div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div {
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        background-color: transparent !important;
+        cursor: not-allowed !important;
+    }
+    div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div:hover {
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stSelectbox"]:has(input[disabled]) svg {
+        fill: #888888 !important;
     }
     
     /* Das geöffnete Dropdown-Menü (Popover) stylen */
@@ -567,48 +604,82 @@ st.markdown(f"""
 <div class="dev-credit-container" style='text-align: center; color: #888888; font-size: 0.85rem; margin-top: 0.5rem; margin-bottom: 1.5rem; line-height: 1.3;'>{t["dev_credit"]}</div>
 """, unsafe_allow_html=True)
 
-# Configuration Controls (Titel entfernt für mehr Platz)
+# Configuration Controls
 col_lang, col_b1, col_b2 = st.columns(3, vertical_alignment="bottom")
 
 with col_lang:
-    # Formatiert die internen Keys ("EN"/"DE") für die UI in Flaggen + Text
     def format_lang_ui(lang_key):
         return "🇬🇧 English" if lang_key == "EN" else "🇩🇪 Deutsch"
-
     idx = 0 if st.session_state.lang == "en" else 1
     st.selectbox("Lang", ["EN", "DE"], index=idx, key="lang_selector_ui", label_visibility="collapsed", on_change=update_lang, format_func=format_lang_ui)
 
 with col_b1: 
-    st.button(t["btn_reset"], on_click=set_reset_config, width='stretch')
+    btn_reset_lbl = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
+    st.button(btn_reset_lbl, on_click=set_reset_config, width='stretch')
 
 with col_b2: 
     st.button(t["btn_demo"], on_click=set_demo_config, width='stretch')
+
+# Dynamischer CSS Glow für den Exit-Button
+if st.session_state.is_demo_mode:
+    st.markdown("""
+    <style>
+        /* Zielt exakt auf den Button in der zweiten Spalte des ersten Blocks ab */
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
+            border-color: #39ff14 !important;
+            color: #39ff14 !important;
+            text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.8), inset 0 0 8px rgba(57, 255, 20, 0.3) !important;
+            transition: all 0.3s ease;
+        }
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button:hover {
+            background-color: rgba(57, 255, 20, 0.1) !important;
+            box-shadow: 0 0 25px rgba(57, 255, 20, 1.0), inset 0 0 15px rgba(57, 255, 20, 0.5) !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ----------------------------------------
 # Expander 1: Core Parameters
 # ----------------------------------------
 with st.expander(t["exp_core"], expanded=True):
-    col1, col2 = st.columns(2)
-    with col1:
-        callsign = st.text_input(t["lbl_callsign"], key="val_callsign", on_change=reset_audit).upper()
-        qth_locator = st.text_input(t["lbl_qth"], key="val_qth", on_change=reset_audit)
-        band = st.selectbox(t["lbl_band"], ["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "All"], key="val_band", on_change=reset_audit)
-    with col2:
-        time_mode = st.radio(t["lbl_time_mode"], [t["opt_last_x"], t["opt_custom"]], key="val_time_mode", horizontal=True, on_change=reset_audit)
-        if time_mode == t["opt_last_x"]: hours = st.slider(t["lbl_hours"], 1, 168, key="val_hours", on_change=reset_audit)
-        else:
-            c_start, c_end = st.columns(2)
-            today_utc = datetime.now(timezone.utc).date()
-            with c_start:
-                start_d = st.date_input(t["lbl_start_d"], key="val_start_d", max_value=today_utc, on_change=reset_audit)
-                start_t_input = st.time_input(t["lbl_start_t"], key="val_start_t", on_change=reset_audit)
-            with c_end:
-                max_allowed_end = min(start_d + timedelta(days=MAX_DAYS_HISTORY), today_utc)
-                min_allowed_end = start_d
-                if st.session_state.val_end_d > max_allowed_end: st.session_state.val_end_d = max_allowed_end
-                elif st.session_state.val_end_d < min_allowed_end: st.session_state.val_end_d = min_allowed_end
-                end_d = st.date_input(t["lbl_end_d"], key="val_end_d", min_value=min_allowed_end, max_value=max_allowed_end, on_change=reset_audit)
-                end_t_input = st.time_input(t["lbl_end_t"], key="val_end_t", on_change=reset_audit)
+    # Zeile 1: Callsign & Time Mode (Immer 2 Spalten)
+    r1c1, r1c2 = st.columns(2)
+    with r1c1:
+        callsign = st.text_input(t["lbl_callsign"], key="val_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit).upper()
+    with r1c2:
+        time_mode = st.radio(t["lbl_time_mode"], [t["opt_last_x"], t["opt_custom"]], key="val_time_mode", horizontal=True, disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+
+    # Zeile 2 & 3: Dynamisches flaches Layout (ohne Nesting für pixelperfekte Ausrichtung)
+    if time_mode == t["opt_last_x"]:
+        # Layout für relative Zeit (2 Spalten pro Zeile)
+        r2c1, r2c2 = st.columns(2)
+        with r2c1: qth_locator = st.text_input(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+        with r2c2: hours = st.slider(t["lbl_hours"], 1, 168, key="val_hours", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+        
+        r3c1, r3c2 = st.columns(2)
+        with r3c1: band = st.selectbox(t["lbl_band"], ["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "All"], key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+        
+    else:
+        # Layout für Custom Zeit (Asymmetrisch 3 Spalten pro Zeile: 50% | 25% | 25%)
+        today_utc = datetime.now(timezone.utc).date()
+        
+        # Zeile 2: QTH, Start Datum, End Datum
+        r2c1, r2c2, r2c3 = st.columns([0.5, 0.25, 0.25], vertical_alignment="bottom")
+        with r2c1: qth_locator = st.text_input(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+        with r2c2: start_d = st.date_input(t["lbl_start_d"], key="val_start_d", max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
+        with r2c3:
+            max_allowed_end = min(start_d + timedelta(days=MAX_DAYS_HISTORY), today_utc)
+            min_allowed_end = start_d
+            if st.session_state.val_end_d > max_allowed_end: st.session_state.val_end_d = max_allowed_end
+            elif st.session_state.val_end_d < min_allowed_end: st.session_state.val_end_d = min_allowed_end
+            end_d = st.date_input(t["lbl_end_d"], key="val_end_d", min_value=min_allowed_end, max_value=max_allowed_end, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
+
+        # Zeile 3: Band, Start Zeit, End Zeit
+        r3c1, r3c2, r3c3 = st.columns([0.5, 0.25, 0.25], vertical_alignment="bottom")
+        with r3c1: band = st.selectbox(t["lbl_band"], ["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "All"], key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+        with r3c2: start_t_input = st.time_input(t["lbl_start_t"], key="val_start_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+        with r3c3: end_t_input = st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
 
 # ----------------------------------------
 # Expander 2: Compare Engine
@@ -616,33 +687,35 @@ with st.expander(t["exp_core"], expanded=True):
 with st.expander(t["exp_comp"], expanded=True):
     col_comp_l, col_comp_r = st.columns([0.4, 0.6])
     with col_comp_l:
-        comp_mode = st.radio(t["lbl_comp_mode"], [t["opt_comp_radius"], t["opt_comp_buddy"], t["opt_comp_self"]], key="val_comp_mode", on_change=reset_audit)
+        comp_mode = st.radio(t["lbl_comp_mode"], [t["opt_comp_radius"], t["opt_comp_buddy"], t["opt_comp_self"]], key="val_comp_mode", on_change=handle_comp_mode_change)
     
     with col_comp_r:
         if comp_mode == t["opt_comp_radius"]:
-            st.slider(t["lbl_radius"], 10, 250, key="val_ref_radius", on_change=reset_audit)
+            st.slider(t["lbl_radius"], 10, 250, key="val_ref_radius", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
         
         elif comp_mode == t["opt_comp_buddy"]:
-            ref_callsign_input = st.text_input(t["lbl_ref_call"], key="val_ref_callsign", on_change=reset_audit).upper()
+            # Sperrt das Feld NUR, wenn Demo-Modus aktiv ist UND ein String konfiguriert wurde.
+            buddy_locked = st.session_state.is_demo_mode and bool(DEMO_PROFILES["buddy"]["ref_callsign"])
+            ref_callsign_input = st.text_input(t["lbl_ref_call"], key="val_ref_callsign", disabled=buddy_locked, on_change=reset_audit).upper()
             if ref_callsign_input == callsign and callsign != "":
                 st.error(t["err_self_test"])
                 
         elif comp_mode == t["opt_comp_self"]:
             disp_call = callsign if callsign else "..."
-            self_test_mode = st.radio(t["lbl_self_test_mode"].format(callsign=disp_call), [t["opt_self_rx"], t["opt_self_tx"]], key="val_self_test_mode", on_change=reset_audit)
+            # Schalter bleibt im Demo-Modus offen, damit zwischen RX und TX Profil gewechselt werden kann
+            self_test_mode = st.radio(t["lbl_self_test_mode"].format(callsign=disp_call), [t["opt_self_rx"], t["opt_self_tx"]], key="val_self_test_mode", on_change=handle_self_test_mode_change)
             
             if self_test_mode == t["opt_self_rx"]:
                 cs1, cs2 = st.columns(2)
                 with cs1: st.text_input("Setup A Callsign (Your Callsign)", value=callsign, disabled=True)
-                with cs2: self_call_b = st.text_input("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", on_change=reset_audit).upper()
-                
+                with cs2: self_call_b = st.text_input("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", disabled=st.session_state.is_demo_mode, on_change=reset_audit).upper()
                 # Defensive UI validation for callsigns
                 if len(self_call_b) > 0 and self_call_b == callsign:
                     st.error("Setup B callsign must be different from Setup A (e.g., use a /P suffix).")
             else:
                 cs1, cs2 = st.columns(2)
-                with cs1: st.selectbox(t["lbl_slot_u"], [t["opt_slot_even"], t["opt_slot_odd"]], key="val_slot_u", on_change=swap_tx_slots_u)
-                with cs2: st.selectbox(t["lbl_slot_r"], [t["opt_slot_odd"], t["opt_slot_even"]], key="val_slot_r", on_change=swap_tx_slots_r)
+                with cs1: st.selectbox(t["lbl_slot_u"], [t["opt_slot_even"], t["opt_slot_odd"]], key="val_slot_u", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_u)
+                with cs2: st.selectbox(t["lbl_slot_r"], [t["opt_slot_odd"], t["opt_slot_even"]], key="val_slot_r", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_r)
 
 # ----------------------------------------
 # Expander 3: Advanced Configurations
@@ -727,14 +800,9 @@ if st.session_state.run_mode:
     cleanup_old_parquets()
     
     # Strikte Prüfung auf Demo-Run komplett ohne Hardcoding (inklusive Band-Check für mehr Präzision)
-    is_demo_run = False
-    if (time_mode == t["opt_custom"] and 
-        callsign == DEMO_CALLSIGN and 
-        start_d == DEMO_START_D and 
-        end_d == DEMO_END_D and 
-        band == DEMO_BAND):
-        is_demo_run = True
-        
+    # Direkte, kugelsichere Prüfung über unseren Guided Sandbox State
+    is_demo_run = st.session_state.get("is_demo_mode", False)
+
     time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
     
     is_sequential = False

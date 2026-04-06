@@ -61,7 +61,7 @@ WSPRadar offers three fundamental pillars for comparative hardware testing, depe
 
 #### Pillar 3: True Hardware A/B Test (Self-Test)
 * **Objective:** A precise laboratory test of your own hardware at your own location using your own callsign. This goes far beyond the classic comparison: As long as all other parameters remain identical, you can isolate and test any variable here. Compare receiver vs. receiver (RX vs. RX), transceiver vs. transceiver (TX vs. TX), different baluns/feedlines, or evaluate the exact mounting position of an antenna within the same property (Location A vs. Location B). WSPRadar splits into two special computational paths depending on the test direction:
-* **The RX A/B Test (Simultaneous):** Two parallel receivers (SDRs) evaluate WSPR signals simultaneously. **The Trick:** So that the WSPR network doesn't delete the synchronous spots of your receivers as duplicates, you must specify different callsign suffixes in your receiving software (e.g. WSPRdaemon). 
+* **The RX A/B Test (Simultaneous):** Two parallel receivers (SDRs) evaluate WSPR signals simultaneously. **The Trick:** So that the WSPR network doesn't delete the synchronous spots of your receivers as duplicates, you must specify different callsign suffixes in your receiving software (e.g. WSPRdaemon). *➔ Guide on setting up dual WSJT-X instances in [Appendix A](#appendix-a-setup-parallel-operation-of-multiple-wsjt-x-instances).*
   * **Setup A:** Reports using your primary callsign (e.g., `DL1MKS`).
   * **Setup B:** Reports using a distinct suffix (e.g., `DL1MKS/P`).
   In WSPRadar's Self-Test mode, you enter these two callsigns. The tool then generates perfect joint-spots via *Spot-by-Spot (Synchronous)* mathematics for the ultimate receive setup comparison.
@@ -148,4 +148,39 @@ Results rely on crowd-sourced WSPR data via a third-party API (wspr.live), which
 
 #### License (Open Source):
 WSPRadar is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License (AGPLv3) as published by the Free Software Foundation. This license ensures that the source code—even when used over a network (SaaS) and after modifications—must always remain free and open for the amateur radio community.
+
+### Appendix A: Setup: Parallel Operation of Multiple WSJT-X Instances
+
+This guide describes the creation of a second OS-isolated WSJT-X environment (e.g., for an SDR), including the migration of the existing configuration and the strictly required path separation.
+
+#### 1. Instantiation (OS-Level Isolation)
+By default, the WSJT-X lock file prevents multiple executions. Separation is achieved via a command-line parameter that forces a new sandbox in the Windows `AppData` directory.
+
+1. Create a desktop shortcut for `wsjtx.exe`.
+2. Open the **Properties** of the shortcut.
+3. Modify the **Target** field exactly according to the following syntax pattern (parameter outside the quotation marks):
+   `"C:\Program Files\wsjtx\bin\wsjtx.exe" --rig-name=SDR`
+4. Start this shortcut **once** and immediately close the program again. This initializes the new directory structure (`%LOCALAPPDATA%\WSJT-X - SDR`).
+
+#### 2. Configuration Migration (Cloning)
+WSJT-X does not offer an internal export for instances. The cloning process must take place at the file system level.
+
+1. Navigate to the primary configuration folder: `%LOCALAPPDATA%\WSJT-X`
+2. Copy the main configuration file `WSJT-X.ini`.
+3. Navigate to the new folder: `%LOCALAPPDATA%\WSJT-X - SDR`
+4. Paste the file and overwrite/replace the `.ini` file generated there by the initial start.
+5. **Important:** Rename the pasted file to match the new instance exactly: `WSJT-X - SDR.ini`
+
+#### 3. Mandatory Path Separation (Audio & Storage Locations)
+Since the configuration was cloned 1:1, both instances now access the same hardware inputs and temporary storage directories. For WSPR, this inevitably leads to identical decodes (since the same `.wav` is analyzed) and potential file lock errors.
+
+Open the new SDR instance, navigate to **File > Settings > Audio** and adjust the following parameters:
+
+* **Soundcard > Input:** Change the audio interface to the specific source of the second receiver (e.g., a dedicated Virtual Audio Cable).
+* **Save Directory:** You must change the path to the isolated environment, e.g.:
+   `C:\Users\[User]\AppData\Local\WSJT-X - SDR\save`
+* **AzEl Directory:** Change this path as well to prevent parallel write access to the `azel.dat`, e.g.:
+   `C:\Users\[User]\AppData\Local\WSJT-X - SDR`
+
+After restarting the instance, data streams, hardware access, and temporary WSPR files (WAV files) are completely physically separated from each other.
 """

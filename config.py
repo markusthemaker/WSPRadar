@@ -3,7 +3,8 @@ Zentrale Konfigurationsdatei für WSPRadar.
 Enthält alle Konstanten, Farben, Bounding-Boxen und Grundeinstellungen.
 """
 import os
-from datetime import date, time as dt_time
+import datetime
+from datetime import time as dt_time
 
 # ==========================================
 # APP METADATA & URLs
@@ -24,23 +25,49 @@ MAX_DAYS_HISTORY = 7
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # ==========================================
-# DEMO CONFIGURATION
+# DEMO PROFILES (Guided Sandbox)
 # ==========================================
-DEMO_CALLSIGN = "DL1MKS"
-DEMO_QTH = "JN37"
-DEMO_BAND = "20m"
-DEMO_START_D = date(2026, 3, 27)
-DEMO_END_D = date(2026, 3, 31)
-DEMO_START_T = dt_time(0, 0)
-DEMO_END_T = dt_time(0, 0)
-DEMO_HOURS = 24  # Neu: Fallback für den Time-Slider
-DEMO_REF_RADIUS = 250
-DEMO_REF_CALLSIGN = "DL2XYZ"  # Neu: Fallback für Buddy Mode
-DEMO_SELF_CALL_B = "DL1MKS/P" # Neu: Fallback für Self-Test B
-DEMO_MAX_DIST = 22000
-DEMO_MIN_SPOTS = 1
-DEMO_MIN_STATIONS = 1
-DEMO_WILCOXON = "OFF"
+DEMO_PROFILES = {
+    "radius": {
+        "callsign": "DL1MKS",
+        "qth": "JN37",
+        "band": "20m",
+        "start_d": datetime.date(2026, 3, 27),
+        "end_d": datetime.date(2026, 3, 31),
+        "start_t": dt_time(0, 0),
+        "end_t": dt_time(0, 0),
+        "ref_radius": 250
+    },
+    "buddy": {
+        "callsign": "DL1MKS",
+        "qth": "JN37",
+        "band": "20m",
+        "start_d": datetime.date(2026, 3, 27),
+        "end_d": datetime.date(2026, 3, 31),
+        "start_t": dt_time(0, 0),
+        "end_t": dt_time(0, 0),
+        "ref_callsign": ""  # Leer = Feld bleibt im UI offen für Nutzereingabe
+    },
+    "self_rx": {
+        "callsign": "DL1MKS",
+        "qth": "JN37",
+        "band": "20m",
+        "start_d": datetime.date(2026, 4, 6),
+        "end_d": datetime.date(2026, 4, 6),
+        "start_t": dt_time(10, 0),
+        "end_t": dt_time(23, 59),
+        "self_call_b": "DL1MKS/P"
+    },
+    "self_tx": {
+        "callsign": "DL1MKS",
+        "qth": "JN37",
+        "band": "20m",
+        "start_d": datetime.date(2026, 3, 27),
+        "end_d": datetime.date(2026, 3, 31),
+        "start_t": dt_time(0, 0),
+        "end_t": dt_time(0, 0)
+    }
+}
 
 # ==========================================
 # GEOSPATIAL CONSTANTS
