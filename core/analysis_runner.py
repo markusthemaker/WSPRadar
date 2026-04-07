@@ -188,13 +188,22 @@ def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
         # Filtere den DataFrame
         df = df[df['peer_sign'].isin(static_peers)]
 
-    # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (STRICTLY TX ONLY) ---
-    # Im RX-Vergleich bedeutet "0 Spots" eine taube Antenne (wir behalten den Zyklus als Niederlage). 
-    # Im TX-Vergleich bedeutet "0 Spots", dass nicht gesendet wurde (wir löschen den Zyklus aus Fairness).
-    is_tx = analysis['id'].startswith("TX")
-    if analysis['is_compare'] and not analysis['is_sequential'] and is_tx and 'has_u' in df.columns:
+    
+    # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (RX & TX) ---
+    # Verhindert massive "Offline-Strafen"! Ein Zyklus wird nur gewertet, wenn Setup A nachweislich aktiv war.
+    # Bei TX: Transceiver muss in diesem Zyklus gesendet haben (mind. 1 Spot weltweit).
+    # Bei RX: Empfänger muss online gewesen sein (mind. 1 Spot von irgendwem weltweit empfangen).
+    if analysis['is_compare'] and not analysis['is_sequential'] and 'has_u' in df.columns:
         active_slots = df[df['has_u'] > 0]['time_slot'].unique()
         df = df[df['time_slot'].isin(active_slots)]
+    
+    # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (STRICTLY TX ONLY) ---
+    # Im RX-Vergleich bedeutet "0 Spots" eine taube Antenne (wir behalten (!!!) den Zyklus als Niederlage). 
+    # Im TX-Vergleich bedeutet "0 Spots", dass nicht gesendet wurde (wir löschen den Zyklus aus Fairness).
+    #is_tx = analysis['id'].startswith("TX")
+    #if analysis['is_compare'] and not analysis['is_sequential'] and is_tx and 'has_u' in df.columns:
+        #active_slots = df[df['has_u'] > 0]['time_slot'].unique()
+        #df = df[df['time_slot'].isin(active_slots)]
 
     if df.empty:
         return df, t["warn_no_data"].format(title=analysis['title'])
