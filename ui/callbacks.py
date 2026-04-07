@@ -142,7 +142,8 @@ def set_reset_config():
     st.session_state.val_comp_mode = t["opt_comp_radius"]
     st.session_state.val_ref_stations = 25
     st.session_state.val_max_dist = 22000
-    st.session_state.val_exclude_prefixes = "Q, 0"
+    st.session_state.val_exclude_prefixes = "Q, 0, 1"
+    st.session_state.val_filter_moving = True
     st.session_state.val_min_spots = 1
     st.session_state.val_min_stations = 1
     st.session_state.val_wilcoxon = "OFF"

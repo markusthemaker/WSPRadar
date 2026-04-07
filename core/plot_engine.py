@@ -80,6 +80,12 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             'calc_azimuth': 'first'
         }
         
+        # --- NEU: Rette die Radius-Metriken vor dem Pandas Grouping-Löschvorgang ---
+        if 'best_ref_dist' in df_plot.columns:
+            spatial_agg['best_ref_dist'] = 'max'
+        if 'best_ref_sign' in df_plot.columns:
+            spatial_agg['best_ref_sign'] = 'first'
+            
         if is_sequential:
             # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Werte
             df_plot['is_u_spot'] = (df_plot['is_me'] == 1).astype(int)
@@ -333,29 +339,30 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     
     if is_compare:
         if is_sequential: meta_parts.append("Sync: Sequential A/B")
-        elif wilcox_level != "OFF": meta_parts.append(f"Stations/Segment: Wilcoxon ({wilcox_level})")
+        elif wilcox_level != "OFF": meta_parts.append(f"Stations/Seg: Wilcoxon ({wilcox_level})")
         else:
             meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
-            meta_parts.append(f"Stations/Segment: ≥{base_min_stations}")
+            meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
             
         if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
-            ref_mask = (df_plot['count_only_r'] > 0) | (df_plot['spot_count'] > 0)
-            if 'best_ref_dist' in df_plot.columns and not df_plot[ref_mask].empty:
-                furthest_ref = int(df_plot[ref_mask]['best_ref_dist'].max() / 1000)
-            else:
-                furthest_ref = 0
-                
-            meta_parts.append(f"Ref: Nearest Peers (≤{st.session_state.val_ref_stations}/Cycle)")
-            if furthest_ref > 0:
-                meta_parts.append(f"Furthest Ref: {furthest_ref}km")
-            
+            # Nutze sicheren Fallback (.get), falls der Key noch nicht im State ist
+            ref_stat = st.session_state.get('val_ref_stations', 25)
+            meta_parts.append(f"Ref: Nearest Peers (≤{ref_stat}/Cycle)")
         elif st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
-            meta_parts.append(f"Ref: A/B-Test Config")
-        else: 
-            meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
+            meta_parts.append(f"Ref: Self-Test Config")
+        else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
     else:
         meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
-        meta_parts.append(f"Stations/Segment: ≥{base_min_stations}")
+        meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
+
+    # Neu: Füge Max distance Peer hinzu
+    if is_compare and st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
+        if 'best_ref_dist' in df_plot.columns:
+            # Filtere leere/NaN Distanzen raus
+            valid_dists = df_plot[df_plot['best_ref_dist'] > 0]['best_ref_dist']
+            if not valid_dists.empty:
+                max_peer_dist = int(valid_dists.max() / 1000)
+                meta_parts.append(f"Max distance Peer: {max_peer_dist} km")
 
     line1_str = " | ".join(meta_parts)
     remote_str = t_lang['txt_rx_stations'] if analysis_id.startswith("TX") else t_lang['txt_tx_stations']

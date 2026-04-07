@@ -118,7 +118,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 
                 # 1. Setup Yield Bar Chart (Left)
                 ax_yield.set_facecolor('black')
-                ax_yield.tick_params(colors='white')
+                ax_yield.tick_params(axis='y', colors='white')
+                ax_yield.tick_params(axis='x', colors='white', labelrotation=20, labelsize=9)
                 for spine in ax_yield.spines.values(): spine.set_color('#444444')
                 
                 # System Sensitivity (Yield) counts unique STATIONS, not spots
@@ -126,16 +127,25 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     cnt_shared = len(df_seg[(df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] > 0)])
                     cnt_u = len(df_seg[(df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] == 0)])
                     cnt_r = len(df_seg[(df_seg['count_only_u'] == 0) & (df_seg['count_only_r'] > 0)])
-                    lbl_shared = "Async"
+                    
+                    yield_counts = [cnt_u, cnt_shared, cnt_r]
+                    yield_labels = [col_u_name, "Async Both", ref_header]
                 else:
-                    cnt_shared = len(df_seg[df_seg['spot_count'] > 0])
-                    cnt_u = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0)])
-                    cnt_r = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_r'] > 0)])
-                    lbl_shared = "Joint"
+                    # Simultane Vergleiche: Dynamische Balken
+                    cnt_joint = len(df_seg[df_seg['spot_count'] > 0])
+                    cnt_async = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] > 0)])
+                    cnt_u = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] == 0)])
+                    cnt_r = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] == 0) & (df_seg['count_only_r'] > 0)])
+                    
+                    # Async-Balken nur rendern, wenn es diese physikalische Ausnahme wirklich gab
+                    if cnt_async > 0:
+                        yield_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
+                        yield_labels = [col_u_name, "Joint", "Async Both", ref_header]
+                    else:
+                        yield_counts = [cnt_u, cnt_joint, cnt_r]
+                        yield_labels = [col_u_name, "Joint", ref_header]
                 
-                yield_counts = [cnt_u, cnt_shared, cnt_r]
-                yield_labels = [col_u_name, lbl_shared, ref_header]
-                bar_colors = ["#36aaf9", "#36aaf9", "#36aaf9"]  # Monochrome Blue matching the histogram
+                bar_colors = ["#36aaf9"] * len(yield_counts)
                 
                 bars = ax_yield.bar(yield_labels, yield_counts, color=bar_colors, alpha=0.8, edgecolor='black')
                 ax_yield.set_ylabel(t["lbl_hist_count"], color='white')
@@ -192,22 +202,24 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_ylabel("Joint Spots", color='white')
             
             # 3. Add Common Footer Text
-            fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
+            # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
+            # fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
             
+            # Richtiges Streamlit-Parameter für volle Breite
             st.pyplot(fig_hist, width='stretch')
             plt.close(fig_hist)
         else:
             st.info(t["lbl_no_joint"], icon="ℹ️")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
 
-        col_ins1, col_ins2 = st.columns([0.7, 0.3])
+        col_ins1, col_ins2 = st.columns([0.7, 0.3], vertical_alignment="center")
         with col_ins1:
             st.markdown(f"**{t['lbl_insights']}**{t['lbl_insights_sub']}")
         with col_ins2:
             show_non_joint = False
             if is_compare and not is_sequential:
                 show_non_joint = st.toggle("Show Non-Joint Raw Spots", key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
-        
+
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         
         # ----------------------------------------------------
@@ -225,8 +237,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         disp_df[km_col] = disp_df[km_col].round(0).astype(int)
         disp_df[az_col] = disp_df[az_col].round(1)
         
+        # Verstecke Reihen mit 0 Joint Spots, es sei denn der Raw-Schalter ist an
+        col_joint_name = t.get('tbl_col_joint', 'Joint')
+        if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
+            disp_df = disp_df[disp_df[col_joint_name] > 0]
+
         sorted_disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
-        
+
         tbl_event = st.dataframe(sorted_disp_df, width='stretch', hide_index=True, selection_mode="multi-row", on_select="rerun", key=f"tbl_{analysis_id}_{run_id}_{selected_seg}")
         
         # ----------------------------------------------------
@@ -282,21 +299,37 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
 
                         if not joint_df.empty:
                             joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
-                            joint_df['Δ SNR (dB)'] = (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1)
+                            
+                            # ClickHouse gibt 0.0 zurück, wenn maxIf() nichts findet. Wir setzen das explizit auf NaN anhand der countIf() Metriken (has_u / has_r)
+                            joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
+                            joint_df.loc[joint_df['has_r'] == 0, 'snr_r_norm'] = np.nan
+                            
+                            # Delta nur berechnen, wenn BEIDE Seiten existieren
+                            joint_df['Δ SNR (dB)'] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
                             
                             col_u = f'{col_u_name} SNR (dB)'
                             col_r = f'{ref_header} SNR (dB)'
                             col_delta_lbl = "Δ SNR (dB)"
                             station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
                             
+                            # 1. Werte für fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
+                            joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
+                            joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
+                            joint_df['Δ SNR (dB)'] = joint_df['Δ SNR (dB)'].astype(object).fillna("None")
+                            
                             if 'best_ref_sign' in joint_df.columns:
+                                # 2. Auch leere "Best Ref" Felder mit "None" auffüllen
+                                joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
                                 # Runden auf ganze Zahlen (round(0)), damit der Int64-Cast bei Kommazahlen nicht crasht
                                 joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
-                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)']].copy()
-                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'Best Ref Station', 'Ref Dist (km)', col_u, col_r, col_delta_lbl]
+                                
+                                # 3. Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
+                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', 'Δ SNR (dB)']].copy()
+                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'Best Ref', 'Ref km', col_r, col_u, col_delta_lbl]
                             else:
-                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)']].copy()
-                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl]
+                                # Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
+                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_r_norm', 'snr_u_norm', 'Δ SNR (dB)']].copy()
+                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_r, col_u, col_delta_lbl]
                                 
                             st.dataframe(drill_df, width='stretch', hide_index=True)
                         else: 

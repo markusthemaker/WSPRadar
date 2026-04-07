@@ -80,7 +80,9 @@ def init_session_state():
     if "val_max_dist" not in st.session_state: 
         st.session_state.val_max_dist = 22000
     if "val_exclude_prefixes" not in st.session_state: 
-        st.session_state.val_exclude_prefixes = "Q, 0"
+        st.session_state.val_exclude_prefixes = "Q, 0, 1"
+    if "val_filter_moving" not in st.session_state: 
+        st.session_state.val_filter_moving = True
     if "val_min_spots" not in st.session_state: 
         st.session_state.val_min_spots = 1
     if "val_min_stations" not in st.session_state: 

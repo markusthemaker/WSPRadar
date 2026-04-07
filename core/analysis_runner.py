@@ -164,12 +164,10 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
 
 def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
     """
-    Applies mathematical and logical filters (Solar) to the fetched dataframe
-    before it is handed over to the plotting engine.
-    Note: The global min-spots filter has been removed from this stage to allow 
-    for strict, symmetric statistical classification downstream in the plot engine.
+    Applies mathematical and logical filters (Solar, Cycle-Sync, Moving Stations) 
+    to the fetched dataframe before it is handed over to the plotting engine.
     """
-    # Apply Solar Filtering locally
+    # --- 1. SOLAR FILTERING ---
     if st.session_state.val_solar != t["opt_solar_all"]:
         if analysis['is_compare'] and not analysis['is_sequential']: 
             df['dt_time'] = pd.to_datetime(df['time_slot'] * 120, unit='s')
@@ -179,9 +177,26 @@ def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
         df['solar'] = df['dt_time'].apply(lambda dt: get_solar_state(dt, lat_0, lon_0))
         target_state = 'day' if st.session_state.val_solar == t["opt_solar_day"] else ('night' if st.session_state.val_solar == t["opt_solar_night"] else 'grey')
         df = df[df['solar'] == target_state]
-        
-        if df.empty:
-            return df, t["warn_no_data"].format(title=analysis['title'])
 
-    # NO global spot filtering here anymore. Filtering is strictly enforced in plot_engine.py
+    # --- 2. EXCLUDE MOVING STATIONS ---
+    # Entfernt alle Gegenstationen, die mehr als ein 4-stelliges Grid in der Zeitperiode melden (Ballons, /M, /MM)
+    if st.session_state.get("val_filter_moving", False) and not df.empty and 'peer_grid' in df.columns:
+        # Extrahiere die ersten 4 Zeichen (um JN37 und JN37AB als "identisch" zu behandeln)
+        grid4 = df['peer_grid'].astype(str).str[:4]
+        # Finde Stationen, die exakt 1 eindeutiges 4er-Grid haben
+        static_peers = df.assign(g4=grid4).groupby('peer_sign')['g4'].nunique()[lambda x: x == 1].index
+        # Filtere den DataFrame
+        df = df[df['peer_sign'].isin(static_peers)]
+
+    # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (STRICTLY TX ONLY) ---
+    # Im RX-Vergleich bedeutet "0 Spots" eine taube Antenne (wir behalten den Zyklus als Niederlage). 
+    # Im TX-Vergleich bedeutet "0 Spots", dass nicht gesendet wurde (wir löschen den Zyklus aus Fairness).
+    is_tx = analysis['id'].startswith("TX")
+    if analysis['is_compare'] and not analysis['is_sequential'] and is_tx and 'has_u' in df.columns:
+        active_slots = df[df['has_u'] > 0]['time_slot'].unique()
+        df = df[df['time_slot'].isin(active_slots)]
+
+    if df.empty:
+        return df, t["warn_no_data"].format(title=analysis['title'])
+
     return df, None
