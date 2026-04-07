@@ -171,7 +171,7 @@ start_t, end_t = quantize_time(start_t_base), quantize_time(end_t_base)
 # ----------------------------------------
 # Execute Buttons
 # ----------------------------------------
-c_run1, c_run2 = st.columns(2)
+c_run1, c_run2 = st.columns(2, gap="large")
 run_tx_clicked = False
 run_rx_clicked = False
 

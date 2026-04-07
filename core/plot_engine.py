@@ -80,6 +80,12 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             'calc_azimuth': 'first'
         }
         
+        # --- NEU: Rette die Radius-Metriken vor dem Pandas Grouping-Löschvorgang ---
+        if 'best_ref_dist' in df_plot.columns:
+            spatial_agg['best_ref_dist'] = 'max'
+        if 'best_ref_sign' in df_plot.columns:
+            spatial_agg['best_ref_sign'] = 'first'
+            
         if is_sequential:
             # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Werte
             df_plot['is_u_spot'] = (df_plot['is_me'] == 1).astype(int)
@@ -333,19 +339,30 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     
     if is_compare:
         if is_sequential: meta_parts.append("Sync: Sequential A/B")
-        elif wilcox_level != "OFF": meta_parts.append(f"Stations/Segment: Wilcoxon ({wilcox_level})")
+        elif wilcox_level != "OFF": meta_parts.append(f"Stations/Seg: Wilcoxon ({wilcox_level})")
         else:
             meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
-            meta_parts.append(f"Stations/Segment: ≥{base_min_stations}")
+            meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
             
         if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
-            meta_parts.append(f"Ref: Radius {st.session_state.val_ref_radius}km")
+            # Nutze sicheren Fallback (.get), falls der Key noch nicht im State ist
+            ref_stat = st.session_state.get('val_ref_stations', 25)
+            meta_parts.append(f"Ref: Nearest Peers (≤{ref_stat}/Cycle)")
         elif st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
             meta_parts.append(f"Ref: Self-Test Config")
         else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
     else:
         meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
-        meta_parts.append(f"Stations/Segment: ≥{base_min_stations}")
+        meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
+
+    # Neu: Füge Max distance Peer hinzu
+    if is_compare and st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
+        if 'best_ref_dist' in df_plot.columns:
+            # Filtere leere/NaN Distanzen raus
+            valid_dists = df_plot[df_plot['best_ref_dist'] > 0]['best_ref_dist']
+            if not valid_dists.empty:
+                max_peer_dist = int(valid_dists.max() / 1000)
+                meta_parts.append(f"Max distance Peer: {max_peer_dist} km")
 
     line1_str = " | ".join(meta_parts)
     remote_str = t_lang['txt_rx_stations'] if analysis_id.startswith("TX") else t_lang['txt_tx_stations']
@@ -358,34 +375,35 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         # Filter dataframe strictly to the rendered map bounds to match the Segment Inspector
         df_footer = df_plot[df_plot['r_min'] < max_dist_km]
         
-        # 1. Metriken extrahieren (Spots & Stations)
-        cnt_u = int(df_footer['count_only_u'].sum())
-        cnt_r = int(df_footer['count_only_r'].sum())
-        
+        # 1. Metriken extrahieren (Spots & Stations) für 4 Segmente
         if is_sequential:
-            cnt_shared = len(df_footer[(df_footer['count_only_u']>0) & (df_footer['count_only_r']>0)])
-            lbl_shared = "ASYNC"
+            stat_joint = 0
+            spot_joint = 0
             
-            j_stat = len(df_footer[(df_footer['count_only_u']>0) & (df_footer['count_only_r']>0)])
-            stat_u = len(df_footer[(df_footer['count_only_u']>0) & (df_footer['count_only_r']==0)])
-            stat_r = len(df_footer[(df_footer['count_only_u']==0) & (df_footer['count_only_r']>0)])
+            stat_both_async = len(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)])
+            stat_only_u = len(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)])
+            stat_only_r = len(df_footer[(df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)])
+            
+            spot_both_async = int(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)][['count_only_u', 'count_only_r']].sum().sum())
+            spot_only_u = int(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)]['count_only_u'].sum())
+            spot_only_r = int(df_footer[(df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)]['count_only_r'].sum())
         else:
-            cnt_shared = int(df_footer['spot_count'].sum())
-            lbl_shared = "JOINT"
+            stat_joint = len(df_footer[df_footer['spot_count'] > 0])
+            stat_both_async = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)])
+            stat_only_u = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)])
+            stat_only_r = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)])
             
-            j_stat = len(df_footer[df_footer['spot_count'] > 0])
-            stat_u = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0)])
-            stat_r = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_r'] > 0)])
-            
-        tot_spots = cnt_u + cnt_shared + cnt_r
-        tot_stats = stat_u + j_stat + stat_r
-        
-        # 2. Legende / Header über den Balken platzieren (Schrift wie Map-Legende, nach unten verschoben für die Leerzeile)
-        #fig.text(0.24, 0.085, f"{lbl_only_me}", color="#cc00ff", ha="right", fontsize=FONT_LEGEND, fontweight="bold")
-        #fig.text(0.50, 0.085, f"{lbl_shared}", color="#00ff00", ha="center", fontsize=FONT_LEGEND, fontweight="bold")
-        #fig.text(0.76, 0.085, f"{lbl_only_ref}", color="#ffffff", ha="left", fontsize=FONT_LEGEND, fontweight="bold")
+            spot_joint = int(df_footer['spot_count'].sum())
+            spot_both_async = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)][['count_only_u', 'count_only_r']].sum().sum())
+            # Auch die Rest-Spots (Async) der Joint-Stationen zum "Both-Async" Topf hinzufügen
+            spot_both_async += int(df_footer[df_footer['spot_count'] > 0][['count_only_u', 'count_only_r']].sum().sum())
+            spot_only_u = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)]['count_only_u'].sum())
+            spot_only_r = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)]['count_only_r'].sum())
 
-        # 3. Native Categorical Axes setup
+        tot_stats = stat_only_u + stat_joint + stat_both_async + stat_only_r
+        tot_spots = spot_only_u + spot_joint + spot_both_async + spot_only_r
+
+        # 2. Native Categorical Axes setup
         ax_bars = fig.add_axes([0.12, 0.035, 0.85, 0.045])
         ax_bars.set_facecolor('black')
         for spine in ax_bars.spines.values(): spine.set_visible(False)
@@ -393,31 +411,30 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         ax_bars.tick_params(axis='y', length=0, pad=10, colors='#cccccc', labelsize=FONT_LEGEND)
         
         # Prozentuale Breiten (0-100%) für sauberes Matplotlib-Skalieren
-        pct_u_spot = (cnt_u / tot_spots * 100) if tot_spots > 0 else 0
-        pct_j_spot = (cnt_shared / tot_spots * 100) if tot_spots > 0 else 0
-        pct_r_spot = (cnt_r / tot_spots * 100) if tot_spots > 0 else 0
-        
-        pct_u_stat = (stat_u / tot_stats * 100) if tot_stats > 0 else 0
-        pct_j_stat = (j_stat / tot_stats * 100) if tot_stats > 0 else 0
-        pct_r_stat = (stat_r / tot_stats * 100) if tot_stats > 0 else 0
+        pct_u_stat = (stat_only_u / tot_stats * 100) if tot_stats > 0 else 0
+        pct_j_stat = (stat_joint / tot_stats * 100) if tot_stats > 0 else 0
+        pct_a_stat = (stat_both_async / tot_stats * 100) if tot_stats > 0 else 0
+        pct_r_stat = (stat_only_r / tot_stats * 100) if tot_stats > 0 else 0
+
+        pct_u_spot = (spot_only_u / tot_spots * 100) if tot_spots > 0 else 0
+        pct_j_spot = (spot_joint / tot_spots * 100) if tot_spots > 0 else 0
+        pct_a_spot = (spot_both_async / tot_spots * 100) if tot_spots > 0 else 0
+        pct_r_spot = (spot_only_r / tot_spots * 100) if tot_spots > 0 else 0
         
         # Radius Modus Check: Spots-Venn ausblenden, wenn wir gegen die Referenz-Wolke vergleichen
         is_radius_mode = (st.session_state.val_comp_mode == t_lang["opt_comp_radius"])
         
-        # Dynamische Farbe für den gemeinsamen Balken (Grün für Simultan, Orange für Sequenziell)
-        color_shared = COLOR_BOTH_ASYNC if is_sequential else COLOR_JOINT
-        
-        if is_radius_mode:
-            # Dummy-Kategorie einfügen und Breite auf 0 setzen, damit Matplotlib die Balkendicke nicht skaliert
-            categories = ['STATIONS', ' ']
-            p1 = ax_bars.barh(categories, [pct_u_stat, 0], color=COLOR_ONLY_ME, height=0.6)
-            p2 = ax_bars.barh(categories, [pct_j_stat, 0], left=[pct_u_stat, 0], color=color_shared, height=0.6)
-            p3 = ax_bars.barh(categories, [pct_r_stat, 0], left=[pct_u_stat+pct_j_stat, 0], color=COLOR_ONLY_REF, height=0.6)
-        else:
-            categories = ['STATIONS', 'SPOTS']
-            p1 = ax_bars.barh(categories, [pct_u_stat, pct_u_spot], color=COLOR_ONLY_ME, height=0.6)
-            p2 = ax_bars.barh(categories, [pct_j_stat, pct_j_spot], left=[pct_u_stat, pct_u_spot], color=color_shared, height=0.6)
-            p3 = ax_bars.barh(categories, [pct_r_stat, pct_r_spot], left=[pct_u_stat+pct_j_stat, pct_u_spot+pct_j_spot], color=COLOR_ONLY_REF, height=0.6)
+        categories = ['STATIONS', ' '] if is_radius_mode else ['STATIONS', 'SPOTS']
+
+        # 3. Rendern der 4 Balken-Segmente übereinandergestapelt
+        # Segment 1: Only U (Lila)
+        p1 = ax_bars.barh(categories, [pct_u_stat, pct_u_spot if not is_radius_mode else 0], color=COLOR_ONLY_ME, height=0.6)
+        # Segment 2: Joint (Grün)
+        p2 = ax_bars.barh(categories, [pct_j_stat, pct_j_spot if not is_radius_mode else 0], left=[pct_u_stat, pct_u_spot if not is_radius_mode else 0], color=COLOR_JOINT, height=0.6)
+        # Segment 3: Both Async (Orange)
+        p3 = ax_bars.barh(categories, [pct_a_stat, pct_a_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat, pct_u_spot+pct_j_spot if not is_radius_mode else 0], color=COLOR_BOTH_ASYNC, height=0.6)
+        # Segment 4: Only R (Weiß)
+        p4 = ax_bars.barh(categories, [pct_r_stat, pct_r_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat+pct_a_stat, pct_u_spot+pct_j_spot+pct_a_spot if not is_radius_mode else 0], color=COLOR_ONLY_REF, height=0.6)
         
         # Dynamisches Zentrieren der echten Zahlenwerte in den Boxen
         def add_labels(rects, real_values, text_color):
@@ -430,13 +447,15 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
 
         # Die berechneten, absoluten Werte in die Render-Rechtecke injizieren
         if is_radius_mode:
-            add_labels(p1, [stat_u], 'white')
-            add_labels(p2, [j_stat], 'black')
-            add_labels(p3, [stat_r], 'black')
+            add_labels(p1, [stat_only_u], 'white')
+            add_labels(p2, [stat_joint], 'black')
+            add_labels(p3, [stat_both_async], 'black')
+            add_labels(p4, [stat_only_r], 'black')
         else:
-            add_labels(p1, [stat_u, cnt_u], 'white')
-            add_labels(p2, [j_stat, cnt_shared], 'black')
-            add_labels(p3, [stat_r, cnt_r], 'black')
+            add_labels(p1, [stat_only_u, spot_only_u], 'white')
+            add_labels(p2, [stat_joint, spot_joint], 'black')
+            add_labels(p3, [stat_both_async, spot_both_async], 'black')
+            add_labels(p4, [stat_only_r, spot_only_r], 'black')
             
         # 4. Config string zentriert am unteren Rand
         fig.text(0.50, 0.01, line1_str, color='#888888', ha='center', fontsize=FONT_FOOTER)

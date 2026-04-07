@@ -1,5 +1,4 @@
 *.pyc
-.devcontainer/
 .streamlit/secrets.toml
 .wspr_cache/
 .vscode/
