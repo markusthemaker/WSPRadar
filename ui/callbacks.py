@@ -38,16 +38,36 @@ def swap_tx_slots_r():
 def update_lang():
     """
     Handles UI language changes globally. 
-    Gracefully resets dependent dropdown states to match the newly selected language 
-    options to prevent mismatch errors in the Streamlit UI components.
+    Translates all string-based session states to the new language to prevent 
+    StreamlitAPIExceptions and preserve user settings across hidden and visible fields.
     """
-    lang_map = {"EN": "en", "DE": "de"}
-    st.session_state.lang = lang_map[st.session_state.lang_selector_ui]
+    old_lang = st.session_state.lang
+    new_lang = {"EN": "en", "DE": "de"}[st.session_state.lang_selector_ui]
     
-    # Reset mode selections to their localized default strings
-    st.session_state.val_comp_mode = T[st.session_state.lang]["opt_comp_radius"]
-    st.session_state.val_self_test_mode = T[st.session_state.lang]["opt_self_rx"]
-    st.session_state.run_mode = None  
+    t_old = T[old_lang]
+    t_new = T[new_lang]
+    
+    # Mapping of session_state keys to their possible translation dictionary keys
+    state_map = {
+        "val_time_mode": ["opt_last_x", "opt_custom"],
+        "val_comp_mode": ["opt_comp_radius", "opt_comp_buddy", "opt_comp_self"],
+        "val_self_test_mode": ["opt_self_rx", "opt_self_tx"],
+        "val_slot_u": ["opt_slot_even", "opt_slot_odd"],
+        "val_slot_r": ["opt_slot_even", "opt_slot_odd"],
+        "val_solar": ["opt_solar_all", "opt_solar_day", "opt_solar_night", "opt_solar_grey"]
+    }
+    
+    # Translate the current values to the new language
+    for state_key, dict_keys in state_map.items():
+        if state_key in st.session_state:
+            current_val = st.session_state[state_key]
+            for d_key in dict_keys:
+                if current_val == t_old.get(d_key):
+                    st.session_state[state_key] = t_new[d_key]
+                    break
+                    
+    st.session_state.lang = new_lang
+    st.session_state.run_mode = None
 
 def apply_demo_profile():
     """
@@ -64,7 +84,7 @@ def apply_demo_profile():
     # Load the correct profile dictionary based on the active mode
     if mode == t["opt_comp_radius"]:
         p = DEMO_PROFILES["radius"]
-        st.session_state.val_ref_radius = p["ref_radius"]
+        st.session_state.val_ref_stations = p["ref_stations"]
     elif mode == t["opt_comp_buddy"]:
         p = DEMO_PROFILES["buddy"]
         st.session_state.val_ref_callsign = p["ref_callsign"]
@@ -120,7 +140,7 @@ def set_reset_config():
     st.session_state.val_hours = 24
     st.session_state.val_solar = t["opt_solar_all"]
     st.session_state.val_comp_mode = t["opt_comp_radius"]
-    st.session_state.val_ref_radius = 100
+    st.session_state.val_ref_stations = 25
     st.session_state.val_max_dist = 22000
     st.session_state.val_min_spots = 1
     st.session_state.val_min_stations = 1

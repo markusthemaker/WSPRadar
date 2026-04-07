@@ -80,7 +80,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             col_u_name = target_call
             if st.session_state.val_comp_mode == t["opt_comp_radius"]: 
                 lbl_only_ref = t['leg_only_ref_radius']
-                ref_header = t['tbl_col_only_ref']
+                ref_header = "Best Ref"
             else: 
                 lbl_only_ref = t['leg_only_ref'].format(ref_callsign=st.session_state.val_ref_callsign.upper())
                 ref_header = st.session_state.val_ref_callsign.upper()
@@ -277,9 +277,16 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             col_u = f'{col_u_name} SNR (dB)'
                             col_r = f'{ref_header} SNR (dB)'
                             col_delta_lbl = "Δ SNR (dB)"
+                            station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
                             
-                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)']].copy()
-                            drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl]
+                            if 'best_ref_sign' in joint_df.columns:
+                                joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(1).astype(int)
+                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)']].copy()
+                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'Best Ref Station', 'Ref Dist (km)', col_u, col_r, col_delta_lbl]
+                            else:
+                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)']].copy()
+                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl]
+                                
                             st.dataframe(drill_df, width='stretch', hide_index=True)
                         else: 
                             st.info("No joint spots available for the selected station(s).", icon="ℹ️")

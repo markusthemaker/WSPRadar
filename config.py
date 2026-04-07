@@ -36,7 +36,7 @@ DEMO_PROFILES = {
         "end_d": datetime.date(2026, 3, 31),
         "start_t": dt_time(0, 0),
         "end_t": dt_time(0, 0),
-        "ref_radius": 250
+        "ref_stations": 25
     },
     "buddy": {
         "callsign": "DL1MKS",
@@ -74,6 +74,7 @@ DEMO_PROFILES = {
 # ==========================================
 EARTH_RADIUS_KM = 6371.0
 EARTH_RADIUS_M = 6371000.0
+MAX_DYNAMIC_RADIUS_KM = 250  # Hard-Cap für die dynamische Referenz-Suche
 
 # ==========================================
 # PLOT RENDERING SETTINGS
@@ -92,7 +93,7 @@ FONT_COMPASS = 13
 FONT_POLES = 10                       
 FONT_LEGEND = 13                      
 FONT_CBAR = 13    
-FONT_FOOTER = 12                    
+FONT_FOOTER = 10                    
 
 # Azimuth & Segmente
 AZIMUTH_STEP = 22.50

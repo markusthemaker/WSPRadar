@@ -35,11 +35,14 @@ def _fetch_wspr_data_standard(sql_query):
     """Holt WSPR-Daten regulär mit Caching (TTL)."""
     st.session_state._db_hit = True 
     start_time = time.time()
-    resp = http_session.get(DB_URL, params={'query': sql_query})
     
+    # 1. Logge die Query heimlich in die Konsole
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] EXECUTING QUERY:\n{sql_query}\n")
+    
+    resp = http_session.get(DB_URL, params={'query': sql_query})    
     if resp.status_code == 200 and len(resp.text.strip().split('\n')) > 1:
         df = pd.read_csv(io.StringIO(resp.text), engine='pyarrow')
-        float_cols = ['snr', 'power', 'stat_val', 'snr_u_norm', 'snr_r_norm', 'peer_lat', 'peer_lon']
+        float_cols = ['snr', 'power', 'stat_val', 'snr_u_norm', 'snr_r_norm', 'peer_lat', 'peer_lon', 'best_ref_dist']
         for c in float_cols:
             if c in df.columns: df[c] = pd.to_numeric(df[c], downcast='float')
             
@@ -50,15 +53,33 @@ def _fetch_wspr_data_standard(sql_query):
         elapsed = time.time() - start_time
         print(f"[{datetime.now().strftime('%H:%M:%S')}] CACHE MISS: DB Query Executed in {elapsed:.2f}s | Payload: {len(resp.content)/1024:.1f} KB")
         return df
+    elif resp.status_code != 200:
+        # 2. BEI EINEM FEHLER: Schreie laut auf der UI!
+        st.error(f"🛑 **CLICKHOUSE DATENBANK-FEHLER {resp.status_code}**")
+        st.code(resp.text, language="text")
+        st.warning("Die fehlgeschlagene SQL-Abfrage war:")
+        st.code(sql_query, language="sql")
+        
     return None
 
 @st.cache_data(ttl=None, show_spinner=False)
 def _fetch_wspr_data_demo(sql_query):
     """Holt WSPR-Daten für die Demo (ohne TTL / unendliches Caching)."""
     st.session_state._db_hit = True
+    
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] EXECUTING DEMO QUERY:\n{sql_query}\n")
+    
     resp = http_session.get(DB_URL, params={'query': sql_query})
+    
     if resp.status_code == 200 and len(resp.text.strip().split('\n')) > 1:
         return pd.read_csv(io.StringIO(resp.text), engine='pyarrow')
+    elif resp.status_code != 200:
+        # 2. BEI EINEM FEHLER: Schreie laut auf der UI!
+        st.error(f"🛑 **CLICKHOUSE DEMO-FEHLER {resp.status_code}**")
+        st.code(resp.text, language="text")
+        st.warning("Die fehlgeschlagene SQL-Abfrage war:")
+        st.code(sql_query, language="sql")
+        
     return None
 
 def fetch_wspr_data(sql_query, is_demo=False):

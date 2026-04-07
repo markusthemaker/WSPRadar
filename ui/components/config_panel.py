@@ -64,8 +64,7 @@ def render_compare_expander(t):
             callsign = st.session_state.val_callsign.upper()
             
             if comp_mode == t["opt_comp_radius"]:
-                st.slider(t["lbl_radius"], 10, 250, key="val_ref_radius", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            
+                st.slider(t["lbl_radius"], 5, 50, key="val_ref_stations", disabled=st.session_state.is_demo_mode, on_change=reset_audit)         
             elif comp_mode == t["opt_comp_buddy"]:
                 buddy_locked = st.session_state.is_demo_mode and bool(DEMO_PROFILES["buddy"]["ref_callsign"])
                 st.text_input(t["lbl_ref_call"], key="val_ref_callsign", disabled=buddy_locked, on_change=reset_audit)

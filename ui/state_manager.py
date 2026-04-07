@@ -61,8 +61,8 @@ def init_session_state():
     # --- Default Comparison Modes (Compare Engine) ---
     if "val_comp_mode" not in st.session_state: 
         st.session_state.val_comp_mode = T["en"]["opt_comp_radius"]
-    if "val_ref_radius" not in st.session_state: 
-        st.session_state.val_ref_radius = 250
+    if "val_ref_stations" not in st.session_state: 
+        st.session_state.val_ref_stations = 25
     if "val_ref_callsign" not in st.session_state: 
         st.session_state.val_ref_callsign = "DL2XYZ"
     if "val_self_test_mode" not in st.session_state: 
