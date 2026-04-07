@@ -88,6 +88,15 @@ Um räumliche Verzerrungen durch eine unverhältnismäßige Empfängerdichte in 
 2. **Aggregationsstufe Segment:** Der Median dieser Stationswerte wird berechnet, um den finalen Wert für das geografische Segment zu bestimmen. 
 Diese Methode verhindert den "Receiver Density Bias" – bei dem dichte Empfänger-Cluster (z. B. in Europa oder Nordamerika) spärlich besiedelte Regionen (z. B. Asien oder Afrika) im globalen Durchschnitt statistisch übertönen. Jedes geografische Segment erhält eine faire, isolierte Bewertung, wodurch sichergestellt wird, dass eine einzelne, hochaktive Station eine Region nicht statistisch dominiert.
 
+#### 5.4 Temporäre Synchronisation (Heartbeat-Filter / Offline-Schutz)
+Um zu verhindern, dass Ihr Setup unfaire Strafpunkte (Niederlagen) sammelt, während Ihr Funkgerät, die Software oder Ihr PC tatsächlich ausgeschaltet war, wendet WSPRadar in allen vergleichenden Modi einen systemweiten, strikten **Heartbeat-Filter** an. Ein 2-Minuten-Zyklus wird in der Vergleichsanalyse nur dann als gültig gewertet, wenn Ihr Setup in genau dieser Minute nachweislich "am Leben" (online) war. 
+
+* **Im TX-Modus (Senden):** Sie müssen in diesem Zyklus von *mindestens einer* beliebigen Station weltweit gehört worden sein. Dies beweist, dass Ihr Transceiver in diesem Slot tatsächlich gesendet hat.
+* **Im RX-Modus (Empfangen):** Ihr Empfänger muss in diesem Zyklus *mindestens eine* beliebige Station (lokal oder weltweit) decodiert haben. Dies beweist, dass Ihre Software lief und die Antenne angeschlossen war.
+
+Dieser Mechanismus eliminiert die sogenannte **Offline-Strafe**. Wenn Sie nachts den Rechner ausschalten, sammelt Ihre Referenz-Wolke zwar weiterhin Tausende Spots, aber WSPRadar wertet diese nicht als Niederlagen für Ihre Antenne. Das garantiert eine hundertprozentig faire, physikalische Win/Loss-Ratio.
+
+
 ### 6. Visuelle Interpretation & Segment-Inspektor
 
 #### 6.1 Visuelle Lesehilfe (Karten-Elemente)
