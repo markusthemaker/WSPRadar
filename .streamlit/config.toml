@@ -16,3 +16,7 @@ textColor = "#e0e0e0"
 
 # Sets the core Streamlit widgets to monospace
 font = "monospace"
+
+[server]
+enableCORS = false
+enableXsrfProtection = false

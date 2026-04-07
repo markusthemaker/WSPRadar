@@ -91,12 +91,16 @@ def render_compare_expander(t):
                     with cs2: st.selectbox(t["lbl_slot_r"], [t["opt_slot_odd"], t["opt_slot_even"]], key="val_slot_r", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_r)
 
 def render_advanced_expander(t):
-    """Renders the third expander: Advanced scientific configurations (Filters, Wilcoxon)."""
+    """Renders the third expander: Advanced scientific configurations (Filters, Wilcoxon, Exclusions)."""
     with st.expander(t["exp_adv"], expanded=True):
         col3, col4 = st.columns(2)
         with col3: 
             st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
             st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
+            
+            # Neues Feld zum Ausschließen von Ballon-Telemetrie und Spezial-Rufzeichen
+            st.text_input(t.get("lbl_exclude", "Exclude Prefixes"), key="val_exclude_prefixes", help=t.get("tt_exclude", "Comma-separated list (e.g., 'Q, 0')"), on_change=reset_audit)
+            
         with col4:
             st.slider(t["lbl_min_spots"], 1, 25, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
             st.slider(t["lbl_min_stations"], 1, 20, key="val_min_stations", help=t["hlp_min_stations"], on_change=reset_audit)

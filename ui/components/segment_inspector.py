@@ -200,7 +200,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.info(t["lbl_no_joint"], icon="ℹ️")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
 
-        st.markdown(f"**{t['lbl_insights']}**{t['lbl_insights_sub']}")
+        col_ins1, col_ins2 = st.columns([0.7, 0.3])
+        with col_ins1:
+            st.markdown(f"**{t['lbl_insights']}**{t['lbl_insights_sub']}")
+        with col_ins2:
+            show_non_joint = False
+            if is_compare and not is_sequential:
+                show_non_joint = st.toggle("Show Non-Joint Raw Spots", key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
         
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         
@@ -268,8 +274,12 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         else: 
                             st.info("No spots available for the selected station(s).", icon="ℹ️")
                     else:
-                        # Für Simultane Vergleiche: Nur echte zeitgleiche Spots (Joint) für das SNR Delta anzeigen
-                        joint_df = station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
+                        # Für Simultane Vergleiche: Umschaltbar zwischen Joint Spots und Non-Joint (Raw) Spots
+                        if show_non_joint:
+                            joint_df = station_df.copy()
+                        else:
+                            joint_df = station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
+
                         if not joint_df.empty:
                             joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
                             joint_df['Δ SNR (dB)'] = (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1)
@@ -280,7 +290,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
                             
                             if 'best_ref_sign' in joint_df.columns:
-                                joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(1).astype(int)
+                                # Runden auf ganze Zahlen (round(0)), damit der Int64-Cast bei Kommazahlen nicht crasht
+                                joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
                                 drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_u_norm', 'snr_r_norm', 'Δ SNR (dB)']].copy()
                                 drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'Best Ref Station', 'Ref Dist (km)', col_u, col_r, col_delta_lbl]
                             else:
@@ -289,7 +300,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                 
                             st.dataframe(drill_df, width='stretch', hide_index=True)
                         else: 
-                            st.info("No joint spots available for the selected station(s).", icon="ℹ️")
+                            msg = "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
+                            st.info(msg, icon="ℹ️")
             except FileNotFoundError: 
                 st.warning("Cache file expired. Please Run Analysis again.")
 

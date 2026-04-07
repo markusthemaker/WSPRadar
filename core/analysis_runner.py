@@ -25,6 +25,15 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     is_demo_run = st.session_state.get("is_demo_mode", False)
     time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
     
+    # --- Prefix Exclusion Filter ---
+    # Dynamically appends NOT LIKE filters to the global time_filter to ensure 
+    # telemetry balloons are purged from all layers (Subqueries & Outer Queries)
+    if "val_exclude_prefixes" in st.session_state and st.session_state.val_exclude_prefixes.strip():
+        prefixes = [p.strip().upper() for p in st.session_state.val_exclude_prefixes.split(',') if p.strip()]
+        for p in prefixes:
+            if p.isalnum():  # Basic sanitization
+                time_filter += f" AND tx_sign NOT LIKE '{p}%' AND rx_sign NOT LIKE '{p}%'"
+    
     is_sequential = False
     
     # Determine Reference / Buddy Parameters
