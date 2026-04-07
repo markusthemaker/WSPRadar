@@ -88,6 +88,14 @@ To mitigate spatial bias caused by disproportionate receiver density in specific
 2. **Segment-Level Aggregation:** The median of these station-level values is calculated to determine the final value for the geographic segment. 
 This method prevents "Receiver Density Bias"—where dense receiver clusters (e.g., in Europe or North America) statistically drown out sparse regions (e.g., in Asia or Africa) in global averages. Every geographic wedge gets a fair, isolated evaluation, ensuring that a single highly active station does not statistically overpower a region.
 
+#### 5.4 Temporal Synchronization (Heartbeat Filter / Offline Penalty Protection)
+To prevent your setup from accumulating unfair penalties (defeats) while your radio, software, or PC was actually powered off, WSPRadar applies a system-wide, strict **Heartbeat Filter** across all comparative modes. A 2-minute cycle is only validated in the comparative analysis if your setup was demonstrably "alive" (online) during that exact minute.
+
+* **In TX Mode (Transmitting):** Your signal must have been decoded by *at least one* station worldwide during that cycle. This proves that your transceiver actually transmitted in that timeslot.
+* **In RX Mode (Receiving):** Your receiver must have decoded *at least one* station (local or worldwide) during that cycle. This proves that your software was running and the antenna was connected.
+
+This mechanism eliminates the so-called **Offline Penalty**. If you shut down your computer at night, your reference cloud will continue to collect thousands of spots, but WSPRadar will not count these as defeats for your antenna. This ensures a 100% fair, physical Win/Loss ratio.
+
 ### 6. Visual Interpretation & Segment Inspector
 
 #### 6.1 Visual Guide (Map Elements)
