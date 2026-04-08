@@ -126,6 +126,9 @@ def apply_custom_css():
             /* Mobile List Indentation Fix: Less padding saves horizontal space */
             .stMarkdown ol, .stMarkdown ul { padding-left: 1.1rem !important; }
             .stMarkdown li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+            
+            /* Fix massive vertical gaps when columns with gap="large" stack on mobile */
+            div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; }
                 
             .header-container { 
                 flex-wrap: wrap !important; 

@@ -212,13 +212,21 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.info(t["lbl_no_joint"], icon="ℹ️")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
 
-        col_ins1, col_ins2 = st.columns([0.7, 0.3], vertical_alignment="center")
+        # --- 1. Layout-Spalten definieren ---
+        # 3 Spalten: 50% für Titel, 30% für Toggle, 20% für Filter-Button
+        col_ins1, col_ins2, col_ins3 = st.columns([0.6, 0.3, 0.3], vertical_alignment="center")
+        
         with col_ins1:
-            st.markdown(f"**{t['lbl_insights']}**{t['lbl_insights_sub']}")
+            # Platzsparende, zweisprachige Kurzform für den Subtitel
+            sub_text = " (Norm. @ 1W. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 1W. Click for details)"
+            st.markdown(f"**{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
+            
         with col_ins2:
             show_non_joint = False
-            if is_compare and not is_sequential:
-                show_non_joint = st.toggle("Show Non-Joint Raw Spots", key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
+            if is_compare:
+                default_state = True if is_sequential else False
+                # Gekürzter Text: "Show Non-Joint"
+                show_non_joint = st.toggle("Show Non-Joint", value=default_state, key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
 
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         
@@ -244,20 +252,46 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
 
         sorted_disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
 
+        # --- DYNAMIC EXCEL-STYLE FILTER ---
+        # Da wir sorted_disp_df jetzt vorbereitet haben, springen wir zurück in Spalte 3 für den Button
+        with col_ins3:
+            # Dezenter Button mit nativem Material-Design Trichter-Icon!
+            with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):
+                st.markdown("**Filter column(s):**")
+                filter_cols = st.multiselect("Select Columns", sorted_disp_df.columns, label_visibility="collapsed")
+                
+                for col in filter_cols:
+                    if pd.api.types.is_numeric_dtype(sorted_disp_df[col]):
+                        min_val = float(sorted_disp_df[col].min())
+                        max_val = float(sorted_disp_df[col].max())
+                        if min_val < max_val:
+                            step = 1.0 if pd.api.types.is_integer_dtype(sorted_disp_df[col]) else 0.1
+                            sel_range = st.slider(f"{col}", min_val, max_val, (min_val, max_val), step=step)
+                            sorted_disp_df = sorted_disp_df[(sorted_disp_df[col] >= sel_range[0]) & (sorted_disp_df[col] <= sel_range[1])]
+                    else:
+                        unique_vals = sorted_disp_df[col].dropna().unique()
+                        sel_vals = st.multiselect(f"{col}", unique_vals, default=[])
+                        if sel_vals:
+                            sorted_disp_df = sorted_disp_df[sorted_disp_df[col].isin(sel_vals)]
+
+        # --- END FILTER ---
+
+        # Die Tabelle rendert nun den gefilterten Zustand
         tbl_event = st.dataframe(sorted_disp_df, width='stretch', hide_index=True, selection_mode="multi-row", on_select="rerun", key=f"tbl_{analysis_id}_{run_id}_{selected_seg}")
-        
+
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
         # ----------------------------------------------------
         sel_rows = tbl_event.selection.rows
         if sel_rows:
-            if len(sel_rows) == 1: 
-                st.markdown(t['lbl_drill_single'].format(station=sorted_disp_df.iloc[sel_rows[0]][station_col]))
-            else: 
-                st.markdown(t['lbl_drill_multi'].format(count=len(sel_rows)))
-                
             sel_stations = sorted_disp_df.iloc[sel_rows][station_col].tolist()
             
+            # Titel vorbereiten (wird erst unten im Layout gerendert)
+            if len(sel_rows) == 1: 
+                drill_title = t['lbl_drill_single'].format(station=sel_stations[0])
+            else: 
+                drill_title = t['lbl_drill_multi'].format(count=len(sel_rows))
+                
             try:
                 # Load the raw spots straight from the parquet cache for blazing fast drill-downs
                 station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', sel_stations)])
@@ -266,11 +300,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]]
                 station_df = station_df.merge(meta_df, left_on='peer_sign', right_on=station_col, how='inner')
                 
+                drill_df = None
+                info_msg = None
+                
                 if not is_compare:
                     station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
                     drill_df = station_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr', 'power', 'stat_val']].copy()
-                    drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm. SNR (dB)']
-                    st.dataframe(drill_df, width='stretch', hide_index=True)
+                    drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm@1W']
                     
                 else:
                     if is_sequential:
@@ -287,9 +323,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             joint_df[col_delta_lbl] = np.nan
                             
                             drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl]].copy()
-                            st.dataframe(drill_df, width='stretch', hide_index=True)
                         else: 
-                            st.info("No spots available for the selected station(s).", icon="ℹ️")
+                            info_msg = "No spots available for the selected station(s)."
                     else:
                         # Für Simultane Vergleiche: Umschaltbar zwischen Joint Spots und Non-Joint (Raw) Spots
                         if show_non_joint:
@@ -330,11 +365,42 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                 # Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
                                 drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_r_norm', 'snr_u_norm', 'Δ SNR (dB)']].copy()
                                 drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_r, col_u, col_delta_lbl]
-                                
-                            st.dataframe(drill_df, width='stretch', hide_index=True)
                         else: 
-                            msg = "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
-                            st.info(msg, icon="ℹ️")
+                            info_msg = "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
+                
+                # --- LAYOUT, FILTER & RENDERING FÜR DRILL-DOWN ---
+                if info_msg:
+                    st.info(info_msg, icon="ℹ️")
+                elif drill_df is not None and not drill_df.empty:
+                    # Spalten-Layout ähnlich der Master-Tabelle (Titel links, Filter rechts)
+                    col_d1, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
+                    
+                    with col_d1:
+                        st.markdown(drill_title)
+                        
+                    with col_d2:
+                        with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):
+                            st.markdown("**Filter column(s):**")
+                            # Eigene Keys generieren, da diese Checkboxen unabhängig von der Master-Tabelle sind
+                            d_filter_cols = st.multiselect("Select Columns", drill_df.columns, label_visibility="collapsed", key=f"d_flt_{analysis_id}_{run_id}_{selected_seg}")
+                            
+                            for col in d_filter_cols:
+                                if pd.api.types.is_numeric_dtype(drill_df[col]):
+                                    min_val = float(drill_df[col].min())
+                                    max_val = float(drill_df[col].max())
+                                    if min_val < max_val:
+                                        step = 1.0 if pd.api.types.is_integer_dtype(drill_df[col]) else 0.1
+                                        sel_range = st.slider(f"{col}", min_val, max_val, (min_val, max_val), step=step, key=f"d_sld_{col}_{analysis_id}_{run_id}_{selected_seg}")
+                                        drill_df = drill_df[(drill_df[col] >= sel_range[0]) & (drill_df[col] <= sel_range[1])]
+                                else:
+                                    # Alles in String casten, um Typen-Konflikte (z.B. bei Mix aus Floats und dem Wort "None") zu vermeiden
+                                    unique_vals = drill_df[col].astype(str).dropna().unique()
+                                    sel_vals = st.multiselect(f"{col}", unique_vals, default=[], key=f"d_ms_{col}_{analysis_id}_{run_id}_{selected_seg}")
+                                    if sel_vals:
+                                        drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
+
+                    st.dataframe(drill_df, width='stretch', hide_index=True)
+
             except FileNotFoundError: 
                 st.warning("Cache file expired. Please Run Analysis again.")
 
