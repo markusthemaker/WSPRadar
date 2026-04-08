@@ -38,11 +38,11 @@ def init_session_state():
         
     # --- Default User Inputs (Core Parameters) ---
     if "val_callsign" not in st.session_state: 
-        st.session_state.val_callsign = "DL1MKS"
+        st.session_state.val_callsign = ""
     if "val_qth" not in st.session_state: 
-        st.session_state.val_qth = "JN37"
+        st.session_state.val_qth = ""
     if "val_band" not in st.session_state: 
-        st.session_state.val_band = "20m"
+        st.session_state.val_band = "30m"
         
     # --- Default Time Settings ---
     if "val_time_mode" not in st.session_state: 
@@ -62,7 +62,7 @@ def init_session_state():
     if "val_comp_mode" not in st.session_state: 
         st.session_state.val_comp_mode = T["en"]["opt_comp_radius"]
     if "val_ref_stations" not in st.session_state: 
-        st.session_state.val_ref_stations = 25
+        st.session_state.val_ref_stations = 10
     if "val_ref_callsign" not in st.session_state: 
         st.session_state.val_ref_callsign = "DL2XYZ"
     if "val_self_test_mode" not in st.session_state: 

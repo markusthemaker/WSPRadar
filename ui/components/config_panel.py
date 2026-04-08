@@ -6,7 +6,7 @@ Separating this from app.py keeps the main orchestrator file clean and focused.
 
 import streamlit as st
 from datetime import datetime, timedelta, timezone
-from config import MAX_DAYS_HISTORY, DEMO_PROFILES
+from config import MAX_DAYS_HISTORY, DEMO_PROFILES, BAND_MAP
 from ui.callbacks import (
     reset_audit, handle_comp_mode_change, handle_self_test_mode_change,
     swap_tx_slots_u, swap_tx_slots_r
@@ -29,7 +29,7 @@ def render_core_expander(t):
             with r2c2: st.slider(t["lbl_hours"], 1, 168, key="val_hours", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
             
             r3c1, r3c2 = st.columns([0.5, 0.5], gap="large")
-            with r3c1: st.selectbox(t["lbl_band"], ["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "All"], key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            with r3c1: st.selectbox(t["lbl_band"], list(BAND_MAP.keys()), key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
             
         else:
             today_utc = datetime.now(timezone.utc).date()
@@ -48,7 +48,7 @@ def render_core_expander(t):
                 st.date_input(t["lbl_end_d"], key="val_end_d", min_value=min_allowed_end, max_value=max_allowed_end, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
 
             r3c1, r3c2, r3c3 = st.columns([0.5, 0.25, 0.25], gap="large", vertical_alignment="bottom")
-            with r3c1: st.selectbox(t["lbl_band"], ["160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m", "6m", "All"], key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            with r3c1: st.selectbox(t["lbl_band"], list(BAND_MAP.keys()), key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
             with r3c2: st.time_input(t["lbl_start_t"], key="val_start_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
             with r3c3: st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
 def render_compare_expander(t):
