@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Streamlit Server",
+            "type": "shell",
+            "command": "streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "clear": true
+            }
+        }
+    ]
+}
