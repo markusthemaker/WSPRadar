@@ -237,20 +237,36 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'stat_val']].copy()
             disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_spots'], t['tbl_col_med_snr']]
         else:
+            # Dynamische Benennung: Async Spots für Sequenziell, ansonsten Joint Spots
+            col_joint_name = "Async Spots" if is_sequential else t['tbl_col_joint']
+            
             disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
-            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_joint'], t['tbl_col_only_u'].format(callsign=col_u_name), lbl_only_ref, t['tbl_col_med_delta']]
+            
+            # --- FIX: Asynchrone Schnittmenge berechnen ---
+            # Da es physikalisch keine simultanen Spots (spot_count = 0) gibt,
+            # ist das Async-Volumen die Summe aller isolierten Spots beider Setups,
+            # ABER NUR, wenn auch BEIDE Setups die Station mindestens einmal gehört haben!
+            if is_sequential:
+                disp_df['spot_count'] = np.where(
+                    (disp_df['count_only_u'] > 0) & (disp_df['count_only_r'] > 0),
+                    disp_df['count_only_u'] + disp_df['count_only_r'],
+                    0
+                )
+            # ----------------------------------------------
+            
+            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_joint_name, t['tbl_col_only_u'].format(callsign=col_u_name), lbl_only_ref, t['tbl_col_med_delta']]
         
         km_col = t['tbl_col_km']
         az_col = t['tbl_col_az']
         disp_df[km_col] = disp_df[km_col].round(0).astype(int)
         disp_df[az_col] = disp_df[az_col].round(1)
         
-        # Verstecke Reihen mit 0 Joint Spots, es sei denn der Raw-Schalter ist an
-        col_joint_name = t.get('tbl_col_joint', 'Joint')
+        # Verstecke Reihen mit 0 Joint/Async Spots, es sei denn der Raw-Schalter ist an
         if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
             disp_df = disp_df[disp_df[col_joint_name] > 0]
 
         sorted_disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
+        disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
 
         # --- DYNAMIC EXCEL-STYLE FILTER ---
         # Da wir sorted_disp_df jetzt vorbereitet haben, springen wir zurück in Spalte 3 für den Button
