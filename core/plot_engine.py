@@ -430,29 +430,19 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         df_footer = df_plot[df_plot['r_min'] < max_dist_km]
         
         # 1. Metriken extrahieren (Spots & Stations) für 4 Segmente
-        if is_sequential:
-            stat_joint = 0
-            spot_joint = 0
-            
-            stat_both_async = len(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)])
-            stat_only_u = len(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)])
-            stat_only_r = len(df_footer[(df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)])
-            
-            spot_both_async = int(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)][['count_only_u', 'count_only_r']].sum().sum())
-            spot_only_u = int(df_footer[(df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)]['count_only_u'].sum())
-            spot_only_r = int(df_footer[(df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)]['count_only_r'].sum())
-        else:
-            stat_joint = len(df_footer[df_footer['spot_count'] > 0])
-            stat_both_async = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)])
-            stat_only_u = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)])
-            stat_only_r = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)])
-            
-            spot_joint = int(df_footer['spot_count'].sum())
-            spot_both_async = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)][['count_only_u', 'count_only_r']].sum().sum())
-            # Auch die Rest-Spots (Async) der Joint-Stationen zum "Both-Async" Topf hinzufügen
-            spot_both_async += int(df_footer[df_footer['spot_count'] > 0][['count_only_u', 'count_only_r']].sum().sum())
-            spot_only_u = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)]['count_only_u'].sum())
-            spot_only_r = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)]['count_only_r'].sum())
+        # Da die Pandas-Aggregation nun in allen Modi "spot_count" (Joint) und "count_only_*" (Exklusiv) sauber trennt, 
+        # nutzen wir eine universelle Logik für Simultan und Sequenziell:
+        stat_joint = len(df_footer[df_footer['spot_count'] > 0])
+        stat_both_async = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)])
+        stat_only_u = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)])
+        stat_only_r = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)])
+        
+        spot_joint = int(df_footer['spot_count'].sum())
+        spot_both_async = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)][['count_only_u', 'count_only_r']].sum().sum())
+        # Auch die Rest-Spots (Async) der Joint-Stationen zum "Both-Async" Topf hinzufügen
+        spot_both_async += int(df_footer[df_footer['spot_count'] > 0][['count_only_u', 'count_only_r']].sum().sum())
+        spot_only_u = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)]['count_only_u'].sum())
+        spot_only_r = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)]['count_only_r'].sum())
 
         tot_stats = stat_only_u + stat_joint + stat_both_async + stat_only_r
         tot_spots = spot_only_u + spot_joint + spot_both_async + spot_only_r
