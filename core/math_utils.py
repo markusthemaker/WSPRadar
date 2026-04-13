@@ -69,3 +69,17 @@ def quantize_time(dt):
     """Quantisiert die Uhrzeit auf das nächste volle 15-Minuten Intervall für besseres DB-Caching."""
     minute = (dt.minute // 15) * 15
     return dt.replace(minute=minute, second=0, microsecond=0)
+
+def calc_wilcoxon_from_paired_arrays(target_vals, ref_vals):
+    """
+    Calculates Wilcoxon p-value from two pre-paired lists of values.
+    Used for Time-Binned Sequential TX Tests where samples are already aggregated pairs.
+    """
+    try:
+        from scipy.stats import wilcoxon
+        if len(target_vals) < 5 or len(target_vals) != len(ref_vals):
+            return 1.0
+        stat, p_value = wilcoxon(target_vals, ref_vals)
+        return p_value
+    except Exception:
+        return 1.0

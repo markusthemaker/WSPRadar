@@ -6,6 +6,14 @@ from config import APP_VERSION, DB_URL
 
 T = {
     "en": {
+        'cfg_tx_ab_bin': "Time Window (Bins)",
+        'cfg_tx_ab_bin_help': "Aggregates spots into fixed time windows to form pairs. Filters micro-fading (QSB) while eliminating the macro-fading shift.",
+        'cfg_min_joint_bins': "Min. Joint Bins",
+        'tbl_col_joint_bins': "Joint Bins",
+        'tbl_col_bin': "Time-Bin",
+        'tbl_col_micro_a': "Micro-Med A",
+        'tbl_col_micro_b': "Micro-Med B",
+        'tbl_col_bin_delta': "Bin Delta",
         "btn_demo": "✨ Load Demo Config",
         "btn_reset": "🔄 Reset Config",
         "btn_run_tx": "📡 Run TX Antenna Analysis",
@@ -114,6 +122,14 @@ T = {
         "warn_no_data": "Not enough qualifying data found for **{title}** after applying filters."
     },
     "de": {
+        'cfg_tx_ab_bin': "Zeitfenster (Bins)",
+        'cfg_tx_ab_bin_help': "Fasst Spots in feste Zeitblöcke zusammen, um Paare zu bilden. Glättet schnelles Fading (QSB) und eliminiert langfristiges Makro-Fading.",
+        'cfg_min_joint_bins': "Min. Joint Bins",
+        'tbl_col_joint_bins': "Joint Bins",
+        'tbl_col_bin': "Zeit-Fenster",
+        'tbl_col_micro_a': "Micro-Med A",
+        'tbl_col_micro_b': "Micro-Med B",
+        'tbl_col_bin_delta': "Block Delta",
         "btn_demo": "✨ Lade Demo-Daten",
         "btn_reset": "🔄 Reset Konfig",
         "btn_run_tx": "📡 TX Antennen-Analyse starten",

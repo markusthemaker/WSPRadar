@@ -81,43 +81,89 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         }
         
         # --- NEU: Rette die Radius-Metriken vor dem Pandas Grouping-Löschvorgang ---
-        if 'best_ref_dist' in df_plot.columns:
-            spatial_agg['best_ref_dist'] = 'max'
         if 'best_ref_sign' in df_plot.columns:
             spatial_agg['best_ref_sign'] = 'first'
             
         if is_sequential:
-            # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Werte
-            df_plot['is_u_spot'] = (df_plot['is_me'] == 1).astype(int)
-            df_plot['is_r_spot'] = (df_plot['is_me'] == 0).astype(int)
-            df_plot['u_val'] = np.where(df_plot['is_me'] == 1, df_plot['stat_val'], np.nan)
-            df_plot['r_val'] = np.where(df_plot['is_me'] == 0, df_plot['stat_val'], np.nan)
+            # --- NEU: Time-Binning für gepaarte Micro-Mediane im Sequential TX Modus ---
+            bin_minutes = st.session_state.get('val_tx_ab_bin_minutes', 8)
+            df_plot['dt_time'] = pd.to_datetime(df_plot['time'])
+            df_plot['time_bin'] = df_plot['dt_time'].dt.floor(f'{bin_minutes}min')
+
+            df_t = df_plot[df_plot['is_me'] == 1].copy()
+            df_r = df_plot[df_plot['is_me'] == 0].copy()
+
+            # FIX: Konvertiere spatial_agg in strikte Named Aggregation Tuples für Pandas!
+            spatial_agg_named = {k: (k, v) for k, v in spatial_agg.items()}
+
+            # Micro-Medians per Bin berechnen (inklusive der spatial_agg Metadaten)
+            bin_t = df_t.groupby(['time_bin'] + group_keys, dropna=False).agg(
+                t_count=('stat_val', 'size'),
+                t_med=('stat_val', 'median'),
+                **spatial_agg_named
+            ).reset_index()
+
+            bin_r = df_r.groupby(['time_bin'] + group_keys, dropna=False).agg(
+                r_count=('stat_val', 'size'),
+                r_med=('stat_val', 'median')
+            ).reset_index()
+
+            # Merge der beiden Setups über Zeitfenster und Station
+            df_bins = pd.merge(bin_t, bin_r, on=['time_bin'] + group_keys, how='outer')
+            df_bins['t_count'] = df_bins['t_count'].fillna(0)
+            df_bins['r_count'] = df_bins['r_count'].fillna(0)
+
+            # Echte "Joint Bins" identifizieren
+            df_bins['is_joint'] = (df_bins['t_count'] > 0) & (df_bins['r_count'] > 0)
+            df_bins['bin_delta'] = df_bins['t_med'] - df_bins['r_med']
+
+            df_joint = df_bins[df_bins['is_joint']]
+            df_excl = df_bins[~df_bins['is_joint']]
+
+            # FIX: Auch hier zwingend Tuples für die 'first' Aggregation verwenden
+            spatial_agg_first = {k: (k, 'first') for k in spatial_agg.keys()}
+
+            # 1. Aggregation der Joint Bins
+            agg_joint = df_joint.groupby(group_keys, dropna=False).agg(
+                joint_bins_count=('time_bin', 'size'),
+                spot_count_u=('t_count', 'sum'),
+                spot_count_r=('r_count', 'sum'),
+                stat_val=('bin_delta', 'median'),
+                w_target=('t_med', list), # Arrays für Wilcoxon
+                w_ref=('r_med', list),
+                **spatial_agg_first
+            ).reset_index()
+            agg_joint['spot_count'] = agg_joint['spot_count_u'] + agg_joint['spot_count_r']
+
+            # 2. Aggregation der exklusiven Bins
+            agg_excl = df_excl.groupby(group_keys, dropna=False).agg(
+                count_only_u=('t_count', 'sum'),
+                count_only_r=('r_count', 'sum'),
+                **spatial_agg_first
+            ).reset_index()
+
+            # Merge zu finalem aggregierten DataFrame für die Stationen
+            df_agg = pd.merge(agg_joint, agg_excl, on=group_keys, how='outer', suffixes=('', '_excl'))
             
-            # 2. C-optimierte Aggregation (ersetzt die langsame pandas .apply Schleife)
-            agg_ops = {
-                'is_u_spot': 'sum',
-                'is_r_spot': 'sum',
-                'u_val': 'median',
-                'r_val': 'median',
-                **spatial_agg
-            }
-            df_agg = df_plot.groupby(group_keys, dropna=False).agg(agg_ops).reset_index()
+            # Bereinigung der duplizierten Metadaten-Spalten
+            for k in spatial_agg.keys():
+                if f"{k}_excl" in df_agg.columns:
+                    df_agg[k] = df_agg[k].fillna(df_agg[f"{k}_excl"])
+                    df_agg = df_agg.drop(columns=[f"{k}_excl"])
+
+            df_agg = df_agg.fillna({
+                'joint_bins_count': 0, 'spot_count': 0, 'count_only_u': 0, 'count_only_r': 0
+            })
+
+            # Filter-Logik: Min. Joint Bins (nicht Raw Spots!) anwenden
+            is_joint = df_agg['joint_bins_count'] >= min_s
+            is_u = df_agg['count_only_u'] >= min_s
+            is_r = df_agg['count_only_r'] >= min_s
             
-            # 3. Symmetrische Filter-Logik anwenden
-            cnt_u = df_agg['is_u_spot']
-            cnt_r = df_agg['is_r_spot']
-            
-            is_joint = (cnt_u >= min_s) & (cnt_r >= min_s)
-            is_u = cnt_u >= min_s
-            is_r = cnt_r >= min_s
-            
-            df_agg['spot_count'] = 0
-            df_agg['count_only_u'] = np.where(is_u, cnt_u, 0)
-            df_agg['count_only_r'] = np.where(is_r, cnt_r, 0)
-            df_agg['stat_val'] = np.where(is_joint, df_agg['u_val'] - df_agg['r_val'], np.nan)
-            
-            # 4. Temporäre Rechenspalten bereinigen
-            df_agg = df_agg.drop(columns=['is_u_spot', 'is_r_spot', 'u_val', 'r_val'])
+            df_agg['stat_val'] = np.where(is_joint, df_agg['stat_val'], np.nan)
+            df_agg['spot_count'] = np.where(is_joint, df_agg['spot_count'], 0)
+            df_agg['count_only_u'] = np.where(is_u, df_agg['count_only_u'], 0)
+            df_agg['count_only_r'] = np.where(is_r, df_agg['count_only_r'], 0)
             
         else:
             # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Spot-Differenz
@@ -163,11 +209,19 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             p_val = np.nan
             
             if len(vals) >= 5 and wilcox_level != "OFF":
-                try:
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        _, p_val = wilcoxon(vals - 0)
-                except ValueError: p_val = 1.0
+                # Wilcoxon für gepaarte Micro-Mediane im sequenziellen Modus
+                if is_sequential and 'w_target' in x.columns and 'w_ref' in x.columns:
+                    from core.math_utils import calc_wilcoxon_from_paired_arrays
+                    seg_w_t = [val for sublist in x['w_target'].dropna() for val in sublist]
+                    seg_w_r = [val for sublist in x['w_ref'].dropna() for val in sublist]
+                    p_val = calc_wilcoxon_from_paired_arrays(seg_w_t, seg_w_r)
+                else:
+                    # Wilcoxon für 1-Sample (bereits abgezogene Simultandaten)
+                    try:
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            _, p_val = wilcoxon(vals - 0)
+                    except ValueError: p_val = 1.0
                     
             return pd.Series({
                 'val': vals.median() if len(vals) > 0 else np.nan,

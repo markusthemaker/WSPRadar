@@ -88,6 +88,15 @@ def render_compare_expander(t):
                     cs1, cs2 = st.columns(2, gap="large")
                     with cs1: st.selectbox(t["lbl_slot_u"], [t["opt_slot_even"], t["opt_slot_odd"]], key="val_slot_u", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_u)
                     with cs2: st.selectbox(t["lbl_slot_r"], [t["opt_slot_odd"], t["opt_slot_even"]], key="val_slot_r", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_r)
+                    st.slider(
+                        t.get('cfg_tx_ab_bin', "Time Window (Bins)"),
+                        min_value=4,
+                        max_value=20,
+                        value=st.session_state.get('val_tx_ab_bin_minutes', 8),
+                        step=4,
+                        key='val_tx_ab_bin_minutes',
+                        help=t.get('cfg_tx_ab_bin_help', "")
+                    )
 
 def render_advanced_expander(t):
     """Renders the third expander: Advanced scientific configurations (Filters, Wilcoxon, Exclusions)."""
@@ -103,6 +112,11 @@ def render_advanced_expander(t):
             st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
 
         with col4:
-            st.slider(t["lbl_min_spots"], 1, 25, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
+            min_spots_label = t["lbl_min_spots"]
+            if st.session_state.val_comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_tx"]:
+                min_spots_label = t.get("cfg_min_joint_bins", "Min. Joint Bins")
+                
+            st.slider(min_spots_label, 1, 25, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
             st.slider(t["lbl_min_stations"], 1, 20, key="val_min_stations", help=t["hlp_min_stations"], on_change=reset_audit)
             st.select_slider(t["lbl_wilcoxon"], options=["OFF", "80%", "90%", "95%", "99%"], key="val_wilcoxon", on_change=reset_audit)
+            

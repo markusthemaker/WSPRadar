@@ -71,8 +71,8 @@ def init_session_state():
         st.session_state.val_self_call_b = ""
     if "val_slot_u" not in st.session_state: 
         st.session_state.val_slot_u = T["en"]["opt_slot_even"]
-    if "val_slot_r" not in st.session_state: 
-        st.session_state.val_slot_r = T["en"]["opt_slot_odd"]
+    if "val_tx_ab_bin_minutes" not in st.session_state: 
+        st.session_state.val_tx_ab_bin_minutes = 8
         
     # --- Default Advanced Configurations ---
     if "val_solar" not in st.session_state: 

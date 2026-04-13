@@ -124,12 +124,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 
                 # System Sensitivity (Yield) counts unique STATIONS, not spots
                 if is_sequential:
+                    # In sequential mode, counts are fetched directly from the bins
                     cnt_shared = len(df_seg[(df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] > 0)])
                     cnt_u = len(df_seg[(df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] == 0)])
                     cnt_r = len(df_seg[(df_seg['count_only_u'] == 0) & (df_seg['count_only_r'] > 0)])
                     
                     yield_counts = [cnt_u, cnt_shared, cnt_r]
-                    yield_labels = [col_u_name, "Async Both", ref_header]
+                    yield_labels = [col_u_name, t.get('tbl_col_joint_bins', 'Joint Bins'), ref_header]
                 else:
                     # Simultane Vergleiche: Dynamische Balken
                     cnt_joint = len(df_seg[df_seg['spot_count'] > 0])
@@ -226,7 +227,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             if is_compare:
                 default_state = True if is_sequential else False
                 # Gekürzter Text: "Show Non-Joint"
-                show_non_joint = st.toggle("Show Non-Joint", value=default_state, key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
+                show_non_joint = st.toggle("Show Non-Joint", value=False, key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
 
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         
@@ -237,31 +238,24 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'stat_val']].copy()
             disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_spots'], t['tbl_col_med_snr']]
         else:
-            # Dynamische Benennung: Async Spots für Sequenziell, ansonsten Joint Spots
-            col_joint_name = "Async Spots" if is_sequential else t['tbl_col_joint']
-            
-            disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
-            
-            # --- FIX: Asynchrone Schnittmenge berechnen ---
-            # Da es physikalisch keine simultanen Spots (spot_count = 0) gibt,
-            # ist das Async-Volumen die Summe aller isolierten Spots beider Setups,
-            # ABER NUR, wenn auch BEIDE Setups die Station mindestens einmal gehört haben!
             if is_sequential:
-                disp_df['spot_count'] = np.where(
-                    (disp_df['count_only_u'] > 0) & (disp_df['count_only_r'] > 0),
-                    disp_df['count_only_u'] + disp_df['count_only_r'],
-                    0
-                )
-            # ----------------------------------------------
+                col_joint_name = t.get('tbl_col_joint_bins', 'Joint Bins')
+                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'joint_bins_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
+            else:
+                col_joint_name = t['tbl_col_joint']
+                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
             
             disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_joint_name, t['tbl_col_only_u'].format(callsign=col_u_name), lbl_only_ref, t['tbl_col_med_delta']]
         
         km_col = t['tbl_col_km']
         az_col = t['tbl_col_az']
-        disp_df[km_col] = disp_df[km_col].round(0).astype(int)
+        
+        # FIX: 'Int64' (mit großem I) ist der native Pandas Nullable-Integer-Typ.
+        # Er verhindert den IntCastingNaNError, da er leere Felder aus dem Outer-Merge sicher toleriert.
+        disp_df[km_col] = disp_df[km_col].round(0).astype('Int64')
         disp_df[az_col] = disp_df[az_col].round(1)
         
-        # Verstecke Reihen mit 0 Joint/Async Spots, es sei denn der Raw-Schalter ist an
+        # Verstecke Reihen mit 0 Joint Spots/Bins, es sei denn der Raw-Schalter ist an
         if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
             disp_df = disp_df[disp_df[col_joint_name] > 0]
 
@@ -326,21 +320,57 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     
                 else:
                     if is_sequential:
-                        joint_df = station_df.copy()
-                        if not joint_df.empty:
-                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
-                            col_u = f'{col_u_name} SNR (dB)'
-                            col_r = f'{ref_header} SNR (dB)'
-                            joint_df[col_u] = np.where(joint_df['is_me'] == 1, joint_df['stat_val'], np.nan)
-                            joint_df[col_r] = np.where(joint_df['is_me'] == 0, joint_df['stat_val'], np.nan)
-                            
-                            # Keine Deltas für asynchrone Einzel-Spots berechnen, da sie in der Zeit nicht matchen
-                            col_delta_lbl = "Δ SNR (Async)"
-                            joint_df[col_delta_lbl] = np.nan
-                            
-                            drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_u, col_r, col_delta_lbl]].copy()
-                        else: 
-                            info_msg = "No spots available for the selected station(s)."
+                        bin_minutes = st.session_state.get('val_tx_ab_bin_minutes', 8)
+                        
+                        # Fix: Zeitstempel aus 'time' String konvertieren
+                        station_df['dt_time'] = pd.to_datetime(station_df['time'])
+                        station_df['time_bin'] = station_df['dt_time'].dt.floor(f'{bin_minutes}min')
+                        
+                        # Fix: Trennung über is_me (1 = Target, 0 = Ref)
+                        df_t = station_df[station_df['is_me'] == 1]
+                        df_r = station_df[station_df['is_me'] == 0]
+                        
+                        # Fix: Normiertes SNR heißt im SQL stat_val
+                        bin_t = df_t.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_a'})
+                        bin_r = df_r.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_b'})
+                        
+                        station_df = pd.merge(station_df, bin_t, on='time_bin', how='left')
+                        station_df = pd.merge(station_df, bin_r, on='time_bin', how='left')
+                        
+                        # Delta exklusiv für Bins mit BEIDEN Stationen berechnen (WICHTIG: Bevor wir Felder leeren!)
+                        station_df['bin_delta'] = np.where(station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna(), 
+                                                        station_df['micro_med_a'] - station_df['micro_med_b'], 
+                                                        np.nan)
+                        
+                        # --- NEUE ANFORDERUNG 2: Toggle "Show Non-Joint" beachten ---
+                        # Zeige isolierte Spots in unvollständigen Bins nur, wenn Toggle an ist
+                        if not show_non_joint:
+                            station_df = station_df[station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna()]
+                            if station_df.empty:
+                                info_msg = "No joint spots available for the selected station(s)."
+
+                        # --- NEUE ANFORDERUNG 1: Gegnerische Micro-Mediane ausblenden ---
+                        # Ist die Zeile Setup A (1), blende Micro-Med B aus. Bei Setup B (0) blende Micro-Med A aus.
+                        station_df['micro_med_b'] = np.where(station_df['is_me'] == 1, np.nan, station_df['micro_med_b'])
+                        station_df['micro_med_a'] = np.where(station_df['is_me'] == 0, np.nan, station_df['micro_med_a'])
+                        
+                        station_df = station_df.sort_values('dt_time', ascending=False)
+                        station_df['time_bin_str'] = station_df['time_bin'].dt.strftime('%H:%M') + ' - ' + (station_df['time_bin'] + pd.Timedelta(minutes=bin_minutes)).dt.strftime('%H:%M')
+                        station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
+
+                        # Rufzeichen-Spalte für die Ansicht generieren
+                        station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, col_u_name, ref_header)
+                        
+                        drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()
+                        
+                        drill_df.columns = [
+                            'Date/Time (UTC)', t.get('tbl_col_bin', 'Time-Bin'), 'TX Station', 
+                            'TX Power (dBm)', 'SNR (Raw)', 'Norm@1W', 
+                            t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin Delta')
+                        ]
+                        
+                        for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin Delta')]:
+                            drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
                     else:
                         # Für Simultane Vergleiche: Umschaltbar zwischen Joint Spots und Non-Joint (Raw) Spots
                         if show_non_joint:
