@@ -38,6 +38,7 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
   * [6.8 Statistische Konfidenz und Wilcoxon-Filter](#sec-6-8)
 * [7. Limitationen und Interpretationsregeln](#sec-7)
 * [8. Konfigurationsreferenz](#sec-8)
+* [9. Bestehende Literatur und Stand der Technik](#sec-9)
 * [Anhang A: Paralleler Betrieb mehrerer WSJT-X Instanzen](#sec-a)
 * [Quellen](#sec-ref)
 
