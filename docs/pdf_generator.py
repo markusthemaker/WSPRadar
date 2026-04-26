@@ -22,6 +22,7 @@ def _formula(html):
 
 
 def _replace_pdf_math(md_text):
+    """Replace LaTeX-like Markdown formulas with xhtml2pdf-safe HTML."""
     block_replacements = {
         r"SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30": _formula(
             "SNR<sub>norm</sub> = SNR<sub>measured</sub> - "
@@ -64,6 +65,39 @@ def _replace_pdf_math(md_text):
     return md_text
 
 
+def _inject_pdf_list_markers(html_content):
+    """xhtml2pdf can drop native list markers; inject visible markers into list items."""
+    def number_ordered_list(match):
+        body = match.group(1)
+        counter = 0
+
+        def add_number(_):
+            nonlocal counter
+            counter += 1
+            return (
+                '<li class="pdf-li pdf-li-numbered">'
+                f'<span class="pdf-list-marker">{counter}.&nbsp;</span>'
+            )
+
+        body = re.sub(r"<li>", add_number, body)
+        return f'<ol class="pdf-list pdf-ol">{body}</ol>'
+
+    html_content = re.sub(
+        r"<ol>(.*?)</ol>",
+        number_ordered_list,
+        html_content,
+        flags=re.DOTALL,
+    )
+
+    html_content = html_content.replace("<ul>", '<ul class="pdf-list pdf-ul">')
+    html_content = html_content.replace(
+        "<li>",
+        '<li class="pdf-li"><span class="pdf-list-marker">&bull;&nbsp;</span>',
+    )
+
+    return html_content
+
+
 @st.cache_data(show_spinner=False)
 def generate_pdf_doc(lang, logo_b64, version):
     """Generate a PDF from the localized Markdown string."""
@@ -95,6 +129,7 @@ def generate_pdf_doc(lang, logo_b64, version):
     md_text = _replace_pdf_math(md_text)
 
     html_content = markdown.markdown(md_text, extensions=["tables"])
+    html_content = _inject_pdf_list_markers(html_content)
 
     dev_credit_pdf = T[lang]["dev_credit"].replace("#39ff14", "#0a318f")
 
@@ -149,37 +184,28 @@ def generate_pdf_doc(lang, logo_b64, version):
         th {{ text-align: left; background-color: #eee; padding: 4px; }}
         td {{ padding: 4px; border-bottom: 1px solid #eee; vertical-align: top; }}
 
-        ul {{
-            list-style-type: disc;
+        .pdf-list {{
             margin-top: 3px;
             margin-bottom: 6px;
-            margin-left: 14px;
-            padding-left: 10px;
+            margin-left: 0;
+            padding-left: 0;
         }}
-        
-        ol {{
-            list-style-type: decimal;
-            margin-top: 3px;
-            margin-bottom: 6px;
-            margin-left: 14px;
-            padding-left: 10px;
-        }}
-        
-        ul li {{
-            list-style-type: disc;
-            display: list-item;
+
+        .pdf-li {{
+            list-style-type: none;
+            display: block;
             margin-top: 0;
             margin-bottom: 2px;
+            padding-left: 12px;
         }}
-        
-        ol li {{
-            list-style-type: decimal;
-            display: list-item;
-            margin-top: 0;
-            margin-bottom: 2px;
+
+        .pdf-list-marker {{
+            font-weight: bold;
+            color: #0a1428;
         }}
-        
+
         li p {{
+            display: inline;
             margin-top: 0;
             margin-bottom: 2px;
         }}
