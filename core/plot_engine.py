@@ -83,6 +83,8 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         # --- NEU: Rette die Radius-Metriken vor dem Pandas Grouping-Löschvorgang ---
         if 'best_ref_sign' in df_plot.columns:
             spatial_agg['best_ref_sign'] = 'first'
+        if 'best_ref_dist' in df_plot.columns:
+            spatial_agg['best_ref_dist'] = 'first'
             
         if is_sequential:
             # --- NEU: Time-Binning für gepaarte Micro-Mediane im Sequential TX Modus ---

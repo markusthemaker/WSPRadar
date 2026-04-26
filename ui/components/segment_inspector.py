@@ -6,6 +6,7 @@ to allow UI updates without triggering full-page reruns.
 """
 
 import io
+import ast
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,6 +14,32 @@ import matplotlib as mpl
 import cartopy.feature as cfeature
 import streamlit as st
 from config import COMPASS
+
+def _parse_ref_detail_rows(value):
+    """Parse ClickHouse Array(Tuple(...)) CSV output for Local Median drill-down display."""
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        raw_rows = value
+    else:
+        text = str(value).strip()
+        if not text or text.lower() in {"nan", "none", "null"}:
+            return []
+        try:
+            raw_rows = ast.literal_eval(text)
+        except (SyntaxError, ValueError):
+            return []
+
+    parsed_rows = []
+    for row in raw_rows:
+        if isinstance(row, (list, tuple)) and len(row) >= 4:
+            parsed_rows.append({
+                "ref_sign": row[0],
+                "ref_grid": row[1],
+                "ref_dist": row[2],
+                "ref_snr": row[3]
+            })
+    return parsed_rows
 
 @st.fragment
 def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enriched_df, segs_df, parquet_path, line1_str, t, max_dist_km):
@@ -90,6 +117,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.session_state.val_comp_mode == t["opt_comp_radius"] and
             st.session_state.get("val_local_benchmark", t.get("opt_local_best", "Local Best Station")) == t.get("opt_local_median", "Local Median Neighborhood")
         )
+        if is_local_median:
+            ref_header = t.get("opt_local_median", "Local Median Neighborhood")
         
         # Build the sub-footer info string detailing decode counts
         if is_compare and 'count_only_u' in df_seg.columns:
@@ -159,7 +188,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                 ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
                 
                 # Adjust Titles for Dual Plot
-                ax_hist.set_title("Hardware Linearity (Î SNR)", color='white', fontweight='bold', pad=10)
+                ax_hist.set_title("Hardware Linearity (Delta SNR)", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
                 
             else:
@@ -382,33 +411,89 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
                             joint_df.loc[joint_df['has_r'] == 0, 'snr_r_norm'] = np.nan
                             
-                            # Delta nur berechnen, wenn BEIDE Seiten existieren
-                            joint_df['Î SNR (dB)'] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
-                            
                             col_u = f'{col_u_name} SNR (dB)'
                             col_r = f'{ref_header} SNR (dB)'
-                            col_delta_lbl = "Î SNR (dB)"
+                            col_delta_lbl = t.get('tbl_col_delta_snr', 'Delta SNR (dB)')
                             station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
                             
-                            # 1. Werte fÃ¼r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
-                            joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
-                            joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
-                            joint_df['Î SNR (dB)'] = joint_df['Î SNR (dB)'].astype(object).fillna("None")
-                            
-                            if 'best_ref_sign' in joint_df.columns:
+                            if is_local_median and 'ref_detail_rows' in joint_df.columns:
+                                expanded_rows = []
+                                for _, row in joint_df.iterrows():
+                                    refs = _parse_ref_detail_rows(row.get('ref_detail_rows'))
+                                    has_u = row.get('has_u', 0) > 0
+                                    has_r = row.get('has_r', 0) > 0
+                                    own_snr = row.get('snr_u_norm', np.nan) if has_u else np.nan
+                                    cycle_ref_median = row.get('snr_r_norm', np.nan) if has_r else np.nan
+                                    delta_snr = round(own_snr - cycle_ref_median, 1) if pd.notna(own_snr) and pd.notna(cycle_ref_median) else np.nan
+
+                                    if refs:
+                                        for ref in refs:
+                                            try:
+                                                ref_dist_km = round(float(ref["ref_dist"]) / 1000)
+                                            except (TypeError, ValueError):
+                                                ref_dist_km = np.nan
+                                            try:
+                                                ref_snr = round(float(ref["ref_snr"]), 1)
+                                            except (TypeError, ValueError):
+                                                ref_snr = np.nan
+                                            expanded_rows.append({
+                                                'Date/Time (UTC)': row['Date/Time (UTC)'],
+                                                station_type: row[station_col],
+                                                t['tbl_col_loc']: row[t['tbl_col_loc']],
+                                                t['tbl_col_km']: row[t['tbl_col_km']],
+                                                t['tbl_col_az']: row[t['tbl_col_az']],
+                                                t.get('tbl_col_ref_station', 'Ref Station'): ref["ref_sign"],
+                                                t['tbl_col_loc'] + ' (Ref)': ref["ref_grid"],
+                                                'Ref km': ref_dist_km,
+                                                t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): ref_snr,
+                                                t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): round(cycle_ref_median, 1) if pd.notna(cycle_ref_median) else np.nan,
+                                                col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
+                                                col_delta_lbl: delta_snr
+                                            })
+                                    elif has_u:
+                                        expanded_rows.append({
+                                            'Date/Time (UTC)': row['Date/Time (UTC)'],
+                                            station_type: row[station_col],
+                                            t['tbl_col_loc']: row[t['tbl_col_loc']],
+                                            t['tbl_col_km']: row[t['tbl_col_km']],
+                                            t['tbl_col_az']: row[t['tbl_col_az']],
+                                            t.get('tbl_col_ref_station', 'Ref Station'): np.nan,
+                                            t['tbl_col_loc'] + ' (Ref)': np.nan,
+                                            'Ref km': np.nan,
+                                            t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): np.nan,
+                                            t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): np.nan,
+                                            col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
+                                            col_delta_lbl: np.nan
+                                        })
+
+                                if expanded_rows:
+                                    drill_df = pd.DataFrame(expanded_rows).sort_values('Date/Time (UTC)', ascending=False)
+                                else:
+                                    info_msg = "No reference station details available for the selected station(s)."
+                            elif 'best_ref_sign' in joint_df.columns:
+                                # Delta nur berechnen, wenn BEIDE Seiten existieren
+                                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+                                # 1. Werte fÃ¼r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
+                                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
+                                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
+                                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
                                 # 2. Auch leere "Best Ref" Felder mit "None" auffÃ¼llen
                                 joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
                                 # Runden auf ganze Zahlen (round(0)), damit der Int64-Cast bei Kommazahlen nicht crasht
                                 joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
-                                ref_sign_col = t.get('tbl_col_ref_pool', 'Ref Pool') if is_local_median else 'Best Ref'
-                                ref_dist_col = t.get('tbl_col_ref_median_km', 'Median Ref km') if is_local_median else 'Ref km'
                                 
                                 # 3. Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
-                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', 'Î SNR (dB)']].copy()
-                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], ref_sign_col, ref_dist_col, col_r, col_u, col_delta_lbl]
+                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
+                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'Best Ref', 'Ref km', col_r, col_u, col_delta_lbl]
                             else:
+                                # Delta nur berechnen, wenn BEIDE Seiten existieren
+                                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+                                # 1. Werte fÃ¼r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
+                                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
+                                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
+                                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
                                 # Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
-                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_r_norm', 'snr_u_norm', 'Î SNR (dB)']].copy()
+                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
                                 drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_r, col_u, col_delta_lbl]
                         else: 
                             info_msg = "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
