@@ -60,6 +60,10 @@ st.set_page_config(page_title="WSPRadar.org | Antenna Benchmarking", page_icon="
 # Bootstrap the session state explicitly AFTER page config and BEFORE any UI rendering
 init_session_state()
 
+if not st.session_state.get("_initial_config_loaded", False):
+    set_reset_config()
+    st.session_state._initial_config_loaded = True
+
 # Open Graph Meta Tags for rich sharing previews
 st.markdown(f"""
     <meta property="og:title" content="WSPRadar.org | Antenna Benchmarking" />
