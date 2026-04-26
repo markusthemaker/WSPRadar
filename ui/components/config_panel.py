@@ -14,7 +14,7 @@ from ui.callbacks import (
 
 def text_input_no_autocomplete(*args, **kwargs):
     kwargs.setdefault("autocomplete", "off")
-        return st.text_input(*args, **kwargs)
+    return st.text_input(*args, **kwargs)
 
 def render_core_expander(t):
     """Renders the first expander: Core Parameters (Callsign, Grid, Time, Band)."""
