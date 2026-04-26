@@ -66,36 +66,50 @@ def _replace_pdf_math(md_text):
 
 
 def _inject_pdf_list_markers(html_content):
-    """xhtml2pdf can drop native list markers; inject visible markers into list items."""
-    def number_ordered_list(match):
+    """xhtml2pdf can drop native list markers; inject stable table-based markers."""
+    def convert_li(match):
+        attrs = match.group(1) or ""
+        body = match.group(2)
+        return (
+            f'<li{attrs}>'
+            '<table class="pdf-list-row"><tr>'
+            '<td class="pdf-list-marker">&bull;</td>'
+            f'<td class="pdf-list-body">{body}</td>'
+            '</tr></table>'
+            '</li>'
+        )
+
+    def convert_ul(match):
+        body = match.group(1)
+        body = re.sub(r"<li([^>]*)>(.*?)</li>", convert_li, body, flags=re.DOTALL)
+        return f'<ul class="pdf-list pdf-ul">{body}</ul>'
+
+    def convert_ol(match):
         body = match.group(1)
         counter = 0
 
-        def add_number(_):
+        def convert_numbered_li(li_match):
             nonlocal counter
             counter += 1
+            attrs = li_match.group(1) or ""
+            li_body = li_match.group(2)
             return (
-                '<li class="pdf-li pdf-li-numbered">'
-                f'<span class="pdf-list-marker">{counter}.&nbsp;</span>'
+                f'<li{attrs}>'
+                '<table class="pdf-list-row"><tr>'
+                f'<td class="pdf-list-marker">{counter}.</td>'
+                f'<td class="pdf-list-body">{li_body}</td>'
+                '</tr></table>'
+                '</li>'
             )
 
-        body = re.sub(r"<li>", add_number, body)
+        body = re.sub(r"<li([^>]*)>(.*?)</li>", convert_numbered_li, body, flags=re.DOTALL)
         return f'<ol class="pdf-list pdf-ol">{body}</ol>'
 
-    html_content = re.sub(
-        r"<ol>(.*?)</ol>",
-        number_ordered_list,
-        html_content,
-        flags=re.DOTALL,
-    )
-
-    html_content = html_content.replace("<ul>", '<ul class="pdf-list pdf-ul">')
-    html_content = html_content.replace(
-        "<li>",
-        '<li class="pdf-li"><span class="pdf-list-marker">&bull;&nbsp;</span>',
-    )
+    html_content = re.sub(r"<ol>(.*?)</ol>", convert_ol, html_content, flags=re.DOTALL)
+    html_content = re.sub(r"<ul>(.*?)</ul>", convert_ul, html_content, flags=re.DOTALL)
 
     return html_content
+
 
 
 @st.cache_data(show_spinner=False)
@@ -190,19 +204,38 @@ def generate_pdf_doc(lang, logo_b64, version):
             margin-left: 0;
             padding-left: 0;
         }}
-
-        .pdf-li {{
+        
+        .pdf-list li {{
             list-style-type: none;
             display: block;
             margin-top: 0;
             margin-bottom: 2px;
-            padding-left: 12px;
+            padding-left: 0;
         }}
-
+        
+        .pdf-list-row {{
+            width: 100%;
+            border-collapse: collapse;
+        }}
+        
         .pdf-list-marker {{
+            width: 12px;
+            vertical-align: top;
             font-weight: bold;
             color: #0a1428;
+            padding: 0;
         }}
+        
+        .pdf-list-body {{
+            vertical-align: top;
+            padding: 0;
+        }}
+        
+        .pdf-list-body p {{
+            margin-top: 0;
+            margin-bottom: 2px;
+        }}
+
 
         li p {{
             display: inline;
