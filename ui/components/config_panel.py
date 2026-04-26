@@ -12,20 +12,24 @@ from ui.callbacks import (
     swap_tx_slots_u, swap_tx_slots_r
 )
 
+def text_input_no_autocomplete(*args, **kwargs):
+    kwargs.setdefault("autocomplete", "off")
+    return text_input_no_autocomplete(*args, **kwargs)
+
 def render_core_expander(t):
     """Renders the first expander: Core Parameters (Callsign, Grid, Time, Band)."""
     with st.expander(t["exp_core"], expanded=True):
         # Zeile 1: Callsign & Time Mode (Pixelgenaue [0.5, 0.5] Aufteilung f?r perfekte rechte Kante)
         r1c1, r1c2 = st.columns([0.5, 0.5], gap="large")
         with r1c1:
-            st.text_input(t["lbl_callsign"], key="val_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            text_input_no_autocomplete(t["lbl_callsign"], key="val_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
         with r1c2:
             st.radio(t["lbl_time_mode"], [t["opt_last_x"], t["opt_custom"]], key="val_time_mode", horizontal=True, disabled=st.session_state.is_demo_mode, on_change=reset_audit)
 
         # Zeile 2 & 3: Dynamisches Layout basierend auf Zeitmodus
         if st.session_state.val_time_mode == t["opt_last_x"]:
             r2c1, r2c2 = st.columns([0.5, 0.5], gap="large")
-            with r2c1: st.text_input(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            with r2c1: text_input_no_autocomplete(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
             with r2c2: st.slider(t["lbl_hours"], 1, 168, key="val_hours", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
             
             r3c1, r3c2 = st.columns([0.5, 0.5], gap="large")
@@ -35,7 +39,7 @@ def render_core_expander(t):
             today_utc = datetime.now(timezone.utc).date()
             
             r2c1, r2c2, r2c3 = st.columns([0.5, 0.25, 0.25], gap="large", vertical_alignment="bottom")
-            with r2c1: st.text_input(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            with r2c1: text_input_no_autocomplete(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
             with r2c2: st.date_input(t["lbl_start_d"], key="val_start_d", max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
             with r2c3:
                 max_allowed_end = min(st.session_state.val_start_d + timedelta(days=MAX_DAYS_HISTORY), today_utc)
@@ -72,7 +76,7 @@ def render_compare_expander(t):
                 st.slider(t["lbl_ref_radius_km"], 10, MAX_DYNAMIC_RADIUS_KM, step=10, key="val_ref_radius_km", on_change=reset_audit)
             elif comp_mode == t["opt_comp_buddy"]:
                 buddy_locked = st.session_state.is_demo_mode and bool(DEMO_PROFILES["buddy"]["ref_callsign"])
-                st.text_input(t["lbl_ref_call"], key="val_ref_callsign", disabled=buddy_locked, on_change=reset_audit)
+                text_input_no_autocomplete(t["lbl_ref_call"], key="val_ref_callsign", disabled=buddy_locked, on_change=reset_audit)
                 
                 # Validation error
                 if st.session_state.val_ref_callsign.upper() == callsign and callsign != "":
@@ -84,8 +88,8 @@ def render_compare_expander(t):
                 
                 if st.session_state.val_self_test_mode == t["opt_self_rx"]:
                     cs1, cs2 = st.columns(2, gap="large")
-                    with cs1: st.text_input("Setup A Callsign", value=callsign, disabled=True)
-                    with cs2: st.text_input("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+                    with cs1: text_input_no_autocomplete("Setup A Callsign", value=callsign, disabled=True)
+                    with cs2: text_input_no_autocomplete("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
                     
                     self_call_b = st.session_state.val_self_call_b.upper()
                     if len(self_call_b) > 0 and self_call_b == callsign:
@@ -113,7 +117,7 @@ def render_advanced_expander(t):
             st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
             
             # Neues Feld zum Ausschlie?en von Ballon-Telemetrie und Spezial-Rufzeichen
-            st.text_input(t.get("lbl_exclude", "Exclude Prefixes"), key="val_exclude_prefixes", help=t.get("tt_exclude", "Comma-separated list (e.g., 'Q, 0')"), on_change=reset_audit)
+            text_input_no_autocomplete(t.get("lbl_exclude", "Exclude Prefixes"), key="val_exclude_prefixes", help=t.get("tt_exclude", "Comma-separated list (e.g., 'Q, 0')"), on_change=reset_audit)
             # NEU: Der Toggle f?r bewegliche Stationen
             st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
 
