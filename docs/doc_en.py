@@ -397,8 +397,8 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 * **Exclude Prefixes:** comma-separated list of callsign prefixes or callsigns to exclude, for example telemetry balloons or known unwanted sources.
 * **Exclude Moving Stations:** removes stations that change their 4-character locator during the analysis window, such as balloons, mobile or maritime stations.
 * **Map Scope:** visual map radius.
-* **Min. Spots/Station:** filters one-hit wonders and adapts to the selected comparison mode.
-* **Min. Stations/Segment:** minimum station count for rendering a segment.
+* **Min. Joint Spots/Station:** in compare modes, requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins. In absolute modes, the same control acts as a raw spots-per-station filter.
+* **Min. Joint Stations/Segment:** in compare modes, requires at least X remote stations with qualifying joint evidence before a segment is drawn. In absolute modes, the same control acts as a raw stations-per-segment filter.
 * **Compare Map Statistical Confidence:** optional Wilcoxon-based filtering.
 
 <a id="sec-a"></a>
