@@ -72,6 +72,14 @@ WSPRadar ist um konkrete Amateurfunk-Fragen herum aufgebaut:
 
 Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Gemeinsame Mathematik und Annahmen werden einmal in [Wissenschaftliche Methodik und Annahmen](#sec-6) erkl&auml;rt.
 
+**Standardempfehlungen f&uuml;r alle Modi**
+
+* Korrektes Rufzeichen und korrekten Maidenhead-Locator verwenden.
+* Ein Zeitfenster w&auml;hlen, das die relevanten Ausbreitungszust&auml;nde abdeckt; mehrt&auml;gige Zeitfenster sind st&auml;rker, wenn die Aussage vollst&auml;ndige t&auml;gliche ionosph&auml;rische Zyklen betreffen soll.
+* Stationskonfiguration im Analysefenster stabil halten, au&szlig;er bei der bewusst getesteten Variable.
+* Bei TX-Analysen Sender, Antennen-/Speiseleitungs-/Tunerpfad, Leistungsregelung, Zeitplan und gemeldete Leistung stabil halten, sofern sie nicht die getestete Variable sind; einen realistischen Leistungswert melden.
+* Bei RX-Analysen Empf&auml;nger, Antennen-/Speiseleitungspfad, Audiopfad, Decoder-Einstellungen und Upload-Verhalten stabil halten, sofern sie nicht die getestete Variable sind.
+
 <a id="sec-4-1"></a>
 #### 4.1 Absolut TX/RX
 
@@ -88,14 +96,6 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 * SNR wird auf 1 W normiert, wenn eine Remote-Sendeleistung relevant ist:  
   $$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
 * Absolute Karten sind sehr gut f&uuml;r Coverage, Skip-Zonen und Band&ouml;ffnungen. Allein sind sie keine fairen Hardwarevergleiche, weil Ausbreitung, Stationsaktivit&auml;t, Sendeleistung und Empf&auml;ngerrauschen nicht kontrolliert sind.
-
-**Valides Design**
-
-* Korrektes Rufzeichen und korrekten Maidenhead-Locator verwenden.
-* Ein Zeitfenster w&auml;hlen, das die relevanten Ausbreitungszust&auml;nde abdeckt.
-* Stationskonfiguration im Zeitfenster stabil halten.
-* Bei TX einen realistischen Leistungswert melden.
-* Bei RX Empf&auml;nger, Antenne, Audio und Decoder-Einstellungen stabil halten.
 
 **Vorsicht bei**
 
@@ -168,23 +168,22 @@ Der Buddy-Test ist ein 1:1-Vergleich mit einer bekannten Station. Man definiert 
 
 Der Hardware A/B-Test ist f&uuml;r eigene Ausr&uuml;stung am eigenen Standort gedacht. Er ist nur valide, wenn jede nicht getestete Variable so konstant wie praktikabel gehalten wird: Band, Zeitfenster, Leistung, Speiseleitungsverluste, Empfangskette, Audiokette, Decodiersoftware und Locator-Meldung.
 
+* Zwei wirklich unabh&auml;ngige Empfangs- und/oder Sendeketten verwenden, wenn diese Ketten Teil des Tests sind; gemeinsam genutzte Komponenten m&uuml;ssen bewusst gew&auml;hlt, stabil gehalten und au&szlig;erhalb der getesteten Variable liegen.
+
 **RX A/B-Test: simultan**
 
 Zwei parallele Empf&auml;nger decodieren dieselben Remote-WSPR-Sendungen zur selben Zeit.
 
-* Zwei wirklich unabh&auml;ngige Empfangsketten verwenden.
-* Nicht beide Decoder aus derselben Audiodatei oder demselben virtuellen Audiopfad speisen.
 * Unterscheidbare Reporting-Identit&auml;ten verwenden, zum Beispiel Hauptrufzeichen f&uuml;r Setup A und Suffix f&uuml;r Setup B, damit beide Streams in der WSPR-Datenbank erscheinen.
 * Uhren synchron halten.
-* Anhang A beschreibt die Trennung paralleler WSJT-X-Instanzen.
+* Anhang A beschreibt die Trennung paralleler WSJT-X-Instanzen, damit beide Decoder nicht dieselbe Audiodatei, denselben virtuellen Audiopfad, dasselbe Save Directory oder dieselben tempor&auml;ren WSPR-Dateien teilen.
 
 **TX A/B-Test: sequenziell mit festem Zeitplan**
 
 Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig senden. WSPRadar nutzt daher deterministisches Time-Slicing. Ein Sender oder Controller weist ein Setup einem festen Slotmuster zu und das andere Setup dem Gegenmuster. Das Tool gruppiert Daten in Zeit-Bins, berechnet je Setup einen Mikro-Median im Bin und daraus den Bin-Delta.
 
 * Ausgangsleistung, Speiseleitung, Tuner-Einstellungen, Band und Zeitplan konstant halten, au&szlig;er bei der getesteten Variable.
-* Lange genug laufen lassen, um die relevanten Ausbreitungszust&auml;nde abzudecken; mehrt&auml;gige L&auml;ufe sind vorzuziehen, weil fixe Slot-Effekte &uuml;ber vollst&auml;ndige Tageszyklen besser ausmitteln.
-* Ein QMX-Transceiver l&auml;sst sich beispielsweise mit deterministischem Timing wie `frame=10` und `start=2` programmieren.
+* Ein QMX-Transceiver l&auml;sst sich beispielsweise mit deterministischem Timing wie `frame=0` f&uuml;r Setup A und `frame=2` f&uuml;r Setup B programmieren.
 * Standard-WSJT-X mit zuf&auml;lligem Sendemuster ist ohne Zusatzsteuerung nicht f&uuml;r fixed-schedule TX A/B geeignet.
 
 **Vorsicht bei TX-Suffixen**
@@ -222,18 +221,17 @@ Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Distanzring und
 * In Vergleichsmodi zeigt das Histogramm Delta-SNR-Werte. Es zeigt, ob ein Segmentmedian aus konsistenter &Uuml;berlegenheit oder aus breiter, instabiler Streuung entsteht.
 * Die Station-Insights-Tabelle listet beteiligte Remote-Stationen, trennt Joint Decodes von exklusiven Decodes und zeigt den stationsbezogenen medianen Delta SNR.
 * Ein Klick auf eine Station-Insights-Zeile &ouml;ffnet die Drill-Down-Tabelle.
+* `Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Async Both` zeigen.
 
-**Drill-Down beim lokalen Nachbarschafts-Median**
+**Drill-Down-Tabelle**
+
+Die Drill-Down-Tabelle ist die zeilenbasierte Auditschicht f&uuml;r alle Modi. Sie zeigt Beobachtungen, Paare oder Zeit-Bins hinter einer Station-Insights-Zeile, damit Segment- und Stationsmediane gegen die zugrunde liegende Evidenz gepr&uuml;ft werden k&ouml;nnen.
+
+In absoluten Modi und normalen Same-Cycle-Vergleichsmodi zeigt der Drill-Down die beteiligten Spot-Level-Beobachtungen und gepaarten Same-Cycle-Vergleiche, die in den Stationsmedian eingehen.
 
 F&uuml;r die Median-Nachbarschaftsmethode wird der Referenzpool expandiert. Statt nur eine generische `Ref Pool`-Zeile zu zeigen, listet die Tabelle die einzelnen lokalen Referenzstationen dieses Zyklus, ihren Locator, ihre Distanz, ihr normiertes Referenz-SNR, den aggregierten Nachbarschaftsmedian des Zyklus, das eigene SNR und den resultierenden Delta SNR. So l&auml;sst sich der Median direkt nachvollziehen.
 
-**Drill-Down beim sequenziellen TX A/B**
-
 F&uuml;r TX A/B zeigt der Drill-Down Zeitfenster statt Same-Cycle-Paare. Sichtbar sind `Micro-Med A`, `Micro-Med B` und der resultierende Bin-Delta. Gegenseitige Mikromediane werden in Single-Setup-Zeilen ausgeblendet, damit fehlende Paare nicht als Nullwerte missverstanden werden.
-
-**Raw Spots Toggle und Async Both**
-
-`Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Async Both` zeigen.
 
 **Filter, Export und High-Resolution Maps**
 
