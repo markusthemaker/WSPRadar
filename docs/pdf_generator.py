@@ -149,40 +149,40 @@ def generate_pdf_doc(lang, logo_b64, version):
         th {{ text-align: left; background-color: #eee; padding: 4px; }}
         td {{ padding: 4px; border-bottom: 1px solid #eee; vertical-align: top; }}
 
-        ul {
+        ul {{
             list-style-type: disc;
             margin-top: 3px;
             margin-bottom: 6px;
             margin-left: 14px;
             padding-left: 10px;
-        }
+        }}
         
-        ol {
+        ol {{
             list-style-type: decimal;
             margin-top: 3px;
             margin-bottom: 6px;
             margin-left: 14px;
             padding-left: 10px;
-        }
+        }}
         
-        ul li {
+        ul li {{
             list-style-type: disc;
             display: list-item;
             margin-top: 0;
             margin-bottom: 2px;
-        }
+        }}
         
-        ol li {
+        ol li {{
             list-style-type: decimal;
             display: list-item;
             margin-top: 0;
             margin-bottom: 2px;
-        }
+        }}
         
-        li p {
+        li p {{
             margin-top: 0;
             margin-bottom: 2px;
-        }
+        }}
 
         .formula {{
             margin-top: 5px;
