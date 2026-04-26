@@ -30,8 +30,18 @@ def apply_custom_css():
         /* Secondary Buttons (Reset, Demo) */
         div.stButton > button[kind="secondary"] { border-color: rgba(57, 255, 20, 0.5) !important; color: #e0e0e0 !important; font-size: 0.85rem !important; padding: 0.2rem 0.5rem !important; margin-top: 10px; transition: all 0.3s ease; }
         div.stButton > button[kind="secondary"]:hover { border-color: #39ff14 !important; color: #39ff14 !important; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important; }
-        div.stButton > button[kind="tertiary"], div.stDownloadButton > button[kind="tertiary"] { text-decoration: none !important; }
-        div.stButton > button[kind="tertiary"] *, div.stDownloadButton > button[kind="tertiary"] * { text-decoration: none !important; }
+        
+        div[data-testid="stButton"] button,
+        div[data-testid="stButton"] button *,
+        div[data-testid="stDownloadButton"] button,
+        div[data-testid="stDownloadButton"] button *,
+        button[data-testid*="BaseButton"],
+        button[data-testid*="BaseButton"] *,
+        button[data-testid*="baseButton"],
+        button[data-testid*="baseButton"] * {
+            text-decoration: none !important;
+            text-decoration-line: none !important;
+        }
 
         /* Selectbox (Language Selector) aligned with button styling */
         div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
