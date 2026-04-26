@@ -72,6 +72,14 @@ WSPRadar is designed around concrete amateur-radio questions:
 
 This chapter combines the user choice, the analysis concept and the experiment-design rules. Shared mathematics and assumptions are explained once in [Scientific Method and Assumptions](#sec-6).
 
+**Standard recommendations for all modes**
+
+* Use a correct callsign and Maidenhead locator.
+* Use a time window that covers the propagation states you care about; multi-day windows are stronger when the claim spans full daily ionospheric cycles.
+* Keep the station configuration stable during the analysis window except for the variable intentionally under test.
+* For TX analysis, keep transmitter, antenna/feedline/tuner path, power control, scheduling and reported power stable unless they are the tested variable; use a realistic reported power value.
+* For RX analysis, keep receiver, antenna/feedline path, audio path, decoder settings and upload behavior stable unless they are the tested variable.
+
 <a id="sec-4-1"></a>
 #### 4.1 Absolute TX/RX
 
@@ -88,14 +96,6 @@ This chapter combines the user choice, the analysis concept and the experiment-d
 * SNR is normalized to 1 W where a remote transmit power is involved:  
   $$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
 * Absolute maps are excellent for coverage, skip zones and band-opening analysis. They are not fair hardware comparisons by themselves because propagation, station activity, transmitter power and receiver noise are not controlled.
-
-**Valid design**
-
-* Use a correct callsign and Maidenhead locator.
-* Use a time window that covers the propagation states you care about.
-* Keep the station configuration stable during the window.
-* For TX, use a realistic reported power value.
-* For RX, keep receiver, antenna, audio and decoder settings stable.
 
 **Careful with**
 
@@ -168,23 +168,22 @@ The Buddy Test is a one-to-one comparison against a known station. You define a 
 
 The Hardware A/B Test is for your own equipment at your own location. It is valid only when every non-tested variable is held as constant as practical: band, time window, power, feedline losses, receiver chain, audio chain, decoding software and locator reporting.
 
+* Use two genuinely independent receive and/or transmit chains where those chains are part of the test; shared components must be intentional, stable and outside the tested variable.
+
 **RX A/B Test: simultaneous**
 
 Two parallel receivers decode the same remote WSPR transmissions at the same time.
 
-* Use two genuinely independent receive chains.
-* Do not feed both decoders from the same audio file or same virtual audio path.
 * Use distinguishable reporting identities, for example the main callsign for Setup A and a suffix for Setup B, so both streams appear in the WSPR database.
 * Keep clocks synchronized.
-* Appendix A describes how to separate parallel WSJT-X instances.
+* Appendix A describes how to separate parallel WSJT-X instances so both decoders do not share the same audio file, virtual audio path, save directory or temporary WSPR files.
 
 **TX A/B Test: fixed-schedule sequential**
 
 Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic time slicing. A transmitter or controller assigns one setup to a fixed slot pattern and the other setup to the opposite slot pattern. The tool groups data into time bins, computes a micro-median for each setup inside a bin, and calculates the bin Delta.
 
 * Keep output power, feedline, tuner settings, band and schedule stable except for the tested variable.
-* Run long enough to include the propagation states you care about; multi-day runs are preferable because fixed-slot effects average down better over complete daily cycles.
-* A QMX transceiver, for example, can be programmed with deterministic timing such as `frame=10` and `start=2`.
+* A QMX transceiver, for example, can be programmed with deterministic timing such as `frame=0` for Setup A and `frame=2` for Setup B.
 * Standard WSJT-X random transmission behavior is not suitable for fixed-schedule TX A/B without additional scheduling control.
 
 **Careful with TX suffixes**
@@ -222,18 +221,17 @@ The Segment Inspector is the audit layer below the maps. Select a distance ring 
 * In compare modes, the histogram shows Delta SNR values. It reveals whether a segment median comes from consistent superiority or from a broad, unstable distribution.
 * The Station Insights table lists contributing remote stations, separates joint decodes from exclusive decodes and shows the station-level median Delta SNR.
 * Clicking a Station Insights row opens the Drill-Down table.
+* `Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Async Both`.
 
-**Local Median Neighborhood Drill-Down**
+**Drill-Down Table**
+
+The Drill-Down table is the row-level audit layer across all modes. It shows the observations, pairs or time bins behind a Station Insights row so the segment and station medians can be reconciled against the underlying evidence.
+
+For absolute modes and normal same-cycle compare modes, the Drill-Down exposes the contributing spot-level observations and paired same-cycle comparisons used for the station-level median.
 
 For the median-neighborhood method, the Drill-Down expands the reference pool. Instead of showing only a generic `Ref Pool` row, it lists the individual local reference stations that contributed in that cycle, their locator, distance, normalized reference SNR, the cycle's aggregated neighborhood median, your SNR and the resulting Delta SNR. This lets you reconcile the median directly.
 
-**Sequential TX A/B Drill-Down**
-
 For TX A/B, the Drill-Down shows time windows rather than same-cycle pairs. It exposes `Micro-Med A`, `Micro-Med B` and the resulting bin Delta. Opposing micro-medians are hidden in single-setup rows so missing paired data is not mistaken for zero.
-
-**Raw Spots Toggle and Async Both**
-
-`Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Async Both`.
 
 **Filtering, export and high-resolution maps**
 
