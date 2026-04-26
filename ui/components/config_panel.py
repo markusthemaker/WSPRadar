@@ -15,7 +15,7 @@ from ui.callbacks import (
 def render_core_expander(t):
     """Renders the first expander: Core Parameters (Callsign, Grid, Time, Band)."""
     with st.expander(t["exp_core"], expanded=True):
-        # Zeile 1: Callsign & Time Mode (Pixelgenaue [0.5, 0.5] Aufteilung für perfekte rechte Kante)
+        # Zeile 1: Callsign & Time Mode (Pixelgenaue [0.5, 0.5] Aufteilung f?r perfekte rechte Kante)
         r1c1, r1c2 = st.columns([0.5, 0.5], gap="large")
         with r1c1:
             st.text_input(t["lbl_callsign"], key="val_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
@@ -65,7 +65,7 @@ def render_compare_expander(t):
             if comp_mode == t["opt_comp_radius"]:
                 st.radio(
                     t["lbl_local_benchmark"],
-                    [t["opt_local_best"], t["opt_local_median"]],
+                    [t["opt_local_median"], t["opt_local_best"]],
                     key="val_local_benchmark",
                     on_change=reset_audit
                 )
@@ -112,9 +112,9 @@ def render_advanced_expander(t):
             st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
             st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
             
-            # Neues Feld zum Ausschließen von Ballon-Telemetrie und Spezial-Rufzeichen
+            # Neues Feld zum Ausschlie?en von Ballon-Telemetrie und Spezial-Rufzeichen
             st.text_input(t.get("lbl_exclude", "Exclude Prefixes"), key="val_exclude_prefixes", help=t.get("tt_exclude", "Comma-separated list (e.g., 'Q, 0')"), on_change=reset_audit)
-            # NEU: Der Toggle für bewegliche Stationen
+            # NEU: Der Toggle f?r bewegliche Stationen
             st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
 
         with col4:

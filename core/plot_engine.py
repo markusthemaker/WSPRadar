@@ -1,6 +1,6 @@
 """
 Plot Engine.
-Führt die geografische Aggregation durch, rechnet Statistik (Wilcoxon) und zeichnet die Cartopy-Map.
+F?hrt die geografische Aggregation durch, rechnet Statistik (Wilcoxon) und zeichnet die Cartopy-Map.
 """
 import pandas as pd
 import numpy as np
@@ -70,7 +70,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         df_plot = df.copy()
         min_s = st.session_state.val_min_spots
         
-        # Gruppierungsschlüssel und Aggregations-Regeln für die Geometrie-Metadaten
+        # Gruppierungsschl?ssel und Aggregations-Regeln f?r die Geometrie-Metadaten
         group_keys = ['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign']
         spatial_agg = {
             'peer_lat': 'first',
@@ -80,14 +80,14 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             'calc_azimuth': 'first'
         }
         
-        # --- NEU: Rette die Radius-Metriken vor dem Pandas Grouping-Löschvorgang ---
+        # --- NEU: Rette die Radius-Metriken vor dem Pandas Grouping-L?schvorgang ---
         if 'best_ref_sign' in df_plot.columns:
             spatial_agg['best_ref_sign'] = 'first'
         if 'best_ref_dist' in df_plot.columns:
             spatial_agg['best_ref_dist'] = 'first'
             
         if is_sequential:
-            # --- NEU: Time-Binning für gepaarte Micro-Mediane im Sequential TX Modus ---
+            # --- NEU: Time-Binning f?r gepaarte Micro-Mediane im Sequential TX Modus ---
             bin_minutes = st.session_state.get('val_tx_ab_bin_minutes', 8)
             df_plot['dt_time'] = pd.to_datetime(df_plot['time'])
             df_plot['time_bin'] = df_plot['dt_time'].dt.floor(f'{bin_minutes}min')
@@ -95,7 +95,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             df_t = df_plot[df_plot['is_me'] == 1].copy()
             df_r = df_plot[df_plot['is_me'] == 0].copy()
 
-            # FIX: Konvertiere spatial_agg in strikte Named Aggregation Tuples für Pandas!
+            # FIX: Konvertiere spatial_agg in strikte Named Aggregation Tuples f?r Pandas!
             spatial_agg_named = {k: (k, v) for k, v in spatial_agg.items()}
 
             # Micro-Medians per Bin berechnen (inklusive der spatial_agg Metadaten)
@@ -110,7 +110,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
                 r_med=('stat_val', 'median')
             ).reset_index()
 
-            # Merge der beiden Setups über Zeitfenster und Station
+            # Merge der beiden Setups ?ber Zeitfenster und Station
             df_bins = pd.merge(bin_t, bin_r, on=['time_bin'] + group_keys, how='outer')
             df_bins['t_count'] = df_bins['t_count'].fillna(0)
             df_bins['r_count'] = df_bins['r_count'].fillna(0)
@@ -122,7 +122,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             df_joint = df_bins[df_bins['is_joint']]
             df_excl = df_bins[~df_bins['is_joint']]
 
-            # FIX: Auch hier zwingend Tuples für die 'first' Aggregation verwenden
+            # FIX: Auch hier zwingend Tuples f?r die 'first' Aggregation verwenden
             spatial_agg_first = {k: (k, 'first') for k in spatial_agg.keys()}
 
             # 1. Aggregation der Joint Bins
@@ -131,7 +131,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
                 spot_count_u=('t_count', 'sum'),
                 spot_count_r=('r_count', 'sum'),
                 stat_val=('bin_delta', 'median'),
-                w_target=('t_med', list), # Arrays für Wilcoxon
+                w_target=('t_med', list), # Arrays f?r Wilcoxon
                 w_ref=('r_med', list),
                 **spatial_agg_first
             ).reset_index()
@@ -144,7 +144,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
                 **spatial_agg_first
             ).reset_index()
 
-            # Merge zu finalem aggregierten DataFrame für die Stationen
+            # Merge zu finalem aggregierten DataFrame f?r die Stationen
             df_agg = pd.merge(agg_joint, agg_excl, on=group_keys, how='outer', suffixes=('', '_excl'))
             
             # Bereinigung der duplizierten Metadaten-Spalten
@@ -168,7 +168,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             df_agg['count_only_r'] = np.where(is_r, df_agg['count_only_r'], 0)
             
         else:
-            # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Spot-Differenz
+            # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugeh?rigkeit und Spot-Differenz
             df_plot['is_joint_spot'] = ((df_plot['has_u'] > 0) & (df_plot['has_r'] > 0)).astype(int)
             df_plot['is_u_spot'] = ((df_plot['has_u'] > 0) & (df_plot['has_r'] == 0)).astype(int)
             df_plot['is_r_spot'] = ((df_plot['has_u'] == 0) & (df_plot['has_r'] > 0)).astype(int)
@@ -198,10 +198,10 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             df_agg['count_only_r'] = np.where(is_r, cnt_r, 0)
             df_agg['stat_val'] = np.where(is_joint, df_agg['spot_diff'], np.nan)
             
-            # 4. Temporäre Rechenspalten bereinigen
+            # 4. Tempor?re Rechenspalten bereinigen
             df_agg = df_agg.drop(columns=['is_joint_spot', 'is_u_spot', 'is_r_spot', 'spot_diff'])
 
-        # Radikale Bereinigung: Wirf jede Station weg, deren Zähler in ALLEN drei Kategorien auf 0 gefallen sind
+        # Radikale Bereinigung: Wirf jede Station weg, deren Z?hler in ALLEN drei Kategorien auf 0 gefallen sind
         df_plot = df_agg[(df_agg['spot_count'] > 0) | (df_agg['count_only_u'] > 0) | (df_agg['count_only_r'] > 0)].copy()
         df_plot['stat_val'] = df_plot['stat_val'].round(1)
         
@@ -211,14 +211,14 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             p_val = np.nan
             
             if len(vals) >= 5 and wilcox_level != "OFF":
-                # Wilcoxon für gepaarte Micro-Mediane im sequenziellen Modus
+                # Wilcoxon f?r gepaarte Micro-Mediane im sequenziellen Modus
                 if is_sequential and 'w_target' in x.columns and 'w_ref' in x.columns:
                     from core.math_utils import calc_wilcoxon_from_paired_arrays
                     seg_w_t = [val for sublist in x['w_target'].dropna() for val in sublist]
                     seg_w_r = [val for sublist in x['w_ref'].dropna() for val in sublist]
                     p_val = calc_wilcoxon_from_paired_arrays(seg_w_t, seg_w_r)
                 else:
-                    # Wilcoxon für 1-Sample (bereits abgezogene Simultandaten)
+                    # Wilcoxon f?r 1-Sample (bereits abgezogene Simultandaten)
                     try:
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore")
@@ -333,7 +333,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     if is_compare:
         clrs = ['#030b2e', '#0a318f', '#2270c1', '#6eb2e4', '#ffffff', '#fca083', '#f03b20', '#a50f15', '#400005']
         bnds = [-27, -21, -15, -9, -3, 3, 9, 15, 21, 27]
-        lbls = ['-4S', '-3S', '-2S', '-1S', '±0', '+1S', '+2S', '+3S', '+4S']
+        lbls = ['-4S', '-3S', '-2S', '-1S', '?0', '+1S', '+2S', '+3S', '+4S']
         ticks = [-24, -18, -12, -6, 0, 6, 12, 18, 24]
         cbar_title = t_lang["cbar_comp"]
     else:
@@ -400,21 +400,21 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         if is_sequential: meta_parts.append("Sync: Sequential A/B")
         elif wilcox_level != "OFF": meta_parts.append(f"Stations/Seg: Wilcoxon ({wilcox_level})")
         else:
-            meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
-            meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
+            meta_parts.append(f"Spots/Station: ?{st.session_state.val_min_spots}")
+            meta_parts.append(f"Stations/Seg: ?{base_min_stations}")
             
         if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
-            local_mode = st.session_state.get('val_local_benchmark', t_lang.get('opt_local_best', 'Local Best Station'))
+            local_mode = st.session_state.get('val_local_benchmark', t_lang.get('opt_local_median', 'Local Median Neighborhood'))
             ref_radius = st.session_state.get('val_ref_radius_km', 250)
-            meta_parts.append(f"Ref: {local_mode} (≤{ref_radius} km)")
+            meta_parts.append(f"Ref: {local_mode} (?{ref_radius} km)")
         elif st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
             meta_parts.append(f"Ref: Self-Test Config")
         else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
     else:
-        meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
-        meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
+        meta_parts.append(f"Spots/Station: ?{st.session_state.val_min_spots}")
+        meta_parts.append(f"Stations/Seg: ?{base_min_stations}")
 
-    # Neu: Füge Max distance Peer hinzu
+    # Neu: F?ge Max distance Peer hinzu
     if is_compare and st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
         if 'best_ref_dist' in df_plot.columns:
             # Filtere leere/NaN Distanzen raus
@@ -434,9 +434,9 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         # Filter dataframe strictly to the rendered map bounds to match the Segment Inspector
         df_footer = df_plot[df_plot['r_min'] < max_dist_km]
         
-        # 1. Metriken extrahieren (Spots & Stations) für 4 Segmente
+        # 1. Metriken extrahieren (Spots & Stations) f?r 4 Segmente
         # Da die Pandas-Aggregation nun in allen Modi "spot_count" (Joint) und "count_only_*" (Exklusiv) sauber trennt, 
-        # nutzen wir eine universelle Logik für Simultan und Sequenziell:
+        # nutzen wir eine universelle Logik f?r Simultan und Sequenziell:
         stat_joint = len(df_footer[df_footer['spot_count'] > 0])
         stat_both_async = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)])
         stat_only_u = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)])
@@ -444,7 +444,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         
         spot_joint = int(df_footer['spot_count'].sum())
         spot_both_async = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)][['count_only_u', 'count_only_r']].sum().sum())
-        # Auch die Rest-Spots (Async) der Joint-Stationen zum "Both-Async" Topf hinzufügen
+        # Auch die Rest-Spots (Async) der Joint-Stationen zum "Both-Async" Topf hinzuf?gen
         spot_both_async += int(df_footer[df_footer['spot_count'] > 0][['count_only_u', 'count_only_r']].sum().sum())
         spot_only_u = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)]['count_only_u'].sum())
         spot_only_r = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)]['count_only_r'].sum())
@@ -459,7 +459,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         ax_bars.set_xticks([])
         ax_bars.tick_params(axis='y', length=0, pad=10, colors='#cccccc', labelsize=FONT_LEGEND)
         
-        # Prozentuale Breiten (0-100%) für sauberes Matplotlib-Skalieren
+        # Prozentuale Breiten (0-100%) f?r sauberes Matplotlib-Skalieren
         pct_u_stat = (stat_only_u / tot_stats * 100) if tot_stats > 0 else 0
         pct_j_stat = (stat_joint / tot_stats * 100) if tot_stats > 0 else 0
         pct_a_stat = (stat_both_async / tot_stats * 100) if tot_stats > 0 else 0
@@ -475,14 +475,14 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         
         categories = ['STATIONS', ' '] if is_radius_mode else ['STATIONS', 'SPOTS']
 
-        # 3. Rendern der 4 Balken-Segmente übereinandergestapelt
+        # 3. Rendern der 4 Balken-Segmente ?bereinandergestapelt
         # Segment 1: Only U (Lila)
         p1 = ax_bars.barh(categories, [pct_u_stat, pct_u_spot if not is_radius_mode else 0], color=COLOR_ONLY_ME, height=0.6)
-        # Segment 2: Joint (Grün)
+        # Segment 2: Joint (Gr?n)
         p2 = ax_bars.barh(categories, [pct_j_stat, pct_j_spot if not is_radius_mode else 0], left=[pct_u_stat, pct_u_spot if not is_radius_mode else 0], color=COLOR_JOINT, height=0.6)
         # Segment 3: Both Async (Orange)
         p3 = ax_bars.barh(categories, [pct_a_stat, pct_a_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat, pct_u_spot+pct_j_spot if not is_radius_mode else 0], color=COLOR_BOTH_ASYNC, height=0.6)
-        # Segment 4: Only R (Weiß)
+        # Segment 4: Only R (Wei?)
         p4 = ax_bars.barh(categories, [pct_r_stat, pct_r_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat+pct_a_stat, pct_u_spot+pct_j_spot+pct_a_spot if not is_radius_mode else 0], color=COLOR_ONLY_REF, height=0.6)
         
         # Dynamisches Zentrieren der echten Zahlenwerte in den Boxen
@@ -510,7 +510,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         fig.text(0.50, 0.01, line1_str, color='#888888', ha='center', fontsize=FONT_FOOTER)
         
     else:
-        # Fallback für Absolute Maps
+        # Fallback f?r Absolute Maps
         fig.text(0.50, 0.02, line1_str, color='#cccccc', ha='center', fontsize=FONT_FOOTER)
 
     return fig, df_plot, segs, line1_str

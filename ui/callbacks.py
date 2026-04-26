@@ -51,7 +51,7 @@ def update_lang():
     state_map = {
         "val_time_mode": ["opt_last_x", "opt_custom"],
         "val_comp_mode": ["opt_comp_radius", "opt_comp_buddy", "opt_comp_self"],
-        "val_local_benchmark": ["opt_local_best", "opt_local_median"],
+        "val_local_benchmark": ["opt_local_median", "opt_local_best"],
         "val_self_test_mode": ["opt_self_rx", "opt_self_tx"],
         "val_slot_u": ["opt_slot_even", "opt_slot_odd"],
         "val_slot_r": ["opt_slot_even", "opt_slot_odd"],
@@ -144,7 +144,7 @@ def set_reset_config():
     st.session_state.val_comp_mode = t["opt_comp_radius"]
     st.session_state.val_ref_stations = 10
     st.session_state.val_ref_radius_km = 250
-    st.session_state.val_local_benchmark = t["opt_local_best"]
+    st.session_state.val_local_benchmark = t["opt_local_median"]
     st.session_state.val_max_dist = 22000
     st.session_state.val_exclude_prefixes = "Q, 0, 1"
     st.session_state.val_filter_moving = True

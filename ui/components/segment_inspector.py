@@ -115,7 +115,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         remote_str = t['txt_rx_stations'] if analysis_id.startswith("TX") else t['txt_tx_stations']
         is_local_median = (
             st.session_state.val_comp_mode == t["opt_comp_radius"] and
-            st.session_state.get("val_local_benchmark", t.get("opt_local_best", "Local Best Station")) == t.get("opt_local_median", "Local Median Neighborhood")
+            st.session_state.get("val_local_benchmark", t.get("opt_local_median", "Local Median Neighborhood")) == t.get("opt_local_median", "Local Median Neighborhood")
         )
         yield_ref_header = t.get("lbl_neighborhood", "Neighborhood") if is_local_median else ref_header
         if is_local_median:
@@ -157,7 +157,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 for spine in ax_yield.spines.values(): spine.set_color('#444444')
                 
                 # System Sensitivity (Yield) counts unique STATIONS, not spots
-                # Universelle Logik für Simultan und Sequenziell:
+                # Universelle Logik f?r Simultan und Sequenziell:
                 cnt_joint = len(df_seg[df_seg['spot_count'] > 0])
                 cnt_async = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] > 0)])
                 cnt_u = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] == 0)])
@@ -234,19 +234,19 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
             # fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
             
-            # Richtiges Streamlit-Parameter fÃ¼r volle Breite
+            # Richtiges Streamlit-Parameter f??r volle Breite
             st.pyplot(fig_hist, width='stretch')
             plt.close(fig_hist)
         else:
-            st.info(t["lbl_no_joint"], icon="â¹ï¸")
+            st.info(t["lbl_no_joint"], icon="??????")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
 
         # --- 1. Layout-Spalten definieren ---
-        # 3 Spalten: 50% fÃ¼r Titel, 30% fÃ¼r Toggle, 20% fÃ¼r Filter-Button
+        # 3 Spalten: 50% f??r Titel, 30% f??r Toggle, 20% f??r Filter-Button
         col_ins1, col_ins2, col_ins3 = st.columns([0.6, 0.3, 0.3], vertical_alignment="center")
         
         with col_ins1:
-            # Platzsparende, zweisprachige Kurzform fÃ¼r den Subtitel
+            # Platzsparende, zweisprachige Kurzform f??r den Subtitel
             sub_text = " (Norm. @ 1W. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 1W. Click for details)"
             st.markdown(f"**{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
             
@@ -254,7 +254,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             show_non_joint = False
             if is_compare:
                 default_state = True if is_sequential else False
-                # GekÃ¼rzter Text: "Show Non-Joint"
+                # Gek??rzter Text: "Show Non-Joint"
                 show_non_joint = st.toggle("Show Non-Joint", value=False, key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
 
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
@@ -278,7 +278,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         km_col = t['tbl_col_km']
         az_col = t['tbl_col_az']
         
-        # FIX: 'Int64' (mit groÃem I) ist der native Pandas Nullable-Integer-Typ.
+        # FIX: 'Int64' (mit gro??em I) ist der native Pandas Nullable-Integer-Typ.
         # Er verhindert den IntCastingNaNError, da er leere Felder aus dem Outer-Merge sicher toleriert.
         disp_df[km_col] = disp_df[km_col].round(0).astype('Int64')
         disp_df[az_col] = disp_df[az_col].round(1)
@@ -291,7 +291,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
 
         # --- DYNAMIC EXCEL-STYLE FILTER ---
-        # Da wir sorted_disp_df jetzt vorbereitet haben, springen wir zurÃ¼ck in Spalte 3 fÃ¼r den Button
+        # Da wir sorted_disp_df jetzt vorbereitet haben, springen wir zur??ck in Spalte 3 f??r den Button
         with col_ins3:
             # Dezenter Button mit nativem Material-Design Trichter-Icon!
             with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):
@@ -354,24 +354,24 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         station_df['dt_time'] = pd.to_datetime(station_df['time'])
                         station_df['time_bin'] = station_df['dt_time'].dt.floor(f'{bin_minutes}min')
                         
-                        # Fix: Trennung Ã¼ber is_me (1 = Target, 0 = Ref)
+                        # Fix: Trennung ??ber is_me (1 = Target, 0 = Ref)
                         df_t = station_df[station_df['is_me'] == 1]
                         df_r = station_df[station_df['is_me'] == 0]
                         
-                        # Fix: Normiertes SNR heiÃt im SQL stat_val
+                        # Fix: Normiertes SNR hei??t im SQL stat_val
                         bin_t = df_t.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_a'})
                         bin_r = df_r.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_b'})
                         
                         station_df = pd.merge(station_df, bin_t, on='time_bin', how='left')
                         station_df = pd.merge(station_df, bin_r, on='time_bin', how='left')
                         
-                        # Delta exklusiv fÃ¼r Bins mit BEIDEN Stationen berechnen (WICHTIG: Bevor wir Felder leeren!)
+                        # Delta exklusiv f??r Bins mit BEIDEN Stationen berechnen (WICHTIG: Bevor wir Felder leeren!)
                         station_df['bin_delta'] = np.where(station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna(), 
                                                         station_df['micro_med_a'] - station_df['micro_med_b'], 
                                                         np.nan)
                         
                         # --- NEUE ANFORDERUNG 2: Toggle "Show Non-Joint" beachten ---
-                        # Zeige isolierte Spots in unvollstÃ¤ndigen Bins nur, wenn Toggle an ist
+                        # Zeige isolierte Spots in unvollst??ndigen Bins nur, wenn Toggle an ist
                         if not show_non_joint:
                             station_df = station_df[station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna()]
                             if station_df.empty:
@@ -386,7 +386,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         station_df['time_bin_str'] = station_df['time_bin'].dt.strftime('%H:%M') + ' - ' + (station_df['time_bin'] + pd.Timedelta(minutes=bin_minutes)).dt.strftime('%H:%M')
                         station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
 
-                        # Rufzeichen-Spalte fÃ¼r die Ansicht generieren
+                        # Rufzeichen-Spalte f??r die Ansicht generieren
                         station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, col_u_name, ref_header)
                         
                         drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()
@@ -400,7 +400,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')]:
                             drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
                     else:
-                        # FÃ¼r Simultane Vergleiche: Umschaltbar zwischen Joint Spots und Non-Joint (Raw) Spots
+                        # F??r Simultane Vergleiche: Umschaltbar zwischen Joint Spots und Non-Joint (Raw) Spots
                         if show_non_joint:
                             joint_df = station_df.copy()
                         else:
@@ -409,7 +409,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         if not joint_df.empty:
                             joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
                             
-                            # ClickHouse gibt 0.0 zurÃ¼ck, wenn maxIf() nichts findet. Wir setzen das explizit auf NaN anhand der countIf() Metriken (has_u / has_r)
+                            # ClickHouse gibt 0.0 zur??ck, wenn maxIf() nichts findet. Wir setzen das explizit auf NaN anhand der countIf() Metriken (has_u / has_r)
                             joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
                             joint_df.loc[joint_df['has_r'] == 0, 'snr_r_norm'] = np.nan
                             
@@ -475,11 +475,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             elif 'best_ref_sign' in joint_df.columns:
                                 # Delta nur berechnen, wenn BEIDE Seiten existieren
                                 joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
-                                # 1. Werte fÃ¼r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
+                                # 1. Werte f??r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
                                 joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
                                 joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
                                 joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
-                                # 2. Auch leere "Best Ref" Felder mit "None" auffÃ¼llen
+                                # 2. Auch leere "Best Ref" Felder mit "None" auff??llen
                                 joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
                                 # Runden auf ganze Zahlen (round(0)), damit der Int64-Cast bei Kommazahlen nicht crasht
                                 joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
@@ -490,7 +490,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             else:
                                 # Delta nur berechnen, wenn BEIDE Seiten existieren
                                 joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
-                                # 1. Werte fÃ¼r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
+                                # 1. Werte f??r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
                                 joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
                                 joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
                                 joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
@@ -500,11 +500,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         else: 
                             info_msg = "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
                 
-                # --- LAYOUT, FILTER & RENDERING FÃR DRILL-DOWN ---
+                # --- LAYOUT, FILTER & RENDERING F??R DRILL-DOWN ---
                 if info_msg:
-                    st.info(info_msg, icon="â¹ï¸")
+                    st.info(info_msg, icon="??????")
                 elif drill_df is not None and not drill_df.empty:
-                    # Spalten-Layout Ã¤hnlich der Master-Tabelle (Titel links, Filter rechts)
+                    # Spalten-Layout ??hnlich der Master-Tabelle (Titel links, Filter rechts)
                     col_d1, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
                     
                     with col_d1:
@@ -513,7 +513,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     with col_d2:
                         with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):
                             st.markdown("**Filter column(s):**")
-                            # Eigene Keys generieren, da diese Checkboxen unabhÃ¤ngig von der Master-Tabelle sind
+                            # Eigene Keys generieren, da diese Checkboxen unabh??ngig von der Master-Tabelle sind
                             d_filter_cols = st.multiselect("Select Columns", drill_df.columns, label_visibility="collapsed", key=f"d_flt_{analysis_id}_{run_id}_{selected_seg}")
                             
                             for col in d_filter_cols:
@@ -546,10 +546,10 @@ def render_lazy_download(analysis_id, fig, callsign, t):
     buf_key = f"img_buf_{analysis_id}_{run_id}"
     
     if buf_key in st.session_state:
-        st.download_button("💾 Download", data=st.session_state[buf_key], file_name=f"WSPR_Map_{analysis_id}_{callsign}.png", mime="image/png", type="tertiary", width='stretch', key=f"dl_{analysis_id}_{run_id}")
+        st.download_button("?? Download", data=st.session_state[buf_key], file_name=f"WSPR_Map_{analysis_id}_{callsign}.png", mime="image/png", type="tertiary", width='stretch', key=f"dl_{analysis_id}_{run_id}")
     else:
-        if st.button("Render High-Res Map ⚙️", key=f"prep_{analysis_id}_{run_id}", type="tertiary", width='stretch'):
-            with st.spinner("⏳"):
+        if st.button("Render High-Res Map ??", key=f"prep_{analysis_id}_{run_id}", type="tertiary", width='stretch'):
+            with st.spinner("?"):
                 if fig.axes:
                     ax = fig.axes[0]
                     # Apply country borders explicitly for the high-res export

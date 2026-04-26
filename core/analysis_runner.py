@@ -18,7 +18,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     """
     # --- Defense-in-depth: validate callsign before any SQL is assembled ---
     if not is_valid_callsign(callsign):
-        st.error(f"Invalid callsign '{callsign}'. Only A–Z, 0–9, and '/' are allowed (3–15 characters).")
+        st.error(f"Invalid callsign '{callsign}'. Only A?Z, 0?9, and '/' are allowed (3?15 characters).")
         return []
 
     comp_mode = st.session_state.val_comp_mode
@@ -42,7 +42,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     elif comp_mode == t["opt_comp_buddy"]:
         ref_callsign = st.session_state.val_ref_callsign.upper().strip()
         if not is_valid_callsign(ref_callsign):
-            st.error(f"Invalid reference callsign '{ref_callsign}'. Only A–Z, 0–9, and '/' are allowed (3–15 characters).")
+            st.error(f"Invalid reference callsign '{ref_callsign}'. Only A?Z, 0?9, and '/' are allowed (3?15 characters).")
             return []
     elif comp_mode == t["opt_comp_self"]:
         ref_callsign = callsign  # defaults to target callsign (already validated above)
@@ -51,7 +51,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         elif st.session_state.val_self_test_mode == t["opt_self_rx"]:
             ref_callsign = st.session_state.val_self_call_b.upper().strip()
             if not is_valid_callsign(ref_callsign):
-                st.error(f"Invalid Setup B callsign '{ref_callsign}'. Only A–Z, 0–9, and '/' are allowed (3–15 characters).")
+                st.error(f"Invalid Setup B callsign '{ref_callsign}'. Only A?Z, 0?9, and '/' are allowed (3?15 characters).")
                 return []
     
     def get_slot_sql(slot_val):
@@ -72,8 +72,8 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
 
     # --- Explicit Synchronization Layer ---
-    # Dank HTTP POST in der data_engine sind wir nicht mehr an URL-Längenlimits gebunden.
-    # Wir können die aktiven Zyklen bequem vorladen und als Liste einfügen, 
+    # Dank HTTP POST in der data_engine sind wir nicht mehr an URL-L?ngenlimits gebunden.
+    # Wir k?nnen die aktiven Zyklen bequem vorladen und als Liste einf?gen, 
     # was die geforderte ClickHouse Subquery-Tiefe massiv reduziert!
     
     tx_cycle_filter = ""
@@ -99,11 +99,11 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     # --- Peer SQL Filters ---
     if comp_mode == t["opt_comp_radius"]:
         ref_radius_km = min(st.session_state.get("val_ref_radius_km", MAX_DYNAMIC_RADIUS_KM), MAX_DYNAMIC_RADIUS_KM)
-        local_benchmark = st.session_state.get("val_local_benchmark", t["opt_local_best"])
+        local_benchmark = st.session_state.get("val_local_benchmark", t["opt_local_median"])
         is_local_median = local_benchmark == t["opt_local_median"]
         max_rad = ref_radius_km * 1000
         
-        # PRE-FILTER BOUNDING BOX: Hält die geoDistance Berechnung extrem billig
+        # PRE-FILTER BOUNDING BOX: H?lt die geoDistance Berechnung extrem billig
         lat_diff = ref_radius_km / 111.0
         lon_diff = ref_radius_km / (111.0 * max(abs(np.cos(np.radians(lat_0))), 0.01))
         
@@ -144,7 +144,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     local_ref_sign_sql = "argMaxIf(local_sign, snr - power + 30, is_me = 0)"
     local_ref_dist_sql = "argMaxIf(local_dist, snr - power + 30, is_me = 0)"
     local_ref_detail_sql = ""
-    if comp_mode == t["opt_comp_radius"] and st.session_state.get("val_local_benchmark", t["opt_local_best"]) == t["opt_local_median"]:
+    if comp_mode == t["opt_comp_radius"] and st.session_state.get("val_local_benchmark", t["opt_local_median"]) == t["opt_local_median"]:
         local_ref_snr_sql = "quantileExactInclusiveIf(0.5)(snr - power + 30, is_me = 0)"
         local_ref_sign_sql = "concat(toString(countIf(is_me = 0)), ' stations')"
         local_ref_dist_sql = "quantileExactInclusiveIf(0.5)(local_dist, is_me = 0)"
@@ -204,14 +204,14 @@ def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
     # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (RX & TX) ---
     # Verhindert massive "Offline-Strafen"! Ein Zyklus wird nur gewertet, wenn Setup A nachweislich aktiv war.
     # Bei TX: Transceiver muss in diesem Zyklus gesendet haben (mind. 1 Spot weltweit).
-    # Bei RX: Empfänger muss online gewesen sein (mind. 1 Spot von irgendwem weltweit empfangen).
+    # Bei RX: Empf?nger muss online gewesen sein (mind. 1 Spot von irgendwem weltweit empfangen).
     if analysis['is_compare'] and not analysis['is_sequential'] and 'has_u' in df.columns:
         active_slots = df[df['has_u'] > 0]['time_slot'].unique()
         df = df[df['time_slot'].isin(active_slots)]
     
     # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (STRICTLY TX ONLY) ---
     # Im RX-Vergleich bedeutet "0 Spots" eine taube Antenne (wir behalten (!!!) den Zyklus als Niederlage). 
-    # Im TX-Vergleich bedeutet "0 Spots", dass nicht gesendet wurde (wir löschen den Zyklus aus Fairness).
+    # Im TX-Vergleich bedeutet "0 Spots", dass nicht gesendet wurde (wir l?schen den Zyklus aus Fairness).
     #is_tx = analysis['id'].startswith("TX")
     #if analysis['is_compare'] and not analysis['is_sequential'] and is_tx and 'has_u' in df.columns:
         #active_slots = df[df['has_u'] > 0]['time_slot'].unique()
