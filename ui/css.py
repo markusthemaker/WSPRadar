@@ -111,7 +111,12 @@ def apply_custom_css():
         .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }
         .stMarkdown h4 { color: #ffffff !important; margin-top: 1.8rem; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
         .stMarkdown ol, .stMarkdown ul { padding-left: 2.5rem !important; margin-top: 0.5rem; }
+        .stMarkdown ul { list-style-type: disc !important; list-style-position: outside !important; }
+        .stMarkdown ol { list-style-type: decimal !important; list-style-position: outside !important; }
         .stMarkdown li { margin-bottom: 0.8rem; }
+        .stMarkdown li::marker { color: #39ff14 !important; }
+        .stMarkdown a { color: #39ff14 !important; text-decoration: underline !important; text-underline-offset: 3px; }
+        .stMarkdown a:hover { color: #a6ff8a !important; }
         
         a.header-anchor { display: none !important; }
         
