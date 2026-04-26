@@ -24,7 +24,7 @@ T = {
         "comp_title_local_best": "Local Best Station (≤{radius} km)",
         "comp_title_local_median": "Local Median Neighborhood (≤{radius} km)",
         "config_title": "Configuration",
-        "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> <span class='pc-break'><br></span><span class='mobile-pipe'> | </span> Developed by Dr. Markus Brosch (DL1MKS) ",        
+        "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> <br>Developed by Dr. Markus Brosch (DL1MKS) ",        
         "exp_adv": "⚙️ Advanced Config & Expert Settings",
         "exp_comp": "⚖️ Comparison against References and A/B Testing",
         "exp_core": "📡 Core Parameters",
