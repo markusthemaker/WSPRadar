@@ -13,7 +13,7 @@ WSPRadar is an experimental, data-driven antenna and station benchmarking tool b
 * [5. Core concepts: Absolute vs. Compare](#5-core-concepts-absolute-vs-compare)
 * [6. Comparative methods](#6-comparative-methods)
 * [7. Scientific method and assumptions](#7-scientific-method-and-assumptions)
-* [8. Experiment design appendix](#8-experiment-design-appendix)
+* [8. Evidence strength and reproducibility](#8-evidence-strength-and-reproducibility)
 * [9. Configuration reference](#9-configuration-reference)
 * [10. Limitations, disclaimer and license](#10-limitations-disclaimer-and-license)
 * [Appendix A: Parallel operation of multiple WSJT-X instances](#appendix-a-parallel-operation-of-multiple-wsjt-x-instances)
@@ -46,15 +46,54 @@ The current demo data is configured mainly for the local neighborhood comparison
 
 ### 3. Choose your test
 
-| Question | WSPRadar mode | Valid when | Be careful when | Primary output |
-|---|---|---|---|---|
-| Where am I heard? | `TX Absolute` | Your callsign transmits WSPR with a correct locator and reported power. | Reported dBm may not equal feedpoint power; closed bands do not count as weak spots because WSPR logs successful decodes only. | Map segments, normalized SNR, receiver list. |
-| Who do I hear? | `RX Absolute` | Your receiver uploads WSPR spots reliably. | RX results reflect the full receive chain: antenna, receiver, audio chain, local noise and upload behavior. | Map segments, normalized remote-transmitter SNR, transmitter list. |
-| Am I typical for nearby active WSPR stations? | `Local Median Neighborhood` | Several local stations are active inside the selected radius in the same WSPR cycles. | The neighborhood is not a calibrated reference array; it is the median of active peers visible in the data. | Delta SNR vs neighborhood median, yield bars, expanded reference Drill-Down. |
-| Can I match the strongest local station? | `Local Best Station` | You want a strict stress test against the best active local peer per cycle/path. | It is intentionally harsh: the reference may change cycle by cycle and can become a moving best-peer envelope. | Delta SNR vs best local station, best-reference Drill-Down. |
-| Is my station better than a specific reference? | `Specific Reference Station` | Both callsigns are active and share enough same-cycle remote peers. | Local geography, antenna type, power accuracy and local noise may differ. | Joint spots, exclusive decodes, station-level Delta SNR. |
-| Did RX setup A beat RX setup B? | `RX A/B Test` | Two independent receivers decode the same remote WSPR transmissions at the same time and report distinguishable callsigns/suffixes. | Duplicate filtering and shared audio paths can invalidate the comparison. | Same-cycle paired Delta SNR and decode yield. |
-| Did TX setup A beat TX setup B? | `TX A/B Test` | One callsign is transmitted on fixed, deterministic time slots for A and B over a long enough window. | Sequential TX is time-binned, not simultaneous. Multi-day runs average down many propagation effects, but fixed timing cannot prove every time-correlated effect disappeared. | Time-bin paired Delta SNR, joint bins, yield. |
+#### 3.1 Where am I heard? (`TX Absolute`)
+
+* **Experimental design:** Transmit WSPR with your normal callsign, correct locator and a realistic reported power. Use a long enough time window to cover the propagation states you care about.
+* **Valid when:** Your station was transmitting during the selected window and WSPR receivers uploaded spots reliably.
+* **Be careful with:** Reported dBm may not equal feedpoint power. Closed bands do not create weak spots; they create no spots.
+* **Primary output:** Map segments, normalized SNR, receiver list and distance/azimuth footprint.
+
+#### 3.2 Who do I hear? (`RX Absolute`)
+
+* **Experimental design:** Run your receiver continuously and upload WSPR spots. Keep receiver, antenna and software settings stable during the selected window.
+* **Valid when:** Your receiver was online and decoding normally.
+* **Be careful with:** RX results reflect the full receive chain: antenna, receiver, audio path, local noise, decoder behavior and upload reliability.
+* **Primary output:** Map segments, normalized remote-transmitter SNR and transmitter list.
+
+#### 3.3 Am I typical for nearby active WSPR stations? (`Local Median Neighborhood`)
+
+* **Experimental design:** Start with this benchmark for local self-assessment. Choose a radius that gives enough active peers without mixing very different propagation environments. Dense regions can often use a smaller radius; sparse regions may need a larger radius.
+* **Valid when:** Several local stations are active inside the selected radius in the same WSPR cycles and on comparable paths.
+* **Be careful with:** The neighborhood is not a calibrated reference array. It is the median of active peers visible in the data, and the peer set can change by cycle.
+* **Primary output:** Delta SNR vs neighborhood median, yield bars, Station Insights and expanded reference Drill-Down.
+
+#### 3.4 Can I match the strongest local station? (`Local Best Station`)
+
+* **Experimental design:** Use this only when you intentionally want a strict target. It compares against the strongest active local peer for each path/cycle.
+* **Valid when:** The goal is a best-local-peer stress test rather than a central neighborhood baseline.
+* **Be careful with:** This is not local average performance. The reference can change cycle by cycle and can become a moving best-peer envelope.
+* **Primary output:** Delta SNR vs best local station, yield bars and best-reference Drill-Down.
+
+#### 3.5 Am I better than a specific reference station? (`Specific Reference Station`)
+
+* **Experimental design:** Pick a reference station whose location, power, antenna and operating schedule you understand. Use the same band and overlapping time windows.
+* **Valid when:** Both callsigns are active and share enough same-cycle remote peers.
+* **Be careful with:** Differences are station-system differences, not pure antenna gain. Local geography, antenna type, power accuracy, feedline, receiver chain, polarization and local noise may all matter.
+* **Primary output:** Joint spots, exclusive decodes, station-level Delta SNR and Drill-Down rows.
+
+#### 3.6 Did RX setup A beat RX setup B? (`RX A/B Test`)
+
+* **Experimental design:** Use two genuinely independent receive chains. Do not feed both decoders from the same audio file or same virtual audio path. Use distinct reporting identities so both streams appear in the WSPR database, and confirm both receivers are time synchronized.
+* **Valid when:** Both receivers decode the same remote WSPR transmissions at the same time and report distinguishable callsigns/suffixes.
+* **Be careful with:** Duplicate filtering, shared audio paths, different AGC/audio settings or unsynchronized clocks can invalidate the comparison.
+* **Primary output:** Same-cycle paired Delta SNR, joint/exclusive decode yield and station-level Drill-Down.
+
+#### 3.7 Did TX setup A beat TX setup B? (`TX A/B Test`)
+
+* **Experimental design:** Use deterministic fixed timing. Keep power, feedline, tuner settings and band identical except for the tested variable. Run long enough to include the propagation states you care about; multi-day runs are preferable because fixed-slot time effects average down better over complete daily cycles.
+* **Valid when:** One callsign is transmitted on fixed, deterministic time slots for A and B over a long enough window.
+* **Be careful with:** Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces time-confounding substantially, but does not prove that every time-correlated effect disappeared.
+* **Primary output:** Time-bin paired Delta SNR, joint bins, decode yield and bin-level Drill-Down.
 
 ### 4. How to read the results
 
@@ -180,9 +219,7 @@ Why avoid multi-cycle WSPR suffixes for single-transmitter TX A/B? Compound call
 
 WSPRadar reads historical WSPR spots through wspr.live. The wspr.live documentation states that the data is raw data as reported and published by WSPRnet, and warns that duplicates, false spots and other errors may exist. It also states that the volunteer-run infrastructure gives no guarantees on correctness, availability or stability.
 
-Implication: WSPRadar can make the analysis auditable and internally consistent, but it cannot make the upstream data calibrated or error-free.
-
-The wspr.live database query interface is GET-only for direct database access; POST requests are not allowed. Long-query risk must therefore be handled by bounded time windows, band/time filters, query shortening and chunking where needed, not by switching this endpoint to POST.
+WSPRadar mitigates many upstream data issues by using multi-layer aggregation and filters: same-cycle pairing, station-level medians, segment-level medians, minimum-sample thresholds, moving-station filtering and optional prefix exclusions. These measures substantially reduce the influence of isolated duplicates, sporadic false spots, one-hit decodes and receiver-density bias. They do not make the upstream dataset calibrated or error-free, and a plausible repeated bad report can still survive; the claim is robustness, not immunity.
 
 #### 7.2 WSPR protocol, SNR and reported power
 
@@ -231,7 +268,9 @@ WSPRadar validates comparative cycles only when your setup was demonstrably aliv
 * In TX mode, your signal must have been decoded by at least one station worldwide during the relevant cycle/slot.
 * In RX mode, your receiver must have decoded at least one station during the relevant cycle.
 
-This heartbeat filter reduces offline bias. If you shut the station down overnight, reference spots collected during that offline period are not counted as defeats for your hardware. It does not make every comparison perfectly fair; it specifically guards against penalizing missing data caused by your station being offline.
+Temporal synchronization is one of WSPRadar's strongest controls. Same-cycle pairing strongly reduces fast QSB/fading effects because both sides are evaluated in the same two-minute WSPR opportunity. In TX comparisons, using the same remote receiver reduces receiver-side QRM, noise-floor and antenna effects. In RX comparisons, decoding the same remote transmitter reduces transmitter-power and shared-path variation. The heartbeat filter adds a separate protection: if you shut the station down overnight, reference spots collected during that offline period are not counted as defeats for your hardware.
+
+This does not make every comparison perfectly fair. It reduces the dominant timing, fading and offline-bias confounders in synchronous modes. Sequential TX A/B remains the special case: time-binning and multi-day fixed schedules reduce macro-fading/time drift, but are not equivalent to simultaneous same-cycle pairing.
 
 #### 7.7 Statistical confidence and Wilcoxon filtering
 
@@ -247,7 +286,7 @@ Correct interpretation:
 
 Therefore, Wilcoxon filtering should be documented as statistical evidence, not proof. A scientifically stronger future version could add bootstrap confidence intervals and false-discovery-rate correction across map segments.
 
-#### 7.8 Evidence strength and reproducibility
+### 8. Evidence strength and reproducibility
 
 Suggested evidence language:
 
@@ -269,28 +308,6 @@ Reproducibility checklist:
 * Excluded prefixes and moving-station filter.
 * Wilcoxon setting.
 * Exported CSV and screenshots of map and Segment Inspector.
-
-### 8. Experiment design appendix
-
-**Local Median Neighborhood:**
-
-Use this first for a practical local baseline. Start with a radius that gives enough active peers without mixing very different propagation environments. In dense regions, a smaller radius may be more representative. In sparse regions, a larger radius may be necessary but less local.
-
-**Local Best Station:**
-
-Use this when you intentionally want a hard target. Do not describe it as average local performance. It is the best active local peer for each path/cycle.
-
-**Buddy Test:**
-
-Pick a reference station whose location, power, antenna and operating schedule you understand. Use the same band and overlapping time windows. Interpret differences as station-system differences, not pure antenna gain.
-
-**RX A/B Test:**
-
-Use two genuinely independent receive chains. Avoid feeding both decoders from the same audio file or same virtual audio path. Use distinct reporting identities so both streams appear in the WSPR database. Confirm that both receivers are time synchronized.
-
-**TX A/B Test:**
-
-Use deterministic fixed timing. Keep power, feedline, tuner settings and band identical except for the tested variable. Run long enough to include day/night changes if those are relevant. Multi-day runs are preferable because fixed-slot time effects average down better over complete daily cycles. Still, avoid claiming perfect time-confound elimination.
 
 **Minimum samples:**
 
@@ -331,7 +348,7 @@ There is no universal magic number. For exploratory work, inspect all visible re
 
 * **Crowd-sourced data:** WSPR spots can contain duplicates, false spots, wrong power, wrong locator or receiver-side errors.
 * **Successful decodes only:** WSPR logs decodes, not all failed reception attempts. Dead bands do not lower the absolute median; they reduce the existence of spots.
-* **Reported power caveat:** normalization assumes reported dBm is correct.
+* **Reported power caveat:** normalization mitigates reported-power differences, and several compare modes reduce exposure to this problem by pairing against the same transmitter or the same callsign. However, any analysis that depends on user-reported dBm still assumes that the reported value is reasonably close to reality.
 * **Sequential TX caveat:** fixed-schedule TX A/B reduces but does not perfectly eliminate time confounding.
 * **Distance is not angle:** distance-ring patterns can suggest propagation behavior but do not directly measure radiation take-off angle.
 * **Polarization and local environment:** WSPRadar measures real-world station-system performance, including antenna, receiver/transmitter, feedline, terrain, polarization effects, local QRM and software behavior.
