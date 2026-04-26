@@ -127,7 +127,35 @@ def apply_custom_css():
         .stMarkdown li::marker { color: #39ff14 !important; }
         .stMarkdown a { color: #39ff14 !important; text-decoration: underline !important; text-underline-offset: 3px; }
         .stMarkdown a:hover { color: #a6ff8a !important; }
+
+        .stMarkdown,
+        .stMarkdown p,
+        .stMarkdown li {
+            max-width: 100% !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
         
+        .stMarkdown a {
+            color: #39ff14 !important;
+            text-decoration: underline !important;
+            text-underline-offset: 3px;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+        
+        .stMarkdown code {
+            white-space: pre-wrap !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+        
+        .stMarkdown pre {
+            max-width: 100% !important;
+            white-space: pre-wrap !important;
+            overflow-x: hidden !important;
+        }
+
         a.header-anchor { display: none !important; }
         
         /* Visibility helpers */
