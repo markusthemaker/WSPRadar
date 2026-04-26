@@ -399,7 +399,6 @@ WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3)
 * **Map Scope:** visueller Kartenradius.
 * **Min. Joint Spots/Station:** In Vergleichsmodi sind mindestens X gemeinsame Spots pro Remote-Station erforderlich, bevor diese Station zu einem Delta SNR beiträgt. Im sequenziellen TX A/B wird dies als Min. Joint Bins angezeigt. In absoluten Modi wirkt derselbe Regler als Roh-Spots-pro-Station-Filter.
 * **Min. Joint Stations/Segment:** In Vergleichsmodi sind mindestens X Remote-Stationen mit qualifizierender gemeinsamer Evidenz erforderlich, bevor ein Segment gezeichnet wird. In absoluten Modi wirkt derselbe Regler als Roh-Stationen-pro-Segment-Filter.
-
 * **Compare Map Statistical Confidence:** optionale Wilcoxon-basierte Filterung.
 
 <a id="sec-a"></a>
