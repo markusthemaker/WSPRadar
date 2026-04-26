@@ -489,46 +489,6 @@ The existing literature shows that WSPR data can be seriously useful for propaga
 
 WSPRadar's contribution is not that it reinvents WSPR spots. Its contribution is that it turns those spots into a reproducible, cautiously interpreted benchmarking framework for TX, RX, local-peer and hardware A/B questions.
 
----
-
-### Additional Sources for the References Section
-
-* [9-1] ARRL, **WSPR**, technical overview of MEPT_JT/WSPR, message format, transmission duration, occupied bandwidth and SNR reference.  
-  https://www.arrl.org/wspr
-
-* [9-2] WSPR.live, **Welcome to WSPR Live**, documentation, database description and disclaimer about raw data, duplicates, false spots and availability.  
-  https://wspr.live/
-
-* [9-3] Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). **A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals**. *Atmosphere*, 13(8), 1340. doi:10.3390/atmos13081340.  
-  https://www.mdpi.com/2073-4433/13/8/1340
-
-* [9-4] Frissell, N. A. et al. (2023). **Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations**. *Frontiers in Astronomy and Space Sciences*, 10, Article 1184171. doi:10.3389/fspas.2023.1184171.  
-  https://www.frontiersin.org/articles/10.3389/fspas.2023.1184171/full
-
-* [9-5] Vanhamel, J.; Machiels, W.; Lamy, H. (2022). **Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band**. *International Journal of Antennas and Propagation*, 2022, Article 4809313. doi:10.1155/2022/4809313.  
-  https://research.tudelft.nl/en/publications/using-the-wspr-mode-for-antenna-performance-evaluation-and-propag/
-
-* [9-6] Zander, J. (2022). **Simple HF antenna efficiency comparisons using the WSPR system**. arXiv:2209.08989. doi:10.48550/arXiv.2209.08989.  
-  https://arxiv.org/abs/2209.08989
-
-* [9-7] WSPR.Rocks, **Help & Documentation**, SpotQ, SQL access, duplicate-spot analysis, maps, charts and heatmaps.  
-  https://wspr.rocks/help.html
-
-* [9-8] WSPRdaemon, **How wsprdaemon Works**, documentation for multi-receiver WSPR/FST4W decoding, reporting, scheduling, noise and Doppler metadata.  
-  https://wsprdaemon.readthedocs.io/en/stable/description/how_it_works.html
-
-* [9-9] SOTABEAMS, **WSPRlite Classic / DXplorer**, WSPR-based antenna performance analysis and DX10 metric.  
-  https://www.sotabeams.co.uk/wsprlite-classic
-
-* [9-10] WSPR-Station-Compare, **WSPR-Station-compare**, project page referencing Vanhamel et al. and Zander.  
-  https://sites.google.com/myuba.be/wspr-station-compare/home
-
-* [9-11] Antenna Performance Analysis Tool, **WSPR-based antenna report generator**.  
-  https://wspr.bsdworld.org/
-
-* [9-12] GM4EAU, **WATT WSPR Analysis Tool**, Excel/VBA-based tool for WSPR reporting, mapping, filtering and timeline animation.  
-  https://www.gm4eau.com/home-page/wspr/
-
 <a id="sec-a"></a>
 ### Appendix A: Parallel Operation of Multiple WSJT-X Instances
 
@@ -571,8 +531,39 @@ After restarting the instance, data streams, hardware access and temporary WSPR 
 <a id="sec-ref"></a>
 ### References
 
-* ARRL, WSPR technical overview: https://www.arrl.org/wspr
-* wspr.live documentation and database disclaimer: https://wspr.live/
-* SciPy Wilcoxon signed-rank documentation: https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wilcoxon.html
-* WSJT-X User Guide, WSPR and SNR reference bandwidth: https://wsjt.sourceforge.io/wsjtx-doc/wsjtx-main-3.0.0.html
+* [9-1] ARRL, **WSPR**, technical overview of MEPT_JT/WSPR, message format, transmission duration, occupied bandwidth and SNR reference.  
+  https://www.arrl.org/wspr
+
+* [9-2] WSPR.live, **Welcome to WSPR Live**, documentation, database description and disclaimer about raw data, duplicates, false spots and availability.  
+  https://wspr.live/
+
+* [9-3] Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). **A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals**. *Atmosphere*, 13(8), 1340. doi:10.3390/atmos13081340.  
+  https://www.mdpi.com/2073-4433/13/8/1340
+
+* [9-4] Frissell, N. A. et al. (2023). **Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations**. *Frontiers in Astronomy and Space Sciences*, 10, Article 1184171. doi:10.3389/fspas.2023.1184171.  
+  https://www.frontiersin.org/articles/10.3389/fspas.2023.1184171/full
+
+* [9-5] Vanhamel, J.; Machiels, W.; Lamy, H. (2022). **Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band**. *International Journal of Antennas and Propagation*, 2022, Article 4809313. doi:10.1155/2022/4809313.  
+  https://research.tudelft.nl/en/publications/using-the-wspr-mode-for-antenna-performance-evaluation-and-propag/
+
+* [9-6] Zander, J. (2022). **Simple HF antenna efficiency comparisons using the WSPR system**. arXiv:2209.08989. doi:10.48550/arXiv.2209.08989.  
+  https://arxiv.org/abs/2209.08989
+
+* [9-7] WSPR.Rocks, **Help & Documentation**, SpotQ, SQL access, duplicate-spot analysis, maps, charts and heatmaps.  
+  https://wspr.rocks/help.html
+
+* [9-8] WSPRdaemon, **How wsprdaemon Works**, documentation for multi-receiver WSPR/FST4W decoding, reporting, scheduling, noise and Doppler metadata.  
+  https://wsprdaemon.readthedocs.io/en/stable/description/how_it_works.html
+
+* [9-9] SOTABEAMS, **WSPRlite Classic / DXplorer**, WSPR-based antenna performance analysis and DX10 metric.  
+  https://www.sotabeams.co.uk/wsprlite-classic
+
+* [9-10] WSPR-Station-Compare, **WSPR-Station-compare**, project page referencing Vanhamel et al. and Zander.  
+  https://sites.google.com/myuba.be/wspr-station-compare/home
+
+* [9-11] Antenna Performance Analysis Tool, **WSPR-based antenna report generator**.  
+  https://wspr.bsdworld.org/
+
+* [9-12] GM4EAU, **WATT WSPR Analysis Tool**, Excel/VBA-based tool for WSPR reporting, mapping, filtering and timeline animation.  
+  https://www.gm4eau.com/home-page/wspr/
 """
