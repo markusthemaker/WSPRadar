@@ -356,7 +356,8 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             theta2 = 90 - az_min
             patches.append(Wedge((0,0), min(r['r_max'], max_dist_km)*1000, theta1, theta2, width=(min(r['r_max'], max_dist_km)-r['r_min'])*1000))
             
-    p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=0.75, edgecolor='none', transform=proj, zorder=3)
+    heatmap_alpha = 0.75
+    p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
     p.set_array(segs['val']); ax.add_collection(p)
     
     lbl_both_async = t_lang.get('leg_both_async', 'Both (Async)')
@@ -381,6 +382,8 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     # Colorbar
     cax = fig.add_axes(CBAR_BBOX)
     cbar = plt.colorbar(p, cax=cax, ticks=ticks)
+    if hasattr(cbar, "solids"):
+        cbar.solids.set_alpha(heatmap_alpha)
     cbar.ax.set_yticklabels(lbls, color='white')
     cbar.ax.tick_params(labelsize=FONT_CBAR) 
     cbar.set_label(cbar_title, color='white', fontweight='bold', labelpad=15, fontsize=FONT_LEGEND)

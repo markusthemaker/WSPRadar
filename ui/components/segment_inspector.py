@@ -117,6 +117,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.session_state.val_comp_mode == t["opt_comp_radius"] and
             st.session_state.get("val_local_benchmark", t.get("opt_local_best", "Local Best Station")) == t.get("opt_local_median", "Local Median Neighborhood")
         )
+        yield_ref_header = t.get("lbl_neighborhood", "Neighborhood") if is_local_median else ref_header
         if is_local_median:
             ref_header = t.get("opt_local_median", "Local Median Neighborhood")
         
@@ -167,10 +168,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 # Async-Balken nur rendern, wenn es diese physikalische Ausnahme wirklich gab
                 if cnt_async > 0:
                     yield_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
-                    yield_labels = [col_u_name, joint_lbl, "Async Both", ref_header]
+                    yield_labels = [col_u_name, joint_lbl, "Async Both", yield_ref_header]
                 else:
                     yield_counts = [cnt_u, cnt_joint, cnt_r]
-                    yield_labels = [col_u_name, joint_lbl, ref_header]
+                    yield_labels = [col_u_name, joint_lbl, yield_ref_header]
                     
                 bar_colors = ["#36aaf9"] * len(yield_counts)
                 
@@ -188,7 +189,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                 ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
                 
                 # Adjust Titles for Dual Plot
-                ax_hist.set_title("Hardware Linearity (Delta SNR)", color='white', fontweight='bold', pad=10)
+                ax_hist.set_title("Hardware Linearity (\u0394 SNR)", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
                 
             else:
@@ -203,12 +204,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             for spine in ax_hist.spines.values(): spine.set_color('#444444')
             
             if not vals.empty:
-                med = vals.median()
-                val_counts = vals.value_counts().sort_index()
+                hist_vals = vals.round(0).astype(int) if is_compare else vals
+                med = hist_vals.median()
+                val_counts = hist_vals.value_counts().sort_index()
                 ax_hist.bar(val_counts.index, val_counts.values, width=0.4, align='center', color='#36aaf9', alpha=0.8, edgecolor='black')
                 
-                if (vals.max() - vals.min()) <= 30:
-                    ticks = np.arange(np.floor(vals.min()), np.ceil(vals.max()) + 1, 1.0)
+                if (hist_vals.max() - hist_vals.min()) <= 30:
+                    ticks = np.arange(np.floor(hist_vals.min()), np.ceil(hist_vals.max()) + 1, 1.0)
                     ax_hist.set_xticks(ticks)
                     
                 ax_hist.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
@@ -392,10 +394,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         drill_df.columns = [
                             'Date/Time (UTC)', t.get('tbl_col_bin', 'Time-Bin'), 'TX Station', 
                             'TX Power (dBm)', 'SNR (Raw)', 'Norm@1W', 
-                            t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin Delta')
+                            t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')
                         ]
                         
-                        for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin Delta')]:
+                        for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')]:
                             drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
                     else:
                         # FÃ¼r Simultane Vergleiche: Umschaltbar zwischen Joint Spots und Non-Joint (Raw) Spots
@@ -413,7 +415,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             
                             col_u = f'{col_u_name} SNR (dB)'
                             col_r = f'{ref_header} SNR (dB)'
-                            col_delta_lbl = t.get('tbl_col_delta_snr', 'Delta SNR (dB)')
+                            col_delta_lbl = t.get('tbl_col_delta_snr', '\u0394 SNR (dB)')
                             station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
                             
                             if is_local_median and 'ref_detail_rows' in joint_df.columns:
