@@ -548,7 +548,7 @@ def render_lazy_download(analysis_id, fig, callsign, t):
     if buf_key in st.session_state:
         st.download_button("?? Download", data=st.session_state[buf_key], file_name=f"WSPR_Map_{analysis_id}_{callsign}.png", mime="image/png", type="tertiary", width='stretch', key=f"dl_{analysis_id}_{run_id}")
     else:
-        if st.button("Render High-Res Map ??", key=f"prep_{analysis_id}_{run_id}", type="tertiary", width='stretch'):
+        if st.button("Render High-Res Map", key=f"prep_{analysis_id}_{run_id}", type="tertiary", icon=":material/settings:", width='stretch'):
             with st.spinner("?"):
                 if fig.axes:
                     ax = fig.axes[0]
