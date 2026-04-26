@@ -63,6 +63,15 @@ def init_session_state():
         st.session_state.val_comp_mode = T["en"]["opt_comp_radius"]
     if "val_ref_stations" not in st.session_state: 
         st.session_state.val_ref_stations = 10
+    if "val_ref_radius_km" not in st.session_state:
+        st.session_state.val_ref_radius_km = 250
+    if "val_local_benchmark" not in st.session_state:
+        st.session_state.val_local_benchmark = T["en"]["opt_local_best"]
+    t_cur = T[st.session_state.lang]
+    if st.session_state.val_comp_mode in ["Nearest Peers (Local Average)", "Nearest Peers (Lokaler Durchschnitt)"]:
+        st.session_state.val_comp_mode = t_cur["opt_comp_radius"]
+    if st.session_state.val_local_benchmark not in [t_cur["opt_local_best"], t_cur["opt_local_median"]]:
+        st.session_state.val_local_benchmark = t_cur["opt_local_best"]
     if "val_ref_callsign" not in st.session_state: 
         st.session_state.val_ref_callsign = "DL2XYZ"
     if "val_self_test_mode" not in st.session_state: 

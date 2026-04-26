@@ -86,6 +86,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ref_header = st.session_state.val_ref_callsign.upper()
 
         remote_str = t['txt_rx_stations'] if analysis_id.startswith("TX") else t['txt_tx_stations']
+        is_local_median = (
+            st.session_state.val_comp_mode == t["opt_comp_radius"] and
+            st.session_state.get("val_local_benchmark", t.get("opt_local_best", "Local Best Station")) == t.get("opt_local_median", "Local Median Neighborhood")
+        )
         
         # Build the sub-footer info string detailing decode counts
         if is_compare and 'count_only_u' in df_seg.columns:
@@ -396,10 +400,12 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                 joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
                                 # Runden auf ganze Zahlen (round(0)), damit der Int64-Cast bei Kommazahlen nicht crasht
                                 joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
+                                ref_sign_col = t.get('tbl_col_ref_pool', 'Ref Pool') if is_local_median else 'Best Ref'
+                                ref_dist_col = t.get('tbl_col_ref_median_km', 'Median Ref km') if is_local_median else 'Ref km'
                                 
                                 # 3. Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
                                 drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', 'Î SNR (dB)']].copy()
-                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'Best Ref', 'Ref km', col_r, col_u, col_delta_lbl]
+                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], ref_sign_col, ref_dist_col, col_r, col_u, col_delta_lbl]
                             else:
                                 # Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
                                 drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_r_norm', 'snr_u_norm', 'Î SNR (dB)']].copy()

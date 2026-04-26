@@ -51,6 +51,7 @@ def update_lang():
     state_map = {
         "val_time_mode": ["opt_last_x", "opt_custom"],
         "val_comp_mode": ["opt_comp_radius", "opt_comp_buddy", "opt_comp_self"],
+        "val_local_benchmark": ["opt_local_best", "opt_local_median"],
         "val_self_test_mode": ["opt_self_rx", "opt_self_tx"],
         "val_slot_u": ["opt_slot_even", "opt_slot_odd"],
         "val_slot_r": ["opt_slot_even", "opt_slot_odd"],
@@ -85,6 +86,7 @@ def apply_demo_profile():
     if mode == t["opt_comp_radius"]:
         p = DEMO_PROFILES["radius"]
         st.session_state.val_ref_stations = p["ref_stations"]
+        st.session_state.val_ref_radius_km = p.get("ref_radius_km", 250)
     elif mode == t["opt_comp_buddy"]:
         p = DEMO_PROFILES["buddy"]
         st.session_state.val_ref_callsign = p["ref_callsign"]
@@ -141,6 +143,8 @@ def set_reset_config():
     st.session_state.val_solar = t["opt_solar_all"]
     st.session_state.val_comp_mode = t["opt_comp_radius"]
     st.session_state.val_ref_stations = 10
+    st.session_state.val_ref_radius_km = 250
+    st.session_state.val_local_benchmark = t["opt_local_best"]
     st.session_state.val_max_dist = 22000
     st.session_state.val_exclude_prefixes = "Q, 0, 1"
     st.session_state.val_filter_moving = True

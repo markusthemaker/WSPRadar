@@ -38,7 +38,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     
     # Determine Reference / Buddy Parameters
     if comp_mode == t["opt_comp_radius"]:
-        ref_stations = st.session_state.val_ref_stations
+        ref_radius_km = min(st.session_state.get("val_ref_radius_km", MAX_DYNAMIC_RADIUS_KM), MAX_DYNAMIC_RADIUS_KM)
     elif comp_mode == t["opt_comp_buddy"]:
         ref_callsign = st.session_state.val_ref_callsign.upper().strip()
         if not is_valid_callsign(ref_callsign):
@@ -98,23 +98,26 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
 
     # --- Peer SQL Filters ---
     if comp_mode == t["opt_comp_radius"]:
-        ref_stations = st.session_state.val_ref_stations
-        max_rad = MAX_DYNAMIC_RADIUS_KM * 1000
+        ref_radius_km = min(st.session_state.get("val_ref_radius_km", MAX_DYNAMIC_RADIUS_KM), MAX_DYNAMIC_RADIUS_KM)
+        local_benchmark = st.session_state.get("val_local_benchmark", t["opt_local_best"])
+        is_local_median = local_benchmark == t["opt_local_median"]
+        max_rad = ref_radius_km * 1000
         
         # PRE-FILTER BOUNDING BOX: Hält die geoDistance Berechnung extrem billig
-        lat_diff = MAX_DYNAMIC_RADIUS_KM / 111.0
-        lon_diff = MAX_DYNAMIC_RADIUS_KM / (111.0 * np.cos(np.radians(lat_0)))
+        lat_diff = ref_radius_km / 111.0
+        lon_diff = ref_radius_km / (111.0 * max(abs(np.cos(np.radians(lat_0))), 0.01))
         
         bbox_tx = f"AND tx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND tx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
         bbox_rx = f"AND rx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND rx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
         
-        # Extrem flache GLOBAL IN Abfrage (Depth = 2, erlaubt Limit von wspr.live)
-        # ClickHouse gruppiert hier autark und blitzschnell die N nächsten Stationen pro Zyklus.
-        tx_peer_sql = f"tx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_tx} AND (floor(toUnixTimestamp(time)/120), tx_sign) GLOBAL IN (SELECT floor(toUnixTimestamp(time)/120) AS ts, tx_sign FROM wspr.rx WHERE tx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 GROUP BY ts, tx_sign HAVING geoDistance({lon_0}, {lat_0}, any(tx_lon), any(tx_lat)) <= {max_rad} ORDER BY geoDistance({lon_0}, {lat_0}, any(tx_lon), any(tx_lat)) ASC LIMIT {ref_stations} BY ts)"
+        tx_peer_sql = f"tx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
         
-        rx_peer_sql = f"rx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_rx} AND (floor(toUnixTimestamp(time)/120), rx_sign) GLOBAL IN (SELECT floor(toUnixTimestamp(time)/120) AS ts, rx_sign FROM wspr.rx WHERE rx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 GROUP BY ts, rx_sign HAVING geoDistance({lon_0}, {lat_0}, any(rx_lon), any(rx_lat)) <= {max_rad} ORDER BY geoDistance({lon_0}, {lat_0}, any(rx_lon), any(rx_lat)) ASC LIMIT {ref_stations} BY ts)"
+        rx_peer_sql = f"rx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
         
-        comp_title = t["comp_title_ref_radius"].format(stations=ref_stations)
+        if is_local_median:
+            comp_title = t["comp_title_local_median"].format(radius=ref_radius_km)
+        else:
+            comp_title = t["comp_title_local_best"].format(radius=ref_radius_km)
         display_callsign = callsign
     else:
         if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
@@ -137,6 +140,13 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
 
     # Assemble Analysis Batches
     analyses = []
+    local_ref_snr_sql = "maxIf(snr - power + 30, is_me = 0)"
+    local_ref_sign_sql = "argMaxIf(local_sign, snr - power + 30, is_me = 0)"
+    local_ref_dist_sql = "argMaxIf(local_dist, snr - power + 30, is_me = 0)"
+    if comp_mode == t["opt_comp_radius"] and st.session_state.get("val_local_benchmark", t["opt_local_best"]) == t["opt_local_median"]:
+        local_ref_snr_sql = "quantileExactIf(0.5)(snr - power + 30, is_me = 0)"
+        local_ref_sign_sql = "concat(toString(countIf(is_me = 0)), ' stations')"
+        local_ref_dist_sql = "quantileExactIf(0.5)(local_dist, is_me = 0)"
     
     if st.session_state.run_mode == "TX":
         analyses.append({
@@ -146,7 +156,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         if is_sequential:
             tx_comp_query = f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} {slot_sql_u} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} {slot_sql_r} AND rx_lat != 0 FORMAT CSVWithNames"
         else:
-            tx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, any(peer_grid) AS peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, maxIf(snr - power + 30, is_me = 0) AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, argMaxIf(local_sign, snr - power + 30, is_me = 0) AS best_ref_sign, argMaxIf(local_dist, snr - power + 30, is_me = 0) AS best_ref_dist FROM (SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} AND rx_lat != 0) GROUP BY time_slot, peer_sign FORMAT CSVWithNames"        
+            tx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, any(peer_grid) AS peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist FROM (SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} AND rx_lat != 0) GROUP BY time_slot, peer_sign FORMAT CSVWithNames"        
         analyses.append({"id": "TX_COMP", "title": t["fig_tx_comp"].format(callsign=display_callsign, comp_title=comp_title), "is_compare": True, "is_sequential": is_sequential, "query": tx_comp_query})
 
     elif st.session_state.run_mode == "RX":
@@ -157,7 +167,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         if is_sequential:
             rx_comp_query = f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} {slot_sql_u} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} {slot_sql_r} AND tx_lat != 0 FORMAT CSVWithNames"
         else:
-            rx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, any(peer_grid) AS peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, maxIf(snr - power + 30, is_me = 0) AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, argMaxIf(local_sign, snr - power + 30, is_me = 0) AS best_ref_sign, argMaxIf(local_dist, snr - power + 30, is_me = 0) AS best_ref_dist FROM (SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} AND tx_lat != 0) GROUP BY time_slot, peer_sign FORMAT CSVWithNames"        
+            rx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, any(peer_grid) AS peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist FROM (SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} AND tx_lat != 0) GROUP BY time_slot, peer_sign FORMAT CSVWithNames"        
         analyses.append({"id": "RX_COMP", "title": t["fig_rx_comp"].format(callsign=display_callsign, comp_title=comp_title), "is_compare": True, "is_sequential": is_sequential, "query": rx_comp_query})
 
     return analyses

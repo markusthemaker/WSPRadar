@@ -36,7 +36,8 @@ DEMO_PROFILES = {
         "end_d": datetime.date(2026, 3, 31),
         "start_t": dt_time(0, 0),
         "end_t": dt_time(0, 0),
-        "ref_stations": 25
+        "ref_stations": 25,
+        "ref_radius_km": 250
     },
     "buddy": {
         "callsign": "DL1MKS",
@@ -74,7 +75,7 @@ DEMO_PROFILES = {
 # ==========================================
 EARTH_RADIUS_KM = 6371.0
 EARTH_RADIUS_M = 6371000.0
-MAX_DYNAMIC_RADIUS_KM = 250  # Hard-Cap für die dynamische Referenz-Suche
+MAX_DYNAMIC_RADIUS_KM = 250  # Hard-Cap fuer die dynamische Referenz-Suche
 
 # ==========================================
 # PLOT RENDERING SETTINGS

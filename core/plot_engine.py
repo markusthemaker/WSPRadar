@@ -399,9 +399,9 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
             
         if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
-            # Nutze sicheren Fallback (.get), falls der Key noch nicht im State ist
-            ref_stat = st.session_state.get('val_ref_stations', 25)
-            meta_parts.append(f"Ref: Nearest Peers (≤{ref_stat}/Cycle)")
+            local_mode = st.session_state.get('val_local_benchmark', t_lang.get('opt_local_best', 'Local Best Station'))
+            ref_radius = st.session_state.get('val_ref_radius_km', 250)
+            meta_parts.append(f"Ref: {local_mode} (≤{ref_radius} km)")
         elif st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
             meta_parts.append(f"Ref: Self-Test Config")
         else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
@@ -416,7 +416,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             valid_dists = df_plot[df_plot['best_ref_dist'] > 0]['best_ref_dist']
             if not valid_dists.empty:
                 max_peer_dist = int(valid_dists.max() / 1000)
-                meta_parts.append(f"Max distance Peer: {max_peer_dist} km")
+                meta_parts.append(f"Max reference distance: {max_peer_dist} km")
 
     line1_str = " | ".join(meta_parts)
     remote_str = t_lang['txt_rx_stations'] if analysis_id.startswith("TX") else t_lang['txt_tx_stations']

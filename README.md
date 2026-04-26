@@ -45,9 +45,11 @@ When comparing two setups, relying solely on the median SNR difference ($\Delta$
 
 WSPRadar offers three fundamental pillars for comparative hardware testing, depending on what you want to prove. An A/B test is physically only valid if *all* other variables remain identical (e.g. testing Antenna A vs. B using the same transmitter).
 
-#### Pillar 1: Local Average (Radius Benchmark)
-* **Objective:** Measuring your performance against the average of your neighborhood.
-* **Methodology:** WSPRadar aggregates all local WSPR stations within a defined radius (e.g. 50 km). Since it is assumed that all these stations are subject to the same macro-propagation conditions, this gives you a hard statistical classification of whether your QTH (location) or antenna performs above or below average. The *Spot-by-Spot (Synchronous)* mathematics is applied.
+#### Pillar 1: Local Neighborhood Benchmark
+* **Objective:** Measuring your performance against active WSPR stations inside your defined neighborhood radius.
+* **Methodology:** WSPRadar collects local WSPR stations within the selected radius (max 250 km) and applies strict *Cycle-by-Cycle (Spot-by-Spot)* mathematics against the same remote station in the same 2-minute WSPR cycle. This mode has two selectable reference definitions:
+  * **Local Best Station:** For every cycle and remote path, WSPRadar compares you against the strongest active local station in the radius. This is the strictest local benchmark.
+  * **Local Median Neighborhood:** For every cycle and remote path, WSPRadar computes the median normalized SNR of all active local stations in the radius and compares you against that neighborhood median. This answers whether you are above or below the central performance of your active local neighborhood.
 
 #### Pillar 2: Specific Reference Station (Buddy Test)
 * **Objective:** A 1-to-1 comparison with a known ham radio operator (location vs. location, antenna vs. antenna, or simply station vs. station).
@@ -112,7 +114,8 @@ Utilizing the multi-select feature, you can use Shift-Click to highlight multipl
 
 #### 7.2 Comparison against References and A/B Testing
 * **Benchmark Mode:** Selects the fundamental type of comparison (Reference Radius, Specific Reference Station, or Hardware A/B-Test).
-* **Reference Search Radius (km):** Defines the geographic boundary to aggregate local benchmark stations when using the radius mode.
+* **Local Benchmark Method:** Selects whether the local neighborhood reference is the `Local Best Station` or the `Local Median Neighborhood`.
+* **Neighborhood Radius (km):** Defines the geographic boundary for local benchmark stations.
 * **Reference Callsign:** The exact callsign of the external counterpart for the buddy test.
 * **Test Setup (Hardware A/B-Test only):** Toggles between `RX Test (2 Receivers, Simultaneous)` and `TX Test (1 Transmitter, Time-Slicing)`.
 * **Target Locator & Reference Locator:** The exact 6-character Maidenhead locators (e.g., JN37AA vs. JN37AB) used to separate data streams during simultaneous RX tests.
