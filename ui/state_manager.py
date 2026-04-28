@@ -64,7 +64,7 @@ def init_session_state():
     if "val_ref_stations" not in st.session_state: 
         st.session_state.val_ref_stations = 10
     if "val_ref_radius_km" not in st.session_state:
-        st.session_state.val_ref_radius_km = 50
+        st.session_state.val_ref_radius_km = 100
     if "val_local_benchmark" not in st.session_state:
         st.session_state.val_local_benchmark = T["en"]["opt_local_median"]
     t_cur = T[st.session_state.lang]

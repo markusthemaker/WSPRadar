@@ -86,7 +86,7 @@ def apply_demo_profile():
     if mode == t["opt_comp_radius"]:
         p = DEMO_PROFILES["radius"]
         st.session_state.val_ref_stations = p["ref_stations"]
-        st.session_state.val_ref_radius_km = p.get("ref_radius_km", 50)
+        st.session_state.val_ref_radius_km = p.get("ref_radius_km", 100)
     elif mode == t["opt_comp_buddy"]:
         p = DEMO_PROFILES["buddy"]
         st.session_state.val_ref_callsign = p["ref_callsign"]
@@ -143,7 +143,7 @@ def set_reset_config():
     st.session_state.val_solar = t["opt_solar_all"]
     st.session_state.val_comp_mode = t["opt_comp_radius"]
     st.session_state.val_ref_stations = 10
-    st.session_state.val_ref_radius_km = 50
+    st.session_state.val_ref_radius_km = 100
     st.session_state.val_local_benchmark = t["opt_local_median"]
     st.session_state.val_max_dist = 22000
     st.session_state.val_exclude_special_callsigns = False
