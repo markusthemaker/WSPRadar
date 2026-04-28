@@ -306,14 +306,31 @@ Diese "Median des Medians"-Struktur hilft zu verhindern, dass ein dichter Empf&a
 <a id="sec-6-6"></a>
 #### 6.6 Bivariates Auswertungsmodell
 
-Eine reine Median-Delta-SNR-Analyse kann unter Survivorship Bias leiden. Eine bessere Antenne decodiert oft sehr schwache Signale, die eine schlechtere Antenne verpasst. Diese zus&auml;tzlichen Grenzfall-Spots k&ouml;nnen den Median der besseren Antenne senken, wenn alles naiv zusammengeworfen wird.
+Eine reine Median-Delta-SNR-Analyse kann unter Survivorship Bias leiden. Eine bessere Antenne decodiert oft sehr schwache Signale, die eine schlechtere Antenne verpasst. Diese zusätzlichen Grenzfall-Spots können den Median der besseren Antenne senken, wenn alles naiv zusammengeworfen wird.
 
 WSPRadar trennt deshalb zwei Signale:
 
-1. **System Sensitivity / Decode Yield:** z&auml;hlt exklusive und gemeinsame Decodes. Das erfasst Reichweite an der Decodiergrenze.
-2. **Hardware Linearity / Delta SNR:** nutzt nur gepaarte Joint Spots oder gepaarte Zeit-Bins. Das sch&auml;tzt den bedingten Gain/SNR-Unterschied, wenn beide Setups vergleichbare Evidenz erzeugt haben.
+1. **System Sensitivity / Decode Yield:** zählt exklusive und gemeinsame Decodes. Das erfasst reale operative Reichweite an der Decodiergrenze.
+2. **Hardware Linearity / Delta SNR:** nutzt nur gepaarte Joint Spots oder gepaarte Zeit-Bins. Das schätzt den bedingten Gain/SNR-Unterschied, wenn beide Setups vergleichbare Evidenz erzeugt haben.
 
 Beides muss zusammen gelesen werden. Ein Setup kann besseren Yield, aber niedrigeren bedingten SNR haben, wenn es viele Grenzfallsignale decodiert. Umgekehrt kann ein Setup auf Joint Spots starken positiven Delta SNR zeigen, aber schlechten Yield haben, wenn es viele schwache Pfade verpasst.
+
+**Wichtige Interpretation des TX-Yield**
+
+In der TX-Analyse wird Yield bewusst als **roher operativer Yield** ausgegeben. Er beantwortet die praktische On-Air-Frage:
+
+**Wer wurde unter den tatsächlich gemeldeten Betriebsbedingungen häufiger decodiert?**
+
+Das ist nützlich, aber keine leistungsnormalisierte Fairness-Metrik. Wenn eine Station mit 100 W und eine andere mit 100 mW sendet, hat die stärkere Station normalerweise einen Decode-Yield-Vorteil. WSPRadar normalisiert SNR für gemeinsame TX-Spots, bei denen beide Stationen decodiert wurden und ein SNR-Vergleich möglich ist. Bei exklusiven TX-Spots fehlt jedoch auf der nicht gehörten Seite ein SNR-Wert. WSPRadar kann daher nicht zuverlässig rekonstruieren, welches SNR die fehlende Station bei anderer Sendeleistung gehabt hätte.
+
+Daraus folgt:
+
+* TX Delta SNR auf Joint Spots ist das wichtigste faire Vergleichssignal.
+* TX Yield sollte als rohe operative Reichweite gelesen werden, nicht als normalisierte Antenneneffizienz.
+* Reference-only- oder Target-only-TX-Decodes können Antennenleistung, Sendeleistung, Ausbreitung, Empfängerverteilung, Timing, Kollisionen, Genauigkeit der gemeldeten Leistung oder eine Kombination dieser Faktoren widerspiegeln.
+* Ungleiche gemeldete Sendeleistungen sollten bei der Interpretation von TX-Yield-Asymmetrien ausdrücklich erwähnt werden.
+
+Praktisch bedeutet starker TX Yield: Eine Station wurde unter ihren tatsächlichen Betriebsbedingungen von mehr Empfangsstationen gehört. Das beweist für sich genommen nicht, dass die Antenne besser war. Für faireres TX-Benchmarking sollte das größte Gewicht auf Same-Cycle, leistungsnormalisiertem Delta SNR liegen; roher Yield dient als unterstützender Kontext.
 
 <a id="sec-6-7"></a>
 #### 6.7 Geografisches Rastering und Projektion
@@ -392,15 +409,28 @@ WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3)
 * **Target/Reference Time Slot:** feste Slotzuweisung f&uuml;r sequenzielle TX-Tests.
 * **Time Window (Bins):** Bin-Gr&ouml;&szlig;e f&uuml;r sequenzielle TX-A/B-Paarbildung.
 
-**Advanced Settings**
+**Erweiterte Einstellungen**
 
-* **Lokaler QTH Sonnenstand:** filtert nach berechneter Sonnenh&ouml;he am eigenen QTH: Daylight, Nighttime oder Greyline.
-* **Exclude Prefixes:** kommagetrennte Liste von Rufzeichenpr&auml;fixen oder Rufzeichen, z. B. Telemetrieballons oder bekannte unerw&uuml;nschte Quellen.
-* **Exclude Moving Stations:** entfernt Stationen, die w&auml;hrend des Analysefensters ihren 4-Zeichen-Locator &auml;ndern, z. B. Ballons, mobile oder maritime Stationen.
+* **Exclude Special Callsigns:** entfernt bekannte Sonderformat-WSPR-Rufzeichen aus der Analyse anhand des eingebauten WSPRadar-Präfixfilters. Der aktuelle Filter schließt Rufzeichen aus, die mit `Q`, `0` oder `1` beginnen. Diese Präfixe sind häufig mit speziellen WSPR-Anwendungsfällen wie telemetrieartigen oder nicht-standardmäßigen Beacon-Kennungen verbunden (z.B. Pico-Ballon), nicht mit normalen Amateurfunk-Rufzeichen.
+* **Exclude Moving Stations:** entfernt Stationen, die während des Analysefensters ihren 4-stelligen Locator ändern, zum Beispiel Ballons, mobile oder maritime Stationen.
+* **Local QTH Solar State:** filtert nach berechneter Sonnenhöhe am eigenen QTH: Tageslicht, Nacht oder Greyline.
 * **Map Scope:** visueller Kartenradius.
-* **Min. Joint Spots/Station:** In Vergleichsmodi sind mindestens X gemeinsame Spots pro Remote-Station erforderlich, bevor diese Station zu einem Delta SNR beiträgt. Im sequenziellen TX A/B wird dies als Min. Joint Bins angezeigt. In absoluten Modi wirkt derselbe Regler als Roh-Spots-pro-Station-Filter.
-* **Min. Joint Stations/Segment:** In Vergleichsmodi sind mindestens X Remote-Stationen mit qualifizierender gemeinsamer Evidenz erforderlich, bevor ein Segment gezeichnet wird. In absoluten Modi wirkt derselbe Regler als Roh-Stationen-pro-Segment-Filter.
-* **Compare Map Statistical Confidence:** optionale Wilcoxon-basierte Filterung.
+* **Min. Joint Spots/Station:** erfordert in Vergleichsmodi mindestens X Joint Spots pro Remote-Station, bevor diese Station zu einem Delta SNR beiträgt. In sequenziellem TX A/B wird dies als Min. Joint Bins angezeigt. In absoluten Modi wirkt derselbe Regler als Roh-Spots-pro-Station-Filter.
+* **Min. Joint Stations/Segment:** erfordert in Vergleichsmodi mindestens X Remote-Stationen mit qualifizierender Joint-Evidenz, bevor ein Segment gezeichnet wird. In absoluten Modi wirkt derselbe Regler als Roh-Stationen-pro-Segment-Filter.
+* **Compare Map Statistical Confidence:** optionaler Wilcoxon-basierter Filter.
+
+**Hinweis zum Sonderrufzeichen-Filter**
+
+Der Sonderrufzeichen-Filter ist besonders nützlich, wenn nicht-standardmäßige Beacon- oder telemetrieartige Stationen die normale Station-zu-Station-Interpretation verzerren würden. Er sollte jedoch nicht automatisch für jede Analyse aktiviert werden.
+
+Für RX-Vergleiche gibt es oft einen guten Grund, diese Rufzeichen **nicht** auszuschließen. Viele spezielle WSPR-Kennungen verhalten sich wie Low-Power-Baken. Wenn dieselbe schwache Bake im selben WSPR-Zyklus sowohl von der eigenen Station als auch von der Referenzstation decodiert wird, ist das wertvolle gepaarte RX-Evidenz. In diesem Fall ist die absolute Identität der Bake weniger wichtig als die Tatsache, dass beide Empfänger denselben schwachen Sender zur selben Zeit bewertet haben.
+
+Empfohlene Interpretation:
+
+* Bei **TX-Analysen** kann das Ausschließen von Sonderrufzeichen helfen, die Empfänger-/Referenzpopulation näher an normalen Amateurfunkstationen zu halten.
+* Bei **RX-Vergleichen** kann das Beibehalten von Sonderrufzeichen nützlich sein, weil sie schwache, stabile Same-Cycle-Testsignale liefern können.
+* Bei **absoluter RX-Coverage** hängt die Wahl von der Fragestellung ab: einschließen, wenn Beacon-Sensitivität interessant ist; ausschließen, wenn nur normale Amateurfunkaktivität betrachtet werden soll.
+* Für **Veröffentlichungen oder ernsthafte Vergleiche** sollte dokumentiert werden, ob der Sonderrufzeichen-Filter aktiviert war.
 
 * [9. Bestehende Literatur und Stand der Technik](#sec-9)
 

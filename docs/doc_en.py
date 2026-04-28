@@ -310,10 +310,27 @@ A pure median Delta SNR analysis can suffer from survivorship bias. A better ant
 
 WSPRadar therefore separates two signals:
 
-1. **System Sensitivity / Decode Yield:** counts exclusive vs joint decodes. This captures reach at the edge of decodability.
+1. **System Sensitivity / Decode Yield:** counts exclusive vs joint decodes. This captures real-world operational reach at the edge of decodability.
 2. **Hardware Linearity / Delta SNR:** uses only paired joint spots or paired time bins. This estimates the conditional gain/SNR difference when both setups produced comparable evidence.
 
 Read both together. A setup can have better yield but lower conditional SNR if it decodes many marginal signals. Conversely, a setup can show a strong positive Delta SNR on joint spots but poor yield if it misses many weak paths.
+
+**Important TX yield interpretation**
+
+In TX analysis, yield is intentionally reported as **raw operational yield**. It answers the practical on-air question:
+
+**Who was actually decoded more often under the reported operating conditions?**
+
+This is useful, but it is not a power-normalized fairness metric. If one station transmits at 100 W and another station transmits at 100 mW, the higher-power station will usually have a decode-yield advantage. WSPRadar normalizes SNR for joint TX spots where both stations were decoded and an SNR comparison is possible. However, for exclusive TX spots, the missing side has no SNR value. Therefore WSPRadar cannot reliably reconstruct what the missing station's SNR would have been at a different transmit power.
+
+For this reason:
+
+* TX Delta SNR on joint spots is the primary fair comparison signal.
+* TX yield should be read as raw operational reach, not as normalized antenna efficiency.
+* Reference-only or target-only TX decodes may reflect antenna performance, transmit power, propagation, receiver distribution, timing, collisions, reported-power accuracy or a combination of these factors.
+* Unequal reported transmit powers should be mentioned when interpreting TX-yield asymmetry.
+
+In practical terms, strong TX yield means that a station was actually heard by more receiving stations under the conditions in which it operated. It does not by itself prove that the antenna was better. For fairer TX benchmarking, give most weight to same-cycle, power-normalized Delta SNR and use raw yield as supporting context.
 
 <a id="sec-6-7"></a>
 #### 6.7 Geographic rastering and projection
@@ -394,15 +411,26 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 
 **Advanced settings**
 
-* **Local QTH Solar State:** filters by calculated solar elevation at your QTH: daylight, nighttime or greyline.
-* **Exclude Prefixes:** comma-separated list of callsign prefixes or callsigns to exclude, for example telemetry balloons or known unwanted sources.
+* **Exclude Special Callsigns:** removes known special-format WSPR callsigns from the analysis using WSPRadar's built-in prefix filter. The current filter excludes callsigns beginning with `Q`, `0` or `1`. These prefixes are commonly associated with special WSPR use cases such as balloons, telemetry-style or non-standard beacon identifiers rather than normal amateur station callsigns.
 * **Exclude Moving Stations:** removes stations that change their 4-character locator during the analysis window, such as balloons, mobile or maritime stations.
+* **Local QTH Solar State:** filters by calculated solar elevation at your QTH: daylight, nighttime or greyline.
 * **Map Scope:** visual map radius.
 * **Min. Joint Spots/Station:** in compare modes, requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins. In absolute modes, the same control acts as a raw spots-per-station filter.
 * **Min. Joint Stations/Segment:** in compare modes, requires at least X remote stations with qualifying joint evidence before a segment is drawn. In absolute modes, the same control acts as a raw stations-per-segment filter.
 * **Compare Map Statistical Confidence:** optional Wilcoxon-based filtering.
 
-* [9. Existing Literature and Prior Art](#sec-9)
+**Special-callsign filtering note**
+
+The special-callsign filter is most useful when non-standard beacon or telemetry-style stations would distort normal station-to-station interpretation. However, the filter should not automatically be enabled for every analysis.
+
+For RX comparison, there is often a good reason **not** to exclude these callsigns. Many special WSPR identifiers behave like low-power beacons. If the same low-power beacon is decoded by both your station and the reference station in the same WSPR cycle, that is valuable paired RX evidence. In that case, the absolute identity of the beacon is less important than the fact that both receivers evaluated the same weak transmitter at the same time.
+
+Recommended interpretation:
+
+* For **TX analysis**, excluding special callsigns can help keep the receiver/reference population closer to normal amateur stations.
+* For **RX comparison**, keeping special callsigns can be useful because they may provide weak, stable, same-cycle test signals.
+* For **absolute RX coverage**, the choice depends on the question: include them when beacon sensitivity is interesting; exclude them when you only want normal amateur-station activity.
+* For **publication or serious comparison**, document whether the special-callsign filter was enabled.
 
 <a id="sec-9"></a>
 ### 9. Existing Literature and Prior Art
