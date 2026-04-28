@@ -111,11 +111,11 @@ def render_compare_expander(t):
 def render_advanced_expander(t):
     """Renders the third expander: Advanced scientific configurations (Filters, Wilcoxon, Exclusions)."""
     with st.expander(t["exp_adv"], expanded=True):
-        st.toggle(t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"), key="val_exclude_special_callsigns", help=t.get("tt_exclude_special", "Filter out balloon telemetry."), on_change=reset_audit)
-        st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
-
         col3, col4 = st.columns(2, gap="large")
+
         with col3:
+            st.toggle(t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"), key="val_exclude_special_callsigns", help=t.get("tt_exclude_special", "Filter out balloon telemetry."), on_change=reset_audit)
+            st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
             st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
             st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
 
