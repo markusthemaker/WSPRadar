@@ -381,12 +381,23 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
 
     # Colorbar
     cax = fig.add_axes(CBAR_BBOX)
+
+    # The heatmap wedges are semi-transparent over the dark map.
+    # The colorbar must use the same dark backing, otherwise alpha blends against
+    # the default axes background and the legend colors no longer match the map.
+    cax.set_facecolor('#0d0d0d')
+
     cbar = plt.colorbar(p, cax=cax, ticks=ticks)
+    cbar.ax.set_facecolor('#0d0d0d')
+
     if hasattr(cbar, "solids"):
         cbar.solids.set_alpha(heatmap_alpha)
+        cbar.solids.set_edgecolor("face")
+
     cbar.ax.set_yticklabels(lbls, color='white')
-    cbar.ax.tick_params(labelsize=FONT_CBAR) 
+    cbar.ax.tick_params(labelsize=FONT_CBAR)
     cbar.set_label(cbar_title, color='white', fontweight='bold', labelpad=15, fontsize=FONT_LEGEND)
+
     
     # Meta Footer
     lbl_time = "Zeitraum" if st.session_state.lang == "de" else "Time"
