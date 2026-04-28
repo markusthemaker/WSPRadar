@@ -111,14 +111,11 @@ def render_compare_expander(t):
 def render_advanced_expander(t):
     """Renders the third expander: Advanced scientific configurations (Filters, Wilcoxon, Exclusions)."""
     with st.expander(t["exp_adv"], expanded=True):
-        filter_col1, filter_col2 = st.columns(2, gap="large")
-        with filter_col1:
-            st.toggle(t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"), key="val_exclude_special_callsigns", help=t.get("tt_exclude_special", "Filter out balloon telemetry."), on_change=reset_audit)
-        with filter_col2:
-            st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
+        st.toggle(t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"), key="val_exclude_special_callsigns", help=t.get("tt_exclude_special", "Filter out balloon telemetry."), on_change=reset_audit)
+        st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
 
         col3, col4 = st.columns(2, gap="large")
-        with col3: 
+        with col3:
             st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
             st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
 
@@ -126,8 +123,7 @@ def render_advanced_expander(t):
             min_spots_label = t["lbl_min_spots"]
             if st.session_state.val_comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_tx"]:
                 min_spots_label = t.get("cfg_min_joint_bins", "Min. Joint Bins")
-                
+
             st.slider(min_spots_label, 1, 25, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
             st.slider(t["lbl_min_stations"], 1, 20, key="val_min_stations", help=t["hlp_min_stations"], on_change=reset_audit)
             st.select_slider(t["lbl_wilcoxon"], options=["OFF", "80%", "90%", "95%", "99%"], key="val_wilcoxon", on_change=reset_audit)
-            
