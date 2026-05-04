@@ -50,9 +50,17 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
     """
     run_id = st.session_state.get("run_id", 0)
     
-    # Extract valid distance segments based on user's max_dist setting
-    valid_distances = sorted([d for d in segs_df['dist_label'].dropna().unique()], key=lambda x: int(x.strip('[]km').split('-')[0]))
-    filtered_distances = [d for d in valid_distances if int(d.strip('[]km').split('-')[0]) < max_dist_km]
+    # Extract inspectable distance segments from enriched_df, not only rendered heatmap segments.
+    # segs_df only contains segments with valid joint Delta-SNR heatmap data; enriched_df also
+    # contains non-joint evidence such as only target, only reference, or async-both rows.
+    inspector_source_df = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
+    inspector_source_df = inspector_source_df[inspector_source_df['r_min'] < max_dist_km]
+
+    valid_distances = sorted(
+        [d for d in inspector_source_df['dist_label'].dropna().unique()],
+        key=lambda x: int(x.strip('[]km').split('-')[0])
+    )
+    filtered_distances = valid_distances
     
     lbl_dist = t.get("opt_insp_dist", "---")
     lbl_dir = t.get("opt_insp_dir", "---")
@@ -65,10 +73,16 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         sel_dist = st.selectbox("Distance", [lbl_dist] + filtered_distances + [opt_full], key=f"dist_{analysis_id}_{run_id}", label_visibility="collapsed")
     with col_insp2:
         if sel_dist != lbl_dist:
-            if sel_dist == opt_full: 
-                valid_dirs = sorted([d for d in segs_df['dir_name'].dropna().unique() if d in COMPASS], key=lambda x: COMPASS.index(x))
-            else: 
-                valid_dirs = sorted([d for d in segs_df[segs_df['dist_label'] == sel_dist]['dir_name'].dropna().unique() if d in COMPASS], key=lambda x: COMPASS.index(x))
+            if sel_dist == opt_full:
+                valid_dirs = sorted(
+                    [d for d in inspector_source_df['dir_name'].dropna().unique() if d in COMPASS],
+                    key=lambda x: COMPASS.index(x)
+                )
+            else:
+                valid_dirs = sorted(
+                    [d for d in inspector_source_df[inspector_source_df['dist_label'] == sel_dist]['dir_name'].dropna().unique() if d in COMPASS],
+                    key=lambda x: COMPASS.index(x)
+                )
             
             if not valid_dirs: valid_dirs = [t.get("opt_no_station", "No Stations")]
             if valid_dirs != [t.get("opt_no_station", "No Stations")]: 
@@ -87,6 +101,12 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         if sel_dist != opt_full: df_seg = df_seg[df_seg['dist_label'] == sel_dist]
         if sel_dir != opt_all_dir: df_seg = df_seg[df_seg['dir_name'] == sel_dir]
             
+        has_joint_rows = False
+        has_non_joint_rows = False
+        if is_compare and 'count_only_u' in df_seg.columns:
+            has_joint_rows = (df_seg['spot_count'] > 0).any()
+            has_non_joint_rows = ((df_seg['count_only_u'] > 0) | (df_seg['count_only_r'] > 0)).any()
+
         vals = df_seg['stat_val'].dropna()
         target_call = st.session_state.val_callsign.upper()
         
@@ -253,9 +273,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         with col_ins2:
             show_non_joint = False
             if is_compare:
-                default_state = True if is_sequential else False
-                # Gek??rzter Text: "Show Non-Joint"
-                show_non_joint = st.toggle("Show Non-Joint", value=False, key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
+                # Default to showing non-joint rows only when the selected segment has no joint
+                # evidence but does contain target-only, reference-only, or async-both evidence.
+                default_state = has_non_joint_rows and not has_joint_rows
+                show_non_joint = st.toggle("Show Non-Joint", value=default_state, key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
 
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         
