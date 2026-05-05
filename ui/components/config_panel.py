@@ -40,7 +40,8 @@ def render_core_expander(t):
             
             r2c1, r2c2, r2c3 = st.columns([0.5, 0.25, 0.25], gap="large", vertical_alignment="bottom")
             with r2c1: text_input_no_autocomplete(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            with r2c2: st.date_input(t["lbl_start_d"], key="val_start_d", max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
+            with r2c2: st.date_input(t["lbl_start_d"], key="val_start_d", min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(), max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
+
             with r2c3:
                 max_allowed_end = min(st.session_state.val_start_d + timedelta(days=MAX_DAYS_HISTORY), today_utc)
                 min_allowed_end = st.session_state.val_start_d
