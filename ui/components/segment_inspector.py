@@ -184,19 +184,16 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 cnt_r = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] == 0) & (df_seg['count_only_r'] > 0)])
                 
                 joint_lbl = t.get('tbl_col_joint_bins', 'Joint Bins') if is_sequential else t.get('tbl_col_joint', 'Joint')
-                
-                # Async-Balken nur rendern, wenn es diese physikalische Ausnahme wirklich gab
-                if cnt_async > 0:
-                    yield_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
-                    yield_labels = [col_u_name, joint_lbl, "Async Both", yield_ref_header]
-                else:
-                    yield_counts = [cnt_u, cnt_joint, cnt_r]
-                    yield_labels = [col_u_name, joint_lbl, yield_ref_header]
+                async_lbl = t.get('leg_both_async', 'Both (Async)')
+
+                yield_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
+                yield_labels = [col_u_name, joint_lbl, async_lbl, yield_ref_header]
                     
                 bar_colors = ["#36aaf9"] * len(yield_counts)
                 
                 bars = ax_yield.bar(yield_labels, yield_counts, color=bar_colors, alpha=0.8, edgecolor='black')
                 ax_yield.set_ylabel(t["lbl_hist_count"], color='white')
+                
                 ax_yield.set_title("System Sensitivity (Yield)", color='white', fontweight='bold', pad=10)
                 
                 # Add percentages on top of the bars
