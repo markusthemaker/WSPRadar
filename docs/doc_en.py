@@ -507,7 +507,7 @@ WSPRadar does not treat this uncertainty as if it disappeared. Instead, it reduc
 
 **Frissell et al.** place WSPRNet alongside the Reverse Beacon Network and PSKReporter as established amateur-radio observation networks that provide long-term data on the bottomside ionosphere. This work is important because it describes amateur radio as citizen-science infrastructure: many independent stations together create an observation network that is relevant to space weather, ionospheric and HF-propagation research. For WSPRadar, this perspective is central: the tool does not treat one report as absolute truth, but uses the mass, repetition and geographic distribution of observations. [9-4]
 
-A key methodological consequence follows from this literature: WSPR data can be useful for radio science, but it must be read as observational data. It contains real propagation, real station differences and real error sources at the same time. WSPRadar therefore does not try to eliminate all of these factors. Instead, it makes the dominant confounders visible and reduces them as much as practical for specific comparison questions.
+**Methodological consequence.** WSPR data can be useful for radio science, but it must be read as observational data. It contains real propagation, real station differences and real error sources at the same time. WSPRadar therefore does not try to eliminate all of these factors. Instead, it makes the dominant confounders visible and reduces them as much as practical for specific comparison questions.
 
 <a id="sec-9-3"></a>
 #### 9.3 Direct WSPR Antenna-Comparison Literature
