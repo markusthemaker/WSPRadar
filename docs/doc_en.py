@@ -509,7 +509,8 @@ WSPRadar does not treat this uncertainty as if it disappeared. Instead, it reduc
 
 A key methodological consequence follows from this literature: WSPR data can be useful for radio science, but it must be read as observational data. It contains real propagation, real station differences and real error sources at the same time. WSPRadar therefore does not try to eliminate all of these factors. Instead, it makes the dominant confounders visible and reduces them as much as practical for specific comparison questions.
 
-<a id="sec-9-3"></a>#### 9.3 Direct WSPR Antenna-Comparison Literature
+<a id="sec-9-3"></a>
+#### 9.3 Direct WSPR Antenna-Comparison Literature
 
 The direct literature on WSPR-based antenna comparison is smaller than the broader literature on WSPR propagation analysis. This is important context: WSPRadar is not entering a mature field with many standardized measurement protocols. Instead, it builds on a small number of strong methodological precedents and a larger body of practical amateur-radio experimentation.
 
