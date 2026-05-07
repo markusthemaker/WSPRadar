@@ -8,6 +8,7 @@ import re
 import streamlit as st
 from i18n import T
 
+
 from docs.doc_de import DOC_DE
 from docs.doc_en import DOC_EN
 
