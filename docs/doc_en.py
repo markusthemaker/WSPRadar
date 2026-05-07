@@ -109,6 +109,8 @@ This chapter combines the user choice, the analysis concept and the experiment-d
 
 The local neighborhood benchmark asks how your station performs against active WSPR stations inside a chosen geographic radius. The radius applies to both local methods.
 
+All local-neighborhood comparisons remain target-active comparisons. WSPRadar first limits the analysis to WSPR cycles in which your station/setup was demonstrably active; [Temporal pairing and heartbeat filtering](#sec-6-4) defines this precisely for TX and RX. Local reference evidence outside those target-active cycles is intentionally ignored. This is why local benchmark yield is not a raw count of all neighborhood activity during the time window.
+
 **Local Median Neighborhood: default baseline**
 
 For every WSPR cycle and matching remote path, WSPRadar computes the median normalized SNR of all active local reference stations inside the selected radius. Your station is compared against this cycle-level neighborhood median.
@@ -118,6 +120,7 @@ For every WSPR cycle and matching remote path, WSPRadar computes the median norm
 * Does not invent values for missing spots. If a neighbor did not decode or was not decoded in a cycle, that missing observation is not treated as `0 dB`.
 * With an even number of local reference stations, the midpoint median is used.
 * The reference pool can change by cycle because WSPR activity changes by cycle.
+* Yield categories are evaluated only inside target-active WSPR cycles. `Only Reference` therefore means: the local reference side had evidence for this peer/path during a cycle where your station/setup was active somewhere, but not jointly on this same peer/path.
 
 **Local Best Station: strict stress test**
 
@@ -127,6 +130,7 @@ For every WSPR cycle and matching remote path, WSPRadar compares you against the
 * This is a best-local-peer envelope, not a neighborhood average.
 * The identity of the reference station can change from cycle to cycle.
 * It is intentionally harder to beat than the median neighborhood.
+* Yield categories are evaluated only inside target-active WSPR cycles. `Only Reference` therefore means: the local best reference side had evidence for this peer/path during a cycle where your station/setup was active somewhere, but not jointly on this same peer/path.
 
 **Valid design**
 
@@ -152,6 +156,7 @@ The Buddy Test is a one-to-one comparison against a known station. You define a 
 * In RX comparison, both local receivers evaluate the same remote transmitter in the same 2-minute WSPR cycle where possible:  
   $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
 * This same-cycle pairing strongly reduces shared fading, path and receiver/transmitter confounders, depending on TX or RX direction.
+* Yield in the Buddy Test is also heartbeat-gated. It does not compare all spots of both callsigns across the full time window. It compares joint, target-only, reference-only and async evidence inside cycles where the target callsign/setup was demonstrably active.
 
 **Valid design**
 
@@ -163,6 +168,7 @@ The Buddy Test is a one-to-one comparison against a known station. You define a 
 
 * A Buddy Test is a station-system comparison, not a pure antenna-gain measurement.
 * Differences may include antenna, transmitter, receiver, feedline, terrain, polarization, local QRM and reported-power accuracy.
+* Swapping target and reference callsigns can change the yield counts. The active-cycle gate follows the target callsign, so A vs B and B vs A are not guaranteed to be symmetric. Delta SNR signs should invert on shared joint evidence, but yield categories may not.
 
 <a id="sec-4-4"></a>
 #### 4.4 Hardware A/B Test
@@ -210,9 +216,18 @@ Near rings can be consistent with shorter-skip or NVIS behavior; far rings can b
 
 Individual stations are plotted as dots. Green means joint same-cycle decodes. Yellow-orange means both sides decoded the station asynchronously. Purple means only your station/setup decoded it. White means only the reference decoded it.
 
+These classes are heartbeat-gated evidence classes:
+
+* `Joint`: target and reference both have evidence for the same peer/path in the same WSPR cycle. This is valid for Delta SNR.
+* `Only Target`: inside a target-active cycle, the target had evidence for this peer/path and the reference did not.
+* `Only Reference`: inside a target-active cycle, the reference had evidence for this peer/path and the target did not.
+* `Both (Async)`: inside the selected segment/station set, both sides have evidence, but not in the same WSPR cycle. This is useful yield context, not paired Delta-SNR evidence.
+
 **Map footer and 1D-Venn bars**
 
 The `SPOTS` bar shows raw decode-volume distribution. The `STATIONS` bar checks whether the footprint is broad or driven by only a few active stations. These bars are essential because Delta SNR alone can hide decode/no-decode behavior.
+
+The footer bars are not full-window raw activity counters. In compare modes they are computed after the heartbeat filter, so they summarize what happened inside target-active comparison cycles. This is why `Only Reference = 0` can be a correct result: it means no reference-only evidence survived inside the target-active comparison cycles and selected filters, not that the reference station had no WSPR activity anywhere in the full time window.
 
 **Segment Inspector**
 
@@ -222,7 +237,7 @@ The Segment Inspector is the audit layer below the maps. Select a distance ring 
 * In compare modes, the histogram shows Delta SNR values. It reveals whether a segment median comes from consistent superiority or from a broad, unstable distribution.
 * The Station Insights table lists contributing remote stations, separates joint decodes from exclusive decodes and shows the station-level median Delta SNR.
 * Clicking a Station Insights row opens the Drill-Down table.
-* `Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Async Both`.
+* `Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Both (Async)`.
 
 **Drill-Down Table**
 
@@ -275,12 +290,14 @@ Power normalization is still a meaningful mitigation. RX comparisons often reduc
 
 Temporal synchronization is one of WSPRadar's strongest controls. Same-cycle pairing strongly reduces fast QSB/fading effects because both sides are evaluated in the same two-minute WSPR opportunity. In TX comparisons, using the same remote receiver reduces receiver-side QRM, noise-floor and antenna effects. In RX comparisons, decoding the same remote transmitter reduces transmitter-power and shared-path variation.
 
-The heartbeat filter adds a separate protection. WSPRadar validates comparative cycles only when your setup was demonstrably alive:
+The heartbeat filter is the gatekeeper for comparison yield. WSPRadar validates comparative cycles only when the target station/setup was demonstrably alive:
 
-* In TX mode, your signal must have been decoded by at least one station worldwide during the relevant cycle/slot.
-* In RX mode, your receiver must have decoded at least one station during the relevant cycle.
+* In TX mode, the target signal must have been decoded by at least one station worldwide during the relevant cycle/slot. In practical terms: WSPRadar only evaluates TX comparison cycles where the target station was actually transmitting and produced at least one reported decode somewhere.
+* In RX mode, the target receiver must have decoded at least one station during the relevant cycle. In practical terms: WSPRadar only evaluates RX comparison cycles where the target receiver was actually receiving/uploading and produced at least one reported decode.
 
-If you shut the station down overnight, reference spots collected during that offline period are not counted as defeats for your hardware. This does not make every comparison perfectly fair. It reduces the dominant timing, fading and offline-bias confounders in synchronous modes. Sequential TX A/B remains the special case: time-binning and multi-day fixed schedules reduce macro-fading/time drift, but are not equivalent to simultaneous same-cycle pairing.
+Reference evidence outside those target-active cycles is excluded by design. This protects the analysis from treating target downtime as hardware failure and keeps the comparison tied to actual WSPR opportunities where the target station/setup participated. The consequence is intentional target-centric asymmetry: swapping target and reference can change eligible cycles and therefore yield counts.
+
+If you shut the station down overnight, reference spots collected during that offline period are not counted as defeats for your hardware. This does not make every comparison perfectly fair. It reduces dominant timing, fading and offline-bias confounders in synchronous modes, while preserving the central WSPRadar principle: compare only inside valid WSPR opportunities. Sequential TX A/B remains the special case: time-binning and multi-day fixed schedules reduce macro-fading/time drift, but are not equivalent to simultaneous same-cycle pairing.
 
 <a id="sec-6-5"></a>
 #### 6.5 Median aggregation hierarchy
@@ -310,23 +327,23 @@ A pure median Delta SNR analysis can suffer from survivorship bias. A better ant
 
 WSPRadar therefore separates two signals:
 
-1. **System Sensitivity / Decode Yield:** counts exclusive vs joint decodes. This captures real-world operational reach at the edge of decodability.
+1. **System Sensitivity / Decode Yield:** counts exclusive vs joint decodes inside heartbeat-gated comparison cycles. This captures real-world operational reach at the edge of decodability without counting periods where the target station/setup was not demonstrably active.
 2. **Hardware Linearity / Delta SNR:** uses only paired joint spots or paired time bins. This estimates the conditional gain/SNR difference when both setups produced comparable evidence.
 
 Read both together. A setup can have better yield but lower conditional SNR if it decodes many marginal signals. Conversely, a setup can show a strong positive Delta SNR on joint spots but poor yield if it misses many weak paths.
 
 **Important TX yield interpretation**
 
-In TX analysis, yield is intentionally reported as **raw operational yield**. It answers the practical on-air question:
+In TX analysis, yield is intentionally reported as **heartbeat-gated operational yield**. It answers the practical on-air question:
 
-**Who was actually decoded more often under the reported operating conditions?**
+**Within cycles where my target transmitter was demonstrably active, who was actually decoded more often under the reported operating conditions?**
 
 This is useful, but it is not a power-normalized fairness metric. If one station transmits at 100 W and another station transmits at 100 mW, the higher-power station will usually have a decode-yield advantage. WSPRadar normalizes SNR for joint TX spots where both stations were decoded and an SNR comparison is possible. However, for exclusive TX spots, the missing side has no SNR value. Therefore WSPRadar cannot reliably reconstruct what the missing station's SNR would have been at a different transmit power.
 
 For this reason:
 
 * TX Delta SNR on joint spots is the primary fair comparison signal.
-* TX yield should be read as raw operational reach, not as normalized antenna efficiency.
+* TX yield should be read as heartbeat-gated operational reach, not as normalized antenna efficiency.
 * Reference-only or target-only TX decodes may reflect antenna performance, transmit power, propagation, receiver distribution, timing, collisions, reported-power accuracy or a combination of these factors.
 * Unequal reported transmit powers should be mentioned when interpreting TX-yield asymmetry.
 
@@ -368,6 +385,7 @@ Therefore, Wilcoxon filtering should be documented as statistical evidence, not 
 * **Crowd-sourced data:** WSPR spots can contain duplicates, false spots, wrong power, wrong locator or receiver-side errors. WSPRadar reduces sensitivity to many of these problems but cannot make upstream data calibrated or error-free.
 * **Successful decodes only:** WSPR logs decodes, not all failed reception attempts. Closed bands reduce the existence of spots rather than lowering an average.
 * **Reported power caveat:** normalization mitigates reported-power differences, and several compare modes reduce exposure to this problem by pairing against the same transmitter or the same callsign. However, any analysis that depends on user-reported dBm still assumes that the reported value is reasonably close to reality.
+* **Target-centric yield:** compare-mode yield is gated by target-active cycles. This is a deliberate protection against offline bias, but it means yield is not symmetric under target/reference swaps. A vs B and B vs A can have different `Only Reference` and `Only Target` counts even with the same core parameters.
 * **Sequential TX caveat:** fixed-schedule TX A/B reduces but does not perfectly eliminate time confounding.
 * **Distance is not angle:** distance-ring patterns can suggest propagation behavior but do not directly measure radiation take-off angle.
 * **Polarization and local environment:** WSPRadar measures real-world station-system performance, including antenna, receiver/transmitter, feedline, terrain, polarization effects, local QRM and software behavior.

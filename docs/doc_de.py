@@ -109,6 +109,8 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 
 Der lokale Nachbarschafts-Benchmark fragt, wie die eigene Station gegen aktive WSPR-Stationen innerhalb eines gew&auml;hlten geografischen Radius abschneidet. Der Radius gilt f&uuml;r beide lokalen Methoden.
 
+Alle lokalen Nachbarschaftsvergleiche bleiben target-aktive Vergleiche. WSPRadar begrenzt die Analyse zuerst auf WSPR-Zyklen, in denen die eigene Station/das eigene Setup nachweislich aktiv war; [Zeitliche Paarbildung und Heartbeat-Filter](#sec-6-4) definiert das pr&auml;zise f&uuml;r TX und RX. Lokale Referenz-Evidenz au&szlig;erhalb dieser target-aktiven Zyklen wird bewusst ignoriert. Deshalb ist der lokale Benchmark-Yield keine rohe Z&auml;hlung aller Nachbarschaftsaktivit&auml;t im Zeitfenster.
+
 **Lokaler Nachbarschafts-Median: Standard-Baseline**
 
 F&uuml;r jeden WSPR-Zyklus und passenden Remote-Pfad berechnet WSPRadar den Median des normierten SNR aller aktiven lokalen Referenzstationen innerhalb des Radius. Die eigene Station wird gegen diesen zyklusbezogenen Nachbarschaftsmedian verglichen.
@@ -118,6 +120,7 @@ F&uuml;r jeden WSPR-Zyklus und passenden Remote-Pfad berechnet WSPRadar den Medi
 * Erfindet keine Werte f&uuml;r fehlende Spots. Wenn ein Nachbar in einem Zyklus nicht decodiert hat oder nicht decodiert wurde, wird das nicht als `0 dB` gez&auml;hlt.
 * Bei gerader Anzahl lokaler Referenzstationen wird der Mittelpunkt-Median verwendet.
 * Der Referenzpool kann sich zyklusweise &auml;ndern, weil WSPR-Aktivit&auml;t zyklusweise schwankt.
+* Yield-Kategorien werden nur innerhalb target-aktiver WSPR-Zyklen bewertet. `Nur Referenz` bedeutet daher: Die lokale Referenzseite hatte in einem Zyklus, in dem die eigene Station/das eigene Setup irgendwo aktiv war, Evidenz f&uuml;r diesen Peer/Pfad, aber nicht gemeinsam auf genau diesem Peer/Pfad.
 
 **Beste lokale Station: strenger Stresstest**
 
@@ -127,6 +130,7 @@ F&uuml;r jeden WSPR-Zyklus und passenden Remote-Pfad vergleicht WSPRadar gegen d
 * Dies ist eine Best-Local-Peer-H&uuml;llkurve, kein Nachbarschaftsdurchschnitt.
 * Die Identit&auml;t der Referenzstation kann von Zyklus zu Zyklus wechseln.
 * Der Benchmark ist absichtlich schwerer zu schlagen als der Nachbarschaftsmedian.
+* Yield-Kategorien werden nur innerhalb target-aktiver WSPR-Zyklen bewertet. `Nur Referenz` bedeutet daher: Die beste lokale Referenzseite hatte in einem Zyklus, in dem die eigene Station/das eigene Setup irgendwo aktiv war, Evidenz f&uuml;r diesen Peer/Pfad, aber nicht gemeinsam auf genau diesem Peer/Pfad.
 
 **Valides Design**
 
@@ -152,6 +156,7 @@ Der Buddy-Test ist ein 1:1-Vergleich mit einer bekannten Station. Man definiert 
 * Im RX-Vergleich bewerten beide lokalen Empf&auml;nger m&ouml;glichst denselben Remote-Sender im selben 2-Minuten-WSPR-Zyklus:  
   $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
 * Diese Same-Cycle-Paarbildung reduziert gemeinsame Fading-, Pfad- und Empf&auml;nger-/Sender-Konfounder je nach TX- oder RX-Richtung deutlich.
+* Yield im Buddy-Test ist ebenfalls heartbeat-gefiltert. Er vergleicht nicht alle Spots beider Rufzeichen &uuml;ber das gesamte Zeitfenster. Er vergleicht Joint-, Target-only-, Reference-only- und Async-Evidenz innerhalb von Zyklen, in denen das Zielrufzeichen/das Zielsetup nachweislich aktiv war.
 
 **Valides Design**
 
@@ -163,6 +168,7 @@ Der Buddy-Test ist ein 1:1-Vergleich mit einer bekannten Station. Man definiert 
 
 * Ein Buddy-Test ist ein Stationssystem-Vergleich, keine reine Antennengewinnmessung.
 * Unterschiede k&ouml;nnen Antenne, Sender, Empf&auml;nger, Speiseleitung, Gel&auml;nde, Polarisation, lokales QRM und Genauigkeit der gemeldeten Leistung enthalten.
+* Das Tauschen von Ziel- und Referenzrufzeichen kann die Yield-Zahlen ver&auml;ndern. Das Active-Cycle-Gate folgt dem Zielrufzeichen, deshalb m&uuml;ssen A gegen B und B gegen A nicht symmetrisch sein. Delta-SNR-Vorzeichen sollten sich auf gemeinsamer Joint-Evidenz umkehren, Yield-Kategorien aber nicht zwingend.
 
 <a id="sec-4-4"></a>
 #### 4.4 Hardware A/B-Test
@@ -210,9 +216,18 @@ Nahe Ringe k&ouml;nnen mit Short-Skip oder NVIS konsistent sein; weite Ringe k&o
 
 Einzelne Stationen werden als Punkte gezeichnet. Gr&uuml;n = Joint Decodes im selben Zyklus. Gelb-orange = beide Seiten haben die Station geh&ouml;rt, aber asynchron. Violett = nur eigene Station/eigenes Setup. Wei&szlig; = nur Referenz.
 
+Diese Klassen sind heartbeat-gefilterte Evidenzklassen:
+
+* `Joint` / `Beide (Sync)`: Ziel und Referenz haben Evidenz f&uuml;r denselben Peer/Pfad im selben WSPR-Zyklus. Das ist valide Evidenz f&uuml;r Delta SNR.
+* `Nur Zielstation`: innerhalb eines target-aktiven Zyklus hatte die Zielseite Evidenz f&uuml;r diesen Peer/Pfad, die Referenzseite nicht.
+* `Nur Referenz`: innerhalb eines target-aktiven Zyklus hatte die Referenzseite Evidenz f&uuml;r diesen Peer/Pfad, die Zielseite nicht.
+* `Beide (Async)`: im ausgew&auml;hlten Segment/Stationssatz haben beide Seiten Evidenz, aber nicht im selben WSPR-Zyklus. Das ist n&uuml;tzlicher Yield-Kontext, aber keine gepaarte Delta-SNR-Evidenz.
+
 **Footer und 1D-Venn-Balken**
 
 `SPOTS` zeigt das Rohdatenvolumen. `STATIONS` pr&uuml;ft, ob der Footprint breit ist oder nur von wenigen aktiven Stationen getragen wird. Diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
+
+Die Footer-Balken sind keine Rohz&auml;hler der gesamten Aktivit&auml;t im Zeitfenster. In Vergleichsmodi werden sie nach dem Heartbeat-Filter berechnet und fassen zusammen, was innerhalb target-aktiver Vergleichszyklen passiert ist. Deshalb kann `Nur Referenz = 0` ein korrektes Ergebnis sein: Es bedeutet, dass innerhalb der target-aktiven Vergleichszyklen und gew&auml;hlten Filter keine Reference-only-Evidenz &uuml;brig blieb, nicht dass die Referenzstation im gesamten Zeitfenster keine WSPR-Aktivit&auml;t hatte.
 
 **Segment-Inspektor**
 
@@ -222,7 +237,7 @@ Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Distanzring und
 * In Vergleichsmodi zeigt das Histogramm Delta-SNR-Werte. Es zeigt, ob ein Segmentmedian aus konsistenter &Uuml;berlegenheit oder aus breiter, instabiler Streuung entsteht.
 * Die Station-Insights-Tabelle listet beteiligte Remote-Stationen, trennt Joint Decodes von exklusiven Decodes und zeigt den stationsbezogenen medianen Delta SNR.
 * Ein Klick auf eine Station-Insights-Zeile &ouml;ffnet die Drill-Down-Tabelle.
-* `Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Async Both` zeigen.
+* `Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Beide (Async)` zeigen.
 
 **Drill-Down-Tabelle**
 
@@ -275,12 +290,14 @@ Leistungsnormalisierung ist trotzdem eine wesentliche Mitigation. RX-Vergleiche 
 
 Zeitliche Synchronisation ist eine der st&auml;rksten Kontrollen von WSPRadar. Same-Cycle-Paarbildung reduziert schnelle QSB-/Fading-Effekte deutlich, weil beide Seiten in derselben zweimin&uuml;tigen WSPR-Gelegenheit bewertet werden. Bei TX-Vergleichen reduziert derselbe Remote-Empf&auml;nger empfangsseitiges QRM, Noise-Floor- und Antenneneffekte. Bei RX-Vergleichen reduziert derselbe Remote-Sender Sendeleistungs- und gemeinsame Pfadvariation.
 
-Der Heartbeat-Filter erg&auml;nzt einen separaten Schutz. WSPRadar validiert Vergleichszyklen nur, wenn das eigene Setup nachweislich aktiv war:
+Der Heartbeat-Filter ist der Gatekeeper f&uuml;r Vergleichs-Yield. WSPRadar validiert Vergleichszyklen nur, wenn die Zielstation/das Zielsetup nachweislich aktiv war:
 
-* Im TX-Modus muss das eigene Signal im relevanten Zyklus/Slot von mindestens einer Station weltweit decodiert worden sein.
-* Im RX-Modus muss der eigene Empf&auml;nger im relevanten Zyklus mindestens eine Station decodiert haben.
+* Im TX-Modus muss das Zielsignal im relevanten Zyklus/Slot von mindestens einer Station weltweit decodiert worden sein. Praktisch bedeutet das: WSPRadar bewertet nur TX-Vergleichszyklen, in denen die Zielstation tats&auml;chlich gesendet und mindestens einen gemeldeten Decode irgendwo erzeugt hat.
+* Im RX-Modus muss der Zielempf&auml;nger im relevanten Zyklus mindestens eine Station decodiert haben. Praktisch bedeutet das: WSPRadar bewertet nur RX-Vergleichszyklen, in denen der Zielempf&auml;nger tats&auml;chlich empfangen/hochgeladen und mindestens einen gemeldeten Decode erzeugt hat.
 
-Wenn die Station nachts ausgeschaltet ist, werden Referenzspots in diesem Offline-Zeitraum nicht als Niederlagen f&uuml;r die eigene Hardware gez&auml;hlt. Das macht nicht jeden Vergleich perfekt fair. Es reduziert die dominanten Timing-, Fading- und Offline-Bias-Konfounder in synchronen Modi. Sequenzieller TX A/B bleibt der Sonderfall: Time-Binning und mehrt&auml;gige fixe Zeitpl&auml;ne reduzieren Makro-Fading/Zeitdrift, sind aber nicht gleichwertig zu simultaner Same-Cycle-Paarbildung.
+Referenz-Evidenz au&szlig;erhalb dieser target-aktiven Zyklen wird bewusst ausgeschlossen. Das sch&uuml;tzt die Analyse davor, Ziel-Downtime als Hardwareversagen zu interpretieren, und bindet den Vergleich an tats&auml;chliche WSPR-Gelegenheiten, in denen die Zielstation/das Zielsetup teilgenommen hat. Die Folge ist eine beabsichtigte target-zentrierte Asymmetrie: Das Tauschen von Ziel und Referenz kann die g&uuml;ltigen Zyklen und damit die Yield-Zahlen ver&auml;ndern.
+
+Wenn die Station nachts ausgeschaltet ist, werden Referenzspots in diesem Offline-Zeitraum nicht als Niederlagen f&uuml;r die eigene Hardware gez&auml;hlt. Das macht nicht jeden Vergleich perfekt fair. Es reduziert dominante Timing-, Fading- und Offline-Bias-Konfounder in synchronen Modi und erh&auml;lt zugleich das zentrale WSPRadar-Prinzip: nur innerhalb g&uuml;ltiger WSPR-Gelegenheiten vergleichen. Sequenzieller TX A/B bleibt der Sonderfall: Time-Binning und mehrt&auml;gige fixe Zeitpl&auml;ne reduzieren Makro-Fading/Zeitdrift, sind aber nicht gleichwertig zu simultaner Same-Cycle-Paarbildung.
 
 <a id="sec-6-5"></a>
 #### 6.5 Median-Aggregationshierarchie
@@ -310,23 +327,23 @@ Eine reine Median-Delta-SNR-Analyse kann unter Survivorship Bias leiden. Eine be
 
 WSPRadar trennt deshalb zwei Signale:
 
-1. **System Sensitivity / Decode Yield:** zählt exklusive und gemeinsame Decodes. Das erfasst reale operative Reichweite an der Decodiergrenze.
+1. **System Sensitivity / Decode Yield:** z&auml;hlt exklusive und gemeinsame Decodes innerhalb heartbeat-gefilterter Vergleichszyklen. Das erfasst reale operative Reichweite an der Decodiergrenze, ohne Zeitr&auml;ume zu z&auml;hlen, in denen die Zielstation/das Zielsetup nicht nachweislich aktiv war.
 2. **Hardware Linearity / Delta SNR:** nutzt nur gepaarte Joint Spots oder gepaarte Zeit-Bins. Das schätzt den bedingten Gain/SNR-Unterschied, wenn beide Setups vergleichbare Evidenz erzeugt haben.
 
 Beides muss zusammen gelesen werden. Ein Setup kann besseren Yield, aber niedrigeren bedingten SNR haben, wenn es viele Grenzfallsignale decodiert. Umgekehrt kann ein Setup auf Joint Spots starken positiven Delta SNR zeigen, aber schlechten Yield haben, wenn es viele schwache Pfade verpasst.
 
 **Wichtige Interpretation des TX-Yield**
 
-In der TX-Analyse wird Yield bewusst als **roher operativer Yield** ausgegeben. Er beantwortet die praktische On-Air-Frage:
+In der TX-Analyse wird Yield bewusst als **heartbeat-gefilterter operativer Yield** ausgegeben. Er beantwortet die praktische On-Air-Frage:
 
-**Wer wurde unter den tatsächlich gemeldeten Betriebsbedingungen häufiger decodiert?**
+**Wer wurde innerhalb der Zyklen, in denen mein Zielsender nachweislich aktiv war, unter den tats&auml;chlich gemeldeten Betriebsbedingungen h&auml;ufiger decodiert?**
 
 Das ist nützlich, aber keine leistungsnormalisierte Fairness-Metrik. Wenn eine Station mit 100 W und eine andere mit 100 mW sendet, hat die stärkere Station normalerweise einen Decode-Yield-Vorteil. WSPRadar normalisiert SNR für gemeinsame TX-Spots, bei denen beide Stationen decodiert wurden und ein SNR-Vergleich möglich ist. Bei exklusiven TX-Spots fehlt jedoch auf der nicht gehörten Seite ein SNR-Wert. WSPRadar kann daher nicht zuverlässig rekonstruieren, welches SNR die fehlende Station bei anderer Sendeleistung gehabt hätte.
 
 Daraus folgt:
 
 * TX Delta SNR auf Joint Spots ist das wichtigste faire Vergleichssignal.
-* TX Yield sollte als rohe operative Reichweite gelesen werden, nicht als normalisierte Antenneneffizienz.
+* TX Yield sollte als heartbeat-gefilterte operative Reichweite gelesen werden, nicht als normalisierte Antenneneffizienz.
 * Reference-only- oder Target-only-TX-Decodes können Antennenleistung, Sendeleistung, Ausbreitung, Empfängerverteilung, Timing, Kollisionen, Genauigkeit der gemeldeten Leistung oder eine Kombination dieser Faktoren widerspiegeln.
 * Ungleiche gemeldete Sendeleistungen sollten bei der Interpretation von TX-Yield-Asymmetrien ausdrücklich erwähnt werden.
 
@@ -368,6 +385,7 @@ Wilcoxon-Filterung sollte deshalb als statistische Evidenz, nicht als Beweis, be
 * **Crowd-sourced Daten:** WSPR-Spots k&ouml;nnen Duplikate, falsche Spots, falsche Leistung, falschen Locator oder empfangsseitige Fehler enthalten. WSPRadar reduziert die Empfindlichkeit gegen&uuml;ber vielen dieser Probleme, kann upstream Daten aber nicht kalibriert oder fehlerfrei machen.
 * **Nur erfolgreiche Decodes:** WSPR protokolliert Decodes, nicht alle fehlgeschlagenen Empfangsversuche. Geschlossene B&auml;nder reduzieren die Existenz von Spots, statt einen Durchschnitt zu senken.
 * **Gemeldete Leistung:** Normalisierung mindert Unterschiede in gemeldeter Leistung, und mehrere Vergleichsmodi reduzieren dieses Problem zus&auml;tzlich durch Paarbildung gegen denselben Sender oder dasselbe Rufzeichen. Jede Analyse, die auf gemeldeten dBm basiert, setzt aber weiterhin voraus, dass der gemeldete Wert ungef&auml;hr stimmt.
+* **Target-zentrierter Yield:** Yield in Vergleichsmodi wird durch target-aktive Zyklen begrenzt. Das ist ein bewusster Schutz gegen Offline-Bias, bedeutet aber, dass Yield beim Tausch von Ziel und Referenz nicht symmetrisch sein muss. A gegen B und B gegen A k&ouml;nnen trotz gleicher Kernparameter unterschiedliche `Nur Referenz`- und `Nur Zielstation`-Zahlen haben.
 * **Sequenzieller TX:** Fixed-schedule TX A/B reduziert Zeitkonfundierung, eliminiert sie aber nicht perfekt.
 * **Distanz ist kein Winkel:** Distanzringe k&ouml;nnen Ausbreitungsverhalten nahelegen, messen aber keinen Abstrahlwinkel direkt.
 * **Polarisation und lokale Umgebung:** WSPRadar misst reale Stationssystem-Performance, einschlie&szlig;lich Antenne, Sender/Empf&auml;nger, Speiseleitung, Gel&auml;nde, Polarisation, lokalem QRM und Softwareverhalten.
