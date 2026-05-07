@@ -76,7 +76,7 @@ WSPRadar ist um konkrete Amateurfunk-Fragen herum aufgebaut:
 Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Gemeinsame Mathematik und Annahmen werden einmal in [Wissenschaftliche Methodik und Annahmen](#sec-6) erkl&auml;rt.
 
 <a id="sec-4-0"></a>
-#### 4.0 Begriffe 
+#### 4.0 Begriffe und Vergleichslogik
 
 * **Ziel / Target** meint die Station oder das Setup unter Test: normalerweise das eigene Rufzeichen, Setup A oder die Station, die bewertet werden soll.
 * **Referenz** meint die Vergleichsbasis: ein Buddy-Rufzeichen, die lokale Nachbarschaft, die beste lokale Station oder Setup B.
@@ -293,14 +293,14 @@ Multi-Select, dynamische Filter und CSV-Export machen den Segment-Inspektor zur 
 <a id="sec-6-1"></a>
 #### 6.1 Datenherkunft und Robustheit
 
-WSPRadar liest historische WSPR-Spots &uuml;ber wspr.live. Die wspr.live-Dokumentation beschreibt die Daten als Rohdaten, wie sie von WSPRnet gemeldet und ver&ouml;ffentlicht werden, und warnt vor Duplikaten, falschen Spots und anderen Fehlern. Au&szlig;erdem gibt es f&uuml;r die ehrenamtlich betriebene Infrastruktur keine Garantie f&uuml;r Korrektheit, Verf&uuml;gbarkeit oder Stabilit&auml;t.
+WSPRadar liest historische WSPR-Spots &uuml;ber wspr.live. Die wspr.live-Dokumentation beschreibt die Daten als Rohdaten, wie sie von WSPRnet gemeldet und ver&ouml;ffentlicht werden, und warnt vor Duplikaten, falschen Spots und anderen Fehlern. Au&szlig;erdem gibt es f&uuml;r die ehrenamtlich betriebene Infrastruktur keine Garantie f&uuml;r Korrektheit, Verf&uuml;gbarkeit oder Stabilit&auml;t. <a href="#ref-9-2">[9-2]</a>
 
 WSPRadar mindert viele vorgelagerte Datenprobleme durch mehrschichtige Aggregation und Filter: Same-Cycle-Paarbildung, Stationsmediane, Segmentmediane, Mindest-Sample-Schwellen, Moving-Station-Filter und optionale Pr&auml;fix-Ausschl&uuml;sse. Diese Ma&szlig;nahmen reduzieren den Einfluss isolierter Duplikate, sporadischer falscher Spots, One-Hit-Decodes und Receiver-Density-Bias erheblich. Sie machen den vorgelagerten Datensatz nicht kalibriert oder fehlerfrei, und ein plausibler wiederholter Fehler kann weiterhin durchrutschen; der Anspruch ist Robustheit, nicht Immunit&auml;t.
 
 <a id="sec-6-2"></a>
 #### 6.2 WSPR-SNR und gemeldete Leistung
 
-WSPR ist f&uuml;r die Untersuchung potenzieller Ausbreitungspfade mit Low-Power-Baken gedacht. WSPR-Nachrichten enthalten Rufzeichen, Locator und Leistung in dBm. WSPR-2-Sendungen dauern etwa 110,6 Sekunden und starten zwei Sekunden nach einer geraden UTC-Minute. Die ARRL-WSPR-Dokumentation beschreibt den Mindest-S/N auf der WSJT-Skala mit 2500-Hz-Referenzbandbreite.
+WSPR ist f&uuml;r die Untersuchung potenzieller Ausbreitungspfade mit Low-Power-Baken gedacht. WSPR-Nachrichten enthalten Rufzeichen, Locator und Leistung in dBm. WSPR-2-Sendungen dauern etwa 110,6 Sekunden und starten zwei Sekunden nach einer geraden UTC-Minute. Die ARRL-WSPR-Dokumentation beschreibt den Mindest-S/N auf der WSJT-Skala mit 2500-Hz-Referenzbandbreite. <a href="#ref-9-1">[9-1]</a>
 
 F&uuml;r WSPRadar bedeutet das:
 
@@ -399,7 +399,7 @@ Die Projektion ist f&uuml;r WSPRadars visuelle Analyse intern konsistent. Sie so
 <a id="sec-6-8"></a>
 #### 6.8 Statistische Konfidenz und Wilcoxon-Filter
 
-WSPRadar kann optional einen Wilcoxon-Vorzeichen-Rang-Test als Compare-Map-Filter verwenden. SciPy dokumentiert diesen Test f&uuml;r verbundene gepaarte Stichproben und beschreibt ihn ausdr&uuml;cklich &uuml;ber die Verteilung gepaarter Differenzen.
+WSPRadar kann optional einen Wilcoxon-Vorzeichen-Rang-Test als Compare-Map-Filter verwenden. SciPy dokumentiert diesen Test f&uuml;r verbundene gepaarte Stichproben und beschreibt ihn ausdr&uuml;cklich &uuml;ber die Verteilung gepaarter Differenzen. <a href="#ref-9-13">[9-13]</a>
 
 Korrekte Interpretation:
 
@@ -484,93 +484,103 @@ Empfohlene Interpretation:
 * Bei **absoluter RX-Coverage** hängt die Wahl von der Fragestellung ab: einschließen, wenn Beacon-Sensitivität interessant ist; ausschließen, wenn nur normale Amateurfunkaktivität betrachtet werden soll.
 * Für **Veröffentlichungen oder ernsthafte Vergleiche** sollte dokumentiert werden, ob der Sonderrufzeichen-Filter aktiviert war.
 
-* [9. Bestehende Literatur und Stand der Technik](#sec-9)
-
 <a id="sec-9"></a>
 ### 9. Bestehende Literatur und Stand der Technik
 
-WSPRadar steht nicht isoliert. Es baut auf drei bereits etablierten Linien auf: Erstens auf WSPR als globalem, durch Funkamateure betriebenem Beobachtungsnetz; zweitens auf wissenschaftlichen Arbeiten, die WSPR-Daten für Ausbreitungs- und Antennenfragen verwenden; drittens auf praktischen Werkzeugen, die WSPR-Spots visualisieren, abfragen oder für Antennenvergleiche auswerten.
+WSPRadar steht nicht isoliert. Es baut auf drei bereits etablierten Linien auf: Erstens auf WSPR als globalem, durch Funkamateure betriebenem Beobachtungsnetz; zweitens auf wissenschaftlichen Arbeiten, die WSPR-Daten f&uuml;r Ausbreitungs- und Antennenfragen verwenden; drittens auf praktischen Werkzeugen, die WSPR-Spots visualisieren, abfragen oder f&uuml;r Antennenvergleiche auswerten.
 
-Dieses Kapitel ordnet WSPRadar in diesen Kontext ein und grenzt den eigenen Anspruch bewusst ab: WSPRadar ist kein kalibrierter Antennenmessplatz und kein Ersatz für kontrollierte Feldstärkemessungen. Es ist ein Werkzeug zur robusten, auditierbaren Realwelt-Bewertung von Stationssystemen auf Basis öffentlicher WSPR-Spots.
+Dieses Kapitel ordnet WSPRadar in diesen Kontext ein und grenzt den eigenen Anspruch bewusst ab: WSPRadar ist kein kalibrierter Antennenmessplatz und kein Ersatz f&uuml;r kontrollierte Feldst&auml;rkemessungen. Es ist ein Werkzeug zur robusten, auditierbaren Realwelt-Bewertung von Stationssystemen auf Basis &ouml;ffentlicher WSPR-Spots.
 
 <a id="sec-9-1"></a>
 #### 9.1 WSPR als globales Beobachtungsnetz
 
-WSPR wurde für die Untersuchung potenzieller Ausbreitungspfade mit niedriger Sendeleistung entwickelt. Die ARRL beschreibt WSPR als schmalbandiges digitales Protokoll für HF- und MF-Ausbreitungstests. Eine typische WSPR-Nachricht enthält Rufzeichen, 4-stelligen Maidenhead-Locator und Sendeleistung in dBm. Die Aussendung dauert etwa 110,6 Sekunden und beginnt zwei Sekunden nach einer geraden UTC-Minute. Die minimale Dekodierbarkeit liegt ungefähr bei -27 dB auf der WSJT-Skala mit 2500-Hz-Referenzbandbreite. [9-1]
+WSPR wurde f&uuml;r die Untersuchung potenzieller Ausbreitungspfade mit niedriger Sendeleistung entwickelt. Die ARRL beschreibt WSPR als schmalbandiges digitales Protokoll f&uuml;r HF- und MF-Ausbreitungstests. Eine typische WSPR-Nachricht enth&auml;lt Rufzeichen, 4-stelligen Maidenhead-Locator und Sendeleistung in dBm. Die Aussendung dauert etwa 110,6 Sekunden und beginnt zwei Sekunden nach einer geraden UTC-Minute. Die minimale Dekodierbarkeit liegt ungef&auml;hr bei -27 dB auf der WSJT-Skala mit 2500-Hz-Referenzbandbreite. <a href="#ref-9-1">[9-1]</a> <a href="#ref-9-14">[9-14]</a>
 
-Die öffentliche WSPR-Infrastruktur ist aber kein Laborinstrument. WSPR.live stellt historische und aktuelle WSPR-Spots in einer ClickHouse-Datenbank bereit und weist ausdrücklich darauf hin, dass es sich um Rohdaten handelt, wie sie von WSPRnet gemeldet und veröffentlicht wurden. Duplikate, falsche Spots, fehlerhafte Locator, falsche Leistungen und Infrastrukturausfälle sind deshalb Teil des realen Datenumfelds. [9-2]
+Die &ouml;ffentliche WSPR-Infrastruktur ist aber kein Laborinstrument. WSPR.live stellt historische und aktuelle WSPR-Spots in einer ClickHouse-Datenbank bereit und weist ausdr&uuml;cklich darauf hin, dass es sich um Rohdaten handelt, wie sie von WSPRnet gemeldet und ver&ouml;ffentlicht wurden. Duplikate, falsche Spots, fehlerhafte Locator, falsche Leistungen und Infrastrukturausf&auml;lle sind deshalb Teil des realen Datenumfelds. <a href="#ref-9-2">[9-2]</a>
 
-WSPRadar übernimmt diese Unsicherheit nicht blind, sondern reduziert ihre Wirkung durch Filter, Mindestschwellen, Mediane, zeitliche Paarbildung, Segmentaggregation und Drill-Down-Prüfbarkeit. Der Anspruch ist nicht, aus Crowd-Daten kalibrierte Messdaten zu machen. Der Anspruch ist, aus unvollkommenen, aber sehr zahlreichen Beobachtungen eine nachvollziehbare und vorsichtig interpretierte Evidenzschicht zu erzeugen.
+WSPRadar &uuml;bernimmt diese Unsicherheit nicht blind, sondern reduziert ihre Wirkung durch Filter, Mindestschwellen, Mediane, zeitliche Paarbildung, Segmentaggregation und Drill-Down-Pr&uuml;fbarkeit. Der Anspruch ist nicht, aus Crowd-Daten kalibrierte Messdaten zu machen. Der Anspruch ist, aus unvollkommenen, aber sehr zahlreichen Beobachtungen eine nachvollziehbare und vorsichtig interpretierte Evidenzschicht zu erzeugen.
 
 <a id="sec-9-2"></a>
-#### 9.2 WSPR in Radio Science und Ionosphärenforschung
+#### 9.2 WSPR in Radio Science und Ionosph&auml;renforschung
 
-Lo et al. untersuchten 7-MHz-Greyline-Ausbreitung anhand von Amateurfunk-Bakensignalen aus der WSPR-Datenbank. Die Arbeit zeigt exemplarisch, dass WSPR nicht nur für individuelle Stationsbeobachtung nützlich ist, sondern auch als wissenschaftlicher Datensatz für globale HF-Ausbreitungsfragen verwendet werden kann. Besonders relevant für WSPRadar ist dabei die Grundidee, dass WSPR-Pfade zeitlich, geografisch und bandbezogen ausgewertet werden können, ohne dass die ursprüngliche Infrastruktur als kontrolliertes Experiment aufgebaut wurde. [9-3]
+**Lo et al.** untersuchten 7-MHz-Greyline-Ausbreitung anhand von Amateurfunk-Bakensignalen aus der WSPR-Datenbank. Die Arbeit zeigt exemplarisch, dass WSPR nicht nur f&uuml;r individuelle Stationsbeobachtung n&uuml;tzlich ist, sondern auch als wissenschaftlicher Datensatz f&uuml;r globale HF-Ausbreitungsfragen verwendet werden kann. Besonders relevant f&uuml;r WSPRadar ist dabei die Grundidee, dass WSPR-Pfade zeitlich, geografisch und bandbezogen ausgewertet werden k&ouml;nnen, ohne dass die urspr&uuml;ngliche Infrastruktur als kontrolliertes Experiment aufgebaut wurde. <a href="#ref-9-3">[9-3]</a>
 
-Frissell et al. ordnen WSPRNet zusammen mit dem Reverse Beacon Network und PSKReporter als etablierte Amateurfunk-Beobachtungsnetzwerke ein, die langfristige Daten über die untere Ionosphäre liefern. Die Arbeit ist wichtig, weil sie die Rolle des Amateurfunks als Citizen-Science-Infrastruktur beschreibt: Viele unabhängige Stationen erzeugen gemeinsam ein Beobachtungsnetz, das für Raumwetter-, Ionosphären- und HF-Ausbreitungsfragen relevant ist. Für WSPRadar ist diese Perspektive zentral: Das Tool verwendet nicht einzelne Rapporte als absolute Wahrheit, sondern nutzt die Masse, Wiederholung und räumliche Verteilung der Beobachtungen. [9-4]
+**Frissell et al.** ordnen WSPRNet zusammen mit dem Reverse Beacon Network und PSKReporter als etablierte Amateurfunk-Beobachtungsnetzwerke ein, die langfristige Daten &uuml;ber die untere Ionosph&auml;re liefern. Die Arbeit ist wichtig, weil sie die Rolle des Amateurfunks als Citizen-Science-Infrastruktur beschreibt: Viele unabh&auml;ngige Stationen erzeugen gemeinsam ein Beobachtungsnetz, das f&uuml;r Raumwetter-, Ionosph&auml;ren- und HF-Ausbreitungsfragen relevant ist. F&uuml;r WSPRadar ist diese Perspektive zentral: Das Tool verwendet nicht einzelne Rapporte als absolute Wahrheit, sondern nutzt die Masse, Wiederholung und r&auml;umliche Verteilung der Beobachtungen. <a href="#ref-9-4">[9-4]</a>
 
-Aus diesen Arbeiten folgt eine wichtige methodische Konsequenz: WSPR-Daten sind für Radio Science brauchbar, aber sie müssen als Beobachtungsdaten gelesen werden. Sie enthalten reale Ausbreitung, reale Stationsunterschiede und reale Fehlerquellen gleichzeitig. WSPRadar versucht deshalb nicht, diese Faktoren vollständig zu eliminieren, sondern die dominanten Störgrößen für konkrete Vergleichsfragen sichtbar zu machen und so weit wie möglich zu reduzieren.
+**Methodische Konsequenz.** WSPR-Daten sind f&uuml;r Radio Science brauchbar, aber sie m&uuml;ssen als Beobachtungsdaten gelesen werden. Sie enthalten reale Ausbreitung, reale Stationsunterschiede und reale Fehlerquellen gleichzeitig. WSPRadar versucht deshalb nicht, diese Faktoren vollst&auml;ndig zu eliminieren, sondern die dominanten St&ouml;rgr&ouml;&szlig;en f&uuml;r konkrete Vergleichsfragen sichtbar zu machen und so weit wie m&ouml;glich zu reduzieren.
 
 <a id="sec-9-3"></a>
-#### 9.3 WSPR für Antennen- und Stationsvergleiche
+#### 9.3 Direkte WSPR-Literatur zu Antennenvergleichen
 
-Vanhamel, Machiels und Lamy verwendeten WSPR auf dem 160-m-Band zur Antennenbewertung und Ausbreitungsanalyse. Ihr Aufbau nutzte zwei nahezu identische WSPR-Empfangsketten an ähnlichem Standort, um unterschiedliche 160-m-Antennen zu vergleichen. Die Arbeit ist für WSPRadar besonders wichtig, weil sie denselben Kernkonflikt behandelt: WSPR-SNR enthält sowohl Antennen-/Stationsleistung als auch Ausbreitung, Rauschen, Polarisation und zeitliche Variabilität. Die Studie reduziert diese Störgrößen durch nahe beieinander liegende, vergleichbare Empfangssysteme und zeigt damit einen methodischen Vorläufer für simultane RX-A/B-Vergleiche. [9-5]
+Die direkte Literatur zu WSPR-basierten Antennenvergleichen ist kleiner als die breitere Literatur zu WSPR-Ausbreitungsanalyse. Das ist wichtiger Kontext: WSPRadar tritt nicht in ein reifes Feld mit vielen standardisierten Messprotokollen ein. Stattdessen baut es auf wenigen starken methodischen Vorl&auml;ufern und einer gr&ouml;&szlig;eren Menge praktischer Amateurfunk-Experimente auf.
 
-Zander schlug eine einfache Methode vor, um HF-Antennen relativ zu einer Referenzantenne mit Hilfe des globalen WSPR-Empfängernetzes zu vergleichen. Dabei senden zwei Antennen, und nur Berichte derselben entfernten Empfangsstation im gleichen Zeitintervall werden als Vergleich herangezogen. Damit werden Ausbreitungsverlust und Empfängerrauschen weitgehend gemeinsam gemacht; übrig bleibt näherungsweise die Differenz zwischen den beiden sendenden Antennensystemen. Diese Idee ist sehr nah an WSPRadars Same-Cycle-Logik für TX-Vergleiche. Zugleich diskutiert Zander Einschränkungen wie Empfängerverteilung, Richtdiagramm-Bias, Interferenz, WSPR-Kollisionen und die Tatsache, dass relative Effizienz nicht automatisch ein vollständiges Antennendiagramm ergibt. [9-6]
+**Vanhamel, Machiels und Lamy** liefern den st&auml;rksten peer-reviewten RX-seitigen Vorl&auml;ufer. Ihr 160-m-Experiment nutzte zwei nahezu identische und kalibrierte WSPR-Empfangsketten an fast demselben Standort, um unterschiedliche Antennen zu vergleichen. Dieses Design reduziert Ausbreitungspfad-Variation, weil beide Antennen dieselben Remote-Sender zur selben Zeit beobachten. F&uuml;r WSPRadar st&uuml;tzt das die Logik simultaner RX-A/B-Tests und die Notwendigkeit, Empfangsketten zu kalibrieren oder zumindest zu verstehen, bevor kleine SNR-Unterschiede interpretiert werden. <a href="#ref-9-5">[9-5]</a>
 
-Diese Arbeiten stützen den Grundgedanken von WSPRadar: WSPR kann für Antennen- und Stationsvergleiche nützlich sein, wenn Vergleichspaare sauber gebildet und Störgrößen bewusst behandelt werden. Sie begrenzen aber auch die Sprache, mit der Ergebnisse beschrieben werden sollten. Ein WSPR-basierter Vergleich kann starke Hinweise auf reale Stationsperformance liefern, aber er misst nicht direkt Antennengewinn, Abstrahlwinkel oder Wirkungsgrad im kalibrierten Labor-Sinn.
+**Zander** liefert den st&auml;rksten TX-seitigen Vorl&auml;ufer. Statt zwei lokale Empf&auml;nger zu verwenden, vergleicht Zander zwei sendende Antennen &uuml;ber das globale WSPR-Empf&auml;ngernetz. Berichte werden nur verwendet, wenn derselbe entfernte Empf&auml;nger beide Antennen im selben Zeitintervall h&ouml;rt. Dadurch werden Ausbreitungsverlust und empfangsseitige Bedingungen weitgehend gemeinsam f&uuml;r beide Beobachtungen. F&uuml;r WSPRadar st&uuml;tzt das Same-Cycle-TX-Pairing, betont aber auch die Grenzen: Empf&auml;ngerverteilung, Antennendirektivit&auml;t, Kollisionen, gemeldete Leistung und unvollst&auml;ndige r&auml;umliche Abdeckung bleiben Teil der Evidenz. <a href="#ref-9-6">[9-6]</a>
+
+**Milazzos** vergleichende Antennenanalyse von 2011 ist wichtige historische Prior Art aus der Amateurfunkpraxis. Sie zeigt, dass WSPR-Spots bereits kurz nach der breiteren Verf&uuml;gbarkeit von WSPR f&uuml;r Antennenvergleiche genutzt wurden. Die Arbeit ist weniger formal als Vanhamel oder Zander, aber n&uuml;tzlich, weil sie zeigt, wie Funkamateure WSPR tats&auml;chlich verwenden: nicht nur zur Beobachtung von Ausbreitung, sondern zum Vergleich realer Antennen unter realen Betriebsbedingungen. <a href="#ref-9-15">[9-15]</a>
+
+**Griffiths und Squibb** erg&auml;nzen eine praktische RX-Performance-Perspektive. Ihr Practical-Wireless-Artikel nutzte aus WSPR abgeleitete Spot- und SNR-Informationen, um HF-Band-SNR in normalen suburbanen Empfangsinstallationen zu verstehen und zu verbessern. Das liegt nahe an WSPRadars RX-Interpretationsphilosophie: Das gemessene Resultat ist nicht nur Antennengewinn, sondern das kombinierte Empfangssystem aus Antenne, lokalem Rauschen, Speiseleitung, Empf&auml;nger und Betriebsumgebung. <a href="#ref-9-16">[9-16]</a>
+
+Diese Arbeiten st&uuml;tzen den Grundgedanken von WSPRadar: WSPR kann f&uuml;r Antennen- und Stationsvergleiche n&uuml;tzlich sein, wenn Vergleichspaare sauber gebildet und St&ouml;rgr&ouml;&szlig;en bewusst behandelt werden. Sie begrenzen aber auch die Sprache, mit der Ergebnisse beschrieben werden sollten. Ein WSPR-basierter Vergleich kann starke Hinweise auf reale Stationsperformance liefern, aber er misst nicht direkt Antennengewinn, Abstrahlwinkel oder Wirkungsgrad im kalibrierten Labor-Sinn.
 
 <a id="sec-9-4"></a>
 #### 9.4 Bestehende Werkzeuge und praktische Prior Art
 
-**WSPR.live** ist für WSPRadar die wichtigste Datenquelle. Die Plattform stellt eine öffentlich abfragbare ClickHouse-Datenbank mit historischen WSPR-Spots bereit, ergänzt durch Dokumentation, Grafana-Dashboards und Beispiele zur Datenstruktur. WSPR.live ist damit weniger ein Antennenvergleichswerkzeug als vielmehr die zentrale, schnelle Datengrundlage für eigene Analysen. WSPRadar nutzt diese Infrastruktur, ergänzt sie aber um stationsbezogene Experimentlogik, Segmentaggregation und interaktive Audit-Ansichten. [9-2]
+**WSPR.live** ist f&uuml;r WSPRadar die wichtigste Datenquelle. Die Plattform stellt eine &ouml;ffentlich abfragbare ClickHouse-Datenbank mit historischen WSPR-Spots bereit, erg&auml;nzt durch Dokumentation, Grafana-Dashboards und Beispiele zur Datenstruktur. WSPR.live ist damit weniger ein Antennenvergleichswerkzeug als vielmehr die zentrale, schnelle Datengrundlage f&uuml;r eigene Analysen. WSPRadar nutzt diese Infrastruktur, erg&auml;nzt sie aber um stationsbezogene Experimentlogik, Segmentaggregation und interaktive Audit-Ansichten. <a href="#ref-9-2">[9-2]</a>
 
-**WSPR.Rocks** ist ein mächtiges Analyse- und Visualisierungswerkzeug auf Basis der WSPR.live- und WSPRdaemon-Daten. Es bietet unter anderem SpotQ, SQL-Zugriff, Karten, Tabellen, Duplicate-Spot-Analyse, Passband-Darstellungen und interaktive Auswertungen. Besonders SpotQ ist als praktisches Rankingmaß interessant, weil es Distanz, Leistung und SNR in eine einfache Kennzahl überführt. WSPRadar verfolgt einen anderen Schwerpunkt: Es berechnet keine globale Bestenliste, sondern versucht, konkrete Vergleichsfragen mit kontrollierter Paarbildung, lokalen Referenzpools und segmentbezogener Evidenz zu beantworten. [9-7]
+**WSPR.Rocks** ist ein m&auml;chtiges Analyse- und Visualisierungswerkzeug auf Basis der WSPR.live- und WSPRdaemon-Daten. Es bietet unter anderem SpotQ, SQL-Zugriff, Karten, Tabellen, Duplicate-Spot-Analyse, Passband-Darstellungen und interaktive Auswertungen. Besonders SpotQ ist als praktisches Rankingma&szlig; interessant, weil es Distanz, Leistung und SNR in eine einfache Kennzahl &uuml;berf&uuml;hrt. WSPRadar verfolgt einen anderen Schwerpunkt: Es berechnet keine globale Bestenliste, sondern versucht, konkrete Vergleichsfragen mit kontrollierter Paarbildung, lokalen Referenzpools und segmentbezogener Evidenz zu beantworten. <a href="#ref-9-7">[9-7]</a>
 
-**WSPRdaemon** ist vor allem auf robuste Datenerfassung ausgelegt. Es kann WSPR und FST4W von mehreren SDR-Empfängern dekodieren, Spots zuverlässig zu WSPRnet hochladen, Band- und Empfänger-Schedules verwalten, Ausfälle überstehen und zusätzliche Informationen wie Doppler-Shift und Hintergrundrauschen erfassen. Damit ist WSPRdaemon eher eine professionelle Empfangs- und Reporting-Infrastruktur als ein Endnutzer-Tool für Antennenbenchmarking. Für WSPRadar ist es dennoch relevante Prior Art, weil es zeigt, wie wichtig stabile Multi-Receiver-Datenerfassung, Rauschinformation und langfristige Beobachtbarkeit für belastbare WSPR-Auswertung sind. [9-8]
+**Griffiths und Robinetts** WSPR/TimescaleDB/Grafana-Arbeit ist wichtige Dateninfrastruktur-Prior-Art. Sie zeigt, dass ernsthafte WSPR-Analyse schnell &uuml;ber einfache Spotlisten hinausgeht und Zeitreihendatenbanken, abgeleitete Felder, Joins, Heatmaps und Dashboards nutzt. Ihre Beispiele enthalten Datenbank-Joins, um SNR desselben Senders zur selben Zeit und auf demselben Band zwischen verschiedenen Reportern zu vergleichen. WSPRadar folgt derselben allgemeinen Richtung, rohe WSPR-Spots in strukturierte Evidenz zu verwandeln, spezialisiert den Workflow aber auf Stationsbenchmarking, lokale Referenzen, Same-Cycle-Vergleich und Map-Segment-Drill-Down. <a href="#ref-9-17">[9-17]</a>
 
-**SOTABEAMS WSPRlite und DXplorer** sind direkte praktische Prior Art für WSPR-basierte Antennen- und Standortvergleiche. WSPRlite ist ein kleiner WSPR-Sender; DXplorer nutzt WSPR-Daten, um Antennen- und Standortleistung unter anderem über den DX10-Wert und Echtzeitgraphen vergleichbar zu machen. Die Stärke dieses Ansatzes liegt in einfacher Bedienung und direktem Praxisnutzen. WSPRadar unterscheidet sich durch einen stärker auditierbaren, datenanalytischen Ansatz: Es zeigt nicht nur einen Score, sondern Segmentwerte, Joint/Exclusive-Decodes, Station-Insights und Drill-Down-Zeilen, damit ein Ergebnis nachvollzogen und angezweifelt werden kann. [9-9]
+**WSPRdaemon** ist vor allem auf robuste Datenerfassung ausgelegt. Es kann WSPR und FST4W von mehreren SDR-Empf&auml;ngern dekodieren, Spots zuverl&auml;ssig zu WSPRnet hochladen, Band- und Empf&auml;nger-Schedules verwalten, Ausf&auml;lle &uuml;berstehen und zus&auml;tzliche Informationen wie Doppler-Shift und Hintergrundrauschen erfassen. Damit ist WSPRdaemon eher eine professionelle Empfangs- und Reporting-Infrastruktur als ein Endnutzer-Tool f&uuml;r Antennenbenchmarking. F&uuml;r WSPRadar ist es dennoch relevante Prior Art, weil es zeigt, wie wichtig stabile Multi-Receiver-Datenerfassung, Rauschinformation und langfristige Beobachtbarkeit f&uuml;r belastbare WSPR-Auswertung sind. <a href="#ref-9-8">[9-8]</a>
 
-**WSPR-Station-Compare** und ähnliche Werkzeuge zeigen, dass der Bedarf an stationsbezogenen WSPR-Vergleichen bereits erkannt wurde. Die WSPR-Station-Compare-Seite verweist ausdrücklich auf Vanhamel, Machiels und Lamy sowie auf Zander und beschreibt eine App-Idee zur Darstellung und zum Vergleich eigener WSPRnet-Messungen. Das bestätigt die Nähe zwischen wissenschaftlichem Ansatz und Amateurfunkpraxis: Nutzer möchten nicht nur sehen, wo Spots auftreten, sondern wissen, ob eine Station, Antenne oder Änderung messbar besser oder schlechter ist. [9-10]
+**SOTABEAMS WSPRlite und DXplorer** sind direkte praktische Prior Art f&uuml;r WSPR-basierte Antennen- und Standortvergleiche. WSPRlite ist ein kleiner WSPR-Sender; DXplorer nutzt WSPR-Daten, um Antennen- und Standortleistung unter anderem &uuml;ber den DX10-Wert und Echtzeitgraphen vergleichbar zu machen. Die St&auml;rke dieses Ansatzes liegt in einfacher Bedienung und direktem Praxisnutzen. WSPRadar unterscheidet sich durch einen st&auml;rker auditierbaren, datenanalytischen Ansatz: Es zeigt nicht nur einen Score, sondern Segmentwerte, Joint/Exclusive-Decodes, Station-Insights und Drill-Down-Zeilen, damit ein Ergebnis nachvollzogen und angezweifelt werden kann. <a href="#ref-9-9">[9-9]</a>
 
-**Antenna Performance Analysis Tool** und andere neuere Webdienste zeigen denselben Trend: WSPR-Daten werden zunehmend für verständliche, anwenderorientierte Antennenberichte genutzt. Solche Tools kartieren Empfangsorte, Zeiträume und Bänder und helfen Operatoren, die reale Wirkung einer Antenne über Zeit zu beurteilen. WSPRadar sollte deshalb nicht behaupten, als erstes Werkzeug WSPR für Antennenperformance zu nutzen. Die eigene Stärke liegt vielmehr in der Kombination aus Vergleichsdesign, lokalen Benchmarks, Medianlogik, bivariater Yield/SNR-Auswertung und nachvollziehbaren Rohdatenebenen. [9-11]
+**WSPR-Station-Compare** und &auml;hnliche Werkzeuge zeigen, dass der Bedarf an stationsbezogenen WSPR-Vergleichen bereits erkannt wurde. Die WSPR-Station-Compare-Seite verweist ausdr&uuml;cklich auf Vanhamel, Machiels und Lamy sowie auf Zander und beschreibt eine App-Idee zur Darstellung und zum Vergleich eigener WSPRnet-Messungen. Das best&auml;tigt die N&auml;he zwischen wissenschaftlichem Ansatz und Amateurfunkpraxis: Nutzer m&ouml;chten nicht nur sehen, wo Spots auftreten; sie m&ouml;chten wissen, ob eine Station, Antenne oder Hardware&auml;nderung messbar besser oder schlechter ist. <a href="#ref-9-10">[9-10]</a>
 
-**WATT WSPR Analysis Tool** ist ein weiteres Beispiel für praktische Prior Art. Es nutzt eine Excel/VBA-Umgebung für Reporting, Mapping, Filterung, Ad-hoc-Analyse und zeitliche Animation von WSPR-Daten. Der Ansatz ist interessant, weil er zeigt, dass WSPR-Auswertung auch als explorativer Arbeitsfluss verstanden werden kann: Nutzer möchten Daten nicht nur ansehen, sondern filtern, sortieren, animieren und eigene Fragen stellen. WSPRadar greift diese explorative Idee auf, verlagert sie aber in eine webbasierte, experimentdesign-orientierte Oberfläche. [9-12]
+**Antenna Performance Analysis Tool** und andere neuere Webdienste zeigen denselben Trend: WSPR-Daten werden zunehmend f&uuml;r verst&auml;ndliche, anwenderorientierte Antennenberichte genutzt. Solche Tools kartieren Empfangsorte, Zeitr&auml;ume und B&auml;nder und helfen Operatoren, die reale Wirkung einer Antenne &uuml;ber Zeit zu beurteilen. WSPRadar sollte deshalb nicht behaupten, als erstes Werkzeug WSPR f&uuml;r Antennenperformance zu nutzen. Die eigene St&auml;rke liegt vielmehr in der Kombination aus Vergleichsdesign, lokalen Benchmarks, Medianlogik, bivariater Yield/SNR-Auswertung und nachvollziehbaren Rohdatenebenen. <a href="#ref-9-11">[9-11]</a>
+
+**WATT WSPR Analysis Tool** ist ein weiteres Beispiel f&uuml;r praktische Prior Art. Es nutzt eine Excel/VBA-Umgebung f&uuml;r Reporting, Mapping, Filterung, Ad-hoc-Analyse und zeitliche Animation von WSPR-Daten. Der Ansatz ist interessant, weil er zeigt, dass WSPR-Auswertung auch als explorativer Arbeitsfluss verstanden werden kann: Nutzer m&ouml;chten Daten nicht nur ansehen, sondern filtern, sortieren, animieren und eigene Fragen stellen. WSPRadar greift diese explorative Idee auf, verlagert sie aber in eine webbasierte, experimentdesign-orientierte Oberfl&auml;che. <a href="#ref-9-12">[9-12]</a>
 
 <a id="sec-9-5"></a>
 #### 9.5 Einordnung von WSPRadar
 
 Aus dieser Literatur und Prior Art ergibt sich eine klare Einordnung:
 
-* WSPRadar übernimmt von WSPR und WSPR.live die Idee eines globalen, historischen, crowd-sourced Beobachtungsdatensatzes.
-* WSPRadar übernimmt von wissenschaftlichen Arbeiten wie Vanhamel et al. und Zander die Einsicht, dass faire Vergleiche zeitliche und räumliche Konfounder reduzieren müssen.
-* WSPRadar übernimmt von praktischen Tools wie WSPR.Rocks, DXplorer, WSPRdaemon und WATT die Erkenntnis, dass WSPR-Daten nur dann nützlich sind, wenn sie schnell, filterbar, visualisierbar und reproduzierbar zugänglich sind.
-* WSPRadar ergänzt diese Ansätze durch einen eigenen Schwerpunkt: experimentelles Stationsbenchmarking mit Same-Cycle-Paarbildung, lokalen Nachbarschaftsreferenzen, Hardware-A/B-Workflows, Median-von-Medianen-Aggregation, Decode-Yield-Auswertung und Drill-Down-Audit.
+* WSPRadar &uuml;bernimmt von WSPR und WSPR.live die Idee eines globalen, historischen, crowd-sourced Beobachtungsdatensatzes. <a href="#ref-9-1">[9-1]</a> <a href="#ref-9-2">[9-2]</a>
+* WSPRadar &uuml;bernimmt von wissenschaftlichen Arbeiten wie Vanhamel et al. und Zander die Einsicht, dass faire Vergleiche zeitliche und r&auml;umliche Konfounder reduzieren m&uuml;ssen. <a href="#ref-9-5">[9-5]</a> <a href="#ref-9-6">[9-6]</a>
+* WSPRadar &uuml;bernimmt von praktischen Tools wie WSPR.Rocks, DXplorer, WSPRdaemon und WATT die Erkenntnis, dass WSPR-Daten nur dann n&uuml;tzlich sind, wenn sie schnell, filterbar, visualisierbar und reproduzierbar zug&auml;nglich sind. <a href="#ref-9-7">[9-7]</a> <a href="#ref-9-9">[9-9]</a> <a href="#ref-9-8">[9-8]</a> <a href="#ref-9-12">[9-12]</a>
+* WSPRadar erg&auml;nzt diese Ans&auml;tze durch einen eigenen Schwerpunkt: experimentelles Stationsbenchmarking mit Same-Cycle-Paarbildung, lokalen Nachbarschaftsreferenzen, Hardware-A/B-Workflows, Median-von-Medianen-Aggregation, Decode-Yield-Auswertung und Drill-Down-Audit.
 
-WSPRadar sollte daher nicht als Ersatz für WSPR.live, WSPR.Rocks, WSPRdaemon oder DXplorer beschrieben werden. Es sitzt eine Ebene darüber: Es nutzt historische WSPR-Spots, um konkrete Stationsfragen methodisch vorsichtiger zu beantworten. Die Kernfrage lautet nicht nur: „Wo gibt es Spots?“, sondern: „Welche Spots sind für diese Vergleichsfrage gültig, welche Störgrößen wurden reduziert, wie stabil ist der Median, wie sieht der Decode Yield aus, und kann ich das Ergebnis bis auf die zugrunde liegenden Zeilen zurückverfolgen?“
+WSPRadar sollte daher nicht als Ersatz f&uuml;r WSPR.live, WSPR.Rocks, WSPRdaemon oder DXplorer beschrieben werden. Es sitzt eine Ebene dar&uuml;ber: Es nutzt historische WSPR-Spots, um konkrete Stationsfragen methodisch vorsichtiger zu beantworten. Die Kernfrage lautet nicht nur: "Wo gibt es Spots?" Die Kernfrage lautet: "Welche Spots sind f&uuml;r diese Vergleichsfrage g&uuml;ltig, welche St&ouml;rgr&ouml;&szlig;en wurden reduziert, wie stabil ist der Median, wie sieht der Decode Yield aus, und kann ich das Ergebnis bis auf die zugrunde liegenden Zeilen zur&uuml;ckverfolgen?"
 
 <a id="sec-9-6"></a>
-#### 9.6 Methodische Konsequenzen für die Interpretation
+#### 9.6 Methodische Konsequenzen f&uuml;r die Interpretation
 
-Die vorhandene Literatur stützt den Grundansatz von WSPRadar, aber sie begrenzt auch die Sprache, mit der Ergebnisse beschrieben werden sollten. WSPR-basierte Auswertungen können starke Hinweise auf reale Stationsperformance liefern, aber sie messen nicht direkt Antennengewinn, Abstrahlwinkel oder Effizienz im kalibrierten Labor-Sinn. Reported Power, Locator-Genauigkeit, Empfängerverteilung, lokale Störungen, Polarisation, Ausbreitungsmodus, Bandaktivität und Decode-Survivorship bleiben Teil der Daten.
+Die vorhandene Literatur st&uuml;tzt den Grundansatz von WSPRadar, aber sie begrenzt auch die Sprache, mit der Ergebnisse beschrieben werden sollten. WSPR-basierte Auswertungen k&ouml;nnen starke Hinweise auf reale Stationsperformance liefern, aber sie messen nicht direkt Antennengewinn, Abstrahlwinkel oder Effizienz im kalibrierten Labor-Sinn. Reported Power, Locator-Genauigkeit, Empf&auml;ngerverteilung, lokale St&ouml;rungen, Polarisation, Ausbreitungsmodus, Bandaktivit&auml;t und Decode-Survivorship bleiben Teil der Daten.
 
 Deshalb sollte WSPRadar-Ergebnistext konsequent zwischen folgenden Ebenen unterscheiden:
 
-* **Spot-Ebene:** einzelne WSPR-Decodes mit SNR, Zeit, Band, Sender, Empfänger und gemeldeter Leistung.
-* **Paar-Ebene:** gültige Same-Cycle-Vergleiche oder gültige Zeit-Bins, bei denen wichtige Störgrößen reduziert wurden.
-* **Stations-Ebene:** Median über mehrere gültige Beobachtungen einer Remote-Station.
-* **Segment-Ebene:** Median über mehrere Stationsmediane in einem Distanz-/Azimutsegment.
-* **Interpretations-Ebene:** vorsichtige Aussage über reale Stationsperformance, nicht über isolierten Antennengewinn.
+* **Spot-Ebene:** einzelne WSPR-Decodes mit SNR, Zeit, Band, Sender, Empf&auml;nger und gemeldeter Leistung.
+* **Paar-Ebene:** g&uuml;ltige Same-Cycle-Vergleiche oder g&uuml;ltige Zeit-Bins, bei denen wichtige St&ouml;rgr&ouml;&szlig;en reduziert wurden.
+* **Stations-Ebene:** Median &uuml;ber mehrere g&uuml;ltige Beobachtungen einer Remote-Station.
+* **Segment-Ebene:** Median &uuml;ber mehrere Stationsmediane in einem Distanz-/Azimutsegment.
+* **Interpretations-Ebene:** vorsichtige Aussage &uuml;ber reale Stationsperformance, nicht &uuml;ber isolierten Antennengewinn.
 
-Diese Schichtung ist eine der wichtigsten Abgrenzungen von WSPRadar gegenüber einfacheren Karten- oder Score-Werkzeugen. Sie macht das Ergebnis nicht automatisch „wahr“, aber sie macht sichtbar, welche Evidenz hinter einer Aussage steht.
+Diese Schichtung ist eine der wichtigsten Abgrenzungen von WSPRadar gegen&uuml;ber einfacheren Karten- oder Score-Werkzeugen. Sie macht das Ergebnis nicht automatisch "wahr", aber sie macht sichtbar, welche Evidenz hinter einer Aussage steht.
 
 <a id="sec-9-7"></a>
 #### 9.7 Kurzfazit
 
-Die bestehende Literatur zeigt, dass WSPR-Daten für Ausbreitungsforschung, Antennenvergleich und Citizen Science ernsthaft nutzbar sind. Die praktische Prior Art zeigt, dass viele Funkamateure bereits Werkzeuge für Karten, Scores, Datenbankabfragen und Antennenberichte verwenden. WSPRadar positioniert sich zwischen diesen Welten: Es ist praxisnah genug für den täglichen Stationsvergleich, aber methodisch explizit genug, um die wichtigsten Konfounder offenzulegen.
+Literatur und Prior Art zeigen, dass die einzelnen Bausteine hinter WSPR-basierter Stationsbewertung bereits existieren: Same-Cycle-Vergleich, Antennenbewertung mit WSPR, lokale Rausch- und SNR-Verbesserung, datenbankgest&uuml;tzte Spot-Analyse, Mapping, Scoring und Visualisierung. WSPRadars Beitrag besteht darin, diese Ideen in ein koh&auml;rentes, nutzerorientiertes Benchmarking-Framework mit explizitem Experimentdesign, heartbeat-gefiltertem Yield, leistungsnormalisiertem Joint-TX-SNR, lokalen Nachbarschafts-Baselines, Segmentmedianen und zeilenbasierter Auditierbarkeit zu integrieren.
 
-Der Beitrag von WSPRadar liegt nicht darin, WSPR-Spots neu zu erfinden. Der Beitrag liegt darin, diese Spots in ein reproduzierbares, vorsichtig interpretiertes Benchmarking-Framework für TX-, RX-, lokale Peer- und Hardware-A/B-Fragen zu überführen.
-  
+Das ist ein sinnvoller Beitrag, weil die meisten praktischen WSPR-Tools eine von zwei Fragen beantworten: wo Spots aufgetreten sind oder wie eine Station nach einem bestimmten Score rangiert. WSPRadar stellt eine strukturiertere Vergleichsfrage: Welche Beobachtungen sind f&uuml;r diesen Benchmark g&uuml;ltig, welche St&ouml;rgr&ouml;&szlig;en wurden reduziert, welche Evidenz ist gepaart, welche Evidenz ist nur operativer Yield, und l&auml;sst sich das Ergebnis bis zu den zugrunde liegenden Spots zur&uuml;ckverfolgen?
+
+Die bestehende Literatur st&uuml;tzt die Nutzung von WSPR-Daten f&uuml;r Ausbreitungsforschung, Antennenvergleich und Citizen Science, macht aber ebenso klar, dass WSPR kein kalibriertes Laborinstrument ist. WSPRadar akzeptiert diese Begrenzung, statt sie zu verstecken. Es behauptet nicht, isolierten Antennengewinn, Abstrahlwinkel oder Effizienz direkt zu messen. Stattdessen verwandelt es crowd-sourced WSPR-Beobachtungen in ein reproduzierbares, vorsichtig interpretiertes Evidenz-Framework f&uuml;r reale TX-, RX-, lokale Peer- und Hardware-A/B-Stationsvergleiche.
+
+In diesem Sinne ist WSPRadar nicht einfach eine weitere WSPR-Karte oder Score-Anzeige. Es ist ein Versuch, WSPR-basiertes Stationsbenchmarking transparenter, reproduzierbarer und wissenschaftlich disziplinierter zu machen, ohne den praktischen Nutzen f&uuml;r den Amateurfunk-Alltag zu verlieren.
+
 <a id="sec-a"></a>
 ### Anhang A: Paralleler Betrieb mehrerer WSJT-X Instanzen
 
@@ -610,42 +620,56 @@ Neue SDR-Instanz &ouml;ffnen und `File > Settings > Audio` aufrufen. Anpassen:
 
 Nach dem Neustart sind Datenstr&ouml;me, Hardwarezugriffe und tempor&auml;re WSPR-Dateien von der Prim&auml;rinstanz getrennt.
 
+
 <a id="sec-ref"></a>
 ### Quellen / Referenzen
 
-* [9-1] ARRL, **WSPR**, technische Übersicht zu MEPT_JT/WSPR, Nachrichtenformat, Dauer, Bandbreite und SNR-Referenz.  
+* <a id="ref-9-1"></a><a href="#ref-9-1">[9-1]</a> ARRL, **WSPR**, technische &Uuml;bersicht zu MEPT_JT/WSPR, Nachrichtenformat, Dauer, belegter Bandbreite und SNR-Referenz.
   https://www.arrl.org/wspr
 
-* [9-2] WSPR.live, **Welcome to WSPR Live**, Dokumentation, Datenbankbeschreibung und Disclaimer zu Rohdaten, Duplikaten, falschen Spots und Verfügbarkeit.  
+* <a id="ref-9-2"></a><a href="#ref-9-2">[9-2]</a> WSPR.live, **Welcome to WSPR Live**, Dokumentation, Datenbankbeschreibung und Disclaimer zu Rohdaten, Duplikaten, falschen Spots und Verf&uuml;gbarkeit.
   https://wspr.live/
 
-* [9-3] Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). **A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals**. *Atmosphere*, 13(8), 1340. doi:10.3390/atmos13081340.  
+* <a id="ref-9-3"></a><a href="#ref-9-3">[9-3]</a> Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). **A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals**. *Atmosphere*, 13(8), 1340. doi:10.3390/atmos13081340.
   https://www.mdpi.com/2073-4433/13/8/1340
 
-* [9-4] Frissell, N. A. et al. (2023). **Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations**. *Frontiers in Astronomy and Space Sciences*, 10, Article 1184171. doi:10.3389/fspas.2023.1184171.  
+* <a id="ref-9-4"></a><a href="#ref-9-4">[9-4]</a> Frissell, N. A. et al. (2023). **Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations**. *Frontiers in Astronomy and Space Sciences*, 10, Article 1184171. doi:10.3389/fspas.2023.1184171.
   https://www.frontiersin.org/articles/10.3389/fspas.2023.1184171/full
 
-* [9-5] Vanhamel, J.; Machiels, W.; Lamy, H. (2022). **Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band**. *International Journal of Antennas and Propagation*, 2022, Article 4809313. doi:10.1155/2022/4809313.  
+* <a id="ref-9-5"></a><a href="#ref-9-5">[9-5]</a> Vanhamel, J.; Machiels, W.; Lamy, H. (2022). **Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band**. *International Journal of Antennas and Propagation*, 2022, Article 4809313. doi:10.1155/2022/4809313.
   https://research.tudelft.nl/en/publications/using-the-wspr-mode-for-antenna-performance-evaluation-and-propag/
 
-* [9-6] Zander, J. (2022). **Simple HF antenna efficiency comparisons using the WSPR system**. arXiv:2209.08989. doi:10.48550/arXiv.2209.08989.  
+* <a id="ref-9-6"></a><a href="#ref-9-6">[9-6]</a> Zander, J. (2022). **Simple HF antenna efficiency comparisons using the WSPR system**. arXiv:2209.08989. doi:10.48550/arXiv.2209.08989.
   https://arxiv.org/abs/2209.08989
 
-* [9-7] WSPR.Rocks, **Help & Documentation**, SpotQ, SQL-Zugriff, Duplicate-Spot-Analyse, Karten, Charts und Heatmaps.  
+* <a id="ref-9-7"></a><a href="#ref-9-7">[9-7]</a> WSPR.Rocks, **Help & Documentation**, SpotQ, SQL-Zugriff, Duplicate-Spot-Analyse, Karten, Charts und Heatmaps.
   https://wspr.rocks/help.html
 
-* [9-8] WSPRdaemon, **How wsprdaemon Works**, Dokumentation für Multi-Receiver-WSPR/FST4W-Dekodierung, Reporting, Scheduling, Noise- und Doppler-Metadaten.  
+* <a id="ref-9-8"></a><a href="#ref-9-8">[9-8]</a> WSPRdaemon, **How wsprdaemon Works**, Dokumentation f&uuml;r Multi-Receiver-WSPR/FST4W-Dekodierung, Reporting, Scheduling, Noise- und Doppler-Metadaten.
   https://wsprdaemon.readthedocs.io/en/stable/description/how_it_works.html
 
-* [9-9] SOTABEAMS, **WSPRlite Classic / DXplorer**, WSPR-basierte Antennenleistungsanalyse und DX10-Metrik.  
+* <a id="ref-9-9"></a><a href="#ref-9-9">[9-9]</a> SOTABEAMS, **WSPRlite Classic / DXplorer**, WSPR-basierte Antennenleistungsanalyse und DX10-Metrik.
   https://www.sotabeams.co.uk/wsprlite-classic
 
-* [9-10] WSPR-Station-Compare, **WSPR-Station-compare**, Projektseite mit Verweis auf Vanhamel et al. und Zander.  
+* <a id="ref-9-10"></a><a href="#ref-9-10">[9-10]</a> WSPR-Station-Compare, **WSPR-Station-compare**, Projektseite mit Verweis auf Vanhamel et al. und Zander.
   https://sites.google.com/myuba.be/wspr-station-compare/home
 
-* [9-11] Antenna Performance Analysis Tool, **WSPR-based antenna report generator**.  
+* <a id="ref-9-11"></a><a href="#ref-9-11">[9-11]</a> Antenna Performance Analysis Tool, **WSPR-based antenna report generator**.
   https://wspr.bsdworld.org/
 
-* [9-12] GM4EAU, **WATT WSPR Analysis Tool**, Excel/VBA-basiertes Werkzeug für WSPR-Reporting, Mapping, Filterung und Timeline-Animation.  
+* <a id="ref-9-12"></a><a href="#ref-9-12">[9-12]</a> GM4EAU, **WATT WSPR Analysis Tool**, Excel/VBA-basiertes Werkzeug f&uuml;r WSPR-Reporting, Mapping, Filterung und Timeline-Animation.
   https://www.gm4eau.com/home-page/wspr/
+
+* <a id="ref-9-13"></a><a href="#ref-9-13">[9-13]</a> SciPy, **scipy.stats.wilcoxon**, Dokumentation zum Wilcoxon-Vorzeichen-Rang-Test, zur Interpretation gepaarter Stichproben, zu Null-Differenzen und Ties.
+  https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wilcoxon.html
+
+* <a id="ref-9-14"></a><a href="#ref-9-14">[9-14]</a> Taylor, J. H.; Walker, B. (2010). **WSPRing Around the World**. *QST*, 94(11), pp. 30-32.
+
+* <a id="ref-9-15"></a><a href="#ref-9-15">[9-15]</a> Milazzo, C. F. / KP4MD (2011). **Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance**.
+  https://www.qsl.net/kp4md/wspr.htm
+
+* <a id="ref-9-16"></a><a href="#ref-9-16">[9-16]</a> Griffiths, G.; Squibb, N. J. (2017). **Improving HF Band SNR from analysis of WSPR spots**. *Practical Wireless*, October 2017, pp. 23-26.
+
+* <a id="ref-9-17"></a><a href="#ref-9-17">[9-17]</a> Griffiths, G.; Robinett, R. (2020). **Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana**. ARRL/TAPR Digital Communications Conference, 2020.
+
 """
