@@ -22,11 +22,13 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 * [2. Schnellstart](#sec-2)
 * [3. Welche Fragen beantwortet WSPRadar?](#sec-3)
 * [4. Analysemodi und valides Experimentdesign](#sec-4)
+  * [4.0 Begriffe und Vergleichslogik](#sec-4-0)
   * [4.1 Absolut TX/RX](#sec-4-1)
   * [4.2 Lokaler Nachbarschafts-Benchmark](#sec-4-2)
   * [4.3 Spezifische Referenzstation / Buddy-Test](#sec-4-3)
   * [4.4 Hardware A/B-Test](#sec-4-4)
-* [5. Ergebnisse lesen](#sec-5)
+  * [4.5 Decode Yield in Vergleichsmodi](#sec-4-5)
+* [5. Ergebnisbegriffe und Oberfl&auml;che lesen](#sec-5)
 * [6. Wissenschaftliche Methodik und Annahmen](#sec-6)
   * [6.1 Datenherkunft und Robustheit](#sec-6-1)
   * [6.2 WSPR-SNR und gemeldete Leistung](#sec-6-2)
@@ -49,7 +51,7 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 2. `Load Demo Config` anklicken.
 3. Gew&uuml;nschten Vergleichsmodus w&auml;hlen.
 4. `TX` oder `RX` starten.
-5. Zuerst die Karte lesen: Farbe = medianer Segmentwert, Punkte = Stationskategorien, Fu&szlig;balken = Decode Yield.
+5. Zuerst die Karte lesen: Farbe = medianer Segmentwert, Punkte = Stationskategorien, Fu&szlig;balken = **Decode Yield**, also die Decode/No-Decode-Seite der Analyse.
 6. Im Segment-Inspektor ein Distanz-/Azimutsegment ausw&auml;hlen.
 7. Eine Station-Insights-Zeile &ouml;ffnen und die Drill-Down-Daten pr&uuml;fen.
 8. CSV exportieren, wenn das Ergebnis reproduziert oder extern gepr&uuml;ft werden soll.
@@ -73,11 +75,18 @@ WSPRadar ist um konkrete Amateurfunk-Fragen herum aufgebaut:
 
 Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Gemeinsame Mathematik und Annahmen werden einmal in [Wissenschaftliche Methodik und Annahmen](#sec-6) erkl&auml;rt.
 
-**Begriffe in den folgenden Abschnitten**
+<a id="sec-4-0"></a>
+#### 4.0 Begriffe und Vergleichslogik
 
 * **Ziel / Target** meint die Station oder das Setup unter Test: normalerweise das eigene Rufzeichen, Setup A oder die Station, die bewertet werden soll.
 * **Referenz** meint die Vergleichsbasis: ein Buddy-Rufzeichen, die lokale Nachbarschaft, die beste lokale Station oder Setup B.
-* Ein **target-aktiver Zyklus** ist ein WSPR-Zyklus, in dem das Ziel nachweislich teilgenommen hat. [Abschnitt 6.4](sec-6-4) definiert das pr&auml;zise f&uuml;r TX und RX.
+* Der **Heartbeat-Filter** ist die Regel, die Yield in Vergleichsmodi gegen Offline-Bias sch&uuml;tzt, indem nur Zyklen erhalten bleiben, in denen das Ziel nachweislich aktiv war.
+* Ein **target-aktiver Zyklus** ist ein WSPR-Zyklus, der den Heartbeat-Filter bestanden hat. [Abschnitt 6.4](#sec-6-4) definiert das pr&auml;zise f&uuml;r TX und RX.
+* **Joint / Synced** Evidenz bedeutet, dass Ziel und Referenz vergleichbare Evidenz f&uuml;r denselben Peer/Pfad im selben WSPR-Zyklus haben oder, bei sequenziellem TX A/B, im selben validen Zeit-Bin.
+* **Delta SNR** bedeutet SNR des Ziels minus SNR der Referenz. In Vergleichskarten spricht positives Delta SNR f&uuml;r das Ziel; negatives Delta SNR spricht f&uuml;r die Referenz.
+* **Decode Yield** ist die Decode/No-Decode-Seite des Vergleichs: gemeinsame Evidenz, Nur-Ziel-Evidenz, Nur-Referenz-Evidenz und Async-Evidenz innerhalb der relevanten heartbeat-gefilterten Vergleichszyklen.
+* **System Sensitivity** ist die UI-Bezeichnung f&uuml;r Decode Yield. Das ist keine kalibrierte MDS-, Noise-Figure- oder Empf&auml;ngerempfindlichkeitsmessung.
+* **Hardware Linearity** ist die UI-Bezeichnung f&uuml;r die gepaarte Delta-SNR-Verteilung. Das ist keine RF-Verst&auml;rkerlinearit&auml;t.
 
 **Standardempfehlungen f&uuml;r alle Modi**
 
@@ -207,8 +216,29 @@ Warum keine Multi-Cycle-WSPR-Suffixe f&uuml;r Single-TX A/B? Compound-Rufzeichen
 
 Sequenzieller TX ist zeitgebinnt, nicht simultan. Mehrt&auml;giges fixes Timing reduziert Zeitkonfundierung deutlich, beweist aber nicht, dass jeder zeitkorrelierte Effekt verschwunden ist.
 
+<a id="sec-4-5"></a>
+#### 4.5 Decode Yield in Vergleichsmodi
+
+**Decode Yield** ist eine unterst&uuml;tzende Metrik in Vergleichsmodi, kein eigener Analysemodus. Er fasst zusammen, was innerhalb heartbeat-gefilterter, target-aktiver Vergleichszyklen passiert ist.
+
+**Funktionsweise**
+
+* `Joint` / `Beide (Sync)`: Ziel und Referenz haben Evidenz f&uuml;r denselben Peer/Pfad im selben WSPR-Zyklus. Das ist valide gepaarte Evidenz f&uuml;r Delta SNR.
+* `Nur Zielstation`: innerhalb eines target-aktiven Zyklus hatte die Zielseite Evidenz f&uuml;r diesen Peer/Pfad, die Referenzseite nicht.
+* `Nur Referenz`: innerhalb eines target-aktiven Zyklus hatte die Referenzseite Evidenz f&uuml;r diesen Peer/Pfad, die Zielseite nicht.
+* `Beide (Async)`: im ausgew&auml;hlten Segment/Stationssatz haben beide Seiten Evidenz, aber nicht im selben WSPR-Zyklus. Das ist n&uuml;tzlicher Yield-Kontext, aber keine gepaarte Delta-SNR-Evidenz.
+* `Nur Referenz = 0` kann ein korrektes Ergebnis sein. Es bedeutet, dass innerhalb der target-aktiven Vergleichszyklen und gew&auml;hlten Filter keine Nur-Referenz-Evidenz &uuml;brig blieb, nicht dass die Referenzstation im gesamten Zeitfenster keine WSPR-Aktivit&auml;t hatte.
+* Das Tauschen von Ziel und Referenz kann Yield-Zahlen ver&auml;ndern, weil das Active-Cycle-Gate dem Ziel folgt. A gegen B und B gegen A m&uuml;ssen daher im Yield nicht symmetrisch sein, selbst wenn gemeinsames Joint-Delta-SNR erwartungsgem&auml;&szlig; das Vorzeichen wechselt.
+
+**Interpretation**
+
+* Decode Yield hilft, Decode/No-Decode-Verhalten an der Reichweitengrenze zu verstehen.
+* Delta SNR bleibt das wichtigste gepaarte Performance-Signal, wenn gen&uuml;gend Joint-Evidenz existiert.
+* Yield ist heartbeat-gefilterte operative Reichweite, keine normalisierte Antenneneffizienz und keine kalibrierte Empf&auml;ngerempfindlichkeit.
+* `SPOTS` als Decode-Volumenverteilung und `STATIONS` als Footprint-Breite lesen. Diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
+
 <a id="sec-5"></a>
-### 5. Ergebnisse lesen
+### 5. Ergebnisbegriffe und Oberfl&auml;che lesen
 
 **Heatmap-Segmente**
 
@@ -222,18 +252,13 @@ Nahe Ringe k&ouml;nnen mit Short-Skip oder NVIS konsistent sein; weite Ringe k&o
 
 Einzelne Stationen werden als Punkte gezeichnet. Gr&uuml;n = Joint Decodes im selben Zyklus. Gelb-orange = beide Seiten haben die Station geh&ouml;rt, aber asynchron. Violett = nur eigene Station/eigenes Setup. Wei&szlig; = nur Referenz.
 
-Diese Klassen sind heartbeat-gefilterte Evidenzklassen:
-
-* `Joint` / `Beide (Sync)`: Ziel und Referenz haben Evidenz f&uuml;r denselben Peer/Pfad im selben WSPR-Zyklus. Das ist valide Evidenz f&uuml;r Delta SNR.
-* `Nur Zielstation`: innerhalb eines target-aktiven Zyklus hatte die Zielseite Evidenz f&uuml;r diesen Peer/Pfad, die Referenzseite nicht.
-* `Nur Referenz`: innerhalb eines target-aktiven Zyklus hatte die Referenzseite Evidenz f&uuml;r diesen Peer/Pfad, die Zielseite nicht.
-* `Beide (Async)`: im ausgew&auml;hlten Segment/Stationssatz haben beide Seiten Evidenz, aber nicht im selben WSPR-Zyklus. Das ist n&uuml;tzlicher Yield-Kontext, aber keine gepaarte Delta-SNR-Evidenz.
+Diese Punktkategorien verwenden die heartbeat-gefilterten Evidenzklassen aus [Decode Yield in Vergleichsmodi](#sec-4-5).
 
 **Footer und 1D-Venn-Balken**
 
-`SPOTS` zeigt das Rohdatenvolumen. `STATIONS` pr&uuml;ft, ob der Footprint breit ist oder nur von wenigen aktiven Stationen getragen wird. Diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
+`SPOTS` zeigt die Decode-Volumenverteilung im gew&auml;hlten Analysekontext. `STATIONS` pr&uuml;ft, ob der Footprint breit ist oder nur von wenigen aktiven Stationen getragen wird. Diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
 
-Die Footer-Balken sind keine Rohz&auml;hler der gesamten Aktivit&auml;t im Zeitfenster. In Vergleichsmodi werden sie nach dem Heartbeat-Filter berechnet und fassen zusammen, was innerhalb target-aktiver Vergleichszyklen passiert ist. Deshalb kann `Nur Referenz = 0` ein korrektes Ergebnis sein: Es bedeutet, dass innerhalb der target-aktiven Vergleichszyklen und gew&auml;hlten Filter keine Reference-only-Evidenz &uuml;brig blieb, nicht dass die Referenzstation im gesamten Zeitfenster keine WSPR-Aktivit&auml;t hatte.
+Die Footer-Balken visualisieren die Decode-Yield-Kategorien aus [Decode Yield in Vergleichsmodi](#sec-4-5). In Vergleichsmodi sind sie heartbeat-gefiltert und keine Rohz&auml;hler der gesamten Aktivit&auml;t im Zeitfenster.
 
 **Segment-Inspektor**
 
@@ -353,7 +378,7 @@ Daraus folgt:
 * Reference-only- oder Target-only-TX-Decodes können Antennenleistung, Sendeleistung, Ausbreitung, Empfängerverteilung, Timing, Kollisionen, Genauigkeit der gemeldeten Leistung oder eine Kombination dieser Faktoren widerspiegeln.
 * Ungleiche gemeldete Sendeleistungen sollten bei der Interpretation von TX-Yield-Asymmetrien ausdrücklich erwähnt werden.
 
-Praktisch bedeutet starker TX Yield: Eine Station wurde unter ihren tatsächlichen Betriebsbedingungen von mehr Empfangsstationen gehört. Das beweist für sich genommen nicht, dass die Antenne besser war. Für faireres TX-Benchmarking sollte das größte Gewicht auf Same-Cycle, leistungsnormalisiertem Delta SNR liegen; roher Yield dient als unterstützender Kontext.
+Praktisch bedeutet starker TX Yield: Eine Station wurde unter ihren tatsächlichen Betriebsbedingungen von mehr Empfangsstationen gehört. Das beweist für sich genommen nicht, dass die Antenne besser war. Für faireres TX-Benchmarking sollte das größte Gewicht auf Same-Cycle, leistungsnormalisiertem Delta SNR liegen; heartbeat-gefilterter Yield dient als unterstützender Kontext.
 
 <a id="sec-6-7"></a>
 #### 6.7 Geografisches Rastering und Projektion

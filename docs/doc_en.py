@@ -22,11 +22,13 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
 * [2. Quick Start](#sec-2)
 * [3. What WSPRadar Can Answer](#sec-3)
 * [4. Analysis Modes and Valid Experiment Design](#sec-4)
+  * [4.0 Comparison Terminology](#sec-4-0)
   * [4.1 Absolute TX/RX](#sec-4-1)
   * [4.2 Local Neighborhood Benchmark](#sec-4-2)
   * [4.3 Specific Reference Station / Buddy Test](#sec-4-3)
   * [4.4 Hardware A/B Test](#sec-4-4)
-* [5. How to Read Results](#sec-5)
+  * [4.5 Decode Yield in Compare Modes](#sec-4-5)
+* [5. Result Terminology and Reading the UI](#sec-5)
 * [6. Scientific Method and Assumptions](#sec-6)
   * [6.1 Data provenance and robustness](#sec-6-1)
   * [6.2 WSPR SNR and reported power](#sec-6-2)
@@ -49,7 +51,7 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
 2. Click `Load Demo Config`.
 3. Select the desired comparison mode.
 4. Run `TX` or `RX`.
-5. Read the map first: color shows the median segment value, dots show individual station categories, and the footer bars show decode yield.
+5. Read the map first: color shows the median segment value, dots show individual station categories, and the footer bars show **Decode Yield**, the decode/no-decode side of the analysis.
 6. Click one distance/azimuth segment in the Segment Inspector.
 7. Open one Station Insights row to inspect the Drill-Down data.
 8. Export the table as CSV when you want to reproduce or externally audit a result.
@@ -73,11 +75,18 @@ WSPRadar is designed around concrete amateur-radio questions:
 
 This chapter combines the user choice, the analysis concept and the experiment-design rules. Shared mathematics and assumptions are explained once in [Scientific Method and Assumptions](#sec-6).
 
-**Terminology used below**
+<a id="sec-4-0"></a>
+#### 4.0 Comparison Terminology
 
 * **Target** means the station or setup under test: usually your callsign, Setup A, or the station you want to evaluate.
 * **Reference** means the comparison baseline: a buddy callsign, the local neighborhood, the local best station, or Setup B.
-* A **target-active cycle** is a WSPR cycle where the target was demonstrably participating. [Section 6.4](#sec-6-4) defines this precisely for TX and RX. 
+* The **heartbeat filter** is the rule that protects compare-mode yield against offline bias by keeping only cycles where the target was demonstrably active.
+* A **target-active cycle** is a WSPR cycle that passed the heartbeat filter. [Section 6.4](#sec-6-4) defines this precisely for TX and RX.
+* **Joint / Synced** evidence means that target and reference have comparable evidence for the same peer/path in the same WSPR cycle or, for sequential TX A/B, in the same valid time bin.
+* **Delta SNR** means the target's SNR minus the reference SNR. In compare maps, positive Delta SNR favors the target; negative Delta SNR favors the reference.
+* **Decode Yield** means the decode/no-decode side of the comparison: joint evidence, target-only evidence, reference-only evidence and async evidence inside the relevant heartbeat-gated comparison cycles.
+* **System Sensitivity** is the UI label for Decode Yield. It is not a calibrated MDS, noise-figure or receiver-sensitivity measurement.
+* **Hardware Linearity** is the UI label for the paired Delta-SNR distribution. It is not RF-amplifier linearity.
 
 **Standard recommendations for all modes**
 
@@ -207,8 +216,29 @@ Why avoid multi-cycle WSPR suffixes for single-transmitter TX A/B? Compound call
 
 Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces time-confounding substantially, but it does not prove that every time-correlated effect disappeared.
 
+<a id="sec-4-5"></a>
+#### 4.5 Decode Yield in Compare Modes
+
+**Decode Yield** is a supporting compare-mode metric, not a separate analysis mode. It summarizes what happened inside heartbeat-gated, target-active comparison cycles.
+
+**How it works**
+
+* `Joint` / `Both (Joint)`: target and reference have evidence for the same peer/path in the same WSPR cycle. This is valid paired evidence for Delta SNR.
+* `Only Target`: inside a target-active cycle, the target had evidence for this peer/path and the reference did not.
+* `Only Reference`: inside a target-active cycle, the reference had evidence for this peer/path and the target did not.
+* `Both (Async)`: inside the selected segment/station set, both sides have evidence, but not in the same WSPR cycle. This is useful yield context, not paired Delta-SNR evidence.
+* `Only Reference = 0` can be a correct result. It means no reference-only evidence survived inside the target-active comparison cycles and selected filters, not that the reference station had no WSPR activity anywhere in the full time window.
+* Swapping target and reference can change yield counts because the active-cycle gate follows the target. A vs B and B vs A are therefore not guaranteed to be symmetric in yield, even when shared joint Delta SNR changes sign as expected.
+
+**How to use it**
+
+* Use Decode Yield to understand decode/no-decode behavior at the edge of coverage.
+* Use Delta SNR as the primary paired performance signal when enough joint evidence exists.
+* Treat yield as heartbeat-gated operational reach, not as normalized antenna efficiency or calibrated receiver sensitivity.
+* Read `SPOTS` as decode-volume distribution and `STATIONS` as footprint breadth. These bars are essential because Delta SNR alone can hide decode/no-decode behavior.
+
 <a id="sec-5"></a>
-### 5. How to Read Results
+### 5. Result Terminology and Reading the UI
 
 **Heatmap segments**
 
@@ -222,18 +252,13 @@ Near rings can be consistent with shorter-skip or NVIS behavior; far rings can b
 
 Individual stations are plotted as dots. Green means joint same-cycle decodes. Yellow-orange means both sides decoded the station asynchronously. Purple means only your station/setup decoded it. White means only the reference decoded it.
 
-These classes are heartbeat-gated evidence classes:
-
-* `Joint`: target and reference both have evidence for the same peer/path in the same WSPR cycle. This is valid for Delta SNR.
-* `Only Target`: inside a target-active cycle, the target had evidence for this peer/path and the reference did not.
-* `Only Reference`: inside a target-active cycle, the reference had evidence for this peer/path and the target did not.
-* `Both (Async)`: inside the selected segment/station set, both sides have evidence, but not in the same WSPR cycle. This is useful yield context, not paired Delta-SNR evidence.
+These dot categories use the heartbeat-gated evidence classes defined in [Decode Yield in Compare Modes](#sec-4-5).
 
 **Map footer and 1D-Venn bars**
 
-The `SPOTS` bar shows raw decode-volume distribution. The `STATIONS` bar checks whether the footprint is broad or driven by only a few active stations. These bars are essential because Delta SNR alone can hide decode/no-decode behavior.
+The `SPOTS` bar shows decode-volume distribution for the selected analysis context. The `STATIONS` bar checks whether the footprint is broad or driven by only a few active stations. These bars are essential because Delta SNR alone can hide decode/no-decode behavior.
 
-The footer bars are not full-window raw activity counters. In compare modes they are computed after the heartbeat filter, so they summarize what happened inside target-active comparison cycles. This is why `Only Reference = 0` can be a correct result: it means no reference-only evidence survived inside the target-active comparison cycles and selected filters, not that the reference station had no WSPR activity anywhere in the full time window.
+The footer bars visualize the Decode Yield categories defined in [Decode Yield in Compare Modes](#sec-4-5). In compare modes they are heartbeat-gated rather than full-window raw activity counters.
 
 **Segment Inspector**
 
@@ -353,7 +378,7 @@ For this reason:
 * Reference-only or target-only TX decodes may reflect antenna performance, transmit power, propagation, receiver distribution, timing, collisions, reported-power accuracy or a combination of these factors.
 * Unequal reported transmit powers should be mentioned when interpreting TX-yield asymmetry.
 
-In practical terms, strong TX yield means that a station was actually heard by more receiving stations under the conditions in which it operated. It does not by itself prove that the antenna was better. For fairer TX benchmarking, give most weight to same-cycle, power-normalized Delta SNR and use raw yield as supporting context.
+In practical terms, strong TX yield means that a station was actually heard by more receiving stations under the conditions in which it operated. It does not by itself prove that the antenna was better. For fairer TX benchmarking, give most weight to same-cycle, power-normalized Delta SNR and use heartbeat-gated yield as supporting context.
 
 <a id="sec-6-7"></a>
 #### 6.7 Geographic rastering and projection
