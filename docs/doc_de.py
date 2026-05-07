@@ -73,6 +73,12 @@ WSPRadar ist um konkrete Amateurfunk-Fragen herum aufgebaut:
 
 Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Gemeinsame Mathematik und Annahmen werden einmal in [Wissenschaftliche Methodik und Annahmen](#sec-6) erkl&auml;rt.
 
+**Begriffe in den folgenden Abschnitten**
+
+* **Ziel / Target** meint die Station oder das Setup unter Test: normalerweise das eigene Rufzeichen, Setup A oder die Station, die bewertet werden soll.
+* **Referenz** meint die Vergleichsbasis: ein Buddy-Rufzeichen, die lokale Nachbarschaft, die beste lokale Station oder Setup B.
+* Ein **target-aktiver Zyklus** ist ein WSPR-Zyklus, in dem das Ziel nachweislich teilgenommen hat. [Abschnitt 6.4](sec-6-4) definiert das pr&auml;zise f&uuml;r TX und RX.
+
 **Standardempfehlungen f&uuml;r alle Modi**
 
 * Korrektes Rufzeichen und korrekten Maidenhead-Locator verwenden.
