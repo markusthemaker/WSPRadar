@@ -76,7 +76,7 @@ WSPRadar ist um konkrete Amateurfunk-Fragen herum aufgebaut:
 Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Gemeinsame Mathematik und Annahmen werden einmal in [Wissenschaftliche Methodik und Annahmen](#sec-6) erkl&auml;rt.
 
 <a id="sec-4-0"></a>
-#### 4.0 Begriffe und Vergleichslogik
+#### 4.0 Begriffe 
 
 * **Ziel / Target** meint die Station oder das Setup unter Test: normalerweise das eigene Rufzeichen, Setup A oder die Station, die bewertet werden soll.
 * **Referenz** meint die Vergleichsbasis: ein Buddy-Rufzeichen, die lokale Nachbarschaft, die beste lokale Station oder Setup B.
