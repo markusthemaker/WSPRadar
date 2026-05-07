@@ -195,6 +195,14 @@ def apply_custom_css():
         }
 
         a.header-anchor { display: none !important; }
+
+        /* Header/footer credit block: keep centered despite documentation text alignment rules */
+        .stMarkdown .dev-credit-container {
+            display: block !important;
+            width: 100% !important;
+            text-align: center !important;
+            text-align-last: center !important;
+        }
         
         /* Visibility helpers */
         .pc-break { display: inline; }
@@ -232,7 +240,7 @@ def apply_custom_css():
                 line-height: 1.3 !important; 
             }
             
-            .dev-credit-container { font-size: 0.7rem !important; line-height: 1.3 !important; padding: 0 5px !important; margin-bottom: 1rem !important; }
+            .stMarkdown .dev-credit-container { font-size: 0.7rem !important; line-height: 1.3 !important; padding: 0 5px !important; margin-bottom: 1rem !important; }
             .pc-break { display: none !important; }
             .mobile-pipe { display: inline !important; }
         }
