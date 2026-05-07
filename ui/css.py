@@ -147,8 +147,17 @@ def apply_custom_css():
             text-align: left !important;
             text-align-last: left !important;
             word-spacing: normal !important;
+        }
+
+        .stMarkdown {
             overflow-wrap: anywhere !important;
             word-break: break-word !important;
+        }
+
+        .stMarkdown p,
+        .stMarkdown li {
+            overflow-wrap: normal !important;
+            word-break: normal !important;
         }
         
         .stMarkdown a {
