@@ -76,7 +76,7 @@ WSPRadar is designed around concrete amateur-radio questions:
 This chapter combines the user choice, the analysis concept and the experiment-design rules. Shared mathematics and assumptions are explained once in [Scientific Method and Assumptions](#sec-6).
 
 <a id="sec-4-0"></a>
-#### 4.0 Comparison Terminology
+#### 4.0 Terminology
 
 * **Target** means the station or setup under test: usually your callsign, Setup A, or the station you want to evaluate.
 * **Reference** means the comparison baseline: a buddy callsign, the local neighborhood, the local best station, or Setup B.
