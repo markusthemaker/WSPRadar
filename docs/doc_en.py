@@ -612,4 +612,5 @@ After restarting the instance, data streams, hardware access and temporary WSPR 
 
 * [9-12] GM4EAU, **WATT WSPR Analysis Tool**, Excel/VBA-based tool for WSPR reporting, mapping, filtering and timeline animation.  
   https://www.gm4eau.com/home-page/wspr/
+  
 """
