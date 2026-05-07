@@ -122,6 +122,11 @@ def apply_custom_css():
         /* Markdown rendering inside the documentation */
         .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }
         .stMarkdown h4 { color: #ffffff !important; margin-top: 1.8rem; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
+        .stMarkdown p {
+            margin-top: 0.85rem !important;
+            margin-bottom: 0.85rem !important;
+            line-height: 1.55 !important;
+        }
         .stMarkdown p:has(> strong:only-child) {
             font-size: 1.05rem;
             line-height: 1.35;
@@ -129,6 +134,15 @@ def apply_custom_css():
             margin-bottom: 0.35rem;
         }
         .stMarkdown p:has(> strong:only-child) strong {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+        .stMarkdown p:has(> strong:first-child:not(:only-child)) {
+            margin-top: 1.05rem !important;
+            margin-bottom: 1.05rem !important;
+            line-height: 1.55 !important;
+        }
+        .stMarkdown p:has(> strong:first-child:not(:only-child)) strong:first-child {
             color: #ffffff !important;
             font-weight: 700 !important;
         }
