@@ -73,6 +73,12 @@ WSPRadar is designed around concrete amateur-radio questions:
 
 This chapter combines the user choice, the analysis concept and the experiment-design rules. Shared mathematics and assumptions are explained once in [Scientific Method and Assumptions](#sec-6).
 
+**Terminology used below**
+
+* **Target** means the station or setup under test: usually your callsign, Setup A, or the station you want to evaluate.
+* **Reference** means the comparison baseline: a buddy callsign, the local neighborhood, the local best station, or Setup B.
+* A **target-active cycle** is a WSPR cycle where the target was demonstrably participating. [Section 6.4](#sec-6-4) defines this precisely for TX and RX. 
+
 **Standard recommendations for all modes**
 
 * Use a correct callsign and Maidenhead locator.
