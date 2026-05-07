@@ -144,6 +144,9 @@ def apply_custom_css():
         .stMarkdown p,
         .stMarkdown li {
             max-width: 100% !important;
+            text-align: left !important;
+            text-align-last: left !important;
+            word-spacing: normal !important;
             overflow-wrap: anywhere !important;
             word-break: break-word !important;
         }
