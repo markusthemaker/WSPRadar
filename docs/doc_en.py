@@ -52,7 +52,7 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
 3. Select the desired comparison mode.
 4. Run `TX` or `RX`.
 5. Read the map first: color shows the median segment value, dots show individual station categories, and the footer bars show **Decode Yield**, the decode/no-decode side of the analysis.
-6. Click one distance/azimuth segment in the Segment Inspector.
+6. Click one distance/azimuth map segment in the Segment Inspector.
 7. Open one Station Insights row to inspect the Drill-Down data.
 8. Export the table as CSV when you want to reproduce or externally audit a result.
 
@@ -80,12 +80,15 @@ This chapter combines the user choice, the analysis concept and the experiment-d
 
 * **Target** means the station or setup under test: usually your callsign, Setup A, or the station you want to evaluate.
 * **Reference** means the comparison baseline: a buddy callsign, the local neighborhood, the local best station, or Setup B.
-* The **heartbeat filter** is the rule that protects compare-mode yield against offline bias by keeping only cycles where the target was demonstrably active.
-* A **target-active cycle** is a WSPR cycle that passed the heartbeat filter. [Section 6.4](#sec-6-4) defines this precisely for TX and RX.
-* **Joint / Synced** evidence means that target and reference have comparable evidence for the same peer/path in the same WSPR cycle or, for sequential TX A/B, in the same valid time bin.
+* A **WSPR spot** is one reported successful decode: time, band, transmitter, receiver, locator, reported power and SNR.
+* A **WSPR cycle** is one two-minute WSPR transmit/receive opportunity, aligned to even UTC minutes.
+* A **Maidenhead locator** is the grid-square location code used by WSPR; WSPRadar uses your QTH locator as the map center.
+* A **median** is the middle value of a sorted sample. WSPRadar uses medians because they are more robust against outliers and changing propagation states than simple averages.
+* **Joint / Synced** evidence means that target and reference have comparable evidence for the same remote station and propagation path in the same WSPR cycle or, for sequential TX A/B, in the same valid time bin.
 * **Delta SNR** means the target's SNR minus the reference SNR. In compare maps, positive Delta SNR favors the target; negative Delta SNR favors the reference.
 * **Decode Yield** means the decode/no-decode side of the comparison: joint evidence, target-only evidence, reference-only evidence and async evidence inside the relevant heartbeat-gated comparison cycles.
-* **System Sensitivity** is the UI label for Decode Yield. It is not a calibrated MDS, noise-figure or receiver-sensitivity measurement.
+* The **heartbeat filter** protects Decode Yield against offline bias: WSPRadar only counts **target-active cycles**, meaning WSPR cycles where the target was demonstrably active. [Section 6.4](#sec-6-4) defines this precisely for TX and RX.
+* **System Sensitivity** is the UI label for Decode Yield. It is not a calibrated receiver-sensitivity measurement.
 * **Hardware Linearity** is the UI label for the paired Delta-SNR distribution. It is not RF-amplifier linearity.
 
 **Standard recommendations for all modes**

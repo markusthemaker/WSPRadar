@@ -52,7 +52,7 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 3. Gew&uuml;nschten Vergleichsmodus w&auml;hlen.
 4. `TX` oder `RX` starten.
 5. Zuerst die Karte lesen: Farbe = medianer Segmentwert, Punkte = Stationskategorien, Fu&szlig;balken = **Decode Yield**, also die Decode/No-Decode-Seite der Analyse.
-6. Im Segment-Inspektor ein Distanz-/Azimutsegment ausw&auml;hlen.
+6. Im Segment-Inspektor ein Distanz-/Azimut-Kartensegment ausw&auml;hlen.
 7. Eine Station-Insights-Zeile &ouml;ffnen und die Drill-Down-Daten pr&uuml;fen.
 8. CSV exportieren, wenn das Ergebnis reproduziert oder extern gepr&uuml;ft werden soll.
 
@@ -80,12 +80,15 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 
 * **Ziel / Target** meint die Station oder das Setup unter Test: normalerweise das eigene Rufzeichen, Setup A oder die Station, die bewertet werden soll.
 * **Referenz** meint die Vergleichsbasis: ein Buddy-Rufzeichen, die lokale Nachbarschaft, die beste lokale Station oder Setup B.
-* Der **Heartbeat-Filter** ist die Regel, die Yield in Vergleichsmodi gegen Offline-Bias sch&uuml;tzt, indem nur Zyklen erhalten bleiben, in denen das Ziel nachweislich aktiv war.
-* Ein **target-aktiver Zyklus** ist ein WSPR-Zyklus, der den Heartbeat-Filter bestanden hat. [Abschnitt 6.4](#sec-6-4) definiert das pr&auml;zise f&uuml;r TX und RX.
-* **Joint / Synced** Evidenz bedeutet, dass Ziel und Referenz vergleichbare Evidenz f&uuml;r denselben Peer/Pfad im selben WSPR-Zyklus haben oder, bei sequenziellem TX A/B, im selben validen Zeit-Bin.
+* Ein **WSPR-Spot** ist ein gemeldeter erfolgreicher Decode: Zeit, Band, Sender, Empf&auml;nger, Locator, gemeldete Leistung und SNR.
+* Ein **WSPR-Zyklus** ist eine zweimin&uuml;tige WSPR-Sende-/Empfangsgelegenheit, ausgerichtet an geraden UTC-Minuten.
+* Ein **Maidenhead-Locator** ist der von WSPR genutzte Grid-Square-Standortcode; WSPRadar nutzt den eigenen QTH-Locator als Kartenzentrum.
+* Ein **Median** ist der mittlere Wert einer sortierten Stichprobe. WSPRadar nutzt Mediane, weil sie robuster gegen Ausrei&szlig;er und wechselnde Ausbreitungszust&auml;nde sind als einfache Mittelwerte.
+* **Joint / Synced** Evidenz bedeutet, dass Ziel und Referenz vergleichbare Evidenz f&uuml;r dieselbe Remote-Station und denselben Ausbreitungspfad im selben WSPR-Zyklus haben oder, bei sequenziellem TX A/B, im selben validen Zeit-Bin.
 * **Delta SNR** bedeutet SNR des Ziels minus SNR der Referenz. In Vergleichskarten spricht positives Delta SNR f&uuml;r das Ziel; negatives Delta SNR spricht f&uuml;r die Referenz.
 * **Decode Yield** ist die Decode/No-Decode-Seite des Vergleichs: gemeinsame Evidenz, Nur-Ziel-Evidenz, Nur-Referenz-Evidenz und Async-Evidenz innerhalb der relevanten heartbeat-gefilterten Vergleichszyklen.
-* **System Sensitivity** ist die UI-Bezeichnung f&uuml;r Decode Yield. Das ist keine kalibrierte MDS-, Noise-Figure- oder Empf&auml;ngerempfindlichkeitsmessung.
+* Der **Heartbeat-Filter** sch&uuml;tzt Decode Yield gegen Offline-Bias: WSPRadar z&auml;hlt nur **target-aktive Zyklen**, also WSPR-Zyklen, in denen das Ziel nachweislich aktiv war. [Abschnitt 6.4](#sec-6-4) definiert das pr&auml;zise f&uuml;r TX und RX.
+* **System Sensitivity** ist die UI-Bezeichnung f&uuml;r Decode Yield. Das ist keine kalibrierte Empf&auml;ngerempfindlichkeitsmessung.
 * **Hardware Linearity** ist die UI-Bezeichnung f&uuml;r die gepaarte Delta-SNR-Verteilung. Das ist keine RF-Verst&auml;rkerlinearit&auml;t.
 
 **Standardempfehlungen f&uuml;r alle Modi**
