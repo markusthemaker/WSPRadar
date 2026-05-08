@@ -87,7 +87,7 @@ CBAR_BBOX = [0.88, 0.20, 0.02, 0.55]
 LEG_BBOX = (1.02, 0.90)               
 TITLE_POS = (0.45, 0.95)             
 COMPASS_LABEL_OFFSET = 0.97          
-ZOOMED_MAP_SCALE = 0.95
+ZOOMED_MAP_SCALE = 0.91
 
 # Fonts
 FONT_RINGS = 13                       
