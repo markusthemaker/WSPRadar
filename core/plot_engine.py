@@ -265,11 +265,13 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     ax = fig.add_axes(MAP_BBOX, projection=proj)
     ax.set_facecolor('black'); ax.set_global()
     
-    lim = max_dist_km * 1000 
+    map_scale = 1.0 if max_dist_km == 22000 else ZOOMED_MAP_SCALE
+    max_r_m = max_dist_km * 1000
+    lim = max_r_m / map_scale
     ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
     
     theta = np.linspace(0, 2*np.pi, 100)
-    center, radius = [0.5, 0.5], 0.5
+    center, radius = [0.5, 0.5], 0.5 * map_scale
     verts = np.vstack([np.sin(theta), np.cos(theta)]).T
     circle = mpath.Path(verts * radius + center)
     ax.set_boundary(circle, transform=ax.transAxes)
@@ -290,13 +292,13 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     for r_km in THIN_RINGS:
         if r_km <= max_dist_km: ax.add_patch(plt.Circle((0,0), r_km*1000, fill=False, color='white', linewidth=0.5, alpha=0.3, linestyle='--', transform=proj, zorder=2))
 
-    max_r_m = max_dist_km * 1000
     for az in np.arange(AZIMUTH_STEP / 2.0, 360, AZIMUTH_STEP): ax.plot([0, max_r_m * np.cos(np.radians(90 - az))], [0, max_r_m * np.sin(np.radians(90 - az))], color='#ffffff', linewidth=0.3, alpha=0.4, transform=proj, zorder=2)
     
+    label_r_m = lim * COMPASS_LABEL_OFFSET
     for i, d in enumerate(COMPASS):
         angle = i * AZIMUTH_STEP
-        x = (max_r_m * COMPASS_LABEL_OFFSET) * np.cos(np.radians(90 - angle))
-        y = (max_r_m * COMPASS_LABEL_OFFSET) * np.sin(np.radians(90 - angle))
+        x = label_r_m * np.cos(np.radians(90 - angle))
+        y = label_r_m * np.sin(np.radians(90 - angle))
         ax.text(x, y, d, color='#cccccc', ha='center', va='center', transform=proj, fontsize=FONT_COMPASS, fontweight='bold', alpha=0.9, clip_on=False)
     
     # Pole Markers
