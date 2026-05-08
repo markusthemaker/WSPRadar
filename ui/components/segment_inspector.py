@@ -70,7 +70,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
     # Render Dropdowns
     col_insp1, col_insp2 = st.columns(2)
     with col_insp1: 
-        sel_dist = st.selectbox("Distance", [lbl_dist] + filtered_distances + [opt_full], key=f"dist_{analysis_id}_{run_id}", label_visibility="collapsed")
+        sel_dist = st.selectbox("Distance", [lbl_dist, opt_full] + filtered_distances, key=f"dist_{analysis_id}_{run_id}", label_visibility="collapsed")
     with col_insp2:
         if sel_dist != lbl_dist:
             if sel_dist == opt_full:
@@ -86,7 +86,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             
             if not valid_dirs: valid_dirs = [t.get("opt_no_station", "No Stations")]
             if valid_dirs != [t.get("opt_no_station", "No Stations")]: 
-                sel_dir = st.selectbox("Direction", [lbl_dir] + valid_dirs + [opt_all_dir], key=f"dir_{analysis_id}_{run_id}", label_visibility="collapsed")
+                sel_dir = st.selectbox("Direction", [lbl_dir, opt_all_dir] + valid_dirs, key=f"dir_{analysis_id}_{run_id}", label_visibility="collapsed")
             else: 
                 sel_dir = st.selectbox("Direction", [lbl_dir] + valid_dirs, key=f"dir_{analysis_id}_{run_id}", disabled=True, label_visibility="collapsed")
         else: 

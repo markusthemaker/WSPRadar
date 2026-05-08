@@ -6,14 +6,28 @@ Separating this from app.py keeps the main orchestrator file clean and focused.
 
 import streamlit as st
 from datetime import datetime, timedelta, timezone
-from config import MAX_DAYS_HISTORY, DEMO_PROFILES, BAND_MAP, MAX_DYNAMIC_RADIUS_KM
+from config import MAX_DAYS_HISTORY, DEMO_PROFILES, BAND_MAP, MAX_DYNAMIC_RADIUS_KM, MAP_SCOPE_OPTIONS
 from ui.callbacks import (
     reset_audit, handle_comp_mode_change, handle_self_test_mode_change,
     swap_tx_slots_u, swap_tx_slots_r
 )
 
+def _strip_text_state(key, callback=None, callback_args=(), callback_kwargs=None):
+    value = st.session_state.get(key)
+    if isinstance(value, str):
+        st.session_state[key] = value.strip()
+    if callback:
+        callback(*(callback_args or ()), **(callback_kwargs or {}))
+
 def text_input_no_autocomplete(*args, **kwargs):
     kwargs.setdefault("autocomplete", "off")
+    key = kwargs.get("key")
+    if key:
+        callback = kwargs.get("on_change")
+        callback_args = kwargs.pop("args", ())
+        callback_kwargs = kwargs.pop("kwargs", {})
+        kwargs["on_change"] = _strip_text_state
+        kwargs["args"] = (key, callback, callback_args, callback_kwargs)
     return st.text_input(*args, **kwargs)
 
 def render_core_expander(t):
@@ -65,7 +79,7 @@ def render_compare_expander(t):
         
         with col_comp_r:
             comp_mode = st.session_state.val_comp_mode
-            callsign = st.session_state.val_callsign.upper()
+            callsign = st.session_state.val_callsign.strip().upper()
             
             if comp_mode == t["opt_comp_radius"]:
                 st.radio(
@@ -80,7 +94,7 @@ def render_compare_expander(t):
                 text_input_no_autocomplete(t["lbl_ref_call"], key="val_ref_callsign", disabled=buddy_locked, on_change=reset_audit)
                 
                 # Validation error
-                if st.session_state.val_ref_callsign.upper() == callsign and callsign != "":
+                if st.session_state.val_ref_callsign.strip().upper() == callsign and callsign != "":
                     st.error(t["err_self_test"])
                     
             elif comp_mode == t["opt_comp_self"]:
@@ -92,7 +106,7 @@ def render_compare_expander(t):
                     with cs1: text_input_no_autocomplete("Setup A Callsign", value=callsign, disabled=True)
                     with cs2: text_input_no_autocomplete("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
                     
-                    self_call_b = st.session_state.val_self_call_b.upper()
+                    self_call_b = st.session_state.val_self_call_b.strip().upper()
                     if len(self_call_b) > 0 and self_call_b == callsign:
                         st.error("Setup B callsign must be different from Setup A (e.g., use a /P suffix).")
                 else:
@@ -118,7 +132,7 @@ def render_advanced_expander(t):
             st.toggle(t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"), key="val_exclude_special_callsigns", help=t.get("tt_exclude_special", "Filter out balloon telemetry."), on_change=reset_audit)
             st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
             st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
-            st.selectbox(t["lbl_max_dist"], [5000, 10000, 15000, 22000], key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
+            st.selectbox(t["lbl_max_dist"], MAP_SCOPE_OPTIONS, key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
 
         with col4:
             min_spots_label = t["lbl_min_spots"]

@@ -143,8 +143,8 @@ render_advanced_expander(t)
 # ==========================================
 # Extract values from session state to local variables so the execution engine 
 # below can run without any structural changes.
-callsign = st.session_state.val_callsign.upper()
-qth_locator = st.session_state.val_qth
+callsign = st.session_state.val_callsign.strip().upper()
+qth_locator = st.session_state.val_qth.strip()
 band = st.session_state.val_band
 time_mode = st.session_state.val_time_mode
 hours = st.session_state.val_hours
@@ -158,7 +158,6 @@ max_dist_km = st.session_state.val_max_dist
 # ==========================================
 # MATHEMATICAL PREPARATIONS
 # ==========================================
-lat_0, lon_0 = locator_to_latlon(qth_locator)
 band_val = BAND_MAP.get(band, '')
 band_filter = f"AND band = '{band_val}'" if band != 'All' else ""
 
@@ -232,6 +231,8 @@ if st.session_state.run_mode:
         st.error(err_msg)
         st.session_state.run_mode = None  # Reset state
         st.stop()
+
+    lat_0, lon_0 = locator_to_latlon(qth_locator)
         
     # Storage Management: Purge expired parquet cache files before starting a new run
     cleanup_old_parquets()

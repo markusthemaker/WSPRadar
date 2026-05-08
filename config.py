@@ -19,7 +19,7 @@ DB_URL = "https://db1.wspr.live/"
 # ==========================================
 CACHE_DIR = "./.wspr_cache"
 CACHE_TTL_SEC = 3600
-MAX_DAYS_HISTORY = 7
+MAX_DAYS_HISTORY = 14
 
 # Cache-Ordner beim Import automatisch anlegen
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -99,9 +99,10 @@ FONT_FOOTER = 10
 # Azimuth & Segmente
 AZIMUTH_STEP = 22.50
 COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
-DIST_BINS = [0, 2500, 5000, 7500, 10000, 15000, 20000, 22000]
+MAP_SCOPE_OPTIONS = [2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000, 22000]
+DIST_BINS = [0] + MAP_SCOPE_OPTIONS
 THICK_RINGS = [5000, 10000, 15000, 20000]
-THIN_RINGS = [2500, 7500]
+THIN_RINGS = [2500, 7500, 12500, 17500, 22000]
 
 # Scatter Plot Colors
 COLOR_JOINT = "#00ff00"
