@@ -7,6 +7,7 @@ to allow UI updates without triggering full-page reruns.
 
 import io
 import ast
+import inspect
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -70,6 +71,13 @@ def _format_snr_display_columns(df):
             decimals = 1 if _is_median_display_column(col) else 0
             display_df[col] = display_df[col].map(lambda value, d=decimals: _format_metric_or_none(value, d))
     return display_df
+
+def _supports_dataframe_selection_default():
+    """Return True when the installed Streamlit version can preselect dataframe rows."""
+    try:
+        return "selection_default" in inspect.signature(st.dataframe).parameters
+    except (TypeError, ValueError):
+        return False
 
 def _snr_column_config(df):
     """Keep numeric SNR columns right-aligned while controlling displayed precision."""
@@ -711,15 +719,18 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         # --- END FILTER ---
 
         # Die Tabelle rendert nun den gefilterten Zustand
-        tbl_event = st.dataframe(
-            sorted_disp_df,
-            width='stretch',
-            hide_index=True,
-            selection_mode="multi-row",
-            on_select="rerun",
-            key=f"tbl_{analysis_id}_{run_id}_{selected_seg}",
-            column_config=_snr_column_config(sorted_disp_df)
-        )
+        tbl_key = f"tbl_{analysis_id}_{run_id}_{selected_seg}"
+        dataframe_kwargs = {
+            "width": "stretch",
+            "hide_index": True,
+            "selection_mode": "multi-row",
+            "on_select": "rerun",
+            "key": tbl_key,
+            "column_config": _snr_column_config(sorted_disp_df),
+        }
+        if not sorted_disp_df.empty and _supports_dataframe_selection_default():
+            dataframe_kwargs["selection_default"] = {"selection": {"rows": [0]}}
+        tbl_event = st.dataframe(sorted_disp_df, **dataframe_kwargs)
 
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
