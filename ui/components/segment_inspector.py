@@ -31,6 +31,39 @@ def _unique_station_order(stations):
     """Return station labels once, preserving the table selection order."""
     return list(dict.fromkeys([str(s) for s in stations if pd.notna(s)]))
 
+def _format_one_decimal_or_none(value):
+    """Format SNR-like display values with exactly one decimal, preserving None markers."""
+    if pd.isna(value):
+        return ""
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped or stripped.lower() == "none":
+            return "None" if stripped.lower() == "none" else ""
+        try:
+            number = float(stripped)
+            return f"{number:+.1f}" if stripped.startswith("+") else f"{number:.1f}"
+        except ValueError:
+            return value
+    return f"{float(value):.1f}"
+
+def _is_snr_display_column(column_name):
+    text = str(column_name)
+    return (
+        "SNR" in text or
+        "Norm@1W" in text or
+        "Micro-Med" in text or
+        "\u0394" in text or
+        "Delta" in text
+    )
+
+def _format_snr_display_columns(df):
+    """Return a display-only copy with SNR-like columns rendered at one decimal."""
+    display_df = df.copy()
+    for col in display_df.columns:
+        if _is_snr_display_column(col):
+            display_df[col] = display_df[col].map(_format_one_decimal_or_none)
+    return display_df
+
 def _parse_ref_detail_rows(value):
     """Parse ClickHouse Array(Tuple(...)) CSV output for Local Median drill-down display."""
     if value is None:
@@ -598,7 +631,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         # --- END FILTER ---
 
         # Die Tabelle rendert nun den gefilterten Zustand
-        tbl_event = st.dataframe(sorted_disp_df, width='stretch', hide_index=True, selection_mode="multi-row", on_select="rerun", key=f"tbl_{analysis_id}_{run_id}_{selected_seg}")
+        sorted_disp_display_df = _format_snr_display_columns(sorted_disp_df)
+        tbl_event = st.dataframe(sorted_disp_display_df, width='stretch', hide_index=True, selection_mode="multi-row", on_select="rerun", key=f"tbl_{analysis_id}_{run_id}_{selected_seg}")
 
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
@@ -822,7 +856,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                     if sel_vals:
                                         drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
 
-                    st.dataframe(drill_df, width='stretch', hide_index=True)
+                    drill_display_df = _format_snr_display_columns(drill_df)
+                    st.dataframe(drill_display_df, width='stretch', hide_index=True)
 
             except FileNotFoundError: 
                 st.warning("Cache file expired. Please Run Analysis again.")
