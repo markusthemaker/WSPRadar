@@ -19,7 +19,7 @@ DB_URL = "https://db1.wspr.live/"
 # ==========================================
 CACHE_DIR = "./.wspr_cache"
 CACHE_TTL_SEC = 3600
-MAX_DAYS_HISTORY = 14
+MAX_DAYS_HISTORY = 31
 
 # Cache-Ordner beim Import automatisch anlegen
 os.makedirs(CACHE_DIR, exist_ok=True)
