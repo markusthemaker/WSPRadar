@@ -19,10 +19,7 @@ from config import COMPASS
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
-EVIDENCE_ROLLING_WINDOW = "3h"
-EVIDENCE_ROLLING_MIN_POINTS = 8
-EVIDENCE_ROLLING_MIN_TOTAL = 16
-EVIDENCE_ROLLING_GAP = pd.Timedelta(EVIDENCE_ROLLING_WINDOW)
+EVIDENCE_TIME_AGG_OPTIONS = ["Raw", "1h", "2h", "3h", "6h", "12h", "24h"]
 GRID_COLOR = "#777777"
 GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
@@ -277,38 +274,24 @@ def _draw_raincloud(ax, grouped_values, group_labels, colors):
     ax.set_xticklabels(group_labels, rotation=20, ha="right", color="white", fontsize=9)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
 
-def _rolling_median_series(group_df):
-    """Return a centered time-based rolling median for sufficiently dense evidence."""
-    if len(group_df) < EVIDENCE_ROLLING_MIN_TOTAL:
-        return pd.DataFrame(columns=["plot_time", "rolling_median"])
+def _aggregate_time_points(plot_df, time_agg):
+    """Aggregate plotted evidence into fixed UTC median bins for the time plot only."""
+    if time_agg == "Raw":
+        return plot_df.copy()
 
-    work_df = group_df[["plot_time", "metric"]].dropna().sort_values("plot_time").copy()
+    work_df = plot_df[["plot_group", "plot_time", "metric"]].dropna().copy()
     if work_df.empty:
-        return pd.DataFrame(columns=["plot_time", "rolling_median"])
+        return work_df
 
-    rolling = (
+    work_df["time_bin"] = work_df["plot_time"].dt.floor(time_agg)
+    agg_df = (
         work_df
-        .set_index("plot_time")["metric"]
-        .rolling(EVIDENCE_ROLLING_WINDOW, center=True, min_periods=EVIDENCE_ROLLING_MIN_POINTS)
+        .groupby(["plot_group", "time_bin"], dropna=False)["metric"]
         .median()
-        .reset_index(name="rolling_median")
-        .dropna(subset=["rolling_median"])
+        .reset_index()
+        .rename(columns={"time_bin": "plot_time"})
     )
-    return rolling
-
-def _rolling_median_segments(rolling_df):
-    """Split a rolling median into contiguous runs so sparse periods are not bridged."""
-    if rolling_df.empty:
-        return []
-
-    rolling_df = rolling_df.sort_values("plot_time").copy()
-    gaps = rolling_df["plot_time"].diff() > EVIDENCE_ROLLING_GAP
-    rolling_df["segment_id"] = gaps.cumsum()
-    return [
-        seg_df
-        for _, seg_df in rolling_df.groupby("segment_id", sort=False)
-        if len(seg_df) >= 2
-    ]
+    return agg_df
 
 def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
@@ -347,6 +330,29 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
     group_labels, grouped_values, colors = map(list, zip(*non_empty))
     color_map = dict(zip(group_labels, colors))
 
+    ctrl_left, ctrl_mid, ctrl_right = st.columns([0.22, 0.56, 0.22])
+    with ctrl_mid:
+        agg_key = f"evidence_time_agg_{hash(tuple(sel_stations))}_{is_compare}_{is_sequential}"
+        if hasattr(st, "segmented_control"):
+            time_agg = st.segmented_control(
+                "Time aggregation",
+                EVIDENCE_TIME_AGG_OPTIONS,
+                default="Raw",
+                key=agg_key,
+                label_visibility="collapsed"
+            )
+        else:
+            time_agg = st.radio(
+                "Time aggregation",
+                EVIDENCE_TIME_AGG_OPTIONS,
+                index=0,
+                horizontal=True,
+                key=agg_key,
+                label_visibility="collapsed"
+            )
+
+    time_plot_df = _aggregate_time_points(plot_df, time_agg)
+
     fig_ev = plt.figure(figsize=(12, 4.5), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.95, bottom=0.25, top=0.80, wspace=0.3)
     gs = fig_ev.add_gridspec(1, 3)
@@ -361,36 +367,21 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
     ax_cloud.set_ylabel(labels["y_label"], color="white")
 
     for group in group_labels:
-        group_df = plot_df[plot_df["plot_group"] == group]
+        group_df = time_plot_df[time_plot_df["plot_group"] == group]
+        if group_df.empty:
+            continue
         ax_time.scatter(
             group_df["plot_time"],
             group_df["metric"],
-            s=12,
+            s=12 if time_agg == "Raw" else 28,
             color=color_map[group],
-            alpha=0.58,
+            alpha=0.58 if time_agg == "Raw" else 0.82,
             edgecolors="none",
             label=group,
         )
-        rolling_df = _rolling_median_series(group_df)
-        for rolling_seg in _rolling_median_segments(rolling_df):
-            ax_time.plot(
-                rolling_seg["plot_time"],
-                rolling_seg["rolling_median"],
-                color="black",
-                linewidth=3.8,
-                alpha=0.55,
-                zorder=4,
-            )
-            ax_time.plot(
-                rolling_seg["plot_time"],
-                rolling_seg["rolling_median"],
-                color=color_map[group],
-                linewidth=1.8,
-                alpha=0.42,
-                zorder=5,
-            )
 
-    ax_time.set_title(labels["time_title"], color="white", fontweight="bold", pad=10)
+    time_title = labels["time_title"] if time_agg == "Raw" else f"{labels['time_title']} ({time_agg} median)"
+    ax_time.set_title(time_title, color="white", fontweight="bold", pad=10)
     ax_time.set_xlabel(labels["x_label"], color="white")
     ax_time.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
