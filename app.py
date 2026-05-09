@@ -27,7 +27,7 @@ from ui.state_manager import init_session_state
 from ui.callbacks import (
     reset_audit, swap_tx_slots_u, swap_tx_slots_r, update_lang,
     handle_comp_mode_change, handle_self_test_mode_change,
-    set_reset_config, set_demo_config
+    set_reset_config, run_demo_profile
 )
 from ui.components.config_panel import render_core_expander, render_compare_expander, render_advanced_expander
 from ui.components.segment_inspector import render_segment_inspector, render_lazy_download
@@ -109,8 +109,38 @@ with col_b1:
     btn_reset_lbl = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
     st.button(btn_reset_lbl, on_click=set_reset_config, width='stretch')
 
-with col_b2: 
-    st.button(t["btn_demo"], on_click=set_demo_config, width='stretch')
+with col_b2:
+    demo_keys = list(DEMO_PROFILES.keys())
+
+    def format_demo_label(profile_key):
+        profile = DEMO_PROFILES[profile_key]
+        label = profile.get("label", {})
+        return label.get(st.session_state.lang, label.get("en", profile_key))
+
+    if demo_keys and st.session_state.get("selected_demo_profile") not in demo_keys:
+        st.session_state.selected_demo_profile = demo_keys[0]
+
+    with st.popover(t["btn_demo"], use_container_width=True):
+        selected_demo = st.radio(
+            t.get("lbl_demo_select", "Select demo profile"),
+            demo_keys,
+            key="selected_demo_profile",
+            format_func=format_demo_label,
+            label_visibility="collapsed"
+        )
+        demo_profile = DEMO_PROFILES[selected_demo]
+        demo_description = demo_profile.get("description", {}).get(
+            st.session_state.lang,
+            demo_profile.get("description", {}).get("en", "")
+        )
+        if demo_description:
+            st.caption(demo_description)
+        st.button(
+            t.get("btn_run_demo_selected", "Run selected demo"),
+            on_click=run_demo_profile,
+            args=(selected_demo,),
+            width='stretch'
+        )
 
 # Dynamischer CSS Glow für den Exit-Button
 if st.session_state.is_demo_mode:

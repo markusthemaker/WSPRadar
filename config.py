@@ -29,6 +29,17 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 # ==========================================
 DEMO_PROFILES = {
     "radius": {
+        "label": {
+            "en": "RX local median neighborhood benchmark",
+            "de": "RX lokaler Median-Nachbarschafts-Benchmark",
+        },
+        "description": {
+            "en": "Runs an RX comparison against the local median neighborhood around DL1MKS on 20m.",
+            "de": "Startet einen RX-Vergleich gegen die lokale Median-Nachbarschaft um DL1MKS auf 20m.",
+        },
+        "run_mode": "RX",
+        "comp_mode_key": "opt_comp_radius",
+        "local_benchmark_key": "opt_local_median",
         "callsign": "DL1MKS",
         "qth": "JN37",
         "band": "20m",
@@ -40,16 +51,37 @@ DEMO_PROFILES = {
         "ref_radius_km": 250
     },
     "buddy": {
-        "callsign": "DL1MKS",
-        "qth": "JN37",
-        "band": "20m",
-        "start_d": datetime.date(2026, 3, 27),
-        "end_d": datetime.date(2026, 3, 31),
-        "start_t": dt_time(0, 0),
-        "end_t": dt_time(0, 0),
-        "ref_callsign": ""  # Leer = Feld bleibt im UI offen für Nutzereingabe
+        "label": {
+            "en": "TX buddy test against reference station",
+            "de": "TX Buddy-Test gegen Referenzstation",
+        },
+        "description": {
+            "en": "Runs a TX reference-station comparison using ON4AWM0 against ON4AWM1 on 160m.",
+            "de": "Startet einen TX-Referenzstationsvergleich mit ON4AWM0 gegen ON4AWM1 auf 160m.",
+        },
+        "run_mode": "TX",
+        "comp_mode_key": "opt_comp_buddy",
+        "callsign": "ON4AWM0",
+        "qth": "JO20OT",
+        "band": "160m",
+        "start_d": datetime.date(2021, 5, 8),
+        "end_d": datetime.date(2021, 5, 15),
+        "start_t": dt_time(10, 31),
+        "end_t": dt_time(10, 31),
+        "ref_callsign": "ON4AWM1"
     },
     "self_rx": {
+        "label": {
+            "en": "RX hardware A/B test",
+            "de": "RX Hardware-A/B-Test",
+        },
+        "description": {
+            "en": "Runs an RX A/B comparison between DL1MKS and DL1MKS/P on 20m.",
+            "de": "Startet einen RX-A/B-Vergleich zwischen DL1MKS und DL1MKS/P auf 20m.",
+        },
+        "run_mode": "RX",
+        "comp_mode_key": "opt_comp_self",
+        "self_test_mode_key": "opt_self_rx",
         "callsign": "DL1MKS",
         "qth": "JN37",
         "band": "20m",
@@ -60,6 +92,19 @@ DEMO_PROFILES = {
         "self_call_b": "DL1MKS/P"
     },
     "self_tx": {
+        "label": {
+            "en": "TX hardware A/B test",
+            "de": "TX Hardware-A/B-Test",
+        },
+        "description": {
+            "en": "Runs a sequential TX A/B comparison for DL1MKS on 20m using even and odd WSPR frames.",
+            "de": "Startet einen sequenziellen TX-A/B-Vergleich fuer DL1MKS auf 20m mit geraden und ungeraden WSPR-Frames.",
+        },
+        "run_mode": "TX",
+        "comp_mode_key": "opt_comp_self",
+        "self_test_mode_key": "opt_self_tx",
+        "slot_u_key": "opt_slot_even",
+        "slot_r_key": "opt_slot_odd",
         "callsign": "DL1MKS",
         "qth": "JN37",
         "band": "20m",

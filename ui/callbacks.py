@@ -5,6 +5,7 @@ These functions modify the session state and dictate the application's flow.
 """
 
 import streamlit as st
+import time
 from i18n import T
 from config import DEMO_PROFILES
 
@@ -70,45 +71,94 @@ def update_lang():
     st.session_state.lang = new_lang
     st.session_state.run_mode = None
 
-def apply_demo_profile():
+def _demo_profile_for_current_mode(t):
+    """Return the legacy demo profile key matching the currently selected mode."""
+    mode = st.session_state.val_comp_mode
+    if mode == t["opt_comp_radius"]:
+        return "radius"
+    if mode == t["opt_comp_buddy"]:
+        return "buddy"
+    if mode == t["opt_comp_self"]:
+        if st.session_state.get("val_self_test_mode", t["opt_self_rx"]) == t["opt_self_rx"]:
+            return "self_rx"
+        return "self_tx"
+    return None
+
+def _set_translated_state(t, profile, state_key, profile_key):
+    """Set a localized session-state value from a profile translation-key field."""
+    translation_key = profile.get(profile_key)
+    if translation_key:
+        st.session_state[state_key] = t[translation_key]
+
+def _apply_demo_profile_values(profile_key):
+    """Apply one explicit runnable demo profile to the normal editable config state."""
+    profile = DEMO_PROFILES.get(profile_key)
+    if not profile:
+        return
+
+    t = T[st.session_state.lang]
+
+    _set_translated_state(t, profile, "val_comp_mode", "comp_mode_key")
+    _set_translated_state(t, profile, "val_local_benchmark", "local_benchmark_key")
+    _set_translated_state(t, profile, "val_self_test_mode", "self_test_mode_key")
+    _set_translated_state(t, profile, "val_slot_u", "slot_u_key")
+    _set_translated_state(t, profile, "val_slot_r", "slot_r_key")
+
+    st.session_state.val_callsign = profile.get("callsign", "")
+    st.session_state.val_qth = profile.get("qth", "")
+    st.session_state.val_band = profile.get("band", "20m")
+    st.session_state.val_time_mode = t["opt_custom"]
+    st.session_state.val_start_d = profile["start_d"]
+    st.session_state.val_end_d = profile["end_d"]
+    st.session_state.val_start_t = profile["start_t"]
+    st.session_state.val_end_t = profile["end_t"]
+    st.session_state.val_ref_stations = profile.get("ref_stations", st.session_state.get("val_ref_stations", 10))
+    st.session_state.val_ref_radius_km = profile.get("ref_radius_km", st.session_state.get("val_ref_radius_km", 100))
+    st.session_state.val_ref_callsign = profile.get("ref_callsign", "")
+    st.session_state.val_self_call_b = profile.get("self_call_b", "")
+    st.session_state.val_max_dist = profile.get("max_dist", 22000)
+    st.session_state.val_solar = t[profile.get("solar_key", "opt_solar_all")]
+    st.session_state.val_exclude_special_callsigns = profile.get("exclude_special_callsigns", False)
+    st.session_state.val_filter_moving = profile.get("filter_moving", False)
+    st.session_state.val_min_spots = profile.get("min_spots", 1)
+    st.session_state.val_min_stations = profile.get("min_stations", 1)
+    st.session_state.val_wilcoxon = profile.get("wilcoxon", "OFF")
+    st.session_state.val_tx_ab_bin_minutes = profile.get("tx_ab_bin_minutes", st.session_state.get("val_tx_ab_bin_minutes", 8))
+
+def apply_demo_profile(profile_key=None):
     """
     Applies the appropriate demo profile based on the currently selected comparison mode.
     Injects predefined, validated values for callsigns, locations, and timeframes 
     to guarantee a working demo query (Guided Sandbox Mode).
     """
-    if not st.session_state.get("is_demo_mode", False): 
-        return
-    
     t = T[st.session_state.lang]
-    mode = st.session_state.val_comp_mode
-    
-    # Load the correct profile dictionary based on the active mode
-    if mode == t["opt_comp_radius"]:
-        p = DEMO_PROFILES["radius"]
-        st.session_state.val_ref_stations = p["ref_stations"]
-        st.session_state.val_ref_radius_km = p.get("ref_radius_km", 100)
-    elif mode == t["opt_comp_buddy"]:
-        p = DEMO_PROFILES["buddy"]
-        st.session_state.val_ref_callsign = p["ref_callsign"]
-    elif mode == t["opt_comp_self"]:
-        # Check if the user is in the RX or TX sub-mode of the self test
-        if st.session_state.get("val_self_test_mode", t["opt_self_rx"]) == t["opt_self_rx"]:
-            p = DEMO_PROFILES["self_rx"]
-            st.session_state.val_self_call_b = p["self_call_b"]
-        else:
-            p = DEMO_PROFILES["self_tx"]
-    else: 
+    if profile_key is None:
+        if not st.session_state.get("is_demo_mode", False):
+            return
+        profile_key = _demo_profile_for_current_mode(t)
+
+    if profile_key is None:
         return
 
-    # Override global parameters with the loaded profile's safe values
-    st.session_state.val_callsign = p["callsign"]
-    st.session_state.val_qth = p["qth"]
-    st.session_state.val_band = p["band"]
-    st.session_state.val_time_mode = t["opt_custom"]
-    st.session_state.val_start_d = p["start_d"]
-    st.session_state.val_end_d = p["end_d"]
-    st.session_state.val_start_t = p["start_t"]
-    st.session_state.val_end_t = p["end_t"]
+    _apply_demo_profile_values(profile_key)
+
+def run_demo_profile(profile_key):
+    """
+    Applies a selected demo profile, leaves the config editable, and immediately
+    starts the profile's TX or RX analysis.
+    """
+    profile = DEMO_PROFILES.get(profile_key)
+    if not profile:
+        return
+
+    st.session_state.is_demo_mode = False
+    st.session_state.active_demo_profile = profile_key
+    _apply_demo_profile_values(profile_key)
+    st.session_state.run_mode = profile.get("run_mode")
+    st.session_state.run_id = int(time.time())
+    for key in list(st.session_state.keys()):
+        if key.startswith("img_buf_"):
+            del st.session_state[key]
 
 def handle_comp_mode_change():
     """
@@ -151,6 +201,7 @@ def set_reset_config():
     st.session_state.val_min_spots = 1
     st.session_state.val_min_stations = 1
     st.session_state.val_wilcoxon = "OFF"
+    st.session_state.active_demo_profile = None
     st.session_state.run_mode = None
 
 def set_demo_config():
