@@ -28,7 +28,7 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 # DEMO PROFILES (Guided Sandbox)
 # ==========================================
 DEMO_PROFILES = {
-    "buddy": {
+    "buddy_rx": {
         "label": {
             "en": "RX Antenna Comparison. Buddy Test. (Vanhamel et al.)",
             "de": "RX Antenna Comparison. Buddy Test. (Vanhamel et al.)",
@@ -47,6 +47,27 @@ DEMO_PROFILES = {
         "start_t": dt_time(17, 24),
         "end_t": dt_time(7, 12),
         "ref_callsign": "ON4AWM1"
+    },
+
+    "buddy_tx": {
+        "label": {
+            "en": "TX Antenna Comparison. Buddy Test. (Zander et al.)",
+            "de": "TX Antenna Comparison. Buddy Test. (Zander et al.)",
+        },
+        "description": {
+            "en": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 9-6] - Figure 4",
+            "de": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 9-6] - Figure 4",
+        },
+        "run_mode": "TX",
+        "comp_mode_key": "opt_comp_buddy",
+        "callsign": "SK0WE/P",
+        "qth": "JO97",
+        "band": "20m",
+        "start_d": datetime.date(2022, 5, 21),
+        "end_d": datetime.date(2022, 5, 21),
+        "start_t": dt_time(9, 00),
+        "end_t": dt_time(12, 00),
+        "ref_callsign": "SK0WE/1"
     },
 
     "radius": {
