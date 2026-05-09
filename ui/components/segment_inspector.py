@@ -27,6 +27,10 @@ def _add_horizontal_grid(ax):
     ax.set_axisbelow(True)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
 
+def _unique_station_order(stations):
+    """Return station labels once, preserving the table selection order."""
+    return list(dict.fromkeys([str(s) for s in stations if pd.notna(s)]))
+
 def _parse_ref_detail_rows(value):
     """Parse ClickHouse Array(Tuple(...)) CSV output for Local Median drill-down display."""
     if value is None:
@@ -90,6 +94,10 @@ def _evidence_labels(is_compare):
 
 def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
     """Build raw evidence points for the selected-station distribution and time plots."""
+    sel_stations = _unique_station_order(sel_stations)
+    if not sel_stations:
+        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
     if station_df.empty:
         return pd.DataFrame(columns=["station", "plot_time", "metric"])
 
@@ -98,7 +106,7 @@ def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
             return pd.DataFrame(columns=["station", "plot_time", "metric"])
 
         evidence_df = station_df[["peer_sign", "time", "stat_val"]].copy()
-        evidence_df["station"] = evidence_df["peer_sign"]
+        evidence_df["station"] = evidence_df["peer_sign"].astype(str)
         evidence_df["plot_time"] = pd.to_datetime(evidence_df["time"], errors="coerce")
         evidence_df["metric"] = pd.to_numeric(evidence_df["stat_val"], errors="coerce")
     elif is_sequential:
@@ -127,7 +135,7 @@ def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
             .reset_index(name="ref_snr")
         )
         evidence_df = target_df.merge(ref_df, on=["peer_sign", "time_bin"], how="inner")
-        evidence_df["station"] = evidence_df["peer_sign"]
+        evidence_df["station"] = evidence_df["peer_sign"].astype(str)
         evidence_df["plot_time"] = evidence_df["time_bin"]
         evidence_df["metric"] = evidence_df["target_snr"] - evidence_df["ref_snr"]
     else:
@@ -139,7 +147,7 @@ def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
         for col in ["time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"]:
             evidence_df[col] = pd.to_numeric(evidence_df[col], errors="coerce")
         evidence_df = evidence_df[(evidence_df["has_u"] > 0) & (evidence_df["has_r"] > 0)]
-        evidence_df["station"] = evidence_df["peer_sign"]
+        evidence_df["station"] = evidence_df["peer_sign"].astype(str)
         evidence_df["plot_time"] = pd.to_datetime(evidence_df["time_slot"] * 120, unit="s", errors="coerce")
         evidence_df["metric"] = (
             pd.to_numeric(evidence_df["snr_u_norm"], errors="coerce") -
@@ -218,6 +226,10 @@ def _draw_raincloud(ax, grouped_values, group_labels, colors):
 
 def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
+    sel_stations = _unique_station_order(sel_stations)
+    if not sel_stations:
+        return
+
     evidence_df = _build_evidence_points(station_df, sel_stations, is_compare, is_sequential)
     if evidence_df.empty:
         return
