@@ -144,6 +144,7 @@ with col_b1:
 with col_b2:
     if st.button(t["btn_demo"], width='stretch'):
         st.session_state.show_demo_launcher = not st.session_state.get("show_demo_launcher", False)
+        reset_audit()
 
 if st.session_state.get("show_demo_launcher", False):
     render_demo_launcher()
