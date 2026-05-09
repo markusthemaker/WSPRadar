@@ -19,7 +19,7 @@ from config import COMPASS
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
-EVIDENCE_TIME_AGG_OPTIONS = ["Raw", "1h", "2h", "3h", "6h", "12h", "24h"]
+EVIDENCE_TIME_AGG_OPTIONS = ["Raw", "1h", "3h", "6h", "12h", "24h"]
 GRID_COLOR = "#777777"
 GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
@@ -293,6 +293,23 @@ def _aggregate_time_points(plot_df, time_agg):
     )
     return agg_df
 
+def _sort_drilldown_default(drill_df):
+    """Sort drill-down rows by UTC timestamp, then station label when available."""
+    if drill_df is None or drill_df.empty or "Date/Time (UTC)" not in drill_df.columns:
+        return drill_df
+
+    sort_df = drill_df.copy()
+    sort_df["_sort_time"] = pd.to_datetime(sort_df["Date/Time (UTC)"], format="%d-%b-%Y %H:%M:%S", errors="coerce")
+
+    sort_cols = ["_sort_time"]
+    for candidate in ["TX Station", "RX Station"]:
+        if candidate in sort_df.columns:
+            sort_cols.append(candidate)
+            break
+
+    sort_df = sort_df.sort_values(sort_cols, ascending=[True] * len(sort_cols), na_position="last")
+    return sort_df.drop(columns=["_sort_time"]).reset_index(drop=True)
+
 def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
     sel_stations = _unique_station_order(sel_stations)
@@ -330,8 +347,8 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
     group_labels, grouped_values, colors = map(list, zip(*non_empty))
     color_map = dict(zip(group_labels, colors))
 
-    ctrl_left, ctrl_mid, ctrl_right = st.columns([0.22, 0.56, 0.22])
-    with ctrl_mid:
+    ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
+    with ctrl_time:
         agg_key = f"evidence_time_agg_{hash(tuple(sel_stations))}_{is_compare}_{is_sequential}"
         if hasattr(st, "segmented_control"):
             time_agg = st.segmented_control(
@@ -909,6 +926,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 if info_msg:
                     st.info(info_msg, icon="??????")
                 elif drill_df is not None and not drill_df.empty:
+                    drill_df = _sort_drilldown_default(drill_df)
+
                     # Spalten-Layout ??hnlich der Master-Tabelle (Titel links, Filter rechts)
                     col_d1, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
                     
