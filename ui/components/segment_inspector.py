@@ -19,9 +19,9 @@ from config import COMPASS
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
-GRID_COLOR = "#444444"
-GRID_LINEWIDTH = 0.35
-GRID_ALPHA = 0.45
+GRID_COLOR = "#777777"
+GRID_LINEWIDTH = 0.4
+GRID_ALPHA = 0.35
 
 def _add_horizontal_grid(ax):
     ax.set_axisbelow(True)
@@ -62,14 +62,14 @@ def _evidence_labels(is_compare):
                 "time_title": "Delta SNR ueber Zeit",
                 "y_label": "Delta SNR (dB)",
                 "x_label": "Datum/Uhrzeit (UTC)",
-                "aggregate": "Ausgewaehlte Stationen aggregiert",
+                "aggregate": "Selected Stations",
             }
         return {
             "dist_title": "Normiertes SNR Verteilung",
             "time_title": "Normiertes SNR ueber Zeit",
             "y_label": "Normiertes SNR (dB @ 1W)",
             "x_label": "Datum/Uhrzeit (UTC)",
-            "aggregate": "Ausgewaehlte Stationen aggregiert",
+            "aggregate": "Selected Stations",
         }
 
     if is_compare:
@@ -78,14 +78,14 @@ def _evidence_labels(is_compare):
             "time_title": "Delta SNR over Time",
             "y_label": "Delta SNR (dB)",
             "x_label": "Date/Time (UTC)",
-            "aggregate": "Selected stations aggregate",
+            "aggregate": "Selected Stations",
         }
     return {
         "dist_title": "Normalized SNR Distribution",
         "time_title": "Normalized SNR over Time",
         "y_label": "Normalized SNR (dB @ 1W)",
         "x_label": "Date/Time (UTC)",
-        "aggregate": "Selected stations aggregate",
+        "aggregate": "Selected Stations",
     }
 
 def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
