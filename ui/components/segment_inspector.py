@@ -435,30 +435,35 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
     # Render Dropdowns
     col_insp1, col_insp2 = st.columns(2)
     with col_insp1: 
-        sel_dist = st.selectbox("Distance", [lbl_dist, opt_full] + filtered_distances, key=f"dist_{analysis_id}_{run_id}", label_visibility="collapsed")
+        dist_key = f"dist_{analysis_id}_{run_id}"
+        dist_options = [opt_full] + filtered_distances
+        if st.session_state.get(dist_key) in (None, lbl_dist) or st.session_state.get(dist_key) not in dist_options:
+            st.session_state[dist_key] = opt_full
+        sel_dist = st.selectbox("Distance", dist_options, key=dist_key, label_visibility="collapsed")
     with col_insp2:
-        if sel_dist != lbl_dist:
-            if sel_dist == opt_full:
-                valid_dirs = sorted(
-                    [d for d in inspector_source_df['dir_name'].dropna().unique() if d in COMPASS],
-                    key=lambda x: COMPASS.index(x)
-                )
-            else:
-                valid_dirs = sorted(
-                    [d for d in inspector_source_df[inspector_source_df['dist_label'] == sel_dist]['dir_name'].dropna().unique() if d in COMPASS],
-                    key=lambda x: COMPASS.index(x)
-                )
-            
-            if not valid_dirs: valid_dirs = [t.get("opt_no_station", "No Stations")]
-            if valid_dirs != [t.get("opt_no_station", "No Stations")]: 
-                sel_dir = st.selectbox("Direction", [lbl_dir, opt_all_dir] + valid_dirs, key=f"dir_{analysis_id}_{run_id}", label_visibility="collapsed")
-            else: 
-                sel_dir = st.selectbox("Direction", [lbl_dir] + valid_dirs, key=f"dir_{analysis_id}_{run_id}", disabled=True, label_visibility="collapsed")
+        dir_key = f"dir_{analysis_id}_{run_id}"
+        if sel_dist == opt_full:
+            valid_dirs = sorted(
+                [d for d in inspector_source_df['dir_name'].dropna().unique() if d in COMPASS],
+                key=lambda x: COMPASS.index(x)
+            )
+        else:
+            valid_dirs = sorted(
+                [d for d in inspector_source_df[inspector_source_df['dist_label'] == sel_dist]['dir_name'].dropna().unique() if d in COMPASS],
+                key=lambda x: COMPASS.index(x)
+            )
+
+        if not valid_dirs:
+            dir_options = [t.get("opt_no_station", "No Stations")]
+            sel_dir = st.selectbox("Direction", dir_options, key=dir_key, disabled=True, label_visibility="collapsed")
         else: 
-            sel_dir = st.selectbox("Direction", [lbl_dir], key=f"dir_{analysis_id}_{run_id}", disabled=True, label_visibility="collapsed")
+            dir_options = [opt_all_dir] + valid_dirs
+            if st.session_state.get(dir_key) in (None, lbl_dir) or st.session_state.get(dir_key) not in dir_options:
+                st.session_state[dir_key] = opt_all_dir
+            sel_dir = st.selectbox("Direction", dir_options, key=dir_key, label_visibility="collapsed")
 
     # If user selected a valid segment, process the inspection data
-    if sel_dist != lbl_dist and sel_dir != lbl_dir and sel_dir != t.get("opt_no_station", "No Stations"):
+    if sel_dir != t.get("opt_no_station", "No Stations"):
         selected_seg = f"{sel_dist if sel_dist != opt_full else t['opt_full_range']} | {sel_dir if sel_dir != opt_all_dir else t['opt_all_dirs']}"
         df_seg = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
         
@@ -719,7 +724,9 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
         # ----------------------------------------------------
-        sel_rows = tbl_event.selection.rows
+        # Streamlit dataframe selection state is user-driven; when no row is selected,
+        # open the first sorted row so the most active station is inspectable by default.
+        sel_rows = tbl_event.selection.rows or ([0] if not sorted_disp_df.empty else [])
         if sel_rows:
             loc_col = t['tbl_col_loc']
             selected_meta_df = sorted_disp_df.iloc[sel_rows][[station_col, loc_col, t['tbl_col_km'], t['tbl_col_az']]].copy()

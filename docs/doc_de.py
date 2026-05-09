@@ -271,6 +271,9 @@ Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Distanzring und
 * In Vergleichsmodi zeigt das Histogramm Delta-SNR-Werte. Es zeigt, ob ein Segmentmedian aus konsistenter &Uuml;berlegenheit oder aus breiter, instabiler Streuung entsteht.
 * Die Station-Insights-Tabelle listet beteiligte Remote-Stationen, trennt Joint Decodes von exklusiven Decodes und zeigt den stationsbezogenen medianen Delta SNR.
 * Ein Klick auf eine Station-Insights-Zeile &ouml;ffnet die Drill-Down-Tabelle.
+* Wenn keine Station-Insights-Zeile ausgew&auml;hlt ist, &ouml;ffnet WSPRadar standardm&auml;&szlig;ig die aktivste Zeile: in Vergleichsmodi die Zeile mit den meisten Joint Spots oder Joint Bins, in absoluten Modi die Zeile mit den meisten Spots.
+* Die Auswahl einer oder mehrerer Station-Insights-Zeilen f&uuml;gt oberhalb der Drill-Down-Tabelle einen zweiteiligen Evidenzblock ein. Links bleibt die rohe Verteilung der ausgew&auml;hlten Evidenz sichtbar: normiertes SNR in absoluten Modi, Delta SNR in Vergleichsmodi. Rechts wird dieselbe ausgew&auml;hlte Evidenz &uuml;ber die UTC-Zeit dargestellt.
+* Die Zeitaggregations-Auswahl oberhalb des rechten Panels wirkt nur auf den Zeitplot. `Raw` zeigt alle ausgew&auml;hlten zeilenbasierten Punkte; `1h`, `3h`, `6h`, `12h` und `24h` ersetzen diese Punkte durch Mediane fester UTC-Zeitbins. Das Verteilungspanel bleibt roh, damit die vollst&auml;ndige ausgew&auml;hlte Evidenzpopulation sichtbar bleibt.
 * `Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Beide (Async)` zeigen.
 
 **Drill-Down-Tabelle**
