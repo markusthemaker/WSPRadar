@@ -83,6 +83,35 @@ t = T[st.session_state.lang]
 # Apply global custom CSS styling
 apply_custom_css()
 
+@st.dialog(t["btn_demo"], width="large")
+def render_demo_dialog():
+    demo_keys = list(DEMO_PROFILES.keys())
+
+    def format_demo_label(profile_key):
+        profile = DEMO_PROFILES[profile_key]
+        label = profile.get("label", {})
+        return label.get(st.session_state.lang, label.get("en", profile_key))
+
+    if demo_keys and st.session_state.get("selected_demo_profile") not in demo_keys:
+        st.session_state.selected_demo_profile = demo_keys[0]
+
+    selected_demo = st.radio(
+        t.get("lbl_demo_select", "Select demo profile"),
+        demo_keys,
+        key="selected_demo_profile",
+        format_func=format_demo_label,
+        label_visibility="collapsed"
+    )
+    demo_profile = DEMO_PROFILES[selected_demo]
+    demo_description = demo_profile.get("description", {}).get(
+        st.session_state.lang,
+        demo_profile.get("description", {}).get("en", "")
+    )
+    if demo_description:
+        st.caption(demo_description)
+    if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
+        run_demo_profile(selected_demo)
+
 # Header Section: Logo and Titles for PC
 logo_base64 = get_base64_of_bin_file("img/WSPRadar.png")
 st.markdown(f"""
@@ -110,33 +139,8 @@ with col_b1:
     st.button(btn_reset_lbl, on_click=set_reset_config, width='stretch')
 
 with col_b2:
-    demo_keys = list(DEMO_PROFILES.keys())
-
-    def format_demo_label(profile_key):
-        profile = DEMO_PROFILES[profile_key]
-        label = profile.get("label", {})
-        return label.get(st.session_state.lang, label.get("en", profile_key))
-
-    if demo_keys and st.session_state.get("selected_demo_profile") not in demo_keys:
-        st.session_state.selected_demo_profile = demo_keys[0]
-
-    with st.popover(t["btn_demo"], use_container_width=True):
-        selected_demo = st.radio(
-            t.get("lbl_demo_select", "Select demo profile"),
-            demo_keys,
-            key="selected_demo_profile",
-            format_func=format_demo_label,
-            label_visibility="collapsed"
-        )
-        demo_profile = DEMO_PROFILES[selected_demo]
-        demo_description = demo_profile.get("description", {}).get(
-            st.session_state.lang,
-            demo_profile.get("description", {}).get("en", "")
-        )
-        if demo_description:
-            st.caption(demo_description)
-        if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
-            run_demo_profile(selected_demo)
+    if st.button(t["btn_demo"], width='stretch'):
+        render_demo_dialog()
 
 # Dynamischer CSS Glow für den Exit-Button
 if st.session_state.is_demo_mode:
