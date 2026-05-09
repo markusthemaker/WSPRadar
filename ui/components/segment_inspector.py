@@ -12,13 +12,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.dates as mdates
-from matplotlib.lines import Line2D
 import cartopy.feature as cfeature
 import streamlit as st
 from config import COMPASS
 
-EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e"]
+EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
+EVIDENCE_SEPARATE_STATION_LIMIT = 5
+GRID_COLOR = "#444444"
+GRID_LINEWIDTH = 0.35
+GRID_ALPHA = 0.45
+
+def _add_horizontal_grid(ax):
+    ax.set_axisbelow(True)
+    ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
 
 def _parse_ref_detail_rows(value):
     """Parse ClickHouse Array(Tuple(...)) CSV output for Local Median drill-down display."""
@@ -151,7 +158,7 @@ def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
 def _style_evidence_axis(ax):
     ax.set_facecolor("black")
     ax.tick_params(colors="white")
-    ax.grid(True, color="#333333", alpha=0.45, linewidth=0.5)
+    _add_horizontal_grid(ax)
     for spine in ax.spines.values():
         spine.set_color("#444444")
 
@@ -216,7 +223,7 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
         return
 
     labels = _evidence_labels(is_compare)
-    separate_stations = len(sel_stations) <= 3
+    separate_stations = len(sel_stations) <= EVIDENCE_SEPARATE_STATION_LIMIT
 
     if separate_stations:
         group_labels = [s for s in sel_stations if s in set(evidence_df["station"].astype(str))]
@@ -271,23 +278,6 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
     ax_time.set_xlabel(labels["x_label"], color="white")
     ax_time.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
-
-    handles = [
-        Line2D([0], [0], marker="o", color="none", markerfacecolor=color_map[group],
-               markersize=7, label=group)
-        for group in group_labels
-    ]
-    legend = fig_ev.legend(
-        handles=handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.05),
-        ncol=min(len(handles), 3),
-        facecolor="#121212",
-        edgecolor="#444444",
-        framealpha=1.0,
-    )
-    for text in legend.get_texts():
-        text.set_color("white")
 
     st.pyplot(fig_ev, width="stretch")
     plt.close(fig_ev)
@@ -426,6 +416,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_yield.tick_params(axis='y', colors='white')
                 ax_yield.tick_params(axis='x', colors='white', labelrotation=20, labelsize=9)
                 for spine in ax_yield.spines.values(): spine.set_color('#444444')
+                _add_horizontal_grid(ax_yield)
                 
                 # System Sensitivity (Yield) counts unique STATIONS, not spots
                 # Universelle Logik f?r Simultan und Sequenziell:
@@ -470,6 +461,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             ax_hist.set_facecolor('black')
             ax_hist.tick_params(colors='white')
             for spine in ax_hist.spines.values(): spine.set_color('#444444')
+            _add_horizontal_grid(ax_hist)
             
             if not vals.empty:
                 hist_vals = vals.round(0).astype(int) if is_compare else vals
