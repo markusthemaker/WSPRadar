@@ -20,7 +20,7 @@ EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
 GRID_COLOR = "#777777"
-GRID_LINEWIDTH = 0.4
+GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
 
 def _add_horizontal_grid(ax):
@@ -160,6 +160,7 @@ def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
     if evidence_df.empty:
         return evidence_df
 
+    evidence_df["metric"] = evidence_df["metric"].round(1)
     evidence_df["station"] = pd.Categorical(evidence_df["station"], categories=sel_stations, ordered=True)
     return evidence_df.sort_values(["station", "plot_time"]).reset_index(drop=True)
 
@@ -285,6 +286,9 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
             edgecolors="none",
             label=group,
         )
+        med = float(group_df["metric"].median())
+        line_color = color_map[group] if separate_stations else "red"
+        ax_time.axhline(med, color=line_color, linestyle="dashed", linewidth=1.6, alpha=0.95, zorder=2)
 
     ax_time.set_title(labels["time_title"], color="white", fontweight="bold", pad=10)
     ax_time.set_xlabel(labels["x_label"], color="white")
@@ -561,6 +565,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             disp_df = disp_df[disp_df[col_joint_name] > 0]
 
         metric_col = disp_df.columns[-1]
+        disp_df[metric_col] = pd.to_numeric(disp_df[metric_col], errors='coerce').round(1)
         if is_compare:
             sort_cols = [col_joint_name, metric_col] if col_joint_name != metric_col else [col_joint_name]
         else:
@@ -625,6 +630,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
                     drill_df = station_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr', 'power', 'stat_val']].copy()
                     drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm@1W']
+                    for col in ['SNR (Raw)', 'Norm@1W']:
+                        drill_df[col] = pd.to_numeric(drill_df[col], errors='coerce').round(1)
                     
                 else:
                     if is_sequential:
@@ -755,6 +762,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             elif 'best_ref_sign' in joint_df.columns:
                                 # Delta nur berechnen, wenn BEIDE Seiten existieren
                                 joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+                                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
+                                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
                                 # 1. Werte f??r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
                                 joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
                                 joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
@@ -770,6 +779,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             else:
                                 # Delta nur berechnen, wenn BEIDE Seiten existieren
                                 joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+                                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
+                                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
                                 # 1. Werte f??r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
                                 joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
                                 joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
