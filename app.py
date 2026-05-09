@@ -268,18 +268,12 @@ if st.session_state.run_mode:
         
     # Storage Management: Purge expired parquet cache files before starting a new run
     cleanup_old_parquets()
-    
-    # Delegate complex SQL query generation to the analysis runner engine
-    analyses = build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign)
+
     active_demo_key = st.session_state.get("active_demo_profile")
     active_demo = DEMO_PROFILES.get(active_demo_key) if active_demo_key else None
     is_demo_run = active_demo is not None
 
-    # Buffers to hold UI fragments that must be rendered AFTER the maps are drawn
-    deferred_render_data = []
-    lbl_wait_seg = "⏳ Lade..." if st.session_state.lang == "de" else "⏳ Loading..."
-
-    # Initialize the visual audit log for the user
+    # Initialize the visual audit log before any SQL work starts, including cycle-sync prequeries.
     if active_demo:
         demo_label = active_demo.get("label", {}).get(st.session_state.lang, active_demo.get("label", {}).get("en", active_demo_key))
         status_label = f"Running {st.session_state.run_mode} demo: loading WSPR data... ({demo_label})"
@@ -290,7 +284,15 @@ if st.session_state.run_mode:
     with status_box:
         status_body = st.empty()
     status_log = ["**System Audit Status:**"]
+    status_log.append("- Preparing synchronized WSPR cycles and analysis queries...")
     status_body.markdown("  \n".join(status_log))
+
+    # Delegate complex SQL query generation to the analysis runner engine
+    analyses = build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign)
+
+    # Buffers to hold UI fragments that must be rendered AFTER the maps are drawn
+    deferred_render_data = []
+    lbl_wait_seg = "⏳ Lade..." if st.session_state.lang == "de" else "⏳ Loading..."
     
     # Iterate through the generated SQL batches (e.g., Target vs. Reference)
     for i, analysis in enumerate(analyses):
