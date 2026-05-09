@@ -135,12 +135,8 @@ with col_b2:
         )
         if demo_description:
             st.caption(demo_description)
-        st.button(
-            t.get("btn_run_demo_selected", "Run selected demo"),
-            on_click=run_demo_profile,
-            args=(selected_demo,),
-            width='stretch'
-        )
+        if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
+            run_demo_profile(selected_demo)
 
 # Dynamischer CSS Glow für den Exit-Button
 if st.session_state.is_demo_mode:
