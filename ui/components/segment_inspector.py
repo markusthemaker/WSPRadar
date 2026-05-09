@@ -625,7 +625,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
             else: 
                 ax_hist.set_xlabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
-                ax_hist.set_ylabel("Joint Spots", color='white')
+                ax_hist.set_ylabel("Stations", color='white')
             
             # 3. Add Common Footer Text
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
