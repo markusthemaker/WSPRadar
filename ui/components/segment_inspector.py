@@ -11,9 +11,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.dates as mdates
+from matplotlib.lines import Line2D
 import cartopy.feature as cfeature
 import streamlit as st
 from config import COMPASS
+
+EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e"]
+EVIDENCE_AGG_COLOR = "#36aaf9"
 
 def _parse_ref_detail_rows(value):
     """Parse ClickHouse Array(Tuple(...)) CSV output for Local Median drill-down display."""
@@ -40,6 +45,252 @@ def _parse_ref_detail_rows(value):
                 "ref_snr": row[3]
             })
     return parsed_rows
+
+def _evidence_labels(is_compare):
+    """Return UI labels for the selected-station evidence plots."""
+    if st.session_state.get("lang") == "de":
+        if is_compare:
+            return {
+                "dist_title": "Delta SNR Verteilung",
+                "time_title": "Delta SNR ueber Zeit",
+                "y_label": "Delta SNR (dB)",
+                "x_label": "Datum/Uhrzeit (UTC)",
+                "aggregate": "Ausgewaehlte Stationen aggregiert",
+            }
+        return {
+            "dist_title": "Normiertes SNR Verteilung",
+            "time_title": "Normiertes SNR ueber Zeit",
+            "y_label": "Normiertes SNR (dB @ 1W)",
+            "x_label": "Datum/Uhrzeit (UTC)",
+            "aggregate": "Ausgewaehlte Stationen aggregiert",
+        }
+
+    if is_compare:
+        return {
+            "dist_title": "Delta SNR Distribution",
+            "time_title": "Delta SNR over Time",
+            "y_label": "Delta SNR (dB)",
+            "x_label": "Date/Time (UTC)",
+            "aggregate": "Selected stations aggregate",
+        }
+    return {
+        "dist_title": "Normalized SNR Distribution",
+        "time_title": "Normalized SNR over Time",
+        "y_label": "Normalized SNR (dB @ 1W)",
+        "x_label": "Date/Time (UTC)",
+        "aggregate": "Selected stations aggregate",
+    }
+
+def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
+    """Build raw evidence points for the selected-station distribution and time plots."""
+    if station_df.empty:
+        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+    if not is_compare:
+        if "time" not in station_df.columns or "stat_val" not in station_df.columns:
+            return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+        evidence_df = station_df[["peer_sign", "time", "stat_val"]].copy()
+        evidence_df["station"] = evidence_df["peer_sign"]
+        evidence_df["plot_time"] = pd.to_datetime(evidence_df["time"], errors="coerce")
+        evidence_df["metric"] = pd.to_numeric(evidence_df["stat_val"], errors="coerce")
+    elif is_sequential:
+        required_cols = {"peer_sign", "time", "is_me", "stat_val"}
+        if not required_cols.issubset(station_df.columns):
+            return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+        bin_minutes = st.session_state.get("val_tx_ab_bin_minutes", 8)
+        work_df = station_df[list(required_cols)].copy()
+        work_df["dt_time"] = pd.to_datetime(work_df["time"], errors="coerce")
+        work_df = work_df.dropna(subset=["dt_time"])
+        work_df["time_bin"] = work_df["dt_time"].dt.floor(f"{bin_minutes}min")
+        work_df["is_me"] = pd.to_numeric(work_df["is_me"], errors="coerce")
+        work_df["stat_val"] = pd.to_numeric(work_df["stat_val"], errors="coerce")
+
+        target_df = (
+            work_df[work_df["is_me"] == 1]
+            .groupby(["peer_sign", "time_bin"], dropna=False)["stat_val"]
+            .median()
+            .reset_index(name="target_snr")
+        )
+        ref_df = (
+            work_df[work_df["is_me"] == 0]
+            .groupby(["peer_sign", "time_bin"], dropna=False)["stat_val"]
+            .median()
+            .reset_index(name="ref_snr")
+        )
+        evidence_df = target_df.merge(ref_df, on=["peer_sign", "time_bin"], how="inner")
+        evidence_df["station"] = evidence_df["peer_sign"]
+        evidence_df["plot_time"] = evidence_df["time_bin"]
+        evidence_df["metric"] = evidence_df["target_snr"] - evidence_df["ref_snr"]
+    else:
+        required_cols = {"peer_sign", "time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"}
+        if not required_cols.issubset(station_df.columns):
+            return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+        evidence_df = station_df[list(required_cols)].copy()
+        for col in ["time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"]:
+            evidence_df[col] = pd.to_numeric(evidence_df[col], errors="coerce")
+        evidence_df = evidence_df[(evidence_df["has_u"] > 0) & (evidence_df["has_r"] > 0)]
+        evidence_df["station"] = evidence_df["peer_sign"]
+        evidence_df["plot_time"] = pd.to_datetime(evidence_df["time_slot"] * 120, unit="s", errors="coerce")
+        evidence_df["metric"] = (
+            pd.to_numeric(evidence_df["snr_u_norm"], errors="coerce") -
+            pd.to_numeric(evidence_df["snr_r_norm"], errors="coerce")
+        )
+
+    evidence_df = evidence_df[["station", "plot_time", "metric"]].copy()
+    evidence_df = evidence_df.dropna(subset=["station", "plot_time", "metric"])
+    evidence_df = evidence_df[evidence_df["station"].isin(sel_stations)]
+    if evidence_df.empty:
+        return evidence_df
+
+    evidence_df["station"] = pd.Categorical(evidence_df["station"], categories=sel_stations, ordered=True)
+    return evidence_df.sort_values(["station", "plot_time"]).reset_index(drop=True)
+
+def _style_evidence_axis(ax):
+    ax.set_facecolor("black")
+    ax.tick_params(colors="white")
+    ax.grid(True, color="#333333", alpha=0.45, linewidth=0.5)
+    for spine in ax.spines.values():
+        spine.set_color("#444444")
+
+def _draw_raincloud(ax, grouped_values, group_labels, colors):
+    positions = np.arange(1, len(grouped_values) + 1)
+    rng = np.random.default_rng(42)
+
+    violin_values = []
+    violin_positions = []
+    violin_colors = []
+    for pos, values, color in zip(positions, grouped_values, colors):
+        if len(values) >= 2:
+            violin_values.append(values)
+            violin_positions.append(pos)
+            violin_colors.append(color)
+
+    if violin_values:
+        violins = ax.violinplot(
+            violin_values,
+            positions=violin_positions,
+            widths=0.62,
+            showmeans=False,
+            showmedians=False,
+            showextrema=False,
+        )
+        for body, pos, color in zip(violins["bodies"], violin_positions, violin_colors):
+            verts = body.get_paths()[0].vertices
+            verts[:, 0] = np.maximum(verts[:, 0], pos)
+            body.set_facecolor(color)
+            body.set_edgecolor(color)
+            body.set_alpha(0.28)
+
+    for pos, values, color in zip(positions, grouped_values, colors):
+        jitter_x = pos - 0.18 + rng.normal(0, 0.045, len(values))
+        ax.scatter(jitter_x, values, s=12, color=color, alpha=0.58, edgecolors="none", zorder=3)
+
+    box = ax.boxplot(
+        grouped_values,
+        positions=positions,
+        widths=0.14,
+        patch_artist=True,
+        showfliers=False,
+        manage_ticks=False,
+    )
+    for patch, color in zip(box["boxes"], colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.45)
+        patch.set_edgecolor("#cccccc")
+    for key in ["whiskers", "caps", "medians"]:
+        for artist in box[key]:
+            artist.set_color("#cccccc")
+            artist.set_linewidth(1.0)
+
+    ax.set_xticks(positions)
+    ax.set_xticklabels(group_labels, rotation=20, ha="right", color="white", fontsize=9)
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
+
+def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential):
+    """Render selected-station distribution and time evidence between insights and drill-down."""
+    evidence_df = _build_evidence_points(station_df, sel_stations, is_compare, is_sequential)
+    if evidence_df.empty:
+        return
+
+    labels = _evidence_labels(is_compare)
+    separate_stations = len(sel_stations) <= 3
+
+    if separate_stations:
+        group_labels = [s for s in sel_stations if s in set(evidence_df["station"].astype(str))]
+        plot_df = evidence_df.copy()
+        plot_df["plot_group"] = plot_df["station"].astype(str)
+        colors = EVIDENCE_COLORS[:len(group_labels)]
+    else:
+        group_labels = [labels["aggregate"]]
+        plot_df = evidence_df.copy()
+        plot_df["plot_group"] = labels["aggregate"]
+        colors = [EVIDENCE_AGG_COLOR]
+
+    if not group_labels:
+        return
+
+    grouped_values = [
+        plot_df.loc[plot_df["plot_group"] == group, "metric"].to_numpy(dtype=float)
+        for group in group_labels
+    ]
+    non_empty = [(label, values, color) for label, values, color in zip(group_labels, grouped_values, colors) if len(values) > 0]
+    if not non_empty:
+        return
+    group_labels, grouped_values, colors = map(list, zip(*non_empty))
+    color_map = dict(zip(group_labels, colors))
+
+    fig_ev = plt.figure(figsize=(12, 4.5), facecolor="black")
+    fig_ev.subplots_adjust(left=0.05, right=0.95, bottom=0.25, top=0.80, wspace=0.3)
+    gs = fig_ev.add_gridspec(1, 3)
+    ax_cloud = fig_ev.add_subplot(gs[0, 0])
+    ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
+
+    _style_evidence_axis(ax_cloud)
+    _style_evidence_axis(ax_time)
+
+    _draw_raincloud(ax_cloud, grouped_values, group_labels, colors)
+    ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
+    ax_cloud.set_ylabel(labels["y_label"], color="white")
+
+    for group in group_labels:
+        group_df = plot_df[plot_df["plot_group"] == group]
+        ax_time.scatter(
+            group_df["plot_time"],
+            group_df["metric"],
+            s=12,
+            color=color_map[group],
+            alpha=0.58,
+            edgecolors="none",
+            label=group,
+        )
+
+    ax_time.set_title(labels["time_title"], color="white", fontweight="bold", pad=10)
+    ax_time.set_xlabel(labels["x_label"], color="white")
+    ax_time.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
+    ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
+
+    handles = [
+        Line2D([0], [0], marker="o", color="none", markerfacecolor=color_map[group],
+               markersize=7, label=group)
+        for group in group_labels
+    ]
+    legend = fig_ev.legend(
+        handles=handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.05),
+        ncol=min(len(handles), 3),
+        facecolor="#121212",
+        edgecolor="#444444",
+        framealpha=1.0,
+    )
+    for text in legend.get_texts():
+        text.set_color("white")
+
+    st.pyplot(fig_ev, width="stretch")
+    plt.close(fig_ev)
 
 @st.fragment
 def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enriched_df, segs_df, parquet_path, line1_str, t, max_dist_km):
@@ -305,8 +556,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
             disp_df = disp_df[disp_df[col_joint_name] > 0]
 
-        sorted_disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
-        disp_df = disp_df.sort_values(by=disp_df.columns[-1], ascending=False, na_position='last').reset_index(drop=True)
+        metric_col = disp_df.columns[-1]
+        if is_compare:
+            sort_cols = [col_joint_name, metric_col] if col_joint_name != metric_col else [col_joint_name]
+        else:
+            sort_cols = [t['tbl_col_spots'], metric_col] if t['tbl_col_spots'] != metric_col else [t['tbl_col_spots']]
+        sorted_disp_df = disp_df.sort_values(by=sort_cols, ascending=[False] * len(sort_cols), na_position='last').reset_index(drop=True)
+        disp_df = sorted_disp_df.copy()
 
         # --- DYNAMIC EXCEL-STYLE FILTER ---
         # Da wir sorted_disp_df jetzt vorbereitet haben, springen wir zur??ck in Spalte 3 f??r den Button
@@ -355,6 +611,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 # Merge logic to append calculated distance and azimuth from the aggregated dataframe to the raw spots
                 meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]]
                 station_df = station_df.merge(meta_df, left_on='peer_sign', right_on=station_col, how='inner')
+
+                _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential)
                 
                 drill_df = None
                 info_msg = None
