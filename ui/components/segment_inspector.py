@@ -31,8 +31,12 @@ def _unique_station_order(stations):
     """Return station labels once, preserving the table selection order."""
     return list(dict.fromkeys([str(s) for s in stations if pd.notna(s)]))
 
-def _format_one_decimal_or_none(value):
-    """Format SNR-like display values with exactly one decimal, preserving None markers."""
+def _is_median_display_column(column_name):
+    text = str(column_name).lower()
+    return "median" in text or "micro-med" in text
+
+def _format_metric_or_none(value, decimals=0):
+    """Format SNR-like display values, preserving None markers."""
     if pd.isna(value):
         return ""
     if isinstance(value, str):
@@ -41,10 +45,11 @@ def _format_one_decimal_or_none(value):
             return "None" if stripped.lower() == "none" else ""
         try:
             number = float(stripped)
-            return f"{number:+.1f}" if stripped.startswith("+") else f"{number:.1f}"
         except ValueError:
             return value
-    return f"{float(value):.1f}"
+    else:
+        number = float(value)
+    return f"{number:.{decimals}f}"
 
 def _is_snr_display_column(column_name):
     text = str(column_name)
@@ -57,12 +62,22 @@ def _is_snr_display_column(column_name):
     )
 
 def _format_snr_display_columns(df):
-    """Return a display-only copy with SNR-like columns rendered at one decimal."""
+    """Return a display-only copy with SNR-like columns rendered compactly."""
     display_df = df.copy()
     for col in display_df.columns:
         if _is_snr_display_column(col):
-            display_df[col] = display_df[col].map(_format_one_decimal_or_none)
+            decimals = 1 if _is_median_display_column(col) else 0
+            display_df[col] = display_df[col].map(lambda value, d=decimals: _format_metric_or_none(value, d))
     return display_df
+
+def _snr_column_config(df):
+    """Keep numeric SNR columns right-aligned while controlling displayed precision."""
+    config = {}
+    for col in df.columns:
+        if _is_snr_display_column(col) and pd.api.types.is_numeric_dtype(df[col]):
+            number_format = "%.1f" if _is_median_display_column(col) else "%.0f"
+            config[col] = st.column_config.NumberColumn(format=number_format)
+    return config
 
 def _parse_ref_detail_rows(value):
     """Parse ClickHouse Array(Tuple(...)) CSV output for Local Median drill-down display."""
@@ -319,9 +334,6 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
             edgecolors="none",
             label=group,
         )
-        med = float(group_df["metric"].median())
-        line_color = color_map[group] if separate_stations else "red"
-        ax_time.axhline(med, color=line_color, linestyle="dashed", linewidth=1.6, alpha=0.95, zorder=2)
 
     ax_time.set_title(labels["time_title"], color="white", fontweight="bold", pad=10)
     ax_time.set_xlabel(labels["x_label"], color="white")
@@ -631,29 +643,51 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         # --- END FILTER ---
 
         # Die Tabelle rendert nun den gefilterten Zustand
-        sorted_disp_display_df = _format_snr_display_columns(sorted_disp_df)
-        tbl_event = st.dataframe(sorted_disp_display_df, width='stretch', hide_index=True, selection_mode="multi-row", on_select="rerun", key=f"tbl_{analysis_id}_{run_id}_{selected_seg}")
+        tbl_event = st.dataframe(
+            sorted_disp_df,
+            width='stretch',
+            hide_index=True,
+            selection_mode="multi-row",
+            on_select="rerun",
+            key=f"tbl_{analysis_id}_{run_id}_{selected_seg}",
+            column_config=_snr_column_config(sorted_disp_df)
+        )
 
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
         # ----------------------------------------------------
         sel_rows = tbl_event.selection.rows
         if sel_rows:
-            sel_stations = sorted_disp_df.iloc[sel_rows][station_col].tolist()
+            loc_col = t['tbl_col_loc']
+            selected_meta_df = sorted_disp_df.iloc[sel_rows][[station_col, loc_col, t['tbl_col_km'], t['tbl_col_az']]].copy()
+            selected_meta_df[station_col] = selected_meta_df[station_col].astype(str)
+            selected_meta_df[loc_col] = selected_meta_df[loc_col].astype(str)
+            selected_meta_df = selected_meta_df.drop_duplicates(subset=[station_col, loc_col])
+            sel_stations = selected_meta_df[station_col].tolist()
             
             # Titel vorbereiten (wird erst unten im Layout gerendert)
-            if len(sel_rows) == 1: 
-                drill_title = t['lbl_drill_single'].format(station=sel_stations[0])
+            if len(selected_meta_df) == 1:
+                selected_station = selected_meta_df.iloc[0][station_col]
+                selected_locator = selected_meta_df.iloc[0][loc_col]
+                drill_title = t['lbl_drill_single'].format(station=f"{selected_station} ({selected_locator})")
             else: 
-                drill_title = t['lbl_drill_multi'].format(count=len(sel_rows))
+                drill_title = t['lbl_drill_multi'].format(count=len(selected_meta_df))
                 
             try:
                 # Load the raw spots straight from the parquet cache for blazing fast drill-downs
-                station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', sel_stations)])
+                station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', _unique_station_order(sel_stations))])
+                station_df['peer_sign'] = station_df['peer_sign'].astype(str)
+                station_df['peer_grid'] = station_df['peer_grid'].astype(str)
                 
-                # Merge logic to append calculated distance and azimuth from the aggregated dataframe to the raw spots
-                meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]]
-                station_df = station_df.merge(meta_df, left_on='peer_sign', right_on=station_col, how='inner')
+                # Merge logic to append calculated distance and azimuth from the selected table rows.
+                # The locator is part of the identity here; otherwise one bad/non-joint locator row
+                # (for example a single false upstream spot) gets pasted onto every row for the same callsign.
+                station_df = station_df.merge(
+                    selected_meta_df,
+                    left_on=['peer_sign', 'peer_grid'],
+                    right_on=[station_col, loc_col],
+                    how='inner'
+                )
 
                 _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential)
                 
