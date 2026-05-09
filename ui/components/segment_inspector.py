@@ -22,6 +22,7 @@ EVIDENCE_SEPARATE_STATION_LIMIT = 5
 EVIDENCE_ROLLING_WINDOW = "3h"
 EVIDENCE_ROLLING_MIN_POINTS = 8
 EVIDENCE_ROLLING_MIN_TOTAL = 16
+EVIDENCE_ROLLING_GAP = pd.Timedelta(EVIDENCE_ROLLING_WINDOW)
 GRID_COLOR = "#777777"
 GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
@@ -290,10 +291,24 @@ def _rolling_median_series(group_df):
         .set_index("plot_time")["metric"]
         .rolling(EVIDENCE_ROLLING_WINDOW, center=True, min_periods=EVIDENCE_ROLLING_MIN_POINTS)
         .median()
-        .dropna()
         .reset_index(name="rolling_median")
+        .dropna(subset=["rolling_median"])
     )
     return rolling
+
+def _rolling_median_segments(rolling_df):
+    """Split a rolling median into contiguous runs so sparse periods are not bridged."""
+    if rolling_df.empty:
+        return []
+
+    rolling_df = rolling_df.sort_values("plot_time").copy()
+    gaps = rolling_df["plot_time"].diff() > EVIDENCE_ROLLING_GAP
+    rolling_df["segment_id"] = gaps.cumsum()
+    return [
+        seg_df
+        for _, seg_df in rolling_df.groupby("segment_id", sort=False)
+        if len(seg_df) >= 2
+    ]
 
 def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
@@ -357,14 +372,22 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
             label=group,
         )
         rolling_df = _rolling_median_series(group_df)
-        if not rolling_df.empty:
+        for rolling_seg in _rolling_median_segments(rolling_df):
             ax_time.plot(
-                rolling_df["plot_time"],
-                rolling_df["rolling_median"],
-                color=color_map[group],
-                linewidth=2.0,
-                alpha=0.95,
+                rolling_seg["plot_time"],
+                rolling_seg["rolling_median"],
+                color="black",
+                linewidth=3.8,
+                alpha=0.55,
                 zorder=4,
+            )
+            ax_time.plot(
+                rolling_seg["plot_time"],
+                rolling_seg["rolling_median"],
+                color=color_map[group],
+                linewidth=1.8,
+                alpha=0.42,
+                zorder=5,
             )
 
     ax_time.set_title(labels["time_title"], color="white", fontweight="bold", pad=10)
