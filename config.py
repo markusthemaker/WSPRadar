@@ -28,36 +28,14 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 # DEMO PROFILES (Guided Sandbox)
 # ==========================================
 DEMO_PROFILES = {
-    "radius": {
-        "label": {
-            "en": "RX local median neighborhood benchmark",
-            "de": "RX lokaler Median-Nachbarschafts-Benchmark",
-        },
-        "description": {
-            "en": "Runs an RX comparison against the local median neighborhood around DL1MKS on 20m.",
-            "de": "Startet einen RX-Vergleich gegen die lokale Median-Nachbarschaft um DL1MKS auf 20m.",
-        },
-        "run_mode": "RX",
-        "comp_mode_key": "opt_comp_radius",
-        "local_benchmark_key": "opt_local_median",
-        "callsign": "DL1MKS",
-        "qth": "JN37",
-        "band": "20m",
-        "start_d": datetime.date(2026, 3, 27),
-        "end_d": datetime.date(2026, 3, 31),
-        "start_t": dt_time(0, 0),
-        "end_t": dt_time(0, 0),
-        "ref_stations": 25,
-        "ref_radius_km": 250
-    },
     "buddy": {
         "label": {
-            "en": "RX test against reference station",
-            "de": "RX Test gegen Referenzstation",
+            "en": "RX Antenna Comparison. Buddy Test. (Vanhamel et al.)",
+            "de": "RX Antenna Comparison. Buddy Test. (Vanhamel et al.)",
         },
         "description": {
-            "en": "Publication: Vanhamel, Machiels, Lamy [Ref 9-5] - Figure 6",
-            "de": "Sublication: Vanhamel, Machiels, Lamy [Ref 9-5] - Figure 6",
+            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 9-5] - Figure 6",
+            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 9-5] - Figure 6",
         },
         "run_mode": "RX",
         "comp_mode_key": "opt_comp_buddy",
@@ -70,6 +48,29 @@ DEMO_PROFILES = {
         "end_t": dt_time(7, 12),
         "ref_callsign": "ON4AWM1"
     },
+
+    "radius": {
+        "label": {
+            "en": "RX Local Neighborhood Benchmark (Median)",
+            "de": "RX Lokaler Nachbarschafts-Benchmark (Median)",
+        },
+        "description": {
+            "en": "Runs an RX comparison against the local median neighborhood around DL1MKS on 20m.",
+            "de": "Startet einen RX-Vergleich gegen die lokale Median-Nachbarschaft um DL1MKS auf 20m.",
+        },
+        "run_mode": "RX",
+        "comp_mode_key": "opt_comp_radius",
+        "local_benchmark_key": "opt_local_median",
+        "callsign": "DL1MKS",
+        "qth": "JN37",
+        "band": "20m",
+        "start_d": datetime.date(2026, 4, 6),
+        "end_d": datetime.date(2026, 4, 6),
+        "start_t": dt_time(7, 0),
+        "end_t": dt_time(23, 0),
+        "ref_radius_km": 200
+    },
+
     "self_rx": {
         "label": {
             "en": "RX hardware A/B test",

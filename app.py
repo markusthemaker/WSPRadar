@@ -218,6 +218,7 @@ with c_run2:
 
 # Validate user logic before assigning run_mode
 if run_tx_clicked:
+    st.session_state.active_demo_profile = None
     if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
         st.error(t["err_wrong_run"].format(cfg="RX", run="TX"))
         st.stop()
@@ -228,6 +229,7 @@ if run_tx_clicked:
         if k.startswith("img_buf_"): del st.session_state[k]
 
 if run_rx_clicked:
+    st.session_state.active_demo_profile = None
     if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_tx"]:
         st.error(t["err_wrong_run"].format(cfg="TX", run="RX"))
         st.stop()
@@ -269,15 +271,26 @@ if st.session_state.run_mode:
     
     # Delegate complex SQL query generation to the analysis runner engine
     analyses = build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign)
-    is_demo_run = st.session_state.get("is_demo_mode", False)
+    active_demo_key = st.session_state.get("active_demo_profile")
+    active_demo = DEMO_PROFILES.get(active_demo_key) if active_demo_key else None
+    is_demo_run = active_demo is not None
 
     # Buffers to hold UI fragments that must be rendered AFTER the maps are drawn
     deferred_render_data = []
     lbl_wait_seg = "⏳ Lade..." if st.session_state.lang == "de" else "⏳ Loading..."
 
     # Initialize the visual audit log for the user
-    status_log = ["**📡 System Audit Status:**"]
-    status_ui.markdown("  \n".join(status_log))
+    if active_demo:
+        demo_label = active_demo.get("label", {}).get(st.session_state.lang, active_demo.get("label", {}).get("en", active_demo_key))
+        status_label = f"Running {st.session_state.run_mode} demo: loading WSPR data... ({demo_label})"
+    else:
+        status_label = f"Running {st.session_state.run_mode} analysis: loading WSPR data..."
+
+    status_box = st.status(status_label, expanded=True, state="running")
+    with status_box:
+        status_body = st.empty()
+    status_log = ["**System Audit Status:**"]
+    status_body.markdown("  \n".join(status_log))
     
     # Iterate through the generated SQL batches (e.g., Target vs. Reference)
     for i, analysis in enumerate(analyses):
@@ -291,9 +304,9 @@ if st.session_state.run_mode:
             fetch_time = time.time() - t_start 
             
             # Update the UI audit log with fetch performance metrics
-            source_str = "🌐 wspr.live DB" if st.session_state.get("_db_hit", False) else "⚡ RAM Cache"
-            status_log.append(f"- Map {i+1}/2 ({analysis['title']}): Loaded from **{source_str}** in {fetch_time:.2f}s")
-            status_ui.markdown("  \n".join(status_log))
+            source_str = "wspr.live" if st.session_state.get("_db_hit", False) else "RAM cache"
+            status_log.append(f"- Map {i+1}/{len(analyses)}: {analysis['title']} loaded from **{source_str}** in {fetch_time:.2f}s")
+            status_body.markdown("  \n".join(status_log))
             
             if df is not None and not df.empty:
                 
@@ -314,6 +327,7 @@ if st.session_state.run_mode:
                     st.error(f"Error writing cache: {e}")
 
                 # Step 4: Pass the data to the backend plotting engine to generate the Matplotlib figure
+                status_box.update(label=f"Rendering maps... ({i+1}/{len(analyses)})", state="running", expanded=True)
                 plot_result = generate_map_plot(
                     df, analysis['title'], analysis['is_compare'], analysis['is_sequential'], 
                     start_t, end_t, max_dist_km, analysis['id'], 
@@ -359,7 +373,7 @@ if st.session_state.run_mode:
                 st.warning(t["warn_no_data"].format(title=analysis['title']))
         st.markdown("---")
         
-    status_ui.empty()
+    status_box.update(label="Complete", state="complete", expanded=False)
 
     # Flush deferred inspector fragments dynamically into the DOM
     for data in deferred_render_data:

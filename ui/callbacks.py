@@ -16,6 +16,7 @@ def reset_audit():
     stale or outdated map data isn't displayed on the screen.
     """
     st.session_state.run_mode = None
+    st.session_state.active_demo_profile = None
 
 def swap_tx_slots_u():
     """
