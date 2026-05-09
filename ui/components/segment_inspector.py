@@ -19,6 +19,9 @@ from config import COMPASS
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
+EVIDENCE_ROLLING_WINDOW = "3h"
+EVIDENCE_ROLLING_MIN_POINTS = 8
+EVIDENCE_ROLLING_MIN_TOTAL = 16
 GRID_COLOR = "#777777"
 GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
@@ -273,6 +276,25 @@ def _draw_raincloud(ax, grouped_values, group_labels, colors):
     ax.set_xticklabels(group_labels, rotation=20, ha="right", color="white", fontsize=9)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
 
+def _rolling_median_series(group_df):
+    """Return a centered time-based rolling median for sufficiently dense evidence."""
+    if len(group_df) < EVIDENCE_ROLLING_MIN_TOTAL:
+        return pd.DataFrame(columns=["plot_time", "rolling_median"])
+
+    work_df = group_df[["plot_time", "metric"]].dropna().sort_values("plot_time").copy()
+    if work_df.empty:
+        return pd.DataFrame(columns=["plot_time", "rolling_median"])
+
+    rolling = (
+        work_df
+        .set_index("plot_time")["metric"]
+        .rolling(EVIDENCE_ROLLING_WINDOW, center=True, min_periods=EVIDENCE_ROLLING_MIN_POINTS)
+        .median()
+        .dropna()
+        .reset_index(name="rolling_median")
+    )
+    return rolling
+
 def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
     sel_stations = _unique_station_order(sel_stations)
@@ -334,6 +356,16 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
             edgecolors="none",
             label=group,
         )
+        rolling_df = _rolling_median_series(group_df)
+        if not rolling_df.empty:
+            ax_time.plot(
+                rolling_df["plot_time"],
+                rolling_df["rolling_median"],
+                color=color_map[group],
+                linewidth=2.0,
+                alpha=0.95,
+                zorder=4,
+            )
 
     ax_time.set_title(labels["time_title"], color="white", fontweight="bold", pad=10)
     ax_time.set_xlabel(labels["x_label"], color="white")
