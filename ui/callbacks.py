@@ -159,6 +159,7 @@ def run_demo_profile(profile_key):
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
+    st.rerun()
 
 def handle_comp_mode_change():
     """

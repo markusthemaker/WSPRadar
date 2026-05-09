@@ -52,22 +52,22 @@ DEMO_PROFILES = {
     },
     "buddy": {
         "label": {
-            "en": "TX buddy test against reference station",
-            "de": "TX Buddy-Test gegen Referenzstation",
+            "en": "RX test against reference station",
+            "de": "RX Test gegen Referenzstation",
         },
         "description": {
-            "en": "Runs a TX reference-station comparison using ON4AWM0 against ON4AWM1 on 160m.",
-            "de": "Startet einen TX-Referenzstationsvergleich mit ON4AWM0 gegen ON4AWM1 auf 160m.",
+            "en": "Publication: Vanhamel, Machiels, Lamy [Ref 9-5] - Figure 6",
+            "de": "Sublication: Vanhamel, Machiels, Lamy [Ref 9-5] - Figure 6",
         },
-        "run_mode": "TX",
+        "run_mode": "RX",
         "comp_mode_key": "opt_comp_buddy",
         "callsign": "ON4AWM0",
         "qth": "JO20OT",
         "band": "160m",
-        "start_d": datetime.date(2021, 5, 8),
+        "start_d": datetime.date(2021, 5, 1),
         "end_d": datetime.date(2021, 5, 15),
-        "start_t": dt_time(10, 31),
-        "end_t": dt_time(10, 31),
+        "start_t": dt_time(17, 24),
+        "end_t": dt_time(7, 12),
         "ref_callsign": "ON4AWM1"
     },
     "self_rx": {
