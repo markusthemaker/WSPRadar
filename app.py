@@ -83,9 +83,11 @@ t = T[st.session_state.lang]
 # Apply global custom CSS styling
 apply_custom_css()
 
-@st.dialog(t["btn_demo"], width="large")
-def render_demo_dialog():
+def render_demo_launcher():
     demo_keys = list(DEMO_PROFILES.keys())
+
+    if not demo_keys:
+        return
 
     def format_demo_label(profile_key):
         profile = DEMO_PROFILES[profile_key]
@@ -95,22 +97,23 @@ def render_demo_dialog():
     if demo_keys and st.session_state.get("selected_demo_profile") not in demo_keys:
         st.session_state.selected_demo_profile = demo_keys[0]
 
-    selected_demo = st.radio(
-        t.get("lbl_demo_select", "Select demo profile"),
-        demo_keys,
-        key="selected_demo_profile",
-        format_func=format_demo_label,
-        label_visibility="collapsed"
-    )
-    demo_profile = DEMO_PROFILES[selected_demo]
-    demo_description = demo_profile.get("description", {}).get(
-        st.session_state.lang,
-        demo_profile.get("description", {}).get("en", "")
-    )
-    if demo_description:
-        st.caption(demo_description)
-    if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
-        run_demo_profile(selected_demo)
+    with st.expander(t.get("lbl_demo_select", "Select demo profile"), expanded=True):
+        selected_demo = st.radio(
+            t.get("lbl_demo_select", "Select demo profile"),
+            demo_keys,
+            key="selected_demo_profile",
+            format_func=format_demo_label,
+            label_visibility="collapsed"
+        )
+        demo_profile = DEMO_PROFILES[selected_demo]
+        demo_description = demo_profile.get("description", {}).get(
+            st.session_state.lang,
+            demo_profile.get("description", {}).get("en", "")
+        )
+        if demo_description:
+            st.caption(demo_description)
+        if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
+            run_demo_profile(selected_demo)
 
 # Header Section: Logo and Titles for PC
 logo_base64 = get_base64_of_bin_file("img/WSPRadar.png")
@@ -140,7 +143,12 @@ with col_b1:
 
 with col_b2:
     if st.button(t["btn_demo"], width='stretch'):
-        render_demo_dialog()
+        st.session_state.show_demo_launcher = not st.session_state.get("show_demo_launcher", False)
+
+if st.session_state.get("show_demo_launcher", False):
+    render_demo_launcher()
+
+run_status_slot = st.empty()
 
 # Dynamischer CSS Glow für den Exit-Button
 if st.session_state.is_demo_mode:
@@ -245,7 +253,6 @@ if run_rx_clicked:
         if k.startswith("img_buf_"): del st.session_state[k]
 
 st.markdown('<hr style="border: none; border-top: 1px solid rgba(57, 255, 20, 0.3); margin: 2rem 0;">', unsafe_allow_html=True)
-status_ui = st.empty()
 
 # ==========================================
 # ANALYSIS EXECUTION BLOCK
@@ -280,9 +287,10 @@ if st.session_state.run_mode:
     else:
         status_label = f"Running {st.session_state.run_mode} analysis: loading WSPR data..."
 
-    status_box = st.status(status_label, expanded=True, state="running")
-    with status_box:
-        status_body = st.empty()
+    with run_status_slot.container():
+        status_box = st.status(status_label, expanded=True, state="running")
+        with status_box:
+            status_body = st.empty()
     status_log = ["**System Audit Status:**"]
     status_log.append("- Preparing synchronized WSPR cycles and analysis queries...")
     status_body.markdown("  \n".join(status_log))
