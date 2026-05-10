@@ -30,8 +30,8 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 DEMO_PROFILES = {
     "buddy_rx": {
         "label": {
-            "en": "RX Antenna Comparison. Buddy Test. (Vanhamel et al.)",
-            "de": "RX Antenna Comparison. Buddy Test. (Vanhamel et al.)",
+            "en": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
+            "de": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
         },
         "description": {
             "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 9-5] - Figure 6",
@@ -51,8 +51,8 @@ DEMO_PROFILES = {
 
     "buddy_tx": {
         "label": {
-            "en": "TX Antenna Comparison. Buddy Test. (Zander et al.)",
-            "de": "TX Antenna Comparison. Buddy Test. (Zander et al.)",
+            "en": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
+            "de": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
         },
         "description": {
             "en": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 9-6] - Figure 4",
@@ -68,6 +68,27 @@ DEMO_PROFILES = {
         "start_t": dt_time(9, 00),
         "end_t": dt_time(12, 00),
         "ref_callsign": "SK0WE/1"
+    },
+
+    "milazzo": {
+        "label": {
+            "en": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
+            "de": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
+        },
+        "description": {
+            "en": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 9-15]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
+            "de": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 9-15]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
+        },
+        "run_mode": "TX",
+        "comp_mode_key": "opt_comp_buddy",
+        "callsign": "KP4MD",
+        "qth": "CM98",
+        "band": "40m",
+        "start_d": datetime.date(2010, 12, 18),
+        "end_d": datetime.date(2010, 12, 21),
+        "start_t": dt_time(0, 00),
+        "end_t": dt_time(0, 00),
+        "ref_callsign": "WB6RQN"
     },
 
     "radius": {
@@ -113,6 +134,7 @@ DEMO_PROFILES = {
         "end_t": dt_time(23, 59),
         "self_call_b": "DL1MKS/P"
     },
+    
     "self_tx": {
         "label": {
             "en": "TX hardware A/B test",
