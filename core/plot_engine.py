@@ -71,11 +71,10 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         min_s = st.session_state.val_min_spots
         
         # Gruppierungsschlüssel und Aggregations-Regeln für die Geometrie-Metadaten
-        group_keys = ['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign']
+        group_keys = ['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign', 'peer_grid']
         spatial_agg = {
             'peer_lat': 'first',
             'peer_lon': 'first',
-            'peer_grid': 'first',
             'calc_dist': 'first',
             'calc_azimuth': 'first'
         }
