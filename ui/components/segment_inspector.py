@@ -503,9 +503,9 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     fig_ev = plt.figure(figsize=(13, 4.5), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
-    gs = fig_ev.add_gridspec(1, 3)
+    gs = fig_ev.add_gridspec(1, 2, width_ratios=[0.55, 2.45])
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
-    ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
+    ax_time = fig_ev.add_subplot(gs[0, 1], sharey=ax_cloud)
 
     _style_evidence_axis(ax_cloud)
     _style_evidence_axis(ax_time)
@@ -809,7 +809,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     ax_hist.set_xticks(ticks)
                     
                 ax_hist.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=2, label=f"{med:.1f} dB")
+                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
                 ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
             else:
                 # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
@@ -819,7 +819,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
 
             spot_med = _draw_horizontal_raincloud(ax_spot, segment_raw_values, color="#36aaf9")
             if pd.notna(spot_med):
-                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=2, label=f"{spot_med:.1f} dB")
+                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
                 ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
             else:
                 ax_spot.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_spot.transAxes)
