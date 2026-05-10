@@ -306,6 +306,14 @@ def _draw_raincloud(ax, grouped_values, group_labels, colors):
     ax.set_xticklabels(group_labels, rotation=20, ha="right", color="white", fontsize=9)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
 
+def _draw_single_vertical_raincloud(ax, values, label, color="#36aaf9"):
+    """Draw one vertical raincloud and return the median of its plotted values."""
+    values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
+    if len(values) == 0:
+        return np.nan
+    _draw_raincloud(ax, [values], [label], [color])
+    return float(np.median(values))
+
 def _draw_horizontal_raincloud(ax, values, color="#36aaf9"):
     """Draw one horizontal raw-observation raincloud for segment-level evidence."""
     values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
@@ -501,7 +509,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     time_plot_df = _aggregate_time_points(plot_df, time_agg)
 
-    fig_ev = plt.figure(figsize=(13, 6.32), facecolor="black")
+    fig_ev = plt.figure(figsize=(13, 4.5), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
     gs = fig_ev.add_gridspec(1, 2, width_ratios=[0.69, 2.31])
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
@@ -799,17 +807,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             for spine in ax_spot.spines.values(): spine.set_color('#444444')
             
             if not vals.empty:
-                hist_vals = vals.round(0).astype(int) if is_compare else vals
-                med = hist_vals.median()
-                val_counts = hist_vals.value_counts().sort_index()
-                ax_hist.bar(val_counts.index, val_counts.values, width=0.4, align='center', color='#36aaf9', alpha=0.8, edgecolor='black')
-                
-                if (hist_vals.max() - hist_vals.min()) <= 30:
-                    ticks = np.arange(np.floor(hist_vals.min()), np.ceil(hist_vals.max()) + 1, 1.0)
-                    ax_hist.set_xticks(ticks)
-                    
-                ax_hist.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
+                med = _draw_single_vertical_raincloud(ax_hist, vals, "Station Medians", color="#36aaf9")
+                ax_hist.axhline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
                 ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
             else:
                 # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
@@ -817,9 +816,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_xticks([])
                 ax_hist.set_yticks([])
 
-            spot_med = _draw_horizontal_raincloud(ax_spot, segment_raw_values, color="#36aaf9")
+            spot_label = "Paired Bins" if is_sequential else ("Joint Spots" if is_compare else "Spots")
+            spot_med = _draw_single_vertical_raincloud(ax_spot, segment_raw_values, spot_label, color="#36aaf9")
             if pd.notna(spot_med):
-                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
+                ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
                 ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
             else:
                 ax_spot.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_spot.transAxes)
@@ -827,15 +827,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_spot.set_yticks([])
                 
             if not is_compare: 
-                ax_hist.set_xlabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
-                ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
-                ax_spot.set_xlabel("Normalized SNR (dB @ 1W)", color='white')
-                ax_spot.set_ylabel("Spot density", color='white')
+                ax_hist.set_ylabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
+                ax_spot.set_ylabel("Normalized SNR (dB @ 1W)", color='white')
             else: 
-                ax_hist.set_xlabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
-                ax_hist.set_ylabel("Stations", color='white')
-                ax_spot.set_xlabel("\u0394 SNR (dB)" if not is_sequential else "Paired-Bin \u0394 SNR (dB)", color='white')
-                ax_spot.set_ylabel("Joint-spot density", color='white')
+                ax_hist.set_ylabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
+                ax_spot.set_ylabel("\u0394 SNR (dB)" if not is_sequential else "Paired-Bin \u0394 SNR (dB)", color='white')
             
             # 3. Add Common Footer Text
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
