@@ -501,18 +501,21 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     time_plot_df = _aggregate_time_points(plot_df, time_agg)
 
-    fig_ev = plt.figure(figsize=(12, 4.5), facecolor="black")
-    fig_ev.subplots_adjust(left=0.05, right=0.95, bottom=0.25, top=0.80, wspace=0.3)
+    fig_ev = plt.figure(figsize=(13, 4.5), facecolor="black")
+    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
     gs = fig_ev.add_gridspec(1, 3)
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
-    ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
+    ax_time = fig_ev.add_subplot(gs[0, 1:])
 
     _style_evidence_axis(ax_cloud)
     _style_evidence_axis(ax_time)
 
-    _draw_raincloud(ax_cloud, grouped_values, group_labels, colors)
+    # Temporary sanity-check rendering: use the same horizontal raincloud geometry
+    # as the segment-level Joint-Spot panel so visual density can be compared directly.
+    _draw_horizontal_raincloud(ax_cloud, plot_df["metric"], color=EVIDENCE_AGG_COLOR)
     ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
-    ax_cloud.set_ylabel(labels["y_label"], color="white")
+    ax_cloud.set_xlabel(labels["y_label"], color="white")
+    ax_cloud.set_ylabel("Selected density", color="white")
 
     for group in group_labels:
         group_df = time_plot_df[time_plot_df["plot_group"] == group]
