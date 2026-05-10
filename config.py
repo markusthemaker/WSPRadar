@@ -112,6 +112,7 @@ DEMO_PROFILES = {
         "end_t": dt_time(23, 0),
         "ref_radius_km": 200
     },
+    
 
     "self_rx": {
         "label": {
