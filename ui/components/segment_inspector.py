@@ -160,7 +160,7 @@ def _evidence_labels(is_compare):
     return {
         "dist_title": "Normalized SNR Distribution",
         "time_title": "Normalized SNR over Time",
-        "y_label": "Normalized SNR (dB @ 1W)",
+        "y_label": "Normalized SNR (dB @ 1 W)",
         "x_label": "Date/Time (UTC)",
         "aggregate": "Selected Stations",
     }
@@ -827,11 +827,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_spot.set_yticks([])
                 
             if not is_compare: 
-                ax_hist.set_ylabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
-                ax_spot.set_ylabel("Normalized SNR (dB @ 1W)", color='white')
+                ax_hist.set_ylabel("Normalized SNR (dB @ 1 W)", color='white')
+                ax_spot.set_ylabel("Normalized SNR (dB @ 1 W)", color='white')
             else: 
-                ax_hist.set_ylabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
-                ax_spot.set_ylabel("\u0394 SNR (dB)" if not is_sequential else "Paired-Bin \u0394 SNR (dB)", color='white')
+                ax_hist.set_ylabel("\u0394 SNR (dB)", color='white')
+                ax_spot.set_ylabel("\u0394 SNR (dB)", color='white')
             
             # 3. Add Common Footer Text
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
