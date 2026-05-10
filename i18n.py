@@ -14,7 +14,7 @@ T = {
         'tbl_col_micro_a': "Micro-Med A",
         'tbl_col_micro_b': "Micro-Med B",
         'tbl_col_bin_delta': "Bin \u0394",
-        "btn_demo": "Run Demo",
+        "btn_demo": "Run Demo", 
         "btn_run_demo_selected": "Run selected demo",
         "btn_reset": "🔄 Reset Config",
         "btn_run_tx": "📡 Run TX Antenna Analysis",
