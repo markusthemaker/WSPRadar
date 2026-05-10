@@ -511,9 +511,9 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     fig_ev = plt.figure(figsize=(13, 4.5), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
-    gs = fig_ev.add_gridspec(1, 2, width_ratios=[0.69, 2.31])
+    gs = fig_ev.add_gridspec(1, 3)
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
-    ax_time = fig_ev.add_subplot(gs[0, 1], sharey=ax_cloud)
+    ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
 
     _style_evidence_axis(ax_cloud)
     _style_evidence_axis(ax_time)
