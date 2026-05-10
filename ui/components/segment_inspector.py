@@ -33,6 +33,22 @@ def _unique_station_order(stations):
     """Return station labels once, preserving the table selection order."""
     return list(dict.fromkeys([str(s) for s in stations if pd.notna(s)]))
 
+def _empty_evidence_df():
+    return pd.DataFrame(columns=["identity", "station", "grid", "plot_time", "metric", "identity_order"])
+
+def _prepare_identity_meta(identity_df):
+    """Normalize selected station identities to callsign+locator rows with stable labels."""
+    if identity_df is None or identity_df.empty or not {"peer_sign", "peer_grid"}.issubset(identity_df.columns):
+        return pd.DataFrame(columns=["peer_sign", "peer_grid", "identity", "identity_order"])
+
+    meta = identity_df[["peer_sign", "peer_grid"]].dropna().copy()
+    meta["peer_sign"] = meta["peer_sign"].astype(str)
+    meta["peer_grid"] = meta["peer_grid"].astype(str)
+    meta = meta.drop_duplicates().reset_index(drop=True)
+    meta["identity"] = meta["peer_sign"] + " (" + meta["peer_grid"] + ")"
+    meta["identity_order"] = np.arange(len(meta))
+    return meta
+
 def _is_median_display_column(column_name):
     text = str(column_name).lower()
     return "median" in text or "micro-med" in text
@@ -149,27 +165,32 @@ def _evidence_labels(is_compare):
         "aggregate": "Selected Stations",
     }
 
-def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
-    """Build raw evidence points for the selected-station distribution and time plots."""
-    sel_stations = _unique_station_order(sel_stations)
-    if not sel_stations:
-        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+def _build_evidence_points(station_df, identity_df, is_compare, is_sequential):
+    """Build raw evidence points for the selected station+locator distribution and time plots."""
+    identity_meta = _prepare_identity_meta(identity_df)
+    if identity_meta.empty or station_df.empty:
+        return _empty_evidence_df()
 
+    station_df = station_df.copy()
+    if not {"peer_sign", "peer_grid"}.issubset(station_df.columns):
+        return _empty_evidence_df()
+    station_df["peer_sign"] = station_df["peer_sign"].astype(str)
+    station_df["peer_grid"] = station_df["peer_grid"].astype(str)
+    station_df = station_df.merge(identity_meta, on=["peer_sign", "peer_grid"], how="inner")
     if station_df.empty:
-        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+        return _empty_evidence_df()
 
     if not is_compare:
         if "time" not in station_df.columns or "stat_val" not in station_df.columns:
-            return pd.DataFrame(columns=["station", "plot_time", "metric"])
+            return _empty_evidence_df()
 
-        evidence_df = station_df[["peer_sign", "time", "stat_val"]].copy()
-        evidence_df["station"] = evidence_df["peer_sign"].astype(str)
+        evidence_df = station_df[["peer_sign", "peer_grid", "identity", "identity_order", "time", "stat_val"]].copy()
         evidence_df["plot_time"] = pd.to_datetime(evidence_df["time"], errors="coerce")
         evidence_df["metric"] = pd.to_numeric(evidence_df["stat_val"], errors="coerce")
     elif is_sequential:
-        required_cols = {"peer_sign", "time", "is_me", "stat_val"}
+        required_cols = {"peer_sign", "peer_grid", "identity", "identity_order", "time", "is_me", "stat_val"}
         if not required_cols.issubset(station_df.columns):
-            return pd.DataFrame(columns=["station", "plot_time", "metric"])
+            return _empty_evidence_df()
 
         bin_minutes = st.session_state.get("val_tx_ab_bin_minutes", 8)
         work_df = station_df[list(required_cols)].copy()
@@ -181,45 +202,48 @@ def _build_evidence_points(station_df, sel_stations, is_compare, is_sequential):
 
         target_df = (
             work_df[work_df["is_me"] == 1]
-            .groupby(["peer_sign", "time_bin"], dropna=False)["stat_val"]
+            .groupby(["peer_sign", "peer_grid", "identity", "identity_order", "time_bin"], dropna=False)["stat_val"]
             .median()
             .reset_index(name="target_snr")
         )
         ref_df = (
             work_df[work_df["is_me"] == 0]
-            .groupby(["peer_sign", "time_bin"], dropna=False)["stat_val"]
+            .groupby(["peer_sign", "peer_grid", "identity", "identity_order", "time_bin"], dropna=False)["stat_val"]
             .median()
             .reset_index(name="ref_snr")
         )
-        evidence_df = target_df.merge(ref_df, on=["peer_sign", "time_bin"], how="inner")
-        evidence_df["station"] = evidence_df["peer_sign"].astype(str)
+        evidence_df = target_df.merge(
+            ref_df,
+            on=["peer_sign", "peer_grid", "identity", "identity_order", "time_bin"],
+            how="inner"
+        )
         evidence_df["plot_time"] = evidence_df["time_bin"]
         evidence_df["metric"] = evidence_df["target_snr"] - evidence_df["ref_snr"]
     else:
-        required_cols = {"peer_sign", "time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"}
+        required_cols = {"peer_sign", "peer_grid", "identity", "identity_order", "time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"}
         if not required_cols.issubset(station_df.columns):
-            return pd.DataFrame(columns=["station", "plot_time", "metric"])
+            return _empty_evidence_df()
 
         evidence_df = station_df[list(required_cols)].copy()
         for col in ["time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"]:
             evidence_df[col] = pd.to_numeric(evidence_df[col], errors="coerce")
         evidence_df = evidence_df[(evidence_df["has_u"] > 0) & (evidence_df["has_r"] > 0)]
-        evidence_df["station"] = evidence_df["peer_sign"].astype(str)
         evidence_df["plot_time"] = pd.to_datetime(evidence_df["time_slot"] * 120, unit="s", errors="coerce")
         evidence_df["metric"] = (
             pd.to_numeric(evidence_df["snr_u_norm"], errors="coerce") -
             pd.to_numeric(evidence_df["snr_r_norm"], errors="coerce")
         )
 
-    evidence_df = evidence_df[["station", "plot_time", "metric"]].copy()
-    evidence_df = evidence_df.dropna(subset=["station", "plot_time", "metric"])
-    evidence_df = evidence_df[evidence_df["station"].isin(sel_stations)]
+    evidence_df = evidence_df[["identity", "peer_sign", "peer_grid", "identity_order", "plot_time", "metric"]].copy()
+    evidence_df.columns = ["identity", "station", "grid", "identity_order", "plot_time", "metric"]
+    evidence_df = evidence_df.dropna(subset=["identity", "plot_time", "metric"])
     if evidence_df.empty:
         return evidence_df
 
     evidence_df["metric"] = evidence_df["metric"].round(1)
-    evidence_df["station"] = pd.Categorical(evidence_df["station"], categories=sel_stations, ordered=True)
-    return evidence_df.sort_values(["station", "plot_time"]).reset_index(drop=True)
+    identity_labels = identity_meta["identity"].tolist()
+    evidence_df["identity"] = pd.Categorical(evidence_df["identity"], categories=identity_labels, ordered=True)
+    return evidence_df.sort_values(["identity_order", "plot_time"]).reset_index(drop=True)
 
 def _style_evidence_axis(ax):
     ax.set_facecolor("black")
@@ -338,14 +362,14 @@ def _draw_horizontal_raincloud(ax, values, color="#36aaf9"):
 def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequential):
     """Build raw segment-level evidence points from parquet using station+locator identity."""
     if df_seg.empty or not {"peer_sign", "peer_grid"}.issubset(df_seg.columns):
-        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+        return _empty_evidence_df()
 
     segment_meta = df_seg[["peer_sign", "peer_grid"]].dropna().copy()
     segment_meta["peer_sign"] = segment_meta["peer_sign"].astype(str)
     segment_meta["peer_grid"] = segment_meta["peer_grid"].astype(str)
     segment_meta = segment_meta.drop_duplicates()
     if segment_meta.empty:
-        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+        return _empty_evidence_df()
 
     read_columns = ["peer_sign", "peer_grid"]
     if not is_compare:
@@ -362,20 +386,20 @@ def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequenti
             filters=[("peer_sign", "in", segment_meta["peer_sign"].unique().tolist())]
         )
     except (FileNotFoundError, KeyError, ValueError):
-        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+        return _empty_evidence_df()
 
     if raw_df.empty:
-        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+        return _empty_evidence_df()
 
     raw_df["peer_sign"] = raw_df["peer_sign"].astype(str)
     raw_df["peer_grid"] = raw_df["peer_grid"].astype(str)
     segment_raw_df = raw_df.merge(segment_meta, on=["peer_sign", "peer_grid"], how="inner")
     if segment_raw_df.empty:
-        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+        return _empty_evidence_df()
 
     return _build_evidence_points(
         segment_raw_df,
-        segment_meta["peer_sign"].tolist(),
+        segment_meta,
         is_compare,
         is_sequential
     )
@@ -416,23 +440,24 @@ def _sort_drilldown_default(drill_df):
     sort_df = sort_df.sort_values(sort_cols, ascending=[True] * len(sort_cols), na_position="last")
     return sort_df.drop(columns=["_sort_time"]).reset_index(drop=True)
 
-def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential):
+def _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
-    sel_stations = _unique_station_order(sel_stations)
-    if not sel_stations:
+    identity_meta = _prepare_identity_meta(selected_identity_df)
+    if identity_meta.empty:
         return
 
-    evidence_df = _build_evidence_points(station_df, sel_stations, is_compare, is_sequential)
+    evidence_df = _build_evidence_points(station_df, identity_meta, is_compare, is_sequential)
     if evidence_df.empty:
         return
 
     labels = _evidence_labels(is_compare)
-    separate_stations = len(sel_stations) <= EVIDENCE_SEPARATE_STATION_LIMIT
+    identity_labels = identity_meta["identity"].tolist()
+    separate_stations = len(identity_labels) <= EVIDENCE_SEPARATE_STATION_LIMIT
 
     if separate_stations:
-        group_labels = [s for s in sel_stations if s in set(evidence_df["station"].astype(str))]
+        group_labels = [label for label in identity_labels if label in set(evidence_df["identity"].astype(str))]
         plot_df = evidence_df.copy()
-        plot_df["plot_group"] = plot_df["station"].astype(str)
+        plot_df["plot_group"] = plot_df["identity"].astype(str)
         colors = EVIDENCE_COLORS[:len(group_labels)]
     else:
         group_labels = [labels["aggregate"]]
@@ -455,7 +480,7 @@ def _render_selected_station_evidence(station_df, sel_stations, is_compare, is_s
 
     ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
     with ctrl_time:
-        agg_key = f"evidence_time_agg_{hash(tuple(sel_stations))}_{is_compare}_{is_sequential}"
+        agg_key = f"evidence_time_agg_{hash(tuple(identity_labels))}_{is_compare}_{is_sequential}"
         if hasattr(st, "segmented_control"):
             time_agg = st.segmented_control(
                 "Time aggregation",
@@ -891,7 +916,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             selected_meta_df[station_col] = selected_meta_df[station_col].astype(str)
             selected_meta_df[loc_col] = selected_meta_df[loc_col].astype(str)
             selected_meta_df = selected_meta_df.drop_duplicates(subset=[station_col, loc_col])
-            sel_stations = selected_meta_df[station_col].tolist()
+            selected_identity_df = selected_meta_df[[station_col, loc_col]].copy()
+            selected_identity_df.columns = ["peer_sign", "peer_grid"]
+            selected_identity_df = selected_identity_df.drop_duplicates()
+            sel_stations = selected_identity_df["peer_sign"].tolist()
             
             # Titel vorbereiten (wird erst unten im Layout gerendert)
             if len(selected_meta_df) == 1:
@@ -917,7 +945,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     how='inner'
                 )
 
-                _render_selected_station_evidence(station_df, sel_stations, is_compare, is_sequential)
+                _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential)
                 
                 drill_df = None
                 info_msg = None
