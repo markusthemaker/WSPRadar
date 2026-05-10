@@ -282,6 +282,104 @@ def _draw_raincloud(ax, grouped_values, group_labels, colors):
     ax.set_xticklabels(group_labels, rotation=20, ha="right", color="white", fontsize=9)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
 
+def _draw_horizontal_raincloud(ax, values, color="#36aaf9"):
+    """Draw one horizontal raw-observation raincloud for segment-level evidence."""
+    values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
+    if len(values) == 0:
+        return np.nan
+
+    pos = 1.0
+    rng = np.random.default_rng(42)
+
+    if len(values) >= 2:
+        violins = ax.violinplot(
+            [values],
+            positions=[pos],
+            vert=False,
+            widths=0.65,
+            showmeans=False,
+            showmedians=False,
+            showextrema=False,
+        )
+        for body in violins["bodies"]:
+            verts = body.get_paths()[0].vertices
+            verts[:, 1] = np.maximum(verts[:, 1], pos)
+            body.set_facecolor(color)
+            body.set_edgecolor(color)
+            body.set_alpha(0.28)
+
+    jitter_y = pos - 0.16 + rng.normal(0, 0.04, len(values))
+    ax.scatter(values, jitter_y, s=12, color=color, alpha=0.58, edgecolors="none", zorder=3)
+
+    box = ax.boxplot(
+        [values],
+        positions=[pos],
+        vert=False,
+        widths=0.14,
+        patch_artist=True,
+        showfliers=False,
+        manage_ticks=False,
+    )
+    for patch in box["boxes"]:
+        patch.set_facecolor(color)
+        patch.set_alpha(0.45)
+        patch.set_edgecolor("#cccccc")
+    for key in ["whiskers", "caps", "medians"]:
+        for artist in box[key]:
+            artist.set_color("#cccccc")
+            artist.set_linewidth(1.0)
+
+    ax.set_yticks([])
+    ax.set_ylim(0.55, 1.55)
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
+    ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
+    return float(np.median(values))
+
+def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequential):
+    """Build raw segment-level evidence points from parquet using station+locator identity."""
+    if df_seg.empty or not {"peer_sign", "peer_grid"}.issubset(df_seg.columns):
+        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+    segment_meta = df_seg[["peer_sign", "peer_grid"]].dropna().copy()
+    segment_meta["peer_sign"] = segment_meta["peer_sign"].astype(str)
+    segment_meta["peer_grid"] = segment_meta["peer_grid"].astype(str)
+    segment_meta = segment_meta.drop_duplicates()
+    if segment_meta.empty:
+        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+    read_columns = ["peer_sign", "peer_grid"]
+    if not is_compare:
+        read_columns += ["time", "stat_val"]
+    elif is_sequential:
+        read_columns += ["time", "is_me", "stat_val"]
+    else:
+        read_columns += ["time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"]
+
+    try:
+        raw_df = pd.read_parquet(
+            parquet_path,
+            columns=read_columns,
+            filters=[("peer_sign", "in", segment_meta["peer_sign"].unique().tolist())]
+        )
+    except (FileNotFoundError, KeyError, ValueError):
+        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+    if raw_df.empty:
+        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+    raw_df["peer_sign"] = raw_df["peer_sign"].astype(str)
+    raw_df["peer_grid"] = raw_df["peer_grid"].astype(str)
+    segment_raw_df = raw_df.merge(segment_meta, on=["peer_sign", "peer_grid"], how="inner")
+    if segment_raw_df.empty:
+        return pd.DataFrame(columns=["station", "plot_time", "metric"])
+
+    return _build_evidence_points(
+        segment_raw_df,
+        segment_meta["peer_sign"].tolist(),
+        is_compare,
+        is_sequential
+    )
+
 def _aggregate_time_points(plot_df, time_agg):
     """Aggregate plotted evidence into fixed UTC median bins for the time plot only."""
     if time_agg == "Raw":
@@ -539,14 +637,17 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             has_plot_data = True
 
         if has_plot_data:
+            segment_evidence_df = _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequential)
+            segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
             fig_hist = plt.figure(figsize=(12, 4.5), facecolor='black')
             
             # Setup Layout based on Absolute vs. Compare Mode
             if is_compare and 'count_only_u' in df_seg.columns:
-                fig_hist.subplots_adjust(left=0.05, right=0.95, bottom=0.25, top=0.80, wspace=0.3)
+                fig_hist.subplots_adjust(left=0.05, right=0.97, bottom=0.25, top=0.80, wspace=0.35)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_yield = fig_hist.add_subplot(gs[0, 0])
-                ax_hist = fig_hist.add_subplot(gs[0, 1:])
+                ax_hist = fig_hist.add_subplot(gs[0, 1])
+                ax_spot = fig_hist.add_subplot(gs[0, 2])
                 
                 # 1. Setup Yield Bar Chart (Left)
                 ax_yield.set_facecolor('black')
@@ -584,21 +685,50 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                 f'{(height/total_yield)*100:.1f}%',
                                 ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
                 
-                # Adjust Titles for Dual Plot
-                ax_hist.set_title("Hardware Linearity (\u0394 SNR)", color='white', fontweight='bold', pad=10)
+                # Adjust Titles for Three-Panel Compare Plot
+                ax_hist.set_title("Station Medians (Delta SNR)", color='white', fontweight='bold', pad=10)
+                ax_spot.set_title("Paired-Bin Delta SNR" if is_sequential else "Joint-Spot Delta SNR", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
                 
             else:
-                # Fallback for Absolute Mode (Single Plot)
-                fig_hist.subplots_adjust(left=0.05, right=0.85, bottom=0.25, top=0.85)
-                ax_hist = fig_hist.add_subplot(1,1,1)
-                ax_hist.set_title(f"{title} - {selected_seg}", color='white', fontweight='bold', pad=15)
+                # Absolute Mode: activity, station-balanced medians, and raw spot distribution
+                fig_hist.subplots_adjust(left=0.05, right=0.97, bottom=0.25, top=0.80, wspace=0.35)
+                gs = fig_hist.add_gridspec(1, 3)
+                ax_activity = fig_hist.add_subplot(gs[0, 0])
+                ax_hist = fig_hist.add_subplot(gs[0, 1])
+                ax_spot = fig_hist.add_subplot(gs[0, 2])
+
+                ax_activity.set_facecolor('black')
+                ax_activity.tick_params(axis='y', colors='white')
+                ax_activity.tick_params(axis='x', colors='white', labelrotation=20, labelsize=9)
+                for spine in ax_activity.spines.values(): spine.set_color('#444444')
+                _add_horizontal_grid(ax_activity)
+
+                activity_counts = [len(df_seg), int(df_seg['spot_count'].sum())]
+                activity_labels = ["Stations", "Spots"]
+                bars = ax_activity.bar(activity_labels, activity_counts, color="#36aaf9", alpha=0.8, edgecolor='black')
+                ax_activity.set_ylabel("Count", color='white')
+                ax_activity.set_title("Segment Activity", color='white', fontweight='bold', pad=10)
+                if max(activity_counts) > 0:
+                    for bar in bars:
+                        height = bar.get_height()
+                        ax_activity.text(bar.get_x() + bar.get_width()/2., height + (max(activity_counts)*0.02),
+                                f'{int(height)}',
+                                ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
+
+                ax_hist.set_title("Station Medians (SNR @ 1W)", color='white', fontweight='bold', pad=10)
+                ax_spot.set_title("Spot SNR (SNR @ 1W)", color='white', fontweight='bold', pad=10)
+                fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
 
             # 2. Common Histogram Setup (Right / Full)
             ax_hist.set_facecolor('black')
             ax_hist.tick_params(colors='white')
             for spine in ax_hist.spines.values(): spine.set_color('#444444')
             _add_horizontal_grid(ax_hist)
+
+            ax_spot.set_facecolor('black')
+            ax_spot.tick_params(colors='white')
+            for spine in ax_spot.spines.values(): spine.set_color('#444444')
             
             if not vals.empty:
                 hist_vals = vals.round(0).astype(int) if is_compare else vals
@@ -618,14 +748,27 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.text(0.5, 0.5, t["lbl_no_joint"], color='white', ha='center', va='center', fontsize=12)
                 ax_hist.set_xticks([])
                 ax_hist.set_yticks([])
+
+            spot_med = _draw_horizontal_raincloud(ax_spot, segment_raw_values, color="#36aaf9")
+            if pd.notna(spot_med):
+                spot_label = "Bin Median" if is_sequential else "Spot Median"
+                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=2, label=f"{spot_label}: {spot_med:.1f} dB")
+                ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
+            else:
+                no_spot_msg = t["lbl_no_joint"] if is_compare else "No spot data available."
+                ax_spot.text(0.5, 0.5, no_spot_msg, color='white', ha='center', va='center', fontsize=11, transform=ax_spot.transAxes)
+                ax_spot.set_xticks([])
+                ax_spot.set_yticks([])
                 
             station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
             if not is_compare: 
                 ax_hist.set_xlabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
                 ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
+                ax_spot.set_xlabel("Normalized SNR (dB @ 1W)", color='white')
             else: 
                 ax_hist.set_xlabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
                 ax_hist.set_ylabel("Stations", color='white')
+                ax_spot.set_xlabel("Delta SNR (dB)" if not is_sequential else "Paired-Bin Delta SNR (dB)", color='white')
             
             # 3. Add Common Footer Text
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
