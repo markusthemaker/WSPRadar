@@ -904,12 +904,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
         # ----------------------------------------------------
-        # Streamlit dataframe selection state is user-driven; when no row is selected,
-        # open the first sorted row so the most active station is inspectable by default.
+        # Streamlit dataframe selection state is user-driven. The table can preselect row 0
+        # on first render, but a deliberate deselect-all must stay empty.
         raw_sel_rows = tbl_event.selection.rows or []
         sel_rows = [row for row in raw_sel_rows if 0 <= row < len(sorted_disp_df)]
-        if not sel_rows and not sorted_disp_df.empty:
-            sel_rows = [0]
         if sel_rows:
             loc_col = t['tbl_col_loc']
             selected_meta_df = sorted_disp_df.iloc[sel_rows][[station_col, loc_col, t['tbl_col_km'], t['tbl_col_az']]].copy()
