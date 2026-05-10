@@ -509,11 +509,12 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     time_plot_df = _aggregate_time_points(plot_df, time_agg)
 
-    fig_ev = plt.figure(figsize=(13, 4.5), facecolor="black")
-    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
+    fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
+    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
     gs = fig_ev.add_gridspec(1, 3)
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
     ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
+    ax_cloud.set_box_aspect(1)
 
     _style_evidence_axis(ax_cloud)
     _style_evidence_axis(ax_time)
@@ -715,15 +716,18 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         if has_plot_data:
             segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
             segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
-            fig_hist = plt.figure(figsize=(13, 4.5), facecolor='black')
+            fig_hist = plt.figure(figsize=(13, 5.6), facecolor='black')
             
             # Setup Layout based on Absolute vs. Compare Mode
             if is_compare and 'count_only_u' in df_seg.columns:
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_yield = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
                 ax_spot = fig_hist.add_subplot(gs[0, 2])
+                ax_yield.set_box_aspect(1)
+                ax_hist.set_box_aspect(1)
+                ax_spot.set_box_aspect(1)
                 
                 # 1. Setup Yield Bar Chart (Left)
                 ax_yield.set_facecolor('black')
@@ -768,11 +772,14 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 
             else:
                 # Absolute Mode: activity, station-balanced medians, and raw spot distribution
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_activity = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
                 ax_spot = fig_hist.add_subplot(gs[0, 2])
+                ax_activity.set_box_aspect(1)
+                ax_hist.set_box_aspect(1)
+                ax_spot.set_box_aspect(1)
 
                 ax_activity.set_facecolor('black')
                 ax_activity.tick_params(axis='y', colors='white')
