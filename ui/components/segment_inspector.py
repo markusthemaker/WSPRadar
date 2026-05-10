@@ -119,9 +119,9 @@ def _evidence_labels(is_compare):
     if st.session_state.get("lang") == "de":
         if is_compare:
             return {
-                "dist_title": "Delta SNR Verteilung",
-                "time_title": "Delta SNR ueber Zeit",
-                "y_label": "Delta SNR (dB)",
+                "dist_title": "\u0394 SNR Verteilung",
+                "time_title": "\u0394 SNR ueber Zeit",
+                "y_label": "\u0394 SNR (dB)",
                 "x_label": "Datum/Uhrzeit (UTC)",
                 "aggregate": "Selected Stations",
             }
@@ -135,9 +135,9 @@ def _evidence_labels(is_compare):
 
     if is_compare:
         return {
-            "dist_title": "Delta SNR Distribution",
-            "time_title": "Delta SNR over Time",
-            "y_label": "Delta SNR (dB)",
+            "dist_title": "\u0394 SNR Distribution",
+            "time_title": "\u0394 SNR over Time",
+            "y_label": "\u0394 SNR (dB)",
             "x_label": "Date/Time (UTC)",
             "aggregate": "Selected Stations",
         }
@@ -627,6 +627,48 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         else:
             seg_line2 = f"{t['txt_total_decodes']}: {int(df_seg['spot_count'].sum())}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
 
+        station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
+        toggle_key = f"tgl_{analysis_id}_{run_id}_{selected_seg}"
+        default_state = has_non_joint_rows and not has_joint_rows
+        show_non_joint = st.session_state.get(toggle_key, default_state) if is_compare else False
+
+        if not is_compare:
+            disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'stat_val']].copy()
+            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_spots'], t['tbl_col_med_snr']]
+            col_joint_name = None
+        else:
+            if is_sequential:
+                col_joint_name = t.get('tbl_col_joint_bins', 'Joint Bins')
+                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'joint_bins_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
+            else:
+                col_joint_name = t['tbl_col_joint']
+                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
+
+            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_joint_name, t['tbl_col_only_u'].format(callsign=col_u_name), lbl_only_ref, t['tbl_col_med_delta']]
+
+        km_col = t['tbl_col_km']
+        az_col = t['tbl_col_az']
+        disp_df[km_col] = disp_df[km_col].round(0).astype('Int64')
+        disp_df[az_col] = disp_df[az_col].round(1)
+
+        if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
+            disp_df = disp_df[disp_df[col_joint_name] > 0]
+
+        metric_col = disp_df.columns[-1]
+        disp_df[metric_col] = pd.to_numeric(disp_df[metric_col], errors='coerce').round(1)
+        if is_compare:
+            sort_cols = [col_joint_name, metric_col] if col_joint_name != metric_col else [col_joint_name]
+        else:
+            sort_cols = [t['tbl_col_spots'], metric_col] if t['tbl_col_spots'] != metric_col else [t['tbl_col_spots']]
+        sorted_disp_df = disp_df.sort_values(by=sort_cols, ascending=[False] * len(sort_cols), na_position='last').reset_index(drop=True)
+        disp_df = sorted_disp_df.copy()
+
+        evidence_meta_df = sorted_disp_df
+        if is_compare and col_joint_name in sorted_disp_df.columns:
+            evidence_meta_df = sorted_disp_df[sorted_disp_df[col_joint_name] > 0]
+        evidence_meta_df = evidence_meta_df[[station_col, t['tbl_col_loc']]].copy()
+        evidence_meta_df.columns = ["peer_sign", "peer_grid"]
+
         # ----------------------------------------------------
         # Render Histogram & Yield Chart
         # ----------------------------------------------------
@@ -637,13 +679,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             has_plot_data = True
 
         if has_plot_data:
-            segment_evidence_df = _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequential)
+            segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
             segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
-            fig_hist = plt.figure(figsize=(12, 4.5), facecolor='black')
+            fig_hist = plt.figure(figsize=(13, 4.5), facecolor='black')
             
             # Setup Layout based on Absolute vs. Compare Mode
             if is_compare and 'count_only_u' in df_seg.columns:
-                fig_hist.subplots_adjust(left=0.05, right=0.97, bottom=0.25, top=0.80, wspace=0.35)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_yield = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
@@ -686,13 +728,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                 ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
                 
                 # Adjust Titles for Three-Panel Compare Plot
-                ax_hist.set_title("Station Medians (Delta SNR)", color='white', fontweight='bold', pad=10)
-                ax_spot.set_title("Paired-Bin Delta SNR" if is_sequential else "Joint-Spot Delta SNR", color='white', fontweight='bold', pad=10)
+                ax_hist.set_title("Station Medians (\u0394 SNR)", color='white', fontweight='bold', pad=10)
+                ax_spot.set_title("Paired-Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
                 
             else:
                 # Absolute Mode: activity, station-balanced medians, and raw spot distribution
-                fig_hist.subplots_adjust(left=0.05, right=0.97, bottom=0.25, top=0.80, wspace=0.35)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.25, top=0.80, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_activity = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
@@ -741,34 +783,33 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     ax_hist.set_xticks(ticks)
                     
                 ax_hist.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=2, label=t["lbl_med_seg"].format(med=med))
+                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=2, label=f"{med:.1f} dB")
                 ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
             else:
                 # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
-                ax_hist.text(0.5, 0.5, t["lbl_no_joint"], color='white', ha='center', va='center', fontsize=12)
+                ax_hist.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_hist.transAxes)
                 ax_hist.set_xticks([])
                 ax_hist.set_yticks([])
 
             spot_med = _draw_horizontal_raincloud(ax_spot, segment_raw_values, color="#36aaf9")
             if pd.notna(spot_med):
-                spot_label = "Bin Median" if is_sequential else "Spot Median"
-                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=2, label=f"{spot_label}: {spot_med:.1f} dB")
+                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=2, label=f"{spot_med:.1f} dB")
                 ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
             else:
-                no_spot_msg = t["lbl_no_joint"] if is_compare else "No spot data available."
-                ax_spot.text(0.5, 0.5, no_spot_msg, color='white', ha='center', va='center', fontsize=11, transform=ax_spot.transAxes)
+                ax_spot.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_spot.transAxes)
                 ax_spot.set_xticks([])
                 ax_spot.set_yticks([])
                 
-            station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
             if not is_compare: 
                 ax_hist.set_xlabel(t["lbl_hist_x_abs"].format(station_type=station_type), color='white')
                 ax_hist.set_ylabel(t["lbl_hist_count"], color='white')
                 ax_spot.set_xlabel("Normalized SNR (dB @ 1W)", color='white')
+                ax_spot.set_ylabel("Spot density", color='white')
             else: 
                 ax_hist.set_xlabel(t["lbl_hist_x_comp"].format(station_type=station_type), color='white')
                 ax_hist.set_ylabel("Stations", color='white')
-                ax_spot.set_xlabel("Delta SNR (dB)" if not is_sequential else "Paired-Bin Delta SNR (dB)", color='white')
+                ax_spot.set_xlabel("\u0394 SNR (dB)" if not is_sequential else "Paired-Bin \u0394 SNR (dB)", color='white')
+                ax_spot.set_ylabel("Joint-spot density", color='white')
             
             # 3. Add Common Footer Text
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
@@ -791,51 +832,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.markdown(f"**{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
             
         with col_ins2:
-            show_non_joint = False
             if is_compare:
                 # Default to showing non-joint rows only when the selected segment has no joint
                 # evidence but does contain target-only, reference-only, or async-both evidence.
-                default_state = has_non_joint_rows and not has_joint_rows
-                show_non_joint = st.toggle("Show Non-Joint", value=default_state, key=f"tgl_{analysis_id}_{run_id}_{selected_seg}")
-
-        station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
-        
-        # ----------------------------------------------------
-        # Render Interactive Master Table
-        # ----------------------------------------------------
-        if not is_compare:
-            disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'stat_val']].copy()
-            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_spots'], t['tbl_col_med_snr']]
-        else:
-            if is_sequential:
-                col_joint_name = t.get('tbl_col_joint_bins', 'Joint Bins')
-                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'joint_bins_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
-            else:
-                col_joint_name = t['tbl_col_joint']
-                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
-            
-            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_joint_name, t['tbl_col_only_u'].format(callsign=col_u_name), lbl_only_ref, t['tbl_col_med_delta']]
-        
-        km_col = t['tbl_col_km']
-        az_col = t['tbl_col_az']
-        
-        # FIX: 'Int64' (mit gro??em I) ist der native Pandas Nullable-Integer-Typ.
-        # Er verhindert den IntCastingNaNError, da er leere Felder aus dem Outer-Merge sicher toleriert.
-        disp_df[km_col] = disp_df[km_col].round(0).astype('Int64')
-        disp_df[az_col] = disp_df[az_col].round(1)
-        
-        # Verstecke Reihen mit 0 Joint Spots/Bins, es sei denn der Raw-Schalter ist an
-        if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
-            disp_df = disp_df[disp_df[col_joint_name] > 0]
-
-        metric_col = disp_df.columns[-1]
-        disp_df[metric_col] = pd.to_numeric(disp_df[metric_col], errors='coerce').round(1)
-        if is_compare:
-            sort_cols = [col_joint_name, metric_col] if col_joint_name != metric_col else [col_joint_name]
-        else:
-            sort_cols = [t['tbl_col_spots'], metric_col] if t['tbl_col_spots'] != metric_col else [t['tbl_col_spots']]
-        sorted_disp_df = disp_df.sort_values(by=sort_cols, ascending=[False] * len(sort_cols), na_position='last').reset_index(drop=True)
-        disp_df = sorted_disp_df.copy()
+                show_non_joint = st.toggle("Show Non-Joint", value=default_state, key=toggle_key)
 
         # --- DYNAMIC EXCEL-STYLE FILTER ---
         # Da wir sorted_disp_df jetzt vorbereitet haben, springen wir zur??ck in Spalte 3 f??r den Button
@@ -880,7 +880,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         # ----------------------------------------------------
         # Streamlit dataframe selection state is user-driven; when no row is selected,
         # open the first sorted row so the most active station is inspectable by default.
-        sel_rows = tbl_event.selection.rows or ([0] if not sorted_disp_df.empty else [])
+        raw_sel_rows = tbl_event.selection.rows or []
+        sel_rows = [row for row in raw_sel_rows if 0 <= row < len(sorted_disp_df)]
+        if not sel_rows and not sorted_disp_df.empty:
+            sel_rows = [0]
         if sel_rows:
             loc_col = t['tbl_col_loc']
             selected_meta_df = sorted_disp_df.iloc[sel_rows][[station_col, loc_col, t['tbl_col_km'], t['tbl_col_az']]].copy()
