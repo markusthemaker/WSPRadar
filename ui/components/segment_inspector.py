@@ -628,6 +628,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             seg_line2 = f"{t['txt_total_decodes']}: {int(df_seg['spot_count'].sum())}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
 
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
+        station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         toggle_key = f"tgl_{analysis_id}_{run_id}_{selected_seg}"
         default_state = has_non_joint_rows and not has_joint_rows
         show_non_joint = st.session_state.get(toggle_key, default_state) if is_compare else False
