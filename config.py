@@ -28,14 +28,35 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 # DEMO PROFILES (Guided Sandbox)
 # ==========================================
 DEMO_PROFILES = {
-    "buddy_rx": {
+    "Vanhamel_calibration": {
+        "label": {
+            "en": "RX Comparison Calibration. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
+            "de": "RX Comparison Calibration. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
+        },
+        "description": {
+            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Section 4",
+            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Section 4",
+        },
+        "run_mode": "RX",
+        "comp_mode_key": "opt_comp_buddy",
+        "callsign": "ON4AWM0",
+        "qth": "JO20OT",
+        "band": "160m",
+        "start_d": datetime.date(2021, 4, 18),
+        "end_d": datetime.date(2021, 4, 26),
+        "start_t": dt_time(8, 00),
+        "end_t": dt_time(18, 20),
+        "ref_callsign": "ON4AWM1"
+    },
+
+    "Vanhamel_calibration_rx": {
         "label": {
             "en": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
             "de": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
         },
         "description": {
-            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 9-5] - Figure 6",
-            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 9-5] - Figure 6",
+            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Figure 6",
+            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Figure 6",
         },
         "run_mode": "RX",
         "comp_mode_key": "opt_comp_buddy",
@@ -49,14 +70,15 @@ DEMO_PROFILES = {
         "ref_callsign": "ON4AWM1"
     },
 
+
     "buddy_tx": {
         "label": {
             "en": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
             "de": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
         },
         "description": {
-            "en": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 9-6] - Figure 4",
-            "de": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 9-6] - Figure 4",
+            "en": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 7] - Figure 4",
+            "de": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 7] - Figure 4",
         },
         "run_mode": "TX",
         "comp_mode_key": "opt_comp_buddy",
@@ -76,8 +98,8 @@ DEMO_PROFILES = {
             "de": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
         },
         "description": {
-            "en": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 9-15]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
-            "de": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 9-15]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
+            "en": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 8]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
+            "de": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 8]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
         },
         "run_mode": "TX",
         "comp_mode_key": "opt_comp_buddy",

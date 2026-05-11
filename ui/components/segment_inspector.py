@@ -824,10 +824,19 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_yticks([])
 
             spot_label = "Paired Bins" if is_sequential else ("Joint Spots" if is_compare else "Spots")
+            spot_values_numeric = pd.to_numeric(segment_raw_values, errors="coerce").dropna()
             spot_med = _draw_single_vertical_raincloud(ax_spot, segment_raw_values, spot_label, color="#36aaf9")
             if pd.notna(spot_med):
                 ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
                 ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
+                if is_compare and not spot_values_numeric.empty:
+                    spot_mean = spot_values_numeric.mean()
+                    ax_spot.text(
+                        0.98, 0.04, f"mean={spot_mean:.1f} dB",
+                        transform=ax_spot.transAxes,
+                        ha='right', va='bottom',
+                        color='#cccccc', fontsize=10
+                    )
             else:
                 ax_spot.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_spot.transAxes)
                 ax_spot.set_xticks([])
@@ -859,6 +868,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             # Platzsparende, zweisprachige Kurzform f??r den Subtitel
             sub_text = " (Norm. @ 1W. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 1W. Click for details)"
             st.markdown(f"**{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
+            benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
+            if is_compare and abs(benchmark_offset_db) >= 0.05:
+                offset_note = t.get("txt_benchmark_offset_note", "Benchmark SNR Correction: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
+                st.markdown(
+                    f"<div style='font-size:0.78em; color:#9aa4b2; margin-top:-0.35rem;'>{offset_note.format(offset=benchmark_offset_db)}</div>",
+                    unsafe_allow_html=True
+                )
             
         with col_ins2:
             if is_compare:
