@@ -179,6 +179,8 @@ if st.session_state.get("_collapse_config_panels_once", False):
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
 
+run_status_slot = st.empty()
+
 # ==========================================
 # STATE TO LOCAL VARIABLES BRIDGE
 # ==========================================
@@ -230,8 +232,6 @@ with c_run1:
 with c_run2:
     if st.button(t["btn_run_rx"], type="primary", width='stretch', on_click=collapse_config_panels):
         run_rx_clicked = True
-
-run_status_slot = st.empty()
 
 # Validate user logic before assigning run_mode
 if run_tx_clicked:
