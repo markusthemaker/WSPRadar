@@ -342,7 +342,7 @@ if st.session_state.run_mode:
                 plot_result = generate_map_plot(
                     df, analysis['title'], analysis['is_compare'], analysis['is_sequential'], 
                     start_t, end_t, max_dist_km, analysis['id'], 
-                    st.session_state.val_wilcoxon, st.session_state.val_min_stations,
+                    st.session_state.val_min_stations,
                     lat_0, lon_0
                 )
                 

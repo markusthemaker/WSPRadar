@@ -1,6 +1,6 @@
 """
 Plot Engine.
-Führt die geografische Aggregation durch, rechnet Statistik (Wilcoxon) und zeichnet die Cartopy-Map.
+Fuehrt die geografische Aggregation durch und zeichnet die Cartopy-Map.
 """
 import pandas as pd
 import numpy as np
@@ -13,8 +13,6 @@ from matplotlib.patches import Wedge
 from matplotlib.collections import PatchCollection
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-import warnings
-from scipy.stats import wilcoxon
 import streamlit as st
 
 from config import *
@@ -22,7 +20,7 @@ from i18n import T
 
 MIN_LABEL_CUTOFF_PCT = 0.02
 
-def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_dist_km, analysis_id, wilcox_level, base_min_stations, lat_0, lon_0):
+def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_dist_km, analysis_id, base_min_stations, lat_0, lon_0):
     """Hauptfunktion zum Berechnen der Aggregate und Plotten der Radar-Karte."""
     
     # Entfernungen & Azimut berechnen
@@ -130,8 +128,6 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
                 spot_count_u=('t_count', 'sum'),
                 spot_count_r=('r_count', 'sum'),
                 stat_val=('bin_delta', 'median'),
-                w_target=('t_med', list), # Arrays für Wilcoxon
-                w_ref=('r_med', list),
                 **spatial_agg_first
             ).reset_index()
             agg_joint['spot_count'] = agg_joint['spot_count_u'] + agg_joint['spot_count_r']
@@ -207,49 +203,16 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         def segment_agg(x):
             vals = x['stat_val'].dropna()
             cnt = x.loc[x['spot_count'] > 0, 'peer_sign'].nunique()
-            p_val = np.nan
             
-            if len(vals) >= 5 and wilcox_level != "OFF":
-                # Wilcoxon für gepaarte Micro-Mediane im sequenziellen Modus
-                if is_sequential and 'w_target' in x.columns and 'w_ref' in x.columns:
-                    from core.math_utils import calc_wilcoxon_from_paired_arrays
-                    seg_w_t = [val for sublist in x['w_target'].dropna() for val in sublist]
-                    seg_w_r = [val for sublist in x['w_ref'].dropna() for val in sublist]
-                    p_val = calc_wilcoxon_from_paired_arrays(seg_w_t, seg_w_r)
-                else:
-                    # Wilcoxon für 1-Sample (bereits abgezogene Simultandaten)
-                    try:
-                        with warnings.catch_warnings():
-                            warnings.simplefilter("ignore")
-                            _, p_val = wilcoxon(vals - 0)
-                    except ValueError: p_val = 1.0
-                    
             return pd.Series({
                 'val': vals.median() if len(vals) > 0 else np.nan,
                 'cnt': cnt,
-                'total_spots': x['spot_count'].sum(),
-                'p_value': p_val
+                'total_spots': x['spot_count'].sum()
             })
             
         segs = df_plot.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket']).apply(segment_agg).reset_index()
         
-        req_stations = base_min_stations
-        if wilcox_level != "OFF":
-            if wilcox_level == "80%": req_stations = max(req_stations, 5)
-            elif wilcox_level == "90%": req_stations = max(req_stations, 5)
-            elif wilcox_level == "95%": req_stations = max(req_stations, 6)
-            elif wilcox_level == "99%": req_stations = max(req_stations, 8)
-            
-            target_p = 1.0
-            if wilcox_level == "80%": target_p = 0.20
-            elif wilcox_level == "90%": target_p = 0.10
-            elif wilcox_level == "95%": target_p = 0.05
-            elif wilcox_level == "99%": target_p = 0.01
-            
-            segs['conf_passed'] = segs['p_value'] <= target_p
-            segs = segs[segs['conf_passed'] == True]
-            
-        segs = segs[segs['cnt'] >= req_stations]
+        segs = segs[segs['cnt'] >= base_min_stations]
 
     if df_plot.empty or segs.empty: return None
 
@@ -409,12 +372,19 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     meta_parts = [f"{lbl_time}: {t_time}", f"Band: {t_band}", f"Solar: {t_solar}"]
     
     if is_compare:
-        if is_sequential: meta_parts.append("Sync: Sequential A/B")
-        elif wilcox_level != "OFF": meta_parts.append(f"Joint Stations/Seg: Wilcoxon ({wilcox_level})")
+        if is_sequential:
+            meta_parts.append("Sync: Sequential A/B")
+            meta_parts.append(f"Joint Bins/Station: >={st.session_state.val_min_spots}")
+            meta_parts.append(f"Joint Stations/Seg: >={base_min_stations}")
         else:
             meta_parts.append(f"Joint Spots/Station: ≥{st.session_state.val_min_spots}")
-            meta_parts.append(f"Joint Stations/Seg: ≥{base_min_stations}")
+            meta_parts.append(f"Joint Stations/Seg: >={base_min_stations}")
             
+        benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
+        if abs(benchmark_offset_db) >= 0.05:
+            offset_label = t_lang.get("txt_benchmark_offset_note", "Benchmark SNR Offset: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
+            meta_parts.append(offset_label.format(offset=benchmark_offset_db))
+
         if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
             local_mode = st.session_state.get('val_local_benchmark', t_lang.get('opt_local_median', 'Local Median Neighborhood'))
             ref_radius = st.session_state.get('val_ref_radius_km', 250)

@@ -65,6 +65,8 @@ def init_session_state():
         st.session_state.val_ref_stations = 10
     if "val_ref_radius_km" not in st.session_state:
         st.session_state.val_ref_radius_km = 100
+    if "val_benchmark_offset_db" not in st.session_state:
+        st.session_state.val_benchmark_offset_db = 0.0
     if "val_local_benchmark" not in st.session_state:
         st.session_state.val_local_benchmark = T["en"]["opt_local_median"]
     t_cur = T[st.session_state.lang]
@@ -96,5 +98,3 @@ def init_session_state():
         st.session_state.val_min_spots = 1
     if "val_min_stations" not in st.session_state: 
         st.session_state.val_min_stations = 1
-    if "val_wilcoxon" not in st.session_state: 
-        st.session_state.val_wilcoxon = "OFF"

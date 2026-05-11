@@ -115,6 +115,7 @@ def _apply_demo_profile_values(profile_key):
     st.session_state.val_end_t = profile["end_t"]
     st.session_state.val_ref_stations = profile.get("ref_stations", st.session_state.get("val_ref_stations", 10))
     st.session_state.val_ref_radius_km = profile.get("ref_radius_km", st.session_state.get("val_ref_radius_km", 100))
+    st.session_state.val_benchmark_offset_db = round(float(profile.get("benchmark_offset_db", 0.0)), 1)
     st.session_state.val_ref_callsign = profile.get("ref_callsign", "")
     st.session_state.val_self_call_b = profile.get("self_call_b", "")
     st.session_state.val_max_dist = profile.get("max_dist", 22000)
@@ -123,7 +124,6 @@ def _apply_demo_profile_values(profile_key):
     st.session_state.val_filter_moving = profile.get("filter_moving", False)
     st.session_state.val_min_spots = profile.get("min_spots", 1)
     st.session_state.val_min_stations = profile.get("min_stations", 1)
-    st.session_state.val_wilcoxon = profile.get("wilcoxon", "OFF")
     st.session_state.val_tx_ab_bin_minutes = profile.get("tx_ab_bin_minutes", st.session_state.get("val_tx_ab_bin_minutes", 8))
 
 def apply_demo_profile(profile_key=None):
@@ -197,13 +197,13 @@ def set_reset_config():
     st.session_state.val_comp_mode = t["opt_comp_radius"]
     st.session_state.val_ref_stations = 10
     st.session_state.val_ref_radius_km = 100
+    st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_local_benchmark = t["opt_local_median"]
     st.session_state.val_max_dist = 22000
     st.session_state.val_exclude_special_callsigns = False
     st.session_state.val_filter_moving = False
     st.session_state.val_min_spots = 1
     st.session_state.val_min_stations = 1
-    st.session_state.val_wilcoxon = "OFF"
     st.session_state.active_demo_profile = None
     st.session_state.show_demo_launcher = False
     st.session_state.run_mode = None

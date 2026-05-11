@@ -859,6 +859,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             # Platzsparende, zweisprachige Kurzform f??r den Subtitel
             sub_text = " (Norm. @ 1W. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 1W. Click for details)"
             st.markdown(f"**{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
+            benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
+            if is_compare and abs(benchmark_offset_db) >= 0.05:
+                offset_note = t.get("txt_benchmark_offset_note", "Benchmark SNR Offset: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
+                st.markdown(
+                    f"<div style='font-size:0.78em; color:#9aa4b2; margin-top:-0.35rem;'>{offset_note.format(offset=benchmark_offset_db)}</div>",
+                    unsafe_allow_html=True
+                )
             
         with col_ins2:
             if is_compare:
