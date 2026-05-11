@@ -452,7 +452,7 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 **Comparison parameters**
 
 * **Benchmark Mode:** `Local Neighborhood Benchmark`, `Reference Station (Buddy Test)` or `Hardware A/B-Test`.
-* **Benchmark SNR Offset (dB):** user-defined correction added to the benchmark/reference SNR before Delta SNR is calculated. It applies only to compare modes and is intended for known benchmark-side attenuation or calibration artifacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - benchmark`, a positive offset makes the corrected benchmark SNR larger before subtraction.
+* **Benchmark SNR Correction (dB):** user-defined correction added to the benchmark/reference SNR before Delta SNR is calculated. It applies only to compare modes and is intended for known benchmark-side attenuation or calibration artifacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - benchmark`, a positive correction makes the corrected benchmark SNR larger before subtraction; if the benchmark/reference is known to read 1 dB too strong, use `-1.0 dB`.
 * **Local Benchmark Method:** `Local Median Neighborhood` by default, or `Local Best Station` for a strict best-peer envelope.
 * **Neighborhood Radius:** geographic boundary for local reference stations.
 * **Reference Callsign:** external counterpart for Buddy Test.
@@ -470,7 +470,7 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 * **Min. Joint Spots/Station:** in compare modes, requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins. In absolute modes, the same control acts as a raw spots-per-station filter.
 * **Min. Joint Stations/Segment:** in compare modes, requires at least X remote stations with qualifying joint evidence before a segment is drawn. In absolute modes, the same control acts as a raw stations-per-segment filter.
 
-Benchmark SNR Offset scope:
+Benchmark SNR Correction scope:
 
 * Buddy Test: applies to the reference callsign.
 * Local Best Station: applies to the selected local-best reference SNR.

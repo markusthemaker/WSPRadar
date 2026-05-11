@@ -835,7 +835,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         0.98, 0.04, f"mean={spot_mean:.1f} dB",
                         transform=ax_spot.transAxes,
                         ha='right', va='bottom',
-                        color='#cccccc', fontsize=8
+                        color='#cccccc', fontsize=10
                     )
             else:
                 ax_spot.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_spot.transAxes)
@@ -870,7 +870,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.markdown(f"**{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
             benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
             if is_compare and abs(benchmark_offset_db) >= 0.05:
-                offset_note = t.get("txt_benchmark_offset_note", "Benchmark SNR Offset: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
+                offset_note = t.get("txt_benchmark_offset_note", "Benchmark SNR Correction: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
                 st.markdown(
                     f"<div style='font-size:0.78em; color:#9aa4b2; margin-top:-0.35rem;'>{offset_note.format(offset=benchmark_offset_db)}</div>",
                     unsafe_allow_html=True

@@ -149,8 +149,6 @@ with col_b2:
 if st.session_state.get("show_demo_launcher", False):
     render_demo_launcher()
 
-run_status_slot = st.empty()
-
 # Dynamischer CSS Glow für den Exit-Button
 if st.session_state.is_demo_mode:
     st.markdown("""
@@ -232,6 +230,8 @@ with c_run1:
 with c_run2:
     if st.button(t["btn_run_rx"], type="primary", width='stretch', on_click=collapse_config_panels):
         run_rx_clicked = True
+
+run_status_slot = st.empty()
 
 # Validate user logic before assigning run_mode
 if run_tx_clicked:

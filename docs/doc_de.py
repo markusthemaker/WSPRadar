@@ -458,7 +458,7 @@ WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3)
 **Vergleichsparameter**
 
 * **Benchmark Mode:** `Lokaler Nachbarschafts-Benchmark`, `Fremdes Rufzeichen (Buddy-Test)` oder `Hardware A/B-Test`.
-* **Benchmark SNR Offset (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Benchmark-/Referenz-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte benchmark-seitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Benchmark` nutzt, macht ein positiver Offset das korrigierte Benchmark-SNR vor der Subtraktion gr&ouml;&szlig;er.
+* **Benchmark-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Benchmark-/Referenz-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte benchmark-seitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Benchmark` nutzt, macht eine positive Korrektur das korrigierte Benchmark-SNR vor der Subtraktion gr&ouml;&szlig;er; wenn die Benchmark/Referenz bekannterma&szlig;en 1 dB zu stark angezeigt wird, verwende `-1,0 dB`.
 * **Lokale Benchmark-Methode:** standardm&auml;&szlig;ig `Lokaler Nachbarschafts-Median`, optional `Beste lokale Station` als strenge Best-Peer-H&uuml;llkurve.
 * **Nachbarschaftsradius:** geografische Grenze f&uuml;r lokale Referenzstationen.
 * **Referenzrufzeichen:** externer Gegenpart f&uuml;r Buddy-Test.
@@ -476,7 +476,7 @@ WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3)
 * **Min. Joint Spots/Station:** erfordert in Vergleichsmodi mindestens X Joint Spots pro Remote-Station, bevor diese Station zu einem Delta SNR beiträgt. In sequenziellem TX A/B wird dies als Min. Joint Bins angezeigt. In absoluten Modi wirkt derselbe Regler als Roh-Spots-pro-Station-Filter.
 * **Min. Joint Stations/Segment:** erfordert in Vergleichsmodi mindestens X Remote-Stationen mit qualifizierender Joint-Evidenz, bevor ein Segment gezeichnet wird. In absoluten Modi wirkt derselbe Regler als Roh-Stationen-pro-Segment-Filter.
 
-Geltungsbereich des Benchmark SNR Offset:
+Geltungsbereich der Benchmark-SNR-Korrektur:
 
 * Buddy-Test: gilt f&uuml;r das Referenzrufzeichen.
 * Beste lokale Station: gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz.
