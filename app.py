@@ -137,14 +137,14 @@ with col_lang:
     idx = 0 if st.session_state.lang == "en" else 1
     st.selectbox("Lang", ["EN", "DE"], index=idx, key="lang_selector_ui", label_visibility="collapsed", on_change=update_lang, format_func=format_lang_ui)
 
-with col_b1: 
-    btn_reset_lbl = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
-    st.button(btn_reset_lbl, on_click=set_reset_config, width='stretch')
-
-with col_b2:
-    if st.button(t["btn_demo"], width='stretch'):
+with col_b1:
+    if st.button(t["btn_demo"], icon=":material/rocket_launch:", width='stretch'):
         st.session_state.show_demo_launcher = not st.session_state.get("show_demo_launcher", False)
         reset_audit()
+
+with col_b2:
+    btn_reset_lbl = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
+    st.button(btn_reset_lbl, on_click=set_reset_config, width='stretch')
 
 if st.session_state.get("show_demo_launcher", False):
     render_demo_launcher()
@@ -155,15 +155,15 @@ run_status_slot = st.empty()
 if st.session_state.is_demo_mode:
     st.markdown("""
     <style>
-        /* Zielt exakt auf den Button in der zweiten Spalte des ersten Blocks ab */
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button {
+        /* Zielt exakt auf den Reset/Exit-Button in der dritten Spalte des ersten Blocks ab */
+        div[data-testid="stHorizontalBlock"] > div:nth-child(3) div.stButton > button {
             border-color: #39ff14 !important;
             color: #39ff14 !important;
             text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
             box-shadow: 0 0 15px rgba(57, 255, 20, 0.8), inset 0 0 8px rgba(57, 255, 20, 0.3) !important;
             transition: all 0.3s ease;
         }
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button:hover {
+        div[data-testid="stHorizontalBlock"] > div:nth-child(3) div.stButton > button:hover {
             background-color: rgba(57, 255, 20, 0.1) !important;
             box-shadow: 0 0 25px rgba(57, 255, 20, 1.0), inset 0 0 15px rgba(57, 255, 20, 0.5) !important;
         }
@@ -176,6 +176,10 @@ if st.session_state.is_demo_mode:
 render_core_expander(t)
 render_compare_expander(t)
 render_advanced_expander(t)
+
+if st.session_state.get("_collapse_config_panels_once", False):
+    st.session_state.config_panels_expanded = True
+    st.session_state._collapse_config_panels_once = False
 
 # ==========================================
 # STATE TO LOCAL VARIABLES BRIDGE
@@ -213,16 +217,20 @@ start_t, end_t = quantize_time(start_t_base), quantize_time(end_t_base)
 # ----------------------------------------
 # Execute Buttons
 # ----------------------------------------
+def collapse_config_panels():
+    st.session_state.config_panels_expanded = False
+    st.session_state._collapse_config_panels_once = True
+
 c_run1, c_run2 = st.columns(2, gap="large")
 run_tx_clicked = False
 run_rx_clicked = False
 
 with c_run1:
-    if st.button(t["btn_run_tx"], type="primary", width='stretch'):
+    if st.button(t["btn_run_tx"], type="primary", width='stretch', on_click=collapse_config_panels):
         run_tx_clicked = True
 
 with c_run2:
-    if st.button(t["btn_run_rx"], type="primary", width='stretch'):
+    if st.button(t["btn_run_rx"], type="primary", width='stretch', on_click=collapse_config_panels):
         run_rx_clicked = True
 
 # Validate user logic before assigning run_mode

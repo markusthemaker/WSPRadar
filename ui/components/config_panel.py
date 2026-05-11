@@ -39,7 +39,7 @@ def text_input_no_autocomplete(*args, **kwargs):
 
 def render_core_expander(t):
     """Renders the first expander: Core Parameters (Callsign, Grid, Time, Band)."""
-    with st.expander(t["exp_core"], expanded=True):
+    with st.expander(t["exp_core"], expanded=st.session_state.get("config_panels_expanded", True)):
         # Zeile 1: Callsign & Time Mode (Pixelgenaue [0.5, 0.5] Aufteilung f?r perfekte rechte Kante)
         r1c1, r1c2 = st.columns([0.5, 0.5], gap="large")
         with r1c1:
@@ -79,7 +79,7 @@ def render_core_expander(t):
             with r3c3: st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
 def render_compare_expander(t):
     """Renders the second expander: The A/B Compare Engine configurations."""
-    with st.expander(t["exp_comp"], expanded=True):
+    with st.expander(t["exp_comp"], expanded=st.session_state.get("config_panels_expanded", True)):
         col_comp_l, col_comp_r = st.columns([0.5, 0.5], gap="large" )
         with col_comp_l:
             st.radio(t["lbl_comp_mode"], [t["opt_comp_radius"], t["opt_comp_buddy"], t["opt_comp_self"]], key="val_comp_mode", on_change=handle_comp_mode_change)
@@ -143,7 +143,7 @@ def render_compare_expander(t):
 
 def render_advanced_expander(t):
     """Renders the third expander: Advanced scientific configurations, filters, and exclusions."""
-    with st.expander(t["exp_adv"], expanded=True):
+    with st.expander(t["exp_adv"], expanded=st.session_state.get("config_panels_expanded", True)):
         col3, col4 = st.columns(2, gap="large")
 
         with col3:
@@ -157,7 +157,7 @@ def render_advanced_expander(t):
             if st.session_state.val_comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_tx"]:
                 min_spots_label = t.get("cfg_min_joint_bins", "Min. Joint Bins")
 
-            st.session_state.val_min_spots = min(max(int(st.session_state.get("val_min_spots", 1)), 1), 25)
+            st.session_state.val_min_spots = min(max(int(st.session_state.get("val_min_spots", 1)), 1), 50)
             st.session_state.val_min_stations = min(max(int(st.session_state.get("val_min_stations", 1)), 1), 10)
-            st.slider(min_spots_label, 1, 25, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
+            st.slider(min_spots_label, 1, 50, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
             st.slider(t["lbl_min_stations"], 1, 10, key="val_min_stations", help=t["hlp_min_stations"], on_change=reset_audit)

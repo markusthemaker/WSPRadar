@@ -35,6 +35,10 @@ def init_session_state():
         st.session_state.lang = get_browser_language()
     if "is_demo_mode" not in st.session_state: 
         st.session_state.is_demo_mode = False
+    if "config_panels_expanded" not in st.session_state:
+        st.session_state.config_panels_expanded = True
+    if "_collapse_config_panels_once" not in st.session_state:
+        st.session_state._collapse_config_panels_once = False
         
     # --- Default User Inputs (Core Parameters) ---
     if "val_callsign" not in st.session_state: 

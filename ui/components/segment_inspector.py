@@ -824,10 +824,19 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_yticks([])
 
             spot_label = "Paired Bins" if is_sequential else ("Joint Spots" if is_compare else "Spots")
+            spot_values_numeric = pd.to_numeric(segment_raw_values, errors="coerce").dropna()
             spot_med = _draw_single_vertical_raincloud(ax_spot, segment_raw_values, spot_label, color="#36aaf9")
             if pd.notna(spot_med):
                 ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
                 ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
+                if is_compare and not spot_values_numeric.empty:
+                    spot_mean = spot_values_numeric.mean()
+                    ax_spot.text(
+                        0.98, 0.04, f"mean={spot_mean:.1f} dB",
+                        transform=ax_spot.transAxes,
+                        ha='right', va='bottom',
+                        color='#cccccc', fontsize=8
+                    )
             else:
                 ax_spot.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_spot.transAxes)
                 ax_spot.set_xticks([])

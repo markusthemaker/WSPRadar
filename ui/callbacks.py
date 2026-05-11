@@ -155,6 +155,8 @@ def run_demo_profile(profile_key):
     st.session_state.is_demo_mode = False
     st.session_state.active_demo_profile = profile_key
     st.session_state.show_demo_launcher = False
+    st.session_state.config_panels_expanded = False
+    st.session_state._collapse_config_panels_once = True
     _apply_demo_profile_values(profile_key)
     st.session_state.run_mode = profile.get("run_mode")
     st.session_state.run_id = int(time.time())
@@ -206,6 +208,8 @@ def set_reset_config():
     st.session_state.val_min_stations = 1
     st.session_state.active_demo_profile = None
     st.session_state.show_demo_launcher = False
+    st.session_state.config_panels_expanded = True
+    st.session_state._collapse_config_panels_once = False
     st.session_state.run_mode = None
 
 def set_demo_config():

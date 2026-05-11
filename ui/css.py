@@ -30,6 +30,8 @@ def apply_custom_css():
         /* Secondary Buttons (Reset, Demo) */
         div.stButton > button[kind="secondary"] { border-color: rgba(57, 255, 20, 0.5) !important; color: #e0e0e0 !important; font-size: 0.85rem !important; padding: 0.2rem 0.5rem !important; margin-top: 10px; transition: all 0.3s ease; }
         div.stButton > button[kind="secondary"]:hover { border-color: #39ff14 !important; color: #39ff14 !important; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important; }
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"] { box-shadow: 0 0 10px rgba(57, 255, 20, 0.22) !important; }
+        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"]:hover { box-shadow: 0 0 16px rgba(57, 255, 20, 0.42) !important; }
         
         div[data-testid="stButton"] button,
         div[data-testid="stButton"] button *,
@@ -78,7 +80,7 @@ def apply_custom_css():
         }
                 
         /* Colorize the dropdown arrow icon */
-        div[data-testid="stSelectbox"] svg {
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] svg {
             fill: #39ff14 !important;
         }
         
@@ -92,7 +94,7 @@ def apply_custom_css():
             border-color: rgba(255, 255, 255, 0.2) !important;
             box-shadow: none !important;
         }
-        div[data-testid="stSelectbox"]:has(input[disabled]) svg {
+        div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] svg {
             fill: #888888 !important;
         }
         
