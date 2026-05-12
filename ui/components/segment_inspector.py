@@ -20,7 +20,13 @@ from config import COMPASS
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
-EVIDENCE_TIME_AGG_OPTIONS = ["Raw", "1h", "3h", "6h", "12h", "24h"]
+EVIDENCE_TIME_AGG_OPTIONS = ["1h", "3h", "7h", "12h", "24h"]
+EVIDENCE_TIME_AGG_DEFAULT = "3h"
+EVIDENCE_HEATMAP_CMAP = mpl.colors.LinearSegmentedColormap.from_list(
+    "wspr_evidence_heatmap",
+    ["#1849a9", "#00b050", "#ffb000", "#d7191c"]
+)
+EVIDENCE_HEATMAP_CMAP.set_bad((0, 0, 0, 0))
 GRID_COLOR = "#777777"
 GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
@@ -412,24 +418,121 @@ def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequenti
         is_sequential
     )
 
-def _aggregate_time_points(plot_df, time_agg):
-    """Aggregate plotted evidence into fixed UTC median bins for the time plot only."""
-    if time_agg == "Raw":
-        return plot_df.copy()
+def _time_agg_hours(time_agg):
+    """Parse a compact hour selector label such as '3h' into an integer."""
+    text = str(time_agg).strip().lower()
+    if text.endswith("h"):
+        text = text[:-1]
+    try:
+        hours = int(text)
+    except (TypeError, ValueError):
+        return 3
+    return max(hours, 1)
 
-    work_df = plot_df[["plot_group", "plot_time", "metric"]].dropna().copy()
+def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequential):
+    """Draw selected-station evidence as UTC time-bin x integer-SNR density."""
+    bin_hours = _time_agg_hours(time_agg)
+    work_df = plot_df[["plot_time", "metric"]].copy()
+    work_df["plot_time"] = pd.to_datetime(work_df["plot_time"], errors="coerce", utc=True).dt.tz_convert(None)
+    work_df["metric"] = pd.to_numeric(work_df["metric"], errors="coerce")
+    work_df = work_df.dropna(subset=["plot_time", "metric"])
+
     if work_df.empty:
-        return work_df
+        ax.text(
+            0.5, 0.5, "No selected evidence available.",
+            transform=ax.transAxes,
+            color="#cccccc",
+            ha="center",
+            va="center"
+        )
+        ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
+        ax.set_xlabel(f"{time_agg} time bins UTC", color="white")
+        ax.set_ylabel(labels["y_label"], color="white")
+        return
 
-    work_df["time_bin"] = work_df["plot_time"].dt.floor(time_agg)
-    agg_df = (
-        work_df
-        .groupby(["plot_group", "time_bin"], dropna=False)["metric"]
-        .median()
-        .reset_index()
-        .rename(columns={"time_bin": "plot_time"})
+    bin_delta = pd.to_timedelta(bin_hours, unit="h")
+    work_df["time_bin"] = work_df["plot_time"].dt.floor(f"{bin_hours}h")
+    work_df["metric_bin"] = work_df["metric"].round().astype(int)
+
+    time_bins = pd.date_range(
+        start=work_df["time_bin"].min(),
+        end=work_df["time_bin"].max(),
+        freq=f"{bin_hours}h"
     )
-    return agg_df
+    if len(time_bins) == 0:
+        return
+
+    metric_min = int(work_df["metric_bin"].min())
+    metric_max = int(work_df["metric_bin"].max())
+    metric_bins = np.arange(metric_min, metric_max + 1)
+
+    count_grid = (
+        work_df
+        .groupby(["metric_bin", "time_bin"], dropna=False)
+        .size()
+        .unstack(fill_value=0)
+        .reindex(index=metric_bins, columns=time_bins, fill_value=0)
+    )
+    masked_counts = np.ma.masked_where(count_grid.to_numpy(dtype=float) == 0, count_grid.to_numpy(dtype=float))
+
+    time_edges = time_bins.append(pd.DatetimeIndex([time_bins[-1] + bin_delta]))
+    x_edges = mdates.date2num(time_edges.to_pydatetime())
+    y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
+    mesh = ax.pcolormesh(
+        x_edges,
+        y_edges,
+        masked_counts,
+        cmap=EVIDENCE_HEATMAP_CMAP,
+        shading="flat"
+    )
+
+    median_df = (
+        work_df
+        .groupby("time_bin", dropna=False)["metric"]
+        .agg(["median", "count"])
+        .reindex(time_bins)
+    )
+    x_centers = mdates.date2num((time_bins + (bin_delta / 2)).to_pydatetime())
+    medians = median_df["median"].to_numpy(dtype=float)
+    counts = median_df["count"].fillna(0).to_numpy(dtype=float)
+    has_median = ~np.isnan(medians) & (counts > 0)
+
+    ax.scatter(
+        x_centers[has_median],
+        medians[has_median],
+        s=26,
+        color="#c8f4ff",
+        edgecolors="#00384d",
+        linewidths=0.5,
+        zorder=5
+    )
+    for idx in range(len(x_centers) - 1):
+        if counts[idx] >= 3 and counts[idx + 1] >= 3 and not np.isnan(medians[idx]) and not np.isnan(medians[idx + 1]):
+            ax.plot(
+                [x_centers[idx], x_centers[idx + 1]],
+                [medians[idx], medians[idx + 1]],
+                color="#c8f4ff",
+                linewidth=1.2,
+                alpha=0.75,
+                zorder=4
+            )
+
+    count_label = "Paired-bin count" if is_sequential else ("Joint spot count" if is_compare else "Spot count")
+    cbar = fig.colorbar(mesh, ax=ax, pad=0.012, fraction=0.03)
+    cbar.set_label(count_label, color="white")
+    cbar.ax.tick_params(colors="white", labelsize=8)
+    cbar.outline.set_edgecolor("#444444")
+
+    locator = mdates.AutoDateLocator(minticks=4, maxticks=10)
+    formatter = mdates.ConciseDateFormatter(locator)
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+    ax.set_xlim(x_edges[0], x_edges[-1])
+    ax.set_ylim(metric_min - 0.5, metric_max + 0.5)
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=7, integer=True))
+    ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
+    ax.set_xlabel(f"{time_agg} time bins UTC", color="white")
+    ax.set_ylabel(labels["y_label"], color="white")
 
 def _sort_drilldown_default(drill_df):
     """Sort drill-down rows by UTC timestamp, then station label when available."""
@@ -484,16 +587,17 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     if not non_empty:
         return
     group_labels, grouped_values, colors = map(list, zip(*non_empty))
-    color_map = dict(zip(group_labels, colors))
 
     ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
     with ctrl_time:
         agg_key = f"evidence_time_agg_{hash(tuple(identity_labels))}_{is_compare}_{is_sequential}"
+        if st.session_state.get(agg_key) not in EVIDENCE_TIME_AGG_OPTIONS:
+            st.session_state[agg_key] = EVIDENCE_TIME_AGG_DEFAULT
         if hasattr(st, "segmented_control"):
             time_agg = st.segmented_control(
                 "Time aggregation",
                 EVIDENCE_TIME_AGG_OPTIONS,
-                default="Raw",
+                default=EVIDENCE_TIME_AGG_DEFAULT,
                 key=agg_key,
                 label_visibility="collapsed"
             )
@@ -501,13 +605,11 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
             time_agg = st.radio(
                 "Time aggregation",
                 EVIDENCE_TIME_AGG_OPTIONS,
-                index=0,
+                index=EVIDENCE_TIME_AGG_OPTIONS.index(EVIDENCE_TIME_AGG_DEFAULT),
                 horizontal=True,
                 key=agg_key,
                 label_visibility="collapsed"
             )
-
-    time_plot_df = _aggregate_time_points(plot_df, time_agg)
 
     fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
@@ -523,24 +625,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
     ax_cloud.set_ylabel(labels["y_label"], color="white")
 
-    for group in group_labels:
-        group_df = time_plot_df[time_plot_df["plot_group"] == group]
-        if group_df.empty:
-            continue
-        ax_time.scatter(
-            group_df["plot_time"],
-            group_df["metric"],
-            s=12 if time_agg == "Raw" else 28,
-            color=color_map[group],
-            alpha=0.58 if time_agg == "Raw" else 0.82,
-            edgecolors="none",
-            label=group,
-        )
-
-    time_title = labels["time_title"] if time_agg == "Raw" else f"{labels['time_title']} ({time_agg} median)"
-    ax_time.set_title(time_title, color="white", fontweight="bold", pad=10)
-    ax_time.set_xlabel(labels["x_label"], color="white")
-    ax_time.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
+    _draw_time_heatmap(fig_ev, ax_time, plot_df, time_agg, labels, is_compare, is_sequential)
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
 
     st.pyplot(fig_ev, width="stretch")

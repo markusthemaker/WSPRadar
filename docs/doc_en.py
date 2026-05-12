@@ -274,8 +274,8 @@ The Segment Inspector is the audit layer below the maps. Select a distance ring 
 * The Station Insights table lists contributing remote stations, separates joint decodes from exclusive decodes and shows the station-level median Delta SNR.
 * Clicking a Station Insights row opens the Drill-Down table.
 * If no Station Insights row is selected, WSPRadar opens the most active row by default: the row with the most joint spots or joint bins in compare modes, and the row with the most spots in absolute modes.
-* Selecting one or more Station Insights rows adds a two-panel evidence block above the Drill-Down table. The left panel keeps the raw selected evidence distribution: normalized SNR in absolute modes, Delta SNR in compare modes. The right panel shows the same selected evidence over UTC time.
-* The time-aggregation control above the right panel affects only the time plot. `Raw` shows all selected row-level points; `1h`, `3h`, `6h`, `12h` and `24h` replace those points with fixed UTC-bin medians. The distribution panel remains raw so the full selected evidence population stays visible.
+* Selecting one or more Station Insights rows adds a two-panel evidence block above the Drill-Down table. The left panel keeps the raw selected evidence distribution: normalized SNR in absolute modes, Delta SNR in compare modes. The right panel shows the same selected evidence as a UTC time-bin heatmap.
+* The time-bin control above the right panel affects only the time heatmap. `1h`, `3h`, `7h`, `12h` and `24h` define fixed UTC bins, with `3h` as the default. The heatmap aggregates all selected rows into integer SNR or Delta-SNR density cells, overlays median markers and connects adjacent medians only when both neighboring bins contain at least three points. The distribution panel remains raw so the full selected evidence population stays visible.
 * `Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Both (Async)`.
 
 **Drill-Down Table**
