@@ -454,7 +454,7 @@ WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3)
 **Vergleichsparameter**
 
 * **Benchmark Mode:** `Lokaler Nachbarschafts-Benchmark`, `Fremdes Rufzeichen (Buddy-Test)` oder `Hardware A/B-Test`.
-* **Benchmark-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Benchmark-/Referenz-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte benchmark-seitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Benchmark` nutzt, macht eine positive Korrektur das korrigierte Benchmark-SNR vor der Subtraktion gr&ouml;&szlig;er; wenn die Benchmark/Referenz bekannterma&szlig;en 1 dB zu stark angezeigt wird, verwende `-1,0 dB`.
+* **Benchmark-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Benchmark-/Referenz-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte benchmark-seitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Benchmark` nutzt, macht eine positive Korrektur das korrigierte Benchmark-SNR vor der Subtraktion gr&ouml;&szlig;er.
 * **Lokale Benchmark-Methode:** standardm&auml;&szlig;ig `Lokaler Nachbarschafts-Median`, optional `Beste lokale Station` als strenge Best-Peer-H&uuml;llkurve.
 * **Nachbarschaftsradius:** geografische Grenze f&uuml;r lokale Referenzstationen.
 * **Referenzrufzeichen:** externer Gegenpart f&uuml;r Buddy-Test.
@@ -478,6 +478,23 @@ Geltungsbereich der Benchmark-SNR-Korrektur:
 * Beste lokale Station: gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz.
 * Lokaler Nachbarschafts-Median: gilt f&uuml;r alle Nachbarschafts-Benchmark-SNRs vor der Median-Aggregation.
 * Hardware A/B-Test: gilt f&uuml;r die Benchmark-Seite, also Setup B / Referenzseite.
+
+Formel f&uuml;r die Benchmark-SNR-Korrektur:
+
+* `korrigiertes Benchmark-SNR = Benchmark-/Referenz-SNR + Benchmark-SNR-Korrektur`
+* `Delta SNR = Ziel-SNR - korrigiertes Benchmark-SNR`
+
+Beispiele:
+
+* **Positive Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = +1,6 dB`. Dann `+1,6 dB` eintragen. Ein Benchmark-/Referenz-SNR von `-24,0 dB` wird wie `-22,4 dB` behandelt; der korrigierte Delta SNR sinkt dadurch um `1,6 dB`.
+* **Negative Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = -1,6 dB`. Dann `-1,6 dB` eintragen. Ein Benchmark-/Referenz-SNR von `-24,0 dB` wird wie `-25,6 dB` behandelt; der korrigierte Delta SNR steigt dadurch um `1,6 dB`.
+
+Empfohlener Kalibrier-Workflow:
+
+1. **Baseline-Messung:** Eine einzelne Antenne &uuml;ber einen 3-dB-Splitter gleichzeitig auf beide RX-Ketten f&uuml;hren.
+2. **Datensammlung:** Dieses Setup mehrere Tage laufen lassen, um eine gro&szlig;e gepaarte Stichprobe &uuml;ber wechselnde Ausbreitungszust&auml;nde zu erhalten.
+3. **Berechnung:** Die mittlere gepaarte SNR-Differenz zwischen beiden Ketten bestimmen. Mit gen&uuml;gend gepaarten Samples kann der numerische Mittelwert sehr stabil werden; ein Ziel wie `0,05 dB` beschreibt Stichprobenpr&auml;zision, nicht absolute Laborkalibrierungsgenauigkeit.
+4. **Anwendung:** Diesen Kalibrierwert als konstante Benchmark-SNR-Korrektur f&uuml;r die zweite Station, Referenzstation oder Benchmark-Seite verwenden.
 
 **Hinweis zum Sonderrufzeichen-Filter**
 

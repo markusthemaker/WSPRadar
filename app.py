@@ -27,7 +27,7 @@ from ui.state_manager import init_session_state
 from ui.callbacks import (
     reset_audit, swap_tx_slots_u, swap_tx_slots_r, update_lang,
     handle_comp_mode_change, handle_self_test_mode_change,
-    set_reset_config, run_demo_profile
+    set_reset_config, run_demo_profile, load_demo_profile_config
 )
 from ui.components.config_panel import render_core_expander, render_compare_expander, render_advanced_expander
 from ui.components.segment_inspector import render_segment_inspector, render_lazy_download
@@ -112,8 +112,13 @@ def render_demo_launcher():
         )
         if demo_description:
             st.caption(demo_description)
-        if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
-            run_demo_profile(selected_demo)
+        col_load_demo, col_run_demo = st.columns(2)
+        with col_load_demo:
+            if st.button(t.get("btn_load_demo_selected", "Load selected demo configuration"), width='stretch'):
+                load_demo_profile_config(selected_demo)
+        with col_run_demo:
+            if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
+                run_demo_profile(selected_demo)
 
 # Header Section: Logo and Titles for PC
 logo_base64 = get_base64_of_bin_file("img/WSPRadar.png")

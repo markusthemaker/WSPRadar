@@ -143,6 +143,27 @@ def apply_demo_profile(profile_key=None):
 
     _apply_demo_profile_values(profile_key)
 
+def load_demo_profile_config(profile_key):
+    """
+    Applies a selected demo profile to the editable config state without
+    starting an analysis or collapsing the configuration panels.
+    """
+    profile = DEMO_PROFILES.get(profile_key)
+    if not profile:
+        return
+
+    reset_audit()
+    st.session_state.is_demo_mode = False
+    st.session_state.active_demo_profile = None
+    st.session_state.show_demo_launcher = False
+    st.session_state.config_panels_expanded = True
+    st.session_state._collapse_config_panels_once = False
+    st.session_state.run_mode = None
+    _apply_demo_profile_values(profile_key)
+    for key in list(st.session_state.keys()):
+        if key.startswith("img_buf_"):
+            del st.session_state[key]
+
 def run_demo_profile(profile_key):
     """
     Applies a selected demo profile, leaves the config editable, and immediately
