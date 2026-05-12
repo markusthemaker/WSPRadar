@@ -20,8 +20,12 @@ from config import COMPASS
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
-EVIDENCE_TIME_AGG_OPTIONS = ["1h", "3h", "7h", "12h", "24h"]
-EVIDENCE_TIME_AGG_DEFAULT = "3h"
+EVIDENCE_TIME_AGG_PRESETS = [
+    (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
+    (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
+    (pd.Timedelta(days=7), ["1h", "3h", "6h", "12h", "24h"], "3h"),
+    (None, ["3h", "6h", "12h", "24h"], "6h"),
+]
 EVIDENCE_HEATMAP_CMAP = mpl.colors.LinearSegmentedColormap.from_list(
     "wspr_evidence_heatmap",
     ["#1849a9", "#00b050", "#ffb000", "#d7191c"]
@@ -418,20 +422,40 @@ def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequenti
         is_sequential
     )
 
-def _time_agg_hours(time_agg):
-    """Parse a compact hour selector label such as '3h' into an integer."""
+def _time_agg_minutes(time_agg):
+    """Parse a compact minute/hour selector label such as '15m' or '3h' into minutes."""
     text = str(time_agg).strip().lower()
-    if text.endswith("h"):
+    multiplier = 60
+    if text.endswith("m"):
+        multiplier = 1
+        text = text[:-1]
+    elif text.endswith("h"):
         text = text[:-1]
     try:
-        hours = int(text)
+        value = int(text)
     except (TypeError, ValueError):
-        return 3
-    return max(hours, 1)
+        return 180
+    return max(value * multiplier, 1)
+
+def _time_agg_options_for_span(plot_df):
+    """Return adaptive time-bin options and default based on selected evidence duration."""
+    if plot_df.empty or "plot_time" not in plot_df.columns:
+        return EVIDENCE_TIME_AGG_PRESETS[2][1], EVIDENCE_TIME_AGG_PRESETS[2][2]
+
+    times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True).dropna()
+    if times.empty:
+        return EVIDENCE_TIME_AGG_PRESETS[2][1], EVIDENCE_TIME_AGG_PRESETS[2][2]
+
+    span = times.max() - times.min()
+    for max_span, options, default in EVIDENCE_TIME_AGG_PRESETS:
+        if max_span is None or span <= max_span:
+            return options, default
+
+    return EVIDENCE_TIME_AGG_PRESETS[-1][1], EVIDENCE_TIME_AGG_PRESETS[-1][2]
 
 def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequential):
     """Draw selected-station evidence as UTC time-bin x integer-SNR density."""
-    bin_hours = _time_agg_hours(time_agg)
+    bin_minutes = _time_agg_minutes(time_agg)
     work_df = plot_df[["plot_time", "metric"]].copy()
     work_df["plot_time"] = pd.to_datetime(work_df["plot_time"], errors="coerce", utc=True).dt.tz_convert(None)
     work_df["metric"] = pd.to_numeric(work_df["metric"], errors="coerce")
@@ -446,18 +470,19 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
             va="center"
         )
         ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
-        ax.set_xlabel(f"{time_agg} time bins UTC", color="white")
+        ax.set_xlabel(labels["x_label"], color="white")
         ax.set_ylabel(labels["y_label"], color="white")
         return
 
-    bin_delta = pd.to_timedelta(bin_hours, unit="h")
-    work_df["time_bin"] = work_df["plot_time"].dt.floor(f"{bin_hours}h")
+    bin_delta = pd.to_timedelta(bin_minutes, unit="min")
+    bin_freq = f"{bin_minutes}min"
+    work_df["time_bin"] = work_df["plot_time"].dt.floor(bin_freq)
     work_df["metric_bin"] = work_df["metric"].round().astype(int)
 
     time_bins = pd.date_range(
         start=work_df["time_bin"].min(),
         end=work_df["time_bin"].max(),
-        freq=f"{bin_hours}h"
+        freq=bin_freq
     )
     if len(time_bins) == 0:
         return
@@ -524,14 +549,13 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
     cbar.outline.set_edgecolor("#444444")
 
     locator = mdates.AutoDateLocator(minticks=4, maxticks=10)
-    formatter = mdates.ConciseDateFormatter(locator)
     ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(formatter)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
     ax.set_xlim(x_edges[0], x_edges[-1])
     ax.set_ylim(metric_min - 0.5, metric_max + 0.5)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=7, integer=True))
     ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
-    ax.set_xlabel(f"{time_agg} time bins UTC", color="white")
+    ax.set_xlabel(labels["x_label"], color="white")
     ax.set_ylabel(labels["y_label"], color="white")
 
 def _sort_drilldown_default(drill_df):
@@ -590,22 +614,23 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
     with ctrl_time:
-        agg_key = f"evidence_time_agg_{hash(tuple(identity_labels))}_{is_compare}_{is_sequential}"
-        if st.session_state.get(agg_key) not in EVIDENCE_TIME_AGG_OPTIONS:
-            st.session_state[agg_key] = EVIDENCE_TIME_AGG_DEFAULT
+        time_agg_options, time_agg_default = _time_agg_options_for_span(plot_df)
+        agg_key = f"evidence_time_agg_{st.session_state.get('run_id', 0)}_{is_compare}_{is_sequential}"
+        if st.session_state.get(agg_key) not in time_agg_options:
+            st.session_state[agg_key] = time_agg_default
         if hasattr(st, "segmented_control"):
             time_agg = st.segmented_control(
                 "Time aggregation",
-                EVIDENCE_TIME_AGG_OPTIONS,
-                default=EVIDENCE_TIME_AGG_DEFAULT,
+                time_agg_options,
+                default=time_agg_default,
                 key=agg_key,
                 label_visibility="collapsed"
             )
         else:
             time_agg = st.radio(
                 "Time aggregation",
-                EVIDENCE_TIME_AGG_OPTIONS,
-                index=EVIDENCE_TIME_AGG_OPTIONS.index(EVIDENCE_TIME_AGG_DEFAULT),
+                time_agg_options,
+                index=time_agg_options.index(time_agg_default),
                 horizontal=True,
                 key=agg_key,
                 label_visibility="collapsed"
