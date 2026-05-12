@@ -39,6 +39,10 @@ def _add_horizontal_grid(ax):
     ax.set_axisbelow(True)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
 
+def _add_foreground_horizontal_grid(ax):
+    ax.set_axisbelow(False)
+    ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA, zorder=3)
+
 def _unique_station_order(stations):
     """Return station labels once, preserving the table selection order."""
     return list(dict.fromkeys([str(s) for s in stations if pd.notna(s)]))
@@ -508,7 +512,8 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
         y_edges,
         masked_counts,
         cmap=EVIDENCE_HEATMAP_CMAP,
-        shading="flat"
+        shading="flat",
+        zorder=1
     )
 
     median_df = (
@@ -557,6 +562,7 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
     ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
     ax.set_xlabel(labels["x_label"], color="white")
     ax.set_ylabel(labels["y_label"], color="white")
+    _add_foreground_horizontal_grid(ax)
 
 def _sort_drilldown_default(drill_df):
     """Sort drill-down rows by UTC timestamp, then station label when available."""
