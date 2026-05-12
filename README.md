@@ -37,6 +37,7 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
 * [9. Configuration Reference](#sec-9)
 * [10. Existing Literature and Prior Art](#sec-10)
 * [Appendix A: Parallel Operation of Multiple WSJT-X Instances](#sec-a)
+* [Appendix B: Benchmark SNR Calibration](#sec-b)
 * [References](#sec-ref)
 
 <a id="sec-2"></a>
@@ -448,7 +449,11 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 **Comparison parameters**
 
 * **Benchmark Mode:** `Local Neighborhood Benchmark`, `Reference Station (Buddy Test)` or `Hardware A/B-Test`.
-* **Benchmark SNR Correction (dB):** user-defined correction added to the benchmark/reference SNR before Delta SNR is calculated. It applies only to compare modes and is intended for known benchmark-side attenuation or calibration artifacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - benchmark`, a positive correction makes the corrected benchmark SNR larger before subtraction.
+* **Benchmark SNR Correction (dB):** user-defined correction added to the benchmark/reference SNR before Delta SNR is calculated. It applies only to compare modes and is intended for known benchmark-side attenuation or calibration artifacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - benchmark`, a positive correction makes the corrected benchmark SNR larger before subtraction. Appendix B describes how to obtain a calibration value.
+  * **Scope:** Buddy Test applies the correction to the reference callsign. Local Best Station applies it to the selected local-best reference SNR. Local Median Neighborhood applies it to all neighborhood benchmark SNRs before median aggregation. Hardware A/B Test applies it to the benchmark side, meaning Setup B / reference side.
+  * **Formula:** `corrected benchmark SNR = benchmark/reference SNR + Benchmark SNR Correction`; `Delta SNR = target SNR - corrected benchmark SNR`.
+  * **Positive correction example:** a calibration run shows `target - reference = +1.6 dB`. Enter `+1.6 dB`. A benchmark/reference SNR of `-24.0 dB` is treated as `-22.4 dB`, so the corrected Delta SNR is reduced by `1.6 dB`.
+  * **Negative correction example:** a calibration run shows `target - reference = -1.6 dB`. Enter `-1.6 dB`. A benchmark/reference SNR of `-24.0 dB` is treated as `-25.6 dB`, so the corrected Delta SNR is increased by `1.6 dB`.
 * **Local Benchmark Method:** `Local Median Neighborhood` by default, or `Local Best Station` for a strict best-peer envelope.
 * **Neighborhood Radius:** geographic boundary for local reference stations.
 * **Reference Callsign:** external counterpart for Buddy Test.
@@ -465,30 +470,6 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 * **Map Scope:** visual map radius.
 * **Min. Joint Spots/Station:** in compare modes, requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins. In absolute modes, the same control acts as a raw spots-per-station filter.
 * **Min. Joint Stations/Segment:** in compare modes, requires at least X remote stations with qualifying joint evidence before a segment is drawn. In absolute modes, the same control acts as a raw stations-per-segment filter.
-
-Benchmark SNR Correction scope:
-
-* Buddy Test: applies to the reference callsign.
-* Local Best Station: applies to the selected local-best reference SNR.
-* Local Median Neighborhood: applies to all neighborhood benchmark SNRs before median aggregation.
-* Hardware A/B Test: applies to the benchmark side, meaning Setup B / reference side.
-
-Benchmark SNR Correction formula:
-
-* `corrected benchmark SNR = benchmark/reference SNR + Benchmark SNR Correction`
-* `Delta SNR = target SNR - corrected benchmark SNR`
-
-Examples:
-
-* **Positive correction:** a calibration run shows `target - reference = +1.6 dB`. Enter `+1.6 dB`. A benchmark/reference SNR of `-24.0 dB` is treated as `-22.4 dB`, so the corrected Delta SNR is reduced by `1.6 dB`.
-* **Negative correction:** a calibration run shows `target - reference = -1.6 dB`. Enter `-1.6 dB`. A benchmark/reference SNR of `-24.0 dB` is treated as `-25.6 dB`, so the corrected Delta SNR is increased by `1.6 dB`.
-
-Recommended calibration workflow:
-
-1. **Baseline measurement:** connect one antenna to a 3 dB splitter and feed both RX chains simultaneously.
-2. **Data collection:** run this setup for several days to gather a large paired sample across changing propagation states.
-3. **Calculation:** determine the average paired SNR difference between the two chains. With enough paired samples the numerical mean can become very stable; a target such as `0.05 dB` describes sample precision, not absolute laboratory calibration accuracy.
-4. **Application:** use this calibration value as the constant Benchmark SNR Correction for the second station, reference station or benchmark side.
 
 **Special-callsign filtering note**
 
@@ -638,6 +619,16 @@ Open the new SDR instance and go to `File > Settings > Audio`. Adjust:
   `C:\Users\[User]\AppData\Local\WSJT-X - SDR`
 
 After restarting the instance, data streams, hardware access and temporary WSPR files are separated from the primary instance.
+
+<a id="sec-b"></a>
+### Appendix B: Benchmark SNR Calibration
+
+This procedure estimates a constant correction between two receive chains, reference stations or benchmark-side paths before the actual comparison run. It is most useful when you know that the benchmark side has a stable hardware, receiver-chain or calibration difference that WSPRadar cannot infer from WSPR spots alone.
+
+1. **Baseline measurement:** connect one antenna to a 3 dB splitter and feed both RX chains simultaneously.
+2. **Data collection:** run this setup for several days to gather a large paired sample across changing propagation states.
+3. **Calculation:** use WSPRadar Buddy Test or Hardware A/B-Test to determine the Delta SNR between the two chains. Read the calibration value from the figures above the Station Insights table. You must choose whether the relevant value is the station-median Delta SNR or the joint-spot Delta SNR mean/median; use the one that matches the evidence layer you want to correct. With enough paired samples the numerical mean can become very stable; a target such as `0.05 dB` describes sample precision, not absolute laboratory calibration accuracy.
+4. **Application:** use this calibration value as the constant Benchmark SNR Correction in the actual comparison run for the second station, reference station or benchmark side.
 
 <a id="sec-ref"></a>
 ### References
