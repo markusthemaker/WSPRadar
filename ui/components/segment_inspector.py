@@ -167,13 +167,13 @@ def _add_stability_band(ax, low, high):
 def _place_metric_legend_below_axis(ax):
     """Move compact metric legends below the plot so annotations remain readable."""
     ax.legend(
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.24),
-        ncol=2,
+        loc="upper right",
+        bbox_to_anchor=(1.0, -0.08),
+        ncol=1,
         facecolor="#121212",
         edgecolor="#444444",
         labelcolor="white",
-        fontsize=9,
+        fontsize=8,
         framealpha=0.9,
         borderaxespad=0.0
     )
@@ -794,7 +794,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     evidence_summary = _stability_summary(plot_df["metric"], is_compare, evidence_prefix)
     if evidence_summary:
         st.markdown(
-            f"<div style='text-align:center; color:#9aa4b2; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:0.35rem;'>{evidence_summary}</div>",
+            f"<div style='text-align:center; color:white; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:1.0rem;'>{evidence_summary}</div>",
             unsafe_allow_html=True
         )
 
@@ -879,7 +879,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 st.session_state[dir_key] = opt_all_dir
             sel_dir = st.selectbox("Direction", dir_options, key=dir_key, label_visibility="collapsed")
 
-    st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:0.38rem;'></div>", unsafe_allow_html=True)
 
     # If user selected a valid segment, process the inspection data
     if sel_dir != t.get("opt_no_station", "No Stations"):
@@ -1156,7 +1156,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             if spot_summary:
                 segment_summary.append(spot_summary)
             st.markdown(
-                f"<div style='text-align:center; color:#9aa4b2; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:0.35rem;'>{'<br>'.join(segment_summary)}</div>",
+                f"<div style='text-align:center; color:white; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:1.0rem;'>{'<br>'.join(segment_summary)}</div>",
                 unsafe_allow_html=True
             )
 
