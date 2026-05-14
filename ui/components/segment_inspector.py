@@ -164,6 +164,25 @@ def _add_stability_band(ax, low, high):
         high = center + 0.15
     ax.axhspan(low, high, color="red", alpha=0.12, zorder=1, label="90% Stability")
 
+def _place_metric_legend_below_axis(ax):
+    """Move compact metric legends below the plot so annotations remain readable."""
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.24),
+        ncol=2,
+        facecolor="#121212",
+        edgecolor="#444444",
+        labelcolor="white",
+        fontsize=9,
+        framealpha=0.9,
+        borderaxespad=0.0
+    )
+
+def _section_header(label, icon=""):
+    """Render a compact section header matching the Station Insights style."""
+    icon_text = f"{icon} " if icon else ""
+    st.markdown(f"**{icon_text}{label}**", unsafe_allow_html=True)
+
 def _evidence_strength(stations_count, evidence_count):
     """Classify evidence strength using WSPRadar's heuristic sample thresholds."""
     if stations_count >= 5 and evidence_count >= 20:
@@ -860,9 +879,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 st.session_state[dir_key] = opt_all_dir
             sel_dir = st.selectbox("Direction", dir_options, key=dir_key, label_visibility="collapsed")
 
+    st.markdown("<div style='height:0.75rem;'></div>", unsafe_allow_html=True)
+
     # If user selected a valid segment, process the inspection data
     if sel_dir != t.get("opt_no_station", "No Stations"):
         selected_seg = f"{sel_dist if sel_dist != opt_full else t['opt_full_range']} | {sel_dir if sel_dir != opt_all_dir else t['opt_all_dirs']}"
+        segment_insight_label = "Segment-Insight" if st.session_state.lang == "de" else "Segment Insight"
+        _section_header(segment_insight_label, "&#9684;")
         df_seg = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
         
         # Apply user filters
@@ -1082,7 +1105,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 med = _draw_single_vertical_raincloud(ax_hist, vals, "Station Medians", color="#36aaf9")
                 _add_stability_band(ax_hist, station_stability_interval[1], station_stability_interval[2])
                 ax_hist.axhline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
-                ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
+                _place_metric_legend_below_axis(ax_hist)
             else:
                 # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
                 ax_hist.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_hist.transAxes)
@@ -1095,7 +1118,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             if pd.notna(spot_med):
                 _add_stability_band(ax_spot, spot_stability_interval[1], spot_stability_interval[2])
                 ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
-                ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
+                _place_metric_legend_below_axis(ax_spot)
                 if is_compare and not spot_values_numeric.empty:
                     spot_mean = spot_values_numeric.mean()
                     ax_spot.text(
@@ -1439,7 +1462,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     col_d1, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
                     
                     with col_d1:
-                        st.markdown(drill_title)
+                        _section_header(drill_title, "&#9638;")
                         
                     with col_d2:
                         with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):
