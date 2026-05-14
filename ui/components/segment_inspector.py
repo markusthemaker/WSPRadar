@@ -154,7 +154,15 @@ def _add_stability_band(ax, low, high):
     """Draw a subtle 90% stability band behind the median line."""
     if pd.isna(low) or pd.isna(high):
         return
-    ax.axhspan(low, high, color="red", alpha=0.12, zorder=1)
+    low = float(low)
+    high = float(high)
+    if high < low:
+        low, high = high, low
+    if high - low < 0.3:
+        center = (low + high) / 2.0
+        low = center - 0.15
+        high = center + 0.15
+    ax.axhspan(low, high, color="red", alpha=0.12, zorder=1, label="90% Stability")
 
 def _evidence_strength(stations_count, evidence_count):
     """Classify evidence strength using WSPRadar's heuristic sample thresholds."""
@@ -767,7 +775,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     evidence_summary = _stability_summary(plot_df["metric"], is_compare, evidence_prefix)
     if evidence_summary:
         st.markdown(
-            f"<div style='text-align:center; color:#9aa4b2; font-size:0.85em; margin-top:-0.25rem; margin-bottom:0.35rem;'>{evidence_summary}</div>",
+            f"<div style='text-align:center; color:#9aa4b2; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:0.35rem;'>{evidence_summary}</div>",
             unsafe_allow_html=True
         )
 
@@ -1115,6 +1123,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             segment_strength = _evidence_strength(len(vals), len(segment_raw_values))
             spot_basis = "paired bins" if is_sequential else ("joint spots" if is_compare else "spots")
             segment_summary = [
+                f"Selected Segment: {selected_seg}",
                 f"Selected Segment Evidence: {segment_strength} | {len(vals)} stations | {len(segment_raw_values)} {spot_basis}",
             ]
             station_summary = _stability_summary(vals, is_compare, "Station-median")
@@ -1124,7 +1133,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             if spot_summary:
                 segment_summary.append(spot_summary)
             st.markdown(
-                f"<div style='text-align:center; color:#9aa4b2; font-size:0.86em; margin-top:-0.25rem; margin-bottom:0.35rem;'>{'<br>'.join(segment_summary)}</div>",
+                f"<div style='text-align:center; color:#9aa4b2; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:0.35rem;'>{'<br>'.join(segment_summary)}</div>",
                 unsafe_allow_html=True
             )
 
