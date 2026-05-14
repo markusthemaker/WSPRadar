@@ -19,27 +19,37 @@ def apply_custom_css():
         
         .block-container { max-width: 1024px !important; padding-top: 2rem !important; }
         
-        /* Primary Run Buttons */
+        /* Primary action buttons */
         div.stButton > button[kind="primary"] {
-            background-color: transparent !important; color: #39ff14 !important; border: 2px solid #39ff14 !important;
-            font-family: 'Space Mono', monospace !important; font-size: 1.0rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 1px; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2), inset 0 0 10px rgba(57, 255, 20, 0.1); transition: all 0.3s ease;
+            background-color: transparent !important; color: #ffffff !important; border: 2px solid #39ff14 !important;
+            font-family: 'Space Mono', monospace !important; font-size: 1.0rem; font-weight: 700;
+            letter-spacing: 0; box-shadow: 0 0 10px rgba(57, 255, 20, 0.12), inset 0 0 10px rgba(57, 255, 20, 0.06); transition: all 0.3s ease;
         }
-        div.stButton > button[kind="primary"]:hover { background-color: rgba(57, 255, 20, 0.1) !important; box-shadow: 0 0 20px rgba(57, 255, 20, 0.6), inset 0 0 15px rgba(57, 255, 20, 0.3); }
+        div.stButton > button[kind="primary"]:hover { background-color: rgba(57, 255, 20, 0.1) !important; color: #ffffff !important; box-shadow: 0 0 14px rgba(57, 255, 20, 0.35), inset 0 0 12px rgba(57, 255, 20, 0.15); }
         div.stDownloadButton > button[kind="primary"] {
-            background-color: transparent !important; color: #39ff14 !important; border: 2px solid #39ff14 !important;
+            background-color: transparent !important; color: #ffffff !important; border: 2px solid #39ff14 !important;
             font-family: 'Space Mono', monospace !important; font-size: 0.95rem !important; font-weight: 700;
-            letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2), inset 0 0 10px rgba(57, 255, 20, 0.1) !important;
+            letter-spacing: 0; box-shadow: 0 0 10px rgba(57, 255, 20, 0.12), inset 0 0 10px rgba(57, 255, 20, 0.06) !important;
             transition: all 0.3s ease;
         }
         div.stDownloadButton > button[kind="primary"]:hover {
             background-color: rgba(57, 255, 20, 0.1) !important;
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.6), inset 0 0 15px rgba(57, 255, 20, 0.3) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 14px rgba(57, 255, 20, 0.35), inset 0 0 12px rgba(57, 255, 20, 0.15) !important;
         }
         
         /* Secondary Buttons (Reset, Demo) */
-        div.stButton > button[kind="secondary"] { border-color: rgba(57, 255, 20, 0.5) !important; color: #e0e0e0 !important; font-size: 0.85rem !important; padding: 0.2rem 0.5rem !important; margin-top: 10px; transition: all 0.3s ease; }
-        div.stButton > button[kind="secondary"]:hover { border-color: #39ff14 !important; color: #39ff14 !important; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important; }
+        div.stButton > button[kind="secondary"] { border: 1px solid #39ff14 !important; color: #ffffff !important; font-size: 0.85rem !important; padding: 0.2rem 0.5rem !important; margin-top: 10px; transition: all 0.3s ease; }
+        div.stButton > button[kind="secondary"]:hover { border-color: #39ff14 !important; color: #ffffff !important; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important; }
+        div.stButton > button[kind="primary"] svg,
+        div.stButton > button[kind="secondary"] svg,
+        div.stDownloadButton > button[kind="primary"] svg,
+        div.stButton > button[kind="primary"] [data-testid="stIconMaterial"],
+        div.stButton > button[kind="secondary"] [data-testid="stIconMaterial"],
+        div.stDownloadButton > button[kind="primary"] [data-testid="stIconMaterial"] {
+            color: #ffffff !important;
+            fill: #ffffff !important;
+        }
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"] {
             box-shadow: 0 0 5px #39ff14 !important;
             filter: drop-shadow(0 0 5px rgba(57, 255, 20, 0.75)) !important;

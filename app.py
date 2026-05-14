@@ -169,7 +169,7 @@ with col_b1:
         reset_audit()
 
 with col_b2:
-    if st.button(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", type="primary", width='stretch'):
+    if st.button(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", width='stretch'):
         st.session_state.show_config_loader = not st.session_state.get("show_config_loader", False)
         reset_audit()
 

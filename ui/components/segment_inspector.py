@@ -792,13 +792,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
         evidence_title = f"{evidence_title_base}: {identity_labels[0]} | {evidence_count} {evidence_basis}"
     else:
         evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
-    evidence_summary = _stability_summary(plot_df["metric"], is_compare)
-    if evidence_summary:
-        st.markdown(
-            f"<div style='text-align:center; color:white; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:1.0rem;'>{evidence_summary}</div>",
-            unsafe_allow_html=True
-        )
-
+    st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
     fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
     fig_ev.suptitle(evidence_title, color="white", fontweight="bold", fontsize=14, y=0.98)
@@ -1165,6 +1159,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 unsafe_allow_html=True
             )
 
+            st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
             # Richtiges Streamlit-Parameter f??r volle Breite
             st.pyplot(fig_hist, width='stretch')
             plt.close(fig_hist)
