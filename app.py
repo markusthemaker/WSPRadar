@@ -31,6 +31,7 @@ from ui.callbacks import (
 )
 from ui.components.config_panel import render_core_expander, render_compare_expander, render_advanced_expander
 from ui.components.segment_inspector import render_segment_inspector, render_lazy_download
+from ui.config_io import build_config_payload, validate_config_upload, apply_config_values
 
 # Core Execution Engines
 from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time, is_valid_callsign, is_valid_locator
@@ -120,6 +121,25 @@ def render_demo_launcher():
             if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width='stretch'):
                 run_demo_profile(selected_demo)
 
+def render_config_loader():
+    with st.popover(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", use_container_width=True):
+        uploaded_config = st.file_uploader(
+            t.get("lbl_config_file", "Select WSPRadar .config file"),
+            type=["config", "json"],
+            accept_multiple_files=False,
+            key="uploaded_config_file"
+        )
+        if uploaded_config is not None:
+            if st.button(t.get("btn_apply_config", "Load selected config"), icon=":material/file_upload:", width="stretch"):
+                try:
+                    config_values, config_warnings = validate_config_upload(uploaded_config.getvalue())
+                    apply_config_values(config_values)
+                    st.success(t.get("msg_config_loaded", "Config loaded. Existing results were cleared."))
+                    for warning in config_warnings:
+                        st.warning(warning)
+                except ValueError as exc:
+                    st.error(t.get("err_config_load", "Config could not be loaded: {error}").format(error=exc))
+
 # Header Section: Logo and Titles for PC
 logo_base64 = get_base64_of_bin_file("img/WSPRadar.png")
 st.markdown(f"""
@@ -134,7 +154,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Configuration Controls
-col_lang, col_b1, col_b2 = st.columns(3, vertical_alignment="bottom")
+col_lang, col_b1, col_b2, col_b3 = st.columns(4, vertical_alignment="bottom")
 
 with col_lang:
     def format_lang_ui(lang_key):
@@ -148,6 +168,9 @@ with col_b1:
         reset_audit()
 
 with col_b2:
+    render_config_loader()
+
+with col_b3:
     btn_reset_lbl = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
     st.button(btn_reset_lbl, on_click=set_reset_config, width='stretch')
 
@@ -158,15 +181,15 @@ if st.session_state.get("show_demo_launcher", False):
 if st.session_state.is_demo_mode:
     st.markdown("""
     <style>
-        /* Zielt exakt auf den Reset/Exit-Button in der dritten Spalte des ersten Blocks ab */
-        div[data-testid="stHorizontalBlock"] > div:nth-child(3) div.stButton > button {
+        /* Zielt exakt auf den Reset/Exit-Button in der vierten Spalte des ersten Blocks ab */
+        div[data-testid="stHorizontalBlock"] > div:nth-child(4) div.stButton > button {
             border-color: #39ff14 !important;
             color: #39ff14 !important;
             text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
             box-shadow: 0 0 15px rgba(57, 255, 20, 0.8), inset 0 0 8px rgba(57, 255, 20, 0.3) !important;
             transition: all 0.3s ease;
         }
-        div[data-testid="stHorizontalBlock"] > div:nth-child(3) div.stButton > button:hover {
+        div[data-testid="stHorizontalBlock"] > div:nth-child(4) div.stButton > button:hover {
             background-color: rgba(57, 255, 20, 0.1) !important;
             box-shadow: 0 0 25px rgba(57, 255, 20, 1.0), inset 0 0 15px rgba(57, 255, 20, 0.5) !important;
         }
@@ -226,13 +249,24 @@ def collapse_config_panels():
     st.session_state.config_panels_expanded = False
     st.session_state._collapse_config_panels_once = True
 
-c_run1, c_run2 = st.columns(2, gap="large")
+c_run1, c_save, c_run2 = st.columns([0.4, 0.2, 0.4], gap="large")
 run_tx_clicked = False
 run_rx_clicked = False
 
 with c_run1:
     if st.button(t["btn_run_tx"], type="primary", width='stretch', on_click=collapse_config_panels):
         run_tx_clicked = True
+
+with c_save:
+    config_bytes, config_filename = build_config_payload()
+    st.download_button(
+        t.get("btn_save_config", "Save Config"),
+        data=config_bytes,
+        file_name=config_filename,
+        mime="application/json",
+        icon=":material/save:",
+        width="stretch"
+    )
 
 with c_run2:
     if st.button(t["btn_run_rx"], type="primary", width='stretch', on_click=collapse_config_panels):
