@@ -77,7 +77,7 @@ def apply_custom_css():
         /* Selectbox (Language Selector) aligned with button styling */
         div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
             background-color: transparent !important;
-            border: 1px solid rgba(57, 255, 20, 0.5) !important;
+            border: 1px solid #39ff14 !important;
             border-radius: 0.5rem !important;
             color: #e0e0e0 !important;
             font-family: 'Space Mono', monospace !important;
@@ -85,6 +85,7 @@ def apply_custom_css():
             margin-top: 10px; 
             transition: all 0.3s ease;
             cursor: pointer;
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important;
         }
         div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {
             border-color: #39ff14 !important;
