@@ -180,7 +180,11 @@ def _place_metric_legend_below_axis(ax):
 
 def _section_header(label, icon=""):
     """Render a compact section header matching the Station Insights style."""
-    icon_text = f"{icon} " if icon else ""
+    if icon.startswith("material:"):
+        icon_name = icon.split(":", 1)[1]
+        icon_text = f"<span class='material-symbols-rounded section-icon'>{icon_name}</span>"
+    else:
+        icon_text = f"{icon} " if icon else ""
     st.markdown(f"**{icon_text}{label}**", unsafe_allow_html=True)
 
 def _evidence_strength(stations_count, evidence_count):
@@ -794,8 +798,8 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
         evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
     st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
     fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
-    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
-    fig_ev.suptitle(evidence_title, color="white", fontweight="bold", fontsize=14, y=0.98)
+    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.80, wspace=0.24)
+    fig_ev.suptitle(evidence_title, color="white", fontweight="bold", fontsize=14, y=0.94)
     fig_ev.text(0.98, 0.01, "WSPRadar.org", color="#888888", ha="right", fontsize=10)
     gs = fig_ev.add_gridspec(1, 3)
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
@@ -882,7 +886,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
     if sel_dir != t.get("opt_no_station", "No Stations"):
         selected_seg = f"{sel_dist if sel_dist != opt_full else t['opt_full_range']} | {sel_dir if sel_dir != opt_all_dir else t['opt_all_dirs']}"
         segment_insight_label = "Segment-Insight" if st.session_state.lang == "de" else "Segment Insight"
-        _section_header(segment_insight_label, "&#9684;")
+        _section_header(segment_insight_label, "material:data_usage")
         df_seg = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
         
         # Apply user filters
@@ -1005,7 +1009,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             
             # Setup Layout based on Absolute vs. Compare Mode
             if is_compare and 'count_only_u' in df_seg.columns:
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.80, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_yield = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
@@ -1053,12 +1057,12 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 # Adjust Titles for Three-Panel Compare Plot
                 ax_hist.set_title("Station Medians (\u0394 SNR)", color='white', fontweight='bold', pad=10)
                 ax_spot.set_title("Paired-Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR", color='white', fontweight='bold', pad=10)
-                fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
+                fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.94)
                 fig_hist.text(0.98, 0.01, "WSPRadar.org", color='#888888', ha='right', fontsize=10)
                 
             else:
                 # Absolute Mode: activity, station-balanced medians, and raw spot distribution
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.80, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_activity = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
@@ -1087,7 +1091,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
 
                 ax_hist.set_title("Station Medians (SNR @ 1W)", color='white', fontweight='bold', pad=10)
                 ax_spot.set_title("Spot SNR (SNR @ 1W)", color='white', fontweight='bold', pad=10)
-                fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
+                fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.94)
                 fig_hist.text(0.98, 0.01, "WSPRadar.org", color='#888888', ha='right', fontsize=10)
 
             # 2. Common Histogram Setup (Right / Full)
@@ -1187,7 +1191,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         with col_ins1:
             # Platzsparende, zweisprachige Kurzform f??r den Subtitel
             sub_text = " (Norm. @ 1W. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 1W. Click for details)"
-            st.markdown(f"**{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
+            st.markdown(f"**<span class='material-symbols-rounded section-icon'>monitoring</span>{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
             benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
             if is_compare and abs(benchmark_offset_db) >= 0.05:
                 offset_note = t.get("txt_benchmark_offset_note", "Benchmark SNR Correction: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
@@ -1462,7 +1466,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     col_d1, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
                     
                     with col_d1:
-                        _section_header(drill_title, "&#9638;")
+                        _section_header(drill_title, "material:table_rows")
                         
                     with col_d2:
                         with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):

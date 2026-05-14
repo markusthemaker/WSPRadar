@@ -13,7 +13,7 @@ def apply_custom_css():
     """
     st.markdown("""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0&family=Rajdhani:wght@600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
         html, body, [class*="css"] { font-family: 'Space Mono', monospace !important; }
         .stApp { background-color: #050a15; background-image: radial-gradient(circle at 50% 50%, #0a1428 0%, #02040a 100%); color: #e0e0e0; }
         
@@ -46,7 +46,10 @@ def apply_custom_css():
         div.stDownloadButton > button[kind="primary"] svg,
         div.stButton > button[kind="primary"] [data-testid="stIconMaterial"],
         div.stButton > button[kind="secondary"] [data-testid="stIconMaterial"],
-        div.stDownloadButton > button[kind="primary"] [data-testid="stIconMaterial"] {
+        div.stDownloadButton > button[kind="primary"] [data-testid="stIconMaterial"],
+        div.stButton > button[kind="primary"] span[data-testid="stIconMaterial"],
+        div.stButton > button[kind="secondary"] span[data-testid="stIconMaterial"],
+        div.stDownloadButton > button[kind="primary"] span[data-testid="stIconMaterial"] {
             color: #ffffff !important;
             fill: #ffffff !important;
         }
@@ -146,6 +149,19 @@ def apply_custom_css():
         label[data-testid="stWidgetLabel"] p, label[data-testid="stWidgetLabel"] div, div[data-testid="stRadio"] p, label[data-testid="stCheckbox"] p, label[data-testid="stCheckbox"] span { font-family: 'Space Mono', monospace !important; font-size: 14px !important; font-weight: 700 !important; color: #cccccc !important; }
         summary[data-testid="stExpanderToggle"] p { font-family: 'Space Mono', monospace !important; font-size: 16px !important; font-weight: 700 !important; color: #39ff14 !important; text-transform: uppercase; letter-spacing: 1px; }
         h3.section-title { font-family: 'Rajdhani', sans-serif !important; font-size: 2rem !important; color: #ffffff !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 10px; margin-top: 1.5rem; margin-bottom: 1.5rem; letter-spacing: 1px; }
+        .material-symbols-rounded.section-icon {
+            font-family: 'Material Symbols Rounded' !important;
+            font-weight: normal !important;
+            font-style: normal !important;
+            font-size: 1.05em !important;
+            line-height: 1 !important;
+            letter-spacing: normal !important;
+            text-transform: none !important;
+            display: inline-flex !important;
+            vertical-align: -0.16em !important;
+            color: #ffffff !important;
+            margin-right: 0.25rem !important;
+        }
         
         /* Markdown rendering inside the documentation */
         .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }

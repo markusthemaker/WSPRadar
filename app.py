@@ -175,7 +175,7 @@ with col_b2:
 
 with col_b3:
     btn_reset_lbl = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
-    st.button(btn_reset_lbl, on_click=set_reset_config, width='stretch')
+    st.button(btn_reset_lbl, icon=":material/restart_alt:", on_click=set_reset_config, width='stretch')
 
 if st.session_state.get("show_demo_launcher", False):
     render_demo_launcher()
@@ -260,7 +260,7 @@ run_tx_clicked = False
 run_rx_clicked = False
 
 with c_run1:
-    if st.button(t["btn_run_tx"], type="primary", width='stretch', on_click=collapse_config_panels):
+    if st.button(t["btn_run_tx"], icon=":material/cell_tower:", type="primary", width='stretch', on_click=collapse_config_panels):
         run_tx_clicked = True
 
 with c_save:
@@ -276,7 +276,7 @@ with c_save:
     )
 
 with c_run2:
-    if st.button(t["btn_run_rx"], type="primary", width='stretch', on_click=collapse_config_panels):
+    if st.button(t["btn_run_rx"], icon=":material/headphones:", type="primary", width='stretch', on_click=collapse_config_panels):
         run_rx_clicked = True
 
 # Validate user logic before assigning run_mode
