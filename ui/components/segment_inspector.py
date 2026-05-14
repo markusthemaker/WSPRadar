@@ -411,8 +411,19 @@ def _annotate_outlier_range(ax, below_pct, above_pct):
     """Show how much selected evidence sits outside the visible robust range."""
     ax.text(
         0.98,
+        0.96,
+        f"outlier above range: {above_pct:.1f}%",
+        transform=ax.transAxes,
+        color="#cccccc",
+        fontsize=8,
+        ha="right",
+        va="top",
+        zorder=8
+    )
+    ax.text(
+        0.98,
         0.04,
-        f"outlier above range: {above_pct:.1f}%\noutlier below range: {below_pct:.1f}%",
+        f"outlier below range: {below_pct:.1f}%",
         transform=ax.transAxes,
         color="#cccccc",
         fontsize=8,
