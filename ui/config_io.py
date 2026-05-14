@@ -217,33 +217,35 @@ def _validate_locator(value, field, allow_empty=True):
 def build_config_payload():
     """Return a JSON byte payload and a timestamped .config filename."""
     lang = st.session_state.lang
-    time_mode = "last_x" if st.session_state.val_time_mode == T[lang]["opt_last_x"] else "custom"
+    defaults = _default_config()
+    state = st.session_state
+    time_mode = "last_x" if state.get("val_time_mode", T[lang]["opt_last_x"]) == T[lang]["opt_last_x"] else "custom"
     config = {
-        "callsign": st.session_state.val_callsign.strip().upper(),
-        "qth": st.session_state.val_qth.strip().upper(),
-        "band": st.session_state.val_band,
+        "callsign": state.get("val_callsign", defaults["callsign"]).strip().upper(),
+        "qth": state.get("val_qth", defaults["qth"]).strip().upper(),
+        "band": state.get("val_band", defaults["band"]),
         "time_mode": time_mode,
-        "hours": int(st.session_state.val_hours),
-        "start_date": st.session_state.val_start_d.isoformat(),
-        "end_date": st.session_state.val_end_d.isoformat(),
-        "start_time": st.session_state.val_start_t.strftime("%H:%M"),
-        "end_time": st.session_state.val_end_t.strftime("%H:%M"),
-        "benchmark_mode": _canonical_from_translated(st.session_state.val_comp_mode, MODE_VALUES, "local_neighborhood"),
-        "local_benchmark": _canonical_from_translated(st.session_state.val_local_benchmark, LOCAL_BENCHMARK_VALUES, "local_median"),
-        "reference_callsign": st.session_state.val_ref_callsign.strip().upper(),
-        "neighborhood_radius_km": int(st.session_state.val_ref_radius_km),
-        "benchmark_snr_correction_db": round(float(st.session_state.val_benchmark_offset_db), 1),
-        "self_test_mode": _canonical_from_translated(st.session_state.val_self_test_mode, SELF_TEST_VALUES, "rx"),
-        "setup_b_callsign": st.session_state.val_self_call_b.strip().upper(),
-        "target_time_slot": _canonical_from_translated(st.session_state.val_slot_u, SLOT_VALUES, "even"),
-        "reference_time_slot": _canonical_from_translated(st.session_state.val_slot_r, SLOT_VALUES, "odd"),
-        "tx_ab_bin_minutes": int(st.session_state.val_tx_ab_bin_minutes),
-        "solar_state": _canonical_from_translated(st.session_state.val_solar, SOLAR_VALUES, "all"),
-        "map_scope_km": int(st.session_state.val_max_dist),
-        "exclude_special_callsigns": bool(st.session_state.val_exclude_special_callsigns),
-        "exclude_moving_stations": bool(st.session_state.val_filter_moving),
-        "min_joint_spots_per_station": int(st.session_state.val_min_spots),
-        "min_joint_stations_per_map_segment": int(st.session_state.val_min_stations),
+        "hours": int(state.get("val_hours", defaults["hours"])),
+        "start_date": state.get("val_start_d", datetime.fromisoformat(defaults["start_date"]).date()).isoformat(),
+        "end_date": state.get("val_end_d", datetime.fromisoformat(defaults["end_date"]).date()).isoformat(),
+        "start_time": state.get("val_start_t", dt_time(0, 0)).strftime("%H:%M"),
+        "end_time": state.get("val_end_t", dt_time(23, 59)).strftime("%H:%M"),
+        "benchmark_mode": _canonical_from_translated(state.get("val_comp_mode", T[lang]["opt_comp_radius"]), MODE_VALUES, "local_neighborhood"),
+        "local_benchmark": _canonical_from_translated(state.get("val_local_benchmark", T[lang]["opt_local_median"]), LOCAL_BENCHMARK_VALUES, "local_median"),
+        "reference_callsign": state.get("val_ref_callsign", defaults["reference_callsign"]).strip().upper(),
+        "neighborhood_radius_km": int(state.get("val_ref_radius_km", defaults["neighborhood_radius_km"])),
+        "benchmark_snr_correction_db": round(float(state.get("val_benchmark_offset_db", defaults["benchmark_snr_correction_db"])), 1),
+        "self_test_mode": _canonical_from_translated(state.get("val_self_test_mode", T[lang]["opt_self_rx"]), SELF_TEST_VALUES, "rx"),
+        "setup_b_callsign": state.get("val_self_call_b", defaults["setup_b_callsign"]).strip().upper(),
+        "target_time_slot": _canonical_from_translated(state.get("val_slot_u", T[lang]["opt_slot_even"]), SLOT_VALUES, "even"),
+        "reference_time_slot": _canonical_from_translated(state.get("val_slot_r", T[lang]["opt_slot_odd"]), SLOT_VALUES, "odd"),
+        "tx_ab_bin_minutes": int(state.get("val_tx_ab_bin_minutes", defaults["tx_ab_bin_minutes"])),
+        "solar_state": _canonical_from_translated(state.get("val_solar", T[lang]["opt_solar_all"]), SOLAR_VALUES, "all"),
+        "map_scope_km": int(state.get("val_max_dist", defaults["map_scope_km"])),
+        "exclude_special_callsigns": bool(state.get("val_exclude_special_callsigns", defaults["exclude_special_callsigns"])),
+        "exclude_moving_stations": bool(state.get("val_filter_moving", defaults["exclude_moving_stations"])),
+        "min_joint_spots_per_station": int(state.get("val_min_spots", defaults["min_joint_spots_per_station"])),
+        "min_joint_stations_per_map_segment": int(state.get("val_min_stations", defaults["min_joint_stations_per_map_segment"])),
     }
     payload = {
         "app": CONFIG_APP_NAME,
@@ -353,6 +355,7 @@ def apply_config_values(config):
     st.session_state.is_demo_mode = False
     st.session_state.active_demo_profile = None
     st.session_state.show_demo_launcher = False
+    st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
     st.session_state.run_mode = None

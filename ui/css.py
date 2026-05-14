@@ -26,6 +26,16 @@ def apply_custom_css():
             letter-spacing: 1px; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2), inset 0 0 10px rgba(57, 255, 20, 0.1); transition: all 0.3s ease;
         }
         div.stButton > button[kind="primary"]:hover { background-color: rgba(57, 255, 20, 0.1) !important; box-shadow: 0 0 20px rgba(57, 255, 20, 0.6), inset 0 0 15px rgba(57, 255, 20, 0.3); }
+        div.stDownloadButton > button[kind="primary"] {
+            background-color: transparent !important; color: #39ff14 !important; border: 2px solid #39ff14 !important;
+            font-family: 'Space Mono', monospace !important; font-size: 0.95rem !important; font-weight: 700;
+            letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2), inset 0 0 10px rgba(57, 255, 20, 0.1) !important;
+            transition: all 0.3s ease;
+        }
+        div.stDownloadButton > button[kind="primary"]:hover {
+            background-color: rgba(57, 255, 20, 0.1) !important;
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.6), inset 0 0 15px rgba(57, 255, 20, 0.3) !important;
+        }
         
         /* Secondary Buttons (Reset, Demo) */
         div.stButton > button[kind="secondary"] { border-color: rgba(57, 255, 20, 0.5) !important; color: #e0e0e0 !important; font-size: 0.85rem !important; padding: 0.2rem 0.5rem !important; margin-top: 10px; transition: all 0.3s ease; }

@@ -122,7 +122,7 @@ def render_demo_launcher():
                 run_demo_profile(selected_demo)
 
 def render_config_loader():
-    with st.popover(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", use_container_width=True):
+    with st.expander(t.get("btn_load_config", "Load Config"), expanded=True):
         uploaded_config = st.file_uploader(
             t.get("lbl_config_file", "Select WSPRadar .config file"),
             type=["config", "json"],
@@ -137,6 +137,7 @@ def render_config_loader():
                     st.success(t.get("msg_config_loaded", "Config loaded. Existing results were cleared."))
                     for warning in config_warnings:
                         st.warning(warning)
+                    st.rerun()
                 except ValueError as exc:
                     st.error(t.get("err_config_load", "Config could not be loaded: {error}").format(error=exc))
 
@@ -168,7 +169,9 @@ with col_b1:
         reset_audit()
 
 with col_b2:
-    render_config_loader()
+    if st.button(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", type="primary", width='stretch'):
+        st.session_state.show_config_loader = not st.session_state.get("show_config_loader", False)
+        reset_audit()
 
 with col_b3:
     btn_reset_lbl = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
@@ -176,6 +179,9 @@ with col_b3:
 
 if st.session_state.get("show_demo_launcher", False):
     render_demo_launcher()
+
+if st.session_state.get("show_config_loader", False):
+    render_config_loader()
 
 # Dynamischer CSS Glow für den Exit-Button
 if st.session_state.is_demo_mode:
@@ -249,7 +255,7 @@ def collapse_config_panels():
     st.session_state.config_panels_expanded = False
     st.session_state._collapse_config_panels_once = True
 
-c_run1, c_save, c_run2 = st.columns([0.4, 0.2, 0.4], gap="large")
+c_run1, c_save, c_run2 = st.columns([0.38, 0.24, 0.38], gap="large")
 run_tx_clicked = False
 run_rx_clicked = False
 
@@ -265,6 +271,7 @@ with c_save:
         file_name=config_filename,
         mime="application/json",
         icon=":material/save:",
+        type="primary",
         width="stretch"
     )
 

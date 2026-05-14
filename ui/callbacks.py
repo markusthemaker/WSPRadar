@@ -156,6 +156,7 @@ def load_demo_profile_config(profile_key):
     st.session_state.is_demo_mode = False
     st.session_state.active_demo_profile = None
     st.session_state.show_demo_launcher = False
+    st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
     st.session_state.run_mode = None
@@ -163,6 +164,7 @@ def load_demo_profile_config(profile_key):
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
+    st.rerun()
 
 def run_demo_profile(profile_key):
     """
@@ -222,6 +224,12 @@ def set_reset_config():
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_local_benchmark = t["opt_local_median"]
+    st.session_state.val_ref_callsign = "DL2XYZ"
+    st.session_state.val_self_test_mode = t["opt_self_rx"]
+    st.session_state.val_self_call_b = ""
+    st.session_state.val_slot_u = t["opt_slot_even"]
+    st.session_state.val_slot_r = t["opt_slot_odd"]
+    st.session_state.val_tx_ab_bin_minutes = 8
     st.session_state.val_max_dist = 22000
     st.session_state.val_exclude_special_callsigns = False
     st.session_state.val_filter_moving = False
@@ -229,6 +237,7 @@ def set_reset_config():
     st.session_state.val_min_stations = 1
     st.session_state.active_demo_profile = None
     st.session_state.show_demo_launcher = False
+    st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
     st.session_state.run_mode = None

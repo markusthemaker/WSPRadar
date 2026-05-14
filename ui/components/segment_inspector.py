@@ -168,7 +168,7 @@ def _place_metric_legend_below_axis(ax):
     """Move compact metric legends below the plot so annotations remain readable."""
     ax.legend(
         loc="upper right",
-        bbox_to_anchor=(1.0, -0.08),
+        bbox_to_anchor=(1.0, -0.055),
         ncol=1,
         facecolor="#121212",
         edgecolor="#444444",
@@ -787,11 +787,12 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     selected_count = len(identity_labels)
     evidence_count = len(plot_df)
     evidence_basis = "paired bins" if is_sequential else ("joint spots" if is_compare else "spots")
+    evidence_title_base = "Ausgewaehlte Stations-Evidenz" if st.session_state.lang == "de" else "Selected Station Evidence"
     if selected_count == 1:
-        evidence_prefix = f"Selected Evidence: {identity_labels[0]} | {evidence_count} {evidence_basis}"
+        evidence_title = f"{evidence_title_base}: {identity_labels[0]} | {evidence_count} {evidence_basis}"
     else:
-        evidence_prefix = f"Selected Evidence: {selected_count} stations | {evidence_count} {evidence_basis}"
-    evidence_summary = _stability_summary(plot_df["metric"], is_compare, evidence_prefix)
+        evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
+    evidence_summary = _stability_summary(plot_df["metric"], is_compare)
     if evidence_summary:
         st.markdown(
             f"<div style='text-align:center; color:white; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:1.0rem;'>{evidence_summary}</div>",
@@ -800,6 +801,8 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
+    fig_ev.suptitle(evidence_title, color="white", fontweight="bold", fontsize=14, y=0.98)
+    fig_ev.text(0.98, 0.01, "WSPRadar.org", color="#888888", ha="right", fontsize=10)
     gs = fig_ev.add_gridspec(1, 3)
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
     ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
@@ -1057,6 +1060,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_title("Station Medians (\u0394 SNR)", color='white', fontweight='bold', pad=10)
                 ax_spot.set_title("Paired-Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
+                fig_hist.text(0.98, 0.01, "WSPRadar.org", color='#888888', ha='right', fontsize=10)
                 
             else:
                 # Absolute Mode: activity, station-balanced medians, and raw spot distribution
@@ -1090,6 +1094,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_title("Station Medians (SNR @ 1W)", color='white', fontweight='bold', pad=10)
                 ax_spot.set_title("Spot SNR (SNR @ 1W)", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
+                fig_hist.text(0.98, 0.01, "WSPRadar.org", color='#888888', ha='right', fontsize=10)
 
             # 2. Common Histogram Setup (Right / Full)
             ax_hist.set_facecolor('black')
