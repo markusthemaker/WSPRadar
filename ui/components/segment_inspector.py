@@ -381,6 +381,46 @@ def _draw_horizontal_raincloud(ax, values, color="#36aaf9"):
     ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
     return float(np.median(values))
 
+def _robust_metric_limits(values):
+    """Return robust visible y-limits and hidden-tail percentages using the 1.5 IQR rule."""
+    values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
+    if len(values) == 0:
+        return None
+
+    q1, q3 = np.percentile(values, [25, 75])
+    iqr = q3 - q1
+    lower = q1 - 1.5 * iqr
+    upper = q3 + 1.5 * iqr
+
+    if not np.isfinite(lower) or not np.isfinite(upper):
+        return None
+    if upper <= lower:
+        center = float(np.median(values))
+        lower = center - 1.0
+        upper = center + 1.0
+    else:
+        padding = 0.10 * (upper - lower)
+        lower -= padding
+        upper += padding
+
+    below_pct = 100.0 * float(np.sum(values < lower)) / len(values)
+    above_pct = 100.0 * float(np.sum(values > upper)) / len(values)
+    return lower, upper, below_pct, above_pct
+
+def _annotate_outlier_range(ax, below_pct, above_pct):
+    """Show how much selected evidence sits outside the visible robust range."""
+    ax.text(
+        0.98,
+        0.04,
+        f"outlier above range: {above_pct:.1f}%\noutlier below range: {below_pct:.1f}%",
+        transform=ax.transAxes,
+        color="#cccccc",
+        fontsize=8,
+        ha="right",
+        va="bottom",
+        zorder=8
+    )
+
 def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequential):
     """Build raw segment-level evidence points from parquet using station+locator identity."""
     if df_seg.empty or not {"peer_sign", "peer_grid"}.issubset(df_seg.columns):
@@ -657,6 +697,11 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     ax_cloud.set_ylabel(labels["y_label"], color="white")
 
     _draw_time_heatmap(fig_ev, ax_time, plot_df, time_agg, labels, is_compare, is_sequential)
+    robust_limits = _robust_metric_limits(plot_df["metric"])
+    if robust_limits is not None:
+        lower, upper, below_pct, above_pct = robust_limits
+        ax_cloud.set_ylim(lower, upper)
+        _annotate_outlier_range(ax_cloud, below_pct, above_pct)
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
 
     st.pyplot(fig_ev, width="stretch")
