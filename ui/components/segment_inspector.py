@@ -790,7 +790,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     if selected_count == 1:
         evidence_prefix = f"Selected Evidence: {identity_labels[0]} | {evidence_count} {evidence_basis}"
     else:
-        evidence_prefix = f"Selected Evidence: {selected_count} selected stations | {evidence_count} {evidence_basis}"
+        evidence_prefix = f"Selected Evidence: {selected_count} stations | {evidence_count} {evidence_basis}"
     evidence_summary = _stability_summary(plot_df["metric"], is_compare, evidence_prefix)
     if evidence_summary:
         st.markdown(
