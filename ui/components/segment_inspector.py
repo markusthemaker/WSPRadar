@@ -20,6 +20,8 @@ from config import COMPASS
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
+STABILITY_BOOTSTRAP_ITERATIONS = 500
+STABILITY_CONFIDENCE = 0.90
 EVIDENCE_TIME_AGG_PRESETS = [
     (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
     (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
@@ -101,6 +103,68 @@ def _format_snr_display_columns(df):
             decimals = 1 if _is_median_display_column(col) else 0
             display_df[col] = display_df[col].map(lambda value, d=decimals: _format_metric_or_none(value, d))
     return display_df
+
+def _format_metric_signed(value, is_compare):
+    """Format SNR-like values for compact stability labels."""
+    if pd.isna(value):
+        return "n/a"
+    if is_compare:
+        return f"{float(value):+.1f}"
+    return f"{float(value):.1f}"
+
+def _format_stability_interval(low, high, is_compare):
+    if pd.isna(low) or pd.isna(high):
+        return "n/a"
+    return f"{_format_metric_signed(low, is_compare)} .. {_format_metric_signed(high, is_compare)}"
+
+def _bootstrap_median_interval(values, iterations=STABILITY_BOOTSTRAP_ITERATIONS, confidence=STABILITY_CONFIDENCE, seed=42):
+    """Return median and central bootstrap interval for the median."""
+    values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
+    if len(values) == 0:
+        return np.nan, np.nan, np.nan
+
+    median = float(np.median(values))
+    if len(values) == 1:
+        return median, median, median
+
+    rng = np.random.default_rng(seed)
+    boot_medians = np.empty(iterations, dtype=float)
+    for idx in range(iterations):
+        sample = values[rng.integers(0, len(values), len(values))]
+        boot_medians[idx] = np.median(sample)
+
+    alpha = (1.0 - confidence) / 2.0
+    low, high = np.quantile(boot_medians, [alpha, 1.0 - alpha])
+    return median, float(low), float(high)
+
+def _stability_summary(values, is_compare, prefix=""):
+    """Build a short human-readable resampling summary for selected evidence."""
+    median, low, high = _bootstrap_median_interval(values)
+    if pd.isna(median):
+        return None
+
+    metric_name = "\u0394 SNR" if is_compare else "SNR"
+    prefix_text = f"{prefix} | " if prefix else ""
+    return (
+        f"{prefix_text}median {metric_name} {_format_metric_signed(median, is_compare)} dB | "
+        f"90% stability {_format_stability_interval(low, high, is_compare)} dB"
+    )
+
+def _add_stability_band(ax, low, high):
+    """Draw a subtle 90% stability band behind the median line."""
+    if pd.isna(low) or pd.isna(high):
+        return
+    ax.axhspan(low, high, color="red", alpha=0.12, zorder=1)
+
+def _evidence_strength(stations_count, evidence_count):
+    """Classify evidence strength using WSPRadar's heuristic sample thresholds."""
+    if stations_count >= 5 and evidence_count >= 20:
+        return "Strong"
+    if stations_count >= 3 and evidence_count >= 10:
+        return "Medium"
+    if stations_count >= 1 and evidence_count >= 3:
+        return "Low"
+    return "Very low"
 
 def _supports_dataframe_selection_default():
     """Return True when the installed Streamlit version can preselect dataframe rows."""
@@ -693,6 +757,20 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
                 label_visibility="collapsed"
             )
 
+    selected_count = len(identity_labels)
+    evidence_count = len(plot_df)
+    evidence_basis = "paired bins" if is_sequential else ("joint spots" if is_compare else "spots")
+    if selected_count == 1:
+        evidence_prefix = f"Selected Evidence: {identity_labels[0]} | {evidence_count} {evidence_basis}"
+    else:
+        evidence_prefix = f"Selected Evidence: {selected_count} selected stations | {evidence_count} {evidence_basis}"
+    evidence_summary = _stability_summary(plot_df["metric"], is_compare, evidence_prefix)
+    if evidence_summary:
+        st.markdown(
+            f"<div style='text-align:center; color:#9aa4b2; font-size:0.85em; margin-top:-0.25rem; margin-bottom:0.35rem;'>{evidence_summary}</div>",
+            unsafe_allow_html=True
+        )
+
     fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.84, wspace=0.24)
     gs = fig_ev.add_gridspec(1, 3)
@@ -885,9 +963,16 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         elif is_compare and 'count_only_u' in df_seg.columns and (df_seg['count_only_u'].sum() > 0 or df_seg['count_only_r'].sum() > 0): 
             has_plot_data = True
 
+        segment_evidence_df = _empty_evidence_df()
+        segment_raw_values = pd.Series(dtype=float)
+        station_stability_interval = (np.nan, np.nan, np.nan)
+        spot_stability_interval = (np.nan, np.nan, np.nan)
+
         if has_plot_data:
             segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
             segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
+            station_stability_interval = _bootstrap_median_interval(vals)
+            spot_stability_interval = _bootstrap_median_interval(segment_raw_values)
             fig_hist = plt.figure(figsize=(13, 5.6), facecolor='black')
             
             # Setup Layout based on Absolute vs. Compare Mode
@@ -987,6 +1072,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             
             if not vals.empty:
                 med = _draw_single_vertical_raincloud(ax_hist, vals, "Station Medians", color="#36aaf9")
+                _add_stability_band(ax_hist, station_stability_interval[1], station_stability_interval[2])
                 ax_hist.axhline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
                 ax_hist.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
             else:
@@ -999,6 +1085,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             spot_values_numeric = pd.to_numeric(segment_raw_values, errors="coerce").dropna()
             spot_med = _draw_single_vertical_raincloud(ax_spot, segment_raw_values, spot_label, color="#36aaf9")
             if pd.notna(spot_med):
+                _add_stability_band(ax_spot, spot_stability_interval[1], spot_stability_interval[2])
                 ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
                 ax_spot.legend(facecolor='#121212', edgecolor='#444444', labelcolor='white')
                 if is_compare and not spot_values_numeric.empty:
@@ -1025,12 +1112,41 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
             # fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
             
+            segment_strength = _evidence_strength(len(vals), len(segment_raw_values))
+            spot_basis = "paired bins" if is_sequential else ("joint spots" if is_compare else "spots")
+            segment_summary = [
+                f"Selected Segment Evidence: {segment_strength} | {len(vals)} stations | {len(segment_raw_values)} {spot_basis}",
+            ]
+            station_summary = _stability_summary(vals, is_compare, "Station-median")
+            spot_summary = _stability_summary(segment_raw_values, is_compare, "Joint-spot" if is_compare and not is_sequential else ("Paired-bin" if is_sequential else "Spot"))
+            if station_summary:
+                segment_summary.append(station_summary)
+            if spot_summary:
+                segment_summary.append(spot_summary)
+            st.markdown(
+                f"<div style='text-align:center; color:#9aa4b2; font-size:0.86em; margin-top:-0.25rem; margin-bottom:0.35rem;'>{'<br>'.join(segment_summary)}</div>",
+                unsafe_allow_html=True
+            )
+
             # Richtiges Streamlit-Parameter f??r volle Breite
             st.pyplot(fig_hist, width='stretch')
             plt.close(fig_hist)
         else:
             st.info(t["lbl_no_joint"], icon="??????")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
+
+        stability_col = t.get("tbl_col_stability", "90% Stability")
+        if not segment_evidence_df.empty and not sorted_disp_df.empty:
+            stability_lookup = {}
+            for identity, group_df in segment_evidence_df.groupby("identity", observed=True):
+                _, low, high = _bootstrap_median_interval(group_df["metric"])
+                stability_lookup[str(identity)] = _format_stability_interval(low, high, is_compare)
+
+            row_identity = (
+                sorted_disp_df[station_col].astype(str) +
+                " (" + sorted_disp_df[t['tbl_col_loc']].astype(str) + ")"
+            )
+            sorted_disp_df[stability_col] = row_identity.map(stability_lookup).fillna("n/a")
 
         # --- 1. Layout-Spalten definieren ---
         # 3 Spalten: 50% f??r Titel, 30% f??r Toggle, 20% f??r Filter-Button
