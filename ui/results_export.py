@@ -9,7 +9,6 @@ evidence time-bin setting.
 
 import io
 import json
-import hashlib
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,9 +28,6 @@ EXPORT_RUN_ID_KEY = "result_export_run_id"
 EXPORT_ZIP_BYTES_KEY = "result_export_zip_bytes"
 EXPORT_ZIP_FILENAME_KEY = "result_export_zip_filename"
 EXPORT_ZIP_SIGNATURE_KEY = "result_export_zip_signature"
-REGRESSION_ZIP_BYTES_KEY = "regression_export_zip_bytes"
-REGRESSION_ZIP_FILENAME_KEY = "regression_export_zip_filename"
-REGRESSION_ZIP_SIGNATURE_KEY = "regression_export_zip_signature"
 
 
 def _current_run_id():
@@ -43,18 +39,11 @@ def reset_result_export_state():
     st.session_state[EXPORT_STATE_KEY] = {}
     st.session_state[EXPORT_RUN_ID_KEY] = _current_run_id()
     _clear_prepared_results()
-    _clear_regression_data()
 
 
 def _clear_prepared_results():
     """Drop prepared ZIP bytes when result selections or analysis runs change."""
     for key in [EXPORT_ZIP_BYTES_KEY, EXPORT_ZIP_FILENAME_KEY, EXPORT_ZIP_SIGNATURE_KEY]:
-        st.session_state.pop(key, None)
-
-
-def _clear_regression_data():
-    """Drop lazily prepared regression ZIP bytes when result selections or analysis runs change."""
-    for key in [REGRESSION_ZIP_BYTES_KEY, REGRESSION_ZIP_FILENAME_KEY, REGRESSION_ZIP_SIGNATURE_KEY]:
         st.session_state.pop(key, None)
 
 
@@ -64,7 +53,6 @@ def _ensure_current_export_state():
         st.session_state[EXPORT_STATE_KEY] = {}
         st.session_state[EXPORT_RUN_ID_KEY] = run_id
         _clear_prepared_results()
-        _clear_regression_data()
     if EXPORT_STATE_KEY not in st.session_state:
         st.session_state[EXPORT_STATE_KEY] = {}
     return st.session_state[EXPORT_STATE_KEY]
@@ -271,10 +259,11 @@ def _json_default(value):
     return str(value)
 
 
-def _build_run_metadata(blocks, config_payload):
+def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
     config = config_payload.get("config", {})
     compare_present = any(block.get("mode_folder") == "compare" for block in blocks.values())
     absolute_present = any(block.get("mode_folder") == "absolute" for block in blocks.values())
+    analysis_cache_paths = analysis_cache_paths or {}
 
     return {
         "app": CONFIG_APP_NAME,
@@ -312,6 +301,7 @@ def _build_run_metadata(blocks, config_payload):
                 "analysis_id": block.get("analysis_id"),
                 "title": block.get("title"),
                 "folder": block.get("mode_folder"),
+                "analysis_cache_file": analysis_cache_paths.get(key),
                 "selected_segment": block.get("selected_segment"),
                 "selected_distance": block.get("selected_distance"),
                 "selected_direction": block.get("selected_direction"),
@@ -321,7 +311,7 @@ def _build_run_metadata(blocks, config_payload):
                 "is_compare": block.get("is_compare"),
                 "is_sequential": block.get("is_sequential"),
             }
-            for block in blocks.values()
+            for key, block in blocks.items()
         ],
     }
 
@@ -355,59 +345,32 @@ def _export_signature(blocks):
     return json.dumps(payload, sort_keys=True, default=_json_default)
 
 
-def _config_hash(config_bytes):
-    return hashlib.sha256(config_bytes).hexdigest()
-
-
 def _safe_analysis_filename(analysis_id):
     safe_id = "".join(ch.lower() if ch.isalnum() else "_" for ch in str(analysis_id or "analysis"))
     safe_id = "_".join(part for part in safe_id.split("_") if part)
     return safe_id or "analysis"
 
 
-def _regression_manifest(blocks, config_bytes):
-    metadata = _build_run_metadata(blocks, json.loads(config_bytes.decode("utf-8")))
-    signature = _export_signature(blocks)
-    regression_blocks = []
+def _analysis_cache_export_paths(blocks):
+    """Return ZIP-relative parquet cache paths for exportable result blocks."""
+    paths = {}
     used_folders = {}
 
-    for block in blocks.values():
+    for key, block in blocks.items():
         folder = block.get("mode_folder")
         context = block.get("map_context") or {}
         parquet_path = context.get("parquet_path")
         if folder not in {"compare", "absolute"} or not parquet_path:
             continue
+        if not Path(parquet_path).exists():
+            continue
 
         folder_count = used_folders.get(folder, 0)
         used_folders[folder] = folder_count + 1
         parquet_name = "analysis_cache.parquet" if folder_count == 0 else f"analysis_cache_{_safe_analysis_filename(block.get('analysis_id'))}.parquet"
+        paths[key] = f"{folder}/{parquet_name}"
 
-        regression_blocks.append({
-            "analysis_id": block.get("analysis_id"),
-            "title": block.get("title"),
-            "folder": folder,
-            "parquet_file": f"{folder}/{parquet_name}",
-            "parquet_source_path": str(parquet_path),
-            "parquet_available": Path(parquet_path).exists(),
-            "selected_segment": block.get("selected_segment"),
-            "selected_distance": block.get("selected_distance"),
-            "selected_direction": block.get("selected_direction"),
-            "selected_stations": block.get("selected_stations", []),
-            "show_non_joint": block.get("show_non_joint"),
-            "evidence_time_bin": block.get("evidence_time_bin"),
-            "is_compare": block.get("is_compare"),
-            "is_sequential": block.get("is_sequential"),
-        })
-
-    return {
-        "app": CONFIG_APP_NAME,
-        "version": APP_VERSION,
-        "created_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "export_signature": signature,
-        "config_sha256": _config_hash(config_bytes),
-        "run_metadata": metadata,
-        "regression_blocks": regression_blocks,
-    }
+    return paths
 
 
 def _render_map_png_for_block(block):
@@ -460,7 +423,8 @@ def build_results_zip():
 
     config_bytes, _ = build_config_payload()
     config_payload = json.loads(config_bytes.decode("utf-8"))
-    metadata = _build_run_metadata(exportable_blocks, config_payload)
+    analysis_cache_paths = _analysis_cache_export_paths(exportable_blocks)
+    metadata = _build_run_metadata(exportable_blocks, config_payload, analysis_cache_paths)
     timestamp_local = datetime.now().strftime("%Y_%m_%d__%H_%M")
     root = f"WSPRadar_export_{timestamp_local}"
 
@@ -472,7 +436,7 @@ def build_results_zip():
             json.dumps(metadata, indent=2, default=_json_default).encode("utf-8"),
         )
 
-        for block in exportable_blocks.values():
+        for block_key, block in exportable_blocks.items():
             folder = block["mode_folder"]
             for figure_name in [
                 "figure_map_highres.png",
@@ -490,48 +454,13 @@ def build_results_zip():
             ]:
                 zf.writestr(f"{root}/{folder}/{table_name}", _dataframe_to_csv_bytes(block.get(table_name)))
 
-    return zip_buf.getvalue(), f"{root}.zip"
+            analysis_cache_path = analysis_cache_paths.get(block_key)
+            parquet_path = (block.get("map_context") or {}).get("parquet_path")
+            if analysis_cache_path and parquet_path:
+                parquet_path = Path(parquet_path)
+                if parquet_path.exists():
+                    zf.write(parquet_path, f"{root}/{analysis_cache_path}")
 
-
-def build_regression_data_zip():
-    """Build a developer-only regression ZIP with the current run's parquet caches."""
-    blocks = _ensure_current_export_state()
-    exportable_blocks = {
-        key: block for key, block in blocks.items()
-        if block.get("mode_folder") in {"compare", "absolute"} and (block.get("map_context") or {}).get("parquet_path")
-    }
-    if not exportable_blocks:
-        return None, None
-
-    config_bytes, _ = build_config_payload()
-    manifest = _regression_manifest(exportable_blocks, config_bytes)
-    timestamp_local = datetime.now().strftime("%Y_%m_%d__%H_%M")
-    root = f"WSPRadar_regression_data_{timestamp_local}"
-
-    zip_buf = io.BytesIO()
-    wrote_parquet = False
-    used_folders = {}
-    with zipfile.ZipFile(zip_buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(f"{root}/config/wspradar_config.config", config_bytes)
-        zf.writestr(
-            f"{root}/regression_manifest.json",
-            json.dumps(manifest, indent=2, default=_json_default).encode("utf-8"),
-        )
-
-        for block in exportable_blocks.values():
-            folder = block["mode_folder"]
-            parquet_path = Path(block["map_context"]["parquet_path"])
-            if not parquet_path.exists():
-                continue
-
-            folder_count = used_folders.get(folder, 0)
-            used_folders[folder] = folder_count + 1
-            parquet_name = "analysis_cache.parquet" if folder_count == 0 else f"analysis_cache_{_safe_analysis_filename(block.get('analysis_id'))}.parquet"
-            zf.write(parquet_path, f"{root}/{folder}/{parquet_name}")
-            wrote_parquet = True
-
-    if not wrote_parquet:
-        return None, None
     return zip_buf.getvalue(), f"{root}.zip"
 
 
@@ -589,61 +518,4 @@ def render_download_all_results(t):
             icon=":material/download:",
             type="primary",
             width="stretch",
-        )
-
-
-def render_regression_data_download(t):
-    """Render a tiny lazy developer download for offline regression fixture data."""
-    blocks = _ensure_current_export_state()
-    exportable_blocks = {
-        key: block for key, block in blocks.items()
-        if block.get("mode_folder") in {"compare", "absolute"} and (block.get("map_context") or {}).get("parquet_path")
-    }
-    if not exportable_blocks:
-        return
-
-    signature = _export_signature(exportable_blocks)
-    if st.session_state.get(REGRESSION_ZIP_SIGNATURE_KEY) != signature:
-        _clear_regression_data()
-
-    c_left, c_mid, c_right = st.columns([0.42, 0.16, 0.42])
-    with c_mid:
-        prepared_bytes = st.session_state.get(REGRESSION_ZIP_BYTES_KEY)
-        prepared_filename = st.session_state.get(REGRESSION_ZIP_FILENAME_KEY)
-        if prepared_bytes and prepared_filename:
-            st.download_button(
-                t.get("btn_download_regression_data", "regression data"),
-                data=prepared_bytes,
-                file_name=prepared_filename,
-                mime="application/zip",
-                icon=":material/download:",
-                type="tertiary",
-                width="content",
-            )
-            return
-
-        if not st.button(
-            t.get("btn_prepare_regression_data", "regression data"),
-            icon=":material/dataset:",
-            type="tertiary",
-            width="content",
-        ):
-            return
-
-        with st.spinner(t.get("msg_preparing_regression_data", "Preparing regression data...")):
-            zip_bytes, filename = build_regression_data_zip()
-        if not zip_bytes:
-            st.warning(t.get("warn_no_regression_data", "Regression data is no longer available for this run."))
-            return
-        st.session_state[REGRESSION_ZIP_BYTES_KEY] = zip_bytes
-        st.session_state[REGRESSION_ZIP_FILENAME_KEY] = filename
-        st.session_state[REGRESSION_ZIP_SIGNATURE_KEY] = signature
-        st.download_button(
-            t.get("btn_download_regression_data", "regression data"),
-            data=zip_bytes,
-            file_name=filename,
-            mime="application/zip",
-            icon=":material/download:",
-            type="tertiary",
-            width="content",
         )
