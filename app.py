@@ -32,7 +32,7 @@ from ui.callbacks import (
 from ui.components.config_panel import render_core_expander, render_compare_expander, render_advanced_expander
 from ui.components.segment_inspector import render_segment_inspector
 from ui.config_io import build_config_payload, validate_config_upload, apply_config_values
-from ui.results_export import register_map_export_context, reset_result_export_state
+from ui.results_export import register_map_export_context, reset_result_export_state, render_regression_data_download
 
 # Core Execution Engines
 from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time, is_valid_callsign, is_valid_locator
@@ -496,4 +496,5 @@ with col_doc_download:
 st.markdown(get_docs(st.session_state.lang), unsafe_allow_html=True)
 
 # Add the dev_credit footer as a bookend at the very bottom of the page
+render_regression_data_download(t)
 st.markdown(f"<div style='text-align: center; color: #888888; font-size: 0.9rem; margin-top: 4rem; margin-bottom: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(57, 255, 20, 0.3);'>{t['dev_credit']}</div>", unsafe_allow_html=True)
