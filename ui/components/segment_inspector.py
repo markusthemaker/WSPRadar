@@ -775,6 +775,7 @@ def _build_drilldown_table(
     col_u_name,
     ref_header,
     t,
+    station_rows_df=None,
 ):
     """Build the drill-down dataframe for selected or all current segment identities."""
     if selected_meta_df is None or selected_meta_df.empty:
@@ -784,7 +785,10 @@ def _build_drilldown_table(
     selected_meta_df[station_col] = selected_meta_df[station_col].astype(str)
     selected_meta_df[loc_col] = selected_meta_df[loc_col].astype(str)
     selected_meta_df = selected_meta_df.drop_duplicates(subset=[station_col, loc_col])
-    station_df = _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col)
+    if station_rows_df is None:
+        station_df = _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col)
+    else:
+        station_df = station_rows_df.copy()
 
     drill_df = None
     info_msg = None
@@ -934,6 +938,56 @@ def _build_drilldown_table(
     if drill_df is not None and not drill_df.empty:
         drill_df = _sort_drilldown_default(drill_df)
     return drill_df if drill_df is not None else pd.DataFrame(), info_msg
+
+def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, selected_seg):
+    """Render selected drill-down rows with local filters and return the displayed dataframe."""
+    if drill_df is None or drill_df.empty:
+        return pd.DataFrame()
+
+    col_d1, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
+
+    with col_d1:
+        _section_header(drill_title, "material:table_rows")
+
+    with col_d2:
+        with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):
+            st.markdown("**Filter column(s):**")
+            d_filter_cols = st.multiselect(
+                "Select Columns",
+                drill_df.columns,
+                label_visibility="collapsed",
+                key=f"d_flt_{analysis_id}_{run_id}_{selected_seg}"
+            )
+
+            for col in d_filter_cols:
+                if pd.api.types.is_numeric_dtype(drill_df[col]):
+                    min_val = float(drill_df[col].min())
+                    max_val = float(drill_df[col].max())
+                    if min_val < max_val:
+                        step = 1.0 if pd.api.types.is_integer_dtype(drill_df[col]) else 0.1
+                        sel_range = st.slider(
+                            f"{col}",
+                            min_val,
+                            max_val,
+                            (min_val, max_val),
+                            step=step,
+                            key=f"d_sld_{col}_{analysis_id}_{run_id}_{selected_seg}"
+                        )
+                        drill_df = drill_df[(drill_df[col] >= sel_range[0]) & (drill_df[col] <= sel_range[1])]
+                else:
+                    unique_vals = drill_df[col].astype(str).dropna().unique()
+                    sel_vals = st.multiselect(
+                        f"{col}",
+                        unique_vals,
+                        default=[],
+                        key=f"d_ms_{col}_{analysis_id}_{run_id}_{selected_seg}"
+                    )
+                    if sel_vals:
+                        drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
+
+    drill_display_df = _format_snr_display_columns(drill_df)
+    st.dataframe(drill_display_df, width='stretch', hide_index=True)
+    return drill_df.copy()
 
 def _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
@@ -1502,7 +1556,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             selected_identity_df = selected_meta_df[[station_col, loc_col]].copy()
             selected_identity_df.columns = ["peer_sign", "peer_grid"]
             selected_identity_df = selected_identity_df.drop_duplicates()
-            sel_stations = selected_identity_df["peer_sign"].tolist()
             selected_station_labels = (
                 selected_identity_df["peer_sign"].astype(str) +
                 " (" + selected_identity_df["peer_grid"].astype(str) + ")"
@@ -1517,228 +1570,41 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 drill_title = t['lbl_drill_multi'].format(count=len(selected_meta_df))
                 
             try:
-                # Load the raw spots straight from the parquet cache for blazing fast drill-downs
-                station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', _unique_station_order(sel_stations))])
-                station_df['peer_sign'] = station_df['peer_sign'].astype(str)
-                station_df['peer_grid'] = station_df['peer_grid'].astype(str)
-                
-                # Merge logic to append calculated distance and azimuth from the selected table rows.
-                # The locator is part of the identity here; otherwise one bad/non-joint locator row
-                # (for example a single false upstream spot) gets pasted onto every row for the same callsign.
-                station_df = station_df.merge(
+                station_df = _load_station_rows_for_drilldown(
+                    parquet_path,
                     selected_meta_df,
-                    left_on=['peer_sign', 'peer_grid'],
-                    right_on=[station_col, loc_col],
-                    how='inner'
+                    station_col,
+                    loc_col
+                )
+                selected_evidence_export = _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential)
+                drill_df, info_msg = _build_drilldown_table(
+                    parquet_path,
+                    selected_meta_df,
+                    station_col,
+                    loc_col,
+                    t['tbl_col_km'],
+                    t['tbl_col_az'],
+                    analysis_id,
+                    is_compare,
+                    is_sequential,
+                    show_non_joint,
+                    is_local_median,
+                    col_u_name,
+                    ref_header,
+                    t,
+                    station_rows_df=station_df,
                 )
 
-                selected_evidence_export = _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential)
-                
-                drill_df = None
-                info_msg = None
-                
-                if not is_compare:
-                    station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
-                    drill_df = station_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr', 'power', 'stat_val']].copy()
-                    drill_df.columns = ['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'SNR (Raw)', 'TX Power (dBm)', 'Norm@1W']
-                    for col in ['SNR (Raw)', 'Norm@1W']:
-                        drill_df[col] = pd.to_numeric(drill_df[col], errors='coerce').round(1)
-                    
-                else:
-                    if is_sequential:
-                        bin_minutes = st.session_state.get('val_tx_ab_bin_minutes', 8)
-                        
-                        # Fix: Zeitstempel aus 'time' String konvertieren
-                        station_df['dt_time'] = pd.to_datetime(station_df['time'])
-                        station_df['time_bin'] = station_df['dt_time'].dt.floor(f'{bin_minutes}min')
-                        
-                        # Fix: Trennung ??ber is_me (1 = Target, 0 = Ref)
-                        df_t = station_df[station_df['is_me'] == 1]
-                        df_r = station_df[station_df['is_me'] == 0]
-                        
-                        # Fix: Normiertes SNR hei??t im SQL stat_val
-                        bin_t = df_t.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_a'})
-                        bin_r = df_r.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_b'})
-                        
-                        station_df = pd.merge(station_df, bin_t, on='time_bin', how='left')
-                        station_df = pd.merge(station_df, bin_r, on='time_bin', how='left')
-                        
-                        # Delta exklusiv f??r Bins mit BEIDEN Stationen berechnen (WICHTIG: Bevor wir Felder leeren!)
-                        station_df['bin_delta'] = np.where(station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna(), 
-                                                        station_df['micro_med_a'] - station_df['micro_med_b'], 
-                                                        np.nan)
-                        
-                        # --- NEUE ANFORDERUNG 2: Toggle "Show Non-Joint" beachten ---
-                        # Zeige isolierte Spots in unvollst??ndigen Bins nur, wenn Toggle an ist
-                        if not show_non_joint:
-                            station_df = station_df[station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna()]
-                            if station_df.empty:
-                                info_msg = "No joint spots available for the selected station(s)."
-
-                        # --- NEUE ANFORDERUNG 1: Gegnerische Micro-Mediane ausblenden ---
-                        # Ist die Zeile Setup A (1), blende Micro-Med B aus. Bei Setup B (0) blende Micro-Med A aus.
-                        station_df['micro_med_b'] = np.where(station_df['is_me'] == 1, np.nan, station_df['micro_med_b'])
-                        station_df['micro_med_a'] = np.where(station_df['is_me'] == 0, np.nan, station_df['micro_med_a'])
-                        
-                        station_df = station_df.sort_values('dt_time', ascending=False)
-                        station_df['time_bin_str'] = station_df['time_bin'].dt.strftime('%H:%M') + ' - ' + (station_df['time_bin'] + pd.Timedelta(minutes=bin_minutes)).dt.strftime('%H:%M')
-                        station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
-
-                        # Rufzeichen-Spalte f??r die Ansicht generieren
-                        target_tx_label, ref_tx_label = _sequential_tx_drilldown_labels(col_u_name, ref_header)
-                        station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, target_tx_label, ref_tx_label)
-                        
-                        drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()
-                        
-                        drill_df.columns = [
-                            'Date/Time (UTC)', t.get('tbl_col_bin', 'Time-Bin'), 'TX Station', 
-                            'TX Power (dBm)', 'SNR (Raw)', 'Norm@1W', 
-                            t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')
-                        ]
-                        
-                        for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')]:
-                            drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
-                    else:
-                        # F??r Simultane Vergleiche: Umschaltbar zwischen Joint Spots und Non-Joint (Raw) Spots
-                        if show_non_joint:
-                            joint_df = station_df.copy()
-                        else:
-                            joint_df = station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
-
-                        if not joint_df.empty:
-                            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
-                            
-                            # ClickHouse gibt 0.0 zur??ck, wenn maxIf() nichts findet. Wir setzen das explizit auf NaN anhand der countIf() Metriken (has_u / has_r)
-                            joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
-                            joint_df.loc[joint_df['has_r'] == 0, 'snr_r_norm'] = np.nan
-                            
-                            col_u = f'{col_u_name} SNR (dB)'
-                            col_r = f'{ref_header} SNR (dB)'
-                            col_delta_lbl = t.get('tbl_col_delta_snr', '\u0394 SNR (dB)')
-                            station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
-                            
-                            if is_local_median and 'ref_detail_rows' in joint_df.columns:
-                                expanded_rows = []
-                                for _, row in joint_df.iterrows():
-                                    refs = _parse_ref_detail_rows(row.get('ref_detail_rows'))
-                                    has_u = row.get('has_u', 0) > 0
-                                    has_r = row.get('has_r', 0) > 0
-                                    own_snr = row.get('snr_u_norm', np.nan) if has_u else np.nan
-                                    cycle_ref_median = row.get('snr_r_norm', np.nan) if has_r else np.nan
-                                    delta_snr = round(own_snr - cycle_ref_median, 1) if pd.notna(own_snr) and pd.notna(cycle_ref_median) else np.nan
-
-                                    if refs:
-                                        for ref in refs:
-                                            try:
-                                                ref_dist_km = round(float(ref["ref_dist"]) / 1000)
-                                            except (TypeError, ValueError):
-                                                ref_dist_km = np.nan
-                                            try:
-                                                ref_snr = round(float(ref["ref_snr"]), 1)
-                                            except (TypeError, ValueError):
-                                                ref_snr = np.nan
-                                            expanded_rows.append({
-                                                'Date/Time (UTC)': row['Date/Time (UTC)'],
-                                                station_type: row[station_col],
-                                                t['tbl_col_loc']: row[t['tbl_col_loc']],
-                                                t['tbl_col_km']: row[t['tbl_col_km']],
-                                                t['tbl_col_az']: row[t['tbl_col_az']],
-                                                t.get('tbl_col_ref_station', 'Ref Station'): ref["ref_sign"],
-                                                t['tbl_col_loc'] + ' (Ref)': ref["ref_grid"],
-                                                'Ref km': ref_dist_km,
-                                                t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): ref_snr,
-                                                t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): round(cycle_ref_median, 1) if pd.notna(cycle_ref_median) else np.nan,
-                                                col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
-                                                col_delta_lbl: delta_snr
-                                            })
-                                    elif has_u:
-                                        expanded_rows.append({
-                                            'Date/Time (UTC)': row['Date/Time (UTC)'],
-                                            station_type: row[station_col],
-                                            t['tbl_col_loc']: row[t['tbl_col_loc']],
-                                            t['tbl_col_km']: row[t['tbl_col_km']],
-                                            t['tbl_col_az']: row[t['tbl_col_az']],
-                                            t.get('tbl_col_ref_station', 'Ref Station'): np.nan,
-                                            t['tbl_col_loc'] + ' (Ref)': np.nan,
-                                            'Ref km': np.nan,
-                                            t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): np.nan,
-                                            t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): np.nan,
-                                            col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
-                                            col_delta_lbl: np.nan
-                                        })
-
-                                if expanded_rows:
-                                    drill_df = pd.DataFrame(expanded_rows).sort_values('Date/Time (UTC)', ascending=False)
-                                else:
-                                    info_msg = "No reference station details available for the selected station(s)."
-                            elif 'best_ref_sign' in joint_df.columns:
-                                # Delta nur berechnen, wenn BEIDE Seiten existieren
-                                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
-                                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
-                                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
-                                # 1. Werte f??r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
-                                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
-                                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
-                                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
-                                # 2. Auch leere "Best Ref" Felder mit "None" auff??llen
-                                joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
-                                # Runden auf ganze Zahlen (round(0)), damit der Int64-Cast bei Kommazahlen nicht crasht
-                                joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
-                                
-                                # 3. Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
-                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
-                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'Best Ref', 'Ref km', col_r, col_u, col_delta_lbl]
-                            else:
-                                # Delta nur berechnen, wenn BEIDE Seiten existieren
-                                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
-                                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
-                                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
-                                # 1. Werte f??r fehlenden Empfang auf Text "None" umstellen (damit es nicht wie 0 dB wirkt)
-                                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
-                                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
-                                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
-                                # Swap der SNR-Spalten (zuerst snr_r_norm, dann snr_u_norm)
-                                drill_df = joint_df[['Date/Time (UTC)', station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
-                                drill_df.columns = ['Date/Time (UTC)', station_type, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_r, col_u, col_delta_lbl]
-                        else: 
-                            info_msg = "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
-                
-                # --- LAYOUT, FILTER & RENDERING F??R DRILL-DOWN ---
                 if info_msg:
-                    st.info(info_msg, icon="??????")
+                    st.info(info_msg, icon=":material/info:")
                 elif drill_df is not None and not drill_df.empty:
-                    drill_df = _sort_drilldown_default(drill_df)
-
-                    # Spalten-Layout ??hnlich der Master-Tabelle (Titel links, Filter rechts)
-                    col_d1, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
-                    
-                    with col_d1:
-                        _section_header(drill_title, "material:table_rows")
-                        
-                    with col_d2:
-                        with st.popover("Filter", icon=":material/filter_alt:", use_container_width=True):
-                            st.markdown("**Filter column(s):**")
-                            # Eigene Keys generieren, da diese Checkboxen unabh??ngig von der Master-Tabelle sind
-                            d_filter_cols = st.multiselect("Select Columns", drill_df.columns, label_visibility="collapsed", key=f"d_flt_{analysis_id}_{run_id}_{selected_seg}")
-                            
-                            for col in d_filter_cols:
-                                if pd.api.types.is_numeric_dtype(drill_df[col]):
-                                    min_val = float(drill_df[col].min())
-                                    max_val = float(drill_df[col].max())
-                                    if min_val < max_val:
-                                        step = 1.0 if pd.api.types.is_integer_dtype(drill_df[col]) else 0.1
-                                        sel_range = st.slider(f"{col}", min_val, max_val, (min_val, max_val), step=step, key=f"d_sld_{col}_{analysis_id}_{run_id}_{selected_seg}")
-                                        drill_df = drill_df[(drill_df[col] >= sel_range[0]) & (drill_df[col] <= sel_range[1])]
-                                else:
-                                    # Alles in String casten, um Typen-Konflikte (z.B. bei Mix aus Floats und dem Wort "None") zu vermeiden
-                                    unique_vals = drill_df[col].astype(str).dropna().unique()
-                                    sel_vals = st.multiselect(f"{col}", unique_vals, default=[], key=f"d_ms_{col}_{analysis_id}_{run_id}_{selected_seg}")
-                                    if sel_vals:
-                                        drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
-
-                    drill_display_df = _format_snr_display_columns(drill_df)
-                    drilldown_selected_df = drill_df.copy()
-                    st.dataframe(drill_display_df, width='stretch', hide_index=True)
+                    drilldown_selected_df = _render_drilldown_dataframe(
+                        drill_df,
+                        drill_title,
+                        analysis_id,
+                        run_id,
+                        selected_seg,
+                    )
 
             except FileNotFoundError: 
                 st.warning("Cache file expired. Please Run Analysis again.")
