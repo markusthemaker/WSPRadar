@@ -18,7 +18,7 @@ If you intentionally want to discard local changes or stale rebase state:
 
 ## 2. Push Work To GitHub Temp
 
-Commit all local changes on `temp` and push to GitHub `temp`:
+Commit all local changes on `temp`, fetch GitHub `temp`, rebase local work onto any newer remote commits, then push to GitHub `temp`:
 
 ```powershell
 .\scripts\git-push-temp.ps1 "Describe the change"

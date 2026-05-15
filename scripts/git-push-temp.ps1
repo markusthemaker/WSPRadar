@@ -52,8 +52,28 @@ if ($dirty) {
 }
 
 if ($ForceRemote) {
+    Write-Host "ForceRemote supplied. Pushing local temp over GitHub temp with --force-with-lease..."
     Invoke-Git push --force-with-lease origin temp
 } else {
+    Write-Host "Fetching GitHub temp before push..."
+    Invoke-Git fetch origin temp
+
+    $aheadBehind = (Get-GitOutput rev-list --left-right --count temp...origin/temp | Select-Object -First 1).Trim()
+    $parts = $aheadBehind -split "\s+"
+    $localAhead = [int]$parts[0]
+    $remoteAhead = [int]$parts[1]
+
+    if ($remoteAhead -gt 0) {
+        Write-Host "GitHub temp has $remoteAhead commit(s) not present locally. Rebasing local temp onto origin/temp..."
+        Invoke-Git rebase origin/temp
+    } else {
+        Write-Host "Local temp already contains the current GitHub temp history."
+    }
+
+    if ($localAhead -eq 0 -and $remoteAhead -eq 0 -and -not $dirty) {
+        Write-Host "No local or remote changes to exchange."
+    }
+
     Invoke-Git push origin temp
 }
 

@@ -226,8 +226,6 @@ def register_inspector_export(
     station_insights_df=None,
     drilldown_selected_df=None,
     drilldown_all_df=None,
-    drilldown_all_joint_only_df=None,
-    drilldown_all_with_non_joint_df=None,
 ):
     """Register current segment-inspector state and tables for one result block."""
     blocks = _ensure_current_export_state()
@@ -244,8 +242,6 @@ def register_inspector_export(
         "table_station_insights_current_segment.csv": station_insights_df.copy() if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_selected_stations.csv": drilldown_selected_df.copy() if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_all_stations_current_segment.csv": drilldown_all_df.copy() if isinstance(drilldown_all_df, pd.DataFrame) else pd.DataFrame(),
-        "table_drilldown_all_stations_joint_only_current_segment.csv": drilldown_all_joint_only_df.copy() if isinstance(drilldown_all_joint_only_df, pd.DataFrame) else pd.DataFrame(),
-        "table_drilldown_all_stations_with_non_joint_current_segment.csv": drilldown_all_with_non_joint_df.copy() if isinstance(drilldown_all_with_non_joint_df, pd.DataFrame) else pd.DataFrame(),
     })
 
 
@@ -345,8 +341,6 @@ def _export_signature(blocks):
             "station_table_shape": _table_signature_value(block.get("table_station_insights_current_segment.csv")),
             "selected_drilldown_shape": _table_signature_value(block.get("table_drilldown_selected_stations.csv")),
             "all_drilldown_shape": _table_signature_value(block.get("table_drilldown_all_stations_current_segment.csv")),
-            "all_joint_only_drilldown_shape": _table_signature_value(block.get("table_drilldown_all_stations_joint_only_current_segment.csv")),
-            "all_with_non_joint_drilldown_shape": _table_signature_value(block.get("table_drilldown_all_stations_with_non_joint_current_segment.csv")),
         })
     return json.dumps(payload, sort_keys=True, default=_json_default)
 
@@ -457,8 +451,6 @@ def build_results_zip():
                 "table_station_insights_current_segment.csv",
                 "table_drilldown_selected_stations.csv",
                 "table_drilldown_all_stations_current_segment.csv",
-                "table_drilldown_all_stations_joint_only_current_segment.csv",
-                "table_drilldown_all_stations_with_non_joint_current_segment.csv",
             ]:
                 zf.writestr(f"{root}/{folder}/{table_name}", _dataframe_to_csv_bytes(block.get(table_name)))
 

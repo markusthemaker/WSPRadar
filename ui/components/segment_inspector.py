@@ -1276,8 +1276,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         selected_station_labels = []
         drilldown_selected_df = pd.DataFrame()
         drilldown_all_df = pd.DataFrame()
-        drilldown_all_joint_only_df = pd.DataFrame()
-        drilldown_all_with_non_joint_df = pd.DataFrame()
 
         if has_plot_data:
             segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
@@ -1526,7 +1524,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
 
         try:
             full_meta_df = full_segment_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]].copy()
-            current_meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]].copy()
             full_station_rows_df = _load_station_rows_for_drilldown(
                 parquet_path,
                 full_meta_df,
@@ -1534,39 +1531,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 t['tbl_col_loc'],
             )
             drilldown_all_df, _ = _build_drilldown_table(
-                parquet_path,
-                current_meta_df,
-                station_col,
-                t['tbl_col_loc'],
-                t['tbl_col_km'],
-                t['tbl_col_az'],
-                analysis_id,
-                is_compare,
-                is_sequential,
-                show_non_joint,
-                is_local_median,
-                col_u_name,
-                ref_header,
-                t,
-            )
-            drilldown_all_joint_only_df, _ = _build_drilldown_table(
-                parquet_path,
-                full_meta_df,
-                station_col,
-                t['tbl_col_loc'],
-                t['tbl_col_km'],
-                t['tbl_col_az'],
-                analysis_id,
-                is_compare,
-                is_sequential,
-                False,
-                is_local_median,
-                col_u_name,
-                ref_header,
-                t,
-                station_rows_df=full_station_rows_df,
-            )
-            drilldown_all_with_non_joint_df, _ = _build_drilldown_table(
                 parquet_path,
                 full_meta_df,
                 station_col,
@@ -1585,8 +1549,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             )
         except FileNotFoundError:
             drilldown_all_df = pd.DataFrame()
-            drilldown_all_joint_only_df = pd.DataFrame()
-            drilldown_all_with_non_joint_df = pd.DataFrame()
 
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
@@ -1670,8 +1632,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             station_insights_df=sorted_disp_df,
             drilldown_selected_df=drilldown_selected_df,
             drilldown_all_df=drilldown_all_df,
-            drilldown_all_joint_only_df=drilldown_all_joint_only_df,
-            drilldown_all_with_non_joint_df=drilldown_all_with_non_joint_df,
         )
 
         if show_export_button:

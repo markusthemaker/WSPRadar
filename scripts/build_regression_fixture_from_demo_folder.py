@@ -29,8 +29,6 @@ TABLE_FILES = [
     "table_station_insights_current_segment.csv",
     "table_drilldown_selected_stations.csv",
     "table_drilldown_all_stations_current_segment.csv",
-    "table_drilldown_all_stations_joint_only_current_segment.csv",
-    "table_drilldown_all_stations_with_non_joint_current_segment.csv",
 ]
 FIGURE_FILES = [
     "figure_map_highres.png",
@@ -179,9 +177,7 @@ def _table_test_description(table_name: str) -> str:
     descriptions = {
         "table_station_insights_current_segment.csv": "station insight table shape, columns, joint/spot sums and median columns",
         "table_drilldown_selected_stations.csv": "selected-station drill-down shape and columns",
-        "table_drilldown_all_stations_current_segment.csv": "current-view all-station drill-down shape and columns",
-        "table_drilldown_all_stations_joint_only_current_segment.csv": "canonical joint-only all-station drill-down shape and columns",
-        "table_drilldown_all_stations_with_non_joint_current_segment.csv": "canonical with-non-joint all-station drill-down shape and columns",
+        "table_drilldown_all_stations_current_segment.csv": "all-station current-segment drill-down shape and columns, including non-joint evidence where applicable",
     }
     return descriptions.get(table_name, "table shape and columns")
 

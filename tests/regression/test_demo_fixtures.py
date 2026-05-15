@@ -19,8 +19,6 @@ TABLE_FILES = [
     "table_station_insights_current_segment.csv",
     "table_drilldown_selected_stations.csv",
     "table_drilldown_all_stations_current_segment.csv",
-    "table_drilldown_all_stations_joint_only_current_segment.csv",
-    "table_drilldown_all_stations_with_non_joint_current_segment.csv",
 ]
 FIGURE_FILES = [
     "figure_map_highres.png",
