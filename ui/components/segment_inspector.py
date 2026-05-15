@@ -728,6 +728,14 @@ def _sort_drilldown_default(drill_df):
     sort_df = sort_df.sort_values(sort_cols, ascending=[True] * len(sort_cols), na_position="last")
     return sort_df.drop(columns=["_sort_time"]).reset_index(drop=True)
 
+def _sequential_tx_drilldown_labels(col_u_name, ref_header):
+    """Use actual callsign plus role/setup for TX A/B drill-down traceability."""
+    if col_u_name == "Setup A" and ref_header == "Setup B":
+        base_call = str(st.session_state.get("val_callsign", "")).strip().upper()
+        if base_call:
+            return f"{base_call} (Target / Setup A)", f"{base_call} (Reference / Setup B)"
+    return col_u_name, ref_header
+
 def _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col):
     """Load raw parquet rows for selected callsign+locator identities."""
     if selected_meta_df is None or selected_meta_df.empty:
@@ -821,7 +829,8 @@ def _build_drilldown_table(
             station_df = station_df.sort_values('dt_time', ascending=False)
             station_df['time_bin_str'] = station_df['time_bin'].dt.strftime('%H:%M') + ' - ' + (station_df['time_bin'] + pd.Timedelta(minutes=bin_minutes)).dt.strftime('%H:%M')
             station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
-            station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, col_u_name, ref_header)
+            target_tx_label, ref_tx_label = _sequential_tx_drilldown_labels(col_u_name, ref_header)
+            station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, target_tx_label, ref_tx_label)
 
             drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()
             drill_df.columns = [
@@ -1576,7 +1585,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
 
                         # Rufzeichen-Spalte f??r die Ansicht generieren
-                        station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, col_u_name, ref_header)
+                        target_tx_label, ref_tx_label = _sequential_tx_drilldown_labels(col_u_name, ref_header)
+                        station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, target_tx_label, ref_tx_label)
                         
                         drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()
                         
