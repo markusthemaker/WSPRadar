@@ -481,9 +481,9 @@ doc_lang = st.session_state.lang
 doc_title = "Dokumentation" if doc_lang == "de" else "Documentation"
 
 st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-col_doc_title, col_doc_download, col_doc_spacer = st.columns([0.25, 0.12, 0.63], vertical_alignment="center")
+col_doc_title, col_doc_download, col_doc_spacer = st.columns([0.34, 0.12, 0.54], vertical_alignment="center")
 with col_doc_title:
-    st.markdown(f"<h2 style='text-align: left; color: #ffffff; margin-bottom: 0; font-family: \"Rajdhani\", sans-serif; letter-spacing: 1px;'>{doc_title}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align: left; color: #ffffff; margin-bottom: 0; font-family: \"Rajdhani\", sans-serif; letter-spacing: 1px; white-space: nowrap;'>{doc_title}</h2>", unsafe_allow_html=True)
 with col_doc_download:
     # Generate the heavy PDF on demand via the imported engine
     pdf_bytes = generate_pdf_doc(doc_lang, logo_base64, APP_VERSION)
