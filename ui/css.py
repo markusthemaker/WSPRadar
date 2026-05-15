@@ -19,7 +19,9 @@ def apply_custom_css():
         
         .block-container { max-width: 1024px !important; padding-top: 2rem !important; }
         
-        div.stButton > button[kind="primary"] {
+        div.stButton > button[kind="primary"],
+        div.stDownloadButton > button[kind="primary"],
+        div[data-testid="stDownloadButton"] button[kind="primary"] {
             background-color: transparent !important;
             color: #ffffff !important;
             border: 1px solid rgba(57, 255, 20, 0.35) !important;
@@ -30,23 +32,33 @@ def apply_custom_css():
             letter-spacing: 0;
             transition: all 0.3s ease;
         }
-        
-        div.stButton > button[kind="primary"]:hover {
+
+        div.stButton > button[kind="primary"]:hover,
+        div.stDownloadButton > button[kind="primary"]:hover,
+        div[data-testid="stDownloadButton"] button[kind="primary"]:hover {
             background-color: rgba(57, 255, 20, 0.06) !important;
             border-color: rgba(57, 255, 20, 0.75) !important;
             color: #ffffff !important;
             box-shadow: 0 0 6px rgba(57, 255, 20, 0.18) !important;
         }
-
-        div.stDownloadButton > button[kind="primary"]:hover {
-            background-color: rgba(57, 255, 20, 0.1) !important;
-            color: #ffffff !important;
-            box-shadow: 0 0 14px rgba(57, 255, 20, 0.35), inset 0 0 12px rgba(57, 255, 20, 0.15) !important;
-        }
         
         /* Secondary Buttons (Reset, Demo) */
-        div.stButton > button[kind="secondary"] { border: 1px solid #39ff14 !important; color: #ffffff !important; font-size: 0.85rem !important; padding: 0.2rem 0.5rem !important; margin-top: 10px; transition: all 0.3s ease; }
-        div.stButton > button[kind="secondary"]:hover { border-color: #39ff14 !important; color: #ffffff !important; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important; }
+        div.stButton > button[kind="secondary"] {
+            background-color: transparent !important;
+            border: 1px solid rgba(57, 255, 20, 0.35) !important;
+            color: #ffffff !important;
+            box-shadow: none !important;
+            font-size: 0.85rem !important;
+            padding: 0.2rem 0.5rem !important;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        div.stButton > button[kind="secondary"]:hover {
+            background-color: rgba(57, 255, 20, 0.06) !important;
+            border-color: rgba(57, 255, 20, 0.75) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 6px rgba(57, 255, 20, 0.18) !important;
+        }
         div.stButton > button[kind="primary"] svg,
         div.stButton > button[kind="secondary"] svg,
         div.stDownloadButton > button[kind="primary"] svg,
@@ -60,12 +72,14 @@ def apply_custom_css():
             fill: #ffffff !important;
         }
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"] {
-            box-shadow: 0 0 5px #39ff14 !important;
-            filter: drop-shadow(0 0 5px rgba(57, 255, 20, 0.75)) !important;
+            border-color: #39ff14 !important;
+            box-shadow: 0 0 3px rgba(57, 255, 20, 0.65) !important;
+            filter: drop-shadow(0 0 3px rgba(57, 255, 20, 0.45)) !important;
         }
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"]:hover {
-            box-shadow: 0 0 9px #39ff14 !important;
-            filter: drop-shadow(0 0 7px rgba(57, 255, 20, 0.95)) !important;
+            border-color: #39ff14 !important;
+            box-shadow: 0 0 5px rgba(57, 255, 20, 0.75) !important;
+            filter: drop-shadow(0 0 4px rgba(57, 255, 20, 0.65)) !important;
         }
         
         div[data-testid="stButton"] button,
@@ -80,10 +94,16 @@ def apply_custom_css():
             text-decoration-line: none !important;
         }
 
+        /* Hide Streamlit's file size/type metadata below the config uploader. */
+        div[data-testid="stFileUploader"] small,
+        div[data-testid="stFileUploaderDropzoneInstructions"] > div:last-child {
+            display: none !important;
+        }
+
         /* Selectbox (Language Selector) aligned with button styling */
         div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
             background-color: transparent !important;
-            border: 1px solid #39ff14 !important;
+            border: 1px solid rgba(57, 255, 20, 0.35) !important;
             border-radius: 0.5rem !important;
             color: #e0e0e0 !important;
             font-family: 'Space Mono', monospace !important;
@@ -91,11 +111,11 @@ def apply_custom_css():
             margin-top: 10px; 
             transition: all 0.3s ease;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important;
+            box-shadow: none !important;
         }
         div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {
-            border-color: #39ff14 !important;
-            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2) !important;
+            border-color: rgba(57, 255, 20, 0.75) !important;
+            box-shadow: 0 0 6px rgba(57, 255, 20, 0.18) !important;
         }
         
         /* Force absolute centering of the inner text container in selectboxes */
@@ -117,7 +137,7 @@ def apply_custom_css():
                 
         /* Colorize the dropdown arrow icon */
         div[data-testid="stSelectbox"] div[data-baseweb="select"] svg {
-            fill: #39ff14 !important;
+            fill: rgba(57, 255, 20, 0.75) !important;
         }
         
         /* Disabled State via :has() Pseudo-Class */
@@ -137,7 +157,7 @@ def apply_custom_css():
         /* Style the opened dropdown menu (Popover) */
         div[data-baseweb="popover"] ul {
             background-color: #0a1428 !important;
-            border: 1px solid #39ff14 !important;
+            border: 1px solid rgba(57, 255, 20, 0.35) !important;
             border-radius: 0.5rem !important;
         }
         div[data-baseweb="popover"] ul li {
