@@ -19,9 +19,70 @@ from config import *
 from i18n import T
 
 MIN_LABEL_CUTOFF_PCT = 0.02
+COMPARE_NEUTRAL_COLOR = "#fff2a8"
 
-def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_dist_km, analysis_id, base_min_stations, lat_0, lon_0):
+MAP_THEMES = {
+    "dark": {
+        "fig_face": "black",
+        "title": "white",
+        "ax_face": "black",
+        "ocean": "#0d0d0d",
+        "land": "#202020",
+        "coast": "#999999",
+        "border": "#666666",
+        "ring": "white",
+        "ring_alpha": 0.8,
+        "thin_ring_alpha": 0.3,
+        "azimuth": "#ffffff",
+        "compass": "#cccccc",
+        "ring_label": "#00ff00",
+        "ring_label_box": dict(facecolor="black", alpha=1.0, lw=0, pad=0.5),
+        "pole": "#00ff00",
+        "legend_face": "#121212",
+        "legend_edge": "#444444",
+        "legend_text": "white",
+        "cbar_face": "#0d0d0d",
+        "cbar_text": "white",
+        "bar_face": "black",
+        "bar_tick": "#cccccc",
+        "only_ref": COLOR_ONLY_REF,
+        "only_ref_edge": "black",
+        "footer": "#888888",
+        "footer_abs": "#cccccc",
+    },
+    "light": {
+        "fig_face": "white",
+        "title": "#111111",
+        "ax_face": "white",
+        "ocean": "#f7f7f7",
+        "land": "#efefef",
+        "coast": "#8a8a8a",
+        "border": "#b0b0b0",
+        "ring": "#888888",
+        "ring_alpha": 0.85,
+        "thin_ring_alpha": 0.35,
+        "azimuth": "#c8c8c8",
+        "compass": "#222222",
+        "ring_label": "#111111",
+        "ring_label_box": None,
+        "pole": "#00b000",
+        "legend_face": "white",
+        "legend_edge": "#cccccc",
+        "legend_text": "#111111",
+        "cbar_face": "white",
+        "cbar_text": "#111111",
+        "bar_face": "white",
+        "bar_tick": "#222222",
+        "only_ref": "#d0d0d0",
+        "only_ref_edge": "#555555",
+        "footer": "#222222",
+        "footer_abs": "#222222",
+    },
+}
+
+def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_dist_km, analysis_id, base_min_stations, lat_0, lon_0, theme="dark"):
     """Hauptfunktion zum Berechnen der Aggregate und Plotten der Radar-Karte."""
+    theme_cfg = MAP_THEMES.get(theme, MAP_THEMES["dark"])
     
     # Entfernungen & Azimut berechnen
     l1, n1, l2, n2 = map(np.radians, [lat_0, lon_0, df['peer_lat'], df['peer_lon']])
@@ -217,15 +278,15 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     if df_plot.empty or segs.empty: return None
 
     # Plot Setup
-    fig = plt.figure(figsize=FIG_SIZE, facecolor='black', dpi=PLOT_DPI)
-    fig.text(TITLE_POS[0], TITLE_POS[1], title, fontsize=18, fontweight='bold', color='white', ha='center', va='top')
+    fig = plt.figure(figsize=FIG_SIZE, facecolor=theme_cfg["fig_face"], dpi=PLOT_DPI)
+    fig.text(TITLE_POS[0], TITLE_POS[1], title, fontsize=18, fontweight='bold', color=theme_cfg["title"], ha='center', va='top')
     
     perfect_globe = ccrs.Globe(semimajor_axis=EARTH_RADIUS_M, semiminor_axis=EARTH_RADIUS_M)
     proj = ccrs.AzimuthalEquidistant(central_longitude=lon_0, central_latitude=lat_0, globe=perfect_globe)
     pc_proj = ccrs.PlateCarree(globe=perfect_globe)
     
     ax = fig.add_axes(MAP_BBOX, projection=proj)
-    ax.set_facecolor('black'); ax.set_global()
+    ax.set_facecolor(theme_cfg["ax_face"]); ax.set_global()
     
     map_scale = 1.0 if max_dist_km == 22000 else ZOOMED_MAP_SCALE
     max_r_m = max_dist_km * 1000
@@ -237,43 +298,46 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     verts = np.vstack([np.sin(theta), np.cos(theta)]).T
     circle = mpath.Path(verts * radius + center)
     ax.set_boundary(circle, transform=ax.transAxes)
+    if theme == "light":
+        for spine in ax.spines.values():
+            spine.set_visible(False)
     
-    ax.add_feature(cfeature.OCEAN, facecolor='#0d0d0d')
-    ax.add_feature(cfeature.LAND, facecolor='#202020')
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.9, edgecolor='#999999', zorder=5, alpha=0.9)
+    ax.add_feature(cfeature.OCEAN, facecolor=theme_cfg["ocean"])
+    ax.add_feature(cfeature.LAND, facecolor=theme_cfg["land"])
+    ax.add_feature(cfeature.COASTLINE, linewidth=0.9, edgecolor=theme_cfg["coast"], zorder=5, alpha=0.9)
     #slows down plotting - keep borders off for now
-    ax.add_feature(cfeature.BORDERS, linewidth=0.6, edgecolor='#666666', zorder=5, alpha=0.7)
+    ax.add_feature(cfeature.BORDERS, linewidth=0.6, edgecolor=theme_cfg["border"], zorder=5, alpha=0.7)
     
     # Draw Rings
     for r_km in THICK_RINGS:
         if r_km <= max_dist_km:
             lw = 1.8 if r_km == max_dist_km else 0.9
-            ax.add_patch(plt.Circle((0,0), r_km*1000, fill=False, color='white', linewidth=lw, alpha=0.8, transform=proj, zorder=2))
-            if r_km != 5000: ax.text(0, r_km*1000, f" {r_km} km ", color='#00ff00', fontsize=FONT_RINGS, fontweight='bold', ha='center', va='center', transform=proj, zorder=6, bbox=dict(facecolor='black', alpha=1.0, lw=0, pad=0.5))
+            ax.add_patch(plt.Circle((0,0), r_km*1000, fill=False, color=theme_cfg["ring"], linewidth=lw, alpha=theme_cfg["ring_alpha"], transform=proj, zorder=2))
+            if r_km != 5000: ax.text(0, r_km*1000, f" {r_km} km ", color=theme_cfg["ring_label"], fontsize=FONT_RINGS, fontweight='bold', ha='center', va='center', transform=proj, zorder=6, bbox=theme_cfg["ring_label_box"])
 
     for r_km in THIN_RINGS:
-        if r_km <= max_dist_km: ax.add_patch(plt.Circle((0,0), r_km*1000, fill=False, color='white', linewidth=0.5, alpha=0.3, linestyle='--', transform=proj, zorder=2))
+        if r_km <= max_dist_km: ax.add_patch(plt.Circle((0,0), r_km*1000, fill=False, color=theme_cfg["ring"], linewidth=0.5, alpha=theme_cfg["thin_ring_alpha"], linestyle='--', transform=proj, zorder=2))
 
-    for az in np.arange(AZIMUTH_STEP / 2.0, 360, AZIMUTH_STEP): ax.plot([0, max_r_m * np.cos(np.radians(90 - az))], [0, max_r_m * np.sin(np.radians(90 - az))], color='#ffffff', linewidth=0.3, alpha=0.4, transform=proj, zorder=2)
+    for az in np.arange(AZIMUTH_STEP / 2.0, 360, AZIMUTH_STEP): ax.plot([0, max_r_m * np.cos(np.radians(90 - az))], [0, max_r_m * np.sin(np.radians(90 - az))], color=theme_cfg["azimuth"], linewidth=0.3, alpha=0.4, transform=proj, zorder=2)
     
     label_r_m = lim * COMPASS_LABEL_OFFSET
     for i, d in enumerate(COMPASS):
         angle = i * AZIMUTH_STEP
         x = label_r_m * np.cos(np.radians(90 - angle))
         y = label_r_m * np.sin(np.radians(90 - angle))
-        ax.text(x, y, d, color='#cccccc', ha='center', va='center', transform=proj, fontsize=FONT_COMPASS, fontweight='bold', alpha=0.9, clip_on=False)
+        ax.text(x, y, d, color=theme_cfg["compass"], ha='center', va='center', transform=proj, fontsize=FONT_COMPASS, fontweight='bold', alpha=0.9, clip_on=False)
     
     # Pole Markers
     dist_n_m = (90.0 - lat_0) * (np.pi / 180.0) * EARTH_RADIUS_M
     dist_s_m = (90.0 + lat_0) * (np.pi / 180.0) * EARTH_RADIUS_M
     
     if dist_n_m <= max_r_m:
-        ax.plot(0, dist_n_m, marker='*', color='#00ff00', markersize=8, mew=1.2, transform=proj, zorder=20)
-        ax.text(0, dist_n_m - 350000, 'N-POL', color='#00ff00', fontsize=FONT_POLES, fontweight='bold', ha='center', va='top', transform=proj, zorder=20)
+        ax.plot(0, dist_n_m, marker='*', color=theme_cfg["pole"], markersize=8, mew=1.2, transform=proj, zorder=20)
+        ax.text(0, dist_n_m - 350000, 'N-POL', color=theme_cfg["pole"], fontsize=FONT_POLES, fontweight='bold', ha='center', va='top', transform=proj, zorder=20)
         
     if dist_s_m <= max_r_m:
-        ax.plot(0, -dist_s_m, marker='*', color='#00ff00', markersize=8, mew=1.2, transform=proj, zorder=20)
-        ax.text(0, -dist_s_m - 350000, 'S-POL', color='#00ff00', fontsize=FONT_POLES, fontweight='bold', ha='center', va='top', transform=proj, zorder=20)
+        ax.plot(0, -dist_s_m, marker='*', color=theme_cfg["pole"], markersize=8, mew=1.2, transform=proj, zorder=20)
+        ax.text(0, -dist_s_m - 350000, 'S-POL', color=theme_cfg["pole"], fontsize=FONT_POLES, fontweight='bold', ha='center', va='top', transform=proj, zorder=20)
 
     # UI Texts
     t_lang = T[st.session_state.lang]
@@ -295,7 +359,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
 
     # Colormaps
     if is_compare:
-        clrs = ['#030b2e', '#0a318f', '#2270c1', '#6eb2e4', '#ffffff', '#fca083', '#f03b20', '#a50f15', '#400005']
+        clrs = ['#030b2e', '#0a318f', '#2270c1', '#6eb2e4', COMPARE_NEUTRAL_COLOR, '#fca083', '#f03b20', '#a50f15', '#400005']
         bnds = [-27, -21, -15, -9, -3, 3, 9, 15, 21, 27]
         lbls = ['-4S', '-3S', '-2S', '-1S', '±0', '+1S', '+2S', '+3S', '+4S']
         ticks = [-24, -18, -12, -6, 0, 6, 12, 18, 24]
@@ -337,8 +401,8 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         if not df_joint.empty: ax.scatter(df_joint['peer_lon'], df_joint['peer_lat'], c=COLOR_JOINT, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=t_lang['leg_joint'])
         if not df_both.empty: ax.scatter(df_both['peer_lon'], df_both['peer_lat'], c=COLOR_BOTH_ASYNC, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=9, label=lbl_both_async)
         if not df_only_u.empty: ax.scatter(df_only_u['peer_lon'], df_only_u['peer_lat'], c=COLOR_ONLY_ME, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=8, label=lbl_only_me)
-        if not df_only_r.empty: ax.scatter(df_only_r['peer_lon'], df_only_r['peer_lat'], c=COLOR_ONLY_REF, s=8, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=8, label=lbl_only_ref)
-        leg = ax.legend(loc='lower center', bbox_to_anchor=LEG_BBOX, facecolor='#121212', edgecolor='#444444', labelcolor='white', fontsize=FONT_LEGEND, markerscale=2.0)        
+        if not df_only_r.empty: ax.scatter(df_only_r['peer_lon'], df_only_r['peer_lat'], c=theme_cfg["only_ref"], s=8, alpha=1.0, edgecolors=theme_cfg["only_ref_edge"], linewidth=0.35, transform=pc_proj, zorder=8, label=lbl_only_ref)
+        leg = ax.legend(loc='lower center', bbox_to_anchor=LEG_BBOX, facecolor=theme_cfg["legend_face"], edgecolor=theme_cfg["legend_edge"], labelcolor=theme_cfg["legend_text"], fontsize=FONT_LEGEND, markerscale=2.0)
         leg.set_zorder(15)
     else:
         ax.scatter(df_plot['peer_lon'], df_plot['peer_lat'], c=COLOR_ONLY_ME, s=5, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=lbl_only_me)
@@ -349,18 +413,19 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     # The heatmap wedges are semi-transparent over the dark map.
     # The colorbar must use the same dark backing, otherwise alpha blends against
     # the default axes background and the legend colors no longer match the map.
-    cax.set_facecolor('#0d0d0d')
+    cax.set_facecolor(theme_cfg["cbar_face"])
 
     cbar = plt.colorbar(p, cax=cax, ticks=ticks)
-    cbar.ax.set_facecolor('#0d0d0d')
+    cbar.ax.set_facecolor(theme_cfg["cbar_face"])
 
     if hasattr(cbar, "solids"):
         cbar.solids.set_alpha(heatmap_alpha)
         cbar.solids.set_edgecolor("face")
 
-    cbar.ax.set_yticklabels(lbls, color='white')
+    cbar.ax.set_yticklabels(lbls, color=theme_cfg["cbar_text"])
     cbar.ax.tick_params(labelsize=FONT_CBAR)
-    cbar.set_label(cbar_title, color='white', fontweight='bold', labelpad=15, fontsize=FONT_LEGEND)
+    cbar.ax.tick_params(colors=theme_cfg["cbar_text"])
+    cbar.set_label(cbar_title, color=theme_cfg["cbar_text"], fontweight='bold', labelpad=15, fontsize=FONT_LEGEND)
 
     
     # Meta Footer
@@ -436,10 +501,10 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
 
         # 2. Native Categorical Axes setup
         ax_bars = fig.add_axes([0.12, 0.035, 0.85, 0.045])
-        ax_bars.set_facecolor('black')
+        ax_bars.set_facecolor(theme_cfg["bar_face"])
         for spine in ax_bars.spines.values(): spine.set_visible(False)
         ax_bars.set_xticks([])
-        ax_bars.tick_params(axis='y', length=0, pad=10, colors='#cccccc', labelsize=FONT_LEGEND)
+        ax_bars.tick_params(axis='y', length=0, pad=10, colors=theme_cfg["bar_tick"], labelsize=FONT_LEGEND)
         
         # Prozentuale Breiten (0-100%) für sauberes Matplotlib-Skalieren
         pct_u_stat = (stat_only_u / tot_stats * 100) if tot_stats > 0 else 0
@@ -465,7 +530,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         # Segment 3: Both Async (Orange)
         p3 = ax_bars.barh(categories, [pct_a_stat, pct_a_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat, pct_u_spot+pct_j_spot if not is_radius_mode else 0], color=COLOR_BOTH_ASYNC, height=0.6)
         # Segment 4: Only R (Weiß)
-        p4 = ax_bars.barh(categories, [pct_r_stat, pct_r_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat+pct_a_stat, pct_u_spot+pct_j_spot+pct_a_spot if not is_radius_mode else 0], color=COLOR_ONLY_REF, height=0.6)
+        p4 = ax_bars.barh(categories, [pct_r_stat, pct_r_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat+pct_a_stat, pct_u_spot+pct_j_spot+pct_a_spot if not is_radius_mode else 0], color=theme_cfg["only_ref"], height=0.6)
         
         # Dynamisches Zentrieren der echten Zahlenwerte in den Boxen
         def add_labels(rects, real_values, text_color):
@@ -489,12 +554,12 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             add_labels(p4, [stat_only_r, spot_only_r], 'black')
             
         # 4. Config string zentriert am unteren Rand
-        fig.text(0.50, 0.025, line1_str, color='#888888', ha='center', fontsize=FONT_FOOTER)
-        fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=FONT_FOOTER)
+        fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer"], ha='center', fontsize=FONT_FOOTER)
+        fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
         
     else:
         # Fallback für Absolute Maps
-        fig.text(0.50, 0.035, line1_str, color='#cccccc', ha='center', fontsize=FONT_FOOTER)
-        fig.text(0.98, 0.015, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=FONT_FOOTER)
+        fig.text(0.50, 0.035, line1_str, color=theme_cfg["footer_abs"], ha='center', fontsize=FONT_FOOTER)
+        fig.text(0.98, 0.015, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
 
     return fig, df_plot, segs, line1_str

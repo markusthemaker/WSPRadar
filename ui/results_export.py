@@ -73,6 +73,15 @@ def _is_near_black(rgba):
         return False
 
 
+def _is_light_line_color(rgba):
+    """Return True for pale line colors that disappear on white export backgrounds."""
+    try:
+        r, g, b, a = mcolors.to_rgba(rgba)
+        return a > 0 and r > 0.65 and g > 0.65 and b > 0.65
+    except Exception:
+        return False
+
+
 def _style_figure_for_paper(fig):
     """Temporarily restyle a dark UI figure for white-paper PNG export."""
     snapshots = []
@@ -117,8 +126,8 @@ def _style_figure_for_paper(fig):
         _set_with_restore(snapshots, text, "get_color", "set_color", "#111111")
 
     for line in fig.findobj(Line2D):
-        if _is_near_white(line.get_color()):
-            _set_with_restore(snapshots, line, "get_color", "set_color", "#333333")
+        if _is_near_white(line.get_color()) or _is_light_line_color(line.get_color()):
+            _set_with_restore(snapshots, line, "get_color", "set_color", "#111111")
 
     for legend in fig.legends:
         frame = legend.get_frame()
@@ -167,7 +176,7 @@ def figure_to_png_bytes(fig, dpi=300, paper_theme=True):
         _restore_figure_style(snapshots)
 
 
-def register_map_export(analysis, fig, line1_str):
+def register_map_export(analysis, fig, line1_str, paper_theme=True):
     """Register the current map figure for the all-results export ZIP."""
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis["id"], {})
@@ -178,7 +187,7 @@ def register_map_export(analysis, fig, line1_str):
         "is_compare": bool(analysis["is_compare"]),
         "is_sequential": bool(analysis["is_sequential"]),
         "line1_str": line1_str,
-        "figure_map_highres.png": figure_to_png_bytes(fig, paper_theme=True),
+        "figure_map_highres.png": figure_to_png_bytes(fig, paper_theme=paper_theme),
     })
 
 

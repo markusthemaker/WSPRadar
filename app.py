@@ -32,7 +32,7 @@ from ui.callbacks import (
 from ui.components.config_panel import render_core_expander, render_compare_expander, render_advanced_expander
 from ui.components.segment_inspector import render_segment_inspector, render_lazy_download
 from ui.config_io import build_config_payload, validate_config_upload, apply_config_values
-from ui.results_export import register_map_export, render_download_all_results, reset_result_export_state
+from ui.results_export import register_map_export, reset_result_export_state
 
 # Core Execution Engines
 from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time, is_valid_callsign, is_valid_locator
@@ -403,10 +403,18 @@ if st.session_state.run_mode:
                 # Step 4: Pass the data to the backend plotting engine to generate the Matplotlib figure
                 status_box.update(label=f"Rendering maps... ({i+1}/{len(analyses)})", state="running", expanded=True)
                 plot_result = generate_map_plot(
-                    df, analysis['title'], analysis['is_compare'], analysis['is_sequential'], 
+                    df.copy(), analysis['title'], analysis['is_compare'], analysis['is_sequential'],
                     start_t, end_t, max_dist_km, analysis['id'], 
                     st.session_state.val_min_stations,
-                    lat_0, lon_0
+                    lat_0, lon_0,
+                    theme="dark"
+                )
+                export_plot_result = generate_map_plot(
+                    df.copy(), analysis['title'], analysis['is_compare'], analysis['is_sequential'],
+                    start_t, end_t, max_dist_km, analysis['id'],
+                    st.session_state.val_min_stations,
+                    lat_0, lon_0,
+                    theme="light"
                 )
                 
                 # Force garbage collection to free up RAM immediately after plotting
@@ -426,7 +434,10 @@ if st.session_state.run_mode:
                 with col_btn: 
                     render_lazy_download(analysis['id'], fig, callsign, t)
                 st.pyplot(fig, width='stretch', bbox_inches=None)
-                register_map_export(analysis, fig, line1_str)
+                export_fig = export_plot_result[0] if export_plot_result else None
+                register_map_export(analysis, export_fig or fig, line1_str, paper_theme=False if export_fig else True)
+                if export_fig is not None:
+                    plt.close(export_fig)
                 
                 # Step 5: Setup placeholder containers for the interactive Segment Inspector.
                 # We defer the actual rendering of the inspector until the loop finishes 
@@ -451,12 +462,22 @@ if st.session_state.run_mode:
     status_box.update(label="Complete", state="complete", expanded=False)
 
     # Flush deferred inspector fragments dynamically into the DOM
-    for data in deferred_render_data:
+    for idx, data in enumerate(deferred_render_data):
         data['skeleton_ph'].empty()  
         with data['inspector_container']:
-            render_segment_inspector(data['analysis']['id'], data['analysis']['title'], data['analysis']['is_compare'], data['analysis']['is_sequential'], data['enriched_df'], data['segs_df'], data['parquet_path'], data['line1_str'], t, max_dist_km)
-
-    render_download_all_results(t)
+            render_segment_inspector(
+                data['analysis']['id'],
+                data['analysis']['title'],
+                data['analysis']['is_compare'],
+                data['analysis']['is_sequential'],
+                data['enriched_df'],
+                data['segs_df'],
+                data['parquet_path'],
+                data['line1_str'],
+                t,
+                max_dist_km,
+                show_export_button=(idx == len(deferred_render_data) - 1),
+            )
 
 # ==========================================
 # DOCUMENTATION FOOTER
@@ -464,16 +485,18 @@ if st.session_state.run_mode:
 doc_lang = st.session_state.lang
 doc_title = "Dokumentation" if doc_lang == "de" else "Documentation"
 
-col_d1, col_d2, col_d3 = st.columns([0.1, 0.8, 0.1], vertical_alignment="bottom")
-with col_d2:
-    st.markdown(f"<h2 style='text-align: center; color: #ffffff; margin-bottom: 0; font-family: \"Rajdhani\", sans-serif; letter-spacing: 1px;'>{doc_title}</h2>", unsafe_allow_html=True)
-with col_d3:
+st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
+col_doc_title, col_doc_download, col_doc_spacer = st.columns([0.33, 0.09, 0.58], vertical_alignment="center")
+with col_doc_title:
+    st.markdown(f"<h2 style='text-align: left; color: #ffffff; margin-bottom: 0; font-family: \"Rajdhani\", sans-serif; letter-spacing: 1px;'>{doc_title}</h2>", unsafe_allow_html=True)
+with col_doc_download:
     # Generate the heavy PDF on demand via the imported engine
     pdf_bytes = generate_pdf_doc(doc_lang, logo_base64, APP_VERSION)
     if pdf_bytes:
-        st.download_button(label="💾", data=pdf_bytes, file_name=f"WSPRadar_Doc_{doc_lang.upper()}.pdf", mime="application/pdf", width='stretch')
+        st.download_button(label="", icon=":material/save:", data=pdf_bytes, file_name=f"WSPRadar_Doc_{doc_lang.upper()}.pdf", mime="application/pdf", width='stretch')
     else:
-        st.button("💾", disabled=True, help="PDF Export requires 'markdown' and 'xhtml2pdf' packages.")
+        st.button("", icon=":material/save:", disabled=True, help="PDF Export requires 'markdown' and 'xhtml2pdf' packages.", width='stretch')
+st.markdown('<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.18); margin: 1.2rem 0 2.0rem;">', unsafe_allow_html=True)
 
 # Inject the localized documentation string
 st.markdown(get_docs(st.session_state.lang), unsafe_allow_html=True)

@@ -16,7 +16,7 @@ import matplotlib.dates as mdates
 import cartopy.feature as cfeature
 import streamlit as st
 from config import APP_VERSION, COMPASS
-from ui.results_export import figure_to_png_bytes, register_inspector_export
+from ui.results_export import figure_to_png_bytes, register_inspector_export, render_download_all_results
 
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
@@ -1031,7 +1031,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     }
 
 @st.fragment
-def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enriched_df, segs_df, parquet_path, line1_str, t, max_dist_km):
+def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enriched_df, segs_df, parquet_path, line1_str, t, max_dist_km, show_export_button=False):
     """
     Renders the interactive Segment Inspector directly below the map.
     Allows drill-down into specific Azimuth/Distance chunks to show histograms and tabular data.
@@ -1747,6 +1747,9 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             drilldown_selected_df=drilldown_selected_df,
             drilldown_all_df=drilldown_all_df,
         )
+
+        if show_export_button:
+            render_download_all_results(t)
 
 @st.fragment
 def render_lazy_download(analysis_id, fig, callsign, t):
