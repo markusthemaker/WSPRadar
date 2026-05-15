@@ -489,12 +489,12 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             add_labels(p4, [stat_only_r, spot_only_r], 'black')
             
         # 4. Config string zentriert am unteren Rand
-        fig.text(0.50, 0.01, line1_str, color='#888888', ha='center', fontsize=FONT_FOOTER)
-        fig.text(0.98, 0.01, "WSPRadar.org", color='#888888', ha='right', fontsize=FONT_FOOTER)
+        fig.text(0.50, 0.025, line1_str, color='#888888', ha='center', fontsize=FONT_FOOTER)
+        fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=FONT_FOOTER)
         
     else:
         # Fallback für Absolute Maps
-        fig.text(0.50, 0.02, line1_str, color='#cccccc', ha='center', fontsize=FONT_FOOTER)
-        fig.text(0.98, 0.02, "WSPRadar.org", color='#888888', ha='right', fontsize=FONT_FOOTER)
+        fig.text(0.50, 0.035, line1_str, color='#cccccc', ha='center', fontsize=FONT_FOOTER)
+        fig.text(0.98, 0.015, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=FONT_FOOTER)
 
     return fig, df_plot, segs, line1_str
