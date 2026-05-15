@@ -165,12 +165,18 @@ with col_lang:
 
 with col_b1:
     if st.button(t["btn_demo"], icon=":material/rocket_launch:", width='stretch'):
-        st.session_state.show_demo_launcher = not st.session_state.get("show_demo_launcher", False)
+        next_demo_state = not st.session_state.get("show_demo_launcher", False)
+        st.session_state.show_demo_launcher = next_demo_state
+        if next_demo_state:
+            st.session_state.show_config_loader = False
         reset_audit()
 
 with col_b2:
     if st.button(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", width='stretch'):
-        st.session_state.show_config_loader = not st.session_state.get("show_config_loader", False)
+        next_config_state = not st.session_state.get("show_config_loader", False)
+        st.session_state.show_config_loader = next_config_state
+        if next_config_state:
+            st.session_state.show_demo_launcher = False
         reset_audit()
 
 with col_b3:
