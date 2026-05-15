@@ -45,6 +45,7 @@ MAP_THEMES = {
         "cbar_text": "white",
         "bar_face": "black",
         "bar_tick": "#cccccc",
+        "bar_bbox": [0.12, 0.035, 0.85, 0.045],
         "only_ref": COLOR_ONLY_REF,
         "only_ref_edge": "black",
         "footer": "#888888",
@@ -73,6 +74,7 @@ MAP_THEMES = {
         "cbar_text": "#111111",
         "bar_face": "white",
         "bar_tick": "#222222",
+        "bar_bbox": [0.12, 0.047, 0.85, 0.045],
         "only_ref": "#d0d0d0",
         "only_ref_edge": "#555555",
         "footer": "#222222",
@@ -500,7 +502,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         tot_spots = spot_only_u + spot_joint + spot_both_async + spot_only_r
 
         # 2. Native Categorical Axes setup
-        ax_bars = fig.add_axes([0.12, 0.035, 0.85, 0.045])
+        ax_bars = fig.add_axes(theme_cfg.get("bar_bbox", [0.12, 0.035, 0.85, 0.045]))
         ax_bars.set_facecolor(theme_cfg["bar_face"])
         for spine in ax_bars.spines.values(): spine.set_visible(False)
         ax_bars.set_xticks([])
