@@ -29,6 +29,8 @@ TABLE_FILES = [
     "table_station_insights_current_segment.csv",
     "table_drilldown_selected_stations.csv",
     "table_drilldown_all_stations_current_segment.csv",
+    "table_drilldown_all_stations_joint_only_current_segment.csv",
+    "table_drilldown_all_stations_with_non_joint_current_segment.csv",
 ]
 FIGURE_FILES = [
     "figure_map_highres.png",
@@ -173,6 +175,124 @@ def _build_expected_metrics(destination: Path) -> dict[str, Any]:
     }
 
 
+def _table_test_description(table_name: str) -> str:
+    descriptions = {
+        "table_station_insights_current_segment.csv": "station insight table shape, columns, joint/spot sums and median columns",
+        "table_drilldown_selected_stations.csv": "selected-station drill-down shape and columns",
+        "table_drilldown_all_stations_current_segment.csv": "current-view all-station drill-down shape and columns",
+        "table_drilldown_all_stations_joint_only_current_segment.csv": "canonical joint-only all-station drill-down shape and columns",
+        "table_drilldown_all_stations_with_non_joint_current_segment.csv": "canonical with-non-joint all-station drill-down shape and columns",
+    }
+    return descriptions.get(table_name, "table shape and columns")
+
+
+def _build_regression_report(
+    manifest: dict[str, Any],
+    expected_metrics: dict[str, Any],
+) -> dict[str, Any]:
+    blocks = []
+    for block in manifest.get("blocks", []):
+        folder = block["folder"]
+        metrics = expected_metrics.get(folder, {})
+        block_report = {
+            "folder": folder,
+            "analysis_id": block.get("analysis_id"),
+            "title": block.get("title"),
+            "mode": "compare" if block.get("is_compare") else "absolute",
+            "is_sequential": block.get("is_sequential"),
+            "selected_distance": block.get("selected_distance"),
+            "selected_direction": block.get("selected_direction"),
+            "show_non_joint": block.get("show_non_joint"),
+            "evidence_time_bin": block.get("evidence_time_bin"),
+            "analysis_cache_file": block.get("analysis_cache_file"),
+            "tests": [],
+        }
+
+        for table_name, table_metrics in metrics.get("tables", {}).items():
+            block_report["tests"].append({
+                "kind": "table",
+                "name": table_name,
+                "description": _table_test_description(table_name),
+                "exists": table_metrics.get("exists", False),
+                "rows": table_metrics.get("rows", 0),
+                "column_count": table_metrics.get("column_count", 0),
+            })
+
+        for figure_name, figure_metrics in metrics.get("figures", {}).items():
+            block_report["tests"].append({
+                "kind": "figure",
+                "name": figure_name,
+                "description": "PNG presence and byte-size stability",
+                "exists": figure_metrics.get("exists", False),
+                "bytes": figure_metrics.get("bytes", 0),
+            })
+
+        for parquet_name, parquet_metrics in metrics.get("analysis_caches", {}).items():
+            block_report["tests"].append({
+                "kind": "analysis_cache",
+                "name": parquet_name,
+                "description": "parquet cache readability, row count, column count and schema",
+                "exists": parquet_metrics.get("exists", False),
+                "rows": parquet_metrics.get("rows", 0),
+                "column_count": parquet_metrics.get("column_count", 0),
+            })
+
+        blocks.append(block_report)
+
+    return {
+        "fixture_name": manifest["fixture_name"],
+        "app": manifest.get("app"),
+        "version": manifest.get("version"),
+        "export_signature": manifest.get("export_signature"),
+        "built_utc": manifest.get("built_utc"),
+        "scope": "fixture package integrity and exported evidence-shape regression",
+        "blocks": blocks,
+    }
+
+
+def _markdown_row(values: list[Any]) -> str:
+    return "| " + " | ".join(str(value) for value in values) + " |"
+
+
+def _write_regression_report_markdown(path: Path, report: dict[str, Any]) -> None:
+    lines = [
+        f"# Regression Report: {report['fixture_name']}",
+        "",
+        f"- App: {report.get('app')}",
+        f"- Version: {report.get('version')}",
+        f"- Built UTC: {report.get('built_utc')}",
+        f"- Scope: {report.get('scope')}",
+        "",
+    ]
+
+    for block in report.get("blocks", []):
+        lines.extend([
+            f"## {block.get('folder')} - {block.get('title')}",
+            "",
+            f"- Mode: {block.get('mode')}",
+            f"- Sequential: {block.get('is_sequential')}",
+            f"- Segment: {block.get('selected_distance')} / {block.get('selected_direction')}",
+            f"- Show Non-Joint: {block.get('show_non_joint')}",
+            f"- Evidence bin: {block.get('evidence_time_bin')}",
+            f"- Analysis cache: {block.get('analysis_cache_file')}",
+            "",
+            _markdown_row(["Kind", "Name", "Rows", "Columns", "Bytes", "Description"]),
+            _markdown_row(["---", "---", "---:", "---:", "---:", "---"]),
+        ])
+        for test in block.get("tests", []):
+            lines.append(_markdown_row([
+                test.get("kind"),
+                test.get("name"),
+                test.get("rows", ""),
+                test.get("column_count", ""),
+                test.get("bytes", ""),
+                test.get("description"),
+            ]))
+        lines.append("")
+
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def _build_manifest(
     fixture_name: str,
     input_folder: Path,
@@ -211,6 +331,8 @@ def _build_manifest(
             "config": "config/wspradar_config.config",
             "run_metadata": "config/run_metadata.json",
             "expected_metrics": "expected_metrics.json",
+            "regression_report_json": "regression_report.json",
+            "regression_report_markdown": "regression_report.md",
         },
     }
 
@@ -241,8 +363,11 @@ def build_fixture(input_folder: Path, fixture_root: Path, name: str | None, forc
 
     manifest = _build_manifest(fixture_name, input_folder, export_root, destination)
     expected_metrics = _build_expected_metrics(destination)
+    regression_report = _build_regression_report(manifest, expected_metrics)
     _write_json(destination / "manifest.json", manifest)
     _write_json(destination / "expected_metrics.json", expected_metrics)
+    _write_json(destination / "regression_report.json", regression_report)
+    _write_regression_report_markdown(destination / "regression_report.md", regression_report)
 
     return destination
 

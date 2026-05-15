@@ -19,6 +19,8 @@ TABLE_FILES = [
     "table_station_insights_current_segment.csv",
     "table_drilldown_selected_stations.csv",
     "table_drilldown_all_stations_current_segment.csv",
+    "table_drilldown_all_stations_joint_only_current_segment.csv",
+    "table_drilldown_all_stations_with_non_joint_current_segment.csv",
 ]
 FIGURE_FILES = [
     "figure_map_highres.png",
@@ -75,15 +77,45 @@ def _assert_figure_metrics(path: Path, expected: dict):
     assert path.stat().st_size > 0
 
 
+def _format_fixture_summary(fixture_dir: Path, report: dict) -> str:
+    lines = [f"\nRegression fixture: {fixture_dir.name}"]
+    for block in report.get("blocks", []):
+        lines.append(
+            f"  {block.get('folder')}: {block.get('title')} | "
+            f"segment {block.get('selected_distance')} / {block.get('selected_direction')} | "
+            f"non-joint={block.get('show_non_joint')} | bin={block.get('evidence_time_bin')}"
+        )
+        for test in block.get("tests", []):
+            if test.get("kind") == "table":
+                lines.append(
+                    f"    table {test.get('name')}: "
+                    f"{test.get('rows')} rows, {test.get('column_count')} columns"
+                )
+            elif test.get("kind") == "analysis_cache":
+                lines.append(
+                    f"    parquet {test.get('name')}: "
+                    f"{test.get('rows')} rows, {test.get('column_count')} columns"
+                )
+            elif test.get("kind") == "figure":
+                lines.append(
+                    f"    figure {test.get('name')}: {test.get('bytes')} bytes"
+                )
+    return "\n".join(lines)
+
+
 @pytest.mark.skipif(not FIXTURES, reason="No regression fixtures found under tests/regression/fixtures.")
 @pytest.mark.parametrize("fixture_dir", FIXTURES, ids=lambda path: path.name)
 def test_demo_fixture_package_integrity(fixture_dir: Path):
     manifest = _read_json(fixture_dir / "manifest.json")
     expected_metrics = _read_json(fixture_dir / "expected_metrics.json")
+    regression_report = _read_json(fixture_dir / "regression_report.json")
     run_metadata = _read_json(fixture_dir / "config" / "run_metadata.json")
 
     assert (fixture_dir / "config" / "wspradar_config.config").exists()
+    assert (fixture_dir / "regression_report.md").exists()
     assert run_metadata["export_signature"] == manifest["export_signature"]
+    assert regression_report["export_signature"] == manifest["export_signature"]
+    print(_format_fixture_summary(fixture_dir, regression_report))
 
     expected_block_folders = {
         block["folder"] for block in manifest.get("blocks", [])

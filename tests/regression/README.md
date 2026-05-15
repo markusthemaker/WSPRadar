@@ -10,6 +10,7 @@ Each fixture is built from an unzipped prepared-results export and contains:
 - exported PNG figures
 - parquet analysis cache files
 - a generated `expected_metrics.json`
+- generated `regression_report.json` and `regression_report.md` files
 
 Build a fixture from a demo export:
 
@@ -22,6 +23,10 @@ Overwrite an existing fixture intentionally:
 Run the current fixture integrity tests:
 
 `python -m pytest tests/regression`
+
+Print the per-fixture comparison summary while running:
+
+`python -m pytest -s tests/regression`
 
 If pytest is not installed in the active Python environment:
 

@@ -6,6 +6,8 @@ Recommended workflow:
 
 1. Run a demo or representative analysis in the app.
 2. Use `Prepare All Results for Download`, then download the prepared ZIP.
+   The ZIP includes CSV tables, high-resolution figures, run metadata, config,
+   and the parquet analysis caches needed for offline regression work.
 3. Unzip it under this folder, for example:
 
    `tests/demo/vanhamel_rx_buddy/WSPRadar_export_2026_05_15__21_30/...`
