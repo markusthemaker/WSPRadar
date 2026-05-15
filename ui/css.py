@@ -23,13 +23,13 @@ def apply_custom_css():
         div.stButton > button[kind="primary"] {
             background-color: transparent !important; color: #ffffff !important; border: 1px solid #39ff14 !important;
             font-family: 'Space Mono', monospace !important; font-size: 1.0rem; font-weight: 700;
-            letter-spacing: 0; box-shadow: 0 0 10px rgba(57, 255, 20, 0.12), inset 0 0 10px rgba(57, 255, 20, 0.06); transition: all 0.3s ease;
+            letter-spacing: 0; box-shadow: 0 0 10px rgba(57, 255, 20, 0.10), inset 0 0 10px rgba(57, 255, 20, 0.04); transition: all 0.3s ease;
         }
         div.stButton > button[kind="primary"]:hover { background-color: rgba(57, 255, 20, 0.1) !important; color: #ffffff !important; box-shadow: 0 0 8px rgba(57, 255, 20, 0.25), inset 0 0 12px rgba(57, 255, 20, 0.15); }
         div.stDownloadButton > button[kind="primary"] {
             background-color: transparent !important; color: #ffffff !important; border: 1px solid #39ff14 !important;
             font-family: 'Space Mono', monospace !important; font-size: 0.95rem !important; font-weight: 700;
-            letter-spacing: 0; box-shadow: 0 0 10px rgba(57, 255, 20, 0.12), inset 0 0 10px rgba(57, 255, 20, 0.06) !important;
+            letter-spacing: 0; box-shadow: 0 0 10px rgba(57, 255, 20, 0.10), inset 0 0 10px rgba(57, 255, 20, 0.04) !important;
             transition: all 0.3s ease;
         }
         div.stDownloadButton > button[kind="primary"]:hover {
