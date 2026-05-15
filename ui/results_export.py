@@ -20,6 +20,7 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
 from config import APP_VERSION
+from core.snr_utils import format_snr_like_columns_for_csv
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
 
 
@@ -248,7 +249,7 @@ def register_inspector_export(
 def _dataframe_to_csv_bytes(df):
     if not isinstance(df, pd.DataFrame):
         df = pd.DataFrame()
-    return df.to_csv(index=False).encode("utf-8-sig")
+    return format_snr_like_columns_for_csv(df).to_csv(index=False).encode("utf-8-sig")
 
 
 def _json_default(value):

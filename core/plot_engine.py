@@ -16,6 +16,7 @@ import cartopy.feature as cfeature
 import streamlit as st
 
 from config import *
+from core.snr_utils import round_snr_like_columns
 from i18n import T
 
 MIN_LABEL_CUTOFF_PCT = 0.02
@@ -118,12 +119,14 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             calc_dist=('calc_dist', 'first'),
             calc_azimuth=('calc_azimuth', 'first')
         ).reset_index()
+        reporter_medians = round_snr_like_columns(reporter_medians)
         
         segs = reporter_medians.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket']).agg(
             val=('stat_val', 'median'),
             cnt=('peer_sign', 'nunique'),
             total_spots=('spot_count', 'sum')
         ).reset_index()
+        segs = round_snr_like_columns(segs, columns=['val'])
         segs = segs[segs['cnt'] >= base_min_stations]
         df_plot = reporter_medians 
     else:
@@ -178,6 +181,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             # Echte "Joint Bins" identifizieren
             df_bins['is_joint'] = (df_bins['t_count'] > 0) & (df_bins['r_count'] > 0)
             df_bins['bin_delta'] = df_bins['t_med'] - df_bins['r_med']
+            df_bins = round_snr_like_columns(df_bins)
 
             df_joint = df_bins[df_bins['is_joint']]
             df_excl = df_bins[~df_bins['is_joint']]
@@ -231,6 +235,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             df_plot['is_u_spot'] = ((df_plot['has_u'] > 0) & (df_plot['has_r'] == 0)).astype(int)
             df_plot['is_r_spot'] = ((df_plot['has_u'] == 0) & (df_plot['has_r'] > 0)).astype(int)
             df_plot['spot_diff'] = np.where(df_plot['is_joint_spot'] == 1, df_plot['snr_u_norm'] - df_plot['snr_r_norm'], np.nan)
+            df_plot = round_snr_like_columns(df_plot)
             
             # 2. C-optimierte Aggregation
             agg_ops = {
@@ -261,7 +266,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
 
         # Radikale Bereinigung: Wirf jede Station weg, deren Zähler in ALLEN drei Kategorien auf 0 gefallen sind
         df_plot = df_agg[(df_agg['spot_count'] > 0) | (df_agg['count_only_u'] > 0) | (df_agg['count_only_r'] > 0)].copy()
-        df_plot['stat_val'] = df_plot['stat_val'].round(1)
+        df_plot = round_snr_like_columns(df_plot)
         
         def segment_agg(x):
             vals = x['stat_val'].dropna()
@@ -274,6 +279,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             })
             
         segs = df_plot.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket']).apply(segment_agg).reset_index()
+        segs = round_snr_like_columns(segs, columns=['val'])
         
         segs = segs[segs['cnt'] >= base_min_stations]
 

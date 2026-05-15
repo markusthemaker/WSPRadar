@@ -10,6 +10,7 @@ import streamlit as st
 from config import MAX_DYNAMIC_RADIUS_KM
 from core.data_engine import fetch_wspr_data
 from core.math_utils import get_solar_state, is_valid_callsign
+from core.snr_utils import round_snr_like_columns
 
 def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign):
     """
@@ -220,4 +221,5 @@ def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
     if df.empty:
         return df, t["warn_no_data"].format(title=analysis['title'])
 
+    df = round_snr_like_columns(df)
     return df, None

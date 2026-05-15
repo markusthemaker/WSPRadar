@@ -12,6 +12,7 @@ import pandas as pd
 import streamlit as st
 
 from config import DB_URL, CACHE_DIR, CACHE_TTL_SEC
+from core.snr_utils import round_snr_like_columns
 
 # HTTP Session für Wiederverwendung von Verbindungen
 http_session = requests.Session()
@@ -49,6 +50,8 @@ def _fetch_wspr_data_standard(sql_query):
         int_cols = ['has_u', 'has_r', 'is_me', 'time_slot']
         for c in int_cols:
             if c in df.columns: df[c] = pd.to_numeric(df[c], downcast='integer')
+
+        df = round_snr_like_columns(df)
             
         elapsed = time.time() - start_time
         print(f"[{datetime.now().strftime('%H:%M:%S')}] CACHE MISS: DB Query Executed in {elapsed:.2f}s | Payload: {len(resp.content)/1024:.1f} KB")
@@ -72,7 +75,7 @@ def _fetch_wspr_data_demo(sql_query):
     resp = http_session.get(DB_URL, params={'query': sql_query})
     
     if resp.status_code == 200 and len(resp.text.strip().split('\n')) > 1:
-        return pd.read_csv(io.StringIO(resp.text), engine='pyarrow')
+        return round_snr_like_columns(pd.read_csv(io.StringIO(resp.text), engine='pyarrow'))
     elif resp.status_code != 200:
         # 2. BEI EINEM FEHLER: Schreie laut auf der UI!
         st.error(f"🛑 **CLICKHOUSE DEMO-FEHLER {resp.status_code}**")
