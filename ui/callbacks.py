@@ -8,6 +8,7 @@ import streamlit as st
 import time
 from i18n import T
 from config import DEMO_PROFILES
+from ui.results_export import reset_result_export_state
 
 def reset_audit():
     """
@@ -17,6 +18,7 @@ def reset_audit():
     """
     st.session_state.run_mode = None
     st.session_state.active_demo_profile = None
+    reset_result_export_state()
 
 def swap_tx_slots_u():
     """
@@ -183,6 +185,7 @@ def run_demo_profile(profile_key):
     _apply_demo_profile_values(profile_key)
     st.session_state.run_mode = profile.get("run_mode")
     st.session_state.run_id = int(time.time())
+    reset_result_export_state()
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]

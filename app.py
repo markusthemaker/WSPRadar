@@ -32,6 +32,7 @@ from ui.callbacks import (
 from ui.components.config_panel import render_core_expander, render_compare_expander, render_advanced_expander
 from ui.components.segment_inspector import render_segment_inspector, render_lazy_download
 from ui.config_io import build_config_payload, validate_config_upload, apply_config_values
+from ui.results_export import register_map_export, render_download_all_results, reset_result_export_state
 
 # Core Execution Engines
 from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time, is_valid_callsign, is_valid_locator
@@ -293,6 +294,7 @@ if run_tx_clicked:
         st.stop()
     st.session_state.run_mode = "TX"
     st.session_state.run_id = int(time.time())
+    reset_result_export_state()
     plt.close('all')
     for k in list(st.session_state.keys()):
         if k.startswith("img_buf_"): del st.session_state[k]
@@ -309,6 +311,7 @@ if run_rx_clicked:
             st.stop()
     st.session_state.run_mode = "RX"
     st.session_state.run_id = int(time.time())
+    reset_result_export_state()
     plt.close('all')
     for k in list(st.session_state.keys()):
         if k.startswith("img_buf_"): del st.session_state[k]
@@ -423,6 +426,7 @@ if st.session_state.run_mode:
                 with col_btn: 
                     render_lazy_download(analysis['id'], fig, callsign, t)
                 st.pyplot(fig, width='stretch', bbox_inches=None)
+                register_map_export(analysis, fig, line1_str)
                 
                 # Step 5: Setup placeholder containers for the interactive Segment Inspector.
                 # We defer the actual rendering of the inspector until the loop finishes 
@@ -451,6 +455,8 @@ if st.session_state.run_mode:
         data['skeleton_ph'].empty()  
         with data['inspector_container']:
             render_segment_inspector(data['analysis']['id'], data['analysis']['title'], data['analysis']['is_compare'], data['analysis']['is_sequential'], data['enriched_df'], data['segs_df'], data['parquet_path'], data['line1_str'], t, max_dist_km)
+
+    render_download_all_results(t)
 
 # ==========================================
 # DOCUMENTATION FOOTER

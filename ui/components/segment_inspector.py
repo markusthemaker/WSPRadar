@@ -16,6 +16,7 @@ import matplotlib.dates as mdates
 import cartopy.feature as cfeature
 import streamlit as st
 from config import APP_VERSION, COMPASS
+from ui.results_export import figure_to_png_bytes, register_inspector_export
 
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
@@ -727,15 +728,213 @@ def _sort_drilldown_default(drill_df):
     sort_df = sort_df.sort_values(sort_cols, ascending=[True] * len(sort_cols), na_position="last")
     return sort_df.drop(columns=["_sort_time"]).reset_index(drop=True)
 
+def _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col):
+    """Load raw parquet rows for selected callsign+locator identities."""
+    if selected_meta_df is None or selected_meta_df.empty:
+        return pd.DataFrame()
+
+    selected_meta_df = selected_meta_df.copy()
+    selected_meta_df[station_col] = selected_meta_df[station_col].astype(str)
+    selected_meta_df[loc_col] = selected_meta_df[loc_col].astype(str)
+    selected_meta_df = selected_meta_df.drop_duplicates(subset=[station_col, loc_col])
+    sel_stations = _unique_station_order(selected_meta_df[station_col].tolist())
+    if not sel_stations:
+        return pd.DataFrame()
+
+    station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', sel_stations)])
+    station_df['peer_sign'] = station_df['peer_sign'].astype(str)
+    station_df['peer_grid'] = station_df['peer_grid'].astype(str)
+
+    return station_df.merge(
+        selected_meta_df,
+        left_on=['peer_sign', 'peer_grid'],
+        right_on=[station_col, loc_col],
+        how='inner'
+    )
+
+def _build_drilldown_table(
+    parquet_path,
+    selected_meta_df,
+    station_col,
+    loc_col,
+    km_col,
+    az_col,
+    analysis_id,
+    is_compare,
+    is_sequential,
+    show_non_joint,
+    is_local_median,
+    col_u_name,
+    ref_header,
+    t,
+):
+    """Build the drill-down dataframe for selected or all current segment identities."""
+    if selected_meta_df is None or selected_meta_df.empty:
+        return pd.DataFrame(), "No stations selected."
+
+    selected_meta_df = selected_meta_df[[station_col, loc_col, km_col, az_col]].copy()
+    selected_meta_df[station_col] = selected_meta_df[station_col].astype(str)
+    selected_meta_df[loc_col] = selected_meta_df[loc_col].astype(str)
+    selected_meta_df = selected_meta_df.drop_duplicates(subset=[station_col, loc_col])
+    station_df = _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col)
+
+    drill_df = None
+    info_msg = None
+
+    if station_df.empty:
+        return pd.DataFrame(), "No spots available."
+
+    if not is_compare:
+        station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
+        drill_df = station_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'snr', 'power', 'stat_val']].copy()
+        drill_df.columns = ['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'SNR (Raw)', 'TX Power (dBm)', 'Norm@1W']
+        for col in ['SNR (Raw)', 'Norm@1W']:
+            drill_df[col] = pd.to_numeric(drill_df[col], errors='coerce').round(1)
+    else:
+        if is_sequential:
+            bin_minutes = st.session_state.get('val_tx_ab_bin_minutes', 8)
+            station_df['dt_time'] = pd.to_datetime(station_df['time'])
+            station_df['time_bin'] = station_df['dt_time'].dt.floor(f'{bin_minutes}min')
+
+            df_t = station_df[station_df['is_me'] == 1]
+            df_r = station_df[station_df['is_me'] == 0]
+
+            bin_t = df_t.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_a'})
+            bin_r = df_r.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_b'})
+
+            station_df = pd.merge(station_df, bin_t, on='time_bin', how='left')
+            station_df = pd.merge(station_df, bin_r, on='time_bin', how='left')
+            station_df['bin_delta'] = np.where(
+                station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna(),
+                station_df['micro_med_a'] - station_df['micro_med_b'],
+                np.nan
+            )
+
+            if not show_non_joint:
+                station_df = station_df[station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna()]
+                if station_df.empty:
+                    return pd.DataFrame(), "No joint spots available for the selected station(s)."
+
+            station_df['micro_med_b'] = np.where(station_df['is_me'] == 1, np.nan, station_df['micro_med_b'])
+            station_df['micro_med_a'] = np.where(station_df['is_me'] == 0, np.nan, station_df['micro_med_a'])
+
+            station_df = station_df.sort_values('dt_time', ascending=False)
+            station_df['time_bin_str'] = station_df['time_bin'].dt.strftime('%H:%M') + ' - ' + (station_df['time_bin'] + pd.Timedelta(minutes=bin_minutes)).dt.strftime('%H:%M')
+            station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
+            station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, col_u_name, ref_header)
+
+            drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()
+            drill_df.columns = [
+                'Date/Time (UTC)', t.get('tbl_col_bin', 'Time-Bin'), 'TX Station',
+                'TX Power (dBm)', 'SNR (Raw)', 'Norm@1W',
+                t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')
+            ]
+
+            for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')]:
+                drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
+        else:
+            joint_df = station_df.copy() if show_non_joint else station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
+            if joint_df.empty:
+                return pd.DataFrame(), "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
+
+            joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
+            joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
+            joint_df.loc[joint_df['has_r'] == 0, 'snr_r_norm'] = np.nan
+
+            col_u = f'{col_u_name} SNR (dB)'
+            col_r = f'{ref_header} SNR (dB)'
+            col_delta_lbl = t.get('tbl_col_delta_snr', '\u0394 SNR (dB)')
+            station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
+
+            if is_local_median and 'ref_detail_rows' in joint_df.columns:
+                expanded_rows = []
+                for _, row in joint_df.iterrows():
+                    refs = _parse_ref_detail_rows(row.get('ref_detail_rows'))
+                    has_u = row.get('has_u', 0) > 0
+                    has_r = row.get('has_r', 0) > 0
+                    own_snr = row.get('snr_u_norm', np.nan) if has_u else np.nan
+                    cycle_ref_median = row.get('snr_r_norm', np.nan) if has_r else np.nan
+                    delta_snr = round(own_snr - cycle_ref_median, 1) if pd.notna(own_snr) and pd.notna(cycle_ref_median) else np.nan
+
+                    if refs:
+                        for ref in refs:
+                            try:
+                                ref_dist_km = round(float(ref["ref_dist"]) / 1000)
+                            except (TypeError, ValueError):
+                                ref_dist_km = np.nan
+                            try:
+                                ref_snr = round(float(ref["ref_snr"]), 1)
+                            except (TypeError, ValueError):
+                                ref_snr = np.nan
+                            expanded_rows.append({
+                                'Date/Time (UTC)': row['Date/Time (UTC)'],
+                                station_type: row[station_col],
+                                loc_col: row[loc_col],
+                                km_col: row[km_col],
+                                az_col: row[az_col],
+                                t.get('tbl_col_ref_station', 'Ref Station'): ref["ref_sign"],
+                                loc_col + ' (Ref)': ref["ref_grid"],
+                                'Ref km': ref_dist_km,
+                                t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): ref_snr,
+                                t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): round(cycle_ref_median, 1) if pd.notna(cycle_ref_median) else np.nan,
+                                col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
+                                col_delta_lbl: delta_snr
+                            })
+                    elif has_u:
+                        expanded_rows.append({
+                            'Date/Time (UTC)': row['Date/Time (UTC)'],
+                            station_type: row[station_col],
+                            loc_col: row[loc_col],
+                            km_col: row[km_col],
+                            az_col: row[az_col],
+                            t.get('tbl_col_ref_station', 'Ref Station'): np.nan,
+                            loc_col + ' (Ref)': np.nan,
+                            'Ref km': np.nan,
+                            t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): np.nan,
+                            t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): np.nan,
+                            col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
+                            col_delta_lbl: np.nan
+                        })
+
+                if expanded_rows:
+                    drill_df = pd.DataFrame(expanded_rows).sort_values('Date/Time (UTC)', ascending=False)
+                else:
+                    info_msg = "No reference station details available for the selected station(s)."
+            elif 'best_ref_sign' in joint_df.columns:
+                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
+                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
+                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
+                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
+                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
+                joint_df['best_ref_sign'] = joint_df['best_ref_sign'].fillna("None")
+                joint_df['best_ref_dist_km'] = (joint_df['best_ref_dist'] / 1000).round(0).astype('Int64')
+
+                drill_df = joint_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'best_ref_sign', 'best_ref_dist_km', 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
+                drill_df.columns = ['Date/Time (UTC)', station_type, loc_col, km_col, az_col, 'Best Ref', 'Ref km', col_r, col_u, col_delta_lbl]
+            else:
+                joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
+                joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)
+                joint_df['snr_r_norm'] = pd.to_numeric(joint_df['snr_r_norm'], errors='coerce').round(1)
+                joint_df['snr_u_norm'] = joint_df['snr_u_norm'].astype(object).fillna("None")
+                joint_df['snr_r_norm'] = joint_df['snr_r_norm'].astype(object).fillna("None")
+                joint_df[col_delta_lbl] = joint_df[col_delta_lbl].astype(object).fillna("None")
+                drill_df = joint_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'snr_r_norm', 'snr_u_norm', col_delta_lbl]].copy()
+                drill_df.columns = ['Date/Time (UTC)', station_type, loc_col, km_col, az_col, col_r, col_u, col_delta_lbl]
+
+    if drill_df is not None and not drill_df.empty:
+        drill_df = _sort_drilldown_default(drill_df)
+    return drill_df if drill_df is not None else pd.DataFrame(), info_msg
+
 def _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
     identity_meta = _prepare_identity_meta(selected_identity_df)
     if identity_meta.empty:
-        return
+        return None
 
     evidence_df = _build_evidence_points(station_df, identity_meta, is_compare, is_sequential)
     if evidence_df.empty:
-        return
+        return None
 
     labels = _evidence_labels(is_compare)
     identity_labels = identity_meta["identity"].tolist()
@@ -822,7 +1021,14 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
 
     st.pyplot(fig_ev, width="stretch")
+    export_png = figure_to_png_bytes(fig_ev, paper_theme=True)
     plt.close(fig_ev)
+    return {
+        "figure_png": export_png,
+        "time_bin": time_agg,
+        "title": evidence_title,
+        "plot_df": plot_df,
+    }
 
 @st.fragment
 def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enriched_df, segs_df, parquet_path, line1_str, t, max_dist_km):
@@ -999,6 +1205,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         segment_raw_values = pd.Series(dtype=float)
         station_stability_interval = (np.nan, np.nan, np.nan)
         spot_stability_interval = (np.nan, np.nan, np.nan)
+        segment_figure_png = None
+        selected_evidence_export = None
+        selected_station_labels = []
+        drilldown_selected_df = pd.DataFrame()
+        drilldown_all_df = pd.DataFrame()
 
         if has_plot_data:
             segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
@@ -1166,6 +1377,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
             # Richtiges Streamlit-Parameter f??r volle Breite
             st.pyplot(fig_hist, width='stretch')
+            segment_figure_png = figure_to_png_bytes(fig_hist, paper_theme=True)
             plt.close(fig_hist)
         else:
             st.info(t["lbl_no_joint"], icon="??????")
@@ -1244,6 +1456,27 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             dataframe_kwargs["selection_default"] = {"selection": {"rows": [0]}}
         tbl_event = st.dataframe(sorted_disp_df, **dataframe_kwargs)
 
+        try:
+            all_meta_df = sorted_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]].copy()
+            drilldown_all_df, _ = _build_drilldown_table(
+                parquet_path,
+                all_meta_df,
+                station_col,
+                t['tbl_col_loc'],
+                t['tbl_col_km'],
+                t['tbl_col_az'],
+                analysis_id,
+                is_compare,
+                is_sequential,
+                show_non_joint,
+                is_local_median,
+                col_u_name,
+                ref_header,
+                t,
+            )
+        except FileNotFoundError:
+            drilldown_all_df = pd.DataFrame()
+
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
         # ----------------------------------------------------
@@ -1261,6 +1494,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             selected_identity_df.columns = ["peer_sign", "peer_grid"]
             selected_identity_df = selected_identity_df.drop_duplicates()
             sel_stations = selected_identity_df["peer_sign"].tolist()
+            selected_station_labels = (
+                selected_identity_df["peer_sign"].astype(str) +
+                " (" + selected_identity_df["peer_grid"].astype(str) + ")"
+            ).tolist()
             
             # Titel vorbereiten (wird erst unten im Layout gerendert)
             if len(selected_meta_df) == 1:
@@ -1286,7 +1523,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                     how='inner'
                 )
 
-                _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential)
+                selected_evidence_export = _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential)
                 
                 drill_df = None
                 info_msg = None
@@ -1490,10 +1727,26 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                                         drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
 
                     drill_display_df = _format_snr_display_columns(drill_df)
+                    drilldown_selected_df = drill_df.copy()
                     st.dataframe(drill_display_df, width='stretch', hide_index=True)
 
             except FileNotFoundError: 
                 st.warning("Cache file expired. Please Run Analysis again.")
+
+        register_inspector_export(
+            analysis_id=analysis_id,
+            selected_segment=selected_seg,
+            selected_distance=sel_dist if sel_dist != opt_full else opt_full,
+            selected_direction=sel_dir if sel_dir != opt_all_dir else opt_all_dir,
+            show_non_joint=show_non_joint,
+            evidence_time_bin=(selected_evidence_export or {}).get("time_bin"),
+            selected_stations=selected_station_labels,
+            segment_figure_png=segment_figure_png,
+            selected_evidence_figure_png=(selected_evidence_export or {}).get("figure_png"),
+            station_insights_df=sorted_disp_df,
+            drilldown_selected_df=drilldown_selected_df,
+            drilldown_all_df=drilldown_all_df,
+        )
 
 @st.fragment
 def render_lazy_download(analysis_id, fig, callsign, t):
