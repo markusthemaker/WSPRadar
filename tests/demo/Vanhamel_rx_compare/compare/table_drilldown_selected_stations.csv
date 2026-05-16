@@ -1,4 +1,4 @@
-﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,Best Ref,Ref km,ON4AWM1 SNR (dB),ON4AWM0 SNR (dB),Δ SNR (dB)
+﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,Best Ref,Ref km,ON4AWM1 SNR (dB) (ref corr +1.6 dB),ON4AWM0 SNR (dB),Δ SNR (dB)
 01-May-2021 18:24:00,M7AEO,IO82,598,291.2,ON4AWM1,0,-19.4,-20.0,-0.6
 01-May-2021 18:36:00,M7AEO,IO82,598,291.2,ON4AWM1,0,-22.4,-22.0,0.4
 01-May-2021 18:48:00,M7AEO,IO82,598,291.2,ON4AWM1,0,-16.4,-18.0,-1.6

@@ -1,4 +1,4 @@
-﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,Best Ref,Ref km,ON4AWM1 SNR (dB),ON4AWM0 SNR (dB),Δ SNR (dB)
+﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,Best Ref,Ref km,ON4AWM1 SNR (dB) (ref corr +1.6 dB),ON4AWM0 SNR (dB),Δ SNR (dB)
 01-May-2021 17:24:00,DF2JP,JO31fp,127,42.7,None,0,None,-29.0,None
 01-May-2021 17:34:00,DF2JP,JO31fp,127,42.7,ON4AWM1,0,-29.4,-23.0,6.4
 01-May-2021 17:44:00,DF2JP,JO31fp,127,42.7,None,0,None,-26.0,None

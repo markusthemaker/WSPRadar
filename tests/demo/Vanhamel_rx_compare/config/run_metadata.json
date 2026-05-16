@@ -1,8 +1,8 @@
 {
   "app": "WSPRadar.org",
   "version": "v0.91",
-  "export_signature": "[{\"all_drilldown_shape\": [7057, 8], \"analysis_id\": \"RX_ABS\", \"evidence_time_bin\": \"12h\", \"key\": \"RX_ABS\", \"map_context\": {\"base_min_stations\": 1, \"end_t\": \"2021-05-15T07:00:00+00:00\", \"lat_0\": 50.8125, \"lon_0\": 5.208333333333333, \"max_dist_km\": 22000, \"parquet_path\": \"./.wspr_cache/spots_RX_ABS_1778886917.parquet\", \"start_t\": \"2021-05-01T17:15:00+00:00\"}, \"mode_folder\": \"absolute\", \"selected_direction\": \"All Directions\", \"selected_distance\": \"Full Range\", \"selected_drilldown_shape\": [1550, 8], \"selected_segment\": \"Full Range | All Directions\", \"selected_stations\": [\"M7AEO (IO82)\"], \"show_non_joint\": false, \"station_table_shape\": [75, 7], \"title\": \"RX Absolute: Who ON4AWM0 Hears\"}, {\"all_drilldown_shape\": [7142, 10], \"analysis_id\": \"RX_COMP\", \"evidence_time_bin\": \"12h\", \"key\": \"RX_COMP\", \"map_context\": {\"base_min_stations\": 1, \"end_t\": \"2021-05-15T07:00:00+00:00\", \"lat_0\": 50.8125, \"lon_0\": 5.208333333333333, \"max_dist_km\": 22000, \"parquet_path\": \"./.wspr_cache/spots_RX_COMP_1778886917.parquet\", \"start_t\": \"2021-05-01T17:15:00+00:00\"}, \"mode_folder\": \"compare\", \"selected_direction\": \"All Directions\", \"selected_distance\": \"Full Range\", \"selected_drilldown_shape\": [1441, 10], \"selected_segment\": \"Full Range | All Directions\", \"selected_stations\": [\"M7AEO (IO82)\"], \"show_non_joint\": false, \"station_table_shape\": [60, 9], \"title\": \"RX Compare: ON4AWM0 (Target) vs. ON4AWM1 (Reference)\"}]",
-  "exported_utc": "2026-05-15T23:15:47Z",
+  "export_signature": "[{\"all_drilldown_shape\": [7057, 8], \"analysis_id\": \"RX_ABS\", \"evidence_time_bin\": \"6h\", \"key\": \"RX_ABS\", \"map_context\": {\"base_min_stations\": 1, \"end_t\": \"2021-05-15T07:00:00+00:00\", \"lat_0\": 50.8125, \"lon_0\": 5.208333333333333, \"max_dist_km\": 22000, \"parquet_path\": \"./.wspr_cache/spots_RX_ABS_1778925676.parquet\", \"start_t\": \"2021-05-01T17:15:00+00:00\"}, \"mode_folder\": \"absolute\", \"selected_direction\": \"All Directions\", \"selected_distance\": \"Full Range\", \"selected_drilldown_shape\": [1550, 8], \"selected_segment\": \"Full Range | All Directions\", \"selected_stations\": [\"M7AEO (IO82)\"], \"show_non_joint\": false, \"station_table_shape\": [75, 7], \"title\": \"RX Absolute: Who ON4AWM0 Hears\"}, {\"all_drilldown_shape\": [7142, 10], \"analysis_id\": \"RX_COMP\", \"evidence_time_bin\": \"12h\", \"key\": \"RX_COMP\", \"map_context\": {\"base_min_stations\": 1, \"end_t\": \"2021-05-15T07:00:00+00:00\", \"lat_0\": 50.8125, \"lon_0\": 5.208333333333333, \"max_dist_km\": 22000, \"parquet_path\": \"./.wspr_cache/spots_RX_COMP_1778925676.parquet\", \"start_t\": \"2021-05-01T17:15:00+00:00\"}, \"mode_folder\": \"compare\", \"selected_direction\": \"All Directions\", \"selected_distance\": \"Full Range\", \"selected_drilldown_shape\": [1441, 10], \"selected_segment\": \"Full Range | All Directions\", \"selected_stations\": [\"M7AEO (IO82)\"], \"show_non_joint\": false, \"station_table_shape\": [60, 9], \"title\": \"RX Compare: ON4AWM0 (Target) vs. ON4AWM1 (Reference)\"}]",
+  "exported_utc": "2026-05-16T10:04:18Z",
   "language": "en",
   "run_mode": "RX",
   "blocks_present": {
@@ -58,7 +58,7 @@
         "M7AEO (IO82)"
       ],
       "show_non_joint": false,
-      "evidence_time_bin": "12h",
+      "evidence_time_bin": "6h",
       "is_compare": false,
       "is_sequential": false
     }
