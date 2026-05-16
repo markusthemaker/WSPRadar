@@ -43,9 +43,9 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
   * [6.7 Geografisches Rastering und Projektion](#sec-6-7)
   * [6.8 Evidenzst&auml;rke und Mindest-Schwellen](#sec-6-8)
 * [7. Einschr&auml;nkungen](#sec-7)
-* [8. Haftungsausschluss & Lizenz](#sec-8)
-* [9. Konfigurationsreferenz](#sec-9)
-* [10. Bestehende Literatur und Stand der Technik](#sec-10)
+* [8. Konfigurationsreferenz](#sec-8)
+* [9. Bestehende Literatur und Stand der Technik](#sec-9)
+* [10. Haftungsausschluss & Lizenz](#sec-10)
 * [Anhang A: Paralleler Betrieb mehrerer WSJT-X Instanzen](#sec-a)
 * [Anhang B: Referenz-SNR-Kalibrierung](#sec-b)
 * [Quellen](#sec-ref)
@@ -452,18 +452,7 @@ Das `90% Stability`-Intervall ist ein deskriptives Bootstrap-Stabilit&auml;tsint
 F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um das Ergebnis zu reproduzieren: WSPRadar-Version oder Git-Commit, UTC-Fenster, Band, Modus, Filter, lokale Benchmark-Methode oder Referenzrufzeichen, Screenshots und exportierte CSV.
 
 <a id="sec-8"></a>
-### 8. Haftungsausschluss & Lizenz
-
-**Haftungsausschluss**
-
-WSPRadar ist ein experimentelles Open-Source-Projekt und wird ohne Gew&auml;hrleistung bereitgestellt. Quellcode und mathematisches Modell sind pr&uuml;fbar, aber der Entwickler kann keine Genauigkeit, Vollst&auml;ndigkeit, Verf&uuml;gbarkeit oder Eignung f&uuml;r einen bestimmten Zweck garantieren. Gr&ouml;&szlig;ere finanzielle Entscheidungen, etwa Kauf oder Verkauf teurer Antennen oder Funkhardware, sollten nie ausschlie&szlig;lich auf WSPRadar-Ausgaben basieren.
-
-**Lizenz**
-
-WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3). Die Lizenz stellt sicher, dass der Quellcode, einschlie&szlig;lich &Auml;nderungen an Netzwerkdiensten, der Amateurfunk-Community zug&auml;nglich bleibt.
-
-<a id="sec-9"></a>
-### 9. Konfigurationsreferenz
+### 8. Konfigurationsreferenz
 
 **Workflow-Bedienelemente**
 
@@ -516,15 +505,15 @@ Empfohlene Interpretation:
 * Bei **absoluter RX-Coverage** hängt die Wahl von der Fragestellung ab: einschließen, wenn Beacon-Sensitivität interessant ist; ausschließen, wenn nur normale Amateurfunkaktivität betrachtet werden soll.
 * Für **Veröffentlichungen oder ernsthafte Vergleiche** sollte dokumentiert werden, ob der Sonderrufzeichen-Filter aktiviert war.
 
-<a id="sec-10"></a>
-### 10. Bestehende Literatur und Stand der Technik
+<a id="sec-9"></a>
+### 9. Bestehende Literatur und Stand der Technik
 
 WSPRadar steht nicht isoliert. Es baut auf drei bereits etablierten Linien auf: Erstens auf WSPR als globalem, durch Funkamateure betriebenem Beobachtungsnetz; zweitens auf wissenschaftlichen Arbeiten, die WSPR-Daten f&uuml;r Ausbreitungs- und Antennenfragen verwenden; drittens auf praktischen Werkzeugen, die WSPR-Spots visualisieren, abfragen oder f&uuml;r Antennenvergleiche auswerten.
 
 Dieses Kapitel ordnet WSPRadar in diesen Kontext ein und grenzt den eigenen Anspruch bewusst ab: WSPRadar ist kein kalibrierter Antennenmessplatz und kein Ersatz f&uuml;r kontrollierte Feldst&auml;rkemessungen. Es ist ein Werkzeug zur robusten, auditierbaren Realwelt-Bewertung von Stationssystemen auf Basis &ouml;ffentlicher WSPR-Spots.
 
-<a id="sec-10-1"></a>
-#### 10.1 WSPR als globales Beobachtungsnetz
+<a id="sec-9-1"></a>
+#### 9.1 WSPR als globales Beobachtungsnetz
 
 WSPR wurde f&uuml;r die Untersuchung potenzieller Ausbreitungspfade mit niedriger Sendeleistung entwickelt. Die ARRL beschreibt WSPR als schmalbandiges digitales Protokoll f&uuml;r HF- und MF-Ausbreitungstests. Eine typische WSPR-Nachricht enth&auml;lt Rufzeichen, 4-stelligen Maidenhead-Locator und Sendeleistung in dBm. Die Aussendung dauert etwa 110,6 Sekunden und beginnt zwei Sekunden nach einer geraden UTC-Minute. Die minimale Dekodierbarkeit liegt ungef&auml;hr bei -27 dB auf der WSJT-Skala mit 2500-Hz-Referenzbandbreite. <a href="#ref-2">[Ref-2]</a> <a href="#ref-3">[Ref-3]</a>
 
@@ -532,8 +521,8 @@ Die &ouml;ffentliche WSPR-Infrastruktur ist aber kein Laborinstrument. WSPR.live
 
 WSPRadar &uuml;bernimmt diese Unsicherheit nicht blind, sondern reduziert ihre Wirkung durch Filter, Mindestschwellen, Mediane, zeitliche Paarbildung, Segmentaggregation und Drill-Down-Pr&uuml;fbarkeit. Der Anspruch ist nicht, aus Crowd-Daten kalibrierte Messdaten zu machen. Der Anspruch ist, aus unvollkommenen, aber sehr zahlreichen Beobachtungen eine nachvollziehbare und vorsichtig interpretierte Evidenzschicht zu erzeugen.
 
-<a id="sec-10-2"></a>
-#### 10.2 WSPR in Radio Science und Ionosph&auml;renforschung
+<a id="sec-9-2"></a>
+####9.2 WSPR in Radio Science und Ionosph&auml;renforschung
 
 **Lo et al.** untersuchten 7-MHz-Greyline-Ausbreitung anhand von Amateurfunk-Bakensignalen aus der WSPR-Datenbank. Die Arbeit zeigt exemplarisch, dass WSPR nicht nur f&uuml;r individuelle Stationsbeobachtung n&uuml;tzlich ist, sondern auch als wissenschaftlicher Datensatz f&uuml;r globale HF-Ausbreitungsfragen verwendet werden kann. Besonders relevant f&uuml;r WSPRadar ist dabei die Grundidee, dass WSPR-Pfade zeitlich, geografisch und bandbezogen ausgewertet werden k&ouml;nnen, ohne dass die urspr&uuml;ngliche Infrastruktur als kontrolliertes Experiment aufgebaut wurde. <a href="#ref-4">[Ref-4]</a>
 
@@ -541,8 +530,8 @@ WSPRadar &uuml;bernimmt diese Unsicherheit nicht blind, sondern reduziert ihre W
 
 **Methodische Konsequenz.** WSPR-Daten sind f&uuml;r Radio Science brauchbar, aber sie m&uuml;ssen als Beobachtungsdaten gelesen werden. Sie enthalten reale Ausbreitung, reale Stationsunterschiede und reale Fehlerquellen gleichzeitig. WSPRadar versucht deshalb nicht, diese Faktoren vollst&auml;ndig zu eliminieren, sondern die dominanten St&ouml;rgr&ouml;&szlig;en f&uuml;r konkrete Vergleichsfragen sichtbar zu machen und so weit wie m&ouml;glich zu reduzieren.
 
-<a id="sec-10-3"></a>
-#### 10.3 Direkte WSPR-Literatur zu Antennenvergleichen
+<a id="sec-9-3"></a>
+#### 9.3 Direkte WSPR-Literatur zu Antennenvergleichen
 
 Die direkte Literatur zu WSPR-basierten Antennenvergleichen ist kleiner als die breitere Literatur zu WSPR-Ausbreitungsanalyse. Das ist wichtiger Kontext: WSPRadar tritt nicht in ein reifes Feld mit vielen standardisierten Messprotokollen ein. Stattdessen baut es auf wenigen starken methodischen Vorl&auml;ufern und einer gr&ouml;&szlig;eren Menge praktischer Amateurfunk-Experimente auf.
 
@@ -556,8 +545,8 @@ Die direkte Literatur zu WSPR-basierten Antennenvergleichen ist kleiner als die 
 
 Diese Arbeiten st&uuml;tzen den Grundgedanken von WSPRadar: WSPR kann f&uuml;r Antennen- und Stationsvergleiche n&uuml;tzlich sein, wenn Vergleichspaare sauber gebildet und St&ouml;rgr&ouml;&szlig;en bewusst behandelt werden. Sie begrenzen aber auch die Sprache, mit der Ergebnisse beschrieben werden sollten. Ein WSPR-basierter Vergleich kann starke Hinweise auf reale Stationsperformance liefern, aber er misst nicht direkt Antennengewinn, Abstrahlwinkel oder Wirkungsgrad im kalibrierten Labor-Sinn.
 
-<a id="sec-10-4"></a>
-#### 10.4 Bestehende Werkzeuge und praktische Prior Art
+<a id="sec-9-4"></a>
+#### 9.4 Bestehende Werkzeuge und praktische Prior Art
 
 **WSPR.live** ist f&uuml;r WSPRadar die wichtigste Datenquelle. Die Plattform stellt eine &ouml;ffentlich abfragbare ClickHouse-Datenbank mit historischen WSPR-Spots bereit, erg&auml;nzt durch Dokumentation, Grafana-Dashboards und Beispiele zur Datenstruktur. WSPR.live ist damit weniger ein Antennenvergleichswerkzeug als vielmehr die zentrale, schnelle Datengrundlage f&uuml;r eigene Analysen. WSPRadar nutzt diese Infrastruktur, erg&auml;nzt sie aber um stationsbezogene Experimentlogik, Segmentaggregation und interaktive Audit-Ansichten. <a href="#ref-1">[Ref-1]</a>
 
@@ -575,8 +564,8 @@ Diese Arbeiten st&uuml;tzen den Grundgedanken von WSPRadar: WSPR kann f&uuml;r A
 
 **WATT WSPR Analysis Tool** ist ein weiteres Beispiel f&uuml;r praktische Prior Art. Es nutzt eine Excel/VBA-Umgebung f&uuml;r Reporting, Mapping, Filterung, Ad-hoc-Analyse und zeitliche Animation von WSPR-Daten. Der Ansatz ist interessant, weil er zeigt, dass WSPR-Auswertung auch als explorativer Arbeitsfluss verstanden werden kann: Nutzer m&ouml;chten Daten nicht nur ansehen, sondern filtern, sortieren, animieren und eigene Fragen stellen. WSPRadar greift diese explorative Idee auf, verlagert sie aber in eine webbasierte, experimentdesign-orientierte Oberfl&auml;che. <a href="#ref-16">[Ref-16]</a>
 
-<a id="sec-10-5"></a>
-#### 10.5 Einordnung von WSPRadar
+<a id="sec-9-5"></a>
+#### 9.5 Einordnung von WSPRadar
 
 Aus dieser Literatur und Prior Art ergibt sich eine klare Einordnung:
 
@@ -587,8 +576,8 @@ Aus dieser Literatur und Prior Art ergibt sich eine klare Einordnung:
 
 WSPRadar sollte daher nicht als Ersatz f&uuml;r WSPR.live, WSPR.Rocks, WSPRdaemon oder DXplorer beschrieben werden. Es sitzt eine Ebene dar&uuml;ber: Es nutzt historische WSPR-Spots, um konkrete Stationsfragen methodisch vorsichtiger zu beantworten. Die Kernfrage lautet nicht nur: "Wo gibt es Spots?" Die Kernfrage lautet: "Welche Spots sind f&uuml;r diese Vergleichsfrage g&uuml;ltig, welche St&ouml;rgr&ouml;&szlig;en wurden reduziert, wie stabil ist der Median, wie sieht der Decode Yield aus, und kann ich das Ergebnis bis auf die zugrunde liegenden Zeilen zur&uuml;ckverfolgen?"
 
-<a id="sec-10-6"></a>
-#### 10.6 Methodische Konsequenzen f&uuml;r die Interpretation
+<a id="sec-9-6"></a>
+#### 9.6 Methodische Konsequenzen f&uuml;r die Interpretation
 
 Die vorhandene Literatur st&uuml;tzt den Grundansatz von WSPRadar, aber sie begrenzt auch die Sprache, mit der Ergebnisse beschrieben werden sollten. WSPR-basierte Auswertungen k&ouml;nnen starke Hinweise auf reale Stationsperformance liefern, aber sie messen nicht direkt Antennengewinn, Abstrahlwinkel oder Effizienz im kalibrierten Labor-Sinn. Reported Power, Locator-Genauigkeit, Empf&auml;ngerverteilung, lokale St&ouml;rungen, Polarisation, Ausbreitungsmodus, Bandaktivit&auml;t und Decode-Survivorship bleiben Teil der Daten.
 
@@ -602,8 +591,8 @@ Deshalb sollte WSPRadar-Ergebnistext konsequent zwischen folgenden Ebenen unters
 
 Diese Schichtung ist eine der wichtigsten Abgrenzungen von WSPRadar gegen&uuml;ber einfacheren Karten- oder Score-Werkzeugen. Sie macht das Ergebnis nicht automatisch "wahr", aber sie macht sichtbar, welche Evidenz hinter einer Aussage steht.
 
-<a id="sec-10-7"></a>
-#### 10.7 Kurzfazit
+<a id="sec-9-7"></a>
+#### 9.7 Kurzfazit
 
 Literatur und Prior Art zeigen, dass die einzelnen Bausteine hinter WSPR-basierter Stationsbewertung bereits existieren: Same-Cycle-Vergleich, Antennenbewertung mit WSPR, lokale Rausch- und SNR-Verbesserung, datenbankgest&uuml;tzte Spot-Analyse, Mapping, Scoring und Visualisierung. WSPRadars Beitrag besteht darin, diese Ideen in ein koh&auml;rentes, nutzerorientiertes Benchmarking-Framework mit explizitem Experimentdesign, heartbeat-gefiltertem Yield, leistungsnormalisiertem Joint-TX-SNR, lokalen Nachbarschafts-Baselines, Segmentmedianen und zeilenbasierter Auditierbarkeit zu integrieren.
 
@@ -612,6 +601,18 @@ Das ist ein sinnvoller Beitrag, weil die meisten praktischen WSPR-Tools eine von
 Die bestehende Literatur st&uuml;tzt die Nutzung von WSPR-Daten f&uuml;r Ausbreitungsforschung, Antennenvergleich und Citizen Science, macht aber ebenso klar, dass WSPR kein kalibriertes Laborinstrument ist. WSPRadar akzeptiert diese Begrenzung, statt sie zu verstecken. Es behauptet nicht, isolierten Antennengewinn, Abstrahlwinkel oder Effizienz direkt zu messen. Stattdessen verwandelt es crowd-sourced WSPR-Beobachtungen in ein reproduzierbares, vorsichtig interpretiertes Evidenz-Framework f&uuml;r reale TX-, RX-, lokale Peer- und Hardware-A/B-Stationsvergleiche.
 
 In diesem Sinne ist WSPRadar nicht einfach eine weitere WSPR-Karte oder Score-Anzeige. Es ist ein Versuch, WSPR-basiertes Stationsbenchmarking transparenter, reproduzierbarer und wissenschaftlich disziplinierter zu machen, ohne den praktischen Nutzen f&uuml;r den Amateurfunk-Alltag zu verlieren.
+
+<a id="sec-10"></a>
+### 10. Haftungsausschluss & Lizenz
+
+**Haftungsausschluss**
+
+WSPRadar ist ein experimentelles Open-Source-Projekt und wird ohne Gew&auml;hrleistung bereitgestellt. Quellcode und mathematisches Modell sind pr&uuml;fbar, aber der Entwickler kann keine Genauigkeit, Vollst&auml;ndigkeit, Verf&uuml;gbarkeit oder Eignung f&uuml;r einen bestimmten Zweck garantieren. Gr&ouml;&szlig;ere finanzielle Entscheidungen, etwa Kauf oder Verkauf teurer Antennen oder Funkhardware, sollten nie ausschlie&szlig;lich auf WSPRadar-Ausgaben basieren.
+
+**Lizenz**
+
+WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3). Die Lizenz stellt sicher, dass der Quellcode, einschlie&szlig;lich &Auml;nderungen an Netzwerkdiensten, der Amateurfunk-Community zug&auml;nglich bleibt.
+
 
 <a id="sec-a"></a>
 ### Anhang A: Paralleler Betrieb mehrerer WSJT-X Instanzen
