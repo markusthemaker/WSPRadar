@@ -27,7 +27,7 @@ Commit all local changes on `temp`, fetch GitHub `temp`, rebase local work onto 
 If GitHub `temp` must be overwritten with local `temp`:
 
 ```powershell
-.\scripts\git-push-temp.ps1 "Describe the change" -ForceRemote
+powershell -ExecutionPolicy Bypass -File .\scripts\git-push-temp.ps1 "message" -ForceRemote
 ```
 
 ## 3. Release Temp To Main
@@ -35,7 +35,7 @@ If GitHub `temp` must be overwritten with local `temp`:
 Push tested local `temp` to GitHub `main` while staying locally on `temp`:
 
 ```powershell
-.\scripts\git-release-main.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\git-release-main.ps1
 ```
 
 If GitHub `main` has moved but you intentionally want `main` to become exactly tested `temp`:
