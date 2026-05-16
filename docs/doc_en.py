@@ -505,8 +505,8 @@ Recommended interpretation:
 * For **absolute RX coverage**, the choice depends on the question: include them when beacon sensitivity is interesting; exclude them when you only want normal amateur-station activity.
 * For **publication or serious comparison**, document whether the special-callsign filter was enabled.
 
-<a id="sec-10"></a>
-### 10. Existing Literature and Prior Art
+<a id="sec-9"></a>
+### 9. Existing Literature and Prior Art
 
 WSPRadar does not exist in isolation. It builds on three already established lines of work: first, WSPR as a global observation network operated by radio amateurs; second, scientific work that uses WSPR data for propagation and antenna questions; and third, practical tools that visualize, query, score or otherwise analyze WSPR spots.
 
