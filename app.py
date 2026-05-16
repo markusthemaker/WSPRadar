@@ -25,7 +25,7 @@ from i18n import T
 from ui.css import apply_custom_css
 from ui.state_manager import init_session_state
 from ui.callbacks import (
-    reset_audit, swap_tx_slots_u, swap_tx_slots_r, update_lang,
+    reset_audit, update_lang,
     handle_comp_mode_change, handle_self_test_mode_change,
     set_reset_config, run_demo_profile, load_demo_profile_config
 )

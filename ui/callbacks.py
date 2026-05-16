@@ -21,24 +21,33 @@ def reset_audit():
     st.session_state.demo_view_defaults = {}
     reset_result_export_state()
 
-def swap_tx_slots_u():
+def swap_tx_target_wspr_frame():
     """
-    Swaps the target's transmission time slot for Sequential A/B testing.
-    Ensures that the reference slot is automatically adjusted to the opposite parity 
-    (e.g., if target switches to Even, reference is forced to Odd) to prevent collisions.
+    Swaps the target's WSPR frame sequence for Sequential A/B testing.
+    Ensures that the reference sequence is automatically adjusted to the opposite
+    modulo-4 UTC start-minute sequence to prevent collisions.
     """
     reset_audit()
     t_loc = T[st.session_state.lang]
-    st.session_state.val_slot_r = t_loc["opt_slot_odd"] if st.session_state.val_slot_u == t_loc["opt_slot_even"] else t_loc["opt_slot_even"]
+    st.session_state.val_reference_wspr_frame = (
+        t_loc["opt_wspr_frame_02_06_10"]
+        if st.session_state.val_target_wspr_frame == t_loc["opt_wspr_frame_00_04_08"]
+        else t_loc["opt_wspr_frame_00_04_08"]
+    )
 
-def swap_tx_slots_r():
+def swap_tx_reference_wspr_frame():
     """
-    Swaps the reference's transmission time slot for Sequential A/B testing.
-    Ensures that the target slot is automatically adjusted to the opposite parity.
+    Swaps the reference's WSPR frame sequence for Sequential A/B testing.
+    Ensures that the target sequence is automatically adjusted to the opposite
+    modulo-4 UTC start-minute sequence.
     """
     reset_audit()
     t_loc = T[st.session_state.lang]
-    st.session_state.val_slot_u = t_loc["opt_slot_odd"] if st.session_state.val_slot_r == t_loc["opt_slot_even"] else t_loc["opt_slot_even"]
+    st.session_state.val_target_wspr_frame = (
+        t_loc["opt_wspr_frame_02_06_10"]
+        if st.session_state.val_reference_wspr_frame == t_loc["opt_wspr_frame_00_04_08"]
+        else t_loc["opt_wspr_frame_00_04_08"]
+    )
 
 def update_lang():
     """
@@ -58,8 +67,8 @@ def update_lang():
         "val_comp_mode": ["opt_comp_radius", "opt_comp_buddy", "opt_comp_self"],
         "val_local_benchmark": ["opt_local_median", "opt_local_best"],
         "val_self_test_mode": ["opt_self_rx", "opt_self_tx"],
-        "val_slot_u": ["opt_slot_even", "opt_slot_odd"],
-        "val_slot_r": ["opt_slot_even", "opt_slot_odd"],
+        "val_target_wspr_frame": ["opt_wspr_frame_00_04_08", "opt_wspr_frame_02_06_10", "opt_slot_even", "opt_slot_odd"],
+        "val_reference_wspr_frame": ["opt_wspr_frame_00_04_08", "opt_wspr_frame_02_06_10", "opt_slot_even", "opt_slot_odd"],
         "val_solar": ["opt_solar_all", "opt_solar_day", "opt_solar_night", "opt_solar_grey"]
     }
     
@@ -98,9 +107,11 @@ def _demo_profile_for_current_mode(t):
             return profile_key
     return None
 
-def _set_translated_state(t, section, state_key, profile_key):
+def _set_translated_state(t, section, state_key, profile_key, legacy_profile_key=None):
     """Set a localized session-state value from a profile translation-key field."""
     translation_key = section.get(profile_key)
+    if translation_key is None and legacy_profile_key:
+        translation_key = section.get(legacy_profile_key)
     if translation_key:
         st.session_state[state_key] = t[translation_key]
 
@@ -119,8 +130,8 @@ def _apply_demo_profile_values(profile_key):
     _set_translated_state(t, comparison, "val_comp_mode", "comp_mode_key")
     _set_translated_state(t, comparison, "val_local_benchmark", "local_benchmark_key")
     _set_translated_state(t, comparison, "val_self_test_mode", "self_test_mode_key")
-    _set_translated_state(t, comparison, "val_slot_u", "slot_u_key")
-    _set_translated_state(t, comparison, "val_slot_r", "slot_r_key")
+    _set_translated_state(t, comparison, "val_target_wspr_frame", "target_wspr_frame_key", legacy_profile_key="slot_u_key")
+    _set_translated_state(t, comparison, "val_reference_wspr_frame", "reference_wspr_frame_key", legacy_profile_key="slot_r_key")
 
     st.session_state.val_callsign = str(core.get("callsign", "")).strip().upper()
     st.session_state.val_qth = str(core.get("qth", "")).strip().upper()
@@ -253,8 +264,8 @@ def set_reset_config():
     st.session_state.val_ref_callsign = "DL2XYZ"
     st.session_state.val_self_test_mode = t["opt_self_rx"]
     st.session_state.val_self_call_b = ""
-    st.session_state.val_slot_u = t["opt_slot_even"]
-    st.session_state.val_slot_r = t["opt_slot_odd"]
+    st.session_state.val_target_wspr_frame = t["opt_wspr_frame_00_04_08"]
+    st.session_state.val_reference_wspr_frame = t["opt_wspr_frame_02_06_10"]
     st.session_state.val_tx_ab_bin_minutes = 8
     st.session_state.val_max_dist = 22000
     st.session_state.val_exclude_special_callsigns = False

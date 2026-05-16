@@ -211,15 +211,16 @@ Zwei parallele Empf&auml;nger decodieren dieselben Remote-WSPR-Sendungen zur sel
 
 **TX A/B-Test: sequenziell mit festem Zeitplan**
 
-Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig senden. WSPRadar nutzt daher deterministisches Time-Slicing. Ein Sender oder Controller weist ein Setup einem festen Slotmuster zu und das andere Setup dem Gegenmuster. Das Tool gruppiert Daten in Zeit-Bins, berechnet je Setup einen Mikro-Median im Bin und daraus den Bin-Delta.
+Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig senden. WSPRadar nutzt daher deterministisches UTC-WSPR-Frame-Time-Slicing. Ein Sender oder Controller weist ein Setup WSPR-2-Frames mit UTC-Startminute 00, 04, 08, ... und das andere Setup Frames mit UTC-Startminute 02, 06, 10, ... zu. Das Tool gruppiert Daten in Zeit-Bins, berechnet je Setup einen Mikro-Median im Bin und daraus den Bin-Delta.
 
 * Ausgangsleistung, Speiseleitung, Tuner-Einstellungen, Band und Zeitplan konstant halten, au&szlig;er bei der getesteten Variable.
-* Ein QMX-Transceiver l&auml;sst sich beispielsweise mit deterministischem Timing wie `frame=0` f&uuml;r Setup A und `frame=2` f&uuml;r Setup B programmieren.
+* Ein QMX-Transceiver l&auml;sst sich beispielsweise mit deterministischem Timing wie UTC-Startminutenfolge 00/04/08 f&uuml;r Setup A und 02/06/10 f&uuml;r Setup B programmieren.
+* Hardware nur zwischen vollst&auml;ndigen WSPR-2-Sendeframes umschalten; nicht w&auml;hrend einer zweimin&uuml;tigen WSPR-Sendung.
 * Standard-WSJT-X mit zuf&auml;lligem Sendemuster ist ohne Zusatzsteuerung nicht f&uuml;r fixed-schedule TX A/B geeignet.
 
 **Vorsicht bei TX-Suffixen**
 
-Warum keine Multi-Cycle-WSPR-Suffixe f&uuml;r Single-TX A/B? Compound-Rufzeichen k&ouml;nnen Multi-Message-Verhalten erzwingen und den Decode Yield senken, weil nicht alle Empf&auml;nger alle ben&ouml;tigten Nachrichtentypen gleich zuverl&auml;ssig decodieren. K&uuml;nstliche Suffixe wie `/1` oder `/2` k&ouml;nnen je nach Land unzul&auml;ssig sein. `/P` sollte nur verwendet werden, wenn es f&uuml;r den tats&auml;chlichen Betrieb rechtlich passt. F&uuml;r TX A/B bevorzugt WSPRadar deshalb feste Zeitschlitze mit normalem Rufzeichen.
+Warum keine Multi-Cycle-WSPR-Suffixe f&uuml;r Single-TX A/B? Compound-Rufzeichen k&ouml;nnen Multi-Message-Verhalten erzwingen und den Decode Yield senken, weil nicht alle Empf&auml;nger alle ben&ouml;tigten Nachrichtentypen gleich zuverl&auml;ssig decodieren. K&uuml;nstliche Suffixe wie `/1` oder `/2` k&ouml;nnen je nach Land unzul&auml;ssig sein. `/P` sollte nur verwendet werden, wenn es f&uuml;r den tats&auml;chlichen Betrieb rechtlich passt. F&uuml;r TX A/B bevorzugt WSPRadar deshalb feste WSPR-Frame-Startminuten mit normalem Rufzeichen.
 
 **Wissenschaftliche Vorsicht**
 
@@ -471,7 +472,7 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 
 * **Benchmark Mode:** `Lokaler Nachbarschafts-Benchmark`, `Fremdes Rufzeichen (Buddy-Test)` oder `Hardware A/B-Test`.
 * **Referenz-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Referenzseiten-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte referenzseitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Referenz` nutzt, macht eine positive Korrektur das korrigierte Referenz-SNR vor der Subtraktion gr&ouml;&szlig;er. Anhang B beschreibt, wie ein Kalibrierwert bestimmt wird.
-  * **Geltungsbereich:** Buddy-Test gilt f&uuml;r das Referenzrufzeichen. Beste lokale Station gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz. Lokaler Nachbarschafts-Median gilt f&uuml;r alle Nachbarschafts-Referenz-SNRs vor der Median-Aggregation. Hardware A/B-Test gilt f&uuml;r die Referenzseite, also Setup B / Referenz-Zeitschlitz.
+  * **Geltungsbereich:** Buddy-Test gilt f&uuml;r das Referenzrufzeichen. Beste lokale Station gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz. Lokaler Nachbarschafts-Median gilt f&uuml;r alle Nachbarschafts-Referenz-SNRs vor der Median-Aggregation. Hardware A/B-Test gilt f&uuml;r die Referenzseite, also Setup B / Referenz-WSPR-Frame.
   * **Formel:** `korrigiertes Referenz-SNR = Referenz-SNR + Referenz-SNR-Korrektur`; `Delta SNR = Ziel-SNR - korrigiertes Referenz-SNR`.
   * **Beispiel f&uuml;r positive Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = +1,6 dB`. Dann `+1,6 dB` eintragen. Ein Referenzseiten-SNR von `-24,0 dB` wird wie `-22,4 dB` behandelt; der korrigierte Delta SNR sinkt dadurch um `1,6 dB`.
   * **Beispiel f&uuml;r negative Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = -1,6 dB`. Dann `-1,6 dB` eintragen. Ein Referenzseiten-SNR von `-24,0 dB` wird wie `-25,6 dB` behandelt; der korrigierte Delta SNR steigt dadurch um `1,6 dB`.
@@ -480,7 +481,7 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 * **Referenzrufzeichen:** externer Gegenpart f&uuml;r Buddy-Test.
 * **A/B-Test Setup:** simultaner `RX Test` oder fixed-schedule `TX Test`.
 * **Target/Reference Locator:** 6-Zeichen-Locators zur Trennung simultaner RX-Streams.
-* **Target/Reference Time Slot:** feste Slotzuweisung f&uuml;r sequenzielle TX-Tests.
+* **Target/Reference WSPR Frame:** feste UTC-Startminuten-Frame-Zuweisung f&uuml;r sequenzielle TX-Tests; 00, 04, 08, ... und 02, 06, 10, ... sind die zwei unterst&uuml;tzten Frame-Sequenzen.
 * **Time Window (Bins):** Bin-Gr&ouml;&szlig;e f&uuml;r sequenzielle TX-A/B-Paarbildung.
 
 **Erweiterte Einstellungen**

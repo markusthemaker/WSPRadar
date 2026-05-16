@@ -8,6 +8,31 @@ import streamlit as st
 from datetime import datetime, timedelta, timezone, time as dt_time
 from i18n import T
 
+def _normalize_wspr_frame_state_value(value, lang, fallback_key):
+    """Map current or legacy WSPR frame labels into the active UI language."""
+    t_cur = T[lang]
+    frame_00_values = {
+        T["en"]["opt_wspr_frame_00_04_08"],
+        T["de"]["opt_wspr_frame_00_04_08"],
+        T["en"]["opt_slot_even"],
+        T["de"]["opt_slot_even"],
+        "Even Minutes (00, 04, 08...)",
+        "Gerade Min (00, 04, 08...)",
+    }
+    frame_02_values = {
+        T["en"]["opt_wspr_frame_02_06_10"],
+        T["de"]["opt_wspr_frame_02_06_10"],
+        T["en"]["opt_slot_odd"],
+        T["de"]["opt_slot_odd"],
+        "Odd Minutes (02, 06, 10...)",
+        "Ungerade Min (02, 06, 10...)",
+    }
+    if value in frame_00_values:
+        return t_cur["opt_wspr_frame_00_04_08"]
+    if value in frame_02_values:
+        return t_cur["opt_wspr_frame_02_06_10"]
+    return t_cur[fallback_key]
+
 def get_browser_language() -> str:
     """
     Attempts to determine the user's preferred language from browser request headers.
@@ -88,10 +113,30 @@ def init_session_state():
         st.session_state.val_self_test_mode = T["en"]["opt_self_rx"]
     if "val_self_call_b" not in st.session_state: 
         st.session_state.val_self_call_b = ""
-    if "val_slot_u" not in st.session_state: 
-        st.session_state.val_slot_u = T["en"]["opt_slot_even"]
-    if "val_slot_r" not in st.session_state:
-        st.session_state.val_slot_r = T["en"]["opt_slot_odd"]
+    if "val_target_wspr_frame" not in st.session_state:
+        st.session_state.val_target_wspr_frame = _normalize_wspr_frame_state_value(
+            st.session_state.get("val_slot_u"),
+            st.session_state.lang,
+            "opt_wspr_frame_00_04_08",
+        )
+    else:
+        st.session_state.val_target_wspr_frame = _normalize_wspr_frame_state_value(
+            st.session_state.val_target_wspr_frame,
+            st.session_state.lang,
+            "opt_wspr_frame_00_04_08",
+        )
+    if "val_reference_wspr_frame" not in st.session_state:
+        st.session_state.val_reference_wspr_frame = _normalize_wspr_frame_state_value(
+            st.session_state.get("val_slot_r"),
+            st.session_state.lang,
+            "opt_wspr_frame_02_06_10",
+        )
+    else:
+        st.session_state.val_reference_wspr_frame = _normalize_wspr_frame_state_value(
+            st.session_state.val_reference_wspr_frame,
+            st.session_state.lang,
+            "opt_wspr_frame_02_06_10",
+        )
     if "val_tx_ab_bin_minutes" not in st.session_state: 
         st.session_state.val_tx_ab_bin_minutes = 8
         

@@ -16,7 +16,7 @@ from core.math_utils import is_valid_callsign, is_valid_6char_locator
 
 
 CONFIG_APP_NAME = "WSPRadar.org"
-CONFIG_SCHEMA_VERSION = 1
+CONFIG_SCHEMA_VERSION = 2
 MAX_CONFIG_BYTES = 200_000
 MIN_CONFIG_DATE = datetime(2008, 1, 1, tzinfo=timezone.utc).date()
 
@@ -33,9 +33,13 @@ SELF_TEST_KEYS = {
     "rx": "opt_self_rx",
     "tx": "opt_self_tx",
 }
-SLOT_KEYS = {
-    "even": "opt_slot_even",
-    "odd": "opt_slot_odd",
+WSPR_FRAME_KEYS = {
+    "frame_00_04_08": "opt_wspr_frame_00_04_08",
+    "frame_02_06_10": "opt_wspr_frame_02_06_10",
+}
+LEGACY_WSPR_FRAME_KEYS = {
+    "even": "frame_00_04_08",
+    "odd": "frame_02_06_10",
 }
 SOLAR_KEYS = {
     "all": "opt_solar_all",
@@ -47,7 +51,11 @@ SOLAR_KEYS = {
 MODE_VALUES = {value: key for key, value in MODE_KEYS.items()}
 LOCAL_BENCHMARK_VALUES = {value: key for key, value in LOCAL_BENCHMARK_KEYS.items()}
 SELF_TEST_VALUES = {value: key for key, value in SELF_TEST_KEYS.items()}
-SLOT_VALUES = {value: key for key, value in SLOT_KEYS.items()}
+WSPR_FRAME_VALUES = {value: key for key, value in WSPR_FRAME_KEYS.items()}
+WSPR_FRAME_VALUES.update({
+    "opt_slot_even": "frame_00_04_08",
+    "opt_slot_odd": "frame_02_06_10",
+})
 SOLAR_VALUES = {value: key for key, value in SOLAR_KEYS.items()}
 
 CONFIG_KEYS = {
@@ -67,8 +75,8 @@ CONFIG_KEYS = {
     "benchmark_snr_correction_db",
     "self_test_mode",
     "setup_b_callsign",
-    "target_time_slot",
-    "reference_time_slot",
+    "target_wspr_frame",
+    "reference_wspr_frame",
     "tx_ab_bin_minutes",
     "solar_state",
     "map_scope_km",
@@ -77,6 +85,11 @@ CONFIG_KEYS = {
     "min_joint_spots_per_station",
     "min_joint_stations_per_map_segment",
 }
+LEGACY_CONFIG_KEYS = {
+    "target_time_slot",
+    "reference_time_slot",
+}
+ALL_CONFIG_KEYS = CONFIG_KEYS | LEGACY_CONFIG_KEYS
 
 
 def _canonical_from_translated(state_value, value_map, fallback):
@@ -115,8 +128,8 @@ def _default_config():
         "benchmark_snr_correction_db": 0.0,
         "self_test_mode": "rx",
         "setup_b_callsign": "",
-        "target_time_slot": "even",
-        "reference_time_slot": "odd",
+        "target_wspr_frame": "frame_00_04_08",
+        "reference_wspr_frame": "frame_02_06_10",
         "tx_ab_bin_minutes": 8,
         "solar_state": "all",
         "map_scope_km": 22000,
@@ -184,6 +197,12 @@ def _validate_choice(value, field, choices):
     return value
 
 
+def _validate_wspr_frame(value, field):
+    value = str(value)
+    value = LEGACY_WSPR_FRAME_KEYS.get(value, value)
+    return _validate_choice(value, field, WSPR_FRAME_KEYS.keys())
+
+
 def _validate_callsign(value, field, allow_empty=True):
     value = str(value or "").strip().upper()
     if not value and allow_empty:
@@ -237,8 +256,8 @@ def build_config_payload():
         "benchmark_snr_correction_db": round(float(state.get("val_benchmark_offset_db", defaults["benchmark_snr_correction_db"])), 1),
         "self_test_mode": _canonical_from_translated(state.get("val_self_test_mode", T[lang]["opt_self_rx"]), SELF_TEST_VALUES, "rx"),
         "setup_b_callsign": state.get("val_self_call_b", defaults["setup_b_callsign"]).strip().upper(),
-        "target_time_slot": _canonical_from_translated(state.get("val_slot_u", T[lang]["opt_slot_even"]), SLOT_VALUES, "even"),
-        "reference_time_slot": _canonical_from_translated(state.get("val_slot_r", T[lang]["opt_slot_odd"]), SLOT_VALUES, "odd"),
+        "target_wspr_frame": _canonical_from_translated(state.get("val_target_wspr_frame", T[lang]["opt_wspr_frame_00_04_08"]), WSPR_FRAME_VALUES, "frame_00_04_08"),
+        "reference_wspr_frame": _canonical_from_translated(state.get("val_reference_wspr_frame", T[lang]["opt_wspr_frame_02_06_10"]), WSPR_FRAME_VALUES, "frame_02_06_10"),
         "tx_ab_bin_minutes": int(state.get("val_tx_ab_bin_minutes", defaults["tx_ab_bin_minutes"])),
         "solar_state": _canonical_from_translated(state.get("val_solar", T[lang]["opt_solar_all"]), SOLAR_VALUES, "all"),
         "map_scope_km": int(state.get("val_max_dist", defaults["map_scope_km"])),
@@ -278,7 +297,7 @@ def validate_config_upload(raw_bytes):
 
     warnings = []
     raw_config = payload["config"]
-    unknown_keys = sorted(set(raw_config.keys()) - CONFIG_KEYS)
+    unknown_keys = sorted(set(raw_config.keys()) - ALL_CONFIG_KEYS)
     if unknown_keys:
         warnings.append(f"Ignored unknown config field(s): {', '.join(unknown_keys)}.")
 
@@ -286,6 +305,10 @@ def validate_config_upload(raw_bytes):
     for key in CONFIG_KEYS:
         if key in raw_config:
             config[key] = raw_config[key]
+    if "target_wspr_frame" not in raw_config and "target_time_slot" in raw_config:
+        config["target_wspr_frame"] = raw_config["target_time_slot"]
+    if "reference_wspr_frame" not in raw_config and "reference_time_slot" in raw_config:
+        config["reference_wspr_frame"] = raw_config["reference_time_slot"]
 
     normalized = {}
     normalized["callsign"] = _validate_callsign(config["callsign"], "callsign")
@@ -304,8 +327,8 @@ def validate_config_upload(raw_bytes):
     normalized["benchmark_snr_correction_db"] = _validate_float(config["benchmark_snr_correction_db"], "benchmark_snr_correction_db", -99.9, 99.9)
     normalized["self_test_mode"] = _validate_choice(config["self_test_mode"], "self_test_mode", SELF_TEST_KEYS.keys())
     normalized["setup_b_callsign"] = _validate_callsign(config["setup_b_callsign"], "setup_b_callsign")
-    normalized["target_time_slot"] = _validate_choice(config["target_time_slot"], "target_time_slot", SLOT_KEYS.keys())
-    normalized["reference_time_slot"] = _validate_choice(config["reference_time_slot"], "reference_time_slot", SLOT_KEYS.keys())
+    normalized["target_wspr_frame"] = _validate_wspr_frame(config["target_wspr_frame"], "target_wspr_frame")
+    normalized["reference_wspr_frame"] = _validate_wspr_frame(config["reference_wspr_frame"], "reference_wspr_frame")
     normalized["tx_ab_bin_minutes"] = _validate_int(config["tx_ab_bin_minutes"], "tx_ab_bin_minutes", 4, 20, allowed_values=[4, 8, 12, 16, 20])
     normalized["solar_state"] = _validate_choice(config["solar_state"], "solar_state", SOLAR_KEYS.keys())
     normalized["map_scope_km"] = _validate_int(config["map_scope_km"], "map_scope_km", min(MAP_SCOPE_OPTIONS), max(MAP_SCOPE_OPTIONS), allowed_values=MAP_SCOPE_OPTIONS)
@@ -340,9 +363,9 @@ def validate_config_upload(raw_bytes):
     if (
         normalized["benchmark_mode"] == "hardware_ab" and
         normalized["self_test_mode"] == "tx" and
-        normalized["target_time_slot"] == normalized["reference_time_slot"]
+        normalized["target_wspr_frame"] == normalized["reference_wspr_frame"]
     ):
-        raise ValueError("target_time_slot and reference_time_slot must be different in TX A/B mode.")
+        raise ValueError("target_wspr_frame and reference_wspr_frame must be different in TX A/B mode.")
 
     return normalized, warnings
 
@@ -377,8 +400,8 @@ def apply_config_values(config):
     st.session_state.val_benchmark_offset_db = config["benchmark_snr_correction_db"]
     st.session_state.val_self_test_mode = _translated_from_canonical(config["self_test_mode"], SELF_TEST_KEYS, lang, t["opt_self_rx"])
     st.session_state.val_self_call_b = config["setup_b_callsign"]
-    st.session_state.val_slot_u = _translated_from_canonical(config["target_time_slot"], SLOT_KEYS, lang, t["opt_slot_even"])
-    st.session_state.val_slot_r = _translated_from_canonical(config["reference_time_slot"], SLOT_KEYS, lang, t["opt_slot_odd"])
+    st.session_state.val_target_wspr_frame = _translated_from_canonical(config["target_wspr_frame"], WSPR_FRAME_KEYS, lang, t["opt_wspr_frame_00_04_08"])
+    st.session_state.val_reference_wspr_frame = _translated_from_canonical(config["reference_wspr_frame"], WSPR_FRAME_KEYS, lang, t["opt_wspr_frame_02_06_10"])
     st.session_state.val_tx_ab_bin_minutes = config["tx_ab_bin_minutes"]
     st.session_state.val_solar = _translated_from_canonical(config["solar_state"], SOLAR_KEYS, lang, t["opt_solar_all"])
     st.session_state.val_max_dist = config["map_scope_km"]

@@ -211,10 +211,11 @@ Two parallel receivers decode the same remote WSPR transmissions at the same tim
 
 **TX A/B Test: fixed-schedule sequential**
 
-Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic time slicing. A transmitter or controller assigns one setup to a fixed slot pattern and the other setup to the opposite slot pattern. The tool groups data into time bins, computes a micro-median for each setup inside a bin, and calculates the bin Delta.
+Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic UTC WSPR-frame time slicing. A transmitter or controller assigns one setup to WSPR-2 frames starting at UTC minute 00, 04, 08, ... and the other setup to frames starting at UTC minute 02, 06, 10, ... respectively. The tool groups data into time bins, computes a micro-median for each setup inside a bin, and calculates the bin Delta.
 
 * Keep output power, feedline, tuner settings, band and schedule stable except for the tested variable.
-* A QMX transceiver, for example, can be programmed with deterministic timing such as `frame=0` for Setup A and `frame=2` for Setup B.
+* A QMX transceiver, for example, can be programmed with deterministic timing such as UTC start-minute sequence 00/04/08 for Setup A and 02/06/10 for Setup B.
+* Switch only between complete WSPR-2 transmit frames; do not switch hardware during a two-minute WSPR transmission.
 * Standard WSJT-X random transmission behavior is not suitable for fixed-schedule TX A/B without additional scheduling control.
 
 **Careful with TX suffixes**
@@ -471,7 +472,7 @@ For serious claims, preserve enough context to reproduce the result: WSPRadar ve
 
 * **Benchmark Mode:** `Local Neighborhood Benchmark`, `Reference Station (Buddy Test)` or `Hardware A/B-Test`.
 * **Reference SNR Correction (dB):** user-supplied correction added to the reference-side SNR before Delta SNR is calculated. It applies only to compare modes and is useful for known reference-side attenuation or calibration artefacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - reference`, a positive correction makes the corrected reference SNR larger before subtraction. Appendix B describes how to obtain a calibration value.
-  * **Scope:** Buddy Test applies the correction to the reference callsign. Local Best Station applies it to the selected local best reference SNR. Local Median Neighborhood applies it to all neighborhood reference SNRs before median aggregation. Hardware A/B-Test applies it to the reference side, meaning Setup B / reference time slot.
+  * **Scope:** Buddy Test applies the correction to the reference callsign. Local Best Station applies it to the selected local best reference SNR. Local Median Neighborhood applies it to all neighborhood reference SNRs before median aggregation. Hardware A/B-Test applies it to the reference side, meaning Setup B / reference WSPR frame.
   * **Formula:** `corrected reference SNR = reference SNR + Reference SNR Correction`; `Delta SNR = target SNR - corrected reference SNR`.
   * **Positive correction example:** a calibration run shows `target - reference = +1.6 dB`. Enter `+1.6 dB`. A reference-side SNR of `-24.0 dB` is treated as `-22.4 dB`, so the corrected Delta SNR is reduced by `1.6 dB`.
   * **Negative correction example:** a calibration run shows `target - reference = -1.6 dB`. Enter `-1.6 dB`. A reference-side SNR of `-24.0 dB` is treated as `-25.6 dB`, so the corrected Delta SNR is increased by `1.6 dB`.
@@ -480,7 +481,7 @@ For serious claims, preserve enough context to reproduce the result: WSPRadar ve
 * **Reference Callsign:** external counterpart for Buddy Test.
 * **A/B-Test Setup:** simultaneous `RX Test` or fixed-schedule `TX Test`.
 * **Target/Reference Locator:** 6-character locators used to separate simultaneous RX streams.
-* **Target/Reference Time Slot:** fixed slot assignment for sequential TX tests.
+* **Target/Reference WSPR Frame:** fixed UTC start-minute frame assignment for sequential TX tests; 00, 04, 08, ... and 02, 06, 10, ... are the two supported frame sequences.
 * **Time Window (Bins):** bin size for sequential TX A/B pairing.
 
 **Advanced settings**

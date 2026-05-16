@@ -290,8 +290,8 @@ DEMO_PROFILES = {
             "de": "TX Hardware-A/B-Test",
         },
         "description": {
-            "en": "Runs a sequential TX A/B comparison for DL1MKS on 20m using even and odd WSPR frames.",
-            "de": "Startet einen sequenziellen TX-A/B-Vergleich fuer DL1MKS auf 20m mit geraden und ungeraden WSPR-Frames.",
+            "en": "Runs a sequential TX A/B comparison for DL1MKS on 20m using UTC WSPR frame starts 00/04/08 and 02/06/10.",
+            "de": "Startet einen sequenziellen TX-A/B-Vergleich fuer DL1MKS auf 20m mit UTC-WSPR-Frame-Startminuten 00/04/08 und 02/06/10.",
         },
         "run": {
             "run_mode": "TX",
@@ -309,8 +309,8 @@ DEMO_PROFILES = {
         "comparison": {
             "comp_mode_key": "opt_comp_self",
             "self_test_mode_key": "opt_self_tx",
-            "slot_u_key": "opt_slot_even",
-            "slot_r_key": "opt_slot_odd",
+            "target_wspr_frame_key": "opt_wspr_frame_00_04_08",
+            "reference_wspr_frame_key": "opt_wspr_frame_02_06_10",
             "tx_ab_bin_minutes": 8,
             "reference_snr_correction_db": 0.0,
         },

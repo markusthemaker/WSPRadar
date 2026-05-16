@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from config import MAX_DAYS_HISTORY, BAND_MAP, MAX_DYNAMIC_RADIUS_KM, MAP_SCOPE_OPTIONS
 from ui.callbacks import (
     reset_audit, handle_comp_mode_change, handle_self_test_mode_change,
-    swap_tx_slots_u, swap_tx_slots_r
+    swap_tx_target_wspr_frame, swap_tx_reference_wspr_frame
 )
 
 def _strip_text_state(key, callback=None, callback_args=(), callback_kwargs=None):
@@ -128,8 +128,8 @@ def render_compare_expander(t):
                         st.error("Setup B callsign must be different from Setup A (e.g., use a /P suffix).")
                 else:
                     cs1, cs2 = st.columns(2, gap="large")
-                    with cs1: st.selectbox(t["lbl_slot_u"], [t["opt_slot_even"], t["opt_slot_odd"]], key="val_slot_u", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_u)
-                    with cs2: st.selectbox(t["lbl_slot_r"], [t["opt_slot_odd"], t["opt_slot_even"]], key="val_slot_r", disabled=st.session_state.is_demo_mode, on_change=swap_tx_slots_r)
+                    with cs1: st.selectbox(t["lbl_target_wspr_frame"], [t["opt_wspr_frame_00_04_08"], t["opt_wspr_frame_02_06_10"]], key="val_target_wspr_frame", disabled=st.session_state.is_demo_mode, help=t["cfg_tx_ab_wspr_frame_help"], on_change=swap_tx_target_wspr_frame)
+                    with cs2: st.selectbox(t["lbl_reference_wspr_frame"], [t["opt_wspr_frame_02_06_10"], t["opt_wspr_frame_00_04_08"]], key="val_reference_wspr_frame", disabled=st.session_state.is_demo_mode, help=t["cfg_tx_ab_wspr_frame_help"], on_change=swap_tx_reference_wspr_frame)
                     st.slider(
                         t.get('cfg_tx_ab_bin', "Time Window (Bins)"),
                         min_value=4,

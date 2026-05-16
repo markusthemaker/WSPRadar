@@ -55,13 +55,13 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
                 st.error(f"Invalid Setup B callsign '{ref_callsign}'. Only A?Z, 0?9, and '/' are allowed (3?15 characters).")
                 return []
     
-    def get_slot_sql(slot_val):
-        if slot_val == t["opt_slot_even"]: return "AND toMinute(time) % 4 = 0"
-        if slot_val == t["opt_slot_odd"]: return "AND toMinute(time) % 4 = 2"
+    def get_wspr_frame_sql(frame_val):
+        if frame_val == t["opt_wspr_frame_00_04_08"]: return "AND toMinute(time) % 4 = 0"
+        if frame_val == t["opt_wspr_frame_02_06_10"]: return "AND toMinute(time) % 4 = 2"
         return ""
 
-    slot_sql_u = get_slot_sql(st.session_state.val_slot_u) if is_sequential else ""
-    slot_sql_r = get_slot_sql(st.session_state.val_slot_r) if is_sequential else ""
+    target_wspr_frame_sql = get_wspr_frame_sql(st.session_state.val_target_wspr_frame) if is_sequential else ""
+    reference_wspr_frame_sql = get_wspr_frame_sql(st.session_state.val_reference_wspr_frame) if is_sequential else ""
         
     # Target SQL Filters
     if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
@@ -153,24 +153,24 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     
     if st.session_state.run_mode == "TX":
         if is_sequential:
-            tx_comp_query = f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} {slot_sql_u} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} {slot_sql_r} AND rx_lat != 0 FORMAT CSVWithNames"
+            tx_comp_query = f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} {target_wspr_frame_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} {reference_wspr_frame_sql} AND rx_lat != 0 FORMAT CSVWithNames"
         else:
             tx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist{local_ref_detail_sql} FROM (SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} AND rx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
         analyses.append({"id": "TX_COMP", "title": t["fig_tx_comp"].format(callsign=display_callsign, comp_title=comp_title), "is_compare": True, "is_sequential": is_sequential, "query": tx_comp_query})
         analyses.append({
             "id": "TX_ABS", "title": t["fig_tx_abs"].format(callsign=callsign), "is_compare": False, "is_sequential": False,
-            "query": f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val FROM wspr.rx WHERE {tx_target_sql} {slot_sql_u} AND rx_lat != 0 FORMAT CSVWithNames"
+            "query": f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val FROM wspr.rx WHERE {tx_target_sql} {target_wspr_frame_sql} AND rx_lat != 0 FORMAT CSVWithNames"
         })
 
     elif st.session_state.run_mode == "RX":
         if is_sequential:
-            rx_comp_query = f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} {slot_sql_u} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} {slot_sql_r} AND tx_lat != 0 FORMAT CSVWithNames"
+            rx_comp_query = f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} {target_wspr_frame_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} {reference_wspr_frame_sql} AND tx_lat != 0 FORMAT CSVWithNames"
         else:
             rx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist{local_ref_detail_sql} FROM (SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} AND tx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
         analyses.append({"id": "RX_COMP", "title": t["fig_rx_comp"].format(callsign=display_callsign, comp_title=comp_title), "is_compare": True, "is_sequential": is_sequential, "query": rx_comp_query})
         analyses.append({
             "id": "RX_ABS", "title": t["fig_rx_abs"].format(callsign=callsign), "is_compare": False, "is_sequential": False,
-            "query": f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val FROM wspr.rx WHERE {rx_target_sql} {slot_sql_u} AND tx_lat != 0 FORMAT CSVWithNames"
+            "query": f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, (snr - power + 30) AS stat_val FROM wspr.rx WHERE {rx_target_sql} {target_wspr_frame_sql} AND tx_lat != 0 FORMAT CSVWithNames"
         })
 
     return analyses
