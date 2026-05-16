@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import struct
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,6 +37,63 @@ FIGURE_FILES = [
     "figure_selected_station_evidence.png",
 ]
 BLOCK_FOLDERS = ["compare", "absolute"]
+SNR_METRIC_MARKERS = ("snr", "norm@1w", "\u0394", "delta", "micro-med", "bin \u0394")
+
+
+def _is_snr_metric_column(column: str) -> bool:
+    text = str(column).strip().lower()
+    return any(marker in text for marker in SNR_METRIC_MARKERS)
+
+
+def _max_decimal_places(values: pd.Series) -> int:
+    max_places = 0
+    for raw_value in values.dropna().astype(str):
+        value = raw_value.strip()
+        if not value or value.lower() in {"none", "nan", "n/a"}:
+            continue
+        try:
+            float(value)
+        except ValueError:
+            continue
+        if "." in value:
+            decimal = value.split(".", 1)[1].split("e", 1)[0].split("E", 1)[0]
+            max_places = max(max_places, len(decimal.rstrip("0")) if decimal.rstrip("0") else 1)
+    return max_places
+
+
+def _metric_stats(numeric: pd.Series) -> dict[str, Any]:
+    numeric = pd.to_numeric(numeric, errors="coerce").dropna()
+    stats: dict[str, Any] = {"non_null": int(numeric.shape[0])}
+    if numeric.empty:
+        return stats
+    stats.update({
+        "mean": round(float(numeric.mean()), 3),
+        "median": round(float(numeric.median()), 3),
+        "min": round(float(numeric.min()), 3),
+        "max": round(float(numeric.max()), 3),
+    })
+    return stats
+
+
+def _primary_metric_column(table_name: str, columns: list[str]) -> str | None:
+    if table_name == "table_station_insights_current_segment.csv":
+        candidates = [
+            column for column in columns
+            if "median" in column.lower() and _is_snr_metric_column(column)
+        ]
+        return candidates[-1] if candidates else None
+
+    if table_name.startswith("table_drilldown_"):
+        delta_candidates = [
+            column for column in columns
+            if "\u0394 snr" in column.lower() or "delta snr" in column.lower()
+        ]
+        if delta_candidates:
+            return delta_candidates[-1]
+        norm_candidates = [column for column in columns if "norm@1w" in column.lower()]
+        if norm_candidates:
+            return norm_candidates[-1]
+    return None
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -93,11 +151,12 @@ def _copy_export_tree(export_root: Path, destination: Path) -> None:
             shutil.copytree(source, destination / name)
 
 
-def _csv_metrics(path: Path) -> dict[str, Any]:
+def _csv_metrics(path: Path, table_name: str) -> dict[str, Any]:
     if not path.exists():
         return {"exists": False}
 
     df = pd.read_csv(path, encoding="utf-8-sig")
+    raw_df = pd.read_csv(path, encoding="utf-8-sig", dtype=str, keep_default_na=False)
     metrics: dict[str, Any] = {
         "exists": True,
         "rows": int(len(df)),
@@ -120,6 +179,22 @@ def _csv_metrics(path: Path) -> dict[str, Any]:
         if not numeric.empty:
             metrics[f"median_of_{column}"] = float(numeric.median())
 
+    metric_columns = [column for column in df.columns if _is_snr_metric_column(column)]
+    metrics["snr_metric_columns"] = metric_columns
+    for column in metric_columns:
+        stats = _metric_stats(df[column])
+        for stat_name, value in stats.items():
+            metrics[f"{stat_name}_of_{column}"] = value
+        metrics[f"max_decimal_places_{column}"] = _max_decimal_places(raw_df[column])
+
+    primary_metric = _primary_metric_column(table_name, list(df.columns))
+    if primary_metric:
+        primary_stats = _metric_stats(df[primary_metric])
+        prefix = "segment_station_metric" if table_name == "table_station_insights_current_segment.csv" else "segment_spot_metric"
+        metrics[f"{prefix}_column"] = primary_metric
+        for stat_name, value in primary_stats.items():
+            metrics[f"{prefix}_{stat_name}"] = value
+
     return metrics
 
 
@@ -136,12 +211,22 @@ def _parquet_metrics(path: Path) -> dict[str, Any]:
     }
 
 
+def _png_dimensions(path: Path) -> tuple[int, int]:
+    with path.open("rb") as handle:
+        header = handle.read(24)
+    if len(header) < 24 or not header.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError(f"Not a readable PNG file: {path}")
+    return struct.unpack(">II", header[16:24])
+
+
 def _figure_metrics(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"exists": False}
+    width, height = _png_dimensions(path)
     return {
         "exists": True,
-        "bytes": int(path.stat().st_size),
+        "width": int(width),
+        "height": int(height),
     }
 
 
@@ -156,7 +241,7 @@ def _block_metrics(block_folder: Path) -> dict[str, Any]:
         return metrics
 
     for table_name in TABLE_FILES:
-        metrics["tables"][table_name] = _csv_metrics(block_folder / table_name)
+        metrics["tables"][table_name] = _csv_metrics(block_folder / table_name, table_name)
     for figure_name in FIGURE_FILES:
         metrics["figures"][figure_name] = _figure_metrics(block_folder / figure_name)
     for parquet_path in sorted(block_folder.glob("*.parquet")):
@@ -212,15 +297,20 @@ def _build_regression_report(
                 "exists": table_metrics.get("exists", False),
                 "rows": table_metrics.get("rows", 0),
                 "column_count": table_metrics.get("column_count", 0),
+                "metrics": {
+                    key: value for key, value in table_metrics.items()
+                    if key.startswith(("sum_", "mean_of_", "median_of_", "segment_", "max_decimal_places_"))
+                },
             })
 
         for figure_name, figure_metrics in metrics.get("figures", {}).items():
             block_report["tests"].append({
                 "kind": "figure",
                 "name": figure_name,
-                "description": "PNG presence and byte-size stability",
+                "description": "PNG presence and readability",
                 "exists": figure_metrics.get("exists", False),
-                "bytes": figure_metrics.get("bytes", 0),
+                "width": figure_metrics.get("width", 0),
+                "height": figure_metrics.get("height", 0),
             })
 
         for parquet_name, parquet_metrics in metrics.get("analysis_caches", {}).items():
@@ -272,18 +362,27 @@ def _write_regression_report_markdown(path: Path, report: dict[str, Any]) -> Non
             f"- Evidence bin: {block.get('evidence_time_bin')}",
             f"- Analysis cache: {block.get('analysis_cache_file')}",
             "",
-            _markdown_row(["Kind", "Name", "Rows", "Columns", "Bytes", "Description"]),
+            _markdown_row(["Kind", "Name", "Rows", "Columns", "Size", "Description"]),
             _markdown_row(["---", "---", "---:", "---:", "---:", "---"]),
         ])
         for test in block.get("tests", []):
+            size_text = ""
+            if test.get("width") and test.get("height"):
+                size_text = f"{test.get('width')}x{test.get('height')}"
             lines.append(_markdown_row([
                 test.get("kind"),
                 test.get("name"),
                 test.get("rows", ""),
                 test.get("column_count", ""),
-                test.get("bytes", ""),
+                size_text,
                 test.get("description"),
             ]))
+            metric_lines = []
+            for key, value in sorted((test.get("metrics") or {}).items()):
+                if key.startswith(("segment_", "sum_", "mean_of_", "median_of_")):
+                    metric_lines.append(f"`{key}` = `{value}`")
+            if metric_lines:
+                lines.append(_markdown_row(["", "metrics", "", "", "", "<br>".join(metric_lines)]))
         lines.append("")
 
     path.write_text("\n".join(lines), encoding="utf-8")

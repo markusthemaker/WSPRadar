@@ -227,6 +227,7 @@ def register_inspector_export(
     station_insights_df=None,
     drilldown_selected_df=None,
     drilldown_all_df=None,
+    reference_snr_header=None,
 ):
     """Register current segment-inspector state and tables for one result block."""
     blocks = _ensure_current_export_state()
@@ -243,13 +244,43 @@ def register_inspector_export(
         "table_station_insights_current_segment.csv": station_insights_df.copy() if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_selected_stations.csv": drilldown_selected_df.copy() if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_all_stations_current_segment.csv": drilldown_all_df.copy() if isinstance(drilldown_all_df, pd.DataFrame) else pd.DataFrame(),
+        "reference_snr_header": reference_snr_header,
     })
 
 
-def _dataframe_to_csv_bytes(df):
+def _should_annotate_reference_correction(column_name, reference_snr_header=None):
+    text = str(column_name).strip().lower()
+    if reference_snr_header and str(column_name) == str(reference_snr_header):
+        return True
+    return (
+        "ref snr" in text or
+        "reference snr" in text or
+        "cycle ref median" in text or
+        "micro-med b" in text or
+        "bin \u0394" in text or
+        "\u0394 snr" in text or
+        "delta snr" in text or
+        "median \u0394" in text
+    )
+
+
+def _annotate_reference_correction_headers(df, correction_db, reference_snr_header=None):
+    if not isinstance(df, pd.DataFrame) or df.empty or abs(float(correction_db or 0.0)) < 0.05:
+        return df
+
+    suffix = f" (ref corr {float(correction_db):+.1f} dB)"
+    renamed = {}
+    for col in df.columns:
+        if _should_annotate_reference_correction(col, reference_snr_header):
+            renamed[col] = f"{col}{suffix}"
+    return df.rename(columns=renamed) if renamed else df
+
+
+def _dataframe_to_csv_bytes(df, correction_db=0.0, reference_snr_header=None):
     if not isinstance(df, pd.DataFrame):
         df = pd.DataFrame()
-    return format_snr_like_columns_for_csv(df).to_csv(index=False).encode("utf-8-sig")
+    export_df = _annotate_reference_correction_headers(df, correction_db, reference_snr_header)
+    return format_snr_like_columns_for_csv(export_df).to_csv(index=False).encode("utf-8-sig")
 
 
 def _json_default(value):
@@ -439,6 +470,7 @@ def build_results_zip():
 
         for block_key, block in exportable_blocks.items():
             folder = block["mode_folder"]
+            correction_db = config_payload.get("config", {}).get("benchmark_snr_correction_db", 0.0) if block.get("is_compare") else 0.0
             for figure_name in [
                 "figure_map_highres.png",
                 "figure_segment_insight.png",
@@ -453,7 +485,14 @@ def build_results_zip():
                 "table_drilldown_selected_stations.csv",
                 "table_drilldown_all_stations_current_segment.csv",
             ]:
-                zf.writestr(f"{root}/{folder}/{table_name}", _dataframe_to_csv_bytes(block.get(table_name)))
+                zf.writestr(
+                    f"{root}/{folder}/{table_name}",
+                    _dataframe_to_csv_bytes(
+                        block.get(table_name),
+                        correction_db=correction_db,
+                        reference_snr_header=block.get("reference_snr_header"),
+                    )
+                )
 
             analysis_cache_path = analysis_cache_paths.get(block_key)
             parquet_path = (block.get("map_context") or {}).get("parquet_path")

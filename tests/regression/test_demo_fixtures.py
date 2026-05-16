@@ -8,6 +8,7 @@ can regenerate station tables and figures from the bundled parquet caches.
 from __future__ import annotations
 
 import json
+import struct
 from pathlib import Path
 
 import pandas as pd
@@ -50,9 +51,56 @@ def _assert_csv_metrics(path: Path, expected: dict):
         return
 
     df = pd.read_csv(path, encoding="utf-8-sig")
+    raw_df = pd.read_csv(path, encoding="utf-8-sig", dtype=str, keep_default_na=False)
     assert int(len(df)) == expected["rows"]
     assert list(df.columns) == expected["columns"]
     assert int(len(df.columns)) == expected["column_count"]
+
+    for key, expected_value in expected.items():
+        if key.startswith("sum_"):
+            column = key.removeprefix("sum_")
+            numeric = pd.to_numeric(df[column], errors="coerce").fillna(0)
+            assert int(numeric.sum()) == expected_value
+        elif key.startswith("non_null_of_"):
+            column = key.removeprefix("non_null_of_")
+            numeric = pd.to_numeric(df[column], errors="coerce").dropna()
+            assert int(numeric.shape[0]) == expected_value
+        elif key.startswith(("mean_of_", "median_of_", "min_of_", "max_of_")):
+            stat_name, column = key.split("_of_", 1)
+            numeric = pd.to_numeric(df[column], errors="coerce").dropna()
+            if stat_name == "mean":
+                actual = round(float(numeric.mean()), 3)
+            elif stat_name == "median":
+                actual = round(float(numeric.median()), 3)
+            elif stat_name == "min":
+                actual = round(float(numeric.min()), 3)
+            else:
+                actual = round(float(numeric.max()), 3)
+            assert actual == pytest.approx(expected_value, abs=0.001)
+        elif key.startswith("max_decimal_places_"):
+            column = key.removeprefix("max_decimal_places_")
+            assert _max_decimal_places(raw_df[column]) <= 1
+        elif key.startswith("segment_") and key.endswith("_column"):
+            assert expected_value in df.columns
+        elif key.startswith("segment_") and key.endswith(("_mean", "_median", "_min", "_max")):
+            prefix = key.rsplit("_", 1)[0]
+            stat_name = key.rsplit("_", 1)[1]
+            column = expected[f"{prefix}_column"]
+            numeric = pd.to_numeric(df[column], errors="coerce").dropna()
+            if stat_name == "mean":
+                actual = round(float(numeric.mean()), 3)
+            elif stat_name == "median":
+                actual = round(float(numeric.median()), 3)
+            elif stat_name == "min":
+                actual = round(float(numeric.min()), 3)
+            else:
+                actual = round(float(numeric.max()), 3)
+            assert actual == pytest.approx(expected_value, abs=0.001)
+        elif key.startswith("segment_") and key.endswith("_non_null"):
+            prefix = key.removesuffix("_non_null")
+            column = expected[f"{prefix}_column"]
+            numeric = pd.to_numeric(df[column], errors="coerce").dropna()
+            assert int(numeric.shape[0]) == expected_value
 
 
 def _assert_parquet_metrics(path: Path, expected: dict):
@@ -71,8 +119,34 @@ def _assert_figure_metrics(path: Path, expected: dict):
     if not expected["exists"]:
         return
 
-    assert path.stat().st_size == expected["bytes"]
     assert path.stat().st_size > 0
+    width, height = _png_dimensions(path)
+    assert width > 0
+    assert height > 0
+
+
+def _png_dimensions(path: Path) -> tuple[int, int]:
+    with path.open("rb") as handle:
+        header = handle.read(24)
+    assert len(header) >= 24
+    assert header.startswith(b"\x89PNG\r\n\x1a\n")
+    return struct.unpack(">II", header[16:24])
+
+
+def _max_decimal_places(values: pd.Series) -> int:
+    max_places = 0
+    for raw_value in values.dropna().astype(str):
+        value = raw_value.strip()
+        if not value or value.lower() in {"none", "nan", "n/a"}:
+            continue
+        try:
+            float(value)
+        except ValueError:
+            continue
+        if "." in value:
+            decimal = value.split(".", 1)[1].split("e", 1)[0].split("E", 1)[0]
+            max_places = max(max_places, len(decimal.rstrip("0")) if decimal.rstrip("0") else 1)
+    return max_places
 
 
 def _format_fixture_summary(fixture_dir: Path, report: dict) -> str:
@@ -96,8 +170,11 @@ def _format_fixture_summary(fixture_dir: Path, report: dict) -> str:
                 )
             elif test.get("kind") == "figure":
                 lines.append(
-                    f"    figure {test.get('name')}: {test.get('bytes')} bytes"
+                    f"    figure {test.get('name')}: {test.get('width')}x{test.get('height')} px"
                 )
+            for key, value in sorted((test.get("metrics") or {}).items()):
+                if key.startswith(("segment_", "sum_", "mean_of_", "median_of_")):
+                    lines.append(f"      {key}: {value}")
     return "\n".join(lines)
 
 

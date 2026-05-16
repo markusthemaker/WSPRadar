@@ -101,8 +101,7 @@ def _format_snr_display_columns(df):
     display_df = df.copy()
     for col in display_df.columns:
         if _is_snr_display_column(col):
-            decimals = 1 if _is_median_display_column(col) else 0
-            display_df[col] = display_df[col].map(lambda value, d=decimals: _format_metric_or_none(value, d))
+            display_df[col] = display_df[col].map(lambda value: _format_metric_or_none(value, 1))
     return display_df
 
 def _format_metric_signed(value, is_compare):
@@ -210,8 +209,7 @@ def _snr_column_config(df):
     config = {}
     for col in df.columns:
         if _is_snr_display_column(col) and pd.api.types.is_numeric_dtype(df[col]):
-            number_format = "%.1f" if _is_median_display_column(col) else "%.0f"
-            config[col] = st.column_config.NumberColumn(format=number_format)
+            config[col] = st.column_config.NumberColumn(format="%.1f")
     return config
 
 def _parse_ref_detail_rows(value):
@@ -1632,6 +1630,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             station_insights_df=sorted_disp_df,
             drilldown_selected_df=drilldown_selected_df,
             drilldown_all_df=drilldown_all_df,
+            reference_snr_header=f'{ref_header} SNR (dB)' if is_compare else None,
         )
 
         if show_export_button:

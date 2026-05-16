@@ -43,7 +43,7 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 * [9. Konfigurationsreferenz](#sec-9)
 * [10. Bestehende Literatur und Stand der Technik](#sec-10)
 * [Anhang A: Paralleler Betrieb mehrerer WSJT-X Instanzen](#sec-a)
-* [Anhang B: Benchmark-SNR-Kalibrierung](#sec-b)
+* [Anhang B: Referenz-SNR-Kalibrierung](#sec-b)
 * [Quellen](#sec-ref)
 
 <a id="sec-2"></a>
@@ -456,11 +456,11 @@ WSPRadar ist freie Software unter der GNU Affero General Public License (AGPLv3)
 **Vergleichsparameter**
 
 * **Benchmark Mode:** `Lokaler Nachbarschafts-Benchmark`, `Fremdes Rufzeichen (Buddy-Test)` oder `Hardware A/B-Test`.
-* **Benchmark-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Benchmark-/Referenz-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte benchmark-seitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Benchmark` nutzt, macht eine positive Korrektur das korrigierte Benchmark-SNR vor der Subtraktion gr&ouml;&szlig;er. Anhang B beschreibt, wie ein Kalibrierwert bestimmt wird.
-  * **Geltungsbereich:** Buddy-Test gilt f&uuml;r das Referenzrufzeichen. Beste lokale Station gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz. Lokaler Nachbarschafts-Median gilt f&uuml;r alle Nachbarschafts-Benchmark-SNRs vor der Median-Aggregation. Hardware A/B-Test gilt f&uuml;r die Benchmark-Seite, also Setup B / Referenzseite.
-  * **Formel:** `korrigiertes Benchmark-SNR = Benchmark-/Referenz-SNR + Benchmark-SNR-Korrektur`; `Delta SNR = Ziel-SNR - korrigiertes Benchmark-SNR`.
-  * **Beispiel f&uuml;r positive Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = +1,6 dB`. Dann `+1,6 dB` eintragen. Ein Benchmark-/Referenz-SNR von `-24,0 dB` wird wie `-22,4 dB` behandelt; der korrigierte Delta SNR sinkt dadurch um `1,6 dB`.
-  * **Beispiel f&uuml;r negative Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = -1,6 dB`. Dann `-1,6 dB` eintragen. Ein Benchmark-/Referenz-SNR von `-24,0 dB` wird wie `-25,6 dB` behandelt; der korrigierte Delta SNR steigt dadurch um `1,6 dB`.
+* **Referenz-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Referenzseiten-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte referenzseitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Referenz` nutzt, macht eine positive Korrektur das korrigierte Referenz-SNR vor der Subtraktion gr&ouml;&szlig;er. Anhang B beschreibt, wie ein Kalibrierwert bestimmt wird.
+  * **Geltungsbereich:** Buddy-Test gilt f&uuml;r das Referenzrufzeichen. Beste lokale Station gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz. Lokaler Nachbarschafts-Median gilt f&uuml;r alle Nachbarschafts-Referenz-SNRs vor der Median-Aggregation. Hardware A/B-Test gilt f&uuml;r die Referenzseite, also Setup B / Referenz-Zeitschlitz.
+  * **Formel:** `korrigiertes Referenz-SNR = Referenz-SNR + Referenz-SNR-Korrektur`; `Delta SNR = Ziel-SNR - korrigiertes Referenz-SNR`.
+  * **Beispiel f&uuml;r positive Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = +1,6 dB`. Dann `+1,6 dB` eintragen. Ein Referenzseiten-SNR von `-24,0 dB` wird wie `-22,4 dB` behandelt; der korrigierte Delta SNR sinkt dadurch um `1,6 dB`.
+  * **Beispiel f&uuml;r negative Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = -1,6 dB`. Dann `-1,6 dB` eintragen. Ein Referenzseiten-SNR von `-24,0 dB` wird wie `-25,6 dB` behandelt; der korrigierte Delta SNR steigt dadurch um `1,6 dB`.
 * **Lokale Benchmark-Methode:** standardm&auml;&szlig;ig `Lokaler Nachbarschafts-Median`, optional `Beste lokale Station` als strenge Best-Peer-H&uuml;llkurve.
 * **Nachbarschaftsradius:** geografische Grenze f&uuml;r lokale Referenzstationen.
 * **Referenzrufzeichen:** externer Gegenpart f&uuml;r Buddy-Test.
@@ -629,14 +629,14 @@ Nach dem Neustart sind Datenstr&ouml;me, Hardwarezugriffe und tempor&auml;re WSP
 
 
 <a id="sec-b"></a>
-### Anhang B: Benchmark-SNR-Kalibrierung
+### Anhang B: Referenz-SNR-Kalibrierung
 
-Dieses Verfahren sch&auml;tzt eine konstante Korrektur zwischen zwei Empfangsketten, Referenzstationen oder Benchmark-Pfaden vor dem eigentlichen Vergleichslauf. Es ist besonders n&uuml;tzlich, wenn bekannt ist, dass die Benchmark-Seite einen stabilen Hardware-, Empfangsketten- oder Kalibrierunterschied hat, den WSPRadar nicht aus WSPR-Spots allein ableiten kann.
+Dieses Verfahren sch&auml;tzt eine konstante Korrektur zwischen zwei Empfangsketten, Referenzstationen oder Referenzseiten-Pfaden vor dem eigentlichen Vergleichslauf. Es ist besonders n&uuml;tzlich, wenn bekannt ist, dass die Referenzseite einen stabilen Hardware-, Empfangsketten- oder Kalibrierunterschied hat, den WSPRadar nicht aus WSPR-Spots allein ableiten kann.
 
 1. **Baseline-Messung:** Eine einzelne Antenne &uuml;ber einen 3-dB-Splitter gleichzeitig auf beide RX-Ketten f&uuml;hren.
 2. **Datensammlung:** Dieses Setup mehrere Tage laufen lassen, um eine gro&szlig;e gepaarte Stichprobe &uuml;ber wechselnde Ausbreitungszust&auml;nde zu erhalten.
 3. **Berechnung:** WSPRadar Buddy-Test oder Hardware A/B-Test verwenden, um den Delta SNR zwischen beiden Ketten zu bestimmen. Den Kalibrierwert aus den Abbildungen oberhalb der Station-Insights-Tabelle ablesen. Es muss bewusst entschieden werden, ob der relevante Wert der Station-Median-Delta-SNR oder der Joint-Spot-Delta-SNR-Mittelwert/Median ist; verwende den Wert, der zur Evidenzebene passt, die korrigiert werden soll. Mit gen&uuml;gend gepaarten Samples kann der numerische Mittelwert sehr stabil werden; ein Ziel wie `0,05 dB` beschreibt Stichprobenpr&auml;zision, nicht absolute Laborkalibrierungsgenauigkeit.
-4. **Anwendung:** Diesen Kalibrierwert im eigentlichen Vergleichslauf als konstante Benchmark-SNR-Korrektur f&uuml;r die zweite Station, Referenzstation oder Benchmark-Seite verwenden.
+4. **Anwendung:** Diesen Kalibrierwert im eigentlichen Vergleichslauf als konstante Referenz-SNR-Korrektur f&uuml;r die zweite Station, Referenzstation oder Referenzseite verwenden.
 
 <a id="sec-ref"></a>
 ### Quellen / Referenzen
