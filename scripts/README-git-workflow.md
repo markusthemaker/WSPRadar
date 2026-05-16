@@ -44,6 +44,16 @@ If GitHub `main` has moved but you intentionally want `main` to become exactly t
 .\scripts\git-release-main.ps1 -ForceWithLease
 ```
 
+## Emergency: OneDrive/Git Cleanup
+
+If Git gets stuck during object cleanup with messages such as `Deletion of directory '.git/objects/00' failed`, first stop the stuck prompt with `Ctrl+C`, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\git-cleanup-onedrive.ps1
+```
+
+The script stops leftover `git.exe` processes, disables automatic Git cleanup/maintenance for this repository, removes a stale `.git\gc.pid` if present, and prints `git status -sb`.
+
 ## Rule Of Thumb
 
 - Local work happens on `temp`.

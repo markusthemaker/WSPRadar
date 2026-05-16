@@ -60,7 +60,7 @@ DEMO_PROFILES = {
             "exclude_moving_stations": False,
             "solar_key": "opt_solar_all",
             "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
+            "min_joint_spots_per_station": 50,
             "min_joint_stations_per_segment": 1,
         },
         "results_view": {
