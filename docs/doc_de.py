@@ -32,7 +32,7 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
   * [5.1 Karte](#sec-5-1)
   * [5.2 Segment Insight](#sec-5-2)
   * [5.3 Station Insights, Drill-Down und Export](#sec-5-3)
-  * [5.4 Filter, Export und Download(#sec-5-4)
+  * [5.4 Filter, Export und Download](#sec-5-4)
 * [6. Wissenschaftliche Methodik und Annahmen](#sec-6)
   * [6.1 Datenherkunft und Robustheit](#sec-6-1)
   * [6.2 WSPR-SNR und gemeldete Leistung](#sec-6-2)

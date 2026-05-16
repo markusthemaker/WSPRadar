@@ -32,7 +32,7 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
   * [5.1 Map](#sec-5-1)
   * [5.2 Segment Insight](#sec-5-2)
   * [5.3 Station Insights, Drill-Down and Export](#sec-5-3)
-  * [5.4 Export and Download Reproducibility Package(#sec-5-4)
+  * [5.4 Export and Download Reproducibility Package](#sec-5-4)
 * [6. Scientific Method and Assumptions](#sec-6)
   * [6.1 Data provenance and robustness](#sec-6-1)
   * [6.2 WSPR SNR and reported power](#sec-6-2)
