@@ -32,6 +32,7 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
   * [5.1 Karte](#sec-5-1)
   * [5.2 Segment Insight](#sec-5-2)
   * [5.3 Station Insights, Drill-Down und Export](#sec-5-3)
+  * [5.4 Filter, Export und Download(#sec-5-4)
 * [6. Wissenschaftliche Methodik und Annahmen](#sec-6)
   * [6.1 Datenherkunft und Robustheit](#sec-6-1)
   * [6.2 WSPR-SNR und gemeldete Leistung](#sec-6-2)
@@ -303,7 +304,8 @@ F&uuml;r die Median-Nachbarschaftsmethode wird der Referenzpool expandiert. Stat
 
 F&uuml;r TX A/B zeigt der Drill-Down Zeitfenster statt Same-Cycle-Paare. Sichtbar sind `Micro-Med A`, `Micro-Med B` und der resultierende Bin-Delta. Gegenseitige Mikromediane werden in Single-Setup-Zeilen ausgeblendet, damit fehlende Paare nicht als Nullwerte missverstanden werden.
 
-**Filter, Export und Reproduzierbarkeitspaket**
+<a id="sec-5-4"></a>
+#### 5.4 Filter, Export und Download
 
 Multi-Select, dynamische Filter und CSV-Export machen den Segment-Inspektor zur reproduzierbaren Rohdaten-Auditfl&auml;che. `Prepare All Results for Download` erzeugt das Exportpaket erst auf Anfrage, damit hochaufl&ouml;sende Abbildungen nicht w&auml;hrend der normalen Interaktion gerendert werden. Das ZIP enth&auml;lt die aktive Konfiguration, Run-Metadaten, helle/papierfreundliche hochaufl&ouml;sende PNG-Abbildungen, Station-Insights-CSV-Tabellen, Drill-Down-CSV-Tabellen f&uuml;r die ausgew&auml;hlten Stationen, vollst&auml;ndige Drill-Down-CSV-Tabellen f&uuml;r das aktuelle Segment und den kompakten parquet-Analysecache f&uuml;r Regression-Fixtures.
 

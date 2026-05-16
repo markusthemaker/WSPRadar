@@ -32,6 +32,7 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
   * [5.1 Map](#sec-5-1)
   * [5.2 Segment Insight](#sec-5-2)
   * [5.3 Station Insights, Drill-Down and Export](#sec-5-3)
+  * [5.4 Export and Download Reproducibility Package(#sec-5-4)
 * [6. Scientific Method and Assumptions](#sec-6)
   * [6.1 Data provenance and robustness](#sec-6-1)
   * [6.2 WSPR SNR and reported power](#sec-6-2)
@@ -303,7 +304,8 @@ For the median-neighborhood method, the Drill-Down expands the reference pool. I
 
 For TX A/B, the Drill-Down shows time windows rather than same-cycle pairs. It exposes `Micro-Med A`, `Micro-Med B` and the resulting bin Delta. Opposing micro-medians are hidden in single-setup rows so missing paired data is not mistaken for zero.
 
-**Filtering, export and reproducibility package**
+<a id="sec-5-4"></a>
+#### Export and Download Reproducibility Package
 
 Multi-select, dynamic filters and CSV export turn the Segment Inspector into a reproducible raw-data audit surface. `Prepare All Results for Download` builds the export package on demand, so expensive high-resolution figures are not rendered during normal interaction. The ZIP contains the active configuration, run metadata, light/paper-style high-resolution PNG figures, station-insight CSV tables, selected-station Drill-Down CSVs, full current-segment Drill-Down CSVs and the compact parquet analysis cache needed for regression fixtures.
 
