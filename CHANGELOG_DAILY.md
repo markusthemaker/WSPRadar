@@ -80,3 +80,8 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Added light/paper-oriented export rendering for figures and maps.
 
 ## 2026-05-16
+
+- Added a richer demo-profile model with ordered UI sections, per-demo advanced settings, default evidence-view settings and publication-oriented demo profiles.
+- Added reproducibility and regression-test support: prepared exports now include the compact parquet analysis cache, and the test tooling can build regression fixtures from downloaded demo/result packages. Regression compare key scientific outputs such as station counts, joint/evidence counts, medians, means and segment medians.
+- Updated documentation and README structure around map reading, Segment Insight, Station Insights, Drill-Down, export/download packages, configuration workflows and 90 percent stability interpretation.
+
