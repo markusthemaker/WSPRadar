@@ -16,6 +16,7 @@ def _normalize_wspr_frame_state_value(value, lang, fallback_key):
         T["de"]["opt_wspr_frame_00_04_08"],
         T["en"]["opt_slot_even"],
         T["de"]["opt_slot_even"],
+        "Frame 00, 04, 08, ...",
         "Even Minutes (00, 04, 08...)",
         "Gerade Min (00, 04, 08...)",
     }
@@ -24,6 +25,7 @@ def _normalize_wspr_frame_state_value(value, lang, fallback_key):
         T["de"]["opt_wspr_frame_02_06_10"],
         T["en"]["opt_slot_odd"],
         T["de"]["opt_slot_odd"],
+        "Frame 02, 06, 10, ...",
         "Odd Minutes (02, 06, 10...)",
         "Ungerade Min (02, 06, 10...)",
     }
