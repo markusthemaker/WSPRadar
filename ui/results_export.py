@@ -539,7 +539,7 @@ def render_download_all_results(t):
         if not st.button(
             t.get("btn_prepare_all_results", "Prepare All Results for Download"),
             icon=":material/archive:",
-            type="primary",
+            type="secondary",
             width="stretch",
         ):
             return

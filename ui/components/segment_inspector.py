@@ -196,7 +196,7 @@ def _reference_correction_note(t, is_compare):
         return None
     offset_note = t.get(
         "txt_benchmark_offset_note",
-        "Reference SNR Correction: {offset:+.1f} dB applied to reference-side SNR before \u0394 SNR calculation."
+        "Ref SNR Corr: {offset:+.1f} dB"
     )
     return offset_note.format(offset=benchmark_offset_db)
 
@@ -727,7 +727,7 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
                 zorder=4
             )
 
-    count_label = "Paired-bin count" if is_sequential else ("Joint spot count" if is_compare else "Spot count")
+    count_label = "Paired spot-bin count" if is_sequential else ("Joint spot count" if is_compare else "Spot count")
     cbar = fig.colorbar(mesh, ax=ax, pad=0.012, fraction=0.03)
     cbar.set_label(count_label, color="white")
     cbar.ax.tick_params(colors="white", labelsize=8)
@@ -1094,7 +1094,7 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
 
     selected_count = len(identity_labels)
     evidence_count = len(plot_df)
-    evidence_basis = "paired bins" if is_sequential else ("joint spots" if is_compare else "spots")
+    evidence_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
     evidence_title_base = "Ausgewaehlte Stations-Evidenz" if st.session_state.lang == "de" else "Selected Station Evidence"
     if selected_count == 1:
         evidence_title = f"{evidence_title_base}: {identity_labels[0]} | {evidence_count} {evidence_basis}"
@@ -1379,7 +1379,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 
                 # Adjust Titles for Three-Panel Compare Plot
                 ax_hist.set_title("Station Medians (\u0394 SNR)", color='white', fontweight='bold', pad=10)
-                ax_spot.set_title("Paired-Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR", color='white', fontweight='bold', pad=10)
+                ax_spot.set_title("Paired Spot Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"\n{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
                 fig_hist.text(0.98, 0.01, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=10)
                 
@@ -1438,7 +1438,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_xticks([])
                 ax_hist.set_yticks([])
 
-            spot_label = "Paired Bins" if is_sequential else ("Joint Spots" if is_compare else "Spots")
+            spot_label = "Paired Spot Bins" if is_sequential else ("Joint Spots" if is_compare else "Spots")
             spot_values_numeric = pd.to_numeric(segment_raw_values, errors="coerce").dropna()
             spot_med = _draw_single_vertical_raincloud(ax_spot, segment_raw_values, spot_label, color="#36aaf9")
             if pd.notna(spot_med):
@@ -1470,13 +1470,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             # fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
             
             segment_strength = _evidence_strength(len(vals), len(segment_raw_values))
-            spot_basis = "paired bins" if is_sequential else ("joint spots" if is_compare else "spots")
+            spot_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
             segment_summary = [
                 f"Selected Segment: {selected_seg}",
                 f"Selected Segment Evidence: {segment_strength} | {len(vals)} stations | {len(segment_raw_values)} {spot_basis}",
             ]
             station_summary = _stability_summary(vals, is_compare, "Station-median")
-            spot_summary = _stability_summary(segment_raw_values, is_compare, "Joint-spot" if is_compare and not is_sequential else ("Paired-bin" if is_sequential else "Spot"))
+            spot_summary = _stability_summary(segment_raw_values, is_compare, "Joint-spot" if is_compare and not is_sequential else ("Paired spot-bin" if is_sequential else "Spot"))
             if station_summary:
                 segment_summary.append(station_summary)
             if spot_summary:

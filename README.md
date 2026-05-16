@@ -23,6 +23,9 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
   * [4.4 Hardware A/B Test](#sec-4-4)
   * [4.5 Decode Yield in Compare Modes](#sec-4-5)
 * [5. Result Terminology and Reading the UI](#sec-5)
+  * [5.1 Map](#sec-5-1)
+  * [5.2 Segment Insight](#sec-5-2)
+  * [5.3 Station Insights, Drill-Down and Export](#sec-5-3)
 * [6. Scientific Method and Assumptions](#sec-6)
   * [6.1 Data provenance and robustness](#sec-6-1)
   * [6.2 WSPR SNR and reported power](#sec-6-2)
@@ -44,13 +47,13 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
 ### 2. Quick Start
 
 1. Open the configuration panel.
-2. Click `Load Demo Config`.
-3. Select the desired comparison mode.
+2. Click `Load Demo`.
+3. Either load the selected demo configuration for inspection, or run the selected demo directly.
 4. Run `TX` or `RX`.
 5. Read the map first: color shows the median segment value, dots show individual station categories, and the footer bars show **Decode Yield**, the decode/no-decode side of the analysis.
 6. Click one distance/azimuth map segment in the Segment Inspector.
 7. Open one Station Insights row to inspect the Drill-Down data.
-8. Export the table as CSV when you want to reproduce or externally audit a result.
+8. Use `Prepare All Results for Download` when you want a full reproducibility package with configuration, metadata, high-resolution figures, CSV tables and the compact parquet analysis cache.
 
 <a id="sec-3"></a>
 ### 3. What WSPRadar Can Answer
@@ -85,7 +88,7 @@ This chapter combines the user choice, the analysis concept and the experiment-d
 * **Decode Yield** means the decode/no-decode side of the comparison: joint evidence, target-only evidence, reference-only evidence and async evidence inside the relevant heartbeat-gated comparison cycles.
 * The **heartbeat filter** protects Decode Yield against offline bias: WSPRadar only counts **target-active cycles**, meaning WSPR cycles where the target was demonstrably active. [Section 6.4](#sec-6-4) defines this precisely for TX and RX.
 * **System Sensitivity** is the UI label for Decode Yield. It is not a calibrated receiver-sensitivity measurement.
-* **Hardware Linearity** is the UI label for the paired Delta-SNR distribution. It is not RF-amplifier linearity.
+* **Station Medians (Delta SNR)** is the UI label for the station-balanced paired Delta-SNR distribution. It is not RF-amplifier linearity.
 
 **Standard recommendations for all modes**
 
@@ -239,6 +242,9 @@ Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces t
 <a id="sec-5"></a>
 ### 5. Result Terminology and Reading the UI
 
+<a id="sec-5-1"></a>
+#### 5.1 Map
+
 **Heatmap segments**
 
 Absolute modes show normalized SNR in dB. Compare modes show median Delta SNR against the selected benchmark. Positive values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
@@ -259,9 +265,14 @@ The `SPOTS` bar shows decode-volume distribution for the selected analysis conte
 
 The footer bars visualize the Decode Yield categories defined in [Decode Yield in Compare Modes](#sec-4-5). In compare modes they are heartbeat-gated rather than full-window raw activity counters.
 
+<a id="sec-5-2"></a>
+#### 5.2 Segment Insight
+
 **Segment Inspector**
 
 The Segment Inspector is the audit layer below the maps. Select a distance ring and compass direction to inspect the evidence behind one segment.
+
+The **Segment Insight** block summarizes the currently selected range and direction. It combines three views: System Sensitivity / Decode Yield, station-balanced medians, and raw spot/bin evidence. In same-cycle compare modes the raw-evidence panel is `Joint-Spot Δ SNR`. In sequential TX A/B it is `Paired Spot Bin Δ SNR`, because the paired evidence unit is a valid time bin containing spots rather than one same-cycle spot.
 
 * In absolute modes, the histogram shows normalized SNR values for contributing stations. The x-axis is based on station medians. The red dashed line marks the final segment median.
 * In compare modes, the histogram shows Delta SNR values. It reveals whether a segment median comes from consistent superiority or from a broad, unstable distribution.
@@ -273,6 +284,9 @@ The Segment Inspector is the audit layer below the maps. Select a distance ring 
 * WSPRadar reports a `90% Stability` interval for station-level medians and selected evidence. This is a bootstrap/resampling stability interval around the median, not a formal proof of statistical significance. In the top segment plots, the red dashed median line is backed by a subtle red band showing the same 90% stability range.
 * `Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Both (Async)`.
 
+<a id="sec-5-3"></a>
+#### 5.3 Station Insights, Drill-Down and Export
+
 **Drill-Down Table**
 
 The Drill-Down table is the row-level audit layer across all modes. It shows the observations, pairs or time bins behind a Station Insights row so the segment and station medians can be reconciled against the underlying evidence.
@@ -283,9 +297,9 @@ For the median-neighborhood method, the Drill-Down expands the reference pool. I
 
 For TX A/B, the Drill-Down shows time windows rather than same-cycle pairs. It exposes `Micro-Med A`, `Micro-Med B` and the resulting bin Delta. Opposing micro-medians are hidden in single-setup rows so missing paired data is not mistaken for zero.
 
-**Filtering, export and high-resolution maps**
+**Filtering, export and reproducibility package**
 
-Multi-select, dynamic filters and CSV export turn the Segment Inspector into a reproducible raw-data audit surface. The map toolbar can render a 300 DPI version for publication-quality screenshots without blocking the normal interactive workflow.
+Multi-select, dynamic filters and CSV export turn the Segment Inspector into a reproducible raw-data audit surface. `Prepare All Results for Download` builds the export package on demand, so expensive high-resolution figures are not rendered during normal interaction. The ZIP contains the active configuration, run metadata, light/paper-style high-resolution PNG figures, station-insight CSV tables, selected-station Drill-Down CSVs, full current-segment Drill-Down CSVs and the compact parquet analysis cache needed for regression fixtures.
 
 <a id="sec-6"></a>
 ### 6. Scientific Method and Assumptions
@@ -362,7 +376,7 @@ A pure median Delta SNR analysis can suffer from survivorship bias. A better ant
 WSPRadar therefore separates two signals:
 
 1. **System Sensitivity / Decode Yield:** counts exclusive vs joint decodes inside heartbeat-gated comparison cycles. This captures real-world operational reach at the edge of decodability without counting periods where the target station/setup was not demonstrably active.
-2. **Hardware Linearity / Delta SNR:** uses only paired joint spots or paired time bins. This estimates the conditional gain/SNR difference when both setups produced comparable evidence.
+2. **Station Medians / Delta SNR:** uses only paired joint spots or paired spot bins. This estimates the conditional gain/SNR difference when both setups produced comparable evidence.
 
 Read both together. A setup can have better yield but lower conditional SNR if it decodes many marginal signals. Conversely, a setup can show a strong positive Delta SNR on joint spots but poor yield if it misses many weak paths.
 
@@ -409,9 +423,11 @@ For interpreting compare maps, use the joint-evidence thresholds as a heuristic:
 | Medium | >=3 stations per segment and >=10 joint spots per station |
 | Strong | >=5 stations per segment and >=20 joint spots per station |
 
-For sequential TX A/B, "joint spots" means "joint bins" in the same practical sense, because the paired evidence unit is the valid time bin rather than a same-cycle spot.
+For sequential TX A/B, "joint spots" means "paired spot bins" in the same practical sense, because the paired evidence unit is the valid time bin containing spots rather than a same-cycle spot.
 
 These thresholds are not proof levels. They are practical guide rails for reading WSPRadar output. Stronger evidence also means consistent Delta-SNR direction, plausible Decode Yield behavior, no obvious domination by one faulty station/grid identity, and stability across adjacent segments, bands or repeated runs where that is expected.
+
+The `90% Stability` interval is a descriptive bootstrap stability interval around a median. WSPRadar resamples the contributing values 500 times with replacement, recalculates the median for each resample and reports the central 90% range of those bootstrap medians. This makes median stability visible without implying a formal p-value or a controlled laboratory confidence interval. A narrow interval means the reported median is stable under resampling of the available evidence; it does not prove that the WSPR dataset itself is unbiased.
 
 <a id="sec-7"></a>
 ### 7. Limitations
@@ -440,6 +456,13 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 
 <a id="sec-9"></a>
 ### 9. Configuration Reference
+
+**Workflow controls**
+
+* **Load Demo:** opens a list of maintained demo profiles. `Load Selected Demo Configuration` fills the UI so you can inspect or edit the parameters; `Run Selected Demo` fills the UI and immediately starts the configured TX or RX analysis.
+* **Load Config:** loads a previously saved WSPRadar `.config` file. Missing future fields fall back to defaults; loaded callsigns and locators are validated and normalized before use.
+* **Save Config:** downloads the current UI configuration as an editable JSON-based `.config` file. It is useful for sharing a setup, archiving a run or repeating a comparison later.
+* **Prepare All Results for Download:** appears after analysis results exist. It renders the current result selection into a ZIP package with configuration, run metadata, high-resolution light-theme figures, current station-insight tables, selected-station Drill-Down tables, full current-segment Drill-Down tables and analysis parquet data.
 
 **Core parameters**
 

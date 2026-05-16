@@ -46,7 +46,7 @@ MAP_THEMES = {
         "cbar_text": "white",
         "bar_face": "black",
         "bar_tick": "#cccccc",
-        "bar_bbox": [0.12, 0.035, 0.85, 0.045],
+        "bar_bbox": [0.12, 0.047, 0.85, 0.045],
         "only_ref": COLOR_ONLY_REF,
         "only_ref_edge": "black",
         "footer": "#888888",
@@ -455,7 +455,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
             
         benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
         if abs(benchmark_offset_db) >= 0.05:
-            offset_label = t_lang.get("txt_benchmark_offset_note", "Benchmark SNR Offset: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
+            offset_label = t_lang.get("txt_benchmark_offset_note", "Ref SNR Corr: {offset:+.1f} dB")
             meta_parts.append(offset_label.format(offset=benchmark_offset_db))
 
         if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
