@@ -1063,6 +1063,14 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
     with ctrl_time:
         time_agg_options, time_agg_default = _time_agg_options_for_span(plot_df)
+        view_defaults = st.session_state.get("demo_view_defaults", {})
+        preferred_time_agg = (
+            view_defaults.get("station_evidence_time_bin_compare")
+            if is_compare
+            else view_defaults.get("station_evidence_time_bin_absolute")
+        )
+        if preferred_time_agg in time_agg_options:
+            time_agg_default = preferred_time_agg
         agg_key = f"evidence_time_agg_{st.session_state.get('run_id', 0)}_{is_compare}_{is_sequential}"
         if st.session_state.get(agg_key) not in time_agg_options:
             st.session_state[agg_key] = time_agg_default
@@ -1249,7 +1257,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         toggle_key = f"tgl_{analysis_id}_{run_id}_{selected_seg}"
-        default_state = has_non_joint_rows and not has_joint_rows
+        view_defaults = st.session_state.get("demo_view_defaults", {})
+        if "show_non_joint" in view_defaults and view_defaults.get("show_non_joint") is not None:
+            default_state = bool(view_defaults.get("show_non_joint"))
+        else:
+            default_state = has_non_joint_rows and not has_joint_rows
         show_non_joint = st.session_state.get(toggle_key, default_state) if is_compare else False
 
         if not is_compare:

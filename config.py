@@ -28,7 +28,7 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 # DEMO PROFILES (Guided Sandbox)
 # ==========================================
 DEMO_PROFILES = {
-    "Vanhamel_calibration": {
+    "vanhamel_rx_calibration": {
         "label": {
             "en": "RX Comparison Calibration. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
             "de": "RX Comparison Calibration. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
@@ -37,19 +37,40 @@ DEMO_PROFILES = {
             "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Section 4",
             "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Section 4",
         },
-        "run_mode": "RX",
-        "comp_mode_key": "opt_comp_buddy",
-        "callsign": "ON4AWM0",
-        "qth": "JO20OT",
-        "band": "160m",
-        "start_d": datetime.date(2021, 4, 18),
-        "end_d": datetime.date(2021, 4, 26),
-        "start_t": dt_time(8, 00),
-        "end_t": dt_time(18, 20),
-        "ref_callsign": "ON4AWM1"
+        "run": {
+            "run_mode": "RX",
+        },
+        "core_parameters": {
+            "callsign": "ON4AWM0",
+            "qth": "JO20OT",
+            "band": "160m",
+            "time_mode_key": "opt_custom",
+            "start_d": datetime.date(2021, 4, 18),
+            "end_d": datetime.date(2021, 4, 26),
+            "start_t": dt_time(8, 0),
+            "end_t": dt_time(18, 20),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_buddy",
+            "ref_callsign": "ON4AWM1",
+            "reference_snr_correction_db": 0.0,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "6h",
+            "station_evidence_time_bin_absolute": "6h",
+        },
     },
 
-    "Vanhamel_calibration_rx": {
+    "vanhamel_rx_buddy": {
         "label": {
             "en": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
             "de": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
@@ -58,20 +79,41 @@ DEMO_PROFILES = {
             "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Figure 6",
             "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Figure 6",
         },
-        "run_mode": "RX",
-        "comp_mode_key": "opt_comp_buddy",
-        "callsign": "ON4AWM0",
-        "qth": "JO20OT",
-        "band": "160m",
-        "start_d": datetime.date(2021, 5, 1),
-        "end_d": datetime.date(2021, 5, 15),
-        "start_t": dt_time(17, 24),
-        "end_t": dt_time(7, 12),
-        "ref_callsign": "ON4AWM1"
+        "run": {
+            "run_mode": "RX",
+        },
+        "core_parameters": {
+            "callsign": "ON4AWM0",
+            "qth": "JO20OT",
+            "band": "160m",
+            "time_mode_key": "opt_custom",
+            "start_d": datetime.date(2021, 5, 1),
+            "end_d": datetime.date(2021, 5, 15),
+            "start_t": dt_time(17, 24),
+            "end_t": dt_time(7, 12),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_buddy",
+            "ref_callsign": "ON4AWM1",
+            "reference_snr_correction_db": 1.6,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "12h",
+            "station_evidence_time_bin_absolute": "6h",
+        },
     },
 
 
-    "buddy_tx": {
+    "zander_tx_buddy": {
         "label": {
             "en": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
             "de": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
@@ -80,19 +122,40 @@ DEMO_PROFILES = {
             "en": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 7] - Figure 4",
             "de": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 7] - Figure 4",
         },
-        "run_mode": "TX",
-        "comp_mode_key": "opt_comp_buddy",
-        "callsign": "SK0WE/P",
-        "qth": "JO97",
-        "band": "20m",
-        "start_d": datetime.date(2022, 5, 21),
-        "end_d": datetime.date(2022, 5, 21),
-        "start_t": dt_time(9, 00),
-        "end_t": dt_time(12, 00),
-        "ref_callsign": "SK0WE/1"
+        "run": {
+            "run_mode": "TX",
+        },
+        "core_parameters": {
+            "callsign": "SK0WE/P",
+            "qth": "JO97",
+            "band": "20m",
+            "time_mode_key": "opt_custom",
+            "start_d": datetime.date(2022, 5, 21),
+            "end_d": datetime.date(2022, 5, 21),
+            "start_t": dt_time(9, 0),
+            "end_t": dt_time(12, 0),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_buddy",
+            "ref_callsign": "SK0WE/1",
+            "reference_snr_correction_db": 0.0,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "15m",
+            "station_evidence_time_bin_absolute": "15m",
+        },
     },
 
-    "milazzo": {
+    "milazzo_tx_buddy": {
         "label": {
             "en": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
             "de": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
@@ -101,19 +164,40 @@ DEMO_PROFILES = {
             "en": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 8]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
             "de": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 8]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
         },
-        "run_mode": "TX",
-        "comp_mode_key": "opt_comp_buddy",
-        "callsign": "KP4MD",
-        "qth": "CM98",
-        "band": "40m",
-        "start_d": datetime.date(2010, 12, 18),
-        "end_d": datetime.date(2010, 12, 21),
-        "start_t": dt_time(0, 00),
-        "end_t": dt_time(0, 00),
-        "ref_callsign": "WB6RQN"
+        "run": {
+            "run_mode": "TX",
+        },
+        "core_parameters": {
+            "callsign": "KP4MD",
+            "qth": "CM98",
+            "band": "40m",
+            "time_mode_key": "opt_custom",
+            "start_d": datetime.date(2010, 12, 18),
+            "end_d": datetime.date(2010, 12, 21),
+            "start_t": dt_time(0, 0),
+            "end_t": dt_time(0, 0),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_buddy",
+            "ref_callsign": "WB6RQN",
+            "reference_snr_correction_db": 0.0,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "3h",
+            "station_evidence_time_bin_absolute": "3h",
+        },
     },
 
-    "radius": {
+    "rx_local_median_neighborhood": {
         "label": {
             "en": "RX Local Neighborhood Benchmark (Median)",
             "de": "RX Lokaler Nachbarschafts-Benchmark (Median)",
@@ -122,21 +206,42 @@ DEMO_PROFILES = {
             "en": "Runs an RX comparison against the local median neighborhood around DL1MKS on 20m.",
             "de": "Startet einen RX-Vergleich gegen die lokale Median-Nachbarschaft um DL1MKS auf 20m.",
         },
-        "run_mode": "RX",
-        "comp_mode_key": "opt_comp_radius",
-        "local_benchmark_key": "opt_local_median",
-        "callsign": "DL1MKS",
-        "qth": "JN37",
-        "band": "20m",
-        "start_d": datetime.date(2026, 4, 6),
-        "end_d": datetime.date(2026, 4, 6),
-        "start_t": dt_time(7, 0),
-        "end_t": dt_time(23, 0),
-        "ref_radius_km": 200
+        "run": {
+            "run_mode": "RX",
+        },
+        "core_parameters": {
+            "callsign": "DL1MKS",
+            "qth": "JN37",
+            "band": "20m",
+            "time_mode_key": "opt_custom",
+            "start_d": datetime.date(2026, 4, 6),
+            "end_d": datetime.date(2026, 4, 6),
+            "start_t": dt_time(7, 0),
+            "end_t": dt_time(23, 0),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_radius",
+            "local_benchmark_key": "opt_local_median",
+            "ref_radius_km": 200,
+            "reference_snr_correction_db": 0.0,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "30m",
+            "station_evidence_time_bin_absolute": "30m",
+        },
     },
     
 
-    "self_rx": {
+    "rx_hardware_ab": {
         "label": {
             "en": "RX hardware A/B test",
             "de": "RX Hardware-A/B-Test",
@@ -145,20 +250,41 @@ DEMO_PROFILES = {
             "en": "Runs an RX A/B comparison between DL1MKS and DL1MKS/P on 20m.",
             "de": "Startet einen RX-A/B-Vergleich zwischen DL1MKS und DL1MKS/P auf 20m.",
         },
-        "run_mode": "RX",
-        "comp_mode_key": "opt_comp_self",
-        "self_test_mode_key": "opt_self_rx",
-        "callsign": "DL1MKS",
-        "qth": "JN37",
-        "band": "20m",
-        "start_d": datetime.date(2026, 4, 6),
-        "end_d": datetime.date(2026, 4, 6),
-        "start_t": dt_time(10, 0),
-        "end_t": dt_time(23, 59),
-        "self_call_b": "DL1MKS/P"
+        "run": {
+            "run_mode": "RX",
+        },
+        "core_parameters": {
+            "callsign": "DL1MKS",
+            "qth": "JN37",
+            "band": "20m",
+            "time_mode_key": "opt_custom",
+            "start_d": datetime.date(2026, 4, 6),
+            "end_d": datetime.date(2026, 4, 6),
+            "start_t": dt_time(10, 0),
+            "end_t": dt_time(23, 59),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_self",
+            "self_test_mode_key": "opt_self_rx",
+            "self_call_b": "DL1MKS/P",
+            "reference_snr_correction_db": 0.0,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "30m",
+            "station_evidence_time_bin_absolute": "30m",
+        },
     },
     
-    "self_tx": {
+    "tx_hardware_ab": {
         "label": {
             "en": "TX hardware A/B test",
             "de": "TX Hardware-A/B-Test",
@@ -167,18 +293,40 @@ DEMO_PROFILES = {
             "en": "Runs a sequential TX A/B comparison for DL1MKS on 20m using even and odd WSPR frames.",
             "de": "Startet einen sequenziellen TX-A/B-Vergleich fuer DL1MKS auf 20m mit geraden und ungeraden WSPR-Frames.",
         },
-        "run_mode": "TX",
-        "comp_mode_key": "opt_comp_self",
-        "self_test_mode_key": "opt_self_tx",
-        "slot_u_key": "opt_slot_even",
-        "slot_r_key": "opt_slot_odd",
-        "callsign": "DL1MKS",
-        "qth": "JN37",
-        "band": "20m",
-        "start_d": datetime.date(2026, 3, 27),
-        "end_d": datetime.date(2026, 3, 31),
-        "start_t": dt_time(0, 0),
-        "end_t": dt_time(0, 0)
+        "run": {
+            "run_mode": "TX",
+        },
+        "core_parameters": {
+            "callsign": "DL1MKS",
+            "qth": "JN37",
+            "band": "20m",
+            "time_mode_key": "opt_custom",
+            "start_d": datetime.date(2026, 3, 27),
+            "end_d": datetime.date(2026, 3, 31),
+            "start_t": dt_time(0, 0),
+            "end_t": dt_time(0, 0),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_self",
+            "self_test_mode_key": "opt_self_tx",
+            "slot_u_key": "opt_slot_even",
+            "slot_r_key": "opt_slot_odd",
+            "tx_ab_bin_minutes": 8,
+            "reference_snr_correction_db": 0.0,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "3h",
+            "station_evidence_time_bin_absolute": "3h",
+        },
     }
 }
 

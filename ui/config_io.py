@@ -354,6 +354,7 @@ def apply_config_values(config):
 
     st.session_state.is_demo_mode = False
     st.session_state.active_demo_profile = None
+    st.session_state.demo_view_defaults = {}
     st.session_state.show_demo_launcher = False
     st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True

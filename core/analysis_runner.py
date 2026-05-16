@@ -23,7 +23,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         return []
 
     comp_mode = st.session_state.val_comp_mode
-    is_demo_run = st.session_state.get("is_demo_mode", False)
+    is_demo_run = bool(st.session_state.get("active_demo_profile")) or st.session_state.get("is_demo_mode", False)
     time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
     benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
     target_snr_expr = "(snr - power + 30)"

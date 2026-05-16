@@ -41,6 +41,8 @@ def init_session_state():
         st.session_state._collapse_config_panels_once = False
     if "show_config_loader" not in st.session_state:
         st.session_state.show_config_loader = False
+    if "demo_view_defaults" not in st.session_state:
+        st.session_state.demo_view_defaults = {}
         
     # --- Default User Inputs (Core Parameters) ---
     if "val_callsign" not in st.session_state: 

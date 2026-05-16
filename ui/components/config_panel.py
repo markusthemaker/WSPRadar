@@ -6,7 +6,7 @@ Separating this from app.py keeps the main orchestrator file clean and focused.
 
 import streamlit as st
 from datetime import datetime, timedelta, timezone
-from config import MAX_DAYS_HISTORY, DEMO_PROFILES, BAND_MAP, MAX_DYNAMIC_RADIUS_KM, MAP_SCOPE_OPTIONS
+from config import MAX_DAYS_HISTORY, BAND_MAP, MAX_DYNAMIC_RADIUS_KM, MAP_SCOPE_OPTIONS
 from ui.callbacks import (
     reset_audit, handle_comp_mode_change, handle_self_test_mode_change,
     swap_tx_slots_u, swap_tx_slots_r
@@ -108,8 +108,7 @@ def render_compare_expander(t):
                 )
                 st.slider(t["lbl_ref_radius_km"], 10, MAX_DYNAMIC_RADIUS_KM, step=10, key="val_ref_radius_km", on_change=reset_audit)
             elif comp_mode == t["opt_comp_buddy"]:
-                buddy_locked = st.session_state.is_demo_mode and bool(DEMO_PROFILES["buddy"]["ref_callsign"])
-                text_input_no_autocomplete(t["lbl_ref_call"], key="val_ref_callsign", disabled=buddy_locked, on_change=reset_audit)
+                text_input_no_autocomplete(t["lbl_ref_call"], key="val_ref_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
                 
                 # Validation error
                 if st.session_state.val_ref_callsign.strip().upper() == callsign and callsign != "":
