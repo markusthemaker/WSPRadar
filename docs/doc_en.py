@@ -47,7 +47,8 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
 * [9. Existing Literature and Prior Art](#sec-9)
 * [10. Disclaimer & License](#sec-10)
 * [Appendix A: Parallel Operation of Multiple WSJT-X Instances](#sec-a)
-* [Appendix B: Reference SNR Calibration](#sec-b)
+* [Appendix B: Single-TX A/B Switching with a USB Relay](#sec-b)
+* [Appendix C: Reference SNR Calibration](#sec-c)
 * [References](#sec-ref)
 
 <a id="sec-2"></a>
@@ -211,10 +212,16 @@ Two parallel receivers decode the same remote WSPR transmissions at the same tim
 
 **TX A/B Test: fixed-schedule sequential**
 
-Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic UTC WSPR-frame time slicing. A transmitter or controller assigns one setup to WSPR-2 frames starting at UTC minute 00, 04, 08, ... and the other setup to frames starting at UTC minute 02, 06, 10, ... respectively. The tool groups data into time bins, computes a micro-median for each setup inside a bin, and calculates the bin Delta.
+Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic UTC WSPR-frame time slicing. A transmitter, controller or RF switching system assigns one setup or RF path to WSPR-2 frames starting at UTC minute 00, 04, 08, ... and the other setup or RF path to frames starting at UTC minute 02, 06, 10, ... respectively. The tool groups data into time bins, computes a micro-median for each setup or RF path inside a bin, and calculates the bin Delta.
+
+The most controlled TX A/B design usually uses one transmitter and switches only the RF path between two antennas. In that design, the transmitter, callsign, WSPR software, frequency, power setting and clock remain common. The intended experimental variables are then the switched feedline/antenna paths, rather than two separate transmit chains. This is safer and scientifically cleaner than comparing two independent transmitters because transmitter calibration, frequency stability, audio drive, power reporting and timing behavior are removed as major confounders.
+
+WSPRadar includes the helper tool `tools/WSPRadar-AB-Relay-Switch` for this use case. It alternates a supported USB HID relay on the same UTC WSPR-frame cadence used by the app. The USB relay can in turn control a suitable RF antenna switch, for example a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, provided the relay output, RF switch control input, control voltage, current rating, polarity and station interlock design are electrically appropriate.
 
 * Keep output power, feedline, tuner settings, band and schedule stable except for the tested variable.
-* A QMX transceiver, for example, can be programmed with deterministic timing such as UTC start-minute sequence 00/04/08 for Setup A and 02/06/10 for Setup B.
+* Prefer a single-transmitter RF-path switch when the goal is antenna/feedline A/B testing.
+* Verify relay-to-RF-switch polarity before RF use: Target WSPR frames must select the intended test antenna/path, and Reference WSPR frames must select the intended reference antenna/path.
+* A QMX transceiver or external relay controller, for example, can be programmed with deterministic timing such as UTC start-minute sequence 00/04/08 for Setup A/path A and 02/06/10 for Setup B/path B.
 * Switch only between complete WSPR-2 transmit frames; do not switch hardware during a two-minute WSPR transmission.
 * Standard WSJT-X random transmission behavior is not suitable for fixed-schedule TX A/B without additional scheduling control.
 
@@ -471,7 +478,7 @@ For serious claims, preserve enough context to reproduce the result: WSPRadar ve
 **Comparison parameters**
 
 * **Benchmark Mode:** `Local Neighborhood Benchmark`, `Reference Station (Buddy Test)` or `Hardware A/B-Test`.
-* **Reference SNR Correction (dB):** user-supplied correction added to the reference-side SNR before Delta SNR is calculated. It applies only to compare modes and is useful for known reference-side attenuation or calibration artefacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - reference`, a positive correction makes the corrected reference SNR larger before subtraction. Appendix B describes how to obtain a calibration value.
+* **Reference SNR Correction (dB):** user-supplied correction added to the reference-side SNR before Delta SNR is calculated. It applies only to compare modes and is useful for known reference-side attenuation or calibration artefacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - reference`, a positive correction makes the corrected reference SNR larger before subtraction. Appendix C describes how to obtain a calibration value.
   * **Scope:** Buddy Test applies the correction to the reference callsign. Local Best Station applies it to the selected local best reference SNR. Local Median Neighborhood applies it to all neighborhood reference SNRs before median aggregation. Hardware A/B-Test applies it to the reference side, meaning Setup B / reference WSPR frame.
   * **Formula:** `corrected reference SNR = reference SNR + Reference SNR Correction`; `Delta SNR = target SNR - corrected reference SNR`.
   * **Positive correction example:** a calibration run shows `target - reference = +1.6 dB`. Enter `+1.6 dB`. A reference-side SNR of `-24.0 dB` is treated as `-22.4 dB`, so the corrected Delta SNR is reduced by `1.6 dB`.
@@ -655,7 +662,49 @@ Open the new SDR instance and go to `File > Settings > Audio`. Adjust:
 After restarting the instance, data streams, hardware access and temporary WSPR files are separated from the primary instance.
 
 <a id="sec-b"></a>
-### Appendix B: Reference SNR Calibration
+### Appendix B: Single-TX A/B Switching with a USB Relay
+
+For sequential TX A/B antenna tests, the preferred hardware design is often a single transmitter feeding two alternative RF paths through a controlled RF switch. This avoids comparing two independent transmitters. The same PA stage, frequency reference, WSPR audio chain, power setting, callsign and software timing are used for both paths. That makes the comparison more conservative: the remaining intended variables are the switched feedline/antenna paths.
+
+WSPRadar includes a Windows helper tool:
+
+`tools/WSPRadar-AB-Relay-Switch`
+
+The tool drives a supported USB HID relay on the WSPR-frame cadence used by WSPRadar:
+
+* Target WSPR frames: UTC start minutes 00, 04, 08, ...
+* Reference WSPR frames: UTC start minutes 02, 06, 10, ...
+* Relay switching occurs at the two-minute WSPR slot boundary, with an optional lead time so the RF path can settle before the next transmission body.
+
+The helper currently targets common ATtiny45/V-USB HID relay boards with USB VID/PID `16c0:05df`; on Windows these appear in device paths as `VID_16C0&PID_05DF`. During setup it selects the relay device, relay channel, relay polarity, Target frame phase and switch lead time. Dry-run mode should be used before connecting RF hardware.
+
+Example setup command:
+
+```bat
+Start-WSPRadar-AB-Relay-Switch.cmd -Setup
+```
+
+Example dry run:
+
+```bat
+Start-WSPRadar-AB-Relay-Switch.cmd -DryRun
+```
+
+A USB relay should not normally switch RF directly. It should control a properly rated RF switch or relay system. One example class is a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, which is designed to switch one common RF port between two RF ports, or vice versa, and provides a DC control interface. Before use, verify that the USB relay contacts and the RF switch control input are electrically compatible, including control voltage, current, polarity and fail-safe state.
+
+Before any on-air test:
+
+* Test the relay and RF switch without RF power.
+* Confirm that Target WSPR frames select the intended Target antenna/path.
+* Confirm that Reference WSPR frames select the intended Reference antenna/path.
+* Confirm that no relay transition occurs during the WSPR transmit body.
+* Use a dummy load or low-power continuity/SWR test before normal operation.
+* Preserve enough metadata to reproduce the run: relay configuration, frame assignment, switch lead time, antenna/feedline mapping, WSPRadar config and UTC run window.
+
+This switching method improves experimental control, but it does not make the result a laboratory antenna-gain measurement. RF-switch loss, isolation, connector repeatability, feedline differences and local antenna-environment changes can still contribute. For a stricter antenna-only comparison, use equal feedline lengths and types where practical, document the RF path, and consider swapping antennas between paths as a control run.
+
+<a id="sec-c"></a>
+### Appendix C: Reference SNR Calibration
 
 This procedure estimates a constant correction between two receive chains, reference stations or reference-side paths before the actual comparison run. It is most useful when you know that the reference side has a stable hardware, receiver-chain or calibration difference that WSPRadar cannot infer from WSPR spots alone.
 

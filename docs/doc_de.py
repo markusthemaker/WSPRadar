@@ -47,7 +47,8 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 * [9. Bestehende Literatur und Stand der Technik](#sec-9)
 * [10. Haftungsausschluss & Lizenz](#sec-10)
 * [Anhang A: Paralleler Betrieb mehrerer WSJT-X Instanzen](#sec-a)
-* [Anhang B: Referenz-SNR-Kalibrierung](#sec-b)
+* [Anhang B: Single-TX A/B-Umschaltung mit USB-Relay](#sec-b)
+* [Anhang C: Referenz-SNR-Kalibrierung](#sec-c)
 * [Quellen](#sec-ref)
 
 <a id="sec-2"></a>
@@ -211,10 +212,16 @@ Zwei parallele Empf&auml;nger decodieren dieselben Remote-WSPR-Sendungen zur sel
 
 **TX A/B-Test: sequenziell mit festem Zeitplan**
 
-Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig senden. WSPRadar nutzt daher deterministisches UTC-WSPR-Frame-Time-Slicing. Ein Sender oder Controller weist ein Setup WSPR-2-Frames mit UTC-Startminute 00, 04, 08, ... und das andere Setup Frames mit UTC-Startminute 02, 06, 10, ... zu. Das Tool gruppiert Daten in Zeit-Bins, berechnet je Setup einen Mikro-Median im Bin und daraus den Bin-Delta.
+Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig senden. WSPRadar nutzt daher deterministisches UTC-WSPR-Frame-Time-Slicing. Ein Sender, Controller oder RF-Umschaltsystem weist ein Setup oder einen RF-Pfad WSPR-2-Frames mit UTC-Startminute 00, 04, 08, ... und das andere Setup oder den anderen RF-Pfad Frames mit UTC-Startminute 02, 06, 10, ... zu. Das Tool gruppiert Daten in Zeit-Bins, berechnet je Setup oder RF-Pfad einen Mikro-Median im Bin und daraus den Bin-Delta.
+
+Das kontrollierteste TX-A/B-Design nutzt meist einen einzelnen Sender und schaltet nur den RF-Pfad zwischen zwei Antennen um. In diesem Design bleiben Sender, Rufzeichen, WSPR-Software, Frequenz, Leistungseinstellung und Uhr gemeinsam. Die beabsichtigten experimentellen Variablen sind dann die geschalteten Speiseleitungs-/Antennenpfade, nicht zwei getrennte Sendeketten. Das ist sicherer und wissenschaftlich sauberer als der Vergleich zweier unabh&auml;ngiger Sender, weil Senderkalibrierung, Frequenzstabilit&auml;t, Audioansteuerung, Leistungsangabe und Timing-Verhalten als wesentliche Konfounder entfernt werden.
+
+WSPRadar enth&auml;lt daf&uuml;r das Hilfswerkzeug `tools/WSPRadar-AB-Relay-Switch`. Es schaltet ein unterst&uuml;tztes USB-HID-Relay im selben UTC-WSPR-Frame-Takt, den auch die App nutzt. Das USB-Relay kann wiederum einen geeigneten RF-Antennenschalter steuern, zum Beispiel einen 1-zu-2-RF-Schalter wie den QRO.cz 1-to-2 RF Switch, sofern Relay-Ausgang, RF-Schalter-Steuereingang, Steuerspannung, Strombelastbarkeit, Polarit&auml;t und Stations-Interlock elektrisch geeignet ausgelegt sind.
 
 * Ausgangsleistung, Speiseleitung, Tuner-Einstellungen, Band und Zeitplan konstant halten, au&szlig;er bei der getesteten Variable.
-* Ein QMX-Transceiver l&auml;sst sich beispielsweise mit deterministischem Timing wie UTC-Startminutenfolge 00/04/08 f&uuml;r Setup A und 02/06/10 f&uuml;r Setup B programmieren.
+* Einen Single-Transmitter-RF-Pfadschalter bevorzugen, wenn das Ziel ein Antennen-/Speiseleitungs-A/B-Test ist.
+* Relay-zu-RF-Schalter-Polarit&auml;t vor RF-Betrieb verifizieren: Target-WSPR-Frames m&uuml;ssen die beabsichtigte Testantenne / den Testpfad w&auml;hlen, Reference-WSPR-Frames die beabsichtigte Referenzantenne / den Referenzpfad.
+* Ein QMX-Transceiver oder externer Relay-Controller l&auml;sst sich beispielsweise mit deterministischem Timing wie UTC-Startminutenfolge 00/04/08 f&uuml;r Setup A/Pfad A und 02/06/10 f&uuml;r Setup B/Pfad B programmieren.
 * Hardware nur zwischen vollst&auml;ndigen WSPR-2-Sendeframes umschalten; nicht w&auml;hrend einer zweimin&uuml;tigen WSPR-Sendung.
 * Standard-WSJT-X mit zuf&auml;lligem Sendemuster ist ohne Zusatzsteuerung nicht f&uuml;r fixed-schedule TX A/B geeignet.
 
@@ -471,7 +478,7 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 **Vergleichsparameter**
 
 * **Benchmark Mode:** `Lokaler Nachbarschafts-Benchmark`, `Fremdes Rufzeichen (Buddy-Test)` oder `Hardware A/B-Test`.
-* **Referenz-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Referenzseiten-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte referenzseitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Referenz` nutzt, macht eine positive Korrektur das korrigierte Referenz-SNR vor der Subtraktion gr&ouml;&szlig;er. Anhang B beschreibt, wie ein Kalibrierwert bestimmt wird.
+* **Referenz-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Referenzseiten-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte referenzseitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Referenz` nutzt, macht eine positive Korrektur das korrigierte Referenz-SNR vor der Subtraktion gr&ouml;&szlig;er. Anhang C beschreibt, wie ein Kalibrierwert bestimmt wird.
   * **Geltungsbereich:** Buddy-Test gilt f&uuml;r das Referenzrufzeichen. Beste lokale Station gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz. Lokaler Nachbarschafts-Median gilt f&uuml;r alle Nachbarschafts-Referenz-SNRs vor der Median-Aggregation. Hardware A/B-Test gilt f&uuml;r die Referenzseite, also Setup B / Referenz-WSPR-Frame.
   * **Formel:** `korrigiertes Referenz-SNR = Referenz-SNR + Referenz-SNR-Korrektur`; `Delta SNR = Ziel-SNR - korrigiertes Referenz-SNR`.
   * **Beispiel f&uuml;r positive Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = +1,6 dB`. Dann `+1,6 dB` eintragen. Ein Referenzseiten-SNR von `-24,0 dB` wird wie `-22,4 dB` behandelt; der korrigierte Delta SNR sinkt dadurch um `1,6 dB`.
@@ -656,7 +663,49 @@ Nach dem Neustart sind Datenstr&ouml;me, Hardwarezugriffe und tempor&auml;re WSP
 
 
 <a id="sec-b"></a>
-### Anhang B: Referenz-SNR-Kalibrierung
+### Anhang B: Single-TX A/B-Umschaltung mit USB-Relay
+
+F&uuml;r sequenzielle TX-A/B-Antennentests ist das bevorzugte Hardwaredesign oft ein einzelner Sender, der &uuml;ber einen gesteuerten RF-Schalter zwei alternative RF-Pfade speist. Dadurch wird vermieden, zwei unabh&auml;ngige Sender miteinander zu vergleichen. PA-Stufe, Frequenzreferenz, WSPR-Audiokette, Leistungseinstellung, Rufzeichen und Software-Timing sind f&uuml;r beide Pfade identisch. Das macht den Vergleich konservativer: Die verbleibenden beabsichtigten Variablen sind die geschalteten Speiseleitungs-/Antennenpfade.
+
+WSPRadar enth&auml;lt ein Windows-Hilfswerkzeug:
+
+`tools/WSPRadar-AB-Relay-Switch`
+
+Das Werkzeug schaltet ein unterst&uuml;tztes USB-HID-Relay im WSPR-Frame-Takt, den WSPRadar nutzt:
+
+* Target-WSPR-Frames: UTC-Startminuten 00, 04, 08, ...
+* Reference-WSPR-Frames: UTC-Startminuten 02, 06, 10, ...
+* Das Relay schaltet an der zweimin&uuml;tigen WSPR-Slot-Grenze, optional mit Vorlaufzeit, damit sich der RF-Pfad vor dem n&auml;chsten Sendek&ouml;rper stabilisieren kann.
+
+Das Hilfswerkzeug zielt derzeit auf verbreitete ATtiny45/V-USB-HID-Relay-Boards mit USB VID/PID `16c0:05df`; unter Windows erscheinen diese in Ger&auml;tepfaden als `VID_16C0&PID_05DF`. Beim Setup werden Relay-Ger&auml;t, Relay-Kanal, Relay-Polarit&auml;t, Target-Frame-Phase und Umschaltvorlauf ausgew&auml;hlt. Vor Anschluss von RF-Hardware sollte der Dry-Run-Modus verwendet werden.
+
+Beispiel f&uuml;r Setup:
+
+```bat
+Start-WSPRadar-AB-Relay-Switch.cmd -Setup
+```
+
+Beispiel f&uuml;r Dry Run:
+
+```bat
+Start-WSPRadar-AB-Relay-Switch.cmd -DryRun
+```
+
+Ein USB-Relay sollte RF normalerweise nicht direkt schalten. Es sollte ein daf&uuml;r ausgelegtes RF-Schalt- oder Relaissystem steuern. Eine Beispielklasse ist ein 1-zu-2-RF-Schalter wie der QRO.cz 1-to-2 RF Switch, der einen gemeinsamen RF-Port zwischen zwei RF-Ports schalten kann oder umgekehrt und eine DC-Steuerschnittstelle bereitstellt. Vor dem Einsatz muss gepr&uuml;ft werden, dass USB-Relay-Kontakte und RF-Schalter-Steuereingang elektrisch kompatibel sind, einschlie&szlig;lich Steuerspannung, Strom, Polarit&auml;t und Fail-Safe-Zustand.
+
+Vor jedem On-Air-Test:
+
+* Relay und RF-Schalter ohne RF-Leistung testen.
+* Best&auml;tigen, dass Target-WSPR-Frames die beabsichtigte Target-Antenne / den beabsichtigten Target-Pfad ausw&auml;hlen.
+* Best&auml;tigen, dass Reference-WSPR-Frames die beabsichtigte Referenzantenne / den beabsichtigten Referenzpfad ausw&auml;hlen.
+* Best&auml;tigen, dass kein Relay-Umschaltvorgang w&auml;hrend des WSPR-Sendek&ouml;rpers stattfindet.
+* Vor Normalbetrieb mit Dummy Load oder Low-Power-Durchgangs-/SWR-Test pr&uuml;fen.
+* Gen&uuml;gend Metadaten f&uuml;r Reproduzierbarkeit sichern: Relay-Konfiguration, Frame-Zuweisung, Umschaltvorlauf, Antennen-/Speiseleitungszuordnung, WSPRadar-Konfiguration und UTC-Laufzeitfenster.
+
+Diese Umschaltmethode verbessert die experimentelle Kontrolle, macht das Ergebnis aber nicht zu einer Labor-Antennengewinnmessung. RF-Schalter-Verlust, Isolation, Steckverbinder-Wiederholbarkeit, Speiseleitungsunterschiede und Ver&auml;nderungen der lokalen Antennenumgebung k&ouml;nnen weiterhin beitragen. F&uuml;r einen strengeren Nur-Antennen-Vergleich sollten, soweit praktisch m&ouml;glich, gleiche Speiseleitungsl&auml;ngen und -typen verwendet, der RF-Pfad dokumentiert und ein Kontrolllauf mit zwischen den Pfaden getauschten Antennen erwogen werden.
+
+<a id="sec-c"></a>
+### Anhang C: Referenz-SNR-Kalibrierung
 
 Dieses Verfahren sch&auml;tzt eine konstante Korrektur zwischen zwei Empfangsketten, Referenzstationen oder Referenzseiten-Pfaden vor dem eigentlichen Vergleichslauf. Es ist besonders n&uuml;tzlich, wenn bekannt ist, dass die Referenzseite einen stabilen Hardware-, Empfangsketten- oder Kalibrierunterschied hat, den WSPRadar nicht aus WSPR-Spots allein ableiten kann.
 
