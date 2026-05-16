@@ -1,0 +1,82 @@
+# WSPRadar Daily Changelog
+
+This changelog summarizes major project changes by UTC day. It is intentionally grouped by day rather than by version because early version labels were not yet stable.
+
+Source used for this file: reachable `origin/main` history available locally at generation time, ending at commit `96d978d` (`TX A/B Test Callsign fix`, 2026-05-15 19:02:37 UTC). If temporary branches were force-pushed, intermediate temp-only commits are not listed separately; their effects are captured when they became reachable from `main`.
+
+## 2026-04-04
+
+- Published the initial WSPRadar application structure, including the Streamlit app, core data/query utilities, map plotting, documentation, images, package metadata and licensing.
+- Added the first public user documentation in English and German, plus PDF-generation support.
+- Added the project website/static entry files and app configuration for deployment.
+- Began decoupling demo configuration and reducing memory pressure in the main app.
+
+## 2026-04-05
+
+- Reworked the hardware A/B testing architecture and updated related configuration, plotting and documentation.
+- Continued refining the analysis model for comparing station or antenna setups rather than only rendering absolute WSPR maps.
+
+## 2026-04-06
+
+- Introduced the bivariate evaluation model for distinguishing joint detections from target-only, reference-only and asynchronous evidence.
+- Added structured demo profiles so different comparison modes can load context-aware demo data.
+- Modularized the app into clearer components: core analysis logic, plotting, callbacks, state management, UI panels and segment inspection.
+- Added vectorized execution and stricter filtering in the analysis path.
+- Added input hardening and SQL-injection defenses around user-provided configuration values.
+- Updated the README and user documentation to reflect the evolving comparison workflow.
+
+## 2026-04-07
+
+- Expanded vectorized cycle synchronization to both TX and RX comparative analyses.
+- Introduced target-active cycle logic: TX comparisons require the target setup to be demonstrably transmitting, and RX comparisons require the target setup to be demonstrably receiving before reference evidence is counted.
+- Reduced offline-cycle bias in compare-mode yield calculations.
+
+## 2026-04-10
+- Added dynamic table filtering and responsive UI refinements for result inspection.
+- Continued synchronization and offline-cycle handling improvements.
+- Fixed sequential TX A/B yield logic so asynchronous overlap is counted correctly instead of always showing zero.
+- Renamed sequential-mode table terminology toward asynchronous/bin evidence where appropriate.
+- Updated documentation table-of-contents structure.
+
+## 2026-04-13
+
+- Added vector-based time-binning for sequential TX A/B tests, creating paired samples to reduce macro-fading and QSB confounding.
+- Fixed missing async/joint categories in map and segment-inspector yield charts.
+- Standardized the default non-joint visibility behavior so compare-mode views start focused on joint evidence.
+- Updated configuration, math helpers, plotting, documentation, i18n and state handling for the sequential pairing model.
+
+## 2026-04-26
+
+- Added experimental local-neighborhood benchmark modes.
+- Introduced Local Median Neighborhood and Local Best Station concepts, with Local Median Neighborhood becoming the preferred/default benchmark concept in the documentation flow.
+- Expanded local-median drill-down details so reference pools can be reconciled at the individual station level rather than appearing only as an opaque reference pool.
+- Tuned local-neighborhood labels, segment labels and chart labels for clearer interpretation.
+- Reworked advanced configuration for exclusion filters, including special callsign prefix filtering and moving-station filtering.
+
+## 2026-05-09
+
+- Added selected-station evidence plots below Station Insights, including distribution and time-evidence views.
+- Added time aggregation controls for selected-station evidence.
+- Preserved callsign plus locator identity in drill-down selection, preventing rare bad-grid rows from contaminating the normal station/grid row.
+- Added a dynamic demo launcher and expanded demo profile support, including TX buddy-test demo configuration.
+
+## 2026-05-10
+
+- Added the joint-spot Delta SNR evidence figure to the Segment Insight figure block.
+- Changed simultaneous TX/RX compare grouping from `time_slot + peer_sign` to `time_slot + peer_sign + peer_grid`, preventing one bad locator for a callsign from being duplicated across the entire station identity.
+- Added SNR correction/offset support for compare modes.
+
+## 2026-05-14
+- Replaced selected-station time scatter plots with time-bin heatmaps.
+- Updated demo-loading and SNR-correction documentation.
+- Limited raincloud distribution display ranges using an IQR-based outlier rule, with outlier percentages shown in the plot.
+- Added 90 percent stability intervals to Segment Insight and Station Insights evidence.
+- Added save/load configuration support, including config serialization, UI integration and state handling.
+
+## 2026-05-15
+
+- Added Git workflow helper scripts and accompanying workflow documentation for baselining temp, pushing temp and releasing main.
+- Added prepared-results export support, including high-resolution figures, station-insight tables, drill-down tables, config metadata and export packaging.
+- Added light/paper-oriented export rendering for figures and maps.
+
+## 2026-05-16
