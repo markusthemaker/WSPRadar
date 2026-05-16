@@ -249,18 +249,19 @@ def register_inspector_export(
 
 
 def _should_annotate_reference_correction(column_name, reference_snr_header=None):
-    text = str(column_name).strip().lower()
-    if reference_snr_header and str(column_name) == str(reference_snr_header):
+    text = str(column_name).strip().casefold()
+    reference_text = str(reference_snr_header).strip().casefold() if reference_snr_header else ""
+    if reference_text and text == reference_text:
         return True
     return (
         "ref snr" in text or
         "reference snr" in text or
         "cycle ref median" in text or
         "micro-med b" in text or
-        "bin \u0394" in text or
-        "\u0394 snr" in text or
+        "bin \u03b4" in text or
+        "\u03b4 snr" in text or
         "delta snr" in text or
-        "median \u0394" in text
+        "median \u03b4" in text
     )
 
 

@@ -187,6 +187,41 @@ def _section_header(label, icon=""):
         icon_text = f"{icon} " if icon else ""
     st.markdown(f"**{icon_text}{label}**", unsafe_allow_html=True)
 
+def _reference_correction_note(t, is_compare):
+    """Return the active reference-SNR correction notice, or None when inactive."""
+    if not is_compare:
+        return None
+    benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
+    if abs(benchmark_offset_db) < 0.05:
+        return None
+    offset_note = t.get(
+        "txt_benchmark_offset_note",
+        "Reference SNR Correction: {offset:+.1f} dB applied to reference-side SNR before \u0394 SNR calculation."
+    )
+    return offset_note.format(offset=benchmark_offset_db)
+
+def _render_reference_correction_notice(t, is_compare):
+    """Render the correction notice as a full-width one-liner on desktop."""
+    note = _reference_correction_note(t, is_compare)
+    if not note:
+        return
+    st.markdown(
+        f"""
+        <style>
+            @media (min-width: 768px) {{
+                .reference-correction-note {{
+                    white-space: nowrap;
+                    overflow-x: auto;
+                }}
+            }}
+        </style>
+        <div class="reference-correction-note" style="font-size:0.78em; color:#9aa4b2; margin-top:-0.15rem; margin-bottom:0.35rem; font-family:'Space Mono', monospace;">
+            {note}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def _evidence_strength(stations_count, evidence_count):
     """Classify evidence strength using WSPRadar's heuristic sample thresholds."""
     if stations_count >= 5 and evidence_count >= 20:
@@ -937,7 +972,7 @@ def _build_drilldown_table(
         drill_df = _sort_drilldown_default(drill_df)
     return drill_df if drill_df is not None else pd.DataFrame(), info_msg
 
-def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, selected_seg):
+def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, selected_seg, t, is_compare):
     """Render selected drill-down rows with local filters and return the displayed dataframe."""
     if drill_df is None or drill_df.empty:
         return pd.DataFrame()
@@ -983,6 +1018,7 @@ def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, sele
                     if sel_vals:
                         drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
 
+    _render_reference_correction_notice(t, is_compare)
     drill_display_df = _format_snr_display_columns(drill_df)
     st.dataframe(drill_display_df, width='stretch', hide_index=True)
     return drill_df.copy()
@@ -1468,13 +1504,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             # Platzsparende, zweisprachige Kurzform f??r den Subtitel
             sub_text = " (Norm. @ 1W. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 1W. Click for details)"
             st.markdown(f"**<span class='material-symbols-rounded section-icon'>monitoring</span>{t['lbl_insights']}**<span style='font-size:0.85em; color:gray;'>{sub_text}</span>", unsafe_allow_html=True)
-            benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
-            if is_compare and abs(benchmark_offset_db) >= 0.05:
-                offset_note = t.get("txt_benchmark_offset_note", "Benchmark SNR Correction: {offset:+.1f} dB applied to benchmark/reference SNR before \u0394 SNR calculation.")
-                st.markdown(
-                    f"<div style='font-size:0.78em; color:#9aa4b2; margin-top:-0.35rem;'>{offset_note.format(offset=benchmark_offset_db)}</div>",
-                    unsafe_allow_html=True
-                )
             
         with col_ins2:
             if is_compare:
@@ -1505,6 +1534,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                             sorted_disp_df = sorted_disp_df[sorted_disp_df[col].isin(sel_vals)]
 
         # --- END FILTER ---
+
+        _render_reference_correction_notice(t, is_compare)
 
         # Die Tabelle rendert nun den gefilterten Zustand
         tbl_key = f"tbl_{analysis_id}_{run_id}_{selected_seg}"
@@ -1612,6 +1643,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         analysis_id,
                         run_id,
                         selected_seg,
+                        t,
+                        is_compare,
                     )
 
             except FileNotFoundError: 
