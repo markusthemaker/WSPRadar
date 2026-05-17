@@ -76,8 +76,8 @@ DEMO_PROFILES = {
             "de": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
         },
         "description": {
-            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Figure 6",
-            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Figure 6",
+            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - resembles Figure 6",
+            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - resembles Figure 6",
         },
         "run": {
             "run_mode": "RX",
@@ -95,7 +95,7 @@ DEMO_PROFILES = {
         "comparison": {
             "comp_mode_key": "opt_comp_buddy",
             "ref_callsign": "ON4AWM1",
-            "reference_snr_correction_db": 1.6,
+            "reference_snr_correction_db": 1.2,
         },
         "advanced": {
             "exclude_special_callsigns": False,
