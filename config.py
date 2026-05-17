@@ -45,7 +45,7 @@ DEMO_PROFILES = {
             "qth": "JO20OT",
             "band": "160m",
             "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2021, 2, 19),
+            "start_d": datetime.date(2021, 2, 9),
             "end_d": datetime.date(2021, 2, 13),
             "start_t": dt_time(22, 0),
             "end_t": dt_time(05, 30),
