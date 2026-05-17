@@ -48,7 +48,7 @@ DEMO_PROFILES = {
             "start_d": datetime.date(2021, 2, 9),
             "end_d": datetime.date(2021, 2, 13),
             "start_t": dt_time(22, 0),
-            "end_t": dt_time(05, 30),
+            "end_t": dt_time(5, 30),
         },
         "comparison": {
             "comp_mode_key": "opt_comp_buddy",
