@@ -34,8 +34,8 @@ DEMO_PROFILES = {
             "de": "RX Comparison Calibration. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
         },
         "description": {
-            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Section 4",
-            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Section 4",
+            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Chapter 4 - SNR Correction 1.2 dB",
+            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Chapter 4 - SNR Correction 1.2 dB",
         },
         "run": {
             "run_mode": "RX",
@@ -45,10 +45,10 @@ DEMO_PROFILES = {
             "qth": "JO20OT",
             "band": "160m",
             "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2021, 4, 18),
-            "end_d": datetime.date(2021, 4, 26),
-            "start_t": dt_time(8, 0),
-            "end_t": dt_time(18, 20),
+            "start_d": datetime.date(2021, 2, 19),
+            "end_d": datetime.date(2021, 2, 13),
+            "start_t": dt_time(22, 0),
+            "end_t": dt_time(05, 30),
         },
         "comparison": {
             "comp_mode_key": "opt_comp_buddy",
