@@ -23,6 +23,8 @@ EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
 STABILITY_BOOTSTRAP_ITERATIONS = 500
 STABILITY_CONFIDENCE = 0.90
+STABILITY_LINE_THRESHOLD_DB = 0.1
+METRIC_MIN_VISIBLE_SPAN_DB = 3.0
 EVIDENCE_TIME_AGG_PRESETS = [
     (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
     (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
@@ -151,18 +153,52 @@ def _stability_summary(values, is_compare, prefix=""):
     )
 
 def _add_stability_band(ax, low, high):
-    """Draw a subtle 90% stability band behind the median line."""
+    """Draw the true 90% stability interval without inflating narrow ranges."""
     if pd.isna(low) or pd.isna(high):
         return
     low = float(low)
     high = float(high)
     if high < low:
         low, high = high, low
-    if high - low < 0.3:
+    if high - low <= STABILITY_LINE_THRESHOLD_DB:
         center = (low + high) / 2.0
-        low = center - 0.15
-        high = center + 0.15
-    ax.axhspan(low, high, color="red", alpha=0.12, zorder=1, label="90% Stability")
+        ax.axhline(center, color="red", alpha=0.24, linewidth=4.0, zorder=1, label="90% Stability")
+    else:
+        ax.axhspan(low, high, color="red", alpha=0.12, zorder=1, label="90% Stability")
+
+def _expanded_metric_limits(lower, upper, center=None, min_span=METRIC_MIN_VISIBLE_SPAN_DB):
+    """Return limits with a minimum SNR-scale span while preserving the data center."""
+    if not np.isfinite(lower) or not np.isfinite(upper):
+        return None
+    lower = float(lower)
+    upper = float(upper)
+    if upper < lower:
+        lower, upper = upper, lower
+    if center is None or not np.isfinite(center):
+        center = (lower + upper) / 2.0
+    center = float(center)
+    span = upper - lower
+    if span >= min_span:
+        return lower, upper
+    half_span = min_span / 2.0
+    expanded_lower = center - half_span
+    expanded_upper = center + half_span
+    if expanded_lower > lower:
+        shift = expanded_lower - lower
+        expanded_lower -= shift
+        expanded_upper -= shift
+    if expanded_upper < upper:
+        shift = upper - expanded_upper
+        expanded_lower += shift
+        expanded_upper += shift
+    return expanded_lower, expanded_upper
+
+def _apply_minimum_metric_yspan(ax, center=None):
+    """Keep SNR/Delta-SNR panels from visually magnifying tiny intervals."""
+    lower, upper = ax.get_ylim()
+    expanded = _expanded_metric_limits(lower, upper, center=center)
+    if expanded is not None:
+        ax.set_ylim(*expanded)
 
 def _place_metric_legend_below_axis(ax):
     """Move compact metric legends below the plot so annotations remain readable."""
@@ -525,12 +561,17 @@ def _robust_metric_limits(values):
         return None
     if upper <= lower:
         center = float(np.median(values))
-        lower = center - 1.0
-        upper = center + 1.0
+        lower = center
+        upper = center
     else:
         padding = 0.10 * (upper - lower)
         lower -= padding
         upper += padding
+
+    expanded_limits = _expanded_metric_limits(lower, upper, center=float(np.median(values)))
+    if expanded_limits is None:
+        return None
+    lower, upper = expanded_limits
 
     below_pct = 100.0 * float(np.sum(values < lower)) / len(values)
     above_pct = 100.0 * float(np.sum(values > upper)) / len(values)
@@ -1431,6 +1472,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 med = _draw_single_vertical_raincloud(ax_hist, vals, "Station Medians", color="#36aaf9")
                 _add_stability_band(ax_hist, station_stability_interval[1], station_stability_interval[2])
                 ax_hist.axhline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
+                _apply_minimum_metric_yspan(ax_hist, center=med)
                 _place_metric_legend_below_axis(ax_hist)
             else:
                 # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
@@ -1444,6 +1486,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             if pd.notna(spot_med):
                 _add_stability_band(ax_spot, spot_stability_interval[1], spot_stability_interval[2])
                 ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
+                _apply_minimum_metric_yspan(ax_spot, center=spot_med)
                 _place_metric_legend_below_axis(ax_spot)
                 if is_compare and not spot_values_numeric.empty:
                     spot_mean = spot_values_numeric.mean()
