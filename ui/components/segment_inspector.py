@@ -29,6 +29,8 @@ METRIC_HISTOGRAM_INTEGER_LATTICE_THRESHOLD = 0.95
 METRIC_HISTOGRAM_HALF_DB_LATTICE_THRESHOLD = 0.95
 METRIC_HISTOGRAM_MAX_BARS = 40
 METRIC_HISTOGRAM_AGGREGATE_BIN_WIDTHS = (1.0, 2.0, 3.0, 6.0, 10.0)
+SEGMENT_FIGURE_BOTTOM = 0.15
+SEGMENT_FIGURE_FOOTER_Y = 0.055
 EVIDENCE_TIME_AGG_PRESETS = [
     (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
     (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
@@ -1450,9 +1452,9 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
         evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
     st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
     fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
-    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.80, wspace=0.24)
+    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
     fig_ev.suptitle(f"\n{evidence_title}", color="white", fontweight="bold", fontsize=14, y=0.98)
-    fig_ev.text(0.98, 0.01, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
+    fig_ev.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
     gs = fig_ev.add_gridspec(1, 3)
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
     ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
@@ -1680,7 +1682,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             
             # Setup Layout based on Absolute vs. Compare Mode
             if is_compare and 'count_only_u' in df_seg.columns:
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.80, wspace=0.24)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_yield = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
@@ -1729,11 +1731,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_title("Station Medians (\u0394 SNR)", color='white', fontweight='bold', pad=10)
                 ax_spot.set_title("Paired Spot Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"\n{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
-                fig_hist.text(0.98, 0.01, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=10)
+                fig_hist.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=10)
                 
             else:
                 # Absolute Mode: activity, station-balanced medians, and raw spot distribution
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=0.22, top=0.80, wspace=0.24)
+                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
                 gs = fig_hist.add_gridspec(1, 3)
                 ax_activity = fig_hist.add_subplot(gs[0, 0])
                 ax_hist = fig_hist.add_subplot(gs[0, 1])
@@ -1763,7 +1765,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_title("Station Medians (SNR @ 1W)", color='white', fontweight='bold', pad=10)
                 ax_spot.set_title("Spot SNR (SNR @ 1W)", color='white', fontweight='bold', pad=10)
                 fig_hist.suptitle(f"\n{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
-                fig_hist.text(0.98, 0.01, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=10)
+                fig_hist.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=10)
 
             # 2. Common Histogram Setup (Right / Full)
             ax_hist.set_facecolor('black')
