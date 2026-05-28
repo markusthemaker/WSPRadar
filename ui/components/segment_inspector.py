@@ -713,6 +713,93 @@ def _draw_horizontal_metric_histogram(ax, values, color="#36aaf9"):
     ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
     return float(np.median(values))
 
+def _draw_single_value_distribution(ax, value, labels, color=EVIDENCE_AGG_COLOR):
+    """Render one selected evidence point without implying distribution width."""
+    value = float(value)
+    ax.axhline(value, color=color, linewidth=2.0, alpha=0.95, zorder=3)
+    ax.scatter(
+        [0.5],
+        [value],
+        s=42,
+        color=color,
+        edgecolors="#c8f4ff",
+        linewidths=0.7,
+        zorder=4
+    )
+    ax.text(
+        0.5,
+        0.58,
+        f"{value:+.1f} dB" if "\u0394" in labels["y_label"] else f"{value:.1f} dB",
+        transform=ax.transAxes,
+        color="white",
+        ha="center",
+        va="bottom",
+        fontsize=11,
+        fontweight="bold"
+    )
+    ax.text(
+        0.5,
+        0.42,
+        "single evidence point",
+        transform=ax.transAxes,
+        color="#cccccc",
+        ha="center",
+        va="top",
+        fontsize=9
+    )
+    ax.set_xlim(0.0, 1.0)
+    ax.set_xticks([])
+    ax.set_yticks([value])
+    ax.set_yticklabels([f"{value:.1f}"], color="white")
+    ax.set_ylabel(labels["y_label"], color="white")
+    _apply_minimum_metric_yspan(ax, center=value)
+
+def _draw_single_time_point(ax, plot_df, labels):
+    """Render one selected evidence timestamp without a heatmap/color scale."""
+    work_df = plot_df[["plot_time", "metric"]].copy()
+    work_df["plot_time"] = pd.to_datetime(work_df["plot_time"], errors="coerce", utc=True).dt.tz_convert(None)
+    work_df["metric"] = pd.to_numeric(work_df["metric"], errors="coerce")
+    work_df = work_df.dropna(subset=["plot_time", "metric"])
+    if work_df.empty:
+        return
+
+    timestamp = work_df["plot_time"].iloc[0]
+    value = float(work_df["metric"].iloc[0])
+    x_value = mdates.date2num(timestamp.to_pydatetime())
+    ax.scatter(
+        [x_value],
+        [value],
+        s=42,
+        color="#c8f4ff",
+        edgecolors="#00384d",
+        linewidths=0.7,
+        zorder=5
+    )
+    ax.annotate(
+        f"{value:+.1f} dB" if "\u0394" in labels["y_label"] else f"{value:.1f} dB",
+        xy=(x_value, value),
+        xytext=(8, 8),
+        textcoords="offset points",
+        color="white",
+        fontsize=9,
+        ha="left",
+        va="bottom"
+    )
+    half_window = pd.Timedelta(minutes=90)
+    ax.set_xlim(
+        mdates.date2num((timestamp - half_window).to_pydatetime()),
+        mdates.date2num((timestamp + half_window).to_pydatetime())
+    )
+    ax.set_yticks([value])
+    ax.set_yticklabels([f"{value:.1f}"], color="white")
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=6))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
+    ax.set_title(f"{labels['time_title']} (single point)", color="white", fontweight="bold", pad=10)
+    ax.set_xlabel(labels["x_label"], color="white")
+    ax.set_ylabel(labels["y_label"], color="white")
+    _apply_minimum_metric_yspan(ax, center=value)
+    _add_foreground_horizontal_grid(ax)
+
 def _draw_horizontal_raincloud(ax, values, color="#36aaf9"):
     """Draw one horizontal raw-observation raincloud for segment-level evidence."""
     values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
@@ -1374,11 +1461,16 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     _style_evidence_axis(ax_cloud)
     _style_evidence_axis(ax_time)
 
-    _draw_horizontal_metric_histogram(ax_cloud, plot_df["metric"], color=EVIDENCE_AGG_COLOR)
     ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
-    ax_cloud.set_ylabel(labels["y_label"], color="white")
-
-    _draw_time_heatmap(fig_ev, ax_time, plot_df, time_agg, labels, is_compare, is_sequential)
+    if evidence_count == 1:
+        single_value = pd.to_numeric(plot_df["metric"], errors="coerce").dropna()
+        if not single_value.empty:
+            _draw_single_value_distribution(ax_cloud, single_value.iloc[0], labels, color=EVIDENCE_AGG_COLOR)
+        _draw_single_time_point(ax_time, plot_df, labels)
+    else:
+        _draw_horizontal_metric_histogram(ax_cloud, plot_df["metric"], color=EVIDENCE_AGG_COLOR)
+        ax_cloud.set_ylabel(labels["y_label"], color="white")
+        _draw_time_heatmap(fig_ev, ax_time, plot_df, time_agg, labels, is_compare, is_sequential)
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
 
     st.pyplot(fig_ev, width="stretch")
