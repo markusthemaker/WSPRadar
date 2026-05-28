@@ -2,6 +2,25 @@
 
 Run all commands from anywhere inside the repository. The scripts switch to the repository root automatically.
 
+
+## 0. Compare Github Temp and Github Main
+
+Run this from the repo root:
+
+```powershell
+git fetch origin
+git rev-list --left-right --count origin/main...origin/temp
+```
+
+Interpretation:
+
+```text
+0 0
+```
+
+means `origin/main` and `origin/temp` are identical.
+
+
 ## 1. Morning Baseline
 
 Make local `temp` exactly match GitHub `temp`:

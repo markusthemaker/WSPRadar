@@ -25,6 +25,8 @@ STABILITY_BOOTSTRAP_ITERATIONS = 500
 STABILITY_CONFIDENCE = 0.90
 STABILITY_LINE_THRESHOLD_DB = 0.1
 METRIC_MIN_VISIBLE_SPAN_DB = 3.0
+METRIC_HISTOGRAM_INTEGER_LATTICE_THRESHOLD = 0.95
+METRIC_HISTOGRAM_HALF_DB_LATTICE_THRESHOLD = 0.95
 EVIDENCE_TIME_AGG_PRESETS = [
     (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
     (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
@@ -146,10 +148,126 @@ def _stability_summary(values, is_compare, prefix=""):
         return None
 
     metric_name = "\u0394 SNR" if is_compare else "SNR"
+    distribution = _metric_distribution_summary(values, is_compare)
+    distribution_text = f" | {distribution}" if distribution else ""
     prefix_text = f"{prefix} | " if prefix else ""
     return (
         f"{prefix_text}median {metric_name} {_format_metric_signed(median, is_compare)} dB | "
         f"90% stability {_format_stability_interval(low, high, is_compare)} dB"
+        f"{distribution_text}"
+    )
+
+def _metric_values(values):
+    """Return finite numeric SNR-like values as a one-dimensional numpy array."""
+    numeric_values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
+    return numeric_values[np.isfinite(numeric_values)]
+
+def _dominant_tenth_remainder(tenths, modulus):
+    """Return the dominant remainder on a one-decimal lattice and its fraction."""
+    if len(tenths) == 0:
+        return 0, 0.0
+    remainders = np.mod(tenths, modulus)
+    counts = np.bincount(remainders, minlength=modulus)
+    index = int(np.argmax(counts))
+    return index, float(counts[index]) / float(len(tenths))
+
+def _metric_histogram_bin_width_and_anchor(values):
+    """
+    Choose one global SNR-bin width for a plot.
+
+    Raw WSPR SNR is integer-dB, while corrections and medians can shift the
+    lattice. Prefer 1 dB bins, but use 0.5 dB when the data clearly occupy a
+    half-dB lattice. Never infer sub-0.5 dB visual precision.
+    """
+    values = _metric_values(values)
+    if len(values) == 0:
+        return 1.0, 0.0
+
+    tenths = np.rint(values * 10.0).astype(int)
+    integer_remainder, integer_fraction = _dominant_tenth_remainder(tenths, 10)
+    if integer_fraction >= METRIC_HISTOGRAM_INTEGER_LATTICE_THRESHOLD:
+        return 1.0, integer_remainder / 10.0
+
+    half_remainder, half_fraction = _dominant_tenth_remainder(tenths, 5)
+    if half_fraction >= METRIC_HISTOGRAM_HALF_DB_LATTICE_THRESHOLD:
+        return 0.5, half_remainder / 10.0
+
+    return 1.0, 0.0
+
+def _metric_histogram_bins(values):
+    """Return centered histogram edges, centers and bin width for SNR-like values."""
+    values = _metric_values(values)
+    bin_width, anchor = _metric_histogram_bin_width_and_anchor(values)
+    if len(values) == 0:
+        return np.array([]), np.array([]), bin_width
+
+    min_value = float(np.min(values))
+    max_value = float(np.max(values))
+    start_center = anchor + np.floor((min_value - anchor) / bin_width) * bin_width
+    end_center = anchor + np.ceil((max_value - anchor) / bin_width) * bin_width
+    centers = np.arange(start_center, end_center + (bin_width * 0.5), bin_width)
+    if len(centers) == 0:
+        centers = np.array([anchor])
+    edges = np.concatenate((centers - (bin_width / 2.0), [centers[-1] + (bin_width / 2.0)]))
+    return edges, centers, bin_width
+
+def _format_bin_width(bin_width):
+    return f"{float(bin_width):.1f} dB"
+
+def _histogram_mode_summary(values):
+    values = _metric_values(values)
+    if len(values) == 0:
+        return np.nan, np.nan
+    edges, centers, _ = _metric_histogram_bins(values)
+    if len(edges) == 0:
+        return np.nan, np.nan
+    counts, _ = np.histogram(values, bins=edges)
+    if counts.sum() == 0:
+        return np.nan, np.nan
+    mode_index = int(np.argmax(counts))
+    return float(centers[mode_index]), 100.0 * float(counts[mode_index]) / float(counts.sum())
+
+def _zero_bin_share(values):
+    values = _metric_values(values)
+    if len(values) == 0:
+        return np.nan
+    edges, _, _ = _metric_histogram_bins(values)
+    if len(edges) == 0:
+        return np.nan
+    counts, _ = np.histogram(values, bins=edges)
+    zero_index = np.searchsorted(edges, 0.0, side="right") - 1
+    if zero_index < 0 or zero_index >= len(counts):
+        return 0.0
+    return 100.0 * float(counts[zero_index]) / float(counts.sum())
+
+def _metric_distribution_summary(values, is_compare):
+    """Summarize the visible distribution without adding labels to every bar."""
+    values = _metric_values(values)
+    if len(values) == 0:
+        return None
+
+    _, _, bin_width = _metric_histogram_bins(values)
+    mode_value, mode_pct = _histogram_mode_summary(values)
+    if pd.isna(mode_value) or pd.isna(mode_pct):
+        return f"bin {_format_bin_width(bin_width)}"
+
+    if is_compare:
+        zero_pct = _zero_bin_share(values)
+        within_1_pct = 100.0 * float(np.sum(np.abs(values) <= 1.0)) / float(len(values))
+        tail_3_pct = 100.0 * float(np.sum(np.abs(values) >= 3.0)) / float(len(values))
+        return (
+            f"bin {_format_bin_width(bin_width)} | "
+            f"mode {_format_metric_signed(mode_value, True)} dB ({mode_pct:.1f}%) | "
+            f"\u0394\u22480 dB {zero_pct:.1f}% | "
+            f"|\u0394|\u22641 dB {within_1_pct:.1f}% | "
+            f"|\u0394|\u22653 dB {tail_3_pct:.1f}%"
+        )
+
+    q05, q95 = np.percentile(values, [5, 95])
+    return (
+        f"bin {_format_bin_width(bin_width)} | "
+        f"mode {_format_metric_signed(mode_value, False)} dB ({mode_pct:.1f}%) | "
+        f"90% range {_format_stability_interval(q05, q95, False)} dB"
     )
 
 def _add_stability_band(ax, low, high):
@@ -491,6 +609,36 @@ def _draw_single_vertical_raincloud(ax, values, label, color="#36aaf9"):
     if len(values) == 0:
         return np.nan
     _draw_raincloud(ax, [values], [label], [color])
+    return float(np.median(values))
+
+def _draw_vertical_metric_histogram(ax, values, color="#36aaf9"):
+    """Draw a horizontal histogram with the SNR metric on the vertical axis."""
+    values = _metric_values(values)
+    if len(values) == 0:
+        return np.nan
+
+    edges, centers, bin_width = _metric_histogram_bins(values)
+    counts, _ = np.histogram(values, bins=edges)
+    if counts.sum() == 0:
+        return np.nan
+
+    shares = 100.0 * counts.astype(float) / float(counts.sum())
+    bar_height = bin_width * 0.82
+    ax.barh(
+        centers,
+        shares,
+        height=bar_height,
+        color=color,
+        alpha=0.70,
+        edgecolor="#67c4ff",
+        linewidth=0.7,
+        zorder=2
+    )
+    ax.set_xlabel("Share (%)", color="white")
+    ax.set_xlim(left=0.0)
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
+    ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
     return float(np.median(values))
 
 def _draw_horizontal_raincloud(ax, values, color="#36aaf9"):
@@ -1469,7 +1617,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             for spine in ax_spot.spines.values(): spine.set_color('#444444')
             
             if not vals.empty:
-                med = _draw_single_vertical_raincloud(ax_hist, vals, "Station Medians", color="#36aaf9")
+                med = _draw_vertical_metric_histogram(ax_hist, vals, color="#36aaf9")
                 _add_stability_band(ax_hist, station_stability_interval[1], station_stability_interval[2])
                 ax_hist.axhline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
                 _apply_minimum_metric_yspan(ax_hist, center=med)
@@ -1480,9 +1628,8 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_hist.set_xticks([])
                 ax_hist.set_yticks([])
 
-            spot_label = "Paired Spot Bins" if is_sequential else ("Joint Spots" if is_compare else "Spots")
             spot_values_numeric = pd.to_numeric(segment_raw_values, errors="coerce").dropna()
-            spot_med = _draw_single_vertical_raincloud(ax_spot, segment_raw_values, spot_label, color="#36aaf9")
+            spot_med = _draw_vertical_metric_histogram(ax_spot, segment_raw_values, color="#36aaf9")
             if pd.notna(spot_med):
                 _add_stability_band(ax_spot, spot_stability_interval[1], spot_stability_interval[2])
                 ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")

@@ -282,8 +282,9 @@ The Segment Inspector is the audit layer below the maps. Select a distance ring 
 
 The **Segment Insight** block summarizes the currently selected range and direction. It combines three views: System Sensitivity / Decode Yield, station-balanced medians, and raw spot/bin evidence. In same-cycle compare modes the raw-evidence panel is `Joint-Spot Δ SNR`. In sequential TX A/B it is `Paired Spot Bin Δ SNR`, because the paired evidence unit is a valid time bin containing spots rather than one same-cycle spot.
 
-* In absolute modes, the histogram shows normalized SNR values for contributing stations. The x-axis is based on station medians. The red dashed line marks the final segment median.
-* In compare modes, the histogram shows Delta SNR values. It reveals whether a segment median comes from consistent superiority or from a broad, unstable distribution.
+* In absolute modes, the top distribution panels use horizontal percent histograms. The y-axis remains normalized SNR, the x-axis shows share of contributing evidence, and the red dashed line marks the final segment median.
+* In compare modes, the top distribution panels use horizontal percent histograms of Delta SNR. This keeps quantized WSPR SNR evidence visible without smoothing it into a continuous density shape.
+* SNR histogram bins are globally fixed per panel. WSPRadar defaults to 1.0 dB bins, uses 0.5 dB bins only when the values clearly occupy a half-dB lattice, and never infers sub-0.5 dB visual precision from corrected SNR values.
 * The Station Insights table lists contributing remote stations, separates joint decodes from exclusive decodes and shows the station-level median Delta SNR.
 * Clicking a Station Insights row opens the Drill-Down table.
 * If no Station Insights row is selected, WSPRadar opens the most active row by default: the row with the most joint spots or joint bins in compare modes, and the row with the most spots in absolute modes.

@@ -289,8 +289,9 @@ Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Distanzring und
 
 Der **Segment Insight** Block fasst den aktuell gew&auml;hlten Distanzbereich und die Richtung zusammen. Er kombiniert drei Ansichten: System Sensitivity / Decode Yield, stationsbalancierte Mediane und rohe Spot-/Bin-Evidenz. In Same-Cycle-Vergleichsmodi hei&szlig;t das Roh-Evidenz-Panel `Joint-Spot Δ SNR`. In sequenziellem TX A/B hei&szlig;t es `Paired Spot Bin Δ SNR`, weil die gepaarte Evidenzeinheit ein valider Zeit-Bin mit Spots ist und nicht ein einzelner Same-Cycle-Spot.
 
-* In absoluten Modi zeigt das Histogramm normierte SNR-Werte der beteiligten Stationen. Die x-Achse basiert auf Stationsmedianen. Die rote gestrichelte Linie markiert den finalen Segmentmedian.
-* In Vergleichsmodi zeigt das Histogramm Delta-SNR-Werte. Es zeigt, ob ein Segmentmedian aus konsistenter &Uuml;berlegenheit oder aus breiter, instabiler Streuung entsteht.
+* In absoluten Modi nutzen die oberen Verteilungspanels horizontale Prozent-Histogramme. Die y-Achse bleibt normiertes SNR, die x-Achse zeigt den Anteil der beitragenden Evidenz, und die rote gestrichelte Linie markiert den finalen Segmentmedian.
+* In Vergleichsmodi nutzen die oberen Verteilungspanels horizontale Prozent-Histogramme f&uuml;r Delta SNR. Dadurch bleibt quantisierte WSPR-SNR-Evidenz sichtbar, ohne sie zu einer kontinuierlichen Dichteform zu gl&auml;tten.
+* SNR-Histogramm-Bins sind pro Panel global fest. WSPRadar nutzt standardm&auml;&szlig;ig 1,0-dB-Bins, wechselt nur bei klarer HalbdB-Struktur der Werte auf 0,5-dB-Bins und leitet aus korrigierten SNR-Werten keine visuelle Pr&auml;zision unter 0,5 dB ab.
 * Die Station-Insights-Tabelle listet beteiligte Remote-Stationen, trennt Joint Decodes von exklusiven Decodes und zeigt den stationsbezogenen medianen Delta SNR.
 * Ein Klick auf eine Station-Insights-Zeile &ouml;ffnet die Drill-Down-Tabelle.
 * Wenn keine Station-Insights-Zeile ausgew&auml;hlt ist, &ouml;ffnet WSPRadar standardm&auml;&szlig;ig die aktivste Zeile: in Vergleichsmodi die Zeile mit den meisten Joint Spots oder Joint Bins, in absoluten Modi die Zeile mit den meisten Spots.
