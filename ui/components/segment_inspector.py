@@ -27,6 +27,8 @@ STABILITY_LINE_THRESHOLD_DB = 0.1
 METRIC_MIN_VISIBLE_SPAN_DB = 3.0
 METRIC_HISTOGRAM_INTEGER_LATTICE_THRESHOLD = 0.95
 METRIC_HISTOGRAM_HALF_DB_LATTICE_THRESHOLD = 0.95
+METRIC_HISTOGRAM_MAX_BARS = 40
+METRIC_HISTOGRAM_AGGREGATE_BIN_WIDTHS = (1.0, 2.0, 3.0, 6.0, 10.0)
 EVIDENCE_TIME_AGG_PRESETS = [
     (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
     (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
@@ -148,13 +150,10 @@ def _stability_summary(values, is_compare, prefix=""):
         return None
 
     metric_name = "\u0394 SNR" if is_compare else "SNR"
-    distribution = _metric_distribution_summary(values, is_compare)
-    distribution_text = f" | {distribution}" if distribution else ""
     prefix_text = f"{prefix} | " if prefix else ""
     return (
         f"{prefix_text}median {metric_name} {_format_metric_signed(median, is_compare)} dB | "
         f"90% stability {_format_stability_interval(low, high, is_compare)} dB"
-        f"{distribution_text}"
     )
 
 def _metric_values(values):
@@ -171,6 +170,13 @@ def _dominant_tenth_remainder(tenths, modulus):
     index = int(np.argmax(counts))
     return index, float(counts[index]) / float(len(tenths))
 
+def _metric_histogram_bar_count(min_value, max_value, anchor, bin_width):
+    if not np.isfinite(min_value) or not np.isfinite(max_value) or bin_width <= 0:
+        return 0
+    start_center = anchor + np.floor((min_value - anchor) / bin_width) * bin_width
+    end_center = anchor + np.ceil((max_value - anchor) / bin_width) * bin_width
+    return int(np.floor((end_center - start_center) / bin_width + 0.5)) + 1
+
 def _metric_histogram_bin_width_and_anchor(values):
     """
     Choose one global SNR-bin width for a plot.
@@ -183,16 +189,32 @@ def _metric_histogram_bin_width_and_anchor(values):
     if len(values) == 0:
         return 1.0, 0.0
 
+    min_value = float(np.min(values))
+    max_value = float(np.max(values))
     tenths = np.rint(values * 10.0).astype(int)
     integer_remainder, integer_fraction = _dominant_tenth_remainder(tenths, 10)
     if integer_fraction >= METRIC_HISTOGRAM_INTEGER_LATTICE_THRESHOLD:
-        return 1.0, integer_remainder / 10.0
+        base_width = 1.0
+        anchor = integer_remainder / 10.0
+    else:
+        half_remainder, half_fraction = _dominant_tenth_remainder(tenths, 5)
+        if half_fraction >= METRIC_HISTOGRAM_HALF_DB_LATTICE_THRESHOLD:
+            base_width = 0.5
+            anchor = half_remainder / 10.0
+        else:
+            base_width = 1.0
+            anchor = 0.0
 
-    half_remainder, half_fraction = _dominant_tenth_remainder(tenths, 5)
-    if half_fraction >= METRIC_HISTOGRAM_HALF_DB_LATTICE_THRESHOLD:
-        return 0.5, half_remainder / 10.0
+    if _metric_histogram_bar_count(min_value, max_value, anchor, base_width) <= METRIC_HISTOGRAM_MAX_BARS:
+        return base_width, anchor
 
-    return 1.0, 0.0
+    for candidate_width in METRIC_HISTOGRAM_AGGREGATE_BIN_WIDTHS:
+        if candidate_width < base_width:
+            continue
+        if _metric_histogram_bar_count(min_value, max_value, anchor, candidate_width) <= METRIC_HISTOGRAM_MAX_BARS:
+            return candidate_width, anchor
+
+    return METRIC_HISTOGRAM_AGGREGATE_BIN_WIDTHS[-1], anchor
 
 def _metric_histogram_bins(values):
     """Return centered histogram edges, centers and bin width for SNR-like values."""
@@ -284,6 +306,20 @@ def _add_stability_band(ax, low, high):
     else:
         ax.axhspan(low, high, color="red", alpha=0.12, zorder=1, label="90% Stability")
 
+def _add_vertical_stability_band(ax, low, high):
+    """Draw the true 90% stability interval on a metric x-axis."""
+    if pd.isna(low) or pd.isna(high):
+        return
+    low = float(low)
+    high = float(high)
+    if high < low:
+        low, high = high, low
+    if high - low <= STABILITY_LINE_THRESHOLD_DB:
+        center = (low + high) / 2.0
+        ax.axvline(center, color="red", alpha=0.24, linewidth=4.0, zorder=1, label="90% Stability")
+    else:
+        ax.axvspan(low, high, color="red", alpha=0.12, zorder=1, label="90% Stability")
+
 def _expanded_metric_limits(lower, upper, center=None, min_span=METRIC_MIN_VISIBLE_SPAN_DB):
     """Return limits with a minimum SNR-scale span while preserving the data center."""
     if not np.isfinite(lower) or not np.isfinite(upper):
@@ -318,11 +354,17 @@ def _apply_minimum_metric_yspan(ax, center=None):
     if expanded is not None:
         ax.set_ylim(*expanded)
 
-def _place_metric_legend_below_axis(ax):
-    """Move compact metric legends below the plot so annotations remain readable."""
+def _apply_minimum_metric_xspan(ax, center=None):
+    """Keep SNR/Delta-SNR x-axes from visually magnifying tiny intervals."""
+    lower, upper = ax.get_xlim()
+    expanded = _expanded_metric_limits(lower, upper, center=center)
+    if expanded is not None:
+        ax.set_xlim(*expanded)
+
+def _place_metric_legend_top_right(ax):
+    """Place compact metric legends inside the plot in the usual empty corner."""
     ax.legend(
         loc="upper right",
-        bbox_to_anchor=(1.0, -0.055),
         ncol=1,
         facecolor="#121212",
         edgecolor="#444444",
@@ -612,7 +654,7 @@ def _draw_single_vertical_raincloud(ax, values, label, color="#36aaf9"):
     return float(np.median(values))
 
 def _draw_vertical_metric_histogram(ax, values, color="#36aaf9"):
-    """Draw a horizontal histogram with the SNR metric on the vertical axis."""
+    """Draw a conventional histogram with the SNR metric on the horizontal axis."""
     values = _metric_values(values)
     if len(values) == 0:
         return np.nan
@@ -623,11 +665,41 @@ def _draw_vertical_metric_histogram(ax, values, color="#36aaf9"):
         return np.nan
 
     shares = 100.0 * counts.astype(float) / float(counts.sum())
-    bar_height = bin_width * 0.82
+    ax.bar(
+        centers,
+        shares,
+        width=bin_width * 0.82,
+        color=color,
+        alpha=0.70,
+        edgecolor="#67c4ff",
+        linewidth=0.7,
+        align="center",
+        zorder=2
+    )
+    ax.set_ylabel("Share (%)", color="white")
+    ax.set_ylim(bottom=0.0)
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
+    ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
+    ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
+    return float(np.median(values))
+
+def _draw_horizontal_metric_histogram(ax, values, color="#36aaf9"):
+    """Draw a histogram with the SNR metric on the vertical axis."""
+    values = _metric_values(values)
+    if len(values) == 0:
+        return np.nan
+
+    edges, centers, bin_width = _metric_histogram_bins(values)
+    counts, _ = np.histogram(values, bins=edges)
+    if counts.sum() == 0:
+        return np.nan
+
+    shares = 100.0 * counts.astype(float) / float(counts.sum())
     ax.barh(
         centers,
         shares,
-        height=bar_height,
+        height=bin_width * 0.82,
         color=color,
         alpha=0.70,
         edgecolor="#67c4ff",
@@ -1302,16 +1374,11 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     _style_evidence_axis(ax_cloud)
     _style_evidence_axis(ax_time)
 
-    _draw_raincloud(ax_cloud, grouped_values, group_labels, colors)
+    _draw_horizontal_metric_histogram(ax_cloud, plot_df["metric"], color=EVIDENCE_AGG_COLOR)
     ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
     ax_cloud.set_ylabel(labels["y_label"], color="white")
 
     _draw_time_heatmap(fig_ev, ax_time, plot_df, time_agg, labels, is_compare, is_sequential)
-    robust_limits = _robust_metric_limits(plot_df["metric"])
-    if robust_limits is not None:
-        lower, upper, below_pct, above_pct = robust_limits
-        ax_cloud.set_ylim(lower, upper)
-        _annotate_outlier_range(ax_cloud, below_pct, above_pct)
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
 
     st.pyplot(fig_ev, width="stretch")
@@ -1618,10 +1685,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             
             if not vals.empty:
                 med = _draw_vertical_metric_histogram(ax_hist, vals, color="#36aaf9")
-                _add_stability_band(ax_hist, station_stability_interval[1], station_stability_interval[2])
-                ax_hist.axhline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
-                _apply_minimum_metric_yspan(ax_hist, center=med)
-                _place_metric_legend_below_axis(ax_hist)
+                _add_vertical_stability_band(ax_hist, station_stability_interval[1], station_stability_interval[2])
+                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
+                _apply_minimum_metric_xspan(ax_hist, center=med)
+                _place_metric_legend_top_right(ax_hist)
             else:
                 # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
                 ax_hist.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_hist.transAxes)
@@ -1631,10 +1698,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             spot_values_numeric = pd.to_numeric(segment_raw_values, errors="coerce").dropna()
             spot_med = _draw_vertical_metric_histogram(ax_spot, segment_raw_values, color="#36aaf9")
             if pd.notna(spot_med):
-                _add_stability_band(ax_spot, spot_stability_interval[1], spot_stability_interval[2])
-                ax_spot.axhline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
-                _apply_minimum_metric_yspan(ax_spot, center=spot_med)
-                _place_metric_legend_below_axis(ax_spot)
+                _add_vertical_stability_band(ax_spot, spot_stability_interval[1], spot_stability_interval[2])
+                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
+                _apply_minimum_metric_xspan(ax_spot, center=spot_med)
+                _place_metric_legend_top_right(ax_spot)
                 if is_compare and not spot_values_numeric.empty:
                     spot_mean = spot_values_numeric.mean()
                     ax_spot.text(
@@ -1649,11 +1716,11 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                 ax_spot.set_yticks([])
                 
             if not is_compare: 
-                ax_hist.set_ylabel("Normalized SNR (dB @ 1 W)", color='white')
-                ax_spot.set_ylabel("Normalized SNR (dB @ 1 W)", color='white')
+                ax_hist.set_xlabel("Normalized SNR (dB @ 1 W)", color='white')
+                ax_spot.set_xlabel("Normalized SNR (dB @ 1 W)", color='white')
             else: 
-                ax_hist.set_ylabel("\u0394 SNR (dB)", color='white')
-                ax_spot.set_ylabel("\u0394 SNR (dB)", color='white')
+                ax_hist.set_xlabel("\u0394 SNR (dB)", color='white')
+                ax_spot.set_xlabel("\u0394 SNR (dB)", color='white')
             
             # 3. Add Common Footer Text
             # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
