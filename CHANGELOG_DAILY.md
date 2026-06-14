@@ -85,3 +85,12 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Added reproducibility and regression-test support: prepared exports now include the compact parquet analysis cache, and the test tooling can build regression fixtures from downloaded demo/result packages. Regression compare key scientific outputs such as station counts, joint/evidence counts, medians, means and segment medians.
 - Updated documentation and README structure around map reading, Segment Insight, Station Insights, Drill-Down, export/download packages, configuration workflows and 90 percent stability interpretation.
 - Renamed sequential TX A/B frame assignment from odd/even-minute wording to explicit UTC WSPR-frame start-minute wording, including config-schema compatibility for older `target_time_slot` / `reference_time_slot` files.
+
+## 2026-05-30
+- Replace raincloud with histogram to reflect integer distribution better 
+
+## 2026-06-14
+- Improved Segment Inspector performance by loading selected-station Parquet rows once and reusing them for evidence figures and drill-down tables.
+- Added a small bounded cache for bootstrap stability results, preventing recalculation when selecting different stations within the same segment scope.
+- Deferred all 300 DPI figure generation and full-segment drill-down preparation until Prepare All Results is explicitly requested.
+- Replaced the Segment Inspector’s single range and direction selectors with multiselect controls.
