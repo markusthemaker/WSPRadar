@@ -59,6 +59,65 @@ def _unique_station_order(stations):
     """Return station labels once, preserving the table selection order."""
     return list(dict.fromkeys([str(s) for s in stations if pd.notna(s)]))
 
+def _resolve_explicit_all_selection(current, previous, all_option, specific_options):
+    """Normalize one multiselect where All is explicit and mutually exclusive."""
+    allowed_specific = set(specific_options)
+    current = [
+        value for value in (current or [])
+        if value == all_option or value in allowed_specific
+    ]
+    previous = [
+        value for value in (previous or [])
+        if value == all_option or value in allowed_specific
+    ]
+    specifics = [value for value in current if value != all_option]
+
+    if all_option in current and specifics:
+        return specifics if all_option in previous else [all_option]
+    if specifics:
+        return specifics
+    return [all_option]
+
+def _initialize_explicit_all_multiselect(key, previous_key, all_option, specific_options):
+    """Prepare stable list state before constructing an explicit-All multiselect."""
+    current = st.session_state.get(key, [all_option])
+    if isinstance(current, str):
+        current = [current]
+    previous = st.session_state.get(previous_key, [all_option])
+    if isinstance(previous, str):
+        previous = [previous]
+    normalized = _resolve_explicit_all_selection(current, previous, all_option, specific_options)
+    st.session_state[key] = normalized
+    st.session_state[previous_key] = normalized
+
+def _update_explicit_all_multiselect(key, previous_key, all_option, specific_options):
+    """Apply explicit-All behavior after the user changes a multiselect."""
+    current = st.session_state.get(key, [])
+    previous = st.session_state.get(previous_key, [all_option])
+    normalized = _resolve_explicit_all_selection(current, previous, all_option, specific_options)
+    st.session_state[key] = normalized
+    st.session_state[previous_key] = normalized
+
+def _canonical_specific_selection(selection, all_option, ordered_options):
+    """Return selected specific options in their canonical UI order."""
+    if all_option in selection:
+        return ()
+    selected = set(selection)
+    return tuple(option for option in ordered_options if option in selected)
+
+def _selection_summary(selection, all_option, item_kind, lang):
+    """Build a compact scope label without losing single-selection detail."""
+    if not selection:
+        return all_option
+    limit = 2 if item_kind == "range" else 4
+    if len(selection) <= limit:
+        return ", ".join(selection)
+    if lang == "de":
+        noun = "Bereiche" if item_kind == "range" else "Richtungen"
+    else:
+        noun = "ranges" if item_kind == "range" else "directions"
+    return f"{len(selection)} {noun}"
+
 def _empty_evidence_df():
     return pd.DataFrame(columns=["identity", "station", "grid", "plot_time", "metric", "identity_order"])
 
@@ -1359,7 +1418,7 @@ def _build_drilldown_table(
         drill_df = _sort_drilldown_default(drill_df)
     return drill_df if drill_df is not None else pd.DataFrame(), info_msg
 
-def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, selected_seg, t, is_compare):
+def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, scope_token, t, is_compare):
     """Render selected drill-down rows with local filters and return the displayed dataframe."""
     if drill_df is None or drill_df.empty:
         return pd.DataFrame()
@@ -1376,7 +1435,7 @@ def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, sele
                 "Select Columns",
                 drill_df.columns,
                 label_visibility="collapsed",
-                key=f"d_flt_{analysis_id}_{run_id}_{selected_seg}"
+                key=f"d_flt_{analysis_id}_{run_id}_{scope_token}"
             )
 
             for col in d_filter_cols:
@@ -1391,7 +1450,7 @@ def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, sele
                             max_val,
                             (min_val, max_val),
                             step=step,
-                            key=f"d_sld_{col}_{analysis_id}_{run_id}_{selected_seg}"
+                            key=f"d_sld_{col}_{analysis_id}_{run_id}_{scope_token}"
                         )
                         drill_df = drill_df[(drill_df[col] >= sel_range[0]) & (drill_df[col] <= sel_range[1])]
                 else:
@@ -1400,7 +1459,7 @@ def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, sele
                         f"{col}",
                         unique_vals,
                         default=[],
-                        key=f"d_ms_{col}_{analysis_id}_{run_id}_{selected_seg}"
+                        key=f"d_ms_{col}_{analysis_id}_{run_id}_{scope_token}"
                     )
                     if sel_vals:
                         drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
@@ -1770,55 +1829,126 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         [d for d in inspector_source_df['dist_label'].dropna().unique()],
         key=lambda x: int(x.strip('[]km').split('-')[0])
     )
-    filtered_distances = valid_distances
-    
     lbl_dist = t.get("opt_insp_dist", "---")
     lbl_dir = t.get("opt_insp_dir", "---")
     opt_full = t.get("opt_full_range", "Full Range")
     opt_all_dir = t.get("opt_all_dirs", "All Directions")
-    
-    # Render Dropdowns
-    col_insp1, col_insp2 = st.columns(2)
-    with col_insp1: 
-        dist_key = f"dist_{analysis_id}_{run_id}"
-        dist_options = [opt_full] + filtered_distances
-        if st.session_state.get(dist_key) in (None, lbl_dist) or st.session_state.get(dist_key) not in dist_options:
-            st.session_state[dist_key] = opt_full
-        sel_dist = st.selectbox("Distance", dist_options, key=dist_key, label_visibility="collapsed")
-    with col_insp2:
-        dir_key = f"dir_{analysis_id}_{run_id}"
-        if sel_dist == opt_full:
-            valid_dirs = sorted(
-                [d for d in inspector_source_df['dir_name'].dropna().unique() if d in COMPASS],
-                key=lambda x: COMPASS.index(x)
-            )
-        else:
-            valid_dirs = sorted(
-                [d for d in inspector_source_df[inspector_source_df['dist_label'] == sel_dist]['dir_name'].dropna().unique() if d in COMPASS],
-                key=lambda x: COMPASS.index(x)
-            )
 
-        if not valid_dirs:
-            dir_options = [t.get("opt_no_station", "No Stations")]
-            sel_dir = st.selectbox("Direction", dir_options, key=dir_key, disabled=True, label_visibility="collapsed")
-        else: 
-            dir_options = [opt_all_dir] + valid_dirs
-            if st.session_state.get(dir_key) in (None, lbl_dir) or st.session_state.get(dir_key) not in dir_options:
-                st.session_state[dir_key] = opt_all_dir
-            sel_dir = st.selectbox("Direction", dir_options, key=dir_key, label_visibility="collapsed")
+    valid_dirs = sorted(
+        [d for d in inspector_source_df['dir_name'].dropna().unique() if d in COMPASS],
+        key=lambda x: COMPASS.index(x)
+    )
+
+    # Render stable explicit-All multiselects. The callback keeps All mutually
+    # exclusive with specific values and restores All when the field is cleared.
+    col_insp1, col_insp2 = st.columns(2)
+    with col_insp1:
+        dist_key = f"dist_multi_{analysis_id}_{run_id}"
+        dist_previous_key = f"{dist_key}_previous"
+        dist_options = [opt_full] + valid_distances
+        _initialize_explicit_all_multiselect(
+            dist_key,
+            dist_previous_key,
+            opt_full,
+            valid_distances,
+        )
+        selected_distance_values = st.multiselect(
+            lbl_dist,
+            dist_options,
+            key=dist_key,
+            on_change=_update_explicit_all_multiselect,
+            args=(dist_key, dist_previous_key, opt_full, valid_distances),
+            label_visibility="collapsed",
+        )
+
+    with col_insp2:
+        dir_key = f"dir_multi_{analysis_id}_{run_id}"
+        dir_previous_key = f"{dir_key}_previous"
+        dir_options = [opt_all_dir] + valid_dirs
+        _initialize_explicit_all_multiselect(
+            dir_key,
+            dir_previous_key,
+            opt_all_dir,
+            valid_dirs,
+        )
+        selected_direction_values = st.multiselect(
+            lbl_dir,
+            dir_options,
+            key=dir_key,
+            on_change=_update_explicit_all_multiselect,
+            args=(dir_key, dir_previous_key, opt_all_dir, valid_dirs),
+            label_visibility="collapsed",
+        )
+
+    selected_ranges = _canonical_specific_selection(
+        selected_distance_values,
+        opt_full,
+        valid_distances,
+    )
+    selected_directions = _canonical_specific_selection(
+        selected_direction_values,
+        opt_all_dir,
+        valid_dirs,
+    )
+    range_summary = _selection_summary(
+        selected_ranges,
+        opt_full,
+        "range",
+        st.session_state.lang,
+    )
+    direction_summary = _selection_summary(
+        selected_directions,
+        opt_all_dir,
+        "direction",
+        st.session_state.lang,
+    )
+    selected_seg = f"{range_summary} | {direction_summary}"
+
+    range_token = "all" if not selected_ranges else "-".join(
+        str(valid_distances.index(value)) for value in selected_ranges
+    )
+    direction_token = "all" if not selected_directions else "-".join(
+        str(COMPASS.index(value)) for value in selected_directions
+    )
+    scope_token = f"r{range_token}_d{direction_token}"
 
     st.markdown("<div style='height:0.38rem;'></div>", unsafe_allow_html=True)
 
-    # If user selected a valid segment, process the inspection data
-    if sel_dir != t.get("opt_no_station", "No Stations"):
-        selected_seg = f"{sel_dist if sel_dist != opt_full else t['opt_full_range']} | {sel_dir if sel_dir != opt_all_dir else t['opt_all_dirs']}"
+    # If inspectable options exist, process the selected Cartesian scope.
+    if valid_distances and valid_dirs:
         segment_insight_label = "Segment-Insight" if st.session_state.lang == "de" else "Segment Insight"
         _section_header(segment_insight_label, "material:data_usage")
         df_seg = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
         
         # Apply user filters
-        if sel_dist != opt_full: df_seg = df_seg[df_seg['dist_label'] == sel_dist]
-        if sel_dir != opt_all_dir: df_seg = df_seg[df_seg['dir_name'] == sel_dir]
+        if selected_ranges:
+            df_seg = df_seg[df_seg['dist_label'].isin(selected_ranges)]
+        if selected_directions:
+            df_seg = df_seg[df_seg['dir_name'].isin(selected_directions)]
+
+        if df_seg.empty:
+            empty_scope_message = (
+                "Keine Stationen im ausgewaehlten Bereich."
+                if st.session_state.lang == "de"
+                else "No stations in the selected scope."
+            )
+            st.info(empty_scope_message, icon=":material/info:")
+            register_inspector_export(
+                analysis_id=analysis_id,
+                selected_segment=selected_seg,
+                selected_distance=range_summary,
+                selected_direction=direction_summary,
+                selected_ranges=list(selected_ranges) if selected_ranges else [opt_full],
+                selected_directions=list(selected_directions) if selected_directions else [opt_all_dir],
+                show_non_joint=False,
+                evidence_time_bin=None,
+                selected_stations=[],
+                station_insights_df=pd.DataFrame(),
+                drilldown_selected_df=pd.DataFrame(),
+            )
+            if show_export_button:
+                render_download_all_results(t)
+            return
             
         has_joint_rows = False
         has_non_joint_rows = False
@@ -1872,7 +2002,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
 
         station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
-        toggle_key = f"tgl_{analysis_id}_{run_id}_{selected_seg}"
+        toggle_key = f"tgl_{analysis_id}_{run_id}_{scope_token}"
         view_defaults = st.session_state.get("demo_view_defaults", {})
         if "show_non_joint" in view_defaults and view_defaults.get("show_non_joint") is not None:
             default_state = bool(view_defaults.get("show_non_joint"))
@@ -1944,7 +2074,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
             segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
             stability_result = _cached_segment_stability(
-                (run_id, analysis_id, selected_seg),
+                (run_id, analysis_id, selected_ranges, selected_directions),
                 vals,
                 segment_evidence_df,
             )
@@ -2073,7 +2203,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         _render_reference_correction_notice(t, is_compare)
 
         # Die Tabelle rendert nun den gefilterten Zustand
-        tbl_key = f"tbl_{analysis_id}_{run_id}_{selected_seg}"
+        tbl_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"
         dataframe_kwargs = {
             "width": "stretch",
             "hide_index": True,
@@ -2166,7 +2296,7 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
                         drill_title,
                         analysis_id,
                         run_id,
-                        selected_seg,
+                        scope_token,
                         t,
                         is_compare,
                     )
@@ -2177,8 +2307,10 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         register_inspector_export(
             analysis_id=analysis_id,
             selected_segment=selected_seg,
-            selected_distance=sel_dist if sel_dist != opt_full else opt_full,
-            selected_direction=sel_dir if sel_dir != opt_all_dir else opt_all_dir,
+            selected_distance=range_summary,
+            selected_direction=direction_summary,
+            selected_ranges=list(selected_ranges) if selected_ranges else [opt_full],
+            selected_directions=list(selected_directions) if selected_directions else [opt_all_dir],
             show_non_joint=show_non_joint,
             evidence_time_bin=(selected_evidence_export or {}).get("time_bin"),
             selected_stations=selected_station_labels,
