@@ -282,7 +282,7 @@ Sequenzieller TX ist zeitgebinnt, nicht simultan. Mehrt&auml;giges fixes Timing 
 
 **Heatmap-Segmente**
 
-Absolute Modi zeigen den Median der geeigneten Peer-Opportunity-Raten von 0 bis 100 Prozent. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
+Absolute Modi zeigen den Median der geeigneten Peer-Opportunity-Raten. Ihre Farbskala beginnt bei 0 Prozent und reicht bis 10 Prozent oberhalb des h&ouml;chsten dargestellten Segmentmedians, begrenzt auf 100 Prozent. Dadurch werden Strukturen bei niedrigen Raten sichtbar; Farben verschiedener Absolute Karten sind jedoch erst nach Ablesen der jeweiligen Farbskala vergleichbar. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
 
 **Distanzringe**
 
@@ -309,8 +309,10 @@ Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Distanzring und
 
 Der **Segment Insight** Block fasst den aktuell gew&auml;hlten Distanzbereich und die Richtung zusammen. Absolute und vergleichende Analysen verwenden unterschiedliche Evidenzansichten, weil sie unterschiedliche Zielgr&ouml;&szlig;en sch&auml;tzen. Vergleichsmodi behalten System Sensitivity / Decode Yield, stationsbalancierte Mediane und rohe Spot-/Bin-Evidenz bei.
 
-* In absoluten Modi zeigen die vier Panels `O/H/M/T`-Ergebniszahlen, geeignete Peer-Raten, die stationsbalancierte Rate &uuml;ber der Zeit und die best&auml;tigte Opportunity-Evidenz auf derselben Zeitachse.
+* In absoluten Modi bleiben die `O/H/M/T`-Ergebniszahlen in der textuellen Evidenzzusammenfassung, statt als redundante Grafik wiederholt zu werden. Die Grafik nutzt den verf&uuml;gbaren Platz f&uuml;r geeignete Peer-Raten, die stationsbalancierte Rate &uuml;ber der Zeit und best&auml;tigte Opportunity-Evidenz.
+* Die Heatmap der stationsbalancierten Rate verwendet dieselbe dynamische Ratenskala wie die aktuelle Absolute Karte. Die benachbarte Opportunity-Evidenz-Heatmap verwendet dieselben Distanzzeilen und l&auml;sst die doppelte y-Achsenbeschriftung weg.
 * Absolute Station Insights listen Peer-Identit&auml;t, Distanz, Azimut, `O`, `H`, `M`, `T`, Eignung, best&auml;tigte Rate und das SNR erfolgreicher Decodes als Zusatzevidenz. Karte und Headline-Ergebnis verwenden Raten, nicht SNR.
+* Absolute Station Insights werden absteigend nach Hits (`H`), danach nach Opportunity-Anzahl und best&auml;tigter Rate sortiert.
 * Die absolute Segment-Zusammenfassung zeigt sowohl den Median der geeigneten Peer-Raten als auch die gepoolte Rate `sum(H) / sum(O)` &uuml;ber dieselben geeigneten Peers. Eine gro&szlig;e Differenz weist darauf hin, dass wenige volumenstarke Peers das gepoolte Ergebnis beeinflussen.
 * In Vergleichsmodi nutzen die oberen Verteilungspanels Prozent-Histogramme f&uuml;r Delta SNR. Dadurch bleibt quantisierte WSPR-SNR-Evidenz sichtbar, ohne sie zu einer kontinuierlichen Dichteform zu gl&auml;tten.
 * SNR-Histogramm-Bins sind pro Panel global fest und decken den vollen sichtbaren Bereich mit h&ouml;chstens 40 Balken ab. WSPRadar nutzt standardm&auml;&szlig;ig 1,0-dB-Bins, wechselt nur bei klarer HalbdB-Struktur der Werte auf 0,5-dB-Bins und aggregiert breite Bereiche bei Bedarf auf 1, 2, 3, 6 oder 10 dB.
@@ -329,7 +331,7 @@ Der **Segment Insight** Block fasst den aktuell gew&auml;hlten Distanzbereich un
 
 Die Drill-Down-Tabelle ist die zeilenbasierte Auditschicht f&uuml;r alle Modi. Sie zeigt Beobachtungen, Paare oder Zeit-Bins hinter einer Station-Insights-Zeile, damit Segment- und Stationsmediane gegen die zugrunde liegende Evidenz gepr&uuml;ft werden k&ouml;nnen.
 
-In absoluten Modi ist jede Drill-Down-Zeile eine target-aktive Stations-Zyklus-Beobachtung, klassifiziert als `H`, `M` oder `T`, mit den zugeh&ouml;rigen Opportunity-Flags und erfolgreichem Ziel-SNR, sofern vorhanden. In normalen Same-Cycle-Vergleichsmodi zeigt der Drill-Down die gepaarten Spot-Level-Vergleiche, die in den Stationsmedian eingehen.
+In absoluten Modi verwendet die Evidenzgrafik der ausgew&auml;hlten Stationen zwei vergr&ouml;&szlig;erte Panels: Rate/Evidenz &uuml;ber der Zeit und erfolgreiches Ziel-SNR. Die Achse der best&auml;tigten Rate reicht bis 10 Prozent oberhalb des gr&ouml;&szlig;ten sichtbaren Werts, begrenzt auf 100 Prozent, statt immer den gesamten Bereich von 0 bis 100 Prozent zu reservieren. Jede Drill-Down-Zeile ist eine target-aktive Stations-Zyklus-Beobachtung, klassifiziert als `H`, `M` oder `T`, mit den zugeh&ouml;rigen Opportunity-Flags und erfolgreichem Ziel-SNR, sofern vorhanden. In normalen Same-Cycle-Vergleichsmodi zeigt der Drill-Down die gepaarten Spot-Level-Vergleiche, die in den Stationsmedian eingehen.
 
 F&uuml;r die Median-Nachbarschaftsmethode wird der Referenzpool expandiert. Statt nur eine generische `Ref Pool`-Zeile zu zeigen, listet die Tabelle die einzelnen lokalen Referenzstationen dieses Zyklus, ihren Locator, ihre Distanz, ihr normiertes Referenz-SNR, den aggregierten Nachbarschaftsmedian des Zyklus, das eigene SNR und den resultierenden Delta SNR. So l&auml;sst sich der Median direkt nachvollziehen.
 

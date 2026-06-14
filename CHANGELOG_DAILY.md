@@ -99,4 +99,6 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Rebuilt Absolute Segment Insight, Station Insights and drill-down views around opportunity outcomes, peer rates, rate/evidence time views and successful SNR as supporting evidence.
 - Added a compact single-band ClickHouse query that returns station-cycle flags as Parquet, plus exact-query disk caching to reduce repeated database load and shared Streamlit RAM use.
 - Extended configuration/export metadata and English/German documentation for the new Absolute method, its assumptions, query behavior and limitations; bumped WSPRadar to v0.94.
+- Simplified Absolute evidence figures by removing redundant outcome-count charts, enlarging the remaining panels, dynamically scaling confirmation-rate axes and synchronizing the rate-over-time heatmap with the map color scale.
+- Added dynamic Absolute map color limits for low-rate datasets and changed Absolute Station Insights to sort primarily by descending Hits (`H`).
 - Replaced the Segment Inspector’s single range and direction selectors with multiselect controls.

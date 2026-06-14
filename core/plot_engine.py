@@ -19,6 +19,7 @@ from config import *
 from core.opportunity_engine import (
     aggregate_opportunity_peers,
     aggregate_opportunity_segments,
+    opportunity_rate_scale_max,
 )
 from core.snr_utils import round_snr_like_columns
 from i18n import T
@@ -409,8 +410,15 @@ def generate_map_plot(
             "#3b0f70", "#364b9a", "#277f8e", "#1fa187", "#4ac16d",
             "#8bd646", "#cde11d", "#f4d03f", "#f89540", "#d73027",
         ]
-        bnds = np.linspace(0, 100, 11)
-        lbls = [f"{int(value)}%" for value in bnds]
+        visible_rate_values = segs.loc[
+            segs["r_min"] < max_dist_km,
+            "val",
+        ] if not segs.empty else []
+        rate_scale_max = opportunity_rate_scale_max(visible_rate_values)
+        segs["rate_scale_max"] = rate_scale_max
+        bnds = np.linspace(0, rate_scale_max, 11)
+        rate_decimals = 1 if rate_scale_max < 10 else 0
+        lbls = [f"{value:.{rate_decimals}f}%" for value in bnds]
         ticks = bnds
         cbar_title = t_lang["cbar_abs"]
     else:

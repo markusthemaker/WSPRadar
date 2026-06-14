@@ -275,7 +275,7 @@ Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces t
 
 **Heatmap segments**
 
-Absolute modes show the median eligible peer opportunity rate from 0 to 100 percent. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
+Absolute modes show the median eligible peer opportunity rate. Their color scale starts at 0 percent and extends to 10 percent above the highest rendered segment median, capped at 100 percent. This makes low-rate structure visible, but it also means colors from separate Absolute maps are comparable only after reading each map's colorbar. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
 
 **Distance rings**
 
@@ -302,8 +302,10 @@ The Segment Inspector is the audit layer below the maps. Select a distance ring 
 
 The **Segment Insight** block summarizes the currently selected range and direction. Absolute and Compare analyses use different evidence views because their estimands are different. Compare modes retain System Sensitivity / Decode Yield, station-balanced medians and raw spot/bin evidence. In same-cycle Compare modes the raw-evidence panel is `Joint-Spot Δ SNR`; in sequential TX A/B it is `Paired Spot Bin Δ SNR`.
 
-* In Absolute modes, the four panels show `O/H/M/T` outcome counts, eligible peer rates, the station-balanced rate over time and confirmed-opportunity evidence over the same time axis.
+* In Absolute modes, `O/H/M/T` outcome counts remain in the textual evidence summary rather than being repeated as a chart. The figure gives the available space to eligible peer rates, the station-balanced rate over time and confirmed-opportunity evidence.
+* The station-balanced rate heatmap reuses the current Absolute map's dynamic rate scale. The adjacent opportunity-evidence heatmap uses the same range rows and omits the duplicate y-axis labels.
 * Absolute Station Insights list peer identity, distance, azimuth, `O`, `H`, `M`, `T`, eligibility, confirmed rate and successful-decode SNR as supporting evidence. The map and headline result use rates, not SNR.
+* Absolute Station Insights are ordered by descending Hits (`H`), then opportunity count and confirmed rate.
 * The Absolute segment summary reports both the median eligible peer rate and the pooled `sum(H) / sum(O)` rate over those same eligible peers. A large difference between them signals that a few high-volume peers are influencing the pooled result.
 * In compare modes, the top distribution panels use percent histograms of Delta SNR. This keeps quantized WSPR SNR evidence visible without smoothing it into a continuous density shape.
 * SNR histogram bins are globally fixed per panel and cover the full visible range with at most 40 bars. WSPRadar defaults to 1.0 dB bins, uses 0.5 dB bins only when the values clearly occupy a half-dB lattice, and aggregates wide ranges to 1, 2, 3, 6 or 10 dB bins as needed.
@@ -322,7 +324,7 @@ The **Segment Insight** block summarizes the currently selected range and direct
 
 The Drill-Down table is the row-level audit layer across all modes. It shows the observations, pairs or time bins behind a Station Insights row so the segment and station medians can be reconciled against the underlying evidence.
 
-For Absolute modes, each Drill-Down row is one target-active station-cycle observation classified as `H`, `M` or `T`, with the corresponding opportunity flags and successful target SNR where available. For normal same-cycle Compare modes, the Drill-Down exposes the paired spot-level comparisons used for the station-level median.
+For Absolute modes, the selected-station evidence figure uses two enlarged panels: rate/evidence over time and successful target SNR. Its confirmed-rate axis extends to 10 percent above the largest visible rate, capped at 100 percent, instead of always reserving the full 0-100 percent range. Each Drill-Down row is one target-active station-cycle observation classified as `H`, `M` or `T`, with the corresponding opportunity flags and successful target SNR where available. For normal same-cycle Compare modes, the Drill-Down exposes the paired spot-level comparisons used for the station-level median.
 
 For the median-neighborhood method, the Drill-Down expands the reference pool. Instead of showing only a generic `Ref Pool` row, it lists the individual local reference stations that contributed in that cycle, their locator, distance, normalized reference SNR, the cycle's aggregated neighborhood median, your SNR and the resulting Delta SNR. This lets you reconcile the median directly.
 

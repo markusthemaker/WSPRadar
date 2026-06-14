@@ -15,6 +15,7 @@ import matplotlib as mpl
 import matplotlib.dates as mdates
 import streamlit as st
 from config import APP_VERSION, COMPASS
+from core.opportunity_engine import opportunity_rate_scale_max
 from ui.results_export import register_inspector_export, render_download_all_results
 
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
@@ -1712,7 +1713,13 @@ def _opportunity_time_bin(rows):
     return "12h"
 
 
-def _opportunity_segment_recipe(title, selected_segment, peer_df, rows):
+def _opportunity_segment_recipe(
+    title,
+    selected_segment,
+    peer_df,
+    rows,
+    rate_scale_max,
+):
     """Build compact opportunity plot inputs for UI and lazy export."""
     eligible = peer_df[peer_df["eligible"] & peer_df["rate_pct"].notna()].copy()
     time_bin = _opportunity_time_bin(rows)
@@ -1768,13 +1775,7 @@ def _opportunity_segment_recipe(title, selected_segment, peer_df, rows):
         "title": title,
         "selected_segment": selected_segment,
         "time_bin": time_bin,
-        "panel_counts": [
-            int(rows["opportunity"].sum()),
-            int(rows["hit"].sum()),
-            int(rows["miss"].sum()),
-            int(rows["target_only"].sum()),
-        ],
-        "panel_labels": ["O", "H", "M", "T"],
+        "rate_scale_max": float(rate_scale_max),
         "peer_rates": eligible["rate_pct"].to_numpy(dtype=float, copy=True),
         "successful_snr": pd.to_numeric(
             rows.loc[rows["target_seen"] > 0, "target_snr"],
@@ -1787,7 +1788,18 @@ def _opportunity_segment_recipe(title, selected_segment, peer_df, rows):
     }
 
 
-def _draw_opportunity_heatmap(ax, grid, range_labels, time_values, title, cbar_label, cmap, vmin=None, vmax=None):
+def _draw_opportunity_heatmap(
+    ax,
+    grid,
+    range_labels,
+    time_values,
+    title,
+    cbar_label,
+    cmap,
+    vmin=None,
+    vmax=None,
+    show_y_labels=True,
+):
     ax.set_facecolor("black")
     ax.tick_params(colors="white", labelsize=8)
     for spine in ax.spines.values():
@@ -1810,7 +1822,10 @@ def _draw_opportunity_heatmap(ax, grid, range_labels, time_values, title, cbar_l
         vmax=vmax,
     )
     ax.set_yticks(np.arange(len(range_labels)))
-    ax.set_yticklabels(range_labels, color="white", fontsize=8)
+    if show_y_labels:
+        ax.set_yticklabels(range_labels, color="white", fontsize=8)
+    else:
+        ax.tick_params(axis="y", left=False, labelleft=False)
     tick_count = min(7, len(time_values))
     tick_indices = np.unique(np.linspace(0, len(time_values) - 1, tick_count).astype(int))
     ax.set_xticks(tick_indices)
@@ -1835,38 +1850,19 @@ def _render_opportunity_segment_figure(recipe):
         y=0.98,
     )
     fig.text(0.98, 0.035, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
-    gs = fig.add_gridspec(2, 2)
-    ax_counts = fig.add_subplot(gs[0, 0])
-    ax_rates = fig.add_subplot(gs[0, 1])
+    gs = fig.add_gridspec(2, 2, height_ratios=[0.82, 1.18])
+    ax_rates = fig.add_subplot(gs[0, :])
     ax_rate_time = fig.add_subplot(gs[1, 0])
-    ax_opp_time = fig.add_subplot(gs[1, 1])
+    ax_opp_time = fig.add_subplot(gs[1, 1], sharey=ax_rate_time)
 
-    for ax in [ax_counts, ax_rates]:
-        _style_evidence_axis(ax)
-
-    counts = list(recipe.get("panel_counts", []))
-    labels = list(recipe.get("panel_labels", []))
-    colors = ["#36aaf9", "#72fe5e", "#f66b19", "#ffbe33"]
-    bars = ax_counts.bar(labels, counts, color=colors[:len(labels)], alpha=0.82, edgecolor="black")
-    ax_counts.set_title("Opportunity Outcomes", color="white", fontweight="bold", pad=8)
-    ax_counts.set_ylabel("Peer-cycle count", color="white")
-    for bar, value in zip(bars, counts):
-        ax_counts.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height(),
-            str(int(value)),
-            color="white",
-            ha="center",
-            va="bottom",
-            fontsize=9,
-        )
+    _style_evidence_axis(ax_rates)
 
     rates = np.asarray(recipe.get("peer_rates", []), dtype=float)
     if len(rates):
         _draw_vertical_metric_histogram(ax_rates, rates, color="#36aaf9")
         median_rate = float(np.median(rates))
         ax_rates.axvline(median_rate, color="red", linestyle="dashed", linewidth=1, label=f"median {median_rate:.1f}%")
-        ax_rates.set_xlim(0, 100)
+        ax_rates.set_xlim(0, opportunity_rate_scale_max(rates))
         _place_metric_legend_top_right(ax_rates)
     else:
         ax_rates.text(0.5, 0.5, "No eligible peers", color="#cccccc", ha="center", va="center", transform=ax_rates.transAxes)
@@ -1887,7 +1883,7 @@ def _render_opportunity_segment_figure(recipe):
         "Median peer H/O (%)",
         mpl.colormaps["viridis"],
         vmin=0,
-        vmax=100,
+        vmax=float(recipe.get("rate_scale_max", 100.0)),
     )
     _draw_opportunity_heatmap(
         ax_opp_time,
@@ -1898,6 +1894,7 @@ def _render_opportunity_segment_figure(recipe):
         "Confirmed opportunities O",
         EVIDENCE_HEATMAP_CMAP,
         vmin=0,
+        show_y_labels=False,
     )
     return fig
 
@@ -1925,11 +1922,6 @@ def _opportunity_selected_recipe(rows, title, time_bin):
         "kind": "opportunity",
         "title": title,
         "time_bin": time_bin,
-        "counts": [
-            int(work["hit"].sum()),
-            int(work["miss"].sum()),
-            int(work["target_only"].sum()),
-        ],
         "time_ns": pd.to_datetime(bins["time_bin"], utc=True).dt.tz_convert(None).to_numpy(dtype="datetime64[ns]").astype(np.int64, copy=True),
         "rate_pct": bins["rate_pct"].to_numpy(dtype=float, copy=True),
         "opportunities": bins["opportunities"].to_numpy(dtype=float, copy=True),
@@ -1943,22 +1935,14 @@ def _opportunity_selected_recipe(rows, title, time_bin):
 
 def _render_opportunity_selected_figure(recipe):
     fig = plt.figure(figsize=(13, 5.6), facecolor="black")
-    fig.subplots_adjust(left=0.06, right=0.97, bottom=0.16, top=0.80, wspace=0.30)
+    fig.subplots_adjust(left=0.07, right=0.95, bottom=0.16, top=0.80, wspace=0.32)
     fig.suptitle(f"\n{recipe.get('title', '')}", color="white", fontweight="bold", fontsize=14, y=0.98)
     fig.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
-    gs = fig.add_gridspec(1, 3)
-    ax_counts = fig.add_subplot(gs[0, 0])
-    ax_time = fig.add_subplot(gs[0, 1])
-    ax_snr = fig.add_subplot(gs[0, 2])
-    for ax in [ax_counts, ax_time, ax_snr]:
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.55, 1.0])
+    ax_time = fig.add_subplot(gs[0, 0])
+    ax_snr = fig.add_subplot(gs[0, 1])
+    for ax in [ax_time, ax_snr]:
         _style_evidence_axis(ax)
-
-    counts = list(recipe.get("counts", []))
-    bars = ax_counts.bar(["H", "M", "T"], counts, color=["#72fe5e", "#f66b19", "#ffbe33"], alpha=0.82, edgecolor="black")
-    ax_counts.set_title("Selected Outcome Counts", color="white", fontweight="bold", pad=8)
-    ax_counts.set_ylabel("Peer-cycle count", color="white")
-    for bar, value in zip(bars, counts):
-        ax_counts.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), str(int(value)), color="white", ha="center", va="bottom", fontsize=9)
 
     times = pd.to_datetime(np.asarray(recipe.get("time_ns", []), dtype=np.int64), unit="ns", utc=True).tz_convert(None)
     rates = np.asarray(recipe.get("rate_pct", []), dtype=float)
@@ -1967,7 +1951,7 @@ def _render_opportunity_selected_figure(recipe):
     x_values = mdates.date2num(times.to_pydatetime()) if len(times) else np.array([])
     if len(x_values):
         ax_time.plot(x_values, rates, color="#c8f4ff", marker="o", markersize=3, linewidth=1.2, label="H/O")
-        ax_time.set_ylim(0, 100)
+        ax_time.set_ylim(0, opportunity_rate_scale_max(rates))
         ax_time.set_ylabel("Confirmed rate (%)", color="white")
         ax_time.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=7))
         ax_time.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
@@ -2181,6 +2165,7 @@ def _render_opportunity_scope(
     direction_summary,
     scope_token,
     run_id,
+    rate_scale_max,
     show_export_button,
 ):
     """Render the opportunity-specific Absolute inspector and export state."""
@@ -2254,7 +2239,13 @@ def _render_opportunity_scope(
         unsafe_allow_html=True,
     )
 
-    segment_recipe = _opportunity_segment_recipe(title, selected_seg, df_seg, rows)
+    segment_recipe = _opportunity_segment_recipe(
+        title,
+        selected_seg,
+        df_seg,
+        rows,
+        rate_scale_max,
+    )
     fig = _render_opportunity_segment_figure(segment_recipe)
     st.pyplot(fig, width="stretch")
     plt.close(fig)
@@ -2295,8 +2286,9 @@ def _render_opportunity_scope(
     disp_df[rate_col] = pd.to_numeric(disp_df[rate_col], errors="coerce").round(1)
     disp_df[snr_col] = pd.to_numeric(disp_df[snr_col], errors="coerce").round(1)
     opportunity_col = t.get("tbl_col_opportunities", "Opportunities (O)")
+    hit_col = t.get("tbl_col_hits", "Hits (H)")
     disp_df = disp_df.sort_values(
-        [eligible_col, opportunity_col, rate_col],
+        [hit_col, opportunity_col, rate_col],
         ascending=[False, False, False],
         na_position="last",
     ).reset_index(drop=True)
@@ -2639,6 +2631,18 @@ def render_segment_inspector(
             return
 
         if analysis_kind == "opportunity":
+            if "rate_scale_max" in segs_df.columns:
+                rate_scale_values = pd.to_numeric(
+                    segs_df["rate_scale_max"],
+                    errors="coerce",
+                ).dropna()
+            else:
+                rate_scale_values = pd.Series(dtype=float)
+            rate_scale_max = (
+                float(rate_scale_values.iloc[0])
+                if not rate_scale_values.empty
+                else opportunity_rate_scale_max(df_seg["rate_pct"])
+            )
             _render_opportunity_scope(
                 analysis_id=analysis_id,
                 title=title,
@@ -2653,6 +2657,7 @@ def render_segment_inspector(
                 direction_summary=direction_summary,
                 scope_token=scope_token,
                 run_id=run_id,
+                rate_scale_max=rate_scale_max,
                 show_export_button=show_export_button,
             )
             return

@@ -20,6 +20,25 @@ ABSOLUTE_METHOD_VERSION = "opportunity-v1"
 DEFAULT_MIN_OPPORTUNITIES = 5
 
 
+def opportunity_rate_scale_max(values, minimum=1.0):
+    """
+    Return a readable linear upper limit for confirmation-rate plots.
+
+    The limit adds 10 percent headroom above the largest finite value, keeps
+    zero visible, and never exceeds the physical 100 percent ceiling.
+    """
+    numeric = pd.to_numeric(pd.Series(values, dtype="float64"), errors="coerce")
+    numeric = numeric[np.isfinite(numeric) & (numeric >= 0.0)]
+    minimum = min(max(float(minimum), 0.1), 100.0)
+    if numeric.empty:
+        return minimum
+
+    maximum = float(numeric.max())
+    if maximum <= 0.0:
+        return minimum
+    return min(100.0, max(minimum, round(maximum * 1.10, 1)))
+
+
 def _sql_literal(value: str) -> str:
     """Return a single-quoted SQL literal after strict upstream validation."""
     return "'" + value.replace("'", "''") + "'"

@@ -7,6 +7,7 @@ from core.opportunity_engine import (
     aggregate_opportunity_peers,
     aggregate_opportunity_segments,
     build_absolute_opportunity_query,
+    opportunity_rate_scale_max,
     prepare_opportunity_rows,
 )
 
@@ -128,6 +129,14 @@ def test_segment_value_is_peer_balanced_not_pooled():
     segment = aggregate_opportunity_segments(peers).iloc[0]
     assert math.isclose(float(segment["val"]), 50.0, abs_tol=0.001)
     assert math.isclose(float(segment["pooled_rate_pct"]), 90.9, abs_tol=0.1)
+
+
+def test_opportunity_rate_scale_adds_headroom_and_caps_at_100():
+    assert math.isclose(opportunity_rate_scale_max([]), 1.0, abs_tol=0.001)
+    assert math.isclose(opportunity_rate_scale_max([0.0]), 1.0, abs_tol=0.001)
+    assert math.isclose(opportunity_rate_scale_max([2.7]), 3.0, abs_tol=0.001)
+    assert math.isclose(opportunity_rate_scale_max([80.0]), 88.0, abs_tol=0.001)
+    assert math.isclose(opportunity_rate_scale_max([100.0]), 100.0, abs_tol=0.001)
 
 
 def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():
