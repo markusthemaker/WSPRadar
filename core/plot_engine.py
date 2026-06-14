@@ -16,6 +16,10 @@ import cartopy.feature as cfeature
 import streamlit as st
 
 from config import *
+from core.opportunity_engine import (
+    aggregate_opportunity_peers,
+    aggregate_opportunity_segments,
+)
 from core.snr_utils import round_snr_like_columns
 from i18n import T
 
@@ -83,9 +87,32 @@ MAP_THEMES = {
     },
 }
 
-def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_dist_km, analysis_id, base_min_stations, lat_0, lon_0, theme="dark"):
+def generate_map_plot(
+    df,
+    title,
+    is_compare,
+    is_sequential,
+    start_t,
+    end_t,
+    max_dist_km,
+    analysis_id,
+    base_min_stations,
+    lat_0,
+    lon_0,
+    theme="dark",
+    analysis_kind="comparison",
+):
     """Hauptfunktion zum Berechnen der Aggregate und Plotten der Radar-Karte."""
     theme_cfg = MAP_THEMES.get(theme, MAP_THEMES["dark"])
+    is_opportunity = analysis_kind == "opportunity"
+
+    if is_opportunity:
+        df = aggregate_opportunity_peers(
+            df,
+            min_opportunities=st.session_state.get("val_min_opportunities", 5),
+        )
+        if df.empty:
+            return None
     
     # Entfernungen & Azimut berechnen
     l1, n1, l2, n2 = map(np.radians, [lat_0, lon_0, df['peer_lat'], df['peer_lon']])
@@ -105,7 +132,12 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     df['dist_label'] = df.apply(lambda r: f"[{int(r['r_min'])}-{int(r['r_max'])}km]" if pd.notnull(r['r_min']) else "", axis=1)
     df['SegmentID'] = df.apply(lambda r: f"{r['dist_label']} {r['dir_name']}" if pd.notnull(r['r_min']) else "Out of Bounds", axis=1)
 
-    if not is_compare:
+    if is_opportunity:
+        df_plot = df.copy()
+        segs = aggregate_opportunity_segments(df_plot)
+        if not segs.empty:
+            segs = segs[segs["cnt"] >= base_min_stations]
+    elif not is_compare:
         # Absolute Logik: Median Aggregation
         station_counts = df.groupby(['SegmentID', 'peer_sign']).size().reset_index(name='spot_count')
         valid_stations = station_counts[station_counts['spot_count'] >= st.session_state.val_min_spots]
@@ -283,7 +315,7 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         
         segs = segs[segs['cnt'] >= base_min_stations]
 
-    if df_plot.empty or segs.empty: return None
+    if df_plot.empty or (segs.empty and not is_opportunity): return None
 
     # Plot Setup
     fig = plt.figure(figsize=FIG_SIZE, facecolor=theme_cfg["fig_face"], dpi=PLOT_DPI)
@@ -372,6 +404,15 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         lbls = ['-4S', '-3S', '-2S', '-1S', '±0', '+1S', '+2S', '+3S', '+4S']
         ticks = [-24, -18, -12, -6, 0, 6, 12, 18, 24]
         cbar_title = t_lang["cbar_comp"]
+    elif is_opportunity:
+        clrs = [
+            "#3b0f70", "#364b9a", "#277f8e", "#1fa187", "#4ac16d",
+            "#8bd646", "#cde11d", "#f4d03f", "#f89540", "#d73027",
+        ]
+        bnds = np.linspace(0, 100, 11)
+        lbls = [f"{int(value)}%" for value in bnds]
+        ticks = bnds
+        cbar_title = t_lang["cbar_abs"]
     else:
         clrs = ['#190824', '#4662d7', '#36aaf9', '#1ae4b6', '#72fe5e', '#c9ef34', '#faba39', '#f66b19', '#cb2a04', '#590202']
         bnds = np.arange(-48, 18, 6)
@@ -383,18 +424,23 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
     
     # Draw Heatmap Wedges
     patches = []
-    for _, r in segs.iterrows():
-        if r['r_min'] < max_dist_km:
-            center_az = r['az_bucket'] * AZIMUTH_STEP
-            az_min = center_az - (AZIMUTH_STEP / 2.0)
-            az_max = center_az + (AZIMUTH_STEP / 2.0)
-            theta1 = 90 - az_max
-            theta2 = 90 - az_min
-            patches.append(Wedge((0,0), min(r['r_max'], max_dist_km)*1000, theta1, theta2, width=(min(r['r_max'], max_dist_km)-r['r_min'])*1000))
+    visible_segs = segs[segs["r_min"] < max_dist_km].copy()
+    for _, r in visible_segs.iterrows():
+        center_az = r['az_bucket'] * AZIMUTH_STEP
+        az_min = center_az - (AZIMUTH_STEP / 2.0)
+        az_max = center_az + (AZIMUTH_STEP / 2.0)
+        theta1 = 90 - az_max
+        theta2 = 90 - az_min
+        patches.append(Wedge((0,0), min(r['r_max'], max_dist_km)*1000, theta1, theta2, width=(min(r['r_max'], max_dist_km)-r['r_min'])*1000))
             
     heatmap_alpha = 0.75
-    p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
-    p.set_array(segs['val']); ax.add_collection(p)
+    if patches:
+        p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
+        p.set_array(visible_segs['val'].to_numpy())
+        ax.add_collection(p)
+    else:
+        p = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+        p.set_array([])
     
     lbl_both_async = t_lang.get('leg_both_async', 'Both (Async)')
 
@@ -412,6 +458,49 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         if not df_only_r.empty: ax.scatter(df_only_r['peer_lon'], df_only_r['peer_lat'], c=theme_cfg["only_ref"], s=8, alpha=1.0, edgecolors=theme_cfg["only_ref_edge"], linewidth=0.35, transform=pc_proj, zorder=8, label=lbl_only_ref)
         leg = ax.legend(loc='lower center', bbox_to_anchor=LEG_BBOX, facecolor=theme_cfg["legend_face"], edgecolor=theme_cfg["legend_edge"], labelcolor=theme_cfg["legend_text"], fontsize=FONT_LEGEND, markerscale=2.0)
         leg.set_zorder(15)
+    elif is_opportunity:
+        eligible = df_plot[df_plot["eligible"] & df_plot["rate_pct"].notna()]
+        insufficient = df_plot[
+            (~df_plot["eligible"]) &
+            (df_plot["opportunities"] > 0)
+        ]
+        target_only = df_plot[
+            (df_plot["opportunities"] == 0) &
+            (df_plot["target_only"] > 0)
+        ]
+        if not eligible.empty:
+            ax.scatter(
+                eligible["peer_lon"], eligible["peer_lat"],
+                c="#36aaf9", s=8, alpha=1.0, edgecolors="black",
+                linewidth=0.35, transform=pc_proj, zorder=10,
+                label=t_lang.get("leg_abs_eligible", "Eligible peer"),
+            )
+        if not insufficient.empty:
+            ax.scatter(
+                insufficient["peer_lon"], insufficient["peer_lat"],
+                c="#9a9a9a", s=7, alpha=0.85, edgecolors="black",
+                linewidth=0.35, transform=pc_proj, zorder=9,
+                label=t_lang.get("leg_abs_insufficient", "Insufficient opportunities"),
+            )
+        if not target_only.empty:
+            ax.scatter(
+                target_only["peer_lon"], target_only["peer_lat"],
+                c="#ffbe33", marker="D", s=12, alpha=1.0,
+                edgecolors="black", linewidth=0.35,
+                transform=pc_proj, zorder=11,
+                label=t_lang.get("leg_abs_target_only", "Target-only evidence"),
+            )
+        if not eligible.empty or not insufficient.empty or not target_only.empty:
+            leg = ax.legend(
+                loc="lower center",
+                bbox_to_anchor=LEG_BBOX,
+                facecolor=theme_cfg["legend_face"],
+                edgecolor=theme_cfg["legend_edge"],
+                labelcolor=theme_cfg["legend_text"],
+                fontsize=FONT_LEGEND,
+                markerscale=1.6,
+            )
+            leg.set_zorder(15)
     else:
         ax.scatter(df_plot['peer_lon'], df_plot['peer_lat'], c=COLOR_ONLY_ME, s=5, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=lbl_only_me)
 
@@ -465,6 +554,12 @@ def generate_map_plot(df, title, is_compare, is_sequential, start_t, end_t, max_
         elif st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
             meta_parts.append(f"Ref: Self-Test Config")
         else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
+    elif is_opportunity:
+        eligible_count = int(df_plot["eligible"].sum())
+        meta_parts.append(f"Confirmed O/Peer: >={st.session_state.get('val_min_opportunities', 5)}")
+        meta_parts.append(f"Eligible Peers: {eligible_count}")
+        meta_parts.append(f"Peers/Seg: >={base_min_stations}")
+        meta_parts.append("Segment: median peer H/O")
     else:
         meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
         meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")

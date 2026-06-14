@@ -45,6 +45,11 @@ def _is_snr_metric_column(column: str) -> bool:
     return any(marker in text for marker in SNR_METRIC_MARKERS)
 
 
+def _is_rate_metric_column(column: str) -> bool:
+    text = str(column).strip().lower()
+    return "rate" in text and "%" in text
+
+
 def _max_decimal_places(values: pd.Series) -> int:
     max_places = 0
     for raw_value in values.dropna().astype(str):
@@ -77,6 +82,9 @@ def _metric_stats(numeric: pd.Series) -> dict[str, Any]:
 
 def _primary_metric_column(table_name: str, columns: list[str]) -> str | None:
     if table_name == "table_station_insights_current_segment.csv":
+        rate_candidates = [column for column in columns if _is_rate_metric_column(column)]
+        if rate_candidates:
+            return rate_candidates[-1]
         candidates = [
             column for column in columns
             if "median" in column.lower() and _is_snr_metric_column(column)
@@ -165,7 +173,12 @@ def _csv_metrics(path: Path, table_name: str) -> dict[str, Any]:
     }
 
     for column in df.columns:
-        if column in {"Joint Spots", "Spots"} or column.startswith("Only "):
+        text = str(column).strip()
+        if (
+            column in {"Joint Spots", "Spots"} or
+            column.startswith("Only ") or
+            any(text.endswith(f"({label})") for label in ("O", "H", "M", "T"))
+        ):
             numeric = pd.to_numeric(df[column], errors="coerce").fillna(0)
             metrics[f"sum_{column}"] = int(numeric.sum())
 
@@ -179,7 +192,10 @@ def _csv_metrics(path: Path, table_name: str) -> dict[str, Any]:
         if not numeric.empty:
             metrics[f"median_of_{column}"] = float(numeric.median())
 
-    metric_columns = [column for column in df.columns if _is_snr_metric_column(column)]
+    metric_columns = [
+        column for column in df.columns
+        if _is_snr_metric_column(column) or _is_rate_metric_column(column)
+    ]
     metrics["snr_metric_columns"] = metric_columns
     for column in metric_columns:
         stats = _metric_stats(df[column])
@@ -281,6 +297,8 @@ def _build_regression_report(
             "title": block.get("title"),
             "mode": "compare" if block.get("is_compare") else "absolute",
             "is_sequential": block.get("is_sequential"),
+            "analysis_kind": block.get("analysis_kind"),
+            "absolute_method_version": block.get("absolute_method_version"),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),
@@ -407,6 +425,8 @@ def _build_manifest(
             "analysis_cache_file": block.get("analysis_cache_file"),
             "is_compare": block.get("is_compare"),
             "is_sequential": block.get("is_sequential"),
+            "analysis_kind": block.get("analysis_kind"),
+            "absolute_method_version": block.get("absolute_method_version"),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),

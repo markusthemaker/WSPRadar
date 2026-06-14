@@ -202,6 +202,8 @@ def register_map_export_context(analysis, parquet_path, start_t, end_t, max_dist
         "mode_folder": "compare" if analysis["is_compare"] else "absolute",
         "is_compare": bool(analysis["is_compare"]),
         "is_sequential": bool(analysis["is_sequential"]),
+        "analysis_kind": analysis.get("analysis_kind", "comparison"),
+        "absolute_method_version": analysis.get("absolute_method_version"),
         "map_context": {
             "parquet_path": parquet_path,
             "start_t": start_t,
@@ -332,6 +334,7 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
             "exclude_special_callsigns": config.get("exclude_special_callsigns"),
             "exclude_moving_stations": config.get("exclude_moving_stations"),
             "min_joint_spots_per_station": config.get("min_joint_spots_per_station"),
+            "min_confirmed_opportunities_per_peer": config.get("min_confirmed_opportunities_per_peer"),
             "min_joint_stations_per_map_segment": config.get("min_joint_stations_per_map_segment"),
         },
         "result_blocks": [
@@ -350,6 +353,8 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 "evidence_time_bin": block.get("evidence_time_bin"),
                 "is_compare": block.get("is_compare"),
                 "is_sequential": block.get("is_sequential"),
+                "analysis_kind": block.get("analysis_kind"),
+                "absolute_method_version": block.get("absolute_method_version"),
             }
             for key, block in blocks.items()
         ],
@@ -430,7 +435,7 @@ def _render_map_png_for_block(block):
     import matplotlib.pyplot as plt
 
     plot_result = generate_map_plot(
-        df.copy(),
+        df,
         block.get("title", ""),
         block.get("is_compare", False),
         block.get("is_sequential", False),
@@ -442,6 +447,7 @@ def _render_map_png_for_block(block):
         context["lat_0"],
         context["lon_0"],
         theme="light",
+        analysis_kind=block.get("analysis_kind", "comparison"),
     )
     if plot_result is None:
         return None

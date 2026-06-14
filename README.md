@@ -104,23 +104,43 @@ This chapter combines the user choice, the analysis concept and the experiment-d
 
 **Answers**
 
-* `TX Absolute`: where is my transmitted signal heard?
-* `RX Absolute`: who can my station hear?
-* Both modes answer path-viability and footprint questions before any benchmark is introduced.
+* `RX Absolute` / **RX Confirmed-Reception Rate:** when another receiver independently confirms that a transmitter was observable in a target-active WSPR cycle, how often did my receiver decode it too?
+* `TX Absolute` / **TX Conditional Network Decode Rate:** when a receiver independently confirms that another transmitter was observable in a target-active WSPR cycle, how often did that receiver decode my transmitter too?
+* These are conditional, opportunity-based rates. They are designed to reduce the activity, propagation and successful-decode bias that made a raw SNR map difficult to interpret.
 
 **How it works**
 
-* `TX Absolute` isolates spots where your callsign is the transmitter and maps receiving stations that decoded you.
-* `RX Absolute` isolates spots where your callsign is the receiver and maps transmitters decoded by your station.
-* SNR is normalized to 1 W where a remote transmit power is involved:
-  $$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
-* Absolute maps are excellent for coverage, skip zones and band-opening analysis. They are not fair hardware comparisons by themselves because propagation, station activity, transmitter power and receiver noise are not controlled.
+WSPRadar uses exact 2-minute UTC WSPR cycles and keeps only cycles in which the configured target station was demonstrably active. A peer is one exact `callsign + reported locator` identity.
+
+For each target-active cycle and peer:
+
+* **Opportunity (`O`)**: an external station independently confirmed that the remote peer endpoint was active and observable somewhere in the network.
+* **Hit (`H`)**: the target and the external evidence both succeeded. Every hit is also an opportunity.
+* **Miss (`M`)**: external evidence succeeded, but the target did not. Every miss is also an opportunity.
+* **Target-only (`T`)**: the target succeeded without external confirmation. This is useful supporting evidence but is never placed in the denominator.
+* **Confirmed rate:** `H / O = H / (H + M)`.
+
+The direction of the evidence depends on the mode:
+
+* In **RX**, the peer is a transmitting station. An external receiver decoding that peer creates `O`; the target receiver decoding the same peer in the same cycle creates `H`.
+* In **TX**, the peer is a receiving station. That receiver decoding another transmitter creates `O`; decoding the target transmitter in the same cycle creates `H`.
+
+Rates are first calculated per peer. A map segment shows the median rate of peers that meet the configured minimum number of confirmed opportunities. The pooled `sum(H) / sum(O)` rate over the same eligible peers remains visible as secondary evidence, but it is not the map color because a highly active peer would otherwise dominate the segment.
 
 **Careful with**
 
-* WSPR logs successful decodes, not failed receive attempts. Dead bands do not lower the median; they reduce the existence of spots.
-* Reported dBm may not equal feedpoint power or EIRP.
-* RX results include the whole receive chain: antenna, receiver, audio path, local noise, decoder behavior and upload reliability.
+* The rate is conditional on externally confirmed peer activity; it is not the probability of decoding every transmission that may have occurred.
+* External evidence confirms endpoint activity, not that the propagation path between target and peer was open. The result intentionally includes propagation, path geometry and station-system performance.
+* WSPR does not provide an authoritative transmission log. In TX mode, a target transmission decoded by nobody is unobservable and cannot become a miss.
+* Target-only evidence is displayed separately because treating it as a denominator opportunity would make the metric depend on its own success.
+* Absolute opportunity analysis requires one exact band. `Band = All` is intentionally rejected because cycles and observability are band-specific.
+* The target identity is matched by exact callsign and the configured QTH's 4-character locator. Incorrect or changing target locator uploads can therefore remove valid cycles or mix station identities.
+* The query uses valid WSPR spots with `code = 1`. Older historical records may have different code completeness; interpret long-range historical comparisons with care.
+* RX results still describe the whole receive system, and TX results still describe the whole transmit/network path. Neither rate is a laboratory antenna-gain measurement.
+
+**Query and cache behavior**
+
+The Absolute query filters one exact band and half-open UTC time window in ClickHouse, identifies target-active cycles, and returns compact station-cycle flags rather than every underlying network spot. Callsign/locator geometry, filters and final peer/segment aggregation are applied locally. Results are transferred as Parquet and cached by exact query on disk for the normal cache lifetime. The cache avoids repeating an identical request without keeping every user's complete result DataFrame in shared Streamlit RAM.
 
 <a id="sec-4-2"></a>
 #### 4.2 Local Neighborhood Benchmark
@@ -255,7 +275,7 @@ Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces t
 
 **Heatmap segments**
 
-Absolute modes show normalized SNR in dB. Compare modes show median Delta SNR against the selected benchmark. Positive values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
+Absolute modes show the median eligible peer opportunity rate from 0 to 100 percent. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
 
 **Distance rings**
 
@@ -263,13 +283,13 @@ Near rings can be consistent with shorter-skip or NVIS behavior; far rings can b
 
 **Scatter dots**
 
-Individual stations are plotted as dots. Green means joint same-cycle decodes. Yellow-orange means both sides decoded the station asynchronously. Purple means only your station/setup decoded it. White means only the reference decoded it.
+In Absolute modes, blue circles are peers that meet the minimum confirmed-opportunity threshold, gray circles have opportunities but insufficient evidence, and orange diamonds have target-only evidence without a confirmed opportunity. In Compare modes, green means joint same-cycle decodes, yellow-orange means both sides decoded the station asynchronously, purple means only your station/setup decoded it, and white means only the reference decoded it.
 
-These dot categories use the heartbeat-gated evidence classes defined in [Decode Yield in Compare Modes](#sec-4-5).
+Compare-mode dot categories use the heartbeat-gated evidence classes defined in [Decode Yield in Compare Modes](#sec-4-5).
 
 **Map footer and 1D-Venn bars**
 
-The `SPOTS` bar shows decode-volume distribution for the selected analysis context. The `STATIONS` bar checks whether the footprint is broad or driven by only a few active stations. These bars are essential because Delta SNR alone can hide decode/no-decode behavior.
+In Absolute modes, the footer reports the minimum confirmed opportunities per peer, eligible peer count and the station-balanced median `H/O` rate. Compare-mode `SPOTS` and `STATIONS` bars show decode-volume distribution and footprint breadth; they are essential because Delta SNR alone can hide decode/no-decode behavior.
 
 The footer bars visualize the Decode Yield categories defined in [Decode Yield in Compare Modes](#sec-4-5). In compare modes they are heartbeat-gated rather than full-window raw activity counters.
 
@@ -280,14 +300,16 @@ The footer bars visualize the Decode Yield categories defined in [Decode Yield i
 
 The Segment Inspector is the audit layer below the maps. Select a distance ring and compass direction to inspect the evidence behind one segment.
 
-The **Segment Insight** block summarizes the currently selected range and direction. It combines three views: System Sensitivity / Decode Yield, station-balanced medians, and raw spot/bin evidence. In same-cycle compare modes the raw-evidence panel is `Joint-Spot Δ SNR`. In sequential TX A/B it is `Paired Spot Bin Δ SNR`, because the paired evidence unit is a valid time bin containing spots rather than one same-cycle spot.
+The **Segment Insight** block summarizes the currently selected range and direction. Absolute and Compare analyses use different evidence views because their estimands are different. Compare modes retain System Sensitivity / Decode Yield, station-balanced medians and raw spot/bin evidence. In same-cycle Compare modes the raw-evidence panel is `Joint-Spot Δ SNR`; in sequential TX A/B it is `Paired Spot Bin Δ SNR`.
 
-* In absolute modes, the top distribution panels use percent histograms. The x-axis remains normalized SNR, the y-axis shows share of contributing evidence, and the red dashed line marks the final segment median.
+* In Absolute modes, the four panels show `O/H/M/T` outcome counts, eligible peer rates, the station-balanced rate over time and confirmed-opportunity evidence over the same time axis.
+* Absolute Station Insights list peer identity, distance, azimuth, `O`, `H`, `M`, `T`, eligibility, confirmed rate and successful-decode SNR as supporting evidence. The map and headline result use rates, not SNR.
+* The Absolute segment summary reports both the median eligible peer rate and the pooled `sum(H) / sum(O)` rate over those same eligible peers. A large difference between them signals that a few high-volume peers are influencing the pooled result.
 * In compare modes, the top distribution panels use percent histograms of Delta SNR. This keeps quantized WSPR SNR evidence visible without smoothing it into a continuous density shape.
 * SNR histogram bins are globally fixed per panel and cover the full visible range with at most 40 bars. WSPRadar defaults to 1.0 dB bins, uses 0.5 dB bins only when the values clearly occupy a half-dB lattice, and aggregates wide ranges to 1, 2, 3, 6 or 10 dB bins as needed.
 * The Station Insights table lists contributing remote stations, separates joint decodes from exclusive decodes and shows the station-level median Delta SNR.
 * Clicking a Station Insights row opens the Drill-Down table.
-* If no Station Insights row is selected, WSPRadar opens the most active row by default: the row with the most joint spots or joint bins in compare modes, and the row with the most spots in absolute modes.
+* If no Station Insights row is selected, WSPRadar opens the strongest-evidence row by default: the row with the most joint spots or joint bins in Compare modes, and the row with the most confirmed opportunities in Absolute modes.
 * Selecting one or more Station Insights rows adds a two-panel evidence block above the Drill-Down table. The left panel shows a horizontal percent histogram of the selected evidence distribution, keeping the SNR or Delta-SNR axis aligned with the time heatmap on the right.
 * The time-bin control above the right panel affects only the time heatmap. Available UTC bin widths adapt to the selected evidence duration: short windows use minute-scale bins, long windows use hour-scale bins. The standard long-window choices are `1h`, `3h`, `6h`, `12h` and `24h`, and WSPRadar defaults to the second-finest available bin width. The heatmap aggregates all selected rows into integer SNR or Delta-SNR density cells, overlays median markers and connects adjacent medians only when both neighboring bins contain at least three points. The distribution panel remains raw so the full selected evidence population stays visible.
 * WSPRadar reports a `90% Stability` interval for station-level medians and selected evidence. This is a bootstrap/resampling stability interval around the median, not a formal proof of statistical significance. In the top segment plots, the red dashed median line is backed by the true 90% stability range; near-zero-width intervals are rendered as a line rather than an artificially widened band. SNR and Delta-SNR panels use a minimum 3 dB visible y-axis span so tiny numeric variation is not visually magnified.
@@ -300,7 +322,7 @@ The **Segment Insight** block summarizes the currently selected range and direct
 
 The Drill-Down table is the row-level audit layer across all modes. It shows the observations, pairs or time bins behind a Station Insights row so the segment and station medians can be reconciled against the underlying evidence.
 
-For absolute modes and normal same-cycle compare modes, the Drill-Down exposes the contributing spot-level observations and paired same-cycle comparisons used for the station-level median.
+For Absolute modes, each Drill-Down row is one target-active station-cycle observation classified as `H`, `M` or `T`, with the corresponding opportunity flags and successful target SNR where available. For normal same-cycle Compare modes, the Drill-Down exposes the paired spot-level comparisons used for the station-level median.
 
 For the median-neighborhood method, the Drill-Down expands the reference pool. Instead of showing only a generic `Ref Pool` row, it lists the individual local reference stations that contributed in that cycle, their locator, distance, normalized reference SNR, the cycle's aggregated neighborhood median, your SNR and the resulting Delta SNR. This lets you reconcile the median directly.
 
@@ -443,6 +465,9 @@ The `90% Stability` interval is a descriptive bootstrap stability interval aroun
 
 * **Crowd-sourced data:** WSPR spots can contain duplicates, false spots, wrong power, wrong locator or receiver-side errors. WSPRadar reduces sensitivity to many of these problems but cannot make upstream data calibrated or error-free.
 * **Successful decodes only:** WSPR logs decodes, not all failed reception attempts. Closed bands reduce the existence of spots rather than lowering an average.
+* **Conditional Absolute rates:** Absolute `H/O` results are conditional on independently confirmed peer activity. External evidence does not prove that the target-to-peer path was open, so the rates include propagation and do not estimate unconditional receiver sensitivity or the fraction of all scheduled transmissions decoded.
+* **Unobservable TX misses:** without an authoritative transmitter log, a target TX cycle decoded by nobody cannot be distinguished from no transmission and therefore cannot enter `M`.
+* **Historical spot validity:** opportunity queries use `code = 1` to restrict analysis to valid WSPR spots. Code coverage and upstream processing can differ in older archive periods.
 * **Reported power caveat:** normalization mitigates reported-power differences, and several compare modes reduce exposure to this problem by pairing against the same transmitter or the same callsign. However, any analysis that depends on user-reported dBm still assumes that the reported value is reasonably close to reality.
 * **Target-centric yield:** compare-mode yield is gated by target-active cycles. This is a deliberate protection against offline bias, but it means yield is not symmetric under target/reference swaps. A vs B and B vs A can have different `Only Reference` and `Only Target` counts even with the same core parameters.
 * **Sequential TX caveat:** fixed-schedule TX A/B reduces but does not perfectly eliminate time confounding.
@@ -478,6 +503,7 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 * **Target Callsign:** primary station under evaluation.
 * **QTH Locator:** mathematical center of the map projection. Use a valid 4- or 6-character Maidenhead locator.
 * **Band and timeframe:** define the WSPR data window. Time is handled in UTC.
+* **Min. Confirmed Opportunities per Peer:** Absolute-only evidence threshold. A peer must have at least this many `O` observations before its `H/O` rate contributes to the map or station-balanced segment median. The default is `5`; lower values increase coverage but also increase discrete small-sample rates such as `0%`, `50%` or `100%`.
 
 **Comparison parameters**
 
@@ -501,8 +527,9 @@ WSPRadar is free software under the GNU Affero General Public License (AGPLv3). 
 * **Exclude Moving Stations:** removes stations that change their 4-character locator during the analysis window, such as balloons, mobile or maritime stations.
 * **Local QTH Solar State:** filters by calculated solar elevation at your QTH: daylight, nighttime or greyline.
 * **Map Scope:** visual map radius.
-* **Min. Joint Spots/Station:** in compare modes, requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins. In absolute modes, the same control acts as a raw spots-per-station filter.
-* **Min. Joint Stations/Segment:** in compare modes, requires at least X remote stations with qualifying joint evidence before a segment is drawn. In absolute modes, the same control acts as a raw stations-per-segment filter.
+* **Min. Joint Spots/Station:** Compare-only threshold. It requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins.
+* **Min. Confirmed Opportunities per Peer:** Absolute-only threshold described under Core parameters. It replaces the old raw-spots-per-station interpretation.
+* **Min. Joint Stations/Segment:** requires at least X qualifying stations before a segment is drawn. In Compare modes these are stations with qualifying joint evidence; in Absolute modes these are eligible peers that already meet the confirmed-opportunity threshold.
 
 **Special-callsign filtering note**
 

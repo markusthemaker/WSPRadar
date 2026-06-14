@@ -153,5 +153,7 @@ def init_session_state():
         st.session_state.val_filter_moving = False
     if "val_min_spots" not in st.session_state: 
         st.session_state.val_min_spots = 1
+    if "val_min_opportunities" not in st.session_state:
+        st.session_state.val_min_opportunities = 5
     if "val_min_stations" not in st.session_state: 
         st.session_state.val_min_stations = 1

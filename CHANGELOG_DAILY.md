@@ -93,4 +93,10 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Improved Segment Inspector performance by loading selected-station Parquet rows once and reusing them for evidence figures and drill-down tables.
 - Added a small bounded cache for bootstrap stability results, preventing recalculation when selecting different stations within the same segment scope.
 - Deferred all 300 DPI figure generation and full-segment drill-down preparation until Prepare All Results is explicitly requested.
+- Replaced raw-SNR Absolute TX/RX analysis with conditional opportunity analysis: RX Confirmed-Reception Rate and TX Conditional Network Decode Rate.
+- Added exact target-active 2-minute cycle classification into confirmed opportunities (`O`), hits (`H`), misses (`M`) and target-only evidence (`T`), with `T` excluded from the rate denominator.
+- Added station-balanced map segments based on median eligible peer `H/O` rates, a configurable minimum-opportunity threshold, pooled-rate diagnostics and explicit low-evidence/target-only map markers.
+- Rebuilt Absolute Segment Insight, Station Insights and drill-down views around opportunity outcomes, peer rates, rate/evidence time views and successful SNR as supporting evidence.
+- Added a compact single-band ClickHouse query that returns station-cycle flags as Parquet, plus exact-query disk caching to reduce repeated database load and shared Streamlit RAM use.
+- Extended configuration/export metadata and English/German documentation for the new Absolute method, its assumptions, query behavior and limitations; bumped WSPRadar to v0.94.
 - Replaced the Segment Inspector’s single range and direction selectors with multiselect controls.

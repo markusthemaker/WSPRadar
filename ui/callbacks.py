@@ -155,6 +155,7 @@ def _apply_demo_profile_values(profile_key):
     st.session_state.val_exclude_special_callsigns = bool(advanced.get("exclude_special_callsigns", False))
     st.session_state.val_filter_moving = bool(advanced.get("exclude_moving_stations", False))
     st.session_state.val_min_spots = int(advanced.get("min_joint_spots_per_station", 1))
+    st.session_state.val_min_opportunities = int(advanced.get("min_confirmed_opportunities_per_peer", 5))
     st.session_state.val_min_stations = int(advanced.get("min_joint_stations_per_segment", 1))
     st.session_state.demo_view_defaults = {
         "show_non_joint": bool(results_view.get("show_non_joint", False)),
@@ -271,6 +272,7 @@ def set_reset_config():
     st.session_state.val_exclude_special_callsigns = False
     st.session_state.val_filter_moving = False
     st.session_state.val_min_spots = 1
+    st.session_state.val_min_opportunities = 5
     st.session_state.val_min_stations = 1
     st.session_state.active_demo_profile = None
     st.session_state.demo_view_defaults = {}

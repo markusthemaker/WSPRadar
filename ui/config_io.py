@@ -16,7 +16,7 @@ from core.math_utils import is_valid_callsign, is_valid_6char_locator
 
 
 CONFIG_APP_NAME = "WSPRadar.org"
-CONFIG_SCHEMA_VERSION = 2
+CONFIG_SCHEMA_VERSION = 3
 MAX_CONFIG_BYTES = 200_000
 MIN_CONFIG_DATE = datetime(2008, 1, 1, tzinfo=timezone.utc).date()
 
@@ -83,6 +83,7 @@ CONFIG_KEYS = {
     "exclude_special_callsigns",
     "exclude_moving_stations",
     "min_joint_spots_per_station",
+    "min_confirmed_opportunities_per_peer",
     "min_joint_stations_per_map_segment",
 }
 LEGACY_CONFIG_KEYS = {
@@ -136,6 +137,7 @@ def _default_config():
         "exclude_special_callsigns": False,
         "exclude_moving_stations": False,
         "min_joint_spots_per_station": 1,
+        "min_confirmed_opportunities_per_peer": 5,
         "min_joint_stations_per_map_segment": 1,
     }
 
@@ -264,6 +266,7 @@ def build_config_payload():
         "exclude_special_callsigns": bool(state.get("val_exclude_special_callsigns", defaults["exclude_special_callsigns"])),
         "exclude_moving_stations": bool(state.get("val_filter_moving", defaults["exclude_moving_stations"])),
         "min_joint_spots_per_station": int(state.get("val_min_spots", defaults["min_joint_spots_per_station"])),
+        "min_confirmed_opportunities_per_peer": int(state.get("val_min_opportunities", defaults["min_confirmed_opportunities_per_peer"])),
         "min_joint_stations_per_map_segment": int(state.get("val_min_stations", defaults["min_joint_stations_per_map_segment"])),
     }
     payload = {
@@ -335,6 +338,12 @@ def validate_config_upload(raw_bytes):
     normalized["exclude_special_callsigns"] = _validate_bool(config["exclude_special_callsigns"], "exclude_special_callsigns")
     normalized["exclude_moving_stations"] = _validate_bool(config["exclude_moving_stations"], "exclude_moving_stations")
     normalized["min_joint_spots_per_station"] = _validate_int(config["min_joint_spots_per_station"], "min_joint_spots_per_station", 1, 50)
+    normalized["min_confirmed_opportunities_per_peer"] = _validate_int(
+        config["min_confirmed_opportunities_per_peer"],
+        "min_confirmed_opportunities_per_peer",
+        1,
+        100,
+    )
     normalized["min_joint_stations_per_map_segment"] = _validate_int(config["min_joint_stations_per_map_segment"], "min_joint_stations_per_map_segment", 1, 10)
 
     if normalized["end_date"] < normalized["start_date"]:
@@ -408,6 +417,7 @@ def apply_config_values(config):
     st.session_state.val_exclude_special_callsigns = config["exclude_special_callsigns"]
     st.session_state.val_filter_moving = config["exclude_moving_stations"]
     st.session_state.val_min_spots = config["min_joint_spots_per_station"]
+    st.session_state.val_min_opportunities = config["min_confirmed_opportunities_per_peer"]
     st.session_state.val_min_stations = config["min_joint_stations_per_map_segment"]
 
     for key in list(st.session_state.keys()):

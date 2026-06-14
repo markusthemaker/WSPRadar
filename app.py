@@ -375,11 +375,18 @@ if st.session_state.run_mode:
         with st.spinner(t["msg_proc"].format(id=analysis['id'])):
             
             # Step 1: Fetch raw spot data from the backend (Cache or ClickHouse)
-            df = fetch_wspr_data(analysis['query'], is_demo=is_demo_run)
+            df = fetch_wspr_data(
+                analysis['query'],
+                is_demo=is_demo_run,
+                response_format=analysis.get("response_format", "csv"),
+            )
             fetch_time = time.time() - t_start 
             
             # Update the UI audit log with fetch performance metrics
-            source_str = "wspr.live" if st.session_state.get("_db_hit", False) else "RAM cache"
+            if analysis.get("response_format") == "parquet":
+                source_str = st.session_state.get("_data_source", "disk cache")
+            else:
+                source_str = "wspr.live" if st.session_state.get("_db_hit", False) else "RAM cache"
             status_log.append(f"- Map {i+1}/{len(analyses)}: {analysis['title']} loaded from **{source_str}** in {fetch_time:.2f}s")
             status_body.markdown("  \n".join(status_log))
             
@@ -407,10 +414,11 @@ if st.session_state.run_mode:
                 # Step 4: Pass the data to the backend plotting engine to generate the Matplotlib figure
                 status_box.update(label=f"Rendering maps... ({i+1}/{len(analyses)})", state="running", expanded=True)
                 plot_result = generate_map_plot(
-                    df.copy(), analysis['title'], analysis['is_compare'], analysis['is_sequential'],
+                    df, analysis['title'], analysis['is_compare'], analysis['is_sequential'],
                     start_t, end_t, max_dist_km, analysis['id'], 
                     st.session_state.val_min_stations,
                     lat_0, lon_0,
+                    analysis_kind=analysis.get("analysis_kind", "comparison"),
                     theme="dark"
                 )
                 # Force garbage collection to free up RAM immediately after plotting
@@ -475,6 +483,7 @@ if st.session_state.run_mode:
                 data['line1_str'],
                 t,
                 max_dist_km,
+                analysis_kind=data['analysis'].get("analysis_kind", "comparison"),
                 show_export_button=(idx == len(deferred_render_data) - 1),
             )
 

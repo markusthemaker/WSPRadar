@@ -4,7 +4,6 @@ Mathematische Hilfsfunktionen (Geometrie, Astronomie, Zeit).
 import numpy as np
 import math
 import re  # Wichtig für die Rufzeichen-Validierung
-import ephem
 from datetime import datetime
 
 # Strict allowlist for amateur-radio callsigns.
@@ -55,6 +54,8 @@ def is_valid_6char_locator(grid: str) -> bool:
 
 def get_solar_state(dt, lat, lon):
     """Berechnet den Sonnenstand (Tag, Nacht, Greyline) für eine gegebene Zeit und Koordinate."""
+    import ephem
+
     obs = ephem.Observer()
     obs.lat = str(lat)
     obs.lon = str(lon)
