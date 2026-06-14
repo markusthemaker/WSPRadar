@@ -4,6 +4,7 @@ import io
 import time
 import gc
 import base64
+import uuid
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -394,7 +395,10 @@ if st.session_state.run_mode:
 
                 # Step 3: Dump the validated dataframe to disk (Parquet) 
                 # This enables ultra-fast, memory-efficient drill-downs in the segment inspector later
-                parquet_path = f"{CACHE_DIR}/spots_{analysis['id']}_{st.session_state.run_id}.parquet"
+                parquet_path = (
+                    f"{CACHE_DIR}/spots_{analysis['id']}_{st.session_state.run_id}_"
+                    f"{uuid.uuid4().hex}.parquet"
+                )
                 try: 
                     df.to_parquet(parquet_path, index=False)
                 except Exception as e: 

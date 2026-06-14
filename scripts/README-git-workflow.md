@@ -25,14 +25,12 @@ means `origin/main` and `origin/temp` are identical.
 
 Make local `temp` exactly match GitHub `temp`:
 
-```powershell
-.\scripts\git-baseline-temp.ps1
+```powershell -ExecutionPolicy Bypass -File .\scripts\git-baseline-temp.ps1
 ```
 
 If you intentionally want to discard local changes or stale rebase state:
 
-```powershell
-.\scripts\git-baseline-temp.ps1 -Force
+```powershell -ExecutionPolicy Bypass -File .\scripts\git-baseline-temp.ps1 -Force
 ```
 
 ## 2. Push Work To GitHub Temp

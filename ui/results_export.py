@@ -1,10 +1,10 @@
 """
 Result export helpers for WSPRadar.
 
-The export layer deliberately consumes already-rendered result state instead of
-rerunning analysis SQL. This keeps the downloaded package traceable to the
-current UI selections: segment, selected station rows, non-joint toggle, and
-evidence time-bin setting.
+The export layer deliberately consumes registered result recipes instead of
+rerunning analysis SQL. High-resolution figures and full-segment drill-down
+tables are built only after the user requests the prepared results package,
+while preserving the current segment, station, non-joint, and time-bin state.
 """
 
 import io
@@ -39,6 +39,7 @@ def reset_result_export_state():
     """Clear export artifacts for a fresh analysis run."""
     st.session_state[EXPORT_STATE_KEY] = {}
     st.session_state[EXPORT_RUN_ID_KEY] = _current_run_id()
+    st.session_state.pop("segment_stability_cache", None)
     _clear_prepared_results()
 
 
@@ -222,14 +223,14 @@ def register_inspector_export(
     show_non_joint,
     evidence_time_bin,
     selected_stations,
-    segment_figure_png=None,
-    selected_evidence_figure_png=None,
+    segment_figure_recipe=None,
+    selected_evidence_figure_recipe=None,
     station_insights_df=None,
     drilldown_selected_df=None,
-    drilldown_all_df=None,
+    all_drilldown_context=None,
     reference_snr_header=None,
 ):
-    """Register current segment-inspector state and tables for one result block."""
+    """Register compact current inspector state for lazy high-resolution export."""
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis_id, {"analysis_id": analysis_id})
     block.update({
@@ -239,11 +240,11 @@ def register_inspector_export(
         "show_non_joint": bool(show_non_joint),
         "evidence_time_bin": evidence_time_bin,
         "selected_stations": selected_stations or [],
-        "figure_segment_insight.png": segment_figure_png,
-        "figure_selected_station_evidence.png": selected_evidence_figure_png,
+        "segment_figure_recipe": segment_figure_recipe,
+        "selected_evidence_figure_recipe": selected_evidence_figure_recipe,
         "table_station_insights_current_segment.csv": station_insights_df.copy() if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_selected_stations.csv": drilldown_selected_df.copy() if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
-        "table_drilldown_all_stations_current_segment.csv": drilldown_all_df.copy() if isinstance(drilldown_all_df, pd.DataFrame) else pd.DataFrame(),
+        "all_drilldown_context": all_drilldown_context,
         "reference_snr_header": reference_snr_header,
     })
 
@@ -373,7 +374,7 @@ def _export_signature(blocks):
             "map_context": block.get("map_context"),
             "station_table_shape": _table_signature_value(block.get("table_station_insights_current_segment.csv")),
             "selected_drilldown_shape": _table_signature_value(block.get("table_drilldown_selected_stations.csv")),
-            "all_drilldown_shape": _table_signature_value(block.get("table_drilldown_all_stations_current_segment.csv")),
+            "all_drilldown_station_count": len((block.get("all_drilldown_context") or {}).get("station_meta_df", [])),
         })
     return json.dumps(payload, sort_keys=True, default=_json_default)
 
@@ -443,6 +444,69 @@ def _render_map_png_for_block(block):
     finally:
         plt.close(fig)
 
+def _render_inspector_png_for_block(block, figure_name):
+    """Render one inspector figure from compact inputs only during ZIP preparation."""
+    from ui.components.segment_inspector import (
+        render_segment_insight_export_figure,
+        render_selected_evidence_export_figure,
+    )
+    import matplotlib.pyplot as plt
+
+    if figure_name == "figure_segment_insight.png":
+        fig = render_segment_insight_export_figure(block.get("segment_figure_recipe"))
+    elif figure_name == "figure_selected_station_evidence.png":
+        fig = render_selected_evidence_export_figure(block.get("selected_evidence_figure_recipe"))
+    else:
+        return None
+    if fig is None:
+        return None
+    try:
+        return figure_to_png_bytes(fig, paper_theme=True)
+    finally:
+        plt.close(fig)
+
+def _build_all_drilldown_for_block(block):
+    """Load and build the full-segment drill-down table only during ZIP preparation."""
+    context = block.get("all_drilldown_context") or {}
+    map_context = block.get("map_context") or {}
+    station_meta_df = context.get("station_meta_df")
+    parquet_path = map_context.get("parquet_path")
+    if not isinstance(station_meta_df, pd.DataFrame) or station_meta_df.empty or not parquet_path:
+        return pd.DataFrame()
+
+    from i18n import T
+    from ui.components.segment_inspector import _build_drilldown_table, _load_station_rows_for_drilldown
+
+    lang = context.get("lang", "en")
+    t = T.get(lang, T["en"])
+    try:
+        station_rows_df = _load_station_rows_for_drilldown(
+            parquet_path,
+            station_meta_df,
+            context["station_col"],
+            context["loc_col"],
+        )
+        drilldown_df, _ = _build_drilldown_table(
+            parquet_path,
+            station_meta_df,
+            context["station_col"],
+            context["loc_col"],
+            context["km_col"],
+            context["az_col"],
+            context["analysis_id"],
+            context["is_compare"],
+            context["is_sequential"],
+            context["show_non_joint"],
+            context["is_local_median"],
+            context["col_u_name"],
+            context["ref_header"],
+            t,
+            station_rows_df=station_rows_df,
+        )
+        return drilldown_df
+    except (FileNotFoundError, KeyError, ValueError):
+        return pd.DataFrame()
+
 
 def build_results_zip():
     """Build the all-results ZIP payload from registered current result blocks."""
@@ -477,19 +541,29 @@ def build_results_zip():
                 "figure_segment_insight.png",
                 "figure_selected_station_evidence.png",
             ]:
-                png_bytes = _render_map_png_for_block(block) if figure_name == "figure_map_highres.png" else block.get(figure_name)
+                png_bytes = (
+                    _render_map_png_for_block(block)
+                    if figure_name == "figure_map_highres.png"
+                    else _render_inspector_png_for_block(block, figure_name)
+                )
                 if png_bytes:
                     zf.writestr(f"{root}/{folder}/{figure_name}", png_bytes)
 
+            lazy_all_drilldown_df = _build_all_drilldown_for_block(block)
             for table_name in [
                 "table_station_insights_current_segment.csv",
                 "table_drilldown_selected_stations.csv",
                 "table_drilldown_all_stations_current_segment.csv",
             ]:
+                table_df = (
+                    lazy_all_drilldown_df
+                    if table_name == "table_drilldown_all_stations_current_segment.csv"
+                    else block.get(table_name)
+                )
                 zf.writestr(
                     f"{root}/{folder}/{table_name}",
                     _dataframe_to_csv_bytes(
-                        block.get(table_name),
+                        table_df,
                         correction_db=correction_db,
                         reference_snr_header=block.get("reference_snr_header"),
                     )

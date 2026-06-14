@@ -1,22 +1,21 @@
 """
 Segment Inspector & Results Components Module.
 Contains the interactive drill-down UI (histograms, data tables) and 
-the high-resolution map download button. Isolated as Streamlit fragments 
+compact recipes for lazy high-resolution result exports. Isolated as Streamlit fragments
 to allow UI updates without triggering full-page reruns.
 """
 
-import io
 import ast
 import inspect
+from collections import OrderedDict
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.dates as mdates
-import cartopy.feature as cfeature
 import streamlit as st
 from config import APP_VERSION, COMPASS
-from ui.results_export import figure_to_png_bytes, register_inspector_export, render_download_all_results
+from ui.results_export import register_inspector_export, render_download_all_results
 
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
@@ -24,6 +23,8 @@ EVIDENCE_SEPARATE_STATION_LIMIT = 5
 STABILITY_BOOTSTRAP_ITERATIONS = 500
 STABILITY_CONFIDENCE = 0.90
 STABILITY_LINE_THRESHOLD_DB = 0.1
+STABILITY_CACHE_STATE_KEY = "segment_stability_cache"
+STABILITY_CACHE_MAX_ENTRIES = 4
 METRIC_MIN_VISIBLE_SPAN_DB = 3.0
 METRIC_HISTOGRAM_INTEGER_LATTICE_THRESHOLD = 0.95
 METRIC_HISTOGRAM_HALF_DB_LATTICE_THRESHOLD = 0.95
@@ -145,9 +146,45 @@ def _bootstrap_median_interval(values, iterations=STABILITY_BOOTSTRAP_ITERATIONS
     low, high = np.quantile(boot_medians, [alpha, 1.0 - alpha])
     return median, float(low), float(high)
 
-def _stability_summary(values, is_compare, prefix=""):
+def _cached_segment_stability(cache_key, station_values, segment_evidence_df):
+    """Return compact bootstrap results without repeating work on station-selection reruns."""
+    cache = st.session_state.get(STABILITY_CACHE_STATE_KEY)
+    if not isinstance(cache, OrderedDict):
+        cache = OrderedDict()
+
+    if cache_key in cache:
+        result = cache.pop(cache_key)
+        cache[cache_key] = result
+        st.session_state[STABILITY_CACHE_STATE_KEY] = cache
+        return result
+
+    station_interval = _bootstrap_median_interval(station_values)
+    spot_values = (
+        segment_evidence_df["metric"]
+        if isinstance(segment_evidence_df, pd.DataFrame) and not segment_evidence_df.empty
+        else pd.Series(dtype=float)
+    )
+    spot_interval = _bootstrap_median_interval(spot_values)
+    stability_lookup = {}
+    if isinstance(segment_evidence_df, pd.DataFrame) and not segment_evidence_df.empty:
+        for identity, group_df in segment_evidence_df.groupby("identity", observed=True):
+            _, low, high = _bootstrap_median_interval(group_df["metric"])
+            stability_lookup[str(identity)] = (float(low), float(high))
+
+    result = {
+        "station_interval": station_interval,
+        "spot_interval": spot_interval,
+        "station_lookup": stability_lookup,
+    }
+    cache[cache_key] = result
+    while len(cache) > STABILITY_CACHE_MAX_ENTRIES:
+        cache.popitem(last=False)
+    st.session_state[STABILITY_CACHE_STATE_KEY] = cache
+    return result
+
+def _stability_summary(values, is_compare, prefix="", interval=None):
     """Build a short human-readable resampling summary for selected evidence."""
-    median, low, high = _bootstrap_median_interval(values)
+    median, low, high = interval if interval is not None else _bootstrap_median_interval(values)
     if pd.isna(median):
         return None
 
@@ -1373,6 +1410,75 @@ def _render_drilldown_dataframe(drill_df, drill_title, analysis_id, run_id, sele
     st.dataframe(drill_display_df, width='stretch', hide_index=True)
     return drill_df.copy()
 
+def _create_selected_station_evidence_figure(plot_df, evidence_title, labels, time_agg, is_compare, is_sequential):
+    """Build the selected-station evidence figure for UI or lazy export rendering."""
+    evidence_count = len(plot_df)
+    fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
+    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
+    fig_ev.suptitle(f"\n{evidence_title}", color="white", fontweight="bold", fontsize=14, y=0.98)
+    fig_ev.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
+    gs = fig_ev.add_gridspec(1, 3)
+    ax_cloud = fig_ev.add_subplot(gs[0, 0])
+    ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
+    ax_cloud.set_box_aspect(1)
+
+    _style_evidence_axis(ax_cloud)
+    _style_evidence_axis(ax_time)
+
+    ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
+    if evidence_count == 1:
+        single_value = pd.to_numeric(plot_df["metric"], errors="coerce").dropna()
+        if not single_value.empty:
+            _draw_single_value_distribution(ax_cloud, single_value.iloc[0], labels, color=EVIDENCE_AGG_COLOR)
+        _draw_single_time_point(ax_time, plot_df, labels)
+    else:
+        _draw_horizontal_metric_histogram(ax_cloud, plot_df["metric"], color=EVIDENCE_AGG_COLOR)
+        ax_cloud.set_ylabel(labels["y_label"], color="white")
+        _draw_time_heatmap(fig_ev, ax_time, plot_df, time_agg, labels, is_compare, is_sequential)
+    ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
+    return fig_ev
+
+def _selected_evidence_export_recipe(plot_df, evidence_title, labels, time_agg, is_compare, is_sequential):
+    """Store only compact arrays and labels needed to rebuild the high-resolution figure."""
+    plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
+    valid = plot_times.notna() & pd.to_numeric(plot_df["metric"], errors="coerce").notna()
+    return {
+        "title": evidence_title,
+        "labels": dict(labels),
+        "time_bin": time_agg,
+        "is_compare": bool(is_compare),
+        "is_sequential": bool(is_sequential),
+        "plot_time_ns": (
+            plot_times[valid]
+            .dt.tz_convert(None)
+            .to_numpy(dtype="datetime64[ns]")
+            .astype(np.int64, copy=True)
+        ),
+        "metric": pd.to_numeric(plot_df.loc[valid, "metric"], errors="coerce").to_numpy(dtype=np.float64, copy=True),
+    }
+
+def render_selected_evidence_export_figure(recipe):
+    """Rebuild a selected-station evidence figure only when preparing the results ZIP."""
+    if not recipe:
+        return None
+    plot_df = pd.DataFrame({
+        "plot_time": pd.to_datetime(np.asarray(recipe.get("plot_time_ns", []), dtype=np.int64), unit="ns", utc=True),
+        "metric": np.asarray(recipe.get("metric", []), dtype=float),
+    })
+    if plot_df.empty:
+        return None
+    labels = recipe.get("labels")
+    if not labels:
+        labels = _evidence_labels(bool(recipe.get("is_compare")))
+    return _create_selected_station_evidence_figure(
+        plot_df,
+        recipe.get("title", "Selected Station Evidence"),
+        labels,
+        recipe.get("time_bin", "3h"),
+        bool(recipe.get("is_compare")),
+        bool(recipe.get("is_sequential")),
+    )
+
 def _render_selected_station_evidence(station_df, selected_identity_df, is_compare, is_sequential):
     """Render selected-station distribution and time evidence between insights and drill-down."""
     identity_meta = _prepare_identity_meta(selected_identity_df)
@@ -1408,7 +1514,6 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     non_empty = [(label, values, color) for label, values, color in zip(group_labels, grouped_values, colors) if len(values) > 0]
     if not non_empty:
         return
-    group_labels, grouped_values, colors = map(list, zip(*non_empty))
 
     ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
     with ctrl_time:
@@ -1451,39 +1556,200 @@ def _render_selected_station_evidence(station_df, selected_identity_df, is_compa
     else:
         evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
     st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
-    fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
-    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
-    fig_ev.suptitle(f"\n{evidence_title}", color="white", fontweight="bold", fontsize=14, y=0.98)
-    fig_ev.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
-    gs = fig_ev.add_gridspec(1, 3)
-    ax_cloud = fig_ev.add_subplot(gs[0, 0])
-    ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
-    ax_cloud.set_box_aspect(1)
-
-    _style_evidence_axis(ax_cloud)
-    _style_evidence_axis(ax_time)
-
-    ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
-    if evidence_count == 1:
-        single_value = pd.to_numeric(plot_df["metric"], errors="coerce").dropna()
-        if not single_value.empty:
-            _draw_single_value_distribution(ax_cloud, single_value.iloc[0], labels, color=EVIDENCE_AGG_COLOR)
-        _draw_single_time_point(ax_time, plot_df, labels)
-    else:
-        _draw_horizontal_metric_histogram(ax_cloud, plot_df["metric"], color=EVIDENCE_AGG_COLOR)
-        ax_cloud.set_ylabel(labels["y_label"], color="white")
-        _draw_time_heatmap(fig_ev, ax_time, plot_df, time_agg, labels, is_compare, is_sequential)
-    ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
+    fig_ev = _create_selected_station_evidence_figure(
+        plot_df,
+        evidence_title,
+        labels,
+        time_agg,
+        is_compare,
+        is_sequential,
+    )
 
     st.pyplot(fig_ev, width="stretch")
-    export_png = figure_to_png_bytes(fig_ev, paper_theme=True)
     plt.close(fig_ev)
     return {
-        "figure_png": export_png,
+        "export_recipe": _selected_evidence_export_recipe(
+            plot_df,
+            evidence_title,
+            labels,
+            time_agg,
+            is_compare,
+            is_sequential,
+        ),
         "time_bin": time_agg,
         "title": evidence_title,
-        "plot_df": plot_df,
     }
+
+def _segment_figure_export_recipe(
+    *,
+    title,
+    selected_segment,
+    is_compare,
+    is_sequential,
+    compare_layout,
+    station_values,
+    spot_values,
+    station_interval,
+    spot_interval,
+    panel_counts,
+    panel_labels,
+    panel_y_label,
+):
+    """Store compact numeric inputs needed to rebuild the Segment Insight figure."""
+    return {
+        "title": title,
+        "selected_segment": selected_segment,
+        "is_compare": bool(is_compare),
+        "is_sequential": bool(is_sequential),
+        "compare_layout": bool(compare_layout),
+        "station_values": _metric_values(station_values).astype(np.float64, copy=True),
+        "spot_values": _metric_values(spot_values).astype(np.float64, copy=True),
+        "station_interval": tuple(float(value) for value in station_interval),
+        "spot_interval": tuple(float(value) for value in spot_interval),
+        "panel_counts": [int(value) for value in panel_counts],
+        "panel_labels": [str(value) for value in panel_labels],
+        "panel_y_label": str(panel_y_label),
+    }
+
+def render_segment_insight_export_figure(recipe):
+    """Rebuild the Segment Insight figure only when preparing the results ZIP."""
+    if not recipe:
+        return None
+
+    is_compare = bool(recipe.get("is_compare"))
+    is_sequential = bool(recipe.get("is_sequential"))
+    compare_layout = bool(recipe.get("compare_layout"))
+    station_values = np.asarray(recipe.get("station_values", []), dtype=float)
+    spot_values = np.asarray(recipe.get("spot_values", []), dtype=float)
+    station_interval = recipe.get("station_interval", (np.nan, np.nan, np.nan))
+    spot_interval = recipe.get("spot_interval", (np.nan, np.nan, np.nan))
+    panel_counts = list(recipe.get("panel_counts", []))
+    panel_labels = list(recipe.get("panel_labels", []))
+
+    fig_hist = plt.figure(figsize=(13, 5.6), facecolor="black")
+    fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
+    gs = fig_hist.add_gridspec(1, 3)
+    ax_panel = fig_hist.add_subplot(gs[0, 0])
+    ax_hist = fig_hist.add_subplot(gs[0, 1])
+    ax_spot = fig_hist.add_subplot(gs[0, 2])
+    ax_panel.set_box_aspect(1)
+    ax_hist.set_box_aspect(1)
+    ax_spot.set_box_aspect(1)
+
+    ax_panel.set_facecolor("black")
+    ax_panel.tick_params(axis="y", colors="white")
+    ax_panel.tick_params(axis="x", colors="white", labelrotation=20, labelsize=9)
+    for spine in ax_panel.spines.values():
+        spine.set_color("#444444")
+    _add_horizontal_grid(ax_panel)
+
+    bars = ax_panel.bar(panel_labels, panel_counts, color="#36aaf9", alpha=0.8, edgecolor="black")
+    ax_panel.set_ylabel(recipe.get("panel_y_label", "Count"), color="white")
+    if compare_layout:
+        ax_panel.set_title("System Sensitivity (Yield)", color="white", fontweight="bold", pad=10)
+        total_count = sum(panel_counts)
+        if total_count > 0:
+            for bar in bars:
+                height = bar.get_height()
+                ax_panel.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    height + (max(panel_counts) * 0.02),
+                    f"{(height / total_count) * 100:.1f}%",
+                    ha="center",
+                    va="bottom",
+                    color="white",
+                    fontsize=10,
+                    fontweight="bold",
+                )
+        ax_hist.set_title("Station Medians (\u0394 SNR)", color="white", fontweight="bold", pad=10)
+        ax_spot.set_title(
+            "Paired Spot Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR",
+            color="white",
+            fontweight="bold",
+            pad=10,
+        )
+    else:
+        ax_panel.set_title("Segment Activity", color="white", fontweight="bold", pad=10)
+        if panel_counts and max(panel_counts) > 0:
+            for bar in bars:
+                height = bar.get_height()
+                ax_panel.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    height + (max(panel_counts) * 0.02),
+                    f"{int(height)}",
+                    ha="center",
+                    va="bottom",
+                    color="white",
+                    fontsize=10,
+                    fontweight="bold",
+                )
+        ax_hist.set_title("Station Medians (SNR @ 1W)", color="white", fontweight="bold", pad=10)
+        ax_spot.set_title("Spot SNR (SNR @ 1W)", color="white", fontweight="bold", pad=10)
+
+    fig_hist.suptitle(
+        f"\n{recipe.get('title', '')} - {recipe.get('selected_segment', '')}",
+        color="white",
+        fontweight="bold",
+        fontsize=14,
+        y=0.98,
+    )
+    fig_hist.text(
+        0.98,
+        SEGMENT_FIGURE_FOOTER_Y,
+        f"WSPRadar.org {APP_VERSION}",
+        color="#888888",
+        ha="right",
+        fontsize=10,
+    )
+
+    ax_hist.set_facecolor("black")
+    ax_hist.tick_params(colors="white")
+    for spine in ax_hist.spines.values():
+        spine.set_color("#444444")
+    _add_horizontal_grid(ax_hist)
+
+    ax_spot.set_facecolor("black")
+    ax_spot.tick_params(colors="white")
+    for spine in ax_spot.spines.values():
+        spine.set_color("#444444")
+
+    if len(station_values):
+        station_median = _draw_vertical_metric_histogram(ax_hist, station_values, color="#36aaf9")
+        _add_vertical_stability_band(ax_hist, station_interval[1], station_interval[2])
+        ax_hist.axvline(station_median, color="red", linestyle="dashed", linewidth=1, label=f"{station_median:.1f} dB")
+        _apply_minimum_metric_xspan(ax_hist, center=station_median)
+        _place_metric_legend_top_right(ax_hist)
+    else:
+        ax_hist.text(0.5, 0.5, "No data", color="white", ha="center", va="center", fontsize=12, transform=ax_hist.transAxes)
+        ax_hist.set_xticks([])
+        ax_hist.set_yticks([])
+
+    spot_median = _draw_vertical_metric_histogram(ax_spot, spot_values, color="#36aaf9")
+    if pd.notna(spot_median):
+        _add_vertical_stability_band(ax_spot, spot_interval[1], spot_interval[2])
+        ax_spot.axvline(spot_median, color="red", linestyle="dashed", linewidth=1, label=f"{spot_median:.1f} dB")
+        _apply_minimum_metric_xspan(ax_spot, center=spot_median)
+        _place_metric_legend_top_right(ax_spot)
+        if is_compare and len(spot_values):
+            ax_spot.text(
+                0.98,
+                0.04,
+                f"mean={float(np.mean(spot_values)):.1f} dB",
+                transform=ax_spot.transAxes,
+                ha="right",
+                va="bottom",
+                color="#cccccc",
+                fontsize=10,
+            )
+    else:
+        ax_spot.text(0.5, 0.5, "No data", color="white", ha="center", va="center", fontsize=12, transform=ax_spot.transAxes)
+        ax_spot.set_xticks([])
+        ax_spot.set_yticks([])
+
+    metric_label = "\u0394 SNR (dB)" if is_compare else "Normalized SNR (dB @ 1 W)"
+    ax_hist.set_xlabel(metric_label, color="white")
+    ax_spot.set_xlabel(metric_label, color="white")
+    return fig_hist
 
 @st.fragment
 def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enriched_df, segs_df, parquet_path, line1_str, t, max_dist_km, show_export_button=False):
@@ -1667,167 +1933,75 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
         segment_raw_values = pd.Series(dtype=float)
         station_stability_interval = (np.nan, np.nan, np.nan)
         spot_stability_interval = (np.nan, np.nan, np.nan)
-        segment_figure_png = None
+        stability_lookup = {}
+        segment_figure_recipe = None
         selected_evidence_export = None
         selected_station_labels = []
         drilldown_selected_df = pd.DataFrame()
-        drilldown_all_df = pd.DataFrame()
+        all_drilldown_context = None
 
         if has_plot_data:
             segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
             segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
-            station_stability_interval = _bootstrap_median_interval(vals)
-            spot_stability_interval = _bootstrap_median_interval(segment_raw_values)
-            fig_hist = plt.figure(figsize=(13, 5.6), facecolor='black')
-            
-            # Setup Layout based on Absolute vs. Compare Mode
-            if is_compare and 'count_only_u' in df_seg.columns:
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
-                gs = fig_hist.add_gridspec(1, 3)
-                ax_yield = fig_hist.add_subplot(gs[0, 0])
-                ax_hist = fig_hist.add_subplot(gs[0, 1])
-                ax_spot = fig_hist.add_subplot(gs[0, 2])
-                ax_yield.set_box_aspect(1)
-                ax_hist.set_box_aspect(1)
-                ax_spot.set_box_aspect(1)
-                
-                # 1. Setup Yield Bar Chart (Left)
-                ax_yield.set_facecolor('black')
-                ax_yield.tick_params(axis='y', colors='white')
-                ax_yield.tick_params(axis='x', colors='white', labelrotation=20, labelsize=9)
-                for spine in ax_yield.spines.values(): spine.set_color('#444444')
-                _add_horizontal_grid(ax_yield)
-                
-                # System Sensitivity (Yield) counts unique STATIONS, not spots
-                # Universelle Logik f?r Simultan und Sequenziell:
+            stability_result = _cached_segment_stability(
+                (run_id, analysis_id, selected_seg),
+                vals,
+                segment_evidence_df,
+            )
+            station_stability_interval = stability_result["station_interval"]
+            spot_stability_interval = stability_result["spot_interval"]
+            stability_lookup = stability_result["station_lookup"]
+            compare_layout = is_compare and 'count_only_u' in df_seg.columns
+            if compare_layout:
+                # System Sensitivity (Yield) counts unique stations, not spots.
                 cnt_joint = len(df_seg[df_seg['spot_count'] > 0])
                 cnt_async = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] > 0)])
                 cnt_u = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] == 0)])
                 cnt_r = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] == 0) & (df_seg['count_only_r'] > 0)])
-                
                 joint_lbl = t.get('tbl_col_joint_bins', 'Joint Bins') if is_sequential else t.get('tbl_col_joint', 'Joint')
                 async_lbl = t.get('leg_both_async', 'Both (Async)')
-
-                yield_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
-                yield_labels = [col_u_name, joint_lbl, async_lbl, yield_ref_header]
-                    
-                bar_colors = ["#36aaf9"] * len(yield_counts)
-                
-                bars = ax_yield.bar(yield_labels, yield_counts, color=bar_colors, alpha=0.8, edgecolor='black')
-                ax_yield.set_ylabel(t["lbl_hist_count"], color='white')
-                
-                ax_yield.set_title("System Sensitivity (Yield)", color='white', fontweight='bold', pad=10)
-                
-                # Add percentages on top of the bars
-                total_yield = sum(yield_counts)
-                if total_yield > 0:
-                    for bar in bars:
-                        height = bar.get_height()
-                        ax_yield.text(bar.get_x() + bar.get_width()/2., height + (max(yield_counts)*0.02),
-                                f'{(height/total_yield)*100:.1f}%',
-                                ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
-                
-                # Adjust Titles for Three-Panel Compare Plot
-                ax_hist.set_title("Station Medians (\u0394 SNR)", color='white', fontweight='bold', pad=10)
-                ax_spot.set_title("Paired Spot Bin \u0394 SNR" if is_sequential else "Joint-Spot \u0394 SNR", color='white', fontweight='bold', pad=10)
-                fig_hist.suptitle(f"\n{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
-                fig_hist.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=10)
-                
+                segment_panel_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
+                segment_panel_labels = [col_u_name, joint_lbl, async_lbl, yield_ref_header]
+                segment_panel_y_label = t["lbl_hist_count"]
             else:
-                # Absolute Mode: activity, station-balanced medians, and raw spot distribution
-                fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
-                gs = fig_hist.add_gridspec(1, 3)
-                ax_activity = fig_hist.add_subplot(gs[0, 0])
-                ax_hist = fig_hist.add_subplot(gs[0, 1])
-                ax_spot = fig_hist.add_subplot(gs[0, 2])
-                ax_activity.set_box_aspect(1)
-                ax_hist.set_box_aspect(1)
-                ax_spot.set_box_aspect(1)
+                segment_panel_counts = [len(df_seg), int(df_seg['spot_count'].sum())]
+                segment_panel_labels = ["Stations", "Spots"]
+                segment_panel_y_label = "Count"
 
-                ax_activity.set_facecolor('black')
-                ax_activity.tick_params(axis='y', colors='white')
-                ax_activity.tick_params(axis='x', colors='white', labelrotation=20, labelsize=9)
-                for spine in ax_activity.spines.values(): spine.set_color('#444444')
-                _add_horizontal_grid(ax_activity)
+            segment_figure_recipe = _segment_figure_export_recipe(
+                title=title,
+                selected_segment=selected_seg,
+                is_compare=is_compare,
+                is_sequential=is_sequential,
+                compare_layout=compare_layout,
+                station_values=vals,
+                spot_values=segment_raw_values,
+                station_interval=station_stability_interval,
+                spot_interval=spot_stability_interval,
+                panel_counts=segment_panel_counts,
+                panel_labels=segment_panel_labels,
+                panel_y_label=segment_panel_y_label,
+            )
+            fig_hist = render_segment_insight_export_figure(segment_figure_recipe)
 
-                activity_counts = [len(df_seg), int(df_seg['spot_count'].sum())]
-                activity_labels = ["Stations", "Spots"]
-                bars = ax_activity.bar(activity_labels, activity_counts, color="#36aaf9", alpha=0.8, edgecolor='black')
-                ax_activity.set_ylabel("Count", color='white')
-                ax_activity.set_title("Segment Activity", color='white', fontweight='bold', pad=10)
-                if max(activity_counts) > 0:
-                    for bar in bars:
-                        height = bar.get_height()
-                        ax_activity.text(bar.get_x() + bar.get_width()/2., height + (max(activity_counts)*0.02),
-                                f'{int(height)}',
-                                ha='center', va='bottom', color='white', fontsize=10, fontweight='bold')
-
-                ax_hist.set_title("Station Medians (SNR @ 1W)", color='white', fontweight='bold', pad=10)
-                ax_spot.set_title("Spot SNR (SNR @ 1W)", color='white', fontweight='bold', pad=10)
-                fig_hist.suptitle(f"\n{title} - {selected_seg}", color='white', fontweight='bold', fontsize=14, y=0.98)
-                fig_hist.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color='#888888', ha='right', fontsize=10)
-
-            # 2. Common Histogram Setup (Right / Full)
-            ax_hist.set_facecolor('black')
-            ax_hist.tick_params(colors='white')
-            for spine in ax_hist.spines.values(): spine.set_color('#444444')
-            _add_horizontal_grid(ax_hist)
-
-            ax_spot.set_facecolor('black')
-            ax_spot.tick_params(colors='white')
-            for spine in ax_spot.spines.values(): spine.set_color('#444444')
-            
-            if not vals.empty:
-                med = _draw_vertical_metric_histogram(ax_hist, vals, color="#36aaf9")
-                _add_vertical_stability_band(ax_hist, station_stability_interval[1], station_stability_interval[2])
-                ax_hist.axvline(med, color='red', linestyle='dashed', linewidth=1, label=f"{med:.1f} dB")
-                _apply_minimum_metric_xspan(ax_hist, center=med)
-                _place_metric_legend_top_right(ax_hist)
-            else:
-                # Handle edge case: We have exclusive yield data, but exactly 0 joint spots
-                ax_hist.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_hist.transAxes)
-                ax_hist.set_xticks([])
-                ax_hist.set_yticks([])
-
-            spot_values_numeric = pd.to_numeric(segment_raw_values, errors="coerce").dropna()
-            spot_med = _draw_vertical_metric_histogram(ax_spot, segment_raw_values, color="#36aaf9")
-            if pd.notna(spot_med):
-                _add_vertical_stability_band(ax_spot, spot_stability_interval[1], spot_stability_interval[2])
-                ax_spot.axvline(spot_med, color='red', linestyle='dashed', linewidth=1, label=f"{spot_med:.1f} dB")
-                _apply_minimum_metric_xspan(ax_spot, center=spot_med)
-                _place_metric_legend_top_right(ax_spot)
-                if is_compare and not spot_values_numeric.empty:
-                    spot_mean = spot_values_numeric.mean()
-                    ax_spot.text(
-                        0.98, 0.04, f"mean={spot_mean:.1f} dB",
-                        transform=ax_spot.transAxes,
-                        ha='right', va='bottom',
-                        color='#cccccc', fontsize=10
-                    )
-            else:
-                ax_spot.text(0.5, 0.5, "No data", color='white', ha='center', va='center', fontsize=12, transform=ax_spot.transAxes)
-                ax_spot.set_xticks([])
-                ax_spot.set_yticks([])
-                
-            if not is_compare: 
-                ax_hist.set_xlabel("Normalized SNR (dB @ 1 W)", color='white')
-                ax_spot.set_xlabel("Normalized SNR (dB @ 1 W)", color='white')
-            else: 
-                ax_hist.set_xlabel("\u0394 SNR (dB)", color='white')
-                ax_spot.set_xlabel("\u0394 SNR (dB)", color='white')
-            
-            # 3. Add Common Footer Text
-            # Footer distorts the size of the histogram. We don't need it right now. Keep it off. Commented out. 
-            # fig_hist.text(0.05, 0.02, f"{line1_str}\n{seg_line2}", fontsize=11, color='#cccccc', ha='left', va='bottom', linespacing=1.6)
-            
             segment_strength = _evidence_strength(len(vals), len(segment_raw_values))
             spot_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
             segment_summary = [
                 f"Selected Segment: {selected_seg}",
                 f"Selected Segment Evidence: {segment_strength} | {len(vals)} stations | {len(segment_raw_values)} {spot_basis}",
             ]
-            station_summary = _stability_summary(vals, is_compare, "Station-median")
-            spot_summary = _stability_summary(segment_raw_values, is_compare, "Joint-spot" if is_compare and not is_sequential else ("Paired spot-bin" if is_sequential else "Spot"))
+            station_summary = _stability_summary(
+                vals,
+                is_compare,
+                "Station-median",
+                interval=station_stability_interval,
+            )
+            spot_summary = _stability_summary(
+                segment_raw_values,
+                is_compare,
+                "Joint-spot" if is_compare and not is_sequential else ("Paired spot-bin" if is_sequential else "Spot"),
+                interval=spot_stability_interval,
+            )
             if station_summary:
                 segment_summary.append(station_summary)
             if spot_summary:
@@ -1840,7 +2014,6 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
             # Richtiges Streamlit-Parameter f??r volle Breite
             st.pyplot(fig_hist, width='stretch')
-            segment_figure_png = figure_to_png_bytes(fig_hist, paper_theme=True)
             plt.close(fig_hist)
         else:
             st.info(t["lbl_no_joint"], icon="??????")
@@ -1848,16 +2021,15 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
 
         stability_col = t.get("tbl_col_stability", "90% Stability")
         if not segment_evidence_df.empty and not sorted_disp_df.empty:
-            stability_lookup = {}
-            for identity, group_df in segment_evidence_df.groupby("identity", observed=True):
-                _, low, high = _bootstrap_median_interval(group_df["metric"])
-                stability_lookup[str(identity)] = _format_stability_interval(low, high, is_compare)
-
             row_identity = (
                 sorted_disp_df[station_col].astype(str) +
                 " (" + sorted_disp_df[t['tbl_col_loc']].astype(str) + ")"
             )
-            sorted_disp_df[stability_col] = row_identity.map(stability_lookup).fillna("n/a")
+            formatted_stability_lookup = {
+                identity: _format_stability_interval(low, high, is_compare)
+                for identity, (low, high) in stability_lookup.items()
+            }
+            sorted_disp_df[stability_col] = row_identity.map(formatted_stability_lookup).fillna("n/a")
 
         # --- 1. Layout-Spalten definieren ---
         # 3 Spalten: 50% f??r Titel, 30% f??r Toggle, 20% f??r Filter-Button
@@ -1914,33 +2086,22 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             dataframe_kwargs["selection_default"] = {"selection": {"rows": [0]}}
         tbl_event = st.dataframe(sorted_disp_df, **dataframe_kwargs)
 
-        try:
-            full_meta_df = full_segment_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]].copy()
-            full_station_rows_df = _load_station_rows_for_drilldown(
-                parquet_path,
-                full_meta_df,
-                station_col,
-                t['tbl_col_loc'],
-            )
-            drilldown_all_df, _ = _build_drilldown_table(
-                parquet_path,
-                full_meta_df,
-                station_col,
-                t['tbl_col_loc'],
-                t['tbl_col_km'],
-                t['tbl_col_az'],
-                analysis_id,
-                is_compare,
-                is_sequential,
-                True if is_compare else False,
-                is_local_median,
-                col_u_name,
-                ref_header,
-                t,
-                station_rows_df=full_station_rows_df,
-            )
-        except FileNotFoundError:
-            drilldown_all_df = pd.DataFrame()
+        full_meta_df = full_segment_disp_df[[station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az']]].copy()
+        all_drilldown_context = {
+            "station_meta_df": full_meta_df,
+            "station_col": station_col,
+            "loc_col": t['tbl_col_loc'],
+            "km_col": t['tbl_col_km'],
+            "az_col": t['tbl_col_az'],
+            "analysis_id": analysis_id,
+            "is_compare": bool(is_compare),
+            "is_sequential": bool(is_sequential),
+            "show_non_joint": bool(is_compare),
+            "is_local_median": bool(is_local_median),
+            "col_u_name": col_u_name,
+            "ref_header": ref_header,
+            "lang": st.session_state.get("lang", "en"),
+        }
 
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
@@ -2021,36 +2182,13 @@ def render_segment_inspector(analysis_id, title, is_compare, is_sequential, enri
             show_non_joint=show_non_joint,
             evidence_time_bin=(selected_evidence_export or {}).get("time_bin"),
             selected_stations=selected_station_labels,
-            segment_figure_png=segment_figure_png,
-            selected_evidence_figure_png=(selected_evidence_export or {}).get("figure_png"),
+            segment_figure_recipe=segment_figure_recipe,
+            selected_evidence_figure_recipe=(selected_evidence_export or {}).get("export_recipe"),
             station_insights_df=sorted_disp_df,
             drilldown_selected_df=drilldown_selected_df,
-            drilldown_all_df=drilldown_all_df,
+            all_drilldown_context=all_drilldown_context,
             reference_snr_header=f'{ref_header} SNR (dB)' if is_compare else None,
         )
 
         if show_export_button:
             render_download_all_results(t)
-
-@st.fragment
-def render_lazy_download(analysis_id, fig, callsign, t):
-    """
-    Renders a subtle 'Render High-Res Map' button that dynamically generates
-    a 300 DPI PNG map for download upon user request without blocking the main UI layout.
-    """
-    run_id = st.session_state.get("run_id", 0)
-    buf_key = f"img_buf_{analysis_id}_{run_id}"
-    
-    if buf_key in st.session_state:
-        st.download_button("Download", icon=":material/download:", data=st.session_state[buf_key], file_name=f"WSPR_Map_{analysis_id}_{callsign}.png", mime="image/png", type="tertiary", width='stretch', key=f"dl_{analysis_id}_{run_id}")
-    else:
-        if st.button("Render High-Res Map", key=f"prep_{analysis_id}_{run_id}", type="tertiary", icon=":material/settings:", width='stretch'):
-            with st.spinner("?"):
-                if fig.axes:
-                    ax = fig.axes[0]
-                    # Apply country borders explicitly for the high-res export
-                    ax.add_feature(cfeature.BORDERS, linewidth=0.6, edgecolor="#414040", zorder=5, alpha=0.5)
-                img_buf = io.BytesIO()
-                fig.savefig(img_buf, format="png", dpi=300, facecolor='black', edgecolor='none')
-                st.session_state[buf_key] = img_buf.getvalue()
-            st.rerun(scope="fragment")
