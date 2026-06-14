@@ -38,45 +38,43 @@ def text_input_no_autocomplete(*args, **kwargs):
     return st.text_input(*args, **kwargs)
 
 def render_core_expander(t):
-    """Renders the first expander: Core Parameters (Callsign, Grid, Time, Band)."""
+    """Renders the first expander: Core Parameters (Callsign, Grid, Band, Time)."""
     with st.expander(t["exp_core"], expanded=st.session_state.get("config_panels_expanded", True)):
-        # Zeile 1: Callsign & Time Mode (Pixelgenaue [0.5, 0.5] Aufteilung f?r perfekte rechte Kante)
-        r1c1, r1c2 = st.columns([0.5, 0.5], gap="large")
-        with r1c1:
+        # Build widgets column-first so keyboard navigation moves down the left
+        # column before continuing at the top of the right column.
+        core_left, core_right = st.columns([0.5, 0.5], gap="large")
+        with core_left:
             text_input_no_autocomplete(t["lbl_callsign"], key="val_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-        with r1c2:
+            text_input_no_autocomplete(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            st.selectbox(t["lbl_band"], list(BAND_MAP.keys()), key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+
+        with core_right:
             st.radio(t["lbl_time_mode"], [t["opt_last_x"], t["opt_custom"]], key="val_time_mode", horizontal=True, disabled=st.session_state.is_demo_mode, on_change=reset_audit)
 
-        # Zeile 2 & 3: Dynamisches Layout basierend auf Zeitmodus
-        if st.session_state.val_time_mode == t["opt_last_x"]:
-            r2c1, r2c2 = st.columns([0.5, 0.5], gap="large")
-            with r2c1: text_input_no_autocomplete(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            with r2c2: st.slider(t["lbl_hours"], 1, 168, key="val_hours", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            
-            r3c1, r3c2 = st.columns([0.5, 0.5], gap="large")
-            with r3c1: st.selectbox(t["lbl_band"], list(BAND_MAP.keys()), key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            
-        else:
-            today_utc = datetime.now(timezone.utc).date()
-            
-            r2c1, r2c2, r2c3 = st.columns([0.5, 0.25, 0.25], gap="large", vertical_alignment="bottom")
-            with r2c1: text_input_no_autocomplete(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            with r2c2: st.date_input(t["lbl_start_d"], key="val_start_d", min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(), max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
+            if st.session_state.val_time_mode == t["opt_last_x"]:
+                st.slider(t["lbl_hours"], 1, 168, key="val_hours", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            else:
+                today_utc = datetime.now(timezone.utc).date()
 
-            with r2c3:
+                date_start, date_end = st.columns(2, gap="large", vertical_alignment="bottom")
+                with date_start:
+                    st.date_input(t["lbl_start_d"], key="val_start_d", min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(), max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
                 max_allowed_end = min(st.session_state.val_start_d + timedelta(days=MAX_DAYS_HISTORY), today_utc)
                 min_allowed_end = st.session_state.val_start_d
                 
                 # Defensive check inside the render loop
                 if st.session_state.val_end_d > max_allowed_end: st.session_state.val_end_d = max_allowed_end
                 elif st.session_state.val_end_d < min_allowed_end: st.session_state.val_end_d = min_allowed_end
-                
-                st.date_input(t["lbl_end_d"], key="val_end_d", min_value=min_allowed_end, max_value=max_allowed_end, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
 
-            r3c1, r3c2, r3c3 = st.columns([0.5, 0.25, 0.25], gap="large", vertical_alignment="bottom")
-            with r3c1: st.selectbox(t["lbl_band"], list(BAND_MAP.keys()), key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            with r3c2: st.time_input(t["lbl_start_t"], key="val_start_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            with r3c3: st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+                with date_end:
+                    st.date_input(t["lbl_end_d"], key="val_end_d", min_value=min_allowed_end, max_value=max_allowed_end, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
+
+                time_start, time_end = st.columns(2, gap="large", vertical_alignment="bottom")
+                with time_start:
+                    st.time_input(t["lbl_start_t"], key="val_start_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+                with time_end:
+                    st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+
 def render_compare_expander(t):
     """Renders the second expander: The A/B Compare Engine configurations."""
     with st.expander(t["exp_comp"], expanded=st.session_state.get("config_panels_expanded", True)):

@@ -241,6 +241,56 @@ DEMO_PROFILES = {
     },
     
 
+    "rx_calibration_ab": {
+        "label": {
+            "en": "RX Calibration A/B Test",
+            "de": "RX-Kalibrierungs-A/B-Test",
+        },
+        "description": {
+            "en": "Runs an RX hardware A/B calibration between DL1MKS and DL1MKS/P on 20m from May 27 through May 31, 2026.",
+            "de": "Startet eine RX-Hardware-A/B-Kalibrierung zwischen DL1MKS und DL1MKS/P auf 20 m vom 27. bis 31. Mai 2026.",
+        },
+        "run": {
+            "run_mode": "RX",
+        },
+        "core_parameters": {
+            "callsign": "DL1MKS",
+            "qth": "JN37",
+            "band": "20m",
+            "time_mode_key": "opt_custom",
+            "last_hours": 24,
+            "start_d": datetime.date(2026, 5, 27),
+            "end_d": datetime.date(2026, 5, 31),
+            "start_t": dt_time(0, 0),
+            "end_t": dt_time(23, 45),
+        },
+        "comparison": {
+            "comp_mode_key": "opt_comp_self",
+            "local_benchmark_key": "opt_local_median",
+            "ref_callsign": "DL2XYZ",
+            "ref_radius_km": 100,
+            "reference_snr_correction_db": 0.0,
+            "self_test_mode_key": "opt_self_rx",
+            "self_call_b": "DL1MKS/P",
+            "target_wspr_frame_key": "opt_wspr_frame_00_04_08",
+            "reference_wspr_frame_key": "opt_wspr_frame_02_06_10",
+            "tx_ab_bin_minutes": 8,
+        },
+        "advanced": {
+            "exclude_special_callsigns": False,
+            "exclude_moving_stations": False,
+            "solar_key": "opt_solar_all",
+            "max_dist": 22000,
+            "min_joint_spots_per_station": 1,
+            "min_joint_stations_per_segment": 1,
+        },
+        "results_view": {
+            "show_non_joint": False,
+            "station_evidence_time_bin_compare": "3h",
+            "station_evidence_time_bin_absolute": "3h",
+        },
+    },
+
     "rx_hardware_ab": {
         "label": {
             "en": "RX hardware A/B test",
