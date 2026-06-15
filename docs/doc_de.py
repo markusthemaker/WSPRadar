@@ -111,8 +111,8 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 
 **Antwortet auf**
 
-* `RX Absolut` / **RX Confirmed-Reception Rate:** Wenn ein anderer Empf&auml;nger unabh&auml;ngig best&auml;tigt, dass ein Sender in einem target-aktiven WSPR-Zyklus beobachtbar war, wie oft hat mein Empf&auml;nger ihn ebenfalls decodiert?
-* `TX Absolut` / **TX Conditional Network Decode Rate:** Wenn ein Empf&auml;nger unabh&auml;ngig best&auml;tigt, dass ein anderer Sender in einem target-aktiven WSPR-Zyklus beobachtbar war, wie oft hat dieser Empf&auml;nger auch meinen Sender decodiert?
+* `RX Absolut` / **RX Erfolgsrate:** Wenn ein anderer Empf&auml;nger unabh&auml;ngig best&auml;tigt, dass ein Sender in einem target-aktiven WSPR-Zyklus beobachtbar war, wie oft hat mein Empf&auml;nger ihn ebenfalls decodiert?
+* `TX Absolut` / **TX Erfolgsrate:** Wenn ein Empf&auml;nger unabh&auml;ngig best&auml;tigt, dass ein anderer Sender in einem target-aktiven WSPR-Zyklus beobachtbar war, wie oft hat dieser Empf&auml;nger auch meinen Sender decodiert?
 * Das sind bedingte, Opportunity-basierte Raten. Sie reduzieren den Aktivit&auml;ts-, Ausbreitungs- und Successful-Decode-Bias, der rohe SNR-Karten schwer interpretierbar machte.
 
 **Funktionsweise**
@@ -125,21 +125,21 @@ F&uuml;r jeden target-aktiven Zyklus und Peer:
 * **Hit (`H`)**: Ziel und externe Evidenz waren beide erfolgreich. Jeder Hit ist zugleich eine Opportunity.
 * **Miss (`M`)**: Die externe Evidenz war erfolgreich, das Ziel jedoch nicht. Jeder Miss ist zugleich eine Opportunity.
 * **Nur Target (`T`)**: Das Ziel war ohne externe Best&auml;tigung erfolgreich. Das ist n&uuml;tzliche Zusatzevidenz, geh&ouml;rt aber nie in den Nenner.
-* **Best&auml;tigte Rate:** `H / O = H / (H + M)`.
+* **Erfolgsrate:** `H / (H + M)`. Intern gilt `O = H + M`.
 
 Die Richtung der Evidenz h&auml;ngt vom Modus ab:
 
 * Bei **RX** ist der Peer eine sendende Station. Ein externer Empf&auml;nger, der diesen Peer decodiert, erzeugt `O`; decodiert der Ziel-Empf&auml;nger denselben Peer im selben Zyklus, entsteht `H`.
 * Bei **TX** ist der Peer eine empfangende Station. Decodiert dieser Empf&auml;nger einen anderen Sender, entsteht `O`; decodiert er im selben Zyklus den Ziel-Sender, entsteht `H`.
 
-Raten werden zuerst pro Peer berechnet. Ein Kartensegment zeigt den Median der Peer-Raten, die die konfigurierte Mindestzahl best&auml;tigter Opportunities erreichen. Die gepoolte Rate `sum(H) / sum(O)` &uuml;ber dieselben geeigneten Peers bleibt als sekund&auml;re Evidenz sichtbar, bestimmt aber nicht die Kartenfarbe, weil sonst ein sehr aktiver Peer das Segment dominieren k&ouml;nnte.
+Raten werden zuerst pro Stationsidentit&auml;t berechnet. Eine Station tr&auml;gt erst dann zu Karte, Segment-Zusammenfassung und Station Insights bei, wenn sie die konfigurierte Mindestzahl best&auml;tigter `H+M`-Beobachtungen erreicht. Ein Kartensegment zeigt das arithmetische Mittel der beitragenden Stations-Erfolgsraten, sodass jede qualifizierte Station gleich gewichtet wird. Segment Insight zeigt zus&auml;tzlich die Gesamtrate `sum(H) / sum(H+M)`, die jede best&auml;tigte Beobachtung gleich gewichtet und daher von volumenstarken Stationen dominiert werden kann.
 
 **Vorsicht bei**
 
 * Die Rate ist auf extern best&auml;tigte Peer-Aktivit&auml;t bedingt; sie ist nicht die Wahrscheinlichkeit, jede m&ouml;glicherweise erfolgte Aussendung zu decodieren.
 * Externe Evidenz best&auml;tigt Endpunkt-Aktivit&auml;t, nicht dass der Ausbreitungspfad zwischen Ziel und Peer offen war. Das Ergebnis enth&auml;lt bewusst Ausbreitung, Pfadgeometrie und Stationssystem-Performance.
 * WSPR liefert kein autoritatives Sendelog. Bei TX ist eine Ziel-Aussendung, die niemand decodiert, nicht beobachtbar und kann deshalb kein Miss werden.
-* Nur-Target-Evidenz wird separat gezeigt, weil ihre Aufnahme in den Opportunity-Nenner die Metrik vom eigenen Erfolg abh&auml;ngig machen w&uuml;rde.
+* Nur-Target-Evidenz bleibt in den internen Auditdaten erhalten, wird aber in prim&auml;rer Karte, Zusammenfassung und Station Insights ausgeblendet, weil sie weder `H` noch `M` ist. Ihre Aufnahme in den Nenner w&uuml;rde die Metrik vom eigenen Erfolg abh&auml;ngig machen.
 * Die Absolute Opportunity-Analyse ben&ouml;tigt genau ein Band. `Band = All` wird bewusst abgelehnt, weil Zyklen und Beobachtbarkeit bandspezifisch sind.
 * Die Zielidentit&auml;t wird &uuml;ber exaktes Rufzeichen und den 4-stelligen Locator des konfigurierten QTH abgeglichen. Falsche oder wechselnde Locator-Uploads k&ouml;nnen daher g&uuml;ltige Zyklen entfernen oder Stationsidentit&auml;ten vermischen.
 * Die Query verwendet g&uuml;ltige WSPR-Spots mit `code = 1`. Bei &auml;lteren historischen Daten kann die Vollst&auml;ndigkeit dieses Felds abweichen; langfristige historische Vergleiche deshalb vorsichtig interpretieren.
@@ -282,7 +282,7 @@ Sequenzieller TX ist zeitgebinnt, nicht simultan. Mehrt&auml;giges fixes Timing 
 
 **Heatmap-Segmente**
 
-Absolute Modi zeigen den Median der geeigneten Peer-Opportunity-Raten. Ihre Farbskala beginnt bei 0 Prozent und reicht bis 10 Prozent oberhalb des h&ouml;chsten dargestellten Segmentmedians, begrenzt auf 100 Prozent. Dadurch werden Strukturen bei niedrigen Raten sichtbar; Farben verschiedener Absolute Karten sind jedoch erst nach Ablesen der jeweiligen Farbskala vergleichbar. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
+Absolute Modi zeigen pro Segment die mittlere Stations-Erfolgsrate `H/(H+M)`. Karte und zeitliche Ratenpanels verwenden dieselbe feste nichtlineare Skala mit Grenzen bei `0, 1, 2, 5, 10, 20, 40, 60, 80, 100%`. Dadurch bleiben niedrige Raten differenzierbar und Farben verschiedener Absolute Analysen direkt vergleichbar. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
 
 **Distanzringe**
 
@@ -290,13 +290,13 @@ Nahe Ringe k&ouml;nnen mit Short-Skip oder NVIS konsistent sein; weite Ringe k&o
 
 **Punkte**
 
-In absoluten Modi sind blaue Kreise Peers, die die Mindestzahl best&auml;tigter Opportunities erreichen, graue Kreise haben Opportunities aber noch zu wenig Evidenz, und orange Rauten haben Nur-Target-Evidenz ohne best&auml;tigte Opportunity. In Vergleichsmodi gilt: Gr&uuml;n = Joint Decodes im selben Zyklus, gelb-orange = beide Seiten haben die Station geh&ouml;rt, aber asynchron, violett = nur eigene Station/eigenes Setup, wei&szlig; = nur Referenz.
+In absoluten Modi werden nur Stationen dargestellt, die den Mindestwert best&auml;tigter `H+M`-Evidenz erreichen. `H (Treffer)`-Stationen besitzen mindestens einen Treffer und werden mit steigender Erfolgsrate immer heller gr&uuml;n dargestellt. `M (Fehlschlag)`-Stationen besitzen best&auml;tigte Evidenz, aber keinen Treffer, und werden hellgrau dargestellt. Stationen unterhalb der Evidenzschwelle und Nur-Target-Beobachtungen erscheinen nicht auf der Karte. In Vergleichsmodi gilt: Gr&uuml;n = Joint Decodes im selben Zyklus, gelb-orange = beide Seiten haben die Station geh&ouml;rt, aber asynchron, violett = nur eigene Station/eigenes Setup, wei&szlig; = nur Referenz.
 
 Die Punktkategorien der Vergleichsmodi verwenden die heartbeat-gefilterten Evidenzklassen aus [Decode Yield in Vergleichsmodi](#sec-4-5).
 
 **Footer und 1D-Venn-Balken**
 
-In absoluten Modi nennt der Footer die Mindestzahl best&auml;tigter Opportunities pro Peer, die Zahl geeigneter Peers und den stationsbalancierten Median der `H/O`-Rate. In Vergleichsmodi zeigen `SPOTS` und `STATIONS` Decode-Volumenverteilung und Footprint-Breite; diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
+In absoluten Modi nennt der Footer die Mindestzahl best&auml;tigter `H+M`-Beobachtungen pro Station, die Zahl qualifizierter Stationen und dass die Segmentfarben die mittlere Stationsrate `H/(H+M)` darstellen. In Vergleichsmodi zeigen `SPOTS` und `STATIONS` Decode-Volumenverteilung und Footprint-Breite; diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
 
 Die Footer-Balken visualisieren die Decode-Yield-Kategorien aus [Decode Yield in Vergleichsmodi](#sec-4-5). In Vergleichsmodi sind sie heartbeat-gefiltert und keine Rohz&auml;hler der gesamten Aktivit&auml;t im Zeitfenster.
 
@@ -309,18 +309,19 @@ Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Distanzring und
 
 Der **Segment Insight** Block fasst den aktuell gew&auml;hlten Distanzbereich und die Richtung zusammen. Absolute und vergleichende Analysen verwenden unterschiedliche Evidenzansichten, weil sie unterschiedliche Zielgr&ouml;&szlig;en sch&auml;tzen. Vergleichsmodi behalten System Sensitivity / Decode Yield, stationsbalancierte Mediane und rohe Spot-/Bin-Evidenz bei.
 
-* In absoluten Modi bleiben die `O/H/M/T`-Ergebniszahlen in der textuellen Evidenzzusammenfassung, statt als redundante Grafik wiederholt zu werden. Die Grafik nutzt den verf&uuml;gbaren Platz f&uuml;r geeignete Peer-Raten, die stationsbalancierte Rate &uuml;ber der Zeit und best&auml;tigte Opportunity-Evidenz.
-* Die Heatmap der stationsbalancierten Rate verwendet dieselbe dynamische Ratenskala wie die aktuelle Absolute Karte. Die benachbarte Opportunity-Evidenz-Heatmap verwendet dieselben Distanzzeilen und l&auml;sst die doppelte y-Achsenbeschriftung weg.
-* Absolute Station Insights listen Peer-Identit&auml;t, Distanz, Azimut, `O`, `H`, `M`, `T`, Eignung, best&auml;tigte Rate und das SNR erfolgreicher Decodes als Zusatzevidenz. Karte und Headline-Ergebnis verwenden Raten, nicht SNR.
-* Absolute Station Insights werden absteigend nach Hits (`H`), danach nach Opportunity-Anzahl und best&auml;tigter Rate sortiert.
-* Die absolute Segment-Zusammenfassung zeigt sowohl den Median der geeigneten Peer-Raten als auch die gepoolte Rate `sum(H) / sum(O)` &uuml;ber dieselben geeigneten Peers. Eine gro&szlig;e Differenz weist darauf hin, dass wenige volumenstarke Peers das gepoolte Ergebnis beeinflussen.
+* In absoluten Modi nennt die textuelle Zusammenfassung best&auml;tigte `H`- und `M`-Zahlen f&uuml;r Stationen, die den konfigurierten `H+M`-Schwellenwert erreichen. Danach folgen zwei klar benannte Erfolgsraten: **Stationsmittel**, der Mittelwert der einzelnen Stationsraten, und **Gesamt**, `sum(H) / sum(H+M)`.
+* Das obere Absolute Panel zeigt die Erfolgsrate jeder Station gegen ihre best&auml;tigte Evidenz `H+M` auf einer log2-x-Achse. Die Schwellenlinie macht den Evidenz-Cutoff sichtbar; gr&uuml;ne Punkte besitzen mindestens einen Treffer, graue Punkte nur Fehlschl&auml;ge.
+* Das untere linke Zeitpanel zeigt die **Mittlere Stations-Erfolgsrate** jeder Distanz-/Zeitzelle. Zuerst wird `H/(H+M)` pro beitragender Station berechnet, danach werden diese Stationsraten gemittelt.
+* Das untere rechte Zeitpanel zeigt die **Gesamte Erfolgsrate** derselben Zelle: `sum(H) / sum(H+M)`. Eine Differenz zwischen beiden Panels zeigt, dass volumenstarke Stationen das beobachtungsgewichtete Ergebnis vom gleichgewichteten Stationsmittel wegziehen.
+* Beide Zeitpanels verwenden dieselbe feste nichtlineare Erfolgsratenskala wie die Karte und identische Distanz-/Zeitachsen. Zeitbins sind l&uuml;ckenlos, am exakten Analysebeginn verankert und reichen bis zum Analyseende; leere Bins bleiben leer sichtbar, statt zu verschwinden.
+* Absolute Station Insights listen nur schwellenqualifizierte Stationsidentit&auml;ten mit Distanz, Azimut, `H`, `M`, Erfolgsrate und medianem Treffer-SNR. Sortiert wird absteigend nach `H`, danach `M` und Erfolgsrate.
 * In Vergleichsmodi nutzen die oberen Verteilungspanels Prozent-Histogramme f&uuml;r Delta SNR. Dadurch bleibt quantisierte WSPR-SNR-Evidenz sichtbar, ohne sie zu einer kontinuierlichen Dichteform zu gl&auml;tten.
 * SNR-Histogramm-Bins sind pro Panel global fest und decken den vollen sichtbaren Bereich mit h&ouml;chstens 40 Balken ab. WSPRadar nutzt standardm&auml;&szlig;ig 1,0-dB-Bins, wechselt nur bei klarer HalbdB-Struktur der Werte auf 0,5-dB-Bins und aggregiert breite Bereiche bei Bedarf auf 1, 2, 3, 6 oder 10 dB.
 * Die Station-Insights-Tabelle listet beteiligte Remote-Stationen, trennt Joint Decodes von exklusiven Decodes und zeigt den stationsbezogenen medianen Delta SNR.
 * Ein Klick auf eine Station-Insights-Zeile &ouml;ffnet die Drill-Down-Tabelle.
-* Wenn keine Station-Insights-Zeile ausgew&auml;hlt ist, &ouml;ffnet WSPRadar standardm&auml;&szlig;ig die evidenzst&auml;rkste Zeile: in Vergleichsmodi die Zeile mit den meisten Joint Spots oder Joint Bins, in absoluten Modi die Zeile mit den meisten best&auml;tigten Opportunities.
+* Wenn keine Station-Insights-Zeile ausgew&auml;hlt ist, &ouml;ffnet WSPRadar standardm&auml;&szlig;ig die evidenzst&auml;rkste Zeile: in Vergleichsmodi die Zeile mit den meisten Joint Spots oder Joint Bins, in absoluten Modi die erste nach `H`, `M` und Erfolgsrate sortierte Zeile.
 * Die Auswahl einer oder mehrerer Station-Insights-Zeilen f&uuml;gt oberhalb der Drill-Down-Tabelle einen zweiteiligen Evidenzblock ein. Links zeigt ein horizontales Prozent-Histogramm die Verteilung der ausgew&auml;hlten Evidenz und h&auml;lt die SNR- oder Delta-SNR-Achse mit der Zeit-Heatmap rechts ausgerichtet.
-* Die Zeitbin-Auswahl oberhalb des rechten Panels wirkt nur auf die Zeit-Heatmap. Die verf&uuml;gbaren UTC-Binbreiten passen sich an die Dauer der ausgew&auml;hlten Evidenz an: kurze Fenster verwenden Minuten-Bins, lange Fenster verwenden Stunden-Bins. Die Standardauswahl f&uuml;r lange Fenster ist `1h`, `3h`, `6h`, `12h` und `24h`, und WSPRadar startet mit der zweitfeinsten verf&uuml;gbaren Binbreite. Die Heatmap aggregiert alle ausgew&auml;hlten Zeilen in ganzzahlige SNR- oder Delta-SNR-Dichtezellen, legt Medianmarker dar&uuml;ber und verbindet benachbarte Mediane nur, wenn beide benachbarten Bins mindestens drei Punkte enthalten. Das Verteilungspanel bleibt roh, damit die vollst&auml;ndige ausgew&auml;hlte Evidenzpopulation sichtbar bleibt.
+* Die Zeitbin-Auswahl oberhalb des rechten Panels wirkt nur auf die Zeit-Heatmap. Die verf&uuml;gbaren UTC-Binbreiten passen sich an die Dauer der ausgew&auml;hlten Evidenz an: kurze Fenster verwenden Minuten-Bins, lange Fenster verwenden Stunden-Bins. Bei absoluten H/M-Zeitreihen richten sich die Optionen nach dem vollst&auml;ndigen Analyseintervall, damit d&uuml;nn besetzte Stationen nicht versehentlich Tausende winziger leerer Bins erzeugen. Die Standardauswahl f&uuml;r lange Fenster ist `1h`, `3h`, `6h`, `12h` und `24h`, und WSPRadar startet mit der zweitfeinsten verf&uuml;gbaren Binbreite. Die Heatmap aggregiert alle ausgew&auml;hlten Zeilen in ganzzahlige SNR- oder Delta-SNR-Dichtezellen, legt Medianmarker dar&uuml;ber und verbindet benachbarte Mediane nur, wenn beide benachbarten Bins mindestens drei Punkte enthalten. Das Verteilungspanel bleibt roh, damit die vollst&auml;ndige ausgew&auml;hlte Evidenzpopulation sichtbar bleibt.
 * WSPRadar zeigt ein `90% Stability`-Intervall f&uuml;r stationsbezogene Mediane und ausgew&auml;hlte Evidenz. Das ist ein Bootstrap-/Resampling-Stabilit&auml;tsintervall um den Median, kein formaler Signifikanznachweis. In den oberen Segmentplots wird die rote gestrichelte Medianlinie durch den echten 90%-Stabilit&auml;tsbereich hinterlegt; Intervalle mit nahezu Nullbreite werden als Linie dargestellt und nicht k&uuml;nstlich zu einem Band verbreitert. SNR- und Delta-SNR-Panels nutzen mindestens 3 dB sichtbare y-Achsen-Spanne, damit winzige numerische Variation nicht visuell vergr&ouml;&szlig;ert wird.
 * `Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Beide (Async)` zeigen.
 
@@ -331,7 +332,7 @@ Der **Segment Insight** Block fasst den aktuell gew&auml;hlten Distanzbereich un
 
 Die Drill-Down-Tabelle ist die zeilenbasierte Auditschicht f&uuml;r alle Modi. Sie zeigt Beobachtungen, Paare oder Zeit-Bins hinter einer Station-Insights-Zeile, damit Segment- und Stationsmediane gegen die zugrunde liegende Evidenz gepr&uuml;ft werden k&ouml;nnen.
 
-In absoluten Modi verwendet die Evidenzgrafik der ausgew&auml;hlten Stationen zwei vergr&ouml;&szlig;erte Panels: Rate/Evidenz &uuml;ber der Zeit und erfolgreiches Ziel-SNR. Die Achse der best&auml;tigten Rate reicht bis 10 Prozent oberhalb des gr&ouml;&szlig;ten sichtbaren Werts, begrenzt auf 100 Prozent, statt immer den gesamten Bereich von 0 bis 100 Prozent zu reservieren. Jede Drill-Down-Zeile ist eine target-aktive Stations-Zyklus-Beobachtung, klassifiziert als `H`, `M` oder `T`, mit den zugeh&ouml;rigen Opportunity-Flags und erfolgreichem Ziel-SNR, sofern vorhanden. In normalen Same-Cycle-Vergleichsmodi zeigt der Drill-Down die gepaarten Spot-Level-Vergleiche, die in den Stationsmedian eingehen.
+In absoluten Modi verwendet die Evidenzgrafik der ausgew&auml;hlten Stationen zwei vergr&ouml;&szlig;erte Panels: gestapelte `H`-/`M`-Zahlen mit der Erfolgsrate `H/(H+M)` &uuml;ber der Zeit sowie Treffer-SNR. Die Erfolgsraten-Achse reicht bis 10 Prozent oberhalb des gr&ouml;&szlig;ten sichtbaren Werts, begrenzt auf 100 Prozent, statt immer den gesamten Bereich von 0 bis 100 Prozent zu reservieren. Die Zeitreihe verwendet l&uuml;ckenlose, am exakten Analysebeginn verankerte Bins. Jede Drill-Down-Zeile bleibt intern eine target-aktive Stations-Zyklus-Beobachtung, klassifiziert als `H`, `M` oder `T`, mit den zugeh&ouml;rigen Audit-Flags und Ziel-SNR, sofern vorhanden. In normalen Same-Cycle-Vergleichsmodi zeigt der Drill-Down die gepaarten Spot-Level-Vergleiche, die in den Stationsmedian eingehen.
 
 F&uuml;r die Median-Nachbarschaftsmethode wird der Referenzpool expandiert. Statt nur eine generische `Ref Pool`-Zeile zu zeigen, listet die Tabelle die einzelnen lokalen Referenzstationen dieses Zyklus, ihren Locator, ihre Distanz, ihr normiertes Referenz-SNR, den aggregierten Nachbarschaftsmedian des Zyklus, das eigene SNR und den resultierenden Delta SNR. So l&auml;sst sich der Median direkt nachvollziehen.
 
@@ -475,7 +476,7 @@ Das `90% Stability`-Intervall ist ein deskriptives Bootstrap-Stabilit&auml;tsint
 
 * **Crowd-sourced Daten:** WSPR-Spots k&ouml;nnen Duplikate, falsche Spots, falsche Leistung, falschen Locator oder empfangsseitige Fehler enthalten. WSPRadar reduziert die Empfindlichkeit gegen&uuml;ber vielen dieser Probleme, kann upstream Daten aber nicht kalibriert oder fehlerfrei machen.
 * **Nur erfolgreiche Decodes:** WSPR protokolliert Decodes, nicht alle fehlgeschlagenen Empfangsversuche. Geschlossene B&auml;nder reduzieren die Existenz von Spots, statt einen Durchschnitt zu senken.
-* **Bedingte Absolute Raten:** Absolute `H/O`-Ergebnisse sind auf unabh&auml;ngig best&auml;tigte Peer-Aktivit&auml;t bedingt. Externe Evidenz beweist nicht, dass der Ziel-Peer-Pfad offen war; die Raten enthalten daher Ausbreitung und sch&auml;tzen weder eine unbedingte Empf&auml;ngerempfindlichkeit noch den Anteil aller geplanten Aussendungen, die decodiert wurden.
+* **Bedingte Absolute Raten:** Absolute `H/(H+M)`-Ergebnisse sind auf unabh&auml;ngig best&auml;tigte Aktivit&auml;t der Remote-Station bedingt. Externe Evidenz beweist nicht, dass der Pfad zwischen Ziel und Station offen war; die Raten enthalten daher Ausbreitung und sch&auml;tzen weder eine unbedingte Empf&auml;ngerempfindlichkeit noch den Anteil aller geplanten Aussendungen, die decodiert wurden.
 * **Nicht beobachtbare TX-Misses:** Ohne autoritatives Sendelog ist ein Ziel-TX-Zyklus, den niemand decodiert, nicht von keiner Aussendung unterscheidbar und kann daher nicht in `M` eingehen.
 * **Historische Spot-G&uuml;ltigkeit:** Opportunity-Queries nutzen `code = 1`, um die Analyse auf g&uuml;ltige WSPR-Spots zu begrenzen. Code-Abdeckung und Upstream-Verarbeitung k&ouml;nnen in &auml;lteren Archivzeitr&auml;umen abweichen.
 * **Gemeldete Leistung:** Normalisierung mindert Unterschiede in gemeldeter Leistung, und mehrere Vergleichsmodi reduzieren dieses Problem zus&auml;tzlich durch Paarbildung gegen denselben Sender oder dasselbe Rufzeichen. Jede Analyse, die auf gemeldeten dBm basiert, setzt aber weiterhin voraus, dass der gemeldete Wert ungef&auml;hr stimmt.
@@ -502,7 +503,7 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 * **Zielrufzeichen:** prim&auml;re Station unter Auswertung.
 * **QTH Locator:** mathematisches Zentrum der Kartenprojektion. G&uuml;ltigen 4- oder 6-Zeichen-Maidenhead-Locator verwenden.
 * **Band und Zeitfenster:** definieren das WSPR-Datenfenster. Zeit wird in UTC behandelt.
-* **Min. best&auml;tigte Opportunities pro Peer:** Evidenzschwelle nur f&uuml;r Absolute Analysen. Ein Peer ben&ouml;tigt mindestens diese Zahl von `O`-Beobachtungen, bevor seine `H/O`-Rate zur Karte oder zum stationsbalancierten Segmentmedian beitr&auml;gt. Standard ist `5`; niedrigere Werte erh&ouml;hen die Abdeckung, erzeugen aber auch mehr diskrete Kleinstichproben-Raten wie `0%`, `50%` oder `100%`.
+* **Min. best&auml;tigte H+M pro Station:** Evidenzschwelle nur f&uuml;r Absolute Analysen. Eine Station ben&ouml;tigt mindestens diese Zahl best&auml;tigter `H+M`-Beobachtungen, bevor ihre Erfolgsrate zu Karte, Segment-Zusammenfassung, Zeitpanels oder Station Insights beitr&auml;gt. Standard ist `5`; niedrigere Werte erh&ouml;hen die Abdeckung, erzeugen aber auch mehr diskrete Kleinstichproben-Raten wie `0%`, `50%` oder `100%`.
 
 **Vergleichsparameter**
 
@@ -527,8 +528,8 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 * **Local QTH Solar State:** filtert nach berechneter Sonnenhöhe am eigenen QTH: Tageslicht, Nacht oder Greyline.
 * **Map Scope:** visueller Kartenradius.
 * **Min. Joint Spots/Station:** Schwelle nur f&uuml;r Vergleichsmodi. Sie erfordert mindestens X Joint Spots pro Remote-Station, bevor diese Station zu einem Delta SNR beitr&auml;gt. In sequenziellem TX A/B wird dies als Min. Joint Bins angezeigt.
-* **Min. best&auml;tigte Opportunities pro Peer:** Absolute-only Schwelle aus den Core-Parametern. Sie ersetzt die fr&uuml;here Interpretation als rohe Spots pro Station.
-* **Min. Joint Stations/Segment:** erfordert mindestens X qualifizierende Stationen, bevor ein Segment gezeichnet wird. In Vergleichsmodi sind das Stationen mit qualifizierender Joint-Evidenz; in absoluten Modi sind es geeignete Peers, die bereits die Opportunity-Schwelle erreichen.
+* **Min. best&auml;tigte H+M pro Station:** Absolute-only Schwelle aus den Core-Parametern. Sie ersetzt die fr&uuml;here Interpretation als rohe Spots pro Station.
+* **Min. qualifizierte Stationen/Segment:** erfordert mindestens X qualifizierende Stationen, bevor ein Segment gezeichnet wird. In Vergleichsmodi z&auml;hlt sie Stationen mit qualifizierender Joint-Evidenz; in absoluten Modi z&auml;hlt sie Stationen, die den best&auml;tigten `H+M`-Schwellenwert erreichen.
 
 **Hinweis zum Sonderrufzeichen-Filter**
 

@@ -159,13 +159,13 @@ def render_advanced_expander(t):
             st.session_state.val_min_stations = min(max(int(st.session_state.get("val_min_stations", 1)), 1), 10)
             st.slider(min_spots_label, 1, 50, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
             st.slider(
-                t.get("lbl_min_opportunities", "Min. Confirmed Opportunities per Peer"),
+                t.get("lbl_min_opportunities", "Min. Confirmed H+M per Station"),
                 1,
                 100,
                 key="val_min_opportunities",
                 help=t.get(
                     "hlp_min_opportunities",
-                    "Absolute rate maps include a peer only after this many independently confirmed opportunities.",
+                    "Absolute success-rate views include a station only after this many confirmed H+M observations.",
                 ),
                 on_change=reset_audit,
             )

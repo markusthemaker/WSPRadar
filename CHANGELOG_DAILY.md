@@ -102,3 +102,13 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Simplified Absolute evidence figures by removing redundant outcome-count charts, enlarging the remaining panels, dynamically scaling confirmation-rate axes and synchronizing the rate-over-time heatmap with the map color scale.
 - Added dynamic Absolute map color limits for low-rate datasets and changed Absolute Station Insights to sort primarily by descending Hits (`H`).
 - Replaced the Segment Inspector’s single range and direction selectors with multiselect controls.
+
+## 2026-06-15
+
+- Simplified the visible Absolute-analysis vocabulary to `H (Hit)`, `M (Miss)` and `Success Rate = H/(H+M)` while retaining `O` and `T` in the internal audit data.
+- Changed Absolute map segments from median peer rates to average station Success Rate and introduced a fixed nonlinear `0, 1, 2, 5, 10, 20, 40, 60, 80, 100%` scale shared by maps and temporal panels.
+- Replaced Absolute map markers with threshold-qualified H/M stations: Hits use rate-dependent green intensity, while stations with confirmed Misses and no Hits use light gray.
+- Rebuilt Absolute Segment Insight around a station Success Rate versus confirmed-evidence scatter plot, Average Station Success Rate over time and Overall Success Rate over time.
+- Anchored contiguous Absolute time bins to the exact analysis start/end window so empty intervals remain visible and time axes are chronologically stable.
+- Reduced Absolute Segment Insight summaries and Station Insights tables to threshold-qualified H/M evidence, removed redundant Opportunity/Target-only/eligibility columns and sorted stations by Hits, Misses and Success Rate.
+- Updated selected-station Absolute evidence to show stacked H/M counts with a dynamically scaled Success Rate line, and updated English/German UI text and documentation.

@@ -18,6 +18,18 @@ from core.math_utils import is_valid_6char_locator, is_valid_callsign, locator_t
 
 ABSOLUTE_METHOD_VERSION = "opportunity-v1"
 DEFAULT_MIN_OPPORTUNITIES = 5
+SUCCESS_RATE_BOUNDS = (0.0, 1.0, 2.0, 5.0, 10.0, 20.0, 40.0, 60.0, 80.0, 100.0)
+SUCCESS_RATE_COLORS = (
+    "#3b0f70",
+    "#364b9a",
+    "#277f8e",
+    "#1fa187",
+    "#4ac16d",
+    "#a0da39",
+    "#fde725",
+    "#f89540",
+    "#d73027",
+)
 
 
 def opportunity_rate_scale_max(values, minimum=1.0):
@@ -254,15 +266,19 @@ def aggregate_opportunity_peers(
         return pd.DataFrame()
 
     min_opportunities = max(int(min_opportunities), 1)
+    work = rows.copy()
+    work["hit_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").where(
+        work["hit"] > 0
+    )
     grouped = (
-        rows.groupby(["peer_sign", "peer_grid"], dropna=False)
+        work.groupby(["peer_sign", "peer_grid"], dropna=False)
         .agg(
             opportunities=("opportunity", "sum"),
             hits=("hit", "sum"),
             misses=("miss", "sum"),
             target_only=("target_only", "sum"),
             target_observations=("target_seen", "sum"),
-            successful_snr_median=("target_snr", "median"),
+            successful_snr_median=("hit_snr", "median"),
             first_evidence_utc=("cycle_time", "min"),
             last_evidence_utc=("cycle_time", "max"),
             peer_lat=("peer_lat", "first"),
@@ -293,7 +309,7 @@ def aggregate_opportunity_peers(
 
 
 def aggregate_opportunity_segments(peer_df: pd.DataFrame) -> pd.DataFrame:
-    """Return station-balanced and pooled opportunity statistics per map segment."""
+    """Return average-station and overall success rates per map segment."""
     if peer_df is None or peer_df.empty:
         return pd.DataFrame()
 
@@ -308,11 +324,16 @@ def aggregate_opportunity_segments(peer_df: pd.DataFrame) -> pd.DataFrame:
     eligible = peer_df[peer_df["eligible"] & peer_df["rate_pct"].notna()].copy()
     if eligible.empty:
         return pd.DataFrame(columns=group_keys)
+    eligible["station_success_rate_pct"] = np.where(
+        (eligible["hits"] + eligible["misses"]) > 0,
+        100.0 * eligible["hits"] / (eligible["hits"] + eligible["misses"]),
+        np.nan,
+    )
 
     segments = (
         eligible.groupby(group_keys, dropna=False)
         .agg(
-            val=("rate_pct", "median"),
+            val=("station_success_rate_pct", "mean"),
             cnt=("peer_sign", "size"),
             total_opportunities=("opportunities", "sum"),
             total_hits=("hits", "sum"),

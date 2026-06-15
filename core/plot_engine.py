@@ -19,7 +19,8 @@ from config import *
 from core.opportunity_engine import (
     aggregate_opportunity_peers,
     aggregate_opportunity_segments,
-    opportunity_rate_scale_max,
+    SUCCESS_RATE_BOUNDS,
+    SUCCESS_RATE_COLORS,
 )
 from core.snr_utils import round_snr_like_columns
 from i18n import T
@@ -406,19 +407,9 @@ def generate_map_plot(
         ticks = [-24, -18, -12, -6, 0, 6, 12, 18, 24]
         cbar_title = t_lang["cbar_comp"]
     elif is_opportunity:
-        clrs = [
-            "#3b0f70", "#364b9a", "#277f8e", "#1fa187", "#4ac16d",
-            "#8bd646", "#cde11d", "#f4d03f", "#f89540", "#d73027",
-        ]
-        visible_rate_values = segs.loc[
-            segs["r_min"] < max_dist_km,
-            "val",
-        ] if not segs.empty else []
-        rate_scale_max = opportunity_rate_scale_max(visible_rate_values)
-        segs["rate_scale_max"] = rate_scale_max
-        bnds = np.linspace(0, rate_scale_max, 11)
-        rate_decimals = 1 if rate_scale_max < 10 else 0
-        lbls = [f"{value:.{rate_decimals}f}%" for value in bnds]
+        clrs = list(SUCCESS_RATE_COLORS)
+        bnds = np.asarray(SUCCESS_RATE_BOUNDS, dtype=float)
+        lbls = [f"{value:g}%" for value in bnds]
         ticks = bnds
         cbar_title = t_lang["cbar_abs"]
     else:
@@ -428,7 +419,8 @@ def generate_map_plot(
         ticks = bnds
         cbar_title = t_lang["cbar_abs"]
     
-    cmap = mpl.colors.ListedColormap(clrs); norm = mpl.colors.BoundaryNorm(bnds, cmap.N)
+    cmap = mpl.colors.ListedColormap(clrs)
+    norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
     
     # Draw Heatmap Wedges
     patches = []
@@ -468,37 +460,28 @@ def generate_map_plot(
         leg.set_zorder(15)
     elif is_opportunity:
         eligible = df_plot[df_plot["eligible"] & df_plot["rate_pct"].notna()]
-        insufficient = df_plot[
-            (~df_plot["eligible"]) &
-            (df_plot["opportunities"] > 0)
-        ]
-        target_only = df_plot[
-            (df_plot["opportunities"] == 0) &
-            (df_plot["target_only"] > 0)
-        ]
-        if not eligible.empty:
+        hit_stations = eligible[eligible["hits"] > 0]
+        miss_stations = eligible[eligible["hits"] == 0]
+        if not hit_stations.empty:
+            hit_cmap = mpl.colors.ListedColormap([
+                "#0b3d0b", "#116611", "#178f17", "#1fbd1f",
+                "#27dc27", "#2df52d", "#39ff14", "#64ff4a", "#9aff85",
+            ])
             ax.scatter(
-                eligible["peer_lon"], eligible["peer_lat"],
-                c="#36aaf9", s=8, alpha=1.0, edgecolors="black",
+                hit_stations["peer_lon"], hit_stations["peer_lat"],
+                c=hit_stations["rate_pct"], cmap=hit_cmap, norm=norm,
+                s=9, alpha=1.0, edgecolors="black",
                 linewidth=0.35, transform=pc_proj, zorder=10,
-                label=t_lang.get("leg_abs_eligible", "Eligible peer"),
+                label=t_lang.get("leg_abs_hit", "H (Hit)"),
             )
-        if not insufficient.empty:
+        if not miss_stations.empty:
             ax.scatter(
-                insufficient["peer_lon"], insufficient["peer_lat"],
-                c="#9a9a9a", s=7, alpha=0.85, edgecolors="black",
+                miss_stations["peer_lon"], miss_stations["peer_lat"],
+                c="#c7c7c7", s=8, alpha=0.9, edgecolors="black",
                 linewidth=0.35, transform=pc_proj, zorder=9,
-                label=t_lang.get("leg_abs_insufficient", "Insufficient opportunities"),
+                label=t_lang.get("leg_abs_miss", "M (Miss)"),
             )
-        if not target_only.empty:
-            ax.scatter(
-                target_only["peer_lon"], target_only["peer_lat"],
-                c="#ffbe33", marker="D", s=12, alpha=1.0,
-                edgecolors="black", linewidth=0.35,
-                transform=pc_proj, zorder=11,
-                label=t_lang.get("leg_abs_target_only", "Target-only evidence"),
-            )
-        if not eligible.empty or not insufficient.empty or not target_only.empty:
+        if not hit_stations.empty or not miss_stations.empty:
             leg = ax.legend(
                 loc="lower center",
                 bbox_to_anchor=LEG_BBOX,
@@ -563,11 +546,9 @@ def generate_map_plot(
             meta_parts.append(f"Ref: Self-Test Config")
         else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
     elif is_opportunity:
-        eligible_count = int(df_plot["eligible"].sum())
-        meta_parts.append(f"Confirmed O/Peer: >={st.session_state.get('val_min_opportunities', 5)}")
-        meta_parts.append(f"Eligible Peers: {eligible_count}")
-        meta_parts.append(f"Peers/Seg: >={base_min_stations}")
-        meta_parts.append("Segment: median peer H/O")
+        meta_parts.append(f"H+M/Station: >={st.session_state.get('val_min_opportunities', 5)}")
+        meta_parts.append(f"Stations/Seg: >={base_min_stations}")
+        meta_parts.append("Segment: average station H/(H+M)")
     else:
         meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
         meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")

@@ -460,7 +460,8 @@ if st.session_state.run_mode:
                 # Append all necessary data to the buffer for deferred rendering
                 deferred_render_data.append({
                     'analysis': analysis, 'enriched_df': enriched_df, 'segs_df': segs_df, 
-                    'parquet_path': parquet_path, 'line1_str': line1_str, 'skeleton_ph': skeleton_ph, 'inspector_container': inspector_container
+                    'parquet_path': parquet_path, 'line1_str': line1_str, 'skeleton_ph': skeleton_ph,
+                    'inspector_container': inspector_container, 'start_t': start_t, 'end_t': end_t
                 })
             else:
                 st.warning(t["warn_no_data"].format(title=analysis['title']))
@@ -483,6 +484,8 @@ if st.session_state.run_mode:
                 data['line1_str'],
                 t,
                 max_dist_km,
+                analysis_start_t=data['start_t'],
+                analysis_end_t=data['end_t'],
                 analysis_kind=data['analysis'].get("analysis_kind", "comparison"),
                 show_export_button=(idx == len(deferred_render_data) - 1),
             )

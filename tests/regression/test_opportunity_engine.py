@@ -53,7 +53,7 @@ def test_rx_opportunity_classification_and_target_exclusion():
     assert int(peer["target_only"]) == 1
     assert bool(peer["eligible"])
     assert math.isclose(float(peer["rate_pct"]), 50.0, abs_tol=0.001)
-    assert math.isclose(float(peer["successful_snr_median"]), -10.0, abs_tol=0.001)
+    assert math.isclose(float(peer["successful_snr_median"]), -12.0, abs_tol=0.001)
 
 
 def test_target_only_never_enters_denominator():
@@ -74,7 +74,7 @@ def test_target_only_never_enters_denominator():
     assert pd.isna(peer["rate_pct"])
 
 
-def test_segment_value_is_peer_balanced_not_pooled():
+def test_segment_value_is_average_station_rate_not_pooled():
     peers = pd.DataFrame([
         {
             "SegmentID": "A",
@@ -89,6 +89,22 @@ def test_segment_value_is_peer_balanced_not_pooled():
             "rate_pct": 100.0,
             "opportunities": 10,
             "hits": 10,
+            "misses": 0,
+            "target_only": 0,
+        },
+        {
+            "SegmentID": "A",
+            "dist_label": "[0-2500km]",
+            "dir_name": "W",
+            "r_min": 0.0,
+            "r_max": 2500.0,
+            "az_bucket": 12.0,
+            "peer_sign": "C",
+            "peer_grid": "CC00",
+            "eligible": True,
+            "rate_pct": 100.0,
+            "opportunities": 1,
+            "hits": 1,
             "misses": 0,
             "target_only": 0,
         },
@@ -116,7 +132,7 @@ def test_segment_value_is_peer_balanced_not_pooled():
             "r_max": 2500.0,
             "az_bucket": 12.0,
             "peer_sign": "LOW_EVIDENCE",
-            "peer_grid": "CC00",
+            "peer_grid": "DD00",
             "eligible": False,
             "rate_pct": 100.0,
             "opportunities": 100,
@@ -127,8 +143,8 @@ def test_segment_value_is_peer_balanced_not_pooled():
     ])
 
     segment = aggregate_opportunity_segments(peers).iloc[0]
-    assert math.isclose(float(segment["val"]), 50.0, abs_tol=0.001)
-    assert math.isclose(float(segment["pooled_rate_pct"]), 90.9, abs_tol=0.1)
+    assert math.isclose(float(segment["val"]), 66.7, abs_tol=0.1)
+    assert math.isclose(float(segment["pooled_rate_pct"]), 91.7, abs_tol=0.1)
 
 
 def test_opportunity_rate_scale_adds_headroom_and_caps_at_100():
