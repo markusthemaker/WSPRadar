@@ -1311,10 +1311,8 @@ def _build_drilldown_table(
                 km_col,
                 az_col,
                 "Outcome",
-                "opportunity",
                 "hit",
                 "miss",
-                "target_only",
                 "target_snr",
             ]
         ].copy()
@@ -1325,10 +1323,8 @@ def _build_drilldown_table(
             km_col,
             az_col,
             "Outcome",
-            "Opportunity (O)",
             "Hit (H)",
             "Miss (M)",
-            "Target-Only (T)",
             "Successful SNR (dB @ 1W)",
         ]
         drill_df["Successful SNR (dB @ 1W)"] = pd.to_numeric(
@@ -2052,9 +2048,9 @@ def _render_opportunity_segment_figure(recipe):
         )
     else:
         ax_rates.text(0.5, 0.5, "No station has a confirmed Hit", color="#cccccc", ha="center", va="center", transform=ax_rates.transAxes)
-    ax_rates.set_title("Station Success Rate vs Confirmed Evidence", color="white", fontweight="bold", fontsize=12, pad=9)
-    ax_rates.set_xlabel("Observable (Hits + Misses)", color="white", fontsize=10)
-    ax_rates.set_ylabel("Success Rate: Hits / (Hits + Misses) (%)", color="white", fontsize=10)
+    ax_rates.set_title("Station Success Rate by Evidence Count", color="white", fontweight="bold", fontsize=12, pad=9)
+    ax_rates.set_xlabel("Evidence Count (Hits + Misses)", color="white", fontsize=10)
+    ax_rates.set_ylabel("Success Rate (%)", color="white", fontsize=10)
 
     time_values = pd.to_datetime(
         np.asarray(recipe.get("time_ns", []), dtype=np.int64),
@@ -2563,12 +2559,12 @@ def _render_opportunity_scope(
         az_col,
         t.get("tbl_col_hits", "H (Hit)"),
         t.get("tbl_col_misses", "M (Miss)"),
-        t.get("tbl_col_rate", "Success Rate H/(H+M) (%)"),
+        t.get("tbl_col_rate", "H/(H+M) (%)"),
         t.get("tbl_col_success_snr", "Median Hit SNR (dB @ 1W)"),
     ]
     disp_df[km_col] = disp_df[km_col].round(0).astype("Int64")
     disp_df[az_col] = disp_df[az_col].round(1)
-    rate_col = t.get("tbl_col_rate", "Success Rate H/(H+M) (%)")
+    rate_col = t.get("tbl_col_rate", "H/(H+M) (%)")
     snr_col = t.get("tbl_col_success_snr", "Median Hit SNR (dB @ 1W)")
     disp_df[rate_col] = pd.to_numeric(disp_df[rate_col], errors="coerce").round(1)
     disp_df[snr_col] = pd.to_numeric(disp_df[snr_col], errors="coerce").round(1)

@@ -261,8 +261,8 @@ DEMO_PROFILES = {
             "last_hours": 24,
             "start_d": datetime.date(2026, 5, 27),
             "end_d": datetime.date(2026, 5, 31),
-            "start_t": dt_time(0, 0),
-            "end_t": dt_time(23, 45),
+            "start_t": dt_time(13, 0),
+            "end_t": dt_time(09, 45),
         },
         "comparison": {
             "comp_mode_key": "opt_comp_self",

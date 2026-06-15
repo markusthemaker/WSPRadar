@@ -116,4 +116,5 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Simplified the station evidence scatter to stations with Hits, formatted its log2 axis with actual evidence counts, renamed the pooled temporal metric to Observation-Level Success Rate and enlarged Absolute figure typography.
 - Replaced temporal range-bin strings with distance-boundary labels and increased time-axis label density across Absolute temporal charts.
 - Anchored Absolute temporal labels to a regular clock-stable interval from the selected analysis start, moved both temporal panels closer together and replaced their duplicate colorbars with one shared Success Rate scale.
-- Shortened the Absolute station-evidence x-axis label to `Observable (Hits + Misses)`.
+- Renamed the Absolute station-evidence scatter to `Station Success Rate by Evidence Count`, simplified its axes and shortened the table Success Rate header to `H/(H+M) (%)`.
+- Removed redundant `Opportunity (O)` and `Target-Only (T)` columns from the Absolute drill-down table while keeping the row-level `Outcome` classification.
