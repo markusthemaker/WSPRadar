@@ -1855,6 +1855,7 @@ def _draw_opportunity_heatmap(
     cbar_ticks=None,
     cbar_ticklabels=None,
     show_y_labels=True,
+    show_colorbar=True,
 ):
     ax.set_facecolor("black")
     ax.tick_params(colors="white", labelsize=9)
@@ -1865,7 +1866,7 @@ def _draw_opportunity_heatmap(
         ax.text(0.5, 0.5, "No confirmed Hit/Miss evidence", color="#cccccc", ha="center", va="center", transform=ax.transAxes)
         ax.set_xticks([])
         ax.set_yticks([])
-        return
+        return None
 
     masked = np.ma.masked_invalid(np.asarray(grid, dtype=float))
     image_kwargs = {
@@ -1894,35 +1895,74 @@ def _draw_opportunity_heatmap(
             ax.axhline(boundary, color="#777777", linewidth=0.8, alpha=0.30)
     else:
         ax.tick_params(axis="y", left=False, labelleft=False)
-    time_index = pd.DatetimeIndex(time_values)
-    if len(time_index) <= 8:
-        tick_indices = np.arange(len(time_index))
-    else:
-        tick_indices = np.unique(
-            np.linspace(0, len(time_index) - 1, 8).astype(int)
-        )
+    tick_indices = _opportunity_time_tick_indices(time_values)
     ax.set_xticks(tick_indices)
     ax.set_xticklabels(
         [pd.Timestamp(time_values[index]).strftime("%d-%b\n%H:%M") for index in tick_indices],
         color="white",
         fontsize=9,
     )
-    cbar = plt.colorbar(
-        image,
-        ax=ax,
-        pad=0.015,
-        fraction=0.04,
-        ticks=cbar_ticks,
+    if show_colorbar:
+        cbar = plt.colorbar(
+            image,
+            ax=ax,
+            pad=0.015,
+            fraction=0.04,
+            ticks=cbar_ticks,
+        )
+        if cbar_ticklabels is not None:
+            cbar.ax.set_yticklabels(cbar_ticklabels)
+        cbar.set_label(cbar_label, color="white", fontsize=9)
+        cbar.ax.tick_params(colors="white", labelsize=9)
+    return image
+
+
+def _opportunity_time_tick_indices(time_values):
+    """Return clock-stable, equidistant time ticks anchored at analysis start."""
+    time_index = pd.DatetimeIndex(time_values)
+    bin_count = len(time_index)
+    if bin_count <= 8:
+        return np.arange(bin_count, dtype=int)
+
+    bin_delta = time_index[1] - time_index[0]
+    bin_minutes = max(1, int(round(bin_delta / pd.Timedelta(minutes=1))))
+    interval_minutes = (
+        60,
+        120,
+        180,
+        240,
+        360,
+        480,
+        720,
+        1440,
+        2880,
+        4320,
+        5760,
+        7200,
+        10080,
     )
-    if cbar_ticklabels is not None:
-        cbar.ax.set_yticklabels(cbar_ticklabels)
-    cbar.set_label(cbar_label, color="white", fontsize=9)
-    cbar.ax.tick_params(colors="white", labelsize=9)
+    candidates = []
+    for interval in interval_minutes:
+        if interval < bin_minutes or interval % bin_minutes:
+            continue
+        stride = interval // bin_minutes
+        label_count = ((bin_count - 1) // stride) + 1
+        if 6 <= label_count <= 10:
+            range_penalty = 0
+        else:
+            range_penalty = min(abs(label_count - 6), abs(label_count - 10))
+        candidates.append((range_penalty, abs(label_count - 8), stride))
+
+    if candidates:
+        stride = min(candidates)[2]
+    else:
+        stride = max(1, int(np.ceil((bin_count - 1) / 7)))
+    return np.arange(0, bin_count, stride, dtype=int)
 
 
 def _render_opportunity_segment_figure(recipe):
     fig = plt.figure(figsize=(13, 7.2), facecolor="black")
-    fig.subplots_adjust(left=0.08, right=0.98, bottom=0.12, top=0.84, hspace=0.42, wspace=0.27)
+    fig.subplots_adjust(left=0.08, right=0.98, bottom=0.12, top=0.84, hspace=0.42, wspace=0.10)
     fig.suptitle(
         f"\n{recipe.get('title', '')} - {recipe.get('selected_segment', '')}",
         color="white",
@@ -2013,7 +2053,7 @@ def _render_opportunity_segment_figure(recipe):
     else:
         ax_rates.text(0.5, 0.5, "No station has a confirmed Hit", color="#cccccc", ha="center", va="center", transform=ax_rates.transAxes)
     ax_rates.set_title("Station Success Rate vs Confirmed Evidence", color="white", fontweight="bold", fontsize=12, pad=9)
-    ax_rates.set_xlabel("Confirmed evidence: Hits + Misses (log2 scale)", color="white", fontsize=10)
+    ax_rates.set_xlabel("Observable (Hits + Misses)", color="white", fontsize=10)
     ax_rates.set_ylabel("Success Rate: Hits / (Hits + Misses) (%)", color="white", fontsize=10)
 
     time_values = pd.to_datetime(
@@ -2029,7 +2069,7 @@ def _render_opportunity_segment_figure(recipe):
         clip=True,
     )
     success_ticklabels = [f"{value:g}%" for value in success_bounds]
-    _draw_opportunity_heatmap(
+    station_image = _draw_opportunity_heatmap(
         ax_rate_time,
         np.asarray(recipe.get("station_rate_grid", []), dtype=float),
         recipe.get("range_labels", []),
@@ -2040,8 +2080,9 @@ def _render_opportunity_segment_figure(recipe):
         norm=success_norm,
         cbar_ticks=success_bounds,
         cbar_ticklabels=success_ticklabels,
+        show_colorbar=False,
     )
-    _draw_opportunity_heatmap(
+    observation_image = _draw_opportunity_heatmap(
         ax_opp_time,
         np.asarray(recipe.get("overall_rate_grid", []), dtype=float),
         recipe.get("range_labels", []),
@@ -2053,7 +2094,24 @@ def _render_opportunity_segment_figure(recipe):
         cbar_ticks=success_bounds,
         cbar_ticklabels=success_ticklabels,
         show_y_labels=False,
+        show_colorbar=False,
     )
+    shared_image = station_image if station_image is not None else observation_image
+    if shared_image is not None:
+        cbar = fig.colorbar(
+            shared_image,
+            ax=[ax_rate_time, ax_opp_time],
+            pad=0.015,
+            fraction=0.025,
+            ticks=success_bounds,
+        )
+        cbar.ax.set_yticklabels(success_ticklabels)
+        cbar.set_label(
+            "Success Rate: Hits / (Hits + Misses)",
+            color="white",
+            fontsize=9,
+        )
+        cbar.ax.tick_params(colors="white", labelsize=9)
     return fig
 
 
