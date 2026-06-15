@@ -112,3 +112,6 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Anchored contiguous Absolute time bins to the exact analysis start/end window so empty intervals remain visible and time axes are chronologically stable.
 - Reduced Absolute Segment Insight summaries and Station Insights tables to threshold-qualified H/M evidence, removed redundant Opportunity/Target-only/eligibility columns and sorted stations by Hits, Misses and Success Rate.
 - Updated selected-station Absolute evidence to show stacked H/M counts with a dynamically scaled Success Rate line, and updated English/German UI text and documentation.
+- Added a default-off `Show Zero-Hits` control for Absolute Station Insights without removing zero-Hit stations from any calculated rate or full-segment evidence.
+- Simplified the station evidence scatter to stations with Hits, formatted its log2 axis with actual evidence counts, renamed the pooled temporal metric to Observation-Level Success Rate and enlarged Absolute figure typography.
+- Replaced temporal range-bin strings with distance-boundary labels and increased time-axis label density across Absolute temporal charts.
