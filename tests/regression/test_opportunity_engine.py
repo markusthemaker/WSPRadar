@@ -4,6 +4,9 @@ import math
 import pandas as pd
 
 from core.opportunity_engine import (
+    SUCCESS_RATE_BOUNDS,
+    SUCCESS_RATE_COLORS,
+    SUCCESS_RATE_TICK_LABELS,
     aggregate_opportunity_peers,
     aggregate_opportunity_segments,
     build_absolute_opportunity_query,
@@ -153,6 +156,14 @@ def test_opportunity_rate_scale_adds_headroom_and_caps_at_100():
     assert math.isclose(opportunity_rate_scale_max([2.7]), 3.0, abs_tol=0.001)
     assert math.isclose(opportunity_rate_scale_max([80.0]), 88.0, abs_tol=0.001)
     assert math.isclose(opportunity_rate_scale_max([100.0]), 100.0, abs_tol=0.001)
+
+
+def test_success_rate_scale_separates_zero_from_positive_evidence():
+    assert SUCCESS_RATE_BOUNDS[0] == 0.0
+    assert 0.0 < SUCCESS_RATE_BOUNDS[1] < 1.0
+    assert SUCCESS_RATE_TICK_LABELS[:3] == ("0%", ">0%", "1%")
+    assert len(SUCCESS_RATE_TICK_LABELS) == len(SUCCESS_RATE_BOUNDS)
+    assert len(SUCCESS_RATE_COLORS) == len(SUCCESS_RATE_BOUNDS) - 1
 
 
 def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():

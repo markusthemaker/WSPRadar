@@ -118,3 +118,8 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Anchored Absolute temporal labels to a regular clock-stable interval from the selected analysis start, moved both temporal panels closer together and replaced their duplicate colorbars with one shared Success Rate scale.
 - Renamed the Absolute station-evidence scatter to `Station Success Rate by Evidence Count`, simplified its axes and shortened the table Success Rate header to `H/(H+M) (%)`.
 - Removed redundant `Opportunity (O)` and `Target-Only (T)` columns from the Absolute drill-down table while keeping the row-level `Outcome` classification.
+- Reordered selected-station H/M stacks so Hits are drawn from the baseline and Misses stack above them, matching the visual fraction implied by `H/(H+M)`.
+- Forced the selected-station H/M count axis to integer-only labels.
+- Aligned selected-station H/M time plots with the same fixed bin-index time scale and clock-stable tick scheduler used by the Absolute segment temporal heatmaps.
+- Split the Absolute Success Rate color scale into `0%`, `>0%`, `1%`, `2%`, `5%`, ... bins and added a black-outlined `No H/M evidence` swatch to the Absolute map legend.
+- Made the Absolute map `No H/M evidence` legend swatch follow the render theme and changed Hit markers to evidence tiers `H = 1`, `H = 2-5`, and `H > 5`.

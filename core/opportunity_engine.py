@@ -18,7 +18,21 @@ from core.math_utils import is_valid_6char_locator, is_valid_callsign, locator_t
 
 ABSOLUTE_METHOD_VERSION = "opportunity-v1"
 DEFAULT_MIN_OPPORTUNITIES = 5
-SUCCESS_RATE_BOUNDS = (0.0, 1.0, 2.0, 5.0, 10.0, 20.0, 40.0, 60.0, 80.0, 100.0)
+SUCCESS_RATE_EPSILON = 1e-12
+SUCCESS_RATE_BOUNDS = (
+    0.0,
+    SUCCESS_RATE_EPSILON,
+    1.0,
+    2.0,
+    5.0,
+    10.0,
+    20.0,
+    40.0,
+    60.0,
+    80.0,
+    100.0,
+)
+SUCCESS_RATE_TICK_LABELS = ("0%", ">0%", "1%", "2%", "5%", "10%", "20%", "40%", "60%", "80%", "100%")
 SUCCESS_RATE_COLORS = (
     "#3b0f70",
     "#364b9a",
@@ -29,6 +43,7 @@ SUCCESS_RATE_COLORS = (
     "#fde725",
     "#f89540",
     "#d73027",
+    "#a50026",
 )
 
 

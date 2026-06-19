@@ -9,7 +9,7 @@ matplotlib.use('Agg')  # Zwingt Matplotlib in den Headless-Modus (verhindert RAM
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.path as mpath
-from matplotlib.patches import Wedge
+from matplotlib.patches import Patch, Wedge
 from matplotlib.collections import PatchCollection
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
@@ -21,6 +21,7 @@ from core.opportunity_engine import (
     aggregate_opportunity_segments,
     SUCCESS_RATE_BOUNDS,
     SUCCESS_RATE_COLORS,
+    SUCCESS_RATE_TICK_LABELS,
 )
 from core.snr_utils import round_snr_like_columns
 from i18n import T
@@ -48,6 +49,8 @@ MAP_THEMES = {
         "legend_face": "#121212",
         "legend_edge": "#444444",
         "legend_text": "white",
+        "no_hm_face": "black",
+        "no_hm_edge": "#777777",
         "cbar_face": "#0d0d0d",
         "cbar_text": "white",
         "bar_face": "black",
@@ -77,6 +80,8 @@ MAP_THEMES = {
         "legend_face": "white",
         "legend_edge": "#cccccc",
         "legend_text": "#111111",
+        "no_hm_face": "white",
+        "no_hm_edge": "#777777",
         "cbar_face": "white",
         "cbar_text": "#111111",
         "bar_face": "white",
@@ -409,7 +414,7 @@ def generate_map_plot(
     elif is_opportunity:
         clrs = list(SUCCESS_RATE_COLORS)
         bnds = np.asarray(SUCCESS_RATE_BOUNDS, dtype=float)
-        lbls = [f"{value:g}%" for value in bnds]
+        lbls = list(SUCCESS_RATE_TICK_LABELS)
         ticks = bnds
         cbar_title = t_lang["cbar_abs"]
     else:
@@ -462,17 +467,37 @@ def generate_map_plot(
         eligible = df_plot[df_plot["eligible"] & df_plot["rate_pct"].notna()]
         hit_stations = eligible[eligible["hits"] > 0]
         miss_stations = eligible[eligible["hits"] == 0]
-        if not hit_stations.empty:
-            hit_cmap = mpl.colors.ListedColormap([
-                "#0b3d0b", "#116611", "#178f17", "#1fbd1f",
-                "#27dc27", "#2df52d", "#39ff14", "#64ff4a", "#9aff85",
-            ])
+        hit_tiers = [
+            (
+                hit_stations[hit_stations["hits"] == 1],
+                "#9aff85",
+                7,
+                t_lang.get("leg_abs_hit_one", "H = 1"),
+            ),
+            (
+                hit_stations[hit_stations["hits"].between(2, 5, inclusive="both")],
+                "#39ff14",
+                9,
+                t_lang.get("leg_abs_hit_mid", "H = 2-5"),
+            ),
+            (
+                hit_stations[hit_stations["hits"] > 5],
+                "#0b6f24",
+                12,
+                t_lang.get("leg_abs_hit_high", "H > 5"),
+            ),
+        ]
+        for tier_df, tier_color, tier_size, tier_label in hit_tiers:
+            if tier_df.empty:
+                continue
             ax.scatter(
-                hit_stations["peer_lon"], hit_stations["peer_lat"],
-                c=hit_stations["rate_pct"], cmap=hit_cmap, norm=norm,
-                s=9, alpha=1.0, edgecolors="black",
+                tier_df["peer_lon"], tier_df["peer_lat"],
+                c=tier_color,
+                s=tier_size,
+                alpha=1.0,
+                edgecolors="black",
                 linewidth=0.35, transform=pc_proj, zorder=10,
-                label=t_lang.get("leg_abs_hit", "H (Hit)"),
+                label=tier_label,
             )
         if not miss_stations.empty:
             ax.scatter(
@@ -481,17 +506,29 @@ def generate_map_plot(
                 linewidth=0.35, transform=pc_proj, zorder=9,
                 label=t_lang.get("leg_abs_miss", "M (Miss)"),
             )
-        if not hit_stations.empty or not miss_stations.empty:
-            leg = ax.legend(
-                loc="lower center",
-                bbox_to_anchor=LEG_BBOX,
-                facecolor=theme_cfg["legend_face"],
-                edgecolor=theme_cfg["legend_edge"],
-                labelcolor=theme_cfg["legend_text"],
-                fontsize=FONT_LEGEND,
-                markerscale=1.6,
+        handles, labels = ax.get_legend_handles_labels()
+        no_hm_label = t_lang.get("leg_abs_no_hm", "No H/M evidence")
+        handles.append(
+            Patch(
+                facecolor=theme_cfg.get("no_hm_face", "black"),
+                edgecolor=theme_cfg.get("no_hm_edge", "#777777"),
+                linewidth=0.9,
+                label=no_hm_label,
             )
-            leg.set_zorder(15)
+        )
+        labels.append(no_hm_label)
+        leg = ax.legend(
+            handles,
+            labels,
+            loc="lower center",
+            bbox_to_anchor=(LEG_BBOX[0], LEG_BBOX[1] + 0.04),
+            facecolor=theme_cfg["legend_face"],
+            edgecolor=theme_cfg["legend_edge"],
+            labelcolor=theme_cfg["legend_text"],
+            fontsize=FONT_LEGEND,
+            markerscale=1.6,
+        )
+        leg.set_zorder(15)
     else:
         ax.scatter(df_plot['peer_lon'], df_plot['peer_lat'], c=COLOR_ONLY_ME, s=5, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=lbl_only_me)
 
@@ -503,7 +540,7 @@ def generate_map_plot(
     # the default axes background and the legend colors no longer match the map.
     cax.set_facecolor(theme_cfg["cbar_face"])
 
-    cbar = plt.colorbar(p, cax=cax, ticks=ticks)
+    cbar = plt.colorbar(p, cax=cax, ticks=ticks, spacing="uniform")
     cbar.ax.set_facecolor(theme_cfg["cbar_face"])
 
     if hasattr(cbar, "solids"):

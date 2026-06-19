@@ -1,4 +1,5 @@
 *.pyc
 .streamlit/secrets.toml
+.venv/
 .wspr_cache/
 __pycache__/

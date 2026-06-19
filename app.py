@@ -9,7 +9,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import cartopy.feature as cfeature
 from datetime import datetime, timedelta, timezone, time as dt_time
 import streamlit as st
 
@@ -39,7 +38,12 @@ from ui.results_export import register_map_export_context, reset_result_export_s
 from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time, is_valid_callsign, is_valid_locator
 from core.data_engine import fetch_wspr_data, cleanup_old_parquets
 from core.analysis_runner import build_analysis_batches, apply_post_fetch_filters
-from core.plot_engine import generate_map_plot
+try:
+    from core.plot_engine import generate_map_plot
+    CARTOPY_IMPORT_ERROR = None
+except ImportError as exc:
+    generate_map_plot = None
+    CARTOPY_IMPORT_ERROR = exc
 
 # Documentation & Export
 from docs.pdf_generator import generate_pdf_doc, get_docs
@@ -59,6 +63,14 @@ def get_base64_of_bin_file(bin_file):
 # MAIN UI & APPLICATION FLOW
 # ==========================================
 st.set_page_config(page_title="WSPRadar.org | Antenna Benchmarking", page_icon="📡", layout="centered")
+
+if CARTOPY_IMPORT_ERROR is not None:
+    st.error(
+        "WSPRadar could not load Cartopy, which is required for map rendering. "
+        "Please verify the Python version and Cartopy environment used by this deployment."
+    )
+    st.code(str(CARTOPY_IMPORT_ERROR))
+    st.stop()
 
 # Bootstrap the session state explicitly AFTER page config and BEFORE any UI rendering
 init_session_state()

@@ -282,7 +282,7 @@ Sequenzieller TX ist zeitgebinnt, nicht simultan. Mehrt&auml;giges fixes Timing 
 
 **Heatmap-Segmente**
 
-Absolute Modi zeigen pro Segment die mittlere Stations-Erfolgsrate `H/(H+M)`. Karte und zeitliche Ratenpanels verwenden dieselbe feste nichtlineare Skala mit Grenzen bei `0, 1, 2, 5, 10, 20, 40, 60, 80, 100%`. Dadurch bleiben niedrige Raten differenzierbar und Farben verschiedener Absolute Analysen direkt vergleichbar. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
+Absolute Modi zeigen pro Segment die mittlere Stations-Erfolgsrate `H/(H+M)`. Karte und zeitliche Ratenpanels verwenden dieselbe feste nichtlineare Skala mit semantischen Low-End-Bins: schwarze Kartenfelder bedeuten `Keine H/M-Evidenz`, Lila bedeutet exakt `0%`, die erste Nicht-Null-Farbe bedeutet `>0%`, danach l&auml;uft die Skala mit `1, 2, 5, 10, 20, 40, 60, 80, 100%` weiter. Dadurch bleiben niedrige Raten differenzierbar und Farben verschiedener Absolute Analysen direkt vergleichbar. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
 
 **Distanzringe**
 

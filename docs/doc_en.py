@@ -282,7 +282,7 @@ Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces t
 
 **Heatmap segments**
 
-Absolute modes show the average station Success Rate `H/(H+M)` for each segment. The map and temporal rate panels share a fixed nonlinear scale with boundaries at `0, 1, 2, 5, 10, 20, 40, 60, 80, 100%`. This preserves detail at low rates while keeping colors comparable across separate Absolute analyses. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
+Absolute modes show the average station Success Rate `H/(H+M)` for each segment. The map and temporal rate panels share a fixed nonlinear scale with semantic low-end bins: black map cells mean `No H/M evidence`, purple means exactly `0%`, the first nonzero color means `>0%`, then the scale continues at `1, 2, 5, 10, 20, 40, 60, 80, 100%`. This preserves detail at low rates while keeping colors comparable across separate Absolute analyses. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
 
 **Distance rings**
 

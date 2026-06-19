@@ -19,6 +19,7 @@ from core.opportunity_engine import (
     opportunity_rate_scale_max,
     SUCCESS_RATE_BOUNDS,
     SUCCESS_RATE_COLORS,
+    SUCCESS_RATE_TICK_LABELS,
 )
 from ui.results_export import register_inspector_export, render_download_all_results
 
@@ -1905,6 +1906,7 @@ def _draw_opportunity_heatmap(
             pad=0.015,
             fraction=0.04,
             ticks=cbar_ticks,
+            spacing="uniform",
         )
         if cbar_ticklabels is not None:
             cbar.ax.set_yticklabels(cbar_ticklabels)
@@ -1996,7 +1998,7 @@ def _render_opportunity_segment_figure(recipe):
             clip=True,
         )
         hit_cmap = mpl.colors.ListedColormap([
-            "#0b3d0b", "#116611", "#178f17", "#1fbd1f",
+            "#082b08", "#0b3d0b", "#116611", "#178f17", "#1fbd1f",
             "#27dc27", "#2df52d", "#39ff14", "#64ff4a", "#9aff85",
         ])
         ax_rates.scatter(
@@ -2064,7 +2066,7 @@ def _render_opportunity_segment_figure(recipe):
         success_cmap.N,
         clip=True,
     )
-    success_ticklabels = [f"{value:g}%" for value in success_bounds]
+    success_ticklabels = list(SUCCESS_RATE_TICK_LABELS)
     station_image = _draw_opportunity_heatmap(
         ax_rate_time,
         np.asarray(recipe.get("station_rate_grid", []), dtype=float),
@@ -2100,6 +2102,7 @@ def _render_opportunity_segment_figure(recipe):
             pad=0.015,
             fraction=0.025,
             ticks=success_bounds,
+            spacing="uniform",
         )
         cbar.ax.set_yticklabels(success_ticklabels)
         cbar.set_label(
@@ -2171,7 +2174,7 @@ def _render_opportunity_selected_figure(recipe):
     rates = np.asarray(recipe.get("rate_pct", []), dtype=float)
     hits = np.asarray(recipe.get("hits", []), dtype=float)
     misses = np.asarray(recipe.get("misses", []), dtype=float)
-    x_values = mdates.date2num(times.to_pydatetime()) if len(times) else np.array([])
+    x_values = np.arange(len(times), dtype=float)
     if len(x_values):
         ax_time.plot(
             x_values,
@@ -2184,10 +2187,7 @@ def _render_opportunity_selected_figure(recipe):
         )
         ax_time.set_ylim(0, opportunity_rate_scale_max(rates))
         ax_time.set_ylabel("Success rate H / (H + M) (%)", color="white")
-        time_tick_count = min(8, len(x_values))
-        time_tick_indices = np.unique(
-            np.linspace(0, len(x_values) - 1, time_tick_count).astype(int)
-        )
+        time_tick_indices = _opportunity_time_tick_indices(times)
         ax_time.set_xticks(x_values[time_tick_indices])
         ax_time.set_xticklabels(
             [
@@ -2198,31 +2198,37 @@ def _render_opportunity_selected_figure(recipe):
             fontsize=9,
         )
         ax_evidence = ax_time.twinx()
-        width = (np.min(np.diff(x_values)) * 0.72) if len(x_values) > 1 else 0.03
-        ax_evidence.bar(
-            x_values,
-            misses,
-            width=width,
-            color="#b8b8b8",
-            alpha=0.40,
-            label="M (Miss)",
-        )
+        ax_evidence.set_facecolor("black")
+        ax_evidence.patch.set_alpha(0)
+        width = 0.72
         ax_evidence.bar(
             x_values,
             hits,
-            bottom=misses,
             width=width,
             color="#39ff14",
             alpha=0.62,
             label="H (Hit)",
         )
+        ax_evidence.bar(
+            x_values,
+            misses,
+            bottom=hits,
+            width=width,
+            color="#b8b8b8",
+            alpha=0.40,
+            label="M (Miss)",
+        )
         ax_evidence.set_ylabel("H / M count", color="#bbbbbb")
         ax_evidence.tick_params(colors="#bbbbbb", labelsize=8)
+        ax_evidence.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+        ax_evidence.yaxis.set_major_formatter(
+            mpl.ticker.FuncFormatter(lambda value, _position: f"{int(value):d}")
+        )
         for spine in ax_evidence.spines.values():
             spine.set_color("#444444")
         ax_time.set_zorder(ax_evidence.get_zorder() + 1)
         ax_time.patch.set_visible(False)
-        ax_time.set_xlim(x_values[0] - (width / 2.0), x_values[-1] + (width / 2.0))
+        ax_time.set_xlim(-0.5, len(x_values) - 0.5)
         rate_handles, rate_labels = ax_time.get_legend_handles_labels()
         evidence_handles, evidence_labels = ax_evidence.get_legend_handles_labels()
         ax_time.legend(
