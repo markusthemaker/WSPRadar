@@ -121,26 +121,26 @@ WSPRadar uses exact 2-minute UTC WSPR cycles and keeps only cycles in which the 
 
 For each target-active cycle and peer:
 
-* **Opportunity (`O`)**: an external station independently confirmed that the remote peer endpoint was active and observable somewhere in the network.
-* **Hit (`H`)**: the target and the external evidence both succeeded. Every hit is also an opportunity.
-* **Miss (`M`)**: external evidence succeeded, but the target did not. Every miss is also an opportunity.
-* **Target-only (`T`)**: the target succeeded without external confirmation. This is useful supporting evidence but is never placed in the denominator.
-* **Success Rate:** `H / (H + M)`. Internally, `O = H + M`.
+* **Target (`T`)**: the target station/setup confirmed the remote station in the target-active cycle.
+* **Elsewhere (`E`, RX Absolute)**: the same remote transmitting station was heard elsewhere in the RX network in that cycle, but not by the target receiver.
+* **Other Signals (`OS`, TX Absolute)**: the same RX station heard other WSPR signals in that cycle, but not the target transmitter.
+* **Target-only**: the target observed the station without independent counter-evidence. These rows remain audit evidence, but do not enter `Target`, `Elsewhere`, `Other Signals` or the Success Rate denominator.
+* **Success Rate:** RX uses `Target/(Target+Elsewhere)`. TX uses `Target/(Target+Other Signals)`.
 
 The direction of the evidence depends on the mode:
 
-* In **RX**, the peer is a transmitting station. An external receiver decoding that peer creates `O`; the target receiver decoding the same peer in the same cycle creates `H`.
-* In **TX**, the peer is a receiving station. That receiver decoding another transmitter creates `O`; decoding the target transmitter in the same cycle creates `H`.
+* In **RX**, the peer is a transmitting station. The map title is `Target {callsign} vs. Same Signals Heard Elsewhere`: did the target receiver hear signals that the network proves existed elsewhere?
+* In **TX**, the peer is a receiving station. The map title is `Target {callsign} vs. Other Signals at Same RX Stations`: among active receivers hearing WSPR traffic, did they hear the target transmitter or only other signals?
 
-Rates are first calculated per station identity. A station contributes to the map, segment summary and Station Insights only after it reaches the configured minimum confirmed `H+M` evidence. A map segment shows the arithmetic mean of the contributing station success rates, so every qualifying station has equal weight. The Segment Insight also shows the overall rate `sum(H) / sum(H+M)`, which gives every confirmed observation equal weight and can therefore be dominated by high-volume stations.
+Rates are first calculated per station identity. A station contributes to the map, segment summary and Station Insights only after it reaches the configured minimum confirmed counter-evidence: `Target+Elsewhere` in RX Absolute, or `Target+Other Signals` in TX Absolute. A map segment shows the arithmetic mean of the contributing station success rates, so every qualifying station has equal weight. The Segment Insight also shows the Observation-Level rate, `sum(Target) / sum(Target+counter-evidence)`, which gives every confirmed observation equal weight and can therefore be dominated by high-volume stations.
 
 **Careful with**
 
 * The rate is conditional on externally confirmed peer activity; it is not the probability of decoding every transmission that may have occurred.
 * External evidence confirms endpoint activity, not that the propagation path between target and peer was open. The result intentionally includes propagation, path geometry and station-system performance.
 * WSPR does not provide an authoritative transmission log. In TX mode, a target transmission decoded by nobody is unobservable and cannot become a miss.
-* Target-only evidence remains available in the internal audit data, but is omitted from the primary map, summary and Station Insights because it is neither `H` nor `M`. Treating it as denominator evidence would make the metric depend on its own success.
-* Absolute opportunity analysis requires one exact band. `Band = All` is intentionally rejected because cycles and observability are band-specific.
+* Target-only evidence remains available in the internal audit data, but is omitted from the primary map, summary and Station Insights because it is neither Target nor counter-evidence. Treating it as denominator evidence would make the metric depend on its own success.
+* Absolute success-rate analysis requires one exact band. `Band = All` is intentionally rejected because cycles and observability are band-specific.
 * The target identity is matched by exact callsign and the configured QTH's 4-character locator. Incorrect or changing target locator uploads can therefore remove valid cycles or mix station identities.
 * The query uses valid WSPR spots with `code = 1`. Older historical records may have different code completeness; interpret long-range historical comparisons with care.
 * RX results still describe the whole receive system, and TX results still describe the whole transmit/network path. Neither rate is a laboratory antenna-gain measurement.
@@ -282,7 +282,7 @@ Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces t
 
 **Heatmap segments**
 
-Absolute modes show the average station Success Rate `H/(H+M)` for each segment. The map and temporal rate panels share a fixed nonlinear scale with semantic low-end bins: black map cells mean `No H/M evidence`, purple means exactly `0%`, the first nonzero color means `>0%`, then the scale continues at `1, 2, 5, 10, 20, 40, 60, 80, 100%`. This preserves detail at low rates while keeping colors comparable across separate Absolute analyses. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
+Absolute modes show the average station Success Rate for each segment: RX uses `Target/(Target+Elsewhere)`, while TX uses `Target/(Target+Other Signals)`. The map and temporal rate panels share a fixed nonlinear scale with semantic low-end bins: black map cells mean no Target/counter-evidence, purple means exactly `0%`, the first nonzero color means `>0%`, then the scale continues at `1, 2, 5, 10, 20, 40, 60, 80, 100%`. This preserves detail at low rates while keeping colors comparable across separate Absolute analyses. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
 
 **Distance rings**
 
@@ -290,13 +290,13 @@ Near rings can be consistent with shorter-skip or NVIS behavior; far rings can b
 
 **Scatter dots**
 
-In Absolute modes, only stations that meet the minimum confirmed `H+M` threshold are plotted. `H (Hit)` stations have at least one Hit and use increasingly bright green markers as their Success Rate rises. `M (Miss)` stations have confirmed evidence but zero Hits and use light-gray markers. Stations below the evidence threshold and Target-only observations are omitted from the map. In Compare modes, green means joint same-cycle decodes, yellow-orange means both sides decoded the station asynchronously, purple means only your station/setup decoded it, and white means only the reference decoded it.
+In Absolute modes, only stations that meet the minimum confirmed Target/counter-evidence threshold are plotted. `T (Target)` stations have at least one Target observation and use increasingly bright green markers as their confirmed Target count rises. RX zero-Target stations are labeled `E (Elsewhere)`; TX zero-Target stations are labeled `OS (Other Signals)`. Both use light-gray markers. Stations below the evidence threshold and Target-only observations are omitted from the map. In Compare modes, green means joint same-cycle decodes, yellow-orange means both sides decoded the station asynchronously, purple means only your station/setup decoded it, and white means only the reference decoded it.
 
 Compare-mode dot categories use the heartbeat-gated evidence classes defined in [Decode Yield in Compare Modes](#sec-4-5).
 
 **Map footer and 1D-Venn bars**
 
-In Absolute modes, the footer reports the minimum confirmed `H+M` evidence per station, the number of qualifying stations and that segment colors represent average station `H/(H+M)`. Compare-mode `SPOTS` and `STATIONS` bars show decode-volume distribution and footprint breadth; they are essential because Delta SNR alone can hide decode/no-decode behavior.
+In Absolute modes, the footer reports the mode-specific minimum confirmed evidence per station, the number of qualifying stations and whether segment colors represent average station `Target/(Target+Elsewhere)` for RX or `Target/(Target+Other Signals)` for TX. Compare-mode `SPOTS` and `STATIONS` bars show decode-volume distribution and footprint breadth; they are essential because Delta SNR alone can hide decode/no-decode behavior.
 
 The footer bars visualize the Decode Yield categories defined in [Decode Yield in Compare Modes](#sec-4-5). In compare modes they are heartbeat-gated rather than full-window raw activity counters.
 
@@ -309,19 +309,19 @@ The Segment Inspector is the audit layer below the maps. Select a distance ring 
 
 The **Segment Insight** block summarizes the currently selected range and direction. Absolute and Compare analyses use different evidence views because their estimands are different. Compare modes retain System Sensitivity / Decode Yield, station-balanced medians and raw spot/bin evidence. In same-cycle Compare modes the raw-evidence panel is `Joint-Spot Δ SNR`; in sequential TX A/B it is `Paired Spot Bin Δ SNR`.
 
-* In Absolute modes, the textual summary spells out confirmed Hits and Misses for stations that meet the configured `H+M` threshold. It then reports two explicit Success Rates: **Average by Station**, the mean of the individual station rates, and **Observation-Level**, `sum(H) / sum(H+M)`.
-* The upper Absolute panel plots stations with at least one Hit against their confirmed evidence `H+M` on a log2 x-axis. Tick labels show the actual evidence counts rather than powers of two. Zero-Hit stations are omitted here because their position is always at a 0 percent rate and adds little beyond the Miss counts and temporal panels.
-* The lower-left temporal panel shows **Average Station Success Rate** in each distance/time cell. It calculates `H/(H+M)` per contributing station and then averages those station rates.
-* The lower-right temporal panel shows **Observation-Level Success Rate** in the same cell: `sum(H) / sum(H+M)`. A difference between the panels means high-volume stations are pulling the observation-weighted result away from the equal-station result.
+* In Absolute modes, the textual summary spells out Target and mode-specific counter-evidence for stations that meet the configured threshold: Elsewhere for RX, Other Signals for TX. It then reports two explicit Success Rates: **Average by Station**, the mean of the individual station rates, and **Observation-Level**, `sum(Target) / sum(Target+counter-evidence)`.
+* The upper Absolute panel plots stations with at least one Target observation against their confirmed Target/counter-evidence count on a log2 x-axis. Tick labels show the actual evidence counts rather than powers of two. Zero-Target stations are omitted here because their position is always at a 0 percent rate and adds little beyond the counter-evidence counts and temporal panels.
+* The lower-left temporal panel shows **Average Station Success Rate** in each distance/time cell. It calculates `Target/(Target+counter-evidence)` per contributing station and then averages those station rates.
+* The lower-right temporal panel shows **Observation-Level Success Rate** in the same cell: `sum(Target) / sum(Target+counter-evidence)`. A difference between the panels means high-volume stations are pulling the observation-weighted result away from the equal-station result.
 * Both temporal panels use the map's fixed nonlinear Success Rate scale, one shared colorbar and identical distance/time axes. Distance is labeled at the `2500`, `5000`, `10000`, `15000` and `20000 km` ring transitions rather than with long range-bin strings. Time bins are contiguous, anchored at the exact selected analysis start and extend to the analysis end; empty bins remain blank rather than disappearing. Tick labels use a regular clock-stable interval chosen for the displayed duration, such as every 6 or 12 hours, instead of spacing labels according to the bins that happen to contain data.
-* Absolute Station Insights list threshold-qualified station identities with distance, azimuth, `H`, `M`, Success Rate and median Hit SNR. Zero-Hit stations are hidden by default and can be restored with `Show Zero-Hits`. The table is ordered by descending `H`, then `M`, then Success Rate.
+* Absolute Station Insights list threshold-qualified station identities with distance, azimuth, `Target`, mode-specific counter-evidence, Success Rate and median Target SNR. RX uses `Elsewhere`; TX uses `Other Signals`. Zero-Target stations are hidden by default and can be restored with `Show Zero-Target`. The table is ordered by descending `Target`, then counter-evidence, then Success Rate.
 * In compare modes, the top distribution panels use percent histograms of Delta SNR. This keeps quantized WSPR SNR evidence visible without smoothing it into a continuous density shape.
 * SNR histogram bins are globally fixed per panel and cover the full visible range with at most 40 bars. WSPRadar defaults to 1.0 dB bins, uses 0.5 dB bins only when the values clearly occupy a half-dB lattice, and aggregates wide ranges to 1, 2, 3, 6 or 10 dB bins as needed.
 * The Station Insights table lists contributing remote stations, separates joint decodes from exclusive decodes and shows the station-level median Delta SNR.
 * Clicking a Station Insights row opens the Drill-Down table.
-* If no Station Insights row is selected, WSPRadar opens the strongest-evidence row by default: the row with the most joint spots or joint bins in Compare modes, and the first `H`, `M`, Success Rate-sorted row in Absolute modes.
+* If no Station Insights row is selected, WSPRadar opens the strongest-evidence row by default: the row with the most joint spots or joint bins in Compare modes, and the first Target, counter-evidence, Success Rate-sorted row in Absolute modes.
 * Selecting one or more Station Insights rows adds a two-panel evidence block above the Drill-Down table. The left panel shows a horizontal percent histogram of the selected evidence distribution, keeping the SNR or Delta-SNR axis aligned with the time heatmap on the right.
-* The time-bin control above the right panel affects only the time heatmap. Available UTC bin widths adapt to the selected evidence duration: short windows use minute-scale bins, long windows use hour-scale bins. For Absolute H/M timelines the choices use the complete analysis interval so sparse stations cannot accidentally create thousands of tiny empty bins. The standard long-window choices are `1h`, `3h`, `6h`, `12h` and `24h`, and WSPRadar defaults to the second-finest available bin width. The heatmap aggregates all selected rows into integer SNR or Delta-SNR density cells, overlays median markers and connects adjacent medians only when both neighboring bins contain at least three points. The distribution panel remains raw so the full selected evidence population stays visible.
+* The time-bin control above the right panel affects only the time heatmap. Available UTC bin widths adapt to the selected evidence duration: short windows use minute-scale bins, long windows use hour-scale bins. For Absolute Target/counter-evidence timelines the choices use the complete analysis interval so sparse stations cannot accidentally create thousands of tiny empty bins. The standard long-window choices are `1h`, `3h`, `6h`, `12h` and `24h`, and WSPRadar defaults to the second-finest available bin width. The heatmap aggregates all selected rows into integer SNR or Delta-SNR density cells, overlays median markers and connects adjacent medians only when both neighboring bins contain at least three points. The distribution panel remains raw so the full selected evidence population stays visible.
 * WSPRadar reports a `90% Stability` interval for station-level medians and selected evidence. This is a bootstrap/resampling stability interval around the median, not a formal proof of statistical significance. In the top segment plots, the red dashed median line is backed by the true 90% stability range; near-zero-width intervals are rendered as a line rather than an artificially widened band. SNR and Delta-SNR panels use a minimum 3 dB visible y-axis span so tiny numeric variation is not visually magnified.
 * `Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Both (Async)`.
 
@@ -332,7 +332,7 @@ The **Segment Insight** block summarizes the currently selected range and direct
 
 The Drill-Down table is the row-level audit layer across all modes. It shows the observations, pairs or time bins behind a Station Insights row so the segment and station medians can be reconciled against the underlying evidence.
 
-For Absolute modes, the selected-station evidence figure uses two enlarged panels: stacked `H`/`M` counts with the Success Rate `H/(H+M)` over time, and Hit SNR. Its Success Rate axis extends to 10 percent above the largest visible rate, capped at 100 percent, instead of always reserving the full 0-100 percent range. The timeline uses contiguous bins anchored at the exact analysis start. Each Drill-Down row remains one target-active station-cycle observation classified internally as `H`, `M` or `T`, with the corresponding audit flags and target SNR where available. For normal same-cycle Compare modes, the Drill-Down exposes the paired spot-level comparisons used for the station-level median.
+For Absolute modes, the selected-station evidence figure uses two enlarged panels: stacked Target/counter-evidence counts with the Success Rate over time, and Target SNR. Its Success Rate axis extends to 10 percent above the largest visible rate, capped at 100 percent, instead of always reserving the full 0-100 percent range. The timeline uses contiguous bins anchored at the exact analysis start. Each Drill-Down row remains one target-active station-cycle observation classified internally as Target, counter-evidence or Target-only, with the corresponding audit flags and target SNR where available. For normal same-cycle Compare modes, the Drill-Down exposes the paired spot-level comparisons used for the station-level median.
 
 For the median-neighborhood method, the Drill-Down expands the reference pool. Instead of showing only a generic `Ref Pool` row, it lists the individual local reference stations that contributed in that cycle, their locator, distance, normalized reference SNR, the cycle's aggregated neighborhood median, your SNR and the resulting Delta SNR. This lets you reconcile the median directly.
 
@@ -476,8 +476,8 @@ The `90% Stability` interval is a descriptive bootstrap stability interval aroun
 
 * **Crowd-sourced data:** WSPR spots can contain duplicates, false spots, wrong power, wrong locator or receiver-side errors. WSPRadar reduces sensitivity to many of these problems but cannot make upstream data calibrated or error-free.
 * **Successful decodes only:** WSPR logs decodes, not all failed reception attempts. Closed bands reduce the existence of spots rather than lowering an average.
-* **Conditional Absolute rates:** Absolute `H/(H+M)` results are conditional on independently confirmed remote-station activity. External evidence does not prove that the target-to-station path was open, so the rates include propagation and do not estimate unconditional receiver sensitivity or the fraction of all scheduled transmissions decoded.
-* **Unobservable TX misses:** without an authoritative transmitter log, a target TX cycle decoded by nobody cannot be distinguished from no transmission and therefore cannot enter `M`.
+* **Conditional Absolute rates:** Absolute success rates are conditional on independently confirmed activity. RX uses `Target/(Target+Elsewhere)` and TX uses `Target/(Target+Other Signals)`. Counter-evidence proves activity, not that the target-to-station path was open, so the rates include propagation and do not estimate unconditional receiver sensitivity or the fraction of all scheduled transmissions decoded.
+* **Unobservable TX silence:** without an authoritative transmitter log, a target TX cycle decoded by nobody cannot be distinguished from no transmission and therefore cannot enter `Other Signals`.
 * **Historical spot validity:** opportunity queries use `code = 1` to restrict analysis to valid WSPR spots. Code coverage and upstream processing can differ in older archive periods.
 * **Reported power caveat:** normalization mitigates reported-power differences, and several compare modes reduce exposure to this problem by pairing against the same transmitter or the same callsign. However, any analysis that depends on user-reported dBm still assumes that the reported value is reasonably close to reality.
 * **Target-centric yield:** compare-mode yield is gated by target-active cycles. This is a deliberate protection against offline bias, but it means yield is not symmetric under target/reference swaps. A vs B and B vs A can have different `Only Reference` and `Only Target` counts even with the same core parameters.
@@ -503,7 +503,7 @@ For serious claims, preserve enough context to reproduce the result: WSPRadar ve
 * **Target Callsign:** primary station under evaluation.
 * **QTH Locator:** mathematical center of the map projection. Use a valid 4- or 6-character Maidenhead locator.
 * **Band and timeframe:** define the WSPR data window. Time is handled in UTC.
-* **Min. Confirmed H+M per Station:** Absolute-only evidence threshold. A station must have at least this many confirmed `H+M` observations before its Success Rate contributes to the map, segment summaries, temporal panels or Station Insights. The default is `5`; lower values increase coverage but also increase discrete small-sample rates such as `0%`, `50%` or `100%`.
+* **Min. Target+Counter-Evidence per Station:** Absolute-only evidence threshold. A station must have at least this many confirmed observations before its Success Rate contributes to the map, segment summaries, temporal panels or Station Insights. RX counts `Target+Elsewhere`; TX counts `Target+Other Signals`. The default is `5`; lower values increase coverage but also increase discrete small-sample rates such as `0%`, `50%` or `100%`.
 
 **Comparison parameters**
 
@@ -528,8 +528,8 @@ For serious claims, preserve enough context to reproduce the result: WSPRadar ve
 * **Local QTH Solar State:** filters by calculated solar elevation at your QTH: daylight, nighttime or greyline.
 * **Map Scope:** visual map radius.
 * **Min. Joint Spots/Station:** Compare-only threshold. It requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins.
-* **Min. Confirmed H+M per Station:** Absolute-only threshold described under Core parameters. It replaces the old raw-spots-per-station interpretation.
-* **Min. Qualifying Stations/Segment:** requires at least X qualifying stations before a segment is drawn. In Compare modes it counts stations with qualifying joint evidence; in Absolute modes it counts stations that meet the confirmed `H+M` threshold.
+* **Min. Target+Counter-Evidence per Station:** Absolute-only threshold described under Core parameters. It replaces the old raw-spots-per-station interpretation.
+* **Min. Qualifying Stations/Segment:** requires at least X qualifying stations before a segment is drawn. In Compare modes it counts stations with qualifying joint evidence; in Absolute modes it counts stations that meet the mode-specific confirmed Target/counter-evidence threshold.
 
 **Special-callsign filtering note**
 

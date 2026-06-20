@@ -123,3 +123,7 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Aligned selected-station H/M time plots with the same fixed bin-index time scale and clock-stable tick scheduler used by the Absolute segment temporal heatmaps.
 - Split the Absolute Success Rate color scale into `0%`, `>0%`, `1%`, `2%`, `5%`, ... bins and added a black-outlined `No H/M evidence` swatch to the Absolute map legend.
 - Made the Absolute map `No H/M evidence` legend swatch follow the render theme and changed Hit markers to evidence tiers `H = 1`, `H = 2-5`, and `H > 5`.
+
+- Renamed the visible Absolute Success Rate evidence vocabulary from H/M to Target/Elsewhere: Segment Insight now spells out Target+Elsewhere evidence and Success Rate Target/(Target+Elsewhere), while maps, tables, selected-station evidence and documentation use T/E labels consistently.
+- Split Absolute Success Rate terminology by mode: RX now uses Target/Elsewhere (T/E) with Same Signals Heard Elsewhere titles, while TX uses Target/Other Signals (T/OS) with Other Signals at Same RX Stations titles.
+- Compact Absolute Station Insights labels to mode-specific `Target (T)`, `Elsewhere (E)` / `Other Signals (OS)` and `T/(T+E)` / `T/(T+OS)`, moved Absolute map legends below the long titles and changed selected-station evidence count axes to plus-count wording.

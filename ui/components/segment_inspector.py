@@ -22,6 +22,7 @@ from core.opportunity_engine import (
     SUCCESS_RATE_TICK_LABELS,
 )
 from ui.results_export import register_inspector_export, render_download_all_results
+from i18n import T, absolute_terms
 
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
@@ -1291,6 +1292,8 @@ def _build_drilldown_table(
     }.issubset(station_df.columns)
 
     if is_opportunity:
+        opportunity_terms = absolute_terms(t, "TX" if analysis_id.startswith("TX") else "RX")
+        target_snr_col = "Target SNR (dB @ 1W)"
         station_df["Date/Time (UTC)"] = (
             pd.to_datetime(station_df["cycle_time"], errors="coerce", utc=True)
             .dt.strftime("%d-%b-%Y %H:%M:%S")
@@ -1301,7 +1304,11 @@ def _build_drilldown_table(
                 station_df["miss"] > 0,
                 station_df["target_only"] > 0,
             ],
-            ["H - Hit", "M - Miss", "T - Target-only"],
+            [
+                "T - Target",
+                f"{opportunity_terms['counter_short']} - {opportunity_terms['counter']}",
+                "Target-only",
+            ],
             default="",
         )
         drill_df = station_df[
@@ -1324,12 +1331,12 @@ def _build_drilldown_table(
             km_col,
             az_col,
             "Outcome",
-            "Hit (H)",
-            "Miss (M)",
-            "Successful SNR (dB @ 1W)",
+            opportunity_terms["target_column"],
+            opportunity_terms["counter_column"],
+            target_snr_col,
         ]
-        drill_df["Successful SNR (dB @ 1W)"] = pd.to_numeric(
-            drill_df["Successful SNR (dB @ 1W)"],
+        drill_df[target_snr_col] = pd.to_numeric(
+            drill_df[target_snr_col],
             errors="coerce",
         ).round(1)
     elif not is_compare:
@@ -1760,8 +1767,9 @@ def _opportunity_segment_recipe(
     rows,
     analysis_start_t,
     analysis_end_t,
+    terminology,
 ):
-    """Build compact H/M success-rate plot inputs for UI and lazy export."""
+    """Build compact Target/Elsewhere success-rate plot inputs for UI and lazy export."""
     time_bin = _opportunity_time_bin(rows, analysis_start_t, analysis_end_t)
     bin_minutes = _time_agg_minutes(time_bin)
     work = rows.merge(
@@ -1825,6 +1833,8 @@ def _opportunity_segment_recipe(
     return {
         "kind": "opportunity",
         "title": title,
+        "absolute_mode": terminology.get("mode", "RX"),
+        "terminology": dict(terminology),
         "selected_segment": selected_segment,
         "time_bin": time_bin,
         "station_trials": peer_df["opportunities"].to_numpy(dtype=float, copy=True),
@@ -1853,6 +1863,7 @@ def _draw_opportunity_heatmap(
     cbar_ticklabels=None,
     show_y_labels=True,
     show_colorbar=True,
+    empty_message="No Target/Elsewhere evidence",
 ):
     ax.set_facecolor("black")
     ax.tick_params(colors="white", labelsize=9)
@@ -1860,7 +1871,7 @@ def _draw_opportunity_heatmap(
         spine.set_color("#444444")
     ax.set_title(title, color="white", fontweight="bold", fontsize=12, pad=9)
     if grid.size == 0 or not range_labels or len(time_values) == 0:
-        ax.text(0.5, 0.5, "No confirmed Hit/Miss evidence", color="#cccccc", ha="center", va="center", transform=ax.transAxes)
+        ax.text(0.5, 0.5, empty_message, color="#cccccc", ha="center", va="center", transform=ax.transAxes)
         ax.set_xticks([])
         ax.set_yticks([])
         return None
@@ -1959,6 +1970,10 @@ def _opportunity_time_tick_indices(time_values):
 
 
 def _render_opportunity_segment_figure(recipe):
+    terms = recipe.get("terminology") or absolute_terms(
+        T.get(st.session_state.get("lang", "en"), T["en"]),
+        recipe.get("absolute_mode", "RX"),
+    )
     fig = plt.figure(figsize=(13, 7.2), facecolor="black")
     fig.subplots_adjust(left=0.08, right=0.98, bottom=0.12, top=0.84, hspace=0.42, wspace=0.10)
     fig.suptitle(
@@ -1991,26 +2006,14 @@ def _render_opportunity_segment_figure(recipe):
     hits = hits[valid]
     rates = rates[valid]
     if len(rates):
-        success_bounds = np.asarray(SUCCESS_RATE_BOUNDS, dtype=float)
-        success_norm = mpl.colors.BoundaryNorm(
-            success_bounds,
-            len(SUCCESS_RATE_COLORS),
-            clip=True,
-        )
-        hit_cmap = mpl.colors.ListedColormap([
-            "#082b08", "#0b3d0b", "#116611", "#178f17", "#1fbd1f",
-            "#27dc27", "#2df52d", "#39ff14", "#64ff4a", "#9aff85",
-        ])
         ax_rates.scatter(
             trials,
             rates,
-            c=rates,
-            cmap=hit_cmap,
-            norm=success_norm,
+            c="#39ff14",
             s=18,
             alpha=0.80,
             edgecolors="none",
-            label="Station with Hit",
+            label="Station with Target evidence",
         )
         ax_rates.axvline(
             float(recipe.get("minimum_trials", 5)),
@@ -2018,7 +2021,7 @@ def _render_opportunity_segment_figure(recipe):
             linestyle="dashed",
             linewidth=1,
             alpha=0.8,
-            label=f"Hit+Miss threshold {int(recipe.get('minimum_trials', 5))}",
+            label=f"{terms['pair']} threshold {int(recipe.get('minimum_trials', 5))}",
         )
         ax_rates.set_xscale("log", base=2)
         minimum_tick = max(1, int(2 ** np.floor(np.log2(np.nanmin(trials)))))
@@ -2049,9 +2052,9 @@ def _render_opportunity_segment_figure(recipe):
             fontsize=8,
         )
     else:
-        ax_rates.text(0.5, 0.5, "No station has a confirmed Hit", color="#cccccc", ha="center", va="center", transform=ax_rates.transAxes)
+        ax_rates.text(0.5, 0.5, "No station has Target evidence", color="#cccccc", ha="center", va="center", transform=ax_rates.transAxes)
     ax_rates.set_title("Station Success Rate by Evidence Count", color="white", fontweight="bold", fontsize=12, pad=9)
-    ax_rates.set_xlabel("Evidence Count (Hits + Misses)", color="white", fontsize=10)
+    ax_rates.set_xlabel(f"Evidence Count (Target + {terms['counter']})", color="white", fontsize=10)
     ax_rates.set_ylabel("Success Rate (%)", color="white", fontsize=10)
 
     time_values = pd.to_datetime(
@@ -2073,12 +2076,13 @@ def _render_opportunity_segment_figure(recipe):
         recipe.get("range_labels", []),
         time_values,
         f"Average Station Success Rate ({recipe.get('time_bin', '3h')})",
-        "Average Hits / (Hits + Misses)",
+        f"Average Target / (Target + {terms['counter']})",
         success_cmap,
         norm=success_norm,
         cbar_ticks=success_bounds,
         cbar_ticklabels=success_ticklabels,
         show_colorbar=False,
+        empty_message=terms["empty_evidence"],
     )
     observation_image = _draw_opportunity_heatmap(
         ax_opp_time,
@@ -2086,13 +2090,14 @@ def _render_opportunity_segment_figure(recipe):
         recipe.get("range_labels", []),
         time_values,
         f"Observation-Level Success Rate ({recipe.get('time_bin', '3h')})",
-        "Total Hits / (Hits + Misses)",
+        f"Total Target / (Target + {terms['counter']})",
         success_cmap,
         norm=success_norm,
         cbar_ticks=success_bounds,
         cbar_ticklabels=success_ticklabels,
         show_y_labels=False,
         show_colorbar=False,
+        empty_message=terms["empty_evidence"],
     )
     shared_image = station_image if station_image is not None else observation_image
     if shared_image is not None:
@@ -2106,7 +2111,7 @@ def _render_opportunity_segment_figure(recipe):
         )
         cbar.ax.set_yticklabels(success_ticklabels)
         cbar.set_label(
-            "Success Rate: Hits / (Hits + Misses)",
+            f"Success Rate: {terms['formula_spaced']}",
             color="white",
             fontsize=9,
         )
@@ -2120,6 +2125,7 @@ def _opportunity_selected_recipe(
     time_bin,
     analysis_start_t,
     analysis_end_t,
+    terminology,
 ):
     bin_minutes = _time_agg_minutes(time_bin)
     work, time_bins = _assign_fixed_time_bins(
@@ -2147,6 +2153,8 @@ def _opportunity_selected_recipe(
     return {
         "kind": "opportunity",
         "title": title,
+        "absolute_mode": terminology.get("mode", "RX"),
+        "terminology": dict(terminology),
         "time_bin": time_bin,
         "time_ns": pd.to_datetime(bins["time_bin"], utc=True).dt.tz_convert(None).to_numpy(dtype="datetime64[ns]").astype(np.int64, copy=True),
         "rate_pct": bins["rate_pct"].to_numpy(dtype=float, copy=True),
@@ -2160,6 +2168,10 @@ def _opportunity_selected_recipe(
 
 
 def _render_opportunity_selected_figure(recipe):
+    terms = recipe.get("terminology") or absolute_terms(
+        T.get(st.session_state.get("lang", "en"), T["en"]),
+        recipe.get("absolute_mode", "RX"),
+    )
     fig = plt.figure(figsize=(13, 5.6), facecolor="black")
     fig.subplots_adjust(left=0.07, right=0.95, bottom=0.16, top=0.80, wspace=0.32)
     fig.suptitle(f"\n{recipe.get('title', '')}", color="white", fontweight="bold", fontsize=14, y=0.98)
@@ -2183,10 +2195,10 @@ def _render_opportunity_selected_figure(recipe):
             marker="o",
             markersize=3,
             linewidth=1.2,
-            label="H / (H + M)",
+            label=terms["formula"],
         )
         ax_time.set_ylim(0, opportunity_rate_scale_max(rates))
-        ax_time.set_ylabel("Success rate H / (H + M) (%)", color="white")
+        ax_time.set_ylabel(f"Success rate {terms['formula']} (%)", color="white")
         time_tick_indices = _opportunity_time_tick_indices(times)
         ax_time.set_xticks(x_values[time_tick_indices])
         ax_time.set_xticklabels(
@@ -2207,7 +2219,7 @@ def _render_opportunity_selected_figure(recipe):
             width=width,
             color="#39ff14",
             alpha=0.62,
-            label="H (Hit)",
+            label="Target",
         )
         ax_evidence.bar(
             x_values,
@@ -2216,9 +2228,9 @@ def _render_opportunity_selected_figure(recipe):
             width=width,
             color="#b8b8b8",
             alpha=0.40,
-            label="M (Miss)",
+            label=terms["counter_bar"],
         )
-        ax_evidence.set_ylabel("H / M count", color="#bbbbbb")
+        ax_evidence.set_ylabel(terms["count_axis_label"], color="#bbbbbb")
         ax_evidence.tick_params(colors="#bbbbbb", labelsize=8)
         ax_evidence.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
         ax_evidence.yaxis.set_major_formatter(
@@ -2242,16 +2254,16 @@ def _render_opportunity_selected_figure(recipe):
         )
     else:
         ax_time.text(0.5, 0.5, "No time evidence", color="#cccccc", ha="center", va="center", transform=ax_time.transAxes)
-    ax_time.set_title(f"Station H/M Success over Time ({recipe.get('time_bin', '3h')})", color="white", fontweight="bold", pad=8)
+    ax_time.set_title(f"Station Target + {terms['counter']} Evidence over Time ({recipe.get('time_bin', '3h')})", color="white", fontweight="bold", pad=8)
     ax_time.set_xlabel("Date/Time (UTC)", color="white")
 
     snr = np.asarray(recipe.get("successful_snr", []), dtype=float)
     if len(snr):
         _draw_vertical_metric_histogram(ax_snr, snr, color="#36aaf9")
-        ax_snr.set_xlabel("Hit normalized SNR (dB @ 1 W)", color="white")
+        ax_snr.set_xlabel("Target normalized SNR (dB @ 1 W)", color="white")
     else:
-        ax_snr.text(0.5, 0.5, "No Hit SNR evidence", color="#cccccc", ha="center", va="center", transform=ax_snr.transAxes)
-    ax_snr.set_title("Hit SNR", color="white", fontweight="bold", pad=8)
+        ax_snr.text(0.5, 0.5, "No Target SNR evidence", color="#cccccc", ha="center", va="center", transform=ax_snr.transAxes)
+    ax_snr.set_title("Target SNR", color="white", fontweight="bold", pad=8)
     return fig
 
 def _segment_figure_export_recipe(
@@ -2449,6 +2461,7 @@ def _render_opportunity_scope(
 ):
     """Render the opportunity-specific Absolute inspector and export state."""
     station_col = t["tbl_col_rx"] if analysis_id.startswith("TX") else t["tbl_col_tx"]
+    opportunity_terms = absolute_terms(t, "TX" if analysis_id.startswith("TX") else "RX")
     loc_col = t["tbl_col_loc"]
     km_col = t["tbl_col_km"]
     az_col = t["tbl_col_az"]
@@ -2508,25 +2521,30 @@ def _render_opportunity_scope(
         ).format(segment=selected_seg),
         t.get(
             "txt_abs_evidence_summary",
-            "Confirmed evidence (Hit+Miss >= {threshold} per station): Hits {hits} | Misses {misses}",
+            "Evidence ({pair} >= {threshold} per station): Target {target} | {counter} {counter_count}",
         ).format(
+            pair=opportunity_terms["pair"],
             threshold=minimum_confirmed,
+            target=hits,
+            counter=opportunity_terms["counter"],
+            counter_count=misses,
             hits=hits,
             misses=misses,
         ),
         (
             t.get(
                 "txt_abs_rate_summary",
-                "Success Rate Hit/(Hit+Miss): Average by Station {station_average:.1f}% | Observation-Level {overall:.1f}%",
+                "Success Rate {formula}: Average by Station {station_average:.1f}% | Observation-Level {overall:.1f}%",
             ).format(
+                formula=opportunity_terms["formula"],
                 station_average=station_average_rate,
                 overall=overall_rate,
             )
             if pd.notna(station_average_rate) and pd.notna(overall_rate)
             else t.get(
                 "txt_abs_no_eligible",
-                "No station meets the confirmed Hit+Miss threshold in this scope.",
-            )
+                "No station meets the {pair} threshold in this scope.",
+            ).format(pair=opportunity_terms["pair"])
         ),
     ]
     st.markdown(
@@ -2541,6 +2559,7 @@ def _render_opportunity_scope(
         rows,
         analysis_start_t,
         analysis_end_t,
+        opportunity_terms,
     )
     fig = _render_opportunity_segment_figure(segment_recipe)
     st.pyplot(fig, width="stretch")
@@ -2563,19 +2582,19 @@ def _render_opportunity_scope(
         loc_col,
         km_col,
         az_col,
-        t.get("tbl_col_hits", "H (Hit)"),
-        t.get("tbl_col_misses", "M (Miss)"),
-        t.get("tbl_col_rate", "H/(H+M) (%)"),
-        t.get("tbl_col_success_snr", "Median Hit SNR (dB @ 1W)"),
+        opportunity_terms["target_column"],
+        opportunity_terms["counter_column"],
+        opportunity_terms["rate_column"],
+        t.get("tbl_col_success_snr", "Median Target SNR (dB @ 1W)"),
     ]
     disp_df[km_col] = disp_df[km_col].round(0).astype("Int64")
     disp_df[az_col] = disp_df[az_col].round(1)
-    rate_col = t.get("tbl_col_rate", "H/(H+M) (%)")
-    snr_col = t.get("tbl_col_success_snr", "Median Hit SNR (dB @ 1W)")
+    rate_col = opportunity_terms["rate_column"]
+    snr_col = t.get("tbl_col_success_snr", "Median Target SNR (dB @ 1W)")
     disp_df[rate_col] = pd.to_numeric(disp_df[rate_col], errors="coerce").round(1)
     disp_df[snr_col] = pd.to_numeric(disp_df[snr_col], errors="coerce").round(1)
-    hit_col = t.get("tbl_col_hits", "H (Hit)")
-    miss_col = t.get("tbl_col_misses", "M (Miss)")
+    hit_col = opportunity_terms["target_column"]
+    miss_col = opportunity_terms["counter_column"]
     full_segment_disp_df = disp_df.sort_values(
         [hit_col, miss_col, rate_col],
         ascending=[False, False, False],
@@ -2588,11 +2607,7 @@ def _render_opportunity_scope(
         vertical_alignment="center",
     )
     with col_title:
-        sub_text = (
-            " (H=Hit | M=Miss | Klick auf eine Zeile fuer Evidenz)"
-            if st.session_state.lang == "de"
-            else " (H=Hit | M=Miss | Click a row for evidence)"
-        )
+        sub_text = opportunity_terms["subtext"]
         st.markdown(
             f"**<span class='material-symbols-rounded section-icon'>monitoring</span>{t['lbl_insights']}**"
             f"<span style='font-size:0.85em; color:gray;'>{sub_text}</span>",
@@ -2600,7 +2615,7 @@ def _render_opportunity_scope(
         )
     with col_toggle:
         show_zero_hits = st.toggle(
-            t.get("lbl_show_zero_hits", "Show Zero-Hits"),
+            t.get("lbl_show_zero_hits", "Show Zero-Target"),
             value=False,
             key=zero_hits_key,
         )
@@ -2706,6 +2721,7 @@ def _render_opportunity_scope(
             selected_time_bin,
             analysis_start_t,
             analysis_end_t,
+            opportunity_terms,
         )
         evidence_fig = _render_opportunity_selected_figure(selected_evidence_recipe)
         st.pyplot(evidence_fig, width="stretch")

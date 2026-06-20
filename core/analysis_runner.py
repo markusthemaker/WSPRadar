@@ -202,7 +202,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         else:
             st.warning(t.get(
                 "warn_abs_exact_band",
-                "Opportunity-based Absolute analysis requires one exact operating band and is skipped for Band=All.",
+                "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
             ))
 
     elif st.session_state.run_mode == "RX":
@@ -242,7 +242,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         else:
             st.warning(t.get(
                 "warn_abs_exact_band",
-                "Opportunity-based Absolute analysis requires one exact operating band and is skipped for Band=All.",
+                "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
             ))
 
     return analyses

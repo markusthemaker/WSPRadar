@@ -8,11 +8,8 @@ import matplotlib
 matplotlib.use('Agg')  # Zwingt Matplotlib in den Headless-Modus (verhindert RAM-Leaks auf Streamlit Cloud)
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.path as mpath
 from matplotlib.patches import Patch, Wedge
 from matplotlib.collections import PatchCollection
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
 import streamlit as st
 
 from config import *
@@ -23,8 +20,10 @@ from core.opportunity_engine import (
     SUCCESS_RATE_COLORS,
     SUCCESS_RATE_TICK_LABELS,
 )
+from core.compare_engine import aggregate_compare_map_data, compare_footer_counts
+from core.map_base import create_base_map_figure
 from core.snr_utils import round_snr_like_columns
-from i18n import T
+from i18n import T, absolute_terms
 
 MIN_LABEL_CUTOFF_PCT = 0.02
 COMPARE_NEUTRAL_COLOR = "#fff2a8"
@@ -169,226 +168,30 @@ def generate_map_plot(
         segs = segs[segs['cnt'] >= base_min_stations]
         df_plot = reporter_medians 
     else:
-        # Compare Logik: Joint Spots / Sequential vs Simultaneous (High-Performance Vectorized)
-        df_plot = df.copy()
-        min_s = st.session_state.val_min_spots
-        
-        # Gruppierungsschlüssel und Aggregations-Regeln für die Geometrie-Metadaten
-        group_keys = ['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign', 'peer_grid']
-        spatial_agg = {
-            'peer_lat': 'first',
-            'peer_lon': 'first',
-            'calc_dist': 'first',
-            'calc_azimuth': 'first'
-        }
-        
-        # --- NEU: Rette die Radius-Metriken vor dem Pandas Grouping-Löschvorgang ---
-        if 'best_ref_sign' in df_plot.columns:
-            spatial_agg['best_ref_sign'] = 'first'
-        if 'best_ref_dist' in df_plot.columns:
-            spatial_agg['best_ref_dist'] = 'first'
-            
-        if is_sequential:
-            # --- NEU: Time-Binning für gepaarte Micro-Mediane im Sequential TX Modus ---
-            bin_minutes = st.session_state.get('val_tx_ab_bin_minutes', 8)
-            df_plot['dt_time'] = pd.to_datetime(df_plot['time'])
-            df_plot['time_bin'] = df_plot['dt_time'].dt.floor(f'{bin_minutes}min')
-
-            df_t = df_plot[df_plot['is_me'] == 1].copy()
-            df_r = df_plot[df_plot['is_me'] == 0].copy()
-
-            # FIX: Konvertiere spatial_agg in strikte Named Aggregation Tuples für Pandas!
-            spatial_agg_named = {k: (k, v) for k, v in spatial_agg.items()}
-
-            # Micro-Medians per Bin berechnen (inklusive der spatial_agg Metadaten)
-            bin_t = df_t.groupby(['time_bin'] + group_keys, dropna=False).agg(
-                t_count=('stat_val', 'size'),
-                t_med=('stat_val', 'median'),
-                **spatial_agg_named
-            ).reset_index()
-
-            bin_r = df_r.groupby(['time_bin'] + group_keys, dropna=False).agg(
-                r_count=('stat_val', 'size'),
-                r_med=('stat_val', 'median')
-            ).reset_index()
-
-            # Merge der beiden Setups über Zeitfenster und Station
-            df_bins = pd.merge(bin_t, bin_r, on=['time_bin'] + group_keys, how='outer')
-            df_bins['t_count'] = df_bins['t_count'].fillna(0)
-            df_bins['r_count'] = df_bins['r_count'].fillna(0)
-
-            # Echte "Joint Bins" identifizieren
-            df_bins['is_joint'] = (df_bins['t_count'] > 0) & (df_bins['r_count'] > 0)
-            df_bins['bin_delta'] = df_bins['t_med'] - df_bins['r_med']
-            df_bins = round_snr_like_columns(df_bins)
-
-            df_joint = df_bins[df_bins['is_joint']]
-            df_excl = df_bins[~df_bins['is_joint']]
-
-            # FIX: Auch hier zwingend Tuples für die 'first' Aggregation verwenden
-            spatial_agg_first = {k: (k, 'first') for k in spatial_agg.keys()}
-
-            # 1. Aggregation der Joint Bins
-            agg_joint = df_joint.groupby(group_keys, dropna=False).agg(
-                joint_bins_count=('time_bin', 'size'),
-                spot_count_u=('t_count', 'sum'),
-                spot_count_r=('r_count', 'sum'),
-                stat_val=('bin_delta', 'median'),
-                **spatial_agg_first
-            ).reset_index()
-            agg_joint['spot_count'] = agg_joint['spot_count_u'] + agg_joint['spot_count_r']
-
-            # 2. Aggregation der exklusiven Bins
-            agg_excl = df_excl.groupby(group_keys, dropna=False).agg(
-                count_only_u=('t_count', 'sum'),
-                count_only_r=('r_count', 'sum'),
-                **spatial_agg_first
-            ).reset_index()
-
-            # Merge zu finalem aggregierten DataFrame für die Stationen
-            df_agg = pd.merge(agg_joint, agg_excl, on=group_keys, how='outer', suffixes=('', '_excl'))
-            
-            # Bereinigung der duplizierten Metadaten-Spalten
-            for k in spatial_agg.keys():
-                if f"{k}_excl" in df_agg.columns:
-                    df_agg[k] = df_agg[k].fillna(df_agg[f"{k}_excl"])
-                    df_agg = df_agg.drop(columns=[f"{k}_excl"])
-
-            df_agg = df_agg.fillna({
-                'joint_bins_count': 0, 'spot_count': 0, 'count_only_u': 0, 'count_only_r': 0
-            })
-
-            # Filter-Logik: Min. Joint Bins (nicht Raw Spots!) anwenden
-            is_joint = df_agg['joint_bins_count'] >= min_s
-            is_u = df_agg['count_only_u'] >= min_s
-            is_r = df_agg['count_only_r'] >= min_s
-            
-            df_agg['stat_val'] = np.where(is_joint, df_agg['stat_val'], np.nan)
-            df_agg['spot_count'] = np.where(is_joint, df_agg['spot_count'], 0)
-            df_agg['count_only_u'] = np.where(is_u, df_agg['count_only_u'], 0)
-            df_agg['count_only_r'] = np.where(is_r, df_agg['count_only_r'], 0)
-            
-        else:
-            # 1. Datenvorbereitung: Vektorisiertes Markieren der Zugehörigkeit und Spot-Differenz
-            df_plot['is_joint_spot'] = ((df_plot['has_u'] > 0) & (df_plot['has_r'] > 0)).astype(int)
-            df_plot['is_u_spot'] = ((df_plot['has_u'] > 0) & (df_plot['has_r'] == 0)).astype(int)
-            df_plot['is_r_spot'] = ((df_plot['has_u'] == 0) & (df_plot['has_r'] > 0)).astype(int)
-            df_plot['spot_diff'] = np.where(df_plot['is_joint_spot'] == 1, df_plot['snr_u_norm'] - df_plot['snr_r_norm'], np.nan)
-            df_plot = round_snr_like_columns(df_plot)
-            
-            # 2. C-optimierte Aggregation
-            agg_ops = {
-                'is_joint_spot': 'sum',
-                'is_u_spot': 'sum',
-                'is_r_spot': 'sum',
-                'spot_diff': 'median',
-                **spatial_agg
-            }
-            df_agg = df_plot.groupby(group_keys, dropna=False).agg(agg_ops).reset_index()
-            
-            # 3. Symmetrische Filter-Logik anwenden
-            cnt_j = df_agg['is_joint_spot']
-            cnt_u = df_agg['is_u_spot']
-            cnt_r = df_agg['is_r_spot']
-            
-            is_joint = cnt_j >= min_s
-            is_u = cnt_u >= min_s
-            is_r = cnt_r >= min_s
-            
-            df_agg['spot_count'] = np.where(is_joint, cnt_j, 0)
-            df_agg['count_only_u'] = np.where(is_u, cnt_u, 0)
-            df_agg['count_only_r'] = np.where(is_r, cnt_r, 0)
-            df_agg['stat_val'] = np.where(is_joint, df_agg['spot_diff'], np.nan)
-            
-            # 4. Temporäre Rechenspalten bereinigen
-            df_agg = df_agg.drop(columns=['is_joint_spot', 'is_u_spot', 'is_r_spot', 'spot_diff'])
-
-        # Radikale Bereinigung: Wirf jede Station weg, deren Zähler in ALLEN drei Kategorien auf 0 gefallen sind
-        df_plot = df_agg[(df_agg['spot_count'] > 0) | (df_agg['count_only_u'] > 0) | (df_agg['count_only_r'] > 0)].copy()
-        df_plot = round_snr_like_columns(df_plot)
-        
-        def segment_agg(x):
-            vals = x['stat_val'].dropna()
-            cnt = x.loc[x['spot_count'] > 0, 'peer_sign'].nunique()
-            
-            return pd.Series({
-                'val': vals.median() if len(vals) > 0 else np.nan,
-                'cnt': cnt,
-                'total_spots': x['spot_count'].sum()
-            })
-            
-        segs = df_plot.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket']).apply(segment_agg).reset_index()
-        segs = round_snr_like_columns(segs, columns=['val'])
-        
-        segs = segs[segs['cnt'] >= base_min_stations]
+        df_plot, segs = aggregate_compare_map_data(
+            df,
+            is_sequential=is_sequential,
+            min_spots=st.session_state.val_min_spots,
+            base_min_stations=base_min_stations,
+            tx_ab_bin_minutes=st.session_state.get('val_tx_ab_bin_minutes', 8),
+        )
 
     if df_plot.empty or (segs.empty and not is_opportunity): return None
 
-    # Plot Setup
-    fig = plt.figure(figsize=FIG_SIZE, facecolor=theme_cfg["fig_face"], dpi=PLOT_DPI)
-    fig.text(TITLE_POS[0], TITLE_POS[1], title, fontsize=18, fontweight='bold', color=theme_cfg["title"], ha='center', va='top')
-    
-    perfect_globe = ccrs.Globe(semimajor_axis=EARTH_RADIUS_M, semiminor_axis=EARTH_RADIUS_M)
-    proj = ccrs.AzimuthalEquidistant(central_longitude=lon_0, central_latitude=lat_0, globe=perfect_globe)
-    pc_proj = ccrs.PlateCarree(globe=perfect_globe)
-    
-    ax = fig.add_axes(MAP_BBOX, projection=proj)
-    ax.set_facecolor(theme_cfg["ax_face"]); ax.set_global()
-    
-    map_scale = 1.0 if max_dist_km == 22000 else ZOOMED_MAP_SCALE
-    max_r_m = max_dist_km * 1000
-    lim = max_r_m / map_scale
-    ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
-    
-    theta = np.linspace(0, 2*np.pi, 100)
-    center, radius = [0.5, 0.5], 0.5 * map_scale
-    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
-    circle = mpath.Path(verts * radius + center)
-    ax.set_boundary(circle, transform=ax.transAxes)
-    if theme == "light":
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-    
-    ax.add_feature(cfeature.OCEAN, facecolor=theme_cfg["ocean"])
-    ax.add_feature(cfeature.LAND, facecolor=theme_cfg["land"])
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.9, edgecolor=theme_cfg["coast"], zorder=5, alpha=0.9)
-    #slows down plotting - keep borders off for now
-    ax.add_feature(cfeature.BORDERS, linewidth=0.6, edgecolor=theme_cfg["border"], zorder=5, alpha=0.7)
-    
-    # Draw Rings
-    for r_km in THICK_RINGS:
-        if r_km <= max_dist_km:
-            lw = 1.8 if r_km == max_dist_km else 0.9
-            ax.add_patch(plt.Circle((0,0), r_km*1000, fill=False, color=theme_cfg["ring"], linewidth=lw, alpha=theme_cfg["ring_alpha"], transform=proj, zorder=2))
-            if r_km != 5000: ax.text(0, r_km*1000, f" {r_km} km ", color=theme_cfg["ring_label"], fontsize=FONT_RINGS, fontweight='bold', ha='center', va='center', transform=proj, zorder=6, bbox=theme_cfg["ring_label_box"])
-
-    for r_km in THIN_RINGS:
-        if r_km <= max_dist_km: ax.add_patch(plt.Circle((0,0), r_km*1000, fill=False, color=theme_cfg["ring"], linewidth=0.5, alpha=theme_cfg["thin_ring_alpha"], linestyle='--', transform=proj, zorder=2))
-
-    for az in np.arange(AZIMUTH_STEP / 2.0, 360, AZIMUTH_STEP): ax.plot([0, max_r_m * np.cos(np.radians(90 - az))], [0, max_r_m * np.sin(np.radians(90 - az))], color=theme_cfg["azimuth"], linewidth=0.3, alpha=0.4, transform=proj, zorder=2)
-    
-    label_r_m = lim * COMPASS_LABEL_OFFSET
-    for i, d in enumerate(COMPASS):
-        angle = i * AZIMUTH_STEP
-        x = label_r_m * np.cos(np.radians(90 - angle))
-        y = label_r_m * np.sin(np.radians(90 - angle))
-        ax.text(x, y, d, color=theme_cfg["compass"], ha='center', va='center', transform=proj, fontsize=FONT_COMPASS, fontweight='bold', alpha=0.9, clip_on=False)
-    
-    # Pole Markers
-    dist_n_m = (90.0 - lat_0) * (np.pi / 180.0) * EARTH_RADIUS_M
-    dist_s_m = (90.0 + lat_0) * (np.pi / 180.0) * EARTH_RADIUS_M
-    
-    if dist_n_m <= max_r_m:
-        ax.plot(0, dist_n_m, marker='*', color=theme_cfg["pole"], markersize=8, mew=1.2, transform=proj, zorder=20)
-        ax.text(0, dist_n_m - 350000, 'N-POL', color=theme_cfg["pole"], fontsize=FONT_POLES, fontweight='bold', ha='center', va='top', transform=proj, zorder=20)
-        
-    if dist_s_m <= max_r_m:
-        ax.plot(0, -dist_s_m, marker='*', color=theme_cfg["pole"], markersize=8, mew=1.2, transform=proj, zorder=20)
-        ax.text(0, -dist_s_m - 350000, 'S-POL', color=theme_cfg["pole"], fontsize=FONT_POLES, fontweight='bold', ha='center', va='top', transform=proj, zorder=20)
+    fig, ax, proj, pc_proj = create_base_map_figure(
+        title=title,
+        maximum_distance_km=max_dist_km,
+        center_latitude=lat_0,
+        center_longitude=lon_0,
+        theme_name=theme,
+        theme_config=theme_cfg,
+    )
 
     # UI Texts
     t_lang = T[st.session_state.lang]
     target_call = st.session_state.val_callsign.upper()
+    absolute_mode = "TX" if analysis_id.startswith("TX") else "RX"
+    abs_terms = absolute_terms(t_lang, absolute_mode)
     # Setup specific labels based on the active test mode
     if st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
         if st.session_state.val_self_test_mode == t_lang["opt_self_rx"]:
@@ -472,19 +275,19 @@ def generate_map_plot(
                 hit_stations[hit_stations["hits"] == 1],
                 "#9aff85",
                 7,
-                t_lang.get("leg_abs_hit_one", "H = 1"),
+                t_lang.get("leg_abs_hit_one", "Target (T) = 1"),
             ),
             (
                 hit_stations[hit_stations["hits"].between(2, 5, inclusive="both")],
                 "#39ff14",
                 9,
-                t_lang.get("leg_abs_hit_mid", "H = 2-5"),
+                t_lang.get("leg_abs_hit_mid", "Target (T) = 2-5"),
             ),
             (
                 hit_stations[hit_stations["hits"] > 5],
                 "#0b6f24",
                 12,
-                t_lang.get("leg_abs_hit_high", "H > 5"),
+                t_lang.get("leg_abs_hit_high", "Target (T) > 5"),
             ),
         ]
         for tier_df, tier_color, tier_size, tier_label in hit_tiers:
@@ -504,10 +307,10 @@ def generate_map_plot(
                 miss_stations["peer_lon"], miss_stations["peer_lat"],
                 c="#c7c7c7", s=8, alpha=0.9, edgecolors="black",
                 linewidth=0.35, transform=pc_proj, zorder=9,
-                label=t_lang.get("leg_abs_miss", "M (Miss)"),
+                label=abs_terms["counter_marker"],
             )
         handles, labels = ax.get_legend_handles_labels()
-        no_hm_label = t_lang.get("leg_abs_no_hm", "No H/M evidence")
+        no_hm_label = abs_terms["no_evidence"]
         handles.append(
             Patch(
                 facecolor=theme_cfg.get("no_hm_face", "black"),
@@ -521,7 +324,7 @@ def generate_map_plot(
             handles,
             labels,
             loc="lower center",
-            bbox_to_anchor=(LEG_BBOX[0], LEG_BBOX[1] + 0.04),
+            bbox_to_anchor=(LEG_BBOX[0], LEG_BBOX[1] - 0.05),
             facecolor=theme_cfg["legend_face"],
             edgecolor=theme_cfg["legend_edge"],
             labelcolor=theme_cfg["legend_text"],
@@ -583,9 +386,9 @@ def generate_map_plot(
             meta_parts.append(f"Ref: Self-Test Config")
         else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
     elif is_opportunity:
-        meta_parts.append(f"H+M/Station: >={st.session_state.get('val_min_opportunities', 5)}")
+        meta_parts.append(f"{abs_terms['pair']}/Station: >={st.session_state.get('val_min_opportunities', 5)}")
         meta_parts.append(f"Stations/Seg: >={base_min_stations}")
-        meta_parts.append("Segment: average station H/(H+M)")
+        meta_parts.append(f"Segment: average station {abs_terms['formula']}")
     else:
         meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
         meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
@@ -607,26 +410,17 @@ def generate_map_plot(
     # ==========================================
     if is_compare and 'count_only_u' in df_plot.columns:
         
-        # Filter dataframe strictly to the rendered map bounds to match the Segment Inspector
-        df_footer = df_plot[df_plot['r_min'] < max_dist_km]
-        
-        # 1. Metriken extrahieren (Spots & Stations) für 4 Segmente
-        # Da die Pandas-Aggregation nun in allen Modi "spot_count" (Joint) und "count_only_*" (Exklusiv) sauber trennt, 
-        # nutzen wir eine universelle Logik für Simultan und Sequenziell:
-        stat_joint = len(df_footer[df_footer['spot_count'] > 0])
-        stat_both_async = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)])
-        stat_only_u = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)])
-        stat_only_r = len(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)])
-        
-        spot_joint = int(df_footer['spot_count'].sum())
-        spot_both_async = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] > 0)][['count_only_u', 'count_only_r']].sum().sum())
-        # Auch die Rest-Spots (Async) der Joint-Stationen zum "Both-Async" Topf hinzufügen
-        spot_both_async += int(df_footer[df_footer['spot_count'] > 0][['count_only_u', 'count_only_r']].sum().sum())
-        spot_only_u = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] > 0) & (df_footer['count_only_r'] == 0)]['count_only_u'].sum())
-        spot_only_r = int(df_footer[(df_footer['spot_count'] == 0) & (df_footer['count_only_u'] == 0) & (df_footer['count_only_r'] > 0)]['count_only_r'].sum())
-
-        tot_stats = stat_only_u + stat_joint + stat_both_async + stat_only_r
-        tot_spots = spot_only_u + spot_joint + spot_both_async + spot_only_r
+        counts = compare_footer_counts(df_plot, max_dist_km=max_dist_km)
+        stat_joint = counts["stat_joint"]
+        stat_both_async = counts["stat_both_async"]
+        stat_only_u = counts["stat_only_u"]
+        stat_only_r = counts["stat_only_r"]
+        spot_joint = counts["spot_joint"]
+        spot_both_async = counts["spot_both_async"]
+        spot_only_u = counts["spot_only_u"]
+        spot_only_r = counts["spot_only_r"]
+        tot_stats = counts["tot_stats"]
+        tot_spots = counts["tot_spots"]
 
         # 2. Native Categorical Axes setup
         ax_bars = fig.add_axes(theme_cfg.get("bar_bbox", [0.12, 0.035, 0.85, 0.045]))
