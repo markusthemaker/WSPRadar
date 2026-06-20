@@ -13,6 +13,11 @@ from core.opportunity_engine import (
     opportunity_rate_scale_max,
     prepare_opportunity_rows,
 )
+from core.solar_path import (
+    ILLUMINATION_DAYLIGHT,
+    ILLUMINATION_NIGHT,
+    classify_path_illumination,
+)
 
 
 def _server_row(slot, call, grid, target_seen, external_seen, target_snr=None):
@@ -47,6 +52,7 @@ def test_rx_opportunity_classification_and_target_exclusion():
     assert int(rows["miss"].sum()) == 1
     assert int(rows["target_only"].sum()) == 1
     assert (rows["opportunity"] == rows["hit"] + rows["miss"]).all()
+    assert {"path_illumination", "path_daylight_fraction", "target_solar_elevation", "path_midpoint_solar_elevation", "peer_solar_elevation", "path_greyline_crossing"}.issubset(rows.columns)
 
     peers = aggregate_opportunity_peers(rows, min_opportunities=2)
     peer = peers.iloc[0]
@@ -211,3 +217,29 @@ def test_tx_query_uses_receiver_peers_and_target_frame_when_requested():
     assert "rx_sign AS peer_sign" in query
     assert "rx_loc AS peer_grid" in query
     assert "toMinute(time) % 4 = 2" in query
+
+def test_path_illumination_uses_configurable_daylight_fraction_threshold():
+    frame = pd.DataFrame({
+        "cycle_time": [
+            pd.Timestamp("2026-03-20 12:00:00Z"),
+            pd.Timestamp("2026-03-20 00:00:00Z"),
+        ],
+        "peer_lat": [0.0, 0.0],
+        "peer_lon": [10.0, 10.0],
+    })
+
+    classified = classify_path_illumination(
+        frame,
+        target_latitude=0.0,
+        target_longitude=0.0,
+        daylight_fraction_threshold=0.75,
+        twilight_elevation_degrees=6.0,
+        sample_points=9,
+    )
+
+    assert classified["path_illumination"].astype(str).tolist() == [
+        ILLUMINATION_DAYLIGHT,
+        ILLUMINATION_NIGHT,
+    ]
+    assert float(classified.iloc[0]["path_daylight_fraction"]) >= 0.75
+    assert float(classified.iloc[1]["path_daylight_fraction"]) <= 0.25

@@ -87,7 +87,7 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Renamed sequential TX A/B frame assignment from odd/even-minute wording to explicit UTC WSPR-frame start-minute wording, including config-schema compatibility for older `target_time_slot` / `reference_time_slot` files.
 
 ## 2026-05-30
-- Replace raincloud with histogram to reflect integer distribution better 
+- Replaced raincloud plots with histograms to reflect integer distributions better.
 
 ## 2026-06-14
 - Improved Segment Inspector performance by loading selected-station Parquet rows once and reusing them for evidence figures and drill-down tables.
@@ -105,25 +105,20 @@ Source used for this file: reachable `origin/main` history available locally at 
 
 ## 2026-06-15
 
-- Simplified the visible Absolute-analysis vocabulary to `H (Hit)`, `M (Miss)` and `Success Rate = H/(H+M)` while retaining `O` and `T` in the internal audit data.
-- Changed Absolute map segments from median peer rates to average station Success Rate and introduced a fixed nonlinear `0, 1, 2, 5, 10, 20, 40, 60, 80, 100%` scale shared by maps and temporal panels.
-- Replaced Absolute map markers with threshold-qualified H/M stations: Hits use rate-dependent green intensity, while stations with confirmed Misses and no Hits use light gray.
-- Rebuilt Absolute Segment Insight around a station Success Rate versus confirmed-evidence scatter plot, Average Station Success Rate over time and Overall Success Rate over time.
-- Anchored contiguous Absolute time bins to the exact analysis start/end window so empty intervals remain visible and time axes are chronologically stable.
-- Reduced Absolute Segment Insight summaries and Station Insights tables to threshold-qualified H/M evidence, removed redundant Opportunity/Target-only/eligibility columns and sorted stations by Hits, Misses and Success Rate.
-- Updated selected-station Absolute evidence to show stacked H/M counts with a dynamically scaled Success Rate line, and updated English/German UI text and documentation.
-- Added a default-off `Show Zero-Hits` control for Absolute Station Insights without removing zero-Hit stations from any calculated rate or full-segment evidence.
-- Simplified the station evidence scatter to stations with Hits, formatted its log2 axis with actual evidence counts, renamed the pooled temporal metric to Observation-Level Success Rate and enlarged Absolute figure typography.
-- Replaced temporal range-bin strings with distance-boundary labels and increased time-axis label density across Absolute temporal charts.
-- Anchored Absolute temporal labels to a regular clock-stable interval from the selected analysis start, moved both temporal panels closer together and replaced their duplicate colorbars with one shared Success Rate scale.
-- Renamed the Absolute station-evidence scatter to `Station Success Rate by Evidence Count`, simplified its axes and shortened the table Success Rate header to `H/(H+M) (%)`.
-- Removed redundant `Opportunity (O)` and `Target-Only (T)` columns from the Absolute drill-down table while keeping the row-level `Outcome` classification.
-- Reordered selected-station H/M stacks so Hits are drawn from the baseline and Misses stack above them, matching the visual fraction implied by `H/(H+M)`.
-- Forced the selected-station H/M count axis to integer-only labels.
-- Aligned selected-station H/M time plots with the same fixed bin-index time scale and clock-stable tick scheduler used by the Absolute segment temporal heatmaps.
-- Split the Absolute Success Rate color scale into `0%`, `>0%`, `1%`, `2%`, `5%`, ... bins and added a black-outlined `No H/M evidence` swatch to the Absolute map legend.
-- Made the Absolute map `No H/M evidence` legend swatch follow the render theme and changed Hit markers to evidence tiers `H = 1`, `H = 2-5`, and `H > 5`.
+- Consolidated the Absolute success-rate visual model around station-level and observation-level Target/counter-evidence rates instead of raw Absolute SNR maps.
+- Changed Absolute map segments to average station Success Rate and introduced the shared nonlinear `0%`, `>0%`, `1%`, `2%`, `5%`, `10%`, `20%`, `40%`, `60%`, `80%`, `100%` color scale for maps and temporal panels.
+- Rebuilt Absolute Segment Insight around three core views: station Success Rate by evidence count, Average Station Success Rate over time and Observation-Level Success Rate over time.
+- Anchored Absolute temporal bins to the selected analysis start/end window, kept empty intervals visible and aligned selected-station evidence time plots to the same fixed bin-index time scale.
+- Simplified Absolute Station Insights and drill-down views by focusing on threshold-qualified Target/counter-evidence rows, hiding zero-Target stations by default, removing redundant Opportunity/Target-only columns from the table and preserving row-level outcome classification in drill-down data.
+- Updated selected-station Absolute evidence to show stacked Target/counter-evidence counts with a dynamically scaled Success Rate line, integer-only count ticks and Target SNR evidence.
+- Improved Absolute figure readability by enlarging typography, replacing long range-bin labels with distance-boundary labels, increasing time-axis label density and sharing one colorbar across paired temporal heatmaps.
+- Added explicit no-data/zero/nonzero color semantics and map markers for Target evidence tiers plus counter-evidence-only stations.
 
-- Renamed the visible Absolute Success Rate evidence vocabulary from H/M to Target/Elsewhere: Segment Insight now spells out Target+Elsewhere evidence and Success Rate Target/(Target+Elsewhere), while maps, tables, selected-station evidence and documentation use T/E labels consistently.
-- Split Absolute Success Rate terminology by mode: RX now uses Target/Elsewhere (T/E) with Same Signals Heard Elsewhere titles, while TX uses Target/Other Signals (T/OS) with Other Signals at Same RX Stations titles.
-- Compact Absolute Station Insights labels to mode-specific `Target (T)`, `Elsewhere (E)` / `Other Signals (OS)` and `T/(T+E)` / `T/(T+OS)`, moved Absolute map legends below the long titles and changed selected-station evidence count axes to plus-count wording.
+## 2026-06-20
+
+- Added observation-level great-circle path illumination classification for Absolute evidence, with configurable daylight-fraction threshold and selected-station plots split into night, greyline/mixed and daylight Target/counter-evidence contributions.
+- Refactor: Extracted compare-mode map aggregation into `core/compare_engine.py` and added focused regression coverage for simultaneous and sequential compare aggregation.
+- Refactor: Extracted shared Cartopy map scaffolding into `core/map_base.py`, keeping mode-specific overlays, legends, colorbars and footer metrics in the plot engine.- Split visible Absolute terminology by mode: RX now uses Target/Elsewhere (`T/E`) and TX uses Target/Other Signals (`T/OS`), while the internal audit data can still retain lower-level cycle classification.
+- Updated Absolute map titles to `RX Success: Target {callsign} vs. Same Signals Heard Elsewhere` and `TX Success: Target {callsign} vs. Other Signals at Same RX Stations`.
+- Compact Absolute Station Insights labels to mode-specific `Target (T)`, `Elsewhere (E)` / `Other Signals (OS)` and `T/(T+E)` / `T/(T+OS)`.
+- Changed selected-station evidence count axes to plus-count wording such as `Target + Elsewhere count` and `Target + Other Signals count`, avoiding slash notation for count bars.

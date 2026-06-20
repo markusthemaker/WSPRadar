@@ -23,16 +23,17 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 * [3. Welche Fragen beantwortet WSPRadar?](#sec-3)
 * [4. Analysemodi und valides Experimentdesign](#sec-4)
   * [4.0 Begriffe und Vergleichslogik](#sec-4-0)
-  * [4.1 Absolut TX/RX](#sec-4-1)
+  * [4.1 TX/RX-Erfolgsrate](#sec-4-1)
   * [4.2 Lokaler Nachbarschafts-Benchmark](#sec-4-2)
   * [4.3 Spezifische Referenzstation / Buddy-Test](#sec-4-3)
   * [4.4 Hardware A/B-Test](#sec-4-4)
   * [4.5 Decode Yield in Vergleichsmodi](#sec-4-5)
 * [5. Ergebnisbegriffe und Oberfl&auml;che lesen](#sec-5)
   * [5.1 Karte](#sec-5-1)
-  * [5.2 Segment Insight](#sec-5-2)
-  * [5.3 Station Insights, Drill-Down und Export](#sec-5-3)
-  * [5.4 Filter, Export und Download](#sec-5-4)
+  * [5.2 Segment Insight - TX/RX-Erfolg](#sec-5-2)
+  * [5.3 Segment Insight - Vergleichsmodi](#sec-5-3)
+  * [5.4 Station Insights und ausgew&auml;hlte Stations-Evidenz](#sec-5-4)
+  * [5.5 Export- und Download-Reproduzierbarkeitspaket](#sec-5-5)
 * [6. Wissenschaftliche Methodik und Annahmen](#sec-6)
   * [6.1 Datenherkunft und Robustheit](#sec-6-1)
   * [6.2 WSPR-SNR und gemeldete Leistung](#sec-6-2)
@@ -68,8 +69,8 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 
 WSPRadar ist um konkrete Amateurfunk-Fragen herum aufgebaut:
 
-* **Wo wird mein Sendesignal geh&ouml;rt?** `TX Absolut`.
-* **Wen kann meine Station h&ouml;ren?** `RX Absolut`.
+* **Wo wird mein Sendesignal geh&ouml;rt?** `TX Success`.
+* **Wen kann meine Station h&ouml;ren?** `RX Success`.
 * **Liege ich im Rahmen meiner lokalen WSPR-Nachbarschaft?** `Lokaler Nachbarschafts-Median`, der Standard-Benchmark.
 * **Kann ich mit der besten aktiven lokalen Station mithalten?** `Beste lokale Station`, der strenge lokale Stresstest.
 * **Wie schneide ich gegen eine bestimmte Station oder einen Funkfreund ab?** `Spezifische Referenzstation`.
@@ -89,6 +90,7 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 * **Referenz** meint die Vergleichsbasis: ein Buddy-Rufzeichen, die lokale Nachbarschaft, die beste lokale Station oder Setup B.
 * Ein **WSPR-Spot** ist ein gemeldeter erfolgreicher Decode: Zeit, Band, Sender, Empf&auml;nger, Locator, gemeldete Leistung und SNR.
 * Ein **WSPR-Zyklus** ist eine zweimin&uuml;tige WSPR-Sende-/Empfangsgelegenheit, ausgerichtet an geraden UTC-Minuten.
+* Ein **target-aktiver WSPR-Zyklus** ist ein WSPR-Zyklus, in dem die Zielstation bzw. das Ziel-Setup nachweislich aktiv war. In der TX-Analyse muss das Zielsignal weltweit von mindestens einer Station decodiert worden sein. In der RX-Analyse muss der Ziel-Empf&auml;nger in diesem Zyklus mindestens einen Decode hochgeladen haben.
 * Ein **Maidenhead-Locator** ist der von WSPR genutzte Grid-Square-Standortcode; WSPRadar nutzt den eigenen QTH-Locator als Kartenzentrum.
 * Ein **Median** ist der mittlere Wert einer sortierten Stichprobe. WSPRadar nutzt Mediane, weil sie robuster gegen Ausrei&szlig;er und wechselnde Ausbreitungszust&auml;nde sind als einfache Mittelwerte.
 * **Joint / Synced** Evidenz bedeutet, dass Ziel und Referenz vergleichbare Evidenz f&uuml;r dieselbe Remote-Station und denselben Ausbreitungspfad im selben WSPR-Zyklus haben oder, bei sequenziellem TX A/B, im selben validen Zeit-Bin.
@@ -107,13 +109,13 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 * Bei RX-Analysen Empf&auml;nger, Antennen-/Speiseleitungspfad, Audiopfad, Decoder-Einstellungen und Upload-Verhalten stabil halten, sofern sie nicht die getestete Variable sind.
 
 <a id="sec-4-1"></a>
-#### 4.1 Absolut TX/RX
+#### 4.1 TX/RX-Erfolgsrate
 
 **Antwortet auf**
 
-* `RX Absolut` / **RX Erfolgsrate:** Wenn ein anderer Empf&auml;nger unabh&auml;ngig best&auml;tigt, dass ein Sender in einem target-aktiven WSPR-Zyklus beobachtbar war, wie oft hat mein Empf&auml;nger ihn ebenfalls decodiert?
-* `TX Absolut` / **TX Erfolgsrate:** Wenn ein Empf&auml;nger unabh&auml;ngig best&auml;tigt, dass ein anderer Sender in einem target-aktiven WSPR-Zyklus beobachtbar war, wie oft hat dieser Empf&auml;nger auch meinen Sender decodiert?
-* Das sind bedingte Target/Gegen-Evidenz-Raten. RX nutzt Target/Elsewhere, TX nutzt Target/Other Signals. Sie reduzieren den Aktivitaets-, Ausbreitungs- und Successful-Decode-Bias, der rohe SNR-Karten schwer interpretierbar machte.
+* `RX Success` / **RX-Erfolgsrate:** Wie oft hat mein Empf&auml;nger, das Target, in target-aktiven WSPR-Zyklen ein WSPR-Signal empfangen und decodiert, das unabh&auml;ngig von einem anderen Empf&auml;nger irgendwo anders auf der Welt best&auml;tigt wurde?
+* `TX Success` / **TX-Erfolgsrate:** Wie oft hat ein Empf&auml;nger meinen Sender, das Target, in target-aktiven WSPR-Zyklen decodiert, wenn derselbe Empf&auml;nger im selben Zyklus auch unabh&auml;ngig andere WSPR-Aktivit&auml;t best&auml;tigt hat?
+* Das sind bedingte, opportunity-basierte Raten. Sie reduzieren den Aktivit&auml;ts-, Ausbreitungs- und Successful-Decode-Bias, der rohe Coverage- oder SNR-Karten schwer interpretierbar machte.
 
 **Funktionsweise**
 
@@ -121,34 +123,30 @@ WSPRadar verwendet exakte zweimin&uuml;tige UTC-WSPR-Zyklen und beh&auml;lt nur 
 
 F&uuml;r jeden target-aktiven Zyklus und Peer:
 
-* **Target (`T`)**: Die Zielstation bzw. das Ziel-Setup hat die Remote-Station im target-aktiven Zyklus bestaetigt.
-* **Elsewhere (`E`, RX Absolute)**: Dieselbe sendende Remote-Station wurde im selben Zyklus irgendwo anders im RX-Netzwerk gehoert, aber nicht vom Target-Empfaenger.
-* **Other Signals (`OS`, TX Absolute)**: Dieselbe RX-Station hat im selben Zyklus andere WSPR-Signale gehoert, aber nicht den Target-Sender.
-* **Target-only**: Das Target hat die Station ohne unabhaengige Gegen-Evidenz beobachtet. Diese Zeilen bleiben Audit-Evidenz, gehen aber nicht in `Target`, `Elsewhere`, `Other Signals` oder den Erfolgsraten-Nenner ein.
-* **Nur Target (`T`)**: Das Ziel war ohne externe Best&auml;tigung erfolgreich. Das ist n&uuml;tzliche Zusatzevidenz, geh&ouml;rt aber nie in den Nenner.
+* **Target (`T`)**: Die Zielstation bzw. das Ziel-Setup hat den relevanten Peer im target-aktiven Zyklus best&auml;tigt.
+* **Elsewhere (`E`, RX Success)**: Dieselbe sendende Remote-Station wurde im selben Zyklus irgendwo anders im RX-Netzwerk geh&ouml;rt, aber nicht vom Target-Empf&auml;nger.
+* **Other Signals (`OS`, TX Success)**: Dieselbe RX-Station hat im selben Zyklus andere WSPR-Signale geh&ouml;rt, aber nicht den Target-Sender.
+* **Target-only**: Das Target hat die Station ohne unabh&auml;ngige Gegen-Evidenz beobachtet. Diese Zeilen bleiben Audit-Evidenz, gehen aber nicht in `Target`, `Elsewhere`, `Other Signals` oder den Erfolgsraten-Nenner ein.
 * **Erfolgsrate:** RX nutzt `Target/(Target+Elsewhere)`. TX nutzt `Target/(Target+Other Signals)`.
 
 Die Richtung der Evidenz h&auml;ngt vom Modus ab:
 
-* Bei **RX** ist der Peer eine sendende Station. Ein externer Empf&auml;nger, der diesen Peer decodiert, erzeugt `O`; decodiert der Ziel-Empf&auml;nger denselben Peer im selben Zyklus, entsteht `H`.
-* Bei **TX** ist der Peer eine empfangende Station. Decodiert dieser Empf&auml;nger einen anderen Sender, entsteht `O`; decodiert er im selben Zyklus den Ziel-Sender, entsteht `H`.
+* Bei **RX Success** ist der Peer eine sendende Station. Der Kartentitel lautet `Target {Rufzeichen} vs. Same Signals Heard Elsewhere`: Hat der Target-Empf&auml;nger Signale geh&ouml;rt, deren Existenz das Netzwerk anderswo belegt?
+* Bei **TX Success** ist der Peer eine empfangende Station. Der Kartentitel lautet `Target {Rufzeichen} vs. Other Signals at Same RX Stations`: Hat ein aktiver Empf&auml;nger, der WSPR-Verkehr h&ouml;rte, den Target-Sender geh&ouml;rt oder nur andere Signale?
 
-Raten werden zuerst pro Stationsidentitaet berechnet. Eine Station traegt erst dann zu Karte, Segment-Zusammenfassung und Station Insights bei, wenn sie die konfigurierte Mindestzahl bestaetigter Gegen-Evidenz erreicht: `Target+Elsewhere` in RX Absolute oder `Target+Other Signals` in TX Absolute. Ein Kartensegment zeigt das arithmetische Mittel der beitragenden Stations-Erfolgsraten, sodass jede qualifizierte Station gleich gewichtet wird. Segment Insight zeigt zusaetzlich die Beobachtungsebene `sum(Target) / sum(Target+Gegen-Evidenz)`, die jede bestaetigte Beobachtung gleich gewichtet und daher von volumenstarken Stationen dominiert werden kann.
+Raten werden zuerst pro Stationsidentit&auml;t berechnet. Eine Station tr&auml;gt erst dann zu Karte, Segment-Zusammenfassung und Station Insights bei, wenn sie die konfigurierte Mindestzahl best&auml;tigter Gegen-Evidenz erreicht: `Target+Elsewhere` in RX Success oder `Target+Other Signals` in TX Success. Ein Kartensegment zeigt das arithmetische Mittel der beitragenden Stations-Erfolgsraten, sodass jede qualifizierte Station gleich gewichtet wird. Segment Insight zeigt zus&auml;tzlich die Beobachtungsebene `sum(Target) / sum(Target+Gegen-Evidenz)`, die jede best&auml;tigte Beobachtung gleich gewichtet und daher von volumenstarken Stationen dominiert werden kann.
 
 **Vorsicht bei**
 
 * Die Rate ist auf extern best&auml;tigte Peer-Aktivit&auml;t bedingt; sie ist nicht die Wahrscheinlichkeit, jede m&ouml;glicherweise erfolgte Aussendung zu decodieren.
 * Externe Evidenz best&auml;tigt Endpunkt-Aktivit&auml;t, nicht dass der Ausbreitungspfad zwischen Ziel und Peer offen war. Das Ergebnis enth&auml;lt bewusst Ausbreitung, Pfadgeometrie und Stationssystem-Performance.
-* WSPR liefert kein autoritatives Sendelog. Bei TX ist eine Ziel-Aussendung, die niemand decodiert, nicht beobachtbar und kann deshalb kein Other-Signals-Fall werden.
-* Nur-Target-Evidenz bleibt in den internen Auditdaten erhalten, wird aber in prim&auml;rer Karte, Zusammenfassung und Station Insights ausgeblendet, weil sie weder `Target` noch modus-spezifische Gegen-Evidenz ist. Ihre Aufnahme in den Nenner w&uuml;rde die Metrik vom eigenen Erfolg abh&auml;ngig machen.
-* Die Absolute Erfolgsratenanalyse benoetigt genau ein Band. `Band = All` wird bewusst abgelehnt, weil Zyklen und Beobachtbarkeit bandspezifisch sind.
+* WSPR liefert kein autoritatives Sendelog. Bei TX Success ist eine Ziel-Aussendung, die niemand decodiert, nicht beobachtbar und kann deshalb kein Other-Signals-Fall werden.
+* Target-only-Evidenz bleibt in den internen Auditdaten erhalten, wird aber in prim&auml;rer Karte, Zusammenfassung und Station Insights ausgeblendet, weil sie weder `Target` noch Gegen-Evidenz ist. Ihre Aufnahme in den Nenner w&uuml;rde die Metrik vom eigenen Erfolg abh&auml;ngig machen.
+* TX/RX-Success-Analysen ben&ouml;tigen genau ein Band. `Band = All` wird bewusst abgelehnt, weil Zyklen und Beobachtbarkeit bandspezifisch sind.
 * Die Zielidentit&auml;t wird &uuml;ber exaktes Rufzeichen und den 4-stelligen Locator des konfigurierten QTH abgeglichen. Falsche oder wechselnde Locator-Uploads k&ouml;nnen daher g&uuml;ltige Zyklen entfernen oder Stationsidentit&auml;ten vermischen.
 * Die Query verwendet g&uuml;ltige WSPR-Spots mit `code = 1`. Bei &auml;lteren historischen Daten kann die Vollst&auml;ndigkeit dieses Felds abweichen; langfristige historische Vergleiche deshalb vorsichtig interpretieren.
 * RX-Ergebnisse beschreiben weiterhin das gesamte Empfangssystem, TX-Ergebnisse den gesamten Sende-/Netzwerkpfad. Keine der Raten ist eine Labor-Antennengewinnmessung.
 
-**Query- und Cache-Verhalten**
-
-Die Absolute Query filtert in ClickHouse genau ein Band und ein halboffenes UTC-Zeitfenster, identifiziert target-aktive Zyklen und liefert kompakte Stations-Zyklus-Flags statt aller zugrunde liegenden Netzwerk-Spots. Rufzeichen-/Locator-Geometrie, Filter und finale Peer-/Segment-Aggregation werden lokal angewendet. Ergebnisse werden als Parquet &uuml;bertragen und nach exakter Query f&uuml;r die normale Cache-Laufzeit auf Disk gespeichert. Dadurch werden identische Anfragen nicht wiederholt, ohne die vollst&auml;ndigen Ergebnis-DataFrames aller Nutzer dauerhaft im gemeinsamen Streamlit-RAM zu halten.
 
 <a id="sec-4-2"></a>
 #### 4.2 Lokaler Nachbarschafts-Benchmark
@@ -197,9 +195,9 @@ Der Buddy-Test ist ein 1:1-Vergleich mit einer bekannten Station. Man definiert 
 
 **Funktionsweise**
 
-* Im TX-Vergleich werden beide Sendesignale m&ouml;glichst vom selben Remote-Empf&auml;nger im selben 2-Minuten-WSPR-Zyklus bewertet:  
+* Im TX-Vergleich werden beide Sendesignale m&ouml;glichst vom selben Remote-Empf&auml;nger im selben 2-Minuten-WSPR-Zyklus bewertet:
   $$\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}$$
-* Im RX-Vergleich bewerten beide lokalen Empf&auml;nger m&ouml;glichst denselben Remote-Sender im selben 2-Minuten-WSPR-Zyklus:  
+* Im RX-Vergleich bewerten beide lokalen Empf&auml;nger m&ouml;glichst denselben Remote-Sender im selben 2-Minuten-WSPR-Zyklus:
   $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
 * Diese Same-Cycle-Paarbildung reduziert gemeinsame Fading-, Pfad- und Empf&auml;nger-/Sender-Konfounder je nach TX- oder RX-Richtung deutlich.
 * Yield im Buddy-Test ist ebenfalls heartbeat-gefiltert. Er vergleicht nicht alle Spots beider Rufzeichen &uuml;ber das gesamte Zeitfenster. Er vergleicht Joint-, Target-only-, Reference-only- und Async-Evidenz innerhalb von Zyklen, in denen das Zielrufzeichen/das Zielsetup nachweislich aktiv war.
@@ -283,7 +281,7 @@ Sequenzieller TX ist zeitgebinnt, nicht simultan. Mehrt&auml;giges fixes Timing 
 
 **Heatmap-Segmente**
 
-Absolute Modi zeigen pro Segment die mittlere Stations-Erfolgsrate: RX nutzt `Target/(Target+Elsewhere)`, TX nutzt `Target/(Target+Other Signals)`. Karte und zeitliche Ratenpanels verwenden dieselbe feste nichtlineare Skala mit semantischen Low-End-Bins: schwarze Kartenfelder bedeuten keine Target/Gegen-Evidenz, Lila bedeutet exakt `0%`, die erste Nicht-Null-Farbe bedeutet `>0%`, danach laeuft die Skala mit `1, 2, 5, 10, 20, 40, 60, 80, 100%` weiter. Dadurch bleiben niedrige Raten differenzierbar und Farben verschiedener Absolute Analysen direkt vergleichbar. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
+TX/RX-Success-Modi zeigen pro Segment die mittlere Stations-Erfolgsrate: RX nutzt `Target/(Target+Elsewhere)`, TX nutzt `Target/(Target+Other Signals)`. Karte und zeitliche Ratenpanels verwenden dieselbe feste nichtlineare Skala mit semantischen Low-End-Bins: schwarze Kartenfelder bedeuten keine Target/Gegen-Evidenz, Lila bedeutet exakt `0%`, die erste Nicht-Null-Farbe bedeutet `>0%`, danach l&auml;uft die Skala mit `1, 2, 5, 10, 20, 40, 60, 80, 100%` weiter. Dadurch bleiben niedrige Raten differenzierbar und Farben verschiedener Success-Analysen direkt vergleichbar. Vergleichsmodi zeigen medianen Delta SNR gegen den gew&auml;hlten Benchmark. Positive Delta-SNR-Werte bedeuten, dass die eigene Station/das eigene Setup im Segment st&auml;rker als die Benchmark ist; negative Werte zeigen schw&auml;chere Performance. WSPRadar nutzt die g&auml;ngige Amateurfunk-Konvention `1 S-Stufe = 6 dB`.
 
 **Distanzringe**
 
@@ -291,56 +289,76 @@ Nahe Ringe k&ouml;nnen mit Short-Skip oder NVIS konsistent sein; weite Ringe k&o
 
 **Punkte**
 
-In absoluten Modi werden nur Stationen dargestellt, die den Mindestwert bestaetigter Target/Gegen-Evidenz erreichen. `T (Target)`-Stationen besitzen mindestens eine Target-Beobachtung und werden mit steigender Target-Zahl heller gruen dargestellt. RX-Zero-Target-Stationen werden als `E (Elsewhere)` gelabelt; TX-Zero-Target-Stationen als `OS (Other Signals)`. Beide werden hellgrau dargestellt. Stationen unterhalb der Evidenzschwelle und Target-only-Beobachtungen erscheinen nicht auf der Karte. In Vergleichsmodi gilt: Gruen = Joint Decodes im selben Zyklus, gelb-orange = beide Seiten haben die Station gehoert, aber asynchron, violett = nur eigene Station/eigenes Setup, weiss = nur Referenz.
+In TX/RX-Success-Modi werden nur Stationen dargestellt, die den Mindestwert best&auml;tigter Target/Gegen-Evidenz erreichen. `T (Target)`-Stationen besitzen mindestens eine Target-Beobachtung und werden mit steigender Target-Zahl heller gr&uuml;n dargestellt. RX-Zero-Target-Stationen werden als `E (Elsewhere)` gelabelt; TX-Zero-Target-Stationen als `OS (Other Signals)`. Beide werden hellgrau dargestellt. Stationen unterhalb der Evidenzschwelle und Target-only-Beobachtungen erscheinen nicht auf der Karte. In Vergleichsmodi gilt: Gr&uuml;n = Joint Decodes im selben Zyklus, gelb-orange = beide Seiten haben die Station geh&ouml;rt, aber asynchron, violett = nur eigene Station/eigenes Setup, wei&szlig; = nur Referenz.
 
 Die Punktkategorien der Vergleichsmodi verwenden die heartbeat-gefilterten Evidenzklassen aus [Decode Yield in Vergleichsmodi](#sec-4-5).
 
 **Footer und 1D-Venn-Balken**
 
-In absoluten Modi nennt der Footer die modus-spezifische Mindestzahl bestaetigter Beobachtungen pro Station, die Zahl qualifizierter Stationen und ob die Segmentfarben die mittlere Stationsrate `Target/(Target+Elsewhere)` fuer RX oder `Target/(Target+Other Signals)` fuer TX darstellen. In Vergleichsmodi zeigen `SPOTS` und `STATIONS` Decode-Volumenverteilung und Footprint-Breite; diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
+In TX/RX-Success-Modi nennt der Footer die modus-spezifische Mindestzahl best&auml;tigter Beobachtungen pro Station, die Zahl qualifizierter Stationen und ob die Segmentfarben die mittlere Stationsrate `Target/(Target+Elsewhere)` f&uuml;r RX oder `Target/(Target+Other Signals)` f&uuml;r TX darstellen. In Vergleichsmodi zeigen `SPOTS` und `STATIONS` Decode-Volumenverteilung und Footprint-Breite; diese Balken sind wichtig, weil Delta SNR allein Decode/No-Decode-Verhalten verbergen kann.
 
 Die Footer-Balken visualisieren die Decode-Yield-Kategorien aus [Decode Yield in Vergleichsmodi](#sec-4-5). In Vergleichsmodi sind sie heartbeat-gefiltert und keine Rohz&auml;hler der gesamten Aktivit&auml;t im Zeitfenster.
 
 <a id="sec-5-2"></a>
-#### 5.2 Segment Insight
+#### 5.2 Segment Insight - TX/RX-Erfolg
 
 **Segment-Inspektor**
 
-Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Distanzring und Himmelsrichtung ausw&auml;hlen, um die Evidenz hinter einem Segment zu pr&uuml;fen.
+Der Segment-Inspektor ist die Auditschicht unterhalb der Karten. Ein oder mehrere Distanzbereiche und Himmelsrichtungen lassen sich ausw&auml;hlen, um die Evidenz hinter diesem Kartenausschnitt zu pr&uuml;fen.
 
-Der **Segment Insight** Block fasst den aktuell gew&auml;hlten Distanzbereich und die Richtung zusammen. Absolute und vergleichende Analysen verwenden unterschiedliche Evidenzansichten, weil sie unterschiedliche Zielgr&ouml;&szlig;en sch&auml;tzen. Vergleichsmodi behalten System Sensitivity / Decode Yield, stationsbalancierte Mediane und rohe Spot-/Bin-Evidenz bei.
+In TX/RX-Success-Modi fasst der **Segment Insight** Block das ausgew&auml;hlte Segment als Target und modus-spezifische Gegen-Evidenz zusammen. RX nutzt `Elsewhere`; TX nutzt `Other Signals`. Danach folgen zwei klar benannte Erfolgsraten: **Stationsmittel**, der Mittelwert der einzelnen Stationsraten, und **Beobachtungsebene**, `sum(Target) / sum(Target+Gegen-Evidenz)`.
 
-* In absoluten Modi schreibt die textuelle Zusammenfassung Target und modus-spezifische Gegen-Evidenz fuer Stationen aus, die den konfigurierten Schwellenwert erreichen: Elsewhere fuer RX, Other Signals fuer TX. Danach folgen zwei klar benannte Erfolgsraten: **Stationsmittel**, der Mittelwert der einzelnen Stationsraten, und **Beobachtungsebene**, `sum(Target) / sum(Target+Gegen-Evidenz)`.
-* Das obere Absolute Panel zeigt Stationen mit mindestens einer Target-Beobachtung gegen ihre bestaetigte Target/Gegen-Evidenz auf einer log2-x-Achse. Die Tick-Beschriftung zeigt die echten Evidenzzahlen statt Zweierpotenzen. Zero-Target-Stationen werden hier ausgeblendet, weil sie immer bei 0 Prozent liegen und gegenueber den Gegen-Evidenz-Zahlen und Zeitpanels wenig Zusatzinformation liefern.
+**Erfolgsraten-Panels**
+
+* Das obere Panel zeigt Stationen mit mindestens einer Target-Beobachtung gegen ihre best&auml;tigte Target/Gegen-Evidenz auf einer log2-x-Achse. Die Tick-Beschriftung zeigt die echten Evidenzzahlen statt Zweierpotenzen. Zero-Target-Stationen werden hier ausgeblendet, weil sie immer bei 0 Prozent liegen und gegen&uuml;ber den Gegen-Evidenz-Zahlen und Zeitpanels wenig Zusatzinformation liefern.
 * Das untere linke Zeitpanel zeigt die **Mittlere Stations-Erfolgsrate** jeder Distanz-/Zeitzelle. Zuerst wird `Target/(Target+Gegen-Evidenz)` pro beitragender Station berechnet, danach werden diese Stationsraten gemittelt.
 * Das untere rechte Zeitpanel zeigt die **Erfolgsrate auf Beobachtungsebene** derselben Zelle: `sum(Target) / sum(Target+Gegen-Evidenz)`. Eine Differenz zwischen beiden Panels zeigt, dass volumenstarke Stationen das beobachtungsgewichtete Ergebnis vom gleichgewichteten Stationsmittel wegziehen.
 * Beide Zeitpanels verwenden dieselbe feste nichtlineare Erfolgsratenskala wie die Karte, eine gemeinsame Farbskala und identische Distanz-/Zeitachsen. Die Distanz wird an den Ring&uuml;berg&auml;ngen `2500`, `5000`, `10000`, `15000` und `20000 km` beschriftet, statt lange Bereichslabels zu verwenden. Zeitbins sind l&uuml;ckenlos, am exakt gew&auml;hlten Analysebeginn verankert und reichen bis zum Analyseende; leere Bins bleiben leer sichtbar, statt zu verschwinden. Die Tick-Labels verwenden ein f&uuml;r die angezeigte Dauer gew&auml;hltes regelm&auml;&szlig;iges, uhrzeitstabiles Intervall, zum Beispiel alle 6 oder 12 Stunden, statt die Labels nach den zuf&auml;llig mit Daten gef&uuml;llten Bins zu verteilen.
-* Absolute Station Insights listen schwellenqualifizierte Stationsidentitaeten mit Distanz, Azimut, `Target`, modus-spezifischer Gegen-Evidenz, Erfolgsrate und medianem Target-SNR. RX nutzt `Elsewhere`; TX nutzt `Other Signals`. Zero-Target-Stationen sind standardmaessig ausgeblendet und koennen mit `Zero-Target-Stationen zeigen` eingeblendet werden. Sortiert wird absteigend nach `Target`, danach Gegen-Evidenz und Erfolgsrate.
-* In Vergleichsmodi nutzen die oberen Verteilungspanels Prozent-Histogramme f&uuml;r Delta SNR. Dadurch bleibt quantisierte WSPR-SNR-Evidenz sichtbar, ohne sie zu einer kontinuierlichen Dichteform zu gl&auml;tten.
-* SNR-Histogramm-Bins sind pro Panel global fest und decken den vollen sichtbaren Bereich mit h&ouml;chstens 40 Balken ab. WSPRadar nutzt standardm&auml;&szlig;ig 1,0-dB-Bins, wechselt nur bei klarer HalbdB-Struktur der Werte auf 0,5-dB-Bins und aggregiert breite Bereiche bei Bedarf auf 1, 2, 3, 6 oder 10 dB.
-* Die Station-Insights-Tabelle listet beteiligte Remote-Stationen, trennt Joint Decodes von exklusiven Decodes und zeigt den stationsbezogenen medianen Delta SNR.
-* Ein Klick auf eine Station-Insights-Zeile &ouml;ffnet die Drill-Down-Tabelle.
-* Wenn keine Station-Insights-Zeile ausgew&auml;hlt ist, &ouml;ffnet WSPRadar standardm&auml;&szlig;ig die evidenzst&auml;rkste Zeile: in Vergleichsmodi die Zeile mit den meisten Joint Spots oder Joint Bins, in absoluten Modi die erste nach `Target`, Gegen-Evidenz und Erfolgsrate sortierte Zeile.
-* Die Auswahl einer oder mehrerer Station-Insights-Zeilen f&uuml;gt oberhalb der Drill-Down-Tabelle einen zweiteiligen Evidenzblock ein. Links zeigt ein horizontales Prozent-Histogramm die Verteilung der ausgew&auml;hlten Evidenz und h&auml;lt die SNR- oder Delta-SNR-Achse mit der Zeit-Heatmap rechts ausgerichtet.
-* Die Zeitbin-Auswahl oberhalb des rechten Panels wirkt nur auf die Zeit-Heatmap. Die verf&uuml;gbaren UTC-Binbreiten passen sich an die Dauer der ausgew&auml;hlten Evidenz an: kurze Fenster verwenden Minuten-Bins, lange Fenster verwenden Stunden-Bins. Bei absoluten Target/Gegen-Evidenz-Zeitreihen richten sich die Optionen nach dem vollstaendigen Analyseintervall, damit duenn besetzte Stationen nicht versehentlich Tausende winziger leerer Bins erzeugen. Die Standardauswahl f&uuml;r lange Fenster ist `1h`, `3h`, `6h`, `12h` und `24h`, und WSPRadar startet mit der zweitfeinsten verf&uuml;gbaren Binbreite. Die Heatmap aggregiert alle ausgew&auml;hlten Zeilen in ganzzahlige SNR- oder Delta-SNR-Dichtezellen, legt Medianmarker dar&uuml;ber und verbindet benachbarte Mediane nur, wenn beide benachbarten Bins mindestens drei Punkte enthalten. Das Verteilungspanel bleibt roh, damit die vollst&auml;ndige ausgew&auml;hlte Evidenzpopulation sichtbar bleibt.
-* WSPRadar zeigt ein `90% Stability`-Intervall f&uuml;r stationsbezogene Mediane und ausgew&auml;hlte Evidenz. Das ist ein Bootstrap-/Resampling-Stabilit&auml;tsintervall um den Median, kein formaler Signifikanznachweis. In den oberen Segmentplots wird die rote gestrichelte Medianlinie durch den echten 90%-Stabilit&auml;tsbereich hinterlegt; Intervalle mit nahezu Nullbreite werden als Linie dargestellt und nicht k&uuml;nstlich zu einem Band verbreitert. SNR- und Delta-SNR-Panels nutzen mindestens 3 dB sichtbare y-Achsen-Spanne, damit winzige numerische Variation nicht visuell vergr&ouml;&szlig;ert wird.
-* `Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Beide (Async)` zeigen.
 
 <a id="sec-5-3"></a>
-#### 5.3 Station Insights, Drill-Down und Export
+#### 5.3 Segment Insight - Vergleichsmodi
+
+Vergleichsmodi sch&auml;tzen Delta SNR gegen ein Referenzkonzept, nicht eine Target/Gegen-Evidenz-Erfolgsrate. Ihr Segment Insight beh&auml;lt deshalb die bivariate Vergleichsansicht bei: Decode Yield / System Sensitivity, stationsbalancierte Delta-SNR-Mediane und rohe Spot-/Bin-Delta-SNR-Evidenz.
+
+* Das linke Panel, **System Sensitivity**, fasst heartbeat-gefilterten Decode Yield zusammen: Joint-Evidenz, Target-only-Evidenz, Reference-only-Evidenz und Async-Evidenz innerhalb target-aktiver Vergleichszyklen.
+* Das mittlere Panel, **Station Medians (Delta SNR)**, zeigt die stationsbalancierte Verteilung. Jede beitragende Station hat &uuml;ber ihren Stationsmedian gleiches Gewicht.
+* Das rechte Panel zeigt die rohe gepaarte Evidenzverteilung: `Joint-Spot Delta SNR` in Same-Cycle-Vergleichsmodi oder `Paired Spot Bin Delta SNR` im sequenziellen TX-A/B.
+* Positives Delta SNR spricht f&uuml;r das Target. Negatives Delta SNR spricht f&uuml;r die Referenz. Die rote gestrichelte Medianlinie und das 90%-Stabilit&auml;tsintervall fassen das ausgew&auml;hlte Segment zusammen.
+* Vergleichsmodus-Verteilungspanels nutzen Prozent-Histogramme f&uuml;r Delta SNR. Dadurch bleibt quantisierte WSPR-SNR-Evidenz sichtbar, ohne sie zu einer kontinuierlichen Dichteform zu gl&auml;tten.
+* SNR-Histogramm-Bins sind pro Panel global fest und decken den vollen sichtbaren Bereich mit h&ouml;chstens 40 Balken ab. WSPRadar nutzt standardm&auml;&szlig;ig 1,0-dB-Bins, wechselt nur bei klarer HalbdB-Struktur der Werte auf 0,5-dB-Bins und aggregiert breite Bereiche bei Bedarf auf 1, 2, 3, 6 oder 10 dB.
+* WSPRadar zeigt ein `90% Stability`-Intervall f&uuml;r stationsbezogene Mediane und ausgew&auml;hlte Evidenz. Das ist ein Bootstrap-/Resampling-Stabilit&auml;tsintervall um den Median, kein formaler Signifikanznachweis. In den oberen Segmentplots wird die rote gestrichelte Medianlinie durch den echten 90%-Stabilit&auml;tsbereich hinterlegt; Intervalle mit nahezu Nullbreite werden als Linie dargestellt und nicht k&uuml;nstlich zu einem Band verbreitert. SNR- und Delta-SNR-Panels nutzen mindestens 3 dB sichtbare y-Achsen-Spanne, damit winzige numerische Variation nicht visuell vergr&ouml;&szlig;ert wird.
+
+<a id="sec-5-4"></a>
+#### 5.4 Station Insights und ausgew&auml;hlte Stations-Evidenz
+
+**Station-Insights-Tabelle**
+
+Die Station-Insights-Tabelle listet die Stationen, die zum ausgew&auml;hlten Segment beitragen, und erlaubt die Auswahl der Evidenz f&uuml;r die tiefere Pr&uuml;fung.
+
+* In TX/RX-Success-Modi listen Station Insights schwellenqualifizierte Stationsidentit&auml;ten mit Distanz, Azimut, `Target`, modus-spezifischer Gegen-Evidenz, Erfolgsrate und medianem Target-SNR. RX nutzt `Elsewhere`; TX nutzt `Other Signals`. Zero-Target-Stationen sind standardm&auml;&szlig;ig ausgeblendet und k&ouml;nnen mit `Zero-Target-Stationen zeigen` eingeblendet werden. Sortiert wird absteigend nach `Target`, danach Gegen-Evidenz und Erfolgsrate.
+* In Vergleichsmodi listet Station Insights beteiligte Remote-Stationen, trennt Joint Decodes von exklusiven Decodes und zeigt den stationsbezogenen medianen Delta SNR. `Show Non-Joint` zeigt isolierte Decodes. Fehlendes SNR wird als `None`, nicht als `0.0`, angezeigt. Wenn beide Setups eine Station h&ouml;ren, aber nie im selben WSPR-Zyklus, kann der Yield-Chart `Beide (Async)` zeigen.
+* Wenn keine Station-Insights-Zeile ausgew&auml;hlt ist, &ouml;ffnet WSPRadar standardm&auml;&szlig;ig die evidenzst&auml;rkste Zeile: in Vergleichsmodi die Zeile mit den meisten Joint Spots oder Joint Bins, in TX/RX-Success-Modi die erste nach `Target`, Gegen-Evidenz und Erfolgsrate sortierte Zeile.
+
+**Ausgew&auml;hlte Stations-Evidenz**
+
+Die Auswahl einer oder mehrerer Station-Insights-Zeilen f&uuml;gt oberhalb der Drill-Down-Tabelle einen zweiteiligen Evidenzblock ein.
+
+* In TX/RX-Success-Modi verwendet die Evidenzgrafik der ausgew&auml;hlten Stationen zwei vergr&ouml;&szlig;erte Panels: gestapelte Target-/Gegen-Evidenz-Zahlen mit der Erfolgsrate &uuml;ber der Zeit sowie Target-SNR. Target und Gegen-Evidenz werden nach der beobachtungsbezogenen Great-Circle-Pfadbeleuchtung aufgeteilt: night, greyline/mixed und daylight. Das Target-SNR-Histogramm verwendet dieselben Beleuchtungsklassen f&uuml;r erfolgreiche Target-Beobachtungen. Die Erfolgsraten-Achse reicht bis 10 Prozent oberhalb des gr&ouml;&szlig;ten sichtbaren Werts, begrenzt auf 100 Prozent, statt immer den gesamten Bereich von 0 bis 100 Prozent zu reservieren. Die Zeitreihe verwendet l&uuml;ckenlose, am exakten Analysebeginn verankerte Bins.
+* In Vergleichsmodi zeigt der ausgew&auml;hlte Evidenzblock ein horizontales Prozent-Histogramm der ausgew&auml;hlten Evidenz und eine Zeit-Heatmap. Das Histogramm h&auml;lt die SNR- oder Delta-SNR-Achse mit der Heatmap ausgerichtet. Die Heatmap aggregiert alle ausgew&auml;hlten Zeilen in ganzzahlige SNR- oder Delta-SNR-Dichtezellen, legt Medianmarker dar&uuml;ber und verbindet benachbarte Mediane nur, wenn beide benachbarten Bins mindestens drei Punkte enthalten. Das Verteilungspanel bleibt roh, damit die vollst&auml;ndige ausgew&auml;hlte Evidenzpopulation sichtbar bleibt.
+* Die Zeitbin-Auswahl wirkt nur auf das ausgew&auml;hlte Zeitpanel. Die verf&uuml;gbaren UTC-Binbreiten passen sich an die Dauer der ausgew&auml;hlten Evidenz an: kurze Fenster verwenden Minuten-Bins, lange Fenster verwenden Stunden-Bins. Bei TX/RX-Success-Target/Gegen-Evidenz-Zeitreihen richten sich die Optionen nach dem vollst&auml;ndigen Analyseintervall, damit d&uuml;nn besetzte Stationen nicht versehentlich Tausende winziger leerer Bins erzeugen. Die Standardauswahl f&uuml;r lange Fenster ist `1h`, `3h`, `6h`, `12h` und `24h`, und WSPRadar startet mit der zweitfeinsten verf&uuml;gbaren Binbreite.
 
 **Drill-Down-Tabelle**
 
 Die Drill-Down-Tabelle ist die zeilenbasierte Auditschicht f&uuml;r alle Modi. Sie zeigt Beobachtungen, Paare oder Zeit-Bins hinter einer Station-Insights-Zeile, damit Segment- und Stationsmediane gegen die zugrunde liegende Evidenz gepr&uuml;ft werden k&ouml;nnen.
 
-In absoluten Modi verwendet die Evidenzgrafik der ausgewaehlten Stationen zwei vergroesserte Panels: gestapelte Target-/Gegen-Evidenz-Zahlen mit der Erfolgsrate ueber der Zeit sowie Target-SNR. Die Erfolgsraten-Achse reicht bis 10 Prozent oberhalb des groessten sichtbaren Werts, begrenzt auf 100 Prozent, statt immer den gesamten Bereich von 0 bis 100 Prozent zu reservieren. Die Zeitreihe verwendet lueckenlose, am exakten Analysebeginn verankerte Bins. Jede Drill-Down-Zeile bleibt intern eine target-aktive Stations-Zyklus-Beobachtung, klassifiziert als Target, Gegen-Evidenz oder Target-only, mit den zugehoerigen Audit-Flags und Target-SNR, sofern vorhanden. In normalen Same-Cycle-Vergleichsmodi zeigt der Drill-Down die gepaarten Spot-Level-Vergleiche, die in den Stationsmedian eingehen.
+In TX/RX-Success-Modi bleibt jede Drill-Down-Zeile intern eine target-aktive Stations-Zyklus-Beobachtung, klassifiziert als Target, Gegen-Evidenz oder Target-only, mit den zugeh&ouml;rigen Audit-Flags und Target-SNR, sofern vorhanden. In normalen Same-Cycle-Vergleichsmodi zeigt der Drill-Down die gepaarten Spot-Level-Vergleiche, die in den Stationsmedian eingehen.
 
 F&uuml;r die Median-Nachbarschaftsmethode wird der Referenzpool expandiert. Statt nur eine generische `Ref Pool`-Zeile zu zeigen, listet die Tabelle die einzelnen lokalen Referenzstationen dieses Zyklus, ihren Locator, ihre Distanz, ihr normiertes Referenz-SNR, den aggregierten Nachbarschaftsmedian des Zyklus, das eigene SNR und den resultierenden Delta SNR. So l&auml;sst sich der Median direkt nachvollziehen.
 
 F&uuml;r TX A/B zeigt der Drill-Down Zeitfenster statt Same-Cycle-Paare. Sichtbar sind `Micro-Med A`, `Micro-Med B` und der resultierende Bin-Delta. Gegenseitige Mikromediane werden in Single-Setup-Zeilen ausgeblendet, damit fehlende Paare nicht als Nullwerte missverstanden werden.
 
-<a id="sec-5-4"></a>
-#### 5.4 Filter, Export und Download
+<a id="sec-5-5"></a>
+#### 5.5 Export- und Download-Reproduzierbarkeitspaket
 
 Multi-Select, dynamische Filter und CSV-Export machen den Segment-Inspektor zur reproduzierbaren Rohdaten-Auditfl&auml;che. `Prepare All Results for Download` erzeugt das Exportpaket erst auf Anfrage, damit hochaufl&ouml;sende Abbildungen nicht w&auml;hrend der normalen Interaktion gerendert werden. Das ZIP enth&auml;lt die aktive Konfiguration, Run-Metadaten, helle/papierfreundliche hochaufl&ouml;sende PNG-Abbildungen, Station-Insights-CSV-Tabellen, Drill-Down-CSV-Tabellen f&uuml;r die ausgew&auml;hlten Stationen, vollst&auml;ndige Drill-Down-CSV-Tabellen f&uuml;r das aktuelle Segment und den kompakten parquet-Analysecache f&uuml;r Regression-Fixtures.
 
@@ -372,9 +390,9 @@ Um Spots mit unterschiedlichen gemeldeten Sendeleistungen vergleichen zu k&ouml;
 
 $$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
 
-Das ist f&uuml;r absolute TX/RX-Karten und lokale TX-Vergleiche zentral. Es entfernt den gemeldeten Leistungsanteil aus dem Vergleich, aber nur so gut, wie die gemeldete Leistung stimmt. Antennengewinn, Speiseleitungsverlust, Kalibrierfehler oder EIRP-Unterschiede werden dadurch nicht automatisch korrigiert.
+Das ist f&uuml;r TX/RX-Success-Karten und lokale TX-Vergleiche zentral. Es entfernt den gemeldeten Leistungsanteil aus dem Vergleich, aber nur so gut, wie die gemeldete Leistung stimmt. Antennengewinn, Speiseleitungsverlust, Kalibrierfehler oder EIRP-Unterschiede werden dadurch nicht automatisch korrigiert.
 
-Leistungsnormalisierung ist trotzdem eine wesentliche Mitigation. RX-Vergleiche reduzieren die Abh&auml;ngigkeit von Leistungsfehlern oft, weil beide lokalen Empf&auml;nger denselben Remote-Sender bewerten. Same-Callsign TX A/B vermeidet den Vergleich unterschiedlicher selbstgemeldeter Leistungen. Lokale TX-Vergleiche und absolute TX-Karten bleiben am empfindlichsten gegen&uuml;ber falsch gemeldeten dBm.
+Leistungsnormalisierung ist trotzdem eine wesentliche Mitigation. RX-Vergleiche reduzieren die Abh&auml;ngigkeit von Leistungsfehlern oft, weil beide lokalen Empf&auml;nger denselben Remote-Sender bewerten. Same-Callsign TX A/B vermeidet den Vergleich unterschiedlicher selbstgemeldeter Leistungen. Lokale TX-Vergleiche und TX-Success-Karten bleiben am empfindlichsten gegen&uuml;ber falsch gemeldeten dBm.
 
 <a id="sec-6-4"></a>
 #### 6.4 Zeitliche Paarbildung und Heartbeat-Filter
@@ -477,9 +495,9 @@ Das `90% Stability`-Intervall ist ein deskriptives Bootstrap-Stabilit&auml;tsint
 
 * **Crowd-sourced Daten:** WSPR-Spots k&ouml;nnen Duplikate, falsche Spots, falsche Leistung, falschen Locator oder empfangsseitige Fehler enthalten. WSPRadar reduziert die Empfindlichkeit gegen&uuml;ber vielen dieser Probleme, kann upstream Daten aber nicht kalibriert oder fehlerfrei machen.
 * **Nur erfolgreiche Decodes:** WSPR protokolliert Decodes, nicht alle fehlgeschlagenen Empfangsversuche. Geschlossene B&auml;nder reduzieren die Existenz von Spots, statt einen Durchschnitt zu senken.
-* **Bedingte Absolute Raten:** Absolute Erfolgsraten sind auf unabhaengig bestaetigte Aktivitaet bedingt. RX nutzt `Target/(Target+Elsewhere)`, TX nutzt `Target/(Target+Other Signals)`. Gegen-Evidenz beweist nicht, dass der Pfad zwischen Target und Station offen war; die Raten enthalten daher Ausbreitung und schaetzen weder eine unbedingte Empfaengerempfindlichkeit noch den Anteil aller geplanten Aussendungen, die decodiert wurden.
+* **Bedingte Erfolgsraten:** TX/RX-Success-Raten sind auf unabh&auml;ngig best&auml;tigte Aktivit&auml;t bedingt. RX nutzt `Target/(Target+Elsewhere)`, TX nutzt `Target/(Target+Other Signals)`. Gegen-Evidenz beweist nicht, dass der Pfad zwischen Target und Station offen war; die Raten enthalten daher Ausbreitung und schaetzen weder eine unbedingte Empfaengerempfindlichkeit noch den Anteil aller geplanten Aussendungen, die decodiert wurden.
 * **Nicht beobachtbare TX-Stille:** Ohne autoritatives Sendelog ist ein Ziel-TX-Zyklus, den niemand decodiert, nicht von keiner Aussendung unterscheidbar und kann daher nicht in `Other Signals` eingehen.
-* **Historische Spot-Gueltigkeit:** Absolute Erfolgsraten-Queries nutzen `code = 1`, um die Analyse auf gueltige WSPR-Spots zu begrenzen. Code-Abdeckung und Upstream-Verarbeitung koennen in aelteren Archivzeitraeumen abweichen.
+* **Historische Spot-Gueltigkeit:** TX/RX-Success-Queries nutzen `code = 1`, um die Analyse auf gueltige WSPR-Spots zu begrenzen. Code-Abdeckung und Upstream-Verarbeitung koennen in aelteren Archivzeitraeumen abweichen.
 * **Gemeldete Leistung:** Normalisierung mindert Unterschiede in gemeldeter Leistung, und mehrere Vergleichsmodi reduzieren dieses Problem zus&auml;tzlich durch Paarbildung gegen denselben Sender oder dasselbe Rufzeichen. Jede Analyse, die auf gemeldeten dBm basiert, setzt aber weiterhin voraus, dass der gemeldete Wert ungef&auml;hr stimmt.
 * **Target-zentrierter Yield:** Yield in Vergleichsmodi wird durch target-aktive Zyklen begrenzt. Das ist ein bewusster Schutz gegen Offline-Bias, bedeutet aber, dass Yield beim Tausch von Ziel und Referenz nicht symmetrisch sein muss. A gegen B und B gegen A k&ouml;nnen trotz gleicher Kernparameter unterschiedliche `Nur Referenz`- und `Nur Zielstation`-Zahlen haben.
 * **Sequenzieller TX:** Fixed-schedule TX A/B reduziert Zeitkonfundierung, eliminiert sie aber nicht perfekt.
@@ -504,7 +522,7 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 * **Zielrufzeichen:** prim&auml;re Station unter Auswertung.
 * **QTH Locator:** mathematisches Zentrum der Kartenprojektion. G&uuml;ltigen 4- oder 6-Zeichen-Maidenhead-Locator verwenden.
 * **Band und Zeitfenster:** definieren das WSPR-Datenfenster. Zeit wird in UTC behandelt.
-* **Min. Target+Gegen-Evidenz pro Station:** Evidenzschwelle nur fuer Absolute Analysen. Eine Station benoetigt mindestens diese Zahl bestaetigter Beobachtungen, bevor ihre Erfolgsrate zu Karte, Segment-Zusammenfassung, Zeitpanels oder Station Insights beitraegt. RX zaehlt `Target+Elsewhere`; TX zaehlt `Target+Other Signals`. Standard ist `5`; niedrigere Werte erhoehen die Abdeckung, erzeugen aber auch mehr diskrete Kleinstichproben-Raten wie `0%`, `50%` oder `100%`.
+* **Min. Target+Gegen-Evidenz pro Station:** Evidenzschwelle nur f&uuml;r Success-Modi. Eine Station benoetigt mindestens diese Zahl bestaetigter Beobachtungen, bevor ihre Erfolgsrate zu Karte, Segment-Zusammenfassung, Zeitpanels oder Station Insights beitraegt. RX zaehlt `Target+Elsewhere`; TX zaehlt `Target+Other Signals`. Standard ist `5`; niedrigere Werte erhoehen die Abdeckung, erzeugen aber auch mehr diskrete Kleinstichproben-Raten wie `0%`, `50%` oder `100%`.
 
 **Vergleichsparameter**
 
@@ -529,8 +547,8 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 * **Local QTH Solar State:** filtert nach berechneter Sonnenhöhe am eigenen QTH: Tageslicht, Nacht oder Greyline.
 * **Map Scope:** visueller Kartenradius.
 * **Min. Joint Spots/Station:** Schwelle nur f&uuml;r Vergleichsmodi. Sie erfordert mindestens X Joint Spots pro Remote-Station, bevor diese Station zu einem Delta SNR beitr&auml;gt. In sequenziellem TX A/B wird dies als Min. Joint Bins angezeigt.
-* **Min. Target+Gegen-Evidenz pro Station:** Absolute-only Schwelle aus den Core-Parametern. Sie ersetzt die fruehere Interpretation als rohe Spots pro Station.
-* **Min. qualifizierte Stationen/Segment:** erfordert mindestens X qualifizierende Stationen, bevor ein Segment gezeichnet wird. In Vergleichsmodi zaehlt sie Stationen mit qualifizierender Joint-Evidenz; in absoluten Modi zaehlt sie Stationen, die den modus-spezifischen bestaetigten Target/Gegen-Evidenz-Schwellenwert erreichen.
+* **Min. Target+Gegen-Evidenz pro Station:** Success-Modus-Schwelle aus den Core-Parametern. Sie ersetzt die fruehere Interpretation als rohe Spots pro Station.
+* **Min. qualifizierte Stationen/Segment:** erfordert mindestens X qualifizierende Stationen, bevor ein Segment gezeichnet wird. In Vergleichsmodi zaehlt sie Stationen mit qualifizierender Joint-Evidenz; in TX/RX-Success-Modi z&auml;hlt sie Stationen, die den modus-spezifischen best&auml;tigten Target/Gegen-Evidenz-Schwellenwert erreichen.
 
 **Hinweis zum Sonderrufzeichen-Filter**
 
@@ -542,7 +560,7 @@ Empfohlene Interpretation:
 
 * Bei **TX-Analysen** kann das Ausschließen von Sonderrufzeichen helfen, die Empfänger-/Referenzpopulation näher an normalen Amateurfunkstationen zu halten.
 * Bei **RX-Vergleichen** kann das Beibehalten von Sonderrufzeichen nützlich sein, weil sie schwache, stabile Same-Cycle-Testsignale liefern können.
-* Bei **absoluter RX-Coverage** hängt die Wahl von der Fragestellung ab: einschließen, wenn Beacon-Sensitivität interessant ist; ausschließen, wenn nur normale Amateurfunkaktivität betrachtet werden soll.
+* Bei **RX-Success-Coverage** hängt die Wahl von der Fragestellung ab: einschließen, wenn Beacon-Sensitivität interessant ist; ausschließen, wenn nur normale Amateurfunkaktivität betrachtet werden soll.
 * Für **Veröffentlichungen oder ernsthafte Vergleiche** sollte dokumentiert werden, ob der Sonderrufzeichen-Filter aktiviert war.
 
 <a id="sec-9"></a>

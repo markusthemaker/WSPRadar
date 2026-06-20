@@ -22,10 +22,27 @@ from core.opportunity_engine import (
     SUCCESS_RATE_TICK_LABELS,
 )
 from ui.results_export import register_inspector_export, render_download_all_results
+from core.solar_path import (
+    ILLUMINATION_CLASSES,
+    ILLUMINATION_DAYLIGHT,
+    ILLUMINATION_DISPLAY_LABELS,
+    ILLUMINATION_GREYLINE_MIXED,
+    ILLUMINATION_NIGHT,
+)
 from i18n import T, absolute_terms
 
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
+ILLUMINATION_TARGET_COLORS = {
+    ILLUMINATION_NIGHT: "#0b5d1e",
+    ILLUMINATION_GREYLINE_MIXED: "#39ff14",
+    ILLUMINATION_DAYLIGHT: "#a8ff8a",
+}
+ILLUMINATION_COUNTER_COLORS = {
+    ILLUMINATION_NIGHT: "#4a4a4a",
+    ILLUMINATION_GREYLINE_MIXED: "#858585",
+    ILLUMINATION_DAYLIGHT: "#c8c8c8",
+}
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
 STABILITY_BOOTSTRAP_ITERATIONS = 500
 STABILITY_CONFIDENCE = 0.90
@@ -788,6 +805,48 @@ def _draw_vertical_metric_histogram(ax, values, color="#36aaf9"):
     ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
     return float(np.median(values))
+
+
+def _draw_stacked_vertical_metric_histogram(ax, grouped_values, colors):
+    """Draw a percent histogram split by observation classes."""
+    cleaned = {
+        key: _metric_values(values)
+        for key, values in grouped_values.items()
+    }
+    all_values = np.concatenate([values for values in cleaned.values() if len(values)]) if cleaned else np.asarray([])
+    if len(all_values) == 0:
+        return np.nan
+
+    edges, centers, bin_width = _metric_histogram_bins(all_values)
+    total_count = float(len(all_values))
+    bottom = np.zeros(len(centers), dtype=float)
+    for key in ILLUMINATION_CLASSES:
+        values = cleaned.get(key, np.asarray([]))
+        if len(values) == 0:
+            continue
+        counts, _ = np.histogram(values, bins=edges)
+        shares = 100.0 * counts.astype(float) / total_count
+        ax.bar(
+            centers,
+            shares,
+            bottom=bottom,
+            width=bin_width * 0.82,
+            color=colors.get(key, "#36aaf9"),
+            alpha=0.80,
+            edgecolor="#111111",
+            linewidth=0.45,
+            align="center",
+            zorder=2,
+        )
+        bottom += shares
+
+    ax.set_ylabel("Share (%)", color="white")
+    ax.set_ylim(bottom=0.0)
+    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
+    ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
+    ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
+    return float(np.median(all_values))
 
 def _draw_horizontal_metric_histogram(ax, values, color="#36aaf9"):
     """Draw a histogram with the SNR metric on the vertical axis."""
@@ -2134,6 +2193,14 @@ def _opportunity_selected_recipe(
         analysis_end_t,
         bin_minutes,
     )
+    if "path_illumination" not in work.columns:
+        work["path_illumination"] = ILLUMINATION_GREYLINE_MIXED
+    work["path_illumination"] = pd.Categorical(
+        work["path_illumination"].astype(str),
+        categories=ILLUMINATION_CLASSES,
+        ordered=True,
+    )
+
     bins = (
         work.groupby("time_bin", dropna=False)
         .agg(
@@ -2150,6 +2217,27 @@ def _opportunity_selected_recipe(
         100.0 * bins["hits"] / bins["confirmed"],
         np.nan,
     )
+
+    def count_by_illumination(value_column):
+        grouped = (
+            work.groupby(["time_bin", "path_illumination"], observed=False)[value_column]
+            .sum()
+            .unstack(fill_value=0)
+            .reindex(index=time_bins, columns=ILLUMINATION_CLASSES, fill_value=0)
+        )
+        return {
+            illumination: grouped[illumination].to_numpy(dtype=float, copy=True)
+            for illumination in ILLUMINATION_CLASSES
+        }
+
+    hit_rows = work[work["hit"] > 0].copy()
+    successful_snr_by_illumination = {}
+    for illumination in ILLUMINATION_CLASSES:
+        successful_snr_by_illumination[illumination] = pd.to_numeric(
+            hit_rows.loc[hit_rows["path_illumination"].astype(str) == illumination, "target_snr"],
+            errors="coerce",
+        ).dropna().to_numpy(dtype=float, copy=True)
+
     return {
         "kind": "opportunity",
         "title": title,
@@ -2160,10 +2248,13 @@ def _opportunity_selected_recipe(
         "rate_pct": bins["rate_pct"].to_numpy(dtype=float, copy=True),
         "hits": bins["hits"].to_numpy(dtype=float, copy=True),
         "misses": bins["misses"].to_numpy(dtype=float, copy=True),
+        "target_by_illumination": count_by_illumination("hit"),
+        "counter_by_illumination": count_by_illumination("miss"),
         "successful_snr": pd.to_numeric(
-            work.loc[work["hit"] > 0, "target_snr"],
+            hit_rows["target_snr"],
             errors="coerce",
         ).dropna().to_numpy(dtype=float, copy=True),
+        "successful_snr_by_illumination": successful_snr_by_illumination,
     }
 
 
@@ -2172,9 +2263,9 @@ def _render_opportunity_selected_figure(recipe):
         T.get(st.session_state.get("lang", "en"), T["en"]),
         recipe.get("absolute_mode", "RX"),
     )
-    fig = plt.figure(figsize=(13, 5.6), facecolor="black")
-    fig.subplots_adjust(left=0.07, right=0.95, bottom=0.16, top=0.80, wspace=0.32)
-    fig.suptitle(f"\n{recipe.get('title', '')}", color="white", fontweight="bold", fontsize=14, y=0.98)
+    fig = plt.figure(figsize=(13, 5.8), facecolor="black")
+    fig.subplots_adjust(left=0.07, right=0.95, bottom=0.15, top=0.76, wspace=0.32)
+    fig.suptitle(recipe.get("title", ""), color="white", fontweight="bold", fontsize=14, y=0.955)
     fig.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
     gs = fig.add_gridspec(1, 2, width_ratios=[1.55, 1.0])
     ax_time = fig.add_subplot(gs[0, 0])
@@ -2182,6 +2273,36 @@ def _render_opportunity_selected_figure(recipe):
     for ax in [ax_time, ax_snr]:
         _style_evidence_axis(ax)
 
+    target_legend_handles = [
+        mpl.patches.Patch(
+            facecolor=ILLUMINATION_TARGET_COLORS[illumination],
+            edgecolor="#111111",
+            label=f"Target {ILLUMINATION_DISPLAY_LABELS[illumination]}",
+        )
+        for illumination in ILLUMINATION_CLASSES
+    ]
+    counter_legend_handles = [
+        mpl.patches.Patch(
+            facecolor=ILLUMINATION_COUNTER_COLORS[illumination],
+            edgecolor="#111111",
+            label=f"{terms['counter']} {ILLUMINATION_DISPLAY_LABELS[illumination]}",
+        )
+        for illumination in ILLUMINATION_CLASSES
+    ]
+    fig.legend(
+        handles=target_legend_handles + counter_legend_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.50, 0.895),
+        ncol=6,
+        facecolor="#111111",
+        edgecolor="#444444",
+        labelcolor="white",
+        fontsize=8,
+        framealpha=0.85,
+        handlelength=1.2,
+        columnspacing=0.9,
+        handletextpad=0.4,
+    )
     times = pd.to_datetime(np.asarray(recipe.get("time_ns", []), dtype=np.int64), unit="ns", utc=True).tz_convert(None)
     rates = np.asarray(recipe.get("rate_pct", []), dtype=float)
     hits = np.asarray(recipe.get("hits", []), dtype=float)
@@ -2195,10 +2316,10 @@ def _render_opportunity_selected_figure(recipe):
             marker="o",
             markersize=3,
             linewidth=1.2,
-            label=terms["formula"],
+            label="Success Rate",
         )
         ax_time.set_ylim(0, opportunity_rate_scale_max(rates))
-        ax_time.set_ylabel(f"Success rate {terms['formula']} (%)", color="white")
+        ax_time.set_ylabel("Success Rate (%)", color="white")
         time_tick_indices = _opportunity_time_tick_indices(times)
         ax_time.set_xticks(x_values[time_tick_indices])
         ax_time.set_xticklabels(
@@ -2213,23 +2334,49 @@ def _render_opportunity_selected_figure(recipe):
         ax_evidence.set_facecolor("black")
         ax_evidence.patch.set_alpha(0)
         width = 0.72
-        ax_evidence.bar(
-            x_values,
-            hits,
-            width=width,
-            color="#39ff14",
-            alpha=0.62,
-            label="Target",
-        )
-        ax_evidence.bar(
-            x_values,
-            misses,
-            bottom=hits,
-            width=width,
-            color="#b8b8b8",
-            alpha=0.40,
-            label=terms["counter_bar"],
-        )
+        target_by_illumination = recipe.get("target_by_illumination") or {
+            ILLUMINATION_GREYLINE_MIXED: hits,
+        }
+        counter_by_illumination = recipe.get("counter_by_illumination") or {
+            ILLUMINATION_GREYLINE_MIXED: misses,
+        }
+        stack_bottom = np.zeros_like(x_values, dtype=float)
+        for illumination in ILLUMINATION_CLASSES:
+            values = np.asarray(
+                target_by_illumination.get(illumination, np.zeros_like(x_values)),
+                dtype=float,
+            )
+            if not np.any(values > 0):
+                continue
+            ax_evidence.bar(
+                x_values,
+                values,
+                bottom=stack_bottom,
+                width=width,
+                color=ILLUMINATION_TARGET_COLORS[illumination],
+                alpha=0.72,
+                edgecolor="#111111",
+                linewidth=0.35,
+            )
+            stack_bottom += values
+        for illumination in ILLUMINATION_CLASSES:
+            values = np.asarray(
+                counter_by_illumination.get(illumination, np.zeros_like(x_values)),
+                dtype=float,
+            )
+            if not np.any(values > 0):
+                continue
+            ax_evidence.bar(
+                x_values,
+                values,
+                bottom=stack_bottom,
+                width=width,
+                color=ILLUMINATION_COUNTER_COLORS[illumination],
+                alpha=0.58,
+                edgecolor="#111111",
+                linewidth=0.35,
+            )
+            stack_bottom += values
         ax_evidence.set_ylabel(terms["count_axis_label"], color="#bbbbbb")
         ax_evidence.tick_params(colors="#bbbbbb", labelsize=8)
         ax_evidence.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
@@ -2242,10 +2389,9 @@ def _render_opportunity_selected_figure(recipe):
         ax_time.patch.set_visible(False)
         ax_time.set_xlim(-0.5, len(x_values) - 0.5)
         rate_handles, rate_labels = ax_time.get_legend_handles_labels()
-        evidence_handles, evidence_labels = ax_evidence.get_legend_handles_labels()
         ax_time.legend(
-            rate_handles + evidence_handles,
-            rate_labels + evidence_labels,
+            rate_handles,
+            rate_labels,
             loc="upper right",
             facecolor="#111111",
             edgecolor="#444444",
@@ -2254,12 +2400,19 @@ def _render_opportunity_selected_figure(recipe):
         )
     else:
         ax_time.text(0.5, 0.5, "No time evidence", color="#cccccc", ha="center", va="center", transform=ax_time.transAxes)
-    ax_time.set_title(f"Station Target + {terms['counter']} Evidence over Time ({recipe.get('time_bin', '3h')})", color="white", fontweight="bold", pad=8)
+    ax_time.set_title(f"Station Success Rate + Evidence over Time ({recipe.get('time_bin', '3h')})", color="white", fontweight="bold", pad=8)
     ax_time.set_xlabel("Date/Time (UTC)", color="white")
 
     snr = np.asarray(recipe.get("successful_snr", []), dtype=float)
     if len(snr):
-        _draw_vertical_metric_histogram(ax_snr, snr, color="#36aaf9")
+        snr_by_illumination = recipe.get("successful_snr_by_illumination") or {
+            ILLUMINATION_GREYLINE_MIXED: snr,
+        }
+        _draw_stacked_vertical_metric_histogram(
+            ax_snr,
+            snr_by_illumination,
+            ILLUMINATION_TARGET_COLORS,
+        )
         ax_snr.set_xlabel("Target normalized SNR (dB @ 1 W)", color="white")
     else:
         ax_snr.text(0.5, 0.5, "No Target SNR evidence", color="#cccccc", ha="center", va="center", transform=ax_snr.transAxes)

@@ -13,7 +13,13 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+from config import (
+    ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD,
+    ABS_PATH_SAMPLE_POINTS,
+    ABS_PATH_TWILIGHT_ELEVATION_DEG,
+)
 from core.math_utils import is_valid_6char_locator, is_valid_callsign, locator_to_latlon
+from core.solar_path import classify_path_illumination
 
 
 ABSOLUTE_METHOD_VERSION = "opportunity-v1"
@@ -238,6 +244,7 @@ def prepare_opportunity_rows(
 
     target_call = str(target_callsign or "").strip().upper()
     _ = target_grid4(target_qth)
+    target_latitude, target_longitude = locator_to_latlon(target_qth)
     is_target_identity = work["peer_sign"].eq(target_call)
     work = work[~is_target_identity].copy()
 
@@ -268,6 +275,14 @@ def prepare_opportunity_rows(
         default="",
     )
     work["target_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").round(1)
+    work = classify_path_illumination(
+        work,
+        target_latitude=target_latitude,
+        target_longitude=target_longitude,
+        daylight_fraction_threshold=ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD,
+        twilight_elevation_degrees=ABS_PATH_TWILIGHT_ELEVATION_DEG,
+        sample_points=ABS_PATH_SAMPLE_POINTS,
+    )
     return work.reset_index(drop=True)
 
 

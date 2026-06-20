@@ -9,7 +9,7 @@ from datetime import time as dt_time
 # ==========================================
 # APP METADATA & URLs
 # ==========================================
-APP_VERSION = "v0.94"
+APP_VERSION = "v0.95"
 LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
 APP_URL = "https://wspradar.streamlit.app" 
 DB_URL = "https://db1.wspr.live/"
@@ -386,6 +386,13 @@ DEMO_PROFILES = {
 EARTH_RADIUS_KM = 6371.0
 EARTH_RADIUS_M = 6371000.0
 MAX_DYNAMIC_RADIUS_KM = 250  # Hard-Cap fuer die dynamische Referenz-Suche
+
+# Absolute path-illumination classification. The daylight fraction threshold
+# separates mostly-daylight and mostly-night great-circle paths; mixed cases are
+# labeled greyline/mixed.
+ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD = 0.75
+ABS_PATH_TWILIGHT_ELEVATION_DEG = 6.0
+ABS_PATH_SAMPLE_POINTS = 21
 
 # ==========================================
 # PLOT RENDERING SETTINGS
