@@ -204,6 +204,7 @@ def register_map_export_context(analysis, parquet_path, start_t, end_t, max_dist
         "is_sequential": bool(analysis["is_sequential"]),
         "analysis_kind": analysis.get("analysis_kind", "comparison"),
         "absolute_method_version": analysis.get("absolute_method_version"),
+        "decode_filter_mode": analysis.get("decode_filter_mode"),
         "map_context": {
             "parquet_path": parquet_path,
             "start_t": start_t,

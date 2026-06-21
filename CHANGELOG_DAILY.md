@@ -103,7 +103,7 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Added dynamic Absolute map color limits for low-rate datasets and changed Absolute Station Insights to sort primarily by descending Hits (`H`).
 - Replaced the Segment Inspector’s single range and direction selectors with multiselect controls.
 
-## 2026-06-15
+## 2026-06-20
 
 - Consolidated the Absolute success-rate visual model around station-level and observation-level Target/counter-evidence rates instead of raw Absolute SNR maps.
 - Changed Absolute map segments to average station Success Rate and introduced the shared nonlinear `0%`, `>0%`, `1%`, `2%`, `5%`, `10%`, `20%`, `40%`, `60%`, `80%`, `100%` color scale for maps and temporal panels.
@@ -114,7 +114,7 @@ Source used for this file: reachable `origin/main` history available locally at 
 - Improved Absolute figure readability by enlarging typography, replacing long range-bin labels with distance-boundary labels, increasing time-axis label density and sharing one colorbar across paired temporal heatmaps.
 - Added explicit no-data/zero/nonzero color semantics and map markers for Target evidence tiers plus counter-evidence-only stations.
 
-## 2026-06-20
+## 2026-06-21
 
 - Added observation-level great-circle path illumination classification for Absolute evidence, with configurable daylight-fraction threshold and selected-station plots split into night, greyline/mixed and daylight Target/counter-evidence contributions.
 - Refactor: Extracted compare-mode map aggregation into `core/compare_engine.py` and added focused regression coverage for simultaneous and sequential compare aggregation.

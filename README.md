@@ -108,7 +108,7 @@ This chapter combines the user choice, the analysis concept and the experiment-d
 **Answers**
 
 * `RX Success` / **RX Success Rate:** during target-active WSPR cycles, how often did my receiver, the target, receive and decode a WSPR signal that was independently confirmed by another receiver somewhere else in the world?
-* `TX Success` / **TX Success Rate:** during target-active WSPR cycles, how often did a receiver decode my transmitter, the target, when that same receiver also independently confirmed other WSPR activity in the same cycle?
+* `TX Success` / **TX Success Rate:** during target-active WSPR cycles, among RX stations that were active on the same band as proven by their own non-target WSPR decodes, how often did those RX stations also decode my transmitter, the target?
 * These are conditional, opportunity-based rates. They are designed to reduce the activity, propagation and successful-decode bias that made raw coverage or raw SNR maps difficult to interpret.
 
 **How it works**
@@ -119,14 +119,18 @@ For each target-active cycle and peer:
 
 * **Target (`T`)**: the target station/setup confirmed the relevant peer in the target-active cycle.
 * **Elsewhere (`E`, RX Success)**: the same remote transmitting station was heard elsewhere in the RX network in that cycle, but not by the target receiver.
-* **Other Signals (`OS`, TX Success)**: the same RX station heard other WSPR signals in that cycle, but not the target transmitter.
+* **Other Signals (`OS`, TX Success)**: an active RX station uploaded other same-band WSPR decodes in that target-active cycle, but did not decode the target transmitter.
 * **Target-only**: the target observed the station without independent counter-evidence. These rows remain audit evidence, but do not enter `Target`, `Elsewhere`, `Other Signals` or the Success Rate denominator.
 * **Success Rate:** RX uses `Target/(Target+Elsewhere)`. TX uses `Target/(Target+Other Signals)`.
 
 The direction of the evidence depends on the mode:
 
 * In **RX Success**, the peer is a transmitting station. The map title is `Target {callsign} vs. Same Signals Heard Elsewhere`: did the target receiver hear signals that the network proves existed elsewhere?
-* In **TX Success**, the peer is a receiving station. The map title is `Target {callsign} vs. Other Signals at Same RX Stations`: among active receivers hearing WSPR traffic, did they hear the target transmitter or only other signals?
+* In **TX Success**, the peer is a receiving station. The map title is `Target {callsign} vs. Other Signals at Active RX Stations`: among active receivers hearing WSPR traffic, did they hear the target transmitter or only other signals?
+
+In `RX Success`, a transmitting station can enter the candidate set if the same signal was decoded elsewhere in the same target-active WSPR cycle. Over a long enough RX run, the candidate TX set can grow toward all globally active transmitters on that band during cycles where the target receiver was active, including transmitters your receiver never decoded.
+
+In `TX Success`, a receiver can enter the candidate set if it uploaded any same-band WSPR decode during a target-active WSPR cycle. Over a long enough TX run, the candidate RX set can grow toward all globally active WSPR receivers on that band during your transmit cycles, including receivers that never decoded you.
 
 Rates are first calculated per station identity. A station contributes to the map, segment summary and Station Insights only after it reaches the configured minimum confirmed counter-evidence: `Target+Elsewhere` in RX Success, or `Target+Other Signals` in TX Success. A map segment shows the arithmetic mean of the contributing station success rates, so every qualifying station has equal weight. The Segment Insight also shows the Observation-Level rate, `sum(Target) / sum(Target+counter-evidence)`, which gives every confirmed observation equal weight and can therefore be dominated by high-volume stations.
 

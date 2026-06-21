@@ -200,6 +200,23 @@ def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():
     assert query.endswith("FORMAT Parquet")
 
 
+def test_rx_query_can_disable_decode_code_for_legacy_rows():
+    query = build_absolute_opportunity_query(
+        mode="RX",
+        start_t=datetime(2010, 12, 18, tzinfo=timezone.utc),
+        end_t=datetime(2010, 12, 21, tzinfo=timezone.utc),
+        band_value="7",
+        callsign="KP4MD",
+        qth="CM98",
+        require_decode_code=False,
+    )
+
+    assert "code = 1" not in query
+    assert "rx_sign = 'KP4MD'" in query
+    assert "substring(rx_loc, 1, 4) = 'CM98'" in query
+    assert query.endswith("FORMAT Parquet")
+
+
 def test_tx_query_uses_receiver_peers_and_target_frame_when_requested():
     query = build_absolute_opportunity_query(
         mode="TX",

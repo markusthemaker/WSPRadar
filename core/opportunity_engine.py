@@ -107,6 +107,7 @@ def build_absolute_opportunity_query(
     qth: str,
     exclude_special_callsigns: bool = False,
     target_frame_mod4: int | None = None,
+    require_decode_code: bool = True,
 ) -> str:
     """
     Build the compact RX or TX opportunity query.
@@ -154,6 +155,8 @@ def build_absolute_opportunity_query(
     frame_filter = ""
     if target_frame_mod4 in {0, 2}:
         frame_filter = f"\n      AND toMinute(time) % 4 = {int(target_frame_mod4)}"
+    active_decode_filter = "\n      AND code = 1" if require_decode_code else ""
+    main_decode_filter = "\n  AND code = 1" if require_decode_code else ""
 
     return f"""
 WITH active_cycles AS
@@ -163,9 +166,7 @@ WITH active_cycles AS
     PREWHERE band = {band_sql}
       AND time >= '{start_sql}'
       AND time < '{end_sql}'
-    WHERE code = 1
-      AND {target_condition}
-      {frame_filter}
+    WHERE {target_condition}{active_decode_filter}{frame_filter}
 )
 SELECT
     intDiv(toUnixTimestamp(time), 120) AS time_slot,
@@ -182,8 +183,7 @@ FROM wspr.rx
 PREWHERE band = {band_sql}
   AND time >= '{start_sql}'
   AND time < '{end_sql}'
-WHERE code = 1
-  AND ({target_condition} OR {external_condition})
+WHERE ({target_condition} OR {external_condition}){main_decode_filter}
   AND notEmpty({peer_sign})
   AND notEmpty({peer_grid})
   AND intDiv(toUnixTimestamp(time), 120) IN (SELECT cycle FROM active_cycles)

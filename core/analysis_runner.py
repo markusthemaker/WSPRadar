@@ -17,6 +17,75 @@ from core.opportunity_engine import (
 )
 from core.snr_utils import round_snr_like_columns
 
+
+DECODE_FILTER_STRICT = "strict_code_1"
+DECODE_FILTER_LEGACY = "legacy_no_code"
+DECODE_CODE_PREDICATE = "code = 1"
+
+
+def _decode_filter_sql(require_decode_code=True):
+    return f" AND {DECODE_CODE_PREDICATE}" if require_decode_code else ""
+
+
+def without_decode_code_filter(query):
+    """Return a legacy-compatible query variant without the strict decode code predicate."""
+    cleaned = str(query or "")
+    for pattern in (
+        "WHERE code = 1\n  AND ",
+        "WHERE code = 1\n      AND ",
+        "WHERE code = 1 AND ",
+    ):
+        cleaned = cleaned.replace(pattern, "WHERE ")
+    for pattern in (
+        "\n      AND code = 1",
+        "\n  AND code = 1",
+        " AND code = 1",
+    ):
+        cleaned = cleaned.replace(pattern, "")
+    return cleaned
+
+
+def with_decode_fallback(analysis):
+    """Attach strict/legacy decode metadata and a no-code fallback query."""
+    strict_query = analysis["query"]
+    legacy_query = without_decode_code_filter(strict_query)
+    analysis["decode_filter_mode"] = DECODE_FILTER_STRICT
+    if legacy_query != strict_query:
+        analysis["legacy_query"] = legacy_query
+        analysis["legacy_decode_filter_mode"] = DECODE_FILTER_LEGACY
+    return analysis
+
+
+def has_target_evidence(df, analysis):
+    """Return True when fetched data contains target-side evidence before UI filters."""
+    if df is None or df.empty:
+        return False
+
+    if analysis.get("analysis_kind") == "opportunity":
+        if "target_seen" not in df.columns:
+            return False
+        target_seen = pd.to_numeric(df["target_seen"], errors="coerce").fillna(0)
+        return bool((target_seen > 0).any())
+
+    if "has_u" in df.columns:
+        has_target = pd.to_numeric(df["has_u"], errors="coerce").fillna(0)
+        return bool((has_target > 0).any())
+    if "is_me" in df.columns:
+        is_target = pd.to_numeric(df["is_me"], errors="coerce").fillna(0)
+        return bool((is_target > 0).any())
+
+    return True
+
+
+def should_retry_without_decode_filter(df, analysis):
+    """Retry only when strict code=1 produced no target-side evidence."""
+    return (
+        analysis.get("decode_filter_mode") == DECODE_FILTER_STRICT
+        and bool(analysis.get("legacy_query"))
+        and not has_target_evidence(df, analysis)
+    )
+
+
 def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign):
     """
     Reads the user configuration from the session state and generates the necessary
@@ -33,6 +102,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
     target_snr_expr = "(snr - power + 30)"
     benchmark_snr_expr = f"(snr - power + 30 + {benchmark_offset_db:.1f})"
+    decode_filter_sql = _decode_filter_sql(require_decode_code=True)
     
     # --- Special Callsign Exclusion Filter ---
     # Hardcoded prefixes target special balloon telemetry callsigns without exposing raw SQL fragments through free text.
@@ -79,11 +149,11 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     # Target SQL Filters
     if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
         # Strict exact match needed to prevent 'DL1MKS%' from swallowing 'DL1MKS/P' spots
-        tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}"
-        rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}"
+        tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
+        rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
     else:
-        tx_target_sql = f"tx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
-        rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}"
+        tx_target_sql = f"tx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
+        rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
 
     # --- Explicit Synchronization Layer ---
     # Dank HTTP POST in der data_engine sind wir nicht mehr an URL-L?ngenlimits gebunden.
@@ -124,9 +194,9 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         bbox_tx = f"AND tx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND tx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
         bbox_rx = f"AND rx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND rx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
         
-        tx_peer_sql = f"tx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
+        tx_peer_sql = f"tx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
         
-        rx_peer_sql = f"rx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
+        rx_peer_sql = f"rx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
         
         if is_local_median:
             comp_title = t["comp_title_local_median"].format(radius=ref_radius_km)
@@ -135,11 +205,11 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         display_callsign = callsign
     else:
         if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
-            tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}"
-            rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}"
+            tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
+            rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
         else:
-            tx_peer_sql = f"tx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
-            rx_peer_sql = f"rx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}"
+            tx_peer_sql = f"tx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
+            rx_peer_sql = f"rx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
             
         if comp_mode == t["opt_comp_self"]:
             if st.session_state.val_self_test_mode == t["opt_self_rx"]:
@@ -169,7 +239,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
             tx_comp_query = f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} {target_wspr_frame_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} {reference_wspr_frame_sql} AND rx_lat != 0 FORMAT CSVWithNames"
         else:
             tx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist{local_ref_detail_sql} FROM (SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} AND rx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
-        analyses.append({
+        analyses.append(with_decode_fallback({
             "id": "TX_COMP",
             "title": t["fig_tx_comp"].format(callsign=display_callsign, comp_title=comp_title),
             "is_compare": True,
@@ -177,9 +247,9 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
             "analysis_kind": "comparison",
             "response_format": "csv",
             "query": tx_comp_query,
-        })
+        }))
         if st.session_state.val_band != "All":
-            analyses.append({
+            analyses.append(with_decode_fallback({
                 "id": "TX_ABS",
                 "title": t["fig_tx_abs"].format(callsign=callsign),
                 "is_compare": False,
@@ -197,8 +267,9 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
                     qth=st.session_state.val_qth,
                     exclude_special_callsigns=st.session_state.get("val_exclude_special_callsigns", False),
                     target_frame_mod4=target_frame_mod4,
+                    require_decode_code=True,
                 ),
-            })
+            }))
         else:
             st.warning(t.get(
                 "warn_abs_exact_band",
@@ -210,7 +281,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
             rx_comp_query = f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} {target_wspr_frame_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} {reference_wspr_frame_sql} AND tx_lat != 0 FORMAT CSVWithNames"
         else:
             rx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist{local_ref_detail_sql} FROM (SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} AND tx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
-        analyses.append({
+        analyses.append(with_decode_fallback({
             "id": "RX_COMP",
             "title": t["fig_rx_comp"].format(callsign=display_callsign, comp_title=comp_title),
             "is_compare": True,
@@ -218,9 +289,9 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
             "analysis_kind": "comparison",
             "response_format": "csv",
             "query": rx_comp_query,
-        })
+        }))
         if st.session_state.val_band != "All":
-            analyses.append({
+            analyses.append(with_decode_fallback({
                 "id": "RX_ABS",
                 "title": t["fig_rx_abs"].format(callsign=callsign),
                 "is_compare": False,
@@ -237,8 +308,9 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
                     callsign=callsign,
                     qth=st.session_state.val_qth,
                     exclude_special_callsigns=st.session_state.get("val_exclude_special_callsigns", False),
+                    require_decode_code=True,
                 ),
-            })
+            }))
         else:
             st.warning(t.get(
                 "warn_abs_exact_band",

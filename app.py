@@ -1,4 +1,5 @@
 # streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false
+# python -m streamlit run app.py
 
 import io
 import time
@@ -37,7 +38,12 @@ from ui.results_export import register_map_export_context, reset_result_export_s
 # Core Execution Engines
 from core.math_utils import locator_to_latlon, is_valid_6char_locator, quantize_time, is_valid_callsign, is_valid_locator
 from core.data_engine import fetch_wspr_data, cleanup_old_parquets
-from core.analysis_runner import build_analysis_batches, apply_post_fetch_filters
+from core.analysis_runner import (
+    DECODE_FILTER_LEGACY,
+    build_analysis_batches,
+    apply_post_fetch_filters,
+    should_retry_without_decode_filter,
+)
 try:
     from core.plot_engine import generate_map_plot
     CARTOPY_IMPORT_ERROR = None
@@ -393,13 +399,40 @@ if st.session_state.run_mode:
                 response_format=analysis.get("response_format", "csv"),
             )
             fetch_time = time.time() - t_start 
+
+            if should_retry_without_decode_filter(df, analysis):
+                status_log.append(
+                    f"- Map {i+1}/{len(analyses)}: strict `code = 1` found no target-side evidence; "
+                    "retrying legacy decode compatibility mode..."
+                )
+                status_body.markdown("  \n".join(status_log))
+                retry_start = time.time()
+                legacy_analysis = dict(analysis)
+                legacy_analysis["query"] = analysis["legacy_query"]
+                legacy_analysis["decode_filter_mode"] = analysis.get(
+                    "legacy_decode_filter_mode",
+                    DECODE_FILTER_LEGACY,
+                )
+                st.session_state._db_hit = False
+                df = fetch_wspr_data(
+                    legacy_analysis["query"],
+                    is_demo=is_demo_run,
+                    response_format=legacy_analysis.get("response_format", "csv"),
+                )
+                fetch_time += time.time() - retry_start
+                analysis = legacy_analysis
             
             # Update the UI audit log with fetch performance metrics
             if analysis.get("response_format") == "parquet":
                 source_str = st.session_state.get("_data_source", "disk cache")
             else:
                 source_str = "wspr.live" if st.session_state.get("_db_hit", False) else "RAM cache"
-            status_log.append(f"- Map {i+1}/{len(analyses)}: {analysis['title']} loaded from **{source_str}** in {fetch_time:.2f}s")
+            decode_note = (
+                " (legacy decode compatibility: no code filter)"
+                if analysis.get("decode_filter_mode") == DECODE_FILTER_LEGACY
+                else ""
+            )
+            status_log.append(f"- Map {i+1}/{len(analyses)}: {analysis['title']} loaded from **{source_str}** in {fetch_time:.2f}s{decode_note}")
             status_body.markdown("  \n".join(status_log))
             
             if df is not None and not df.empty:

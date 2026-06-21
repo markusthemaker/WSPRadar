@@ -114,7 +114,7 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 **Antwortet auf**
 
 * `RX Success` / **RX-Erfolgsrate:** Wie oft hat mein Empf&auml;nger, das Target, in target-aktiven WSPR-Zyklen ein WSPR-Signal empfangen und decodiert, das unabh&auml;ngig von einem anderen Empf&auml;nger irgendwo anders auf der Welt best&auml;tigt wurde?
-* `TX Success` / **TX-Erfolgsrate:** Wie oft hat ein Empf&auml;nger meinen Sender, das Target, in target-aktiven WSPR-Zyklen decodiert, wenn derselbe Empf&auml;nger im selben Zyklus auch unabh&auml;ngig andere WSPR-Aktivit&auml;t best&auml;tigt hat?
+* `TX Success` / **TX-Erfolgsrate:** Wie oft haben RX-Stationen in target-aktiven WSPR-Zyklen meinen Sender, das Target, decodiert, wenn diese RX-Stationen durch eigene Nicht-Target-WSPR-Decodes auf demselben Band aktiv nachgewiesen waren?
 * Das sind bedingte, opportunity-basierte Raten. Sie reduzieren den Aktivit&auml;ts-, Ausbreitungs- und Successful-Decode-Bias, der rohe Coverage- oder SNR-Karten schwer interpretierbar machte.
 
 **Funktionsweise**
@@ -125,14 +125,18 @@ F&uuml;r jeden target-aktiven Zyklus und Peer:
 
 * **Target (`T`)**: Die Zielstation bzw. das Ziel-Setup hat den relevanten Peer im target-aktiven Zyklus best&auml;tigt.
 * **Elsewhere (`E`, RX Success)**: Dieselbe sendende Remote-Station wurde im selben Zyklus irgendwo anders im RX-Netzwerk geh&ouml;rt, aber nicht vom Target-Empf&auml;nger.
-* **Other Signals (`OS`, TX Success)**: Dieselbe RX-Station hat im selben Zyklus andere WSPR-Signale geh&ouml;rt, aber nicht den Target-Sender.
+* **Other Signals (`OS`, TX Success)**: Eine aktive RX-Station hat in diesem target-aktiven Zyklus andere WSPR-Decodes auf demselben Band hochgeladen, aber den Target-Sender nicht decodiert.
 * **Target-only**: Das Target hat die Station ohne unabh&auml;ngige Gegen-Evidenz beobachtet. Diese Zeilen bleiben Audit-Evidenz, gehen aber nicht in `Target`, `Elsewhere`, `Other Signals` oder den Erfolgsraten-Nenner ein.
 * **Erfolgsrate:** RX nutzt `Target/(Target+Elsewhere)`. TX nutzt `Target/(Target+Other Signals)`.
 
 Die Richtung der Evidenz h&auml;ngt vom Modus ab:
 
 * Bei **RX Success** ist der Peer eine sendende Station. Der Kartentitel lautet `Target {Rufzeichen} vs. Same Signals Heard Elsewhere`: Hat der Target-Empf&auml;nger Signale geh&ouml;rt, deren Existenz das Netzwerk anderswo belegt?
-* Bei **TX Success** ist der Peer eine empfangende Station. Der Kartentitel lautet `Target {Rufzeichen} vs. Other Signals at Same RX Stations`: Hat ein aktiver Empf&auml;nger, der WSPR-Verkehr h&ouml;rte, den Target-Sender geh&ouml;rt oder nur andere Signale?
+* Bei **TX Success** ist der Peer eine empfangende Station. Der Kartentitel lautet `Target {Rufzeichen} vs. Other Signals at Active RX Stations`: Hat ein aktiver Empf&auml;nger, der WSPR-Verkehr h&ouml;rte, den Target-Sender geh&ouml;rt oder nur andere Signale?
+
+In `RX Success` kann eine sendende Station in die Kandidatenmenge gelangen, wenn dasselbe Signal im selben target-aktiven WSPR-Zyklus anderswo decodiert wurde. Bei einem ausreichend langen RX-Lauf kann diese Kandidatenmenge gegen alle weltweit aktiven Sender auf diesem Band wachsen, w&auml;hrend der Ziel-Empf&auml;nger aktiv war, einschlie&szlig;lich Sendern, die der Ziel-Empf&auml;nger nie decodiert hat.
+
+In `TX Success` kann ein Empf&auml;nger in die Kandidatenmenge gelangen, wenn er in einem target-aktiven WSPR-Zyklus irgendeinen WSPR-Decode auf demselben Band hochgeladen hat. Bei einem ausreichend langen TX-Lauf kann diese Kandidatenmenge gegen alle weltweit aktiven WSPR-Empf&auml;nger auf diesem Band w&auml;hrend deiner Sendezyklen wachsen, einschlie&szlig;lich Empf&auml;ngern, die dich nie decodiert haben.
 
 Raten werden zuerst pro Stationsidentit&auml;t berechnet. Eine Station tr&auml;gt erst dann zu Karte, Segment-Zusammenfassung und Station Insights bei, wenn sie die konfigurierte Mindestzahl best&auml;tigter Gegen-Evidenz erreicht: `Target+Elsewhere` in RX Success oder `Target+Other Signals` in TX Success. Ein Kartensegment zeigt das arithmetische Mittel der beitragenden Stations-Erfolgsraten, sodass jede qualifizierte Station gleich gewichtet wird. Segment Insight zeigt zus&auml;tzlich die Beobachtungsebene `sum(Target) / sum(Target+Gegen-Evidenz)`, die jede best&auml;tigte Beobachtung gleich gewichtet und daher von volumenstarken Stationen dominiert werden kann.
 
