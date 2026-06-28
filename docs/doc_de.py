@@ -723,7 +723,7 @@ F&uuml;r sequenzielle TX-A/B-Antennentests ist das bevorzugte Hardwaredesign oft
 
 WSPRadar enth&auml;lt ein plattform&uuml;bergreifendes Python-Hilfswerkzeug:
 
-`tools/Timed-AB-Relay-Switch`
+`tools/Timed-AB-Relay-Switch`: https://github.com/markusthemaker/WSPRadar/releases/download/timed-ab-relay-switch-v0.1.0/Timed-AB-Relay-Switch-v0.1.0.zip
 
 Das Werkzeug schaltet ein unterst&uuml;tztes USB-HID-Relay im WSPR-Frame-Takt, den WSPRadar nutzt:
 

@@ -722,7 +722,7 @@ For sequential TX A/B antenna tests, the preferred hardware design is often a si
 
 WSPRadar includes a cross-platform Python helper tool:
 
-`tools/Timed-AB-Relay-Switch`
+`tools/Timed-AB-Relay-Switch`: https://github.com/markusthemaker/WSPRadar/releases/download/timed-ab-relay-switch-v0.1.0/Timed-AB-Relay-Switch-v0.1.0.zip
 
 The tool drives a supported USB HID relay on the WSPR-frame cadence used by WSPRadar:
 
