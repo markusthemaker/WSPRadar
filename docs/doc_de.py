@@ -239,7 +239,7 @@ Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig send
 
 Das kontrollierteste TX-A/B-Design nutzt meist einen einzelnen Sender und schaltet nur den RF-Pfad zwischen zwei Antennen um. In diesem Design bleiben Sender, Rufzeichen, WSPR-Software, Frequenz, Leistungseinstellung und Uhr gemeinsam. Die beabsichtigten experimentellen Variablen sind dann die geschalteten Speiseleitungs-/Antennenpfade, nicht zwei getrennte Sendeketten. Das ist sicherer und wissenschaftlich sauberer als der Vergleich zweier unabh&auml;ngiger Sender, weil Senderkalibrierung, Frequenzstabilit&auml;t, Audioansteuerung, Leistungsangabe und Timing-Verhalten als wesentliche Konfounder entfernt werden.
 
-WSPRadar enth&auml;lt daf&uuml;r das Hilfswerkzeug `tools/WSPRadar-AB-Relay-Switch`. Es schaltet ein unterst&uuml;tztes USB-HID-Relay im selben UTC-WSPR-Frame-Takt, den auch die App nutzt. Das USB-Relay kann wiederum einen geeigneten RF-Antennenschalter steuern, zum Beispiel einen 1-zu-2-RF-Schalter wie den QRO.cz 1-to-2 RF Switch, sofern Relay-Ausgang, RF-Schalter-Steuereingang, Steuerspannung, Strombelastbarkeit, Polarit&auml;t und Stations-Interlock elektrisch geeignet ausgelegt sind.
+WSPRadar enth&auml;lt daf&uuml;r das plattform&uuml;bergreifende Hilfswerkzeug `tools/Timed-AB-Relay-Switch`. Es schaltet ein unterst&uuml;tztes USB-HID-Relay im selben UTC-WSPR-Frame-Takt, den auch die App nutzt, und verwendet den Python-HID-Stack unter Windows, Linux und macOS. Das USB-Relay kann wiederum einen geeigneten RF-Antennenschalter steuern, zum Beispiel einen 1-zu-2-RF-Schalter wie den QRO.cz 1-to-2 RF Switch, sofern Relay-Ausgang, RF-Schalter-Steuereingang, Steuerspannung, Strombelastbarkeit, Polarit&auml;t und Stations-Interlock elektrisch geeignet ausgelegt sind.
 
 * Ausgangsleistung, Speiseleitung, Tuner-Einstellungen, Band und Zeitplan konstant halten, au&szlig;er bei der getesteten Variable.
 * Einen Single-Transmitter-RF-Pfadschalter bevorzugen, wenn das Ziel ein Antennen-/Speiseleitungs-A/B-Test ist.
@@ -721,9 +721,9 @@ Nach dem Neustart sind Datenstr&ouml;me, Hardwarezugriffe und tempor&auml;re WSP
 
 F&uuml;r sequenzielle TX-A/B-Antennentests ist das bevorzugte Hardwaredesign oft ein einzelner Sender, der &uuml;ber einen gesteuerten RF-Schalter zwei alternative RF-Pfade speist. Dadurch wird vermieden, zwei unabh&auml;ngige Sender miteinander zu vergleichen. PA-Stufe, Frequenzreferenz, WSPR-Audiokette, Leistungseinstellung, Rufzeichen und Software-Timing sind f&uuml;r beide Pfade identisch. Das macht den Vergleich konservativer: Die verbleibenden beabsichtigten Variablen sind die geschalteten Speiseleitungs-/Antennenpfade.
 
-WSPRadar enth&auml;lt ein Windows-Hilfswerkzeug:
+WSPRadar enth&auml;lt ein plattform&uuml;bergreifendes Python-Hilfswerkzeug:
 
-`tools/WSPRadar-AB-Relay-Switch`
+`tools/Timed-AB-Relay-Switch`
 
 Das Werkzeug schaltet ein unterst&uuml;tztes USB-HID-Relay im WSPR-Frame-Takt, den WSPRadar nutzt:
 
@@ -731,18 +731,43 @@ Das Werkzeug schaltet ein unterst&uuml;tztes USB-HID-Relay im WSPR-Frame-Takt, d
 * Reference-WSPR-Frames: UTC-Startminuten 02, 06, 10, ...
 * Das Relay schaltet an der zweimin&uuml;tigen WSPR-Slot-Grenze, optional mit Vorlaufzeit, damit sich der RF-Pfad vor dem n&auml;chsten Sendek&ouml;rper stabilisieren kann.
 
-Das Hilfswerkzeug zielt derzeit auf verbreitete ATtiny45/V-USB-HID-Relay-Boards mit USB VID/PID `16c0:05df`; unter Windows erscheinen diese in Ger&auml;tepfaden als `VID_16C0&PID_05DF`. Beim Setup werden Relay-Ger&auml;t, Relay-Kanal, Relay-Polarit&auml;t, Target-Frame-Phase und Umschaltvorlauf ausgew&auml;hlt. Vor Anschluss von RF-Hardware sollte der Dry-Run-Modus verwendet werden.
+Das Hilfswerkzeug zielt auf verbreitete ATtiny45/V-USB-HID-Relay-Boards mit USB VID/PID `16c0:05df` und nutzt den Python-HID-Stack unter Windows, Linux und macOS. Beim Setup werden Relay-Ger&auml;t, Relay-Kanal, Relay-Polarit&auml;t, Target-Frame-Phase und Umschaltvorlauf ausgew&auml;hlt. Vor Anschluss von RF-Hardware sollte der Dry-Run-Modus verwendet werden. Plattformspezifische Installationshinweise, einschlie&szlig;lich Linux-HID-Berechtigungen, stehen in der README des Werkzeugs.
 
-Beispiel f&uuml;r Setup:
+Abh&auml;ngigkeit aus dem Werkzeugordner installieren:
 
 ```bat
-Start-WSPRadar-AB-Relay-Switch.cmd -Setup
+py -3 -m pip install -r requirements-relay.txt
 ```
 
-Beispiel f&uuml;r Dry Run:
+oder unter Linux/macOS:
+
+```sh
+python3 -m pip install -r requirements-relay.txt
+```
+
+Beispiel f&uuml;r Setup unter Windows:
 
 ```bat
-Start-WSPRadar-AB-Relay-Switch.cmd -DryRun
+Start-Timed-AB-Relay-Switch.cmd --setup
+```
+
+Beispiel f&uuml;r Setup unter Linux/macOS:
+
+```sh
+chmod +x ./Start-Timed-AB-Relay-Switch.sh
+./Start-Timed-AB-Relay-Switch.sh --setup
+```
+
+Beispiel f&uuml;r Dry Run unter Windows:
+
+```bat
+Start-Timed-AB-Relay-Switch.cmd --dry-run
+```
+
+Beispiel f&uuml;r Dry Run unter Linux/macOS:
+
+```sh
+./Start-Timed-AB-Relay-Switch.sh --dry-run
 ```
 
 Ein USB-Relay sollte RF normalerweise nicht direkt schalten. Es sollte ein daf&uuml;r ausgelegtes RF-Schalt- oder Relaissystem steuern. Eine Beispielklasse ist ein 1-zu-2-RF-Schalter wie der QRO.cz 1-to-2 RF Switch, der einen gemeinsamen RF-Port zwischen zwei RF-Ports schalten kann oder umgekehrt und eine DC-Steuerschnittstelle bereitstellt. Vor dem Einsatz muss gepr&uuml;ft werden, dass USB-Relay-Kontakte und RF-Schalter-Steuereingang elektrisch kompatibel sind, einschlie&szlig;lich Steuerspannung, Strom, Polarit&auml;t und Fail-Safe-Zustand.

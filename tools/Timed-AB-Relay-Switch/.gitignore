@@ -1,0 +1,4 @@
+timed-ab-relay-switch.config.json
+timed-ab-relay-switch.log
+__pycache__/
+*.pyc

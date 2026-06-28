@@ -233,7 +233,7 @@ Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRa
 
 The most controlled TX A/B design usually uses one transmitter and switches only the RF path between two antennas. In that design, the transmitter, callsign, WSPR software, frequency, power setting and clock remain common. The intended experimental variables are then the switched feedline/antenna paths, rather than two separate transmit chains. This is safer and scientifically cleaner than comparing two independent transmitters because transmitter calibration, frequency stability, audio drive, power reporting and timing behavior are removed as major confounders.
 
-WSPRadar includes the helper tool `tools/WSPRadar-AB-Relay-Switch` for this use case. It alternates a supported USB HID relay on the same UTC WSPR-frame cadence used by the app. The USB relay can in turn control a suitable RF antenna switch, for example a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, provided the relay output, RF switch control input, control voltage, current rating, polarity and station interlock design are electrically appropriate.
+WSPRadar includes the cross-platform helper tool `tools/Timed-AB-Relay-Switch` for this use case. It alternates a supported USB HID relay on the same UTC WSPR-frame cadence used by the app and runs through the Python HID stack on Windows, Linux and macOS. The USB relay can in turn control a suitable RF antenna switch, for example a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, provided the relay output, RF switch control input, control voltage, current rating, polarity and station interlock design are electrically appropriate.
 
 * Keep output power, feedline, tuner settings, band and schedule stable except for the tested variable.
 * Prefer a single-transmitter RF-path switch when the goal is antenna/feedline A/B testing.
@@ -714,9 +714,9 @@ After restarting the instance, data streams, hardware access and temporary WSPR 
 
 For sequential TX A/B antenna tests, the preferred hardware design is often a single transmitter feeding two alternative RF paths through a controlled RF switch. This avoids comparing two independent transmitters. The same PA stage, frequency reference, WSPR audio chain, power setting, callsign and software timing are used for both paths. That makes the comparison more conservative: the remaining intended variables are the switched feedline/antenna paths.
 
-WSPRadar includes a Windows helper tool:
+WSPRadar includes a cross-platform Python helper tool:
 
-`tools/WSPRadar-AB-Relay-Switch`
+`tools/Timed-AB-Relay-Switch`
 
 The tool drives a supported USB HID relay on the WSPR-frame cadence used by WSPRadar:
 
@@ -724,18 +724,43 @@ The tool drives a supported USB HID relay on the WSPR-frame cadence used by WSPR
 * Reference WSPR frames: UTC start minutes 02, 06, 10, ...
 * Relay switching occurs at the two-minute WSPR slot boundary, with an optional lead time so the RF path can settle before the next transmission body.
 
-The helper currently targets common ATtiny45/V-USB HID relay boards with USB VID/PID `16c0:05df`; on Windows these appear in device paths as `VID_16C0&PID_05DF`. During setup it selects the relay device, relay channel, relay polarity, Target frame phase and switch lead time. Dry-run mode should be used before connecting RF hardware.
+The helper targets common ATtiny45/V-USB HID relay boards with USB VID/PID `16c0:05df` and uses the Python HID stack on Windows, Linux and macOS. During setup it selects the relay device, relay channel, relay polarity, Target frame phase and switch lead time. Dry-run mode should be used before connecting RF hardware. Platform-specific installation notes, including Linux HID permissions, are documented in the tool README.
 
-Example setup command:
+Install the helper dependency from the tool folder:
 
 ```bat
-Start-WSPRadar-AB-Relay-Switch.cmd -Setup
+py -3 -m pip install -r requirements-relay.txt
 ```
 
-Example dry run:
+or on Linux/macOS:
+
+```sh
+python3 -m pip install -r requirements-relay.txt
+```
+
+Example setup command on Windows:
 
 ```bat
-Start-WSPRadar-AB-Relay-Switch.cmd -DryRun
+Start-Timed-AB-Relay-Switch.cmd --setup
+```
+
+Example setup command on Linux/macOS:
+
+```sh
+chmod +x ./Start-Timed-AB-Relay-Switch.sh
+./Start-Timed-AB-Relay-Switch.sh --setup
+```
+
+Example dry run on Windows:
+
+```bat
+Start-Timed-AB-Relay-Switch.cmd --dry-run
+```
+
+Example dry run on Linux/macOS:
+
+```sh
+./Start-Timed-AB-Relay-Switch.sh --dry-run
 ```
 
 A USB relay should not normally switch RF directly. It should control a properly rated RF switch or relay system. One example class is a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, which is designed to switch one common RF port between two RF ports, or vice versa, and provides a DC control interface. Before use, verify that the USB relay contacts and the RF switch control input are electrically compatible, including control voltage, current, polarity and fail-safe state.
