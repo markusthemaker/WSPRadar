@@ -1,14 +1,25 @@
 """
 Analysis Runner Module.
-Handles the construction of complex ClickHouse SQL queries based on user UI state,
+Handles the construction of complex ClickHouse SQL queries from canonical run context,
 and provides data-filtering utilities (Solar) before plotting.
 """
 
+from contextlib import nullcontext
 import pandas as pd
 import numpy as np
-import streamlit as st
 from config import BAND_MAP, MAX_DYNAMIC_RADIUS_KM
-from core.data_engine import fetch_wspr_data
+from core.analysis_context import (
+    COMPARISON_HARDWARE_AB,
+    COMPARISON_LOCAL_NEIGHBORHOOD,
+    COMPARISON_REFERENCE_STATION,
+    LOCAL_BENCHMARK_MEDIAN,
+    SELF_TEST_RX,
+    SELF_TEST_TX,
+    is_rx_hardware_ab,
+    solar_path_state,
+    wspr_frame_mod4,
+    wspr_frame_sql,
+)
 from core.math_utils import get_solar_state, is_valid_callsign
 from core.opportunity_engine import (
     ABSOLUTE_METHOD_VERSION,
@@ -16,11 +27,119 @@ from core.opportunity_engine import (
     prepare_opportunity_rows,
 )
 from core.snr_utils import round_snr_like_columns
+from i18n import T
 
 
 DECODE_FILTER_STRICT = "strict_code_1"
 DECODE_FILTER_LEGACY = "legacy_no_code"
 DECODE_CODE_PREDICATE = "code = 1"
+
+
+class AnalysisConfigError(ValueError):
+    """Raised when canonical run context cannot produce a valid analysis batch."""
+
+
+def _timed_span(timing_collector, label, detail=""):
+    """Return a timing context when profiling is active."""
+    if timing_collector is None:
+        return nullcontext()
+    return timing_collector.span(label, detail=detail)
+
+
+def _build_tx_comparison_query(
+    *,
+    is_sequential,
+    target_snr_expr,
+    reference_snr_expr,
+    target_sql,
+    reference_sql,
+    target_frame_sql,
+    reference_frame_sql,
+    local_reference_snr_sql,
+    local_reference_sign_sql,
+    local_reference_dist_sql,
+    local_reference_detail_sql,
+    center_latitude,
+    center_longitude,
+):
+    """Return the TX comparison SQL without performing any data access."""
+    if is_sequential:
+        return (
+            "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
+            f"rx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me "
+            f"FROM wspr.rx WHERE {target_sql} {target_frame_sql} AND rx_lat != 0 "
+            "UNION ALL "
+            "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
+            f"rx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
+            f"FROM wspr.rx WHERE {reference_sql} {reference_frame_sql} AND rx_lat != 0 "
+            "FORMAT CSVWithNames"
+        )
+
+    return (
+        "SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, "
+        "any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, "
+        f"maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_reference_snr_sql} AS snr_r_norm, "
+        f"countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_reference_sign_sql} AS best_ref_sign, "
+        f"{local_reference_dist_sql} AS best_ref_dist{local_reference_detail_sql} "
+        "FROM ("
+        "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
+        "rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, 0.0 AS local_dist, "
+        f"snr, power, 1 AS is_me FROM wspr.rx WHERE {target_sql} AND rx_lat != 0 "
+        "UNION ALL "
+        "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
+        "rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, "
+        f"geoDistance({center_longitude}, {center_latitude}, tx_lon, tx_lat) AS local_dist, "
+        f"snr, power, 0 AS is_me FROM wspr.rx WHERE {reference_sql} AND rx_lat != 0"
+        ") GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
+    )
+
+
+def _build_rx_comparison_query(
+    *,
+    is_sequential,
+    target_snr_expr,
+    reference_snr_expr,
+    target_sql,
+    reference_sql,
+    target_frame_sql,
+    reference_frame_sql,
+    local_reference_snr_sql,
+    local_reference_sign_sql,
+    local_reference_dist_sql,
+    local_reference_detail_sql,
+    center_latitude,
+    center_longitude,
+):
+    """Return the RX comparison SQL without performing any data access."""
+    if is_sequential:
+        return (
+            "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
+            f"tx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me "
+            f"FROM wspr.rx WHERE {target_sql} {target_frame_sql} AND tx_lat != 0 "
+            "UNION ALL "
+            "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
+            f"tx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
+            f"FROM wspr.rx WHERE {reference_sql} {reference_frame_sql} AND tx_lat != 0 "
+            "FORMAT CSVWithNames"
+        )
+
+    return (
+        "SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, "
+        "any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, "
+        f"maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_reference_snr_sql} AS snr_r_norm, "
+        f"countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_reference_sign_sql} AS best_ref_sign, "
+        f"{local_reference_dist_sql} AS best_ref_dist{local_reference_detail_sql} "
+        "FROM ("
+        "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
+        "tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, 0.0 AS local_dist, "
+        f"snr, power, 1 AS is_me FROM wspr.rx WHERE {target_sql} AND tx_lat != 0 "
+        "UNION ALL "
+        "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
+        "tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, "
+        f"geoDistance({center_longitude}, {center_latitude}, rx_lon, rx_lat) AS local_dist, "
+        f"snr, power, 0 AS is_me FROM wspr.rx WHERE {reference_sql} AND tx_lat != 0"
+        ") GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
+    )
 
 
 def _decode_filter_sql(require_decode_code=True):
@@ -86,68 +205,70 @@ def should_retry_without_decode_filter(df, analysis):
     )
 
 
-def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsign):
+def build_analysis_batches(
+    analysis_context,
+    start_t,
+    end_t,
+    lat_0,
+    lon_0,
+    band_filter,
+    warn=None,
+):
     """
-    Reads the user configuration from the session state and generates the necessary
+    Reads the canonical user configuration and generates the necessary
     SQL queries and execution batches for the map plots (Absolute & Comparison).
     """
-    # --- Defense-in-depth: validate callsign before any SQL is assembled ---
-    if not is_valid_callsign(callsign):
-        st.error(f"Invalid callsign '{callsign}'. Only A?Z, 0?9, and '/' are allowed (3?15 characters).")
-        return []
+    t = T.get(analysis_context.language, T["en"])
+    callsign = analysis_context.callsign.upper().strip()
 
-    comp_mode = st.session_state.val_comp_mode
-    is_demo_run = bool(st.session_state.get("active_demo_profile")) or st.session_state.get("is_demo_mode", False)
+    # Defense-in-depth: validate callsign before any SQL is assembled.
+    if not is_valid_callsign(callsign):
+        raise AnalysisConfigError(
+            f"Invalid callsign '{callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
+        )
+
+    comp_mode = analysis_context.comparison_mode
     time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
-    benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
+    benchmark_offset_db = round(float(analysis_context.reference_snr_correction_db), 1)
     target_snr_expr = "(snr - power + 30)"
     benchmark_snr_expr = f"(snr - power + 30 + {benchmark_offset_db:.1f})"
     decode_filter_sql = _decode_filter_sql(require_decode_code=True)
     
-    # --- Special Callsign Exclusion Filter ---
+    # Special callsign exclusion filter.
     # Hardcoded prefixes target special balloon telemetry callsigns without exposing raw SQL fragments through free text.
-    if st.session_state.get("val_exclude_special_callsigns", False):
+    if analysis_context.exclude_special_callsigns:
         for prefix in ["Q", "0", "1"]:
             time_filter += f" AND tx_sign NOT LIKE '{prefix}%' AND rx_sign NOT LIKE '{prefix}%'"
     
     is_sequential = False
     
     # Determine Reference / Buddy Parameters
-    if comp_mode == t["opt_comp_radius"]:
-        ref_radius_km = min(st.session_state.get("val_ref_radius_km", MAX_DYNAMIC_RADIUS_KM), MAX_DYNAMIC_RADIUS_KM)
-    elif comp_mode == t["opt_comp_buddy"]:
-        ref_callsign = st.session_state.val_ref_callsign.upper().strip()
+    if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+        ref_radius_km = min(analysis_context.neighborhood_radius_km, MAX_DYNAMIC_RADIUS_KM)
+    elif comp_mode == COMPARISON_REFERENCE_STATION:
+        ref_callsign = analysis_context.reference_callsign.upper().strip()
         if not is_valid_callsign(ref_callsign):
-            st.error(f"Invalid reference callsign '{ref_callsign}'. Only A?Z, 0?9, and '/' are allowed (3?15 characters).")
-            return []
-    elif comp_mode == t["opt_comp_self"]:
+            raise AnalysisConfigError(
+                f"Invalid reference callsign '{ref_callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
+            )
+    elif comp_mode == COMPARISON_HARDWARE_AB:
         ref_callsign = callsign  # defaults to target callsign (already validated above)
-        if st.session_state.val_self_test_mode == t["opt_self_tx"]:
+        if analysis_context.self_test_mode == SELF_TEST_TX:
             is_sequential = True
-        elif st.session_state.val_self_test_mode == t["opt_self_rx"]:
-            ref_callsign = st.session_state.val_self_call_b.upper().strip()
+        elif analysis_context.self_test_mode == SELF_TEST_RX:
+            ref_callsign = analysis_context.setup_b_callsign.upper().strip()
             if not is_valid_callsign(ref_callsign):
-                st.error(f"Invalid Setup B callsign '{ref_callsign}'. Only A?Z, 0?9, and '/' are allowed (3?15 characters).")
-                return []
-    
-    def get_wspr_frame_sql(frame_val):
-        if frame_val == t["opt_wspr_frame_00_04_08"]: return "AND toMinute(time) % 4 = 0"
-        if frame_val == t["opt_wspr_frame_02_06_10"]: return "AND toMinute(time) % 4 = 2"
-        return ""
+                raise AnalysisConfigError(
+                    f"Invalid Setup B callsign '{ref_callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
+                )
 
-    target_wspr_frame_sql = get_wspr_frame_sql(st.session_state.val_target_wspr_frame) if is_sequential else ""
-    reference_wspr_frame_sql = get_wspr_frame_sql(st.session_state.val_reference_wspr_frame) if is_sequential else ""
+    target_wspr_frame_sql = wspr_frame_sql(analysis_context.target_wspr_frame) if is_sequential else ""
+    reference_wspr_frame_sql = wspr_frame_sql(analysis_context.reference_wspr_frame) if is_sequential else ""
 
-    target_frame_mod4 = None
-    if is_sequential:
-        target_frame_mod4 = (
-            0
-            if st.session_state.val_target_wspr_frame == t["opt_wspr_frame_00_04_08"]
-            else 2
-        )
+    target_frame_mod4 = wspr_frame_mod4(analysis_context.target_wspr_frame) if is_sequential else None
         
     # Target SQL Filters
-    if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
+    if is_rx_hardware_ab(analysis_context):
         # Strict exact match needed to prevent 'DL1MKS%' from swallowing 'DL1MKS/P' spots
         tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
         rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
@@ -155,39 +276,17 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
         tx_target_sql = f"tx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
         rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
 
-    # --- Explicit Synchronization Layer ---
-    # Dank HTTP POST in der data_engine sind wir nicht mehr an URL-L?ngenlimits gebunden.
-    # Wir k?nnen die aktiven Zyklen bequem vorladen und als Liste einf?gen, 
-    # was die geforderte ClickHouse Subquery-Tiefe massiv reduziert!
-    
-    tx_cycle_filter = ""
-    if st.session_state.run_mode == "TX" and not is_sequential:
-        sync_msg = "Synchronisiere TX Zyklen..." if st.session_state.lang == "de" else "Syncing TX cycles..."
-        with st.spinner(sync_msg):
-            tx_cycles_query = f"SELECT DISTINCT floor(toUnixTimestamp(time)/120) AS ts FROM wspr.rx WHERE {tx_target_sql} AND rx_lat != 0 FORMAT CSVWithNames"
-            tx_cycles_df = fetch_wspr_data(tx_cycles_query, is_demo=is_demo_run)
-            tx_cycle_filter = f"AND floor(toUnixTimestamp(time)/120) IN ({','.join(tx_cycles_df['ts'].astype(int).astype(str))})" if tx_cycles_df is not None and not tx_cycles_df.empty else "AND 1=0"
+    # Cycle synchronization is applied after fetching in apply_post_fetch_filters().
+    # Keeping it outside SQL construction avoids query-builder data access.
 
-    rx_cycle_filter = ""
-    if st.session_state.run_mode == "RX" and not is_sequential:
-        sync_msg = "Synchronisiere RX Zyklen..." if st.session_state.lang == "de" else "Syncing RX cycles..."
-        with st.spinner(sync_msg):
-            rx_cycles_query = f"SELECT DISTINCT floor(toUnixTimestamp(time)/120) AS ts FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 FORMAT CSVWithNames"
-            rx_cycles_df = fetch_wspr_data(rx_cycles_query, is_demo=is_demo_run)
-            rx_cycle_filter = f"AND floor(toUnixTimestamp(time)/120) IN ({','.join(rx_cycles_df['ts'].astype(int).astype(str))})" if rx_cycles_df is not None and not rx_cycles_df.empty else "AND 1=0"
-
-    # --- Explicit Synchronization Layer ---
-    # Moved to Pandas (apply_post_fetch_filters) to avoid ClickHouse Subquery Depth Limits (162)
-    # and HTTP 414 URL Length limits. This makes the database queries radically faster.
-
-    # --- Peer SQL Filters ---
-    if comp_mode == t["opt_comp_radius"]:
-        ref_radius_km = min(st.session_state.get("val_ref_radius_km", MAX_DYNAMIC_RADIUS_KM), MAX_DYNAMIC_RADIUS_KM)
-        local_benchmark = st.session_state.get("val_local_benchmark", t["opt_local_median"])
-        is_local_median = local_benchmark == t["opt_local_median"]
+    # Peer SQL Filters
+    if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+        ref_radius_km = min(analysis_context.neighborhood_radius_km, MAX_DYNAMIC_RADIUS_KM)
+        local_benchmark = analysis_context.local_benchmark
+        is_local_median = local_benchmark == LOCAL_BENCHMARK_MEDIAN
         max_rad = ref_radius_km * 1000
         
-        # PRE-FILTER BOUNDING BOX: H?lt die geoDistance Berechnung extrem billig
+        # Prefilter with a bounding box so geoDistance is only evaluated nearby.
         lat_diff = ref_radius_km / 111.0
         lon_diff = ref_radius_km / (111.0 * max(abs(np.cos(np.radians(lat_0))), 0.01))
         
@@ -204,15 +303,15 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
             comp_title = t["comp_title_local_best"].format(radius=ref_radius_km)
         display_callsign = callsign
     else:
-        if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
+        if is_rx_hardware_ab(analysis_context):
             tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
             rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
         else:
             tx_peer_sql = f"tx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
             rx_peer_sql = f"rx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
             
-        if comp_mode == t["opt_comp_self"]:
-            if st.session_state.val_self_test_mode == t["opt_self_rx"]:
+        if comp_mode == COMPARISON_HARDWARE_AB:
+            if analysis_context.self_test_mode == SELF_TEST_RX:
                 display_callsign = f"{callsign} (Setup A)"
                 comp_title = f"{ref_callsign} (Setup B)"
             else:
@@ -228,17 +327,28 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
     local_ref_sign_sql = f"argMaxIf(local_sign, {benchmark_snr_expr}, is_me = 0)"
     local_ref_dist_sql = f"argMaxIf(local_dist, {benchmark_snr_expr}, is_me = 0)"
     local_ref_detail_sql = ""
-    if comp_mode == t["opt_comp_radius"] and st.session_state.get("val_local_benchmark", t["opt_local_median"]) == t["opt_local_median"]:
+    if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD and analysis_context.local_benchmark == LOCAL_BENCHMARK_MEDIAN:
         local_ref_snr_sql = f"quantileExactInclusiveIf(0.5)({benchmark_snr_expr}, is_me = 0)"
         local_ref_sign_sql = "concat(toString(countIf(is_me = 0)), ' stations')"
         local_ref_dist_sql = "quantileExactInclusiveIf(0.5)(local_dist, is_me = 0)"
         local_ref_detail_sql = f", groupArrayIf(tuple(local_sign, local_grid, local_dist, {benchmark_snr_expr}), is_me = 0) AS ref_detail_rows"
     
-    if st.session_state.run_mode == "TX":
-        if is_sequential:
-            tx_comp_query = f"SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} {target_wspr_frame_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} {reference_wspr_frame_sql} AND rx_lat != 0 FORMAT CSVWithNames"
-        else:
-            tx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist{local_ref_detail_sql} FROM (SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {tx_target_sql} AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {tx_peer_sql} AND rx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
+    if analysis_context.run_mode == "TX":
+        tx_comp_query = _build_tx_comparison_query(
+            is_sequential=is_sequential,
+            target_snr_expr=target_snr_expr,
+            reference_snr_expr=benchmark_snr_expr,
+            target_sql=tx_target_sql,
+            reference_sql=tx_peer_sql,
+            target_frame_sql=target_wspr_frame_sql,
+            reference_frame_sql=reference_wspr_frame_sql,
+            local_reference_snr_sql=local_ref_snr_sql,
+            local_reference_sign_sql=local_ref_sign_sql,
+            local_reference_dist_sql=local_ref_dist_sql,
+            local_reference_detail_sql=local_ref_detail_sql,
+            center_latitude=lat_0,
+            center_longitude=lon_0,
+        )
         analyses.append(with_decode_fallback({
             "id": "TX_COMP",
             "title": t["fig_tx_comp"].format(callsign=display_callsign, comp_title=comp_title),
@@ -248,7 +358,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
             "response_format": "csv",
             "query": tx_comp_query,
         }))
-        if st.session_state.val_band != "All":
+        if analysis_context.band != "All":
             analyses.append(with_decode_fallback({
                 "id": "TX_ABS",
                 "title": t["fig_tx_abs"].format(callsign=callsign),
@@ -262,25 +372,37 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
                     mode="TX",
                     start_t=start_t,
                     end_t=end_t,
-                    band_value=BAND_MAP[st.session_state.val_band],
+                    band_value=BAND_MAP[analysis_context.band],
                     callsign=callsign,
-                    qth=st.session_state.val_qth,
-                    exclude_special_callsigns=st.session_state.get("val_exclude_special_callsigns", False),
+                    qth=analysis_context.qth,
+                    exclude_special_callsigns=analysis_context.exclude_special_callsigns,
                     target_frame_mod4=target_frame_mod4,
                     require_decode_code=True,
                 ),
             }))
         else:
-            st.warning(t.get(
-                "warn_abs_exact_band",
-                "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
-            ))
+            if warn:
+                warn(t.get(
+                    "warn_abs_exact_band",
+                    "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
+                ))
 
-    elif st.session_state.run_mode == "RX":
-        if is_sequential:
-            rx_comp_query = f"SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} {target_wspr_frame_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, snr, power, {benchmark_snr_expr} AS stat_val, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} {reference_wspr_frame_sql} AND tx_lat != 0 FORMAT CSVWithNames"
-        else:
-            rx_comp_query = f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, {local_ref_snr_sql} AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, {local_ref_sign_sql} AS best_ref_sign, {local_ref_dist_sql} AS best_ref_dist{local_ref_detail_sql} FROM (SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE {rx_target_sql} AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE {rx_peer_sql} AND tx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
+    elif analysis_context.run_mode == "RX":
+        rx_comp_query = _build_rx_comparison_query(
+            is_sequential=is_sequential,
+            target_snr_expr=target_snr_expr,
+            reference_snr_expr=benchmark_snr_expr,
+            target_sql=rx_target_sql,
+            reference_sql=rx_peer_sql,
+            target_frame_sql=target_wspr_frame_sql,
+            reference_frame_sql=reference_wspr_frame_sql,
+            local_reference_snr_sql=local_ref_snr_sql,
+            local_reference_sign_sql=local_ref_sign_sql,
+            local_reference_dist_sql=local_ref_dist_sql,
+            local_reference_detail_sql=local_ref_detail_sql,
+            center_latitude=lat_0,
+            center_longitude=lon_0,
+        )
         analyses.append(with_decode_fallback({
             "id": "RX_COMP",
             "title": t["fig_rx_comp"].format(callsign=display_callsign, comp_title=comp_title),
@@ -290,7 +412,7 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
             "response_format": "csv",
             "query": rx_comp_query,
         }))
-        if st.session_state.val_band != "All":
+        if analysis_context.band != "All":
             analyses.append(with_decode_fallback({
                 "id": "RX_ABS",
                 "title": t["fig_rx_abs"].format(callsign=callsign),
@@ -304,94 +426,98 @@ def build_analysis_batches(t, start_t, end_t, lat_0, lon_0, band_filter, callsig
                     mode="RX",
                     start_t=start_t,
                     end_t=end_t,
-                    band_value=BAND_MAP[st.session_state.val_band],
+                    band_value=BAND_MAP[analysis_context.band],
                     callsign=callsign,
-                    qth=st.session_state.val_qth,
-                    exclude_special_callsigns=st.session_state.get("val_exclude_special_callsigns", False),
+                    qth=analysis_context.qth,
+                    exclude_special_callsigns=analysis_context.exclude_special_callsigns,
                     require_decode_code=True,
                 ),
             }))
         else:
-            st.warning(t.get(
-                "warn_abs_exact_band",
-                "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
-            ))
+            if warn:
+                warn(t.get(
+                    "warn_abs_exact_band",
+                    "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
+                ))
 
     return analyses
 
-def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
+def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, timing_collector=None):
     """
     Applies mathematical and logical filters (Solar, Cycle-Sync, Moving Stations) 
     to the fetched dataframe before it is handed over to the plotting engine.
     """
     if analysis.get("analysis_kind") == "opportunity":
-        df = prepare_opportunity_rows(
-            df,
-            target_callsign=st.session_state.val_callsign,
-            target_qth=st.session_state.val_qth,
-        )
+        with _timed_span(timing_collector, "opportunity prepare rows"):
+            df = prepare_opportunity_rows(
+                df,
+                target_callsign=analysis_context.callsign,
+                target_qth=analysis_context.qth,
+                timing_collector=timing_collector,
+            )
         if df.empty:
             return df, t["warn_no_data"].format(title=analysis["title"])
 
-        if st.session_state.val_solar != t["opt_solar_all"]:
-            target_state = (
-                "day"
-                if st.session_state.val_solar == t["opt_solar_day"]
-                else ("night" if st.session_state.val_solar == t["opt_solar_night"] else "grey")
-            )
-            df["solar"] = df["cycle_time"].apply(
-                lambda dt: get_solar_state(dt, lat_0, lon_0)
-            )
-            df = df[df["solar"] == target_state]
+        target_state = solar_path_state(analysis_context.solar_state)
+        if target_state is not None:
+            with _timed_span(timing_collector, "opportunity solar filter"):
+                df["solar"] = df["cycle_time"].apply(
+                    lambda dt: get_solar_state(dt, lat_0, lon_0)
+                )
+                df = df[df["solar"] == target_state]
 
-        if st.session_state.get("val_filter_moving", False) and not df.empty:
-            grid4 = df["peer_grid"].astype(str).str[:4]
-            static_peers = (
-                df.assign(g4=grid4)
-                .groupby("peer_sign")["g4"]
-                .nunique()
-                .loc[lambda values: values == 1]
-                .index
-            )
-            df = df[df["peer_sign"].isin(static_peers)]
+        if analysis_context.exclude_moving_stations and not df.empty:
+            with _timed_span(timing_collector, "opportunity moving-station filter"):
+                grid4 = df["peer_grid"].astype(str).str[:4]
+                static_peers = (
+                    df.assign(g4=grid4)
+                    .groupby("peer_sign")["g4"]
+                    .nunique()
+                    .loc[lambda values: values == 1]
+                    .index
+                )
+                df = df[df["peer_sign"].isin(static_peers)]
 
         if df.empty:
             return df, t["warn_no_data"].format(title=analysis["title"])
-        return df.reset_index(drop=True), None
+        with _timed_span(timing_collector, "opportunity filtered reset"):
+            return df.reset_index(drop=True), None
 
-    # --- 1. SOLAR FILTERING ---
-    if st.session_state.val_solar != t["opt_solar_all"]:
-        if analysis['is_compare'] and not analysis['is_sequential']: 
-            df['dt_time'] = pd.to_datetime(df['time_slot'] * 120, unit='s')
-        else: 
-            df['dt_time'] = pd.to_datetime(df['time'])
-            
-        df['solar'] = df['dt_time'].apply(lambda dt: get_solar_state(dt, lat_0, lon_0))
-        target_state = 'day' if st.session_state.val_solar == t["opt_solar_day"] else ('night' if st.session_state.val_solar == t["opt_solar_night"] else 'grey')
-        df = df[df['solar'] == target_state]
+    # 1. Solar filtering
+    target_state = solar_path_state(analysis_context.solar_state)
+    if target_state is not None:
+        with _timed_span(timing_collector, "comparison solar filter"):
+            if analysis['is_compare'] and not analysis['is_sequential']:
+                df['dt_time'] = pd.to_datetime(df['time_slot'] * 120, unit='s')
+            else:
+                df['dt_time'] = pd.to_datetime(df['time'])
 
-    # --- 2. EXCLUDE MOVING STATIONS ---
-    # Entfernt alle Gegenstationen, die mehr als ein 4-stelliges Grid in der Zeitperiode melden (Ballons, /M, /MM)
-    if st.session_state.get("val_filter_moving", False) and not df.empty and 'peer_grid' in df.columns:
-        # Extrahiere die ersten 4 Zeichen (um JN37 und JN37AB als "identisch" zu behandeln)
-        grid4 = df['peer_grid'].astype(str).str[:4]
-        # Finde Stationen, die exakt 1 eindeutiges 4er-Grid haben
-        static_peers = df.assign(g4=grid4).groupby('peer_sign')['g4'].nunique()[lambda x: x == 1].index
-        # Filtere den DataFrame
-        df = df[df['peer_sign'].isin(static_peers)]
+            df['solar'] = df['dt_time'].apply(lambda dt: get_solar_state(dt, lat_0, lon_0))
+            df = df[df['solar'] == target_state]
+
+    # 2. Exclude moving stations.
+    # Removes peers reporting more than one four-character grid during the selected period.
+    if analysis_context.exclude_moving_stations and not df.empty and 'peer_grid' in df.columns:
+        with _timed_span(timing_collector, "comparison moving-station filter"):
+            # Use the first four characters so JN37 and JN37AB are treated as the same grid.
+            grid4 = df['peer_grid'].astype(str).str[:4]
+            # Keep only stations with exactly one unique four-character grid.
+            static_peers = df.assign(g4=grid4).groupby('peer_sign')['g4'].nunique()[lambda x: x == 1].index
+            df = df[df['peer_sign'].isin(static_peers)]
 
     
-    # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (RX & TX) ---
-    # Verhindert massive "Offline-Strafen"! Ein Zyklus wird nur gewertet, wenn Setup A nachweislich aktiv war.
-    # Bei TX: Transceiver muss in diesem Zyklus gesendet haben (mind. 1 Spot weltweit).
-    # Bei RX: Empf?nger muss online gewesen sein (mind. 1 Spot von irgendwem weltweit empfangen).
+    # 3. Vectorized cycle synchronization (RX and TX).
+    # A cycle is counted only when Setup A was demonstrably active.
+    # TX: the transmitter must have sent in this cycle.
+    # RX: the receiver must have heard at least one station in this cycle.
     if analysis['is_compare'] and not analysis['is_sequential'] and 'has_u' in df.columns:
-        active_slots = df[df['has_u'] > 0]['time_slot'].unique()
-        df = df[df['time_slot'].isin(active_slots)]
+        with _timed_span(timing_collector, "comparison cycle synchronization"):
+            active_slots = df[df['has_u'] > 0]['time_slot'].unique()
+            df = df[df['time_slot'].isin(active_slots)]
     
-    # --- 3. VECTORIZED CYCLE SYNCHRONIZATION (STRICTLY TX ONLY) ---
-    # Im RX-Vergleich bedeutet "0 Spots" eine taube Antenne (wir behalten (!!!) den Zyklus als Niederlage). 
-    # Im TX-Vergleich bedeutet "0 Spots", dass nicht gesendet wurde (wir l?schen den Zyklus aus Fairness).
+    # Alternative cycle synchronization (strictly TX only).
+    # In RX comparison, zero spots may represent a deaf antenna, so the cycle can be evidence.
+    # In TX comparison, zero spots may mean no transmission, so dropping the cycle can be fairer.
     #is_tx = analysis['id'].startswith("TX")
     #if analysis['is_compare'] and not analysis['is_sequential'] and is_tx and 'has_u' in df.columns:
         #active_slots = df[df['has_u'] > 0]['time_slot'].unique()
@@ -400,5 +526,6 @@ def apply_post_fetch_filters(df, analysis, lat_0, lon_0, t):
     if df.empty:
         return df, t["warn_no_data"].format(title=analysis['title'])
 
-    df = round_snr_like_columns(df)
+    with _timed_span(timing_collector, "comparison SNR rounding"):
+        df = round_snr_like_columns(df)
     return df, None

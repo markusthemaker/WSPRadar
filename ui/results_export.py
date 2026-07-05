@@ -461,7 +461,7 @@ def _render_map_png_for_block(block):
 
 def _render_inspector_png_for_block(block, figure_name):
     """Render one inspector figure from compact inputs only during ZIP preparation."""
-    from ui.components.segment_inspector import (
+    from ui.plots.evidence_figures import (
         render_segment_insight_export_figure,
         render_selected_evidence_export_figure,
     )
@@ -490,7 +490,7 @@ def _build_all_drilldown_for_block(block):
         return pd.DataFrame()
 
     from i18n import T
-    from ui.components.segment_inspector import _build_drilldown_table, _load_station_rows_for_drilldown
+    from ui.inspector.drilldown import _build_drilldown_table, _load_station_rows_for_drilldown
 
     lang = context.get("lang", "en")
     t = T.get(lang, T["en"])

@@ -1,32 +1,9 @@
-"""
-Zentrale Konfigurationsdatei für WSPRadar.
-Enthält alle Konstanten, Farben, Bounding-Boxen und Grundeinstellungen.
-"""
-import os
+"""Guided WSPRadar demo profiles."""
+
 import datetime
 from datetime import time as dt_time
 
-# ==========================================
-# APP METADATA & URLs
-# ==========================================
-APP_VERSION = "v0.95"
-LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
-APP_URL = "https://wspradar.streamlit.app" 
-DB_URL = "https://db1.wspr.live/"
 
-# ==========================================
-# CACHING & DATABASE LIMITS
-# ==========================================
-CACHE_DIR = "./.wspr_cache"
-CACHE_TTL_SEC = 3600
-MAX_DAYS_HISTORY = 31
-
-# Cache-Ordner beim Import automatisch anlegen
-os.makedirs(CACHE_DIR, exist_ok=True)
-
-# ==========================================
-# DEMO PROFILES (Guided Sandbox)
-# ==========================================
 DEMO_PROFILES = {
     "vanhamel_rx_calibration": {
         "label": {
@@ -69,7 +46,6 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_absolute": "6h",
         },
     },
-
     "vanhamel_rx_buddy": {
         "label": {
             "en": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
@@ -111,8 +87,6 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_absolute": "6h",
         },
     },
-
-
     "zander_tx_buddy": {
         "label": {
             "en": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
@@ -154,7 +128,6 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_absolute": "15m",
         },
     },
-
     "milazzo_tx_buddy": {
         "label": {
             "en": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
@@ -196,7 +169,6 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_absolute": "3h",
         },
     },
-
     "rx_local_median_neighborhood": {
         "label": {
             "en": "RX Local Neighborhood Benchmark (Median)",
@@ -239,8 +211,6 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_absolute": "30m",
         },
     },
-    
-
     "rx_calibration_ab": {
         "label": {
             "en": "RX Calibration A/B Test",
@@ -290,7 +260,6 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_absolute": "3h",
         },
     },
-
     "rx_hardware_ab": {
         "label": {
             "en": "RX hardware A/B test",
@@ -333,7 +302,6 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_absolute": "30m",
         },
     },
-    
     "tx_hardware_ab": {
         "label": {
             "en": "TX hardware A/B test",
@@ -377,60 +345,5 @@ DEMO_PROFILES = {
             "station_evidence_time_bin_compare": "3h",
             "station_evidence_time_bin_absolute": "3h",
         },
-    }
-}
-
-# ==========================================
-# GEOSPATIAL CONSTANTS
-# ==========================================
-EARTH_RADIUS_KM = 6371.0
-EARTH_RADIUS_M = 6371000.0
-MAX_DYNAMIC_RADIUS_KM = 250  # Hard-Cap fuer die dynamische Referenz-Suche
-
-# Absolute path-illumination classification. The daylight fraction threshold
-# separates mostly-daylight and mostly-night great-circle paths; mixed cases are
-# labeled greyline/mixed.
-ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD = 0.75
-ABS_PATH_TWILIGHT_ELEVATION_DEG = 6.0
-ABS_PATH_SAMPLE_POINTS = 21
-
-# ==========================================
-# PLOT RENDERING SETTINGS
-# ==========================================
-PLOT_DPI = 150
-FIG_SIZE = (12, 12.5)                  
-MAP_BBOX = [0.0, 0.1, 0.9, 0.8]     
-CBAR_BBOX = [0.88, 0.20, 0.02, 0.55]  
-LEG_BBOX = (1.02, 0.90)               
-TITLE_POS = (0.45, 0.95)             
-COMPASS_LABEL_OFFSET = 0.97          
-ZOOMED_MAP_SCALE = 0.91
-
-# Fonts
-FONT_RINGS = 13                       
-FONT_COMPASS = 13                     
-FONT_POLES = 10                       
-FONT_LEGEND = 13                      
-FONT_CBAR = 13    
-FONT_FOOTER = 10                    
-
-# Azimuth & Segmente
-AZIMUTH_STEP = 22.50
-COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
-MAP_SCOPE_OPTIONS = [2500, 5000, 10000, 15000, 20000, 22000]
-DIST_BINS = [0] + MAP_SCOPE_OPTIONS
-THICK_RINGS = [5000, 10000, 15000, 20000]
-THIN_RINGS = [2500, 22000]
-
-# Scatter Plot Colors
-COLOR_JOINT = "#00ff00"
-COLOR_BOTH_ASYNC = "#ffbe33"
-COLOR_ONLY_ME = "#cc00ff"
-COLOR_ONLY_REF = "#ffffff"
-
-# Frequenzbänder Mapping
-BAND_MAP = {
-    '160m':'1', '80m':'3', '60m':'5', '40m':'7', '30m':'10', 
-    '20m':'14', '17m':'18', '15m':'21', '12m':'24', '10m':'28', 
-    '6m':'50', '2m':'144', '70cm':'432', '23cm':'1296', 'All':''
+    },
 }

@@ -102,6 +102,11 @@ def _canonical_from_translated(state_value, value_map, fallback):
     return fallback
 
 
+def canonical_from_translated(state_value, value_map, fallback):
+    """Translate a localized UI value into a stable config key."""
+    return _canonical_from_translated(state_value, value_map, fallback)
+
+
 def _translated_from_canonical(canonical, key_map, lang, fallback):
     """Translate a stable config key back into the current UI language."""
     translation_key = key_map.get(canonical)

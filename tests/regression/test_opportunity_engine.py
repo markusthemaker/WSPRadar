@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import math
 
+import numpy as np
 import pandas as pd
 
 from core.opportunity_engine import (
@@ -16,7 +17,12 @@ from core.opportunity_engine import (
 from core.solar_path import (
     ILLUMINATION_DAYLIGHT,
     ILLUMINATION_NIGHT,
+    _solar_time_terms,
     classify_path_illumination,
+    solar_elevation_degrees,
+    solar_elevation_from_terms,
+    solar_elevation_from_sun_vectors,
+    sun_unit_vectors_from_terms,
 )
 
 
@@ -63,6 +69,85 @@ def test_rx_opportunity_classification_and_target_exclusion():
     assert bool(peer["eligible"])
     assert math.isclose(float(peer["rate_pct"]), 50.0, abs_tol=0.001)
     assert math.isclose(float(peer["successful_snr_median"]), -12.0, abs_tol=0.001)
+
+
+def test_path_illumination_preserves_duplicate_row_results():
+    duplicate_rows = pd.DataFrame({
+        "cycle_time": [
+            datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
+            datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
+        ],
+        "peer_lat": [40.0, 40.0],
+        "peer_lon": [-75.0, -75.0],
+    })
+
+    classified = classify_path_illumination(
+        duplicate_rows,
+        target_latitude=47.0,
+        target_longitude=8.0,
+        daylight_fraction_threshold=0.75,
+        twilight_elevation_degrees=6.0,
+        sample_points=5,
+    )
+    single = classify_path_illumination(
+        duplicate_rows.iloc[[0]],
+        target_latitude=47.0,
+        target_longitude=8.0,
+        daylight_fraction_threshold=0.75,
+        twilight_elevation_degrees=6.0,
+        sample_points=5,
+    )
+
+    assert len(classified) == 2
+    for column in [
+        "path_daylight_fraction",
+        "target_solar_elevation",
+        "path_midpoint_solar_elevation",
+        "peer_solar_elevation",
+        "path_greyline_crossing",
+    ]:
+        assert classified.loc[0, column] == classified.loc[1, column]
+        assert classified.loc[0, column] == single.loc[0, column]
+    assert str(classified.loc[0, "path_illumination"]) == str(classified.loc[1, "path_illumination"])
+    assert str(classified.loc[0, "path_illumination"]) == str(single.loc[0, "path_illumination"])
+
+
+def test_precomputed_solar_terms_match_direct_elevation_helper():
+    times = pd.DatetimeIndex([
+        "2026-03-20 00:00:00Z",
+        "2026-06-21 12:30:00Z",
+        "2026-12-21 23:58:00Z",
+    ])
+    latitudes = np.asarray([0.0, 47.0, -33.9], dtype=float)
+    longitudes = np.asarray([0.0, 8.0, 151.2], dtype=float)
+
+    direct = solar_elevation_degrees(times, latitudes, longitudes)
+    from_terms = solar_elevation_from_terms(_solar_time_terms(times), latitudes, longitudes)
+
+    assert np.allclose(from_terms, direct, rtol=0.0, atol=1e-12)
+
+
+def test_sun_vector_elevation_matches_reference_formula_across_edge_cases():
+    times = pd.DatetimeIndex([
+        "2026-03-20 00:00:00Z",
+        "2026-03-20 12:00:00Z",
+        "2026-06-21 23:58:00Z",
+        "2026-12-21 00:02:00Z",
+        "2026-07-05 04:30:00Z",
+        "2026-07-05 16:30:00Z",
+    ])
+    latitudes = np.asarray([0.0, 0.0, 66.5, -66.5, 47.0, -33.9], dtype=float)
+    longitudes = np.asarray([0.0, 179.9, -179.9, 8.0, -75.0, 151.2], dtype=float)
+    solar_terms = _solar_time_terms(times)
+
+    reference = solar_elevation_from_terms(solar_terms, latitudes, longitudes)
+    vectorized = solar_elevation_from_sun_vectors(
+        sun_unit_vectors_from_terms(solar_terms),
+        latitudes,
+        longitudes,
+    )
+
+    assert np.allclose(vectorized, reference, rtol=0.0, atol=1e-10)
 
 
 def test_target_only_never_enters_denominator():

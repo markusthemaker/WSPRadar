@@ -9,6 +9,7 @@ aggregation is then performed locally from that compact evidence table.
 from __future__ import annotations
 
 from datetime import datetime
+from contextlib import nullcontext
 
 import numpy as np
 import pandas as pd
@@ -51,6 +52,13 @@ SUCCESS_RATE_COLORS = (
     "#d73027",
     "#a50026",
 )
+
+
+def _timed_span(timing_collector, label, detail=""):
+    """Return a timing context when profiling is active."""
+    if timing_collector is None:
+        return nullcontext()
+    return timing_collector.span(label, detail=detail)
 
 
 def opportunity_rate_scale_max(values, minimum=1.0):
@@ -210,6 +218,7 @@ def prepare_opportunity_rows(
     *,
     target_callsign: str,
     target_qth: str,
+    timing_collector=None,
 ) -> pd.DataFrame:
     """
     Normalize server evidence and classify every peer-cycle as H, M, or T.
@@ -231,59 +240,70 @@ def prepare_opportunity_rows(
     if missing:
         raise ValueError(f"Opportunity result is missing columns: {', '.join(sorted(missing))}")
 
-    work = df.copy()
-    work["peer_sign"] = work["peer_sign"].astype(str).str.strip().str.upper()
-    work["peer_grid"] = work["peer_grid"].astype(str).str.strip().str.upper()
-    for column in ["time_slot", "target_seen", "external_seen", "target_snr"]:
-        work[column] = pd.to_numeric(work[column], errors="coerce")
-    work = work.dropna(subset=["time_slot", "peer_sign", "peer_grid"])
-    work = work[work["peer_sign"].ne("") & work["peer_grid"].ne("")].copy()
-    work["time_slot"] = work["time_slot"].astype("int64")
-    work["target_seen"] = (work["target_seen"].fillna(0) > 0).astype("int8")
-    work["external_seen"] = (work["external_seen"].fillna(0) > 0).astype("int8")
+    with _timed_span(timing_collector, "opportunity normalize rows"):
+        work = df.copy()
+        work["peer_sign"] = work["peer_sign"].astype(str).str.strip().str.upper()
+        work["peer_grid"] = work["peer_grid"].astype(str).str.strip().str.upper()
+        for column in ["time_slot", "target_seen", "external_seen", "target_snr"]:
+            work[column] = pd.to_numeric(work[column], errors="coerce")
+        work = work.dropna(subset=["time_slot", "peer_sign", "peer_grid"])
+        work = work[work["peer_sign"].ne("") & work["peer_grid"].ne("")].copy()
+        work["time_slot"] = work["time_slot"].astype("int64")
+        work["target_seen"] = (work["target_seen"].fillna(0) > 0).astype("int8")
+        work["external_seen"] = (work["external_seen"].fillna(0) > 0).astype("int8")
 
-    target_call = str(target_callsign or "").strip().upper()
-    _ = target_grid4(target_qth)
-    target_latitude, target_longitude = locator_to_latlon(target_qth)
-    is_target_identity = work["peer_sign"].eq(target_call)
-    work = work[~is_target_identity].copy()
+    with _timed_span(timing_collector, "opportunity target identity filter"):
+        target_call = str(target_callsign or "").strip().upper()
+        _ = target_grid4(target_qth)
+        target_latitude, target_longitude = locator_to_latlon(target_qth)
+        is_target_identity = work["peer_sign"].eq(target_call)
+        work = work[~is_target_identity].copy()
 
-    coordinates = _locator_coordinates(work["peer_grid"])
-    work = work.merge(coordinates, on="peer_grid", how="inner")
+    with _timed_span(timing_collector, "opportunity locator coordinate resolution"):
+        coordinates = _locator_coordinates(work["peer_grid"])
+
+    with _timed_span(timing_collector, "opportunity coordinate merge"):
+        work = work.merge(coordinates, on="peer_grid", how="inner")
     if work.empty:
         return work
 
-    work["cycle_time"] = pd.to_datetime(
-        work["time_slot"] * 120,
-        unit="s",
-        utc=True,
-        errors="coerce",
-    )
-    work["opportunity"] = work["external_seen"].astype("int8")
-    work["hit"] = (
-        (work["target_seen"] == 1) & (work["external_seen"] == 1)
-    ).astype("int8")
-    work["miss"] = (
-        (work["target_seen"] == 0) & (work["external_seen"] == 1)
-    ).astype("int8")
-    work["target_only"] = (
-        (work["target_seen"] == 1) & (work["external_seen"] == 0)
-    ).astype("int8")
-    work["outcome"] = np.select(
-        [work["hit"] == 1, work["miss"] == 1, work["target_only"] == 1],
-        ["H", "M", "T"],
-        default="",
-    )
-    work["target_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").round(1)
-    work = classify_path_illumination(
-        work,
-        target_latitude=target_latitude,
-        target_longitude=target_longitude,
-        daylight_fraction_threshold=ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD,
-        twilight_elevation_degrees=ABS_PATH_TWILIGHT_ELEVATION_DEG,
-        sample_points=ABS_PATH_SAMPLE_POINTS,
-    )
-    return work.reset_index(drop=True)
+    with _timed_span(timing_collector, "opportunity outcome columns"):
+        work["cycle_time"] = pd.to_datetime(
+            work["time_slot"] * 120,
+            unit="s",
+            utc=True,
+            errors="coerce",
+        )
+        work["opportunity"] = work["external_seen"].astype("int8")
+        work["hit"] = (
+            (work["target_seen"] == 1) & (work["external_seen"] == 1)
+        ).astype("int8")
+        work["miss"] = (
+            (work["target_seen"] == 0) & (work["external_seen"] == 1)
+        ).astype("int8")
+        work["target_only"] = (
+            (work["target_seen"] == 1) & (work["external_seen"] == 0)
+        ).astype("int8")
+        work["outcome"] = np.select(
+            [work["hit"] == 1, work["miss"] == 1, work["target_only"] == 1],
+            ["H", "M", "T"],
+            default="",
+        )
+        work["target_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").round(1)
+
+    with _timed_span(timing_collector, "opportunity path illumination"):
+        work = classify_path_illumination(
+            work,
+            target_latitude=target_latitude,
+            target_longitude=target_longitude,
+            daylight_fraction_threshold=ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD,
+            twilight_elevation_degrees=ABS_PATH_TWILIGHT_ELEVATION_DEG,
+            sample_points=ABS_PATH_SAMPLE_POINTS,
+            timing_collector=timing_collector,
+        )
+
+    with _timed_span(timing_collector, "opportunity final reset"):
+        return work.reset_index(drop=True)
 
 
 def aggregate_opportunity_peers(

@@ -8,8 +8,12 @@ import matplotlib
 matplotlib.use('Agg')  # Zwingt Matplotlib in den Headless-Modus (verhindert RAM-Leaks auf Streamlit Cloud)
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from contextlib import nullcontext
 from matplotlib.patches import Patch, Wedge
 from matplotlib.collections import PatchCollection
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+import os
+from time import perf_counter
 import streamlit as st
 
 from config import *
@@ -21,12 +25,16 @@ from core.opportunity_engine import (
     SUCCESS_RATE_TICK_LABELS,
 )
 from core.compare_engine import aggregate_compare_map_data, compare_footer_counts
-from core.map_base import create_base_map_figure
+from core.map_base import create_base_map_figure, create_preview_cached_base_map_figure
+from core.math_utils import locator_to_latlon
 from core.snr_utils import round_snr_like_columns
 from i18n import T, absolute_terms
 
 MIN_LABEL_CUTOFF_PCT = 0.02
 COMPARE_NEUTRAL_COLOR = "#fff2a8"
+BASEMAP_DRAW_PROFILE_ENV = "WSPRADAR_PROFILE_BASEMAP_DRAW"
+BASEMAP_CACHE_ENV = "WSPRADAR_PREVIEW_BASEMAP_CACHE"
+MAP_PROFILE_PREVIEW_DPI = 100
 
 MAP_THEMES = {
     "dark": {
@@ -93,6 +101,86 @@ MAP_THEMES = {
     },
 }
 
+
+def _timed_span(timing_collector, label, detail=""):
+    """Return a timing context when profiling is active."""
+    if timing_collector is None:
+        return nullcontext()
+    return timing_collector.span(label, detail=detail)
+
+
+def _base_map_draw_profile_enabled():
+    """Return whether the expensive base-only map draw diagnostic is enabled."""
+    value = os.getenv(BASEMAP_DRAW_PROFILE_ENV, "")
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _preview_base_map_cache_enabled():
+    """Return whether live preview maps should use the static basemap raster cache."""
+    value = os.getenv(BASEMAP_CACHE_ENV, "1")
+    return str(value).strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _preview_basemap_cache_center(qth, fallback_latitude, fallback_longitude):
+    """Return the 4-character QTH cache label and static preview basemap center."""
+    basemap_qth = str(qth or "").strip().upper()[:4]
+    if len(basemap_qth) != 4:
+        return "", fallback_latitude, fallback_longitude
+
+    try:
+        cache_latitude, cache_longitude = locator_to_latlon(basemap_qth)
+    except (TypeError, ValueError):
+        return "", fallback_latitude, fallback_longitude
+    return basemap_qth, cache_latitude, cache_longitude
+
+
+def _draw_preview_canvas_for_profile(fig, dpi=MAP_PROFILE_PREVIEW_DPI):
+    """Draw a figure canvas at preview DPI and return a profiler detail string."""
+    if not hasattr(fig.canvas, "buffer_rgba"):
+        FigureCanvasAgg(fig)
+
+    original_dpi = fig.dpi
+    try:
+        fig.set_dpi(dpi)
+        fig.canvas.draw()
+        width_px, height_px = fig.canvas.get_width_height()
+    finally:
+        fig.set_dpi(original_dpi)
+    return f"{width_px}x{height_px} px | {dpi:g} dpi | extra diagnostic draw"
+
+
+def _profile_base_only_map_draw(
+    *,
+    title,
+    maximum_distance_km,
+    center_latitude,
+    center_longitude,
+    theme_name,
+    theme_config,
+    timing_collector,
+):
+    """Measure the static base-map draw path without changing the rendered map."""
+    if timing_collector is None or not _base_map_draw_profile_enabled():
+        return
+
+    with _timed_span(timing_collector, "diagnostic base-only construction"):
+        base_fig, _, _, _ = create_base_map_figure(
+            title=title,
+            maximum_distance_km=maximum_distance_km,
+            center_latitude=center_latitude,
+            center_longitude=center_longitude,
+            theme_name=theme_name,
+            theme_config=theme_config,
+        )
+
+    try:
+        draw_start = perf_counter()
+        detail = _draw_preview_canvas_for_profile(base_fig)
+        timing_collector.add("diagnostic base-only canvas draw", perf_counter() - draw_start, detail=detail)
+    finally:
+        plt.close(base_fig)
+
+
 def generate_map_plot(
     df,
     title,
@@ -107,85 +195,124 @@ def generate_map_plot(
     lon_0,
     theme="dark",
     analysis_kind="comparison",
+    timing_collector=None,
 ):
     """Hauptfunktion zum Berechnen der Aggregate und Plotten der Radar-Karte."""
     theme_cfg = MAP_THEMES.get(theme, MAP_THEMES["dark"])
     is_opportunity = analysis_kind == "opportunity"
 
     if is_opportunity:
-        df = aggregate_opportunity_peers(
-            df,
-            min_opportunities=st.session_state.get("val_min_opportunities", 5),
-        )
+        with _timed_span(timing_collector, "map aggregation: opportunity peers"):
+            df = aggregate_opportunity_peers(
+                df,
+                min_opportunities=st.session_state.get("val_min_opportunities", 5),
+            )
         if df.empty:
             return None
     
-    # Entfernungen & Azimut berechnen
-    l1, n1, l2, n2 = map(np.radians, [lat_0, lon_0, df['peer_lat'], df['peer_lon']])
-    a = np.sin((l2-l1)/2.0)**2 + np.cos(l1)*np.cos(l2)*np.sin((n2-n1)/2.0)**2
-    df['calc_dist'] = (2 * EARTH_RADIUS_KM) * np.arcsin(np.sqrt(a))
-    
-    y = np.sin(n2-n1) * np.cos(l2)
-    x = np.cos(l1) * np.sin(l2) - np.sin(l1) * np.cos(l2) * np.cos(n2-n1)
-    df['calc_azimuth'] = (np.degrees(np.arctan2(y, x)) + 360) % 360
-    
-    # Segment-Klassifizierung
-    df['az_bucket'] = ((df['calc_azimuth'] + (AZIMUTH_STEP / 2.0)) % 360) // AZIMUTH_STEP
-    df['dir_name'] = df['az_bucket'].apply(lambda v: COMPASS[int(v)] if pd.notnull(v) else "")
-    
-    df['r_min'] = pd.cut(df['calc_dist'], bins=DIST_BINS, labels=DIST_BINS[:-1], right=False).astype(float)
-    df['r_max'] = pd.cut(df['calc_dist'], bins=DIST_BINS, labels=DIST_BINS[1:], right=False).astype(float)
-    df['dist_label'] = df.apply(lambda r: f"[{int(r['r_min'])}-{int(r['r_max'])}km]" if pd.notnull(r['r_min']) else "", axis=1)
-    df['SegmentID'] = df.apply(lambda r: f"{r['dist_label']} {r['dir_name']}" if pd.notnull(r['r_min']) else "Out of Bounds", axis=1)
+    with _timed_span(timing_collector, "geometry bucketing"):
+        # Entfernungen & Azimut berechnen
+        l1, n1, l2, n2 = map(np.radians, [lat_0, lon_0, df['peer_lat'], df['peer_lon']])
+        a = np.sin((l2-l1)/2.0)**2 + np.cos(l1)*np.cos(l2)*np.sin((n2-n1)/2.0)**2
+        df['calc_dist'] = (2 * EARTH_RADIUS_KM) * np.arcsin(np.sqrt(a))
+
+        y = np.sin(n2-n1) * np.cos(l2)
+        x = np.cos(l1) * np.sin(l2) - np.sin(l1) * np.cos(l2) * np.cos(n2-n1)
+        df['calc_azimuth'] = (np.degrees(np.arctan2(y, x)) + 360) % 360
+
+        # Segment-Klassifizierung
+        df['az_bucket'] = ((df['calc_azimuth'] + (AZIMUTH_STEP / 2.0)) % 360) // AZIMUTH_STEP
+        df['dir_name'] = df['az_bucket'].apply(lambda v: COMPASS[int(v)] if pd.notnull(v) else "")
+
+        df['r_min'] = pd.cut(df['calc_dist'], bins=DIST_BINS, labels=DIST_BINS[:-1], right=False).astype(float)
+        df['r_max'] = pd.cut(df['calc_dist'], bins=DIST_BINS, labels=DIST_BINS[1:], right=False).astype(float)
+        df['dist_label'] = df.apply(lambda r: f"[{int(r['r_min'])}-{int(r['r_max'])}km]" if pd.notnull(r['r_min']) else "", axis=1)
+        df['SegmentID'] = df.apply(lambda r: f"{r['dist_label']} {r['dir_name']}" if pd.notnull(r['r_min']) else "Out of Bounds", axis=1)
 
     if is_opportunity:
-        df_plot = df.copy()
-        segs = aggregate_opportunity_segments(df_plot)
-        if not segs.empty:
-            segs = segs[segs["cnt"] >= base_min_stations]
+        with _timed_span(timing_collector, "map aggregation: opportunity segments"):
+            df_plot = df.copy()
+            segs = aggregate_opportunity_segments(df_plot)
+            if not segs.empty:
+                segs = segs[segs["cnt"] >= base_min_stations]
     elif not is_compare:
-        # Absolute Logik: Median Aggregation
-        station_counts = df.groupby(['SegmentID', 'peer_sign']).size().reset_index(name='spot_count')
-        valid_stations = station_counts[station_counts['spot_count'] >= st.session_state.val_min_spots]
-        df_valid = df.merge(valid_stations[['SegmentID', 'peer_sign']], on=['SegmentID', 'peer_sign'], how='inner')
-        
-        reporter_medians = df_valid.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign', 'peer_grid']).agg(
-            stat_val=('stat_val', 'median'),
-            spot_count=('stat_val', 'count'),
-            peer_lat=('peer_lat', 'first'),
-            peer_lon=('peer_lon', 'first'),
-            calc_dist=('calc_dist', 'first'),
-            calc_azimuth=('calc_azimuth', 'first')
-        ).reset_index()
-        reporter_medians = round_snr_like_columns(reporter_medians)
-        
-        segs = reporter_medians.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket']).agg(
-            val=('stat_val', 'median'),
-            cnt=('peer_sign', 'nunique'),
-            total_spots=('spot_count', 'sum')
-        ).reset_index()
-        segs = round_snr_like_columns(segs, columns=['val'])
-        segs = segs[segs['cnt'] >= base_min_stations]
-        df_plot = reporter_medians 
+        with _timed_span(timing_collector, "map aggregation: absolute segments"):
+            # Absolute Logik: Median Aggregation
+            station_counts = df.groupby(['SegmentID', 'peer_sign']).size().reset_index(name='spot_count')
+            valid_stations = station_counts[station_counts['spot_count'] >= st.session_state.val_min_spots]
+            df_valid = df.merge(valid_stations[['SegmentID', 'peer_sign']], on=['SegmentID', 'peer_sign'], how='inner')
+
+            reporter_medians = df_valid.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign', 'peer_grid']).agg(
+                stat_val=('stat_val', 'median'),
+                spot_count=('stat_val', 'count'),
+                peer_lat=('peer_lat', 'first'),
+                peer_lon=('peer_lon', 'first'),
+                calc_dist=('calc_dist', 'first'),
+                calc_azimuth=('calc_azimuth', 'first')
+            ).reset_index()
+            reporter_medians = round_snr_like_columns(reporter_medians)
+
+            segs = reporter_medians.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket']).agg(
+                val=('stat_val', 'median'),
+                cnt=('peer_sign', 'nunique'),
+                total_spots=('spot_count', 'sum')
+            ).reset_index()
+            segs = round_snr_like_columns(segs, columns=['val'])
+            segs = segs[segs['cnt'] >= base_min_stations]
+            df_plot = reporter_medians
     else:
-        df_plot, segs = aggregate_compare_map_data(
-            df,
-            is_sequential=is_sequential,
-            min_spots=st.session_state.val_min_spots,
-            base_min_stations=base_min_stations,
-            tx_ab_bin_minutes=st.session_state.get('val_tx_ab_bin_minutes', 8),
-        )
+        with _timed_span(timing_collector, "map aggregation: compare segments"):
+            df_plot, segs = aggregate_compare_map_data(
+                df,
+                is_sequential=is_sequential,
+                min_spots=st.session_state.val_min_spots,
+                base_min_stations=base_min_stations,
+                tx_ab_bin_minutes=st.session_state.get('val_tx_ab_bin_minutes', 8),
+            )
 
     if df_plot.empty or (segs.empty and not is_opportunity): return None
 
-    fig, ax, proj, pc_proj = create_base_map_figure(
-        title=title,
-        maximum_distance_km=max_dist_km,
-        center_latitude=lat_0,
-        center_longitude=lon_0,
-        theme_name=theme,
-        theme_config=theme_cfg,
-    )
+    if theme == "dark" and _preview_base_map_cache_enabled():
+        with _timed_span(timing_collector, "base-map cache construction"):
+            cache_label, cache_latitude, cache_longitude = _preview_basemap_cache_center(
+                st.session_state.get("val_qth", ""),
+                lat_0,
+                lon_0,
+            )
+            fig, ax, proj, pc_proj, cache_detail = create_preview_cached_base_map_figure(
+                title=title,
+                maximum_distance_km=max_dist_km,
+                center_latitude=lat_0,
+                center_longitude=lon_0,
+                theme_name=theme,
+                theme_config=theme_cfg,
+                cache_label=cache_label,
+                cache_center_latitude=cache_latitude,
+                cache_center_longitude=cache_longitude,
+                preview_dpi=MAP_PROFILE_PREVIEW_DPI,
+            )
+        if timing_collector is not None:
+            timing_collector.add("base-map cache", 0.0, detail=cache_detail)
+    else:
+        with _timed_span(timing_collector, "base-map construction"):
+            fig, ax, proj, pc_proj = create_base_map_figure(
+                title=title,
+                maximum_distance_km=max_dist_km,
+                center_latitude=lat_0,
+                center_longitude=lon_0,
+                theme_name=theme,
+                theme_config=theme_cfg,
+            )
+
+        _profile_base_only_map_draw(
+            title=title,
+            maximum_distance_km=max_dist_km,
+            center_latitude=lat_0,
+            center_longitude=lon_0,
+            theme_name=theme,
+            theme_config=theme_cfg,
+            timing_collector=timing_collector,
+        )
 
     # UI Texts
     t_lang = T[st.session_state.lang]
@@ -230,27 +357,30 @@ def generate_map_plot(
     cmap = mpl.colors.ListedColormap(clrs)
     norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
     
-    # Draw Heatmap Wedges
-    patches = []
-    visible_segs = segs[segs["r_min"] < max_dist_km].copy()
-    for _, r in visible_segs.iterrows():
-        center_az = r['az_bucket'] * AZIMUTH_STEP
-        az_min = center_az - (AZIMUTH_STEP / 2.0)
-        az_max = center_az + (AZIMUTH_STEP / 2.0)
-        theta1 = 90 - az_max
-        theta2 = 90 - az_min
-        patches.append(Wedge((0,0), min(r['r_max'], max_dist_km)*1000, theta1, theta2, width=(min(r['r_max'], max_dist_km)-r['r_min'])*1000))
-            
-    heatmap_alpha = 0.75
-    if patches:
-        p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
-        p.set_array(visible_segs['val'].to_numpy())
-        ax.add_collection(p)
-    else:
-        p = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-        p.set_array([])
+    with _timed_span(timing_collector, "wedge creation"):
+        # Draw Heatmap Wedges
+        patches = []
+        visible_segs = segs[segs["r_min"] < max_dist_km].copy()
+        for _, r in visible_segs.iterrows():
+            center_az = r['az_bucket'] * AZIMUTH_STEP
+            az_min = center_az - (AZIMUTH_STEP / 2.0)
+            az_max = center_az + (AZIMUTH_STEP / 2.0)
+            theta1 = 90 - az_max
+            theta2 = 90 - az_min
+            patches.append(Wedge((0,0), min(r['r_max'], max_dist_km)*1000, theta1, theta2, width=(min(r['r_max'], max_dist_km)-r['r_min'])*1000))
+
+        heatmap_alpha = 0.75
+        if patches:
+            p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
+            p.set_array(visible_segs['val'].to_numpy())
+            ax.add_collection(p)
+        else:
+            p = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            p.set_array([])
     
     lbl_both_async = t_lang.get('leg_both_async', 'Both (Async)')
+
+    scatter_start = perf_counter()
 
     # Draw Scatter Dots
     if is_compare and 'count_only_u' in df_plot.columns:
@@ -334,6 +464,9 @@ def generate_map_plot(
         leg.set_zorder(15)
     else:
         ax.scatter(df_plot['peer_lon'], df_plot['peer_lat'], c=COLOR_ONLY_ME, s=5, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=lbl_only_me)
+
+    if timing_collector is not None:
+        timing_collector.add("scatter rendering", perf_counter() - scatter_start)
 
     # Colorbar
     cax = fig.add_axes(CBAR_BBOX)
