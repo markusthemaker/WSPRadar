@@ -142,6 +142,28 @@ def save_config(config_path: Path, config: dict[str, Any]) -> None:
         handle.write("\n")
 
 
+def load_config_after_setup(config_path: Path) -> dict[str, Any]:
+    """Load config for manual relay control and require a previous setup run."""
+    if not config_path.exists():
+        raise ToolError(
+            "Manual relay control requires setup first. "
+            "Run Start-Timed-AB-Relay-Switch.sh --setup or Start-Timed-AB-Relay-Switch.cmd --setup."
+        )
+
+    config = load_config(config_path)
+    device_config = config.get("device", {})
+    has_saved_device_identity = any(
+        as_text(device_config.get(field))
+        for field in ("path", "pathHex", "serialNumber", "relaySerial")
+    )
+    if not has_saved_device_identity:
+        raise ToolError(
+            "Manual relay control requires a configured relay device. "
+            "Run setup first and select the USB relay device and channel."
+        )
+    return config
+
+
 def write_log_line(config: dict[str, Any], message: str) -> None:
     logging_config = config.get("logging", {})
     if not logging_config.get("enabled", True):
@@ -595,6 +617,27 @@ def show_setup(config_path: Path) -> None:
         set_relay_state(config, False, dry_run=False)
 
 
+def show_manual_relay_control(config_path: Path, relay_on: bool) -> None:
+    """Set the configured relay to a physical ON/OFF state and exit."""
+    config = load_config_after_setup(config_path)
+    write_method = set_relay_state(config, relay_on, dry_run=False)
+    relay_state = "ON" if relay_on else "OFF"
+    mapping_text = (
+        "ON=Target, OFF=Reference"
+        if config["device"].get("onMeansTarget", True)
+        else "ON=Reference, OFF=Target"
+    )
+    print(f"Relay manually set to {relay_state}.")
+    print(
+        "Relay device: "
+        f"{config['device'].get('vendorId')}:{config['device'].get('productId')} "
+        f"CH{config['device'].get('relayChannel')}"
+    )
+    print(f"Configured mapping: {mapping_text}")
+    print(f"Write method: {write_method}")
+    write_log_line(config, f"MANUAL relayOn={relay_on} method={write_method}")
+
+
 def build_ntp_text(ntp: NtpStatus | None, now: dt.datetime, config: dict[str, Any]) -> tuple[str, str]:
     if ntp is None:
         return "not checked yet", "Unknown"
@@ -740,7 +783,10 @@ def show_dashboard(config_path: Path, dry_run: bool, once: bool) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Timed A/B USB HID relay switch")
-    parser.add_argument("--setup", "-Setup", action="store_true", help="run interactive setup")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--setup", "-Setup", action="store_true", help="run interactive setup")
+    mode_group.add_argument("--on", "-On", action="store_true", help="set the configured relay physically ON and exit")
+    mode_group.add_argument("--off", "-Off", action="store_true", help="set the configured relay physically OFF and exit")
     parser.add_argument("--dry-run", "-DryRun", action="store_true", help="show timing without writing to the relay")
     parser.add_argument("--once", "-Once", action="store_true", help="render one status frame and exit")
     parser.add_argument(
@@ -762,6 +808,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.setup:
             show_setup(config_path)
+        elif args.on or args.off:
+            if args.dry_run or args.once:
+                raise ToolError("--on and --off are one-shot relay writes and cannot be combined with --dry-run or --once.")
+            show_manual_relay_control(config_path, relay_on=args.on)
         else:
             show_dashboard(config_path, dry_run=args.dry_run, once=args.once)
         return 0

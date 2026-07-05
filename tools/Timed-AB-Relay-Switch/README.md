@@ -9,6 +9,7 @@ This tool is intentionally generic. It can be used for WSPR hardware A/B switchi
 - Optional switch lead before the slot boundary, default `5.0 s`
 - UTC and NTP status shown in the console
 - Multi-relay setup: select USB device index first, then select relay channel
+- Manual physical relay ON/OFF commands after setup
 
 The tool targets common DCT/ATtiny45/V-USB HID relay boards with USB VID/PID `16c0:05df`, such as devices reporting product names like `USBRelay1`, `USBRelay2`, and similar.
 
@@ -137,6 +138,35 @@ The console dashboard refreshes once per UTC second and shows:
 Relay timing is checked more frequently than the dashboard redraw, so the optional switch lead is not limited to one-second display cadence.
 
 The tool schedules from the system UTC clock. NTP is shown as a diagnostic only; it does not silently shift relay timing away from the computer clock used by the transmitter software.
+
+## Manual Relay Control
+
+Manual relay control sets the physical relay state and exits. It requires setup to have been run at least once, because the tool needs the saved USB relay identity and relay channel.
+
+`--on` means physical relay ON. `--off` means physical relay OFF. These commands do not mean Target or Reference by themselves; the Target/Reference meaning depends on the setup answer to "Should relay ON mean Target?".
+
+### Windows
+
+```bat
+Start-Timed-AB-Relay-Switch.cmd --on
+Start-Timed-AB-Relay-Switch.cmd --off
+```
+
+PowerShell-style aliases are also accepted:
+
+```bat
+Start-Timed-AB-Relay-Switch.cmd -On
+Start-Timed-AB-Relay-Switch.cmd -Off
+```
+
+### Linux/macOS
+
+```sh
+./Start-Timed-AB-Relay-Switch.sh --on
+./Start-Timed-AB-Relay-Switch.sh --off
+```
+
+If setup has not been completed, manual control exits with an error and asks you to run setup first.
 
 ## Dry Run
 
