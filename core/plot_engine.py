@@ -5,13 +5,11 @@ Fuehrt die geografische Aggregation durch und zeichnet die Cartopy-Map.
 import pandas as pd
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')  # Zwingt Matplotlib in den Headless-Modus (verhindert RAM-Leaks auf Streamlit Cloud)
-import matplotlib.pyplot as plt
+matplotlib.use('Agg')  # Use the non-interactive backend required by Streamlit Cloud.
 import matplotlib as mpl
 from contextlib import nullcontext
 from matplotlib.patches import Patch, Wedge
 from matplotlib.collections import PatchCollection
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 import os
 from time import perf_counter
 import streamlit as st
@@ -26,6 +24,7 @@ from core.opportunity_engine import (
 )
 from core.compare_engine import aggregate_compare_map_data, compare_footer_counts
 from core.map_base import create_base_map_figure, create_preview_cached_base_map_figure
+from core.matplotlib_runtime import ensure_agg_canvas, synchronized_matplotlib
 from core.math_utils import locator_to_latlon
 from core.snr_utils import round_snr_like_columns
 from i18n import T, absolute_terms
@@ -136,14 +135,13 @@ def _preview_basemap_cache_center(qth, fallback_latitude, fallback_longitude):
 
 def _draw_preview_canvas_for_profile(fig, dpi=MAP_PROFILE_PREVIEW_DPI):
     """Draw a figure canvas at preview DPI and return a profiler detail string."""
-    if not hasattr(fig.canvas, "buffer_rgba"):
-        FigureCanvasAgg(fig)
+    canvas = ensure_agg_canvas(fig)
 
     original_dpi = fig.dpi
     try:
         fig.set_dpi(dpi)
-        fig.canvas.draw()
-        width_px, height_px = fig.canvas.get_width_height()
+        canvas.draw()
+        width_px, height_px = canvas.get_width_height()
     finally:
         fig.set_dpi(original_dpi)
     return f"{width_px}x{height_px} px | {dpi:g} dpi | extra diagnostic draw"
@@ -178,9 +176,10 @@ def _profile_base_only_map_draw(
         detail = _draw_preview_canvas_for_profile(base_fig)
         timing_collector.add("diagnostic base-only canvas draw", perf_counter() - draw_start, detail=detail)
     finally:
-        plt.close(base_fig)
+        base_fig.clear()
 
 
+@synchronized_matplotlib
 def generate_map_plot(
     df,
     title,
@@ -476,7 +475,7 @@ def generate_map_plot(
     # the default axes background and the legend colors no longer match the map.
     cax.set_facecolor(theme_cfg["cbar_face"])
 
-    cbar = plt.colorbar(p, cax=cax, ticks=ticks, spacing="uniform")
+    cbar = fig.colorbar(p, cax=cax, ticks=ticks, spacing="uniform")
     cbar.ax.set_facecolor(theme_cfg["cbar_face"])
 
     if hasattr(cbar, "solids"):

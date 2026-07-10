@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 
 from config import APP_VERSION
+from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.solar_path import ILLUMINATION_CLASSES
 from core.stability import (
     _expanded_metric_limits,
@@ -619,10 +619,11 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
     ax.set_ylabel(labels["y_label"], color="white")
     _add_foreground_horizontal_grid(ax)
 
+@synchronized_matplotlib
 def _create_selected_station_evidence_figure(plot_df, evidence_title, labels, time_agg, is_compare, is_sequential):
     """Build the selected-station evidence figure for UI or lazy export rendering."""
     evidence_count = len(plot_df)
-    fig_ev = plt.figure(figsize=(13, 5.6), facecolor="black")
+    fig_ev = create_agg_figure(figsize=(13, 5.6), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
     fig_ev.suptitle(f"\n{evidence_title}", color="white", fontweight="bold", fontsize=14, y=0.98)
     fig_ev.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
@@ -722,6 +723,7 @@ def _segment_figure_export_recipe(
         "panel_y_label": str(panel_y_label),
     }
 
+@synchronized_matplotlib
 def render_segment_insight_export_figure(recipe):
     """Rebuild the Segment Insight figure only when preparing the results ZIP."""
     if not recipe:
@@ -740,7 +742,7 @@ def render_segment_insight_export_figure(recipe):
     panel_counts = list(recipe.get("panel_counts", []))
     panel_labels = list(recipe.get("panel_labels", []))
 
-    fig_hist = plt.figure(figsize=(13, 5.6), facecolor="black")
+    fig_hist = create_agg_figure(figsize=(13, 5.6), facecolor="black")
     fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
     gs = fig_hist.add_gridspec(1, 3)
     ax_panel = fig_hist.add_subplot(gs[0, 0])

@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 import streamlit as st
 
 from config import APP_VERSION
+from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.opportunity_engine import (
     opportunity_rate_scale_max,
     SUCCESS_RATE_BOUNDS,
@@ -241,7 +241,7 @@ def _draw_opportunity_heatmap(
         fontsize=9,
     )
     if show_colorbar:
-        cbar = plt.colorbar(
+        cbar = ax.figure.colorbar(
             image,
             ax=ax,
             pad=0.015,
@@ -297,12 +297,13 @@ def _opportunity_time_tick_indices(time_values):
         stride = max(1, int(np.ceil((bin_count - 1) / 7)))
     return np.arange(0, bin_count, stride, dtype=int)
 
+@synchronized_matplotlib
 def _render_opportunity_segment_figure(recipe):
     terms = recipe.get("terminology") or absolute_terms(
         T.get(st.session_state.get("lang", "en"), T["en"]),
         recipe.get("absolute_mode", "RX"),
     )
-    fig = plt.figure(figsize=(13, 7.2), facecolor="black")
+    fig = create_agg_figure(figsize=(13, 7.2), facecolor="black")
     fig.subplots_adjust(left=0.08, right=0.98, bottom=0.12, top=0.84, hspace=0.42, wspace=0.10)
     fig.suptitle(
         f"\n{recipe.get('title', '')} - {recipe.get('selected_segment', '')}",
@@ -525,12 +526,13 @@ def _opportunity_selected_recipe(
         "successful_snr_by_illumination": successful_snr_by_illumination,
     }
 
+@synchronized_matplotlib
 def _render_opportunity_selected_figure(recipe):
     terms = recipe.get("terminology") or absolute_terms(
         T.get(st.session_state.get("lang", "en"), T["en"]),
         recipe.get("absolute_mode", "RX"),
     )
-    fig = plt.figure(figsize=(13, 5.8), facecolor="black")
+    fig = create_agg_figure(figsize=(13, 5.8), facecolor="black")
     fig.subplots_adjust(left=0.07, right=0.95, bottom=0.15, top=0.76, wspace=0.32)
     fig.suptitle(recipe.get("title", ""), color="white", fontweight="bold", fontsize=14, y=0.955)
     fig.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)

@@ -20,8 +20,10 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
 from config import APP_VERSION
+from core.matplotlib_runtime import matplotlib_operation_lock
 from core.snr_utils import format_snr_like_columns_for_csv
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
+from ui.matplotlib_renderer import dispose_matplotlib_figure
 
 
 EXPORT_STATE_KEY = "result_export_blocks"
@@ -175,21 +177,22 @@ def _restore_figure_style(snapshots):
 
 def figure_to_png_bytes(fig, dpi=300, paper_theme=True):
     """Render a Matplotlib figure to high-resolution PNG bytes."""
-    snapshots = _style_figure_for_paper(fig) if paper_theme else []
-    try:
-        buf = io.BytesIO()
-        fig.savefig(
-            buf,
-            format="png",
-            dpi=dpi,
-            facecolor="white" if paper_theme else fig.get_facecolor(),
-            edgecolor="none",
-            bbox_inches="tight",
-            pad_inches=0.15,
-        )
-        return buf.getvalue()
-    finally:
-        _restore_figure_style(snapshots)
+    with matplotlib_operation_lock():
+        snapshots = _style_figure_for_paper(fig) if paper_theme else []
+        try:
+            buf = io.BytesIO()
+            fig.savefig(
+                buf,
+                format="png",
+                dpi=dpi,
+                facecolor="white" if paper_theme else fig.get_facecolor(),
+                edgecolor="none",
+                bbox_inches="tight",
+                pad_inches=0.15,
+            )
+            return buf.getvalue()
+        finally:
+            _restore_figure_style(snapshots)
 
 
 def register_map_export_context(analysis, parquet_path, start_t, end_t, max_dist_km, base_min_stations, lat_0, lon_0):
@@ -433,8 +436,6 @@ def _render_map_png_for_block(block):
         return None
 
     from core.plot_engine import generate_map_plot
-    import matplotlib.pyplot as plt
-
     plot_result = generate_map_plot(
         df,
         block.get("title", ""),
@@ -457,7 +458,7 @@ def _render_map_png_for_block(block):
     try:
         return figure_to_png_bytes(fig, paper_theme=False)
     finally:
-        plt.close(fig)
+        dispose_matplotlib_figure(fig)
 
 def _render_inspector_png_for_block(block, figure_name):
     """Render one inspector figure from compact inputs only during ZIP preparation."""
@@ -465,8 +466,6 @@ def _render_inspector_png_for_block(block, figure_name):
         render_segment_insight_export_figure,
         render_selected_evidence_export_figure,
     )
-    import matplotlib.pyplot as plt
-
     if figure_name == "figure_segment_insight.png":
         fig = render_segment_insight_export_figure(block.get("segment_figure_recipe"))
     elif figure_name == "figure_selected_station_evidence.png":
@@ -478,7 +477,7 @@ def _render_inspector_png_for_block(block, figure_name):
     try:
         return figure_to_png_bytes(fig, paper_theme=True)
     finally:
-        plt.close(fig)
+        dispose_matplotlib_figure(fig)
 
 def _build_all_drilldown_for_block(block):
     """Load and build the full-segment drill-down table only during ZIP preparation."""

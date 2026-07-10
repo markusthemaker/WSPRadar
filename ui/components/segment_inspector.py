@@ -10,11 +10,14 @@ from collections import OrderedDict
 from contextlib import nullcontext
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import streamlit as st
 from config import COMPASS
 from i18n import absolute_terms
-from ui.matplotlib_renderer import matplotlib_render_span_label, render_matplotlib_figure
+from ui.matplotlib_renderer import (
+    dispose_matplotlib_figure,
+    matplotlib_render_span_label,
+    render_matplotlib_figure,
+)
 from ui.results_export import register_inspector_export, render_download_all_results
 from core.stability import (
     _bootstrap_median_interval,
@@ -475,7 +478,6 @@ def _render_selected_station_evidence(
             time_agg = st.segmented_control(
                 "Time aggregation",
                 time_agg_options,
-                default=time_agg_default,
                 key=agg_key,
                 label_visibility="collapsed"
             )
@@ -483,7 +485,6 @@ def _render_selected_station_evidence(
             time_agg = st.radio(
                 "Time aggregation",
                 time_agg_options,
-                index=time_agg_options.index(time_agg_default),
                 horizontal=True,
                 key=agg_key,
                 label_visibility="collapsed"
@@ -515,7 +516,7 @@ def _render_selected_station_evidence(
             timing_collector=timing_collector,
             subject="selected evidence",
         )
-    plt.close(fig_ev)
+    dispose_matplotlib_figure(fig_ev)
     return {
         "export_recipe": _selected_evidence_export_recipe(
             plot_df,
@@ -683,7 +684,7 @@ def _render_opportunity_scope(
             timing_collector=timing_collector,
             subject="opportunity segment",
         )
-    plt.close(fig)
+    dispose_matplotlib_figure(fig)
 
     disp_df = confirmed[
         [
@@ -819,7 +820,6 @@ def _render_opportunity_scope(
             selected_time_bin = st.segmented_control(
                 "Time aggregation",
                 time_options,
-                default=time_default,
                 key=selected_time_key,
                 label_visibility="collapsed",
             )
@@ -827,7 +827,6 @@ def _render_opportunity_scope(
             selected_time_bin = st.radio(
                 "Time aggregation",
                 time_options,
-                index=time_options.index(time_default),
                 horizontal=True,
                 key=selected_time_key,
                 label_visibility="collapsed",
@@ -855,7 +854,7 @@ def _render_opportunity_scope(
                 timing_collector=timing_collector,
                 subject="opportunity selected",
             )
-        plt.close(evidence_fig)
+        dispose_matplotlib_figure(evidence_fig)
 
         with _timed_span(timing_collector, "drilldown table build"):
             drill_df, info_msg = _build_drilldown_table(
@@ -1358,7 +1357,7 @@ def _render_segment_inspector_body(
                     timing_collector=timing_collector,
                     subject="segment insight",
                 )
-            plt.close(fig_hist)
+            dispose_matplotlib_figure(fig_hist)
         else:
             st.info(t["lbl_no_joint"], icon="??????")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)

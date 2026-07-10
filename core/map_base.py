@@ -9,15 +9,18 @@ in plot_engine because their meaning differs between Compare and Absolute modes.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
 import json
 from pathlib import Path
 import re
+import threading
+import uuid
 
 import numpy as np
 import matplotlib.path as mpath
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.patches import Circle
+from PIL import Image
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
@@ -38,12 +41,54 @@ from config import (
     TITLE_POS,
     ZOOMED_MAP_SCALE,
 )
+from core.matplotlib_runtime import (
+    create_agg_figure,
+    ensure_agg_canvas,
+    synchronized_matplotlib,
+)
 
 BASEMAP_CACHE_VERSION = "v1"
 BASEMAP_PREVIEW_DPI = 100
 BASEMAP_PNG_COMPRESSION_LEVEL = 1
+_basemap_creation_locks = {}
+_basemap_creation_locks_guard = threading.Lock()
 
 
+def _new_map_figure(theme_config):
+    """Return an Agg-backed map figure outside pyplot's global registry."""
+    return create_agg_figure(
+        figsize=FIG_SIZE,
+        facecolor=theme_config["fig_face"],
+        dpi=PLOT_DPI,
+    )
+
+
+@contextmanager
+def _basemap_creation_lock(cache_path):
+    """Serialize same-key cache creation while allowing unrelated maps in parallel."""
+    lock_key = str(Path(cache_path).resolve())
+    with _basemap_creation_locks_guard:
+        cache_lock, user_count = _basemap_creation_locks.get(
+            lock_key,
+            (threading.Lock(), 0),
+        )
+        _basemap_creation_locks[lock_key] = (cache_lock, user_count + 1)
+
+    try:
+        with cache_lock:
+            yield
+    finally:
+        with _basemap_creation_locks_guard:
+            current = _basemap_creation_locks.get(lock_key)
+            if current is not None:
+                current_lock, current_users = current
+                if current_users <= 1:
+                    _basemap_creation_locks.pop(lock_key, None)
+                else:
+                    _basemap_creation_locks[lock_key] = (current_lock, current_users - 1)
+
+
+@synchronized_matplotlib
 def create_base_map_figure(
     *,
     title: str,
@@ -55,7 +100,7 @@ def create_base_map_figure(
     include_title: bool = True,
 ):
     """Create the shared WSPRadar map frame and return figure, axis, and projections."""
-    figure = plt.figure(figsize=FIG_SIZE, facecolor=theme_config["fig_face"], dpi=PLOT_DPI)
+    figure = _new_map_figure(theme_config)
     if include_title:
         _add_map_title(figure, title, theme_config)
 
@@ -97,7 +142,7 @@ def create_base_map_figure(
             continue
         linewidth = 1.8 if ring_km == maximum_distance_km else 0.9
         axis.add_patch(
-            plt.Circle(
+            Circle(
                 (0, 0),
                 ring_km * 1000,
                 fill=False,
@@ -126,7 +171,7 @@ def create_base_map_figure(
     for ring_km in THIN_RINGS:
         if ring_km <= maximum_distance_km:
             axis.add_patch(
-                plt.Circle(
+                Circle(
                     (0, 0),
                     ring_km * 1000,
                     fill=False,
@@ -223,6 +268,7 @@ def create_base_map_figure(
     return figure, axis, map_projection, plate_carree_projection
 
 
+@synchronized_matplotlib
 def create_preview_cached_base_map_figure(
     *,
     title: str,
@@ -249,9 +295,9 @@ def create_preview_cached_base_map_figure(
         preview_dpi=preview_dpi,
     )
 
-    figure = plt.figure(figsize=FIG_SIZE, facecolor=theme_config["fig_face"], dpi=PLOT_DPI)
+    figure = _new_map_figure(theme_config)
     background_axis = figure.add_axes([0.0, 0.0, 1.0, 1.0], zorder=-100)
-    background_axis.imshow(plt.imread(cache_path), aspect="auto")
+    background_axis.imshow(_load_cached_basemap_pixels(cache_path), aspect="auto")
     background_axis.set_axis_off()
     _add_map_title(figure, title, theme_config)
 
@@ -316,6 +362,7 @@ def _map_boundary_path(map_scale):
     return mpath.Path(boundary_vertices * boundary_radius + boundary_center)
 
 
+@synchronized_matplotlib
 def _ensure_static_basemap_cache(
     *,
     maximum_distance_km,
@@ -341,19 +388,23 @@ def _ensure_static_basemap_cache(
     if cache_path.exists():
         return cache_path, "hit"
 
-    base_figure, _, _, _ = create_base_map_figure(
-        title="",
-        maximum_distance_km=maximum_distance_km,
-        center_latitude=center_latitude,
-        center_longitude=center_longitude,
-        theme_name=theme_name,
-        theme_config=theme_config,
-        include_title=False,
-    )
-    try:
-        _save_static_basemap_preview(base_figure, cache_path, preview_dpi)
-    finally:
-        plt.close(base_figure)
+    with _basemap_creation_lock(cache_path):
+        if cache_path.exists():
+            return cache_path, "hit"
+
+        base_figure, _, _, _ = create_base_map_figure(
+            title="",
+            maximum_distance_km=maximum_distance_km,
+            center_latitude=center_latitude,
+            center_longitude=center_longitude,
+            theme_name=theme_name,
+            theme_config=theme_config,
+            include_title=False,
+        )
+        try:
+            _save_static_basemap_preview(base_figure, cache_path, preview_dpi)
+        finally:
+            base_figure.clear()
     return cache_path, "miss"
 
 
@@ -408,27 +459,40 @@ def _lat_lon_token(latitude, longitude):
     return f"{lat_token}_{lon_token}"
 
 
+def _load_cached_basemap_pixels(cache_path):
+    """Load cached background pixels as compact uint8 RGB data."""
+    with Image.open(cache_path) as cached_image:
+        return np.array(cached_image.convert("RGB"), dtype=np.uint8, copy=True)
+
+
+@synchronized_matplotlib
 def _save_static_basemap_preview(figure, cache_path, preview_dpi):
     """Render and save a static basemap preview PNG."""
-    from PIL import Image
-
-    if not hasattr(figure.canvas, "buffer_rgba"):
-        FigureCanvasAgg(figure)
+    canvas = ensure_agg_canvas(figure)
 
     original_dpi = figure.dpi
     try:
         figure.set_dpi(preview_dpi)
-        figure.canvas.draw()
-        width, height = figure.canvas.get_width_height()
-        image = Image.frombuffer("RGBA", (width, height), figure.canvas.buffer_rgba(), "raw", "RGBA", 0, 1).copy()
+        canvas.draw()
+        width, height = canvas.get_width_height()
+        image = Image.frombuffer("RGBA", (width, height), canvas.buffer_rgba(), "raw", "RGBA", 0, 1).copy()
     finally:
         figure.set_dpi(original_dpi)
 
-    temp_path = cache_path.with_suffix(f".{BASEMAP_CACHE_VERSION}.tmp")
-    image.save(
-        temp_path,
-        format="PNG",
-        compress_level=BASEMAP_PNG_COMPRESSION_LEVEL,
-        optimize=False,
+    temp_path = cache_path.with_name(
+        f".{cache_path.name}.{uuid.uuid4().hex}.tmp"
     )
-    temp_path.replace(cache_path)
+    try:
+        image.save(
+            temp_path,
+            format="PNG",
+            compress_level=BASEMAP_PNG_COMPRESSION_LEVEL,
+            optimize=False,
+        )
+        temp_path.replace(cache_path)
+    finally:
+        if temp_path.exists():
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass

@@ -5,7 +5,6 @@ import base64
 import time
 from datetime import datetime, timedelta, timezone
 
-import matplotlib.pyplot as plt
 import streamlit as st
 
 from config import APP_URL, APP_VERSION, BAND_MAP, DEMO_PROFILES, LOGO_URL, MAX_DAYS_HISTORY
@@ -281,7 +280,6 @@ if run_tx_clicked:
     st.session_state.run_mode = "TX"
     st.session_state.run_id = int(time.time())
     reset_result_export_state()
-    plt.close("all")
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
@@ -299,7 +297,6 @@ if run_rx_clicked:
     st.session_state.run_mode = "RX"
     st.session_state.run_id = int(time.time())
     reset_result_export_state()
-    plt.close("all")
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]

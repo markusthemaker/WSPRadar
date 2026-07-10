@@ -19,7 +19,11 @@ from core.math_utils import is_valid_callsign, is_valid_locator, locator_to_latl
 from core.performance_timer import PerformanceTimer
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.components.segment_inspector import render_segment_inspector
-from ui.matplotlib_renderer import matplotlib_render_span_label, render_matplotlib_figure
+from ui.matplotlib_renderer import (
+    dispose_matplotlib_figure,
+    matplotlib_render_span_label,
+    render_matplotlib_figure,
+)
 from ui.results_export import register_map_export_context
 
 
@@ -211,24 +215,31 @@ def render_analysis_run(
             fig, enriched_df, segs_df, line1_str = plot_result
             run_id = st.session_state.get("run_id", 0)
 
-            with profile_timer.span(matplotlib_render_span_label("map render")):
-                render_matplotlib_figure(
-                    fig,
-                    width="stretch",
-                    bbox_inches=None,
-                    timing_collector=profile_timer,
-                    subject="map",
+            try:
+                with profile_timer.span(matplotlib_render_span_label("map render")):
+                    render_matplotlib_figure(
+                        fig,
+                        width="stretch",
+                        bbox_inches=None,
+                        timing_collector=profile_timer,
+                        subject="map",
+                    )
+                register_map_export_context(
+                    analysis,
+                    parquet_path,
+                    start_t,
+                    end_t,
+                    max_dist_km,
+                    st.session_state.val_min_stations,
+                    lat_0,
+                    lon_0,
                 )
-            register_map_export_context(
-                analysis,
-                parquet_path,
-                start_t,
-                end_t,
-                max_dist_km,
-                st.session_state.val_min_stations,
-                lat_0,
-                lon_0,
-            )
+            finally:
+                with profile_timer.span("map figure disposal"):
+                    dispose_matplotlib_figure(fig)
+                    del fig
+                    del plot_result
+                    gc.collect()
 
             inspector_container = st.container()
             skeleton_ph = inspector_container.empty()

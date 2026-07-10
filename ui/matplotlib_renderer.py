@@ -6,11 +6,22 @@ from time import perf_counter
 
 import streamlit as st
 
+from core.matplotlib_runtime import (
+    dispose_agg_figure,
+    ensure_agg_canvas,
+    matplotlib_operation_lock,
+)
+
 
 MATPLOTLIB_RENDER_MODE_ENV = "WSPRADAR_MATPLOTLIB_RENDER_MODE"
 DEFAULT_MATPLOTLIB_RENDER_MODE = "image"
 DEFAULT_MATPLOTLIB_IMAGE_DPI = 100
 DEFAULT_MATPLOTLIB_PNG_COMPRESSION_LEVEL = 1
+
+
+def dispose_matplotlib_figure(fig):
+    """Release all artists and large image arrays owned by a rendered figure."""
+    dispose_agg_figure(fig)
 
 
 def _format_byte_size(byte_count):
@@ -77,39 +88,46 @@ def _save_figure_as_preview_png(fig, image_buffer, *, dpi, bbox_inches):
         "facecolor": fig.get_facecolor(),
         "edgecolor": fig.get_edgecolor(),
     }
-    try:
-        fig.savefig(
-            image_buffer,
-            **savefig_kwargs,
-            pil_kwargs={
-                "compress_level": DEFAULT_MATPLOTLIB_PNG_COMPRESSION_LEVEL,
-                "optimize": False,
-            },
-        )
-        return DEFAULT_MATPLOTLIB_PNG_COMPRESSION_LEVEL
-    except TypeError:
-        image_buffer.seek(0)
-        image_buffer.truncate(0)
-        fig.savefig(image_buffer, **savefig_kwargs)
-        return None
+    with matplotlib_operation_lock():
+        try:
+            fig.savefig(
+                image_buffer,
+                **savefig_kwargs,
+                pil_kwargs={
+                    "compress_level": DEFAULT_MATPLOTLIB_PNG_COMPRESSION_LEVEL,
+                    "optimize": False,
+                },
+            )
+            return DEFAULT_MATPLOTLIB_PNG_COMPRESSION_LEVEL
+        except TypeError:
+            image_buffer.seek(0)
+            image_buffer.truncate(0)
+            fig.savefig(image_buffer, **savefig_kwargs)
+            return None
 
 
 def _draw_figure_preview_image(fig, *, dpi):
     """Draw the figure canvas and return a Pillow RGBA image plus pixel dimensions."""
-    from matplotlib.backends.backend_agg import FigureCanvasAgg
     from PIL import Image
 
-    if not hasattr(fig.canvas, "buffer_rgba"):
-        FigureCanvasAgg(fig)
-
-    original_dpi = fig.dpi
-    try:
-        fig.set_dpi(dpi)
-        fig.canvas.draw()
-        width, height = fig.canvas.get_width_height()
-        image = Image.frombuffer("RGBA", (width, height), fig.canvas.buffer_rgba(), "raw", "RGBA", 0, 1).copy()
-    finally:
-        fig.set_dpi(original_dpi)
+    with matplotlib_operation_lock():
+        canvas = ensure_agg_canvas(fig)
+        original_dpi = fig.dpi
+        try:
+            fig.set_dpi(dpi)
+            canvas.draw()
+            width, height = canvas.get_width_height()
+            image = Image.frombuffer(
+                "RGBA",
+                (width, height),
+                canvas.buffer_rgba(),
+                "raw",
+                "RGBA",
+                0,
+                1,
+            ).copy()
+        finally:
+            fig.set_dpi(original_dpi)
     return image, (width, height)
 
 
@@ -138,10 +156,12 @@ def render_matplotlib_figure(
     if get_matplotlib_render_mode() == "pyplot":
         detail = _image_detail(pixel_dimensions=pixel_dimensions, dpi=dpi)
         if timing_collector is None:
-            st.pyplot(fig, width=width, bbox_inches=bbox_inches)
+            with matplotlib_operation_lock():
+                st.pyplot(fig, width=width, bbox_inches=bbox_inches)
         else:
             with timing_collector.span(f"st.pyplot {subject} display", detail=detail):
-                st.pyplot(fig, width=width, bbox_inches=bbox_inches)
+                with matplotlib_operation_lock():
+                    st.pyplot(fig, width=width, bbox_inches=bbox_inches)
         return
 
     image_buffer = BytesIO()
