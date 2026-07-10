@@ -23,7 +23,7 @@ from core.analysis_context import AnalysisContext
 from core.artifact_store import (
     ARTIFACT_STORE,
     read_parquet_artifact,
-    release_registered_session_artifacts,
+    retire_registered_session_artifacts,
 )
 from core.matplotlib_runtime import matplotlib_operation_lock
 from core.opportunity_engine import OPPORTUNITY_MAP_EXPORT_COLUMNS
@@ -31,6 +31,7 @@ from core.presentation_context import PresentationContext
 from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
+from ui.inspector.session_cache import INSPECTOR_CACHE_STATE_KEY
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 
 
@@ -47,10 +48,11 @@ def _current_run_id():
 
 def reset_result_export_state():
     """Clear export artifacts for a fresh analysis run."""
-    release_registered_session_artifacts(st.session_state)
+    retire_registered_session_artifacts(st.session_state)
     st.session_state[EXPORT_STATE_KEY] = {}
     st.session_state[EXPORT_RUN_ID_KEY] = _current_run_id()
     st.session_state.pop("segment_stability_cache", None)
+    st.session_state.pop(INSPECTOR_CACHE_STATE_KEY, None)
     _clear_prepared_results()
 
 

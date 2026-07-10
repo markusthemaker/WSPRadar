@@ -230,3 +230,21 @@ def test_high_resolution_export_uses_shared_matplotlib_runtime():
         dispose_matplotlib_figure(figure)
 
     assert image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_preview_renderer_returns_the_displayed_png_bytes(monkeypatch):
+    from matplotlib.figure import Figure
+
+    from ui import matplotlib_renderer
+
+    displayed = []
+    monkeypatch.setattr(matplotlib_renderer.st, "image", lambda image, **kwargs: displayed.append(image))
+    figure = Figure(figsize=(2, 1), facecolor="black")
+    figure.add_subplot(111).plot([0, 1], [0, 1])
+    try:
+        image_bytes = matplotlib_renderer.render_matplotlib_figure(figure, dpi=40)
+    finally:
+        dispose_matplotlib_figure(figure)
+
+    assert image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+    assert displayed == [image_bytes]

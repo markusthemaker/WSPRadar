@@ -273,6 +273,44 @@ def test_compare_view_model_localization_cannot_change_scope_or_evidence():
     assert list(english.station_table.columns) != list(german.station_table.columns)
 
 
+def test_cached_all_rows_view_model_derives_identical_joint_only_table():
+    scope_rows = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA", "K2BBB", "K3CCC"],
+            "peer_grid": ["FN31", "EM12", "IO91"],
+            "calc_dist": [100.0, 200.0, 300.0],
+            "calc_azimuth": [45.0, 90.0, 135.0],
+            "spot_count": [4, 0, 2],
+            "count_only_u": [0, 3, 0],
+            "count_only_r": [0, 0, 0],
+            "stat_val": [1.2, None, -0.4],
+        }
+    )
+    kwargs = {
+        "analysis_id": "TX_COMP",
+        "is_compare": True,
+        "is_sequential": False,
+        "analysis_context": _analysis_context(),
+        "presentation_context": _presentation("en"),
+    }
+    all_rows = view_models.build_compare_inspector_view_model(
+        scope_rows,
+        show_non_joint=True,
+        **kwargs,
+    )
+    joint_only = view_models.build_compare_inspector_view_model(
+        scope_rows,
+        show_non_joint=False,
+        **kwargs,
+    )
+    derived_joint_only = all_rows.station_table[
+        all_rows.station_table[all_rows.joint_column] > 0
+    ].reset_index(drop=True)
+
+    pd.testing.assert_frame_equal(derived_joint_only, joint_only.station_table)
+    pd.testing.assert_frame_equal(all_rows.evidence_identities, joint_only.evidence_identities)
+
+
 def test_opportunity_view_model_localization_cannot_change_eligibility_or_evidence():
     scope_rows = pd.DataFrame(
         {

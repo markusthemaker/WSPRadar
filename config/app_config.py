@@ -19,4 +19,12 @@ ANALYSIS_QUEUE_WAIT_TIMEOUT_SEC = 600
 ANALYSIS_ACTIVE_LEASE_TIMEOUT_SEC = 1800
 ANALYSIS_QUEUE_POLL_INTERVAL_SEC = 0.5
 
+# Per-session Segment Inspector cache limits. The cache retains compact station-level
+# view models, figure recipes, and preview PNG bytes, never raw opportunity artifacts.
+INSPECTOR_CACHE_MAX_BYTES = 5 * 1024 * 1024
+INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES = 2
+INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES = 4
+INSPECTOR_CACHE_SELECTED_MAX_ENTRIES = 8
+INSPECTOR_CACHE_PNG_MAX_ENTRIES = 12
+
 os.makedirs(CACHE_DIR, exist_ok=True)

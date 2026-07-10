@@ -24,6 +24,26 @@ class ArtifactNamespace(str, Enum):
 
 SESSION_ARTIFACT_OWNER_KEY = "_artifact_session_id"
 SESSION_ARTIFACT_PATHS_KEY = "_session_artifact_paths"
+SESSION_ARTIFACT_LEASE_FILENAME = ".active-lease"
+
+
+def _session_run_directory(path: Path) -> Path | None:
+    """Return the owning session-run directory for one session artifact path."""
+    path = Path(path)
+    for directory in path.parents:
+        try:
+            if directory.parent.parent.name == ArtifactNamespace.SESSION_ARTIFACT.value:
+                return directory
+        except IndexError:
+            break
+    return None
+
+
+def _session_lease_path(path: Path) -> Path | None:
+    run_directory = _session_run_directory(Path(path))
+    if run_directory is None:
+        return None
+    return run_directory / SESSION_ARTIFACT_LEASE_FILENAME
 
 
 def _safe_path_token(value, fallback: str) -> str:
@@ -177,11 +197,37 @@ class ArtifactStore:
         except OSError:
             return False
 
+    @staticmethod
+    def touch_session_lease_unlocked(path) -> bool:
+        """Refresh the owning session-run heartbeat when ``path`` is session data."""
+        lease_path = _session_lease_path(Path(path))
+        if lease_path is None:
+            return False
+        try:
+            lease_path.parent.mkdir(parents=True, exist_ok=True)
+            lease_path.touch(exist_ok=True)
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def _has_active_session_lease(path, cutoff: float) -> bool:
+        lease_path = _session_lease_path(Path(path))
+        if lease_path is None:
+            return False
+        try:
+            return lease_path.stat().st_mtime >= cutoff
+        except OSError:
+            return False
+
     def touch(self, path) -> bool:
         """Refresh one artifact's last-access timestamp when it still exists."""
         path = Path(path)
         with self.key_lock(path):
-            return self.touch_unlocked(path)
+            touched = self.touch_unlocked(path)
+            if touched:
+                self.touch_session_lease_unlocked(path)
+            return touched
 
     @contextmanager
     def lease(self, path) -> Iterator[Path]:
@@ -191,6 +237,7 @@ class ArtifactStore:
             if not path.is_file():
                 raise FileNotFoundError(path)
             self.touch_unlocked(path)
+            self.touch_session_lease_unlocked(path)
             yield path
 
     def delete(self, path) -> bool:
@@ -212,6 +259,7 @@ class ArtifactStore:
         now: float | None = None,
     ) -> int:
         """Delete stale files in one namespace without racing active operations."""
+        namespace = ArtifactNamespace(namespace)
         namespace_root = self.namespace_path(cache_root, namespace)
         if not namespace_root.exists():
             return 0
@@ -228,6 +276,11 @@ class ArtifactStore:
 
             with self.key_lock(path):
                 try:
+                    if (
+                        namespace == ArtifactNamespace.SESSION_ARTIFACT
+                        and self._has_active_session_lease(path, cutoff)
+                    ):
+                        continue
                     if path.stat().st_mtime >= cutoff:
                         continue
                     path.unlink()
@@ -328,6 +381,7 @@ def register_session_artifact(session_state: MutableMapping, path) -> None:
     if canonical_path not in paths:
         paths.append(canonical_path)
     session_state[SESSION_ARTIFACT_PATHS_KEY] = paths
+    ARTIFACT_STORE.touch_session_lease_unlocked(Path(path))
 
 
 def touch_registered_session_artifacts(session_state: MutableMapping) -> int:
@@ -344,8 +398,29 @@ def touch_registered_session_artifacts(session_state: MutableMapping) -> int:
 def release_registered_session_artifacts(session_state: MutableMapping) -> int:
     """Release and remove artifacts no longer referenced by one UI session."""
     paths = list(session_state.pop(SESSION_ARTIFACT_PATHS_KEY, []))
+    run_directories = {
+        directory
+        for path in paths
+        if (directory := _session_run_directory(Path(path))) is not None
+    }
     removed = sum(1 for path in paths if ARTIFACT_STORE.delete(path))
+    for run_directory in run_directories:
+        try:
+            (run_directory / SESSION_ARTIFACT_LEASE_FILENAME).unlink()
+        except OSError:
+            pass
+        ARTIFACT_STORE.prune_empty_directories(run_directory.parent)
     return removed
+
+
+def retire_registered_session_artifacts(session_state: MutableMapping) -> int:
+    """Stop tracking prior-run artifacts without deleting data visible to old fragments."""
+    paths = list(session_state.pop(SESSION_ARTIFACT_PATHS_KEY, []))
+    retained = 0
+    for path in paths:
+        if ARTIFACT_STORE.touch(path):
+            retained += 1
+    return retained
 
 
 def cleanup_artifact_namespaces(cache_root, *, ttl_seconds: float) -> dict[str, int]:

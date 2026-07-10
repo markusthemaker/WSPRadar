@@ -142,6 +142,29 @@ def _serialize_preview_png(image, image_buffer):
     return DEFAULT_MATPLOTLIB_PNG_COMPRESSION_LEVEL
 
 
+def render_matplotlib_image_bytes(
+    image_bytes,
+    *,
+    width="stretch",
+    timing_collector=None,
+    subject="figure",
+    cache_detail="",
+    image_detail=None,
+):
+    """Display pre-encoded PNG bytes without acquiring the Matplotlib lock."""
+    dimensions = _png_pixel_dimensions(image_bytes)
+    detail = image_detail or _image_detail(
+        byte_count=len(image_bytes), pixel_dimensions=dimensions
+    )
+    if cache_detail:
+        detail = f"{detail} | {cache_detail}" if detail else cache_detail
+    if timing_collector is None:
+        st.image(image_bytes, width=width)
+    else:
+        with timing_collector.span(f"st.image {subject} display", detail=detail):
+            st.image(image_bytes, width=width)
+
+
 def render_matplotlib_figure(
     fig,
     *,
@@ -162,7 +185,7 @@ def render_matplotlib_figure(
             with timing_collector.span(f"st.pyplot {subject} display", detail=detail):
                 with matplotlib_operation_lock():
                     st.pyplot(fig, width=width, bbox_inches=bbox_inches)
-        return
+        return None
 
     image_buffer = BytesIO()
     if bbox_inches is None:
@@ -223,8 +246,11 @@ def render_matplotlib_figure(
         if timing_collector is not None:
             timing_collector.add(f"{subject} PNG encode tight-bbox", perf_counter() - encode_start, detail=detail)
 
-    if timing_collector is None:
-        st.image(image_bytes, width=width)
-    else:
-        with timing_collector.span(f"st.image {subject} display", detail=detail):
-            st.image(image_bytes, width=width)
+    render_matplotlib_image_bytes(
+        image_bytes,
+        width=width,
+        timing_collector=timing_collector,
+        subject=subject,
+        image_detail=detail,
+    )
+    return image_bytes

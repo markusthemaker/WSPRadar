@@ -3,18 +3,22 @@ import os
 from pathlib import Path
 import threading
 import time
+from types import SimpleNamespace
 
 import pytest
 import pandas as pd
 
 from core import data_engine
 from core.artifact_store import (
+    ARTIFACT_STORE,
     ArtifactNamespace,
     ArtifactStore,
+    SESSION_ARTIFACT_LEASE_FILENAME,
     SESSION_ARTIFACT_PATHS_KEY,
     cleanup_artifact_namespaces,
     register_session_artifact,
     release_registered_session_artifacts,
+    retire_registered_session_artifacts,
     session_artifact_path,
     touch_registered_session_artifacts,
 )
@@ -138,14 +142,108 @@ def test_registered_session_artifacts_are_touched_and_released(tmp_path):
     artifact_path.write_bytes(b"session")
     register_session_artifact(state, artifact_path)
     register_session_artifact(state, artifact_path)
+    lease_path = artifact_path.parent / SESSION_ARTIFACT_LEASE_FILENAME
     _make_stale(artifact_path)
 
     assert len(state[SESSION_ARTIFACT_PATHS_KEY]) == 1
+    assert lease_path.is_file()
     assert touch_registered_session_artifacts(state) == 1
     assert artifact_path.stat().st_mtime > time.time() - 5.0
+    assert lease_path.stat().st_mtime > time.time() - 5.0
     assert release_registered_session_artifacts(state) == 1
     assert SESSION_ARTIFACT_PATHS_KEY not in state
     assert not artifact_path.exists()
+    assert not lease_path.exists()
+
+
+def test_active_session_lease_prevents_ttl_cleanup(tmp_path):
+    state = {}
+    artifact_path = session_artifact_path(
+        tmp_path,
+        state,
+        run_id=123,
+        analysis_id="RX_COMP",
+    )
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_bytes(b"active-session")
+    register_session_artifact(state, artifact_path)
+    _make_stale(artifact_path)
+
+    removed = cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+
+    assert removed[ArtifactNamespace.SESSION_ARTIFACT.value] == 0
+    assert artifact_path.read_bytes() == b"active-session"
+
+
+def test_retired_session_artifact_remains_readable_until_lease_ttl(tmp_path):
+    state = {}
+    artifact_path = session_artifact_path(
+        tmp_path,
+        state,
+        run_id=123,
+        analysis_id="RX_COMP",
+    )
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_bytes(b"retired-session")
+    register_session_artifact(state, artifact_path)
+    lease_path = artifact_path.parent / SESSION_ARTIFACT_LEASE_FILENAME
+
+    assert retire_registered_session_artifacts(state) == 1
+    assert SESSION_ARTIFACT_PATHS_KEY not in state
+    assert artifact_path.read_bytes() == b"retired-session"
+
+    _make_stale(artifact_path)
+    _make_stale(lease_path)
+    removed = cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+
+    assert removed[ArtifactNamespace.SESSION_ARTIFACT.value] == 2
+    assert not artifact_path.exists()
+    assert not lease_path.exists()
+
+
+def test_old_fragment_access_revives_a_retired_run_lease(tmp_path):
+    state = {}
+    artifact_path = session_artifact_path(
+        tmp_path,
+        state,
+        run_id=123,
+        analysis_id="RX_COMP",
+    )
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_bytes(b"fragment-access")
+    register_session_artifact(state, artifact_path)
+    lease_path = artifact_path.parent / SESSION_ARTIFACT_LEASE_FILENAME
+    retire_registered_session_artifacts(state)
+    _make_stale(artifact_path)
+    _make_stale(lease_path)
+
+    assert ARTIFACT_STORE.touch(artifact_path)
+    removed = cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+
+    assert removed[ArtifactNamespace.SESSION_ARTIFACT.value] == 0
+    assert artifact_path.read_bytes() == b"fragment-access"
+    assert lease_path.stat().st_mtime > time.time() - 5.0
+
+
+def test_result_export_reset_retires_without_deleting_active_parquet(tmp_path, monkeypatch):
+    from ui import results_export
+
+    state = {"run_id": 456}
+    artifact_path = session_artifact_path(
+        tmp_path,
+        state,
+        run_id=456,
+        analysis_id="RX_COMP",
+    )
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_bytes(b"still-readable")
+    register_session_artifact(state, artifact_path)
+    monkeypatch.setattr(results_export, "st", SimpleNamespace(session_state=state))
+
+    results_export.reset_result_export_state()
+
+    assert artifact_path.read_bytes() == b"still-readable"
+    assert SESSION_ARTIFACT_PATHS_KEY not in state
 
 
 def test_namespace_cleanup_expires_query_and_session_but_not_derived(tmp_path):

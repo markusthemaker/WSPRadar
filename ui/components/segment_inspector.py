@@ -8,14 +8,25 @@ to allow UI updates without triggering full-page reruns.
 import inspect
 from collections import OrderedDict
 from contextlib import nullcontext
+from pathlib import Path
+from time import perf_counter
 import pandas as pd
 import numpy as np
 import streamlit as st
-from config import COMPASS
+from config import (
+    COMPASS,
+    INSPECTOR_CACHE_MAX_BYTES,
+    INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES,
+    INSPECTOR_CACHE_PNG_MAX_ENTRIES,
+    INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
+    INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
+)
 from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
+    get_matplotlib_render_mode,
     matplotlib_render_span_label,
     render_matplotlib_figure,
+    render_matplotlib_image_bytes,
 )
 from ui.results_export import register_inspector_export, render_download_all_results
 from core.stability import (
@@ -28,11 +39,11 @@ from core.opportunity_engine import (
     OPPORTUNITY_SEGMENT_VIEW_COLUMNS,
     opportunity_utc_from_time_slot,
 )
-from core.artifact_store import read_parquet_artifact
+from core.artifact_store import ARTIFACT_STORE, read_parquet_artifact
+from core.performance_timer import log_performance_event
 from ui.inspector.evidence_data import (
     _build_evidence_points,
     _build_segment_evidence_points,
-    _empty_evidence_df,
     _prepare_identity_meta,
 )
 from ui.inspector.drilldown import (
@@ -47,16 +58,9 @@ from ui.inspector.view_models import (
     compare_scope_availability,
     filter_inspector_scope,
 )
+from ui.inspector.session_cache import INSPECTOR_CACHE_STATE_KEY, SessionInspectorCache
 from ui.plots.evidence_figures import (
-    EVIDENCE_AGG_COLOR,
-    EVIDENCE_COLORS,
-    EVIDENCE_SEPARATE_STATION_LIMIT,
     _add_horizontal_grid,
-    _create_selected_station_evidence_figure,
-    _draw_raincloud,
-    _draw_single_vertical_raincloud,
-    _draw_time_heatmap,
-    _metric_values,
     _segment_figure_export_recipe,
     _selected_evidence_export_recipe,
     _time_agg_options_for_span,
@@ -73,6 +77,14 @@ from ui.plots.opportunity_figures import (
 
 STABILITY_CACHE_STATE_KEY = "segment_stability_cache"
 STABILITY_CACHE_MAX_ENTRIES = 4
+INSPECTOR_CACHE_VERSION = 1
+INSPECTOR_PNG_RENDER_VERSION = 1
+INSPECTOR_CACHE_NAMESPACE_LIMITS = {
+    "options": INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES,
+    "segment": INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
+    "selected": INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
+    "png": INSPECTOR_CACHE_PNG_MAX_ENTRIES,
+}
 
 
 def _timed_span(timing_collector, label, detail=""):
@@ -80,6 +92,134 @@ def _timed_span(timing_collector, label, detail=""):
     if timing_collector is None:
         return nullcontext()
     return timing_collector.span(label, detail=detail)
+
+
+def _log_artifact_read_failure(exc, *, parquet_path, analysis_id, run_id, stage):
+    """Record enough context to distinguish lifecycle loss from schema failures."""
+    path = Path(parquet_path)
+    log_performance_event(
+        "session_artifact_read",
+        outcome="missing" if isinstance(exc, FileNotFoundError) else "invalid",
+        stage=stage,
+        analysis_id=analysis_id,
+        run_id=run_id,
+        artifact=path.name,
+        exists=path.is_file(),
+        error_type=type(exc).__name__,
+    )
+
+
+def _inspector_cache(run_id):
+    """Return the current run's bounded cache from this Streamlit session."""
+    cache = st.session_state.get(INSPECTOR_CACHE_STATE_KEY)
+    if not isinstance(cache, SessionInspectorCache) or cache.run_id != run_id:
+        cache = SessionInspectorCache(
+            run_id,
+            max_bytes=INSPECTOR_CACHE_MAX_BYTES,
+            namespace_limits=INSPECTOR_CACHE_NAMESPACE_LIMITS,
+        )
+        st.session_state[INSPECTOR_CACHE_STATE_KEY] = cache
+    return cache
+
+
+def _inspector_cache_get(run_id, namespace, key, timing_collector=None, *, item=""):
+    """Read one cache entry and expose the outcome to terminal profiling."""
+    started_at = perf_counter()
+    cache = _inspector_cache(run_id)
+    value, hit = cache.get(namespace, key)
+    elapsed = perf_counter() - started_at
+    detail = (
+        f"{'hit' if hit else 'miss'} | entries {cache.entry_count} | "
+        f"cached {cache.total_bytes / 1024:.1f} KiB"
+    )
+    if timing_collector is not None:
+        timing_collector.add(f"inspector cache {namespace}", elapsed, detail=detail)
+    log_performance_event(
+        "inspector_cache",
+        namespace=namespace,
+        item=item or namespace,
+        outcome="hit" if hit else "miss",
+        entries=cache.entry_count,
+        cache_bytes=cache.total_bytes,
+    )
+    return value, hit
+
+
+def _inspector_cache_put(run_id, namespace, key, value, *, size_bytes=None):
+    cache = _inspector_cache(run_id)
+    stored = cache.put(namespace, key, value, size_bytes=size_bytes)
+    st.session_state[INSPECTOR_CACHE_STATE_KEY] = cache
+    if not stored:
+        log_performance_event(
+            "inspector_cache",
+            namespace=namespace,
+            outcome="not_stored",
+            entries=cache.entry_count,
+            cache_bytes=cache.total_bytes,
+        )
+    return stored
+
+
+def _render_cached_recipe(
+    recipe,
+    *,
+    run_id,
+    cache_key,
+    subject,
+    build_label,
+    render_figure,
+    timing_collector=None,
+):
+    """Render a compact recipe, reusing preview PNG bytes when available."""
+    render_mode = get_matplotlib_render_mode()
+    png_key = (
+        INSPECTOR_CACHE_VERSION,
+        INSPECTOR_PNG_RENDER_VERSION,
+        render_mode,
+        subject,
+        cache_key,
+    )
+    if render_mode == "image":
+        image_bytes, hit = _inspector_cache_get(
+            run_id,
+            "png",
+            png_key,
+            timing_collector,
+            item=subject,
+        )
+        if hit:
+            render_matplotlib_image_bytes(
+                image_bytes,
+                width="stretch",
+                timing_collector=timing_collector,
+                subject=subject,
+                cache_detail="session cache hit",
+            )
+            return image_bytes
+
+    with _timed_span(timing_collector, build_label):
+        figure = render_figure(recipe)
+    if figure is None:
+        return None
+    try:
+        with _timed_span(timing_collector, matplotlib_render_span_label(subject)):
+            image_bytes = render_matplotlib_figure(
+                figure,
+                width="stretch",
+                timing_collector=timing_collector,
+                subject=subject,
+            )
+    finally:
+        dispose_matplotlib_figure(figure)
+    if image_bytes is not None and render_mode == "image":
+        _inspector_cache_put(
+            run_id,
+            "png",
+            png_key,
+            image_bytes,
+            size_bytes=len(image_bytes),
+        )
+    return image_bytes
 
 
 
@@ -435,6 +575,9 @@ def _render_selected_station_evidence(
     is_compare,
     is_sequential,
     tx_ab_bin_minutes,
+    *,
+    run_id,
+    cache_key,
     timing_collector=None,
 ):
     """Render selected-station distribution and time evidence between insights and drill-down."""
@@ -442,46 +585,61 @@ def _render_selected_station_evidence(
     if identity_meta.empty:
         return None
 
-    with _timed_span(timing_collector, "selected evidence points build"):
-        evidence_df = _build_evidence_points(
-            station_df,
-            identity_meta,
+    selected_bundle, selected_cache_hit = _inspector_cache_get(
+        run_id,
+        "selected",
+        cache_key,
+        timing_collector,
+        item="selected evidence model",
+    )
+    if not selected_cache_hit:
+        with _timed_span(timing_collector, "selected evidence points build"):
+            evidence_df = _build_evidence_points(
+                station_df,
+                identity_meta,
+                is_compare,
+                is_sequential,
+                tx_ab_bin_minutes=tx_ab_bin_minutes,
+            )
+        if evidence_df.empty:
+            return None
+
+        labels = _evidence_labels(is_compare)
+        identity_labels = identity_meta["identity"].tolist()
+        selected_count = len(identity_labels)
+        evidence_count = len(evidence_df)
+        evidence_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
+        evidence_title_base = "Ausgewaehlte Stations-Evidenz" if st.session_state.lang == "de" else "Selected Station Evidence"
+        if selected_count == 1:
+            evidence_title = f"{evidence_title_base}: {identity_labels[0]} | {evidence_count} {evidence_basis}"
+        else:
+            evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
+        time_agg_options, time_agg_default = _time_agg_options_for_span(evidence_df)
+        base_recipe = _selected_evidence_export_recipe(
+            evidence_df,
+            evidence_title,
+            labels,
+            time_agg_default,
             is_compare,
             is_sequential,
-            tx_ab_bin_minutes=tx_ab_bin_minutes,
         )
-    if evidence_df.empty:
-        return None
-
-    labels = _evidence_labels(is_compare)
-    identity_labels = identity_meta["identity"].tolist()
-    separate_stations = len(identity_labels) <= EVIDENCE_SEPARATE_STATION_LIMIT
-
-    if separate_stations:
-        group_labels = [label for label in identity_labels if label in set(evidence_df["identity"].astype(str))]
-        plot_df = evidence_df.copy()
-        plot_df["plot_group"] = plot_df["identity"].astype(str)
-        colors = EVIDENCE_COLORS[:len(group_labels)]
-    else:
-        group_labels = [labels["aggregate"]]
-        plot_df = evidence_df.copy()
-        plot_df["plot_group"] = labels["aggregate"]
-        colors = [EVIDENCE_AGG_COLOR]
-
-    if not group_labels:
-        return
-
-    grouped_values = [
-        plot_df.loc[plot_df["plot_group"] == group, "metric"].to_numpy(dtype=float)
-        for group in group_labels
-    ]
-    non_empty = [(label, values, color) for label, values, color in zip(group_labels, grouped_values, colors) if len(values) > 0]
-    if not non_empty:
-        return
+        selected_bundle = {
+            "base_recipe": base_recipe,
+            "time_agg_options": tuple(time_agg_options),
+            "time_agg_default": time_agg_default,
+            "title": evidence_title,
+        }
+        _inspector_cache_put(
+            run_id,
+            "selected",
+            cache_key,
+            selected_bundle,
+        )
 
     ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
     with ctrl_time:
-        time_agg_options, time_agg_default = _time_agg_options_for_span(plot_df)
+        time_agg_options = list(selected_bundle["time_agg_options"])
+        time_agg_default = selected_bundle["time_agg_default"]
         view_defaults = st.session_state.get("demo_view_defaults", {})
         preferred_time_agg = (
             view_defaults.get("station_evidence_time_bin_compare")
@@ -509,42 +667,21 @@ def _render_selected_station_evidence(
                 label_visibility="collapsed"
             )
 
-    selected_count = len(identity_labels)
-    evidence_count = len(plot_df)
-    evidence_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
-    evidence_title_base = "Ausgewaehlte Stations-Evidenz" if st.session_state.lang == "de" else "Selected Station Evidence"
-    if selected_count == 1:
-        evidence_title = f"{evidence_title_base}: {identity_labels[0]} | {evidence_count} {evidence_basis}"
-    else:
-        evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
+    evidence_title = selected_bundle["title"]
+    selected_recipe = dict(selected_bundle["base_recipe"])
+    selected_recipe["time_bin"] = time_agg
     st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
-    with _timed_span(timing_collector, "selected evidence figure build"):
-        fig_ev = _create_selected_station_evidence_figure(
-            plot_df,
-            evidence_title,
-            labels,
-            time_agg,
-            is_compare,
-            is_sequential,
-        )
-
-    with _timed_span(timing_collector, matplotlib_render_span_label("selected evidence")):
-        render_matplotlib_figure(
-            fig_ev,
-            width="stretch",
-            timing_collector=timing_collector,
-            subject="selected evidence",
-        )
-    dispose_matplotlib_figure(fig_ev)
+    _render_cached_recipe(
+        selected_recipe,
+        run_id=run_id,
+        cache_key=cache_key + (time_agg,),
+        subject="selected evidence",
+        build_label="selected evidence figure build",
+        render_figure=render_selected_evidence_export_figure,
+        timing_collector=timing_collector,
+    )
     return {
-        "export_recipe": _selected_evidence_export_recipe(
-            plot_df,
-            evidence_title,
-            labels,
-            time_agg,
-            is_compare,
-            is_sequential,
-        ),
+        "export_recipe": selected_recipe,
         "time_bin": time_agg,
         "title": evidence_title,
     }
@@ -597,77 +734,138 @@ def _render_opportunity_scope(
         "TX" if analysis_id.startswith("TX") else "RX"
     )
 
-    identity_meta = df_seg[["peer_sign", "peer_grid"]].drop_duplicates()
-    try:
-        with _timed_span(timing_collector, "opportunity rows parquet read"):
-            rows = read_parquet_artifact(
-                parquet_path,
-                columns=list(OPPORTUNITY_SEGMENT_VIEW_COLUMNS),
-                filters=[("peer_sign", "in", identity_meta["peer_sign"].astype(str).unique().tolist())],
+    segment_cache_key = (
+        INSPECTOR_CACHE_VERSION,
+        "opportunity",
+        analysis_id,
+        tuple(selected_ranges),
+        tuple(selected_directions),
+        int(analysis_context.min_confirmed_opportunities_per_peer),
+        str(analysis_start_t),
+        str(analysis_end_t),
+        presentation_context.language,
+        presentation_context.theme,
+        title,
+        selected_seg,
+    )
+    segment_bundle, segment_cache_hit = _inspector_cache_get(
+        run_id,
+        "segment",
+        segment_cache_key,
+        timing_collector,
+        item="opportunity segment model",
+    )
+    if not segment_cache_hit:
+        identity_meta = df_seg[["peer_sign", "peer_grid"]].drop_duplicates()
+        try:
+            with _timed_span(timing_collector, "opportunity rows parquet read"):
+                rows = read_parquet_artifact(
+                    parquet_path,
+                    columns=list(OPPORTUNITY_SEGMENT_VIEW_COLUMNS),
+                    filters=[("peer_sign", "in", identity_meta["peer_sign"].astype(str).unique().tolist())],
+                )
+        except FileNotFoundError as exc:
+            _log_artifact_read_failure(
+                exc,
+                parquet_path=parquet_path,
+                analysis_id=analysis_id,
+                run_id=run_id,
+                stage="opportunity segment read",
             )
-    except (FileNotFoundError, KeyError, ValueError):
-        st.warning("Cache file expired. Please Run Analysis again.")
-        return
-    with _timed_span(timing_collector, "opportunity segment prep"):
-        rows["peer_sign"] = rows["peer_sign"].astype(str)
-        rows["peer_grid"] = rows["peer_grid"].astype(str)
-        rows = rows.merge(identity_meta, on=["peer_sign", "peer_grid"], how="inner")
-        row_times = opportunity_utc_from_time_slot(rows["time_slot"]).dropna()
-        if analysis_start_t is None:
-            analysis_start_t = row_times.min() if not row_times.empty else pd.Timestamp.now(tz="UTC")
-        if analysis_end_t is None:
-            analysis_end_t = (
-                row_times.max() + pd.Timedelta(minutes=2)
-                if not row_times.empty
-                else _as_utc_timestamp(analysis_start_t) + pd.Timedelta(minutes=2)
+            st.warning("Cache file expired. Please Run Analysis again.")
+            return
+        except (KeyError, ValueError) as exc:
+            _log_artifact_read_failure(
+                exc,
+                parquet_path=parquet_path,
+                analysis_id=analysis_id,
+                run_id=run_id,
+                stage="opportunity segment read",
+            )
+            st.error("Analysis evidence could not be read because its schema is invalid.")
+            return
+        with _timed_span(timing_collector, "opportunity segment prep"):
+            rows["peer_sign"] = rows["peer_sign"].astype(str)
+            rows["peer_grid"] = rows["peer_grid"].astype(str)
+            rows = rows.merge(identity_meta, on=["peer_sign", "peer_grid"], how="inner")
+            row_times = opportunity_utc_from_time_slot(rows["time_slot"]).dropna()
+            if analysis_start_t is None:
+                analysis_start_t = row_times.min() if not row_times.empty else pd.Timestamp.now(tz="UTC")
+            if analysis_end_t is None:
+                analysis_end_t = (
+                    row_times.max() + pd.Timedelta(minutes=2)
+                    if not row_times.empty
+                    else _as_utc_timestamp(analysis_start_t) + pd.Timedelta(minutes=2)
+                )
+
+            opportunity_view_model = build_opportunity_inspector_view_model(
+                df_seg,
+                rows,
+                analysis_id=analysis_id,
+                selected_segment=selected_seg,
+                minimum_confirmed=analysis_context.min_confirmed_opportunities_per_peer,
+                presentation_context=presentation_context,
             )
 
-        opportunity_view_model = build_opportunity_inspector_view_model(
+        segment_recipe = _opportunity_segment_recipe(
+            title,
+            selected_seg,
             df_seg,
             rows,
-            analysis_id=analysis_id,
-            selected_segment=selected_seg,
-            minimum_confirmed=analysis_context.min_confirmed_opportunities_per_peer,
-            presentation_context=presentation_context,
+            analysis_start_t,
+            analysis_end_t,
+            opportunity_terms,
+            minimum_trials=analysis_context.min_confirmed_opportunities_per_peer,
         )
-        confirmed = opportunity_view_model.confirmed_rows
+        opportunity_display_model = {
+            "summary_lines": list(opportunity_view_model.summary_lines),
+            "full_station_table": opportunity_view_model.full_station_table,
+            "station_column": opportunity_view_model.station_column,
+            "locator_column": opportunity_view_model.locator_column,
+            "distance_column": opportunity_view_model.distance_column,
+            "azimuth_column": opportunity_view_model.azimuth_column,
+            "hit_column": opportunity_view_model.hit_column,
+        }
+        segment_bundle = {
+            "display_model": opportunity_display_model,
+            "figure_recipe": segment_recipe,
+            "analysis_start_t": analysis_start_t,
+            "analysis_end_t": analysis_end_t,
+        }
+        _inspector_cache_put(
+            run_id,
+            "segment",
+            segment_cache_key,
+            segment_bundle,
+        )
 
-    summary = opportunity_view_model.summary_lines
+    opportunity_display_model = segment_bundle["display_model"]
+    segment_recipe = segment_bundle["figure_recipe"]
+    analysis_start_t = segment_bundle["analysis_start_t"]
+    analysis_end_t = segment_bundle["analysis_end_t"]
+
+    summary = opportunity_display_model["summary_lines"]
     st.markdown(
         f"<div style='text-align:center; color:white; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:1.0rem;'>{'<br>'.join(summary)}</div>",
         unsafe_allow_html=True,
     )
 
-    segment_recipe = _opportunity_segment_recipe(
-        title,
-        selected_seg,
-        df_seg,
-        rows,
-        analysis_start_t,
-        analysis_end_t,
-        opportunity_terms,
-        minimum_trials=analysis_context.min_confirmed_opportunities_per_peer,
+    _render_cached_recipe(
+        segment_recipe,
+        run_id=run_id,
+        cache_key=segment_cache_key,
+        subject="opportunity segment",
+        build_label="opportunity segment figure build",
+        render_figure=_render_opportunity_segment_figure,
+        timing_collector=timing_collector,
     )
-    with _timed_span(timing_collector, "opportunity segment figure build"):
-        fig = _render_opportunity_segment_figure(segment_recipe)
-    with _timed_span(timing_collector, matplotlib_render_span_label("opportunity segment")):
-        render_matplotlib_figure(
-            fig,
-            width="stretch",
-            timing_collector=timing_collector,
-            subject="opportunity segment",
-        )
-    dispose_matplotlib_figure(fig)
 
-    station_col = opportunity_view_model.station_column
-    loc_col = opportunity_view_model.locator_column
-    km_col = opportunity_view_model.distance_column
-    az_col = opportunity_view_model.azimuth_column
-    hit_col = opportunity_view_model.hit_column
-    miss_col = opportunity_view_model.miss_column
-    rate_col = opportunity_view_model.rate_column
-    snr_col = opportunity_view_model.snr_column
-    full_segment_disp_df = opportunity_view_model.full_station_table
+    station_col = opportunity_display_model["station_column"]
+    loc_col = opportunity_display_model["locator_column"]
+    km_col = opportunity_display_model["distance_column"]
+    az_col = opportunity_display_model["azimuth_column"]
+    hit_col = opportunity_display_model["hit_column"]
+    full_segment_disp_df = opportunity_display_model["full_station_table"]
 
     zero_hits_key = f"opp_show_zero_hits_{analysis_id}_{run_id}_{scope_token}"
     col_title, col_toggle, col_filter = st.columns(
@@ -784,25 +982,54 @@ def _render_opportunity_scope(
             if len(selected_station_labels) == 1
             else f"Selected Station Evidence: {len(selected_station_labels)} stations"
         )
-        with _timed_span(timing_collector, "opportunity selected evidence prep"):
-            selected_evidence_recipe = _opportunity_selected_recipe(
-                selected_station_rows,
-                evidence_title,
-                selected_time_bin,
-                analysis_start_t,
-                analysis_end_t,
-                opportunity_terms,
+        selected_cache_key = (
+            INSPECTOR_CACHE_VERSION,
+            "opportunity",
+            analysis_id,
+            scope_token,
+            tuple(
+                selected_identity[["peer_sign", "peer_grid"]]
+                .astype(str)
+                .itertuples(index=False, name=None)
+            ),
+            selected_time_bin,
+            str(analysis_start_t),
+            str(analysis_end_t),
+            presentation_context.language,
+            presentation_context.theme,
+        )
+        selected_evidence_recipe, selected_cache_hit = _inspector_cache_get(
+            run_id,
+            "selected",
+            selected_cache_key,
+            timing_collector,
+            item="opportunity selected model",
+        )
+        if not selected_cache_hit:
+            with _timed_span(timing_collector, "opportunity selected evidence prep"):
+                selected_evidence_recipe = _opportunity_selected_recipe(
+                    selected_station_rows,
+                    evidence_title,
+                    selected_time_bin,
+                    analysis_start_t,
+                    analysis_end_t,
+                    opportunity_terms,
+                )
+            _inspector_cache_put(
+                run_id,
+                "selected",
+                selected_cache_key,
+                selected_evidence_recipe,
             )
-        with _timed_span(timing_collector, "opportunity selected figure build"):
-            evidence_fig = _render_opportunity_selected_figure(selected_evidence_recipe)
-        with _timed_span(timing_collector, matplotlib_render_span_label("opportunity selected")):
-            render_matplotlib_figure(
-                evidence_fig,
-                width="stretch",
-                timing_collector=timing_collector,
-                subject="opportunity selected",
-            )
-        dispose_matplotlib_figure(evidence_fig)
+        _render_cached_recipe(
+            selected_evidence_recipe,
+            run_id=run_id,
+            cache_key=selected_cache_key,
+            subject="opportunity selected",
+            build_label="opportunity selected figure build",
+            render_figure=_render_opportunity_selected_figure,
+            timing_collector=timing_collector,
+        )
 
         with _timed_span(timing_collector, "drilldown table build"):
             drill_df, info_msg = _build_drilldown_table(
@@ -957,14 +1184,44 @@ def _render_segment_inspector_body(
     Runs as an independent Streamlit fragment to prevent full-page reruns on interaction.
     """
     run_id = st.session_state.get("run_id", 0)
+    if not ARTIFACT_STORE.touch(parquet_path):
+        log_performance_event(
+            "session_artifact_read",
+            outcome="missing",
+            stage="inspector heartbeat",
+            analysis_id=analysis_id,
+            run_id=run_id,
+            artifact=Path(parquet_path).name,
+            exists=False,
+            error_type="FileNotFoundError",
+        )
     
     # Extract inspectable distance segments from enriched_df, not only rendered heatmap segments.
     # segs_df only contains segments with valid joint Delta-SNR heatmap data; enriched_df also
     # contains non-joint evidence such as only target, only reference, or async-both rows.
-    options_view_model = build_inspector_options(
-        enriched_df,
-        max_dist_km=max_dist_km,
+    options_cache_key = (
+        INSPECTOR_CACHE_VERSION,
+        analysis_id,
+        float(max_dist_km),
     )
+    options_view_model, options_cache_hit = _inspector_cache_get(
+        run_id,
+        "options",
+        options_cache_key,
+        timing_collector,
+        item="inspector options",
+    )
+    if not options_cache_hit:
+        options_view_model = build_inspector_options(
+            enriched_df,
+            max_dist_km=max_dist_km,
+        )
+        _inspector_cache_put(
+            run_id,
+            "options",
+            options_cache_key,
+            options_view_model,
+        )
     inspector_source_df = options_view_model.source_rows
     valid_distances = options_view_model.valid_distances
     lbl_dist = t.get("opt_insp_dist", "---")
@@ -1120,143 +1377,180 @@ def _render_segment_inspector_body(
             default_state = has_non_joint_rows and not has_joint_rows
         show_non_joint = st.session_state.get(toggle_key, default_state) if is_compare else False
 
-        compare_view_model = build_compare_inspector_view_model(
-            df_seg,
-            analysis_id=analysis_id,
-            is_compare=is_compare,
-            is_sequential=is_sequential,
-            show_non_joint=show_non_joint,
-            analysis_context=analysis_context,
-            presentation_context=presentation_context,
+        segment_cache_key = (
+            INSPECTOR_CACHE_VERSION,
+            "comparison",
+            analysis_id,
+            tuple(selected_ranges),
+            tuple(selected_directions),
+            bool(is_compare),
+            bool(is_sequential),
+            int(analysis_context.tx_ab_bin_minutes),
+            presentation_context.language,
+            presentation_context.theme,
+            title,
+            selected_seg,
         )
-        vals = compare_view_model.values
-        lbl_only_me = compare_view_model.target_only_label
-        lbl_only_ref = compare_view_model.reference_only_label
+        segment_bundle, segment_cache_hit = _inspector_cache_get(
+            run_id,
+            "segment",
+            segment_cache_key,
+            timing_collector,
+            item="segment insight model",
+        )
+        if not segment_cache_hit:
+            compare_view_model = build_compare_inspector_view_model(
+                df_seg,
+                analysis_id=analysis_id,
+                is_compare=is_compare,
+                is_sequential=is_sequential,
+                show_non_joint=True,
+                analysis_context=analysis_context,
+                presentation_context=presentation_context,
+            )
+            vals = compare_view_model.values
+            col_u_name = compare_view_model.target_name
+            yield_ref_header = compare_view_model.yield_reference_header
+            evidence_meta_df = compare_view_model.evidence_identities
+            has_plot_data = compare_view_model.has_plot_data
+            stability_lookup = {}
+            segment_figure_recipe = None
+            segment_summary = []
+
+            if has_plot_data:
+                with _timed_span(timing_collector, "segment evidence points build"):
+                    segment_evidence_df = _build_segment_evidence_points(
+                        evidence_meta_df,
+                        parquet_path,
+                        is_compare,
+                        is_sequential,
+                        tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+                    )
+                segment_raw_values = (
+                    segment_evidence_df["metric"]
+                    if not segment_evidence_df.empty
+                    else pd.Series(dtype=float)
+                )
+                with _timed_span(timing_collector, "segment stability calculation"):
+                    stability_result = _cached_segment_stability(
+                        (run_id, analysis_id, selected_ranges, selected_directions),
+                        vals,
+                        segment_evidence_df,
+                    )
+                station_stability_interval = stability_result["station_interval"]
+                spot_stability_interval = stability_result["spot_interval"]
+                stability_lookup = stability_result["station_lookup"]
+                compare_layout = is_compare and "count_only_u" in df_seg.columns
+                if compare_layout:
+                    cnt_joint = len(df_seg[df_seg["spot_count"] > 0])
+                    cnt_async = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] > 0) & (df_seg["count_only_r"] > 0)])
+                    cnt_u = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] > 0) & (df_seg["count_only_r"] == 0)])
+                    cnt_r = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] == 0) & (df_seg["count_only_r"] > 0)])
+                    joint_lbl = t.get("tbl_col_joint_bins", "Joint Bins") if is_sequential else t.get("tbl_col_joint", "Joint")
+                    async_lbl = t.get("leg_both_async", "Both (Async)")
+                    segment_panel_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
+                    segment_panel_labels = [col_u_name, joint_lbl, async_lbl, yield_ref_header]
+                    segment_panel_y_label = t["lbl_hist_count"]
+                else:
+                    segment_panel_counts = [len(df_seg), int(df_seg["spot_count"].sum())]
+                    segment_panel_labels = ["Stations", "Spots"]
+                    segment_panel_y_label = "Count"
+
+                segment_figure_recipe = _segment_figure_export_recipe(
+                    title=title,
+                    selected_segment=selected_seg,
+                    is_compare=is_compare,
+                    is_sequential=is_sequential,
+                    compare_layout=compare_layout,
+                    station_values=vals,
+                    spot_values=segment_raw_values,
+                    station_interval=station_stability_interval,
+                    spot_interval=spot_stability_interval,
+                    panel_counts=segment_panel_counts,
+                    panel_labels=segment_panel_labels,
+                    panel_y_label=segment_panel_y_label,
+                )
+                segment_strength = _evidence_strength(len(vals), len(segment_raw_values))
+                spot_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
+                segment_summary = [
+                    f"Selected Segment: {selected_seg}",
+                    f"Selected Segment Evidence: {segment_strength} | {len(vals)} stations | {len(segment_raw_values)} {spot_basis}",
+                ]
+                station_summary = _stability_summary(
+                    vals,
+                    is_compare,
+                    "Station-median",
+                    interval=station_stability_interval,
+                )
+                spot_summary = _stability_summary(
+                    segment_raw_values,
+                    is_compare,
+                    "Joint-spot" if is_compare and not is_sequential else ("Paired spot-bin" if is_sequential else "Spot"),
+                    interval=spot_stability_interval,
+                )
+                if station_summary:
+                    segment_summary.append(station_summary)
+                if spot_summary:
+                    segment_summary.append(spot_summary)
+
+            segment_bundle = {
+                "view_model": compare_view_model,
+                "figure_recipe": segment_figure_recipe,
+                "summary": segment_summary,
+                "stability_lookup": stability_lookup,
+            }
+            _inspector_cache_put(
+                run_id,
+                "segment",
+                segment_cache_key,
+                segment_bundle,
+            )
+
+        compare_view_model = segment_bundle["view_model"]
+        segment_figure_recipe = segment_bundle["figure_recipe"]
+        segment_summary = segment_bundle["summary"]
+        stability_lookup = segment_bundle["stability_lookup"]
         ref_header = compare_view_model.reference_header
         col_u_name = compare_view_model.target_name
         is_local_median = compare_view_model.is_local_median
-        yield_ref_header = compare_view_model.yield_reference_header
         seg_line2 = compare_view_model.scope_summary
         station_col = compare_view_model.station_column
-        station_type = compare_view_model.station_type
+        col_joint_name = compare_view_model.joint_column
 
         disp_df = compare_view_model.station_table.copy()
+        if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
+            disp_df = disp_df[disp_df[col_joint_name] > 0].reset_index(drop=True)
         sorted_disp_df = disp_df.copy()
         full_segment_disp_df = compare_view_model.full_station_table
-        evidence_meta_df = compare_view_model.evidence_identities
-        col_joint_name = compare_view_model.joint_column
-        km_col = compare_view_model.distance_column
-        az_col = compare_view_model.azimuth_column
-        metric_col = disp_df.columns[-1]
         has_plot_data = compare_view_model.has_plot_data
 
-        segment_evidence_df = _empty_evidence_df()
-        segment_raw_values = pd.Series(dtype=float)
-        station_stability_interval = (np.nan, np.nan, np.nan)
-        spot_stability_interval = (np.nan, np.nan, np.nan)
-        stability_lookup = {}
-        segment_figure_recipe = None
         selected_evidence_export = None
         selected_station_labels = []
         drilldown_selected_df = pd.DataFrame()
         all_drilldown_context = None
 
         if has_plot_data:
-            with _timed_span(timing_collector, "segment evidence points build"):
-                segment_evidence_df = _build_segment_evidence_points(
-                    evidence_meta_df,
-                    parquet_path,
-                    is_compare,
-                    is_sequential,
-                    tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
-                )
-            segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
-            with _timed_span(timing_collector, "segment stability calculation"):
-                stability_result = _cached_segment_stability(
-                    (run_id, analysis_id, selected_ranges, selected_directions),
-                    vals,
-                    segment_evidence_df,
-                )
-            station_stability_interval = stability_result["station_interval"]
-            spot_stability_interval = stability_result["spot_interval"]
-            stability_lookup = stability_result["station_lookup"]
-            compare_layout = is_compare and 'count_only_u' in df_seg.columns
-            if compare_layout:
-                # System Sensitivity (Yield) counts unique stations, not spots.
-                cnt_joint = len(df_seg[df_seg['spot_count'] > 0])
-                cnt_async = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] > 0)])
-                cnt_u = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] > 0) & (df_seg['count_only_r'] == 0)])
-                cnt_r = len(df_seg[(df_seg['spot_count'] == 0) & (df_seg['count_only_u'] == 0) & (df_seg['count_only_r'] > 0)])
-                joint_lbl = t.get('tbl_col_joint_bins', 'Joint Bins') if is_sequential else t.get('tbl_col_joint', 'Joint')
-                async_lbl = t.get('leg_both_async', 'Both (Async)')
-                segment_panel_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
-                segment_panel_labels = [col_u_name, joint_lbl, async_lbl, yield_ref_header]
-                segment_panel_y_label = t["lbl_hist_count"]
-            else:
-                segment_panel_counts = [len(df_seg), int(df_seg['spot_count'].sum())]
-                segment_panel_labels = ["Stations", "Spots"]
-                segment_panel_y_label = "Count"
-
-            segment_figure_recipe = _segment_figure_export_recipe(
-                title=title,
-                selected_segment=selected_seg,
-                is_compare=is_compare,
-                is_sequential=is_sequential,
-                compare_layout=compare_layout,
-                station_values=vals,
-                spot_values=segment_raw_values,
-                station_interval=station_stability_interval,
-                spot_interval=spot_stability_interval,
-                panel_counts=segment_panel_counts,
-                panel_labels=segment_panel_labels,
-                panel_y_label=segment_panel_y_label,
-            )
-            with _timed_span(timing_collector, "segment insight figure build"):
-                fig_hist = render_segment_insight_export_figure(segment_figure_recipe)
-
-            segment_strength = _evidence_strength(len(vals), len(segment_raw_values))
-            spot_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
-            segment_summary = [
-                f"Selected Segment: {selected_seg}",
-                f"Selected Segment Evidence: {segment_strength} | {len(vals)} stations | {len(segment_raw_values)} {spot_basis}",
-            ]
-            station_summary = _stability_summary(
-                vals,
-                is_compare,
-                "Station-median",
-                interval=station_stability_interval,
-            )
-            spot_summary = _stability_summary(
-                segment_raw_values,
-                is_compare,
-                "Joint-spot" if is_compare and not is_sequential else ("Paired spot-bin" if is_sequential else "Spot"),
-                interval=spot_stability_interval,
-            )
-            if station_summary:
-                segment_summary.append(station_summary)
-            if spot_summary:
-                segment_summary.append(spot_summary)
             st.markdown(
                 f"<div style='text-align:center; color:white; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:1.0rem;'>{'<br>'.join(segment_summary)}</div>",
                 unsafe_allow_html=True
             )
 
             st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
-            # Use the Streamlit width parameter for full-width rendering.
-            with _timed_span(timing_collector, matplotlib_render_span_label("segment insight")):
-                render_matplotlib_figure(
-                    fig_hist,
-                    width="stretch",
-                    timing_collector=timing_collector,
-                    subject="segment insight",
-                )
-            dispose_matplotlib_figure(fig_hist)
+            _render_cached_recipe(
+                segment_figure_recipe,
+                run_id=run_id,
+                cache_key=segment_cache_key,
+                subject="segment insight",
+                build_label="segment insight figure build",
+                render_figure=render_segment_insight_export_figure,
+                timing_collector=timing_collector,
+            )
         else:
             st.info(t["lbl_no_joint"], icon="??????")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
 
         stability_col = t.get("tbl_col_stability", "90% Stability")
-        if not segment_evidence_df.empty and not sorted_disp_df.empty:
+        if stability_lookup and not sorted_disp_df.empty:
             row_identity = (
                 sorted_disp_df[station_col].astype(str) +
                 " (" + sorted_disp_df[t['tbl_col_loc']].astype(str) + ")"
@@ -1385,6 +1679,23 @@ def _render_segment_inspector_body(
                     is_compare,
                     is_sequential,
                     analysis_context.tx_ab_bin_minutes,
+                    run_id=run_id,
+                    cache_key=(
+                        INSPECTOR_CACHE_VERSION,
+                        "comparison",
+                        analysis_id,
+                        scope_token,
+                        tuple(
+                            selected_identity_df[["peer_sign", "peer_grid"]]
+                            .astype(str)
+                            .itertuples(index=False, name=None)
+                        ),
+                        bool(is_compare),
+                        bool(is_sequential),
+                        int(analysis_context.tx_ab_bin_minutes),
+                        presentation_context.language,
+                        presentation_context.theme,
+                    ),
                     timing_collector=timing_collector,
                 )
                 with _timed_span(timing_collector, "drilldown table build"):
@@ -1422,7 +1733,14 @@ def _render_segment_inspector_body(
                         timing_collector=timing_collector,
                     )
 
-            except FileNotFoundError: 
+            except FileNotFoundError as exc:
+                _log_artifact_read_failure(
+                    exc,
+                    parquet_path=parquet_path,
+                    analysis_id=analysis_id,
+                    run_id=run_id,
+                    stage="selected station rows load",
+                )
                 st.warning("Cache file expired. Please Run Analysis again.")
 
         register_inspector_export(
