@@ -147,6 +147,8 @@ T = {
         "leg_only_ref": "Only {ref_callsign}",
         "leg_only_ref_radius": "Only Reference",
         "msg_proc": "Processing {id}...",
+        "msg_analysis_queue_wait": "Waiting for analysis capacity: position {position}",
+        "msg_analysis_queue_detail": "{active}/{maximum} analyses active; {queued} waiting.",
         "msg_config_loaded": "Config loaded. Existing results were cleared.",
         "msg_sync": "Synchronizing active time cycles...",
         "opt_all_dirs": "All Directions",
@@ -200,6 +202,8 @@ T = {
         "txt_total_decodes": "Total Decodes",
         "txt_tx_stations": "TX Stations",
         "warn_abs_exact_band": "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
+        "warn_analysis_queue_full": "High demand right now. The analysis queue is full. Please try again shortly.",
+        "warn_analysis_queue_timeout": "Analysis capacity did not become available in time. Please run the analysis again.",
         "warn_no_data": "Not enough qualifying data found for **{title}** after applying filters.",
         "err_config_load": "Config could not be loaded: {error}"
     },
@@ -345,6 +349,8 @@ T = {
         "leg_only_ref": "Nur {ref_callsign}",
         "leg_only_ref_radius": "Nur Referenz",
         "msg_proc": "Verarbeite {id}...",
+        "msg_analysis_queue_wait": "Warte auf Analysekapazitaet: Position {position}",
+        "msg_analysis_queue_detail": "{active}/{maximum} Analysen aktiv; {queued} warten.",
         "msg_config_loaded": "Konfiguration geladen. Bestehende Ergebnisse wurden geloescht.",
         "err_config_load": "Konfiguration konnte nicht geladen werden: {error}",
         "msg_sync": "Synchronisiere aktive WSPR-Zyklen...",
@@ -401,6 +407,8 @@ T = {
         "txt_total_decodes": "Gesamte Decodes",
         "txt_tx_stations": "TX Stationen",
         "warn_abs_exact_band": "Die Absolute Erfolgsratenanalyse benoetigt ein einzelnes Frequenzband und wird bei Band=All uebersprungen.",
+        "warn_analysis_queue_full": "Hohe Auslastung. Die Analysewarteschlange ist voll. Bitte versuchen Sie es in Kuerze erneut.",
+        "warn_analysis_queue_timeout": "Es wurde nicht rechtzeitig Analysekapazitaet frei. Bitte starten Sie die Analyse erneut.",
         "warn_no_data": "Nicht genügend qualifizierte Daten für **{title}** nach Anwendung der Filter gefunden."
     }
 }

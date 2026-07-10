@@ -34,7 +34,51 @@ class MemorySample:
     depth: int = 0
 
 
-def _process_rss_bytes() -> int | None:
+@dataclass
+class CumulativeCounter:
+    """One cumulative profiler counter kept outside elapsed-time totals."""
+
+    label: str
+    elapsed_seconds: float = 0.0
+    count: int = 0
+
+
+def _windows_process_memory_bytes() -> tuple[int | None, int | None]:
+    """Return current and peak Windows working-set bytes."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+    except Exception:
+        return None, None
+
+    class ProcessMemoryCounters(ctypes.Structure):
+        _fields_ = [
+            ("cb", wintypes.DWORD),
+            ("PageFaultCount", wintypes.DWORD),
+            ("PeakWorkingSetSize", ctypes.c_size_t),
+            ("WorkingSetSize", ctypes.c_size_t),
+            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+            ("PagefileUsage", ctypes.c_size_t),
+            ("PeakPagefileUsage", ctypes.c_size_t),
+        ]
+
+    counters = ProcessMemoryCounters()
+    counters.cb = ctypes.sizeof(ProcessMemoryCounters)
+    handle = ctypes.windll.kernel32.GetCurrentProcess()
+    ok = ctypes.windll.psapi.GetProcessMemoryInfo(
+        handle,
+        ctypes.byref(counters),
+        counters.cb,
+    )
+    if not ok:
+        return None, None
+    return int(counters.WorkingSetSize), int(counters.PeakWorkingSetSize)
+
+
+def process_rss_bytes() -> int | None:
     """Return current process RSS in bytes when a lightweight backend is available."""
     try:
         import psutil
@@ -45,38 +89,28 @@ def _process_rss_bytes() -> int | None:
         try:
             return int(psutil.Process(os.getpid()).memory_info().rss)
         except Exception:
-            return None
+            pass
 
     if platform.system() == "Windows":
+        current, _ = _windows_process_memory_bytes()
+        return current
+
+    if platform.system() == "Linux":
         try:
-            import ctypes
-            from ctypes import wintypes
-        except Exception:
+            with open("/proc/self/statm", encoding="ascii") as handle:
+                resident_pages = int(handle.read().split()[1])
+            return resident_pages * int(os.sysconf("SC_PAGE_SIZE"))
+        except (IndexError, OSError, TypeError, ValueError):
             return None
 
-        class ProcessMemoryCounters(ctypes.Structure):
-            _fields_ = [
-                ("cb", wintypes.DWORD),
-                ("PageFaultCount", wintypes.DWORD),
-                ("PeakWorkingSetSize", ctypes.c_size_t),
-                ("WorkingSetSize", ctypes.c_size_t),
-                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-                ("PagefileUsage", ctypes.c_size_t),
-                ("PeakPagefileUsage", ctypes.c_size_t),
-            ]
+    return None
 
-        counters = ProcessMemoryCounters()
-        counters.cb = ctypes.sizeof(ProcessMemoryCounters)
-        handle = ctypes.windll.kernel32.GetCurrentProcess()
-        ok = ctypes.windll.psapi.GetProcessMemoryInfo(
-            handle,
-            ctypes.byref(counters),
-            counters.cb,
-        )
-        return int(counters.WorkingSetSize) if ok else None
+
+def process_peak_rss_bytes() -> int | None:
+    """Return process-lifetime peak RSS bytes when the platform exposes it."""
+    if platform.system() == "Windows":
+        _, peak = _windows_process_memory_bytes()
+        return peak
 
     try:
         import resource
@@ -90,6 +124,11 @@ def _process_rss_bytes() -> int | None:
     if platform.system() == "Darwin":
         return rss
     return rss * 1024
+
+
+def _process_rss_bytes() -> int | None:
+    """Compatibility wrapper for existing profiler call sites."""
+    return process_rss_bytes()
 
 
 def _format_bytes(value: int | None) -> str:
@@ -116,12 +155,31 @@ def _profile_logger() -> logging.Logger:
     return logger
 
 
+def log_performance_event(event: str, **values) -> None:
+    """Write one compact process-level performance event to the terminal."""
+    parts = [f'PERF event="{event}"']
+    for key, value in values.items():
+        if key.endswith("_bytes"):
+            rendered = f'"{_format_bytes(value)}"'
+        elif key.endswith("_seconds") and value is not None:
+            rendered = f"{float(value):.3f}s"
+        elif isinstance(value, float):
+            rendered = f"{value:.3f}"
+        elif isinstance(value, str) and any(character.isspace() for character in value):
+            rendered = f'"{value}"'
+        else:
+            rendered = str(value)
+        parts.append(f"{key}={rendered}")
+    _profile_logger().info(" ".join(parts))
+
+
 class PerformanceTimer:
     """Collect named timing spans without depending on Streamlit."""
 
     def __init__(self) -> None:
         self._spans: list[TimingSpan] = []
         self._memory_samples: list[MemorySample] = []
+        self._counters: dict[str, CumulativeCounter] = {}
         self._active_span_indexes: list[int] = []
         self._started_at = perf_counter()
 
@@ -175,6 +233,12 @@ class PerformanceTimer:
             )
         )
 
+    def add_counter(self, label: str, elapsed_seconds: float) -> None:
+        """Accumulate an observed duration without changing analysis totals."""
+        counter = self._counters.setdefault(label, CumulativeCounter(label=label))
+        counter.elapsed_seconds += float(elapsed_seconds)
+        counter.count += 1
+
     def rows(self, *, analysis_title: str = "") -> list[dict[str, object]]:
         """Return Streamlit-friendly timing rows."""
         return [
@@ -202,6 +266,18 @@ class PerformanceTimer:
             for sample in self._memory_samples
         ]
 
+    def counter_rows(self, *, analysis_title: str = "") -> list[dict[str, object]]:
+        """Return cumulative non-total profiler counters."""
+        return [
+            {
+                "analysis": analysis_title,
+                "counter": counter.label,
+                "seconds": round(counter.elapsed_seconds, 3),
+                "count": counter.count,
+            }
+            for counter in self._counters.values()
+        ]
+
     def total_seconds(self) -> float:
         """Return summed duration of top-level spans."""
         return sum(span.elapsed_seconds for span in self._spans if span.depth == 0)
@@ -218,6 +294,13 @@ class PerformanceTimer:
             indent = "  " * (span.depth + 1)
             detail = f" [{span.detail}]" if span.detail else ""
             lines.append(f"{indent}{span.label:<38} {span.elapsed_seconds:8.3f}s{detail}")
+        if self._counters:
+            lines.append("  cumulative counters (excluded from total):")
+            for counter in self._counters.values():
+                lines.append(
+                    f"    {counter.label:<36} "
+                    f"{counter.elapsed_seconds:8.3f}s [count={counter.count}]"
+                )
         if self._memory_samples:
             lines.append("  memory snapshots:")
             for sample in self._memory_samples:

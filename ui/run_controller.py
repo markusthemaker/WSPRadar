@@ -6,6 +6,11 @@ import time
 import streamlit as st
 
 from config import CACHE_DIR, DEMO_PROFILES
+from core.analysis_admission import (
+    ANALYSIS_ADMISSION_GATE,
+    AnalysisQueueFull,
+    AnalysisQueueTimeout,
+)
 from core.analysis_runner import (
     DECODE_FILTER_LEGACY,
     AnalysisConfigError,
@@ -15,13 +20,20 @@ from core.analysis_runner import (
 )
 from core.artifact_store import (
     register_session_artifact,
+    session_artifact_owner,
     session_artifact_path,
     touch_registered_session_artifacts,
     write_parquet_artifact,
 )
 from core.data_engine import cleanup_old_parquets, fetch_wspr_data
 from core.math_utils import is_valid_callsign, is_valid_locator, locator_to_latlon
-from core.performance_timer import PerformanceTimer
+from core.matplotlib_runtime import matplotlib_profile_collector
+from core.performance_timer import (
+    PerformanceTimer,
+    log_performance_event,
+    process_peak_rss_bytes,
+    process_rss_bytes,
+)
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.components.segment_inspector import render_segment_inspector
 from ui.matplotlib_renderer import (
@@ -61,7 +73,7 @@ def render_analysis_run(
     max_dist_km,
     generate_map_plot,
 ):
-    """Execute the active Streamlit run and render maps plus deferred inspectors."""
+    """Admit one active run, then execute it with unconditional slot release."""
     if not st.session_state.run_mode:
         return
 
@@ -79,6 +91,133 @@ def render_analysis_run(
         st.error(err_msg)
         st.session_state.run_mode = None
         st.stop()
+
+    waiting_status = None
+    waiting_body = None
+    queue_profile = {
+        "initial_position": 0,
+        "maximum_position": 0,
+    }
+    admission_started = time.perf_counter()
+
+    def show_waiting(snapshot):
+        nonlocal waiting_status, waiting_body
+        if queue_profile["initial_position"] == 0:
+            queue_profile["initial_position"] = snapshot.position
+        queue_profile["maximum_position"] = max(
+            queue_profile["maximum_position"],
+            snapshot.position,
+        )
+        label = t.get(
+            "msg_analysis_queue_wait",
+            "Waiting for analysis capacity: position {position}",
+        ).format(position=snapshot.position)
+        detail = t.get(
+            "msg_analysis_queue_detail",
+            "{active}/{maximum} analyses active; {queued} waiting.",
+        ).format(
+            active=snapshot.active,
+            maximum=snapshot.max_active,
+            queued=snapshot.queued,
+        )
+        if waiting_status is None:
+            with run_status_slot.container():
+                waiting_status = st.status(label, expanded=True, state="running")
+                with waiting_status:
+                    waiting_body = st.empty()
+        else:
+            waiting_status.update(label=label, expanded=True, state="running")
+        waiting_body.markdown(detail)
+
+    owner = f"{session_artifact_owner(st.session_state)}:{st.session_state.get('run_id', 0)}"
+
+    def log_admission(outcome):
+        active, queued = ANALYSIS_ADMISSION_GATE.counts()
+        log_performance_event(
+            "analysis_admission",
+            outcome=outcome,
+            run_mode=st.session_state.get("run_mode"),
+            wait_seconds=time.perf_counter() - admission_started,
+            initial_queue_position=queue_profile["initial_position"],
+            maximum_queue_position=queue_profile["maximum_position"],
+            active=active,
+            queued=queued,
+            rss_bytes=process_rss_bytes(),
+        )
+
+    try:
+        permit = ANALYSIS_ADMISSION_GATE.acquire(owner=owner, on_wait=show_waiting)
+    except AnalysisQueueFull:
+        log_admission("queue_full")
+        st.session_state.run_mode = None
+        st.warning(t.get(
+            "warn_analysis_queue_full",
+            "High demand right now. The analysis queue is full. Please try again shortly.",
+        ))
+        return
+    except AnalysisQueueTimeout:
+        log_admission("queue_timeout")
+        st.session_state.run_mode = None
+        if waiting_status is not None:
+            run_status_slot.empty()
+        st.warning(t.get(
+            "warn_analysis_queue_timeout",
+            "Analysis capacity did not become available in time. Please run the analysis again.",
+        ))
+        return
+
+    log_admission("admitted")
+    if waiting_status is not None:
+        run_status_slot.empty()
+    run_started = time.perf_counter()
+    rss_start = process_rss_bytes()
+    run_outcome = "completed"
+    try:
+        with permit:
+            return _render_admitted_analysis_run(
+                t=t,
+                run_status_slot=run_status_slot,
+                callsign=callsign,
+                qth_locator=qth_locator,
+                band_filter=band_filter,
+                start_t=start_t,
+                end_t=end_t,
+                max_dist_km=max_dist_km,
+                generate_map_plot=generate_map_plot,
+                admission_permit=permit,
+            )
+    except BaseException as exc:
+        run_outcome = type(exc).__name__
+        raise
+    finally:
+        active, queued = ANALYSIS_ADMISSION_GATE.counts()
+        log_performance_event(
+            "analysis_run",
+            outcome=run_outcome,
+            run_mode=st.session_state.get("run_mode"),
+            duration_seconds=time.perf_counter() - run_started,
+            active_after_release=active,
+            queued_after_release=queued,
+            rss_start_bytes=rss_start,
+            rss_end_bytes=process_rss_bytes(),
+            process_peak_rss_bytes=process_peak_rss_bytes(),
+        )
+
+
+def _render_admitted_analysis_run(
+    *,
+    t,
+    run_status_slot,
+    callsign,
+    qth_locator,
+    band_filter,
+    start_t,
+    end_t,
+    max_dist_km,
+    generate_map_plot,
+    admission_permit,
+):
+    """Execute one analysis run after the caller has acquired capacity."""
 
     lat_0, lon_0 = locator_to_latlon(qth_locator)
     touch_registered_session_artifacts(st.session_state)
@@ -131,6 +270,7 @@ def render_analysis_run(
     loading_label = "⏳ Lade..." if st.session_state.lang == "de" else "⏳ Loading..."
 
     for index, analysis in enumerate(analyses):
+        admission_permit.touch()
         profile_timer = PerformanceTimer()
         fetch_start = time.time()
 
@@ -218,7 +358,10 @@ def render_analysis_run(
                 st.error(f"Error writing cache: {exc}")
 
             status_box.update(label=f"Rendering maps... ({index + 1}/{len(analyses)})", state="running", expanded=True)
-            with profile_timer.span("map generation"):
+            with (
+                profile_timer.span("map generation"),
+                matplotlib_profile_collector(profile_timer),
+            ):
                 plot_result = generate_map_plot(
                     df,
                     analysis["title"],
@@ -255,7 +398,10 @@ def render_analysis_run(
             profile_timer.add_memory("map segment dataframe", df=segs_df)
 
             try:
-                with profile_timer.span(matplotlib_render_span_label("map render")):
+                with (
+                    profile_timer.span(matplotlib_render_span_label("map render")),
+                    matplotlib_profile_collector(profile_timer),
+                ):
                     render_matplotlib_figure(
                         fig,
                         width="stretch",
@@ -276,7 +422,10 @@ def render_analysis_run(
                     presentation_context,
                 )
             finally:
-                with profile_timer.span("map figure disposal"):
+                with (
+                    profile_timer.span("map figure disposal"),
+                    matplotlib_profile_collector(profile_timer),
+                ):
                     dispose_matplotlib_figure(fig)
                     del fig
                     del plot_result
@@ -322,26 +471,28 @@ def render_analysis_run(
     status_box.update(label="Complete", state="complete", expanded=False)
 
     for index, data in enumerate(deferred_render_data):
+        admission_permit.touch()
         data["skeleton_ph"].empty()
         with data["inspector_container"]:
             inspector_span = "first Segment Inspector render" if index == 0 else "Segment Inspector render"
-            render_segment_inspector(
-                data["analysis"]["id"],
-                data["analysis"]["title"],
-                data["analysis"]["is_compare"],
-                data["analysis"]["is_sequential"],
-                data["enriched_df"],
-                data["segs_df"],
-                data["parquet_path"],
-                data["line1_str"],
-                t,
-                max_dist_km,
-                analysis_context,
-                presentation_context,
-                analysis_start_t=data["start_t"],
-                analysis_end_t=data["end_t"],
-                analysis_kind=data["analysis"].get("analysis_kind", "comparison"),
-                show_export_button=(index == len(deferred_render_data) - 1),
-                timing_collector=data["profile_timer"],
-                timing_label=inspector_span,
-            )
+            with matplotlib_profile_collector(data["profile_timer"]):
+                render_segment_inspector(
+                    data["analysis"]["id"],
+                    data["analysis"]["title"],
+                    data["analysis"]["is_compare"],
+                    data["analysis"]["is_sequential"],
+                    data["enriched_df"],
+                    data["segs_df"],
+                    data["parquet_path"],
+                    data["line1_str"],
+                    t,
+                    max_dist_km,
+                    analysis_context,
+                    presentation_context,
+                    analysis_start_t=data["start_t"],
+                    analysis_end_t=data["end_t"],
+                    analysis_kind=data["analysis"].get("analysis_kind", "comparison"),
+                    show_export_button=(index == len(deferred_render_data) - 1),
+                    timing_collector=data["profile_timer"],
+                    timing_label=inspector_span,
+                )
