@@ -4,16 +4,17 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.dates as mdates
-import streamlit as st
 
 from config import APP_VERSION
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.opportunity_engine import (
+    opportunity_utc_from_time_slot,
     opportunity_rate_scale_max,
     SUCCESS_RATE_BOUNDS,
     SUCCESS_RATE_COLORS,
     SUCCESS_RATE_TICK_LABELS,
 )
+from core.presentation_context import PresentationContext
 from core.solar_path import (
     ILLUMINATION_CLASSES,
     ILLUMINATION_DAYLIGHT,
@@ -21,7 +22,6 @@ from core.solar_path import (
     ILLUMINATION_GREYLINE_MIXED,
     ILLUMINATION_NIGHT,
 )
-from i18n import T, absolute_terms
 from ui.plots.evidence_figures import (
     SEGMENT_FIGURE_FOOTER_Y,
     _draw_stacked_vertical_metric_histogram,
@@ -47,7 +47,7 @@ def _opportunity_time_bin(rows, analysis_start_t=None, analysis_end_t=None):
     else:
         if rows.empty:
             return "3h"
-        times = pd.to_datetime(rows["cycle_time"], errors="coerce", utc=True).dropna()
+        times = opportunity_utc_from_time_slot(rows["time_slot"]).dropna()
         if times.empty:
             return "3h"
         span = times.max() - times.min()
@@ -77,17 +77,15 @@ def _assign_fixed_time_bins(rows, start_t, end_t, bin_minutes):
         [start + (index * delta) for index in range(bin_count)]
     )
     work = rows.copy()
-    work["cycle_time"] = pd.to_datetime(work["cycle_time"], errors="coerce", utc=True)
-    work = work[
-        work["cycle_time"].notna() &
-        work["cycle_time"].ge(start) &
-        work["cycle_time"].lt(end)
-    ].copy()
+    cycle_start = opportunity_utc_from_time_slot(work["time_slot"])
+    valid_time = cycle_start.notna() & cycle_start.ge(start) & cycle_start.lt(end)
+    work = work.loc[valid_time].copy()
+    cycle_start = cycle_start.loc[valid_time]
     if work.empty:
         work["time_bin"] = pd.Series(dtype="datetime64[ns, UTC]")
         return work, time_bins
 
-    bin_index = ((work["cycle_time"] - start) // delta).astype(int)
+    bin_index = ((cycle_start - start) // delta).astype(int)
     work["time_bin"] = start + (bin_index * delta)
     return work, time_bins
 
@@ -99,6 +97,7 @@ def _opportunity_segment_recipe(
     analysis_start_t,
     analysis_end_t,
     terminology,
+    minimum_trials=5,
 ):
     """Build compact Target/Elsewhere success-rate plot inputs for UI and lazy export."""
     time_bin = _opportunity_time_bin(rows, analysis_start_t, analysis_end_t)
@@ -128,6 +127,7 @@ def _opportunity_segment_recipe(
             work.groupby(
                 ["dist_label", "time_bin", "peer_sign", "peer_grid"],
                 dropna=False,
+                observed=True,
             )
             .agg(hits=("hit", "sum"), misses=("miss", "sum"))
             .reset_index()
@@ -138,7 +138,7 @@ def _opportunity_segment_recipe(
             100.0 * station_bins["hits"] / station_bins["trials"]
         )
         cells = (
-            station_bins.groupby(["dist_label", "time_bin"], dropna=False)
+            station_bins.groupby(["dist_label", "time_bin"], dropna=False, observed=True)
             .agg(
                 station_rate_pct=("rate_pct", "mean"),
                 hits=("hits", "sum"),
@@ -171,7 +171,7 @@ def _opportunity_segment_recipe(
         "station_trials": peer_df["opportunities"].to_numpy(dtype=float, copy=True),
         "station_hits": peer_df["hits"].to_numpy(dtype=float, copy=True),
         "station_rates": peer_df["rate_pct"].to_numpy(dtype=float, copy=True),
-        "minimum_trials": int(st.session_state.get("val_min_opportunities", 5)),
+        "minimum_trials": int(minimum_trials),
         "range_labels": list(range_labels),
         "time_ns": time_bins.to_numpy(dtype="datetime64[ns]").astype(np.int64, copy=True),
         "station_rate_grid": station_rate_grid,
@@ -299,9 +299,8 @@ def _opportunity_time_tick_indices(time_values):
 
 @synchronized_matplotlib
 def _render_opportunity_segment_figure(recipe):
-    terms = recipe.get("terminology") or absolute_terms(
-        T.get(st.session_state.get("lang", "en"), T["en"]),
-        recipe.get("absolute_mode", "RX"),
+    terms = recipe.get("terminology") or PresentationContext().absolute_terms(
+        recipe.get("absolute_mode", "RX")
     )
     fig = create_agg_figure(figsize=(13, 7.2), facecolor="black")
     fig.subplots_adjust(left=0.08, right=0.98, bottom=0.12, top=0.84, hspace=0.42, wspace=0.10)
@@ -471,7 +470,7 @@ def _opportunity_selected_recipe(
     )
 
     bins = (
-        work.groupby("time_bin", dropna=False)
+        work.groupby("time_bin", dropna=False, observed=True)
         .agg(
             hits=("hit", "sum"),
             misses=("miss", "sum"),
@@ -489,7 +488,7 @@ def _opportunity_selected_recipe(
 
     def count_by_illumination(value_column):
         grouped = (
-            work.groupby(["time_bin", "path_illumination"], observed=False)[value_column]
+            work.groupby(["time_bin", "path_illumination"], observed=True)[value_column]
             .sum()
             .unstack(fill_value=0)
             .reindex(index=time_bins, columns=ILLUMINATION_CLASSES, fill_value=0)
@@ -528,9 +527,8 @@ def _opportunity_selected_recipe(
 
 @synchronized_matplotlib
 def _render_opportunity_selected_figure(recipe):
-    terms = recipe.get("terminology") or absolute_terms(
-        T.get(st.session_state.get("lang", "en"), T["en"]),
-        recipe.get("absolute_mode", "RX"),
+    terms = recipe.get("terminology") or PresentationContext().absolute_terms(
+        recipe.get("absolute_mode", "RX")
     )
     fig = create_agg_figure(figsize=(13, 5.8), facecolor="black")
     fig.subplots_adjust(left=0.07, right=0.95, bottom=0.15, top=0.76, wspace=0.32)

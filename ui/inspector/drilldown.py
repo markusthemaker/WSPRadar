@@ -4,7 +4,8 @@ import ast
 
 import numpy as np
 import pandas as pd
-import streamlit as st
+from core.artifact_store import read_parquet_artifact
+from core.opportunity_engine import opportunity_utc_from_time_slot
 from i18n import absolute_terms
 
 def _unique_station_order(stations):
@@ -54,15 +55,15 @@ def _sort_drilldown_default(drill_df):
     sort_df = sort_df.sort_values(sort_cols, ascending=[True] * len(sort_cols), na_position="last")
     return sort_df.drop(columns=["_sort_time"]).reset_index(drop=True)
 
-def _sequential_tx_drilldown_labels(col_u_name, ref_header):
+def _sequential_tx_drilldown_labels(col_u_name, ref_header, *, target_callsign=""):
     """Use actual callsign plus role/setup for TX A/B drill-down traceability."""
     if col_u_name == "Setup A" and ref_header == "Setup B":
-        base_call = str(st.session_state.get("val_callsign", "")).strip().upper()
+        base_call = str(target_callsign or "").strip().upper()
         if base_call:
             return f"{base_call} (Target / Setup A)", f"{base_call} (Reference / Setup B)"
     return col_u_name, ref_header
 
-def _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col):
+def _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col, columns=None):
     """Load raw parquet rows for selected callsign+locator identities."""
     if selected_meta_df is None or selected_meta_df.empty:
         return pd.DataFrame()
@@ -75,7 +76,15 @@ def _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col
     if not sel_stations:
         return pd.DataFrame()
 
-    station_df = pd.read_parquet(parquet_path, filters=[('peer_sign', 'in', sel_stations)])
+    read_columns = None
+    if columns is not None:
+        read_columns = list(dict.fromkeys(["peer_sign", "peer_grid", *columns]))
+
+    station_df = read_parquet_artifact(
+        parquet_path,
+        columns=read_columns,
+        filters=[('peer_sign', 'in', sel_stations)],
+    )
     station_df['peer_sign'] = station_df['peer_sign'].astype(str)
     station_df['peer_grid'] = station_df['peer_grid'].astype(str)
 
@@ -102,6 +111,8 @@ def _build_drilldown_table(
     ref_header,
     t,
     station_rows_df=None,
+    tx_ab_bin_minutes=8,
+    target_callsign="",
 ):
     """Build the drill-down dataframe for selected or all current segment identities."""
     if selected_meta_df is None or selected_meta_df.empty:
@@ -123,19 +134,18 @@ def _build_drilldown_table(
         return pd.DataFrame(), "No spots available."
 
     is_opportunity = {
-        "opportunity",
         "hit",
         "miss",
         "target_only",
         "target_snr",
-        "cycle_time",
+        "time_slot",
     }.issubset(station_df.columns)
 
     if is_opportunity:
         opportunity_terms = absolute_terms(t, "TX" if analysis_id.startswith("TX") else "RX")
         target_snr_col = "Target SNR (dB @ 1W)"
         station_df["Date/Time (UTC)"] = (
-            pd.to_datetime(station_df["cycle_time"], errors="coerce", utc=True)
+            opportunity_utc_from_time_slot(station_df["time_slot"])
             .dt.strftime("%d-%b-%Y %H:%M:%S")
         )
         station_df["Outcome"] = np.select(
@@ -187,7 +197,7 @@ def _build_drilldown_table(
             drill_df[col] = pd.to_numeric(drill_df[col], errors='coerce').round(1)
     else:
         if is_sequential:
-            bin_minutes = st.session_state.get('val_tx_ab_bin_minutes', 8)
+            bin_minutes = int(tx_ab_bin_minutes)
             station_df['dt_time'] = pd.to_datetime(station_df['time'])
             station_df['time_bin'] = station_df['dt_time'].dt.floor(f'{bin_minutes}min')
 
@@ -216,7 +226,11 @@ def _build_drilldown_table(
             station_df = station_df.sort_values('dt_time', ascending=False)
             station_df['time_bin_str'] = station_df['time_bin'].dt.strftime('%H:%M') + ' - ' + (station_df['time_bin'] + pd.Timedelta(minutes=bin_minutes)).dt.strftime('%H:%M')
             station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
-            target_tx_label, ref_tx_label = _sequential_tx_drilldown_labels(col_u_name, ref_header)
+            target_tx_label, ref_tx_label = _sequential_tx_drilldown_labels(
+                col_u_name,
+                ref_header,
+                target_callsign=target_callsign,
+            )
             station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, target_tx_label, ref_tx_label)
 
             drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()

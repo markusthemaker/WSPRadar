@@ -24,10 +24,10 @@ from core.math_utils import get_solar_state, is_valid_callsign
 from core.opportunity_engine import (
     ABSOLUTE_METHOD_VERSION,
     build_absolute_opportunity_query,
+    opportunity_utc_from_time_slot,
     prepare_opportunity_rows,
 )
 from core.snr_utils import round_snr_like_columns
-from i18n import T
 
 
 DECODE_FILTER_STRICT = "strict_code_1"
@@ -212,13 +212,18 @@ def build_analysis_batches(
     lat_0,
     lon_0,
     band_filter,
+    presentation_context=None,
     warn=None,
 ):
     """
     Reads the canonical user configuration and generates the necessary
     SQL queries and execution batches for the map plots (Absolute & Comparison).
     """
-    t = T.get(analysis_context.language, T["en"])
+    labels = presentation_context.labels if presentation_context is not None else {}
+
+    def label(key, default):
+        return str(labels.get(key, default))
+
     callsign = analysis_context.callsign.upper().strip()
 
     # Defense-in-depth: validate callsign before any SQL is assembled.
@@ -298,9 +303,15 @@ def build_analysis_batches(
         rx_peer_sql = f"rx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
         
         if is_local_median:
-            comp_title = t["comp_title_local_median"].format(radius=ref_radius_km)
+            comp_title = label(
+                "comp_title_local_median",
+                "Local Median Neighborhood (<= {radius} km)",
+            ).format(radius=ref_radius_km)
         else:
-            comp_title = t["comp_title_local_best"].format(radius=ref_radius_km)
+            comp_title = label(
+                "comp_title_local_best",
+                "Local Best Station (<= {radius} km)",
+            ).format(radius=ref_radius_km)
         display_callsign = callsign
     else:
         if is_rx_hardware_ab(analysis_context):
@@ -319,7 +330,10 @@ def build_analysis_batches(
                 comp_title = f"{callsign} (Setup B)"
         else:
             display_callsign = callsign
-            comp_title = t["comp_title_ref"].format(callsign=ref_callsign)
+            comp_title = label(
+                "comp_title_ref",
+                "{callsign} (Reference)",
+            ).format(callsign=ref_callsign)
 
     # Assemble Analysis Batches
     analyses = []
@@ -351,7 +365,10 @@ def build_analysis_batches(
         )
         analyses.append(with_decode_fallback({
             "id": "TX_COMP",
-            "title": t["fig_tx_comp"].format(callsign=display_callsign, comp_title=comp_title),
+            "title": label(
+                "fig_tx_comp",
+                "TX Compare: {callsign} (Target) vs. {comp_title}",
+            ).format(callsign=display_callsign, comp_title=comp_title),
             "is_compare": True,
             "is_sequential": is_sequential,
             "analysis_kind": "comparison",
@@ -361,7 +378,10 @@ def build_analysis_batches(
         if analysis_context.band != "All":
             analyses.append(with_decode_fallback({
                 "id": "TX_ABS",
-                "title": t["fig_tx_abs"].format(callsign=callsign),
+                "title": label(
+                    "fig_tx_abs",
+                    "TX Success: Target {callsign} vs. Other Signals at Active RX Stations",
+                ).format(callsign=callsign),
                 "is_compare": False,
                 "is_sequential": False,
                 "analysis_kind": "opportunity",
@@ -382,7 +402,7 @@ def build_analysis_batches(
             }))
         else:
             if warn:
-                warn(t.get(
+                warn(label(
                     "warn_abs_exact_band",
                     "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
                 ))
@@ -405,7 +425,10 @@ def build_analysis_batches(
         )
         analyses.append(with_decode_fallback({
             "id": "RX_COMP",
-            "title": t["fig_rx_comp"].format(callsign=display_callsign, comp_title=comp_title),
+            "title": label(
+                "fig_rx_comp",
+                "RX Compare: {callsign} (Target) vs. {comp_title}",
+            ).format(callsign=display_callsign, comp_title=comp_title),
             "is_compare": True,
             "is_sequential": is_sequential,
             "analysis_kind": "comparison",
@@ -415,7 +438,10 @@ def build_analysis_batches(
         if analysis_context.band != "All":
             analyses.append(with_decode_fallback({
                 "id": "RX_ABS",
-                "title": t["fig_rx_abs"].format(callsign=callsign),
+                "title": label(
+                    "fig_rx_abs",
+                    "RX Success: Target {callsign} vs. Same Signals Heard Elsewhere",
+                ).format(callsign=callsign),
                 "is_compare": False,
                 "is_sequential": False,
                 "analysis_kind": "opportunity",
@@ -435,7 +461,7 @@ def build_analysis_batches(
             }))
         else:
             if warn:
-                warn(t.get(
+                warn(label(
                     "warn_abs_exact_band",
                     "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
                 ))
@@ -454,6 +480,7 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
                 target_callsign=analysis_context.callsign,
                 target_qth=analysis_context.qth,
                 timing_collector=timing_collector,
+                owns_input=True,
             )
         if df.empty:
             return df, t["warn_no_data"].format(title=analysis["title"])
@@ -461,7 +488,7 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
         target_state = solar_path_state(analysis_context.solar_state)
         if target_state is not None:
             with _timed_span(timing_collector, "opportunity solar filter"):
-                df["solar"] = df["cycle_time"].apply(
+                df["solar"] = opportunity_utc_from_time_slot(df["time_slot"]).apply(
                     lambda dt: get_solar_state(dt, lat_0, lon_0)
                 )
                 df = df[df["solar"] == target_state]
@@ -471,7 +498,7 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
                 grid4 = df["peer_grid"].astype(str).str[:4]
                 static_peers = (
                     df.assign(g4=grid4)
-                    .groupby("peer_sign")["g4"]
+                    .groupby("peer_sign", observed=True)["g4"]
                     .nunique()
                     .loc[lambda values: values == 1]
                     .index
@@ -502,7 +529,7 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
             # Use the first four characters so JN37 and JN37AB are treated as the same grid.
             grid4 = df['peer_grid'].astype(str).str[:4]
             # Keep only stations with exactly one unique four-character grid.
-            static_peers = df.assign(g4=grid4).groupby('peer_sign')['g4'].nunique()[lambda x: x == 1].index
+            static_peers = df.assign(g4=grid4).groupby('peer_sign', observed=True)['g4'].nunique()[lambda x: x == 1].index
             df = df[df['peer_sign'].isin(static_peers)]
 
     

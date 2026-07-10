@@ -16,10 +16,8 @@ def build_analysis_context_from_session_state(session_state):
     """Convert localized Streamlit session values into one stable scalar context."""
     language = session_state.get("lang", "en")
     t = T.get(language, T["en"])
-    active_demo_profile = session_state.get("active_demo_profile")
 
     return AnalysisContext(
-        language=language,
         run_mode=session_state.get("run_mode"),
         callsign=str(session_state.get("val_callsign", "")).strip().upper(),
         qth=str(session_state.get("val_qth", "")).strip().upper(),
@@ -65,6 +63,4 @@ def build_analysis_context_from_session_state(session_state):
         min_joint_spots_per_station=int(session_state.get("val_min_spots", 1)),
         min_confirmed_opportunities_per_peer=int(session_state.get("val_min_opportunities", 5)),
         min_joint_stations_per_map_segment=int(session_state.get("val_min_stations", 1)),
-        is_demo_run=bool(active_demo_profile) or bool(session_state.get("is_demo_mode", False)),
-        active_demo_profile=active_demo_profile,
     )

@@ -135,7 +135,8 @@ def test_same_basemap_key_is_created_once_under_concurrency(tmp_path, monkeypatc
     assert cache_statuses.count("hit") == worker_count - 1
     assert len(set(cache_paths)) == 1
     assert cache_paths[0].read_bytes() == b"complete-basemap"
-    assert map_base._basemap_creation_locks == {}
+    assert map_base.ARTIFACT_STORE.lock_bookkeeping_size == 64
+    assert list(tmp_path.glob(".artifact-locks/*.lock")) == []
 
 
 def test_segment_and_opportunity_figures_render_concurrently_without_pyplot_state():

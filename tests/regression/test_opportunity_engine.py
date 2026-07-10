@@ -5,12 +5,15 @@ import numpy as np
 import pandas as pd
 
 from core.opportunity_engine import (
+    OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
+    PROCESSED_OPPORTUNITY_COLUMNS,
     SUCCESS_RATE_BOUNDS,
     SUCCESS_RATE_COLORS,
     SUCCESS_RATE_TICK_LABELS,
     aggregate_opportunity_peers,
     aggregate_opportunity_segments,
     build_absolute_opportunity_query,
+    opportunity_utc_from_time_slot,
     opportunity_rate_scale_max,
     prepare_opportunity_rows,
 )
@@ -24,6 +27,8 @@ from core.solar_path import (
     solar_elevation_from_sun_vectors,
     sun_unit_vectors_from_terms,
 )
+from i18n import T
+from ui.inspector.drilldown import _build_drilldown_table, _load_station_rows_for_drilldown
 
 
 def _server_row(slot, call, grid, target_seen, external_seen, target_snr=None):
@@ -59,6 +64,10 @@ def test_rx_opportunity_classification_and_target_exclusion():
     assert int(rows["target_only"].sum()) == 1
     assert (rows["opportunity"] == rows["hit"] + rows["miss"]).all()
     assert {"path_illumination", "path_daylight_fraction", "target_solar_elevation", "path_midpoint_solar_elevation", "peer_solar_elevation", "path_greyline_crossing"}.issubset(rows.columns)
+    assert "cycle_time" not in rows.columns
+    assert list(rows.columns) == list(PROCESSED_OPPORTUNITY_COLUMNS)
+    for categorical_column in ["peer_sign", "peer_grid", "outcome", "path_illumination"]:
+        assert isinstance(rows[categorical_column].dtype, pd.CategoricalDtype)
 
     peers = aggregate_opportunity_peers(rows, min_opportunities=2)
     peer = peers.iloc[0]
@@ -69,6 +78,91 @@ def test_rx_opportunity_classification_and_target_exclusion():
     assert bool(peer["eligible"])
     assert math.isclose(float(peer["rate_pct"]), 50.0, abs_tol=0.001)
     assert math.isclose(float(peer["successful_snr_median"]), -12.0, abs_tol=0.001)
+
+
+def test_opportunity_science_and_aggregates_match_across_owned_and_copied_inputs():
+    source = pd.DataFrame([
+        _server_row(100, "k1aaa", "fn31aa", 1, 1, -12.04),
+        _server_row(101, "k1aaa", "fn31aa", 0, 1, None),
+        _server_row(102, "k1aaa", "fn31aa", 1, 0, -8.02),
+        _server_row(103, "k2bbb", "em12aa", 1, 1, -5.95),
+        _server_row(104, "k2bbb", "em12aa", 0, 1, None),
+    ])
+
+    copied = prepare_opportunity_rows(
+        source,
+        target_callsign="DL1MKS",
+        target_qth="JN37UN",
+    )
+    owned = prepare_opportunity_rows(
+        source.copy(deep=True),
+        target_callsign="DL1MKS",
+        target_qth="JN37UN",
+        owns_input=True,
+    )
+
+    science_columns = [
+        "time_slot",
+        "peer_sign",
+        "peer_grid",
+        "target_seen",
+        "external_seen",
+        "target_snr",
+        "peer_lat",
+        "peer_lon",
+        "opportunity",
+        "hit",
+        "miss",
+        "target_only",
+        "outcome",
+        "path_illumination",
+    ]
+    pd.testing.assert_frame_equal(
+        copied[science_columns].astype({"peer_sign": str, "peer_grid": str, "outcome": str, "path_illumination": str}),
+        owned[science_columns].astype({"peer_sign": str, "peer_grid": str, "outcome": str, "path_illumination": str}),
+    )
+
+    copied_peers = aggregate_opportunity_peers(copied, min_opportunities=2)
+    owned_peers = aggregate_opportunity_peers(owned, min_opportunities=2)
+    pd.testing.assert_frame_equal(
+        copied_peers.sort_values(["peer_sign", "peer_grid"]).reset_index(drop=True),
+        owned_peers.sort_values(["peer_sign", "peer_grid"]).reset_index(drop=True),
+    )
+
+
+def test_prepare_opportunity_rows_respects_input_ownership_contract():
+    source = pd.DataFrame([
+        _server_row(100, "k1aaa", "fn31aa", 1, 1, -12),
+        _server_row(101, "k1aaa", "fn31aa", 0, 1, None),
+    ])
+    original = source.copy(deep=True)
+
+    prepare_opportunity_rows(
+        source,
+        target_callsign="DL1MKS",
+        target_qth="JN37UN",
+    )
+    pd.testing.assert_frame_equal(source, original)
+
+    owned_source = original.copy(deep=True)
+    prepare_opportunity_rows(
+        owned_source,
+        target_callsign="DL1MKS",
+        target_qth="JN37UN",
+        owns_input=True,
+    )
+    assert owned_source.loc[0, "peer_sign"] == "K1AAA"
+    assert owned_source.loc[0, "peer_grid"] == "FN31AA"
+    assert str(owned_source["target_seen"].dtype) == "int8"
+
+
+def test_time_slot_helper_matches_legacy_utc_timestamp_conversion():
+    slots = pd.Series([0, 1, 1483228800 // 120, np.nan], dtype="float64")
+    expected = pd.to_datetime(slots * 120, unit="s", utc=True, errors="coerce")
+
+    actual = opportunity_utc_from_time_slot(slots)
+
+    pd.testing.assert_series_equal(actual, expected)
 
 
 def test_path_illumination_preserves_duplicate_row_results():
@@ -166,6 +260,110 @@ def test_target_only_never_enters_denominator():
     assert int(peer["target_only"]) == 2
     assert not bool(peer["eligible"])
     assert pd.isna(peer["rate_pct"])
+
+
+def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path):
+    source = pd.DataFrame([
+        _server_row(100, "K1AAA", "FN31aa", 1, 1, -12),
+        _server_row(101, "K1AAA", "FN31aa", 0, 1, None),
+        _server_row(102, "K1AAA", "FN31aa", 1, 0, -8),
+        _server_row(103, "K2BBB", "EM12aa", 1, 1, -5),
+    ])
+    rows = prepare_opportunity_rows(
+        source,
+        target_callsign="DL1MKS",
+        target_qth="JN37UN",
+    )
+    parquet_path = tmp_path / "opportunity_rows.parquet"
+    rows.to_parquet(parquet_path, index=False)
+
+    t = T["en"]
+    station_col = t["tbl_col_tx"]
+    loc_col = t["tbl_col_loc"]
+    km_col = t["tbl_col_km"]
+    az_col = t["tbl_col_az"]
+    selected_meta_df = pd.DataFrame({
+        station_col: ["K1AAA"],
+        loc_col: ["FN31AA"],
+        km_col: [100],
+        az_col: [42.0],
+    })
+
+    full_rows = _load_station_rows_for_drilldown(
+        parquet_path,
+        selected_meta_df,
+        station_col,
+        loc_col,
+    )
+    projected_rows = _load_station_rows_for_drilldown(
+        parquet_path,
+        selected_meta_df,
+        station_col,
+        loc_col,
+        columns=OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
+    )
+    assert set(projected_rows.columns) == set(OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS) | {station_col, loc_col, km_col, az_col}
+
+    full_table, full_info = _build_drilldown_table(
+        parquet_path,
+        selected_meta_df,
+        station_col,
+        loc_col,
+        km_col,
+        az_col,
+        "RX_ABS",
+        False,
+        False,
+        False,
+        False,
+        "DL1MKS",
+        "",
+        t,
+        station_rows_df=full_rows,
+    )
+    projected_table, projected_info = _build_drilldown_table(
+        parquet_path,
+        selected_meta_df,
+        station_col,
+        loc_col,
+        km_col,
+        az_col,
+        "RX_ABS",
+        False,
+        False,
+        False,
+        False,
+        "DL1MKS",
+        "",
+        t,
+        station_rows_df=projected_rows,
+    )
+
+    assert full_info == projected_info
+    pd.testing.assert_frame_equal(full_table, projected_table)
+
+
+def test_processed_opportunity_categoricals_survive_parquet_round_trip(tmp_path):
+    source = pd.DataFrame([
+        _server_row(100, "K1AAA", "FN31aa", 1, 1, -12),
+        _server_row(101, "K1AAA", "FN31aa", 0, 1, None),
+        _server_row(102, "K2BBB", "EM12aa", 1, 0, -8),
+    ])
+    rows = prepare_opportunity_rows(
+        source,
+        target_callsign="DL1MKS",
+        target_qth="JN37UN",
+    )
+    parquet_path = tmp_path / "categorical_rows.parquet"
+    rows.to_parquet(parquet_path, index=False)
+
+    restored = pd.read_parquet(parquet_path)
+
+    assert "cycle_time" not in restored.columns
+    assert list(restored.columns) == list(PROCESSED_OPPORTUNITY_COLUMNS)
+    for categorical_column in ["peer_sign", "peer_grid", "outcome", "path_illumination"]:
+        assert isinstance(restored[categorical_column].dtype, pd.CategoricalDtype)
+        assert restored[categorical_column].astype(str).tolist() == rows[categorical_column].astype(str).tolist()
 
 
 def test_segment_value_is_average_station_rate_not_pooled():

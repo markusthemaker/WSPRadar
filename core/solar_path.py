@@ -191,8 +191,10 @@ def classify_path_illumination(
     twilight_elevation_degrees: float,
     sample_points: int,
     time_column: str = "cycle_time",
+    time_values=None,
     peer_latitude_column: str = "peer_lat",
     peer_longitude_column: str = "peer_lon",
+    copy: bool = True,
     timing_collector=None,
 ) -> pd.DataFrame:
     """Attach great-circle path illumination metrics to station-cycle rows."""
@@ -200,8 +202,14 @@ def classify_path_illumination(
         return frame
 
     with _timed_span(timing_collector, "path illumination input setup"):
-        result = frame.copy()
-        times = pd.to_datetime(result[time_column], utc=True, errors="coerce")
+        result = frame.copy() if copy else frame
+        if time_values is None:
+            times = pd.to_datetime(result[time_column], utc=True, errors="coerce")
+        else:
+            times = pd.Series(
+                pd.to_datetime(time_values, utc=True, errors="coerce"),
+                index=result.index,
+            )
         peer_latitude = pd.to_numeric(result[peer_latitude_column], errors="coerce").to_numpy(dtype=float)
         peer_longitude = pd.to_numeric(result[peer_longitude_column], errors="coerce").to_numpy(dtype=float)
         valid = times.notna().to_numpy() & np.isfinite(peer_latitude) & np.isfinite(peer_longitude)

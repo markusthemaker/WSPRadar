@@ -12,7 +12,6 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 from config import COMPASS
-from i18n import absolute_terms
 from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
     matplotlib_render_span_label,
@@ -24,6 +23,12 @@ from core.stability import (
     _format_stability_interval,
     _stability_summary,
 )
+from core.opportunity_engine import (
+    OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
+    OPPORTUNITY_SEGMENT_VIEW_COLUMNS,
+    opportunity_utc_from_time_slot,
+)
+from core.artifact_store import read_parquet_artifact
 from ui.inspector.evidence_data import (
     _build_evidence_points,
     _build_segment_evidence_points,
@@ -34,6 +39,13 @@ from ui.inspector.drilldown import (
     _build_drilldown_table,
     _load_station_rows_for_drilldown,
     _unique_station_order,
+)
+from ui.inspector.view_models import (
+    build_compare_inspector_view_model,
+    build_inspector_options,
+    build_opportunity_inspector_view_model,
+    compare_scope_availability,
+    filter_inspector_scope,
 )
 from ui.plots.evidence_figures import (
     EVIDENCE_AGG_COLOR,
@@ -422,6 +434,7 @@ def _render_selected_station_evidence(
     selected_identity_df,
     is_compare,
     is_sequential,
+    tx_ab_bin_minutes,
     timing_collector=None,
 ):
     """Render selected-station distribution and time evidence between insights and drill-down."""
@@ -430,7 +443,13 @@ def _render_selected_station_evidence(
         return None
 
     with _timed_span(timing_collector, "selected evidence points build"):
-        evidence_df = _build_evidence_points(station_df, identity_meta, is_compare, is_sequential)
+        evidence_df = _build_evidence_points(
+            station_df,
+            identity_meta,
+            is_compare,
+            is_sequential,
+            tx_ab_bin_minutes=tx_ab_bin_minutes,
+        )
     if evidence_df.empty:
         return None
 
@@ -569,20 +588,21 @@ def _render_opportunity_scope(
     analysis_start_t,
     analysis_end_t,
     show_export_button,
+    analysis_context,
+    presentation_context,
     timing_collector=None,
 ):
     """Render the opportunity-specific Absolute inspector and export state."""
-    station_col = t["tbl_col_rx"] if analysis_id.startswith("TX") else t["tbl_col_tx"]
-    opportunity_terms = absolute_terms(t, "TX" if analysis_id.startswith("TX") else "RX")
-    loc_col = t["tbl_col_loc"]
-    km_col = t["tbl_col_km"]
-    az_col = t["tbl_col_az"]
+    opportunity_terms = presentation_context.absolute_terms(
+        "TX" if analysis_id.startswith("TX") else "RX"
+    )
 
     identity_meta = df_seg[["peer_sign", "peer_grid"]].drop_duplicates()
     try:
         with _timed_span(timing_collector, "opportunity rows parquet read"):
-            rows = pd.read_parquet(
+            rows = read_parquet_artifact(
                 parquet_path,
+                columns=list(OPPORTUNITY_SEGMENT_VIEW_COLUMNS),
                 filters=[("peer_sign", "in", identity_meta["peer_sign"].astype(str).unique().tolist())],
             )
     except (FileNotFoundError, KeyError, ValueError):
@@ -592,7 +612,7 @@ def _render_opportunity_scope(
         rows["peer_sign"] = rows["peer_sign"].astype(str)
         rows["peer_grid"] = rows["peer_grid"].astype(str)
         rows = rows.merge(identity_meta, on=["peer_sign", "peer_grid"], how="inner")
-        row_times = pd.to_datetime(rows["cycle_time"], errors="coerce", utc=True).dropna()
+        row_times = opportunity_utc_from_time_slot(rows["time_slot"]).dropna()
         if analysis_start_t is None:
             analysis_start_t = row_times.min() if not row_times.empty else pd.Timestamp.now(tz="UTC")
         if analysis_end_t is None:
@@ -602,65 +622,17 @@ def _render_opportunity_scope(
                 else _as_utc_timestamp(analysis_start_t) + pd.Timedelta(minutes=2)
             )
 
-        confirmed = df_seg[df_seg["eligible"] & df_seg["rate_pct"].notna()].copy()
-        confirmed_rows = rows.merge(
-            confirmed[["peer_sign", "peer_grid"]].drop_duplicates(),
-            on=["peer_sign", "peer_grid"],
-            how="inner",
+        opportunity_view_model = build_opportunity_inspector_view_model(
+            df_seg,
+            rows,
+            analysis_id=analysis_id,
+            selected_segment=selected_seg,
+            minimum_confirmed=analysis_context.min_confirmed_opportunities_per_peer,
+            presentation_context=presentation_context,
         )
-        hits = int(confirmed_rows["hit"].sum())
-        misses = int(confirmed_rows["miss"].sum())
-        overall_rate = (
-            100.0 * hits / (hits + misses)
-            if (hits + misses)
-            else np.nan
-        )
-        confirmed_trials = confirmed["hits"] + confirmed["misses"]
-        confirmed_station_rates = np.where(
-            confirmed_trials > 0,
-            100.0 * confirmed["hits"] / confirmed_trials,
-            np.nan,
-        )
-        station_average_rate = (
-            float(np.nanmean(confirmed_station_rates))
-            if len(confirmed_station_rates)
-            else np.nan
-        )
-        minimum_confirmed = int(st.session_state.get("val_min_opportunities", 5))
+        confirmed = opportunity_view_model.confirmed_rows
 
-    summary = [
-        t.get(
-            "txt_abs_selected_segment",
-            "Selected Segment: {segment}",
-        ).format(segment=selected_seg),
-        t.get(
-            "txt_abs_evidence_summary",
-            "Evidence ({pair} >= {threshold} per station): Target {target} | {counter} {counter_count}",
-        ).format(
-            pair=opportunity_terms["pair"],
-            threshold=minimum_confirmed,
-            target=hits,
-            counter=opportunity_terms["counter"],
-            counter_count=misses,
-            hits=hits,
-            misses=misses,
-        ),
-        (
-            t.get(
-                "txt_abs_rate_summary",
-                "Success Rate {formula}: Average by Station {station_average:.1f}% | Observation-Level {overall:.1f}%",
-            ).format(
-                formula=opportunity_terms["formula"],
-                station_average=station_average_rate,
-                overall=overall_rate,
-            )
-            if pd.notna(station_average_rate) and pd.notna(overall_rate)
-            else t.get(
-                "txt_abs_no_eligible",
-                "No station meets the {pair} threshold in this scope.",
-            ).format(pair=opportunity_terms["pair"])
-        ),
-    ]
+    summary = opportunity_view_model.summary_lines
     st.markdown(
         f"<div style='text-align:center; color:white; font-size:0.95rem; margin-top:-0.25rem; margin-bottom:1.0rem;'>{'<br>'.join(summary)}</div>",
         unsafe_allow_html=True,
@@ -674,6 +646,7 @@ def _render_opportunity_scope(
         analysis_start_t,
         analysis_end_t,
         opportunity_terms,
+        minimum_trials=analysis_context.min_confirmed_opportunities_per_peer,
     )
     with _timed_span(timing_collector, "opportunity segment figure build"):
         fig = _render_opportunity_segment_figure(segment_recipe)
@@ -686,41 +659,15 @@ def _render_opportunity_scope(
         )
     dispose_matplotlib_figure(fig)
 
-    disp_df = confirmed[
-        [
-            "peer_sign",
-            "peer_grid",
-            "calc_dist",
-            "calc_azimuth",
-            "hits",
-            "misses",
-            "rate_pct",
-            "successful_snr_median",
-        ]
-    ].copy()
-    disp_df.columns = [
-        station_col,
-        loc_col,
-        km_col,
-        az_col,
-        opportunity_terms["target_column"],
-        opportunity_terms["counter_column"],
-        opportunity_terms["rate_column"],
-        t.get("tbl_col_success_snr", "Median Target SNR (dB @ 1W)"),
-    ]
-    disp_df[km_col] = disp_df[km_col].round(0).astype("Int64")
-    disp_df[az_col] = disp_df[az_col].round(1)
-    rate_col = opportunity_terms["rate_column"]
-    snr_col = t.get("tbl_col_success_snr", "Median Target SNR (dB @ 1W)")
-    disp_df[rate_col] = pd.to_numeric(disp_df[rate_col], errors="coerce").round(1)
-    disp_df[snr_col] = pd.to_numeric(disp_df[snr_col], errors="coerce").round(1)
-    hit_col = opportunity_terms["target_column"]
-    miss_col = opportunity_terms["counter_column"]
-    full_segment_disp_df = disp_df.sort_values(
-        [hit_col, miss_col, rate_col],
-        ascending=[False, False, False],
-        na_position="last",
-    ).reset_index(drop=True)
+    station_col = opportunity_view_model.station_column
+    loc_col = opportunity_view_model.locator_column
+    km_col = opportunity_view_model.distance_column
+    az_col = opportunity_view_model.azimuth_column
+    hit_col = opportunity_view_model.hit_column
+    miss_col = opportunity_view_model.miss_column
+    rate_col = opportunity_view_model.rate_column
+    snr_col = opportunity_view_model.snr_column
+    full_segment_disp_df = opportunity_view_model.full_station_table
 
     zero_hits_key = f"opp_show_zero_hits_{analysis_id}_{run_id}_{scope_token}"
     col_title, col_toggle, col_filter = st.columns(
@@ -805,6 +752,7 @@ def _render_opportunity_scope(
                 selected_meta_df,
                 station_col,
                 loc_col,
+                columns=OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
             )
 
         time_options, time_default = _time_agg_options_for_span(pd.DataFrame({
@@ -869,10 +817,12 @@ def _render_opportunity_scope(
                 False,
                 False,
                 False,
-                st.session_state.val_callsign.upper(),
+                analysis_context.callsign.upper(),
                 "",
                 t,
                 station_rows_df=selected_station_rows,
+                tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+                target_callsign=analysis_context.callsign,
             )
         if info_msg:
             st.info(info_msg, icon=":material/info:")
@@ -905,8 +855,10 @@ def _render_opportunity_scope(
         "is_sequential": False,
         "show_non_joint": False,
         "is_local_median": False,
-        "col_u_name": st.session_state.val_callsign.upper(),
+        "col_u_name": analysis_context.callsign.upper(),
         "ref_header": "",
+        "tx_ab_bin_minutes": analysis_context.tx_ab_bin_minutes,
+        "target_callsign": analysis_context.callsign,
         "lang": st.session_state.get("lang", "en"),
     }
     register_inspector_export(
@@ -944,6 +896,8 @@ def render_segment_inspector(
     line1_str,
     t,
     max_dist_km,
+    analysis_context,
+    presentation_context,
     analysis_start_t=None,
     analysis_end_t=None,
     analysis_kind="comparison",
@@ -965,6 +919,8 @@ def render_segment_inspector(
             line1_str,
             t,
             max_dist_km,
+            analysis_context,
+            presentation_context,
             analysis_start_t=analysis_start_t,
             analysis_end_t=analysis_end_t,
             analysis_kind=analysis_kind,
@@ -987,6 +943,8 @@ def _render_segment_inspector_body(
     line1_str,
     t,
     max_dist_km,
+    analysis_context,
+    presentation_context,
     analysis_start_t=None,
     analysis_end_t=None,
     analysis_kind="comparison",
@@ -1003,22 +961,18 @@ def _render_segment_inspector_body(
     # Extract inspectable distance segments from enriched_df, not only rendered heatmap segments.
     # segs_df only contains segments with valid joint Delta-SNR heatmap data; enriched_df also
     # contains non-joint evidence such as only target, only reference, or async-both rows.
-    inspector_source_df = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
-    inspector_source_df = inspector_source_df[inspector_source_df['r_min'] < max_dist_km]
-
-    valid_distances = sorted(
-        [d for d in inspector_source_df['dist_label'].dropna().unique()],
-        key=lambda x: int(x.strip('[]km').split('-')[0])
+    options_view_model = build_inspector_options(
+        enriched_df,
+        max_dist_km=max_dist_km,
     )
+    inspector_source_df = options_view_model.source_rows
+    valid_distances = options_view_model.valid_distances
     lbl_dist = t.get("opt_insp_dist", "---")
     lbl_dir = t.get("opt_insp_dir", "---")
     opt_full = t.get("opt_full_range", "Full Range")
     opt_all_dir = t.get("opt_all_dirs", "All Directions")
 
-    valid_dirs = sorted(
-        [d for d in inspector_source_df['dir_name'].dropna().unique() if d in COMPASS],
-        key=lambda x: COMPASS.index(x)
-    )
+    valid_dirs = options_view_model.valid_directions
 
     # Render stable explicit-All multiselects. The callback keeps All mutually
     # exclusive with specific values and restores All when the field is cleared.
@@ -1100,13 +1054,11 @@ def _render_segment_inspector_body(
         segment_insight_label = "Segment-Insight" if st.session_state.lang == "de" else "Segment Insight"
         _section_header(segment_insight_label, "material:data_usage")
         with _timed_span(timing_collector, "segment scope filter"):
-            df_seg = enriched_df[enriched_df['SegmentID'] != "Out of Bounds"].copy()
-
-            # Apply user filters
-            if selected_ranges:
-                df_seg = df_seg[df_seg['dist_label'].isin(selected_ranges)]
-            if selected_directions:
-                df_seg = df_seg[df_seg['dir_name'].isin(selected_directions)]
+            df_seg = filter_inspector_scope(
+                inspector_source_df,
+                selected_ranges=selected_ranges,
+                selected_directions=selected_directions,
+            )
 
         if df_seg.empty:
             empty_scope_message = (
@@ -1150,62 +1102,16 @@ def _render_segment_inspector_body(
                 analysis_start_t=analysis_start_t,
                 analysis_end_t=analysis_end_t,
                 show_export_button=show_export_button,
+                analysis_context=analysis_context,
+                presentation_context=presentation_context,
                 timing_collector=timing_collector,
             )
             return
             
-        has_joint_rows = False
-        has_non_joint_rows = False
-        if is_compare and 'count_only_u' in df_seg.columns:
-            has_joint_rows = (df_seg['spot_count'] > 0).any()
-            has_non_joint_rows = ((df_seg['count_only_u'] > 0) | (df_seg['count_only_r'] > 0)).any()
-
-        vals = df_seg['stat_val'].dropna()
-        target_call = st.session_state.val_callsign.upper()
-        
-        # Setup specific labels based on the active test mode (Self vs Compare)
-        if st.session_state.val_comp_mode == t["opt_comp_self"]:
-            if st.session_state.val_self_test_mode == t["opt_self_rx"]:
-                lbl_only_me = t['leg_only_me'].format(callsign=target_call)
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign=st.session_state.val_self_call_b.upper())
-                ref_header = st.session_state.val_self_call_b.upper()
-                col_u_name = target_call
-            else:
-                lbl_only_me = t['leg_only_me'].format(callsign="Setup A")
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign="Setup B")
-                ref_header = "Setup B"
-                col_u_name = "Setup A"
-        else:
-            lbl_only_me = t['leg_only_me'].format(callsign=target_call)
-            col_u_name = target_call
-            if st.session_state.val_comp_mode == t["opt_comp_radius"]: 
-                lbl_only_ref = t['leg_only_ref_radius']
-                ref_header = "Best Ref"
-            else: 
-                lbl_only_ref = t['leg_only_ref'].format(ref_callsign=st.session_state.val_ref_callsign.upper())
-                ref_header = st.session_state.val_ref_callsign.upper()
-
-        remote_str = t['txt_rx_stations'] if analysis_id.startswith("TX") else t['txt_tx_stations']
-        is_local_median = (
-            st.session_state.val_comp_mode == t["opt_comp_radius"] and
-            st.session_state.get("val_local_benchmark", t.get("opt_local_median", "Local Median Neighborhood")) == t.get("opt_local_median", "Local Median Neighborhood")
+        has_joint_rows, has_non_joint_rows = compare_scope_availability(
+            df_seg,
+            is_compare=is_compare,
         )
-        yield_ref_header = t.get("lbl_neighborhood", "Neighborhood") if is_local_median else ref_header
-        if is_local_median:
-            ref_header = t.get("opt_local_median", "Local Median Neighborhood")
-        
-        # Build the sub-footer info string detailing decode counts
-        if is_compare and 'count_only_u' in df_seg.columns:
-            if is_sequential:
-                seg_line2 = f"Both (Async): {len(df_seg[(df_seg['count_only_u']>0) & (df_seg['count_only_r']>0)])}  |  {lbl_only_me}: {int(df_seg['count_only_u'].sum())}  |  {lbl_only_ref}: {int(df_seg['count_only_r'].sum())}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
-            else:
-                seg_joint = df_seg[df_seg['spot_count'] > 0]
-                seg_line2 = f"{t['txt_joint_decodes']}: {int(df_seg['spot_count'].sum())}  |  {lbl_only_me}: {int(df_seg['count_only_u'].sum())}  |  {lbl_only_ref}: {int(df_seg['count_only_r'].sum())}  |  {t['txt_joint']} {remote_str}: {len(seg_joint)}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
-        else:
-            seg_line2 = f"{t['txt_total_decodes']}: {int(df_seg['spot_count'].sum())}  |  {t['txt_remote']} {remote_str}: {len(df_seg)}"
-
-        station_col = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
-        station_type = t['tbl_col_rx'] if analysis_id.startswith("TX") else t['tbl_col_tx']
         toggle_key = f"tgl_{analysis_id}_{run_id}_{scope_token}"
         view_defaults = st.session_state.get("demo_view_defaults", {})
         if "show_non_joint" in view_defaults and view_defaults.get("show_non_joint") is not None:
@@ -1214,54 +1120,35 @@ def _render_segment_inspector_body(
             default_state = has_non_joint_rows and not has_joint_rows
         show_non_joint = st.session_state.get(toggle_key, default_state) if is_compare else False
 
-        if not is_compare:
-            disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'stat_val']].copy()
-            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], t['tbl_col_spots'], t['tbl_col_med_snr']]
-            col_joint_name = None
-        else:
-            if is_sequential:
-                col_joint_name = t.get('tbl_col_joint_bins', 'Joint Bins')
-                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'joint_bins_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
-            else:
-                col_joint_name = t['tbl_col_joint']
-                disp_df = df_seg[['peer_sign', 'peer_grid', 'calc_dist', 'calc_azimuth', 'spot_count', 'count_only_u', 'count_only_r', 'stat_val']].copy()
+        compare_view_model = build_compare_inspector_view_model(
+            df_seg,
+            analysis_id=analysis_id,
+            is_compare=is_compare,
+            is_sequential=is_sequential,
+            show_non_joint=show_non_joint,
+            analysis_context=analysis_context,
+            presentation_context=presentation_context,
+        )
+        vals = compare_view_model.values
+        lbl_only_me = compare_view_model.target_only_label
+        lbl_only_ref = compare_view_model.reference_only_label
+        ref_header = compare_view_model.reference_header
+        col_u_name = compare_view_model.target_name
+        is_local_median = compare_view_model.is_local_median
+        yield_ref_header = compare_view_model.yield_reference_header
+        seg_line2 = compare_view_model.scope_summary
+        station_col = compare_view_model.station_column
+        station_type = compare_view_model.station_type
 
-            disp_df.columns = [station_col, t['tbl_col_loc'], t['tbl_col_km'], t['tbl_col_az'], col_joint_name, t['tbl_col_only_u'].format(callsign=col_u_name), lbl_only_ref, t['tbl_col_med_delta']]
-
-        km_col = t['tbl_col_km']
-        az_col = t['tbl_col_az']
-        disp_df[km_col] = disp_df[km_col].round(0).astype('Int64')
-        disp_df[az_col] = disp_df[az_col].round(1)
-
+        disp_df = compare_view_model.station_table.copy()
+        sorted_disp_df = disp_df.copy()
+        full_segment_disp_df = compare_view_model.full_station_table
+        evidence_meta_df = compare_view_model.evidence_identities
+        col_joint_name = compare_view_model.joint_column
+        km_col = compare_view_model.distance_column
+        az_col = compare_view_model.azimuth_column
         metric_col = disp_df.columns[-1]
-        disp_df[metric_col] = pd.to_numeric(disp_df[metric_col], errors='coerce').round(1)
-        if is_compare:
-            sort_cols = [col_joint_name, metric_col] if col_joint_name != metric_col else [col_joint_name]
-        else:
-            sort_cols = [t['tbl_col_spots'], metric_col] if t['tbl_col_spots'] != metric_col else [t['tbl_col_spots']]
-
-        full_segment_disp_df = disp_df.sort_values(by=sort_cols, ascending=[False] * len(sort_cols), na_position='last').reset_index(drop=True)
-
-        if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
-            disp_df = disp_df[disp_df[col_joint_name] > 0]
-
-        sorted_disp_df = disp_df.sort_values(by=sort_cols, ascending=[False] * len(sort_cols), na_position='last').reset_index(drop=True)
-        disp_df = sorted_disp_df.copy()
-
-        evidence_meta_df = sorted_disp_df
-        if is_compare and col_joint_name in sorted_disp_df.columns:
-            evidence_meta_df = sorted_disp_df[sorted_disp_df[col_joint_name] > 0]
-        evidence_meta_df = evidence_meta_df[[station_col, t['tbl_col_loc']]].copy()
-        evidence_meta_df.columns = ["peer_sign", "peer_grid"]
-
-        # ----------------------------------------------------
-        # Render Histogram & Yield Chart
-        # ----------------------------------------------------
-        has_plot_data = False
-        if not vals.empty: 
-            has_plot_data = True
-        elif is_compare and 'count_only_u' in df_seg.columns and (df_seg['count_only_u'].sum() > 0 or df_seg['count_only_r'].sum() > 0): 
-            has_plot_data = True
+        has_plot_data = compare_view_model.has_plot_data
 
         segment_evidence_df = _empty_evidence_df()
         segment_raw_values = pd.Series(dtype=float)
@@ -1276,7 +1163,13 @@ def _render_segment_inspector_body(
 
         if has_plot_data:
             with _timed_span(timing_collector, "segment evidence points build"):
-                segment_evidence_df = _build_segment_evidence_points(evidence_meta_df, parquet_path, is_compare, is_sequential)
+                segment_evidence_df = _build_segment_evidence_points(
+                    evidence_meta_df,
+                    parquet_path,
+                    is_compare,
+                    is_sequential,
+                    tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+                )
             segment_raw_values = segment_evidence_df["metric"] if not segment_evidence_df.empty else pd.Series(dtype=float)
             with _timed_span(timing_collector, "segment stability calculation"):
                 stability_result = _cached_segment_stability(
@@ -1444,6 +1337,8 @@ def _render_segment_inspector_body(
             "is_local_median": bool(is_local_median),
             "col_u_name": col_u_name,
             "ref_header": ref_header,
+            "tx_ab_bin_minutes": analysis_context.tx_ab_bin_minutes,
+            "target_callsign": analysis_context.callsign,
             "lang": st.session_state.get("lang", "en"),
         }
 
@@ -1489,6 +1384,7 @@ def _render_segment_inspector_body(
                     selected_identity_df,
                     is_compare,
                     is_sequential,
+                    analysis_context.tx_ab_bin_minutes,
                     timing_collector=timing_collector,
                 )
                 with _timed_span(timing_collector, "drilldown table build"):
@@ -1508,6 +1404,8 @@ def _render_segment_inspector_body(
                         ref_header,
                         t,
                         station_rows_df=station_df,
+                        tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+                        target_callsign=analysis_context.callsign,
                     )
 
                 if info_msg:

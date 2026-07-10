@@ -11,7 +11,6 @@ import io
 import json
 import zipfile
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -20,8 +19,17 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
 from config import APP_VERSION
+from core.analysis_context import AnalysisContext
+from core.artifact_store import (
+    ARTIFACT_STORE,
+    read_parquet_artifact,
+    release_registered_session_artifacts,
+)
 from core.matplotlib_runtime import matplotlib_operation_lock
+from core.opportunity_engine import OPPORTUNITY_MAP_EXPORT_COLUMNS
+from core.presentation_context import PresentationContext
 from core.snr_utils import format_snr_like_columns_for_csv
+from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 
@@ -39,6 +47,7 @@ def _current_run_id():
 
 def reset_result_export_state():
     """Clear export artifacts for a fresh analysis run."""
+    release_registered_session_artifacts(st.session_state)
     st.session_state[EXPORT_STATE_KEY] = {}
     st.session_state[EXPORT_RUN_ID_KEY] = _current_run_id()
     st.session_state.pop("segment_stability_cache", None)
@@ -195,7 +204,18 @@ def figure_to_png_bytes(fig, dpi=300, paper_theme=True):
             _restore_figure_style(snapshots)
 
 
-def register_map_export_context(analysis, parquet_path, start_t, end_t, max_dist_km, base_min_stations, lat_0, lon_0):
+def register_map_export_context(
+    analysis,
+    parquet_path,
+    start_t,
+    end_t,
+    max_dist_km,
+    base_min_stations,
+    lat_0,
+    lon_0,
+    analysis_context,
+    presentation_context,
+):
     """Register enough context to render the high-resolution light map on demand."""
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis["id"], {})
@@ -216,6 +236,12 @@ def register_map_export_context(analysis, parquet_path, start_t, end_t, max_dist
             "base_min_stations": base_min_stations,
             "lat_0": lat_0,
             "lon_0": lon_0,
+            "analysis_context": analysis_context.to_dict(),
+            "presentation_context": {
+                "language": presentation_context.language,
+                "theme": presentation_context.theme,
+                "solar_label": presentation_context.solar_label,
+            },
         },
     })
     _clear_prepared_results()
@@ -413,7 +439,7 @@ def _analysis_cache_export_paths(blocks):
         parquet_path = context.get("parquet_path")
         if folder not in {"compare", "absolute"} or not parquet_path:
             continue
-        if not Path(parquet_path).exists():
+        if not ARTIFACT_STORE.touch(parquet_path):
             continue
 
         folder_count = used_folders.get(folder, 0)
@@ -424,6 +450,80 @@ def _analysis_cache_export_paths(blocks):
     return paths
 
 
+def _parquet_schema_columns(parquet_path):
+    """Return parquet column names when the active parquet engine exposes metadata."""
+    try:
+        import pyarrow.parquet as pq
+    except Exception:
+        return None
+
+    try:
+        with ARTIFACT_STORE.lease(parquet_path) as leased_path:
+            return set(pq.ParquetFile(leased_path).schema.names)
+    except Exception:
+        return None
+
+
+def _project_existing_columns(columns, available_columns):
+    if available_columns is None:
+        return list(columns)
+    return [column for column in columns if column in available_columns]
+
+
+def _map_export_read_columns(block, parquet_path):
+    """Return the minimum raw-cache columns needed to reconstruct a map."""
+    available_columns = _parquet_schema_columns(parquet_path)
+    analysis_kind = block.get("analysis_kind", "comparison")
+    is_compare = bool(block.get("is_compare"))
+    is_sequential = bool(block.get("is_sequential"))
+
+    if analysis_kind == "opportunity":
+        return _project_existing_columns(OPPORTUNITY_MAP_EXPORT_COLUMNS, available_columns)
+
+    if is_compare and is_sequential:
+        return _project_existing_columns(
+            [
+                "time",
+                "peer_sign",
+                "peer_grid",
+                "peer_lat",
+                "peer_lon",
+                "stat_val",
+                "is_me",
+            ],
+            available_columns,
+        )
+
+    if is_compare:
+        return _project_existing_columns(
+            [
+                "time_slot",
+                "peer_sign",
+                "peer_grid",
+                "peer_lat",
+                "peer_lon",
+                "snr_u_norm",
+                "snr_r_norm",
+                "has_u",
+                "has_r",
+                "best_ref_sign",
+                "best_ref_dist",
+            ],
+            available_columns,
+        )
+
+    return _project_existing_columns(
+        [
+            "peer_sign",
+            "peer_grid",
+            "peer_lat",
+            "peer_lon",
+            "stat_val",
+        ],
+        available_columns,
+    )
+
+
 def _render_map_png_for_block(block):
     """Render the registered map context as a high-resolution light-theme PNG."""
     context = block.get("map_context")
@@ -431,11 +531,25 @@ def _render_map_png_for_block(block):
         return block.get("figure_map_highres.png")
 
     try:
-        df = pd.read_parquet(context["parquet_path"])
+        read_columns = _map_export_read_columns(block, context["parquet_path"])
+        df = read_parquet_artifact(context["parquet_path"], columns=read_columns)
+    except (KeyError, ValueError):
+        try:
+            df = read_parquet_artifact(context["parquet_path"])
+        except Exception:
+            return None
     except Exception:
         return None
 
     from core.plot_engine import generate_map_plot
+    analysis_context = AnalysisContext.from_dict(context["analysis_context"])
+    presentation_values = context["presentation_context"]
+    presentation_context = PresentationContext(
+        language=presentation_values["language"],
+        labels=T.get(presentation_values["language"], T["en"]),
+        theme=presentation_values.get("theme", "dark"),
+        solar_label=presentation_values.get("solar_label", "All"),
+    )
     plot_result = generate_map_plot(
         df,
         block.get("title", ""),
@@ -448,13 +562,15 @@ def _render_map_png_for_block(block):
         context["base_min_stations"],
         context["lat_0"],
         context["lon_0"],
+        analysis_context=analysis_context,
+        presentation_context=presentation_context,
         theme="light",
         analysis_kind=block.get("analysis_kind", "comparison"),
     )
     if plot_result is None:
         return None
 
-    fig = plot_result[0]
+    fig = plot_result.figure
     try:
         return figure_to_png_bytes(fig, paper_theme=False)
     finally:
@@ -516,6 +632,8 @@ def _build_all_drilldown_for_block(block):
             context["ref_header"],
             t,
             station_rows_df=station_rows_df,
+            tx_ab_bin_minutes=context.get("tx_ab_bin_minutes", 8),
+            target_callsign=context.get("target_callsign", ""),
         )
         return drilldown_df
     except (FileNotFoundError, KeyError, ValueError):
@@ -586,9 +704,11 @@ def build_results_zip():
             analysis_cache_path = analysis_cache_paths.get(block_key)
             parquet_path = (block.get("map_context") or {}).get("parquet_path")
             if analysis_cache_path and parquet_path:
-                parquet_path = Path(parquet_path)
-                if parquet_path.exists():
-                    zf.write(parquet_path, f"{root}/{analysis_cache_path}")
+                try:
+                    with ARTIFACT_STORE.lease(parquet_path) as leased_path:
+                        zf.write(leased_path, f"{root}/{analysis_cache_path}")
+                except FileNotFoundError:
+                    pass
 
     return zip_buf.getvalue(), f"{root}.zip"
 

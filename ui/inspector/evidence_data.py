@@ -2,7 +2,8 @@
 
 import numpy as np
 import pandas as pd
-import streamlit as st
+
+from core.artifact_store import read_parquet_artifact
 
 def _empty_evidence_df():
     return pd.DataFrame(columns=["identity", "station", "grid", "plot_time", "metric", "identity_order"])
@@ -20,7 +21,14 @@ def _prepare_identity_meta(identity_df):
     meta["identity_order"] = np.arange(len(meta))
     return meta
 
-def _build_evidence_points(station_df, identity_df, is_compare, is_sequential):
+def _build_evidence_points(
+    station_df,
+    identity_df,
+    is_compare,
+    is_sequential,
+    *,
+    tx_ab_bin_minutes=8,
+):
     """Build raw evidence points for the selected station+locator distribution and time plots."""
     identity_meta = _prepare_identity_meta(identity_df)
     if identity_meta.empty or station_df.empty:
@@ -47,7 +55,7 @@ def _build_evidence_points(station_df, identity_df, is_compare, is_sequential):
         if not required_cols.issubset(station_df.columns):
             return _empty_evidence_df()
 
-        bin_minutes = st.session_state.get("val_tx_ab_bin_minutes", 8)
+        bin_minutes = int(tx_ab_bin_minutes)
         work_df = station_df[list(required_cols)].copy()
         work_df["dt_time"] = pd.to_datetime(work_df["time"], errors="coerce")
         work_df = work_df.dropna(subset=["dt_time"])
@@ -100,7 +108,14 @@ def _build_evidence_points(station_df, identity_df, is_compare, is_sequential):
     evidence_df["identity"] = pd.Categorical(evidence_df["identity"], categories=identity_labels, ordered=True)
     return evidence_df.sort_values(["identity_order", "plot_time"]).reset_index(drop=True)
 
-def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequential):
+def _build_segment_evidence_points(
+    df_seg,
+    parquet_path,
+    is_compare,
+    is_sequential,
+    *,
+    tx_ab_bin_minutes=8,
+):
     """Build raw segment-level evidence points from parquet using station+locator identity."""
     if df_seg.empty or not {"peer_sign", "peer_grid"}.issubset(df_seg.columns):
         return _empty_evidence_df()
@@ -121,7 +136,7 @@ def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequenti
         read_columns += ["time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"]
 
     try:
-        raw_df = pd.read_parquet(
+        raw_df = read_parquet_artifact(
             parquet_path,
             columns=read_columns,
             filters=[("peer_sign", "in", segment_meta["peer_sign"].unique().tolist())]
@@ -142,5 +157,6 @@ def _build_segment_evidence_points(df_seg, parquet_path, is_compare, is_sequenti
         segment_raw_df,
         segment_meta,
         is_compare,
-        is_sequential
+        is_sequential,
+        tx_ab_bin_minutes=tx_ab_bin_minutes,
     )

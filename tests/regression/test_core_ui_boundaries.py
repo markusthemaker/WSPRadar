@@ -1,0 +1,334 @@
+from datetime import datetime, timezone
+import inspect
+import uuid
+
+import pandas as pd
+import pytest
+
+from core import data_engine, plot_engine
+from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
+from core.analysis_runner import build_analysis_batches
+from core.fetch_models import FetchSource
+from core.map_data import build_map_data
+from core.map_models import MapFigure
+from core.presentation_context import PresentationContext
+from i18n import T, absolute_terms
+from ui.inspector import drilldown, evidence_data, view_models
+from ui.plots import opportunity_figures
+
+
+START_TIME = datetime(2026, 5, 27, tzinfo=timezone.utc)
+END_TIME = datetime(2026, 5, 28, tzinfo=timezone.utc)
+
+
+def _analysis_context(**overrides):
+    values = {
+        "run_mode": "TX",
+        "callsign": "DL1MKS",
+        "qth": "JN37",
+        "band": "20m",
+        "comparison_mode": COMPARISON_REFERENCE_STATION,
+        "reference_callsign": "DL2XYZ",
+    }
+    values.update(overrides)
+    return AnalysisContext(**values)
+
+
+def _presentation(language):
+    return PresentationContext(
+        language=language,
+        labels=T[language],
+        theme="dark",
+        solar_label="All" if language == "en" else "Alle",
+    )
+
+
+def test_analysis_context_contains_only_scientific_configuration():
+    values = _analysis_context().to_dict()
+
+    assert "language" not in values
+    assert "labels" not in values
+    assert "theme" not in values
+    assert "is_demo_run" not in values
+    assert "active_demo_profile" not in values
+
+
+def test_presentation_context_preserves_existing_absolute_terminology():
+    for language in ["en", "de"]:
+        presentation = _presentation(language)
+        for mode in ["TX", "RX"]:
+            assert presentation.absolute_terms(mode) == absolute_terms(T[language], mode)
+
+
+def test_localized_presentation_changes_titles_but_not_queries():
+    context = _analysis_context()
+
+    english = build_analysis_batches(
+        context,
+        START_TIME,
+        END_TIME,
+        47.0,
+        8.0,
+        "AND band = '14'",
+        presentation_context=_presentation("en"),
+    )
+    german = build_analysis_batches(
+        context,
+        START_TIME,
+        END_TIME,
+        47.0,
+        8.0,
+        "AND band = '14'",
+        presentation_context=_presentation("de"),
+    )
+
+    assert [item["id"] for item in english] == [item["id"] for item in german]
+    assert [item["query"] for item in english] == [item["query"] for item in german]
+    assert [item["title"] for item in english] != [item["title"] for item in german]
+
+
+def test_data_engine_returns_structured_http_error_without_ui_calls(monkeypatch):
+    class ErrorResponse:
+        status_code = 503
+        text = "service unavailable"
+        content = text.encode("utf-8")
+
+    monkeypatch.setattr(data_engine.http_session, "get", lambda *_args, **_kwargs: ErrorResponse())
+    query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+
+    result = data_engine.fetch_wspr_data(query)
+
+    assert result.dataframe is None
+    assert result.source == FetchSource.WSPR_LIVE
+    assert result.error is not None
+    assert result.error.code == "http_error"
+    assert result.error.status_code == 503
+    assert result.error.response_text == "service unavailable"
+
+
+def test_standard_fetch_cache_is_copy_on_read(monkeypatch):
+    class CsvResponse:
+        status_code = 200
+        text = "peer_sign,stat_val\nK1AAA,-12.3\n"
+        content = text.encode("utf-8")
+
+    query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return CsvResponse()
+
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    first = data_engine.fetch_wspr_data(query)
+    first.dataframe.loc[0, "stat_val"] = 999.0
+    second = data_engine.fetch_wspr_data(query)
+
+    assert request_count == 1
+    assert first.source == FetchSource.WSPR_LIVE
+    assert second.source == FetchSource.MEMORY_CACHE
+    assert float(second.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
+
+
+def test_demo_and_standard_fetches_use_separate_cache_keys(monkeypatch):
+    class CsvResponse:
+        status_code = 200
+        text = "peer_sign,stat_val\nK1AAA,-12.3\n"
+        content = text.encode("utf-8")
+
+    query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return CsvResponse()
+
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    standard = data_engine.fetch_wspr_data(query, is_demo=False)
+    demo = data_engine.fetch_wspr_data(query, is_demo=True)
+    standard_hit = data_engine.fetch_wspr_data(query, is_demo=False)
+    demo_hit = data_engine.fetch_wspr_data(query, is_demo=True)
+
+    assert request_count == 2
+    assert str(standard.dataframe["stat_val"].dtype) == "float32"
+    assert str(demo.dataframe["stat_val"].dtype) == "float64"
+    assert standard_hit.source == FetchSource.MEMORY_CACHE
+    assert demo_hit.source == FetchSource.MEMORY_CACHE
+
+
+def test_map_data_is_pure_and_preserves_legacy_absolute_aggregates():
+    source = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA", "K1AAA", "K2BBB"],
+            "peer_grid": ["FN31", "FN31", "EM12"],
+            "peer_lat": [41.0, 41.0, 32.8],
+            "peer_lon": [-72.0, -72.0, -96.8],
+            "stat_val": [-10.0, -12.0, -5.0],
+        }
+    )
+    original = source.copy(deep=True)
+
+    map_data = build_map_data(
+        source,
+        analysis_id="TX_ABS",
+        is_compare=False,
+        is_sequential=False,
+        analysis_kind="comparison",
+        center_latitude=47.0,
+        center_longitude=8.0,
+        min_spots=1,
+        min_opportunities=5,
+        base_min_stations=1,
+        tx_ab_bin_minutes=8,
+    )
+
+    pd.testing.assert_frame_equal(source, original)
+    assert map_data is not None
+    assert set(map_data.station_rows["peer_sign"]) == {"K1AAA", "K2BBB"}
+    assert float(
+        map_data.station_rows.loc[
+            map_data.station_rows["peer_sign"] == "K1AAA",
+            "stat_val",
+        ].iloc[0]
+    ) == -11.0
+    assert not map_data.segment_rows.empty
+
+
+def test_generate_map_plot_returns_explicit_map_figure_contract(monkeypatch):
+    source = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA"],
+            "peer_grid": ["FN31"],
+            "peer_lat": [41.0],
+            "peer_lon": [-72.0],
+            "stat_val": [-10.0],
+        }
+    )
+
+    def fake_render(map_data, **_kwargs):
+        return MapFigure(figure="figure", map_data=map_data, footer_text="footer")
+
+    monkeypatch.setattr(plot_engine, "render_map_figure", fake_render)
+    result = plot_engine.generate_map_plot(
+        source,
+        "Title",
+        False,
+        False,
+        START_TIME,
+        END_TIME,
+        22000,
+        "TX_ABS",
+        1,
+        47.0,
+        8.0,
+        analysis_context=_analysis_context(),
+        presentation_context=_presentation("en"),
+    )
+
+    assert isinstance(result, MapFigure)
+    assert result.figure == "figure"
+    assert result.footer_text == "footer"
+    assert result.map_data.analysis_id == "TX_ABS"
+
+
+def test_compare_view_model_localization_cannot_change_scope_or_evidence():
+    scope_rows = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA", "K2BBB"],
+            "peer_grid": ["FN31", "EM12"],
+            "calc_dist": [100.0, 200.0],
+            "calc_azimuth": [45.0, 90.0],
+            "spot_count": [4, 0],
+            "count_only_u": [0, 3],
+            "count_only_r": [0, 0],
+            "stat_val": [1.2, None],
+        }
+    )
+    context = _analysis_context()
+
+    english = view_models.build_compare_inspector_view_model(
+        scope_rows,
+        analysis_id="TX_COMP",
+        is_compare=True,
+        is_sequential=False,
+        show_non_joint=True,
+        analysis_context=context,
+        presentation_context=_presentation("en"),
+    )
+    german = view_models.build_compare_inspector_view_model(
+        scope_rows,
+        analysis_id="TX_COMP",
+        is_compare=True,
+        is_sequential=False,
+        show_non_joint=True,
+        analysis_context=context,
+        presentation_context=_presentation("de"),
+    )
+
+    pd.testing.assert_frame_equal(english.scope_rows, german.scope_rows)
+    pd.testing.assert_frame_equal(english.evidence_identities, german.evidence_identities)
+    pd.testing.assert_series_equal(english.values, german.values)
+    assert list(english.station_table.columns) != list(german.station_table.columns)
+
+
+def test_opportunity_view_model_localization_cannot_change_eligibility_or_evidence():
+    scope_rows = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA", "K2BBB"],
+            "peer_grid": ["FN31", "EM12"],
+            "calc_dist": [100.0, 200.0],
+            "calc_azimuth": [45.0, 90.0],
+            "eligible": [True, False],
+            "rate_pct": [50.0, 100.0],
+            "hits": [1, 1],
+            "misses": [1, 0],
+            "successful_snr_median": [-12.0, -5.0],
+        }
+    )
+    evidence_rows = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA", "K1AAA", "K2BBB"],
+            "peer_grid": ["FN31", "FN31", "EM12"],
+            "hit": [1, 0, 1],
+            "miss": [0, 1, 0],
+        }
+    )
+
+    english = view_models.build_opportunity_inspector_view_model(
+        scope_rows,
+        evidence_rows,
+        analysis_id="RX_ABS",
+        selected_segment="Full Range",
+        minimum_confirmed=5,
+        presentation_context=_presentation("en"),
+    )
+    german = view_models.build_opportunity_inspector_view_model(
+        scope_rows,
+        evidence_rows,
+        analysis_id="RX_ABS",
+        selected_segment="Full Range",
+        minimum_confirmed=5,
+        presentation_context=_presentation("de"),
+    )
+
+    pd.testing.assert_frame_equal(english.confirmed_rows, german.confirmed_rows)
+    pd.testing.assert_frame_equal(english.evidence_rows, german.evidence_rows)
+    assert english.confirmed_rows["peer_sign"].tolist() == ["K1AAA"]
+    assert list(english.full_station_table.columns) != list(german.full_station_table.columns)
+
+
+def test_core_and_pure_inspector_modules_have_no_streamlit_dependency():
+    for module in [
+        data_engine,
+        plot_engine,
+        evidence_data,
+        drilldown,
+        view_models,
+        opportunity_figures,
+    ]:
+        source = inspect.getsource(module)
+        assert "import streamlit" not in source
+        assert "st.session_state" not in source
+    assert "from config import *" not in inspect.getsource(plot_engine)

@@ -5,6 +5,8 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 import logging
+import os
+import platform
 from time import perf_counter
 from typing import Iterator
 
@@ -17,6 +19,89 @@ class TimingSpan:
     elapsed_seconds: float
     detail: str = ""
     depth: int = 0
+
+
+@dataclass
+class MemorySample:
+    """One lightweight memory observation."""
+
+    label: str
+    dataframe_bytes: int | None = None
+    process_rss_bytes: int | None = None
+    rows: int | None = None
+    columns: int | None = None
+    detail: str = ""
+    depth: int = 0
+
+
+def _process_rss_bytes() -> int | None:
+    """Return current process RSS in bytes when a lightweight backend is available."""
+    try:
+        import psutil
+    except Exception:
+        psutil = None
+
+    if psutil is not None:
+        try:
+            return int(psutil.Process(os.getpid()).memory_info().rss)
+        except Exception:
+            return None
+
+    if platform.system() == "Windows":
+        try:
+            import ctypes
+            from ctypes import wintypes
+        except Exception:
+            return None
+
+        class ProcessMemoryCounters(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+
+        counters = ProcessMemoryCounters()
+        counters.cb = ctypes.sizeof(ProcessMemoryCounters)
+        handle = ctypes.windll.kernel32.GetCurrentProcess()
+        ok = ctypes.windll.psapi.GetProcessMemoryInfo(
+            handle,
+            ctypes.byref(counters),
+            counters.cb,
+        )
+        return int(counters.WorkingSetSize) if ok else None
+
+    try:
+        import resource
+    except Exception:
+        return None
+
+    try:
+        rss = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    except Exception:
+        return None
+    if platform.system() == "Darwin":
+        return rss
+    return rss * 1024
+
+
+def _format_bytes(value: int | None) -> str:
+    """Return a compact binary byte string."""
+    if value is None:
+        return "n/a"
+    units = ["B", "KiB", "MiB", "GiB"]
+    amount = float(value)
+    for unit in units:
+        if abs(amount) < 1024.0 or unit == units[-1]:
+            return f"{amount:.1f} {unit}" if unit != "B" else f"{int(amount)} B"
+        amount /= 1024.0
 
 
 def _profile_logger() -> logging.Logger:
@@ -36,6 +121,7 @@ class PerformanceTimer:
 
     def __init__(self) -> None:
         self._spans: list[TimingSpan] = []
+        self._memory_samples: list[MemorySample] = []
         self._active_span_indexes: list[int] = []
         self._started_at = perf_counter()
 
@@ -65,6 +151,30 @@ class PerformanceTimer:
             )
         )
 
+    def add_memory(self, label: str, *, df=None, include_rss: bool = True, detail: str = "") -> None:
+        """Record DataFrame memory and optional process RSS without retaining the frame."""
+        dataframe_bytes = None
+        rows = None
+        columns = None
+        if df is not None:
+            try:
+                dataframe_bytes = int(df.memory_usage(index=True, deep=True).sum())
+                rows = int(df.shape[0])
+                columns = int(df.shape[1])
+            except Exception:
+                dataframe_bytes = None
+        self._memory_samples.append(
+            MemorySample(
+                label=label,
+                dataframe_bytes=dataframe_bytes,
+                process_rss_bytes=_process_rss_bytes() if include_rss else None,
+                rows=rows,
+                columns=columns,
+                detail=detail,
+                depth=len(self._active_span_indexes),
+            )
+        )
+
     def rows(self, *, analysis_title: str = "") -> list[dict[str, object]]:
         """Return Streamlit-friendly timing rows."""
         return [
@@ -75,6 +185,21 @@ class PerformanceTimer:
                 "detail": span.detail,
             }
             for span in self._spans
+        ]
+
+    def memory_rows(self, *, analysis_title: str = "") -> list[dict[str, object]]:
+        """Return Streamlit-friendly memory observation rows."""
+        return [
+            {
+                "analysis": analysis_title,
+                "span": f"{'  ' * sample.depth}{sample.label}",
+                "dataframe_memory": sample.dataframe_bytes,
+                "process_rss": sample.process_rss_bytes,
+                "rows": sample.rows,
+                "columns": sample.columns,
+                "detail": sample.detail,
+            }
+            for sample in self._memory_samples
         ]
 
     def total_seconds(self) -> float:
@@ -93,6 +218,22 @@ class PerformanceTimer:
             indent = "  " * (span.depth + 1)
             detail = f" [{span.detail}]" if span.detail else ""
             lines.append(f"{indent}{span.label:<38} {span.elapsed_seconds:8.3f}s{detail}")
+        if self._memory_samples:
+            lines.append("  memory snapshots:")
+            for sample in self._memory_samples:
+                indent = "  " * (sample.depth + 2)
+                shape = (
+                    f" rows={sample.rows} cols={sample.columns}"
+                    if sample.rows is not None and sample.columns is not None
+                    else ""
+                )
+                detail = f" [{sample.detail}]" if sample.detail else ""
+                lines.append(
+                    f"{indent}{sample.label:<36} "
+                    f"df={_format_bytes(sample.dataframe_bytes):>10} "
+                    f"rss={_format_bytes(sample.process_rss_bytes):>10}"
+                    f"{shape}{detail}"
+                )
         return "\n".join(lines)
 
     def log_report(self, *, analysis_title: str = "") -> None:

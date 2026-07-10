@@ -2,32 +2,47 @@
 Plot Engine.
 Fuehrt die geografische Aggregation durch und zeichnet die Cartopy-Map.
 """
-import pandas as pd
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Use the non-interactive backend required by Streamlit Cloud.
 import matplotlib as mpl
 from contextlib import nullcontext
+from dataclasses import replace
 from matplotlib.patches import Patch, Wedge
 from matplotlib.collections import PatchCollection
 import os
 from time import perf_counter
-import streamlit as st
 
-from config import *
+from config import (
+    APP_VERSION,
+    AZIMUTH_STEP,
+    CBAR_BBOX,
+    COLOR_BOTH_ASYNC,
+    COLOR_JOINT,
+    COLOR_ONLY_ME,
+    COLOR_ONLY_REF,
+    FONT_CBAR,
+    FONT_FOOTER,
+    FONT_LEGEND,
+    LEG_BBOX,
+)
+from core.analysis_context import (
+    COMPARISON_HARDWARE_AB,
+    COMPARISON_LOCAL_NEIGHBORHOOD,
+    LOCAL_BENCHMARK_MEDIAN,
+    SELF_TEST_RX,
+)
 from core.opportunity_engine import (
-    aggregate_opportunity_peers,
-    aggregate_opportunity_segments,
     SUCCESS_RATE_BOUNDS,
     SUCCESS_RATE_COLORS,
     SUCCESS_RATE_TICK_LABELS,
 )
-from core.compare_engine import aggregate_compare_map_data, compare_footer_counts
+from core.compare_engine import compare_footer_counts
+from core.map_data import build_map_data
 from core.map_base import create_base_map_figure, create_preview_cached_base_map_figure
+from core.map_models import MapFigure
 from core.matplotlib_runtime import ensure_agg_canvas, synchronized_matplotlib
 from core.math_utils import locator_to_latlon
-from core.snr_utils import round_snr_like_columns
-from i18n import T, absolute_terms
 
 MIN_LABEL_CUTOFF_PCT = 0.02
 COMPARE_NEUTRAL_COLOR = "#fff2a8"
@@ -180,101 +195,34 @@ def _profile_base_only_map_draw(
 
 
 @synchronized_matplotlib
-def generate_map_plot(
-    df,
+def render_map_figure(
+    map_data,
+    *,
     title,
-    is_compare,
-    is_sequential,
     start_t,
     end_t,
     max_dist_km,
-    analysis_id,
     base_min_stations,
     lat_0,
     lon_0,
-    theme="dark",
-    analysis_kind="comparison",
+    analysis_context,
+    presentation_context,
     timing_collector=None,
 ):
-    """Hauptfunktion zum Berechnen der Aggregate und Plotten der Radar-Karte."""
+    """Render presentation-only map output from precomputed pure aggregates."""
+    theme = presentation_context.theme
     theme_cfg = MAP_THEMES.get(theme, MAP_THEMES["dark"])
-    is_opportunity = analysis_kind == "opportunity"
-
-    if is_opportunity:
-        with _timed_span(timing_collector, "map aggregation: opportunity peers"):
-            df = aggregate_opportunity_peers(
-                df,
-                min_opportunities=st.session_state.get("val_min_opportunities", 5),
-            )
-        if df.empty:
-            return None
-    
-    with _timed_span(timing_collector, "geometry bucketing"):
-        # Entfernungen & Azimut berechnen
-        l1, n1, l2, n2 = map(np.radians, [lat_0, lon_0, df['peer_lat'], df['peer_lon']])
-        a = np.sin((l2-l1)/2.0)**2 + np.cos(l1)*np.cos(l2)*np.sin((n2-n1)/2.0)**2
-        df['calc_dist'] = (2 * EARTH_RADIUS_KM) * np.arcsin(np.sqrt(a))
-
-        y = np.sin(n2-n1) * np.cos(l2)
-        x = np.cos(l1) * np.sin(l2) - np.sin(l1) * np.cos(l2) * np.cos(n2-n1)
-        df['calc_azimuth'] = (np.degrees(np.arctan2(y, x)) + 360) % 360
-
-        # Segment-Klassifizierung
-        df['az_bucket'] = ((df['calc_azimuth'] + (AZIMUTH_STEP / 2.0)) % 360) // AZIMUTH_STEP
-        df['dir_name'] = df['az_bucket'].apply(lambda v: COMPASS[int(v)] if pd.notnull(v) else "")
-
-        df['r_min'] = pd.cut(df['calc_dist'], bins=DIST_BINS, labels=DIST_BINS[:-1], right=False).astype(float)
-        df['r_max'] = pd.cut(df['calc_dist'], bins=DIST_BINS, labels=DIST_BINS[1:], right=False).astype(float)
-        df['dist_label'] = df.apply(lambda r: f"[{int(r['r_min'])}-{int(r['r_max'])}km]" if pd.notnull(r['r_min']) else "", axis=1)
-        df['SegmentID'] = df.apply(lambda r: f"{r['dist_label']} {r['dir_name']}" if pd.notnull(r['r_min']) else "Out of Bounds", axis=1)
-
-    if is_opportunity:
-        with _timed_span(timing_collector, "map aggregation: opportunity segments"):
-            df_plot = df.copy()
-            segs = aggregate_opportunity_segments(df_plot)
-            if not segs.empty:
-                segs = segs[segs["cnt"] >= base_min_stations]
-    elif not is_compare:
-        with _timed_span(timing_collector, "map aggregation: absolute segments"):
-            # Absolute Logik: Median Aggregation
-            station_counts = df.groupby(['SegmentID', 'peer_sign']).size().reset_index(name='spot_count')
-            valid_stations = station_counts[station_counts['spot_count'] >= st.session_state.val_min_spots]
-            df_valid = df.merge(valid_stations[['SegmentID', 'peer_sign']], on=['SegmentID', 'peer_sign'], how='inner')
-
-            reporter_medians = df_valid.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket', 'peer_sign', 'peer_grid']).agg(
-                stat_val=('stat_val', 'median'),
-                spot_count=('stat_val', 'count'),
-                peer_lat=('peer_lat', 'first'),
-                peer_lon=('peer_lon', 'first'),
-                calc_dist=('calc_dist', 'first'),
-                calc_azimuth=('calc_azimuth', 'first')
-            ).reset_index()
-            reporter_medians = round_snr_like_columns(reporter_medians)
-
-            segs = reporter_medians.groupby(['SegmentID', 'dist_label', 'dir_name', 'r_min', 'r_max', 'az_bucket']).agg(
-                val=('stat_val', 'median'),
-                cnt=('peer_sign', 'nunique'),
-                total_spots=('spot_count', 'sum')
-            ).reset_index()
-            segs = round_snr_like_columns(segs, columns=['val'])
-            segs = segs[segs['cnt'] >= base_min_stations]
-            df_plot = reporter_medians
-    else:
-        with _timed_span(timing_collector, "map aggregation: compare segments"):
-            df_plot, segs = aggregate_compare_map_data(
-                df,
-                is_sequential=is_sequential,
-                min_spots=st.session_state.val_min_spots,
-                base_min_stations=base_min_stations,
-                tx_ab_bin_minutes=st.session_state.get('val_tx_ab_bin_minutes', 8),
-            )
-
-    if df_plot.empty or (segs.empty and not is_opportunity): return None
+    analysis_id = map_data.analysis_id
+    is_compare = map_data.is_compare
+    is_sequential = map_data.is_sequential
+    is_opportunity = map_data.analysis_kind == "opportunity"
+    df_plot = map_data.station_rows
+    segs = map_data.segment_rows
 
     if theme == "dark" and _preview_base_map_cache_enabled():
         with _timed_span(timing_collector, "base-map cache construction"):
             cache_label, cache_latitude, cache_longitude = _preview_basemap_cache_center(
-                st.session_state.get("val_qth", ""),
+                analysis_context.qth,
                 lat_0,
                 lon_0,
             )
@@ -313,25 +261,29 @@ def generate_map_plot(
             timing_collector=timing_collector,
         )
 
-    # UI Texts
-    t_lang = T[st.session_state.lang]
-    target_call = st.session_state.val_callsign.upper()
+    # Presentation text is supplied explicitly and never controls scientific branches.
+    t_lang = presentation_context.labels
+    target_call = analysis_context.callsign.upper()
     absolute_mode = "TX" if analysis_id.startswith("TX") else "RX"
-    abs_terms = absolute_terms(t_lang, absolute_mode)
+    abs_terms = presentation_context.absolute_terms(absolute_mode)
     # Setup specific labels based on the active test mode
-    if st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
-        if st.session_state.val_self_test_mode == t_lang["opt_self_rx"]:
-            lbl_only_me = t_lang['leg_only_me'].format(callsign=st.session_state.val_callsign.upper())
-            lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign=st.session_state.val_self_call_b.upper())
+    if analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:
+        if analysis_context.self_test_mode == SELF_TEST_RX:
+            lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
+            lbl_only_ref = t_lang['leg_only_ref'].format(
+                ref_callsign=analysis_context.setup_b_callsign.upper()
+            )
         else:
             lbl_only_me = t_lang['leg_only_me'].format(callsign="Setup A")
             lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign="Setup B")
     else:
         lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
-        if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
+        if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
             lbl_only_ref = t_lang['leg_only_ref_radius']
         else:
-            lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign=st.session_state.val_ref_callsign.upper())
+            lbl_only_ref = t_lang['leg_only_ref'].format(
+                ref_callsign=analysis_context.reference_callsign.upper()
+            )
 
     # Colormaps
     if is_compare:
@@ -489,44 +441,57 @@ def generate_map_plot(
 
     
     # Meta Footer
-    lbl_time = "Zeitraum" if st.session_state.lang == "de" else "Time"
+    lbl_time = "Zeitraum" if presentation_context.language == "de" else "Time"
     t_time = f"{start_t.strftime('%d-%b-%Y')} - {end_t.strftime('%d-%b-%Y')}"
-    t_band = st.session_state.val_band
-    t_solar = st.session_state.val_solar.split(" ")[0]
+    t_band = analysis_context.band
+    t_solar = presentation_context.solar_label
 
     meta_parts = [f"{lbl_time}: {t_time}", f"Band: {t_band}", f"Solar: {t_solar}"]
     
     if is_compare:
         if is_sequential:
             meta_parts.append("Sync: Sequential A/B")
-            meta_parts.append(f"Joint Bins/Station: >={st.session_state.val_min_spots}")
+            meta_parts.append(
+                f"Joint Bins/Station: >={analysis_context.min_joint_spots_per_station}"
+            )
             meta_parts.append(f"Joint Stations/Seg: >={base_min_stations}")
         else:
-            meta_parts.append(f"Joint Spots/Station: ≥{st.session_state.val_min_spots}")
+            meta_parts.append(
+                f"Joint Spots/Station: \u2265{analysis_context.min_joint_spots_per_station}"
+            )
             meta_parts.append(f"Joint Stations/Seg: >={base_min_stations}")
             
-        benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
+        benchmark_offset_db = round(float(analysis_context.reference_snr_correction_db), 1)
         if abs(benchmark_offset_db) >= 0.05:
             offset_label = t_lang.get("txt_benchmark_offset_note", "Ref SNR Corr: {offset:+.1f} dB")
             meta_parts.append(offset_label.format(offset=benchmark_offset_db))
 
-        if st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
-            local_mode = st.session_state.get('val_local_benchmark', t_lang.get('opt_local_median', 'Local Median Neighborhood'))
-            ref_radius = st.session_state.get('val_ref_radius_km', 250)
+        if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+            local_mode = (
+                t_lang.get('opt_local_median', 'Local Median Neighborhood')
+                if analysis_context.local_benchmark == LOCAL_BENCHMARK_MEDIAN
+                else t_lang.get('opt_local_best', 'Local Best Station')
+            )
+            ref_radius = analysis_context.neighborhood_radius_km
             meta_parts.append(f"Ref: {local_mode} (≤{ref_radius} km)")
-        elif st.session_state.val_comp_mode == t_lang["opt_comp_self"]:
+        elif analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:
             meta_parts.append(f"Ref: Self-Test Config")
-        else: meta_parts.append(f"Ref: {st.session_state.val_ref_callsign.upper()}")
+        else: meta_parts.append(f"Ref: {analysis_context.reference_callsign.upper()}")
     elif is_opportunity:
-        meta_parts.append(f"{abs_terms['pair']}/Station: >={st.session_state.get('val_min_opportunities', 5)}")
+        meta_parts.append(
+            f"{abs_terms['pair']}/Station: "
+            f">={analysis_context.min_confirmed_opportunities_per_peer}"
+        )
         meta_parts.append(f"Stations/Seg: >={base_min_stations}")
         meta_parts.append(f"Segment: average station {abs_terms['formula']}")
     else:
-        meta_parts.append(f"Spots/Station: ≥{st.session_state.val_min_spots}")
+        meta_parts.append(
+            f"Spots/Station: \u2265{analysis_context.min_joint_spots_per_station}"
+        )
         meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
 
     # Neu: Füge Max distance Peer hinzu
-    if is_compare and st.session_state.val_comp_mode == t_lang["opt_comp_radius"]:
+    if is_compare and analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         if 'best_ref_dist' in df_plot.columns:
             # Filtere leere/NaN Distanzen raus
             valid_dists = df_plot[df_plot['best_ref_dist'] > 0]['best_ref_dist']
@@ -535,8 +500,6 @@ def generate_map_plot(
                 meta_parts.append(f"Max reference distance: {max_peer_dist} km")
 
     line1_str = " | ".join(meta_parts)
-    remote_str = t_lang['txt_rx_stations'] if analysis_id.startswith("TX") else t_lang['txt_tx_stations']
-    
     # ==========================================
     # RENDER FOOTER METRICS & PARAMETERS
     # ==========================================
@@ -573,7 +536,7 @@ def generate_map_plot(
         pct_r_spot = (spot_only_r / tot_spots * 100) if tot_spots > 0 else 0
         
         # Radius Modus Check: Spots-Venn ausblenden, wenn wir gegen die Referenz-Wolke vergleichen
-        is_radius_mode = (st.session_state.val_comp_mode == t_lang["opt_comp_radius"])
+        is_radius_mode = analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD
         
         categories = ['STATIONS', ' '] if is_radius_mode else ['STATIONS', 'SPOTS']
 
@@ -617,4 +580,66 @@ def generate_map_plot(
         fig.text(0.50, 0.035, line1_str, color=theme_cfg["footer_abs"], ha='center', fontsize=FONT_FOOTER)
         fig.text(0.98, 0.015, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
 
-    return fig, df_plot, segs, line1_str
+    return MapFigure(
+        figure=fig,
+        map_data=map_data,
+        footer_text=line1_str,
+    )
+
+
+def generate_map_plot(
+    df,
+    title,
+    is_compare,
+    is_sequential,
+    start_t,
+    end_t,
+    max_dist_km,
+    analysis_id,
+    base_min_stations,
+    lat_0,
+    lon_0,
+    *,
+    analysis_context,
+    presentation_context,
+    theme=None,
+    analysis_kind="comparison",
+    timing_collector=None,
+):
+    """Build pure map aggregates, then render them through presentation context."""
+    with _timed_span(timing_collector, "map data aggregation"):
+        map_data = build_map_data(
+            df,
+            analysis_id=analysis_id,
+            is_compare=is_compare,
+            is_sequential=is_sequential,
+            analysis_kind=analysis_kind,
+            center_latitude=lat_0,
+            center_longitude=lon_0,
+            min_spots=analysis_context.min_joint_spots_per_station,
+            min_opportunities=analysis_context.min_confirmed_opportunities_per_peer,
+            base_min_stations=base_min_stations,
+            tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+            owns_input=True,
+        )
+    if map_data is None:
+        return None
+
+    render_context = (
+        replace(presentation_context, theme=theme)
+        if theme is not None and theme != presentation_context.theme
+        else presentation_context
+    )
+    return render_map_figure(
+        map_data,
+        title=title,
+        start_t=start_t,
+        end_t=end_t,
+        max_dist_km=max_dist_km,
+        base_min_stations=base_min_stations,
+        lat_0=lat_0,
+        lon_0=lon_0,
+        analysis_context=analysis_context,
+        presentation_context=render_context,
+        timing_collector=timing_collector,
+    )

@@ -23,7 +23,6 @@ END_TIME = datetime(2026, 5, 28, tzinfo=timezone.utc)
 
 def _analysis_context(**overrides):
     values = {
-        "language": "en",
         "run_mode": "TX",
         "callsign": "DL1MKS",
         "qth": "JN37",

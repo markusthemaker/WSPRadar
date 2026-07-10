@@ -9,13 +9,9 @@ in plot_engine because their meaning differs between Compare and Absolute modes.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
 import hashlib
 import json
-from pathlib import Path
 import re
-import threading
-import uuid
 
 import numpy as np
 import matplotlib.path as mpath
@@ -41,6 +37,7 @@ from config import (
     TITLE_POS,
     ZOOMED_MAP_SCALE,
 )
+from core.artifact_store import ARTIFACT_STORE, ArtifactNamespace
 from core.matplotlib_runtime import (
     create_agg_figure,
     ensure_agg_canvas,
@@ -50,8 +47,6 @@ from core.matplotlib_runtime import (
 BASEMAP_CACHE_VERSION = "v1"
 BASEMAP_PREVIEW_DPI = 100
 BASEMAP_PNG_COMPRESSION_LEVEL = 1
-_basemap_creation_locks = {}
-_basemap_creation_locks_guard = threading.Lock()
 
 
 def _new_map_figure(theme_config):
@@ -61,31 +56,6 @@ def _new_map_figure(theme_config):
         facecolor=theme_config["fig_face"],
         dpi=PLOT_DPI,
     )
-
-
-@contextmanager
-def _basemap_creation_lock(cache_path):
-    """Serialize same-key cache creation while allowing unrelated maps in parallel."""
-    lock_key = str(Path(cache_path).resolve())
-    with _basemap_creation_locks_guard:
-        cache_lock, user_count = _basemap_creation_locks.get(
-            lock_key,
-            (threading.Lock(), 0),
-        )
-        _basemap_creation_locks[lock_key] = (cache_lock, user_count + 1)
-
-    try:
-        with cache_lock:
-            yield
-    finally:
-        with _basemap_creation_locks_guard:
-            current = _basemap_creation_locks.get(lock_key)
-            if current is not None:
-                current_lock, current_users = current
-                if current_users <= 1:
-                    _basemap_creation_locks.pop(lock_key, None)
-                else:
-                    _basemap_creation_locks[lock_key] = (current_lock, current_users - 1)
 
 
 @synchronized_matplotlib
@@ -374,7 +344,11 @@ def _ensure_static_basemap_cache(
     preview_dpi,
 ):
     """Return a static basemap PNG path, rendering it once when absent."""
-    cache_dir = Path(CACHE_DIR) / "basemaps"
+    cache_dir = ARTIFACT_STORE.namespace_path(
+        CACHE_DIR,
+        ArtifactNamespace.DERIVED_ANALYSIS,
+        "basemaps",
+    )
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / _static_basemap_cache_filename(
         maximum_distance_km=maximum_distance_km,
@@ -385,11 +359,12 @@ def _ensure_static_basemap_cache(
         cache_label=cache_label,
         preview_dpi=preview_dpi,
     )
-    if cache_path.exists():
+    if ARTIFACT_STORE.touch(cache_path):
         return cache_path, "hit"
 
-    with _basemap_creation_lock(cache_path):
+    with ARTIFACT_STORE.key_lock(cache_path):
         if cache_path.exists():
+            ARTIFACT_STORE.touch_unlocked(cache_path)
             return cache_path, "hit"
 
         base_figure, _, _, _ = create_base_map_figure(
@@ -461,8 +436,9 @@ def _lat_lon_token(latitude, longitude):
 
 def _load_cached_basemap_pixels(cache_path):
     """Load cached background pixels as compact uint8 RGB data."""
-    with Image.open(cache_path) as cached_image:
-        return np.array(cached_image.convert("RGB"), dtype=np.uint8, copy=True)
+    with ARTIFACT_STORE.lease(cache_path) as leased_path:
+        with Image.open(leased_path) as cached_image:
+            return np.array(cached_image.convert("RGB"), dtype=np.uint8, copy=True)
 
 
 @synchronized_matplotlib
@@ -479,20 +455,10 @@ def _save_static_basemap_preview(figure, cache_path, preview_dpi):
     finally:
         figure.set_dpi(original_dpi)
 
-    temp_path = cache_path.with_name(
-        f".{cache_path.name}.{uuid.uuid4().hex}.tmp"
-    )
-    try:
+    with ARTIFACT_STORE.atomic_output_path(cache_path) as temp_path:
         image.save(
             temp_path,
             format="PNG",
             compress_level=BASEMAP_PNG_COMPRESSION_LEVEL,
             optimize=False,
         )
-        temp_path.replace(cache_path)
-    finally:
-        if temp_path.exists():
-            try:
-                temp_path.unlink()
-            except OSError:
-                pass

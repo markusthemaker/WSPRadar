@@ -2,7 +2,6 @@
 
 import gc
 import time
-import uuid
 
 import streamlit as st
 
@@ -13,6 +12,12 @@ from core.analysis_runner import (
     apply_post_fetch_filters,
     build_analysis_batches,
     should_retry_without_decode_filter,
+)
+from core.artifact_store import (
+    register_session_artifact,
+    session_artifact_path,
+    touch_registered_session_artifacts,
+    write_parquet_artifact,
 )
 from core.data_engine import cleanup_old_parquets, fetch_wspr_data
 from core.math_utils import is_valid_callsign, is_valid_locator, locator_to_latlon
@@ -25,6 +30,23 @@ from ui.matplotlib_renderer import (
     render_matplotlib_figure,
 )
 from ui.results_export import register_map_export_context
+from ui.presentation_context_adapter import build_presentation_context_from_session_state
+
+
+def _render_fetch_error(fetch_result):
+    """Render one structured core fetch failure at the UI boundary."""
+    error = fetch_result.error
+    if error is None:
+        return
+    if error.status_code is not None:
+        st.error(f"CLICKHOUSE DATABASE ERROR {error.status_code}")
+    else:
+        st.error(f"WSPR data request failed: {error.message}")
+    if error.response_text:
+        st.code(error.response_text, language="text")
+    if error.query:
+        st.warning("The failed SQL query was:")
+        st.code(error.query, language="sql")
 
 
 def render_analysis_run(
@@ -59,12 +81,17 @@ def render_analysis_run(
         st.stop()
 
     lat_0, lon_0 = locator_to_latlon(qth_locator)
+    touch_registered_session_artifacts(st.session_state)
     cleanup_old_parquets()
 
     active_demo_key = st.session_state.get("active_demo_profile")
     active_demo = DEMO_PROFILES.get(active_demo_key) if active_demo_key else None
     is_demo_run = active_demo is not None
     analysis_context = build_analysis_context_from_session_state(st.session_state)
+    presentation_context = build_presentation_context_from_session_state(
+        st.session_state,
+        theme="dark",
+    )
 
     if active_demo:
         demo_label = active_demo.get("label", {}).get(
@@ -92,6 +119,7 @@ def render_analysis_run(
             lat_0,
             lon_0,
             band_filter,
+            presentation_context=presentation_context,
             warn=st.warning,
         )
     except AnalysisConfigError as exc:
@@ -104,15 +132,16 @@ def render_analysis_run(
 
     for index, analysis in enumerate(analyses):
         profile_timer = PerformanceTimer()
-        st.session_state._db_hit = False
         fetch_start = time.time()
 
         with st.spinner(t["msg_proc"].format(id=analysis["id"])):
-            df = fetch_wspr_data(
+            fetch_result = fetch_wspr_data(
                 analysis["query"],
                 is_demo=is_demo_run,
                 response_format=analysis.get("response_format", "csv"),
             )
+            _render_fetch_error(fetch_result)
+            df = fetch_result.dataframe
             fetch_time = time.time() - fetch_start
 
             if should_retry_without_decode_filter(df, analysis):
@@ -128,19 +157,17 @@ def render_analysis_run(
                     "legacy_decode_filter_mode",
                     DECODE_FILTER_LEGACY,
                 )
-                st.session_state._db_hit = False
-                df = fetch_wspr_data(
+                fetch_result = fetch_wspr_data(
                     legacy_analysis["query"],
                     is_demo=is_demo_run,
                     response_format=legacy_analysis.get("response_format", "csv"),
                 )
+                _render_fetch_error(fetch_result)
+                df = fetch_result.dataframe
                 fetch_time += time.time() - retry_start
                 analysis = legacy_analysis
 
-            if analysis.get("response_format") == "parquet":
-                source_str = st.session_state.get("_data_source", "disk cache")
-            else:
-                source_str = "wspr.live" if st.session_state.get("_db_hit", False) else "RAM cache"
+            source_str = fetch_result.source.value
             decode_note = (
                 " (legacy decode compatibility: no code filter)"
                 if analysis.get("decode_filter_mode") == DECODE_FILTER_LEGACY
@@ -159,6 +186,7 @@ def render_analysis_run(
                 st.markdown("---")
                 continue
 
+            profile_timer.add_memory("fetched dataframe", df=df, detail=source_str)
             with profile_timer.span("post-filtering"):
                 df, warning_msg = apply_post_fetch_filters(
                     df,
@@ -176,12 +204,16 @@ def render_analysis_run(
                 st.markdown("---")
                 continue
 
-            parquet_path = (
-                f"{CACHE_DIR}/spots_{analysis['id']}_{st.session_state.run_id}_"
-                f"{uuid.uuid4().hex}.parquet"
+            profile_timer.add_memory("post-filter dataframe", df=df)
+            parquet_path = session_artifact_path(
+                CACHE_DIR,
+                st.session_state,
+                run_id=st.session_state.run_id,
+                analysis_id=analysis["id"],
             )
             try:
-                df.to_parquet(parquet_path, index=False)
+                write_parquet_artifact(df, parquet_path, index=False)
+                register_session_artifact(st.session_state, parquet_path)
             except Exception as exc:
                 st.error(f"Error writing cache: {exc}")
 
@@ -199,6 +231,8 @@ def render_analysis_run(
                     st.session_state.val_min_stations,
                     lat_0,
                     lon_0,
+                    analysis_context=analysis_context,
+                    presentation_context=presentation_context,
                     analysis_kind=analysis.get("analysis_kind", "comparison"),
                     theme="dark",
                     timing_collector=profile_timer,
@@ -212,8 +246,13 @@ def render_analysis_run(
                 st.markdown("---")
                 continue
 
-            fig, enriched_df, segs_df, line1_str = plot_result
+            fig = plot_result.figure
+            enriched_df = plot_result.map_data.station_rows
+            segs_df = plot_result.map_data.segment_rows
+            line1_str = plot_result.footer_text
             run_id = st.session_state.get("run_id", 0)
+            profile_timer.add_memory("map station dataframe", df=enriched_df)
+            profile_timer.add_memory("map segment dataframe", df=segs_df)
 
             try:
                 with profile_timer.span(matplotlib_render_span_label("map render")):
@@ -233,6 +272,8 @@ def render_analysis_run(
                     st.session_state.val_min_stations,
                     lat_0,
                     lon_0,
+                    analysis_context,
+                    presentation_context,
                 )
             finally:
                 with profile_timer.span("map figure disposal"):
@@ -295,6 +336,8 @@ def render_analysis_run(
                 data["line1_str"],
                 t,
                 max_dist_km,
+                analysis_context,
+                presentation_context,
                 analysis_start_t=data["start_t"],
                 analysis_end_t=data["end_t"],
                 analysis_kind=data["analysis"].get("analysis_kind", "comparison"),

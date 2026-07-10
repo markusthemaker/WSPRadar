@@ -25,6 +25,68 @@ from core.solar_path import classify_path_illumination
 
 ABSOLUTE_METHOD_VERSION = "opportunity-v1"
 DEFAULT_MIN_OPPORTUNITIES = 5
+OPPORTUNITY_SLOT_SECONDS = 120
+OPPORTUNITY_OUTCOME_CATEGORIES = ("H", "M", "T", "")
+OPPORTUNITY_QUERY_COLUMNS = (
+    "time_slot",
+    "peer_sign",
+    "peer_grid",
+    "target_seen",
+    "external_seen",
+    "target_snr",
+)
+PROCESSED_OPPORTUNITY_SCHEMA = {
+    "time_slot": "int64",
+    "peer_sign": "category",
+    "peer_grid": "category",
+    "target_seen": "int8",
+    "external_seen": "int8",
+    "target_snr": "float64",
+    "peer_lat": "float64",
+    "peer_lon": "float64",
+    "opportunity": "int8",
+    "hit": "int8",
+    "miss": "int8",
+    "target_only": "int8",
+    "outcome": "category",
+    "path_daylight_fraction": "float32",
+    "target_solar_elevation": "float32",
+    "path_midpoint_solar_elevation": "float32",
+    "peer_solar_elevation": "float32",
+    "path_greyline_crossing": "int8",
+    "path_illumination": "category",
+}
+PROCESSED_OPPORTUNITY_COLUMNS = tuple(PROCESSED_OPPORTUNITY_SCHEMA.keys())
+OPPORTUNITY_SEGMENT_VIEW_COLUMNS = (
+    "time_slot",
+    "peer_sign",
+    "peer_grid",
+    "hit",
+    "miss",
+)
+OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS = (
+    "time_slot",
+    "peer_sign",
+    "peer_grid",
+    "hit",
+    "miss",
+    "target_only",
+    "target_snr",
+    "path_illumination",
+)
+OPPORTUNITY_MAP_EXPORT_COLUMNS = (
+    "time_slot",
+    "peer_sign",
+    "peer_grid",
+    "target_seen",
+    "target_snr",
+    "peer_lat",
+    "peer_lon",
+    "opportunity",
+    "hit",
+    "miss",
+    "target_only",
+)
 SUCCESS_RATE_EPSILON = 1e-12
 SUCCESS_RATE_BOUNDS = (
     0.0,
@@ -59,6 +121,59 @@ def _timed_span(timing_collector, label, detail=""):
     if timing_collector is None:
         return nullcontext()
     return timing_collector.span(label, detail=detail)
+
+
+def opportunity_utc_from_time_slot(time_slot):
+    """Return timezone-aware UTC WSPR-frame timestamps from integer time slots."""
+    numeric = pd.to_numeric(time_slot, errors="coerce")
+    return pd.to_datetime(
+        numeric * OPPORTUNITY_SLOT_SECONDS,
+        unit="s",
+        utc=True,
+        errors="coerce",
+    )
+
+
+def _empty_processed_opportunity_rows() -> pd.DataFrame:
+    """Return an empty processed opportunity frame with the canonical schema."""
+    columns = {}
+    for column, dtype in PROCESSED_OPPORTUNITY_SCHEMA.items():
+        if column == "outcome":
+            columns[column] = pd.Categorical([], categories=OPPORTUNITY_OUTCOME_CATEGORIES)
+        elif dtype == "category":
+            columns[column] = pd.Categorical([])
+        else:
+            columns[column] = pd.Series(dtype=dtype)
+    return pd.DataFrame(columns)
+
+
+def _apply_processed_opportunity_schema(frame: pd.DataFrame) -> pd.DataFrame:
+    """Order and type processed opportunity rows for stable cache/read behavior."""
+    if frame is None or frame.empty:
+        return _empty_processed_opportunity_rows()
+
+    work = frame.loc[:, PROCESSED_OPPORTUNITY_COLUMNS]
+    work["time_slot"] = pd.to_numeric(work["time_slot"], errors="coerce").astype("int64")
+    for column in ["target_seen", "external_seen", "opportunity", "hit", "miss", "target_only", "path_greyline_crossing"]:
+        work[column] = pd.to_numeric(work[column], errors="coerce").fillna(0).astype("int8")
+    for column in ["target_snr", "peer_lat", "peer_lon"]:
+        work[column] = pd.to_numeric(work[column], errors="coerce").astype("float64")
+    for column in [
+        "path_daylight_fraction",
+        "target_solar_elevation",
+        "path_midpoint_solar_elevation",
+        "peer_solar_elevation",
+    ]:
+        work[column] = pd.to_numeric(work[column], errors="coerce").astype("float32")
+    work["peer_sign"] = work["peer_sign"].astype("category")
+    work["peer_grid"] = work["peer_grid"].astype("category")
+    work["outcome"] = pd.Categorical(
+        work["outcome"].astype(str),
+        categories=OPPORTUNITY_OUTCOME_CATEGORIES,
+    )
+    if not isinstance(work["path_illumination"].dtype, pd.CategoricalDtype):
+        work["path_illumination"] = work["path_illumination"].astype("category")
+    return work
 
 
 def opportunity_rate_scale_max(values, minimum=1.0):
@@ -219,6 +334,7 @@ def prepare_opportunity_rows(
     target_callsign: str,
     target_qth: str,
     timing_collector=None,
+    owns_input: bool = False,
 ) -> pd.DataFrame:
     """
     Normalize server evidence and classify every peer-cycle as H, M, or T.
@@ -226,28 +342,28 @@ def prepare_opportunity_rows(
     ``opportunity`` is independently confirmed evidence. ``target_only`` is
     retained separately and never contributes to the denominator.
     """
-    required = {
-        "time_slot",
-        "peer_sign",
-        "peer_grid",
-        "target_seen",
-        "external_seen",
-        "target_snr",
-    }
+    required = set(OPPORTUNITY_QUERY_COLUMNS)
     if df is None or df.empty:
-        return pd.DataFrame(columns=sorted(required))
+        return _empty_processed_opportunity_rows()
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"Opportunity result is missing columns: {', '.join(sorted(missing))}")
 
     with _timed_span(timing_collector, "opportunity normalize rows"):
-        work = df.copy()
+        work = df if owns_input else df.copy()
         work["peer_sign"] = work["peer_sign"].astype(str).str.strip().str.upper()
         work["peer_grid"] = work["peer_grid"].astype(str).str.strip().str.upper()
         for column in ["time_slot", "target_seen", "external_seen", "target_snr"]:
             work[column] = pd.to_numeric(work[column], errors="coerce")
-        work = work.dropna(subset=["time_slot", "peer_sign", "peer_grid"])
-        work = work[work["peer_sign"].ne("") & work["peer_grid"].ne("")].copy()
+        valid_identity = (
+            work["time_slot"].notna()
+            & work["peer_sign"].ne("")
+            & work["peer_grid"].ne("")
+        )
+        if not bool(valid_identity.all()):
+            work = work.loc[valid_identity].copy()
+        if work.empty:
+            return _empty_processed_opportunity_rows()
         work["time_slot"] = work["time_slot"].astype("int64")
         work["target_seen"] = (work["target_seen"].fillna(0) > 0).astype("int8")
         work["external_seen"] = (work["external_seen"].fillna(0) > 0).astype("int8")
@@ -257,23 +373,27 @@ def prepare_opportunity_rows(
         _ = target_grid4(target_qth)
         target_latitude, target_longitude = locator_to_latlon(target_qth)
         is_target_identity = work["peer_sign"].eq(target_call)
-        work = work[~is_target_identity].copy()
+        if bool(is_target_identity.any()):
+            work = work.loc[~is_target_identity].copy()
+        if work.empty:
+            return _empty_processed_opportunity_rows()
 
     with _timed_span(timing_collector, "opportunity locator coordinate resolution"):
         coordinates = _locator_coordinates(work["peer_grid"])
+    if coordinates.empty:
+        return _empty_processed_opportunity_rows()
 
-    with _timed_span(timing_collector, "opportunity coordinate merge"):
-        work = work.merge(coordinates, on="peer_grid", how="inner")
+    with _timed_span(timing_collector, "opportunity coordinate assignment"):
+        coordinate_lookup = coordinates.set_index("peer_grid")
+        work["peer_lat"] = work["peer_grid"].map(coordinate_lookup["peer_lat"])
+        work["peer_lon"] = work["peer_grid"].map(coordinate_lookup["peer_lon"])
+        valid_coordinates = work["peer_lat"].notna() & work["peer_lon"].notna()
+        if not bool(valid_coordinates.all()):
+            work = work.loc[valid_coordinates].copy()
     if work.empty:
-        return work
+        return _empty_processed_opportunity_rows()
 
     with _timed_span(timing_collector, "opportunity outcome columns"):
-        work["cycle_time"] = pd.to_datetime(
-            work["time_slot"] * 120,
-            unit="s",
-            utc=True,
-            errors="coerce",
-        )
         work["opportunity"] = work["external_seen"].astype("int8")
         work["hit"] = (
             (work["target_seen"] == 1) & (work["external_seen"] == 1)
@@ -299,11 +419,13 @@ def prepare_opportunity_rows(
             daylight_fraction_threshold=ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD,
             twilight_elevation_degrees=ABS_PATH_TWILIGHT_ELEVATION_DEG,
             sample_points=ABS_PATH_SAMPLE_POINTS,
+            time_values=opportunity_utc_from_time_slot(work["time_slot"]),
+            copy=False,
             timing_collector=timing_collector,
         )
 
     with _timed_span(timing_collector, "opportunity final reset"):
-        return work.reset_index(drop=True)
+        return _apply_processed_opportunity_schema(work.reset_index(drop=True))
 
 
 def aggregate_opportunity_peers(
@@ -320,8 +442,9 @@ def aggregate_opportunity_peers(
     work["hit_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").where(
         work["hit"] > 0
     )
+    work["evidence_utc"] = opportunity_utc_from_time_slot(work["time_slot"])
     grouped = (
-        work.groupby(["peer_sign", "peer_grid"], dropna=False)
+        work.groupby(["peer_sign", "peer_grid"], dropna=False, observed=True)
         .agg(
             opportunities=("opportunity", "sum"),
             hits=("hit", "sum"),
@@ -329,8 +452,8 @@ def aggregate_opportunity_peers(
             target_only=("target_only", "sum"),
             target_observations=("target_seen", "sum"),
             successful_snr_median=("hit_snr", "median"),
-            first_evidence_utc=("cycle_time", "min"),
-            last_evidence_utc=("cycle_time", "max"),
+            first_evidence_utc=("evidence_utc", "min"),
+            last_evidence_utc=("evidence_utc", "max"),
             peer_lat=("peer_lat", "first"),
             peer_lon=("peer_lon", "first"),
         )
@@ -381,7 +504,7 @@ def aggregate_opportunity_segments(peer_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     segments = (
-        eligible.groupby(group_keys, dropna=False)
+        eligible.groupby(group_keys, dropna=False, observed=True)
         .agg(
             val=("station_success_rate_pct", "mean"),
             cnt=("peer_sign", "size"),

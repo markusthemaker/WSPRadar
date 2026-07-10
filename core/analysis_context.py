@@ -37,7 +37,6 @@ _SOLAR_PATH_STATE = {
 class AnalysisContext:
     """Stable, localized-label-free configuration used by core analysis code."""
 
-    language: str = "en"
     run_mode: str | None = None
     callsign: str = ""
     qth: str = ""
@@ -59,8 +58,6 @@ class AnalysisContext:
     min_joint_spots_per_station: int = 1
     min_confirmed_opportunities_per_peer: int = 5
     min_joint_stations_per_map_segment: int = 1
-    is_demo_run: bool = False
-    active_demo_profile: str | None = None
 
     def to_dict(self):
         """Return a JSON-friendly scalar representation."""
