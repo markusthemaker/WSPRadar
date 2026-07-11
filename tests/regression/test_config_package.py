@@ -9,6 +9,7 @@ from config import (
     APP_VERSION,
     BAND_MAP,
     DEMO_PROFILES,
+    DOCUMENTATION_INITIAL_LOAD_DELAY_SEC,
     EXPORT_ACTIVE_LEASE_TIMEOUT_SEC,
     EXPORT_MAX_CONCURRENT,
     EXPORT_MAX_QUEUED,
@@ -41,6 +42,10 @@ def test_export_admission_settings_are_safe_and_exported():
     assert EXPORT_MAX_QUEUED == 10
     assert EXPORT_QUEUE_WAIT_TIMEOUT_SEC > 0
     assert EXPORT_ACTIVE_LEASE_TIMEOUT_SEC > EXPORT_QUEUE_POLL_INTERVAL_SEC > 0
+
+
+def test_documentation_initial_load_delay_is_short_and_exported():
+    assert 0 < DOCUMENTATION_INITIAL_LOAD_DELAY_SEC <= 1
 
 
 def test_wspr_http_guardrails_are_safe_and_exported():

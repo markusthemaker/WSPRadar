@@ -6,6 +6,7 @@ import io
 import base64
 import re
 import threading
+from functools import lru_cache
 import streamlit as st
 from i18n import T
 
@@ -18,6 +19,7 @@ DOCUMENTATION_PDF_READY_KEY_PREFIX = "_documentation_pdf_ready"
 _DOCUMENTATION_PDF_GENERATION_LOCK = threading.Lock()
 
 
+@lru_cache(maxsize=2)
 def get_docs(lang):
     """Return documentation for the selected language."""
     return DOC_DE if lang == "de" else DOC_EN

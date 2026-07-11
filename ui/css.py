@@ -191,6 +191,11 @@ def apply_custom_css():
         }
         
         /* Markdown rendering inside the documentation */
+        .st-key-documentation_body {
+            content-visibility: auto;
+            contain-intrinsic-size: auto 12000px;
+        }
+
         .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }
         .stMarkdown h4 { color: #ffffff !important; margin-top: 1.8rem; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
         .stMarkdown p {
