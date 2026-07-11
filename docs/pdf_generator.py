@@ -5,12 +5,17 @@ Takes the Markdown documentation, fixes lists and LaTeX formulas, and renders vi
 import io
 import base64
 import re
+import threading
 import streamlit as st
 from i18n import T
 
 
 from docs.doc_de import DOC_DE
 from docs.doc_en import DOC_EN
+
+
+DOCUMENTATION_PDF_READY_KEY_PREFIX = "_documentation_pdf_ready"
+_DOCUMENTATION_PDF_GENERATION_LOCK = threading.Lock()
 
 
 def get_docs(lang):
@@ -113,8 +118,7 @@ def _inject_pdf_list_markers(html_content):
 
 
 
-@st.cache_data(show_spinner=False)
-def generate_pdf_doc(lang, logo_b64, version):
+def _generate_pdf_doc(lang, logo_b64, version):
     """Generate a PDF from the localized Markdown string."""
     try:
         import markdown
@@ -267,3 +271,55 @@ def generate_pdf_doc(lang, logo_b64, version):
     result = io.BytesIO()
     pisa_status = pisa.CreatePDF(io.StringIO(template), dest=result)
     return result.getvalue() if not pisa_status.err else None
+
+
+@st.cache_data(show_spinner=False)
+def generate_pdf_doc(lang, logo_b64, version):
+    """Generate one shared cached PDF while serializing cache misses."""
+    with _DOCUMENTATION_PDF_GENERATION_LOCK:
+        return _generate_pdf_doc(lang, logo_b64, version)
+
+
+def render_documentation_pdf_control(t, lang, logo_b64, version):
+    """Prepare documentation on demand and expose its process-cached PDF."""
+    ready_key = f"{DOCUMENTATION_PDF_READY_KEY_PREFIX}:{lang}:{version}"
+    requested = bool(st.session_state.get(ready_key, False))
+    if not requested:
+        requested = st.button(
+            t.get("btn_prepare_documentation_pdf", "Prepare PDF"),
+            icon=":material/picture_as_pdf:",
+            key=f"prepare_documentation_pdf_{lang}_{version}",
+            width="stretch",
+        )
+        if not requested:
+            return
+        st.session_state[ready_key] = True
+
+    with st.spinner(t.get(
+        "msg_preparing_documentation_pdf",
+        "Preparing documentation PDF...",
+    )):
+        pdf_bytes = generate_pdf_doc(lang, logo_b64, version)
+
+    if not pdf_bytes:
+        st.session_state.pop(ready_key, None)
+        st.button(
+            t.get("btn_download_documentation_pdf", "Download PDF"),
+            icon=":material/picture_as_pdf:",
+            disabled=True,
+            help=t.get(
+                "help_documentation_pdf_unavailable",
+                "PDF export requires the documentation PDF dependencies.",
+            ),
+            width="stretch",
+        )
+        return
+
+    st.download_button(
+        label=t.get("btn_download_documentation_pdf", "Download PDF"),
+        icon=":material/download:",
+        data=pdf_bytes,
+        file_name=f"WSPRadar_Doc_{lang.upper()}.pdf",
+        mime="application/pdf",
+        width="stretch",
+    )

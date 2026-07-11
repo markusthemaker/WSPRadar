@@ -7,8 +7,12 @@ from datetime import datetime, timedelta, timezone
 
 import streamlit as st
 
+import faulthandler
+import sys
+faulthandler.enable(file=sys.stderr, all_threads=True)
+
 from config import APP_URL, APP_VERSION, BAND_MAP, DEMO_PROFILES, LOGO_URL, MAX_DAYS_HISTORY
-from docs.pdf_generator import generate_pdf_doc, get_docs
+from docs.pdf_generator import get_docs, render_documentation_pdf_control
 from i18n import T
 from core.math_utils import quantize_time
 from ui.callbacks import (
@@ -319,15 +323,11 @@ doc_lang = st.session_state.lang
 doc_title = "Dokumentation" if doc_lang == "de" else "Documentation"
 
 st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-col_doc_title, col_doc_download, col_doc_spacer = st.columns([0.28, 0.11, 0.61], vertical_alignment="center")
+col_doc_title, col_doc_download, col_doc_spacer = st.columns([0.28, 0.18, 0.54], vertical_alignment="center")
 with col_doc_title:
     st.markdown(f"<h2 style='text-align: left; color: #ffffff; margin: 0; padding: 0; line-height: 1; font-family: \"Rajdhani\", sans-serif; letter-spacing: 1px; white-space: nowrap;'>{doc_title}</h2>", unsafe_allow_html=True)
 with col_doc_download:
-    pdf_bytes = generate_pdf_doc(doc_lang, logo_base64, APP_VERSION)
-    if pdf_bytes:
-        st.download_button(label="PDF", icon=":material/picture_as_pdf:", data=pdf_bytes, file_name=f"WSPRadar_Doc_{doc_lang.upper()}.pdf", mime="application/pdf", width="stretch")
-    else:
-        st.button("PDF", icon=":material/picture_as_pdf:", disabled=True, help="PDF Export requires 'markdown' and 'xhtml2pdf' packages.", width="stretch")
+    render_documentation_pdf_control(t, doc_lang, logo_base64, APP_VERSION)
 
 st.markdown(get_docs(st.session_state.lang), unsafe_allow_html=True)
 st.markdown(f"<div style='text-align: center; color: #888888; font-size: 0.9rem; margin-top: 4rem; margin-bottom: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(57, 255, 20, 0.3);'>{t['dev_credit']}</div>", unsafe_allow_html=True)

@@ -21,6 +21,27 @@ START_TIME = datetime(2026, 5, 27, tzinfo=timezone.utc)
 END_TIME = datetime(2026, 5, 28, tzinfo=timezone.utc)
 
 
+class _StreamingResponse:
+    def __init__(self, content, *, status_code=200, encoding="utf-8"):
+        self.content = bytes(content)
+        self.status_code = status_code
+        self.encoding = encoding
+
+    @property
+    def text(self):
+        return self.content.decode(self.encoding)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def iter_content(self, chunk_size):
+        for offset in range(0, len(self.content), chunk_size):
+            yield self.content[offset:offset + chunk_size]
+
+
 def _analysis_context(**overrides):
     values = {
         "run_mode": "TX",
@@ -88,12 +109,14 @@ def test_localized_presentation_changes_titles_but_not_queries():
 
 
 def test_data_engine_returns_structured_http_error_without_ui_calls(monkeypatch):
-    class ErrorResponse:
-        status_code = 503
-        text = "service unavailable"
-        content = text.encode("utf-8")
-
-    monkeypatch.setattr(data_engine.http_session, "get", lambda *_args, **_kwargs: ErrorResponse())
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse(
+            b"service unavailable",
+            status_code=503,
+        ),
+    )
     query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
 
     result = data_engine.fetch_wspr_data(query)
@@ -107,18 +130,13 @@ def test_data_engine_returns_structured_http_error_without_ui_calls(monkeypatch)
 
 
 def test_standard_fetch_cache_is_copy_on_read(monkeypatch):
-    class CsvResponse:
-        status_code = 200
-        text = "peer_sign,stat_val\nK1AAA,-12.3\n"
-        content = text.encode("utf-8")
-
     query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
     request_count = 0
 
     def fake_get(*_args, **_kwargs):
         nonlocal request_count
         request_count += 1
-        return CsvResponse()
+        return _StreamingResponse(b"peer_sign,stat_val\nK1AAA,-12.3\n")
 
     monkeypatch.setattr(data_engine.http_session, "get", fake_get)
     first = data_engine.fetch_wspr_data(query)
@@ -132,18 +150,13 @@ def test_standard_fetch_cache_is_copy_on_read(monkeypatch):
 
 
 def test_demo_and_standard_fetches_use_separate_cache_keys(monkeypatch):
-    class CsvResponse:
-        status_code = 200
-        text = "peer_sign,stat_val\nK1AAA,-12.3\n"
-        content = text.encode("utf-8")
-
     query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
     request_count = 0
 
     def fake_get(*_args, **_kwargs):
         nonlocal request_count
         request_count += 1
-        return CsvResponse()
+        return _StreamingResponse(b"peer_sign,stat_val\nK1AAA,-12.3\n")
 
     monkeypatch.setattr(data_engine.http_session, "get", fake_get)
     standard = data_engine.fetch_wspr_data(query, is_demo=False)

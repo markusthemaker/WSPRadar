@@ -9,6 +9,7 @@ while preserving the current segment, station, non-joint, and time-bin state.
 
 import io
 import json
+import time
 import zipfile
 from datetime import datetime, timezone
 
@@ -24,9 +25,17 @@ from core.artifact_store import (
     ARTIFACT_STORE,
     read_parquet_artifact,
     retire_registered_session_artifacts,
+    session_artifact_owner,
 )
+from core.analysis_admission import AnalysisQueueFull, AnalysisQueueTimeout
+from core.export_admission import EXPORT_ADMISSION_GATE
 from core.matplotlib_runtime import matplotlib_operation_lock
 from core.opportunity_engine import OPPORTUNITY_MAP_EXPORT_COLUMNS
+from core.performance_timer import (
+    log_performance_event,
+    process_peak_rss_bytes,
+    process_rss_bytes,
+)
 from core.presentation_context import PresentationContext
 from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
@@ -715,6 +724,117 @@ def build_results_zip():
     return zip_buf.getvalue(), f"{root}.zip"
 
 
+def _prepare_results_zip_with_admission(t):
+    """Wait for export capacity and build one prepared result package."""
+    queue_slot = st.empty()
+    waiting_status = None
+    waiting_body = None
+    queue_profile = {
+        "initial_position": 0,
+        "maximum_position": 0,
+    }
+    admission_started = time.perf_counter()
+
+    def show_waiting(snapshot):
+        nonlocal waiting_status, waiting_body
+        if queue_profile["initial_position"] == 0:
+            queue_profile["initial_position"] = snapshot.position
+        queue_profile["maximum_position"] = max(
+            queue_profile["maximum_position"],
+            snapshot.position,
+        )
+        label = t.get(
+            "msg_export_queue_wait",
+            "Another export is being prepared. You are position {position} in the export queue.",
+        ).format(position=snapshot.position)
+        detail = t.get(
+            "msg_export_queue_detail",
+            "{active}/{maximum} export preparation active; {queued} waiting.",
+        ).format(
+            active=snapshot.active,
+            maximum=snapshot.max_active,
+            queued=snapshot.queued,
+        )
+        if waiting_status is None:
+            with queue_slot.container():
+                waiting_status = st.status(label, expanded=True, state="running")
+                with waiting_status:
+                    waiting_body = st.empty()
+        else:
+            waiting_status.update(label=label, expanded=True, state="running")
+        waiting_body.markdown(detail)
+
+    owner = (
+        f"{session_artifact_owner(st.session_state)}:"
+        f"{st.session_state.get('run_id', 0)}:export"
+    )
+
+    def log_admission(outcome):
+        active, queued = EXPORT_ADMISSION_GATE.counts()
+        log_performance_event(
+            "export_admission",
+            outcome=outcome,
+            wait_seconds=time.perf_counter() - admission_started,
+            initial_queue_position=queue_profile["initial_position"],
+            maximum_queue_position=queue_profile["maximum_position"],
+            active=active,
+            queued=queued,
+            rss_bytes=process_rss_bytes(),
+        )
+
+    try:
+        permit = EXPORT_ADMISSION_GATE.acquire(owner=owner, on_wait=show_waiting)
+    except AnalysisQueueFull:
+        log_admission("queue_full")
+        st.warning(t.get(
+            "warn_export_queue_full",
+            "High demand right now. The export queue is full. Please try again shortly.",
+        ))
+        return None, None
+    except AnalysisQueueTimeout:
+        log_admission("queue_timeout")
+        queue_slot.empty()
+        st.warning(t.get(
+            "warn_export_queue_timeout",
+            "Export capacity did not become available in time. Please try again shortly.",
+        ))
+        return None, None
+
+    log_admission("admitted")
+    queue_slot.empty()
+    export_started = time.perf_counter()
+    rss_start = process_rss_bytes()
+    export_outcome = "completed"
+    result = (None, None)
+    try:
+        with permit:
+            permit.touch()
+            with st.spinner(t.get(
+                "msg_preparing_all_results",
+                "Preparing high-resolution result package...",
+            )):
+                result = build_results_zip()
+        if not result[0]:
+            export_outcome = "empty"
+        return result
+    except BaseException as exc:
+        export_outcome = type(exc).__name__
+        raise
+    finally:
+        active, queued = EXPORT_ADMISSION_GATE.counts()
+        log_performance_event(
+            "export_preparation",
+            outcome=export_outcome,
+            duration_seconds=time.perf_counter() - export_started,
+            zip_bytes=len(result[0]) if result[0] else 0,
+            active_after_release=active,
+            queued_after_release=queued,
+            rss_start_bytes=rss_start,
+            rss_end_bytes=process_rss_bytes(),
+            process_peak_rss_bytes=process_peak_rss_bytes(),
+        )
+
+
 def render_download_all_results(t):
     """Render the centered lazy all-results ZIP prepare/download controls."""
     blocks = _ensure_current_export_state()
@@ -754,8 +874,7 @@ def render_download_all_results(t):
         ):
             return
 
-        with st.spinner(t.get("msg_preparing_all_results", "Preparing high-resolution result package...")):
-            zip_bytes, filename = build_results_zip()
+        zip_bytes, filename = _prepare_results_zip_with_admission(t)
         if not zip_bytes:
             return
         st.session_state[EXPORT_ZIP_BYTES_KEY] = zip_bytes

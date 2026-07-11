@@ -12,12 +12,26 @@ CACHE_DIR = "./.wspr_cache"
 CACHE_TTL_SEC = 3600
 MAX_DAYS_HISTORY = 31
 
+# WSPR.live transport guardrails. The read timeout is socket inactivity, not a
+# total request-duration limit; byte ceilings apply to decompressed response data.
+WSPR_HTTP_CONNECT_TIMEOUT_SEC = 10
+WSPR_HTTP_READ_TIMEOUT_SEC = 60
+WSPR_CSV_MAX_RESPONSE_BYTES = 64 * 1024 * 1024
+WSPR_PARQUET_MAX_RESPONSE_BYTES = 64 * 1024 * 1024
+
 # Process-wide admission limits for resource-intensive analysis runs.
 ANALYSIS_MAX_CONCURRENT = 2
 ANALYSIS_MAX_QUEUED = 10
 ANALYSIS_QUEUE_WAIT_TIMEOUT_SEC = 600
 ANALYSIS_ACTIVE_LEASE_TIMEOUT_SEC = 1800
 ANALYSIS_QUEUE_POLL_INTERVAL_SEC = 0.5
+
+# Process-wide admission limits for high-resolution result ZIP preparation.
+EXPORT_MAX_CONCURRENT = 1
+EXPORT_MAX_QUEUED = 10
+EXPORT_QUEUE_WAIT_TIMEOUT_SEC = 600
+EXPORT_ACTIVE_LEASE_TIMEOUT_SEC = 1800
+EXPORT_QUEUE_POLL_INTERVAL_SEC = 0.5
 
 # Per-session Segment Inspector cache limits. The cache retains compact station-level
 # view models, figure recipes, and preview PNG bytes, never raw opportunity artifacts.

@@ -1,6 +1,8 @@
 """Streamlit run orchestration for WSPRadar analyses."""
 
 import gc
+import hashlib
+import json
 import time
 
 import streamlit as st
@@ -8,6 +10,7 @@ import streamlit as st
 from config import CACHE_DIR, DEMO_PROFILES
 from core.analysis_admission import (
     ANALYSIS_ADMISSION_GATE,
+    AnalysisDuplicateRequest,
     AnalysisQueueFull,
     AnalysisQueueTimeout,
 )
@@ -43,6 +46,28 @@ from ui.matplotlib_renderer import (
 )
 from ui.results_export import register_map_export_context
 from ui.presentation_context_adapter import build_presentation_context_from_session_state
+
+
+def _analysis_request_fingerprint(
+    *,
+    analysis_context,
+    start_t,
+    end_t,
+    band_filter,
+    max_dist_km,
+    active_demo_profile,
+):
+    """Return a stable key for one session's complete analysis request."""
+    payload = {
+        "analysis_context": analysis_context.to_dict(),
+        "start_t": start_t.isoformat(),
+        "end_t": end_t.isoformat(),
+        "band_filter": str(band_filter),
+        "max_dist_km": int(max_dist_km),
+        "active_demo_profile": active_demo_profile,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _render_fetch_error(fetch_result):
@@ -129,7 +154,15 @@ def render_analysis_run(
             waiting_status.update(label=label, expanded=True, state="running")
         waiting_body.markdown(detail)
 
-    owner = f"{session_artifact_owner(st.session_state)}:{st.session_state.get('run_id', 0)}"
+    owner = session_artifact_owner(st.session_state)
+    request_key = _analysis_request_fingerprint(
+        analysis_context=build_analysis_context_from_session_state(st.session_state),
+        start_t=start_t,
+        end_t=end_t,
+        band_filter=band_filter,
+        max_dist_km=max_dist_km,
+        active_demo_profile=st.session_state.get("active_demo_profile"),
+    )
 
     def log_admission(outcome):
         active, queued = ANALYSIS_ADMISSION_GATE.counts()
@@ -146,7 +179,20 @@ def render_analysis_run(
         )
 
     try:
-        permit = ANALYSIS_ADMISSION_GATE.acquire(owner=owner, on_wait=show_waiting)
+        permit = ANALYSIS_ADMISSION_GATE.acquire(
+            owner=owner,
+            request_key=request_key,
+            on_wait=show_waiting,
+        )
+    except AnalysisDuplicateRequest:
+        log_admission("duplicate")
+        if waiting_status is not None:
+            run_status_slot.empty()
+        st.info(t.get(
+            "msg_analysis_duplicate",
+            "This identical analysis is already active or queued for this session.",
+        ))
+        return
     except AnalysisQueueFull:
         log_admission("queue_full")
         st.session_state.run_mode = None

@@ -12,7 +12,15 @@ import time
 import pandas as pd
 import requests
 
-from config import CACHE_DIR, CACHE_TTL_SEC, DB_URL
+from config import (
+    CACHE_DIR,
+    CACHE_TTL_SEC,
+    DB_URL,
+    WSPR_CSV_MAX_RESPONSE_BYTES,
+    WSPR_HTTP_CONNECT_TIMEOUT_SEC,
+    WSPR_HTTP_READ_TIMEOUT_SEC,
+    WSPR_PARQUET_MAX_RESPONSE_BYTES,
+)
 from core.artifact_store import (
     ARTIFACT_STORE,
     ArtifactNamespace,
@@ -26,8 +34,18 @@ http_session = requests.Session()
 http_session.headers.update({"Accept-Encoding": "gzip, deflate"})
 
 _DATAFRAME_CACHE_MAX_ENTRIES = 32
+_HTTP_CHUNK_BYTES = 1024 * 1024
+_HTTP_ERROR_BODY_MAX_BYTES = 64 * 1024
 _dataframe_cache = OrderedDict()
 _dataframe_cache_guard = threading.RLock()
+
+
+class FetchResponseTooLarge(ValueError):
+    """Raised before an upstream response exceeds its configured byte ceiling."""
+
+    def __init__(self, max_bytes):
+        self.max_bytes = int(max_bytes)
+        super().__init__(f"WSPR.live response exceeded {self.max_bytes} bytes")
 
 
 def _dataframe_cache_get(cache_key):
@@ -67,7 +85,45 @@ def cleanup_old_parquets():
     return cleanup_artifact_namespaces(CACHE_DIR, ttl_seconds=CACHE_TTL_SEC)
 
 
-def _http_error_result(response, sql_query, *, artifact_path=None):
+def _decode_response_bytes(payload, response):
+    encoding = response.encoding or "utf-8"
+    return payload.decode(encoding, errors="replace")
+
+
+def _bounded_response_bytes(response, max_bytes):
+    payload = io.BytesIO()
+    total_bytes = 0
+    for chunk in response.iter_content(chunk_size=_HTTP_CHUNK_BYTES):
+        if not chunk:
+            continue
+        total_bytes += len(chunk)
+        if total_bytes > max_bytes:
+            raise FetchResponseTooLarge(max_bytes)
+        payload.write(chunk)
+    return payload.getvalue()
+
+
+def _bounded_error_text(response):
+    payload = io.BytesIO()
+    remaining = _HTTP_ERROR_BODY_MAX_BYTES
+    truncated = False
+    for chunk in response.iter_content(chunk_size=min(_HTTP_CHUNK_BYTES, remaining)):
+        if not chunk:
+            continue
+        if len(chunk) > remaining:
+            payload.write(chunk[:remaining])
+            truncated = True
+            break
+        payload.write(chunk)
+        remaining -= len(chunk)
+        if remaining == 0:
+            truncated = True
+            break
+    text = _decode_response_bytes(payload.getvalue(), response)
+    return f"{text}\n[response truncated]" if truncated else text
+
+
+def _http_error_result(response, sql_query, *, artifact_path=None, response_text=None):
     return FetchResult(
         artifact_path=artifact_path,
         source=FetchSource.WSPR_LIVE,
@@ -75,19 +131,31 @@ def _http_error_result(response, sql_query, *, artifact_path=None):
             code="http_error",
             message=f"ClickHouse returned HTTP {response.status_code}",
             status_code=int(response.status_code),
-            response_text=response.text,
+            response_text=response.text if response_text is None else response_text,
             query=sql_query,
         ),
     )
 
 
 def _request_error_result(exc, sql_query, *, artifact_path=None):
+    if isinstance(exc, requests.Timeout):
+        code = "timeout"
+        message = "WSPR.live did not respond within the time limit. Please try again shortly."
+    elif isinstance(exc, FetchResponseTooLarge):
+        code = "response_too_large"
+        message = (
+            "WSPR.live returned more data than this deployment can process safely. "
+            "Please shorten the time range and try again."
+        )
+    else:
+        code = "request_error"
+        message = str(exc)
     return FetchResult(
         artifact_path=artifact_path,
         source=FetchSource.WSPR_LIVE,
         error=FetchError(
-            code="request_error",
-            message=str(exc),
+            code=code,
+            message=message,
             query=sql_query,
         ),
     )
@@ -107,24 +175,42 @@ def _fetch_wspr_data_standard(sql_query, *, is_demo=False):
         start_time = time.time()
         print(f"[{datetime.now().strftime('%H:%M:%S')}] EXECUTING QUERY:\n{sql_query}\n")
         try:
-            response = http_session.get(DB_URL, params={"query": sql_query})
-        except requests.RequestException as exc:
+            with http_session.get(
+                DB_URL,
+                params={"query": sql_query},
+                stream=True,
+                timeout=(
+                    WSPR_HTTP_CONNECT_TIMEOUT_SEC,
+                    WSPR_HTTP_READ_TIMEOUT_SEC,
+                ),
+            ) as response:
+                if response.status_code != 200:
+                    return _http_error_result(
+                        response,
+                        sql_query,
+                        response_text=_bounded_error_text(response),
+                    )
+                payload = _bounded_response_bytes(
+                    response,
+                    WSPR_CSV_MAX_RESPONSE_BYTES,
+                )
+                response_text = _decode_response_bytes(payload, response)
+                payload_bytes = len(payload)
+        except (requests.RequestException, FetchResponseTooLarge) as exc:
             return _request_error_result(exc, sql_query)
 
-        if response.status_code != 200:
-            return _http_error_result(response, sql_query)
-        if len(response.text.strip().split("\n")) <= 1:
+        if len(response_text.strip().split("\n")) <= 1:
             return FetchResult(source=FetchSource.WSPR_LIVE)
 
         try:
-            frame = pd.read_csv(io.StringIO(response.text), engine="pyarrow")
+            frame = pd.read_csv(io.StringIO(response_text), engine="pyarrow")
         except (OSError, ValueError) as exc:
             return FetchResult(
                 source=FetchSource.WSPR_LIVE,
                 error=FetchError(
                     code="decode_error",
                     message=str(exc),
-                    response_text=response.text,
+                    response_text=response_text,
                     query=sql_query,
                 ),
             )
@@ -157,7 +243,7 @@ def _fetch_wspr_data_standard(sql_query, *, is_demo=False):
         print(
             f"[{datetime.now().strftime('%H:%M:%S')}] CACHE MISS: "
             f"DB Query Executed in {elapsed:.2f}s | "
-            f"Payload: {len(response.content) / 1024:.1f} KB"
+            f"Payload: {payload_bytes / 1024:.1f} KB"
         )
         return FetchResult(dataframe=frame, source=FetchSource.WSPR_LIVE)
 
@@ -207,19 +293,29 @@ def _fetch_wspr_parquet(sql_query, is_demo=False):
                 DB_URL,
                 params={"query": sql_query},
                 stream=True,
-                timeout=(10, 180),
+                timeout=(
+                    WSPR_HTTP_CONNECT_TIMEOUT_SEC,
+                    WSPR_HTTP_READ_TIMEOUT_SEC,
+                ),
             ) as response:
                 if response.status_code != 200:
                     return _http_error_result(
                         response,
                         sql_query,
                         artifact_path=cache_path,
+                        response_text=_bounded_error_text(response),
                     )
 
                 with ARTIFACT_STORE.atomic_output_path(cache_path) as temporary_path:
                     with temporary_path.open("wb") as handle:
-                        for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        payload_bytes = 0
+                        for chunk in response.iter_content(chunk_size=_HTTP_CHUNK_BYTES):
                             if chunk:
+                                payload_bytes += len(chunk)
+                                if payload_bytes > WSPR_PARQUET_MAX_RESPONSE_BYTES:
+                                    raise FetchResponseTooLarge(
+                                        WSPR_PARQUET_MAX_RESPONSE_BYTES
+                                    )
                                 handle.write(chunk)
                     if temporary_path.stat().st_size == 0:
                         raise ValueError("WSPR Parquet response was empty")

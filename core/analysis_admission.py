@@ -30,6 +30,10 @@ class AnalysisQueueTimeout(AnalysisAdmissionError):
     """Raised when a queued request does not acquire capacity in time."""
 
 
+class AnalysisDuplicateRequest(AnalysisAdmissionError):
+    """Raised when one owner already has the same request active or queued."""
+
+
 @dataclass(frozen=True)
 class AdmissionSnapshot:
     """One immutable view of active and queued analysis capacity."""
@@ -44,6 +48,7 @@ class AdmissionSnapshot:
 @dataclass
 class _ActiveLease:
     owner: str
+    request_key: str | None
     touched_at: float
 
 
@@ -51,6 +56,7 @@ class _ActiveLease:
 class _QueueTicket:
     token: str
     owner: str
+    request_key: str | None
     deadline: float
 
 
@@ -136,6 +142,17 @@ class AnalysisAdmissionController:
                 return True
         return False
 
+    def _has_duplicate_unlocked(self, owner: str, request_key: str | None) -> bool:
+        if request_key is None:
+            return False
+        return any(
+            lease.owner == owner and lease.request_key == request_key
+            for lease in self._active.values()
+        ) or any(
+            ticket.owner == owner and ticket.request_key == request_key
+            for ticket in self._queue
+        )
+
     def _snapshot_unlocked(self, token: str) -> AdmissionSnapshot:
         position = next(
             (index for index, ticket in enumerate(self._queue, start=1) if ticket.token == token),
@@ -153,21 +170,37 @@ class AnalysisAdmissionController:
         self,
         *,
         owner: str,
+        request_key: str | None = None,
         on_wait: Callable[[AdmissionSnapshot], None] | None = None,
     ) -> AnalysisPermit:
         """Acquire an active slot immediately or wait in the bounded FIFO queue."""
         token = uuid.uuid4().hex
+        owner = str(owner)
+        request_key = str(request_key) if request_key is not None else None
         now = self._clock()
         deadline = now + self.wait_timeout_seconds
 
         with self._condition:
             self._expire_stale_leases_unlocked(now)
+            if self._has_duplicate_unlocked(owner, request_key):
+                raise AnalysisDuplicateRequest(
+                    "The same owner already has this request active or queued"
+                )
             if len(self._active) < self.max_active and not self._queue:
-                self._active[token] = _ActiveLease(owner=str(owner), touched_at=now)
+                self._active[token] = _ActiveLease(
+                    owner=owner,
+                    request_key=request_key,
+                    touched_at=now,
+                )
                 return AnalysisPermit(self, token)
             if len(self._queue) >= self.max_queued:
                 raise AnalysisQueueFull("The analysis waiting queue is full")
-            self._queue.append(_QueueTicket(token=token, owner=str(owner), deadline=deadline))
+            self._queue.append(_QueueTicket(
+                token=token,
+                owner=owner,
+                request_key=request_key,
+                deadline=deadline,
+            ))
             self._condition.notify_all()
 
         last_snapshot = None
@@ -179,7 +212,11 @@ class AnalysisAdmissionController:
                     is_first = bool(self._queue and self._queue[0].token == token)
                     if is_first and len(self._active) < self.max_active:
                         self._queue.popleft()
-                        self._active[token] = _ActiveLease(owner=str(owner), touched_at=now)
+                        self._active[token] = _ActiveLease(
+                            owner=owner,
+                            request_key=request_key,
+                            touched_at=now,
+                        )
                         self._condition.notify_all()
                         return AnalysisPermit(self, token)
                     if now >= deadline:

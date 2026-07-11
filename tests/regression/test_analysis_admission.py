@@ -6,6 +6,7 @@ import pytest
 
 from core.analysis_admission import (
     AnalysisAdmissionController,
+    AnalysisDuplicateRequest,
     AnalysisQueueFull,
     AnalysisQueueTimeout,
 )
@@ -148,3 +149,68 @@ def test_touch_keeps_an_active_lease_registered():
     assert controller.counts() == (1, 0)
     permit.release()
 
+
+def test_identical_active_request_from_same_owner_is_rejected():
+    controller = _controller(max_active=2)
+    active = controller.acquire(owner="session-a", request_key="same-analysis")
+
+    with pytest.raises(AnalysisDuplicateRequest):
+        controller.acquire(owner="session-a", request_key="same-analysis")
+
+    assert controller.counts() == (1, 0)
+    active.release()
+
+
+def test_identical_queued_request_from_same_owner_is_rejected():
+    controller = _controller(max_active=1, max_queued=2)
+    active = controller.acquire(owner="active", request_key="other-analysis")
+    queued_started = threading.Event()
+
+    def queued_worker():
+        with controller.acquire(
+            owner="session-a",
+            request_key="same-analysis",
+            on_wait=lambda _snapshot: queued_started.set(),
+        ):
+            return
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        queued_future = executor.submit(queued_worker)
+        assert queued_started.wait(timeout=1.0)
+        with pytest.raises(AnalysisDuplicateRequest):
+            controller.acquire(owner="session-a", request_key="same-analysis")
+        assert controller.counts() == (1, 1)
+        active.release()
+        queued_future.result(timeout=1.0)
+
+    assert controller.counts() == (0, 0)
+
+
+def test_identical_demo_requests_from_different_sessions_are_independent():
+    controller = _controller(max_active=2)
+    first = controller.acquire(owner="session-a", request_key="demo-rx-europe")
+    second = controller.acquire(owner="session-b", request_key="demo-rx-europe")
+
+    assert controller.counts() == (2, 0)
+    first.release()
+    second.release()
+
+
+def test_distinct_requests_from_same_session_are_not_deduplicated():
+    controller = _controller(max_active=2)
+    first = controller.acquire(owner="session-a", request_key="analysis-one")
+    second = controller.acquire(owner="session-a", request_key="analysis-two")
+
+    assert controller.counts() == (2, 0)
+    first.release()
+    second.release()
+
+
+def test_request_can_run_again_after_its_prior_permit_is_released():
+    controller = _controller()
+    first = controller.acquire(owner="session-a", request_key="same-analysis")
+    first.release()
+
+    second = controller.acquire(owner="session-a", request_key="same-analysis")
+    assert controller.counts() == (1, 0)
+    second.release()

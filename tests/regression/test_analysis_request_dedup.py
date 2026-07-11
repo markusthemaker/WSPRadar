@@ -1,0 +1,59 @@
+from dataclasses import replace
+from datetime import datetime, timedelta, timezone
+
+from core.analysis_context import AnalysisContext
+from ui.run_controller import _analysis_request_fingerprint
+
+
+START = datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc)
+END = START + timedelta(hours=24)
+
+
+def _fingerprint(context=None, **overrides):
+    values = {
+        "analysis_context": context or AnalysisContext(
+            run_mode="RX",
+            callsign="DL1MKS",
+            qth="JN37AA",
+            band="20m",
+        ),
+        "start_t": START,
+        "end_t": END,
+        "band_filter": "AND band = '14'",
+        "max_dist_km": 22000,
+        "active_demo_profile": None,
+    }
+    values.update(overrides)
+    return _analysis_request_fingerprint(**values)
+
+
+def test_analysis_request_fingerprint_is_stable_for_equivalent_requests():
+    first_context = AnalysisContext(
+        run_mode="RX",
+        callsign="DL1MKS",
+        qth="JN37AA",
+        band="20m",
+    )
+    second_context = AnalysisContext.from_dict(first_context.to_dict())
+
+    assert _fingerprint(first_context) == _fingerprint(second_context)
+
+
+def test_analysis_request_fingerprint_changes_with_scientific_inputs():
+    context = AnalysisContext(
+        run_mode="RX",
+        callsign="DL1MKS",
+        qth="JN37AA",
+        band="20m",
+    )
+
+    assert _fingerprint(context) != _fingerprint(
+        replace(context, reference_snr_correction_db=1.2)
+    )
+    assert _fingerprint(context) != _fingerprint(context, end_t=END + timedelta(minutes=2))
+
+
+def test_analysis_request_fingerprint_preserves_demo_identity():
+    assert _fingerprint(active_demo_profile="demo-rx-europe") != _fingerprint(
+        active_demo_profile="demo-tx-europe"
+    )
