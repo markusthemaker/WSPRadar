@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: General questions and experiment-design help
+    url: https://github.com/markusthemaker/WSPRadar/discussions
+    about: Ask usage questions, discuss experiment design, or share an analysis before proposing actionable work.
+  - name: WSPRadar documentation and demos
+    url: https://wspradar.org
+    about: Review the current documentation, limitations, references, and maintained demo analyses.
