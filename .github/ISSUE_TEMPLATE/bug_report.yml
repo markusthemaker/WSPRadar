@@ -1,0 +1,151 @@
+name: Bug report
+description: Report reproducible incorrect behavior, an error, or a regression in WSPRadar.
+title: "[BUG] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Please provide enough information to reproduce it.
+        Do not include passwords, API keys, private URLs, or other secrets.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I searched the existing issues and did not find the same problem.
+          required: true
+        - label: I reproduced the problem with the current public WSPRadar version, or I have identified the exact version or commit affected.
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem summary
+      description: Describe the incorrect behavior in one concise paragraph.
+      placeholder: What failed, where did it fail, and why does it appear to be a defect?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - TX Success
+        - RX Success
+        - RX hardware A/B test
+        - Sequential TX hardware A/B test
+        - Reference station / Buddy test
+        - Local neighborhood benchmark
+        - Map or Segment Inspector
+        - Station Insights or drill-down
+        - Configuration load/save
+        - Export or reproducibility package
+        - Documentation or terminology
+        - Installation or local execution
+        - Performance or resource use
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that produces the problem.
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Enter ...
+        4. Run ...
+        5. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: State the result you expected and, where relevant, the documented rule or calculation it should follow.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: State what happened instead. Include exact values or messages where possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: run_details
+    attributes:
+      label: Analysis and run details
+      description: Supply the fields that apply. Use UTC for all times.
+      value: |
+        - WSPRadar version or Git commit:
+        - Public site or local installation:
+        - Analysis mode:
+        - Target callsign:
+        - Reference callsign or Setup B:
+        - QTH locator:
+        - Band:
+        - UTC start and end:
+        - Demo profile, if used:
+        - Non-default settings or filters:
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      value: |
+        - Operating system:
+        - Browser and version:
+        - Python version, if local:
+        - Deployment method, if local:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error message or relevant log output
+      description: Paste only the relevant section. Remove secrets and private paths.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting files and evidence
+      description: Drag screenshots, a saved .config file, or a prepared reproducibility package into this field. Explain any sensitive content you removed.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - Blocks normal use
+        - Produces potentially incorrect scientific results
+        - Produces incorrect or misleading presentation
+        - Causes a performance or stability problem
+        - Minor defect or inconvenience
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add suspected causes, relevant code locations, related issues, or workarounds.
+    validations:
+      required: false
