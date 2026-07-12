@@ -1,0 +1,127 @@
+name: Feature request
+description: Propose a new capability or a material improvement to an existing WSPRadar workflow.
+title: "[FEATURE] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user problem before prescribing an implementation.
+        A request is easier to evaluate and implement when its scope and definition of done are explicit.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I searched the existing issues and discussions for a similar request.
+          required: true
+        - label: This request describes a concrete WSPRadar use case rather than a general WSPR question.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem or opportunity
+      description: What cannot be done reliably or efficiently today, and who is affected?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Example use case
+      description: Describe a realistic experiment, dataset, or workflow in which this capability would be used.
+      placeholder: Include callsign roles, analysis mode, band, timeframe, and intended interpretation where relevant.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - TX Success
+        - RX Success
+        - RX hardware A/B test
+        - Sequential TX hardware A/B test
+        - Reference station / Buddy test
+        - Local neighborhood benchmark
+        - Map or Segment Inspector
+        - Station Insights or drill-down
+        - Configuration
+        - Export and reproducibility
+        - Documentation or onboarding
+        - Installation or deployment
+        - Performance or scalability
+        - New analysis mode
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_behavior
+    attributes:
+      label: Proposed behavior
+      description: Describe the observable behavior, inputs, outputs, and user interaction. Avoid prescribing internal architecture unless necessary.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scientific_rationale
+    attributes:
+      label: Scientific or methodological rationale
+      description: Explain the analytical value, assumptions, and possible confounders. Write "Not applicable" for a purely operational or UI request.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and non-goals
+      description: State what should be included and what should explicitly remain unchanged.
+      placeholder: |
+        In scope:
+        - ...
+
+        Out of scope:
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: definition_done
+    attributes:
+      label: Definition of done
+      description: List objective outcomes that would demonstrate the request is complete.
+      placeholder: |
+        - Given ..., WSPRadar ...
+        - Existing mode ... remains unchanged.
+        - Regression coverage verifies ...
+        - Documentation explains ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or simpler alternatives and why they are insufficient.
+    validations:
+      required: false
+
+  - type: textarea
+    id: data_impact
+    attributes:
+      label: Data, compatibility, and performance considerations
+      description: Note query volume, historical-data limitations, cache/config compatibility, export changes, or resource implications.
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References or examples
+      description: Add papers, comparable tools, screenshots, mockups, datasets, or related issues.
+    validations:
+      required: false
