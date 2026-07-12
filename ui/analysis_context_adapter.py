@@ -23,9 +23,9 @@ def build_analysis_context_from_session_state(session_state):
         qth=str(session_state.get("val_qth", "")).strip().upper(),
         band=session_state.get("val_band", "20m"),
         comparison_mode=canonical_from_translated(
-            session_state.get("val_comp_mode", t["opt_comp_radius"]),
+            session_state.get("val_comp_mode", t["opt_comp_self"]),
             MODE_VALUES,
-            "local_neighborhood",
+            "hardware_ab",
         ),
         local_benchmark=canonical_from_translated(
             session_state.get("val_local_benchmark", t["opt_local_median"]),

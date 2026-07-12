@@ -24,9 +24,9 @@ Das Ziel von **WSPRadar** ist es, diesen riesigen, durch Crowdsourcing entstande
 * [4. Analysemodi und valides Experimentdesign](#sec-4)
   * [4.0 Begriffe und Vergleichslogik](#sec-4-0)
   * [4.1 TX/RX-Erfolgsrate](#sec-4-1)
-  * [4.2 Lokaler Nachbarschafts-Benchmark](#sec-4-2)
+  * [4.2 Hardware A/B-Test](#sec-4-2)
   * [4.3 Spezifische Referenzstation / Buddy-Test](#sec-4-3)
-  * [4.4 Hardware A/B-Test](#sec-4-4)
+  * [4.4 Lokaler Nachbarschafts-Benchmark](#sec-4-4)
   * [4.5 Decode Yield in Vergleichsmodi](#sec-4-5)
 * [5. Ergebnisbegriffe und Oberfl&auml;che lesen](#sec-5)
   * [5.1 Karte](#sec-5-1)
@@ -71,10 +71,10 @@ WSPRadar ist um konkrete Amateurfunk-Fragen herum aufgebaut:
 
 * **Wo wird mein Sendesignal geh&ouml;rt?** `TX Success`.
 * **Wen kann meine Station h&ouml;ren?** `RX Success`.
+* **Hat Antenne A Antenne B am eigenen Standort geschlagen?** `Hardware A/B-Test`, entweder simultan im RX oder mit festem Zeitplan im TX.
+* **Wie schneide ich gegen eine bestimmte Station oder einen Funkfreund ab?** `Spezifische Referenzstation`.
 * **Liege ich im Rahmen meiner lokalen WSPR-Nachbarschaft?** `Lokaler Nachbarschafts-Median`, der Standard-Benchmark.
 * **Kann ich mit der besten aktiven lokalen Station mithalten?** `Beste lokale Station`, der strenge lokale Stresstest.
-* **Wie schneide ich gegen eine bestimmte Station oder einen Funkfreund ab?** `Spezifische Referenzstation`.
-* **Hat Antenne A Antenne B am eigenen Standort geschlagen?** `Hardware A/B-Test`, entweder simultan im RX oder mit festem Zeitplan im TX.
 * **Sind meine Distanzmuster konsistent mit NVIS- oder DX-Verhalten?** Nahe und weite Distanzringe pr&uuml;fen, aber Distanz nicht als direkte Abstrahlwinkelmessung interpretieren.
 * **Bin ich ein Alligator: werde gut geh&ouml;rt, h&ouml;re aber schlecht?** TX- und RX-Ergebnisse gegen dasselbe Referenzkonzept vergleichen und nach Asymmetrien suchen.
 
@@ -88,6 +88,7 @@ Dieses Kapitel b&uuml;ndelt Nutzerfrage, Analysekonzept und Experimentdesign. Ge
 
 * **Ziel / Target** meint die Station oder das Setup unter Test: normalerweise das eigene Rufzeichen, Setup A oder die Station, die bewertet werden soll.
 * **Referenz** meint die Vergleichsbasis: ein Buddy-Rufzeichen, die lokale Nachbarschaft, die beste lokale Station oder Setup B.
+* Ein **Rufzeichen** wird in Target-/Referenz-Vergleichsmodi exakt abgeglichen. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` und `DL1MKS/QRP` sind getrennte exakte Rufzeichen. WSPRadar nutzt kein verstecktes Prefix-Matching wie `DL1MKS%`; wenn der Run `DL1MKS/P` analysieren soll, muss `DL1MKS/P` als Rufzeichen dieser Seite eingetragen werden.
 * Ein **WSPR-Spot** ist ein gemeldeter erfolgreicher Decode: Zeit, Band, Sender, Empf&auml;nger, Locator, gemeldete Leistung und SNR.
 * Ein **WSPR-Zyklus** ist eine zweimin&uuml;tige WSPR-Sende-/Empfangsgelegenheit, ausgerichtet an geraden UTC-Minuten.
 * Ein **target-aktiver WSPR-Zyklus** ist ein WSPR-Zyklus, in dem die Zielstation bzw. das Ziel-Setup nachweislich aktiv war. In der TX-Analyse muss das Zielsignal weltweit von mindestens einer Station decodiert worden sein. In der RX-Analyse muss der Ziel-Empf&auml;nger in diesem Zyklus mindestens einen Decode hochgeladen haben.
@@ -153,11 +154,79 @@ Raten werden zuerst pro Stationsidentit&auml;t berechnet. Eine Station tr&auml;g
 
 
 <a id="sec-4-2"></a>
-#### 4.2 Lokaler Nachbarschafts-Benchmark
+#### 4.2 Hardware A/B-Test
+
+Der Hardware A/B-Test ist f&uuml;r eigene Ausr&uuml;stung am eigenen Standort gedacht. Er ist nur valide, wenn jede nicht getestete Variable so konstant wie praktikabel gehalten wird: Band, Zeitfenster, Leistung, Speiseleitungsverluste, Empfangskette, Audiokette, Decodiersoftware und Locator-Meldung.
+
+* Zwei wirklich unabh&auml;ngige Empfangs- und/oder Sendeketten verwenden, wenn diese Ketten Teil des Tests sind; gemeinsam genutzte Komponenten m&uuml;ssen bewusst gew&auml;hlt, stabil gehalten und au&szlig;erhalb der getesteten Variable liegen.
+
+**RX A/B-Test: simultan**
+
+Zwei parallele Empf&auml;nger decodieren dieselben Remote-WSPR-Sendungen zur selben Zeit.
+
+* Unterscheidbare Reporting-Identit&auml;ten verwenden, zum Beispiel Hauptrufzeichen f&uuml;r Setup A und Suffix f&uuml;r Setup B, damit beide Streams in der WSPR-Datenbank erscheinen.
+* Setup A und Setup B werden jeweils &uuml;ber ein exaktes Rufzeichen abgeglichen. Wenn Setup B `DL1MKS/P` genutzt hat, `DL1MKS/P` als Setup B eintragen. Nicht erwarten, dass `DL1MKS` automatisch auch `DL1MKS/P` matcht.
+* Uhren synchron halten.
+* Anhang A beschreibt die Trennung paralleler WSJT-X-Instanzen, damit beide Decoder nicht dieselbe Audiodatei, denselben virtuellen Audiopfad, dasselbe Save Directory oder dieselben tempor&auml;ren WSPR-Dateien teilen.
+
+**TX A/B-Test: sequenziell mit festem Zeitplan**
+
+Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig senden. WSPRadar nutzt daher deterministisches UTC-WSPR-Frame-Time-Slicing. Ein Sender, Controller oder RF-Umschaltsystem weist ein Setup oder einen RF-Pfad WSPR-2-Frames mit UTC-Startminute 00, 04, 08, ... und das andere Setup oder den anderen RF-Pfad Frames mit UTC-Startminute 02, 06, 10, ... zu. Das Tool gruppiert Daten in Zeit-Bins, berechnet je Setup oder RF-Pfad einen Mikro-Median im Bin und daraus den Bin-Delta.
+
+Das kontrollierteste TX-A/B-Design nutzt meist einen einzelnen Sender und schaltet nur den RF-Pfad zwischen zwei Antennen um. In diesem Design bleiben Sender, Rufzeichen, WSPR-Software, Frequenz, Leistungseinstellung und Uhr gemeinsam. Die beabsichtigten experimentellen Variablen sind dann die geschalteten Speiseleitungs-/Antennenpfade, nicht zwei getrennte Sendeketten. Das ist sicherer und wissenschaftlich sauberer als der Vergleich zweier unabh&auml;ngiger Sender, weil Senderkalibrierung, Frequenzstabilit&auml;t, Audioansteuerung, Leistungsangabe und Timing-Verhalten als wesentliche Konfounder entfernt werden.
+
+WSPRadar enth&auml;lt daf&uuml;r das plattform&uuml;bergreifende Hilfswerkzeug `tools/Timed-AB-Relay-Switch`. Es schaltet ein unterst&uuml;tztes USB-HID-Relay im selben UTC-WSPR-Frame-Takt, den auch die App nutzt, und verwendet den Python-HID-Stack unter Windows, Linux und macOS. Das USB-Relay kann wiederum einen geeigneten RF-Antennenschalter steuern, zum Beispiel einen 1-zu-2-RF-Schalter wie den QRO.cz 1-to-2 RF Switch, sofern Relay-Ausgang, RF-Schalter-Steuereingang, Steuerspannung, Strombelastbarkeit, Polarit&auml;t und Stations-Interlock elektrisch geeignet ausgelegt sind.
+
+* Ausgangsleistung, Speiseleitung, Tuner-Einstellungen, Band und Zeitplan konstant halten, au&szlig;er bei der getesteten Variable.
+* Einen Single-Transmitter-RF-Pfadschalter bevorzugen, wenn das Ziel ein Antennen-/Speiseleitungs-A/B-Test ist.
+* Relay-zu-RF-Schalter-Polarit&auml;t vor RF-Betrieb verifizieren: Target-WSPR-Frames m&uuml;ssen die beabsichtigte Testantenne / den Testpfad w&auml;hlen, Reference-WSPR-Frames die beabsichtigte Referenzantenne / den Referenzpfad.
+* Ein QMX-Transceiver oder externer Relay-Controller l&auml;sst sich beispielsweise mit deterministischem Timing wie UTC-Startminutenfolge 00/04/08 f&uuml;r Setup A/Pfad A und 02/06/10 f&uuml;r Setup B/Pfad B programmieren.
+* Hardware nur zwischen vollst&auml;ndigen WSPR-2-Sendeframes umschalten; nicht w&auml;hrend einer zweimin&uuml;tigen WSPR-Sendung.
+* Standard-WSJT-X mit zuf&auml;lligem Sendemuster ist ohne Zusatzsteuerung nicht f&uuml;r fixed-schedule TX A/B geeignet.
+
+**Vorsicht bei TX-Suffixen**
+
+Warum keine Multi-Cycle-WSPR-Suffixe f&uuml;r Single-TX A/B? Compound-Rufzeichen k&ouml;nnen Multi-Message-Verhalten erzwingen und den Decode Yield senken, weil nicht alle Empf&auml;nger alle ben&ouml;tigten Nachrichtentypen gleich zuverl&auml;ssig decodieren. K&uuml;nstliche Suffixe wie `/1` oder `/2` k&ouml;nnen je nach Land unzul&auml;ssig sein. `/P` sollte nur verwendet werden, wenn es f&uuml;r den tats&auml;chlichen Betrieb rechtlich passt. F&uuml;r TX A/B bevorzugt WSPRadar deshalb feste WSPR-Frame-Startminuten mit normalem Rufzeichen.
+
+**Wissenschaftliche Vorsicht**
+
+Sequenzieller TX ist zeitgebinnt, nicht simultan. Mehrt&auml;giges fixes Timing reduziert Zeitkonfundierung deutlich, beweist aber nicht, dass jeder zeitkorrelierte Effekt verschwunden ist.
+
+<a id="sec-4-3"></a>
+#### 4.3 Spezifische Referenzstation / Buddy-Test
+
+Der Buddy-Test ist ein 1:1-Vergleich mit einer bekannten Station. Man definiert ein anderes Referenzrufzeichen, zum Beispiel einen Funkfreund 10 km entfernt.
+
+**Funktionsweise**
+
+* Im TX-Vergleich werden beide Sendesignale m&ouml;glichst vom selben Remote-Empf&auml;nger im selben 2-Minuten-WSPR-Zyklus bewertet:
+  $$\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}$$
+* Im RX-Vergleich bewerten beide lokalen Empf&auml;nger m&ouml;glichst denselben Remote-Sender im selben 2-Minuten-WSPR-Zyklus:
+  $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
+* Diese Same-Cycle-Paarbildung reduziert gemeinsame Fading-, Pfad- und Empf&auml;nger-/Sender-Konfounder je nach TX- oder RX-Richtung deutlich.
+* Yield im Buddy-Test ist ebenfalls heartbeat-gefiltert. Er vergleicht nicht alle Spots beider Rufzeichen &uuml;ber das gesamte Zeitfenster. Er vergleicht Joint-, Target-only-, Reference-only- und Async-Evidenz innerhalb von Zyklen, in denen das Zielrufzeichen/das Zielsetup nachweislich aktiv war.
+* Ziel- und Referenzrufzeichen werden jeweils exakt abgeglichen. Ein konfiguriertes Target `DL1MKS` matcht `DL1MKS/P` nicht automatisch; `DL1MKS/P` muss als Target-Rufzeichen eingetragen werden, wenn genau diese Identit&auml;t analysiert werden soll.
+
+**Valides Design**
+
+* Eine Referenzstation w&auml;hlen, deren Standort, Antenne, Leistung und Betriebsplan bekannt sind.
+* Gleiches Band und &uuml;berlappende Zeitfenster verwenden.
+* Sicherstellen, dass beide Rufzeichen gen&uuml;gend gleiche Remote-Peers im selben Zyklus teilen.
+
+**Vorsicht bei**
+
+* Ein Buddy-Test ist ein Stationssystem-Vergleich, keine reine Antennengewinnmessung.
+* Unterschiede k&ouml;nnen Antenne, Sender, Empf&auml;nger, Speiseleitung, Gel&auml;nde, Polarisation, lokales QRM und Genauigkeit der gemeldeten Leistung enthalten.
+* Das Tauschen von Ziel- und Referenzrufzeichen kann die Yield-Zahlen ver&auml;ndern. Das Active-Cycle-Gate folgt dem Zielrufzeichen, deshalb m&uuml;ssen A gegen B und B gegen A nicht symmetrisch sein. Delta-SNR-Vorzeichen sollten sich auf gemeinsamer Joint-Evidenz umkehren, Yield-Kategorien aber nicht zwingend.
+
+<a id="sec-4-4"></a>
+#### 4.4 Lokaler Nachbarschafts-Benchmark
 
 Der lokale Nachbarschafts-Benchmark fragt, wie die eigene Station gegen aktive WSPR-Stationen innerhalb eines gew&auml;hlten geografischen Radius abschneidet. Der Radius gilt f&uuml;r beide lokalen Methoden.
 
 Alle lokalen Nachbarschaftsvergleiche bleiben target-aktive Vergleiche. WSPRadar begrenzt die Analyse zuerst auf WSPR-Zyklen, in denen die eigene Station/das eigene Setup nachweislich aktiv war; [Zeitliche Paarbildung und Heartbeat-Filter](#sec-6-4) definiert das pr&auml;zise f&uuml;r TX und RX. Lokale Referenz-Evidenz au&szlig;erhalb dieser target-aktiven Zyklen wird bewusst ignoriert. Deshalb ist der lokale Benchmark-Yield keine rohe Z&auml;hlung aller Nachbarschaftsaktivit&auml;t im Zeitfenster.
+
+Das Target-Rufzeichen-Matching im lokalen Nachbarschaftsvergleich nutzt dieselbe Exakt-Regel. Lokale Peers werden nur ausgeschlossen, wenn ihr exaktes Rufzeichen dem konfigurierten Target-Rufzeichen entspricht. Dadurch schlie&szlig;t ein Basisrufzeichen wie `DL1MKS` nicht versehentlich `DL1MKS/P` oder ein anderes l&auml;ngeres Rufzeichen aus, das nur denselben Prefix teilt.
 
 **Lokaler Nachbarschafts-Median: Standard-Baseline**
 
@@ -191,70 +260,6 @@ F&uuml;r jeden WSPR-Zyklus und passenden Remote-Pfad vergleicht WSPRadar gegen d
 * Lokale Peers unterscheiden sich in Antennentyp, Gel&auml;nde, Sender-/Empf&auml;ngerqualit&auml;t, lokalem Rauschen und Genauigkeit der gemeldeten Leistung.
 * Eine sehr gro&szlig;e Nachbarschaft kann aufh&ouml;ren, wirklich lokal zu sein.
 * `Beste lokale Station` sollte nie als lokale Durchschnittsleistung beschrieben werden.
-
-<a id="sec-4-3"></a>
-#### 4.3 Spezifische Referenzstation / Buddy-Test
-
-Der Buddy-Test ist ein 1:1-Vergleich mit einer bekannten Station. Man definiert ein anderes Referenzrufzeichen, zum Beispiel einen Funkfreund 10 km entfernt.
-
-**Funktionsweise**
-
-* Im TX-Vergleich werden beide Sendesignale m&ouml;glichst vom selben Remote-Empf&auml;nger im selben 2-Minuten-WSPR-Zyklus bewertet:
-  $$\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}$$
-* Im RX-Vergleich bewerten beide lokalen Empf&auml;nger m&ouml;glichst denselben Remote-Sender im selben 2-Minuten-WSPR-Zyklus:
-  $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
-* Diese Same-Cycle-Paarbildung reduziert gemeinsame Fading-, Pfad- und Empf&auml;nger-/Sender-Konfounder je nach TX- oder RX-Richtung deutlich.
-* Yield im Buddy-Test ist ebenfalls heartbeat-gefiltert. Er vergleicht nicht alle Spots beider Rufzeichen &uuml;ber das gesamte Zeitfenster. Er vergleicht Joint-, Target-only-, Reference-only- und Async-Evidenz innerhalb von Zyklen, in denen das Zielrufzeichen/das Zielsetup nachweislich aktiv war.
-
-**Valides Design**
-
-* Eine Referenzstation w&auml;hlen, deren Standort, Antenne, Leistung und Betriebsplan bekannt sind.
-* Gleiches Band und &uuml;berlappende Zeitfenster verwenden.
-* Sicherstellen, dass beide Rufzeichen gen&uuml;gend gleiche Remote-Peers im selben Zyklus teilen.
-
-**Vorsicht bei**
-
-* Ein Buddy-Test ist ein Stationssystem-Vergleich, keine reine Antennengewinnmessung.
-* Unterschiede k&ouml;nnen Antenne, Sender, Empf&auml;nger, Speiseleitung, Gel&auml;nde, Polarisation, lokales QRM und Genauigkeit der gemeldeten Leistung enthalten.
-* Das Tauschen von Ziel- und Referenzrufzeichen kann die Yield-Zahlen ver&auml;ndern. Das Active-Cycle-Gate folgt dem Zielrufzeichen, deshalb m&uuml;ssen A gegen B und B gegen A nicht symmetrisch sein. Delta-SNR-Vorzeichen sollten sich auf gemeinsamer Joint-Evidenz umkehren, Yield-Kategorien aber nicht zwingend.
-
-<a id="sec-4-4"></a>
-#### 4.4 Hardware A/B-Test
-
-Der Hardware A/B-Test ist f&uuml;r eigene Ausr&uuml;stung am eigenen Standort gedacht. Er ist nur valide, wenn jede nicht getestete Variable so konstant wie praktikabel gehalten wird: Band, Zeitfenster, Leistung, Speiseleitungsverluste, Empfangskette, Audiokette, Decodiersoftware und Locator-Meldung.
-
-* Zwei wirklich unabh&auml;ngige Empfangs- und/oder Sendeketten verwenden, wenn diese Ketten Teil des Tests sind; gemeinsam genutzte Komponenten m&uuml;ssen bewusst gew&auml;hlt, stabil gehalten und au&szlig;erhalb der getesteten Variable liegen.
-
-**RX A/B-Test: simultan**
-
-Zwei parallele Empf&auml;nger decodieren dieselben Remote-WSPR-Sendungen zur selben Zeit.
-
-* Unterscheidbare Reporting-Identit&auml;ten verwenden, zum Beispiel Hauptrufzeichen f&uuml;r Setup A und Suffix f&uuml;r Setup B, damit beide Streams in der WSPR-Datenbank erscheinen.
-* Uhren synchron halten.
-* Anhang A beschreibt die Trennung paralleler WSJT-X-Instanzen, damit beide Decoder nicht dieselbe Audiodatei, denselben virtuellen Audiopfad, dasselbe Save Directory oder dieselben tempor&auml;ren WSPR-Dateien teilen.
-
-**TX A/B-Test: sequenziell mit festem Zeitplan**
-
-Setup A und Setup B k&ouml;nnen mit demselben Rufzeichen nicht gleichzeitig senden. WSPRadar nutzt daher deterministisches UTC-WSPR-Frame-Time-Slicing. Ein Sender, Controller oder RF-Umschaltsystem weist ein Setup oder einen RF-Pfad WSPR-2-Frames mit UTC-Startminute 00, 04, 08, ... und das andere Setup oder den anderen RF-Pfad Frames mit UTC-Startminute 02, 06, 10, ... zu. Das Tool gruppiert Daten in Zeit-Bins, berechnet je Setup oder RF-Pfad einen Mikro-Median im Bin und daraus den Bin-Delta.
-
-Das kontrollierteste TX-A/B-Design nutzt meist einen einzelnen Sender und schaltet nur den RF-Pfad zwischen zwei Antennen um. In diesem Design bleiben Sender, Rufzeichen, WSPR-Software, Frequenz, Leistungseinstellung und Uhr gemeinsam. Die beabsichtigten experimentellen Variablen sind dann die geschalteten Speiseleitungs-/Antennenpfade, nicht zwei getrennte Sendeketten. Das ist sicherer und wissenschaftlich sauberer als der Vergleich zweier unabh&auml;ngiger Sender, weil Senderkalibrierung, Frequenzstabilit&auml;t, Audioansteuerung, Leistungsangabe und Timing-Verhalten als wesentliche Konfounder entfernt werden.
-
-WSPRadar enth&auml;lt daf&uuml;r das plattform&uuml;bergreifende Hilfswerkzeug `tools/Timed-AB-Relay-Switch`. Es schaltet ein unterst&uuml;tztes USB-HID-Relay im selben UTC-WSPR-Frame-Takt, den auch die App nutzt, und verwendet den Python-HID-Stack unter Windows, Linux und macOS. Das USB-Relay kann wiederum einen geeigneten RF-Antennenschalter steuern, zum Beispiel einen 1-zu-2-RF-Schalter wie den QRO.cz 1-to-2 RF Switch, sofern Relay-Ausgang, RF-Schalter-Steuereingang, Steuerspannung, Strombelastbarkeit, Polarit&auml;t und Stations-Interlock elektrisch geeignet ausgelegt sind.
-
-* Ausgangsleistung, Speiseleitung, Tuner-Einstellungen, Band und Zeitplan konstant halten, au&szlig;er bei der getesteten Variable.
-* Einen Single-Transmitter-RF-Pfadschalter bevorzugen, wenn das Ziel ein Antennen-/Speiseleitungs-A/B-Test ist.
-* Relay-zu-RF-Schalter-Polarit&auml;t vor RF-Betrieb verifizieren: Target-WSPR-Frames m&uuml;ssen die beabsichtigte Testantenne / den Testpfad w&auml;hlen, Reference-WSPR-Frames die beabsichtigte Referenzantenne / den Referenzpfad.
-* Ein QMX-Transceiver oder externer Relay-Controller l&auml;sst sich beispielsweise mit deterministischem Timing wie UTC-Startminutenfolge 00/04/08 f&uuml;r Setup A/Pfad A und 02/06/10 f&uuml;r Setup B/Pfad B programmieren.
-* Hardware nur zwischen vollst&auml;ndigen WSPR-2-Sendeframes umschalten; nicht w&auml;hrend einer zweimin&uuml;tigen WSPR-Sendung.
-* Standard-WSJT-X mit zuf&auml;lligem Sendemuster ist ohne Zusatzsteuerung nicht f&uuml;r fixed-schedule TX A/B geeignet.
-
-**Vorsicht bei TX-Suffixen**
-
-Warum keine Multi-Cycle-WSPR-Suffixe f&uuml;r Single-TX A/B? Compound-Rufzeichen k&ouml;nnen Multi-Message-Verhalten erzwingen und den Decode Yield senken, weil nicht alle Empf&auml;nger alle ben&ouml;tigten Nachrichtentypen gleich zuverl&auml;ssig decodieren. K&uuml;nstliche Suffixe wie `/1` oder `/2` k&ouml;nnen je nach Land unzul&auml;ssig sein. `/P` sollte nur verwendet werden, wenn es f&uuml;r den tats&auml;chlichen Betrieb rechtlich passt. F&uuml;r TX A/B bevorzugt WSPRadar deshalb feste WSPR-Frame-Startminuten mit normalem Rufzeichen.
-
-**Wissenschaftliche Vorsicht**
-
-Sequenzieller TX ist zeitgebinnt, nicht simultan. Mehrt&auml;giges fixes Timing reduziert Zeitkonfundierung deutlich, beweist aber nicht, dass jeder zeitkorrelierte Effekt verschwunden ist.
 
 <a id="sec-4-5"></a>
 #### 4.5 Decode Yield in Vergleichsmodi
@@ -523,14 +528,14 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
 
 **Core-Parameter**
 
-* **Zielrufzeichen:** prim&auml;re Station unter Auswertung.
+* **Zielrufzeichen:** exakte Stationsidentit&auml;t unter Auswertung. Suffix-/Postfix-Formen direkt eintragen, zum Beispiel `DL1MKS/P`, wenn genau dieses Rufzeichen das Target dieses Runs ist. Wildcard- oder Prefix-Matching wird nicht verwendet.
 * **QTH Locator:** mathematisches Zentrum der Kartenprojektion. G&uuml;ltigen 4- oder 6-Zeichen-Maidenhead-Locator verwenden.
 * **Band und Zeitfenster:** definieren das WSPR-Datenfenster. Zeit wird in UTC behandelt.
 * **Min. Target+Gegen-Evidenz pro Station:** Evidenzschwelle nur f&uuml;r Success-Modi. Eine Station benoetigt mindestens diese Zahl bestaetigter Beobachtungen, bevor ihre Erfolgsrate zu Karte, Segment-Zusammenfassung, Zeitpanels oder Station Insights beitraegt. RX zaehlt `Target+Elsewhere`; TX zaehlt `Target+Other Signals`. Standard ist `5`; niedrigere Werte erhoehen die Abdeckung, erzeugen aber auch mehr diskrete Kleinstichproben-Raten wie `0%`, `50%` oder `100%`.
 
 **Vergleichsparameter**
 
-* **Benchmark Mode:** `Lokaler Nachbarschafts-Benchmark`, `Fremdes Rufzeichen (Buddy-Test)` oder `Hardware A/B-Test`.
+* **Benchmark Mode:** `Hardware A/B-Test`, `Fremdes Rufzeichen (Buddy-Test)` oder `Lokaler Nachbarschafts-Benchmark`, dargestellt vom st&auml;rksten zum schw&auml;chsten Modell/Evidenzgrad. Der Standard ist `Hardware A/B-Test`.
 * **Referenz-SNR-Korrektur (dB):** nutzerdefinierte Korrektur, die vor der Delta-SNR-Berechnung zum Referenzseiten-SNR addiert wird. Sie gilt nur f&uuml;r Vergleichsmodi und ist f&uuml;r bekannte referenzseitige D&auml;mpfung oder Kalibrierartefakte gedacht, die WSPRadar nicht aus WSPR-Daten ableiten kann. Da WSPRadar `Delta SNR = Ziel - Referenz` nutzt, macht eine positive Korrektur das korrigierte Referenz-SNR vor der Subtraktion gr&ouml;&szlig;er. Anhang C beschreibt, wie ein Kalibrierwert bestimmt wird.
   * **Geltungsbereich:** Buddy-Test gilt f&uuml;r das Referenzrufzeichen. Beste lokale Station gilt f&uuml;r das SNR der ausgew&auml;hlten besten lokalen Referenz. Lokaler Nachbarschafts-Median gilt f&uuml;r alle Nachbarschafts-Referenz-SNRs vor der Median-Aggregation. Hardware A/B-Test gilt f&uuml;r die Referenzseite, also Setup B / Referenz-WSPR-Frame.
   * **Formel:** `korrigiertes Referenz-SNR = Referenz-SNR + Referenz-SNR-Korrektur`; `Delta SNR = Ziel-SNR - korrigiertes Referenz-SNR`.
@@ -538,8 +543,9 @@ F&uuml;r ernsthafte Aussagen sollte gen&uuml;gend Kontext erhalten bleiben, um d
   * **Beispiel f&uuml;r negative Korrektur:** Ein Kalibrierlauf ergibt `Ziel - Referenz = -1,6 dB`. Dann `-1,6 dB` eintragen. Ein Referenzseiten-SNR von `-24,0 dB` wird wie `-25,6 dB` behandelt; der korrigierte Delta SNR steigt dadurch um `1,6 dB`.
 * **Lokale Benchmark-Methode:** standardm&auml;&szlig;ig `Lokaler Nachbarschafts-Median`, optional `Beste lokale Station` als strenge Best-Peer-H&uuml;llkurve.
 * **Nachbarschaftsradius:** geografische Grenze f&uuml;r lokale Referenzstationen.
-* **Referenzrufzeichen:** externer Gegenpart f&uuml;r Buddy-Test.
+* **Referenzrufzeichen:** ein exakter externer Gegenpart f&uuml;r Buddy-Test. Suffix-/Postfix-Form direkt eintragen, wenn genau dieses Rufzeichen die Referenz ist.
 * **A/B-Test Setup:** simultaner `RX Test` oder fixed-schedule `TX Test`.
+* **Setup-B-Rufzeichen:** ein exaktes Rufzeichen f&uuml;r Setup B in simultanen RX-A/B-Tests. Setup A und Setup B m&uuml;ssen unterschiedliche exakte Rufzeichen nutzen.
 * **Target/Reference Locator:** 6-Zeichen-Locators zur Trennung simultaner RX-Streams.
 * **Target/Reference WSPR Frame:** feste UTC-Startminuten-Frame-Zuweisung f&uuml;r sequenzielle TX-Tests; 00, 04, 08, ... und 02, 06, 10, ... sind die zwei unterst&uuml;tzten Frame-Sequenzen.
 * **Time Window (Bins):** Bin-Gr&ouml;&szlig;e f&uuml;r sequenzielle TX-A/B-Paarbildung.

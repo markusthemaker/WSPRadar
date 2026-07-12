@@ -78,7 +78,7 @@ def test_positive_reference_snr_correction_is_added_to_reference_side():
     assert "maxIf((snr - power + 30 + 1.6), is_me = 1)" not in tx_compare["query"]
 
 
-def test_reference_station_matching_uses_prefix_callsign_filters():
+def test_reference_station_matching_uses_exact_primary_callsign_filters():
     context = _analysis_context(
         comparison_mode=COMPARISON_REFERENCE_STATION,
         reference_callsign="DL2XYZ",
@@ -86,8 +86,25 @@ def test_reference_station_matching_uses_prefix_callsign_filters():
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
 
-    assert "tx_sign LIKE 'DL1MKS%'" in tx_compare["query"]
-    assert "tx_sign LIKE 'DL2XYZ%'" in tx_compare["query"]
+    assert "tx_sign = 'DL1MKS'" in tx_compare["query"]
+    assert "tx_sign = 'DL2XYZ'" in tx_compare["query"]
+    assert "tx_sign LIKE 'DL1MKS%'" not in tx_compare["query"]
+    assert "tx_sign LIKE 'DL2XYZ%'" not in tx_compare["query"]
+
+
+def test_reference_station_matching_accepts_one_exact_suffix_callsign_per_side():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_REFERENCE_STATION,
+        callsign="DL1MKS/P",
+        reference_callsign="DL2XYZ/QRP",
+    )
+
+    tx_compare = _analysis_by_id(context, "TX_COMP")
+
+    assert "tx_sign = 'DL1MKS/P'" in tx_compare["query"]
+    assert "tx_sign = 'DL2XYZ/QRP'" in tx_compare["query"]
+    assert "LIKE 'DL1MKS%'" not in tx_compare["query"]
+    assert "LIKE 'DL2XYZ%'" not in tx_compare["query"]
 
 
 def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
@@ -106,7 +123,23 @@ def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
     assert "rx_sign LIKE 'DL1MKS/P%'" not in rx_compare["query"]
 
 
-def test_local_median_neighborhood_uses_median_reference_sql_and_detail_rows():
+def test_rx_hardware_ab_matching_accepts_one_exact_setup_b_suffix_callsign():
+    context = _analysis_context(
+        run_mode="RX",
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=SELF_TEST_RX,
+        callsign="DL1MKS/1",
+        setup_b_callsign="DL1MKS/P",
+    )
+
+    rx_compare = _analysis_by_id(context, "RX_COMP")
+
+    assert "rx_sign = 'DL1MKS/1'" in rx_compare["query"]
+    assert "rx_sign = 'DL1MKS/P'" in rx_compare["query"]
+    assert "rx_sign LIKE 'DL1MKS%'" not in rx_compare["query"]
+
+
+def test_local_median_neighborhood_uses_station_weighted_reference_median_sql():
     context = _analysis_context(
         comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
         local_benchmark=LOCAL_BENCHMARK_MEDIAN,
@@ -115,8 +148,44 @@ def test_local_median_neighborhood_uses_median_reference_sql_and_detail_rows():
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
 
-    assert "quantileExactInclusiveIf(0.5)((snr - power + 30 + 0.0), is_me = 0) AS snr_r_norm" in tx_compare["query"]
-    assert "groupArrayIf(tuple(local_sign, local_grid, local_dist, (snr - power + 30 + 0.0)), is_me = 0) AS ref_detail_rows" in tx_compare["query"]
+    assert "quantileExactInclusive(0.5)((snr - power + 30 + 0.0)) AS station_snr_norm" in tx_compare["query"]
+    assert "GROUP BY time_slot, peer_sign, peer_grid, local_sign, local_grid" in tx_compare["query"]
+    assert "quantileExactInclusiveIf(0.5)(station_snr_norm, is_me = 0) AS snr_r_norm" in tx_compare["query"]
+    assert "countIf(is_me = 0) AS has_r" in tx_compare["query"]
+    assert "groupArrayIf(tuple(local_sign, local_grid, local_dist, station_snr_norm), is_me = 0) AS ref_detail_rows" in tx_compare["query"]
+    assert "quantileExactInclusiveIf(0.5)((snr - power + 30 + 0.0), is_me = 0) AS snr_r_norm" not in tx_compare["query"]
+
+
+def test_local_neighborhood_excludes_only_the_exact_target_callsign():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
+        local_benchmark=LOCAL_BENCHMARK_MEDIAN,
+        neighborhood_radius_km=100,
+        callsign="DL1MKS/P",
+    )
+
+    tx_compare = _analysis_by_id(context, "TX_COMP")
+
+    assert "tx_sign = 'DL1MKS/P'" in tx_compare["query"]
+    assert "tx_sign != 'DL1MKS/P'" in tx_compare["query"]
+    assert "tx_sign NOT LIKE 'DL1MKS%'" not in tx_compare["query"]
+
+
+def test_rx_local_median_neighborhood_weights_receiver_reference_identities():
+    context = _analysis_context(
+        run_mode="RX",
+        comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
+        local_benchmark=LOCAL_BENCHMARK_MEDIAN,
+        neighborhood_radius_km=100,
+    )
+
+    rx_compare = _analysis_by_id(context, "RX_COMP")
+
+    assert "tx_sign AS peer_sign" in rx_compare["query"]
+    assert "rx_sign AS local_sign" in rx_compare["query"]
+    assert "rx_loc AS local_grid" in rx_compare["query"]
+    assert "quantileExactInclusive(0.5)((snr - power + 30 + 0.0)) AS station_snr_norm" in rx_compare["query"]
+    assert "GROUP BY time_slot, peer_sign, peer_grid, local_sign, local_grid" in rx_compare["query"]
 
 
 def test_non_sequential_cycle_synchronization_keeps_only_target_active_slots():

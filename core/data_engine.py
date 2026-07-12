@@ -38,6 +38,7 @@ _HTTP_CHUNK_BYTES = 1024 * 1024
 _HTTP_ERROR_BODY_MAX_BYTES = 64 * 1024
 _dataframe_cache = OrderedDict()
 _dataframe_cache_guard = threading.RLock()
+_CSV_PARSE_ENGINE = "c"
 
 
 class FetchResponseTooLarge(ValueError):
@@ -123,6 +124,17 @@ def _bounded_error_text(response):
     return f"{text}\n[response truncated]" if truncated else text
 
 
+def _read_wspr_csv_response(response_text):
+    """Parse a bounded WSPR CSV response without using Arrow's native CSV reader.
+
+    The standard query path already holds the full bounded response in memory.
+    Pandas' C engine is sufficient for these CSVWithNames responses and avoids
+    the pyarrow CSV parser, whose native failures can terminate the whole
+    Streamlit process before Python can return a structured fetch error.
+    """
+    return pd.read_csv(io.StringIO(response_text), engine=_CSV_PARSE_ENGINE)
+
+
 def _http_error_result(response, sql_query, *, artifact_path=None, response_text=None):
     return FetchResult(
         artifact_path=artifact_path,
@@ -203,7 +215,7 @@ def _fetch_wspr_data_standard(sql_query, *, is_demo=False):
             return FetchResult(source=FetchSource.WSPR_LIVE)
 
         try:
-            frame = pd.read_csv(io.StringIO(response_text), engine="pyarrow")
+            frame = _read_wspr_csv_response(response_text)
         except (OSError, ValueError) as exc:
             return FetchResult(
                 source=FetchSource.WSPR_LIVE,

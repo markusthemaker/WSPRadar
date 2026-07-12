@@ -37,6 +37,10 @@ def text_input_no_autocomplete(*args, **kwargs):
         kwargs["args"] = (key, callback, callback_args, callback_kwargs)
     return st.text_input(*args, **kwargs)
 
+def _benchmark_mode_options(t):
+    """Return benchmark modes ordered from strongest to weakest evidence model."""
+    return [t["opt_comp_self"], t["opt_comp_buddy"], t["opt_comp_radius"]]
+
 def render_core_expander(t):
     """Renders the first expander: Core Parameters (Callsign, Grid, Band, Time)."""
     with st.expander(t["exp_core"], expanded=st.session_state.get("config_panels_expanded", True)):
@@ -80,7 +84,7 @@ def render_compare_expander(t):
     with st.expander(t["exp_comp"], expanded=st.session_state.get("config_panels_expanded", True)):
         col_comp_l, col_comp_r = st.columns([0.5, 0.5], gap="large" )
         with col_comp_l:
-            st.radio(t["lbl_comp_mode"], [t["opt_comp_radius"], t["opt_comp_buddy"], t["opt_comp_self"]], key="val_comp_mode", on_change=handle_comp_mode_change)
+            st.radio(t["lbl_comp_mode"], _benchmark_mode_options(t), key="val_comp_mode", on_change=handle_comp_mode_change)
             st.number_input(
                 t["lbl_benchmark_offset_db"],
                 min_value=-99.9,

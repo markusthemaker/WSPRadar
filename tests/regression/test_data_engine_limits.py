@@ -48,6 +48,30 @@ def test_csv_fetch_uses_configured_timeout_and_streaming(monkeypatch):
     )
 
 
+def test_csv_fetch_avoids_arrow_parser(monkeypatch):
+    parse_kwargs = {}
+
+    def fake_read_csv(*_args, **kwargs):
+        parse_kwargs.update(kwargs)
+        return pd.DataFrame({"peer_sign": ["K1AAA"], "stat_val": [-12.3]})
+
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse(
+            [b"peer_sign,stat_val\nK1AAA,-12.3\n"]
+        ),
+    )
+    monkeypatch.setattr(data_engine.pd, "read_csv", fake_read_csv)
+    query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+
+    result = data_engine.fetch_wspr_data(query)
+
+    assert result.error is None
+    assert result.source == data_engine.FetchSource.WSPR_LIVE
+    assert parse_kwargs["engine"] == "c"
+
+
 def test_csv_response_over_limit_returns_retryable_error(monkeypatch):
     monkeypatch.setattr(data_engine, "WSPR_CSV_MAX_RESPONSE_BYTES", 16)
     monkeypatch.setattr(

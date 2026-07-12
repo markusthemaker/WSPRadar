@@ -15,7 +15,6 @@ from core.analysis_context import (
     LOCAL_BENCHMARK_MEDIAN,
     SELF_TEST_RX,
     SELF_TEST_TX,
-    is_rx_hardware_ab,
     solar_path_state,
     wspr_frame_mod4,
     wspr_frame_sql,
@@ -46,6 +45,57 @@ def _timed_span(timing_collector, label, detail=""):
     return timing_collector.span(label, detail=detail)
 
 
+def _build_station_weighted_local_median_query(
+    *,
+    target_snr_expr,
+    reference_snr_expr,
+    target_sql,
+    reference_sql,
+    peer_sign_column,
+    peer_grid_column,
+    peer_lat_column,
+    peer_lon_column,
+    local_sign_column,
+    local_grid_column,
+    local_lat_column,
+    local_lon_column,
+    center_latitude,
+    center_longitude,
+):
+    """Return Local Median SQL with one median contributor per local station/cycle/path."""
+    reference_distance_expr = (
+        f"geoDistance({center_longitude}, {center_latitude}, {local_lon_column}, {local_lat_column})"
+    )
+    return (
+        "SELECT time_slot, peer_sign, peer_grid, "
+        "any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, "
+        "maxIf(station_snr_norm, is_me = 1) AS snr_u_norm, "
+        "quantileExactInclusiveIf(0.5)(station_snr_norm, is_me = 0) AS snr_r_norm, "
+        "sumIf(raw_row_count, is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, "
+        "concat(toString(countIf(is_me = 0)), ' stations') AS best_ref_sign, "
+        "quantileExactInclusiveIf(0.5)(local_dist, is_me = 0) AS best_ref_dist, "
+        "groupArrayIf(tuple(local_sign, local_grid, local_dist, station_snr_norm), is_me = 0) AS ref_detail_rows "
+        "FROM ("
+        f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, {peer_sign_column} AS peer_sign, "
+        f"{peer_grid_column} AS peer_grid, any({peer_lat_column}) AS peer_lat, "
+        f"any({peer_lon_column}) AS peer_lon, {local_sign_column} AS local_sign, "
+        f"{local_grid_column} AS local_grid, 0.0 AS local_dist, max({target_snr_expr}) AS station_snr_norm, "
+        "count() AS raw_row_count, 1 AS is_me "
+        f"FROM wspr.rx WHERE {target_sql} AND {peer_lat_column} != 0 "
+        "GROUP BY time_slot, peer_sign, peer_grid, local_sign, local_grid "
+        "UNION ALL "
+        f"SELECT floor(toUnixTimestamp(time)/120) AS time_slot, {peer_sign_column} AS peer_sign, "
+        f"{peer_grid_column} AS peer_grid, any({peer_lat_column}) AS peer_lat, "
+        f"any({peer_lon_column}) AS peer_lon, {local_sign_column} AS local_sign, "
+        f"{local_grid_column} AS local_grid, quantileExactInclusive(0.5)({reference_distance_expr}) AS local_dist, "
+        f"quantileExactInclusive(0.5)({reference_snr_expr}) AS station_snr_norm, "
+        "count() AS raw_row_count, 0 AS is_me "
+        f"FROM wspr.rx WHERE {reference_sql} AND {peer_lat_column} != 0 "
+        "GROUP BY time_slot, peer_sign, peer_grid, local_sign, local_grid"
+        ") GROUP BY time_slot, peer_sign, peer_grid FORMAT CSVWithNames"
+    )
+
+
 def _build_tx_comparison_query(
     *,
     is_sequential,
@@ -61,6 +111,7 @@ def _build_tx_comparison_query(
     local_reference_detail_sql,
     center_latitude,
     center_longitude,
+    station_weighted_reference_median=False,
 ):
     """Return the TX comparison SQL without performing any data access."""
     if is_sequential:
@@ -73,6 +124,24 @@ def _build_tx_comparison_query(
             f"rx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
             f"FROM wspr.rx WHERE {reference_sql} {reference_frame_sql} AND rx_lat != 0 "
             "FORMAT CSVWithNames"
+        )
+
+    if station_weighted_reference_median:
+        return _build_station_weighted_local_median_query(
+            target_snr_expr=target_snr_expr,
+            reference_snr_expr=reference_snr_expr,
+            target_sql=target_sql,
+            reference_sql=reference_sql,
+            peer_sign_column="rx_sign",
+            peer_grid_column="rx_loc",
+            peer_lat_column="rx_lat",
+            peer_lon_column="rx_lon",
+            local_sign_column="tx_sign",
+            local_grid_column="tx_loc",
+            local_lat_column="tx_lat",
+            local_lon_column="tx_lon",
+            center_latitude=center_latitude,
+            center_longitude=center_longitude,
         )
 
     return (
@@ -109,6 +178,7 @@ def _build_rx_comparison_query(
     local_reference_detail_sql,
     center_latitude,
     center_longitude,
+    station_weighted_reference_median=False,
 ):
     """Return the RX comparison SQL without performing any data access."""
     if is_sequential:
@@ -121,6 +191,24 @@ def _build_rx_comparison_query(
             f"tx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
             f"FROM wspr.rx WHERE {reference_sql} {reference_frame_sql} AND tx_lat != 0 "
             "FORMAT CSVWithNames"
+        )
+
+    if station_weighted_reference_median:
+        return _build_station_weighted_local_median_query(
+            target_snr_expr=target_snr_expr,
+            reference_snr_expr=reference_snr_expr,
+            target_sql=target_sql,
+            reference_sql=reference_sql,
+            peer_sign_column="tx_sign",
+            peer_grid_column="tx_loc",
+            peer_lat_column="tx_lat",
+            peer_lon_column="tx_lon",
+            local_sign_column="rx_sign",
+            local_grid_column="rx_loc",
+            local_lat_column="rx_lat",
+            local_lon_column="rx_lon",
+            center_latitude=center_latitude,
+            center_longitude=center_longitude,
         )
 
     return (
@@ -272,14 +360,9 @@ def build_analysis_batches(
 
     target_frame_mod4 = wspr_frame_mod4(analysis_context.target_wspr_frame) if is_sequential else None
         
-    # Target SQL Filters
-    if is_rx_hardware_ab(analysis_context):
-        # Strict exact match needed to prevent 'DL1MKS%' from swallowing 'DL1MKS/P' spots
-        tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
-        rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
-    else:
-        tx_target_sql = f"tx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
-        rx_target_sql = f"rx_sign LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
+    # Target SQL filters use one exact callsign; suffix callsigns are selected by entering that exact callsign.
+    tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
+    rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
 
     # Cycle synchronization is applied after fetching in apply_post_fetch_filters().
     # Keeping it outside SQL construction avoids query-builder data access.
@@ -298,9 +381,9 @@ def build_analysis_batches(
         bbox_tx = f"AND tx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND tx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
         bbox_rx = f"AND rx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND rx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
         
-        tx_peer_sql = f"tx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
+        tx_peer_sql = f"tx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
         
-        rx_peer_sql = f"rx_sign NOT LIKE '{callsign}%' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
+        rx_peer_sql = f"rx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
         
         if is_local_median:
             comp_title = label(
@@ -314,12 +397,8 @@ def build_analysis_batches(
             ).format(radius=ref_radius_km)
         display_callsign = callsign
     else:
-        if is_rx_hardware_ab(analysis_context):
-            tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
-            rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
-        else:
-            tx_peer_sql = f"tx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
-            rx_peer_sql = f"rx_sign LIKE '{ref_callsign}%' {band_filter} AND {time_filter}{decode_filter_sql}"
+        tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
+        rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
             
         if comp_mode == COMPARISON_HARDWARE_AB:
             if analysis_context.self_test_mode == SELF_TEST_RX:
@@ -341,7 +420,9 @@ def build_analysis_batches(
     local_ref_sign_sql = f"argMaxIf(local_sign, {benchmark_snr_expr}, is_me = 0)"
     local_ref_dist_sql = f"argMaxIf(local_dist, {benchmark_snr_expr}, is_me = 0)"
     local_ref_detail_sql = ""
+    station_weighted_reference_median = False
     if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD and analysis_context.local_benchmark == LOCAL_BENCHMARK_MEDIAN:
+        station_weighted_reference_median = True
         local_ref_snr_sql = f"quantileExactInclusiveIf(0.5)({benchmark_snr_expr}, is_me = 0)"
         local_ref_sign_sql = "concat(toString(countIf(is_me = 0)), ' stations')"
         local_ref_dist_sql = "quantileExactInclusiveIf(0.5)(local_dist, is_me = 0)"
@@ -362,6 +443,7 @@ def build_analysis_batches(
             local_reference_detail_sql=local_ref_detail_sql,
             center_latitude=lat_0,
             center_longitude=lon_0,
+            station_weighted_reference_median=station_weighted_reference_median,
         )
         analyses.append(with_decode_fallback({
             "id": "TX_COMP",
@@ -422,6 +504,7 @@ def build_analysis_batches(
             local_reference_detail_sql=local_ref_detail_sql,
             center_latitude=lat_0,
             center_longitude=lon_0,
+            station_weighted_reference_median=station_weighted_reference_median,
         )
         analyses.append(with_decode_fallback({
             "id": "RX_COMP",

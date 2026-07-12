@@ -18,9 +18,9 @@ The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset 
 * [4. Analysis Modes and Valid Experiment Design](#sec-4)
   * [4.0 Comparison Terminology](#sec-4-0)
   * [4.1 TX/RX Success](#sec-4-1)
-  * [4.2 Local Neighborhood Benchmark](#sec-4-2)
+  * [4.2 Hardware A/B Test](#sec-4-2)
   * [4.3 Specific Reference Station / Buddy Test](#sec-4-3)
-  * [4.4 Hardware A/B Test](#sec-4-4)
+  * [4.4 Local Neighborhood Benchmark](#sec-4-4)
   * [4.5 Decode Yield in Compare Modes](#sec-4-5)
 * [5. Result Terminology and Reading the UI](#sec-5)
   * [5.1 Map](#sec-5-1)
@@ -65,10 +65,10 @@ WSPRadar is designed around concrete amateur-radio questions:
 
 * **Where is my transmitted signal heard?** Use `TX Success`.
 * **Who can my station hear?** Use `RX Success`.
+* **Did antenna A beat antenna B at my own location?** Use `Hardware A/B Test`, either simultaneous RX or fixed-schedule sequential TX.
+* **How do I compare with a specific nearby station or radio friend?** Use `Specific Reference Station`.
 * **Am I typical for my local WSPR neighborhood?** Use `Local Median Neighborhood`, the default local benchmark.
 * **Can I match the best active local peer?** Use `Local Best Station`, the strict local stress test.
-* **How do I compare with a specific nearby station or radio friend?** Use `Specific Reference Station`.
-* **Did antenna A beat antenna B at my own location?** Use `Hardware A/B Test`, either simultaneous RX or fixed-schedule sequential TX.
 * **Are my distance patterns consistent with NVIS or DX behavior?** Inspect near and far distance rings, while remembering that distance is not a direct take-off-angle measurement.
 * **Am I an alligator: heard well but hearing poorly?** Compare TX and RX results against the same reference concept and look for asymmetric transmit/receive behavior.
 
@@ -82,6 +82,7 @@ This chapter combines the user choice, the analysis concept and the experiment-d
 
 * **Target** means the station or setup under test: usually your callsign, Setup A, or the station you want to evaluate.
 * **Reference** means the comparison baseline: a buddy callsign, the local neighborhood, the local best station, or Setup B.
+* A **callsign** is matched exactly in target/reference comparison modes. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` and `DL1MKS/QRP` are separate exact callsigns. WSPRadar does not use hidden prefix matching such as `DL1MKS%`; if the run should analyze `DL1MKS/P`, enter `DL1MKS/P` as the callsign for that side.
 * A **WSPR spot** is one reported successful decode: time, band, transmitter, receiver, locator, reported power and SNR.
 * A **WSPR cycle** is one two-minute WSPR transmit/receive opportunity, aligned to even UTC minutes.
 * A **target-active WSPR cycle** is a WSPR cycle where the target station/setup was demonstrably active. In TX analysis, the target signal must have been decoded by at least one station worldwide. In RX analysis, the target receiver must have uploaded at least one decode in that cycle.
@@ -147,11 +148,80 @@ Rates are first calculated per station identity. A station contributes to the ma
 
 
 <a id="sec-4-2"></a>
-#### 4.2 Local Neighborhood Benchmark
+#### 4.2 Hardware A/B Test
+
+The Hardware A/B Test is for your own equipment at your own location. It is valid only when every non-tested variable is held as constant as practical: band, time window, power, feedline losses, receiver chain, audio chain, decoding software and locator reporting.
+
+* Use two genuinely independent receive and/or transmit chains where those chains are part of the test; shared components must be intentional, stable and outside the tested variable.
+
+**RX A/B Test: simultaneous**
+
+Two parallel receivers decode the same remote WSPR transmissions at the same time.
+
+* Use distinguishable reporting identities, for example the main callsign for Setup A and a suffix for Setup B, so both streams appear in the WSPR database.
+* Setup A and Setup B are each matched by one exact callsign. If Setup B used `DL1MKS/P`, enter `DL1MKS/P` as Setup B. Do not expect `DL1MKS` to also match `DL1MKS/P`.
+* Keep clocks synchronized.
+* Appendix A describes how to separate parallel WSJT-X instances so both decoders do not share the same audio file, virtual audio path, save directory or temporary WSPR files.
+
+**TX A/B Test: fixed-schedule sequential**
+
+Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic UTC WSPR-frame time slicing. A transmitter, controller or RF switching system assigns one setup or RF path to WSPR-2 frames starting at UTC minute 00, 04, 08, ... and the other setup or RF path to frames starting at UTC minute 02, 06, 10, ... respectively. The tool groups data into time bins, computes a micro-median for each setup or RF path inside a bin, and calculates the bin Delta.
+
+The most controlled TX A/B design usually uses one transmitter and switches only the RF path between two antennas. In that design, the transmitter, callsign, WSPR software, frequency, power setting and clock remain common. The intended experimental variables are then the switched feedline/antenna paths, rather than two separate transmit chains. This is safer and scientifically cleaner than comparing two independent transmitters because transmitter calibration, frequency stability, audio drive, power reporting and timing behavior are removed as major confounders.
+
+WSPRadar includes the cross-platform helper tool `tools/Timed-AB-Relay-Switch` for this use case. It alternates a supported USB HID relay on the same UTC WSPR-frame cadence used by the app and runs through the Python HID stack on Windows, Linux and macOS. The USB relay can in turn control a suitable RF antenna switch, for example a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, provided the relay output, RF switch control input, control voltage, current rating, polarity and station interlock design are electrically appropriate.
+
+* Keep output power, feedline, tuner settings, band and schedule stable except for the tested variable.
+* Prefer a single-transmitter RF-path switch when the goal is antenna/feedline A/B testing.
+* Verify relay-to-RF-switch polarity before RF use: Target WSPR frames must select the intended test antenna/path, and Reference WSPR frames must select the intended reference antenna/path.
+* A QMX transceiver or external relay controller, for example, can be programmed with deterministic timing such as UTC start-minute sequence 00/04/08 for Setup A/path A and 02/06/10 for Setup B/path B.
+* Switch only between complete WSPR-2 transmit frames; do not switch hardware during a two-minute WSPR transmission.
+* Standard WSJT-X random transmission behavior is not suitable for fixed-schedule TX A/B without additional scheduling control.
+
+**Careful with TX suffixes**
+
+Why avoid multi-cycle WSPR suffixes for single-transmitter TX A/B? Compound callsigns can force multi-message behavior and reduce decode yield because not all receivers decode every required message type equally well. Artificial suffixes such as `/1` or `/2` may also be jurisdiction-specific or invalid. `/P` should only be used when it is legally appropriate for the actual operation. For TX A/B, WSPRadar therefore prefers fixed timing with the normal callsign.
+
+**Scientific caution**
+
+Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces time-confounding substantially, but it does not prove that every time-correlated effect disappeared.
+
+
+<a id="sec-4-3"></a>
+#### 4.3 Specific Reference Station / Buddy Test
+
+The Buddy Test is a one-to-one comparison against a known station. You define a different reference callsign, for example a radio friend 10 km away.
+
+**How it works**
+
+* In TX comparison, both signals are evaluated by the same remote receiver in the same 2-minute WSPR cycle where possible:
+  $$\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}$$
+* In RX comparison, both local receivers evaluate the same remote transmitter in the same 2-minute WSPR cycle where possible:
+  $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
+* This same-cycle pairing strongly reduces shared fading, path and receiver/transmitter confounders, depending on TX or RX direction.
+* Yield in the Buddy Test is also heartbeat-gated. It does not compare all spots of both callsigns across the full time window. It compares joint, target-only, reference-only and async evidence inside cycles where the target callsign/setup was demonstrably active.
+* Target and reference callsigns are each matched exactly. A configured `DL1MKS` target does not also match `DL1MKS/P`; use `DL1MKS/P` as the target callsign when that is the identity to analyze.
+
+**Valid design**
+
+* Pick a reference station whose location, antenna, power and operating schedule you understand.
+* Use the same band and overlapping time windows.
+* Make sure both callsigns have enough shared same-cycle remote peers.
+
+**Careful with**
+
+* A Buddy Test is a station-system comparison, not a pure antenna-gain measurement.
+* Differences may include antenna, transmitter, receiver, feedline, terrain, polarization, local QRM and reported-power accuracy.
+* Swapping target and reference callsigns can change the yield counts. The active-cycle gate follows the target callsign, so A vs B and B vs A are not guaranteed to be symmetric. Delta SNR signs should invert on shared joint evidence, but yield categories may not.
+
+<a id="sec-4-4"></a>
+#### 4.4 Local Neighborhood Benchmark
 
 The local neighborhood benchmark asks how your station performs against active WSPR stations inside a chosen geographic radius. The radius applies to both local methods.
 
 All local-neighborhood comparisons remain target-active comparisons. WSPRadar first limits the analysis to WSPR cycles in which your station/setup was demonstrably active; [Temporal pairing and heartbeat filtering](#sec-6-4) defines this precisely for TX and RX. Local reference evidence outside those target-active cycles is intentionally ignored. This is why local benchmark yield is not a raw count of all neighborhood activity during the time window.
+
+Target callsign matching in local-neighborhood compare mode uses the same exact-callsign rule. Local peers are excluded only when their exact callsign equals the configured target callsign. This prevents a base callsign such as `DL1MKS` from accidentally excluding `DL1MKS/P` or a different longer callsign that merely shares the same prefix.
 
 **Local Median Neighborhood: default baseline**
 
@@ -185,70 +255,6 @@ For every WSPR cycle and matching remote path, WSPRadar compares you against the
 * Local peers differ in antenna type, terrain, receiver/transmitter quality, local noise and reported power accuracy.
 * A very large neighborhood may stop being truly local.
 * `Local Best Station` should never be described as local average performance.
-
-<a id="sec-4-3"></a>
-#### 4.3 Specific Reference Station / Buddy Test
-
-The Buddy Test is a one-to-one comparison against a known station. You define a different reference callsign, for example a radio friend 10 km away.
-
-**How it works**
-
-* In TX comparison, both signals are evaluated by the same remote receiver in the same 2-minute WSPR cycle where possible:
-  $$\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}$$
-* In RX comparison, both local receivers evaluate the same remote transmitter in the same 2-minute WSPR cycle where possible:
-  $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
-* This same-cycle pairing strongly reduces shared fading, path and receiver/transmitter confounders, depending on TX or RX direction.
-* Yield in the Buddy Test is also heartbeat-gated. It does not compare all spots of both callsigns across the full time window. It compares joint, target-only, reference-only and async evidence inside cycles where the target callsign/setup was demonstrably active.
-
-**Valid design**
-
-* Pick a reference station whose location, antenna, power and operating schedule you understand.
-* Use the same band and overlapping time windows.
-* Make sure both callsigns have enough shared same-cycle remote peers.
-
-**Careful with**
-
-* A Buddy Test is a station-system comparison, not a pure antenna-gain measurement.
-* Differences may include antenna, transmitter, receiver, feedline, terrain, polarization, local QRM and reported-power accuracy.
-* Swapping target and reference callsigns can change the yield counts. The active-cycle gate follows the target callsign, so A vs B and B vs A are not guaranteed to be symmetric. Delta SNR signs should invert on shared joint evidence, but yield categories may not.
-
-<a id="sec-4-4"></a>
-#### 4.4 Hardware A/B Test
-
-The Hardware A/B Test is for your own equipment at your own location. It is valid only when every non-tested variable is held as constant as practical: band, time window, power, feedline losses, receiver chain, audio chain, decoding software and locator reporting.
-
-* Use two genuinely independent receive and/or transmit chains where those chains are part of the test; shared components must be intentional, stable and outside the tested variable.
-
-**RX A/B Test: simultaneous**
-
-Two parallel receivers decode the same remote WSPR transmissions at the same time.
-
-* Use distinguishable reporting identities, for example the main callsign for Setup A and a suffix for Setup B, so both streams appear in the WSPR database.
-* Keep clocks synchronized.
-* Appendix A describes how to separate parallel WSJT-X instances so both decoders do not share the same audio file, virtual audio path, save directory or temporary WSPR files.
-
-**TX A/B Test: fixed-schedule sequential**
-
-Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic UTC WSPR-frame time slicing. A transmitter, controller or RF switching system assigns one setup or RF path to WSPR-2 frames starting at UTC minute 00, 04, 08, ... and the other setup or RF path to frames starting at UTC minute 02, 06, 10, ... respectively. The tool groups data into time bins, computes a micro-median for each setup or RF path inside a bin, and calculates the bin Delta.
-
-The most controlled TX A/B design usually uses one transmitter and switches only the RF path between two antennas. In that design, the transmitter, callsign, WSPR software, frequency, power setting and clock remain common. The intended experimental variables are then the switched feedline/antenna paths, rather than two separate transmit chains. This is safer and scientifically cleaner than comparing two independent transmitters because transmitter calibration, frequency stability, audio drive, power reporting and timing behavior are removed as major confounders.
-
-WSPRadar includes the cross-platform helper tool `tools/Timed-AB-Relay-Switch` for this use case. It alternates a supported USB HID relay on the same UTC WSPR-frame cadence used by the app and runs through the Python HID stack on Windows, Linux and macOS. The USB relay can in turn control a suitable RF antenna switch, for example a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, provided the relay output, RF switch control input, control voltage, current rating, polarity and station interlock design are electrically appropriate.
-
-* Keep output power, feedline, tuner settings, band and schedule stable except for the tested variable.
-* Prefer a single-transmitter RF-path switch when the goal is antenna/feedline A/B testing.
-* Verify relay-to-RF-switch polarity before RF use: Target WSPR frames must select the intended test antenna/path, and Reference WSPR frames must select the intended reference antenna/path.
-* A QMX transceiver or external relay controller, for example, can be programmed with deterministic timing such as UTC start-minute sequence 00/04/08 for Setup A/path A and 02/06/10 for Setup B/path B.
-* Switch only between complete WSPR-2 transmit frames; do not switch hardware during a two-minute WSPR transmission.
-* Standard WSJT-X random transmission behavior is not suitable for fixed-schedule TX A/B without additional scheduling control.
-
-**Careful with TX suffixes**
-
-Why avoid multi-cycle WSPR suffixes for single-transmitter TX A/B? Compound callsigns can force multi-message behavior and reduce decode yield because not all receivers decode every required message type equally well. Artificial suffixes such as `/1` or `/2` may also be jurisdiction-specific or invalid. `/P` should only be used when it is legally appropriate for the actual operation. For TX A/B, WSPRadar therefore prefers fixed timing with the normal callsign.
-
-**Scientific caution**
-
-Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces time-confounding substantially, but it does not prove that every time-correlated effect disappeared.
 
 <a id="sec-4-5"></a>
 #### 4.5 Decode Yield in Compare Modes
@@ -517,14 +523,14 @@ For serious claims, preserve enough context to reproduce the result: WSPRadar ve
 
 **Core parameters**
 
-* **Target Callsign:** primary station under evaluation.
+* **Target Callsign:** exact station identity under evaluation. Enter suffix/postfix forms directly, for example `DL1MKS/P`, when that exact callsign is the target for this run. No wildcard or prefix matching is used.
 * **QTH Locator:** mathematical center of the map projection. Use a valid 4- or 6-character Maidenhead locator.
 * **Band and timeframe:** define the WSPR data window. Time is handled in UTC.
 * **Min. Target+Counter-Evidence per Station:** Success-mode evidence threshold. A station must have at least this many confirmed observations before its Success Rate contributes to the map, segment summaries, temporal panels or Station Insights. RX counts `Target+Elsewhere`; TX counts `Target+Other Signals`. The default is `5`; lower values increase coverage but also increase discrete small-sample rates such as `0%`, `50%` or `100%`.
 
 **Comparison parameters**
 
-* **Benchmark Mode:** `Local Neighborhood Benchmark`, `Reference Station (Buddy Test)` or `Hardware A/B-Test`.
+* **Benchmark Mode:** `Hardware A/B-Test`, `Reference Station (Buddy Test)` or `Local Neighborhood Benchmark`, presented from strongest to weakest model/evidence. The default is `Hardware A/B-Test`.
 * **Reference SNR Correction (dB):** user-supplied correction added to the reference-side SNR before Delta SNR is calculated. It applies only to compare modes and is useful for known reference-side attenuation or calibration artefacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - reference`, a positive correction makes the corrected reference SNR larger before subtraction. Appendix C describes how to obtain a calibration value.
   * **Scope:** Buddy Test applies the correction to the reference callsign. Local Best Station applies it to the selected local best reference SNR. Local Median Neighborhood applies it to all neighborhood reference SNRs before median aggregation. Hardware A/B-Test applies it to the reference side, meaning Setup B / reference WSPR frame.
   * **Formula:** `corrected reference SNR = reference SNR + Reference SNR Correction`; `Delta SNR = target SNR - corrected reference SNR`.
@@ -532,8 +538,9 @@ For serious claims, preserve enough context to reproduce the result: WSPRadar ve
   * **Negative correction example:** a calibration run shows `target - reference = -1.6 dB`. Enter `-1.6 dB`. A reference-side SNR of `-24.0 dB` is treated as `-25.6 dB`, so the corrected Delta SNR is increased by `1.6 dB`.
 * **Local Benchmark Method:** `Local Median Neighborhood` by default, or `Local Best Station` for a strict best-peer envelope.
 * **Neighborhood Radius:** geographic boundary for local reference stations.
-* **Reference Callsign:** external counterpart for Buddy Test.
+* **Reference Callsign:** one exact external counterpart for Buddy Test. Enter the suffix/postfix form directly when that exact callsign is the reference.
 * **A/B-Test Setup:** simultaneous `RX Test` or fixed-schedule `TX Test`.
+* **Setup B Callsign:** one exact callsign for Setup B in simultaneous RX A/B tests. Setup A and Setup B must use different exact callsigns.
 * **Target/Reference Locator:** 6-character locators used to separate simultaneous RX streams.
 * **Target/Reference WSPR Frame:** fixed UTC start-minute frame assignment for sequential TX tests; 00, 04, 08, ... and 02, 06, 10, ... are the two supported frame sequences.
 * **Time Window (Bins):** bin size for sequential TX A/B pairing.
@@ -716,7 +723,7 @@ For sequential TX A/B antenna tests, the preferred hardware design is often a si
 
 WSPRadar includes a cross-platform Python helper tool:
 
-`tools/Timed-AB-Relay-Switch`
+`tools/Timed-AB-Relay-Switch`: https://github.com/markusthemaker/WSPRadar/releases/download/timed-ab-relay-switch-v0.1.0/Timed-AB-Relay-Switch-v0.1.0.zip
 
 The tool drives a supported USB HID relay on the WSPR-frame cadence used by WSPRadar:
 

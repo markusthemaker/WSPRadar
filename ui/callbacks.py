@@ -229,7 +229,7 @@ def run_demo_profile(profile_key):
 def handle_comp_mode_change():
     """
     Event handler triggered when the user switches the main comparison mode 
-    (Radius, Buddy, A/B Test). Resets any active audit and seamlessly applies 
+    (A/B Test, Buddy, Radius). Resets any active audit and seamlessly applies
     the relevant demo profile if the sandbox mode is active.
     """
     reset_audit()
@@ -257,7 +257,7 @@ def set_reset_config():
     st.session_state.val_time_mode = t["opt_last_x"]
     st.session_state.val_hours = 24
     st.session_state.val_solar = t["opt_solar_all"]
-    st.session_state.val_comp_mode = t["opt_comp_radius"]
+    st.session_state.val_comp_mode = t["opt_comp_self"]
     st.session_state.val_ref_stations = 10
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0

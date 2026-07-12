@@ -95,7 +95,7 @@ def init_session_state():
         
     # --- Default Comparison Modes (Compare Engine) ---
     if "val_comp_mode" not in st.session_state: 
-        st.session_state.val_comp_mode = T["en"]["opt_comp_radius"]
+        st.session_state.val_comp_mode = T[st.session_state.lang]["opt_comp_self"]
     if "val_ref_stations" not in st.session_state: 
         st.session_state.val_ref_stations = 10
     if "val_ref_radius_km" not in st.session_state:
