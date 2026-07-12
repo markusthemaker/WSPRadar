@@ -158,6 +158,11 @@ localized labels. `PresentationContext` contains language, labels, and theme.
 Streamlit state is translated into these contexts in UI adapters before core
 work begins.
 
+The runtime source directories are regular Python packages with committed
+`__init__.py` markers. Preserve those markers: Streamlit watches a PEP 420
+namespace package as a directory, and first-import `__pycache__` writes inside
+that watched directory can otherwise cause overlapping cold-start reruns.
+
 Useful files when tracing behavior:
 
 - `ui/run_controller.py`: end-to-end analysis orchestration.

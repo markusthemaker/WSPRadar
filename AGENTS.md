@@ -232,6 +232,10 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 - Export recipes reuse completed analysis artifacts; exports must not rerun the
   upstream scientific query.
 - Documentation PDF generation is lazy, process-cached, and single-flight.
+- Keep `core/`, `docs/`, `ui/`, and the runtime `ui/` subdirectories as regular
+  Python packages with their committed `__init__.py` markers. Streamlit watches
+  PEP 420 namespace-package directories recursively, so first-import bytecode
+  writes inside those directories can trigger overlapping cold-start reruns.
 
 ## Do Not Change Casually
 

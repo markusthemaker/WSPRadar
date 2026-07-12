@@ -372,7 +372,10 @@ Specific constraints enforced by code and tests include:
 - inspector and export consumers use declared evidence projections rather than
   loading arbitrary full artifacts;
 - artifact consumers use the store API rather than constructing unsafe cache
-  paths directly.
+  paths directly;
+- runtime source directories remain regular packages with `__init__.py` markers
+  so Streamlit watches their source files rather than recursively watching PEP
+  420 namespace-package directories and reacting to first-import bytecode files.
 
 `config/__init__.py` exposes compatibility imports, so dependency searches should
 check both direct module imports and package-level re-exports.
