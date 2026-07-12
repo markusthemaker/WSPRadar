@@ -1,0 +1,131 @@
+name: Scientific or methodological concern
+description: Challenge an analytical assumption, statistical method, interpretation, or scientific claim in WSPRadar.
+title: "[SCIENCE] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when the concern is about methodology, statistics, data handling, interpretation, or claim wording.
+        Use the bug form when the implementation simply differs from the documented method.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checks
+      options:
+        - label: I searched the documentation, limitations, references, and existing issues for this concern.
+          required: true
+        - label: I distinguish between WSPRadar's documented observational limitations and the specific defect, bias, or ambiguity raised here.
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Concern summary
+      description: State the potentially invalid, biased, overstated, or unclear conclusion in one concise paragraph.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_method
+    attributes:
+      label: Affected method or evidence layer
+      multiple: true
+      options:
+        - TX Success and Target / Other Signals
+        - RX Success and Target / Elsewhere
+        - Simultaneous RX A/B pairing
+        - Sequential TX A/B pairing and time bins
+        - Reference station / Buddy comparison
+        - Local median neighborhood
+        - Local best station
+        - Delta SNR or reported-power normalization
+        - Target-active cycle or heartbeat gating
+        - Station balancing or median aggregation
+        - Evidence thresholds or stability intervals
+        - Geographic segmentation or map aggregation
+        - Path illumination or solar-state classification
+        - Query filtering or historical data validity
+        - Documentation, terminology, or claim wording
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_method
+    attributes:
+      label: Current assumption, calculation, or claim
+      description: Quote or precisely paraphrase the relevant rule. Include formulas, UI labels, documentation sections, or code locations where possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: concern
+    attributes:
+      label: Why it may be invalid or misleading
+      description: Identify the mechanism of bias, confounding variable, statistical problem, observability problem, or interpretation risk.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or counterexample
+      description: Provide a derivation, simulated case, real dataset, reproducible run, or logically complete counterexample.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproducibility
+    attributes:
+      label: Reproduction details
+      description: Supply the fields that apply. Use UTC for all times.
+      value: |
+        - WSPRadar version or Git commit:
+        - Analysis mode:
+        - Target and reference identities:
+        - QTH locator:
+        - Band:
+        - UTC start and end:
+        - Relevant settings and thresholds:
+        - Demo, config, export, or dataset link:
+    validations:
+      required: false
+
+  - type: textarea
+    id: consequence
+    attributes:
+      label: Consequence for existing results
+      description: Explain whether the concern changes numerical results, ranking, uncertainty, terminology, documentation, or only a narrow edge case.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Proposed correction or alternative
+      description: Describe a better calculation, experiment design, limitation statement, validation test, or documentation change.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: resolution
+    attributes:
+      label: Smallest plausible resolution
+      options:
+        - Code and regression-test change
+        - Query or data-processing change
+        - Documentation or terminology clarification
+        - Additional validation experiment
+        - No change proposed; review requested
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Provide papers, standards, source documentation, derivations, or comparable implementations.
+    validations:
+      required: false
