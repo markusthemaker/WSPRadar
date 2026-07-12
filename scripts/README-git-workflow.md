@@ -20,6 +20,13 @@ Interpretation:
 
 means `origin/main` and `origin/temp` are identical.
 
+If main is ahead, fetch origin and push temp:
+```powershell
+git fetch origin
+git switch temp
+git merge --ff-only origin/main
+git push origin temp
+```
 
 ## 1. Morning Baseline
 
