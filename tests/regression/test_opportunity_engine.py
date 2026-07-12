@@ -12,6 +12,7 @@ from core.opportunity_engine import (
     SUCCESS_RATE_TICK_LABELS,
     aggregate_opportunity_peers,
     aggregate_opportunity_segments,
+    opportunity_footer_counts,
     build_absolute_opportunity_query,
     opportunity_utc_from_time_slot,
     opportunity_rate_scale_max,
@@ -260,6 +261,56 @@ def test_target_only_never_enters_denominator():
     assert int(peer["target_only"]) == 2
     assert not bool(peer["eligible"])
     assert pd.isna(peer["rate_pct"])
+
+
+def test_success_footer_counts_only_visible_qualified_denominator_evidence():
+    peers = pd.DataFrame(
+        [
+            {
+                "r_min": 0.0,
+                "eligible": True,
+                "rate_pct": 40.0,
+                "hits": 2,
+                "misses": 3,
+                "target_only": 7,
+            },
+            {
+                "r_min": 0.0,
+                "eligible": True,
+                "rate_pct": 0.0,
+                "hits": 0,
+                "misses": 4,
+                "target_only": 5,
+            },
+            {
+                "r_min": 0.0,
+                "eligible": False,
+                "rate_pct": 100.0,
+                "hits": 10,
+                "misses": 0,
+                "target_only": 0,
+            },
+            {
+                "r_min": 2500.0,
+                "eligible": True,
+                "rate_pct": 50.0,
+                "hits": 8,
+                "misses": 8,
+                "target_only": 0,
+            },
+        ]
+    )
+
+    counts = opportunity_footer_counts(peers, max_dist_km=2500)
+
+    assert counts == {
+        "stat_target": 1,
+        "stat_counter_only": 1,
+        "spot_target": 2,
+        "spot_counter": 7,
+        "tot_stats": 2,
+        "tot_spots": 9,
+    }
 
 
 def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path):

@@ -423,15 +423,16 @@ def _render_reference_correction_notice(t, is_compare):
         unsafe_allow_html=True
     )
 
-def _evidence_strength(stations_count, evidence_count):
-    """Classify evidence strength using WSPRadar's heuristic sample thresholds."""
-    if stations_count >= 5 and evidence_count >= 20:
-        return "Strong"
-    if stations_count >= 3 and evidence_count >= 10:
-        return "Medium"
-    if stations_count >= 1 and evidence_count >= 3:
-        return "Low"
-    return "Very low"
+def _segment_evidence_count_summary(
+    joint_station_count,
+    evidence_count,
+    evidence_unit_label,
+):
+    """Format factual selected-segment counts without grading evidence strength."""
+    return (
+        f"Selected Segment Evidence: {joint_station_count} joint stations | "
+        f"{evidence_count} {evidence_unit_label}"
+    )
 
 def _supports_dataframe_selection_default():
     """Return True when the installed Streamlit version can preselect dataframe rows."""
@@ -1470,11 +1471,14 @@ def _render_segment_inspector_body(
                     panel_labels=segment_panel_labels,
                     panel_y_label=segment_panel_y_label,
                 )
-                segment_strength = _evidence_strength(len(vals), len(segment_raw_values))
                 spot_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
                 segment_summary = [
                     f"Selected Segment: {selected_seg}",
-                    f"Selected Segment Evidence: {segment_strength} | {len(vals)} stations | {len(segment_raw_values)} {spot_basis}",
+                    _segment_evidence_count_summary(
+                        len(vals),
+                        len(segment_raw_values),
+                        spot_basis,
+                    ),
                 ]
                 station_summary = _stability_summary(
                     vals,

@@ -11,9 +11,17 @@ import faulthandler
 import sys
 faulthandler.enable(file=sys.stderr, all_threads=True)
 
+st.set_page_config(
+    page_title="WSPRadar.org | Antenna Benchmarking",
+    page_icon="📡",
+    layout="centered",
+)
+
+# Everything imported below this point belongs to the lightweight landing shell.
+# Scientific analysis imports remain inside the active-run branch near the end.
 from config import APP_URL, APP_VERSION, BAND_MAP, DEMO_PROFILES, LOGO_URL, MAX_DAYS_HISTORY
+from core.time_utils import quantize_time
 from i18n import T
-from core.math_utils import quantize_time
 from ui.callbacks import (
     handle_comp_mode_change,
     handle_self_test_mode_change,
@@ -26,17 +34,9 @@ from ui.callbacks import (
 from ui.components.config_panel import render_advanced_expander, render_compare_expander, render_core_expander
 from ui.config_io import apply_config_values, build_config_payload, validate_config_upload
 from ui.css import apply_custom_css
-from ui.documentation import render_documentation_section
-from ui.results_export import reset_result_export_state
-from ui.run_controller import render_analysis_run
+from ui.documentation_state import collapse_documentation
+from ui.result_state import reset_result_state
 from ui.state_manager import init_session_state
-
-try:
-    from core.plot_engine import generate_map_plot
-    CARTOPY_IMPORT_ERROR = None
-except ImportError as exc:
-    generate_map_plot = None
-    CARTOPY_IMPORT_ERROR = exc
 
 
 def get_base64_of_bin_file(bin_file):
@@ -47,16 +47,6 @@ def get_base64_of_bin_file(bin_file):
     except FileNotFoundError:
         return ""
 
-
-st.set_page_config(page_title="WSPRadar.org | Antenna Benchmarking", page_icon="📡", layout="centered")
-
-if CARTOPY_IMPORT_ERROR is not None:
-    st.error(
-        "WSPRadar could not load Cartopy, which is required for map rendering. "
-        "Please verify the Python version and Cartopy environment used by this deployment."
-    )
-    st.code(str(CARTOPY_IMPORT_ERROR))
-    st.stop()
 
 init_session_state()
 
@@ -233,7 +223,7 @@ comp_mode = st.session_state.val_comp_mode
 max_dist_km = st.session_state.val_max_dist
 
 band_value = BAND_MAP.get(band, "")
-band_filter = f"AND band = '{band_value}'" if band != "All" else ""
+band_filter = f"AND band = '{band_value}'"
 
 if time_mode == t["opt_last_x"]:
     end_t_base = datetime.now(timezone.utc)
@@ -283,7 +273,8 @@ if run_tx_clicked:
         st.stop()
     st.session_state.run_mode = "TX"
     st.session_state.run_id = int(time.time())
-    reset_result_export_state()
+    collapse_documentation(st.session_state)
+    reset_result_state(st.session_state)
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
@@ -300,24 +291,45 @@ if run_rx_clicked:
             st.stop()
     st.session_state.run_mode = "RX"
     st.session_state.run_id = int(time.time())
-    reset_result_export_state()
+    collapse_documentation(st.session_state)
+    reset_result_state(st.session_state)
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
 
 st.markdown('<hr style="border: none; border-top: 1px solid rgba(57, 255, 20, 0.3); margin: 2rem 0;">', unsafe_allow_html=True)
 
-render_analysis_run(
-    t=t,
-    run_status_slot=run_status_slot,
-    callsign=callsign,
-    qth_locator=qth_locator,
-    band_filter=band_filter,
-    start_t=start_t,
-    end_t=end_t,
-    max_dist_km=max_dist_km,
-    generate_map_plot=generate_map_plot,
-)
+if st.session_state.run_mode:
+    try:
+        with run_status_slot.container():
+            with st.spinner(t.get(
+                "msg_loading_analysis_engine",
+                "Preparing analysis engine...",
+            )):
+                from core.plot_engine import generate_map_plot
+                from ui.run_controller import render_analysis_run
+    except ImportError as exc:
+        st.session_state.run_mode = None
+        st.error(
+            "WSPRadar could not load the scientific analysis engine. "
+            "Please verify the deployment's Python and native dependencies."
+        )
+        st.code(str(exc))
+    else:
+        render_analysis_run(
+            t=t,
+            run_status_slot=run_status_slot,
+            callsign=callsign,
+            qth_locator=qth_locator,
+            band_filter=band_filter,
+            start_t=start_t,
+            end_t=end_t,
+            max_dist_km=max_dist_km,
+            generate_map_plot=generate_map_plot,
+        )
+
+# Load the small documentation preview only after the operational interface.
+from ui.documentation import render_documentation_section
 
 render_documentation_section(
     t,

@@ -37,11 +37,15 @@ credential was found.
 `app.py` is the Streamlit entry point. It:
 
 - enables Python fault handling;
-- initializes Streamlit page and session state;
+- emits page configuration and the lightweight application shell before
+  importing scientific analysis dependencies;
+- initializes Streamlit session state;
 - renders language, demo, and analysis configuration controls;
 - validates the requested time interval;
-- starts TX or RX analysis through `ui/run_controller.py`;
-- renders delayed documentation through `ui/documentation.py`.
+- imports `ui/run_controller.py`, plotting, inspector, DataFrame, HTTP, and
+  Cartopy dependencies only after a TX or RX run is active;
+- renders a Section 1 documentation preview and loads the remaining manual after
+  browser scroll intent or an explicit request through `ui/documentation.py`.
 
 The supported start command is:
 
@@ -66,7 +70,7 @@ operating risks. The Streamlit application neither imports nor starts it.
 
 | Module | Responsibility |
 | --- | --- |
-| `config/app_config.py` | Application identity, URLs, time-window limit, cache and HTTP limits, analysis/export admission settings, inspector cache, and documentation delay. |
+| `config/app_config.py` | Application identity, URLs, time-window limit, cache and HTTP limits, analysis/export admission settings, and inspector-cache limits. |
 | `config/bands.py` | WSPR band labels and wspr.live numeric identifiers. |
 | `config/demo_profiles.py` | Guided demo configuration and historical examples. |
 | `config/plot_constants.py` | Map extent, projection/render constants, colors, and scientific display constants. |
@@ -153,8 +157,12 @@ great-circle samples, endpoint solar states, and path-illumination classes. The
 opportunity pipeline transfers frame ownership so enrichment does not create an
 additional full-frame copy.
 
-`core/math_utils.py` contains callsign/locator validation, Maidenhead coordinate
-conversion, time quantization, geometry, and solar helpers.
+`core/input_validation.py` contains dependency-free callsign and locator
+validation, and `core/time_utils.py` contains dependency-free query-time
+quantization. Keeping these idle-shell helpers separate prevents NumPy-backed
+geometry from loading before an analysis is requested. `core/math_utils.py`
+retains compatibility exports while owning Maidenhead conversion, geometry, and
+solar helpers for the scientific path.
 
 ### Map Pipeline
 
@@ -201,10 +209,17 @@ run. Export preparation is lazy and protected by a separate admission controller
 from `core/export_admission.py`. The configured policy allows one active export
 and up to ten queued exports.
 
+`ui/result_state.py` owns the lightweight result/export session-state keys and
+reset lifecycle. Configuration callbacks can retire session artifacts and clear
+export, inspector, and stability caches without importing Pandas, Matplotlib,
+the inspector, or export rendering.
+
 Preparing an export reuses completed analysis and projected artifacts; it does
 not rerun the upstream scientific query. It renders paper-theme, high-resolution
 figures and packages configuration, metadata, CSV tables, compact Parquet
-evidence, and PNGs.
+evidence, and PNGs. Comparison artifacts are grouped under `compare/`; Success
+artifacts are grouped under `success/`, with the same names reflected in run
+metadata.
 
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
 session state for download. This is a known peak and idle-memory risk, partially
@@ -213,8 +228,17 @@ contained by single-export admission.
 ### Documentation Pipeline
 
 `docs/doc_en.py` and `docs/doc_de.py` hold the full manuals as source strings.
-`ui/documentation.py` renders the selected manual in a delayed Streamlit fragment
-and applies CSS content visibility so initial page elements can appear first.
+`ui/documentation.py` initially renders only Section 1 in a Streamlit fragment.
+`ui/documentation_scroll_trigger.py` mounts a one-pixel browser visibility
+sentinel immediately before Section 1.3. When that boundary enters the viewport,
+the fragment renders the table of contents and remaining chapters once per
+session while the reader finishes Section 1.3.
+`Load full documentation` is a prominent explicit fallback, and the same control
+can hide the loaded content. Starting an analysis collapses the manual and
+suppresses the viewport trigger while the run remains active, without rearming a
+trigger already consumed earlier in the session. A collapsed expander is not
+used as a lazy-load boundary because Streamlit would still execute and transmit
+its contents.
 
 `docs/pdf_generator.py` converts the manual to PDF only when requested. PDF
 generation is single-flight and process-cached, so the first requester waits and

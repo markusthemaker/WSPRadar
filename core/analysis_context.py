@@ -2,7 +2,10 @@
 
 from dataclasses import asdict, dataclass
 
+from config import DEFAULT_BAND
 
+
+COMPARISON_NONE = "none"
 COMPARISON_LOCAL_NEIGHBORHOOD = "local_neighborhood"
 COMPARISON_REFERENCE_STATION = "reference_station"
 COMPARISON_HARDWARE_AB = "hardware_ab"
@@ -40,8 +43,8 @@ class AnalysisContext:
     run_mode: str | None = None
     callsign: str = ""
     qth: str = ""
-    band: str = "20m"
-    comparison_mode: str = COMPARISON_LOCAL_NEIGHBORHOOD
+    band: str = DEFAULT_BAND
+    comparison_mode: str = COMPARISON_NONE
     local_benchmark: str = LOCAL_BENCHMARK_MEDIAN
     reference_callsign: str = ""
     neighborhood_radius_km: int = 100

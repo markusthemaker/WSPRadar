@@ -9,8 +9,7 @@ from sys import getsizeof
 import numpy as np
 import pandas as pd
 
-
-INSPECTOR_CACHE_STATE_KEY = "segment_inspector_cache"
+from ui.result_state import INSPECTOR_CACHE_STATE_KEY
 
 
 def estimate_cache_value_bytes(value, _seen=None) -> int:

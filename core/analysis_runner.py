@@ -11,6 +11,7 @@ from config import BAND_MAP, MAX_DYNAMIC_RADIUS_KM
 from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
+    COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
     LOCAL_BENCHMARK_MEDIAN,
     SELF_TEST_RX,
@@ -19,7 +20,8 @@ from core.analysis_context import (
     wspr_frame_mod4,
     wspr_frame_sql,
 )
-from core.math_utils import get_solar_state, is_valid_callsign
+from core.input_validation import is_valid_callsign
+from core.math_utils import get_solar_state
 from core.opportunity_engine import (
     ABSOLUTE_METHOD_VERSION,
     build_absolute_opportunity_query,
@@ -303,9 +305,11 @@ def build_analysis_batches(
     presentation_context=None,
     warn=None,
 ):
-    """
-    Reads the canonical user configuration and generates the necessary
-    SQL queries and execution batches for the map plots (Absolute & Comparison).
+    """Build direction-specific Success and optional Compare execution batches.
+
+    Success-only returns one opportunity batch. A selected benchmark returns the
+    comparison batch first and the target's separate Success batch second.
+    Invalid callsigns, bands, or benchmark designs raise ``AnalysisConfigError``.
     """
     labels = presentation_context.labels if presentation_context is not None else {}
 
@@ -318,6 +322,10 @@ def build_analysis_batches(
     if not is_valid_callsign(callsign):
         raise AnalysisConfigError(
             f"Invalid callsign '{callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
+        )
+    if analysis_context.band not in BAND_MAP:
+        raise AnalysisConfigError(
+            f"Invalid operating band '{analysis_context.band}'. Choose one exact WSPR band."
         )
 
     comp_mode = analysis_context.comparison_mode
@@ -336,7 +344,9 @@ def build_analysis_batches(
     is_sequential = False
     
     # Determine Reference / Buddy Parameters
-    if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+    if comp_mode == COMPARISON_NONE:
+        ref_callsign = None
+    elif comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         ref_radius_km = min(analysis_context.neighborhood_radius_km, MAX_DYNAMIC_RADIUS_KM)
     elif comp_mode == COMPARISON_REFERENCE_STATION:
         ref_callsign = analysis_context.reference_callsign.upper().strip()
@@ -354,6 +364,8 @@ def build_analysis_batches(
                 raise AnalysisConfigError(
                     f"Invalid Setup B callsign '{ref_callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
                 )
+    else:
+        raise AnalysisConfigError(f"Unknown benchmark design '{comp_mode}'.")
 
     target_wspr_frame_sql = wspr_frame_sql(analysis_context.target_wspr_frame) if is_sequential else ""
     reference_wspr_frame_sql = wspr_frame_sql(analysis_context.reference_wspr_frame) if is_sequential else ""
@@ -368,7 +380,12 @@ def build_analysis_batches(
     # Keeping it outside SQL construction avoids query-builder data access.
 
     # Peer SQL Filters
-    if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
+    if comp_mode == COMPARISON_NONE:
+        tx_peer_sql = None
+        rx_peer_sql = None
+        display_callsign = callsign
+        comp_title = ""
+    elif comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         ref_radius_km = min(analysis_context.neighborhood_radius_km, MAX_DYNAMIC_RADIUS_KM)
         local_benchmark = analysis_context.local_benchmark
         is_local_median = local_benchmark == LOCAL_BENCHMARK_MEDIAN
@@ -429,125 +446,113 @@ def build_analysis_batches(
         local_ref_detail_sql = f", groupArrayIf(tuple(local_sign, local_grid, local_dist, {benchmark_snr_expr}), is_me = 0) AS ref_detail_rows"
     
     if analysis_context.run_mode == "TX":
-        tx_comp_query = _build_tx_comparison_query(
-            is_sequential=is_sequential,
-            target_snr_expr=target_snr_expr,
-            reference_snr_expr=benchmark_snr_expr,
-            target_sql=tx_target_sql,
-            reference_sql=tx_peer_sql,
-            target_frame_sql=target_wspr_frame_sql,
-            reference_frame_sql=reference_wspr_frame_sql,
-            local_reference_snr_sql=local_ref_snr_sql,
-            local_reference_sign_sql=local_ref_sign_sql,
-            local_reference_dist_sql=local_ref_dist_sql,
-            local_reference_detail_sql=local_ref_detail_sql,
-            center_latitude=lat_0,
-            center_longitude=lon_0,
-            station_weighted_reference_median=station_weighted_reference_median,
-        )
-        analyses.append(with_decode_fallback({
-            "id": "TX_COMP",
-            "title": label(
-                "fig_tx_comp",
-                "TX Compare: {callsign} (Target) vs. {comp_title}",
-            ).format(callsign=display_callsign, comp_title=comp_title),
-            "is_compare": True,
-            "is_sequential": is_sequential,
-            "analysis_kind": "comparison",
-            "response_format": "csv",
-            "query": tx_comp_query,
-        }))
-        if analysis_context.band != "All":
+        if comp_mode != COMPARISON_NONE:
+            tx_comp_query = _build_tx_comparison_query(
+                is_sequential=is_sequential,
+                target_snr_expr=target_snr_expr,
+                reference_snr_expr=benchmark_snr_expr,
+                target_sql=tx_target_sql,
+                reference_sql=tx_peer_sql,
+                target_frame_sql=target_wspr_frame_sql,
+                reference_frame_sql=reference_wspr_frame_sql,
+                local_reference_snr_sql=local_ref_snr_sql,
+                local_reference_sign_sql=local_ref_sign_sql,
+                local_reference_dist_sql=local_ref_dist_sql,
+                local_reference_detail_sql=local_ref_detail_sql,
+                center_latitude=lat_0,
+                center_longitude=lon_0,
+                station_weighted_reference_median=station_weighted_reference_median,
+            )
             analyses.append(with_decode_fallback({
-                "id": "TX_ABS",
+                "id": "TX_COMP",
                 "title": label(
-                    "fig_tx_abs",
-                    "TX Success: Target {callsign} vs. Other Signals at Active RX Stations",
-                ).format(callsign=callsign),
-                "is_compare": False,
-                "is_sequential": False,
-                "analysis_kind": "opportunity",
-                "absolute_mode": "TX",
-                "absolute_method_version": ABSOLUTE_METHOD_VERSION,
-                "response_format": "parquet",
-                "query": build_absolute_opportunity_query(
-                    mode="TX",
-                    start_t=start_t,
-                    end_t=end_t,
-                    band_value=BAND_MAP[analysis_context.band],
-                    callsign=callsign,
-                    qth=analysis_context.qth,
-                    exclude_special_callsigns=analysis_context.exclude_special_callsigns,
-                    target_frame_mod4=target_frame_mod4,
-                    require_decode_code=True,
-                ),
+                    "fig_tx_comp",
+                    "TX Compare: {callsign} (Target) vs. {comp_title}",
+                ).format(callsign=display_callsign, comp_title=comp_title),
+                "is_compare": True,
+                "is_sequential": is_sequential,
+                "analysis_kind": "comparison",
+                "response_format": "csv",
+                "query": tx_comp_query,
             }))
-        else:
-            if warn:
-                warn(label(
-                    "warn_abs_exact_band",
-                    "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
-                ))
+        analyses.append(with_decode_fallback({
+            "id": "TX_ABS",
+            "title": label(
+                "fig_tx_abs",
+                "TX Success: Target {callsign} vs. Other Signals at Active RX Stations",
+            ).format(callsign=callsign),
+            "is_compare": False,
+            "is_sequential": False,
+            "analysis_kind": "opportunity",
+            "absolute_mode": "TX",
+            "absolute_method_version": ABSOLUTE_METHOD_VERSION,
+            "response_format": "parquet",
+            "query": build_absolute_opportunity_query(
+                mode="TX",
+                start_t=start_t,
+                end_t=end_t,
+                band_value=BAND_MAP[analysis_context.band],
+                callsign=callsign,
+                qth=analysis_context.qth,
+                exclude_special_callsigns=analysis_context.exclude_special_callsigns,
+                target_frame_mod4=target_frame_mod4,
+                require_decode_code=True,
+            ),
+        }))
 
     elif analysis_context.run_mode == "RX":
-        rx_comp_query = _build_rx_comparison_query(
-            is_sequential=is_sequential,
-            target_snr_expr=target_snr_expr,
-            reference_snr_expr=benchmark_snr_expr,
-            target_sql=rx_target_sql,
-            reference_sql=rx_peer_sql,
-            target_frame_sql=target_wspr_frame_sql,
-            reference_frame_sql=reference_wspr_frame_sql,
-            local_reference_snr_sql=local_ref_snr_sql,
-            local_reference_sign_sql=local_ref_sign_sql,
-            local_reference_dist_sql=local_ref_dist_sql,
-            local_reference_detail_sql=local_ref_detail_sql,
-            center_latitude=lat_0,
-            center_longitude=lon_0,
-            station_weighted_reference_median=station_weighted_reference_median,
-        )
-        analyses.append(with_decode_fallback({
-            "id": "RX_COMP",
-            "title": label(
-                "fig_rx_comp",
-                "RX Compare: {callsign} (Target) vs. {comp_title}",
-            ).format(callsign=display_callsign, comp_title=comp_title),
-            "is_compare": True,
-            "is_sequential": is_sequential,
-            "analysis_kind": "comparison",
-            "response_format": "csv",
-            "query": rx_comp_query,
-        }))
-        if analysis_context.band != "All":
+        if comp_mode != COMPARISON_NONE:
+            rx_comp_query = _build_rx_comparison_query(
+                is_sequential=is_sequential,
+                target_snr_expr=target_snr_expr,
+                reference_snr_expr=benchmark_snr_expr,
+                target_sql=rx_target_sql,
+                reference_sql=rx_peer_sql,
+                target_frame_sql=target_wspr_frame_sql,
+                reference_frame_sql=reference_wspr_frame_sql,
+                local_reference_snr_sql=local_ref_snr_sql,
+                local_reference_sign_sql=local_ref_sign_sql,
+                local_reference_dist_sql=local_ref_dist_sql,
+                local_reference_detail_sql=local_ref_detail_sql,
+                center_latitude=lat_0,
+                center_longitude=lon_0,
+                station_weighted_reference_median=station_weighted_reference_median,
+            )
             analyses.append(with_decode_fallback({
-                "id": "RX_ABS",
+                "id": "RX_COMP",
                 "title": label(
-                    "fig_rx_abs",
-                    "RX Success: Target {callsign} vs. Same Signals Heard Elsewhere",
-                ).format(callsign=callsign),
-                "is_compare": False,
-                "is_sequential": False,
-                "analysis_kind": "opportunity",
-                "absolute_mode": "RX",
-                "absolute_method_version": ABSOLUTE_METHOD_VERSION,
-                "response_format": "parquet",
-                "query": build_absolute_opportunity_query(
-                    mode="RX",
-                    start_t=start_t,
-                    end_t=end_t,
-                    band_value=BAND_MAP[analysis_context.band],
-                    callsign=callsign,
-                    qth=analysis_context.qth,
-                    exclude_special_callsigns=analysis_context.exclude_special_callsigns,
-                    require_decode_code=True,
-                ),
+                    "fig_rx_comp",
+                    "RX Compare: {callsign} (Target) vs. {comp_title}",
+                ).format(callsign=display_callsign, comp_title=comp_title),
+                "is_compare": True,
+                "is_sequential": is_sequential,
+                "analysis_kind": "comparison",
+                "response_format": "csv",
+                "query": rx_comp_query,
             }))
-        else:
-            if warn:
-                warn(label(
-                    "warn_abs_exact_band",
-                    "Absolute success-rate analysis requires one exact operating band and is skipped for Band=All.",
-                ))
+        analyses.append(with_decode_fallback({
+            "id": "RX_ABS",
+            "title": label(
+                "fig_rx_abs",
+                "RX Success: Target {callsign} vs. Same Signals Heard Elsewhere",
+            ).format(callsign=callsign),
+            "is_compare": False,
+            "is_sequential": False,
+            "analysis_kind": "opportunity",
+            "absolute_mode": "RX",
+            "absolute_method_version": ABSOLUTE_METHOD_VERSION,
+            "response_format": "parquet",
+            "query": build_absolute_opportunity_query(
+                mode="RX",
+                start_t=start_t,
+                end_t=end_t,
+                band_value=BAND_MAP[analysis_context.band],
+                callsign=callsign,
+                qth=analysis_context.qth,
+                exclude_special_callsigns=analysis_context.exclude_special_callsigns,
+                require_decode_code=True,
+            ),
+        }))
 
     return analyses
 

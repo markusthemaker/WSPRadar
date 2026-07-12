@@ -54,3 +54,36 @@ def test_current_wspr_frame_config_rejects_identical_tx_ab_frames():
 
     with pytest.raises(ValueError, match="target_wspr_frame and reference_wspr_frame must be different"):
         validate_config_upload(json.dumps(payload).encode("utf-8"))
+
+
+def test_removed_all_band_config_requires_an_exact_band():
+    payload = {
+        "app": CONFIG_APP_NAME,
+        "schema_version": 3,
+        "config": {
+            "callsign": "DL1MKS",
+            "qth": "JN37",
+            "band": "All",
+        },
+    }
+
+    with pytest.raises(ValueError, match="choose one exact operating band"):
+        validate_config_upload(json.dumps(payload).encode("utf-8"))
+
+
+@pytest.mark.parametrize("band", ["LF", "MF", "22m", "8m", "4m"])
+def test_config_upload_accepts_added_exact_wspr_bands(band):
+    payload = {
+        "app": CONFIG_APP_NAME,
+        "schema_version": 4,
+        "config": {
+            "callsign": "DL1MKS",
+            "qth": "JN37",
+            "band": band,
+        },
+    }
+
+    config, warnings = validate_config_upload(json.dumps(payload).encode("utf-8"))
+
+    assert warnings == []
+    assert config["band"] == band

@@ -19,7 +19,8 @@ from config import (
     ABS_PATH_SAMPLE_POINTS,
     ABS_PATH_TWILIGHT_ELEVATION_DEG,
 )
-from core.math_utils import is_valid_6char_locator, is_valid_callsign, locator_to_latlon
+from core.input_validation import is_valid_6char_locator, is_valid_callsign
+from core.math_utils import locator_to_latlon
 from core.solar_path import classify_path_illumination
 
 
@@ -523,3 +524,46 @@ def aggregate_opportunity_segments(peer_df: pd.DataFrame) -> pd.DataFrame:
     segments["val"] = segments["val"].round(1)
     segments["pooled_rate_pct"] = segments["pooled_rate_pct"].round(1)
     return segments
+
+
+def opportunity_footer_counts(
+    peer_df: pd.DataFrame,
+    *,
+    max_dist_km: float,
+) -> dict[str, int]:
+    """Return visible qualified station and denominator-evidence counts for Success maps.
+
+    Target counts are successful independently confirmed observations (hits), while
+    counter counts are misses confirmed by Elsewhere evidence in RX or Other Signals
+    in TX. Stations are assigned to Target when they have at least one hit and to
+    counter-only otherwise. Ineligible identities, out-of-scope identities, and
+    Target-only observations are excluded because they do not enter Success Rate.
+    """
+    if peer_df is None or peer_df.empty:
+        return {
+            "stat_target": 0,
+            "stat_counter_only": 0,
+            "spot_target": 0,
+            "spot_counter": 0,
+            "tot_stats": 0,
+            "tot_spots": 0,
+        }
+
+    visible_eligible = peer_df[
+        (peer_df["r_min"] < float(max_dist_km))
+        & peer_df["eligible"]
+        & peer_df["rate_pct"].notna()
+    ]
+    stat_target = int((visible_eligible["hits"] > 0).sum())
+    stat_counter_only = int((visible_eligible["hits"] == 0).sum())
+    spot_target = int(visible_eligible["hits"].sum())
+    spot_counter = int(visible_eligible["misses"].sum())
+
+    return {
+        "stat_target": stat_target,
+        "stat_counter_only": stat_counter_only,
+        "spot_target": spot_target,
+        "spot_counter": spot_counter,
+        "tot_stats": int(stat_target + stat_counter_only),
+        "tot_spots": int(spot_target + spot_counter),
+    }

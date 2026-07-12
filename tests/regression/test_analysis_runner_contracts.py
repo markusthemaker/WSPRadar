@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
 
 import pandas as pd
+import pytest
 
 from core.analysis_context import (
     AnalysisContext,
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
+    COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
     LOCAL_BENCHMARK_MEDIAN,
     SELF_TEST_RX,
@@ -50,6 +52,57 @@ def _build_analyses(context):
 
 def _analysis_by_id(context, analysis_id):
     return next(analysis for analysis in _build_analyses(context) if analysis["id"] == analysis_id)
+
+
+def test_no_benchmark_builds_only_the_directional_success_analysis():
+    tx_analyses = _build_analyses(
+        _analysis_context(run_mode="TX", comparison_mode=COMPARISON_NONE)
+    )
+    rx_analyses = _build_analyses(
+        _analysis_context(run_mode="RX", comparison_mode=COMPARISON_NONE)
+    )
+
+    assert [analysis["id"] for analysis in tx_analyses] == ["TX_ABS"]
+    assert [analysis["id"] for analysis in rx_analyses] == ["RX_ABS"]
+    assert all(analysis["analysis_kind"] == "opportunity" for analysis in tx_analyses + rx_analyses)
+
+
+def test_analysis_batch_builder_rejects_removed_all_band_context():
+    with pytest.raises(ValueError, match="Choose one exact WSPR band"):
+        _build_analyses(
+            _analysis_context(
+                run_mode="RX",
+                comparison_mode=COMPARISON_NONE,
+                band="All",
+            )
+        )
+
+
+def test_added_live_wspr_bands_build_numeric_opportunity_predicates():
+    for band, band_value in {
+        "LF": "-1",
+        "MF": "0",
+        "22m": "13",
+        "8m": "40",
+        "4m": "70",
+    }.items():
+        context = _analysis_context(
+            run_mode="RX",
+            comparison_mode=COMPARISON_NONE,
+            band=band,
+        )
+        analyses = build_analysis_batches(
+            context,
+            START_TIME,
+            END_TIME,
+            47.0,
+            8.0,
+            f"AND band = '{band_value}'",
+        )
+
+        assert len(analyses) == 1
+        assert analyses[0]["id"] == "RX_ABS"
+        assert f"band = {band_value}" in analyses[0]["query"]
 
 
 def test_tx_ab_wspr_frame_sql_uses_complete_utc_start_minute_sequences():

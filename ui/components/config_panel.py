@@ -38,8 +38,13 @@ def text_input_no_autocomplete(*args, **kwargs):
     return st.text_input(*args, **kwargs)
 
 def _benchmark_mode_options(t):
-    """Return benchmark modes ordered from strongest to weakest evidence model."""
-    return [t["opt_comp_self"], t["opt_comp_buddy"], t["opt_comp_radius"]]
+    """Return Success-only first, followed by the available benchmark designs."""
+    return [
+        t["opt_comp_none"],
+        t["opt_comp_self"],
+        t["opt_comp_buddy"],
+        t["opt_comp_radius"],
+    ]
 
 def render_core_expander(t):
     """Renders the first expander: Core Parameters (Callsign, Grid, Band, Time)."""
@@ -80,22 +85,23 @@ def render_core_expander(t):
                     st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
 
 def render_compare_expander(t):
-    """Renders the second expander: The A/B Compare Engine configurations."""
+    """Render the Success-only choice and optional benchmark-design controls."""
     with st.expander(t["exp_comp"], expanded=st.session_state.get("config_panels_expanded", True)):
         col_comp_l, col_comp_r = st.columns([0.5, 0.5], gap="large" )
         with col_comp_l:
             st.radio(t["lbl_comp_mode"], _benchmark_mode_options(t), key="val_comp_mode", on_change=handle_comp_mode_change)
-            st.number_input(
-                t["lbl_benchmark_offset_db"],
-                min_value=-99.9,
-                max_value=99.9,
-                step=0.1,
-                format="%.1f",
-                key="val_benchmark_offset_db",
-                help=t["hlp_benchmark_offset_db"],
-                on_change=_round_float_state,
-                args=("val_benchmark_offset_db", 1, reset_audit, (), {})
-            )
+            if st.session_state.val_comp_mode != t["opt_comp_none"]:
+                st.number_input(
+                    t["lbl_benchmark_offset_db"],
+                    min_value=-99.9,
+                    max_value=99.9,
+                    step=0.1,
+                    format="%.1f",
+                    key="val_benchmark_offset_db",
+                    help=t["hlp_benchmark_offset_db"],
+                    on_change=_round_float_state,
+                    args=("val_benchmark_offset_db", 1, reset_audit, (), {})
+                )
         
         with col_comp_r:
             comp_mode = st.session_state.val_comp_mode
@@ -161,7 +167,8 @@ def render_advanced_expander(t):
             st.session_state.val_min_spots = min(max(int(st.session_state.get("val_min_spots", 1)), 1), 50)
             st.session_state.val_min_opportunities = min(max(int(st.session_state.get("val_min_opportunities", 5)), 1), 100)
             st.session_state.val_min_stations = min(max(int(st.session_state.get("val_min_stations", 1)), 1), 10)
-            st.slider(min_spots_label, 1, 50, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
+            if st.session_state.val_comp_mode != t["opt_comp_none"]:
+                st.slider(min_spots_label, 1, 50, key="val_min_spots", help=t["hlp_min_spots"], on_change=reset_audit)
             st.slider(
                 t.get("lbl_min_opportunities", "Min. Confirmed H+M per Station"),
                 1,

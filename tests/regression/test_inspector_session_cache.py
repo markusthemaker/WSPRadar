@@ -17,6 +17,15 @@ def _cache(*, max_bytes=64, limits=None, run_id=7):
     )
 
 
+def test_segment_evidence_summary_reports_counts_without_strength_grade():
+    assert segment_inspector._segment_evidence_count_summary(4, 17, "joint spots") == (
+        "Selected Segment Evidence: 4 joint stations | 17 joint spots"
+    )
+    assert segment_inspector._segment_evidence_count_summary(2, 9, "paired spot bins") == (
+        "Selected Segment Evidence: 2 joint stations | 9 paired spot bins"
+    )
+
+
 def test_session_cache_enforces_namespace_lru_limit():
     cache = _cache(max_bytes=100, limits={"segment": 2})
     assert cache.put("segment", "first", b"1", size_bytes=1)

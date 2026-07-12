@@ -29,7 +29,7 @@ generated end-user and scientific manual, not the repository engineering guide.
 - `AGENT_README.md` is the authoritative repository setup and operating guide.
 - `docs/architecture.md` is the authoritative code-level architecture guide.
 - `config/app_config.py` owns runtime URLs, cache settings, HTTP limits,
-  admission limits, inspector-cache limits, and documentation delay.
+  admission limits, and inspector-cache limits.
 - `config/bands.py`, `config/demo_profiles.py`, and `config/plot_constants.py`
   own band mappings, demo definitions, and map/scientific plotting constants.
 - `core/analysis_context.py` defines canonical scientific configuration.
@@ -38,6 +38,11 @@ generated end-user and scientific manual, not the repository engineering guide.
   required Parquet projections.
 - `core/artifact_store.py` owns cache namespaces, paths, locks, atomic writes,
   leases, touching, and TTL cleanup.
+- `core/input_validation.py` and `core/time_utils.py` own dependency-free input
+  and time helpers used by the idle shell; `ui/result_state.py` owns the
+  lightweight result-reset lifecycle and its session-state keys.
+- `ui/documentation_state.py` owns documentation visibility and one-shot scroll
+  state; `ui/documentation_scroll_trigger.py` owns the browser viewport signal.
 - `tests/regression/` is the executable behavioral contract.
 
 ## Setup
@@ -118,6 +123,9 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
   branches.
 - Keep Streamlit imports and session-state access in `app.py` and `ui/`.
   `core/` and pure inspector view-model modules must remain UI-independent.
+- Preserve the idle import boundary: configuration callbacks and result resets
+  must not import analysis, inspector, DataFrame, HTTP, Matplotlib, Cartopy, or
+  export-rendering modules. Load that scientific runtime only for an active run.
 - Pass `AnalysisContext` into scientific work and `PresentationContext` into
   rendering. Add fields deliberately because they affect cache keys and tests.
 - Keep SQL construction and post-fetch classification deterministic. Validate
@@ -151,7 +159,7 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
   their meaning is unambiguous.
 - Use established WSPRadar terminology consistently. Do not introduce synonyms
   for existing concepts such as Target, Reference, Elsewhere, Other Signals,
-  Joint, Opportunity, Success Rate, or Decode Yield.
+  Joint, Opportunity, Success Rate, Decode Outcomes, or Target-Active Gate.
 - Function and method names should describe the action performed, normally using
   a verb phrase such as `build_analysis_batches`, `prepare_opportunity_rows`, or
   `validate_config_upload`.
@@ -293,3 +301,48 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
   `scripts/sync_readme_from_doc_en.py`.
 - Before completing a task, verify that the documentation still maps to the
   implementation.
+
+### End-User Manual Style and Structure
+
+Use the English manual's operator-first, layered style as the reference model
+for future end-user documentation work:
+
+- Write primarily for radio amateurs and WSPR operators: first-time WSPR users,
+  experienced experimenters, and scientifically critical readers. Keep
+  repository-engineering detail in contributor or architecture documentation.
+- Begin with why WSPRadar is useful and distinctive, followed by the minimum
+  WSPR background needed to understand it. Explain genuine strengths without
+  unsupported `first`, `only`, calibrated-measurement, or causation claims.
+- Build understanding progressively. Introduce terms such as Target, Reference,
+  peer, Success Rate, Decode Outcomes, and Delta SNR in plain operator language
+  before relying on them. Do not front-load a dense glossary.
+- Preserve an operator journey: value and WSPR primer; valid Quick Start;
+  analysis choice and experiment design; result interpretation; controls and
+  defaults; troubleshooting; scientific methods; limitations, valid claim
+  language, and reproducibility; then operational and literature appendices.
+- Keep that structure MECE. Give experiment selection, UI interpretation,
+  configuration, scientific algorithms/formulas, and inference limits one
+  authoritative home each. Cross-reference instead of repeating full
+  explanations in several mode guides.
+- Layer practical and scientific depth. State what a result means for the
+  operator first, then place exact matching, denominators, evidence units,
+  aggregation, and formulas in the scientific section.
+- Make the Quick Start teach how to produce and recognize a valid result, not
+  merely which buttons to click.
+- Keep the tone technically rigorous but practical and inviting. Each paragraph
+  should help answer an operator's likely `so what?`; avoid dry implementation
+  narration that does not change setup, interpretation, or claim language.
+- Distinguish observations, assumptions, heuristics, and supported inferences.
+  Explain conditional denominators and asymmetries, and state explicitly which
+  claims the evidence does and does not support.
+- Define each formula once in its scientific home, ensure it renders in both the
+  Web UI and generated PDF, and link to it from practical sections when needed.
+- Use current UI labels, defaults, result units, export contents, and behavior.
+  Challenge documentation claims against implementation and regression tests;
+  report disagreements rather than changing runtime behavior to fit prose.
+- Keep operational procedures and literature/prior art available without
+  interrupting the main operator flow. Use appendices and cite every retained
+  reference in order of first use.
+- During restructuring, preserve unique, correct user guidance. Classify content
+  before removal as duplicated, obsolete, implementation-only, scientifically
+  unsupported, or genuinely useful; do not silently lose the last category.

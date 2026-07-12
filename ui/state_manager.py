@@ -6,6 +6,7 @@ to ensure a consistent default state across user sessions and reruns.
 
 import streamlit as st
 from datetime import datetime, timedelta, timezone, time as dt_time
+from config import BAND_MAP, DEFAULT_BAND
 from i18n import T
 
 def _normalize_wspr_frame_state_value(value, lang, fallback_key):
@@ -77,7 +78,9 @@ def init_session_state():
     if "val_qth" not in st.session_state: 
         st.session_state.val_qth = ""
     if "val_band" not in st.session_state: 
-        st.session_state.val_band = "30m"
+        st.session_state.val_band = DEFAULT_BAND
+    elif st.session_state.val_band not in BAND_MAP:
+        st.session_state.val_band = DEFAULT_BAND
         
     # --- Default Time Settings ---
     if "val_time_mode" not in st.session_state: 
@@ -93,9 +96,9 @@ def init_session_state():
     if "val_end_t" not in st.session_state: 
         st.session_state.val_end_t = dt_time(23, 59)
         
-    # --- Default Comparison Modes (Compare Engine) ---
+    # --- Default Benchmark Design ---
     if "val_comp_mode" not in st.session_state: 
-        st.session_state.val_comp_mode = T[st.session_state.lang]["opt_comp_self"]
+        st.session_state.val_comp_mode = T[st.session_state.lang]["opt_comp_none"]
     if "val_ref_stations" not in st.session_state: 
         st.session_state.val_ref_stations = 10
     if "val_ref_radius_km" not in st.session_state:

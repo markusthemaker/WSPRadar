@@ -36,6 +36,7 @@ from core.opportunity_engine import (
     SUCCESS_RATE_BOUNDS,
     SUCCESS_RATE_COLORS,
     SUCCESS_RATE_TICK_LABELS,
+    opportunity_footer_counts,
 )
 from core.compare_engine import compare_footer_counts
 from core.map_data import build_map_data
@@ -160,6 +161,84 @@ def _draw_preview_canvas_for_profile(fig, dpi=MAP_PROFILE_PREVIEW_DPI):
     finally:
         fig.set_dpi(original_dpi)
     return f"{width_px}x{height_px} px | {dpi:g} dpi | extra diagnostic draw"
+
+
+def _draw_footer_summary_bars(
+    fig,
+    *,
+    station_counts,
+    spot_counts,
+    colors,
+    text_colors,
+    theme_config,
+):
+    """Draw visible-scope station and spot composition as two stacked bars."""
+    if not (
+        len(station_counts)
+        == len(spot_counts)
+        == len(colors)
+        == len(text_colors)
+    ):
+        raise ValueError("Footer summary series must have matching lengths")
+
+    station_total = sum(station_counts)
+    spot_total = sum(spot_counts)
+    station_percentages = [
+        count / station_total * 100 if station_total > 0 else 0
+        for count in station_counts
+    ]
+    spot_percentages = [
+        count / spot_total * 100 if spot_total > 0 else 0
+        for count in spot_counts
+    ]
+
+    summary_axis = fig.add_axes(
+        theme_config.get("bar_bbox", [0.12, 0.035, 0.85, 0.045])
+    )
+    summary_axis.set_facecolor(theme_config["bar_face"])
+    for spine in summary_axis.spines.values():
+        spine.set_visible(False)
+    summary_axis.set_xticks([])
+    summary_axis.tick_params(
+        axis="y",
+        length=0,
+        pad=10,
+        colors=theme_config["bar_tick"],
+        labelsize=FONT_LEGEND,
+    )
+
+    left_positions = [0.0, 0.0]
+    for station_count, spot_count, station_pct, spot_pct, color, text_color in zip(
+        station_counts,
+        spot_counts,
+        station_percentages,
+        spot_percentages,
+        colors,
+        text_colors,
+    ):
+        rectangles = summary_axis.barh(
+            ["STATIONS", "SPOTS"],
+            [station_pct, spot_pct],
+            left=left_positions,
+            color=color,
+            height=0.6,
+        )
+        for rectangle, count in zip(rectangles, [station_count, spot_count]):
+            if count <= 0 or rectangle.get_width() < 2.5:
+                continue
+            summary_axis.text(
+                rectangle.get_x() + rectangle.get_width() / 2,
+                rectangle.get_y() + rectangle.get_height() / 2,
+                str(count),
+                color=text_color,
+                ha="center",
+                va="center",
+                fontsize=FONT_LEGEND - 2,
+            )
+        left_positions[0] += station_pct
+        left_positions[1] += spot_pct
+
+    return summary_axis
 
 
 def _profile_base_only_map_draw(
@@ -504,77 +583,45 @@ def render_map_figure(
     # RENDER FOOTER METRICS & PARAMETERS
     # ==========================================
     if is_compare and 'count_only_u' in df_plot.columns:
-        
         counts = compare_footer_counts(df_plot, max_dist_km=max_dist_km)
-        stat_joint = counts["stat_joint"]
-        stat_both_async = counts["stat_both_async"]
-        stat_only_u = counts["stat_only_u"]
-        stat_only_r = counts["stat_only_r"]
-        spot_joint = counts["spot_joint"]
-        spot_both_async = counts["spot_both_async"]
-        spot_only_u = counts["spot_only_u"]
-        spot_only_r = counts["spot_only_r"]
-        tot_stats = counts["tot_stats"]
-        tot_spots = counts["tot_spots"]
-
-        # 2. Native Categorical Axes setup
-        ax_bars = fig.add_axes(theme_cfg.get("bar_bbox", [0.12, 0.035, 0.85, 0.045]))
-        ax_bars.set_facecolor(theme_cfg["bar_face"])
-        for spine in ax_bars.spines.values(): spine.set_visible(False)
-        ax_bars.set_xticks([])
-        ax_bars.tick_params(axis='y', length=0, pad=10, colors=theme_cfg["bar_tick"], labelsize=FONT_LEGEND)
-        
-        # Prozentuale Breiten (0-100%) für sauberes Matplotlib-Skalieren
-        pct_u_stat = (stat_only_u / tot_stats * 100) if tot_stats > 0 else 0
-        pct_j_stat = (stat_joint / tot_stats * 100) if tot_stats > 0 else 0
-        pct_a_stat = (stat_both_async / tot_stats * 100) if tot_stats > 0 else 0
-        pct_r_stat = (stat_only_r / tot_stats * 100) if tot_stats > 0 else 0
-
-        pct_u_spot = (spot_only_u / tot_spots * 100) if tot_spots > 0 else 0
-        pct_j_spot = (spot_joint / tot_spots * 100) if tot_spots > 0 else 0
-        pct_a_spot = (spot_both_async / tot_spots * 100) if tot_spots > 0 else 0
-        pct_r_spot = (spot_only_r / tot_spots * 100) if tot_spots > 0 else 0
-        
-        # Radius Modus Check: Spots-Venn ausblenden, wenn wir gegen die Referenz-Wolke vergleichen
-        is_radius_mode = analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD
-        
-        categories = ['STATIONS', ' '] if is_radius_mode else ['STATIONS', 'SPOTS']
-
-        # 3. Rendern der 4 Balken-Segmente übereinandergestapelt
-        # Segment 1: Only U (Lila)
-        p1 = ax_bars.barh(categories, [pct_u_stat, pct_u_spot if not is_radius_mode else 0], color=COLOR_ONLY_ME, height=0.6)
-        # Segment 2: Joint (Grün)
-        p2 = ax_bars.barh(categories, [pct_j_stat, pct_j_spot if not is_radius_mode else 0], left=[pct_u_stat, pct_u_spot if not is_radius_mode else 0], color=COLOR_JOINT, height=0.6)
-        # Segment 3: Both Async (Orange)
-        p3 = ax_bars.barh(categories, [pct_a_stat, pct_a_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat, pct_u_spot+pct_j_spot if not is_radius_mode else 0], color=COLOR_BOTH_ASYNC, height=0.6)
-        # Segment 4: Only R (Weiß)
-        p4 = ax_bars.barh(categories, [pct_r_stat, pct_r_spot if not is_radius_mode else 0], left=[pct_u_stat+pct_j_stat+pct_a_stat, pct_u_spot+pct_j_spot+pct_a_spot if not is_radius_mode else 0], color=theme_cfg["only_ref"], height=0.6)
-        
-        # Dynamisches Zentrieren der echten Zahlenwerte in den Boxen
-        def add_labels(rects, real_values, text_color):
-            for rect, val in zip(rects, real_values):
-                width = rect.get_width()
-                if val > 0 and width >= 2.5:  # Keine Labels bei winzigen Slivers
-                    x = rect.get_x() + (width / 2)
-                    y = rect.get_y() + (rect.get_height() / 2)
-                    ax_bars.text(x, y, str(val), color=text_color, ha='center', va='center', fontsize=FONT_LEGEND-2)
-
-        # Die berechneten, absoluten Werte in die Render-Rechtecke injizieren
-        if is_radius_mode:
-            add_labels(p1, [stat_only_u], 'white')
-            add_labels(p2, [stat_joint], 'black')
-            add_labels(p3, [stat_both_async], 'black')
-            add_labels(p4, [stat_only_r], 'black')
-        else:
-            add_labels(p1, [stat_only_u, spot_only_u], 'white')
-            add_labels(p2, [stat_joint, spot_joint], 'black')
-            add_labels(p3, [stat_both_async, spot_both_async], 'black')
-            add_labels(p4, [stat_only_r, spot_only_r], 'black')
-            
-        # 4. Config string zentriert am unteren Rand
+        _draw_footer_summary_bars(
+            fig,
+            station_counts=[
+                counts["stat_only_u"],
+                counts["stat_joint"],
+                counts["stat_both_async"],
+                counts["stat_only_r"],
+            ],
+            spot_counts=[
+                counts["spot_only_u"],
+                counts["spot_joint"],
+                counts["spot_both_async"],
+                counts["spot_only_r"],
+            ],
+            colors=[
+                COLOR_ONLY_ME,
+                COLOR_JOINT,
+                COLOR_BOTH_ASYNC,
+                theme_cfg["only_ref"],
+            ],
+            text_colors=["white", "black", "black", "black"],
+            theme_config=theme_cfg,
+        )
         fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer"], ha='center', fontsize=FONT_FOOTER)
         fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
         
+    elif is_opportunity:
+        counts = opportunity_footer_counts(df_plot, max_dist_km=max_dist_km)
+        _draw_footer_summary_bars(
+            fig,
+            station_counts=[counts["stat_target"], counts["stat_counter_only"]],
+            spot_counts=[counts["spot_target"], counts["spot_counter"]],
+            colors=[COLOR_JOINT, theme_cfg["only_ref"]],
+            text_colors=["black", "black"],
+            theme_config=theme_cfg,
+        )
+        fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer_abs"], ha='center', fontsize=FONT_FOOTER)
+        fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
     else:
         # Fallback für Absolute Maps
         fig.text(0.50, 0.035, line1_str, color=theme_cfg["footer_abs"], ha='center', fontsize=FONT_FOOTER)

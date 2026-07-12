@@ -1,0 +1,853 @@
+# docs/doc_en.py
+
+"""
+English manual for WSPRadar.
+Used in the Web UI and for PDF export.
+"""
+
+DOC_EN = r"""
+---
+
+<a id="sec-1"></a>
+### 1. Introduction and Objective
+
+In amateur radio, evaluating antenna performance has traditionally relied on anecdotal signal reports or manual A/B switching. However, these methods are subject to significant confounding variables: rapid ionospheric fading (QSB), inconsistent remote transmitter power levels, localized noise floors (QRM), uneven receiver density and changing station activity. These factors make it difficult to objectively measure how well an antenna or station is performing in day-to-day operation.
+
+This is where the **Weak Signal Propagation Reporter (WSPR)** protocol changes the game. WSPR is a digital mode designed for probing potential propagation paths using low-power, two-minute beacon transmissions. Every day, thousands of stations worldwide autonomously transmit and receive these beacons, logging large volumes of time-stamped Signal-to-Noise Ratio (SNR) reports into public databases. WSPR is not calibrated laboratory instrumentation, but it is an unusually powerful global observation network: it continuously records where signals land, who can hear whom, and under which band/time conditions those decodes occurred.
+
+The objective of **WSPRadar** is to harness this massive, crowd-sourced dataset and turn it into a systematic, semi-quantitative framework for evaluating transmit (TX) and receive (RX) station performance. By extracting historical WSPR spot data from wspr.live, WSPRadar applies temporal pairing, reported-power normalization, geographic aggregation, median-based robustness filters and interactive drill-down tables. The result is not a calibrated antenna test site or controlled station measurement setup. It is a practical real-world evidence engine for answering: where am I heard, who do I hear, how do I compare to my local peers, and did a hardware change produce a measurable signal?
+
+### Table of Contents
+* [1. Introduction and Objective](#sec-1)
+* [2. Quick Start](#sec-2)
+* [3. What WSPRadar Can Answer](#sec-3)
+* [4. Analysis Modes and Valid Experiment Design](#sec-4)
+  * [4.0 Comparison Terminology](#sec-4-0)
+  * [4.1 TX/RX Success](#sec-4-1)
+  * [4.2 Hardware A/B Test](#sec-4-2)
+  * [4.3 Specific Reference Station / Buddy Test](#sec-4-3)
+  * [4.4 Local Neighborhood Benchmark](#sec-4-4)
+  * [4.5 Decode Yield in Compare Modes](#sec-4-5)
+* [5. Result Terminology and Reading the UI](#sec-5)
+  * [5.1 Map](#sec-5-1)
+  * [5.2 Segment Insight - TX/RX Success](#sec-5-2)
+  * [5.3 Segment Insight - Compare Modes](#sec-5-3)
+  * [5.4 Station Insights and Selected Station Evidence](#sec-5-4)
+  * [5.5 Export and Download Reproducibility Package](#sec-5-5)
+* [6. Scientific Method and Assumptions](#sec-6)
+  * [6.1 Data provenance and robustness](#sec-6-1)
+  * [6.2 WSPR SNR and reported power](#sec-6-2)
+  * [6.3 Power normalization](#sec-6-3)
+  * [6.4 Temporal pairing and heartbeat filtering](#sec-6-4)
+  * [6.5 Median aggregation hierarchy](#sec-6-5)
+  * [6.6 Bivariate evaluation model](#sec-6-6)
+  * [6.7 Geographic rastering and projection](#sec-6-7)
+  * [6.8 Evidence strength and sample thresholds](#sec-6-8)
+* [7. Limitations](#sec-7)
+* [8. Configuration Reference](#sec-8)
+* [9. Existing Literature and Prior Art](#sec-9)
+* [10. Disclaimer & License](#sec-10)
+* [Appendix A: Parallel Operation of Multiple WSJT-X Instances](#sec-a)
+* [Appendix B: Single-TX A/B Switching with a USB Relay](#sec-b)
+* [Appendix C: Reference SNR Calibration](#sec-c)
+* [References](#sec-ref)
+
+<a id="sec-2"></a>
+### 2. Quick Start
+
+1. Open the configuration panel.
+2. Click `Load Demo`.
+3. Either load the selected demo configuration for inspection, or run the selected demo directly.
+4. Run `TX` or `RX`.
+5. Read the map first: color shows the median segment value, dots show individual station categories, and the footer bars show **Decode Yield**, the decode/no-decode side of the analysis.
+6. Click one distance/azimuth map segment in the Segment Inspector.
+7. Open one Station Insights row to inspect the Drill-Down data.
+8. Use `Prepare All Results for Download` when you want a full reproducibility package with configuration, metadata, high-resolution figures, CSV tables and the compact parquet analysis cache.
+
+<a id="sec-3"></a>
+### 3. What WSPRadar Can Answer
+
+WSPRadar is designed around concrete amateur-radio questions:
+
+* **Where is my transmitted signal heard?** Use `TX Success`.
+* **Who can my station hear?** Use `RX Success`.
+* **Did antenna A beat antenna B at my own location?** Use `Hardware A/B Test`, either simultaneous RX or fixed-schedule sequential TX.
+* **How do I compare with a specific nearby station or radio friend?** Use `Specific Reference Station`.
+* **Am I typical for my local WSPR neighborhood?** Use `Local Median Neighborhood`, the default local benchmark.
+* **Can I match the best active local peer?** Use `Local Best Station`, the strict local stress test.
+* **Are my distance patterns consistent with NVIS or DX behavior?** Inspect near and far distance rings, while remembering that distance is not a direct take-off-angle measurement.
+* **Am I an alligator: heard well but hearing poorly?** Compare TX and RX results against the same reference concept and look for asymmetric transmit/receive behavior.
+
+<a id="sec-4"></a>
+### 4. Analysis Modes and Valid Experiment Design
+
+This chapter combines the user choice, the analysis concept and the experiment-design rules. Shared mathematics and assumptions are explained once in [Scientific Method and Assumptions](#sec-6).
+
+<a id="sec-4-0"></a>
+#### 4.0 Terminology
+
+* **Target** means the station or setup under test: usually your callsign, Setup A, or the station you want to evaluate.
+* **Reference** means the comparison baseline: a buddy callsign, the local neighborhood, the local best station, or Setup B.
+* A **callsign** is matched exactly in target/reference comparison modes. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` and `DL1MKS/QRP` are separate exact callsigns. WSPRadar does not use hidden prefix matching such as `DL1MKS%`; if the run should analyze `DL1MKS/P`, enter `DL1MKS/P` as the callsign for that side.
+* A **WSPR spot** is one reported successful decode: time, band, transmitter, receiver, locator, reported power and SNR.
+* A **WSPR cycle** is one two-minute WSPR transmit/receive opportunity, aligned to even UTC minutes.
+* A **target-active WSPR cycle** is a WSPR cycle where the target station/setup was demonstrably active. In TX analysis, the target signal must have been decoded by at least one station worldwide. In RX analysis, the target receiver must have uploaded at least one decode in that cycle.
+* A **Maidenhead locator** is the grid-square location code used by WSPR; WSPRadar uses your QTH locator as the map center.
+* A **median** is the middle value of a sorted sample. WSPRadar uses medians because they are more robust against outliers and changing propagation states than simple averages.
+* **Joint / Synced** evidence means that target and reference have comparable evidence for the same remote station and propagation path in the same WSPR cycle or, for sequential TX A/B, in the same valid time bin.
+* **Delta SNR** means the target's SNR minus the reference SNR. In compare maps, positive Delta SNR favors the target; negative Delta SNR favors the reference.
+* **Decode Yield** means the decode/no-decode side of the comparison: joint evidence, target-only evidence, reference-only evidence and async evidence inside the relevant heartbeat-gated comparison cycles.
+* The **heartbeat filter** protects Decode Yield against offline bias: WSPRadar only counts **target-active cycles**, meaning WSPR cycles where the target was demonstrably active. [Section 6.4](#sec-6-4) defines this precisely for TX and RX.
+* **System Sensitivity** is the UI label for Decode Yield. It is not a calibrated receiver-sensitivity measurement.
+* **Station Medians (Delta SNR)** is the UI label for the station-balanced paired Delta-SNR distribution. It is not RF-amplifier linearity.
+
+**Standard recommendations for all modes**
+
+* Use a correct callsign and Maidenhead locator.
+* Use a time window that covers the propagation states you care about; multi-day windows are stronger when the claim spans full daily ionospheric cycles.
+* Keep the station configuration stable during the analysis window except for the variable intentionally under test.
+* For TX analysis, keep transmitter, antenna/feedline/tuner path, power control, scheduling and reported power stable unless they are the tested variable; use a realistic reported power value.
+* For RX analysis, keep receiver, antenna/feedline path, audio path, decoder settings and upload behavior stable unless they are the tested variable.
+
+<a id="sec-4-1"></a>
+#### 4.1 TX/RX Success
+
+**Answers**
+
+* `RX Success` / **RX Success Rate:** during target-active WSPR cycles, how often did my receiver, the target, receive and decode a WSPR signal that was independently confirmed by another receiver somewhere else in the world?
+* `TX Success` / **TX Success Rate:** during target-active WSPR cycles, among RX stations that were active on the same band as proven by their own non-target WSPR decodes, how often did those RX stations also decode my transmitter, the target?
+* These are conditional, opportunity-based rates. They are designed to reduce the activity, propagation and successful-decode bias that made raw coverage or raw SNR maps difficult to interpret.
+
+**How it works**
+
+WSPRadar uses exact 2-minute UTC WSPR cycles and keeps only cycles in which the configured target station was demonstrably active. A peer is one exact `callsign + reported locator` identity.
+
+For each target-active cycle and peer:
+
+* **Target (`T`)**: the target station/setup confirmed the relevant peer in the target-active cycle.
+* **Elsewhere (`E`, RX Success)**: the same remote transmitting station was heard elsewhere in the RX network in that cycle, but not by the target receiver.
+* **Other Signals (`OS`, TX Success)**: an active RX station uploaded other same-band WSPR decodes in that target-active cycle, but did not decode the target transmitter.
+* **Target-only**: the target observed the station without independent counter-evidence. These rows remain audit evidence, but do not enter `Target`, `Elsewhere`, `Other Signals` or the Success Rate denominator.
+* **Success Rate:** RX uses `Target/(Target+Elsewhere)`. TX uses `Target/(Target+Other Signals)`.
+
+The direction of the evidence depends on the mode:
+
+* In **RX Success**, the peer is a transmitting station. The map title is `Target {callsign} vs. Same Signals Heard Elsewhere`: did the target receiver hear signals that the network proves existed elsewhere?
+* In **TX Success**, the peer is a receiving station. The map title is `Target {callsign} vs. Other Signals at Active RX Stations`: among active receivers hearing WSPR traffic, did they hear the target transmitter or only other signals?
+
+In `RX Success`, a transmitting station can enter the candidate set if the same signal was decoded elsewhere in the same target-active WSPR cycle. Over a long enough RX run, the candidate TX set can grow toward all globally active transmitters on that band during cycles where the target receiver was active, including transmitters your receiver never decoded.
+
+In `TX Success`, a receiver can enter the candidate set if it uploaded any same-band WSPR decode during a target-active WSPR cycle. Over a long enough TX run, the candidate RX set can grow toward all globally active WSPR receivers on that band during your transmit cycles, including receivers that never decoded you.
+
+Rates are first calculated per station identity. A station contributes to the map, segment summary and Station Insights only after it reaches the configured minimum confirmed counter-evidence: `Target+Elsewhere` in RX Success, or `Target+Other Signals` in TX Success. A map segment shows the arithmetic mean of the contributing station success rates, so every qualifying station has equal weight. The Segment Insight also shows the Observation-Level rate, `sum(Target) / sum(Target+counter-evidence)`, which gives every confirmed observation equal weight and can therefore be dominated by high-volume stations.
+
+**Careful with**
+
+* The rate is conditional on externally confirmed peer activity; it is not the probability of decoding every transmission that may have occurred.
+* External evidence confirms endpoint activity, not that the propagation path between target and peer was open. The result intentionally includes propagation, path geometry and station-system performance.
+* WSPR does not provide an authoritative transmission log. In TX Success, a target transmission decoded by nobody is unobservable and cannot become an Other-Signals case.
+* Target-only evidence remains available in the internal audit data, but is omitted from the primary map, summary and Station Insights because it is neither Target nor counter-evidence. Treating it as denominator evidence would make the metric depend on its own success.
+* TX/RX Success analysis requires one exact band. `Band = All` is intentionally rejected because cycles and observability are band-specific.
+* The target identity is matched by exact callsign and the configured QTH's 4-character locator. Incorrect or changing target locator uploads can therefore remove valid cycles or mix station identities.
+* The query uses valid WSPR spots with `code = 1`. Older historical records may have different code completeness; interpret long-range historical comparisons with care.
+* RX results still describe the whole receive system, and TX results still describe the whole transmit/network path. Neither rate is a laboratory antenna-gain measurement.
+
+
+<a id="sec-4-2"></a>
+#### 4.2 Hardware A/B Test
+
+The Hardware A/B Test is for your own equipment at your own location. It is valid only when every non-tested variable is held as constant as practical: band, time window, power, feedline losses, receiver chain, audio chain, decoding software and locator reporting.
+
+* Use two genuinely independent receive and/or transmit chains where those chains are part of the test; shared components must be intentional, stable and outside the tested variable.
+
+**RX A/B Test: simultaneous**
+
+Two parallel receivers decode the same remote WSPR transmissions at the same time.
+
+* Use distinguishable reporting identities, for example the main callsign for Setup A and a suffix for Setup B, so both streams appear in the WSPR database.
+* Setup A and Setup B are each matched by one exact callsign. If Setup B used `DL1MKS/P`, enter `DL1MKS/P` as Setup B. Do not expect `DL1MKS` to also match `DL1MKS/P`.
+* Keep clocks synchronized.
+* Appendix A describes how to separate parallel WSJT-X instances so both decoders do not share the same audio file, virtual audio path, save directory or temporary WSPR files.
+
+**TX A/B Test: fixed-schedule sequential**
+
+Setup A and Setup B cannot transmit at the same time on the same callsign. WSPRadar therefore uses deterministic UTC WSPR-frame time slicing. A transmitter, controller or RF switching system assigns one setup or RF path to WSPR-2 frames starting at UTC minute 00, 04, 08, ... and the other setup or RF path to frames starting at UTC minute 02, 06, 10, ... respectively. The tool groups data into time bins, computes a micro-median for each setup or RF path inside a bin, and calculates the bin Delta.
+
+The most controlled TX A/B design usually uses one transmitter and switches only the RF path between two antennas. In that design, the transmitter, callsign, WSPR software, frequency, power setting and clock remain common. The intended experimental variables are then the switched feedline/antenna paths, rather than two separate transmit chains. This is safer and scientifically cleaner than comparing two independent transmitters because transmitter calibration, frequency stability, audio drive, power reporting and timing behavior are removed as major confounders.
+
+WSPRadar includes the cross-platform helper tool `tools/Timed-AB-Relay-Switch` for this use case. It alternates a supported USB HID relay on the same UTC WSPR-frame cadence used by the app and runs through the Python HID stack on Windows, Linux and macOS. The USB relay can in turn control a suitable RF antenna switch, for example a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, provided the relay output, RF switch control input, control voltage, current rating, polarity and station interlock design are electrically appropriate.
+
+* Keep output power, feedline, tuner settings, band and schedule stable except for the tested variable.
+* Prefer a single-transmitter RF-path switch when the goal is antenna/feedline A/B testing.
+* Verify relay-to-RF-switch polarity before RF use: Target WSPR frames must select the intended test antenna/path, and Reference WSPR frames must select the intended reference antenna/path.
+* A QMX transceiver or external relay controller, for example, can be programmed with deterministic timing such as UTC start-minute sequence 00/04/08 for Setup A/path A and 02/06/10 for Setup B/path B.
+* Switch only between complete WSPR-2 transmit frames; do not switch hardware during a two-minute WSPR transmission.
+* Standard WSJT-X random transmission behavior is not suitable for fixed-schedule TX A/B without additional scheduling control.
+
+**Careful with TX suffixes**
+
+Why avoid multi-cycle WSPR suffixes for single-transmitter TX A/B? Compound callsigns can force multi-message behavior and reduce decode yield because not all receivers decode every required message type equally well. Artificial suffixes such as `/1` or `/2` may also be jurisdiction-specific or invalid. `/P` should only be used when it is legally appropriate for the actual operation. For TX A/B, WSPRadar therefore prefers fixed timing with the normal callsign.
+
+**Scientific caution**
+
+Sequential TX is time-binned, not simultaneous. Multi-day fixed timing reduces time-confounding substantially, but it does not prove that every time-correlated effect disappeared.
+
+
+<a id="sec-4-3"></a>
+#### 4.3 Specific Reference Station / Buddy Test
+
+The Buddy Test is a one-to-one comparison against a known station. You define a different reference callsign, for example a radio friend 10 km away.
+
+**How it works**
+
+* In TX comparison, both signals are evaluated by the same remote receiver in the same 2-minute WSPR cycle where possible:
+  $$\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}$$
+* In RX comparison, both local receivers evaluate the same remote transmitter in the same 2-minute WSPR cycle where possible:
+  $$\Delta SNR_{RX} = SNR_{target} - SNR_{reference}$$
+* This same-cycle pairing strongly reduces shared fading, path and receiver/transmitter confounders, depending on TX or RX direction.
+* Yield in the Buddy Test is also heartbeat-gated. It does not compare all spots of both callsigns across the full time window. It compares joint, target-only, reference-only and async evidence inside cycles where the target callsign/setup was demonstrably active.
+* Target and reference callsigns are each matched exactly. A configured `DL1MKS` target does not also match `DL1MKS/P`; use `DL1MKS/P` as the target callsign when that is the identity to analyze.
+
+**Valid design**
+
+* Pick a reference station whose location, antenna, power and operating schedule you understand.
+* Use the same band and overlapping time windows.
+* Make sure both callsigns have enough shared same-cycle remote peers.
+
+**Careful with**
+
+* A Buddy Test is a station-system comparison, not a pure antenna-gain measurement.
+* Differences may include antenna, transmitter, receiver, feedline, terrain, polarization, local QRM and reported-power accuracy.
+* Swapping target and reference callsigns can change the yield counts. The active-cycle gate follows the target callsign, so A vs B and B vs A are not guaranteed to be symmetric. Delta SNR signs should invert on shared joint evidence, but yield categories may not.
+
+<a id="sec-4-4"></a>
+#### 4.4 Local Neighborhood Benchmark
+
+The local neighborhood benchmark asks how your station performs against active WSPR stations inside a chosen geographic radius. The radius applies to both local methods.
+
+All local-neighborhood comparisons remain target-active comparisons. WSPRadar first limits the analysis to WSPR cycles in which your station/setup was demonstrably active; [Temporal pairing and heartbeat filtering](#sec-6-4) defines this precisely for TX and RX. Local reference evidence outside those target-active cycles is intentionally ignored. This is why local benchmark yield is not a raw count of all neighborhood activity during the time window.
+
+Target callsign matching in local-neighborhood compare mode uses the same exact-callsign rule. Local peers are excluded only when their exact callsign equals the configured target callsign. This prevents a base callsign such as `DL1MKS` from accidentally excluding `DL1MKS/P` or a different longer callsign that merely shares the same prefix.
+
+**Local Median Neighborhood: default baseline**
+
+For every WSPR cycle and matching remote path, WSPRadar computes the median normalized SNR of all active local reference stations inside the selected radius. Your station is compared against this cycle-level neighborhood median.
+
+* Best first answer to: **am I doing okay for my area?**
+* Robust against one unusually strong or weak local station.
+* Does not invent values for missing spots. If a neighbor did not decode or was not decoded in a cycle, that missing observation is not treated as `0 dB`.
+* With an even number of local reference stations, the midpoint median is used.
+* The reference pool can change by cycle because WSPR activity changes by cycle.
+* Yield categories are evaluated only inside target-active WSPR cycles. `Only Reference` therefore means: the local reference side had evidence for this peer/path during a cycle where your station/setup was active somewhere, but not jointly on this same peer/path.
+
+**Local Best Station: strict stress test**
+
+For every WSPR cycle and matching remote path, WSPRadar compares you against the strongest active local station inside the radius.
+
+* Best answer to: **can I match the strongest active local peer?**
+* This is a best-local-peer envelope, not a neighborhood average.
+* The identity of the reference station can change from cycle to cycle.
+* It is intentionally harder to beat than the median neighborhood.
+* Yield categories are evaluated only inside target-active WSPR cycles. `Only Reference` therefore means: the local best reference side had evidence for this peer/path during a cycle where your station/setup was active somewhere, but not jointly on this same peer/path.
+
+**Valid design**
+
+* Choose a radius that gives enough active peers without mixing very different local environments.
+* Dense regions can often use a smaller radius; sparse regions may need a larger radius.
+* Interpret the result as a comparison against active WSPR peers, not against calibrated reference stations.
+
+**Careful with**
+
+* Local peers differ in antenna type, terrain, receiver/transmitter quality, local noise and reported power accuracy.
+* A very large neighborhood may stop being truly local.
+* `Local Best Station` should never be described as local average performance.
+
+<a id="sec-4-5"></a>
+#### 4.5 Decode Yield in Compare Modes
+
+**Decode Yield** is a supporting compare-mode metric, not a separate analysis mode. It summarizes what happened inside heartbeat-gated, target-active comparison cycles.
+
+**How it works**
+
+* `Joint` / `Both (Joint)`: target and reference have evidence for the same peer/path in the same WSPR cycle. This is valid paired evidence for Delta SNR.
+* `Only Target`: inside a target-active cycle, the target had evidence for this peer/path and the reference did not.
+* `Only Reference`: inside a target-active cycle, the reference had evidence for this peer/path and the target did not.
+* `Both (Async)`: inside the selected segment/station set, both sides have evidence, but not in the same WSPR cycle. This is useful yield context, not paired Delta-SNR evidence.
+* `Only Reference = 0` can be a correct result. It means no reference-only evidence survived inside the target-active comparison cycles and selected filters, not that the reference station had no WSPR activity anywhere in the full time window.
+* Swapping target and reference can change yield counts because the active-cycle gate follows the target. A vs B and B vs A are therefore not guaranteed to be symmetric in yield, even when shared joint Delta SNR changes sign as expected.
+
+**How to use it**
+
+* Use Decode Yield to understand decode/no-decode behavior at the edge of coverage.
+* Use Delta SNR as the primary paired performance signal when enough joint evidence exists.
+* Treat yield as heartbeat-gated operational reach, not as normalized antenna efficiency or calibrated receiver sensitivity.
+* Read `SPOTS` as decode-volume distribution and `STATIONS` as footprint breadth. These bars are essential because Delta SNR alone can hide decode/no-decode behavior.
+
+<a id="sec-5"></a>
+### 5. Result Terminology and Reading the UI
+
+<a id="sec-5-1"></a>
+#### 5.1 Map
+
+**Heatmap segments**
+
+TX/RX Success modes show the average station Success Rate for each segment: RX uses `Target/(Target+Elsewhere)`, while TX uses `Target/(Target+Other Signals)`. The map and temporal rate panels share a fixed nonlinear scale with semantic low-end bins: black map cells mean no Target/counter-evidence, purple means exactly `0%`, the first nonzero color means `>0%`, then the scale continues at `1, 2, 5, 10, 20, 40, 60, 80, 100%`. This preserves detail at low rates while keeping colors comparable across separate Success analyses. Compare modes show median Delta SNR against the selected benchmark. Positive Delta-SNR values indicate that your station/setup is stronger than the benchmark in that segment; negative values indicate weaker performance. WSPRadar uses the common amateur-radio convention `1 S-unit = 6 dB` for the comparison color scale.
+
+**Distance rings**
+
+Near rings can be consistent with shorter-skip or NVIS behavior; far rings can be consistent with lower-angle DX behavior. Distance is not a direct elevation-angle measurement because ionospheric mode, band, time, season and solar state also matter.
+
+**Scatter dots**
+
+In TX/RX Success modes, only stations that meet the minimum confirmed Target/counter-evidence threshold are plotted. `T (Target)` stations have at least one Target observation and use increasingly bright green markers as their confirmed Target count rises. RX zero-Target stations are labeled `E (Elsewhere)`; TX zero-Target stations are labeled `OS (Other Signals)`. Both use light-gray markers. Stations below the evidence threshold and Target-only observations are omitted from the map. In Compare modes, green means joint same-cycle decodes, yellow-orange means both sides decoded the station asynchronously, purple means only your station/setup decoded it, and white means only the reference decoded it.
+
+Compare-mode dot categories use the heartbeat-gated evidence classes defined in [Decode Yield in Compare Modes](#sec-4-5).
+
+**Map footer and 1D-Venn bars**
+
+In TX/RX Success modes, the footer reports the mode-specific minimum confirmed evidence per station, the number of qualifying stations and whether segment colors represent average station `Target/(Target+Elsewhere)` for RX or `Target/(Target+Other Signals)` for TX. Compare-mode `SPOTS` and `STATIONS` bars show decode-volume distribution and footprint breadth; they are essential because Delta SNR alone can hide decode/no-decode behavior.
+
+The footer bars visualize the Decode Yield categories defined in [Decode Yield in Compare Modes](#sec-4-5). In compare modes they are heartbeat-gated rather than full-window raw activity counters.
+
+<a id="sec-5-2"></a>
+#### 5.2 Segment Insight - TX/RX Success
+
+**Segment Inspector**
+
+The Segment Inspector is the audit layer below the maps. Select one or more distance ranges and compass directions to inspect the evidence behind that part of the map.
+
+In TX/RX Success modes, the **Segment Insight** block summarizes the selected segment as Target and mode-specific counter-evidence. RX uses `Elsewhere`; TX uses `Other Signals`. The text then reports two explicit Success Rates: **Average by Station**, the mean of the individual station rates, and **Observation-Level**, `sum(Target) / sum(Target+counter-evidence)`.
+
+**Success-rate panels**
+
+* The upper panel plots stations with at least one Target observation against their confirmed Target/counter-evidence count on a log2 x-axis. Tick labels show the actual evidence counts rather than powers of two. Zero-Target stations are omitted here because their position is always at a 0 percent rate and adds little beyond the counter-evidence counts and temporal panels.
+* The lower-left temporal panel shows **Average Station Success Rate** in each distance/time cell. It calculates `Target/(Target+counter-evidence)` per contributing station and then averages those station rates.
+* The lower-right temporal panel shows **Observation-Level Success Rate** in the same cell: `sum(Target) / sum(Target+counter-evidence)`. A difference between the panels means high-volume stations are pulling the observation-weighted result away from the equal-station result.
+* Both temporal panels use the map's fixed nonlinear Success Rate scale, one shared colorbar and identical distance/time axes. Distance is labeled at the `2500`, `5000`, `10000`, `15000` and `20000 km` ring transitions rather than with long range-bin strings. Time bins are contiguous, anchored at the exact selected analysis start and extend to the analysis end; empty bins remain blank rather than disappearing. Tick labels use a regular clock-stable interval chosen for the displayed duration, such as every 6 or 12 hours, instead of spacing labels according to the bins that happen to contain data.
+
+<a id="sec-5-3"></a>
+#### 5.3 Segment Insight - Compare Modes
+
+Compare modes estimate Delta SNR against a reference concept, not a Target/counter-evidence Success Rate. Their Segment Insight therefore keeps the bivariate Compare view: Decode Yield / System Sensitivity, station-balanced Delta-SNR medians and raw spot/bin Delta-SNR evidence.
+
+* The left panel, **System Sensitivity**, summarizes heartbeat-gated Decode Yield: joint evidence, target-only evidence, reference-only evidence and async evidence inside target-active comparison cycles.
+* The center panel, **Station Medians (Delta SNR)**, shows the station-balanced distribution. Each contributing station has equal weight through its station-level median.
+* The right panel shows the raw paired evidence distribution: `Joint-Spot Delta SNR` in same-cycle Compare modes, or `Paired Spot Bin Delta SNR` in sequential TX A/B.
+* Positive Delta SNR favors the target. Negative Delta SNR favors the reference. The red dashed median line and the 90% Stability interval summarize the selected segment.
+* Compare-mode distribution panels use percent histograms of Delta SNR. This keeps quantized WSPR SNR evidence visible without smoothing it into a continuous density shape.
+* SNR histogram bins are globally fixed per panel and cover the full visible range with at most 40 bars. WSPRadar defaults to 1.0 dB bins, uses 0.5 dB bins only when the values clearly occupy a half-dB lattice, and aggregates wide ranges to 1, 2, 3, 6 or 10 dB bins as needed.
+* WSPRadar reports a `90% Stability` interval for station-level medians and selected evidence. This is a bootstrap/resampling stability interval around the median, not a formal proof of statistical significance. In the top segment plots, the red dashed median line is backed by the true 90% stability range; near-zero-width intervals are rendered as a line rather than an artificially widened band. SNR and Delta-SNR panels use a minimum 3 dB visible y-axis span so tiny numeric variation is not visually magnified.
+
+<a id="sec-5-4"></a>
+#### 5.4 Station Insights and Selected Station Evidence
+
+**Station Insights table**
+
+The Station Insights table lists the stations that contribute to the selected segment and lets you choose the evidence subset for deeper inspection.
+
+* In TX/RX Success modes, Station Insights list threshold-qualified station identities with distance, azimuth, `Target`, mode-specific counter-evidence, Success Rate and median Target SNR. RX uses `Elsewhere`; TX uses `Other Signals`. Zero-Target stations are hidden by default and can be restored with `Show Zero-Target`. The table is ordered by descending `Target`, then counter-evidence, then Success Rate.
+* In Compare modes, Station Insights list contributing remote stations, separate joint decodes from exclusive decodes and show the station-level median Delta SNR. `Show Non-Joint` reveals isolated decodes. Missing SNR is shown as `None`, not `0.0`. If both setups hear a station but never in the same WSPR cycle, the yield chart can show `Both (Async)`.
+* If no Station Insights row is selected, WSPRadar opens the strongest-evidence row by default: the row with the most joint spots or joint bins in Compare modes, and the first Target, counter-evidence, Success Rate-sorted row in TX/RX Success modes.
+
+**Selected station evidence**
+
+Selecting one or more Station Insights rows adds a two-panel evidence block above the Drill-Down table.
+
+* In TX/RX Success modes, the selected-station evidence figure uses two enlarged panels: stacked Target/counter-evidence counts with the Success Rate over time, and Target SNR. Target and counter-evidence counts are split by observation-level great-circle path illumination: night, greyline/mixed and daylight. The Target SNR histogram uses the same illumination classes for successful Target observations. Its Success Rate axis extends to 10 percent above the largest visible rate, capped at 100 percent, instead of always reserving the full 0-100 percent range. The timeline uses contiguous bins anchored at the exact analysis start.
+* In Compare modes, the selected-station evidence block shows a horizontal percent histogram of the selected evidence distribution and a time heatmap. The histogram keeps the SNR or Delta-SNR axis aligned with the heatmap. The heatmap aggregates all selected rows into integer SNR or Delta-SNR density cells, overlays median markers and connects adjacent medians only when both neighboring bins contain at least three points. The distribution panel remains raw so the full selected evidence population stays visible.
+* The time-bin control affects only the selected-station time panel. Available UTC bin widths adapt to the selected evidence duration: short windows use minute-scale bins, long windows use hour-scale bins. For TX/RX Success Target/counter-evidence timelines the choices use the complete analysis interval so sparse stations cannot accidentally create thousands of tiny empty bins. The standard long-window choices are `1h`, `3h`, `6h`, `12h` and `24h`, and WSPRadar defaults to the second-finest available bin width.
+
+**Drill-Down Table**
+
+The Drill-Down table is the row-level audit layer across all modes. It shows the observations, pairs or time bins behind a Station Insights row so the segment and station medians can be reconciled against the underlying evidence.
+
+For TX/RX Success modes, each Drill-Down row remains one target-active station-cycle observation classified internally as Target, counter-evidence or Target-only, with the corresponding audit flags and target SNR where available. For normal same-cycle Compare modes, the Drill-Down exposes the paired spot-level comparisons used for the station-level median.
+
+For the median-neighborhood method, the Drill-Down expands the reference pool. Instead of showing only a generic `Ref Pool` row, it lists the individual local reference stations that contributed in that cycle, their locator, distance, normalized reference SNR, the cycle's aggregated neighborhood median, your SNR and the resulting Delta SNR. This lets you reconcile the median directly.
+
+For TX A/B, the Drill-Down shows time windows rather than same-cycle pairs. It exposes `Micro-Med A`, `Micro-Med B` and the resulting bin Delta. Opposing micro-medians are hidden in single-setup rows so missing paired data is not mistaken for zero.
+
+<a id="sec-5-5"></a>
+#### 5.5 Export and Download Reproducibility Package
+
+Multi-select, dynamic filters and CSV export turn the Segment Inspector into a reproducible raw-data audit surface. `Prepare All Results for Download` builds the export package on demand, so expensive high-resolution figures are not rendered during normal interaction. The ZIP contains the active configuration, run metadata, light/paper-style high-resolution PNG figures, station-insight CSV tables, selected-station Drill-Down CSVs, full current-segment Drill-Down CSVs and the compact parquet analysis cache needed for regression fixtures.
+
+<a id="sec-6"></a>
+### 6. Scientific Method and Assumptions
+
+<a id="sec-6-1"></a>
+#### 6.1 Data provenance and robustness
+
+WSPRadar reads historical WSPR spots through wspr.live. The wspr.live documentation states that the data is raw data as reported and published by WSPRnet, and warns that duplicates, false spots and other errors may exist. It also states that the volunteer-run infrastructure gives no guarantees on correctness, availability or stability. <a href="#ref-1">[Ref-1]</a>
+
+WSPRadar mitigates many upstream data issues by using multi-layer aggregation and filters: same-cycle pairing, station-level medians, segment-level medians, minimum-sample thresholds, moving-station filtering and optional prefix exclusions. These measures substantially reduce the influence of isolated duplicates, sporadic false spots, one-hit decodes and receiver-density bias. They do not make the upstream dataset calibrated or error-free, and a plausible repeated bad report can still survive; the claim is robustness, not immunity.
+
+<a id="sec-6-2"></a>
+#### 6.2 WSPR SNR and reported power
+
+WSPR is designed for probing potential propagation paths with low-power beacon-like transmissions. WSPR messages carry a callsign, locator and power level in dBm. WSPR-2 transmissions last about 110.6 seconds and start two seconds into even UTC minutes. The ARRL WSPR documentation describes the minimum S/N on the WSJT scale using a 2500 Hz reference bandwidth. <a href="#ref-2">[Ref-2]</a>
+
+For WSPRadar interpretation:
+
+* SNR is a reported decoder value in dB on the WSPR/WSJT scale, referenced to 2500 Hz.
+* Reported transmit power is part of the WSPR message. It is not independently verified by WSPRadar.
+* User-entered dBm may differ from transmitter output, feedpoint power or EIRP because of calibration error, foldback, feedline loss, tuner loss and antenna mismatch.
+
+<a id="sec-6-3"></a>
+#### 6.3 Power normalization
+
+To compare spots reported with different transmit powers, WSPRadar normalizes SNR to a 1 W / 30 dBm reference:
+
+$$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
+
+This is essential for TX/RX Success maps and local TX comparisons. It removes the reported-power term from the comparison, but only as well as the reported power is correct. It does not correct antenna gain, feedline loss, calibration error or EIRP differences.
+
+Power normalization is still a meaningful mitigation. RX comparisons often reduce exposure to reported-power errors because both local receivers evaluate the same remote transmitter. Same-callsign TX A/B avoids comparing different self-reported powers. Local TX comparisons and TX Success maps remain the most sensitive to incorrect reported dBm.
+
+<a id="sec-6-4"></a>
+#### 6.4 Temporal pairing and heartbeat filtering
+
+Temporal synchronization is one of WSPRadar's strongest controls. Same-cycle pairing strongly reduces fast QSB/fading effects because both sides are evaluated in the same two-minute WSPR opportunity. In TX comparisons, using the same remote receiver reduces receiver-side QRM, noise-floor and antenna effects. In RX comparisons, decoding the same remote transmitter reduces transmitter-power and shared-path variation.
+
+The heartbeat filter is the gatekeeper for comparison yield. WSPRadar validates comparative cycles only when the target station/setup was demonstrably alive:
+
+* In TX mode, the target signal must have been decoded by at least one station worldwide during the relevant cycle/slot. In practical terms: WSPRadar only evaluates TX comparison cycles where the target station was actually transmitting and produced at least one reported decode somewhere.
+* In RX mode, the target receiver must have decoded at least one station during the relevant cycle. In practical terms: WSPRadar only evaluates RX comparison cycles where the target receiver was actually receiving/uploading and produced at least one reported decode.
+
+Reference evidence outside those target-active cycles is excluded by design. This protects the analysis from treating target downtime as hardware failure and keeps the comparison tied to actual WSPR opportunities where the target station/setup participated. The consequence is intentional target-centric asymmetry: swapping target and reference can change eligible cycles and therefore yield counts.
+
+If you shut the station down overnight, reference spots collected during that offline period are not counted as defeats for your hardware. This does not make every comparison perfectly fair. It reduces dominant timing, fading and offline-bias confounders in synchronous modes, while preserving the central WSPRadar principle: compare only inside valid WSPR opportunities. Sequential TX A/B remains the special case: time-binning and multi-day fixed schedules reduce macro-fading/time drift, but are not equivalent to simultaneous same-cycle pairing.
+
+<a id="sec-6-5"></a>
+#### 6.5 Median aggregation hierarchy
+
+Medians are a core WSPRadar concept, not just an outlier clean-up tool. They provide robust aggregation across:
+
+* short-term QSB and fading;
+* changing ionospheric states within the selected time window;
+* uneven WSPR activity by cycle and station;
+* receiver-density bias in highly active regions;
+* occasional erroneous or duplicate spots;
+* repeated observations from very active stations;
+* local-neighborhood reference pools that change from cycle to cycle.
+
+The aggregation hierarchy is:
+
+* **Cycle-level median:** in Local Median Neighborhood, the reference for one WSPR cycle/path is the median of active local reference stations in that cycle.
+* **Station-level median:** for a given remote station, WSPRadar computes the median of the qualifying spot or bin values.
+* **Segment-level median:** the final map segment value is the median of station-level medians.
+
+This "median of medians" structure helps keep a dense receiver cluster from drowning out a sparse region merely because it generated more rows. It also keeps a single very active station from statistically overpowering an entire segment.
+
+<a id="sec-6-6"></a>
+#### 6.6 Bivariate evaluation model
+
+A pure median Delta SNR analysis can suffer from survivorship bias. A better antenna may decode very weak signals that a worse antenna misses. Those extra marginal spots can lower the better antenna's median SNR if everything is pooled naively.
+
+WSPRadar therefore separates two signals:
+
+1. **System Sensitivity / Decode Yield:** counts exclusive vs joint decodes inside heartbeat-gated comparison cycles. This captures real-world operational reach at the edge of decodability without counting periods where the target station/setup was not demonstrably active.
+2. **Station Medians / Delta SNR:** uses only paired joint spots or paired spot bins. This estimates the conditional gain/SNR difference when both setups produced comparable evidence.
+
+Read both together. A setup can have better yield but lower conditional SNR if it decodes many marginal signals. Conversely, a setup can show a strong positive Delta SNR on joint spots but poor yield if it misses many weak paths.
+
+**Important TX yield interpretation**
+
+In TX analysis, yield is intentionally reported as **heartbeat-gated operational yield**. It answers the practical on-air question:
+
+**Within cycles where my target transmitter was demonstrably active, who was actually decoded more often under the reported operating conditions?**
+
+This is useful, but it is not a power-normalized fairness metric. If one station transmits at 100 W and another station transmits at 100 mW, the higher-power station will usually have a decode-yield advantage. WSPRadar normalizes SNR for joint TX spots where both stations were decoded and an SNR comparison is possible. However, for exclusive TX spots, the missing side has no SNR value. Therefore WSPRadar cannot reliably reconstruct what the missing station's SNR would have been at a different transmit power.
+
+For this reason:
+
+* TX Delta SNR on joint spots is the primary fair comparison signal.
+* TX yield should be read as heartbeat-gated operational reach, not as normalized antenna efficiency.
+* Reference-only or target-only TX decodes may reflect antenna performance, transmit power, propagation, receiver distribution, timing, collisions, reported-power accuracy or a combination of these factors.
+* Unequal reported transmit powers should be mentioned when interpreting TX-yield asymmetry.
+
+In practical terms, strong TX yield means that a station was actually heard by more receiving stations under the conditions in which it operated. It does not by itself prove that the antenna was better. For fairer TX benchmarking, give most weight to same-cycle, power-normalized Delta SNR and use heartbeat-gated yield as supporting context.
+
+<a id="sec-6-7"></a>
+#### 6.7 Geographic rastering and projection
+
+Spatial data is rendered in an Azimuthal Equidistant projection centered on the user's Maidenhead locator. The map engine uses an internal spherical Earth radius of 6371 km so that table distances and plotted map positions are consistent with the same geometry.
+
+The map uses:
+
+* concentric radial bins of 2500 km, approximating useful propagation-distance bands;
+* azimuth wedges such as 22.5 degree compass sectors;
+* unique segment identifiers for aggregation and inspection.
+
+The projection is internally consistent for WSPRadar's visual analysis. It should not be described as geodetic truth at survey precision.
+
+<a id="sec-6-8"></a>
+#### 6.8 Evidence strength and sample thresholds
+
+WSPRadar uses practical evidence thresholds rather than formal statistical-significance filtering. This is deliberate. WSPR data is observational, quantized, crowd-sourced and temporally structured; a simple p-value can easily look more precise than the underlying evidence justifies.
+
+For compare-map interpretation, use the joint-evidence thresholds as a heuristic:
+
+| Evidence | Minimum condition |
+|---|---|
+| Low | &ge;1 station per segment and &ge;3 joint spots per station |
+| Medium | &ge;3 stations per segment and &ge;10 joint spots per station |
+| Strong | &ge;5 stations per segment and &ge;20 joint spots per station |
+
+For sequential TX A/B, read "joint spots" as "paired spot bins", because the paired evidence unit is the valid time bin containing spots rather than a same-cycle spot.
+
+These thresholds are not proof levels. They are practical guardrails for reading WSPRadar output. Stronger evidence also means consistent Delta-SNR direction, plausible Decode Yield behavior, no obvious domination by one bad station/grid identity, and stability across adjacent segments, bands or repeated runs where that is expected.
+
+The `90% Stability` interval is a descriptive bootstrap stability interval around a median. WSPRadar resamples the contributing values 500 times with replacement, recalculates the median for each resample and reports the central 90% range of those bootstrap medians. This makes median stability visible without implying a formal p-value or a controlled laboratory confidence interval. A narrow interval means the reported median is stable under resampling of the available evidence; it does not prove that the WSPR dataset itself is unbiased.
+
+<a id="sec-7"></a>
+### 7. Limitations
+
+* **Crowd-sourced data:** WSPR spots can contain duplicates, false spots, wrong power, wrong locator or receiver-side errors. WSPRadar reduces sensitivity to many of these problems but cannot make upstream data calibrated or error-free.
+* **Successful decodes only:** WSPR logs decodes, not all failed reception attempts. Closed bands reduce the existence of spots rather than lowering an average.
+* **Conditional Success rates:** TX/RX Success rates are conditional on independently confirmed activity. RX uses `Target/(Target+Elsewhere)` and TX uses `Target/(Target+Other Signals)`. Counter-evidence proves activity, not that the target-to-station path was open, so the rates include propagation and do not estimate unconditional receiver sensitivity or the fraction of all scheduled transmissions decoded.
+* **Unobservable TX silence:** without an authoritative transmitter log, a target TX cycle decoded by nobody cannot be distinguished from no transmission and therefore cannot enter `Other Signals`.
+* **Historical spot validity:** opportunity queries use `code = 1` to restrict analysis to valid WSPR spots. Code coverage and upstream processing can differ in older archive periods.
+* **Reported power caveat:** normalization mitigates reported-power differences, and several compare modes reduce exposure to this problem by pairing against the same transmitter or the same callsign. However, any analysis that depends on user-reported dBm still assumes that the reported value is reasonably close to reality.
+* **Target-centric yield:** compare-mode yield is gated by target-active cycles. This is a deliberate protection against offline bias, but it means yield is not symmetric under target/reference swaps. A vs B and B vs A can have different `Only Reference` and `Only Target` counts even with the same core parameters.
+* **Sequential TX caveat:** fixed-schedule TX A/B reduces but does not perfectly eliminate time confounding.
+* **Distance is not angle:** distance-ring patterns can suggest propagation behavior but do not directly measure radiation take-off angle.
+* **Polarization and local environment:** WSPRadar measures real-world station-system performance, including antenna, receiver/transmitter, feedline, terrain, polarization effects, local QRM and software behavior.
+* **Performance limits and latency:** query windows are capped to protect database resources, and fresh spots can take roughly 15 to 30 minutes to appear.
+
+For serious claims, preserve enough context to reproduce the result: WSPRadar version or Git commit, UTC window, band, mode, filters, local benchmark method or reference callsign, screenshots and exported CSV.
+
+<a id="sec-8"></a>
+### 8. Configuration Reference
+
+**Workflow controls**
+
+* **Load Demo:** opens a list of maintained demo profiles. `Load Selected Demo Configuration` fills the UI so you can inspect or edit the parameters; `Run Selected Demo` fills the UI and immediately starts the configured TX or RX analysis.
+* **Load Config:** loads a previously saved WSPRadar `.config` file. Missing future fields fall back to defaults; loaded callsigns and locators are validated and normalized before use.
+* **Save Config:** downloads the current UI configuration as an editable JSON-based `.config` file. It is useful for sharing a setup, archiving a run or repeating a comparison later.
+* **Prepare All Results for Download:** appears after analysis results exist. It renders the current result selection into a ZIP package with configuration, run metadata, high-resolution light-theme figures, current station-insight tables, selected-station Drill-Down tables, full current-segment Drill-Down tables and analysis parquet data.
+
+**Core parameters**
+
+* **Target Callsign:** exact station identity under evaluation. Enter suffix/postfix forms directly, for example `DL1MKS/P`, when that exact callsign is the target for this run. No wildcard or prefix matching is used.
+* **QTH Locator:** mathematical center of the map projection. Use a valid 4- or 6-character Maidenhead locator.
+* **Band and timeframe:** define the WSPR data window. Time is handled in UTC.
+* **Min. Target+Counter-Evidence per Station:** Success-mode evidence threshold. A station must have at least this many confirmed observations before its Success Rate contributes to the map, segment summaries, temporal panels or Station Insights. RX counts `Target+Elsewhere`; TX counts `Target+Other Signals`. The default is `5`; lower values increase coverage but also increase discrete small-sample rates such as `0%`, `50%` or `100%`.
+
+**Comparison parameters**
+
+* **Benchmark Mode:** `Hardware A/B-Test`, `Reference Station (Buddy Test)` or `Local Neighborhood Benchmark`, presented from strongest to weakest model/evidence. The default is `Hardware A/B-Test`.
+* **Reference SNR Correction (dB):** user-supplied correction added to the reference-side SNR before Delta SNR is calculated. It applies only to compare modes and is useful for known reference-side attenuation or calibration artefacts that WSPRadar cannot infer from WSPR data. Because WSPRadar uses `Delta SNR = target - reference`, a positive correction makes the corrected reference SNR larger before subtraction. Appendix C describes how to obtain a calibration value.
+  * **Scope:** Buddy Test applies the correction to the reference callsign. Local Best Station applies it to the selected local best reference SNR. Local Median Neighborhood applies it to all neighborhood reference SNRs before median aggregation. Hardware A/B-Test applies it to the reference side, meaning Setup B / reference WSPR frame.
+  * **Formula:** `corrected reference SNR = reference SNR + Reference SNR Correction`; `Delta SNR = target SNR - corrected reference SNR`.
+  * **Positive correction example:** a calibration run shows `target - reference = +1.6 dB`. Enter `+1.6 dB`. A reference-side SNR of `-24.0 dB` is treated as `-22.4 dB`, so the corrected Delta SNR is reduced by `1.6 dB`.
+  * **Negative correction example:** a calibration run shows `target - reference = -1.6 dB`. Enter `-1.6 dB`. A reference-side SNR of `-24.0 dB` is treated as `-25.6 dB`, so the corrected Delta SNR is increased by `1.6 dB`.
+* **Local Benchmark Method:** `Local Median Neighborhood` by default, or `Local Best Station` for a strict best-peer envelope.
+* **Neighborhood Radius:** geographic boundary for local reference stations.
+* **Reference Callsign:** one exact external counterpart for Buddy Test. Enter the suffix/postfix form directly when that exact callsign is the reference.
+* **A/B-Test Setup:** simultaneous `RX Test` or fixed-schedule `TX Test`.
+* **Setup B Callsign:** one exact callsign for Setup B in simultaneous RX A/B tests. Setup A and Setup B must use different exact callsigns.
+* **Target/Reference Locator:** 6-character locators used to separate simultaneous RX streams.
+* **Target/Reference WSPR Frame:** fixed UTC start-minute frame assignment for sequential TX tests; 00, 04, 08, ... and 02, 06, 10, ... are the two supported frame sequences.
+* **Time Window (Bins):** bin size for sequential TX A/B pairing.
+
+**Advanced settings**
+
+* **Exclude Special Callsigns:** removes known special-format WSPR callsigns from the analysis using WSPRadar's built-in prefix filter. The current filter excludes callsigns beginning with `Q`, `0` or `1`. These prefixes are commonly associated with special WSPR use cases such as balloons, telemetry-style or non-standard beacon identifiers rather than normal amateur station callsigns.
+* **Exclude Moving Stations:** removes stations that change their 4-character locator during the analysis window, such as balloons, mobile or maritime stations.
+* **Local QTH Solar State:** filters by calculated solar elevation at your QTH: daylight, nighttime or greyline.
+* **Map Scope:** visual map radius.
+* **Min. Joint Spots/Station:** Compare-only threshold. It requires at least X joint spots per remote station before that station contributes a Delta SNR. In sequential TX A/B, this is shown as Min. Joint Bins.
+* **Min. Target+Counter-Evidence per Station:** Success-mode threshold described under Core parameters. It replaces the old raw-spots-per-station interpretation.
+* **Min. Qualifying Stations/Segment:** requires at least X qualifying stations before a segment is drawn. In Compare modes it counts stations with qualifying joint evidence; in TX/RX Success modes it counts stations that meet the mode-specific confirmed Target/counter-evidence threshold.
+
+**Special-callsign filtering note**
+
+The special-callsign filter is most useful when non-standard beacon or telemetry-style stations would distort normal station-to-station interpretation. However, the filter should not automatically be enabled for every analysis.
+
+For RX comparison, there is often a good reason **not** to exclude these callsigns. Many special WSPR identifiers behave like low-power beacons. If the same low-power beacon is decoded by both your station and the reference station in the same WSPR cycle, that is valuable paired RX evidence. In that case, the absolute identity of the beacon is less important than the fact that both receivers evaluated the same weak transmitter at the same time.
+
+Recommended interpretation:
+
+* For **TX analysis**, excluding special callsigns can help keep the receiver/reference population closer to normal amateur stations.
+* For **RX comparison**, keeping special callsigns can be useful because they may provide weak, stable, same-cycle test signals.
+* For **RX Success coverage**, the choice depends on the question: include them when beacon sensitivity is interesting; exclude them when you only want normal amateur-station activity.
+* For **publication or serious comparison**, document whether the special-callsign filter was enabled.
+
+<a id="sec-9"></a>
+### 9. Existing Literature and Prior Art
+
+WSPRadar does not exist in isolation. It builds on three already established lines of work: first, WSPR as a global observation network operated by radio amateurs; second, scientific work that uses WSPR data for propagation and antenna questions; and third, practical tools that visualize, query, score or otherwise analyze WSPR spots.
+
+This chapter places WSPRadar in that context and deliberately limits its claim. WSPRadar is not a calibrated antenna range and it is not a replacement for controlled field-strength measurements. It is a tool for robust, auditable real-world evaluation of station systems using public WSPR spot data.
+
+<a id="sec-9-1"></a>
+#### 9.1 WSPR as a Global Observation Network
+
+WSPR was developed to probe potential propagation paths using low-power transmissions. The ARRL describes WSPR as a narrowband digital protocol for HF and MF propagation testing. A typical WSPR message contains callsign, 4-character Maidenhead locator and transmit power in dBm. A transmission lasts about 110.6 seconds and starts two seconds into an even UTC minute. The approximate minimum reception threshold is around -27 dB on the WSJT scale, referenced to a 2500 Hz bandwidth. <a href="#ref-2">[Ref-2]</a> <a href="#ref-3">[Ref-3]</a>
+
+The public WSPR infrastructure, however, is not a laboratory instrument. WSPR.live provides historical and current WSPR spots in a ClickHouse database and explicitly states that the data is raw data as reported, saved and published by WSPRnet. Duplicates, false spots, incorrect locators, incorrect powers and infrastructure outages are therefore part of the real data environment. <a href="#ref-1">[Ref-1]</a>
+
+WSPRadar does not treat this uncertainty as if it disappeared. Instead, it reduces its effect through filters, minimum thresholds, medians, temporal pairing, segment aggregation and drill-down inspection. The claim is not that crowd-sourced WSPR data becomes calibrated measurement data. The claim is that many imperfect but repeated observations can be transformed into a transparent and cautiously interpreted evidence layer.
+
+<a id="sec-9-2"></a>
+#### 9.2 WSPR in Radio Science and Ionospheric Research
+
+**Lo et al.** studied 7 MHz greyline propagation using amateur-radio beacon observations from the WSPR database. The paper shows that WSPR is useful not only for individual station observation, but also as a scientific dataset for global HF propagation questions. For WSPRadar, the important idea is that WSPR paths can be analyzed by time, geography and band even though the original infrastructure was not built as a controlled experiment. <a href="#ref-4">[Ref-4]</a>
+
+**Frissell et al.** place WSPRNet alongside the Reverse Beacon Network and PSKReporter as established amateur-radio observation networks that provide long-term data on the bottomside ionosphere. This work is important because it describes amateur radio as citizen-science infrastructure: many independent stations together create an observation network that is relevant to space weather, ionospheric and HF-propagation research. For WSPRadar, this perspective is central: the tool does not treat one report as absolute truth, but uses the mass, repetition and geographic distribution of observations. <a href="#ref-5">[Ref-5]</a>
+
+**Methodological consequence.** WSPR data can be useful for radio science, but it must be read as observational data. It contains real propagation, real station differences and real error sources at the same time. WSPRadar therefore does not try to eliminate all of these factors. Instead, it makes the dominant confounders visible and reduces them as much as practical for specific comparison questions.
+
+<a id="sec-9-3"></a>
+#### 9.3 Direct WSPR Antenna-Comparison Literature
+
+The direct literature on WSPR-based antenna comparison is smaller than the broader literature on WSPR propagation analysis. This is important context: WSPRadar is not entering a mature field with many standardized measurement protocols. Instead, it builds on a small number of strong methodological precedents and a larger body of practical amateur-radio experimentation.
+
+**Vanhamel, Machiels and Lamy** provide the strongest peer-reviewed RX-side precedent. Their 160 m experiment used two nearly identical and calibrated WSPR receive chains at almost the same location to compare different antennas. This design reduces propagation-path variation because both antennas observe the same remote transmitters at the same time. For WSPRadar, this supports the logic of simultaneous RX A/B testing and the need to calibrate or at least understand the receive chains before interpreting small SNR differences. <a href="#ref-6">[Ref-6]</a>
+
+**Zander** provides the strongest TX-side precedent. Instead of using two local receivers, Zander compares two transmitting antennas through the global WSPR receiver network. Reports are used only when the same distant receiver hears both antennas in the same time interval. This makes propagation loss and receiver-side conditions largely common to both observations. For WSPRadar, this supports same-cycle TX pairing, but also reinforces the limitations: receiver distribution, antenna directivity, collisions, reported power and incomplete spatial coverage remain part of the evidence. <a href="#ref-7">[Ref-7]</a>
+
+**Milazzo's** 2011 comparative antenna analysis is important historical prior art from the amateur-radio community. It demonstrates that WSPR spots were already being used for antenna comparison shortly after WSPR became widely available. The work is less formal than Vanhamel or Zander, but it is useful because it reflects how radio amateurs actually use WSPR: not only to observe propagation, but to compare real antennas under real operating conditions. <a href="#ref-8">[Ref-8]</a>
+
+**Griffiths and Squibb** add a practical RX-performance perspective. Their Practical Wireless article used WSPR-derived spot and SNR information to understand and improve HF-band SNR in ordinary suburban receive installations. This is close to WSPRadar's RX interpretation philosophy: the measured result is not only antenna gain, but the combined receive system, including antenna, local noise, feedline, receiver and operating environment. <a href="#ref-9">[Ref-9]</a>
+
+These works support the basic idea behind WSPRadar: WSPR can be useful for antenna and station comparisons when comparison pairs are formed carefully and confounders are handled explicitly. They also limit how WSPRadar results should be described. A WSPR-based comparison can provide strong evidence about real station performance, but it does not directly measure antenna gain, take-off angle or efficiency in the calibrated laboratory sense.
+
+<a id="sec-9-4"></a>
+#### 9.4 Existing Tools and Practical Prior Art
+
+**WSPR.live** is the most important data source for WSPRadar. The platform provides a publicly queryable ClickHouse database of historical WSPR spots, together with documentation, Grafana dashboards and examples of the data structure. WSPR.live is therefore less an antenna-comparison tool than a central, fast data foundation for custom analysis. WSPRadar uses this infrastructure but adds station-focused experiment logic, segment aggregation and interactive audit views. <a href="#ref-1">[Ref-1]</a>
+
+**WSPR.Rocks** is a powerful analysis and visualization tool based on WSPR.live and WSPRdaemon data. It provides, among other features, SpotQ, SQL access, maps, tables, duplicate-spot analysis, passband displays and interactive analyses. SpotQ is especially interesting as a practical ranking measure because it combines distance, power and SNR into a simple metric. WSPRadar has a different emphasis: it does not try to produce a global leaderboard, but instead tries to answer concrete comparison questions using controlled pairing, local reference pools and segment-level evidence. <a href="#ref-10">[Ref-10]</a>
+
+**Griffiths and Robinett's** WSPR/TimescaleDB/Grafana work is important data-infrastructure prior art. It shows that serious WSPR analysis quickly moves beyond simple spot lists into time-series databases, derived fields, joins, heatmaps and dashboards. Their examples include using database joins to compare SNR for the same sender at the same time and band between different reporters. WSPRadar follows the same general direction—turning raw WSPR spots into structured evidence—but specializes the workflow around station benchmarking, local references, same-cycle comparison and map-segment drill-down. <a href="#ref-11">[Ref-11]</a>
+
+**WSPRdaemon** is primarily focused on robust data acquisition. It can decode WSPR and FST4W from multiple SDR receivers, upload spots reliably to WSPRnet, manage band and receiver schedules, recover from outages and record additional information such as Doppler shift and background noise. WSPRdaemon is therefore more of a professional receiving and reporting infrastructure than an end-user antenna-benchmarking tool. It is nevertheless important prior art for WSPRadar because it shows how important stable multi-receiver acquisition, noise information and long-term observability are for serious WSPR analysis. <a href="#ref-12">[Ref-12]</a>
+
+**SOTABEAMS WSPRlite and DXplorer** are direct practical prior art for WSPR-based antenna and location comparisons. WSPRlite is a small WSPR transmitter; DXplorer uses WSPR data to compare antenna and station performance, including the DX10 metric and real-time graphs. The strength of this approach is ease of use and direct practical value. WSPRadar differs by taking a more auditable, data-analytical approach: it does not only show a score, but also segment values, joint and exclusive decodes, station insights and drill-down rows so that a result can be inspected and challenged. <a href="#ref-13">[Ref-13]</a>
+
+**WSPR-Station-Compare** and similar tools show that the need for station-focused WSPR comparison has already been recognized. The WSPR-Station-Compare page explicitly references Vanhamel, Machiels and Lamy as well as Zander, and describes an app concept for displaying and comparing one's own WSPRnet measurements. This confirms the close connection between scientific method and amateur-radio practice: users do not only want to see where spots occurred; they want to know whether a station, antenna or hardware change is measurably better or worse. <a href="#ref-14">[Ref-14]</a>
+
+**Antenna Performance Analysis Tool** and other newer web services show the same trend: WSPR data is increasingly being used for understandable, user-oriented antenna reports. Such tools map receiving locations, time periods and bands and help operators assess the real-world effect of an antenna over time. WSPRadar should therefore not claim to be the first tool that uses WSPR for antenna-performance analysis. Its specific strength is the combination of comparison design, local benchmarks, median logic, bivariate yield/SNR analysis and inspectable raw-data layers. <a href="#ref-15">[Ref-15]</a>
+
+**WATT WSPR Analysis Tool** is another example of practical prior art. It uses an Excel/VBA environment for reporting, mapping, filtering, ad-hoc analysis and timeline animation of WSPR data. The approach is interesting because it shows that WSPR analysis can also be understood as an exploratory workflow: users want not only to view data, but also to filter, sort, animate and ask their own questions. WSPRadar picks up this exploratory idea but moves it into a web-based, experiment-design-oriented interface. <a href="#ref-16">[Ref-16]</a>
+
+<a id="sec-9-5"></a>
+#### 9.5 Positioning of WSPRadar
+
+This literature and prior art lead to a clear positioning:
+
+* WSPRadar inherits from WSPR and WSPR.live the idea of a global, historical, crowd-sourced observation dataset. <a href="#ref-2">[Ref-2]</a> <a href="#ref-1">[Ref-1]</a>
+* WSPRadar inherits from scientific work such as Vanhamel et al. and Zander the insight that fair comparisons must reduce temporal and spatial confounders. <a href="#ref-6">[Ref-6]</a> <a href="#ref-7">[Ref-7]</a>
+* WSPRadar inherits from practical tools such as WSPR.Rocks, DXplorer, WSPRdaemon and WATT the insight that WSPR data is only useful when it is fast, filterable, visualizable and reproducible. <a href="#ref-10">[Ref-10]</a> <a href="#ref-13">[Ref-13]</a> <a href="#ref-12">[Ref-12]</a> <a href="#ref-16">[Ref-16]</a>
+* WSPRadar adds its own emphasis: experimental station benchmarking with same-cycle pairing, local-neighborhood references, hardware A/B workflows, median-of-medians aggregation, decode-yield analysis and drill-down audit.
+
+WSPRadar should therefore not be described as a replacement for WSPR.live, WSPR.Rocks, WSPRdaemon or DXplorer. It sits one layer above them: it uses historical WSPR spots to answer concrete station questions more carefully. The core question is not only: "Where are the spots?" The core question is: "Which spots are valid for this comparison question, which confounders were reduced, how stable is the median, what does the decode yield look like, and can the result be traced down to the underlying rows?"
+
+<a id="sec-9-6"></a>
+#### 9.6 Methodological Consequences for Interpretation
+
+The existing literature supports the basic approach of WSPRadar, but it also limits the language that should be used to describe results. WSPR-based analyses can provide strong evidence about real station performance, but they do not directly measure antenna gain, take-off angle or efficiency in the calibrated laboratory sense. Reported power, locator accuracy, receiver distribution, local noise, polarization, propagation mode, band activity and decode survivorship remain part of the data.
+
+WSPRadar result text should therefore distinguish carefully between the following levels:
+
+* **Spot level:** individual WSPR decodes with SNR, time, band, transmitter, receiver and reported power.
+* **Pair level:** valid same-cycle comparisons or valid time bins where important confounders have been reduced.
+* **Station level:** median over several valid observations of one remote station.
+* **Segment level:** median over several station medians in a distance/azimuth segment.
+* **Interpretation level:** cautious statement about real station performance, not isolated antenna gain.
+
+This layering is one of WSPRadar's most important distinctions from simpler map or score tools. It does not automatically make the result "true", but it makes visible which evidence supports a statement.
+
+<a id="sec-9-7"></a>
+#### 9.7 Short Conclusion
+
+The literature and prior art show that the individual building blocks behind WSPR-based station evaluation already exist: same-cycle comparison, antenna evaluation with WSPR, local noise and SNR improvement, database-backed spot analysis, mapping, scoring and visualization. WSPRadar's contribution is to integrate these ideas into a coherent, user-facing benchmarking framework with explicit experiment design, heartbeat-gated yield, power-normalized joint TX SNR, local-neighborhood baselines, segment medians and row-level auditability.
+
+This is a meaningful contribution because most practical WSPR tools answer one of two questions: where spots occurred, or how a station ranks according to a specific score. WSPRadar asks a more structured comparison question: which observations are valid for this benchmark, which confounders were reduced, what evidence is paired, what evidence is only operational yield, and can the result be traced back to the underlying spots?
+
+The existing literature supports the use of WSPR data for propagation research, antenna comparison and citizen science, while also making clear that WSPR is not calibrated laboratory instrumentation. WSPRadar accepts that limitation rather than hiding it. It does not claim to measure isolated antenna gain, take-off angle or efficiency directly. Instead, it turns crowd-sourced WSPR observations into a reproducible, cautiously interpreted evidence framework for real-world TX, RX, local-peer and hardware A/B station comparisons.
+
+In that sense, WSPRadar is not merely another WSPR map or score display. It is an attempt to make WSPR-based station benchmarking more transparent, more reproducible and more scientifically disciplined, while remaining practical enough for everyday amateur-radio use.
+
+<a id="sec-10"></a>
+### 10. Disclaimer & License
+
+**Disclaimer**
+
+WSPRadar is an experimental open-source project provided "as is" without warranties. The source code and mathematical model can be audited, but the developer cannot guarantee accuracy, completeness, availability or suitability for any particular purpose. Do not make major financial decisions, such as buying or selling expensive antennas or radio hardware, based solely on WSPRadar output.
+
+**License**
+
+WSPRadar is free software under the GNU Affero General Public License (AGPLv3). The license ensures that the source code, including network-service modifications, remains available to the amateur-radio community.
+
+
+<a id="sec-a"></a>
+### Appendix A: Parallel Operation of Multiple WSJT-X Instances
+
+This guide describes the creation of a second OS-isolated WSJT-X environment, for example for an SDR, including configuration migration and mandatory path separation.
+
+#### 1. Instantiation (OS-level isolation)
+
+By default, the WSJT-X lock file prevents multiple executions. Separation is achieved with a command-line parameter that forces a new sandbox in the Windows `AppData` directory.
+
+1. Create a desktop shortcut for `wsjtx.exe`.
+2. Open the shortcut properties.
+3. Modify the `Target` field according to this syntax pattern, with the parameter outside the quotation marks:
+   `"C:\Program Files\wsjtx\bin\wsjtx.exe" --rig-name=SDR`
+4. Start this shortcut once and immediately close the program again. This initializes the new directory structure: `%LOCALAPPDATA%\WSJT-X - SDR`.
+
+#### 2. Configuration migration (cloning)
+
+WSJT-X does not provide an internal export for instances, so the clone must be done at file-system level.
+
+1. Navigate to the primary configuration folder: `%LOCALAPPDATA%\WSJT-X`
+2. Copy `WSJT-X.ini`.
+3. Navigate to the new folder: `%LOCALAPPDATA%\WSJT-X - SDR`
+4. Paste the file and overwrite the `.ini` file created by the first start.
+5. Rename the pasted file to match the new instance exactly: `WSJT-X - SDR.ini`
+
+#### 3. Mandatory path separation (audio and storage)
+
+Because the configuration was cloned, both instances may still point to the same hardware inputs and temporary storage directories. For WSPR, that can lead to identical decodes because the same `.wav` file is analyzed, and it can cause file-lock errors.
+
+Open the new SDR instance and go to `File > Settings > Audio`. Adjust:
+
+* **Soundcard > Input:** set the audio interface to the second receiver source, for example a dedicated Virtual Audio Cable.
+* **Save Directory:** change the path to the isolated environment, for example:
+  `C:\Users\[User]\AppData\Local\WSJT-X - SDR\save`
+* **AzEl Directory:** change this path too, for example:
+  `C:\Users\[User]\AppData\Local\WSJT-X - SDR`
+
+After restarting the instance, data streams, hardware access and temporary WSPR files are separated from the primary instance.
+
+<a id="sec-b"></a>
+### Appendix B: Single-TX A/B Switching with a USB Relay
+
+For sequential TX A/B antenna tests, the preferred hardware design is often a single transmitter feeding two alternative RF paths through a controlled RF switch. This avoids comparing two independent transmitters. The same PA stage, frequency reference, WSPR audio chain, power setting, callsign and software timing are used for both paths. That makes the comparison more conservative: the remaining intended variables are the switched feedline/antenna paths.
+
+WSPRadar includes a cross-platform Python helper tool:
+
+`tools/Timed-AB-Relay-Switch`: https://github.com/markusthemaker/WSPRadar/releases/download/timed-ab-relay-switch-v0.1.0/Timed-AB-Relay-Switch-v0.1.0.zip
+
+The tool drives a supported USB HID relay on the WSPR-frame cadence used by WSPRadar:
+
+* Target WSPR frames: UTC start minutes 00, 04, 08, ...
+* Reference WSPR frames: UTC start minutes 02, 06, 10, ...
+* Relay switching occurs at the two-minute WSPR slot boundary, with an optional lead time so the RF path can settle before the next transmission body.
+
+The helper targets common ATtiny45/V-USB HID relay boards with USB VID/PID `16c0:05df` and uses the Python HID stack on Windows, Linux and macOS. During setup it selects the relay device, relay channel, relay polarity, Target frame phase and switch lead time. Dry-run mode should be used before connecting RF hardware. Platform-specific installation notes, including Linux HID permissions, are documented in the tool README.
+
+Install the helper dependency from the tool folder:
+
+```bat
+py -3 -m pip install -r requirements-relay.txt
+```
+
+or on Linux/macOS:
+
+```sh
+python3 -m pip install -r requirements-relay.txt
+```
+
+Example setup command on Windows:
+
+```bat
+Start-Timed-AB-Relay-Switch.cmd --setup
+```
+
+Example setup command on Linux/macOS:
+
+```sh
+chmod +x ./Start-Timed-AB-Relay-Switch.sh
+./Start-Timed-AB-Relay-Switch.sh --setup
+```
+
+Example dry run on Windows:
+
+```bat
+Start-Timed-AB-Relay-Switch.cmd --dry-run
+```
+
+Example dry run on Linux/macOS:
+
+```sh
+./Start-Timed-AB-Relay-Switch.sh --dry-run
+```
+
+A USB relay should not normally switch RF directly. It should control a properly rated RF switch or relay system. One example class is a 1-to-2 RF switch such as the QRO.cz 1-to-2 RF Switch, which is designed to switch one common RF port between two RF ports, or vice versa, and provides a DC control interface. Before use, verify that the USB relay contacts and the RF switch control input are electrically compatible, including control voltage, current, polarity and fail-safe state.
+
+Before any on-air test:
+
+* Test the relay and RF switch without RF power.
+* Confirm that Target WSPR frames select the intended Target antenna/path.
+* Confirm that Reference WSPR frames select the intended Reference antenna/path.
+* Confirm that no relay transition occurs during the WSPR transmit body.
+* Use a dummy load or low-power continuity/SWR test before normal operation.
+* Preserve enough metadata to reproduce the run: relay configuration, frame assignment, switch lead time, antenna/feedline mapping, WSPRadar config and UTC run window.
+
+This switching method improves experimental control, but it does not make the result a laboratory antenna-gain measurement. RF-switch loss, isolation, connector repeatability, feedline differences and local antenna-environment changes can still contribute. For a stricter antenna-only comparison, use equal feedline lengths and types where practical, document the RF path, and consider swapping antennas between paths as a control run.
+
+<a id="sec-c"></a>
+### Appendix C: Reference SNR Calibration
+
+This procedure estimates a constant correction between two receive chains, reference stations or reference-side paths before the actual comparison run. It is most useful when you know that the reference side has a stable hardware, receiver-chain or calibration difference that WSPRadar cannot infer from WSPR spots alone.
+
+1. **Baseline measurement:** connect one antenna to a 3 dB splitter and feed both RX chains simultaneously.
+2. **Data collection:** run this setup for several days to gather a large paired sample across changing propagation states.
+3. **Calculation:** use WSPRadar Buddy Test or Hardware A/B-Test to determine the Delta SNR between the two chains. Read the calibration value from the figures above the Station Insights table. You must choose whether the relevant value is the station-median Delta SNR or the joint-spot Delta SNR mean/median; use the one that matches the evidence layer you want to correct. With enough paired samples the numerical mean can become very stable; a target such as `0.05 dB` describes sample precision, not absolute laboratory calibration accuracy.
+4. **Application:** use this calibration value as the constant Reference SNR Correction in the actual comparison run for the second station, reference station or reference side.
+
+<a id="sec-ref"></a>
+### References
+
+* <a id="ref-1"></a><a href="#ref-1">[Ref-1]</a> WSPR.live, **Welcome to WSPR Live**, documentation, database description and disclaimer about raw data, duplicates, false spots and availability.
+  https://wspr.live/
+
+* <a id="ref-2"></a><a href="#ref-2">[Ref-2]</a> ARRL, **WSPR**, technical overview of MEPT_JT/WSPR, message format, transmission duration, occupied bandwidth and SNR reference.
+  https://www.arrl.org/wspr
+
+* <a id="ref-3"></a><a href="#ref-3">[Ref-3]</a> Taylor, J. H.; Walker, B. (2010). **WSPRing Around the World**. *QST*, 94(11), pp. 30-32.
+  https://www.arrl.org/files/file/History/History%20of%20QST%20Volume%201%20-%20Technology/QS11-2010-Taylor.pdf
+
+* <a id="ref-4"></a><a href="#ref-4">[Ref-4]</a> Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). **A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals**. *Atmosphere*, 13(8), 1340. doi:10.3390/atmos13081340.
+  https://www.mdpi.com/2073-4433/13/8/1340
+
+* <a id="ref-5"></a><a href="#ref-5">[Ref-5]</a> Frissell, N. A. et al. (2023). **Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations**. *Frontiers in Astronomy and Space Sciences*, 10, Article 1184171. doi:10.3389/fspas.2023.1184171.
+  https://www.frontiersin.org/articles/10.3389/fspas.2023.1184171/full
+
+* <a id="ref-6"></a><a href="#ref-6">[Ref-6]</a> Vanhamel, J.; Machiels, W.; Lamy, H. (2022). **Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band**. *International Journal of Antennas and Propagation*, 2022, Article 4809313. doi:10.1155/2022/4809313.
+  https://research.tudelft.nl/en/publications/using-the-wspr-mode-for-antenna-performance-evaluation-and-propag/
+
+* <a id="ref-7"></a><a href="#ref-7">[Ref-7]</a> Zander, J. (2022). **Simple HF antenna efficiency comparisons using the WSPR system**. arXiv:2209.08989. doi:10.48550/arXiv.2209.08989.
+  https://arxiv.org/abs/2209.08989
+
+* <a id="ref-8"></a><a href="#ref-8">[Ref-8]</a> Milazzo, C. F. / KP4MD (2011). **Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance**.
+  https://www.qsl.net/kp4md/wspr.htm
+
+* <a id="ref-9"></a><a href="#ref-9">[Ref-9]</a> Griffiths, G.; Squibb, N. J. (2017). **Improving HF Band SNR from analysis of WSPR spots**. *Practical Wireless*, October 2017, pp. 23-26.
+  https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf
+
+* <a id="ref-10"></a><a href="#ref-10">[Ref-10]</a> WSPR.Rocks, **Help & Documentation**, SpotQ, SQL access, duplicate-spot analysis, maps, charts and heatmaps.
+  https://wspr.rocks/help.html
+
+* <a id="ref-11"></a><a href="#ref-11">[Ref-11]</a> Griffiths, G.; Robinett, R. (2020). **Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana**. ARRL/TAPR Digital Communications Conference, 2020.
+  https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf
+
+* <a id="ref-12"></a><a href="#ref-12">[Ref-12]</a> WSPRdaemon, **How wsprdaemon Works**, documentation for multi-receiver WSPR/FST4W decoding, reporting, scheduling, noise and Doppler metadata.
+  https://wsprdaemon.readthedocs.io/en/stable/description/how_it_works.html
+
+* <a id="ref-13"></a><a href="#ref-13">[Ref-13]</a> SOTABEAMS, **WSPRlite Classic / DXplorer**, WSPR-based antenna performance analysis and DX10 metric.
+  https://www.sotabeams.co.uk/wsprlite-classic
+
+* <a id="ref-14"></a><a href="#ref-14">[Ref-14]</a> WSPR-Station-Compare, **WSPR-Station-compare**, project page referencing Vanhamel et al. and Zander.
+  https://sites.google.com/myuba.be/wspr-station-compare/home
+
+* <a id="ref-15"></a><a href="#ref-15">[Ref-15]</a> Antenna Performance Analysis Tool, **WSPR-based antenna report generator**.
+  https://wspr.bsdworld.org/
+
+* <a id="ref-16"></a><a href="#ref-16">[Ref-16]</a> GM4EAU, **WATT WSPR Analysis Tool**, Excel/VBA-based tool for WSPR reporting, mapping, filtering and timeline animation.
+  https://www.gm4eau.com/home-page/wspr/
+
+"""

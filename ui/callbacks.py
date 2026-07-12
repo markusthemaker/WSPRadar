@@ -7,8 +7,9 @@ These functions modify the session state and dictate the application's flow.
 import streamlit as st
 import time
 from i18n import T
-from config import DEMO_PROFILES
-from ui.results_export import reset_result_export_state
+from config import DEFAULT_BAND, DEMO_PROFILES
+from ui.documentation_state import collapse_documentation
+from ui.result_state import reset_result_state
 
 def reset_audit():
     """
@@ -19,7 +20,7 @@ def reset_audit():
     st.session_state.run_mode = None
     st.session_state.active_demo_profile = None
     st.session_state.demo_view_defaults = {}
-    reset_result_export_state()
+    reset_result_state(st.session_state)
 
 def swap_tx_target_wspr_frame():
     """
@@ -64,7 +65,7 @@ def update_lang():
     # Mapping of session_state keys to their possible translation dictionary keys
     state_map = {
         "val_time_mode": ["opt_last_x", "opt_custom"],
-        "val_comp_mode": ["opt_comp_radius", "opt_comp_buddy", "opt_comp_self"],
+        "val_comp_mode": ["opt_comp_none", "opt_comp_radius", "opt_comp_buddy", "opt_comp_self"],
         "val_local_benchmark": ["opt_local_median", "opt_local_best"],
         "val_self_test_mode": ["opt_self_rx", "opt_self_tx"],
         "val_target_wspr_frame": ["opt_wspr_frame_00_04_08", "opt_wspr_frame_02_06_10", "opt_slot_even", "opt_slot_odd"],
@@ -135,7 +136,7 @@ def _apply_demo_profile_values(profile_key):
 
     st.session_state.val_callsign = str(core.get("callsign", "")).strip().upper()
     st.session_state.val_qth = str(core.get("qth", "")).strip().upper()
-    st.session_state.val_band = core.get("band", "20m")
+    st.session_state.val_band = core.get("band", DEFAULT_BAND)
     st.session_state.val_time_mode = t[core.get("time_mode_key", "opt_custom")]
     st.session_state.val_hours = int(core.get("last_hours", st.session_state.get("val_hours", 24)))
     if st.session_state.val_time_mode == t["opt_custom"]:
@@ -165,7 +166,7 @@ def _apply_demo_profile_values(profile_key):
 
 def apply_demo_profile(profile_key=None):
     """
-    Applies the appropriate demo profile based on the currently selected comparison mode.
+    Applies the appropriate demo profile based on the selected benchmark design.
     Injects predefined, validated values for callsigns, locations, and timeframes 
     to guarantee a working demo query (Guided Sandbox Mode).
     """
@@ -220,7 +221,8 @@ def run_demo_profile(profile_key):
     _apply_demo_profile_values(profile_key)
     st.session_state.run_mode = profile.get("run", {}).get("run_mode")
     st.session_state.run_id = int(time.time())
-    reset_result_export_state()
+    collapse_documentation(st.session_state)
+    reset_result_state(st.session_state)
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
@@ -228,10 +230,12 @@ def run_demo_profile(profile_key):
 
 def handle_comp_mode_change():
     """
-    Event handler triggered when the user switches the main comparison mode 
-    (A/B Test, Buddy, Radius). Resets any active audit and seamlessly applies
-    the relevant demo profile if the sandbox mode is active.
+    Reset active results and correction when the benchmark design changes.
+
+    Normal benchmark designs start with no reference-SNR correction. Guided
+    demo mode can then load an explicit profile correction when one exists.
     """
+    st.session_state.val_benchmark_offset_db = 0.0
     reset_audit()
     apply_demo_profile()
 
@@ -253,11 +257,11 @@ def set_reset_config():
     
     st.session_state.val_callsign = ""
     st.session_state.val_qth = ""
-    st.session_state.val_band = "20m"
+    st.session_state.val_band = DEFAULT_BAND
     st.session_state.val_time_mode = t["opt_last_x"]
     st.session_state.val_hours = 24
     st.session_state.val_solar = t["opt_solar_all"]
-    st.session_state.val_comp_mode = t["opt_comp_self"]
+    st.session_state.val_comp_mode = t["opt_comp_none"]
     st.session_state.val_ref_stations = 10
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0

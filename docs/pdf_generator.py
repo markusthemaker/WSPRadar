@@ -17,6 +17,7 @@ from docs.doc_en import DOC_EN
 
 DOCUMENTATION_PDF_READY_KEY_PREFIX = "_documentation_pdf_ready"
 _DOCUMENTATION_PDF_GENERATION_LOCK = threading.Lock()
+PDF_MARKDOWN_EXTENSIONS = ("tables", "fenced_code")
 
 
 @lru_cache(maxsize=2)
@@ -32,24 +33,40 @@ def _formula(html):
 def _replace_pdf_math(md_text):
     """Replace LaTeX-like Markdown formulas with xhtml2pdf-safe HTML."""
     block_replacements = {
+        r"\text{Success Rate}_{RX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Elsewhere}}": _formula(
+            "Success Rate<sub>RX</sub> = 100% &times; "
+            "Target / (Target + Elsewhere)"
+        ),
+        r"\text{Success Rate}_{TX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Other Signals}}": _formula(
+            "Success Rate<sub>TX</sub> = 100% &times; "
+            "Target / (Target + Other Signals)"
+        ),
         r"SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30": _formula(
             "SNR<sub>norm</sub> = SNR<sub>measured</sub> - "
             "P<sub>TX(dBm)</sub> + 30"
         ),
+        r"SNR_{reference,corrected} = SNR_{reference} + Correction": _formula(
+            "SNR<sub>reference,corrected</sub> = "
+            "SNR<sub>reference</sub> + Correction"
+        ),
+        r"\Delta SNR = SNR_{target} - SNR_{reference,corrected}": _formula(
+            "Delta SNR = SNR<sub>target</sub> - "
+            "SNR<sub>reference,corrected</sub>"
+        ),
         r"\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}": _formula(
-            "&Delta; SNR<sub>TX</sub> = SNR<sub>norm,target</sub> - "
+            "Delta SNR<sub>TX</sub> = SNR<sub>norm,target</sub> - "
             "SNR<sub>norm,reference</sub>"
         ),
         r"\Delta SNR_{RX} = SNR_{target} - SNR_{reference}": _formula(
-            "&Delta; SNR<sub>RX</sub> = SNR<sub>target</sub> - "
+            "Delta SNR<sub>RX</sub> = SNR<sub>target</sub> - "
             "SNR<sub>reference</sub>"
         ),
         r"\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,benchmark}": _formula(
-            "&Delta; SNR<sub>TX</sub> = SNR<sub>norm,target</sub> - "
+            "Delta SNR<sub>TX</sub> = SNR<sub>norm,target</sub> - "
             "SNR<sub>norm,benchmark</sub>"
         ),
         r"\Delta SNR_{RX} = SNR_{measured,target} - SNR_{measured,benchmark}": _formula(
-            "&Delta; SNR<sub>RX</sub> = SNR<sub>measured,target</sub> - "
+            "Delta SNR<sub>RX</sub> = SNR<sub>measured,target</sub> - "
             "SNR<sub>measured,benchmark</sub>"
         ),
     }
@@ -59,8 +76,8 @@ def _replace_pdf_math(md_text):
         md_text = md_text.replace(f"${latex}$", html)
 
     inline_replacements = {
-        r"$\Delta$ SNR": "&Delta; SNR",
-        r"$\Delta$": "&Delta;",
+        r"$\Delta$ SNR": "Delta SNR",
+        r"$\Delta$": "Delta",
         r"$2^\circ \times 1^\circ$": "2&deg; &times; 1&deg;",
         r"$150 \times 111$": "150 &times; 111",
         r"$5' \times 2.5'$": "5&apos; &times; 2.5&apos;",
@@ -149,10 +166,11 @@ def _generate_pdf_doc(lang, logo_b64, version):
     # xhtml2pdf cannot render MathJax/LaTeX, so replace formulas before Markdown parsing.
     md_text = _replace_pdf_math(md_text)
 
-    html_content = markdown.markdown(md_text, extensions=["tables"])
+    html_content = markdown.markdown(md_text, extensions=PDF_MARKDOWN_EXTENSIONS)
     html_content = _inject_pdf_list_markers(html_content)
 
     dev_credit_pdf = T[lang]["dev_credit"].replace("#39ff14", "#0a318f")
+    page_label = "Seite" if lang == "de" else "Page"
 
     template = f"""
     <html>
@@ -202,6 +220,21 @@ def _generate_pdf_doc(lang, logo_b64, version):
             border-radius: 3px;
         }}
 
+        pre {{
+            font-family: Courier, monospace;
+            background-color: #f4f4f4;
+            padding: 6px;
+            font-size: 8pt;
+            line-height: 1.2;
+            white-space: pre-wrap;
+        }}
+
+        pre code {{
+            background-color: transparent;
+            padding: 0;
+            font-size: 8pt;
+        }}
+
         th {{ text-align: left; background-color: #eee; padding: 4px; }}
         td {{ padding: 4px; border-bottom: 1px solid #eee; vertical-align: top; }}
 
@@ -226,11 +259,11 @@ def _generate_pdf_doc(lang, logo_b64, version):
         }}
         
         .pdf-list-marker {{
-            width: 12px;
+            width: 18px;
             vertical-align: top;
             font-weight: bold;
             color: #0a1428;
-            padding: 0;
+            padding: 0 4px 0 0;
         }}
         
         .pdf-list-body {{
@@ -265,7 +298,7 @@ def _generate_pdf_doc(lang, logo_b64, version):
         </div>
         {html_content}
         <div id="footerContent">
-            WSPRadar {version} - Seite <pdf:pagenumber>
+            WSPRadar {version} - {page_label} <pdf:pagenumber>
         </div>
     </body>
     </html>

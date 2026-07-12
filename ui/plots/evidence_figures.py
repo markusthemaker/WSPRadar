@@ -762,7 +762,7 @@ def render_segment_insight_export_figure(recipe):
     bars = ax_panel.bar(panel_labels, panel_counts, color="#36aaf9", alpha=0.8, edgecolor="black")
     ax_panel.set_ylabel(recipe.get("panel_y_label", "Count"), color="white")
     if compare_layout:
-        ax_panel.set_title("System Sensitivity (Yield)", color="white", fontweight="bold", pad=10)
+        ax_panel.set_title("Decode Outcomes", color="white", fontweight="bold", pad=10)
         total_count = sum(panel_counts)
         if total_count > 0:
             for bar in bars:

@@ -29,7 +29,8 @@ from core.artifact_store import (
     write_parquet_artifact,
 )
 from core.data_engine import cleanup_old_parquets, fetch_wspr_data
-from core.math_utils import is_valid_callsign, is_valid_locator, locator_to_latlon
+from core.input_validation import is_valid_callsign, is_valid_locator
+from core.math_utils import locator_to_latlon
 from core.matplotlib_runtime import matplotlib_profile_collector
 from core.performance_timer import (
     PerformanceTimer,

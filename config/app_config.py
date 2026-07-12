@@ -3,7 +3,7 @@
 import os
 
 
-APP_VERSION = "v0.95"
+APP_VERSION = "v0.96"
 LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
 APP_URL = "https://wspradar.streamlit.app"
 DB_URL = "https://db1.wspr.live/"
@@ -40,9 +40,5 @@ INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES = 2
 INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES = 4
 INSPECTOR_CACHE_SELECTED_MAX_ENTRIES = 8
 INSPECTOR_CACHE_PNG_MAX_ENTRIES = 12
-
-# Defer the documentation section briefly so the operational interface can paint
-# before the browser receives and lays out the long-form scientific content.
-DOCUMENTATION_INITIAL_LOAD_DELAY_SEC = 0.75
 
 os.makedirs(CACHE_DIR, exist_ok=True)

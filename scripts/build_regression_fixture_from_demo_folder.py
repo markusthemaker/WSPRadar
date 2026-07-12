@@ -36,7 +36,9 @@ FIGURE_FILES = [
     "figure_segment_insight.png",
     "figure_selected_station_evidence.png",
 ]
-BLOCK_FOLDERS = ["compare", "absolute"]
+BLOCK_FOLDERS = ["compare", "success"]
+LEGACY_BLOCK_FOLDERS = ["absolute"]
+SUPPORTED_BLOCK_FOLDERS = BLOCK_FOLDERS + LEGACY_BLOCK_FOLDERS
 SNR_METRIC_MARKERS = ("snr", "norm@1w", "\u0394", "delta", "micro-med", "bin \u0394")
 
 
@@ -153,7 +155,8 @@ def _safe_remove_fixture(destination: Path, fixture_root: Path) -> None:
 
 
 def _copy_export_tree(export_root: Path, destination: Path) -> None:
-    for name in ["config", "compare", "absolute"]:
+    """Copy current exports and preserve support for archived Absolute packages."""
+    for name in ["config", *SUPPORTED_BLOCK_FOLDERS]:
         source = export_root / name
         if source.exists():
             shutil.copytree(source, destination / name)
@@ -269,7 +272,7 @@ def _block_metrics(block_folder: Path) -> dict[str, Any]:
 def _build_expected_metrics(destination: Path) -> dict[str, Any]:
     return {
         folder: _block_metrics(destination / folder)
-        for folder in BLOCK_FOLDERS
+        for folder in SUPPORTED_BLOCK_FOLDERS
         if (destination / folder).exists()
     }
 
@@ -295,10 +298,13 @@ def _build_regression_report(
             "folder": folder,
             "analysis_id": block.get("analysis_id"),
             "title": block.get("title"),
-            "mode": "compare" if block.get("is_compare") else "absolute",
+            "mode": "compare" if block.get("is_compare") else "success",
             "is_sequential": block.get("is_sequential"),
             "analysis_kind": block.get("analysis_kind"),
-            "absolute_method_version": block.get("absolute_method_version"),
+            "success_method_version": block.get(
+                "success_method_version",
+                block.get("absolute_method_version"),
+            ),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),
@@ -416,7 +422,7 @@ def _build_manifest(
     blocks = []
     for block in run_metadata.get("result_blocks", []):
         folder = block.get("folder")
-        if folder not in BLOCK_FOLDERS:
+        if folder not in SUPPORTED_BLOCK_FOLDERS:
             continue
         blocks.append({
             "analysis_id": block.get("analysis_id"),
@@ -426,7 +432,10 @@ def _build_manifest(
             "is_compare": block.get("is_compare"),
             "is_sequential": block.get("is_sequential"),
             "analysis_kind": block.get("analysis_kind"),
-            "absolute_method_version": block.get("absolute_method_version"),
+            "success_method_version": block.get(
+                "success_method_version",
+                block.get("absolute_method_version"),
+            ),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),

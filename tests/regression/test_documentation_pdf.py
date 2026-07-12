@@ -1,4 +1,6 @@
 from docs import pdf_generator
+from docs.doc_de import DOC_DE
+from docs.doc_en import DOC_EN
 
 
 class _Context:
@@ -35,6 +37,27 @@ class _FakeStreamlit:
 
 def _ready_key(lang="en", version="v0.95"):
     return f"{pdf_generator.DOCUMENTATION_PDF_READY_KEY_PREFIX}:{lang}:{version}"
+
+
+def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
+    for manual in (DOC_EN, DOC_DE):
+        rendered = pdf_generator._replace_pdf_math(manual)
+
+        assert "$$" not in rendered
+        assert "&Delta;" not in rendered
+        assert "Delta SNR =" in rendered
+
+
+def test_pdf_markdown_extensions_preserve_fenced_code_blocks():
+    import markdown
+
+    rendered = markdown.markdown(
+        "```text\nconfig/\n  run_metadata.json\n```",
+        extensions=pdf_generator.PDF_MARKDOWN_EXTENSIONS,
+    )
+
+    assert rendered.startswith("<pre><code")
+    assert "config/\n  run_metadata.json" in rendered
 
 
 def test_documentation_pdf_is_not_generated_during_initial_render(monkeypatch):

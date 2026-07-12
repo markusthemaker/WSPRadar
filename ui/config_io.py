@@ -10,17 +10,18 @@ from datetime import datetime, timedelta, timezone, time as dt_time
 
 import streamlit as st
 
-from config import BAND_MAP, MAP_SCOPE_OPTIONS, MAX_DAYS_HISTORY, MAX_DYNAMIC_RADIUS_KM
+from config import BAND_MAP, DEFAULT_BAND, MAP_SCOPE_OPTIONS, MAX_DAYS_HISTORY, MAX_DYNAMIC_RADIUS_KM
 from i18n import T
-from core.math_utils import is_valid_callsign, is_valid_6char_locator
+from core.input_validation import is_valid_6char_locator, is_valid_callsign
 
 
 CONFIG_APP_NAME = "WSPRadar.org"
-CONFIG_SCHEMA_VERSION = 3
+CONFIG_SCHEMA_VERSION = 4
 MAX_CONFIG_BYTES = 200_000
 MIN_CONFIG_DATE = datetime(2008, 1, 1, tzinfo=timezone.utc).date()
 
 MODE_KEYS = {
+    "none": "opt_comp_none",
     "hardware_ab": "opt_comp_self",
     "reference_station": "opt_comp_buddy",
     "local_neighborhood": "opt_comp_radius",
@@ -120,14 +121,14 @@ def _default_config():
     return {
         "callsign": "",
         "qth": "",
-        "band": "20m",
+        "band": DEFAULT_BAND,
         "time_mode": "last_x",
         "hours": 24,
         "start_date": (today - timedelta(days=1)).isoformat(),
         "end_date": today.isoformat(),
         "start_time": "00:00",
         "end_time": "23:59",
-        "benchmark_mode": "hardware_ab",
+        "benchmark_mode": "none",
         "local_benchmark": "local_median",
         "reference_callsign": "",
         "neighborhood_radius_km": 100,
@@ -256,7 +257,7 @@ def build_config_payload():
         "end_date": state.get("val_end_d", datetime.fromisoformat(defaults["end_date"]).date()).isoformat(),
         "start_time": state.get("val_start_t", dt_time(0, 0)).strftime("%H:%M"),
         "end_time": state.get("val_end_t", dt_time(23, 59)).strftime("%H:%M"),
-        "benchmark_mode": _canonical_from_translated(state.get("val_comp_mode", T[lang]["opt_comp_self"]), MODE_VALUES, "hardware_ab"),
+        "benchmark_mode": _canonical_from_translated(state.get("val_comp_mode", T[lang]["opt_comp_none"]), MODE_VALUES, "none"),
         "local_benchmark": _canonical_from_translated(state.get("val_local_benchmark", T[lang]["opt_local_median"]), LOCAL_BENCHMARK_VALUES, "local_median"),
         "reference_callsign": state.get("val_ref_callsign", defaults["reference_callsign"]).strip().upper(),
         "neighborhood_radius_km": int(state.get("val_ref_radius_km", defaults["neighborhood_radius_km"])),
@@ -321,6 +322,8 @@ def validate_config_upload(raw_bytes):
     normalized = {}
     normalized["callsign"] = _validate_callsign(config["callsign"], "callsign")
     normalized["qth"] = _validate_locator(config["qth"], "qth")
+    if str(config["band"]) == "All":
+        raise ValueError("band=All is no longer supported; choose one exact operating band.")
     normalized["band"] = _validate_choice(config["band"], "band", BAND_MAP.keys())
     normalized["time_mode"] = _validate_choice(config["time_mode"], "time_mode", ["last_x", "custom"])
     normalized["hours"] = _validate_int(config["hours"], "hours", 1, 168)
@@ -407,7 +410,7 @@ def apply_config_values(config):
     st.session_state.val_end_d = config["end_date"]
     st.session_state.val_start_t = config["start_time"]
     st.session_state.val_end_t = config["end_time"]
-    st.session_state.val_comp_mode = _translated_from_canonical(config["benchmark_mode"], MODE_KEYS, lang, t["opt_comp_self"])
+    st.session_state.val_comp_mode = _translated_from_canonical(config["benchmark_mode"], MODE_KEYS, lang, t["opt_comp_none"])
     st.session_state.val_local_benchmark = _translated_from_canonical(config["local_benchmark"], LOCAL_BENCHMARK_KEYS, lang, t["opt_local_median"])
     st.session_state.val_ref_callsign = config["reference_callsign"]
     st.session_state.val_ref_radius_km = config["neighborhood_radius_km"]

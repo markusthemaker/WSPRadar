@@ -1,5 +1,6 @@
 """Build canonical core analysis context objects from Streamlit UI state."""
 
+from config import DEFAULT_BAND
 from core.analysis_context import AnalysisContext
 from i18n import T
 from ui.config_io import (
@@ -21,11 +22,11 @@ def build_analysis_context_from_session_state(session_state):
         run_mode=session_state.get("run_mode"),
         callsign=str(session_state.get("val_callsign", "")).strip().upper(),
         qth=str(session_state.get("val_qth", "")).strip().upper(),
-        band=session_state.get("val_band", "20m"),
+        band=session_state.get("val_band", DEFAULT_BAND),
         comparison_mode=canonical_from_translated(
-            session_state.get("val_comp_mode", t["opt_comp_self"]),
+            session_state.get("val_comp_mode", t["opt_comp_none"]),
             MODE_VALUES,
-            "hardware_ab",
+            "none",
         ),
         local_benchmark=canonical_from_translated(
             session_state.get("val_local_benchmark", t["opt_local_median"]),

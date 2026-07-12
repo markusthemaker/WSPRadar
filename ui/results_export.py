@@ -24,7 +24,6 @@ from core.analysis_context import AnalysisContext
 from core.artifact_store import (
     ARTIFACT_STORE,
     read_parquet_artifact,
-    retire_registered_session_artifacts,
     session_artifact_owner,
 )
 from core.analysis_admission import AnalysisQueueFull, AnalysisQueueTimeout
@@ -40,15 +39,21 @@ from core.presentation_context import PresentationContext
 from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
-from ui.inspector.session_cache import INSPECTOR_CACHE_STATE_KEY
+from ui.result_state import (
+    EXPORT_RUN_ID_KEY,
+    EXPORT_STATE_KEY,
+    EXPORT_ZIP_BYTES_KEY,
+    EXPORT_ZIP_FILENAME_KEY,
+    EXPORT_ZIP_SIGNATURE_KEY,
+    clear_prepared_result_state,
+    reset_result_state,
+)
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 
 
-EXPORT_STATE_KEY = "result_export_blocks"
-EXPORT_RUN_ID_KEY = "result_export_run_id"
-EXPORT_ZIP_BYTES_KEY = "result_export_zip_bytes"
-EXPORT_ZIP_FILENAME_KEY = "result_export_zip_filename"
-EXPORT_ZIP_SIGNATURE_KEY = "result_export_zip_signature"
+COMPARE_EXPORT_FOLDER = "compare"
+SUCCESS_EXPORT_FOLDER = "success"
+EXPORTABLE_RESULT_FOLDERS = frozenset({COMPARE_EXPORT_FOLDER, SUCCESS_EXPORT_FOLDER})
 
 
 def _current_run_id():
@@ -56,19 +61,13 @@ def _current_run_id():
 
 
 def reset_result_export_state():
-    """Clear export artifacts for a fresh analysis run."""
-    retire_registered_session_artifacts(st.session_state)
-    st.session_state[EXPORT_STATE_KEY] = {}
-    st.session_state[EXPORT_RUN_ID_KEY] = _current_run_id()
-    st.session_state.pop("segment_stability_cache", None)
-    st.session_state.pop(INSPECTOR_CACHE_STATE_KEY, None)
-    _clear_prepared_results()
+    """Compatibility wrapper clearing result state for a fresh analysis run."""
+    reset_result_state(st.session_state)
 
 
 def _clear_prepared_results():
     """Drop prepared ZIP bytes when result selections or analysis runs change."""
-    for key in [EXPORT_ZIP_BYTES_KEY, EXPORT_ZIP_FILENAME_KEY, EXPORT_ZIP_SIGNATURE_KEY]:
-        st.session_state.pop(key, None)
+    clear_prepared_result_state(st.session_state)
 
 
 def _ensure_current_export_state():
@@ -233,11 +232,15 @@ def register_map_export_context(
     block.update({
         "analysis_id": analysis["id"],
         "title": analysis["title"],
-        "mode_folder": "compare" if analysis["is_compare"] else "absolute",
+        "mode_folder": (
+            COMPARE_EXPORT_FOLDER
+            if analysis["is_compare"]
+            else SUCCESS_EXPORT_FOLDER
+        ),
         "is_compare": bool(analysis["is_compare"]),
         "is_sequential": bool(analysis["is_sequential"]),
         "analysis_kind": analysis.get("analysis_kind", "comparison"),
-        "absolute_method_version": analysis.get("absolute_method_version"),
+        "success_method_version": analysis.get("absolute_method_version"),
         "decode_filter_mode": analysis.get("decode_filter_mode"),
         "map_context": {
             "parquet_path": parquet_path,
@@ -342,8 +345,14 @@ def _json_default(value):
 
 def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
     config = config_payload.get("config", {})
-    compare_present = any(block.get("mode_folder") == "compare" for block in blocks.values())
-    absolute_present = any(block.get("mode_folder") == "absolute" for block in blocks.values())
+    compare_present = any(
+        block.get("mode_folder") == COMPARE_EXPORT_FOLDER
+        for block in blocks.values()
+    )
+    success_present = any(
+        block.get("mode_folder") == SUCCESS_EXPORT_FOLDER
+        for block in blocks.values()
+    )
     analysis_cache_paths = analysis_cache_paths or {}
 
     return {
@@ -354,8 +363,8 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         "language": st.session_state.get("lang"),
         "run_mode": st.session_state.get("run_mode"),
         "blocks_present": {
-            "compare": compare_present,
-            "absolute": absolute_present,
+            COMPARE_EXPORT_FOLDER: compare_present,
+            SUCCESS_EXPORT_FOLDER: success_present,
         },
         "callsign": config.get("callsign"),
         "reference_or_benchmark_mode": config.get("benchmark_mode"),
@@ -395,7 +404,7 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 "is_compare": block.get("is_compare"),
                 "is_sequential": block.get("is_sequential"),
                 "analysis_kind": block.get("analysis_kind"),
-                "absolute_method_version": block.get("absolute_method_version"),
+                "success_method_version": block.get("success_method_version"),
             }
             for key, block in blocks.items()
         ],
@@ -448,7 +457,7 @@ def _analysis_cache_export_paths(blocks):
         folder = block.get("mode_folder")
         context = block.get("map_context") or {}
         parquet_path = context.get("parquet_path")
-        if folder not in {"compare", "absolute"} or not parquet_path:
+        if folder not in EXPORTABLE_RESULT_FOLDERS or not parquet_path:
             continue
         if not ARTIFACT_STORE.touch(parquet_path):
             continue
@@ -656,7 +665,7 @@ def build_results_zip():
     blocks = _ensure_current_export_state()
     exportable_blocks = {
         key: block for key, block in blocks.items()
-        if block.get("mode_folder") in {"compare", "absolute"}
+        if block.get("mode_folder") in EXPORTABLE_RESULT_FOLDERS
     }
     if not exportable_blocks:
         return None, None
@@ -840,7 +849,7 @@ def render_download_all_results(t):
     blocks = _ensure_current_export_state()
     exportable_blocks = {
         key: block for key, block in blocks.items()
-        if block.get("mode_folder") in {"compare", "absolute"}
+        if block.get("mode_folder") in EXPORTABLE_RESULT_FOLDERS
     }
     if not exportable_blocks:
         return

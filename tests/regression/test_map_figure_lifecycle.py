@@ -6,7 +6,7 @@ import time
 import numpy as np
 from PIL import Image
 
-from core import map_base
+from core import map_base, plot_engine
 from i18n import T, absolute_terms
 from ui.matplotlib_renderer import (
     _draw_figure_preview_image,
@@ -34,6 +34,39 @@ def test_map_figure_stays_outside_pyplot_registry_and_disposes_artists():
 
     assert tuple(Gcf.get_all_fig_managers()) == managers_before
     assert figure.axes == []
+
+
+def test_footer_summary_renderer_always_draws_spots_and_stations_rows():
+    from matplotlib.figure import Figure
+
+    figure = Figure(figsize=(8, 2), facecolor="black")
+    try:
+        summary_axis = plot_engine._draw_footer_summary_bars(
+            figure,
+            station_counts=[3, 7],
+            spot_counts=[20, 80],
+            colors=["#39ff14", "#d0d0d0"],
+            text_colors=["black", "black"],
+            theme_config={
+                "bar_face": "black",
+                "bar_tick": "white",
+                "bar_bbox": [0.12, 0.1, 0.8, 0.6],
+            },
+        )
+
+        assert [tick.get_text() for tick in summary_axis.get_yticklabels()] == [
+            "STATIONS",
+            "SPOTS",
+        ]
+        assert len(summary_axis.patches) == 4
+        assert {label.get_text() for label in summary_axis.texts} == {
+            "3",
+            "7",
+            "20",
+            "80",
+        }
+    finally:
+        dispose_matplotlib_figure(figure)
 
 
 def test_cached_basemap_pixels_are_compact_uint8_rgb(tmp_path):

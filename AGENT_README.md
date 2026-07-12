@@ -31,8 +31,9 @@ measurement system.
 - Guided demo profiles for historical examples.
 - Process-wide analysis and export admission queues, duplicate-request rejection,
   bounded HTTP reads, shared artifact locking, and performance/RSS logging.
-- Full scientific documentation rendered in the page and generated as a lazy,
-  process-cached PDF.
+- Section 1 rendered initially, with the table of contents and remaining manual
+  loaded near its viewport boundary or through an explicit fallback; PDF
+  generation remains process-cached and explicitly requested.
 
 See `README.md` for the scientific method, UI walkthrough, interpretation, and
 end-user limitations.
@@ -95,7 +96,7 @@ was found in the application path.
 
 | File | Configuration owned |
 | --- | --- |
-| `config/app_config.py` | Application metadata, public URLs, wspr.live URL, cache path/TTL, query limits, HTTP timeouts/response ceilings, admission queues, inspector cache, and documentation delay. |
+| `config/app_config.py` | Application metadata, public URLs, wspr.live URL, cache path/TTL, query limits, HTTP timeouts/response ceilings, admission queues, and inspector-cache limits. |
 | `config/bands.py` | User-facing WSPR bands and wspr.live band identifiers. |
 | `config/demo_profiles.py` | Guided demo inputs and historical time windows. |
 | `config/plot_constants.py` | Map geometry, colors, and rendering/scientific plotting constants. |
@@ -169,6 +170,10 @@ Useful files when tracing behavior:
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
   orchestration and pure view models.
 - `ui/results_export.py`: lazy export recipe execution and ZIP construction.
+- `ui/result_state.py`: lightweight result/export reset lifecycle used by idle
+  configuration callbacks.
+- `ui/documentation_scroll_trigger.py`: one-shot browser viewport sentinel for
+  demand-driven full-manual rendering.
 - `core/artifact_store.py`: artifact namespaces and lifecycle.
 
 The separate `tools/Timed-AB-Relay-Switch/` utility has its own README,
