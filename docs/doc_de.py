@@ -13,7 +13,7 @@ DOC_DE = r"""
 
 #### 0.0 Was WSPRadar zeigen kann
 
-WSPRadar ist auf vergleichende Evidenz vollständiger, betriebsfertig aufgebauter Stationskonfigurationen unter realen Betriebsbedingungen spezialisiert. Ein <strong class="defined-term">Hardware A/B-Test</strong> vergleicht zwei kontrollierte lokale Signalwege, etwa Antennen, Speiseleitungen oder Empfangsketten. Ein <strong class="defined-term">Referenzstations-/Buddy-Test</strong> vergleicht zwei vollständige Stationen einschließlich ihrer Standorte, Geräte und lokalen Stör- und Rauschumgebungen.
+WSPRadar zeigt, wie eine vollständig aufgebaute Station oder Konfiguration unter realen Betriebsbedingungen abschneidet – für sich allein und im Vergleich mit einer aussagekräftigen Referenz. Ein <strong class="defined-term">Hardware A/B-Test</strong> vergleicht zwei kontrollierte lokale Signalwege, etwa Antennen, Speiseleitungen oder Empfangsketten. Ein <strong class="defined-term">Referenzstations-/Buddy-Test</strong> vergleicht zwei vollständige Stationen einschließlich ihrer Standorte, Geräte und lokalen Stör- und Rauschumgebungen.
 
 Die zu untersuchende Station oder Konfiguration ist das <strong class="defined-term">Target</strong>. Die Vergleichsbasis ist die <strong class="defined-term">Referenz</strong>. Je nach Versuch kann die Referenz Setup B derselben Station, eine bekannte externe Station, die aktive lokale WSPR-Nachbarschaft oder deren stärkstes aktives Mitglied sein.
 

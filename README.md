@@ -10,7 +10,7 @@ HAM RADIO STATION & ANTENNA BENCHMARKING
 
 #### 0.0 What WSPRadar can show
 
-WSPRadar specializes in comparative evidence from complete installed station configurations under real operating conditions. A <strong class="defined-term">Hardware A/B Test</strong> compares two controlled local paths, such as antennas, feedlines or receive chains. A <strong class="defined-term">Reference Station / Buddy Test</strong> compares two complete stations, including their locations, equipment and noise environments.
+WSPRadar shows how a complete station or setup performs under real operating conditions—on its own and against a meaningful reference. A <strong class="defined-term">Hardware A/B Test</strong> compares two controlled local paths, such as antennas, feedlines or receive chains. A <strong class="defined-term">Reference Station / Buddy Test</strong> compares two complete stations, including their locations, equipment and noise environments.
 
 The station or setup being evaluated is the <strong class="defined-term">Target</strong>. Its comparison baseline is the <strong class="defined-term">Reference</strong>. Depending on the experiment, the Reference can be Setup B at the same station, one known external station, the active local WSPR neighborhood or its strongest active member.
 
@@ -1497,7 +1497,7 @@ WSPRadar is experimental open-source software provided "as is" without warrantie
 
 * <a id="ref-9"></a><a href="https://www.qsl.net/kp4md/wspr.htm">[Ref-9]</a> **Amateur-radio technical article and club presentation.** Milazzo, C. F. / KP4MD (2011). *Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance*.
 
-* <a id="ref-10"></a><a href="https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf">[Ref-10]</a> **Amateur-radio magazine article.** Griffiths, G.; Squibb, N. J. (2017). *Improving HF Band SNR from analysis of WSPR spots*. Practical Wireless, October 2017, 23-26.
+* <a id="ref-10"></a><a href="https://www.researchgate.net/publication/319903566_Improving_HF_Band_SNR_from_analysis_of_WSPR_spots">[Ref-10]</a> **Amateur-radio magazine article.** Griffiths, G.; Squibb, N. J. (2017). *Improving HF Band SNR from analysis of WSPR spots*. Practical Wireless, October 2017, 23-26.
 
 * <a id="ref-11"></a><a href="https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf">[Ref-11]</a> **Conference paper.** Griffiths, G.; Robinett, R. (2020). *Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana*. ARRL/TAPR Digital Communications Conference 2020.
 
