@@ -21,7 +21,7 @@ DOCUMENTATION_SECTION_TWO_MARKER = '<a id="sec-2"></a>'
 
 
 def _split_documentation_sections(documentation_text):
-    """Split Section 1, the TOC, and later chapters without losing text."""
+    """Split the preface, the TOC, and later chapters without losing text."""
     toc_marker_count = documentation_text.count(DOCUMENTATION_TOC_MARKER)
     if toc_marker_count != 1:
         raise ValueError(
@@ -68,11 +68,11 @@ def _split_documentation_sections(documentation_text):
 
 
 def _split_section_one_at_scroll_boundary(section_one):
-    """Split Section 1 losslessly before its final subsection."""
+    """Split the preface losslessly before its final subsection."""
     marker_count = section_one.count(DOCUMENTATION_SECTION_ONE_TRIGGER_MARKER)
     if marker_count != 1:
         raise ValueError(
-            "Documentation Section 1 must contain exactly one scroll marker "
+            "Documentation preface must contain exactly one scroll marker "
             f"{DOCUMENTATION_SECTION_ONE_TRIGGER_MARKER!r}; found {marker_count}."
         )
 
@@ -97,14 +97,14 @@ def _hide_full_documentation():
 
 
 def _expand_documentation_from_scroll():
-    """Expand the manual when Section 1.3 enters the browser viewport."""
+    """Expand the manual when visible Section 0.3 enters the viewport."""
     if st.session_state.get("run_mode"):
         return
     expand_documentation(st.session_state)
 
 
 def _should_render_scroll_trigger(is_documentation_expanded):
-    """Return whether this session may still auto-expand near Section 1."""
+    """Return whether this session may still auto-expand near the preface."""
     return (
         not is_documentation_expanded
         and not st.session_state.get(
@@ -116,7 +116,7 @@ def _should_render_scroll_trigger(is_documentation_expanded):
 
 
 def _render_documentation_section(t, lang, logo_base64, version):
-    """Render Section 1, loading the TOC and remaining manual on demand."""
+    """Render the preface, loading the TOC and remaining manual on demand."""
     documentation_text = get_docs(lang)
     (
         section_one,

@@ -2,9 +2,9 @@
 """Timed A/B Relay Switch.
 
 Cross-platform console helper for DCT-style USB HID relay boards. The tool
-alternates a selected relay channel between Target and Reference slots on a
-2-minute slot / 4-minute A/B cadence. It is intentionally generic: WSPR is a
-primary use case, but the timing and relay logic do not depend on WSPRadar.
+selects Target and Reference paths from a shared repeat interval and two
+disjoint UTC start phases. It is intentionally generic: WSPR is a primary use
+case, but the timing and relay logic do not depend on WSPRadar.
 """
 
 from __future__ import annotations
@@ -22,11 +22,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-TOOL_VERSION = "0.1.0"
+TOOL_VERSION = "0.2.0"
 DEFAULT_VENDOR_ID = 0x16C0
 DEFAULT_PRODUCT_ID = 0x05DF
 DEFAULT_CONFIG_FILE = "timed-ab-relay-switch.config.json"
 DEFAULT_LOG_FILE = "timed-ab-relay-switch.log"
+REPEAT_INTERVAL_OPTIONS = (4, 6, 10, 12, 20, 30, 60)
+DEFAULT_REPEAT_INTERVAL_MINUTES = 10
+DEFAULT_TARGET_START_MINUTE = 0
+DEFAULT_REFERENCE_START_MINUTE = 2
+WSPR_TRANSMISSION_MINUTES = 2
 SCRIPT_DIR = Path(__file__).resolve().parent
 UTC = dt.timezone.utc
 NTP_UNIX_DELTA = 2_208_988_800
@@ -59,12 +64,23 @@ class RelayDevice:
     open_error: str
 
 
-@dataclass
-class Slot:
-    name: str
-    start_utc: dt.datetime
-    end_utc: dt.datetime
-    modulo: int
+@dataclass(frozen=True)
+class AbSchedule:
+    """Validated periodic Target/Reference start phases in UTC minutes."""
+
+    repeat_interval_minutes: int
+    target_start_minute: int
+    reference_start_minute: int
+
+
+@dataclass(frozen=True)
+class SchedulePosition:
+    """Selected path and next scheduled start at one UTC instant."""
+
+    path_name: str
+    most_recent_start_utc: dt.datetime
+    next_path_name: str
+    next_start_utc: dt.datetime
 
 
 @dataclass
@@ -92,8 +108,9 @@ def default_config() -> dict[str, Any]:
             "onMeansTarget": True,
         },
         "timing": {
-            "targetSlotModulo": 0,
-            "referenceSlotModulo": 2,
+            "repeatIntervalMinutes": DEFAULT_REPEAT_INTERVAL_MINUTES,
+            "targetStartMinute": DEFAULT_TARGET_START_MINUTE,
+            "referenceStartMinute": DEFAULT_REFERENCE_START_MINUTE,
             "ntpServer": "time.cloudflare.com",
             "ntpCheckMinutes": 15,
             "warnOffsetMs": 1000,
@@ -116,6 +133,51 @@ def merge_config(default: dict[str, Any], loaded: dict[str, Any]) -> dict[str, A
     return default
 
 
+def migrate_legacy_timing_config(loaded: dict[str, Any]) -> dict[str, Any]:
+    """Translate the version-0.1 modulo-4 timing fields without changing cadence."""
+    timing = loaded.get("timing")
+    if not isinstance(timing, dict):
+        return loaded
+
+    legacy_target = timing.get("targetSlotModulo")
+    legacy_reference = timing.get("referenceSlotModulo")
+    has_legacy_schedule = (
+        "targetSlotModulo" in timing or "referenceSlotModulo" in timing
+    )
+    has_new_schedule = any(
+        field in timing
+        for field in (
+            "repeatIntervalMinutes",
+            "targetStartMinute",
+            "referenceStartMinute",
+        )
+    )
+    if has_legacy_schedule and not has_new_schedule:
+        try:
+            target_start = int(legacy_target if legacy_target is not None else 0) % 4
+            reference_start = int(
+                legacy_reference
+                if legacy_reference is not None
+                else (2 if target_start == 0 else 0)
+            ) % 4
+        except (TypeError, ValueError) as exc:
+            raise ToolError("Invalid legacy Target/Reference slot phase in config.") from exc
+        if target_start not in (0, 2) or reference_start not in (0, 2):
+            raise ToolError("Legacy Target/Reference slot phases must resolve to 0 and 2.")
+        if target_start == reference_start:
+            raise ToolError("Legacy Target and Reference slot phases must be disjoint.")
+        timing["repeatIntervalMinutes"] = 4
+        timing["targetStartMinute"] = target_start
+        timing["referenceStartMinute"] = reference_start
+
+    if has_legacy_schedule and (
+        has_new_schedule or "repeatIntervalMinutes" in timing
+    ):
+        timing.pop("targetSlotModulo", None)
+        timing.pop("referenceSlotModulo", None)
+    return loaded
+
+
 def resolve_config_path(config_path: str | None) -> Path:
     path = Path(config_path) if config_path else SCRIPT_DIR / DEFAULT_CONFIG_FILE
     if not path.is_absolute():
@@ -132,6 +194,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
         loaded = json.load(handle)
     if not isinstance(loaded, dict):
         raise ToolError(f"Config file is not a JSON object: {config_path}")
+    loaded = migrate_legacy_timing_config(loaded)
     return merge_config(default_config(), loaded)
 
 
@@ -391,39 +454,170 @@ def utc_now() -> dt.datetime:
     return dt.datetime.now(UTC)
 
 
-def get_ab_slot(utc_time: dt.datetime, target_modulo: int, reference_modulo: int) -> Slot:
+def _parse_schedule_integer(value: Any, field_name: str) -> int:
+    """Return one whole-number schedule field or raise a user-facing error."""
+    if isinstance(value, bool):
+        raise ToolError(f"Invalid {field_name} '{value}'. Use a whole number.")
+    if isinstance(value, int):
+        return value
+    text = str(value or "").strip()
+    if not re.fullmatch(r"\d+", text):
+        raise ToolError(f"Invalid {field_name} '{value}'. Use a whole number.")
+    return int(text)
+
+
+def normalize_repeat_interval(value: Any) -> int:
+    """Return one supported shared Repeat Interval in minutes."""
+    repeat_interval = _parse_schedule_integer(value, "Repeat Interval")
+    if repeat_interval not in REPEAT_INTERVAL_OPTIONS:
+        allowed = ", ".join(str(option) for option in REPEAT_INTERVAL_OPTIONS)
+        raise ToolError(
+            f"Invalid Repeat Interval '{value}'. Use one of: {allowed} minutes."
+        )
+    return repeat_interval
+
+
+def normalize_start_minute(
+    value: Any,
+    repeat_interval_minutes: int,
+    field_name: str,
+) -> int:
+    """Return one even canonical UTC start phase below the Repeat Interval."""
+    start_minute = _parse_schedule_integer(value, field_name)
+    allowed_starts = tuple(range(0, repeat_interval_minutes, 2))
+    if start_minute not in allowed_starts:
+        allowed = ", ".join(f"{minute:02d}" for minute in allowed_starts)
+        raise ToolError(
+            f"Invalid {field_name} '{value}' for Repeat Interval "
+            f"{repeat_interval_minutes}. Use one of: {allowed}."
+        )
+    return start_minute
+
+
+def validate_ab_schedule(
+    repeat_interval_minutes: Any,
+    target_start_minute: Any,
+    reference_start_minute: Any,
+) -> AbSchedule:
+    """Validate and return one disjoint periodic Target/Reference schedule."""
+    repeat_interval = normalize_repeat_interval(repeat_interval_minutes)
+    target_start = normalize_start_minute(
+        target_start_minute,
+        repeat_interval,
+        "Target Start",
+    )
+    reference_start = normalize_start_minute(
+        reference_start_minute,
+        repeat_interval,
+        "Reference Start",
+    )
+    if target_start == reference_start:
+        raise ToolError("Target Start and Reference Start must be disjoint.")
+    return AbSchedule(
+        repeat_interval_minutes=repeat_interval,
+        target_start_minute=target_start,
+        reference_start_minute=reference_start,
+    )
+
+
+def ab_schedule_from_config(config: dict[str, Any]) -> AbSchedule:
+    """Read and validate the configured Repeat Interval and path starts."""
+    timing = config.get("timing", {})
+    return validate_ab_schedule(
+        timing.get("repeatIntervalMinutes", DEFAULT_REPEAT_INTERVAL_MINUTES),
+        timing.get("targetStartMinute", DEFAULT_TARGET_START_MINUTE),
+        timing.get("referenceStartMinute", DEFAULT_REFERENCE_START_MINUTE),
+    )
+
+
+def format_start_minute_series(
+    repeat_interval_minutes: int,
+    start_minute: int,
+) -> str:
+    """Format every UTC start minute in one hour for one configured path."""
+    repeat_interval = normalize_repeat_interval(repeat_interval_minutes)
+    normalized_start = normalize_start_minute(
+        start_minute,
+        repeat_interval,
+        "Start",
+    )
+    return ", ".join(
+        f"{minute:02d}" for minute in range(normalized_start, 60, repeat_interval)
+    )
+
+
+def _most_recent_path_start(
+    utc_minute_start: dt.datetime,
+    repeat_interval_minutes: int,
+    start_minute: int,
+) -> dt.datetime:
+    """Return the most recent occurrence of one path's UTC start phase."""
+    elapsed_minutes = (utc_minute_start.minute - start_minute) % repeat_interval_minutes
+    return utc_minute_start - dt.timedelta(minutes=elapsed_minutes)
+
+
+def get_schedule_position(
+    utc_time: dt.datetime,
+    schedule: AbSchedule,
+) -> SchedulePosition:
+    """Return the path selected by the latest start and the next path start."""
+    if utc_time.tzinfo is None:
+        raise ToolError("Schedule time must include a UTC offset.")
     utc_time = utc_time.astimezone(UTC)
-    slot_minute = utc_time.minute - (utc_time.minute % 2)
-    slot_start = utc_time.replace(minute=slot_minute, second=0, microsecond=0)
-    slot_end = slot_start + dt.timedelta(minutes=2)
-    slot_modulo = slot_start.minute % 4
-    target_modulo = normalize_slot_modulo(target_modulo)
-    reference_modulo = normalize_slot_modulo(reference_modulo)
-    if slot_modulo == target_modulo:
-        slot_name = "Target"
-    elif slot_modulo == reference_modulo:
-        slot_name = "Reference"
+    utc_minute_start = utc_time.replace(second=0, microsecond=0)
+    target_previous = _most_recent_path_start(
+        utc_minute_start,
+        schedule.repeat_interval_minutes,
+        schedule.target_start_minute,
+    )
+    reference_previous = _most_recent_path_start(
+        utc_minute_start,
+        schedule.repeat_interval_minutes,
+        schedule.reference_start_minute,
+    )
+    if target_previous > reference_previous:
+        path_name = "Target"
+        most_recent_start = target_previous
     else:
-        slot_name = "Reference"
-    return Slot(name=slot_name, start_utc=slot_start, end_utc=slot_end, modulo=slot_modulo)
+        path_name = "Reference"
+        most_recent_start = reference_previous
+
+    target_next = target_previous + dt.timedelta(
+        minutes=schedule.repeat_interval_minutes
+    )
+    reference_next = reference_previous + dt.timedelta(
+        minutes=schedule.repeat_interval_minutes
+    )
+    if target_next < reference_next:
+        next_path_name = "Target"
+        next_start = target_next
+    else:
+        next_path_name = "Reference"
+        next_start = reference_next
+    return SchedulePosition(
+        path_name=path_name,
+        most_recent_start_utc=most_recent_start,
+        next_path_name=next_path_name,
+        next_start_utc=next_start,
+    )
 
 
-def desired_relay_on(config: dict[str, Any], slot_name: str) -> bool:
+def current_transmission_path(
+    utc_time: dt.datetime,
+    schedule_position: SchedulePosition,
+) -> str | None:
+    """Return the path inside its nominal two-minute WSPR window, else ``None``."""
+    transmission_end = schedule_position.most_recent_start_utc + dt.timedelta(
+        minutes=WSPR_TRANSMISSION_MINUTES
+    )
+    if utc_time.astimezone(UTC) < transmission_end:
+        return schedule_position.path_name
+    return None
+
+
+def desired_relay_on(config: dict[str, Any], path_name: str) -> bool:
     on_means_target = bool(config["device"].get("onMeansTarget", True))
-    return on_means_target if slot_name == "Target" else not on_means_target
-
-
-def normalize_slot_modulo(value: Any) -> int:
-    modulo = int(value) % 4
-    if modulo not in (0, 2):
-        raise ToolError(f"Invalid A/B slot phase '{value}'. Use 0 for 00,04,08... or 2 for 02,06,10...")
-    return modulo
-
-
-def format_slot_minute_series(modulo: int) -> str:
-    normalized = normalize_slot_modulo(modulo)
-    minutes = [minute for minute in range(60) if minute % 4 == normalized][:3]
-    return ", ".join(f"{minute:02d}" for minute in minutes) + ", ..."
+    return on_means_target if path_name == "Target" else not on_means_target
 
 
 def parse_switch_lead_ms(text: str) -> int:
@@ -575,33 +769,91 @@ def show_setup(config_path: Path) -> None:
     mapping_answer = prompt_text("Should relay ON mean Target? [Y/n]: ")
     device_config["onMeansTarget"] = not mapping_answer.lower().startswith("n")
 
-    target_modulo = normalize_slot_modulo(config["timing"].get("targetSlotModulo", 0))
-    reference_modulo = 2 if target_modulo == 0 else 0
+    try:
+        current_schedule = ab_schedule_from_config(config)
+    except ToolError as exc:
+        print(f"Configured TX A/B schedule is invalid ({exc}); using 10 / 00 / 02.")
+        current_schedule = validate_ab_schedule(
+            DEFAULT_REPEAT_INTERVAL_MINUTES,
+            DEFAULT_TARGET_START_MINUTE,
+            DEFAULT_REFERENCE_START_MINUTE,
+        )
+
     print("")
-    print("Timed A/B slot cadence:")
-    print("    0 = Target at 00,04,08,... and Reference at 02,06,10,...")
-    print("    2 = Target at 02,06,10,... and Reference at 00,04,08,...")
-    phase_answer = prompt_text(f"Target slot phase [0/2, default {target_modulo}]: ")
-    if phase_answer:
-        if phase_answer not in ("0", "2"):
-            raise ToolError(f"Invalid target slot phase '{phase_answer}'. Use 0 or 2.")
-        target_modulo = int(phase_answer)
-        reference_modulo = 2 if target_modulo == 0 else 0
-    config["timing"]["targetSlotModulo"] = target_modulo
-    config["timing"]["referenceSlotModulo"] = reference_modulo
-    print(f"Configured Target slots:    {format_slot_minute_series(target_modulo)} UTC minutes")
-    print(f"Configured Reference slots: {format_slot_minute_series(reference_modulo)} UTC minutes")
+    print("TX A/B Schedule:")
+    interval_choices = "/".join(str(value) for value in REPEAT_INTERVAL_OPTIONS)
+    interval_answer = prompt_text(
+        "Repeat Interval in minutes "
+        f"[{interval_choices}, default {current_schedule.repeat_interval_minutes}]: "
+    )
+    repeat_interval = normalize_repeat_interval(
+        interval_answer or current_schedule.repeat_interval_minutes
+    )
+    permitted_starts = tuple(range(0, repeat_interval, 2))
+    permitted_start_text = ", ".join(
+        f"{minute:02d}" for minute in permitted_starts
+    )
+    print(f"Permitted even UTC starts: {permitted_start_text}")
+
+    target_default = (
+        current_schedule.target_start_minute
+        if current_schedule.target_start_minute in permitted_starts
+        else DEFAULT_TARGET_START_MINUTE
+    )
+    target_answer = prompt_text(
+        f"Target Start [default {target_default:02d} UTC]: "
+    )
+    target_start = normalize_start_minute(
+        target_answer or target_default,
+        repeat_interval,
+        "Target Start",
+    )
+
+    reference_default = current_schedule.reference_start_minute
+    if reference_default not in permitted_starts or reference_default == target_start:
+        reference_default = next(
+            start for start in permitted_starts if start != target_start
+        )
+    reference_answer = prompt_text(
+        f"Reference Start [default {reference_default:02d} UTC]: "
+    )
+    reference_start = normalize_start_minute(
+        reference_answer or reference_default,
+        repeat_interval,
+        "Reference Start",
+    )
+    schedule = validate_ab_schedule(
+        repeat_interval,
+        target_start,
+        reference_start,
+    )
+    config["timing"]["repeatIntervalMinutes"] = schedule.repeat_interval_minutes
+    config["timing"]["targetStartMinute"] = schedule.target_start_minute
+    config["timing"]["referenceStartMinute"] = schedule.reference_start_minute
+    config["timing"].pop("targetSlotModulo", None)
+    config["timing"].pop("referenceSlotModulo", None)
+    print(
+        "Configured Target starts:    "
+        f"{format_start_minute_series(schedule.repeat_interval_minutes, schedule.target_start_minute)} UTC"
+    )
+    print(
+        "Configured Reference starts: "
+        f"{format_start_minute_series(schedule.repeat_interval_minutes, schedule.reference_start_minute)} UTC"
+    )
     print("")
 
     current_lead_ms = int(config["timing"].get("switchLeadMs") or 0)
     lead_answer = prompt_text(
-        "Switch lead before slot boundary in seconds "
+        "Switch lead before each scheduled start in seconds "
         f"[0-8, default {format_switch_lead(current_lead_ms)}]: "
     )
     if lead_answer:
         current_lead_ms = parse_switch_lead_ms(lead_answer)
     config["timing"]["switchLeadMs"] = current_lead_ms
-    print(f"Configured switch lead:     {format_switch_lead(current_lead_ms)} before slot boundary")
+    print(
+        "Configured switch lead:     "
+        f"{format_switch_lead(current_lead_ms)} before each scheduled start"
+    )
     print("")
 
     save_config(config_path, config)
@@ -673,6 +925,7 @@ def show_dashboard(config_path: Path, dry_run: bool, once: bool) -> None:
         config = load_config(config_path)
         if not config["device"].get("path") and not config["device"].get("pathHex"):
             raise ToolError("No configured relay. Connect the relay and run setup again.")
+    schedule = ab_schedule_from_config(config)
 
     ntp: NtpStatus | None = None
     next_ntp_check = dt.datetime(1970, 1, 1, tzinfo=UTC)
@@ -699,17 +952,9 @@ def show_dashboard(config_path: Path, dry_run: bool, once: bool) -> None:
 
         switch_lead_ms = int(config["timing"].get("switchLeadMs") or 0)
         switch_lead = dt.timedelta(milliseconds=switch_lead_ms)
-        current_slot = get_ab_slot(
-            now,
-            int(config["timing"].get("targetSlotModulo", 0)),
-            int(config["timing"].get("referenceSlotModulo", 2)),
-        )
-        relay_slot = get_ab_slot(
-            now + switch_lead,
-            int(config["timing"].get("targetSlotModulo", 0)),
-            int(config["timing"].get("referenceSlotModulo", 2)),
-        )
-        relay_on = desired_relay_on(config, relay_slot.name)
+        current_position = get_schedule_position(now, schedule)
+        relay_position = get_schedule_position(now + switch_lead, schedule)
+        relay_on = desired_relay_on(config, relay_position.path_name)
 
         if last_relay_on is None or relay_on != last_relay_on:
             try:
@@ -718,19 +963,25 @@ def show_dashboard(config_path: Path, dry_run: bool, once: bool) -> None:
                 last_relay_error = None
                 write_log_line(
                     config,
-                    f"RELAY slot={relay_slot.name} relayOn={relay_on} method={last_write_method} switchLeadMs={switch_lead_ms}",
+                    f"RELAY path={relay_position.path_name} "
+                    f"scheduledStart={relay_position.most_recent_start_utc.isoformat()} "
+                    f"relayOn={relay_on} method={last_write_method} "
+                    f"switchLeadMs={switch_lead_ms}",
                 )
             except Exception as exc:
                 last_relay_error = str(exc)
                 write_log_line(
                     config,
-                    f"RELAY_ERROR slot={relay_slot.name} relayOn={relay_on} switchLeadMs={switch_lead_ms} error={last_relay_error}",
+                    f"RELAY_ERROR path={relay_position.path_name} "
+                    f"scheduledStart={relay_position.most_recent_start_utc.isoformat()} "
+                    f"relayOn={relay_on} switchLeadMs={switch_lead_ms} "
+                    f"error={last_relay_error}",
                 )
 
-        next_switch_utc = relay_slot.end_utc - switch_lead
+        next_switch_utc = relay_position.next_start_utc - switch_lead
         until_next = (next_switch_utc - now).total_seconds()
-        next_slot_name = "Reference" if relay_slot.name == "Target" else "Target"
-        lead_active = relay_slot.start_utc != current_slot.start_utc
+        lead_active = relay_position.path_name != current_position.path_name
+        transmission_path = current_transmission_path(now, current_position)
         relay_text = "ON" if relay_on else "OFF"
         mapping_text = "ON=Target, OFF=Reference" if config["device"].get("onMeansTarget", True) else "ON=Reference, OFF=Target"
         ntp_text, clock_state = build_ntp_text(ntp, now, config)
@@ -750,27 +1001,63 @@ def show_dashboard(config_path: Path, dry_run: bool, once: bool) -> None:
                 f"{config['device'].get('vendorId')}:{config['device'].get('productId')} "
                 f"CH{config['device'].get('relayChannel')}"
             )
-            print(f"Relay target:      {relay_text} ({mapping_text})")
-            print(f"Target slots:      {format_slot_minute_series(int(config['timing'].get('targetSlotModulo', 0)))} UTC minutes")
-            print(f"Reference slots:   {format_slot_minute_series(int(config['timing'].get('referenceSlotModulo', 2)))} UTC minutes")
-            print(f"Switch lead:       {format_switch_lead(switch_lead_ms)} before slot boundary")
+            print(
+                f"Relay path:        {relay_position.path_name} / {relay_text} "
+                f"({mapping_text})"
+            )
+            print(
+                f"Repeat Interval:   {schedule.repeat_interval_minutes} min"
+            )
+            print(
+                "Target starts:     "
+                f"{format_start_minute_series(schedule.repeat_interval_minutes, schedule.target_start_minute)} UTC"
+            )
+            print(
+                "Reference starts:  "
+                f"{format_start_minute_series(schedule.repeat_interval_minutes, schedule.reference_start_minute)} UTC"
+            )
+            print(
+                f"Switch lead:       {format_switch_lead(switch_lead_ms)} "
+                "before each scheduled start"
+            )
             print(f"Write method:      {last_write_method}")
             print("-----------------------------------")
             print(f"UTC:               {format_utc_date_time(now)}")
             print(f"NTP:               {ntp_text}")
             print(f"Clock status:      {clock_state}")
             print("-----------------------------------")
-            print(
-                "Current slot:      "
-                f"{current_slot.name} ({current_slot.start_utc.strftime('%H:%M')}-{current_slot.end_utc.strftime('%H:%M')} UTC, "
-                f"minute {current_slot.start_utc.minute} mod 4 = {current_slot.modulo})"
-            )
+            if transmission_path:
+                transmission_end = current_position.most_recent_start_utc + dt.timedelta(
+                    minutes=WSPR_TRANSMISSION_MINUTES
+                )
+                print(
+                    "Current schedule:  "
+                    f"{transmission_path} start "
+                    f"{current_position.most_recent_start_utc.strftime('%H:%M')} UTC "
+                    f"(nominal window to {transmission_end.strftime('%H:%M')} UTC)"
+                )
+            else:
+                print(
+                    "Current schedule:  Idle; latest start was "
+                    f"{current_position.path_name} at "
+                    f"{current_position.most_recent_start_utc.strftime('%H:%M')} UTC"
+                )
             if lead_active:
                 print(
                     "Relay prepared for: "
-                    f"{relay_slot.name} ({relay_slot.start_utc.strftime('%H:%M')}-{relay_slot.end_utc.strftime('%H:%M')} UTC)"
+                    f"{relay_position.path_name} start at "
+                    f"{relay_position.most_recent_start_utc.strftime('%H:%M')} UTC"
                 )
-            print(f"Next switch to:    {next_slot_name} at {format_utc_time(next_switch_utc)} UTC, in {format_time_span(until_next)}")
+            print(
+                "Next start:        "
+                f"{current_position.next_path_name} at "
+                f"{format_utc_time(current_position.next_start_utc)} UTC"
+            )
+            print(
+                "Next switch to:    "
+                f"{relay_position.next_path_name} at {format_utc_time(next_switch_utc)} UTC "
+                f"for that start, in {format_time_span(until_next)}"
+            )
             if last_relay_error:
                 print(f"Relay error:       {last_relay_error}")
             print("")
@@ -788,7 +1075,7 @@ def build_parser() -> argparse.ArgumentParser:
     mode_group.add_argument("--on", "-On", action="store_true", help="set the configured relay physically ON and exit")
     mode_group.add_argument("--off", "-Off", action="store_true", help="set the configured relay physically OFF and exit")
     parser.add_argument("--dry-run", "-DryRun", action="store_true", help="show timing without writing to the relay")
-    parser.add_argument("--once", "-Once", action="store_true", help="render one status frame and exit")
+    parser.add_argument("--once", "-Once", action="store_true", help="render one status display and exit")
     parser.add_argument(
         "--config",
         "--config-path",

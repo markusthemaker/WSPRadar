@@ -7,8 +7,186 @@ from types import SimpleNamespace
 import zipfile
 
 import pandas as pd
+import pytest
 
 from ui import results_export
+from ui.plots import evidence_figures
+
+
+class _FooterColumn:
+    """Minimal context-manager column used by footer rendering tests."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+
+def test_selected_temporal_view_is_recorded_and_changes_export_signature(monkeypatch):
+    """Prevent Chronological 1 h and folded 1 h exports from sharing a stale ZIP."""
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+    block = {
+        "analysis_id": "RX_COMPARE",
+        "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+        "evidence_time_bin": "1h",
+        "selected_evidence_figure_recipe": {
+            "temporal_view": "chronological",
+        },
+    }
+    chronological_blocks = {"RX_COMPARE": block}
+    folded_blocks = {
+        "RX_COMPARE": {
+            **block,
+            "selected_evidence_figure_recipe": {
+                "temporal_view": "utc_hour",
+            },
+        }
+    }
+
+    chronological_metadata = results_export._build_run_metadata(
+        chronological_blocks,
+        {"settings": {}},
+    )
+    folded_metadata = results_export._build_run_metadata(
+        folded_blocks,
+        {"settings": {}},
+    )
+
+    assert chronological_metadata["result_blocks"][0][
+        "selected_evidence_time_view"
+    ] == "chronological"
+    assert folded_metadata["result_blocks"][0][
+        "selected_evidence_time_view"
+    ] == "utc_hour"
+    assert chronological_metadata["export_signature"] != folded_metadata[
+        "export_signature"
+    ]
+
+
+def test_show_zero_target_is_recorded_and_changes_export_signature(monkeypatch):
+    """Invalidate prepared Success exports when zero-Target visibility changes."""
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+    hidden_block = {
+        "analysis_id": "RX_ABS",
+        "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+        "show_zero_target": False,
+    }
+    shown_block = {**hidden_block, "show_zero_target": True}
+
+    metadata = results_export._build_run_metadata(
+        {"RX_ABS": shown_block},
+        {"settings": {}},
+    )
+
+    assert metadata["result_blocks"][0]["show_zero_target"] is True
+    assert results_export._export_signature(
+        {"RX_ABS": hidden_block}
+    ) != results_export._export_signature({"RX_ABS": shown_block})
+
+
+@pytest.mark.parametrize("is_prepared", (False, True))
+def test_results_footer_always_renders_redundant_save_control(
+    monkeypatch,
+    is_prepared,
+):
+    """Keep Save Config beside both Prepare and Download Prepared states."""
+    session_state = {}
+    if is_prepared:
+        session_state.update(
+            {
+                results_export.EXPORT_ZIP_SIGNATURE_KEY: "current-signature",
+                results_export.EXPORT_ZIP_BYTES_KEY: b"zip",
+                results_export.EXPORT_ZIP_FILENAME_KEY: "results.zip",
+            }
+        )
+    captured = {"columns": None, "save_calls": [], "downloads": []}
+    fake_streamlit = SimpleNamespace(
+        session_state=session_state,
+        markdown=lambda *_args, **_kwargs: None,
+        columns=lambda widths, **kwargs: (
+            captured.update(columns=(widths, kwargs))
+            or (_FooterColumn(), _FooterColumn())
+        ),
+        button=lambda *_args, **_kwargs: False,
+        download_button=lambda label, **kwargs: captured["downloads"].append(
+            (label, kwargs)
+        ),
+    )
+    monkeypatch.setattr(results_export, "st", fake_streamlit)
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: {"RX_ABS": {"mode_folder": results_export.SUCCESS_EXPORT_FOLDER}},
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_export_signature",
+        lambda _blocks: "current-signature",
+    )
+    monkeypatch.setattr(
+        results_export,
+        "render_config_save_control",
+        lambda **kwargs: captured["save_calls"].append(kwargs),
+    )
+
+    results_export.render_download_all_results({})
+
+    assert captured["columns"] == (
+        [0.65, 0.35],
+        {"gap": "large", "vertical_alignment": "center"},
+    )
+    assert captured["save_calls"] == [
+        {
+            "popover_key": "config_save_results_trigger",
+            "form_scope": "results",
+        }
+    ]
+    assert bool(captured["downloads"]) is is_prepared
+
+
+def test_segment_temporal_figure_uses_its_distinct_export_recipe(monkeypatch):
+    """Keep segment temporal and selected-station figure recipes independent."""
+    temporal_recipe = {"kind": "segment_compare_temporal", "time_bin": "6h"}
+    fake_figure = object()
+    disposed_figures = []
+
+    monkeypatch.setattr(
+        evidence_figures,
+        "render_segment_temporal_evidence_export_figure",
+        lambda recipe: fake_figure if recipe is temporal_recipe else None,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "figure_to_png_bytes",
+        lambda figure, *, paper_theme: b"temporal-png"
+        if figure is fake_figure and paper_theme
+        else b"",
+    )
+    monkeypatch.setattr(
+        results_export,
+        "dispose_matplotlib_figure",
+        disposed_figures.append,
+    )
+
+    rendered = results_export._render_inspector_png_for_block(
+        {
+            "segment_temporal_evidence_figure_recipe": temporal_recipe,
+            "selected_evidence_figure_recipe": {"kind": "selected"},
+        },
+        "figure_segment_temporal_evidence.png",
+    )
+
+    assert rendered == b"temporal-png"
+    assert disposed_figures == [fake_figure]
 
 
 def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
@@ -22,7 +200,21 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         "lang": "en",
         "run_mode": "RX",
     }
-    config_bytes = json.dumps({"config": {"callsign": "TARGET"}}).encode("utf-8")
+    config_payload = {
+        "format": "wspradar.config",
+        "schema_version": 1,
+        "settings": {
+            "core_parameters": {
+                "analysis_direction": "rx",
+                "callsign": "TARGET",
+                "band": "20m",
+                "time_selection": {"mode": "last_x", "hours": 24},
+            },
+            "comparison_parameters": {"mode": "none"},
+            "advanced_parameters": {},
+        },
+    }
+    config_bytes = json.dumps(config_payload).encode("utf-8")
 
     monkeypatch.setattr(results_export, "st", SimpleNamespace(session_state=state))
     monkeypatch.setattr(
@@ -75,6 +267,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         )
 
     assert f"{export_root}/success/analysis_cache.parquet" in package_paths
+    assert f"{export_root}/config/wspradar_config.config" in package_paths
     assert f"{export_root}/success/table_station_insights_current_segment.csv" in package_paths
     assert all("/absolute/" not in path for path in package_paths)
     assert metadata["blocks_present"] == {"compare": False, "success": True}

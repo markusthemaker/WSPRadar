@@ -20,11 +20,14 @@ st.set_page_config(
 # Everything imported below this point belongs to the lightweight landing shell.
 # Scientific analysis imports remain inside the active-run branch near the end.
 from config import APP_URL, APP_VERSION, BAND_MAP, DEMO_PROFILES, LOGO_URL, MAX_DAYS_HISTORY
+from config.demo_profiles import (
+    prepare_demo_description_markdown,
+    resolve_demo_profile_text,
+)
 from core.time_utils import quantize_time
 from i18n import T
 from ui.callbacks import (
     handle_comp_mode_change,
-    handle_self_test_mode_change,
     load_demo_profile_config,
     reset_audit,
     run_demo_profile,
@@ -32,10 +35,15 @@ from ui.callbacks import (
     update_lang,
 )
 from ui.components.config_panel import render_advanced_expander, render_compare_expander, render_core_expander
-from ui.config_io import apply_config_values, build_config_payload, validate_config_upload
+from ui.config_io import apply_config_values, validate_config_upload
+from ui.config_save import render_config_save_control
 from ui.css import apply_custom_css
 from ui.documentation_state import collapse_documentation
-from ui.result_state import reset_result_state
+from ui.result_state import (
+    get_active_run_time_window,
+    reset_result_state,
+    set_active_run_time_window,
+)
 from ui.state_manager import init_session_state
 
 
@@ -75,10 +83,27 @@ def render_demo_launcher():
     if not demo_keys:
         return
 
+    def demo_profile_metadata(profile_key):
+        """Return profile metadata from the ordinary config or UI adapter."""
+        demo_record = DEMO_PROFILES[profile_key]
+        configuration = demo_record.get("configuration", demo_record)
+        profile_metadata = configuration.get("profile")
+        if isinstance(profile_metadata, dict):
+            return profile_metadata
+        return {
+            "id": demo_record.get("id", profile_key),
+            "title": demo_record.get("label", {}),
+            "description": demo_record.get("description", {}),
+        }
+
     def format_demo_label(profile_key):
-        profile = DEMO_PROFILES[profile_key]
-        label = profile.get("label", {})
-        return label.get(st.session_state.lang, label.get("en", profile_key))
+        profile_metadata = demo_profile_metadata(profile_key)
+        return resolve_demo_profile_text(
+            profile_metadata,
+            "title",
+            st.session_state.lang,
+            fallback=profile_metadata.get("id", profile_key),
+        )
 
     if st.session_state.get("selected_demo_profile") not in demo_keys:
         st.session_state.selected_demo_profile = demo_keys[0]
@@ -91,13 +116,15 @@ def render_demo_launcher():
             format_func=format_demo_label,
             label_visibility="collapsed",
         )
-        demo_profile = DEMO_PROFILES[selected_demo]
-        demo_description = demo_profile.get("description", {}).get(
+        demo_profile = demo_profile_metadata(selected_demo)
+        demo_description = resolve_demo_profile_text(
+            demo_profile,
+            "description",
             st.session_state.lang,
-            demo_profile.get("description", {}).get("en", ""),
         )
         if demo_description:
-            st.caption(demo_description)
+            with st.container(key="demo_description"):
+                st.caption(prepare_demo_description_markdown(demo_description))
         col_load_demo, col_run_demo = st.columns(2)
         with col_load_demo:
             if st.button(t.get("btn_load_demo_selected", "Load selected demo configuration"), width="stretch"):
@@ -234,7 +261,20 @@ else:
 
 if (end_t_base - start_t_base).total_seconds() > MAX_DAYS_HISTORY * 24 * 3600:
     start_t_base = end_t_base - timedelta(days=MAX_DAYS_HISTORY)
-start_t, end_t = quantize_time(start_t_base), quantize_time(end_t_base)
+candidate_start_t = quantize_time(start_t_base)
+candidate_end_t = quantize_time(end_t_base)
+active_run_time_window = get_active_run_time_window(st.session_state)
+if st.session_state.get("run_mode") and active_run_time_window is not None:
+    start_t, end_t = active_run_time_window
+else:
+    start_t, end_t = candidate_start_t, candidate_end_t
+    if st.session_state.get("run_mode"):
+        set_active_run_time_window(
+            st.session_state,
+            run_id=st.session_state.get("run_id"),
+            start_utc=start_t,
+            end_utc=end_t,
+        )
 
 
 def collapse_config_panels():
@@ -242,57 +282,54 @@ def collapse_config_panels():
     st.session_state._collapse_config_panels_once = True
 
 
-run_col_tx, save_col, run_col_rx = st.columns([0.38, 0.24, 0.38], gap="large")
-run_tx_clicked = False
-run_rx_clicked = False
+analysis_direction = st.session_state.get("val_analysis_direction")
+run_button_labels = {
+    "rx": t["btn_run_analysis_rx"],
+    "tx": t["btn_run_analysis_tx"],
+}
+run_button_icons = {
+    "rx": ":material/headphones:",
+    "tx": ":material/cell_tower:",
+}
+run_col, save_col = st.columns([0.65, 0.35], gap="large")
+run_analysis_clicked = False
 
-with run_col_tx:
-    if st.button(t["btn_run_tx"], icon=":material/cell_tower:", type="primary", width="stretch", on_click=collapse_config_panels):
-        run_tx_clicked = True
-
-with save_col:
-    config_bytes, config_filename = build_config_payload()
-    st.download_button(
-        t.get("btn_save_config", "Save Config"),
-        data=config_bytes,
-        file_name=config_filename,
-        mime="application/json",
-        icon=":material/save:",
+with run_col:
+    if st.button(
+        run_button_labels.get(
+            analysis_direction,
+            t["btn_select_analysis_direction"],
+        ),
+        icon=run_button_icons.get(analysis_direction, ":material/play_arrow:"),
+        key="run_analysis_button",
         type="primary",
         width="stretch",
-    )
+        disabled=analysis_direction not in {"rx", "tx"},
+        on_click=collapse_config_panels,
+    ):
+        run_analysis_clicked = True
 
-with run_col_rx:
-    if st.button(t["btn_run_rx"], icon=":material/headphones:", type="primary", width="stretch", on_click=collapse_config_panels):
-        run_rx_clicked = True
+with save_col:
+    render_config_save_control(popover_key="config_save_top_trigger")
 
-if run_tx_clicked:
+if run_analysis_clicked:
     st.session_state.active_demo_profile = None
-    if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
-        st.error(t["err_wrong_run"].format(cfg="RX", run="TX"))
-        st.stop()
-    st.session_state.run_mode = "TX"
-    st.session_state.run_id = int(time.time())
-    collapse_documentation(st.session_state)
-    reset_result_state(st.session_state)
-    for key in list(st.session_state.keys()):
-        if key.startswith("img_buf_"):
-            del st.session_state[key]
-
-if run_rx_clicked:
-    st.session_state.active_demo_profile = None
-    if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_tx"]:
-        st.error(t["err_wrong_run"].format(cfg="TX", run="RX"))
-        st.stop()
-    if comp_mode == t["opt_comp_self"] and st.session_state.val_self_test_mode == t["opt_self_rx"]:
+    if comp_mode == t["opt_comp_self"] and analysis_direction == "rx":
         setup_b_callsign = st.session_state.val_self_call_b
         if not setup_b_callsign or setup_b_callsign == callsign:
             st.error("Please configure a distinct callsign for Setup B (e.g., DL1MKS/P).")
             st.stop()
-    st.session_state.run_mode = "RX"
+    st.session_state.run_mode = analysis_direction.upper()
     st.session_state.run_id = int(time.time())
     collapse_documentation(st.session_state)
     reset_result_state(st.session_state)
+    set_active_run_time_window(
+        st.session_state,
+        run_id=st.session_state.run_id,
+        start_utc=candidate_start_t,
+        end_utc=candidate_end_t,
+    )
+    start_t, end_t = candidate_start_t, candidate_end_t
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]

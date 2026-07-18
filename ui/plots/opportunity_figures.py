@@ -25,6 +25,9 @@ from core.solar_path import (
 from ui.plots.evidence_figures import (
     SEGMENT_FIGURE_FOOTER_Y,
     _draw_stacked_vertical_metric_histogram,
+    _place_metric_legend,
+    _set_metric_axis_labels,
+    _set_metric_colorbar_label,
     _style_evidence_axis,
     _time_agg_minutes,
 )
@@ -194,12 +197,20 @@ def _draw_opportunity_heatmap(
     show_y_labels=True,
     show_colorbar=True,
     empty_message="No Target/Elsewhere evidence",
+    x_label="Date/Time (UTC)",
+    y_label="Distance range",
 ):
+    """Draw one Success heatmap with shared evidence-label typography."""
     ax.set_facecolor("black")
     ax.tick_params(colors="white", labelsize=9)
     for spine in ax.spines.values():
         spine.set_color("#444444")
     ax.set_title(title, color="white", fontweight="bold", fontsize=12, pad=9)
+    _set_metric_axis_labels(
+        ax,
+        x_label=x_label,
+        y_label=y_label if show_y_labels else None,
+    )
     if grid.size == 0 or not range_labels or len(time_values) == 0:
         ax.text(0.5, 0.5, empty_message, color="#cccccc", ha="center", va="center", transform=ax.transAxes)
         ax.set_xticks([])
@@ -251,7 +262,7 @@ def _draw_opportunity_heatmap(
         )
         if cbar_ticklabels is not None:
             cbar.ax.set_yticklabels(cbar_ticklabels)
-        cbar.set_label(cbar_label, color="white", fontsize=9)
+        _set_metric_colorbar_label(cbar, cbar_label)
         cbar.ax.tick_params(colors="white", labelsize=9)
     return image
 
@@ -372,18 +383,20 @@ def _render_opportunity_segment_figure(recipe):
         )
         ax_rates.xaxis.set_minor_locator(mpl.ticker.NullLocator())
         ax_rates.set_ylim(0, 100)
-        ax_rates.legend(
+        _place_metric_legend(
+            ax_rates,
             loc="upper right",
-            facecolor="#111111",
-            edgecolor="#444444",
-            labelcolor="white",
-            fontsize=8,
+            borderaxespad=0.0,
+            gid="success-segment-evidence-legend",
         )
     else:
         ax_rates.text(0.5, 0.5, "No station has Target evidence", color="#cccccc", ha="center", va="center", transform=ax_rates.transAxes)
     ax_rates.set_title("Station Success Rate by Evidence Count", color="white", fontweight="bold", fontsize=12, pad=9)
-    ax_rates.set_xlabel(f"Evidence Count (Target + {terms['counter']})", color="white", fontsize=10)
-    ax_rates.set_ylabel("Success Rate (%)", color="white", fontsize=10)
+    _set_metric_axis_labels(
+        ax_rates,
+        x_label=f"Evidence Count (Target + {terms['counter']})",
+        y_label="Success Rate (%)",
+    )
 
     time_values = pd.to_datetime(
         np.asarray(recipe.get("time_ns", []), dtype=np.int64),
@@ -438,10 +451,9 @@ def _render_opportunity_segment_figure(recipe):
             spacing="uniform",
         )
         cbar.ax.set_yticklabels(success_ticklabels)
-        cbar.set_label(
+        _set_metric_colorbar_label(
+            cbar,
             f"Success Rate: {terms['formula_spaced']}",
-            color="white",
-            fontsize=9,
         )
         cbar.ax.tick_params(colors="white", labelsize=9)
     return fig
@@ -531,7 +543,7 @@ def _render_opportunity_selected_figure(recipe):
         recipe.get("absolute_mode", "RX")
     )
     fig = create_agg_figure(figsize=(13, 5.8), facecolor="black")
-    fig.subplots_adjust(left=0.07, right=0.95, bottom=0.15, top=0.76, wspace=0.32)
+    fig.subplots_adjust(left=0.05, right=0.98, bottom=0.15, top=0.76, wspace=0.24)
     fig.suptitle(recipe.get("title", ""), color="white", fontweight="bold", fontsize=14, y=0.955)
     fig.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
     gs = fig.add_gridspec(1, 2, width_ratios=[1.55, 1.0])
@@ -556,19 +568,16 @@ def _render_opportunity_selected_figure(recipe):
         )
         for illumination in ILLUMINATION_CLASSES
     ]
-    fig.legend(
+    _place_metric_legend(
+        fig,
         handles=target_legend_handles + counter_legend_handles,
         loc="upper center",
         bbox_to_anchor=(0.50, 0.895),
         ncol=6,
-        facecolor="#111111",
-        edgecolor="#444444",
-        labelcolor="white",
-        fontsize=8,
-        framealpha=0.85,
-        handlelength=1.2,
-        columnspacing=0.9,
-        handletextpad=0.4,
+        handlelength=1.4,
+        columnspacing=1.1,
+        handletextpad=0.5,
+        gid="success-illumination-legend",
     )
     times = pd.to_datetime(np.asarray(recipe.get("time_ns", []), dtype=np.int64), unit="ns", utc=True).tz_convert(None)
     rates = np.asarray(recipe.get("rate_pct", []), dtype=float)
@@ -586,7 +595,6 @@ def _render_opportunity_selected_figure(recipe):
             label="Success Rate",
         )
         ax_time.set_ylim(0, opportunity_rate_scale_max(rates))
-        ax_time.set_ylabel("Success Rate (%)", color="white")
         time_tick_indices = _opportunity_time_tick_indices(times)
         ax_time.set_xticks(x_values[time_tick_indices])
         ax_time.set_xticklabels(
@@ -644,7 +652,11 @@ def _render_opportunity_selected_figure(recipe):
                 linewidth=0.35,
             )
             stack_bottom += values
-        ax_evidence.set_ylabel(terms["count_axis_label"], color="#bbbbbb")
+        _set_metric_axis_labels(
+            ax_evidence,
+            y_label=terms["count_axis_label"],
+            y_color="#bbbbbb",
+        )
         ax_evidence.tick_params(colors="#bbbbbb", labelsize=8)
         ax_evidence.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
         ax_evidence.yaxis.set_major_formatter(
@@ -656,19 +668,22 @@ def _render_opportunity_selected_figure(recipe):
         ax_time.patch.set_visible(False)
         ax_time.set_xlim(-0.5, len(x_values) - 0.5)
         rate_handles, rate_labels = ax_time.get_legend_handles_labels()
-        ax_time.legend(
-            rate_handles,
-            rate_labels,
+        _place_metric_legend(
+            ax_time,
+            handles=rate_handles,
+            labels=rate_labels,
             loc="upper right",
-            facecolor="#111111",
-            edgecolor="#444444",
-            labelcolor="white",
-            fontsize=8,
+            borderaxespad=0.0,
+            gid="success-rate-legend",
         )
     else:
         ax_time.text(0.5, 0.5, "No time evidence", color="#cccccc", ha="center", va="center", transform=ax_time.transAxes)
     ax_time.set_title(f"Station Success Rate + Evidence over Time ({recipe.get('time_bin', '3h')})", color="white", fontweight="bold", pad=8)
-    ax_time.set_xlabel("Date/Time (UTC)", color="white")
+    _set_metric_axis_labels(
+        ax_time,
+        x_label="Date/Time (UTC)",
+        y_label="Success Rate (%)",
+    )
 
     snr = np.asarray(recipe.get("successful_snr", []), dtype=float)
     if len(snr):
@@ -680,8 +695,12 @@ def _render_opportunity_selected_figure(recipe):
             snr_by_illumination,
             ILLUMINATION_TARGET_COLORS,
         )
-        ax_snr.set_xlabel("Target normalized SNR (dB @ 1 W)", color="white")
     else:
         ax_snr.text(0.5, 0.5, "No Target SNR evidence", color="#cccccc", ha="center", va="center", transform=ax_snr.transAxes)
     ax_snr.set_title("Target SNR", color="white", fontweight="bold", pad=8)
+    _set_metric_axis_labels(
+        ax_snr,
+        x_label="Target normalized SNR (dB @ 1 W)",
+        y_label="Share (%)",
+    )
     return fig

@@ -88,39 +88,83 @@ def test_compare_footer_counts_preserve_async_spot_bucket_for_joint_stations():
     assert counts["tot_spots"] == 4
 
 
-def test_sequential_compare_aggregation_preserves_joint_bin_threshold():
-    rows = []
-    rows.append({
-        **_base_row(),
-        "time": "2026-05-27 12:01:00+00:00",
-        "is_me": 1,
-        "stat_val": -10.0,
-    })
-    rows.append({
-        **_base_row(),
-        "time": "2026-05-27 12:03:00+00:00",
-        "is_me": 0,
-        "stat_val": -12.0,
-    })
-    rows.append({
-        **_base_row(),
-        "time": "2026-05-27 12:12:00+00:00",
-        "is_me": 1,
-        "stat_val": -8.0,
-    })
+def test_four_minute_demo_schedule_counts_each_planned_pair():
+    """Keep demo 09 on scheduled-pair rather than fixed-bin aggregation."""
+    rows = [
+        {**_base_row(), "time": "2026-05-27 12:00:00+00:00", "is_me": 1, "stat_val": -10.0},
+        {**_base_row(), "time": "2026-05-27 12:02:00+00:00", "is_me": 0, "stat_val": -12.0},
+        {**_base_row(), "time": "2026-05-27 12:04:00+00:00", "is_me": 1, "stat_val": -8.0},
+        {**_base_row(), "time": "2026-05-27 12:06:00+00:00", "is_me": 0, "stat_val": -11.0},
+    ]
 
     df_plot, segs = aggregate_compare_map_data(
         pd.DataFrame(rows),
         is_sequential=True,
         min_spots=1,
         base_min_stations=1,
-        tx_ab_bin_minutes=8,
+        tx_ab_repeat_interval_minutes=4,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
     )
 
     station = df_plot.iloc[0]
-    assert int(station["joint_bins_count"]) == 1
+    assert int(station["joint_pairs_count"]) == 2
     assert int(station["spot_count"]) == 2
-    assert int(station["count_only_u"]) == 1
+    assert int(station["count_only_u"]) == 0
     assert int(station["count_only_r"]) == 0
-    assert math.isclose(float(station["stat_val"]), 2.0, abs_tol=0.001)
-    assert math.isclose(float(segs.iloc[0]["val"]), 2.0, abs_tol=0.001)
+    assert math.isclose(float(station["stat_val"]), 2.5, abs_tol=0.001)
+    assert math.isclose(float(segs.iloc[0]["val"]), 2.5, abs_tol=0.001)
+
+
+def test_periodic_sequential_compare_uses_micro_medians_and_counts_pairs():
+    rows = [
+        {
+            **_base_row(),
+            "time": "2026-05-27 12:00:00+00:00",
+            "is_me": 1,
+            "stat_val": -10.0,
+        },
+        {
+            **_base_row(),
+            "time": "2026-05-27 12:00:20+00:00",
+            "is_me": 1,
+            "stat_val": -8.0,
+        },
+        {
+            **_base_row(),
+            "time": "2026-05-27 12:02:00+00:00",
+            "is_me": 0,
+            "stat_val": -12.0,
+        },
+        {
+            **_base_row(),
+            "time": "2026-05-27 12:10:00+00:00",
+            "is_me": 1,
+            "stat_val": -6.0,
+        },
+        {
+            **_base_row(),
+            "time": "2026-05-27 12:22:00+00:00",
+            "is_me": 0,
+            "stat_val": -15.0,
+        },
+    ]
+
+    station_rows, segments = aggregate_compare_map_data(
+        pd.DataFrame(rows),
+        is_sequential=True,
+        min_spots=1,
+        base_min_stations=1,
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
+    )
+
+    station = station_rows.iloc[0]
+    assert int(station["joint_pairs_count"]) == 1
+    assert int(station["spot_count"]) == 1
+    assert int(station["count_only_u"]) == 1
+    assert int(station["count_only_r"]) == 1
+    assert int(station["target_decode_count"]) == 2
+    assert math.isclose(float(station["stat_val"]), 3.0, abs_tol=0.001)
+    assert math.isclose(float(segments.iloc[0]["val"]), 3.0, abs_tol=0.001)

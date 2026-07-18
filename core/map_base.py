@@ -44,9 +44,10 @@ from core.matplotlib_runtime import (
     synchronized_matplotlib,
 )
 
-BASEMAP_CACHE_VERSION = "v1"
+BASEMAP_CACHE_VERSION = "v2"
 BASEMAP_PREVIEW_DPI = 100
 BASEMAP_PNG_COMPRESSION_LEVEL = 1
+FOREGROUND_ANNOTATION_ZORDER = 20
 
 
 def _new_map_figure(theme_config):
@@ -68,8 +69,9 @@ def create_base_map_figure(
     theme_name: str,
     theme_config: dict,
     include_title: bool = True,
+    include_foreground_annotations: bool = True,
 ):
-    """Create the shared WSPRadar map frame and return figure, axis, and projections."""
+    """Create the shared map frame, optionally including foreground annotations."""
     figure = _new_map_figure(theme_config)
     if include_title:
         _add_map_title(figure, title, theme_config)
@@ -123,20 +125,6 @@ def create_base_map_figure(
                 zorder=2,
             )
         )
-        if ring_km != 5000:
-            axis.text(
-                0,
-                ring_km * 1000,
-                f" {ring_km} km ",
-                color=theme_config["ring_label"],
-                fontsize=FONT_RINGS,
-                fontweight="bold",
-                ha="center",
-                va="center",
-                transform=map_projection,
-                zorder=6,
-                bbox=theme_config["ring_label_box"],
-            )
 
     for ring_km in THIN_RINGS:
         if ring_km <= maximum_distance_km:
@@ -165,74 +153,13 @@ def create_base_map_figure(
             zorder=2,
         )
 
-    label_radius_m = map_limit_m * COMPASS_LABEL_OFFSET
-    for compass_index, direction_label in enumerate(COMPASS):
-        angle = compass_index * AZIMUTH_STEP
-        label_x = label_radius_m * np.cos(np.radians(90 - angle))
-        label_y = label_radius_m * np.sin(np.radians(90 - angle))
-        axis.text(
-            label_x,
-            label_y,
-            direction_label,
-            color=theme_config["compass"],
-            ha="center",
-            va="center",
-            transform=map_projection,
-            fontsize=FONT_COMPASS,
-            fontweight="bold",
-            alpha=0.9,
-            clip_on=False,
-        )
-
-    north_pole_distance_m = (90.0 - center_latitude) * (np.pi / 180.0) * EARTH_RADIUS_M
-    south_pole_distance_m = (90.0 + center_latitude) * (np.pi / 180.0) * EARTH_RADIUS_M
-
-    if north_pole_distance_m <= maximum_radius_m:
-        axis.plot(
-            0,
-            north_pole_distance_m,
-            marker="*",
-            color=theme_config["pole"],
-            markersize=8,
-            mew=1.2,
-            transform=map_projection,
-            zorder=20,
-        )
-        axis.text(
-            0,
-            north_pole_distance_m - 350000,
-            "N-POL",
-            color=theme_config["pole"],
-            fontsize=FONT_POLES,
-            fontweight="bold",
-            ha="center",
-            va="top",
-            transform=map_projection,
-            zorder=20,
-        )
-
-    if south_pole_distance_m <= maximum_radius_m:
-        axis.plot(
-            0,
-            -south_pole_distance_m,
-            marker="*",
-            color=theme_config["pole"],
-            markersize=8,
-            mew=1.2,
-            transform=map_projection,
-            zorder=20,
-        )
-        axis.text(
-            0,
-            -south_pole_distance_m - 350000,
-            "S-POL",
-            color=theme_config["pole"],
-            fontsize=FONT_POLES,
-            fontweight="bold",
-            ha="center",
-            va="top",
-            transform=map_projection,
-            zorder=20,
+    if include_foreground_annotations:
+        _add_foreground_map_annotations(
+            axis,
+            maximum_distance_km=maximum_distance_km,
+            center_latitude=center_latitude,
+            map_projection=map_projection,
+            theme_config=theme_config,
         )
 
     return figure, axis, map_projection, plate_carree_projection
@@ -285,6 +212,14 @@ def create_preview_cached_base_map_figure(
     for spine in axis.spines.values():
         spine.set_visible(False)
 
+    _add_foreground_map_annotations(
+        axis,
+        maximum_distance_km=maximum_distance_km,
+        center_latitude=center_latitude,
+        map_projection=map_projection,
+        theme_config=theme_config,
+    )
+
     cache_detail = f"{cache_status}: {cache_path.name}"
     return figure, axis, map_projection, plate_carree_projection, cache_detail
 
@@ -301,6 +236,86 @@ def _add_map_title(figure, title, theme_config):
         ha="center",
         va="top",
     )
+
+
+def _add_foreground_map_annotations(
+    axis,
+    *,
+    maximum_distance_km,
+    center_latitude,
+    map_projection,
+    theme_config,
+):
+    """Draw map labels and pole markers above all dynamic data overlays."""
+    _, maximum_radius_m, map_limit_m = _map_scale_and_limits(maximum_distance_km)
+
+    for ring_km in THICK_RINGS:
+        if ring_km <= maximum_distance_km and ring_km != 5000:
+            axis.text(
+                0,
+                ring_km * 1000,
+                f" {ring_km} km ",
+                color=theme_config["ring_label"],
+                fontsize=FONT_RINGS,
+                fontweight="bold",
+                ha="center",
+                va="center",
+                transform=map_projection,
+                zorder=FOREGROUND_ANNOTATION_ZORDER,
+                bbox=theme_config["ring_label_box"],
+            )
+
+    label_radius_m = map_limit_m * COMPASS_LABEL_OFFSET
+    for compass_index, direction_label in enumerate(COMPASS):
+        angle = compass_index * AZIMUTH_STEP
+        label_x = label_radius_m * np.cos(np.radians(90 - angle))
+        label_y = label_radius_m * np.sin(np.radians(90 - angle))
+        axis.text(
+            label_x,
+            label_y,
+            direction_label,
+            color=theme_config["compass"],
+            ha="center",
+            va="center",
+            transform=map_projection,
+            fontsize=FONT_COMPASS,
+            fontweight="bold",
+            alpha=0.9,
+            clip_on=False,
+            zorder=FOREGROUND_ANNOTATION_ZORDER,
+        )
+
+    north_pole_distance_m = (90.0 - center_latitude) * (np.pi / 180.0) * EARTH_RADIUS_M
+    south_pole_distance_m = (90.0 + center_latitude) * (np.pi / 180.0) * EARTH_RADIUS_M
+
+    for pole_distance_m, pole_label in (
+        (north_pole_distance_m, "N-POL"),
+        (-south_pole_distance_m, "S-POL"),
+    ):
+        if abs(pole_distance_m) > maximum_radius_m:
+            continue
+        axis.plot(
+            0,
+            pole_distance_m,
+            marker="*",
+            color=theme_config["pole"],
+            markersize=8,
+            mew=1.2,
+            transform=map_projection,
+            zorder=FOREGROUND_ANNOTATION_ZORDER,
+        )
+        axis.text(
+            0,
+            pole_distance_m - 350000,
+            pole_label,
+            color=theme_config["pole"],
+            fontsize=FONT_POLES,
+            fontweight="bold",
+            ha="center",
+            va="top",
+            transform=map_projection,
+            zorder=FOREGROUND_ANNOTATION_ZORDER,
+        )
 
 
 def _map_projections(center_latitude, center_longitude):
@@ -375,6 +390,7 @@ def _ensure_static_basemap_cache(
             theme_name=theme_name,
             theme_config=theme_config,
             include_title=False,
+            include_foreground_annotations=False,
         )
         try:
             _save_static_basemap_preview(base_figure, cache_path, preview_dpi)

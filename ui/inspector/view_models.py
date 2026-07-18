@@ -223,13 +223,13 @@ def build_compare_inspector_view_model(
         joint_column = None
     else:
         if is_sequential:
-            joint_column = labels.get("tbl_col_joint_bins", "Joint Bins")
+            joint_column = labels.get("tbl_col_joint_pairs", "Joint Pairs")
             source_columns = [
                 "peer_sign",
                 "peer_grid",
                 "calc_dist",
                 "calc_azimuth",
-                "joint_bins_count",
+                "joint_pairs_count",
                 "count_only_u",
                 "count_only_r",
                 "stat_val",

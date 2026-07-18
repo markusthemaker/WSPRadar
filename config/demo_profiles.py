@@ -1,349 +1,134 @@
-"""Guided WSPRadar demo profiles."""
+"""Discover ordinary versioned configs that are installed as guided demos."""
 
-import datetime
-from datetime import time as dt_time
+from pathlib import Path
+
+from .config_codec import prepare_config_document
+from .json_utils import decode_strict_json_bytes
 
 
-DEMO_PROFILES = {
-    "vanhamel_rx_calibration": {
-        "label": {
-            "en": "RX Comparison Calibration. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
-            "de": "RX Comparison Calibration. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
-        },
-        "description": {
-            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Chapter 4 - SNR Correction 1.2 dB",
-            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - Chapter 4 - SNR Correction 1.2 dB",
-        },
-        "run": {
-            "run_mode": "RX",
-        },
-        "core_parameters": {
-            "callsign": "ON4AWM0",
-            "qth": "JO20OT",
-            "band": "160m",
-            "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2021, 2, 9),
-            "end_d": datetime.date(2021, 2, 13),
-            "start_t": dt_time(22, 0),
-            "end_t": dt_time(5, 30),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_buddy",
-            "ref_callsign": "ON4AWM1",
-            "reference_snr_correction_db": 0.0,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 50,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "6h",
-            "station_evidence_time_bin_absolute": "6h",
-        },
-    },
-    "vanhamel_rx_buddy": {
-        "label": {
-            "en": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
-            "de": "RX Antenna Comparison. Buddy Test. (Dr. Jurgen Vanhamel, Dr. Walter Machiels, Dr. Hervé Lamy)",
-        },
-        "description": {
-            "en": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - resembles Figure 6",
-            "de": "Publication: Vanhamel, Machiels, Lamy - Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band [Ref 6] - resembles Figure 6",
-        },
-        "run": {
-            "run_mode": "RX",
-        },
-        "core_parameters": {
-            "callsign": "ON4AWM0",
-            "qth": "JO20OT",
-            "band": "160m",
-            "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2021, 5, 1),
-            "end_d": datetime.date(2021, 5, 15),
-            "start_t": dt_time(17, 24),
-            "end_t": dt_time(7, 12),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_buddy",
-            "ref_callsign": "ON4AWM1",
-            "reference_snr_correction_db": 1.2,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "12h",
-            "station_evidence_time_bin_absolute": "6h",
-        },
-    },
-    "zander_tx_buddy": {
-        "label": {
-            "en": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
-            "de": "TX Antenna Comparison. Buddy Test. (Dr. Jens Zander)",
-        },
-        "description": {
-            "en": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 7] - Figure 4",
-            "de": "Publication: Zander - Simple HF antenna efficiency comparison using the WSPR system [Ref 7] - Figure 4",
-        },
-        "run": {
-            "run_mode": "TX",
-        },
-        "core_parameters": {
-            "callsign": "SK0WE/P",
-            "qth": "JO97",
-            "band": "20m",
-            "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2022, 5, 21),
-            "end_d": datetime.date(2022, 5, 21),
-            "start_t": dt_time(9, 0),
-            "end_t": dt_time(12, 0),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_buddy",
-            "ref_callsign": "SK0WE/1",
-            "reference_snr_correction_db": 0.0,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "15m",
-            "station_evidence_time_bin_absolute": "15m",
-        },
-    },
-    "milazzo_tx_buddy": {
-        "label": {
-            "en": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
-            "de": "TX Antenna Comparison. Buddy Test. (Dr. Carol F. Milazzo)",
-        },
-        "description": {
-            "en": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 8]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
-            "de": "Milazzo - Comparative Antenna Analysis with WSPR [Ref 8]. River City Amateur Radio Communication Society meeting Sacramento, California, March 1, 2011",
-        },
-        "run": {
-            "run_mode": "TX",
-        },
-        "core_parameters": {
-            "callsign": "KP4MD",
-            "qth": "CM98",
-            "band": "40m",
-            "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2010, 12, 18),
-            "end_d": datetime.date(2010, 12, 21),
-            "start_t": dt_time(0, 0),
-            "end_t": dt_time(0, 0),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_buddy",
-            "ref_callsign": "WB6RQN",
-            "reference_snr_correction_db": 0.0,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "3h",
-            "station_evidence_time_bin_absolute": "3h",
-        },
-    },
-    "rx_local_median_neighborhood": {
-        "label": {
-            "en": "RX Local Neighborhood Benchmark (Median)",
-            "de": "RX Lokaler Nachbarschafts-Benchmark (Median)",
-        },
-        "description": {
-            "en": "Runs an RX comparison against the local median neighborhood around DL1MKS on 20m.",
-            "de": "Startet einen RX-Vergleich gegen die lokale Median-Nachbarschaft um DL1MKS auf 20m.",
-        },
-        "run": {
-            "run_mode": "RX",
-        },
-        "core_parameters": {
-            "callsign": "DL1MKS",
-            "qth": "JN37",
-            "band": "20m",
-            "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2026, 4, 6),
-            "end_d": datetime.date(2026, 4, 6),
-            "start_t": dt_time(7, 0),
-            "end_t": dt_time(23, 0),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_radius",
-            "local_benchmark_key": "opt_local_median",
-            "ref_radius_km": 200,
-            "reference_snr_correction_db": 0.0,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "30m",
-            "station_evidence_time_bin_absolute": "30m",
-        },
-    },
-    "rx_calibration_ab": {
-        "label": {
-            "en": "RX Calibration A/B Test",
-            "de": "RX-Kalibrierungs-A/B-Test",
-        },
-        "description": {
-            "en": "Runs an RX hardware A/B calibration between DL1MKS and DL1MKS/P on 20m from May 27 through May 31, 2026.",
-            "de": "Startet eine RX-Hardware-A/B-Kalibrierung zwischen DL1MKS und DL1MKS/P auf 20 m vom 27. bis 31. Mai 2026.",
-        },
-        "run": {
-            "run_mode": "RX",
-        },
-        "core_parameters": {
-            "callsign": "DL1MKS",
-            "qth": "JN37",
-            "band": "20m",
-            "time_mode_key": "opt_custom",
-            "last_hours": 24,
-            "start_d": datetime.date(2026, 5, 27),
-            "end_d": datetime.date(2026, 5, 31),
-            "start_t": dt_time(13, 0),
-            "end_t": dt_time(9, 0),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_self",
-            "local_benchmark_key": "opt_local_median",
-            "ref_callsign": "DL2XYZ",
-            "ref_radius_km": 100,
-            "reference_snr_correction_db": 0.0,
-            "self_test_mode_key": "opt_self_rx",
-            "self_call_b": "DL1MKS/P",
-            "target_wspr_frame_key": "opt_wspr_frame_00_04_08",
-            "reference_wspr_frame_key": "opt_wspr_frame_02_06_10",
-            "tx_ab_bin_minutes": 8,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "3h",
-            "station_evidence_time_bin_absolute": "3h",
-        },
-    },
-    "rx_hardware_ab": {
-        "label": {
-            "en": "RX hardware A/B test",
-            "de": "RX Hardware-A/B-Test",
-        },
-        "description": {
-            "en": "Runs an RX A/B comparison between DL1MKS and DL1MKS/P on 20m.",
-            "de": "Startet einen RX-A/B-Vergleich zwischen DL1MKS und DL1MKS/P auf 20m.",
-        },
-        "run": {
-            "run_mode": "RX",
-        },
-        "core_parameters": {
-            "callsign": "DL1MKS",
-            "qth": "JN37",
-            "band": "20m",
-            "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2026, 4, 6),
-            "end_d": datetime.date(2026, 4, 6),
-            "start_t": dt_time(10, 0),
-            "end_t": dt_time(23, 59),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_self",
-            "self_test_mode_key": "opt_self_rx",
-            "self_call_b": "DL1MKS/P",
-            "reference_snr_correction_db": 0.0,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "30m",
-            "station_evidence_time_bin_absolute": "30m",
-        },
-    },
-    "tx_hardware_ab": {
-        "label": {
-            "en": "TX hardware A/B test",
-            "de": "TX Hardware-A/B-Test",
-        },
-        "description": {
-            "en": "Runs a sequential TX A/B comparison for DL1MKS on 20m using UTC WSPR frame starts 00/04/08 and 02/06/10.",
-            "de": "Startet einen sequenziellen TX-A/B-Vergleich fuer DL1MKS auf 20m mit UTC-WSPR-Frame-Startminuten 00/04/08 und 02/06/10.",
-        },
-        "run": {
-            "run_mode": "TX",
-        },
-        "core_parameters": {
-            "callsign": "DL1MKS",
-            "qth": "JN37",
-            "band": "20m",
-            "time_mode_key": "opt_custom",
-            "start_d": datetime.date(2026, 3, 27),
-            "end_d": datetime.date(2026, 3, 31),
-            "start_t": dt_time(0, 0),
-            "end_t": dt_time(0, 0),
-        },
-        "comparison": {
-            "comp_mode_key": "opt_comp_self",
-            "self_test_mode_key": "opt_self_tx",
-            "target_wspr_frame_key": "opt_wspr_frame_00_04_08",
-            "reference_wspr_frame_key": "opt_wspr_frame_02_06_10",
-            "tx_ab_bin_minutes": 8,
-            "reference_snr_correction_db": 0.0,
-        },
-        "advanced": {
-            "exclude_special_callsigns": False,
-            "exclude_moving_stations": False,
-            "solar_key": "opt_solar_all",
-            "max_dist": 22000,
-            "min_joint_spots_per_station": 1,
-            "min_joint_stations_per_segment": 1,
-        },
-        "results_view": {
-            "show_non_joint": False,
-            "station_evidence_time_bin_compare": "3h",
-            "station_evidence_time_bin_absolute": "3h",
-        },
-    },
-}
+DEMO_PROFILES_DIR = Path(__file__).with_name("demos")
+DEMO_PROFILE_MAX_BYTES = 200_000
+
+
+def resolve_demo_profile_text(profile, field, language, fallback=""):
+    """Return requested demo text, falling back explicitly to English.
+
+    Installed demos require English profile text, while German translations are
+    optional. This resolver keeps that convention at the presentation boundary
+    and returns ``fallback`` only for malformed compatibility input.
+    """
+    localized_values = profile.get(field, {}) if isinstance(profile, dict) else {}
+    if not isinstance(localized_values, dict):
+        return fallback
+
+    requested_language = str(language or "").strip()
+    for language_key in dict.fromkeys((requested_language, "en")):
+        localized_value = localized_values.get(language_key)
+        if isinstance(localized_value, str) and localized_value.strip():
+            return localized_value.strip()
+    return fallback
+
+
+def prepare_demo_description_markdown(description):
+    """Preserve config line feeds as Markdown hard breaks without changing links."""
+    normalized_description = str(description or "").replace("\r\n", "\n").replace(
+        "\r",
+        "\n",
+    )
+    return "  \n".join(normalized_description.split("\n"))
+
+
+def _validate_demo_english_fallback(profile, profile_path):
+    """Require the English baseline used when an optional translation is absent."""
+    for field in ("title", "description"):
+        if field == "description" and field not in profile:
+            continue
+        localized_values = profile[field]
+        english_text = localized_values.get("en")
+        if not isinstance(english_text, str) or not english_text.strip():
+            raise ValueError(
+                f"Demo config {profile_path.name} must contain "
+                f"profile.{field}.en; German text is optional."
+            )
+
+
+def _read_demo_document(profile_path):
+    """Read, strictly decode, and validate one installed demo config."""
+    try:
+        raw_bytes = profile_path.read_bytes()
+    except OSError as exc:
+        raise RuntimeError(f"Unable to read demo config: {profile_path}") from exc
+    if not raw_bytes:
+        raise ValueError(f"The demo config is empty: {profile_path.name}.")
+    if len(raw_bytes) > DEMO_PROFILE_MAX_BYTES:
+        raise ValueError(f"The demo config is too large: {profile_path.name}.")
+
+    payload = decode_strict_json_bytes(
+        raw_bytes,
+        document_name=f"demo config {profile_path.name}",
+    )
+    return prepare_config_document(payload)
+
+
+def load_demo_profiles(path=DEMO_PROFILES_DIR):
+    """Load filename-ordered configs into the legacy demo-profile mapping.
+
+    Every regular ``*.config`` file is accepted and ordered lexicographically by
+    its complete filename. Filenames are opaque ordering keys and are independent
+    of the required ``profile.id`` stored in each document. The compatibility
+    mapping retains the ``id``, ``label``, ``description``, and ``configuration``
+    fields expected by existing UI consumers while rejecting duplicate profile
+    IDs that would collide in that mapping.
+    """
+    profiles_directory = Path(path)
+    if not profiles_directory.is_dir():
+        raise RuntimeError(
+            f"Unable to read demo configuration directory: {profiles_directory}"
+        )
+    try:
+        profile_paths = sorted(
+            [
+                profile_path
+                for profile_path in profiles_directory.glob("*.config")
+                if profile_path.is_file()
+            ],
+            key=lambda profile_path: profile_path.name,
+        )
+    except OSError as exc:
+        raise RuntimeError(
+            f"Unable to read demo configuration directory: {profiles_directory}"
+        ) from exc
+    if not profile_paths:
+        raise ValueError("The demo configuration directory contains no config files.")
+
+    demo_profiles = []
+    seen_profile_ids = set()
+    for profile_path in profile_paths:
+        configuration = _read_demo_document(profile_path)
+        profile = configuration.get("profile")
+        if profile is None:
+            raise ValueError(
+                f"Demo config {profile_path.name} must contain profile metadata."
+            )
+        _validate_demo_english_fallback(profile, profile_path)
+        profile_id = profile["id"]
+        if profile_id in seen_profile_ids:
+            raise ValueError(f"Duplicate demo profile id: {profile_id}.")
+
+        seen_profile_ids.add(profile_id)
+        demo_profiles.append(
+            (
+                profile_id,
+                {
+                    "id": profile_id,
+                    "label": dict(profile["title"]),
+                    "description": dict(profile.get("description", {})),
+                    "configuration": configuration,
+                },
+            )
+        )
+
+    return dict(demo_profiles)
+
+
+DEMO_PROFILES = load_demo_profiles()

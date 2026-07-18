@@ -3,6 +3,7 @@ import math
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from core.opportunity_engine import (
     OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
@@ -551,7 +552,7 @@ def test_rx_query_can_disable_decode_code_for_legacy_rows():
     assert query.endswith("FORMAT Parquet")
 
 
-def test_tx_query_uses_receiver_peers_and_target_frame_when_requested():
+def test_tx_query_uses_receiver_peers_and_target_schedule_when_requested():
     query = build_absolute_opportunity_query(
         mode="TX",
         start_t=datetime(2026, 5, 27, tzinfo=timezone.utc),
@@ -559,7 +560,8 @@ def test_tx_query_uses_receiver_peers_and_target_frame_when_requested():
         band_value="14",
         callsign="DL1MKS",
         qth="JN37",
-        target_frame_mod4=2,
+        target_repeat_interval_minutes=10,
+        target_start_minute_utc=2,
     )
 
     assert "tx_sign = 'DL1MKS'" in query
@@ -567,7 +569,20 @@ def test_tx_query_uses_receiver_peers_and_target_frame_when_requested():
     assert "substring(tx_loc, 1, 4) = 'JN37'" in query
     assert "rx_sign AS peer_sign" in query
     assert "rx_loc AS peer_grid" in query
-    assert "toMinute(time) % 4 = 2" in query
+    assert "toMinute(time) % 10 = 2" in query
+
+
+def test_tx_query_requires_both_target_schedule_values():
+    with pytest.raises(ValueError, match="requires both repeat interval"):
+        build_absolute_opportunity_query(
+            mode="TX",
+            start_t=datetime(2026, 5, 27, tzinfo=timezone.utc),
+            end_t=datetime(2026, 5, 28, tzinfo=timezone.utc),
+            band_value="14",
+            callsign="DL1MKS",
+            qth="JN37",
+            target_repeat_interval_minutes=10,
+        )
 
 def test_path_illumination_uses_configurable_daylight_fraction_threshold():
     frame = pd.DataFrame({

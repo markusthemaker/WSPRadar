@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 import pytest
@@ -12,8 +12,6 @@ from core.analysis_context import (
     LOCAL_BENCHMARK_MEDIAN,
     SELF_TEST_RX,
     SELF_TEST_TX,
-    WSPR_FRAME_00_04_08,
-    WSPR_FRAME_02_06_10,
 )
 from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
 from i18n import T
@@ -31,9 +29,9 @@ def _analysis_context(**overrides):
         "band": "20m",
         "comparison_mode": COMPARISON_REFERENCE_STATION,
         "reference_callsign": "DL2XYZ",
-        "target_wspr_frame": WSPR_FRAME_00_04_08,
-        "reference_wspr_frame": WSPR_FRAME_02_06_10,
-        "tx_ab_bin_minutes": 8,
+        "tx_ab_repeat_interval_minutes": 10,
+        "tx_ab_target_start_minute": 0,
+        "tx_ab_reference_start_minute": 2,
     }
     values.update(overrides)
     return AnalysisContext(**values)
@@ -105,20 +103,50 @@ def test_added_live_wspr_bands_build_numeric_opportunity_predicates():
         assert f"band = {band_value}" in analyses[0]["query"]
 
 
-def test_tx_ab_wspr_frame_sql_uses_complete_utc_start_minute_sequences():
+def test_tx_ab_schedule_sql_filters_compare_and_success_to_configured_starts():
     context = _analysis_context(
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_TX,
-        target_wspr_frame=WSPR_FRAME_00_04_08,
-        reference_wspr_frame=WSPR_FRAME_02_06_10,
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
     tx_absolute = _analysis_by_id(context, "TX_ABS")
 
-    assert "toMinute(time) % 4 = 0" in tx_compare["query"]
+    assert "toMinute(time) % 10 = 0" in tx_compare["query"]
+    assert "toMinute(time) % 10 = 2" in tx_compare["query"]
+    assert "toMinute(time) % 10 = 0" in tx_absolute["query"]
+
+
+def test_four_minute_tx_ab_schedule_uses_demo_query_contract():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=SELF_TEST_TX,
+        tx_ab_repeat_interval_minutes=4,
+        tx_ab_target_start_minute=2,
+        tx_ab_reference_start_minute=0,
+    )
+
+    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_absolute = _analysis_by_id(context, "TX_ABS")
+
     assert "toMinute(time) % 4 = 2" in tx_compare["query"]
-    assert "toMinute(time) % 4 = 0" in tx_absolute["query"]
+    assert "toMinute(time) % 4 = 0" in tx_compare["query"]
+    assert "toMinute(time) % 4 = 2" in tx_absolute["query"]
+
+
+def test_tx_ab_schedule_rejects_overlapping_starts_before_sql_is_built():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=SELF_TEST_TX,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=0,
+    )
+
+    with pytest.raises(ValueError, match="Invalid TX A/B schedule"):
+        _build_analyses(context)
 
 
 def test_positive_reference_snr_correction_is_added_to_reference_side():
@@ -275,7 +303,7 @@ def test_sequential_comparison_does_not_apply_async_cycle_synchronization():
         "title": "sequential",
     }
     rows = pd.DataFrame({
-        "time": [START_TIME, END_TIME],
+        "time": [START_TIME, START_TIME + timedelta(minutes=2)],
         "is_me": [1, 0],
         "stat_val": [1.0, 0.0],
         "has_u": [1, 0],
@@ -285,3 +313,4 @@ def test_sequential_comparison_does_not_apply_async_cycle_synchronization():
 
     assert warning is None
     assert len(filtered) == 2
+    assert filtered["tx_ab_pair_id"].nunique() == 1

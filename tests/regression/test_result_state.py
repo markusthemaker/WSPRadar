@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from ui import result_state
 
 
@@ -18,6 +20,11 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
         result_state.EXPORT_ZIP_SIGNATURE_KEY: "signature",
         result_state.INSPECTOR_CACHE_STATE_KEY: object(),
         result_state.STABILITY_CACHE_STATE_KEY: {"old": "stability"},
+        result_state.ACTIVE_RUN_TIME_WINDOW_KEY: {
+            "run_id": 42,
+            "start_utc": datetime(2026, 7, 16, tzinfo=timezone.utc),
+            "end_utc": datetime(2026, 7, 17, tzinfo=timezone.utc),
+        },
         "unrelated": "preserved",
     }
 
@@ -31,6 +38,7 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
     assert result_state.EXPORT_ZIP_SIGNATURE_KEY not in session_state
     assert result_state.INSPECTOR_CACHE_STATE_KEY not in session_state
     assert result_state.STABILITY_CACHE_STATE_KEY not in session_state
+    assert result_state.ACTIVE_RUN_TIME_WINDOW_KEY not in session_state
     assert session_state["unrelated"] == "preserved"
 
 
@@ -49,3 +57,24 @@ def test_clear_prepared_result_state_does_not_clear_registered_blocks():
     assert result_state.EXPORT_ZIP_BYTES_KEY not in session_state
     assert result_state.EXPORT_ZIP_FILENAME_KEY not in session_state
     assert result_state.EXPORT_ZIP_SIGNATURE_KEY not in session_state
+
+
+def test_active_run_time_window_is_reused_only_for_its_matching_run():
+    """Prevent a Last-X interval from drifting or leaking into a later run."""
+    start_utc = datetime(2026, 7, 16, 10, 15, tzinfo=timezone.utc)
+    end_utc = start_utc + timedelta(hours=24)
+    session_state = {"run_id": 42}
+
+    result_state.set_active_run_time_window(
+        session_state,
+        run_id=42,
+        start_utc=start_utc,
+        end_utc=end_utc,
+    )
+
+    assert result_state.get_active_run_time_window(session_state) == (
+        start_utc,
+        end_utc,
+    )
+    session_state["run_id"] = 43
+    assert result_state.get_active_run_time_window(session_state) is None

@@ -1,15 +1,18 @@
 # Timed A/B Relay Switch
 
-Cross-platform console helper for alternating a USB HID relay on a 2-minute slot / 4-minute A/B cadence.
+Cross-platform console helper for selecting Target and Reference RF paths on a deterministic TX A/B schedule.
 
-This tool is intentionally generic. It can be used for WSPR hardware A/B switching, but the implementation itself has no WSPRadar or WSPR dependency.
+This tool is designed for WSPR hardware A/B switching but has no dependency on the WSPRadar application runtime.
 
-- Target slots: UTC minutes `00, 04, 08, ...` or `02, 06, 10, ...`
-- Reference slots: the opposite 2-minute slot phase
-- Optional switch lead before the slot boundary, default `5.0 s`
+- Shared Repeat Interval: `4, 6, 10, 12, 20, 30` or `60 min`; default `10 min`
+- Target Start: one even UTC phase below the Repeat Interval; default `00 UTC`
+- Reference Start: a different even UTC phase; default `02 UTC`
+- Optional switch lead before each scheduled start, default `5.0 s`
 - UTC and NTP status shown in the console
 - Multi-relay setup: select USB device index first, then select relay channel
 - Manual physical relay ON/OFF commands after setup
+
+With the default `10 / 00 / 02` schedule, the relay selects Target before `00`, Reference before `02`, holds Reference through the unscheduled gap, and selects Target again before `10`. The tool controls only the RF-path selection; the transmitter must independently emit at the configured starts.
 
 The tool targets common DCT/ATtiny45/V-USB HID relay boards with USB VID/PID `16c0:05df`, such as devices reporting product names like `USBRelay1`, `USBRelay2`, and similar.
 
@@ -100,15 +103,20 @@ Setup will:
 3. Save a stable device identity where possible: HID path, path hex, serial, product, relay serial.
 4. Ask for the relay channel.
 5. Ask whether relay ON means Target.
-6. Ask which 4-minute phase is Target.
-7. Automatically set Reference to the opposite valid phase.
-8. Ask for the relay switch lead before the slot boundary.
+6. Ask for the shared Repeat Interval.
+7. Ask for disjoint Target Start and Reference Start phases.
+8. Ask for the relay switch lead before each scheduled start.
 9. Optionally run a short relay click test.
 
-Valid slot phases are intentionally limited to `0` and `2`, because the tool alternates on even UTC 2-minute slot boundaries:
+Repeat Interval uses the same WSPR-compatible choices as WSPRadar: `4, 6, 10, 12, 20, 30` and `60 min`. Starts are even canonical phases from `00` up to, but not including, the Repeat Interval. Target Start and Reference Start cannot be identical. For example:
 
-- `0`: Target at `00,04,08,...`; Reference at `02,06,10,...`
-- `2`: Target at `02,06,10,...`; Reference at `00,04,08,...`
+- `10 / 00 / 02`: Target at `00,10,20,30,40,50`; Reference at `02,12,22,32,42,52`.
+- `20 / 00 / 10`: Target at `00,20,40`; Reference at `10,30,50`.
+- `4 / 02 / 00`: Target at `02,06,10,...`; Reference at `00,04,08,...`.
+
+Configure the relay tool and WSPRadar from the transmissions that actually occur on each RF path. For example, one QMX transmitting at `00,10,20,30,40,50` through an alternating relay produces `20 / 00 / 10`, not `10 / 00 / 02`. The latter is valid only when Target really transmits at `00,10,...` and Reference at `02,12,...`.
+
+An existing version-0.1 configuration using `targetSlotModulo` and `referenceSlotModulo` is migrated in memory without changing its cadence: the old `0/2` orientation becomes `4 / 00 / 02`, and `2/0` becomes `4 / 02 / 00`. Running setup and saving replaces the obsolete timing fields with the new schedule fields.
 
 Relay channels are 1-based hardware channels. For a two-channel board, use `1` or `2`. The `[0]`, `[1]`, ... labels shown during setup are USB device list indices, not relay channels.
 
@@ -129,13 +137,17 @@ Start-Timed-AB-Relay-Switch.cmd
 The console dashboard refreshes once per UTC second and shows:
 
 - System UTC time
-- Current Target/Reference slot
-- Relay target state
+- Repeat Interval, Target starts and Reference starts
+- Current scheduled transmission or idle gap
+- Currently selected relay path
+- Next scheduled start
 - Countdown to the next relay switch
 - NTP offset and round-trip delay
 - Relay write status
 
 Relay timing is checked more frequently than the dashboard redraw, so the optional switch lead is not limited to one-second display cadence.
+
+Between scheduled transmissions, the relay remains on the path selected by the most recent Target or Reference start. It changes only before the next configured start; it does not alternate through unscheduled WSPR windows.
 
 The tool schedules from the system UTC clock. NTP is shown as a diagnostic only; it does not silently shift relay timing away from the computer clock used by the transmitter software.
 
@@ -184,7 +196,7 @@ Start-Timed-AB-Relay-Switch.cmd --dry-run
 ./Start-Timed-AB-Relay-Switch.sh --dry-run
 ```
 
-For one status frame and exit:
+For one status display and exit:
 
 ```sh
 ./Start-Timed-AB-Relay-Switch.sh --dry-run --once
@@ -203,9 +215,10 @@ The tool first tries `send_feature_report()` and falls back to `write()` if the 
 
 Before RF use, verify the mapping with a dummy load or non-RF continuity test:
 
-- Target slot means the intended test path is active.
-- Reference slot means the reference path is active.
-- Relay changes happen before the 2-minute slot boundary when switch lead is configured.
+- Target Start means the intended test path is selected for that transmission.
+- Reference Start means the reference path is selected for that transmission.
+- The configured starts exactly match the transmitter's actual starts on each path.
+- Relay changes happen before each scheduled start when switch lead is configured.
 
 ## Troubleshooting
 

@@ -1,6 +1,6 @@
 # WSPRadar Architecture
 
-This document describes the repository as inspected on 2026-07-11. It derives
+This document describes the repository as inspected through 2026-07-17. It derives
 component boundaries and behavior from the application code, configuration, and
 regression tests. Items explicitly marked uncertain were not established by the
 code or by the verification run.
@@ -44,7 +44,7 @@ credential was found.
 - validates the requested time interval;
 - imports `ui/run_controller.py`, plotting, inspector, DataFrame, HTTP, and
   Cartopy dependencies only after a TX or RX run is active;
-- renders a Section 1 documentation preview and loads the remaining manual after
+- renders a Part 0 preface preview and loads the remaining manual after
   browser scroll intent or an explicit request through `ui/documentation.py`.
 
 The supported start command is:
@@ -72,9 +72,72 @@ operating risks. The Streamlit application neither imports nor starts it.
 | --- | --- |
 | `config/app_config.py` | Application identity, URLs, time-window limit, cache and HTTP limits, analysis/export admission settings, and inspector-cache limits. |
 | `config/bands.py` | WSPR band labels and wspr.live numeric identifiers. |
-| `config/demo_profiles.py` | Guided demo configuration and historical examples. |
+| `config/demos/*.config` | Authoritative guided demos. Each file is a standalone saved configuration and lexicographic filename order defines launcher order. |
+| `config/demo_profiles.py` | Strict dependency-free demo discovery, schema/profile validation, duplicate-ID protection, and stable filename-ordered `DEMO_PROFILES` mapping. |
+| `config/config_schema.py` | Saved-config format identifier, current schema version, grouped settings contract, and canonical enum values. |
+| `config/config_codec.py` | Dependency-free document-envelope and schema-version validation shared by personal-config and demo readers. |
+| `config/wspradar-config.schema.json` | Formal JSON Schema for every saved and demo configuration. |
+| `config/json_utils.py` | Shared strict UTF-8 JSON decoder rejecting duplicate keys and non-finite numbers. |
 | `config/plot_constants.py` | Map extent, projection/render constants, colors, and scientific display constants. |
 | `config/__init__.py` | Compatibility re-exports for configuration consumers. |
+
+User-saved configuration files and demos share the version-1
+`wspradar.config` document format. A document contains a schema version,
+optional writer metadata, an optional self-describing `profile` with stable ID
+and localized title/description, one canonical `settings` object, and an
+optional `extensions` object for non-core namespaced data. `settings` is grouped into
+`core_parameters`, `comparison_parameters`, `advanced_parameters`, and
+`results_view`, matching the durable UI sections. The selected analysis
+direction is a core parameter. Conditional branches are active-only: the
+document contains every setting applicable to the selected time and comparison
+modes and omits inactive hidden fields. Applying a document resets inactive
+controls before loading the validated active branch.
+
+`results_view` has an always-present `success` branch and a conditional
+`compare` branch. Both preserve canonical Segment Inspector range/direction,
+selected-station chronological bins, and station-selection intent. Explicit
+stations are canonical callsign/locator pairs; `all` dynamically selects the
+complete reconstructed table after saved visibility controls and before
+transient table filters. Compare additionally preserves `show_non_joint`, its
+segment temporal bin, and the selected-station `chronological` versus `utc_hour`
+view; Success preserves `show_zero_target`. Table and Drill-Down filters,
+expander state, and other transient controls are deliberately not serialized.
+`config/config_codec.py` validates the current document envelope and exact
+initial schema version, while `ui/config_io.py` validates and applies the
+semantic settings. There is no migration from unpublished prototypes. A future
+public schema bump is incomplete until the preceding published version has an
+explicit migration; unsupported versions are rejected rather than interpreted
+with current defaults.
+
+The hardware TX A/B branch records a shared `repeat_interval_minutes` and
+disjoint `target_start_minute` and `reference_start_minute` phases. The UI
+exposes **Repeat Interval**, **Target Start**, and **Reference Start**,
+offers intervals of 4, 6, 10, 12, 20, 30, or 60 minutes, restricts starts to
+distinct even phases below the interval, and defaults them to 10, 0, and 2
+minutes. Sequential Compare always assigns planned pairs from this schedule;
+the unpublished fixed-bin prototype is not a supported runtime branch.
+
+The reusable configuration's optional `profile` carries the stable ID and
+localized presentation text used by built-in demos. `config/demo_profiles.py`
+discovers regular `config/demos/*.config` files in lexicographic filename order.
+Each filename is an opaque ordering key independent of the document's required
+`profile.id`. There is no second demo envelope or schema: a personal
+configuration becomes a built-in demo by choosing any `.config` filename that
+places it at the desired launcher position and putting the unchanged document
+in that directory. Installed demos use English as their required presentation
+baseline; German title and description values are optional and fall back to
+English. The launcher renders descriptions as escaped GitHub-flavored Markdown,
+preserving JSON newline escapes as visible line breaks and allowing Markdown
+links without enabling raw HTML.
+
+`ui/config_save.py` renders the interactive save workflow as a Streamlit
+fragment. It collects the profile title, optional description and stable ID,
+then prepares bytes from the current durable inspector state without rerunning
+the scientific analysis. For a `last_x` selection it explicitly chooses between
+retaining the relative duration and converting the active run's resolved UTC
+interval to `custom`. `ui/result_state.py` keeps that quantized interval keyed
+by `run_id`, so full-page rerenders cannot move the bounds of an already active
+run; result reset or config load clears it.
 
 ### Context Boundary
 
@@ -109,9 +172,15 @@ be changed as a generic query optimization.
 
 - TX and RX comparison analyses;
 - local/reference and hardware A/B comparisons;
-- sequential WSPR frame comparisons;
+- periodic scheduled TX A/B comparisons;
 - TX and RX opportunity analyses.
 
+For periodic hardware A/B work, SQL applies the exact UTC-minute modulo
+predicate for each path's repeat interval and start phase. TX Success applies
+only the Target path's schedule. Comparison post-fetch processing rejects rows
+outside their assigned path schedule and attaches stable
+`tx_ab_pair_id`, `tx_ab_pair_target_time`, and
+`tx_ab_pair_reference_time` columns before evidence is written to Parquet.
 It also applies mode-specific post-fetch synchronization and filtering.
 
 `core/data_engine.py` executes HTTP requests and returns structured
@@ -133,9 +202,20 @@ operational uncertainty.
 ### Scientific Engines
 
 `core/compare_engine.py` performs pure comparison aggregation for simultaneous
-and sequential observations. `core/snr_utils.py` centralizes normalized-SNR
-rounding and CSV formatting. `core/stability.py` performs deterministic,
-optionally chunked bootstrap stability calculations.
+and scheduled observations. For periodic TX A/B analysis, each planned Target
+slot is paired bijectively with its nearest planned Reference slot. An exact
+half-interval tie pairs the lower and higher phases in the same repeat cycle,
+independent of which path is called Target. Aggregation includes peer identity
+in the pair key, takes a micro-median when one peer has multiple decoded rows
+on either side of a scheduled pair, and computes Delta only for a pair with
+both sides. Boundary pairs are admitted only when both planned transmission
+starts lie inside the selected analysis interval.
+
+`core/tx_ab_schedule.py` owns supported repeat-interval and start validation,
+the exact ClickHouse schedule predicate, hourly previews, cyclic separation,
+and stable planned-pair assignment. `core/snr_utils.py` centralizes
+normalized-SNR rounding and CSV formatting. `core/stability.py` performs
+deterministic, optionally chunked bootstrap stability calculations.
 
 `core/opportunity_engine.py` owns opportunity-row normalization,
 classification, aggregation, evidence projections, and map projections. Its
@@ -201,6 +281,9 @@ Opportunity segment reads request only `time_slot`, `peer_sign`, `peer_grid`,
 `hit`, and `miss`. Selected-station reads request only evidence columns required
 by the corresponding table and figure. This keeps the raw opportunity artifact
 out of initial inspector rendering and avoids rereading all Parquet columns.
+Periodic hardware A/B projections additionally carry the stable planned-pair
+identifier and timestamps so inspectors and exports replay the same pairing
+used for the map aggregation.
 
 ### Export Pipeline
 
@@ -209,10 +292,10 @@ run. Export preparation is lazy and protected by a separate admission controller
 from `core/export_admission.py`. The configured policy allows one active export
 and up to ten queued exports.
 
-`ui/result_state.py` owns the lightweight result/export session-state keys and
-reset lifecycle. Configuration callbacks can retire session artifacts and clear
-export, inspector, and stability caches without importing Pandas, Matplotlib,
-the inspector, or export rendering.
+`ui/result_state.py` owns the lightweight result/export session-state keys,
+active-run UTC interval, and reset lifecycle. Configuration callbacks can retire
+session artifacts and clear export, inspector, stability, and resolved-time
+state without importing Pandas, Matplotlib, the inspector, or export rendering.
 
 Preparing an export reuses completed analysis and projected artifacts; it does
 not rerun the upstream scientific query. It renders paper-theme, high-resolution
@@ -228,11 +311,12 @@ contained by single-export admission.
 ### Documentation Pipeline
 
 `docs/doc_en.py` and `docs/doc_de.py` hold the full manuals as source strings.
-`ui/documentation.py` initially renders only Section 1 in a Streamlit fragment.
+`ui/documentation.py` initially renders only the Part 0 preface in a Streamlit fragment.
 `ui/documentation_scroll_trigger.py` mounts a one-pixel browser visibility
-sentinel immediately before Section 1.3. When that boundary enters the viewport,
+sentinel immediately before visible Section 0.3 (the stable `sec-1-3` anchor).
+When that boundary enters the viewport,
 the fragment renders the table of contents and remaining chapters once per
-session while the reader finishes Section 1.3.
+session while the reader finishes Section 0.3.
 `Load full documentation` is a prominent explicit fallback, and the same control
 can hide the loaded content. Starting an analysis collapses the manual and
 suppresses the viewport trigger while the run remains active, without rearming a
@@ -243,7 +327,6 @@ its contents.
 `docs/pdf_generator.py` converts the manual to PDF only when requested. PDF
 generation is single-flight and process-cached, so the first requester waits and
 subsequent requesters reuse the cached bytes until process restart or cache loss.
-
 `scripts/sync_readme_from_doc_en.py` rewrites `README.md` from a fixed header plus
 the complete English manual. Consequently, repository engineering documentation
 must remain outside `README.md`.
@@ -254,11 +337,17 @@ must remain outside `README.md`.
 
 1. Streamlit state is converted to canonical analysis and presentation contexts.
 2. The controller validates inputs and obtains an analysis permit.
-3. `analysis_runner` builds the mode-specific comparison SQL.
+3. `analysis_runner` builds the mode-specific comparison SQL. Periodic TX A/B
+   predicates select each path by its exact repeat interval and UTC start phase.
 4. `data_engine` returns a RAM-cache, disk-cache, or wspr.live result.
-5. Post-fetch logic synchronizes cycles and applies mode-specific rounding.
-6. `compare_engine` builds station and segment aggregates.
-7. The processed rows are written to a session Parquet artifact.
+5. Post-fetch logic synchronizes cycles and applies mode-specific rounding. For
+   periodic TX A/B data it also filters schedule mismatches, excludes a boundary
+   pair unless both planned starts are within the analysis interval, and assigns
+   the stable planned-pair columns.
+6. The processed rows, including planned-pair columns, are written to a session
+   Parquet artifact.
+7. `compare_engine` groups periodic pairs by peer identity and pair ID, applies
+   per-side micro-medians, and builds station and segment aggregates.
 8. `map_data` and `plot_engine` render the map preview.
 9. Inspector view models read the necessary evidence and render segment and
    selected-station views.
@@ -268,7 +357,9 @@ must remain outside `README.md`.
 ### Opportunity Analysis
 
 1. An active-cycle ClickHouse query returns one row per time slot and peer
-   identity with target/external evidence and target SNR.
+   identity with target/external evidence and target SNR. Hardware TX Success
+   additionally restricts active cycles to the configured Target repeat
+   interval and start phase; the Reference schedule is not part of this query.
 2. The fetched frame is normalized into the explicit opportunity schema.
 3. Peer coordinates are resolved and assigned without a full coordinate merge.
 4. Hit, miss, target-only, outcome, and eligibility columns are computed.

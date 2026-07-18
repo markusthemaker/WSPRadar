@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from core.artifact_store import read_parquet_artifact
+from core.tx_ab_schedule import assign_tx_ab_pair_columns
 
 def _empty_evidence_df():
     return pd.DataFrame(columns=["identity", "station", "grid", "plot_time", "metric", "identity_order"])
@@ -27,7 +28,9 @@ def _build_evidence_points(
     is_compare,
     is_sequential,
     *,
-    tx_ab_bin_minutes=8,
+    tx_ab_repeat_interval_minutes=10,
+    tx_ab_target_start_minute=0,
+    tx_ab_reference_start_minute=2,
 ):
     """Build raw evidence points for the selected station+locator distribution and time plots."""
     identity_meta = _prepare_identity_meta(identity_df)
@@ -51,37 +54,63 @@ def _build_evidence_points(
         evidence_df["plot_time"] = pd.to_datetime(evidence_df["time"], errors="coerce")
         evidence_df["metric"] = pd.to_numeric(evidence_df["stat_val"], errors="coerce")
     elif is_sequential:
-        required_cols = {"peer_sign", "peer_grid", "identity", "identity_order", "time", "is_me", "stat_val"}
+        if "tx_ab_pair_id" not in station_df.columns:
+            required_schedule_columns = {"time", "is_me"}
+            if not required_schedule_columns.issubset(station_df.columns):
+                return _empty_evidence_df()
+            station_df = assign_tx_ab_pair_columns(
+                station_df,
+                repeat_interval_minutes=tx_ab_repeat_interval_minutes,
+                target_start_minute_utc=tx_ab_target_start_minute,
+                reference_start_minute_utc=tx_ab_reference_start_minute,
+            )
+        required_cols = {
+            "peer_sign",
+            "peer_grid",
+            "identity",
+            "identity_order",
+            "tx_ab_pair_id",
+            "is_me",
+            "stat_val",
+        }
         if not required_cols.issubset(station_df.columns):
             return _empty_evidence_df()
 
-        bin_minutes = int(tx_ab_bin_minutes)
         work_df = station_df[list(required_cols)].copy()
-        work_df["dt_time"] = pd.to_datetime(work_df["time"], errors="coerce")
-        work_df = work_df.dropna(subset=["dt_time"])
-        work_df["time_bin"] = work_df["dt_time"].dt.floor(f"{bin_minutes}min")
         work_df["is_me"] = pd.to_numeric(work_df["is_me"], errors="coerce")
-        work_df["stat_val"] = pd.to_numeric(work_df["stat_val"], errors="coerce")
-
+        work_df["stat_val"] = pd.to_numeric(
+            work_df["stat_val"],
+            errors="coerce",
+        )
+        pair_keys = [
+            "peer_sign",
+            "peer_grid",
+            "identity",
+            "identity_order",
+            "tx_ab_pair_id",
+        ]
         target_df = (
             work_df[work_df["is_me"] == 1]
-            .groupby(["peer_sign", "peer_grid", "identity", "identity_order", "time_bin"], dropna=False)["stat_val"]
+            .groupby(pair_keys, dropna=False)["stat_val"]
             .median()
             .reset_index(name="target_snr")
         )
-        ref_df = (
+        reference_df = (
             work_df[work_df["is_me"] == 0]
-            .groupby(["peer_sign", "peer_grid", "identity", "identity_order", "time_bin"], dropna=False)["stat_val"]
+            .groupby(pair_keys, dropna=False)["stat_val"]
             .median()
             .reset_index(name="ref_snr")
         )
-        evidence_df = target_df.merge(
-            ref_df,
-            on=["peer_sign", "peer_grid", "identity", "identity_order", "time_bin"],
-            how="inner"
+        evidence_df = target_df.merge(reference_df, on=pair_keys, how="inner")
+        evidence_df["plot_time"] = pd.to_datetime(
+            evidence_df["tx_ab_pair_id"],
+            unit="m",
+            utc=True,
+            errors="coerce",
         )
-        evidence_df["plot_time"] = evidence_df["time_bin"]
-        evidence_df["metric"] = evidence_df["target_snr"] - evidence_df["ref_snr"]
+        evidence_df["metric"] = (
+            evidence_df["target_snr"] - evidence_df["ref_snr"]
+        )
     else:
         required_cols = {"peer_sign", "peer_grid", "identity", "identity_order", "time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"}
         if not required_cols.issubset(station_df.columns):
@@ -114,7 +143,9 @@ def _build_segment_evidence_points(
     is_compare,
     is_sequential,
     *,
-    tx_ab_bin_minutes=8,
+    tx_ab_repeat_interval_minutes=10,
+    tx_ab_target_start_minute=0,
+    tx_ab_reference_start_minute=2,
 ):
     """Build raw segment-level evidence points from parquet using station+locator identity."""
     if df_seg.empty or not {"peer_sign", "peer_grid"}.issubset(df_seg.columns):
@@ -131,7 +162,7 @@ def _build_segment_evidence_points(
     if not is_compare:
         read_columns += ["time", "stat_val"]
     elif is_sequential:
-        read_columns += ["time", "is_me", "stat_val"]
+        read_columns += ["tx_ab_pair_id", "is_me", "stat_val"]
     else:
         read_columns += ["time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"]
 
@@ -158,5 +189,7 @@ def _build_segment_evidence_points(
         segment_meta,
         is_compare,
         is_sequential,
-        tx_ab_bin_minutes=tx_ab_bin_minutes,
+        tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
+        tx_ab_target_start_minute=tx_ab_target_start_minute,
+        tx_ab_reference_start_minute=tx_ab_reference_start_minute,
     )

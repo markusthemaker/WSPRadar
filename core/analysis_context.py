@@ -16,18 +16,10 @@ LOCAL_BENCHMARK_BEST = "local_best"
 SELF_TEST_RX = "rx"
 SELF_TEST_TX = "tx"
 
-WSPR_FRAME_00_04_08 = "frame_00_04_08"
-WSPR_FRAME_02_06_10 = "frame_02_06_10"
-
 SOLAR_ALL = "all"
 SOLAR_DAY = "day"
 SOLAR_NIGHT = "night"
 SOLAR_GREYLINE = "greyline"
-
-_WSPR_FRAME_MOD4 = {
-    WSPR_FRAME_00_04_08: 0,
-    WSPR_FRAME_02_06_10: 2,
-}
 
 _SOLAR_PATH_STATE = {
     SOLAR_DAY: "day",
@@ -38,7 +30,11 @@ _SOLAR_PATH_STATE = {
 
 @dataclass(frozen=True)
 class AnalysisContext:
-    """Stable, localized-label-free configuration used by core analysis code."""
+    """Stable, localized-label-free configuration used by core analysis code.
+
+    Periodic TX A/B fields describe one shared repeat interval and two disjoint
+    even UTC start phases.
+    """
 
     run_mode: str | None = None
     callsign: str = ""
@@ -51,9 +47,9 @@ class AnalysisContext:
     reference_snr_correction_db: float = 0.0
     self_test_mode: str = SELF_TEST_RX
     setup_b_callsign: str = ""
-    target_wspr_frame: str = WSPR_FRAME_00_04_08
-    reference_wspr_frame: str = WSPR_FRAME_02_06_10
-    tx_ab_bin_minutes: int = 8
+    tx_ab_repeat_interval_minutes: int = 10
+    tx_ab_target_start_minute: int = 0
+    tx_ab_reference_start_minute: int = 2
     solar_state: str = SOLAR_ALL
     map_scope_km: int = 22000
     exclude_special_callsigns: bool = False
@@ -68,9 +64,10 @@ class AnalysisContext:
 
     @classmethod
     def from_dict(cls, values):
-        """Build a context from a previously serialized scalar representation."""
+        """Build a context from matching canonical scalar fields."""
         if isinstance(values, cls):
             return values
+        values = dict(values or {})
         field_names = cls.__dataclass_fields__.keys()
         return cls(**{key: values[key] for key in field_names if key in values})
 
@@ -93,15 +90,6 @@ def is_rx_hardware_ab(context):
 
 def is_tx_hardware_ab(context):
     return is_hardware_ab_comparison(context) and context.self_test_mode == SELF_TEST_TX
-
-
-def wspr_frame_mod4(frame_key):
-    return _WSPR_FRAME_MOD4.get(frame_key)
-
-
-def wspr_frame_sql(frame_key):
-    mod4 = wspr_frame_mod4(frame_key)
-    return f"AND toMinute(time) % 4 = {mod4}" if mod4 is not None else ""
 
 
 def solar_path_state(solar_state):

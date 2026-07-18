@@ -1,644 +1,1240 @@
 # docs/doc_de.py
 
-"""Autoritatives deutsches Endnutzer- und Wissenschaftshandbuch fuer WSPRadar."""
+"""Maßgebliches deutschsprachiges Anwender- und Wissenschaftshandbuch für WSPRadar."""
 
 DOC_DE = r"""
 ---
 
 <a id="sec-1"></a>
-### 1. Warum WSPRadar
+
+### 0. Einstieg
 
 <a id="sec-1-0"></a>
-#### 1.0 Was WSPRadar besonders macht
 
-WSPR kann zeigen, dass ein Signal geh&ouml;rt wurde. WSPRadar stellt die n&auml;chste, praktisch wichtigere Frage: **Wie hat die getestete Station oder Konfiguration im Vergleich mit einer sinnvollen Referenz unter vergleichbaren Bedingungen abgeschnitten?**
+#### 0.0 Was WSPRadar zeigen kann
 
-In diesem Handbuch hei&szlig;t die untersuchte Station oder Konfiguration **Target**. WSPRadar kann dieses Target allein untersuchen, zwei lokale Hardwarepfade vergleichen, es einer bekannten Referenzstation gegen&uuml;berstellen oder es mit aktiven Stationen in seiner lokalen WSPR-Nachbarschaft vergleichen.
+WSPRadar ist auf vergleichende Evidenz vollständiger, betriebsfertig aufgebauter Stationskonfigurationen unter realen Betriebsbedingungen spezialisiert. Ein <strong class="defined-term">Hardware A/B-Test</strong> vergleicht zwei kontrollierte lokale Signalwege, etwa Antennen, Speiseleitungen oder Empfangsketten. Ein <strong class="defined-term">Referenzstations-/Buddy-Test</strong> vergleicht zwei vollständige Stationen einschließlich ihrer Standorte, Geräte und lokalen Stör- und Rauschumgebungen.
 
-WSPRadar geht &uuml;ber eine Spot-Karte oder eine Stationsbewertung hinaus. Seine besondere St&auml;rke entsteht durch die Kombination mehrerer Funktionen in einem Arbeitsablauf f&uuml;r Funkamateure:
+Die zu untersuchende Station oder Konfiguration ist das <strong class="defined-term">Target</strong>. Die Vergleichsbasis ist die <strong class="defined-term">Referenz</strong>. Je nach Versuch kann die Referenz Setup B derselben Station, eine bekannte externe Station, die aktive lokale WSPR-Nachbarschaft oder deren stärkstes aktives Mitglied sein.
 
-* **TX- und RX-Analyse:** Untersuchen, wo das eigene Sendesignal decodiert wird und welche unabh&auml;ngig best&auml;tigten Signale der eigene Empf&auml;nger decodiert.
-* **Gezielte Experimentdesigns:** Hardware A/B, Referenzstation/Buddy-Test, lokaler Nachbarschafts-Benchmark oder Success ohne Benchmark ausw&auml;hlen.
-* **Vergleichbare Evidenz:** Target- und Referenzbeobachtungen im selben WSPR-Zyklus paaren oder bei sequenziellem TX A/B kontrollierte Zeit-Bins verwenden.
-* **Zwei Leistungsansichten:** Gepaarte Signalst&auml;rkedifferenz von Decode/No-Decode-Ergebnissen trennen, statt beides in eine einzige Kennzahl zu zwingen.
-* **Stations and Spots:** Sowohl die geografische Breite der beteiligten Stationsidentit&auml;ten als auch das Volumen qualifizierender Beobachtungen sehen.
-* **Pr&uuml;fbare Evidenz:** Von der Karte zum Segment, zur Station und zu den Zeilen hinter dem Ergebnis wechseln und anschlie&szlig;end das aktuelle Analysepaket exportieren.
+Diese Vergleiche beantworten die praktische Frage: **Wie hat sich die untersuchte Station oder Konfiguration für sich allein oder gegenüber einer aussagekräftigen Referenz bewährt? Wo, wann und um wie viel unterschied sie sich?** Das Ergebnis kann einen beobachteten Vorteil und sein geografisches Auftreten zeigen. Laborgrößen wie isolierter Antennengewinn, Wirkungsgrad oder Empfängerempfindlichkeit erfordern weiterhin eigene kalibrierte Messungen.
 
-Diese Kombination macht aus "Ich hatte mehr Spots" eine belastbarere und n&uuml;tzlichere Aussage dar&uuml;ber, **was passiert ist, wo es passiert ist, gegen welche Referenz verglichen wurde und unter welchen Bedingungen**.
-
-WSPRadar bleibt ein Beobachtungswerkzeug f&uuml;r den realen Funkbetrieb. Es ist weder ein kalibriertes Antennenmessgel&auml;nde noch ein Empf&auml;ngermessplatz und isoliert Antennengewinn, Wirkungsgrad oder Empf&auml;ngerempfindlichkeit nicht vom &uuml;brigen Stationssystem. Sein Wert liegt woanders: WSPR-basierte Stationsexperimente werden wesentlich kontrollierter, transparenter und reproduzierbarer.
+Die Methode baut auf begutachteter Forschung und etablierten technischen Versuchen auf: TX-Vergleiche am selben Empfänger unter gemeinsamen Ausbreitungsbedingungen, simultane RX-Vergleiche unter kontrollierten Bedingungen sowie unabhängige Aktivitätsprüfungen für Stationen mit unbekanntem Betriebsplan <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar greift diese Grundlagen auf und erweitert sie wesentlich. Hinzu kommen die Qualifizierung der Target-Aktivität, mehrere zweckgebundene Benchmark-Designs, zyklus- und zeitplanbasierte Zuordnung, Normierung auf die gemeldete Sendeleistung, getrennte Auswertungen für Success, Delta SNR und Decode Outcomes, stationsgleichgewichtete geografische Zusammenfassungen sowie der Drill-Down bis zur beitragenden Evidenz. Zusammen bilden diese Funktionen einen integrierten Versuchs- und Prüfablauf für vollständig aufgebaute Stationen – weit über einen Vergleich bloßer Spot-Anzahlen oder eine einzelne A/B-Berechnung hinaus. [Kapitel 6](#sec-d) dokumentiert die wissenschaftlichen Vorarbeiten, die Erweiterungen durch WSPRadar und deren Grenzen.
 
 <a id="sec-1-1"></a>
-#### 1.1 WSPR in zwei Minuten
 
-**WSPR** steht f&uuml;r **Weak Signal Propagation Reporter**. Es ist ein schmalbandiges digitales Protokoll, mit dem Funkamateure Ausbreitungswege durch Sendungen mit geringer Leistung untersuchen. Eine normale WSPR-2-Sendung dauert etwa 110,6 Sekunden, beginnt zwei Sekunden nach einer geraden UTC-Minute und belegt ungef&auml;hr 6 Hz. Die Nachricht enth&auml;lt normalerweise ein Rufzeichen, einen vierstelligen Maidenhead-Locator und die gemeldete Sendeleistung in dBm. Abh&auml;ngig von Decoder und Bedingungen wird Empfang h&auml;ufig mit etwa `-27 bis -31 dB` SNR auf der WSJT-Skala mit 2500 Hz Referenzbandbreite angegeben. <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a>
+#### 0.1 WSPR in zwei Minuten
 
-Eine Empfangsstation decodiert m&ouml;glichst viele WSPR-Signale und l&auml;dt bei aktivierter Meldung jeden erfolgreichen Decode als **Spot** hoch. Ein Spot enth&auml;lt Sender- und Empf&auml;ngeridentit&auml;t, gemeldete Locator, Zeit, Band, gemeldete Leistung und das vom Decoder gemeldete Signal-Rausch-Verh&auml;ltnis (SNR). WSPRadar liest den historischen Spot-Bestand &uuml;ber wspr.live. <a href="#ref-3">[Ref-3]</a>
+<strong class="defined-term">WSPR</strong> steht für **Weak Signal Propagation Reporter**. Joe Taylor, K1JT, und Bruce Walker, W1BW, beschrieben WSPR als weltweites Netz von QRP-Stationen, die bakensignalartige Aussendungen austauschen, um mögliche Ausbreitungswege zu untersuchen. Eine WSPR-2-Aussendung dauert knapp zwei Minuten und belegt etwa 6 Hz. Die Nachricht enthält üblicherweise ein Rufzeichen, einen vierstelligen Maidenhead-Locator und die gemeldete Leistung in dBm; `30 dBm` entsprechen `1 W`. Decodes sind bis etwa `-28 dB` Signal-Rausch-Verhältnis (SNR) bezogen auf eine Referenzbandbreite von 2500 Hz möglich <a href="#ref-4">[Ref-4]</a>. Ein weniger negativer SNR-Wert bedeutet ein stärkeres Signal gegenüber dem Rauschen.
 
-Eine Einschr&auml;nkung ist sofort wichtig: Die Datenbank enth&auml;lt erfolgreiche Decodes, nicht jeden Sendeversuch und jeden fehlgeschlagenen Empfang. Ein fehlender Spot kann keine Sendung, keinen Decode, keinen Upload, eine falsche Identit&auml;t, einen nicht verf&uuml;gbaren Dienst oder einen geschlossenen Pfad bedeuten. WSPRadar verwendet deshalb ausdr&uuml;ckliche Aktivit&auml;ts- und Vergleichsregeln; es setzt nie jeden fehlenden Spot mit einem Funkfehler gleich.
+Ist das Reporting aktiviert, lädt ein Empfänger jeden erfolgreichen Decode als <strong class="defined-term">Spot</strong> hoch. Ein Spot enthält die Identität von Sender und Empfänger, den gemeldeten Standort, Zeit, Band, Leistung und den vom Decoder gemeldeten SNR. WSPRadar liest diese Historie über wspr.live, eine öffentliche ClickHouse-Datenbank, die von WSPRnet gemeldete Spots speichert und alle paar Minuten nach neuen Meldungen sucht. Eine tägliche Synchronisierung ergänzt Meldungen, die zunächst fehlten oder verspätet hochgeladen wurden <a href="#ref-5">[Ref-5]</a>.
+
+Eine Einschränkung ist für jede Analyse entscheidend: Das Archiv enthält erfolgreiche Decodes, aber kein vollständiges Protokoll aller Sendeversuche. WSPRadar konstruiert deshalb eine <strong class="defined-term">Opportunity</strong>: einen zweiminütigen Zyklus mit nachweislich aktivem Target und unabhängiger Evidenz dafür, dass der betreffende entfernte Sender oder Empfänger aktiv war. Bei RX muss ein anderer Empfänger denselben Sender decodiert haben; bei TX muss der entfernte Empfänger ein anderes Signal auf demselben Band decodiert haben. Ohne diesen Aktivitätsnachweis wird ein fehlender Spot nicht automatisch als funktechnischer Misserfolg gewertet.
 
 <a id="sec-1-2"></a>
-#### 1.2 Was du &uuml;ber deine Station lernen kannst
 
-WSPRadar ist um praktische Amateurfunkfragen aufgebaut:
+#### 0.2 Die passende Fragestellung wählen
 
-* Wo wird mein Sender decodiert, und von welchen aktiven Empf&auml;ngern?
-* Welche anderswo best&auml;tigten Signale decodiert auch mein Empf&auml;nger?
-* Hat Antenne oder Empfangspfad A besser abgeschnitten als B?
-* Wie vergleicht sich meine Station mit einem bekannten Buddy auf demselben Band?
-* Bin ich ungef&auml;hr typisch f&uuml;r aktive WSPR-Stationen in der N&auml;he meines QTH?
-* Kann ich mit der st&auml;rksten aktiven lokalen Station mithalten?
-* Konzentriert sich ein Vorteil auf bestimmte Richtungen, Entfernungen oder Zeiten?
-* Bin ich ein "Alligator": werde gut geh&ouml;rt, h&ouml;re aber schlecht?
+Am Anfang steht die betriebliche Frage. Daraus ergibt sich unmittelbar das passende Vergleichsdesign:
 
-Die letzte Frage erfordert vergleichbare TX- und RX-L&auml;ufe gegen dasselbe Benchmark-Konzept. Auch dann ist die Differenz als Evidenz f&uuml;r das gesamte Stationssystem zu lesen: TX und RX verwenden unterschiedliche Peer-Populationen und Opportunity-Regeln.
+| Deine Frage | Auswahl |
+|---|---|
+| Wo wird mein Sender von nachweislich aktiven Empfängern decodiert? | TX-Analyse mit `Kein Benchmark (nur Success)` |
+| Welche unabhängig bestätigten Signale decodiert auch mein Empfänger? | RX-Analyse mit `Kein Benchmark (nur Success)` |
+| Unterscheidet sich der lokale Antennen-, Speiseleitungs- oder Hardwarepfad A von Pfad B? | Hardware A/B-Test |
+| Wie schneidet meine vollständige Station gegenüber einer bekannten Station ab? | Referenzstations-/Buddy-Test |
+| Ist meine Station im Großen und Ganzen typisch für die aktiven WSPR-Stationen in meiner Nähe? | Lokaler Nachbarschafts-Benchmark mit lokalem Nachbarschafts-Median |
+| Wie schneide ich auf jedem Pfad und in jedem Zyklus gegenüber der stärksten aktiven lokalen Gegenstation ab? | Lokaler Nachbarschafts-Benchmark mit bester lokaler Station |
+
+Wähle die <strong class="defined-term">TX-Analyse</strong>, wenn das Target-Rufzeichen sendet. Die entfernten Empfangsstationen, die Evidenz liefern, werden als <strong class="defined-term">Peers</strong> auf der Karte dargestellt.
+
+Wähle die <strong class="defined-term">RX-Analyse</strong>, wenn das Target-Rufzeichen empfängt. Die entfernten Sendestationen, die Evidenz liefern, werden als Peers auf der Karte dargestellt. Das konfigurierte <strong class="defined-term">QTH</strong> ist der Standort der Target-Station und dient als Kartenmittelpunkt sowie als Ausgangspunkt für den lokalen Radius.
+
+Nach Wahl der Fragestellung unterstützt WSPRadar auf vier praktische Arten:
+
+* **Den passenden Versuch verwenden:** Wähle zwischen Target-Reichweite, einem kontrollierten lokalen Hardware A/B-Test, einem Buddy-Test vollständiger Stationen und einem Vergleich mit der lokalen Nachbarschaft, statt dich auf rohe Spot-Anzahlen zu verlassen.
+* **Gleiches mit Gleichem vergleichen:** WSPRadar prüft zunächst, ob das Target nachweislich aktiv war, und vergleicht dann denselben zweiminütigen <strong class="defined-term">WSPR-Zyklus</strong> oder deterministisch geplante TX-Paare. Bei unterschiedlicher Sendeleistung werden decodierte SNR-Werte auf dieselbe gemeldete Leistungsbasis normiert.
+* **Unterschiedliche Leistungsfragen getrennt halten:** <strong class="defined-term">Success</strong> zeigt die bedingte Erreichbarkeit des Targets unter unabhängig bestätigten Opportunities. <strong class="defined-term">Delta SNR</strong> zeigt den Signalunterschied Target minus Referenz, wenn beide Seiten vergleichbare Decode-Evidenz lieferten. <strong class="defined-term">Decode Outcomes</strong> zeigen Joint-Evidenz sowie Fälle, in denen nur eine Seite decodiert wurde.
+* **Das Muster finden und prüfen:** Karten und Inspektoren zeigen, wo ein Unterschied nach Entfernung, Richtung, UTC sowie Nacht-, Tag- und Greyline-Bedingungen auftritt. Du kannst erkennen, ob sich das Muster breit abstützt oder auf wenig Evidenz beruht, und anschließend die beitragenden Stationen und Spots prüfen.
+
+Wiederholte Läufe können eine Änderung an Antenne, Speiseleitung oder Empfangskette absichern. Vergleichbare TX- und RX-Läufe können außerdem das unter Funkamateuren bekannte „Alligator“-Muster untersuchen: Eine Station wird gut gehört, hört selbst aber schlecht. Richtungsabhängige Ergebnisse beschreiben die beobachteten WSPR-Pfade und die vorhandene Stationspopulation, nicht ein kalibriertes Strahlungsdiagramm.
 
 <a id="sec-1-3"></a>
-#### 1.3 Was ein WSPRadar-Lauf erzeugt
 
-Vor der Analyse werden gew&auml;hlt:
+#### 0.3 Was ein Lauf liefert
 
-* **Richtung:** TX, wenn das Target sendet; RX, wenn das Target empf&auml;ngt.
-* **Benchmark-Design:** kein Benchmark, lokales Hardware A/B, eine Referenzstation oder eine lokale Nachbarschaft.
+Jeder Lauf hat eine <strong class="defined-term">Analyserichtung</strong>, genau ein Band, eine Target-Identität und ein aufgelöstes UTC-Zeitfenster. Das <strong class="defined-term">Benchmark-Design</strong> bestimmt, welche Ergebnisse erzeugt werden:
 
-Diese Auswahl bestimmt die Ergebnisbl&ouml;cke:
+* <strong class="defined-term">Success</strong> ist das nicht vergleichende Target-Ergebnis. Die bedingte Success Rate zeigt, wie oft das Target unter unabhängig bestätigten Opportunities qualifizierende Evidenz lieferte.
+* <strong class="defined-term">Compare</strong> kommt hinzu, sobald ein Benchmark ausgewählt ist. Das Ergebnis enthält gepaartes **Delta SNR** und **Decode Outcomes**. Delta SNR ist das SNR der Target-Seite minus das SNR der Referenzseite nach einer gegebenenfalls konfigurierten Referenzkorrektur. Positive Werte sprechen für das Target, negative für die Referenz. Decode Outcomes zeigen sowohl gepaarte Evidenz als auch Fälle, in denen nur eine Seite decodiert wurde.
 
-* **Success** ist das Betriebsergebnis nur f&uuml;r das Target. Es meldet eine bedingte Success Rate gegen qualifizierende Aktivit&auml;t im WSPR-Netz. Es ist keine Benchmark-Punktzahl.
-* **Compare** kommt hinzu, wenn ein Benchmark gew&auml;hlt wurde. Es zeigt die gepaarte SNR-Differenz zwischen Target und Reference zusammen mit **Decode Outcomes** f&uuml;r gemeinsame und einseitige Evidenz.
+Die Ergebnisse öffnen sich auf einer Karte und lassen sich entlang eines durchgängigen Evidenzpfads prüfen:
 
-Das Vergleichsobjekt des Targets hei&szlig;t **Reference**. Je nach Design ist das Setup B, ein Buddy-Rufzeichen, ein zyklusbezogener lokaler Median oder der st&auml;rkste aktive lokale Peer.
+**Laufidentität -> Karte -> Stationen und Spots -> Segment-Inspektor -> Station Insights -> Drill-Down**
 
-Ein **Peer** ist eine entfernte Stationsidentit&auml;t, die Evidenz liefert. WSPRadar behandelt jedes exakte Paar `Rufzeichen + gemeldeter Locator` als eigene Peer-Identit&auml;t.
+Die Karte lokalisiert den Effekt. Der Segment-Inspektor zeigt die Evidenz für eine gewählte Entfernung und Richtung. Station Insights zeigt, welche Identitäten beitragen. Drill-Down legt die Beobachtungen, Paare desselben Zyklus oder geplanten TX-A/B-Paare hinter den Zusammenfassungen offen.
 
-Zuerst erscheint eine geografische Karte. Danach untersucht der Segment Inspector einen gew&auml;hlten Entfernungs-/Richtungsbereich, Station Insights listet die beitragenden Identit&auml;ten auf, und Drill-Down zeigt die zugrunde liegenden Beobachtungen, Paare oder Zeit-Bins.
+Das Ziel ist eine klare betriebliche Aussage: **Was unterschied sich wo und wann gegenüber welcher Referenz, um wie viel und mit wie viel stützender Evidenz?**
 
 <a id="documentation-toc"></a>
+
 ### Inhaltsverzeichnis
 
-* [1. Warum WSPRadar](#sec-1)
-* [2. F&uuml;nf-Minuten-Schnellstart](#sec-2)
-* [3. Analyse ausw&auml;hlen und planen](#sec-3)
-  * [3.1 TX oder RX ausw&auml;hlen](#sec-3-1)
-  * [3.2 Kein Benchmark: nur Success](#sec-3-2)
-  * [3.3 Hardware A/B](#sec-3-3)
-  * [3.4 Referenzstation / Buddy-Test](#sec-3-4)
-  * [3.5 Lokaler Nachbarschafts-Benchmark](#sec-3-5)
-  * [3.6 Checkliste vor dem Lauf](#sec-3-6)
-* [4. Ergebnisse lesen](#sec-4)
-* [5. Bedienelemente und Konfiguration](#sec-5)
-* [6. Fehlersuche und Datenqualit&auml;t](#sec-6)
-* [7. Wissenschaftliche Methodik](#sec-7)
-* [8. Grenzen, zul&auml;ssige Aussagen und Reproduzierbarkeit](#sec-8)
+**Teil 0: Vorwort**
+
+* [0. Einstieg](#sec-1)
+    * [0.0 Was WSPRadar zeigen kann](#sec-1-0)
+    * [0.1 WSPR in zwei Minuten](#sec-1-1)
+    * [0.2 Die passende Fragestellung wählen](#sec-1-2)
+    * [0.3 Was ein Lauf liefert](#sec-1-3)
+
+**Teil I: Leitfaden für den Funkbetrieb**
+
+* [1. Versuchsleitfäden](#sec-2)
+    * [1.1 Solide Grundlagen für jeden Versuch](#sec-2-1)
+    * [1.2 Nur Success: die Target-Reichweite untersuchen](#sec-2-2)
+    * [1.3 RX Hardware A/B: simultane Empfangspfade vergleichen](#sec-2-3)
+    * [1.4 TX Hardware A/B: abwechselnde Sendepfade vergleichen](#sec-2-4)
+    * [1.5 Referenzstations-/Buddy-Test](#sec-2-5)
+    * [1.6 Lokaler Nachbarschafts-Median](#sec-2-6)
+    * [1.7 Beste lokale Station](#sec-2-7)
+* [2. Ergebnisse auswerten](#sec-3)
+    * [2.1 Ein Success-Ergebnis auswerten](#sec-3-2)
+    * [2.2 Ein Compare-Ergebnis auswerten](#sec-3-3)
+    * [2.3 Den Effekt auf der Karte lokalisieren](#sec-3-4)
+    * [2.4 Stationen und Spots prüfen](#sec-3-5)
+    * [2.5a Ein geografisches Segment untersuchen (Success-Modus)](#sec-3-6a)
+    * [2.5b Ein geografisches Segment untersuchen (Compare-Modus)](#sec-3-6b)
+    * [2.6a Die beitragenden Stationen untersuchen (Success-Modus)](#sec-3-7a)
+    * [2.6b Die beitragenden Stationen untersuchen (Compare-Modus)](#sec-3-7b)
+    * [2.7 Die zugrunde liegende Evidenz prüfen](#sec-3-8)
+    * [2.8 Durchgerechnetes Compare-Beispiel](#sec-3-9)
+* [3. Ergebnisse absichern und kommunizieren](#sec-4)
+    * [3.1 Breite und stabile Evidenz erkennen](#sec-4-1)
+    * [3.2 Ein Ergebnis durch Wiederholung und Kontrolle absichern](#sec-4-2)
+    * [3.3 Eine evidenzgerechte Schlussfolgerung formulieren](#sec-4-3)
+    * [3.4 Lauf und Kontext sichern](#sec-4-4)
+
+**Teil II: Bedienelemente und Fehlersuche**
+
+* [4. Bedienelemente und Konfiguration](#sec-5)
+    * [4.1 Ablaufsteuerung](#sec-5-1)
+    * [4.2 Kernparameter](#sec-5-2)
+    * [4.3 Benchmark-Einstellungen](#sec-5-3)
+    * [4.4 Filter und Evidenzschwellen](#sec-5-4)
+    * [4.5 Karten-, Inspektor- und Exporteinstellungen](#sec-5-5)
+* [5. Fehlersuche und Datenqualität](#sec-6)
+    * [5.1 Zuerst die Laufdefinition prüfen](#sec-6-1)
+    * [5.2 Fehler nach Symptom eingrenzen](#sec-6-2)
+    * [5.3 Rufzeichen und Locator prüfen](#sec-6-3)
+    * [5.4 Fallback für historische Decode-Codes](#sec-6-4)
+    * [5.5 Wie das Target-Active Gate die Evidenz prägt](#sec-6-5)
+    * [5.6 Umgang mit Upstream-Daten](#sec-6-6)
+
+**Teil III: Wissenschaftliche Grundlagen, Methoden und Aussagen**
+
+* [6. Literatur, Vorarbeiten und Einordnung](#sec-d)
+    * [6.1 Vom Meldenetz zum Versuchsdatensatz](#sec-d-1)
+    * [6.2 WSPR-Beobachtungsdaten interpretierbar machen](#sec-d-2)
+    * [6.3 Wissenschaftliche Vorarbeiten zu Antennen- und Stationsvergleichen](#sec-d-3)
+    * [6.4 Analyseinfrastruktur und Werkzeuge für Funkamateure](#sec-d-4)
+    * [6.5 Was WSPRadar übernimmt, integriert und ergänzt](#sec-d-5)
+* [7. Wissenschaftliche Methoden](#sec-7)
+    * [7.1 Datenquelle, Decode-Auswahl und Zeitmodell](#sec-7-1)
+    * [7.2 Identitäts- und Zuordnungsregeln](#sec-7-2)
+    * [7.3 Target-Active Gate](#sec-7-3)
+    * [7.4 Success-Klassifikation und Formeln](#sec-7-4)
+    * [7.5 Leistungsnormierung, Korrektur und Delta SNR](#sec-7-5)
+    * [7.6 Gepaarte Evidenz und Decode Outcomes](#sec-7-6)
+    * [7.7 Aggregationshierarchie](#sec-7-7)
+    * [7.8 Stabilität, Verteilungen und Gewichtung in der Inspektionsansicht](#sec-7-8)
+    * [7.9 Geografie und Sonnenstandsklassifikation](#sec-7-9)
+* [8. Evidenzgerechte Aussagen und Reproduzierbarkeit](#sec-8)
+    * [8.1 Aussagen, die von der Evidenz gestützt werden](#sec-8-1)
+    * [8.2 Interpretationsgrenzen: Was gekoppelt oder unbeobachtet bleibt](#sec-8-2)
+    * [8.3 Checkliste für die Ergebnisdokumentation](#sec-8-3)
+    * [8.4 Exportpaket der Analyse](#sec-8-4)
+    * [8.5 Haftungsausschluss](#sec-8-5)
+* [Literatur und Quellen](#sec-ref)
+
+**Teil IV: Praktische Ergänzungen**
+
 * [Anhang A: Parallele WSJT-X-Instanzen](#sec-a)
-* [Anhang B: Zeitgesteuerte A/B-Relaisumschaltung](#sec-b)
+    * [A.1 Zweite Instanz anlegen](#sec-a-1)
+    * [A.2 Ausgangskonfiguration bei Bedarf kopieren](#sec-a-2)
+    * [A.3 Alle Datenpfade trennen](#sec-a-3)
+* [Anhang B: Zeitgesteuerter A/B-Relaisumschalter](#sec-b)
 * [Anhang C: Referenz-SNR-Kalibrierung](#sec-c)
-* [Anhang D: Literatur, Stand der Technik und Einordnung](#sec-d)
-* [Quellen](#sec-ref)
+* [Lizenz](#sec-license)
+
+---
+
+<a id="part-i"></a>
+
+## Teil I: Leitfaden für den Funkbetrieb
+
+Dieser Teil führt von der betrieblichen Fragestellung zu einem gut belegten Ergebnis. Nutze ihn, um die passende Analyse auszuwählen, den Versuch einzurichten, die Evidenz zu prüfen und die Befunde von WSPRadar zu beschreiben. Die genauen Bedienelemente, Verarbeitungsmethoden und Angaben zur Reproduzierbarkeit sind in den Teilen II und III zusammengefasst.
+
+---
 
 <a id="sec-2"></a>
-### 2. F&uuml;nf-Minuten-Schnellstart
 
-Der sicherste erste Lauf verwendet eine gepflegte historische Demo. So lernst du die Oberfl&auml;che kennen, bevor du ein eigenes Experiment planst.
+### 1. Versuchsleitfäden
 
-1. `Demo laden` anklicken.
-2. Eine Demo ausw&auml;hlen, deren Titel zu einer gew&uuml;nschten Frage passt.
-3. `Ausgewaehlte Demo starten` anklicken.
-4. Die Ergebnistitel pr&uuml;fen. Eine Benchmark-Demo erzeugt normalerweise ein **Compare**-Ergebnis und ein separates **Success**-Ergebnis.
-5. Die Karte zun&auml;chst im &Uuml;berblick lesen:
-   * Die Kartenfarbe zeigt das Segmentergebnis.
-   * `STATIONS` zeigt die Verteilung der beteiligten Stationsidentit&auml;ten.
-   * `SPOTS` zeigt die Verteilung des qualifizierenden Beobachtungsvolumens.
-6. Den `Segment Inspector` &ouml;ffnen und Entfernungsbereich sowie Richtung ausw&auml;hlen.
-7. Die Segmentzusammenfassung lesen. Bei Compare meldet sie sachliche Z&auml;hlwerte wie `Selected Segment Evidence: 4 joint stations | 17 joint spots`.
-8. Eine Zeile in Station Insights ausw&auml;hlen und die ausgew&auml;hlte Stations-Evidenz sowie die Drill-Down-Zeilen pr&uuml;fen.
-9. `Alle Ergebnisse zum Download vorbereiten` verwenden, wenn aktuelle Konfiguration, Metadaten, verarbeitete Evidenz, Tabellen und hochaufl&ouml;sende Abbildungen ben&ouml;tigt werden.
+Wähle den Leitfaden, der zu deiner Frage aus [Abschnitt 0.2](#sec-1-2) passt. Jeder Leitfaden beschreibt den praktischen Aufbau und das daraus entstehende Ergebnis. Die genauen Regeln für Zuordnung, Normierung und Aggregation werden einmal in den [Wissenschaftlichen Methoden](#sec-7) festgelegt.
 
-Nicht allein aus der Kartenfarbe schlie&szlig;en, dass eine Antenne "gewonnen" hat. Zuerst Ergebnistyp, Stationsanzahl, Spot-/Bin-Anzahl, Decode Outcomes, Zeitfenster und gew&auml;hlten geografischen Bereich best&auml;tigen.
+<a id="sec-2-1"></a>
 
-**Eine vertretbare erste Compare-Aussage**
+#### 1.1 Solide Grundlagen für jeden Versuch
 
-> F&uuml;r dieses Target, diesen Benchmark, dieses Band, dieses UTC-Fenster und dieses Segment sprach die gepaarte SNR-Differenz der Stationsmediane um den angezeigten Betrag f&uuml;r Target/Reference. Die Anzahl gemeinsamer Stationen und Spots beschreibt die Menge gepaarter Evidenz; Decode Outcomes zeigt die einseitige Evidenz au&szlig;erhalb dieser Teilmenge.
+Eine klare Fragestellung und ein stabiler Betriebsaufbau erleichtern die Interpretation des Ergebnisses.
 
-**Eine vertretbare erste Success-Aussage**
+**Den Lauf definieren**
 
-> F&uuml;r dieses Target, dieses Band, dieses UTC-Fenster und die gew&auml;hlte Peer-Population beschreibt die angezeigte Success Rate den Anteil unabh&auml;ngig best&auml;tigter Opportunities, in denen auch das Target qualifizierende Evidenz erzeugte. Sie ist ein bedingter Netzindikator, keine unbedingte Decode-Wahrscheinlichkeit und keine Punktzahl, die 100 Prozent erreichen sollte.
+* Formuliere die Fragestellung und die zu untersuchende Variable in einem Satz.
+* Wähle TX- oder RX-Analyse, genau ein Band und das Benchmark-Design.
+* Gib Rufzeichen exakt so ein, wie sie hochgeladen wurden, einschließlich eines gültigen Suffixes wie `/P`, `/1` oder `/QRP`.
+* Prüfe das Target-QTH. Success identifiziert das Target anhand des exakten Rufzeichens in Verbindung mit den ersten vier Zeichen des Locators.
+* Wähle ein UTC-Zeitfenster, in dem das Target tatsächlich in Betrieb war. Das Fenster muss lang genug sein, um die Ausbreitungszustände abzudecken, auf die sich die beabsichtigte Aussage bezieht; für Aussagen über vollständige Tageszyklen sind mehrtägige Läufe vorzuziehen.
+* Protokolliere Antennen, Speiseleitungen, Tuner, Sender oder Empfänger, Decoder, Softwareversion, Leistung, Zeitplan und beabsichtigte Änderungen.
 
-Vor einem Lauf mit dem eigenen Rufzeichen das Experiment in [Abschnitt 3](#sec-3) ausw&auml;hlen. Eine korrekte Folge von Mausklicks kann ein unkontrolliertes Experiment nicht reparieren.
+Jeder Lauf verwendet genau ein Band. Eine Zusammenfassung mehrerer Bänder würde unterschiedliche Ausbreitung, Aktivität, Stationspopulationen und Beobachtbarkeit vermischen.
+
+**Den Versuchsaufbau stabil halten**
+
+* Halte alle nicht untersuchten Variablen so stabil wie praktisch möglich.
+* Synchronisiere die Stationsuhren.
+* Halte bei TX die tatsächliche und die gemeldete Leistung synchron und stabil, sofern nicht die Leistung selbst untersucht wird. WSPR wird üblicherweise mit kleiner Leistung betrieben; `20-30 dBm` entsprechen etwa `0.1-1 W`.
+* Halte bei RX Verstärkung, Filterung, Audioführung, Decoder-Einstellungen und Upload-Verhalten stabil, sofern nicht einer dieser Punkte untersucht wird.
+* Prüfe, ob beide Seiten des Benchmarks wie vorgesehen in Betrieb sind. Das <strong class="defined-term">Target-Active Gate</strong> verhindert, dass Zeiträume ohne beobachtbare Target-Aktivität als Misserfolg gewertet werden, weist aber keine Betriebsbereitschaft der Referenz nach.
+
+Nutze nach Abschluss des Laufs die Evidenzkette aus [Kapitel 2](#sec-3), um geografische Breite, Beobachtungsumfang und zugrunde liegende Zeilen zu prüfen.
+
+<a id="sec-2-2"></a>
+
+#### 1.2 Nur Success: die Target-Reichweite untersuchen
+
+<strong class="defined-term">Qualifizierende Evidenz</strong> sind die decodierten WSPR-Beobachtungen, die nach Anwendung der Identitäts-, Locator-, Band-, UTC-Zeitfenster-, Target-Aktivitäts- und Filterregeln des Laufs erhalten bleiben und von Peers sowie Segmenten stammen, die auch die konfigurierten Evidenzschwellen erfüllen. Bei Success gehören dazu Target-Decodes und unabhängige Aktivität im selben Zyklus, mit denen belastbar zählbare Opportunities belegt werden.
+
+**Beantwortete Frage**
+
+Wo, wann und mit welchem SNR liefert das Target qualifizierende Evidenz bei entfernten Stationen oder Signalen, deren Aktivität unabhängig nachgewiesen wurde?
+
+**Was WSPRadar zeigt**
+
+* **RX Success** vergleicht die Decodes des Target-Empfängers mit unabhängig bestätigten Zyklen entfernter Sender.
+* **TX Success** vergleicht die Decodes des Target-Senders mit Zyklen entfernter Empfänger, in denen andere Aktivitäten auf demselben Band nachgewiesen wurden.
+
+Es gibt weder eine Referenzstation noch ein Setup B.
+
+**Die Analyse einrichten**
+
+Wähle `RX-Analyse` oder `TX-Analyse`, gib das exakte Target-Rufzeichen und QTH ein, wähle ein Band und ein aktives UTC-Zeitfenster und anschließend `Kein Benchmark (nur Success)`.
+
+**Die Evidenz stärken**
+
+Verwende ein Betriebsfenster mit beobachtbarer Target-Aktivität und genügend unabhängiger WSPR-Aktivität. Prüfe geografischen Umfang, Stationen, Spots und Zeitansichten. Wenn nach den gewählten Filtern oder Evidenzschwellen nur wenige Peers übrig bleiben, verlängere den Lauf oder verbreitere die Evidenzbasis, bevor du eine weitreichende Schlussfolgerung ziehst.
+
+**Evidenzgerechte Schlussfolgerung**
+
+> Für dieses Target, Band, UTC-Zeitfenster und die ausgewählte Peer-Population fasst die angezeigte Success Rate den Anteil der unabhängig bestätigten Opportunities im weltweiten WSPR-Netz zusammen, in denen auch das Target qualifizierende Evidenz lieferte. Die Rate wird zunächst je Peer berechnet und anschließend gleichgewichtet über alle qualifizierenden Peers gemittelt.
+
+In der Stationspraxis bedeutet das: Von den weltweiten WSPR-Aktivitäten, die dieser Lauf unabhängig bestätigen und damit belastbar prüfen konnte, zeigt das Ergebnis, wie regelmäßig deine Station ebenfalls die erwartete TX- oder RX-Evidenz lieferte.
+
+Success beschreibt eine bedingte Erreichbarkeit im Netz. [Abschnitt 2.1](#sec-3-2) erläutert Klassifikationen und Gewichtung.
+
+<a id="sec-2-3"></a>
+
+#### 1.3 RX Hardware A/B: simultane Empfangspfade vergleichen
+
+**Beantwortete Frage**
+
+Unterschieden sich zwei lokale Empfangspfade bei der Beobachtung derselben entfernten WSPR-Aussendungen?
+
+Für Funkamateure kann das bedeuten: zwei Antennen mit je einem Empfänger- und Decoderpfad zu vergleichen, zwei Empfänger über einen charakterisierten Verteiler aus derselben Antenne zu speisen, Vorverstärker, Filter oder Speiseleitungen zu vergleichen oder zwei vollständige parallele Empfangsketten gegeneinander zu testen. Halte alles außerhalb des Prüflings so ähnlich und stabil wie praktisch möglich.
+
+**Was WSPRadar zeigt**
+
+Beim simultanen RX Hardware A/B-Test werden zwei lokale Empfangspfade an derselben Station verglichen. Setup A und Setup B beobachten dieselben entfernten Senderidentitäten in denselben WSPR-Zyklen. Dieses Design kommt in WSPRadar einem kontrollierten Hardwarevergleich mit demselben Signal am nächsten.
+
+**Den Versuch einrichten**
+
+Wähle in der Benutzeroberfläche `Hardware A/B-Test (Eigenes Setup)` und betreibe zwei Empfänger gleichzeitig mit unterschiedlichen exakten Melderufzeichen:
+
+* Setup A verwendet das Target-Rufzeichen.
+* Setup B verwendet das `Setup B Callsign`.
+
+Halte Uhren, Antennenführung, Verstärkung, Audiopfade, Decoder-Einstellungen und Uploads unter Kontrolle.
+
+Der Lauf erzeugt ein RX-Hardware-Compare-Ergebnis sowie ein separates RX-Success-Ergebnis für das Target.
+
+**Die Evidenz stärken**
+
+Dokumentiere die Pegelgleichheit der Verteilerausgänge, Unterschiede der Speiseleitungen, Empfängerverstärkung, Verhalten der automatischen Verstärkungsregelung (AGC), Übersteuerung, Decoder-Konfiguration und Upload-Verhalten. Gemeinsam genutzte Hardware muss tatsächlich gemeinsam sein. Eine gemessene Referenz-SNR-Korrektur kann einen stabilen Offset ausgleichen, jedoch kein nichtlineares oder zeitabhängiges Verhalten.
+
+[Anhang A](#sec-a) beschreibt parallele WSJT-X-Instanzen. [Anhang C](#sec-c) erläutert die Referenz-SNR-Kalibrierung.
+
+**Evidenzgerechte Schlussfolgerung**
+
+> Unter dem dokumentierten simultanen RX-Aufbau zeigte das gepaarte Delta SNR den beobachteten Unterschied zwischen den Empfangspfaden A und B für die gemeinsamen Sender, Zyklen und den untersuchten geografischen Bereich.
+
+In der Stationspraxis bedeutet das: Für entfernte Signale, die beide Pfade gleichzeitig beobachteten, zeigt das Ergebnis, welcher Empfangspfad tendenziell stärkere Decodes lieferte, wo der Unterschied auftrat und wie viel gemeinsame Evidenz ihn stützte.
+
+<a id="sec-2-4"></a>
+
+#### 1.4 TX Hardware A/B: abwechselnde Sendepfade vergleichen
+
+**Beantwortete Frage**
+
+Unterschieden sich zwei lokale Antennen, Speiseleitungen oder geschaltete HF-Pfade, wenn sie von derselben Stationsausrüstung gespeist wurden?
+
+**Was WSPRadar zeigt**
+
+Beim sequenziellen TX Hardware A/B-Test wechseln sich vollständige WSPR-Aussendungen über Setup A und Setup B ab. Der konfigurierte Zeitplan identifiziert beide Seiten, und WSPRadar vergleicht die Evidenz aus deterministischen, eindeutig eins zu eins zugeordneten geplanten Paaren.
+
+Dieses Design verwendet ein Rufzeichen und in der Regel eine gemeinsame Sendekette. Target und Referenz können zwei Minuten auseinanderliegen; zulässig sind aber auch Zeitpläne mit geringerer Einschaltdauer und größerem Abstand. Ein kurzer Abstand begrenzt die Zeit, in der sich Ausbreitung, Störungen und Empfangsbedingungen ändern können; er macht einen sequenziellen Vergleich jedoch nicht simultan.
+
+**Den Versuch einrichten**
+
+Der zeitlich festgelegte Sendeplan identifiziert die beiden Pfade, nicht Rufzeichensuffixe wie `/1` und `/2`.
+
+Verwende für beide Pfade das reguläre, gültige Rufzeichen der Station. Trage im `TX-A/B-Zeitplan` die tatsächliche Wiederholung und UTC-Phase jedes physischen Pfads ein:
+
+* Das `Wiederholintervall` gilt gemeinsam für Target und Referenz. Verfügbar sind `4, 6, 10, 12, 20, 30` und `60 min`; jedes Intervall ist ein gerader, WSPR-kompatibler Teiler einer UTC-Stunde.
+* `Target-Start` ist die gerade UTC-Minutenphase von Setup A.
+* `Referenz-Start` ist die davon verschiedene gerade UTC-Minutenphase von Setup B.
+
+Die Voreinstellung lautet `Wiederholintervall = 10 min`, `Target-Start = 00 UTC` und `Referenz-Start = 02 UTC`. Die Vorschau zeigt dann das Target um `00, 10, 20, 30, 40, 50` und die Referenz um `02, 12, 22, 32, 42, 52`. WSPRadar hält die Starts disjunkt und meldet den zyklischen Abstand sowie die Aussendungen pro Stunde. Das Wiederholintervall beschreibt den **tatsächlichen Sendeplan jedes physischen Pfads**; es entspricht nicht zwangsläufig dem `Frame`-Wert eines Senders, der einen Ausgang abwechselnd auf zwei Pfade schaltet.
+
+Die Paarbildung erfolgt automatisch. Für jeden Empfänger `callsign + locator` ordnet WSPRadar jedem geplanten Target-Start in einer eindeutigen Eins-zu-eins-Zuordnung den zeitlich nächstgelegenen geplanten Referenz-Start zu. Bei einem exakten Gleichstand nach einem halben Intervall gilt unabhängig davon, welcher Pfad als Target bezeichnet wird, dieselbe Zuordnung der früheren und späteren Phase. Beim Vertauschen von A und B bleiben deshalb die physischen Paare erhalten, und nur das Vorzeichen von Delta SNR kehrt sich um. Mehrere erhaltene Beobachtungen auf einer Seite eines Paars werden zu einem Mikro-Median zusammengefasst. Wurden beide Seiten decodiert, liefert das Paar ein Paar-Delta; ein einseitiger Decode bleibt Only Target oder Only Reference; ein Paar ohne Decode auf beiden Seiten erzeugt keine Zeile. Ein Paar wird ausgeschlossen, wenn einer seiner beiden geplanten Starts außerhalb des ausgewählten Vergleichsfensters liegt.
+
+Verwende einen deterministischen Zeitgeber oder Controller. Der zufällige Sendebetrieb über die prozentuale TX-Einstellung von WSJT-X erzeugt nicht die erforderliche feste A/B-Folge.
+
+**Ultimate3S: benachbarte A/B-Slots mit anschließender Pause.** Der QRP Labs Ultimate3S kann eine Folge von WSPR-Einträgen abarbeiten und pro Eintrag einen `Aux`-Ausgang für externe Umschalthardware setzen. Beginnt eine Folge aus zwei Einträgen um `00`, kann ein globaler 10-Minuten-Frame das Target um `00` und die Referenz um `02` senden und anschließend bis zum nächsten Sequenzstart um `10` pausieren; in WSPRadar entspricht das `Wiederholintervall = 10`, `Target-Start = 00`, `Referenz-Start = 02`. Dieselbe Anordnung mit einem globalen 20-Minuten-Frame ergibt für jeden Pfad eine Wiederholung alle 20 Minuten bei weiterhin zwei Minuten A/B-Abstand. Laut Ultimate3S-Handbuch hat `Start = 00` die besondere Bedeutung „not used“. Prüfe deshalb die angezeigte und tatsächlich beobachtete UTC-Folge und trage deren wirkliche Phasen ein, statt eine wörtliche Zuordnung von Einstellung zu Uhrzeit anzunehmen. Die `Aux`-Leitungen werden gemeinsam mit Displaysignalen genutzt; verwende den dokumentierten gefilterten Treiber oder eine geeignete Relaisschnittstelle und schalte ausschließlich in der sendefreien Zeit <a href="#ref-6">[Ref-6]</a>.
+
+**QMX: Zeitpläne mit einem und mit zwei Sendern unterscheiden.** Ein QMX mit `Frame = 10`, `Start = 0` sendet um `00, 10, 20, 30, 40, 50`. Schaltet ein externer Umschalter diese Aussendungen abwechselnd auf zwei Pfade, liegt das Target bei `00, 20, 40` und die Referenz bei `10, 30, 50`; jeder Pfad wiederholt sich alle 20 Minuten. Trage deshalb `Wiederholintervall = 20`, `Target-Start = 00`, `Referenz-Start = 10` ein. Mit diesem Bakenscheduler kann ein einzelner QMX kein benachbartes Paar `00/02` mit anschließender achtminütiger Pause erzeugen. Zwischen den beiden Pfaden in benachbarten Zwei-Minuten-Slots könnte ein einzelner QMX nur wechseln, indem er alle zwei Minuten sendet, wovon das QMX-Handbuch wegen der unangemessen hohen Netzbelegung abrät. Zwei unabhängig geplante QMX mit `Frame = 10` und den Starts `00` beziehungsweise `02` setzen hingegen den WSPRadar-Zeitplan `10 / 00 / 02` um; ihre Sendeketten und tatsächlichen Leistungen müssen dann jedoch als getrennte Hardware kontrolliert werden <a href="#ref-6">[Ref-6]</a>.
+
+Kennzeichne die Pfade nicht durch falsche Leistungsangaben wie `30 dBm` für den einen und `33 dBm` für den anderen. WSPRadar normiert den TX-SNR als `SNR - reported power + 30`; eine erfundene Differenz von 3 dB erzeugt daher einen künstlichen Vergleichsoffset von 3 dB. Die Pfade werden durch den zeitlich festgelegten Sendeplan identifiziert. Melde die tatsächliche Leistung und verwende für einen realen, belastbar bestimmten Pfadoffset eine gemessene Referenzkorrektur.
+
+Die physische Zuordnung von Zeitplan und Pfad bestimmt, welche Antenne oder welcher Pfad Target und welcher Referenz ist. Prüfe diese Zuordnung zuerst ohne HF. Eine vertauschte Zuordnung beschriftet die Pfade falsch und kehrt die praktische Interpretation des Delta-SNR-Vorzeichens um.
+
+Der Lauf erzeugt ein sequenzielles TX-Hardware-Compare-Ergebnis und ein separates TX-Success-Ergebnis. Success ist auf den konfigurierten Target-Zeitplan begrenzt und beschreibt daher Setup A.
+
+<a id="sec-2-4-why"></a>
+
+**Warum abwechselnde Aussendungen sinnvoll sind**
+
+Senden zwei nahe beieinanderstehende Antennen im selben WSPR-Zyklus und Frequenzkanal dieselbe WSPR-Aussendung mit demselben Rufzeichen, empfängt eine entfernte Station die Überlagerung beider Felder. Ihr Spot lässt nicht erkennen, welcher Anteil von Antenne A oder Antenne B stammt.
+
+Unterscheidbare simultane Signale erfordern normalerweise getrennte Rufzeichen und Sendeketten. Dadurch kommen Unterschiede bei Senderkalibrierung, Leistung, Zeit und Frequenz hinzu; eng benachbarte Antennen und Speisesysteme können sich außerdem verkoppeln oder HF in die jeweils andere Kette einstreuen.
+
+Abwechselnde vollständige Aussendungen nach festem Zeitplan behalten eine gemeinsame Sendekette bei und setzen beide Pfade wiederholt wechselnden Ausbreitungs- und Empfangsbedingungen aus. Über einen ausgewogenen Lauf von vielen Stunden oder Tagen wirken kurzfristige Änderungen wiederholt auf beide Seiten und mitteln sich tendenziell aus.
+
+**Die Evidenz stärken**
+
+Kontrolliere Schaltverluste, Unterschiede der Speiseleitungen, Antennenkopplung, Ganggenauigkeit der Uhr, Zuordnung des Zeitplans zu den Pfaden sowie den Schaltzeitpunkt. Halte tatsächliche und gemeldete Leistung stabil. Dehne den Lauf über die für die Fragestellung relevanten Ausbreitungszeiten aus und vertausche bei einer Wiederholung die A/B-Zeitplanzuordnung, wenn kleine Unterschiede entscheidend sind.
+
+Der geplante TX-A/B-Versuch bleibt sequenziell: Setup A und Setup B werden zu unterschiedlichen Zeiten beobachtet. Verwende den kürzesten praktikablen Abstand, denn mit größerem Abstand bleibt mehr Zeit für Änderungen von Ausbreitung, Störungen und Empfangsbedingungen. Vertauschte Zuordnungen und wiederholte ausgewogene Läufe helfen, systematische Zeit- oder Schalteffekte zu erkennen. [Abschnitt 6.3](#sec-d-toledo) erläutert die experimentellen Vorarbeiten und warum kurze Wechsel langen Blöcken vorzuziehen sind <a href="#ref-7">[Ref-7]</a>.
+
+[Anhang B](#sec-b) beschreibt das zeitgesteuerte USB-Relais-Hilfsprogramm von WSPRadar. [Anhang C](#sec-c) erläutert die Referenz-SNR-Kalibrierung.
+
+**Evidenzgerechte Schlussfolgerung**
+
+> Unter dem dokumentierten, zeitlich festgelegten Sendeplan zeigte das Delta SNR der geplanten Paare den beobachteten Unterschied zwischen den geschalteten Pfaden A und B für die ausgewählten Empfänger, Zeiträume und den untersuchten geografischen Bereich.
+
+In der Stationspraxis bedeutet das: Nach wiederholtem Wechsel der beiden HF-Pfade zeigt das Ergebnis, ob Pfad A oder B für die im Lauf vertretenen Empfänger und Ausbreitungszeiten tendenziell stärkere Meldungen erzeugte. [Warum abwechselnde Aussendungen sinnvoll sind](#sec-2-4-why) und [Abschnitt 6.3](#sec-d-toledo) erläutern, warum dieser Vergleich belastbar sein kann, obwohl er sequenziell und nicht simultan bleibt.
+
+<a id="sec-2-5"></a>
+
+#### 1.5 Referenzstations-/Buddy-Test
+
+**Beantwortete Frage**
+
+Wie schnitt die Target-Station während zeitgleichen Betriebs gegenüber einer bekannten externen Station ab?
+
+**Was WSPRadar zeigt**
+
+Ein Buddy-Test vergleicht zwei vollständig aufgebaute Stationssysteme. Der Vergleich umfasst ihre Standorte, Antennen, Speiseleitungen, Sender oder Empfänger, das lokale Rauschen, Gelände, Software und Betriebsumfeld.
+
+* Bei TX vergleicht derselbe entfernte Empfänger Target und Referenz, wenn beide im selben Zyklus decodiert wurden.
+* Bei RX vergleichen Target- und Referenzempfänger dieselbe entfernte Senderidentität im selben Zyklus.
+
+Die Paarbildung im selben Zyklus gibt beiden Seiten einen gemeinsamen Endpunkt und verringert innerhalb jedes Paars viele Unterschiede bei Pfad, Sender oder Empfänger.
+
+**Die Analyse einrichten**
+
+Wähle `Fremdes Rufzeichen (Buddy-Test)`. Gib ein exaktes Target-Rufzeichen und ein davon verschiedenes exaktes `Referenz-Rufzeichen` ein. Wähle als Referenz eine Station, deren Standort, Hardware, gemeldete Leistung und Betriebsplan du kennst.
+
+Beide Stationen müssen zeitgleich auf demselben Band in Betrieb sein. Prüfe die Betriebsbereitschaft der Referenz unabhängig. Verwende eine Referenz-SNR-Korrektur nur, wenn sie auf einer belastbaren Kalibrierung beruht.
+
+Der Lauf erzeugt ein TX- oder RX-Compare-Ergebnis gegenüber dem Buddy und ein separates nicht vergleichendes Target-Success-Ergebnis.
+
+**Die Evidenz stärken**
+
+Dokumentiere für beide Stationen Gelände, lokales Rauschen, Antennen, Polarisation, Speiseleitungsverlust, Sender- oder Empfängerkalibrierung, gemeldete Leistung und Betriebszeiten. Prüfe die Locator-Identitäten und erfasse genügend gemeinsame entfernte Peers.
+
+Das Target-Active Gate ist asymmetrisch. Ein Tausch von Target und Referenz kann deshalb die einseitigen Decode Outcomes verändern, auch wenn sich das Vorzeichen des gemeinsam gepaarten Delta SNR wie erwartet umkehrt.
+
+Eine bekannte Referenzstation ist ein aussagekräftiger Vergleichspartner, aber nicht automatisch ein kalibrierter Referenzstandard.
+
+**Evidenzgerechte Schlussfolgerung**
+
+> Für die gemeinsamen Pfade und Zyklen dieses Laufs zeigten das gepaarte Delta SNR und die Decode Outcomes, wie die beiden vollständig aufgebauten Stationen unter ihren jeweiligen Betriebsbedingungen im Vergleich abschnitten.
+
+In der Stationspraxis bedeutet das: Das Ergebnis zeigt, wie deine vollständige betriebsbereite Station auf gemeinsamen Pfaden gegenüber der vollständigen Station deines Funkpartners abschnitt; der beobachtete Unterschied lässt sich daraus allein nicht einer einzelnen Antenne, einem einzelnen Empfänger oder dem Standort zuordnen.
+
+<div style="page-break-before: always;"></div>
+
+<a id="sec-2-6"></a>
+
+#### 1.6 Lokaler Nachbarschafts-Median
+
+**Beantwortete Frage**
+
+Wie schneidet das Target gegenüber der typischen aktiven WSPR-Evidenz von Stationen in der Umgebung seines konfigurierten QTH ab?
+
+**Was WSPRadar zeigt**
+
+Der lokale Nachbarschafts-Median bildet eine dynamische Referenz aus den aktiven Stationsidentitäten innerhalb des gewählten Radius. Für jeden qualifizierenden Zyklus und Pfad repräsentiert der Nachbarschafts-Median die aktive lokale Gruppe, ohne dass eine einzelne Identität mit hohem Spot-Aufkommen dominiert.
+
+Die Referenz kann sich von Zyklus zu Zyklus ändern. Sie ist ein Benchmark für die lokale Aktivität und keine feste oder kalibrierte Station.
+
+**Die Analyse einrichten**
+
+Wähle `Lokaler Nachbarschafts-Benchmark`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Lokaler Nachbarschafts-Median`.
+
+Prüfe Target-Rufzeichen und QTH, denn sie bestimmen sowohl den Ausschluss des Targets aus dem lokalen Pool als auch den Ursprung des Radius. Wähle einen Radius mit klarer lokaler Bedeutung und genügend aktiven Stationsidentitäten.
+
+Der Lauf erzeugt ein lokales Compare-Ergebnis und ein separates nicht vergleichendes Success-Ergebnis für das Target.
+
+**Die Evidenz stärken**
+
+Prüfe, welche lokalen Identitäten beitragen, wie viel Evidenz sie liefern und wie sich das Ergebnis bei verändertem Radius verhält. Ein kleinerer Radius kann ein ähnlicheres lokales Umfeld beschreiben, aber einen fragilen Pool hinterlassen. Ein größerer Radius kann mehr beitragende Stationen liefern, zugleich aber unterschiedliches Gelände, Rauschen und abweichende Stationsbedingungen einschließen.
+
+Lokale Stationen können sich in Antenne, Hardware, Betriebsplan und Genauigkeit der gemeldeten Leistung unterscheiden. Gib Radius, Methode, beitragende Stationen und Evidenzanzahlen zusammen mit dem Ergebnis an.
+
+**Evidenzgerechte Schlussfolgerung**
+
+> Gegenüber dem aktiven Nachbarschafts-Median innerhalb des ausgewählten Radius zeigte das Target für die beobachteten Pfade und Zyklen das angezeigte gepaarte Delta SNR und die angezeigten Decode Outcomes.
+
+In der Stationspraxis bedeutet das: Das Ergebnis zeigt, ob deine Station für die Pfade und Zeiträume, in denen beide Seiten vergleichbar waren, tendenziell oberhalb, nahe oder unterhalb der typischen aktiven WSPR-Gruppe in der Umgebung lag.
+
+<a id="sec-2-7"></a>
+
+#### 1.7 Beste lokale Station
+
+**Beantwortete Frage**
+
+Wie schneidet das Target gegenüber der stärksten aktiven lokalen Referenz ab, die für jeden qualifizierenden Pfad und Zyklus verfügbar ist?
+
+**Was WSPRadar zeigt**
+
+Die Methode „Beste lokale Station“ bildet aus aktiven Stationsidentitäten innerhalb des gewählten Radius eine wechselnde Hüllkurve des jeweils stärksten Peers. Sie ist bewusst strenger als der Nachbarschafts-Median und stellt keinen lokalen Durchschnitt dar.
+
+**Die Analyse einrichten**
+
+Wähle `Lokaler Nachbarschafts-Benchmark`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Beste lokale Station`.
+
+Prüfe Target-Rufzeichen und QTH und wähle anschließend einen Radius, der einen aussagekräftigen und ausreichend besetzten lokalen Pool erhält.
+
+Der Lauf erzeugt ein lokales Compare-Ergebnis und ein separates nicht vergleichendes Success-Ergebnis für das Target.
+
+**Die Evidenz stärken**
+
+Prüfe die beitragenden lokalen Referenzen. Wenn die Schlussfolgerung stark von der Zusammensetzung des Pools abhängt, wiederhole die Analyse mit wissenschaftlich begründbaren Radien. Beschreibe die wechselnde Definition des stärksten Peers, statt das Ergebnis als Vergleich mit einer einzelnen festen Station darzustellen.
+
+Wie bei der Medianmethode können sich die lokalen Beitragenden in Gelände, Ausstattung, Rauschen, Betriebsplan und Genauigkeit der gemeldeten Leistung unterscheiden.
+
+**Evidenzgerechte Schlussfolgerung**
+
+> Gegenüber der jeweils stärksten aktiven lokalen Referenz, die innerhalb des angegebenen Radius für jeden qualifizierenden Pfad und Zyklus ausgewählt wurde, zeigte das Target das angezeigte gepaarte Delta SNR und die angezeigten Decode Outcomes.
+
+In der Stationspraxis bedeutet das: Das Ergebnis zeigt, wie deine Station gegenüber der stärksten qualifizierenden Station in der Nähe abschnitt, die auf dem jeweiligen Pfad und in dem jeweiligen Zyklus verfügbar war – nicht gegenüber einer dauerhaft festgelegten Vergleichsstation.
+
+Die genauen Regeln für die Zusammensetzung und Aggregation des lokalen Pools stehen in den [Abschnitten 7.2](#sec-7-2) und [7.7](#sec-7-7).
 
 <a id="sec-3"></a>
-### 3. Analyse ausw&auml;hlen und planen
 
-Dieses Kapitel ist die zentrale Stelle f&uuml;r Analyseauswahl und Experimentdesign. Gemeinsame Berechnungen werden sp&auml;ter unter [Wissenschaftliche Methodik](#sec-7) definiert.
+### 2. Ergebnisse auswerten
 
-| Deine Frage | Benchmark-Design | Wesentliche Voraussetzung |
-|---|---|---|
-| Wo werde ich geh&ouml;rt, oder welche best&auml;tigten Signale h&ouml;re ich? | `Kein Benchmark (nur Success)` | Korrekte Target-Identit&auml;t, Band und aktives Zeitfenster. |
-| Unterscheidet sich lokales Setup A von Setup B? | `Hardware A/B-Test (Eigenes Setup)` | Jede nicht getestete Variable stabil halten. |
-| Wie vergleiche ich mich mit einer bekannten Station? | `Fremdes Rufzeichen (Buddy-Test)` | &Uuml;berlappender Betrieb und gen&uuml;gend gemeinsame entfernte Peers. |
-| Bin ich typisch f&uuml;r aktive WSPR-Stationen in der N&auml;he? | `Lokaler Nachbarschafts-Benchmark` mit lokalem Median | Sinnvoller Radius und gen&uuml;gend aktive lokale Stationen. |
-| Kann ich mit dem st&auml;rksten aktiven lokalen Peer mithalten? | `Lokaler Nachbarschafts-Benchmark` mit lokaler Beststation | Die Reference als wechselnde Best-Peer-H&uuml;llkurve interpretieren. |
+Prüfe jeden Lauf entlang derselben Evidenzkette:
+
+**Karte -> Stationen und Spots -> Segment-Inspektor -> Station Insights -> Drill-Down**
+
+* Bestätige das Ergebnis und die Laufdefinition.
+* Lokalisiere den Effekt auf der Karte.
+* Wähle im Segment-Inspektor die relevante Entfernung und Richtung für die weitere Untersuchung.
+* Prüfe die Evidenz auf Stationsebene in Station Insights.
+* Gehe im Drill-Down bis zur Evidenz auf Beobachtungsebene.
+
+Die genauen Formeln, Zuordnungsregeln und die Verarbeitungshierarchie stehen in den [Wissenschaftlichen Methoden](#sec-7).
 
 <a id="sec-3-1"></a>
-#### 3.1 TX oder RX ausw&auml;hlen
-
-**TX** ausw&auml;hlen, wenn das Target-Rufzeichen die sendende Station oder der Sendepfad von Setup A ist. Entfernte Empfangsstationen werden zu den dargestellten Peers.
-
-**RX** ausw&auml;hlen, wenn das Target-Rufzeichen die Empfangsstation oder Empfangskette von Setup A ist. Entfernte Sendestationen werden zu den dargestellten Peers.
-
-Jeder Lauf ben&ouml;tigt genau ein Band. Eine Kombination mehrerer B&auml;nder w&uuml;rde unterschiedliche Ausbreitung, Stationspopulationen, Aktivit&auml;t und Beobachtbarkeit in einem Ergebnis vermischen.
 
 <a id="sec-3-2"></a>
-#### 3.2 Kein Benchmark: nur Success
 
-**Verwenden, wenn:** du die TX- oder RX-Reichweite des Targets verstehen m&ouml;chtest, ohne sie mit einer anderen Station oder Konfiguration zu vergleichen.
+#### 2.1 Ein Success-Ergebnis auswerten
 
-**Einrichtung:** Exaktes Target-Rufzeichen, QTH, ein Band und ein Zeitfenster eingeben, in dem das Target in Betrieb war. `Kein Benchmark (nur Success)` ausw&auml;hlen und danach TX oder RX starten.
+Success ist das nicht vergleichende Target-Ergebnis. Verstehe die Success Rate als <strong class="defined-term">bedingte Erreichbarkeit</strong> unter unabhängig bestätigten Opportunities:
 
-**Ergebnis:** Ein TX-Success- oder RX-Success-Ergebnis. Reine Vergleichseingaben verschwinden, und es wird keine Compare-Abfrage erstellt.
-
-**Bedeutung:** Success ist ein bedingter, ausbreitungsgewichteter Indikator f&uuml;r die Netzreichweite, der aus qualifizierender globaler WSPR-Aktivit&auml;t gebildet wird. Er ist keine Target-gegen-Reference-Punktzahl. [Abschnitt 4.2](#sec-4-2) erkl&auml;rt die Interpretation des Prozentwerts.
-
-**Beachten:** Hardware nicht anhand des Prozentwerts allein bewerten. Geografischen Bereich, Evidenzz&auml;hler und Konsistenz &uuml;ber die Zeit pr&uuml;fen.
-
-<a id="sec-3-3"></a>
-#### 3.3 Hardware A/B
-
-**Verwenden, wenn:** zwei lokale Antennen, Speiseleitungen, Empfangspfade oder andere Stationskonfigurationen getestet werden sollen.
-
-**Einrichtung f&uuml;r simultanes RX:** Zwei Empf&auml;nger gleichzeitig mit unterschiedlichen exakten Melderufzeichen betreiben. Setup A verwendet das Target-Rufzeichen, Setup B das Setup-B-Rufzeichen. Die aktuelle Oberfl&auml;che verwendet bei RX A/B keine getrennten Target-/Reference-Locatorfelder. Uhren, Antennenumschaltung, Verst&auml;rkung, Audiopfade, Decoder-Einstellungen und Uploads kontrollieren.
-
-**Einrichtung f&uuml;r sequenzielles TX:** Ein Rufzeichen verwenden und vollst&auml;ndige WSPR-Sendungen zwischen zwei Pfaden abwechseln:
-
-* Target-Frames: UTC-Startminuten `00, 04, 08, ...`
-* Reference-Frames: UTC-Startminuten `02, 06, 10, ...`
-
-WSPRadar gruppiert diese Sendungen in feste Bins von 4, 8, 12, 16 oder 20 Minuten. Ein deterministischer Scheduler oder Controller ist erforderlich; das normale zuf&auml;llige Verhalten des Sendeprozentsatzes ist kein fester A/B-Zeitplan.
-
-F&uuml;r beide Pfade das normale exakte Stationsrufzeichen verwenden. Keine k&uuml;nstlichen Suffixe `/1` und `/2` f&uuml;r Setup A und Setup B erfinden: Die konfigurierte Frame-Folge identifiziert beide Seiten. Zusammengesetzte WSPR-Rufzeichen verwenden andere Nachrichtenformate; je nach Format fehlt der Locator oder das Rufzeichen wird durch einen Hash dargestellt. Dadurch k&ouml;nnen Identit&auml;ts- und Locator-Evidenz zwischen Decodern und Uploads weniger direkt vergleichbar werden. Ein Suffix kann au&szlig;erdem regulatorische Bedeutung haben und sollte nur verwendet werden, wenn es f&uuml;r den tats&auml;chlichen Betrieb zul&auml;ssig ist. <a href="#ref-2">[Ref-2]</a>
-
-**Warum TX A/B sequenziell ist:** Wenn zwei nahe Antennen am selben QTH im selben Zyklus und Frequenzkanal dieselbe WSPR-Wellenform mit demselben Rufzeichen abstrahlen, beobachtet ein entfernter Empf&auml;nger ihr kombiniertes Feld. Sein Spot kann nicht Antenne A oder B zugeordnet werden. Unterscheidbare simultane Signale erfordern normalerweise getrennte Rufzeichen und Sendeketten. Damit kommen Unterschiede bei Senderkalibrierung, Leistung, Timing und Frequenz hinzu; nahe Antennen und Speisesysteme k&ouml;nnen sich zudem gegenseitig koppeln oder HF in die andere Kette einspeisen. Simultanes lokales TX ist daher nicht physikalisch unm&ouml;glich, aber normalerweise das falsche Design f&uuml;r den von WSPRadar beabsichtigten kontrollierten Vergleich eines einzelnen Senders mit umgeschaltetem HF-Pfad.
-
-Der Wechsel vollst&auml;ndiger benachbarter WSPR-Frames h&auml;lt die Beobachtungen von Setup A und B nur zwei Minuten auseinander. Bei einem ausgeglichenen Zeitplan &uuml;ber viele Stunden oder Tage sollten kurzzeitige &Auml;nderungen von Ausbreitung und Empf&auml;nger beide Seiten wiederholt treffen und sich tendenziell ausmitteln, sodass der praktische Nachteil von sequenziellem gegen&uuml;ber simultanem TX klein werden sollte. Er ist nicht exakt null: Systematische Frame-Timing- oder Schalteffekte k&ouml;nnen verbleiben; ein Tausch der Frame-Zuordnung ist eine n&uuml;tzliche Kontrolle.
-
-**Ergebnis:** Ein Hardware-Compare-Ergebnis plus separates Success-Ergebnis des Targets. Bei sequenziellem TX ist Success auf die konfigurierte Target-Frame-Folge begrenzt und beschreibt nur Setup A.
-
-**Bedeutung:** Simultanes RX kommt bei WSPRadar einem kontrollierten Hardwarevergleich desselben Signals am n&auml;chsten. Sequenzielles TX reduziert viele Hardwareunterschiede, wenn ein Sender nur den HF-Pfad umschaltet; beide Seiten werden jedoch zu verschiedenen Zeiten beobachtet.
-
-**Beachten:** Gemeinsame Hardware, Splitter-Ungleichgewicht, Schaltverlust, ungleiche Speiseleitungen, AGC-Verhalten, Clipping, Uhrenfehler, falsche Frame-Polarit&auml;t und jede Konfigurations&auml;nderung au&szlig;erhalb der getesteten Variable.
-
-**Zugeh&ouml;rige Anh&auml;nge:** [Anhang A](#sec-a) f&uuml;r parallele WSJT-X-Instanzen, [Anhang B](#sec-b) f&uuml;r das zeitgesteuerte USB-Relaiswerkzeug von WSPRadar und [Anhang C](#sec-c) f&uuml;r die Reference-SNR-Kalibrierung verwenden.
-
-<a id="sec-3-4"></a>
-#### 3.4 Referenzstation / Buddy-Test
-
-**Verwenden, wenn:** das Target mit einer bekannten externen Station verglichen werden soll.
-
-**Einrichtung:** Ein exaktes Target-Rufzeichen und ein davon verschiedenes exaktes Reference-Rufzeichen eingeben. Eine Station w&auml;hlen, deren Standort, Hardware, Leistung und Betriebsplan bekannt sind. Beide Seiten m&uuml;ssen sich im Betrieb auf demselben Band &uuml;berlappen.
-
-**Ergebnis:** Ein TX- oder RX-Compare-Ergebnis gegen den Buddy plus separates Target-Success-Ergebnis.
-
-**Bedeutung:** Bei TX vergleicht derselbe entfernte Empf&auml;nger Target und Reference, wenn beide im selben Zyklus beobachtet wurden. Bei RX vergleichen Target- und Reference-Empf&auml;nger dieselbe entfernte Senderidentit&auml;t im selben Zyklus. Diese Paarung reduziert gemeinsames Fading und Unterschiede am gemeinsamen Endpunkt, macht zwei Stationen aber nicht physikalisch identisch.
-
-**Beachten:** Unterschiedliches Gel&auml;nde, lokales Rauschen, Antennen, Polarisation, Speiseleitungsverlust, Sender- oder Empf&auml;ngerkalibrierung, gemeldete Leistung und Betriebsplan. Das Target-Active Gate ist asymmetrisch; ein Tausch von Target und Reference kann einseitige Decode Outcomes ver&auml;ndern, obwohl sich gemeinsame gepaarte Differenzen im Vorzeichen umkehren.
-
-<a id="sec-3-5"></a>
-#### 3.5 Lokaler Nachbarschafts-Benchmark
-
-**Verwenden, wenn:** statt einer handverlesenen Referenz der Kontext aktiver WSPR-Stationen rund um das konfigurierte QTH gew&uuml;nscht ist.
-
-**Einrichtung:** Einen Radius von 10 bis 250 km und eine von zwei Methoden w&auml;hlen:
-
-* **Lokaler Nachbarschafts-Median:** Empfohlener Ausgangspunkt f&uuml;r die Frage "Bin ich f&uuml;r meine Region ungef&auml;hr typisch?"
-* **Beste lokale Station:** Strengerer Test gegen die st&auml;rkste aktive lokale Referenz f&uuml;r jeden Zyklus und Pfad.
-
-**Ergebnis:** Ein lokales Compare-Ergebnis plus separates Target-Success-Ergebnis.
-
-**Bedeutung:** Beim lokalen Median erh&auml;lt jede aktive lokale Identit&auml;t `Rufzeichen + Locator` genau einen Referenzbeitrag pro Zyklus/Pfad, bevor der Nachbarschaftsmedian gebildet wird. Eine sehr aktive lokale Station erh&auml;lt dadurch nicht f&uuml;r jede doppelte oder wiederholte Zeile eine Stimme. Fehlt einer lokalen Station eine qualifizierende Beobachtung f&uuml;r diesen Zyklus/Pfad, erfindet WSPRadar keine `0 dB`; die Station tr&auml;gt einfach nichts zu diesem Referenzpool bei. Das Target wird nur anhand des exakten Rufzeichens aus dem lokalen Pool ausgeschlossen, sodass Basisrufzeichen und suffigierte Identit&auml;t getrennt bleiben. Local Best verwendet dagegen eine wechselnde Best-Peer-H&uuml;llkurve und ist kein lokaler Durchschnitt.
-
-**Beachten:** Der Referenzpool &auml;ndert sich, wenn Stationen aktiv oder inaktiv werden. Lokale Stationen sind nicht kalibriert und k&ouml;nnen sich bei Antenne, Gel&auml;nde, Rauschen, Hardware und Genauigkeit der gemeldeten Leistung unterscheiden. Ein zu gro&szlig;er Radius repr&auml;sentiert m&ouml;glicherweise keine gemeinsame lokale Umgebung mehr.
-
-<a id="sec-3-6"></a>
-#### 3.6 Checkliste vor dem Lauf
-
-**Vor der Datenerfassung**
-
-* Frage und getestete Variable in einem Satz festhalten.
-* TX oder RX, genau ein Band und das Benchmark-Design ausw&auml;hlen.
-* Exakte Rufzeichenformen einschlie&szlig;lich Suffixen wie `/P`, `/1` oder `/QRP` pr&uuml;fen.
-* Target-QTH pr&uuml;fen. Success gleicht das Target-Rufzeichen gemeinsam mit den ersten vier Locatorzeichen ab.
-* Ein UTC-Fenster w&auml;hlen, das lang genug f&uuml;r die von der Aussage abgedeckten Ausbreitungszust&auml;nde ist. F&uuml;r Aussagen &uuml;ber vollst&auml;ndige Tageszyklen sind mehrt&auml;gige L&auml;ufe vorzuziehen.
-* Antennen, Speiseleitungen, Tuner, Sender oder Empf&auml;nger, Decoder, Softwareversion, Leistung, Zeitplan und beabsichtigte &Auml;nderungen dokumentieren.
-
-**W&auml;hrend des Experiments**
-
-* Jede nicht getestete Variable so stabil wie praktisch m&ouml;glich halten.
-* Uhren synchron halten.
-* Bei TX tats&auml;chliche und gemeldete Leistung realistisch und stabil halten, sofern nicht die Leistung getestet wird.
-* Bei RX Verst&auml;rkung, Filterung, Audiopfad, Decoder-Einstellungen und Upload-Verhalten stabil halten, sofern sie nicht getestet werden.
-* Den beabsichtigten Betrieb beider Benchmark-Seiten best&auml;tigen. Das Target-Active Gate weist keine Reference-Uptime nach.
-
-**Vor der Annahme des Ergebnisses**
-
-* Titel, Target, Reference, Band, UTC-Fenster und Filter best&auml;tigen.
-* Sowohl `STATIONS` als auch `SPOTS` pr&uuml;fen, nicht nur die Kartenfarbe.
-* Anzahl gemeinsamer Stationen und Spots/Bins im gew&auml;hlten Segment pr&uuml;fen.
-* Decode Outcomes zusammen mit der gepaarten SNR-Differenz betrachten.
-* Nach einer dominierenden Identit&auml;t, einem Locator oder einem kurzen Zeitintervall suchen.
-* Experiment wiederholen oder Pfade tauschen, wenn eine kleine Differenz eine wichtige Entscheidung st&uuml;tzen soll.
-* Exportpaket vorbereiten und externe Aufbauhinweise aufbewahren, die WSPRadar nicht ableiten kann.
-
-<a id="sec-4"></a>
-### 4. Ergebnisse lesen
-
-Dieses Kapitel ist die zentrale Stelle f&uuml;r die Interpretation der Oberfl&auml;che. Exakte Formeln und Verarbeitungshierarchie stehen unter [Wissenschaftliche Methodik](#sec-7).
-
-<a id="sec-4-1"></a>
-#### 4.1 Ergebnisblock identifizieren
-
-Mit dem Titel beginnen:
-
-* **TX Success / RX Success:** Bedingte Target-Reichweite gegen qualifizierende Netzaktivit&auml;t.
-* **TX Compare / RX Compare:** Target-gegen-Reference-Evidenz anhand gepaarter SNR-Differenz und Decode Outcomes.
-* **Sequential TX A/B Compare:** Spezielles Compare-Ergebnis, dessen gepaarte Einheit ein festes Zeit-Bin statt eines WSPR-Zyklus ist.
-
-Farben unterschiedlicher Ergebnistypen nicht miteinander vergleichen. Zus&auml;tzlich Band, Zeitfenster, Benchmark-Design, Rufzeichen, Filter und Evidenzschwellen best&auml;tigen.
-
-<a id="sec-4-2"></a>
-#### 4.2 Success Rate verstehen
-
-Success Rate beantwortet eine praktische, aber bewusst begrenzte Frage:
-
-* **RX Success:** Wie viele der Peer-Senderzyklen, die unabh&auml;ngig von einem anderen Empf&auml;nger best&auml;tigt wurden, decodierte auch der Target-Empf&auml;nger?
-* **TX Success:** Wie viele der aktiven Peer-Empf&auml;ngerzyklen, die durch andere Decodes auf demselben Band best&auml;tigt wurden, decodierten auch den Target-Sender?
+* **RX Success:** Wie viele der Zyklen entfernter Sender, die ein anderer Empfänger unabhängig bestätigte, decodierte auch der Target-Empfänger?
+* **TX Success:** Wie viele der aktiven Zyklen entfernter Empfänger, die durch andere Decodes auf demselben Band bestätigt wurden, enthielten auch einen Decode des Target-Senders?
 
 WSPRadar verwendet vier sichtbare Klassifikationen:
 
-* **Target:** Das Target war erfolgreich, und eine unabh&auml;ngige Best&auml;tigung existiert ebenfalls.
-* **Elsewhere:** Bei RX wurde der Sender von einem anderen Empf&auml;nger, aber nicht vom Target geh&ouml;rt.
-* **Other Signals:** Bei TX h&ouml;rte der Empf&auml;nger andere Signale auf demselben Band, aber nicht das Target.
-* **Target-only:** Das Target war ohne die f&uuml;r den Nenner erforderliche unabh&auml;ngige Best&auml;tigung erfolgreich. Diese Evidenz bleibt f&uuml;r Audits erhalten, geht aber nicht in Success Rate ein.
+* <strong class="defined-term">Target:</strong> Das Target war erfolgreich, und die erforderliche unabhängige Bestätigung liegt ebenfalls vor.
+* <strong class="defined-term">Elsewhere:</strong> Bei RX decodierte ein anderer Empfänger den Sender, das Target jedoch nicht.
+* <strong class="defined-term">Other Signals:</strong> Bei TX decodierte der Empfänger andere Signale auf demselben Band, aber nicht das Target.
+* <strong class="defined-term">Target-only:</strong> Das Target wurde ohne die für den Nenner erforderliche unabhängige Bestätigung decodiert. Diese Evidenz bleibt für Prüfzwecke verfügbar, geht aber nicht in die Success Rate ein.
 
-Beispiel: Wurde ein entfernter Sender in acht qualifizierenden Zyklen anderswo best&auml;tigt und vom eigenen Empf&auml;nger in drei davon geh&ouml;rt, betr&auml;gt seine RX Success Rate `3 von 8 = 37,5%`. Erzeugte ein aktiver Empf&auml;nger zehn qualifizierende Zyklen und h&ouml;rte den eigenen Sender in vier, betr&auml;gt seine TX Success Rate `4 von 10 = 40%`.
+Wurde beispielsweise ein entfernter Sender in acht qualifizierenden Zyklen unabhängig bestätigt und in drei davon auch vom Target-Empfänger decodiert, beträgt die RX Success Rate dieses Peers `3 von 8 = 37,5 %`. Erzeugte ein aktiver Empfänger zehn qualifizierende Zyklen und decodierte den Target-Sender in vier davon, beträgt seine TX Success Rate `4 von 10 = 40 %`.
 
-**Success Rate ist keine Punktzahl von 100.** Die Kandidatenpopulation stammt aus dem globalen Netz:
+Die Kandidatenpopulation wird weltweit gebildet:
 
-* Bei RX kann sie sich den weltweit aktiven Sendern auf diesem Band in Zyklen ann&auml;hern, in denen der Target-Empf&auml;nger aktiv war.
-* Bei TX kann sie sich den weltweit aktiven Empf&auml;ngern auf diesem Band w&auml;hrend der Target-Sendezyklen ann&auml;hern.
+* Bei RX kann sie bis zu allen weltweit aktiven Sendern auf dem Band in den Zyklen anwachsen, in denen der Target-Empfänger aktiv war.
+* Bei TX kann sie bis zu allen weltweit aktiven Empfängern auf dem Band während der Target-Sendezyklen anwachsen.
 
-Nur Peers, die Zeit, Band, Filter und Evidenzschwellen &uuml;berstehen, tragen bei; der angezeigte Kartenbereich kann au&szlig;erdem nur eine geografische Teilmenge zeigen. Trotzdem bleiben viele Pfade schwierig oder nicht verf&uuml;gbar. Ein niedrigerer Prozentwert bedeutet nicht automatisch schlechte Hardware.
+Es tragen nur Peers bei, die das gewählte Zeitfenster, Band, die Filter und Evidenzschwellen erfüllen. Der angezeigte Kartenbereich kann einen geografischen Ausschnitt darstellen.
 
-Angezeigte `100%` bedeuten, dass das Target in jeder qualifizierenden Opportunity dieser Station oder dieses gew&auml;hlten Bereichs erfolgreich war. Sie bedeuten nicht, dass jede m&ouml;gliche oder geplante Sendung decodiert wurde.
+Zunächst wird die Rate jedes Peers berechnet. In einem Success-Kartensegment erhält anschließend jede qualifizierende Peer-Identität genau eine gleich große Stimme; angezeigt wird das arithmetische Mittel dieser Stationsraten. Das ist der <strong class="defined-term">stationsgleichgewichtete</strong> Wert. Der Segment-Inspektor zeigt zusätzlich die gepoolte Rate auf <strong class="defined-term">Beobachtungsebene</strong>, bei der jede qualifizierende Beobachtung gleich gewichtet wird.
 
-Zuerst wird die Rate jedes Peers berechnet. Ein Success-Kartensegment gewichtet danach jede qualifizierende Peer-Identit&auml;t gleich und zeigt das arithmetische Mittel dieser Stationsraten. Segment Insight zeigt zus&auml;tzlich die gepoolte Rate auf Beobachtungsebene, bei der jede qualifizierende Beobachtung gleich gewichtet wird.
+Die Success Rate wird nicht auf die Sendeleistung normiert. Der daneben angezeigte SNR erfolgreicher Target-Decodes wird dagegen auf die gemeldete Leistung von 1 W normiert.
 
-Die Success-Rate-Klassifikation selbst ist nicht leistungsnormalisiert. Das daneben angezeigte erfolgreiche Target-SNR ist auf gemeldete 1 W normalisiert.
+Angezeigte `100%` bedeuten, dass das Target bei jeder qualifizierenden Opportunity der Station oder des ausgewählten Bereichs erfolgreich war. Sie bedeuten nicht, dass jede mögliche oder geplante Aussendung decodiert wurde. Da Success eine anspruchsvolle, weltweit gebildete Opportunity-Population misst, ergibt sich die praktische Aussage aus Geografie, Stationen, Spots, Zeitverlauf und Wiederholung – nicht allein aus der Nähe zu `100%`.
 
-<a id="sec-4-3"></a>
-#### 4.3 Compare verstehen
+<a id="sec-3-3"></a>
 
-Compare trennt zwei Fragen, die eine einzige Kennzahl nicht gut beantworten kann.
+#### 2.2 Ein Compare-Ergebnis auswerten
 
-Die **gepaarte SNR-Differenz** fragt: Wenn Target und Reference beide vergleichbare Evidenz erzeugten, welche Seite hatte das st&auml;rkere SNR und um wie viel? Die Oberfl&auml;che nennt diese Differenz **Delta SNR**. Positive Werte sprechen f&uuml;r das Target, negative f&uuml;r die Reference. Die Formel erscheint einmal in [Abschnitt 7.5](#sec-7-5).
+Compare hält zwei Evidenzfragen getrennt.
 
-**Decode Outcomes** fragt: Was geschah au&szlig;erhalb dieser gepaarten Teilmenge?
+**Delta SNR**
 
-* **Joint / Joint Spots / Joint Bins:** Qualifizierende gepaarte Evidenz ist vorhanden.
-* **Only Target:** Target-Evidenz ohne Reference-Evidenz in der betreffenden Vergleichseinheit.
-* **Only Reference:** Reference-Evidenz ohne Target-Evidenz.
-* **Both (Async):** Beide Seiten haben Evidenz f&uuml;r die Peer-Identit&auml;t, aber f&uuml;r diese Kategorie bleibt keine qualifizierende gemeinsame Einheit &uuml;brig.
+Delta SNR beantwortet die Frage: Wenn Target und Referenz beide vergleichbare Evidenz lieferten, welche Seite hatte den stärkeren SNR und um wie viel?
 
-Gepaartes Delta SNR ist normalerweise der prim&auml;re quantitative Vergleich, weil beide Seiten unter besser vergleichbaren Bedingungen beobachtet werden. Decode Outcomes zeigt, ob eine Seite zus&auml;tzlich Signale oder Pfade au&szlig;erhalb der gepaarten Teilmenge erreichte.
+Aus Anwendersicht ist Delta SNR das SNR der Target-Seite minus das korrigierte SNR der Referenzseite. Die genaue Gleichung und die Vorzeichenkonvention der Korrektur stehen in [Abschnitt 7.5](#sec-7-5). Positive Werte sprechen für das Target, negative für die Referenz.
 
-Der gemeinsame Endpunkt h&auml;ngt von der Richtung ab. Bei simultanem TX Compare misst derselbe entfernte Empf&auml;nger Target und Reference; dadurch werden Unterschiede bei Empf&auml;ngerhardware, Empfangsantenne, lokalem Rauschen und Meldung innerhalb des Paars reduziert. Bei simultanem RX Compare messen Target- und Reference-Empf&auml;nger denselben entfernten Sender; dadurch werden Unterschiede bei Sendeleistung, Wellenform und gemeinsamem Ausbreitungspfad reduziert. Paarung im selben Zyklus reduziert diese St&ouml;rvariablen, macht getrennte Stationen oder Hardwareketten aber nicht physikalisch identisch.
+Das gepaarte Delta SNR ist normalerweise der wichtigste quantitative Vergleich, weil für beide Seiten die am besten vergleichbaren verfügbaren Bedingungen gelten:
 
-Bei simultanen Vergleichen verhindert das Target-Active Gate, dass Target-Ausfallzeit als Misserfolg gez&auml;hlt wird; eine symmetrische Reference-Uptime weist es nicht nach. Sequenzielles TX A/B verwendet stattdessen geplante Frames und gepaarte Zeit-Bins.
+* Beim simultanen RX Compare messen Target- und Referenzempfänger denselben entfernten Sender. Dadurch werden Unterschiede bei Sendeleistung, Signalform und gemeinsamem Pfad innerhalb des Paars verringert.
+* Beim simultanen TX Compare misst derselbe entfernte Empfänger Target und Referenz. Dadurch werden Unterschiede bei Empfängerhardware, Empfangsantenne, lokalem Rauschen und Reporting innerhalb des Paars verringert.
+* Sequenzielles TX A/B verwendet deterministisch geplante Paare statt Evidenz aus demselben Zyklus.
 
-<a id="sec-4-4"></a>
-#### 4.4 Karte lesen
+**Decode Outcomes**
 
-**Median und arithmetisches Mittel**
+Decode Outcomes zeigen, was innerhalb und außerhalb der gepaarten Teilmenge geschah:
 
-Ein **Median** ist der mittlere Wert sortierter Werte oder bei gerader Anzahl der Mittelpunkt der beiden zentralen Werte. Anders als das arithmetische Mittel wird er von einem einzelnen ungew&ouml;hnlich hohen oder niedrigen Wert weniger stark verschoben. WSPRadar verwendet Mediane f&uuml;r gepaarte SNR-Differenzen und lokale Referenzwerte, bei denen Robustheit wichtig ist; Success-Kartensegmente verwenden das arithmetische Mittel, nachdem jeder qualifizierende Peer eine gleich gro&szlig;e Stimme erhalten hat. Beide Zusammenfassungen beantworten unterschiedliche Fragen und sind nicht austauschbar.
+* <strong class="defined-term">Joint / Joint Spots / Joint Pairs:</strong> Es liegt qualifizierende gepaarte Evidenz vor.
+* <strong class="defined-term">Only Target:</strong> In der jeweiligen Vergleichseinheit liegt Target-Evidenz ohne Referenz-Evidenz vor.
+* <strong class="defined-term">Only Reference:</strong> Es liegt Referenz-Evidenz ohne Target-Evidenz vor.
+* <strong class="defined-term">Both (Async):</strong> Für die Peer-Identität liegt Evidenz beider Seiten vor, aber in dieser Kategorie bleibt keine qualifizierende Joint-Einheit erhalten.
 
-**Heatmap-Farbe**
+Beschreibe mit Delta SNR den gepaarten Signalstärkeunterschied und mit Decode Outcomes die vergleichende Erreichbarkeit. Ein Ergebnis kann einen klaren gepaarten Median und zugleich umfangreiche einseitige Evidenz enthalten; beides gehört in die Schlussfolgerung.
 
-* Compare-Segmente zeigen den Median qualifizierender Delta-SNR-Stationsmediane. Positiv spricht f&uuml;r Target, negativ f&uuml;r Reference. Die Vergleichsskala nutzt die Amateurfunk-Anzeigekonvention `1 S-Stufe = 6 dB`; das ist eine Skalenbeschriftung und keine Behauptung, jedes S-Meter sei kalibriert.
-* Success-Segmente zeigen das arithmetische Mittel qualifizierender Success Rates der Stationen. Die feste nichtlineare Skala unterscheidet keine Evidenz, exakt `0%`, einen positiven Wert unter `1%` und danach `1, 2, 5, 10, 20, 40, 60, 80, 100%`.
+Die Paarbildung im selben Zyklus reduziert gemeinsame Störgrößen, macht räumlich getrennte Stationen oder verschiedene Hardwareketten aber nicht physikalisch identisch. Bei simultanen Vergleichen verhindert das Target-Active Gate, dass Ausfallzeiten des Targets als Misserfolg gezählt werden; die Betriebsbereitschaft der Referenz muss weiterhin unabhängig bestätigt werden.
 
-**STATIONS und SPOTS**
+<a id="sec-3-4"></a>
 
-Jede aktuelle WSPRadar-Karte verwendet zwei Fu&szlig;zeilen:
+#### 2.3 Den Effekt auf der Karte lokalisieren
 
-* `STATIONS` beschreibt die geografische Breite &uuml;ber unterschiedliche qualifizierende Identit&auml;ten `Rufzeichen + Locator`.
-* `SPOTS` beschreibt das Volumen qualifizierender Beobachtungen.
+Die Karte liefert den geografischen Überblick. Nutze Farben, Kategorien und Marker, um Entfernung und Richtung für die nächste Untersuchung auszuwählen.
 
-Bei Compare werden beide Zeilen in Only Target, Joint, Both (Async) und Only Reference aufgeteilt. Stationskategorien ordnen jede Identit&auml;t einer Hauptkategorie zu. Spot-Kategorien z&auml;hlen das Evidenzvolumen einschlie&szlig;lich exklusiver Beobachtungen von Identit&auml;ten, die auch gemeinsame Evidenz besitzen.
+**Kartenzusammenfassung**
 
-Bei Success teilt `SPOTS` die qualifizierende Nennerevidenz bei RX in Target und Elsewhere und bei TX in Target und Other Signals. `STATIONS` teilt qualifizierende Identit&auml;ten in Peers mit mindestens einer Target-Beobachtung und Peers nur mit Gegen-Evidenz. Target-only und nicht qualifizierende Evidenz werden ausgeschlossen, weil sie nicht in Success Rate eingehen.
+Der <strong class="defined-term">Median</strong> ist nach dem Sortieren der mittlere Wert beziehungsweise bei gerader Anzahl der Mittelwert der beiden mittleren Werte. Ein einzelner ungewöhnlich hoher oder niedriger Wert verschiebt ihn weniger stark als das arithmetische Mittel.
 
-Die Fu&szlig;zeile z&auml;hlt nur Evidenz innerhalb des sichtbaren Kartenbereichs.
+* Compare-Segmente zeigen den Median der qualifizierenden Stationsmediane des Delta SNR. Positive Werte sprechen für das Target, negative für die Referenz.
+* Success-Segmente zeigen das arithmetische Mittel der qualifizierenden Success Rates, nachdem jeder qualifizierende Peer genau eine gleich große Stimme erhalten hat.
 
-**Stationsmarker**
+Die Compare-Skala verwendet die im Amateurfunk übliche Anzeigekonvention `1 S-Stufe = 6 dB`. Das ist eine Skalenangabe und keine Behauptung, jedes S-Meter sei kalibriert.
 
-* Success: Gr&uuml;ne `T`-Marker besitzen mindestens eine best&auml;tigte Target-Beobachtung. Graue `E`- oder `OS`-Marker sind qualifizierende Zero-Target-Peers mit Elsewhere- oder Other-Signals-Evidenz.
-* Compare: Gr&uuml;n ist Joint, Gelb-Orange Both (Async), Violett Only Target und Wei&szlig; Only Reference.
+**Stationskategorien**
+
+Lies neben der Farbe immer auch die Kategorie:
+
+* Success: Target-Evidenz wird mit grünen `T`-Markern dargestellt. Qualifizierende Peers ohne Target-Evidenz erscheinen grau als `E` für Elsewhere oder `OS` für Other Signals.
+* Compare: Joint ist grün, Both (Async) gelborange, Only Target violett und Only Reference weiß.
 
 **Entfernungsringe**
 
-Nahe Ringe k&ouml;nnen mit k&uuml;rzerem Skip oder NVIS-Verhalten vereinbar sein; weite Ringe mit DX-Verhalten. Entfernung ist keine direkte Messung des Abstrahlwinkels.
+Nahe Entfernungsringe können mit kurzen Sprungdistanzen oder NVIS-Ausbreitung (Near Vertical Incidence Skywave) vereinbar sein; weit entfernte Ringe können auf DX-Ausbreitung hindeuten. Die Ringe beschreiben die Pfaddistanz und sind keine unmittelbare Messung des Abstrahlwinkels.
 
-<a id="sec-4-5"></a>
-#### 4.5 Segment Insight
+Die Kartenfarbe weist auf den Effekt hin. Die folgenden Evidenzebenen zeigen, wie breit und gut er belegt ist.
 
-Einen oder mehrere Entfernungsbereiche und Kompassrichtungen ausw&auml;hlen, um die Evidenz hinter diesem Kartenteil zu untersuchen.
+<a id="sec-3-5"></a>
 
-**Success Segment Insight**
+#### 2.4 Stationen und Spots prüfen
 
-**Target-/Gegen-Evidenz-Zusammenfassung und Raten.** Die Z&auml;hler f&uuml;r Target und Elsewhere/Other Signals zeigen die Beobachtungen im Success-Nenner des gew&auml;hlten Segments. **Average by Station** gibt jedem qualifizierenden Peer eine gleich gro&szlig;e Stimme und ist der Kartenwert. **Observation-Level** poolt alle Beobachtungen; ein Unterschied zwischen beiden bedeutet daher, dass Peers mit hohem Volumen das gepoolte Ergebnis vom typischen Peer wegziehen. Keine Gewichtung ist allgemein richtig; sie beantworten unterschiedliche Fragen.
+* <strong class="defined-term">STATIONS</strong> beschreibt die Breite der Abdeckung über unterschiedliche qualifizierende Identitäten `callsign + locator`.
+* <strong class="defined-term">SPOTS</strong> beschreibt den Umfang der qualifizierenden Beobachtungen.
 
-**Station Success Rate by Evidence Count.** Jeder Punkt ist eine Station mit Target-Evidenz. Die vertikale Position ist ihre Success Rate; die horizontale logarithmische Achse zur Basis 2 ist ihre Anzahl `Target + Gegen-Evidenz`. Punkte oben rechts verbinden eine hohe Rate mit wiederholter Evidenz, w&auml;hrend Punkte links vorsichtiger zu lesen sind, weil wenig Evidenz extreme Prozentwerte erzeugen kann. Zero-Target-Stationen fehlen, weil alle bei `0%` l&auml;gen; sie bleiben in Kartenz&auml;hlern, Zeitevidenz und bei aktiviertem `Zero-Target-Stationen zeigen` in Station Insights enthalten.
+Bei Compare werden beide Zeilen in Only Target, Joint, Both (Async) und Only Reference unterteilt. Die Stationskategorien ordnen jede Identität genau einer Hauptkategorie zu. Die Spot-Kategorien zählen den Evidenzumfang einschließlich exklusiver Beobachtungen von Identitäten, die zugleich Joint-Evidenz besitzen.
 
-**Success &uuml;ber die Zeit.** Die stationsbalancierten und Observation-Level-Ansichten zeigen, ob Reichweite anh&auml;lt oder sich auf ein kurzes Ausbreitungsfenster konzentriert. &Auml;hnliche Ansichten sprechen daf&uuml;r, dass das Beobachtungsvolumen die Geschichte nicht ver&auml;ndert; Abweichungen weisen auf wenige sehr aktive Peers oder Intervalle hin, die die gepoolte Rate dominieren. Leere Zellen bedeuten keine qualifizierende Evidenz und nicht gemessene `0%`.
+Bei Success unterteilt `SPOTS` die Nennerevidenz bei RX in Target und Elsewhere beziehungsweise bei TX in Target und Other Signals. `STATIONS` unterteilt die qualifizierenden Identitäten in Peers mit mindestens einer Target-Beobachtung und Peers ausschließlich mit Gegen-Evidenz. Target-only und nicht qualifizierende Evidenz werden ausgeschlossen, weil sie nicht in die Success Rate eingehen.
 
-**Compare Segment Insight**
+Die Zähler am Kartenfuß beziehen sich auf den sichtbaren Kartenbereich. Viele Spots von nur wenigen Stationen bedeuten wiederholte Evidenz aus einer schmalen Identitätsbasis. Viele Stationen zeigen eine breitere Beteiligung unterschiedlicher Identitäten und geografischer Räume.
 
-**Decode Outcomes.** Die Kategorienansicht zeigt die Breite von Joint-, Only-Target-, Both-(Async)- und Only-Reference-Stationen im gew&auml;hlten Segment. Damit l&auml;sst sich pr&uuml;fen, ob das gepaarte Delta-SNR-Ergebnis den gr&ouml;&szlig;ten Teil der geografischen Abdeckung beschreibt oder nur eine schmale gemeinsame Teilmenge. Ein starker gepaarter Median bei umfangreicher einseitiger Evidenz verlangt weiterhin beide Teile der Geschichte.
+<a id="sec-3-6"></a>
+<a id="sec-3-6a"></a>
 
-**Station Medians (Delta SNR).** Jede beitragende Station liefert genau einen Wert: ihren Median des gepaarten Delta SNR. Die Verteilung gewichtet Stationen daher gleich. Eine oberhalb oder unterhalb von null konzentrierte Verteilung weist auf einen geografisch konsistenten Vorteil von Target oder Reference hin; eine breite oder geteilte Verteilung bedeutet, dass der Effekt stark vom Pfad abh&auml;ngt und der Gesamtmedian diese Variation verdeckt.
+#### 2.5a Ein geografisches Segment untersuchen (Success-Modus)
 
-**Delta SNR gemeinsamer Spots oder gepaarter Bins.** Diese Verteilung zeigt jedes konsolidierte Paar desselben Zyklus oder bei sequenziellem TX A/B jedes g&uuml;ltige gepaarte Bin. Sie macht rohe Streuung, Quantisierung und Ausrei&szlig;er sichtbar, aber aktive Stationen k&ouml;nnen viele Werte beitragen. Der Vergleich mit Station Medians ist wichtig: Eine gro&szlig;e Verschiebung zwischen beiden zeigt, dass Stationen mit hohem Volumen vom stationsbalancierten Bild abweichen.
+Wähle im `Segment-Inspektor` einen oder mehrere Entfernungsbereiche und Himmelsrichtungen aus. Dadurch öffnet sich die Evidenz hinter dem entsprechenden Kartenausschnitt.
 
-**Median, Stabilit&auml;t und Evidenzz&auml;hler.** Der Median fasst Richtung und typische Gr&ouml;&szlig;e zusammen; das 90%-Stabilit&auml;tsintervall zeigt, wie stark dieser Median beim Resampling wandert, nicht statistische Signifikanz. Der sachliche Z&auml;hler beschreibt den Umfang gepaarter Evidenz, zum Beispiel:
+**Target und Gegen-Evidenz.** Die Anzahlen für Target und Elsewhere/Other Signals zeigen die Beobachtungen, die in den Success-Nenner des ausgewählten Segments eingehen.
 
-`Selected Segment Evidence: 4 joint stations | 17 joint spots`
+**Stationsmittel** gibt jedem qualifizierenden Peer genau eine gleich große Stimme und entspricht dem Kartenwert. **Beobachtungsebene** fasst alle qualifizierenden Beobachtungen zusammen. Weichen beide Werte voneinander ab, beeinflussen Peers mit hohem Beobachtungsumfang das gepoolte Ergebnis anders als der typische Peer.
 
-Sequenzielles TX A/B verwendet `paired spot bins` anstelle von `joint spots`.
+**Station Success Rate by Evidence Count** stellt jede Station mit Target-Evidenz als einen Punkt dar. Seine vertikale Position ist die Success Rate; die horizontale logarithmische Achse zur Basis 2 zeigt die Anzahl `Target + Gegen-Evidenz`. Punkte oben rechts stehen für eine hohe Rate bei wiederholter Evidenz. Punkte auf der linken Seite zeigen, wo relativ wenig Evidenz zu einem extremen Prozentwert führen kann.
 
-Der UI-Begriff `Joint Spot` bezeichnet eine konsolidierte Vergleichseinheit desselben Zyklus und nicht zwingend eine unver&auml;nderte Datenbankzeile.
+Stationen ohne Target-Evidenz fehlen in diesem Streudiagramm, weil sie alle bei `0%` lägen. Sie bleiben in den Kartenzählern, der zeitlichen Evidenz und – bei aktivierter Option `Zero-Target-Stationen zeigen` – in Station Insights enthalten.
 
-<a id="sec-4-6"></a>
-#### 4.6 Station Insights und Drill-Down
+**Success im Zeitverlauf** zeigt ein stationsgleichgewichtetes Panel und ein Panel auf Beobachtungsebene. Ähnliche Muster sprechen dafür, dass der Beobachtungsumfang die Aussage nicht wesentlich verändert. Abweichungen zeigen, wo besonders aktive Peers oder Zeitintervalle die gepoolte Rate beeinflussen. Leere Zellen bedeuten fehlende qualifizierende Evidenz und nicht gemessene `0 %`.
 
-`Station Insights` listet die zum ausgew&auml;hlten Bereich beitragenden Identit&auml;ten auf.
+<a id="sec-3-6b"></a>
 
-* Success-Zeilen zeigen Target, Elsewhere oder Other Signals, Success Rate und das mediane erfolgreiche Target-SNR, normalisiert auf 1 W. Qualifizierende Zero-Target-Zeilen sind standardm&auml;&szlig;ig verborgen und k&ouml;nnen mit `Zero-Target-Stationen zeigen` eingeblendet werden.
-* Compare-Zeilen zeigen gemeinsame und exklusive Evidenz sowie den Delta-SNR-Stationsmedian. `Show Non-Joint` blendet Identit&auml;ten ohne qualifizierende gepaarte Evidenz wieder ein.
-* Fehlendes SNR erscheint als `None`, nicht als `0.0 dB`.
-* Ohne Zeilenauswahl wird standardm&auml;&szlig;ig die erste nach Evidenz sortierte Zeile gew&auml;hlt.
+#### 2.5b Ein geografisches Segment untersuchen (Compare-Modus)
 
-**Tabelle interpretieren.** Bei Success die Rate zusammen mit dem Target-/Gegen-Evidenz-Z&auml;hler lesen: Eine hohe Rate mit wenig Evidenz ist weniger &uuml;berzeugend als eine &auml;hnliche, vielfach wiederholte Rate. Das normalisierte Target-SNR beschreibt nur erfolgreiche Decodes und geht nicht in die Rate ein. Bei Compare auf &Uuml;bereinstimmung der Delta-SNR-Richtung &uuml;ber mehrere Stationen achten und gemeinsame gegen exklusive Z&auml;hler pr&uuml;fen; ein einzelner Pfad mit hohem Volumen oder ungew&ouml;hnlichem Verhalten sollte die Schlussfolgerung nicht unbemerkt bestimmen.
+**Decode Outcomes** zeigen die Breite der Stationen in den Kategorien Joint, Only Target, Both (Async) und Only Reference. So lässt sich erkennen, ob das gepaarte Delta SNR einen großen Teil der geografischen Abdeckung oder nur eine schmalere Joint-Teilmenge beschreibt.
 
-Die Auswahl einer oder mehrerer Zeilen &ouml;ffnet eine Ansicht der ausgew&auml;hlten Stations-Evidenz:
+**Station Medians (Delta SNR)** weist jeder beitragenden Station genau einen Wert zu: ihren Median des gepaarten Delta SNR. Die Stationen werden somit gleich gewichtet. Eine überwiegend oberhalb oder unterhalb von null liegende Verteilung zeigt, dass die verfügbaren Pfade konsistent das Target beziehungsweise die Referenz begünstigen. Eine breite oder geteilte Verteilung zeigt, dass der Effekt vom Pfad abhängt.
 
-**Ausgew&auml;hlte Success-Evidenz.** Die Zeitansicht zeigt Success Rate gemeinsam mit Target-/Gegen-Evidenz-Z&auml;hlern, aufgeteilt nach Nacht, Greyline/gemischt und Tageslicht des Pfades. Damit l&auml;sst sich erkennen, ob ein Ergebnis &uuml;ber Beleuchtungszust&auml;nde bestehen bleibt oder aus einer kurzen &Ouml;ffnung stammt. Die Verteilung des erfolgreichen, auf 1 W normalisierten Target-SNR beschreibt die St&auml;rke decodierter Target-Evidenz; sie beschreibt weder verfehlte Opportunities noch isolierten Antennengewinn.
+**Joint-Spot Δ SNR** beziehungsweise **Geplantes Paar Δ SNR** zeigt jedes konsolidierte Paar desselben Zyklus beziehungsweise jedes gültige geplante Paar beim sequenziellen TX A/B. Diese Ansicht macht Streuung, Quantisierung und Ausreißer sichtbar, wobei aktive Stationen mehrere Werte beitragen können. Eine Verschiebung gegenüber der Verteilung der Stationsmediane zeigt, wie sich der Beobachtungsumfang auf das stationsgleichgewichtete Bild auswirkt.
 
-**Ausgew&auml;hlte Compare-Evidenz.** Die Verteilung zeigt Zentrum, Streuung und m&ouml;gliche Gruppen der ausgew&auml;hlten Delta-SNR-Evidenz. Die UTC-Zeit-Heatmap zeigt, ob diese Verteilung stabil bleibt oder sich mit der Zeit verschiebt. Sequenzielles TX A/B verwendet das Delta SNR gepaarter Bins. Medianmarker benachbarter Zeit-Bins werden nur verbunden, wenn beide Bins mindestens drei Werte enthalten; isolierte Marker zeigen daher d&uuml;nne Evidenz und nicht zwingend eine physikalische Diskontinuit&auml;t.
+**Delta SNR im Zeitverlauf für Joint Spots oder geplante Paare** verwendet genau dieselben Evidenzzeilen auf Beobachtungsebene und denselben ausgewählten Entfernungs- und Richtungsbereich wie das Histogramm für Joint Spots beziehungsweise geplante Paare. Die Zeilenauswahl in Station Insights verändert diese Segmentansicht nicht. Das linke Panel behält das tatsächliche UTC-Datum und die UTC-Uhrzeit jeder Zeile bei; das rechte faltet dieselbe Evidenz aus allen beitragenden Tagen auf eine gemeinsame 24-Stunden-Achse nach UTC-Stunde.
 
-Verf&uuml;gbare Zeit-Bins passen sich an den Datumsbereich an: von Minuten-Bins bei kurzen L&auml;ufen bis zu 24-Stunden-Bins bei langen L&auml;ufen. Dieses Bedienelement &auml;ndert nur die ausgew&auml;hlte Evidenzansicht, nicht Kartenaggregation, Opportunity-Klassifikation oder Paarung.
+Sequenzielles TX A/B meldet geplante Paare anstelle von Joint Spots.
 
-`Drill-Down` ist die Audit-Ansicht auf Zeilenebene:
+Der UI-Begriff `Joint Spot` bezeichnet eine konsolidierte Vergleichseinheit desselben Zyklus und nicht zwangsläufig eine unveränderte einzelne Datenbankzeile. Die genaue Aggregation auf Stations- und Segmentebene ist in [Abschnitt 7.7](#sec-7-7) definiert.
 
-* Success zeigt Klassifikationen target-aktiver Peer-Zyklen einschlie&szlig;lich Target-only.
-* Simultanes Compare zeigt Target-/Reference-Evidenz desselben Zyklus und Delta SNR.
-* Der lokale Median erweitert die lokalen Referenzidentit&auml;ten hinter dem Zyklusmedian.
-* Sequenzielles TX A/B zeigt Zeit-Bin, `Micro-Med A`, `Micro-Med B` und Bin-Delta.
+<a id="sec-3-7"></a>
+<a id="sec-3-7a"></a>
 
-**Drill-Down verwenden.** Mit diesen Zeilen lassen sich &uuml;berraschende Stations- oder Segmentwerte nachvollziehen, Locatorwechsel oder einzelne Ausrei&szlig;er finden und tats&auml;chlich gepaarte oder ausgeschlossene Beobachtungen best&auml;tigen. Drill-Down ist der Auditpfad hinter den Zusammenfassungen und keine eigene Leistungskennzahl.
+#### 2.6a Die beitragenden Stationen untersuchen (Success-Modus)
 
-<a id="sec-4-7"></a>
-#### 4.7 Stabilit&auml;t und ausreichende Evidenz
+`Station Insights` listet die Identitäten `callsign + locator` auf, die zum ausgewählten Segment beitragen. Success-Zeilen zeigen Target- und Elsewhere- beziehungsweise Other-Signals-Evidenz, Success Rate und den Median des erfolgreichen Target-SNR, normiert auf 1 W. Lies jede Rate zusammen mit ihren Anzahlen für Target und Gegen-Evidenz; mit `Zero-Target-Stationen zeigen` lassen sich qualifizierende Stationen ohne Target-Evidenz wieder einblenden.
 
-`90% Stability` ist ein beschreibendes Bootstrap-Intervall um einen Median. Ein schmales Intervall bedeutet, dass sich der angezeigte Median beim Resampling der vorhandenen Werte wenig &auml;ndert. Es beweist weder Unabh&auml;ngigkeit noch die Abwesenheit von Datenbias oder statistische Signifikanz.
+Wähle eine oder mehrere Stationen aus, um die Evidenzansicht für diese Auswahl zu öffnen. Unter `Station Insights` zeigt das chronologische Panel Success Rate sowie Target-/Gegen-Evidenz im Zeitverlauf für die Pfadklassen Nacht, Greyline/gemischt und Tageslicht; daneben erscheint die Verteilung des erfolgreichen Target-SNR. Bei Auswahl mehrerer Stationen wird ihre aggregierte Evidenz gemeinsam dargestellt.
 
-Die Angemessenheit der Evidenz anhand des Gesamtbilds beurteilen:
+<a id="sec-3-7b"></a>
 
-* Anzahl gemeinsamer Stationen;
-* Anzahl gemeinsamer Spots oder gepaarter Bins;
-* Konsistenz &uuml;ber Stationen, Zeit und benachbarte geografische Segmente;
+#### 2.6b Die beitragenden Stationen untersuchen (Compare-Modus)
+
+Wähle eine oder mehrere Stationen aus, um die Evidenzansicht für diese Auswahl zu öffnen. `Station Insights` listet die Identitäten `callsign + locator` auf, die zum ausgewählten Segment beitragen. Compare-Zeilen zeigen Joint- und exklusive Evidenz sowie das stationsbezogene mediane Delta SNR; `Show Non-Joint` schließt Identitäten ohne qualifizierende gepaarte Evidenz ein. Unter der Stationstabelle erscheint ein Delta-SNR-Histogramm neben einem der beiden Zeitdiagramme: `Chronologisch` oder dem nach Datum gefalteten Diagramm `UTC-Stunde`. Diese Diagramme verwenden die ausgewählten Joint Spots oder geplanten Paare; die Ansicht `UTC-Stunde` erfordert Evidenz von mindestens zwei verschiedenen UTC-Tagen. Bei Auswahl mehrerer Stationen wird ihre aggregierte Evidenz gemeinsam dargestellt. Das Histogramm und das aktive Zeitdiagramm verwenden den Median der ausgewählten Evidenz, nicht den darüber angezeigten Segmentmedian.
+
+<a id="sec-3-8"></a>
+
+#### 2.7 Die zugrunde liegende Evidenz prüfen
+
+`Drill-Down` ist die Prüfoberfläche auf Zeilenebene:
+
+* Success zeigt die Klassifikationen Target-aktiver Peer-Zyklen einschließlich Target-only.
+* Simultanes Compare zeigt Target-/Referenz-Evidenz aus demselben Zyklus und das Delta SNR.
+* Der lokale Nachbarschafts-Median schlüsselt die lokalen Referenzidentitäten hinter dem Zyklusmedian auf.
+* Sequenzielles TX A/B zeigt das geplante UTC-Paar, `Micro-Med A`, `Micro-Med B` und `Paar Δ`.
+
+Nutze diese Zeilen, um einen überraschenden Stations- oder Segmentwert nachzuvollziehen, Locatorwechsel oder einzelne Ausreißer zu erkennen und zu bestätigen, welche Beobachtungen gepaart oder ausgeschlossen wurden. Drill-Down ist der Prüfpfad hinter den Zusammenfassungen und keine eigene Leistungskennzahl.
+
+<a id="sec-3-9"></a>
+
+#### 2.8 Durchgerechnetes Compare-Beispiel
+
+Die folgenden Werte sind neutral und hypothetisch.
+
+1. **Den Lauf bestätigen:** Der Titel bezeichnet ein RX-Compare-Ergebnis mit dem erwarteten Target, der erwarteten Referenz, dem Band, UTC-Zeitfenster und der Referenzkorrektur.
+2. **Karte:** Das Nordostsegment `2500-5000 km` ist leicht zugunsten des Targets eingefärbt. Damit ist der zu untersuchende Bereich lokalisiert.
+3. **Stationen und Spots:** Der Kartenfuß zeigt Joint-Evidenz über mehrere Identitäten sowie etwas Evidenz in den Kategorien Only Target und Only Reference.
+4. **Segment-Inspektor:** Das ausgewählte Segment meldet ein stationsgleichgewichtetes medianes Delta SNR von `+1.2 dB`, basierend auf `6 joint stations | 47 joint spots`. Die Verteilung auf Beobachtungsebene hat einen Median von `+0.8 dB`; wiederholte Beobachtungen gewichten die Roh-Evidenz also etwas anders als die Zusammenfassung mit gleicher Stationsgewichtung.
+5. **Station Insights:** Vier Stationsmediane sind positiv, zwei liegen nahe null. Keine einzelne Identität liefert den Großteil der 47 Joint Spots, und die Decode Outcomes bleiben gemischt.
+6. **Drill-Down:** Die Zeilen bestätigen Paare aus Target und Referenz im selben Zyklus mit den erwarteten Rufzeichen- und Locator-Identitäten. Die Delta-SNR-Werte auf Zeilenebene berücksichtigen die konfigurierte Referenzkorrektur, und keine einzelne Ausreißerzeile erklärt den Segmentmedian.
+7. **Schlussfolgerung:** „Für dieses Target, diese Referenz, dieses Band, dieses UTC-Zeitfenster und das ausgewählte Nordostsegment `2500-5000 km` begünstigte das stationsgleichgewichtete Delta SNR das Target um `+1.2 dB`, gestützt durch 6 Joint-Stationsidentitäten und 47 Joint Spots. Der Median auf Beobachtungsebene betrug `+0.8 dB`; die Decode Outcomes blieben gemischt.“
+
+Diese Schlussfolgerung nennt Laufdefinition, geografischen Bereich, beide Gewichtungsebenen, die Anzahl gepaarter Evidenzeinheiten und die einseitige Evidenz. Sie beschreibt das ausgewählte Datenmaterial und macht aus dem Vergleich weder einen Signifikanztest noch eine isolierte Messung des Antennengewinns.
+
+---
+
+<a id="sec-4"></a>
+### 3. Ergebnisse absichern und kommunizieren
+
+Ein aussagekräftiges WSPRadar-Ergebnis verbindet einen klaren Versuchsaufbau, breite Evidenz und eine Formulierung, die genau zur tatsächlichen Beobachtung passt.
+
+<a id="sec-4-1"></a>
+
+#### 3.1 Breite und stabile Evidenz erkennen
+
+Beurteile das Ergebnis anhand des vollständigen Evidenzbildes:
+
+* Identitäten der beteiligten Stationen;
+* Umfang der qualifizierenden Spots oder geplanten Paare;
+* Übereinstimmung zwischen Stationen;
+* stationsgleichgewichtete Zusammenfassungen und Zusammenfassungen auf Beobachtungsebene;
+* benachbarte geografische Segmente;
+* Zeitansichten und Ansichten der Pfadbeleuchtung;
 * Decode Outcomes;
-* Identit&auml;ts- und Datenqualit&auml;t;
-* Experimentkontrolle und Wiederholung.
+* Qualität von Identitäten und Locator-Angaben;
+* Kontrolle und Wiederholung des Versuchs.
 
-Es gibt bewusst keine automatische Beweisstufe.
+Evidenz ist **breiter**, wenn mehrere Identitäten und benachbarte Segmente übereinstimmen. Sie ist **stabiler**, wenn die stationsgleichgewichtete Ansicht, die Ansicht auf Beobachtungsebene, die Zeitansichten und wiederholte Läufe ein stimmiges Bild ergeben. Sie ist **besser kontrolliert**, wenn die Betriebsanforderungen des gewählten Versuchsleitfadens eingehalten und dokumentiert wurden.
+
+<strong class="defined-term">90% Stability</strong> ist ein deskriptives Bootstrap-Intervall um einen Median. Ein schmales Intervall bedeutet, dass sich der angezeigte Median bei einer wiederholten Stichprobenziehung aus den verfügbaren Werten nur wenig verändert. Nutze es, um die Empfindlichkeit gegenüber der beobachteten Stichprobe zu beschreiben. Es ist weder ein Konfidenzintervall noch ein Test auf statistische Signifikanz; ebenso wenig weist es Unabhängigkeit nach oder beseitigt Verzerrungen in den Daten.
+
+WSPRadar verdichtet diese Dimensionen bewusst nicht zu einer einzigen Beweisstufe. Anhand der sichtbaren Anzahlen, Verteilungen und zugrunde liegenden Zeilen kann der Funkamateur das Ergebnis im Kontext des tatsächlichen Versuchs beurteilen.
+
+<a id="sec-4-2"></a>
+
+#### 3.2 Ein Ergebnis durch Wiederholung und Kontrolle absichern
+
+Wenn das Ergebnis eine wichtige Entscheidung an der eigenen Station stützen soll:
+
+* erweitere das Beobachtungsfenster auf alle Ausbreitungszustände, die in der Schlussfolgerung genannt werden;
+* bevorzuge für Aussagen über vollständige Tageszyklen Evidenz aus mehreren Tagen;
+* wiederhole den Versuch an einem anderen Tag oder während einer anderen Ausbreitungsphase;
+* vertausche bei sequenziellem TX Hardware A/B die A/B-Zuordnung im Zeitplan;
+* halte zwischen den Wiederholungen alle nicht untersuchten Variablen konstant;
+* vergleiche Läufe mit gleicher Richtung, gleichem Band, Benchmark, Filtern und Evidenzschwellen;
+* untersuche jede Identität, jeden Locator und jedes kurze Zeitintervall, aus dem ein großer Teil der Evidenz stammt;
+* bewahre Aufbaunotizen auf, damit die Stationskonfiguration bei einem späteren Lauf reproduziert werden kann.
+
+Kleine beobachtete Unterschiede werden aussagekräftiger, wenn sie bei verschiedenen Stationen, in verschiedenen Zeiträumen, in benachbarten Segmenten und bei kontrollierten Wiederholungen erneut auftreten.
+
+TX und RX verwenden unterschiedliche Peer-Populationen und Opportunity-Definitionen. Wenn du die TX/RX-Balance einer Station oder ein „Alligator“-Muster untersuchst, vergleiche nur gleichartig definierte TX- und RX-Läufe.
+
+<a id="sec-4-3"></a>
+
+#### 3.3 Eine evidenzgerechte Schlussfolgerung formulieren
+
+Eine brauchbare Schlussfolgerung nennt:
+
+* die Definition von Target und Referenz;
+* TX- oder RX-Richtung;
+* Band und aufgelöstes UTC-Fenster;
+* gewählten geografischen Bereich;
+* Ergebnistyp;
+* stationsgleichgewichteten Wert;
+* gegebenenfalls den Wert auf Beobachtungsebene;
+* Stationen und Spots beziehungsweise Anzahlen der Joint-Stationen und Joint-Spots/-Paare;
+* Decode Outcomes für Compare;
+* Versuchsbedingungen und eine etwaige Referenzkorrektur;
+* ob sich das Muster über Zeit, Stationen oder Läufe hinweg wiederholt hat.
+
+**Formulierungsbeispiel für Success**
+
+> Für dieses Target, Band, UTC-Fenster und die gewählte Peer-Population beschreibt die angezeigte Success Rate den Anteil der unabhängig bestätigten Opportunities, bei denen auch das Target qualifizierende Evidenz erzeugte. Stationen, Spots, der geografische Bereich und die Zeitansichten zeigen Breite und Wiederholung der Evidenz, die dieses Ergebnis stützt.
+
+**Formulierungsbeispiel für Compare**
+
+> Für dieses Target, diese Referenz, dieses Band, dieses UTC-Fenster und dieses ausgewählte Segment fiel das stationsgleichgewichtete Delta SNR um den angezeigten Betrag zugunsten des Targets/der Referenz aus. Das Delta SNR auf Beobachtungsebene, die Anzahlen der Joint-Stationen und Joint-Spots/-Paare sowie die Decode Outcomes beschreiben die zugrunde liegende gepaarte und einseitige Evidenz.
+
+Stimme die Bezeichnung des Versuchsdesigns auf die beschriebene Messgröße ab:
+
+* Ein **Hardware A/B-Test** vergleicht die dokumentierten lokalen Signalpfade.
+* Ein **Buddy-Test** vergleicht vollständig aufgebaute Stationen samt ihrer Umgebung.
+* **Lokaler Nachbarschafts-Median** vergleicht das Target mit der anhand ihres Medians definierten aktiven Nachbarschaft innerhalb des gewählten Radius.
+* **Beste lokale Station** vergleicht das Target mit einer wechselnden Hüllkurve des jeweils besten Peers.
+* Ein richtungsabhängiges Ergebnis beschreibt die beobachteten WSPR-Pfade und beteiligten Stationen, nicht ein absolutes Strahlungsdiagramm.
+* Die Beschriftung `1S = 6 dB` beschreibt die Kartenskala, nicht die Kalibrierung der beteiligten Empfänger.
+
+Verwende Begriffe wie „beobachteter Unterschied“, „in der ausgewählten Evidenz im Vorteil“, „bedingte Erreichbarkeit“ und „Vergleich vollständig aufgebauter Stationen“. Aussagen über isolierten Antennengewinn, Wirkungsgrad, Empfängerempfindlichkeit, Kausalität und statistische Signifikanz bleiben Versuchen vorbehalten, die diese Größen tatsächlich messen oder prüfen.
+
+Die vollständige Übersicht über gestützte und nicht gestützte Formulierungen steht in [Kapitel 8](#sec-8).
+
+<a id="sec-4-4"></a>
+
+#### 3.4 Lauf und Kontext sichern
+
+Mit `Alle Ergebnisse zum Download vorbereiten` erstellst du das Exportpaket der aktuellen Analyse. Es enthält die aktuelle Konfiguration, Laufmetadaten, verarbeitete Evidenz, Tabellen und hochauflösende Abbildungen.
+
+Bewahre zusammen mit diesem Paket externe Notizen auf zu:
+
+* physischem Aufbau von Antenne und Speiseleitung;
+* Umschalter- oder Splittertopologie;
+* Sender- oder Empfängerhardware;
+* Leistungsmessungen und Bezugsgrundlage der Leistungsangaben;
+* Decoder- und Softwareversionen;
+* Betriebsplan;
+* Kalibrierverfahren;
+* Wetter, Störungen oder beabsichtigten Änderungen, die für den Lauf relevant waren.
+
+WSPRadar kann die konfigurierte Analyse und die verarbeitete Evidenz sichern, aber nicht jedes physische Detail der Station erschließen. Das Exportpaket zusammen mit knappen Stationsnotizen macht Vergleiche und Reproduktionen deutlich belastbarer. [Kapitel 8](#sec-8) dokumentiert den genauen Exportinhalt und die verbleibenden Grenzen der Reproduzierbarkeit.
+
+<div style="page-break-before: always;"></div>
+
+<a id="part-ii"></a>
+
+## Teil II: Bedienelemente und Fehlersuche
+
+Nutze diesen Teil als Nachschlagewerk beim Einrichten, Wiederholen oder Diagnostizieren einer Analyse. Die Versuchsleitfäden erläutern, welches Design zur jeweiligen Fragestellung passt; dieser Teil beschreibt die genauen Bedienelemente, Standardwerte, Wertebereiche und das Verhalten von Konfigurationen.
 
 <a id="sec-5"></a>
-### 5. Bedienelemente und Konfiguration
 
-Dieses Kapitel ist die zentrale Stelle f&uuml;r Standardwerte, Geltungsbereiche und Nebenwirkungen. Wissenschaftliche Formeln werden hier nicht wiederholt.
+### 4. Bedienelemente und Konfiguration
+
+WSPRadar trennt Bedienelemente, welche die wissenschaftliche Analyse verändern, von solchen, die nur die Darstellung bereits abgeschlossener Evidenz beeinflussen. Wer den Unterschied kennt, kann eine Ansicht gezielt anpassen, ohne versehentlich den Versuch zu verändern.
+
+| Klasse | Was sie verändert | Konfiguration und Reproduzierbarkeit |
+|---|---|---|
+| **Wissenschaftliche Bedienelemente** | Abfragepopulation, Paarbildung, Klassifikation, Normierung, Qualifizierung oder Aggregation. Dazu gehören Richtung, Identität, Band, Zeit, Benchmark, Korrektur, Sonnenstandsfilter, Ausschlussfilter und Evidenzschwellen. | Werden gespeichert, sofern sie gelten, und im Exportpaket festgehalten. Eine Änderung verwirft das abgeschlossene Ergebnis, damit die Analyse mit der neuen Definition erneut ausgeführt werden kann. |
+| **Ansichtsbedienelemente** | Welche abgeschlossene Evidenz dargestellt oder untersucht wird, ohne die vorgelagerte Abfrage erneut auszuführen. Dazu gehören Kartenbereich, ausgewähltes Segment, ausgewählte Stationen, Sichtbarkeit von Non-Joint- beziehungsweise Zero-Target-Evidenz, Zeitansicht und Zeit-Bin der Evidenz. | Kartenbereich, Bereich/Richtung im Segment Inspector und die jeweils anwendbaren dauerhaften Compare-/Success-Ansichten werden gespeichert. Tabellenfilter und weitere beiläufige Interaktionen bleiben flüchtig. |
+| **Flüchtiger UI-Zustand** | Auf- und Zuklappen von Bereichen, Tabellen- und Drill-Down-Filter, Sichtbarkeit der Dokumentation, vorbereitete Download-Bytes und weitere beiläufige Interaktionszustände der Sitzung. | Gehört nicht zur wissenschaftlichen Konfiguration und wird normalerweise nicht serialisiert. |
+| **Zur Reproduzierbarkeit gespeicherte Konfigurationsfelder** | Der jeweils anwendbare wissenschaftliche Zweig sowie ausdrücklich unterstützte dauerhafte Ansichtseinstellungen. | Werden in der versionierten `.config` gespeichert. Inaktive ausgeblendete Zweige werden weggelassen, statt als ruhende Werte erhalten zu bleiben. |
+
+Die exakten Formeln und Verarbeitungsregeln stehen weiterhin in den [Wissenschaftlichen Methoden](#sec-7).
 
 <a id="sec-5-1"></a>
-#### 5.1 Ablaufsteuerung
 
-| Bedienelement | Zweck |
-|---|---|
-| `Demo laden` | &Ouml;ffnet gepflegte historische Profile. Die Konfiguration kann zur Pr&uuml;fung geladen oder sofort gestartet werden. |
-| `Konfig laden` | Validiert und l&auml;dt eine gespeicherte JSON-basierte `.config`-Datei. Ung&uuml;ltige Identit&auml;ten, Daten, Auswahlwerte und Bereiche werden abgelehnt. |
-| `Konfig speichern` | L&auml;dt die aktuellen Eingaben herunter. Ergebnisdaten und externe Experimentnotizen sind nicht enthalten. |
-| `TX Analyse starten` | Startet TX Success und bei ausgew&auml;hltem Benchmark TX Compare. |
-| `RX Analyse starten` | Startet RX Success und bei ausgew&auml;hltem Benchmark RX Compare. |
-| `Alle Ergebnisse zum Download vorbereiten` | Erstellt bei Bedarf das Exportpaket der aktuellen Analyse. |
-| `Vollst&auml;ndige Dokumentation laden` / `Vollst&auml;ndige Dokumentation ausblenden` | Die Startseite &uuml;bertr&auml;gt zun&auml;chst nur Abschnitt 1. Wenn Abschnitt 1.3 in den sichtbaren Bereich gelangt, werden Inhaltsverzeichnis und restliches Handbuch h&ouml;chstens einmal pro Sitzung automatisch geladen, w&auml;hrend Abschnitt 1.3 gelesen wird; diese Schaltfl&auml;che &uuml;ber die volle Breite bleibt der ausdr&uuml;ckliche Ersatzweg und kann den geladenen Inhalt wieder ausblenden. Der Start einer Analyse unterdr&uuml;ckt das scrollgesteuerte Laden. |
-| `PDF vorbereiten` | Erstellt bei Bedarf das vollst&auml;ndige Handbuch der gew&auml;hlten Sprache als prozessweit zwischengespeichertes PDF; das vollst&auml;ndige Web-Handbuch muss daf&uuml;r nicht ge&ouml;ffnet sein. |
+#### 4.1 Ablaufsteuerung
+
+**`Demo laden`** öffnet gepflegte historische Profile. Ein Profil kann zur Prüfung geladen oder sofort ausgeführt werden.
+
+**`Konfig laden`** validiert eine versionierte JSON-`.config` streng und lädt sie anschließend. Ungültige Identitäten, Datumswerte, Auswahlwerte, Wertebereiche, doppelte Felder und nicht unterstützte Schemaversionen werden abgelehnt.
+
+**`Konfig speichern`** öffnet ein kompaktes Profilformular. Gib einen Titel und eine optionale Beschreibung ein; eine optionale stabile ID kann angegeben oder automatisch erzeugt werden. Die entstehende Datei `<profil-id>.config` speichert alle anwendbaren Eingaben und dauerhaften Compare-/Success-Ansichten. Ist `Letzte X Stunden` konfiguriert, fragt der Speichervorgang außerdem, ob dieses gleitende relative Fenster beibehalten oder durch die aufgelösten absoluten UTC-Start-/Endzeitpunkte des aktiven Laufs ersetzt werden soll. Wähle die absolute Form, wenn ein späterer Lauf dieselben Datumswerte verwenden soll. Eine gespeicherte Konfiguration enthält weder Ergebniszeilen noch externe Versuchsnotizen oder flüchtige Tabellenfilter.
+
+**`RX-Analyse starten` / `TX-Analyse starten`** ist eine richtungsabhängige Schaltfläche. Sie führt Success und – sofern ein Benchmark gewählt ist – Compare für die unter den Kernparametern gewählte RX- oder TX-Analyse aus.
+
+**`Alle Ergebnisse zum Download vorbereiten`** erstellt das Exportpaket der aktuellen Analyse bei Bedarf.
+
+**`Vollständige Dokumentation laden` / `Vollständige Dokumentation ausblenden`** lädt beziehungsweise verbirgt ausdrücklich das vollständige Webhandbuch.
+
+**`PDF vorbereiten`** erstellt das vollständige Handbuch in der ausgewählten Sprache bei Bedarf als PDF. Das vollständige Webhandbuch muss dafür nicht zuerst geöffnet werden.
 
 <a id="sec-5-2"></a>
-#### 5.2 Kernbedienelemente
 
-| UI-Bezeichnung | Werkseinstellung | Wissenschaftliche Wirkung |
+#### 4.2 Kernparameter
+
+Diese Bedienelemente definieren Target, Betriebsrichtung, Band und Evidenzfenster.
+
+| UI-Bezeichnung | Werkseinstellung | Funktion |
 |---|---|---|
-| **Dein Rufzeichen (Target under Test)** | leer | Exakte Target-Identit&auml;t. Zul&auml;ssig sind 3 bis 15 Zeichen aus `A-Z`, `0-9` und `/`. |
-| **QTH Locator (4-6 Chars)** | leer | Kartenzentrum und Ursprung des lokalen Radius. Success verwendet zus&auml;tzlich die ersten vier Zeichen f&uuml;r den Abgleich der Target-Identit&auml;t. |
-| **Frequenzband** | `20m` | Genau eines von `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` oder `23cm`. |
-| **Zeitraum-Auswahl** | `Letzte X Stunden` | Aktuelle oder benutzerdefinierte UTC-Evidenz. Der aktuelle Modus erlaubt 1 bis 168 Stunden und verwendet standardm&auml;&szlig;ig 24. |
-| **Benutzerdefinierte Daten/Zeiten** | Vortag bis aktueller Tag | Benutzerdefinierte Fenster sind auf 31 Tage und Daten ab 2008 begrenzt. Endpunkte werden auf 15-Minuten-Grenzen abgerundet. |
+| **RX-Analyse / TX-Analyse** | keine; erforderlich | RX wertet das Target als empfangende WSPR-Station aus, TX als sendende WSPR-Station. `RX-Analyse starten` / `TX-Analyse starten` und `Konfig speichern` bleiben deaktiviert, bis eine Option gewählt wurde. |
+| **Dein Rufzeichen (Empfänger im Test)** / **Dein Rufzeichen (Sender im Test)** | leer | Exakte Target-Identität für die gewählte Richtung. Zulässig sind 3 bis 15 Zeichen aus `A-Z`, `0-9` und `/`. |
+| **QTH Locator (4-6 Chars)** | leer | Kartenmittelpunkt und Ursprung des lokalen Radius. Success verwendet außerdem die ersten vier Zeichen zur Zuordnung der Target-Identität. |
+| **Frequenzband** | `20m` | Genau eines aus `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` oder `23cm`. |
+| **Zeitraum-Auswahl** | `Letzte X Stunden` | Wählt aktuelle oder benutzerdefinierte Evidenz in UTC. Der Modus `Letzte X Stunden` erlaubt 1 bis 168 Stunden und verwendet standardmäßig 24. |
+| **Stunden zurück (DB Update alle 15 Min)** | `24` | Erscheint für `Letzte X Stunden` und akzeptiert 1 bis 168 Stunden. Die absoluten Endpunkte werden beim Start aufgelöst und für diesen aktiven Lauf festgehalten. Beim Speichern wählst du, ob die Datei `Letzte X Stunden` beibehält oder diese aufgelösten UTC-Endpunkte festschreibt. |
+| **Startdatum**, **Enddatum**, **Startzeit (UTC)**, **Endzeit (UTC)** | Vortag `00:00` bis aktueller Tag `23:59` | Erscheinen für `Datum/Uhrzeit manuell`. Datumswerte beginnen im Jahr 2008; ein einzelnes Fenster ist auf 31 Tage begrenzt. Die aufgelösten Endpunkte werden auf 15-Minuten-Grenzen abgerundet. Success und Compare unterscheiden sich derzeit an der exakten Endgrenze, wie im [Zeitmodell](#sec-7-1) beschrieben. |
 
-Das Rufzeichen exakt wie hochgeladen verwenden. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` und `DL1MKS/QRP` sind getrennte Identit&auml;ten; WSPRadar verwendet keinen versteckten Pr&auml;fixabgleich.
+Verwende das Rufzeichen exakt so, wie es hochgeladen wurde. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` und `DL1MKS/QRP` sind eigenständige Identitäten; WSPRadar führt keine verdeckte Präfixzuordnung durch.
 
-Ein Maidenhead-Locator ist ein kompakter Standortcode aus Planquadraten. Vier Zeichen kennzeichnen ein gr&ouml;&szlig;eres Gebiet; sechs Zeichen ein kleineres Gebiet darin. WSPRadar verwendet das konfigurierte QTH als Kartenzentrum und Ursprung des lokalen Radius; Success gleicht das Target anhand der ersten vier Locatorzeichen ab.
+Ein Maidenhead-Locator ist eine kompakte Ortsangabe im Gitternetz. Vier Zeichen bezeichnen ein größeres Gebiet, sechs Zeichen ein kleineres Gebiet darin. WSPRadar verwendet das konfigurierte QTH als Kartenmittelpunkt und Ursprung des lokalen Radius. Für das Target-Matching in Success werden die ersten vier Locator-Zeichen herangezogen.
 
 <a id="sec-5-3"></a>
-#### 5.3 Benchmark-Bedienelemente
 
-| UI-Bezeichnung | Standard | Gilt f&uuml;r | Wirkung |
-|---|---|---|---|
-| **Benchmark-Design** | `Kein Benchmark (nur Success)` | Zusammenstellung des Laufs | Nur Success &uuml;berspringt Compare. Andere Auswahlwerte f&uuml;gen Compare zu Success hinzu. |
-| **Referenz-SNR-Korrektur (dB)** | `0.0` | Compare | Wird vor Delta SNR zum SNR der Reference-Seite addiert. Bei nur Success verborgen. |
-| **Referenz-Rufzeichen** | Beispiel `DL2XYZ` | Buddy | Durch ein exaktes, vom Target verschiedenes Rufzeichen ersetzen. |
-| **Lokale Benchmark-Methode** | `Lokaler Nachbarschafts-Median` | Lokal | W&auml;hlt Nachbarschaftsmedian oder strenges Local Best. |
-| **Nachbarschaftsradius (km)** | `100` | Lokal | Bezieht lokale Reference-Koordinaten in 10 bis 250 km Entfernung vom QTH ein. |
-| **A/B-Test Setup** | simultanes RX | Hardware A/B | W&auml;hlt RX mit zwei Empf&auml;ngern oder zeitgeteiltes TX mit einem Sender. |
-| **Setup B Callsign** | leer | RX Hardware A/B | Ein exaktes, von Setup A verschiedenes Rufzeichen. |
-| **Target WSPR-Frame** | `00, 04, 08, ...` | TX Hardware A/B | Frame-Starts f&uuml;r Target / Setup A. |
-| **Referenz WSPR-Frame** | `02, 06, 10, ...` | TX Hardware A/B | Frame-Starts f&uuml;r Reference / Setup B. |
-| **Zeitfenster (Bins)** | `8 min` | TX Hardware A/B | Festes Paarungs-Bin von 4 bis 20 Minuten in 4-Minuten-Schritten. |
+#### 4.3 Benchmark-Einstellungen
 
-Vergleichsspezifische Werte bleiben im Sitzungszustand und in gespeicherten Konfigurationen erhalten, wenn nur Success ausgew&auml;hlt wird. Sie erscheinen bei erneuter Benchmark-Auswahl wieder, ver&auml;ndern aber weder Abfrage noch Ergebnis des reinen Success-Laufs.
+**`Benchmark-Design`** hat die Werkseinstellung `Kein Benchmark (nur Success)`. Zur Auswahl stehen:
 
-**Vorzeichen der Referenz-SNR-Korrektur**
+- `Kein Benchmark (nur Success)`
+- `Hardware A/B-Test (Eigenes Setup)`
+- `Fremdes Rufzeichen (Buddy-Test)`
+- `Lokaler Nachbarschafts-Benchmark`
 
-Eine positive Korrektur macht das korrigierte Reference-SNR st&auml;rker und verringert dadurch Target-minus-Reference Delta SNR. Einen gemessenen Kalibrieroffset `Target - Reference` mit demselben Vorzeichen eingeben: Ein Common-Input-Ergebnis von `+1,6 dB` wird als `+1,6 dB` eingegeben. Die exakten Gleichungen stehen in [Abschnitt 7.5](#sec-7-5).
+Nur Success überspringt Compare. Die übrigen Optionen ergänzen das eigenständige Success-Ergebnis um Compare.
 
-Die Korrektur gilt f&uuml;r Setup B / den Reference-Frame bei Hardware A/B, das Buddy-Rufzeichen im Buddy-Test, den gew&auml;hlten lokalen Wert bei Local Best und jeden lokalen Beitrag vor der Local-Median-Aggregation.
+| UI-Bezeichnung | Standard und Wertebereich | Wann sie erscheint und was sie steuert |
+|---|---|---|
+| **Referenz-SNR-Korrektur (dB)** | `0.0`; `-99.9` bis `+99.9` in Schritten von `0.1 dB` | Erscheint für Compare und ist bei `Kein Benchmark (nur Success)` ausgeblendet. Der Wert wird zum SNR der Referenzseite addiert, bevor Delta SNR berechnet wird. |
+| **Referenz-Rufzeichen** | Beispiel `DL2XYZ` | `Fremdes Rufzeichen (Buddy-Test)`. Ersetze das Beispiel durch ein exaktes Rufzeichen, das sich vom Target unterscheidet. |
+| **Lokale Benchmark-Methode** | `Lokaler Nachbarschafts-Median` | Lokaler Nachbarschafts-Benchmark. Wählt `Lokaler Nachbarschafts-Median` oder die strenge Methode `Beste lokale Station`. |
+| **Nachbarschaftsradius (km)** | `100`; 10 bis 250 km in Schritten von 10 km | Lokaler Nachbarschafts-Benchmark. Bezieht lokale Referenzkoordinaten rund um das konfigurierte QTH ein. |
+| **Setup B Callsign** | leer | RX Hardware A/B-Test. Gib ein exaktes Rufzeichen ein, das sich von Setup A unterscheidet. |
+| **Wiederholintervall** | `10 min`; `4, 6, 10, 12, 20, 30, 60 min` | TX Hardware A/B-Test. Gemeinsames Wiederholintervall jedes physischen Signalpfads. Alle Werte sind gerade, WSPR-kompatible Teiler einer UTC-Stunde. |
+| **Target-Start** | `00 UTC`; gerade Phasen unterhalb des Wiederholintervalls | TX Hardware A/B-Test. Definiert die UTC-Startphase des Targets / Setups A. |
+| **Referenz-Start** | `02 UTC`; gerade Phasen unterhalb des Wiederholintervalls | TX Hardware A/B-Test. Definiert die UTC-Startphase der Referenz / des Setups B und wird so gewählt, dass sie sich nicht mit dem Target-Start überschneidet. |
 
-Eine konstante Korrektur kann Clipping, instabile AGC, intermittierende Signalwege, frequenzabh&auml;ngigen Gang oder falsche Leistungsangaben nicht reparieren. [Anhang C](#sec-c) beschreibt die Kalibrierung.
+Der Hardware A/B-Test folgt der gewählten Option **RX-Analyse / TX-Analyse**. RX zeigt für den Aufbau mit zwei Empfängern das Rufzeichen von Setup B. TX zeigt das gemeinsame Wiederholintervall, zwei Startphasen ohne Überschneidung, eine Tauschfunktion und die daraus entstehende Zeitplanvorschau für eine Stunde. Die Paarbildung folgt diesem Zeitplan automatisch.
+
+Beim Wechsel der Richtung oder des Benchmark-Modus wird der nicht anwendbare Zweig ausgeblendet. Seine bisherigen Widget-Werte werden weder gespeichert noch wiederhergestellt. Eine Konfiguration mit `Kein Benchmark (nur Success)` enthält deshalb keine ruhenden Compare-Parameter.
+
+##### Vorzeichen der Referenz-SNR-Korrektur
+
+Eine positive Korrektur erhöht den korrigierten Referenz-SNR-Wert und verringert dadurch das Delta SNR Target minus Referenz. Gib einen gemessenen Kalibrierversatz `target - reference` mit demselben Vorzeichen ein. Ergibt beispielsweise eine Kalibrierung mit gemeinsamem Eingang `+1.6 dB`, wird `+1.6 dB` eingetragen. Die exakten Gleichungen stehen in der [Delta-SNR-Methode](#sec-7-5).
+
+Die Korrektur gilt für:
+
+- Setup B oder den Referenzzeitplan im `Hardware A/B-Test`;
+- das Referenz-Rufzeichen bei `Fremdes Rufzeichen (Buddy-Test)`;
+- den ausgewählten lokalen Wert bei `Beste lokale Station`; und
+- jeden lokalen Beitrag vor der Aggregation zum `Lokalen Nachbarschafts-Median`.
+
+Eine konstante Korrektur eignet sich für einen belastbar bestimmten konstanten Versatz. Übersteuerung, instabile AGC, zeitweilig fehlerhafte Signalführung, frequenzabhängiger Amplitudengang und falsche Leistungsangaben müssen dagegen im Versuchsaufbau oder in der Hardware behoben werden. [Anhang C](#sec-c) beschreibt die Kalibrierung.
 
 <a id="sec-5-4"></a>
-#### 5.4 Filter und Schwellen
 
-| UI-Bezeichnung | Standard | Gilt f&uuml;r | Exakte Wirkung |
-|---|---|---|---|
-| **Spezielle Rufzeichen Q, 0, 1 ausschlie&szlig;en** | aus | alle Ergebnisse | Schlie&szlig;t qualifizierende Peer-Identit&auml;ten aus, die mit `Q`, `0` oder `1` beginnen. |
-| **Bewegte Stationen ausschlie&szlig;en** | aus | dargestellte Peers | Entfernt ein Peer-Rufzeichen, das nach anderen Filtern mehr als einen vierstelligen Locator meldet. |
-| **Lokaler QTH Sonnenstand** | `Alle 24h` | alle Ergebnisse | Beh&auml;lt am Target-QTH als Tag (`>+6 deg`), Nacht (`<-6 deg`) oder Greyline klassifizierte Zyklen. |
-| **Kartenbereich (Max. Distanz km)** | `22000` | Karte/Inspektion | Legt den sichtbaren und inspizierbaren Radius fest; die Upstream-Abfrage wird nicht eingeschr&auml;nkt. |
-| **Min. Joint Spots pro Station** | `1` | simultanes Compare | Erfordert so viele gemeinsame Peer-Zyklen, bevor eine Station zu gepaartem Delta SNR beitr&auml;gt. |
-| **Min. Joint Bins** | `1` | sequenzielles TX A/B | Erfordert so viele gepaarte Bins, bevor eine Station zu gepaartem Delta SNR beitr&auml;gt. |
-| **Min. Target+Gegen-Evidenz pro Station** | `5` | Success | Erfordert so viele Target+Elsewhere-RX- oder Target+Other-Signals-TX-Beobachtungen. |
-| **Min. qualifizierte Stationen pro Karten-Segment** | `1` | alle Karten | Erfordert so viele qualifizierende Identit&auml;ten, bevor ein Segment gezeichnet wird. |
+#### 4.4 Filter und Evidenzschwellen
 
-Die Compare-Joint-Schwelle unterdr&uuml;ckt auch exklusive Kategorien, deren eigener Z&auml;hler unter demselben Zahlenwert liegt. Bei sequenziellem TX A/B wird gepaarte Eignung in Bins gez&auml;hlt, exklusive Evidenz dagegen in Spots und mit demselben Zahlenwert verglichen.
+Mit diesen Bedienelementen bestimmst du die Peer-Population, den Beleuchtungszeitraum und die für eine Darstellung erforderliche Mindestevidenz.
 
-Eine Verringerung von **Min. Target+Gegen-Evidenz pro Station** erh&ouml;ht die Kartenabdeckung, macht Stationsraten aber diskreter und fragiler. Bei nur einer oder zwei qualifizierenden Opportunities k&ouml;nnen Werte wie `0%`, `50%` oder `100%` sehr wenig Evidenz repr&auml;sentieren. Den Z&auml;hler neben der Rate lesen und vor Entscheidungen auf kleinen Stichproben Wiederholungen bevorzugen.
+**`Spezial-Rufzeichen Q, 0, 1 ausschließen`**
 
-**Spezielle Rufzeichen Q, 0, 1 ausschlie&szlig;en** entsprechend der Frage verwenden und nicht automatisch aktivieren:
+- **Standard:** aus
+- **Gilt für:** alle Ergebnisse
+- **Wirkung:** schließt qualifizierende Peer-Identitäten aus, die mit `Q`, `0` oder `1` beginnen.
+- **Ändern, wenn:** die vorgesehene Peer-Population keine ballon- oder telemetrieähnlichen Identitäten mit diesen Präfixen enthalten soll. Dokumentiere die Auswahl im Bericht.
 
-* Bei RX Compare k&ouml;nnen baken- oder telemetrie&auml;hnliche Sender wertvolle schwache Signale desselben Zyklus liefern, die beide Empf&auml;nger sehen.
-* Bei RX Success bleiben sie enthalten, wenn Bakenempfang Teil der Frage ist; sie werden ausgeschlossen, wenn die gew&uuml;nschte Population normale Amateurstationen sind.
-* Bei TX-Analysen wirkt der Filter auf empf&auml;ngerseitige Peer-Identit&auml;ten. Nur verwenden, wenn diese Identit&auml;ten die beabsichtigte Empf&auml;ngerpopulation verzerren.
+Setze dieses Bedienelement passend zur Fragestellung ein:
 
-Die Auswahl in seri&ouml;sen Berichten angeben.
+- In RX Compare können baken- oder telemetrieähnliche Sender wertvolle schwache Signale im selben Zyklus liefern, die beide Empfänger decodieren.
+- In RX Success bleiben sie eingeschlossen, wenn Bakenempfang zur Fragestellung gehört; schließe sie aus, wenn die beabsichtigte Population aus regulären Amateurfunkstationen besteht.
+- In TX-Analysen wirkt der Filter auf die empfängerseitigen Peer-Identitäten. Nutze ihn, wenn diese Identitäten die beabsichtigte Empfängerpopulation verzerren.
+
+**`Bewegliche Stationen filtern`**
+
+- **Standard:** aus
+- **Gilt für:** kartierte Peers
+- **Wirkung:** entfernt ein Peer-Rufzeichen, wenn es nach Anwendung der übrigen Filter mehr als einen vierstelligen Locator meldet.
+- **Ändern, wenn:** mobile Identitäten oder wechselnde Locator-Angaben sonst mehrere Orte unter einem Rufzeichen vermischen würden. Prüfe im Drill-Down, ob wahrscheinlich Bewegung oder ein fehlerhafter Locator vorliegt.
+
+**`Lokaler QTH Sonnenstand`**
+
+- **Standard:** `Ganze 24h`
+- **Auswahl:** `Ganze 24h`, `Tag (Elev > +6°)`, `Nacht (Elev < -6°)`, `Greyline (-6° bis +6°)`
+- **Gilt für:** alle Ergebnisse
+- **Wirkung:** behält Zyklen bei, die anhand der Sonnenhöhe am Target-QTH klassifiziert wurden.
+- **Ändern, wenn:** die wissenschaftliche Fragestellung gezielt einen lokalen Beleuchtungszustand betrifft. Dies unterscheidet sich von den in der Success-Evidenz gezeigten Beleuchtungsklassen des Ausbreitungspfads.
+
+**`Kartenbereich (Max. Distanz km)`**
+
+- **Standard:** `22000`
+- **Auswahl:** `2500`, `5000`, `10000`, `15000`, `20000`, `22000`
+- **Gilt für:** Karten- und Inspektionsansichten
+- **Wirkung:** legt den sichtbaren und inspizierbaren radialen Bereich fest; die vorgelagerte Abfrage wird dadurch nicht eingeengt.
+- **Ändern, wenn:** eine regionale Ansicht sinnvoll ist. Der Kartenbereich ist ein reproduzierbarkeitsrelevantes Ansichtsbedienelement und kein vorgelagerter Datenfilter.
+
+**`Min. Joint Spots pro Station`**
+
+- **Standard:** `1`
+- **Wertebereich:** 1 bis 50
+- **Gilt für:** simultanes Compare
+- **Wirkung:** verlangt diese Anzahl von Joint-Peer-Zyklen, bevor eine Station gepaartes Delta SNR beiträgt.
+- **Ändern, wenn:** du mehr wiederholte gepaarte Evidenz pro Station verlangst und dafür eine geringere geografische Abdeckung in Kauf nimmst.
+
+**`Min. Joint-Paare`**
+
+- **Standard:** `1`
+- **Wertebereich:** 1 bis 50
+- **Gilt für:** sequenzielles TX Hardware A/B
+- **Wirkung:** verlangt diese Anzahl von Joint-Paaren, bevor eine Station gepaartes Delta SNR beiträgt.
+- **Ändern, wenn:** du mehr wiederholte geplante Paare pro Station verlangst und dafür eine geringere geografische Abdeckung in Kauf nimmst.
+
+Die Joint-Schwelle für Compare unterdrückt außerdem exklusive Kategorien, deren eigene Anzahl unter demselben Zahlenwert liegt. Bei sequenziellem TX Hardware A/B wird die Qualifizierung für gepaarte Evidenz in geplanten Paaren gezählt; exklusive Evidenz wird in einseitigen geplanten Paaren gezählt und mit demselben Zahlenwert verglichen.
+
+**`Min. Target+Gegen-Evidenz pro Station`**
+
+- **Standard:** `5`
+- **Wertebereich:** 1 bis 100
+- **Gilt für:** Success
+- **Wirkung:** verlangt diese Anzahl von Target+Elsewhere-Beobachtungen bei RX beziehungsweise Target+Other-Signals-Beobachtungen bei TX, bevor ein Peer beiträgt.
+- **Ändern, wenn:** du eine andere Evidenzuntergrenze benötigst.
+
+Eine niedrigere Schwelle erhöht die Kartenabdeckung. Stationsraten werden jedoch gröber gestuft, wenn sie nur auf einer oder zwei qualifizierenden Opportunities beruhen. Werte wie `0 %`, `50 %` oder `100 %` können dann sehr wenig Evidenz repräsentieren. Lies die Anzahl neben der Rate und erweitere eine kleine Stichprobe durch einen längeren oder wiederholten Lauf.
+
+**`Min. qualifizierte Stationen pro Karten-Segment`**
+
+- **Standard:** `1`
+- **Wertebereich:** 1 bis 10
+- **Gilt für:** alle Karten
+- **Wirkung:** verlangt diese Anzahl qualifizierender Identitäten, bevor ein Segment gezeichnet wird.
+- **Ändern, wenn:** eine Kartenfarbe breitere Unterstützung durch mehrere Identitäten erfordern soll und du dafür mehr leere Segmente akzeptierst.
 
 <a id="sec-5-5"></a>
-#### 5.5 Karten-, Inspector- und Exportsteuerung
 
-* Segmentbereichs- und Richtungsauswahl &auml;ndern den inspizierten Bereich, nicht die abgeschlossene Analyse.
-* `Zero-Target-Stationen zeigen` blendet qualifizierende Success-Identit&auml;ten ohne Target-Best&auml;tigung wieder ein.
-* `Show Non-Joint` blendet Compare-Identit&auml;ten wieder ein, die nur durch exklusive/asynchrone Evidenz vertreten sind.
-* Stationsauswahl &auml;ndert die Abbildungen der ausgew&auml;hlten Station und das ausgew&auml;hlte Drill-Down.
-* Die Zeit-Bin-Auswahl der Station &auml;ndert nur ihre ausgew&auml;hlte Zeitleiste.
-* Leere Success-Zeit-Bins bleiben leer und werden nicht in Evidenz mit Nullrate umgewandelt.
-* `Alle Ergebnisse zum Download vorbereiten` exportiert das aktuelle Ergebnis und die Inspector-Auswahl. Der Paketinhalt steht in [Abschnitt 8.4](#sec-8-4).
+#### 4.5 Karten-, Inspektor- und Exporteinstellungen
+
+Diese Bedienelemente wirken auf abgeschlossene Evidenz und führen die vorgelagerte Abfrage nicht erneut aus, sofern nicht ausdrücklich anders angegeben.
+
+- Auswahl von Segmentbereich und Richtung verändert den inspizierten Bereich. Beide Auswahlen werden für Compare und Success getrennt gespeichert.
+- `Zero-Target-Stationen zeigen` stellt qualifizierende Success-Identitäten mit null Target-Bestätigungen wieder dar. Die Einstellung wird für Success gespeichert.
+- `Show Non-Joint` stellt Compare-Identitäten wieder dar, die ausschließlich durch exklusive oder asynchrone Evidenz vertreten sind. Der dauerhafte Wert wird gespeichert, wenn ein Compare-Ergebnis vorhanden ist.
+- Die Stationsauswahl verändert die Abbildungen der ausgewählten Stationen und den gewählten Drill-Down. Compare- und Success-Auswahl werden getrennt als exakte Identitäten aus `Rufzeichen + Locator` gespeichert. Werden alle Stationen ausgewählt, speichert die Konfiguration diese Absicht, statt jede aktuelle Tabellenzeile einzeln aufzuführen; bei einem gleitenden Fenster `Letzte X Stunden` kann sich die rekonstruierte Stationsmenge daher mit der Evidenz ändern. Fehlt eine explizit gespeicherte Identität im aktuellen Segmentbereich, bleibt sie mit einem Hinweis unausgewählt und wird nicht ersetzt; ihre gespeicherte Identität bleibt bis zu einer neuen Tabellenauswahl erhalten, sodass sie nach Wahl des passenden Segmentbereichs wieder verfügbar werden kann.
+- Das Bedienelement für das Zeit-Bin der ausgewählten Station verändert nur deren chronologische Zeitachse. Die jeweils geltenden Werte für Compare sowie Success/absolut werden gespeichert.
+- Die Ansichtsgruppe der ausgewählten Compare-Ansicht wählt `Chronologisch` oder `UTC-Stunde`. `UTC-Stunde` verwendet feste einstündige Zeitfenster und verändert oder überschreibt das gespeicherte chronologische Bin nicht. Die gewählte Ansicht wird in `.config` gespeichert.
+- Die Zeit-Bin-Schaltflächen für Segment Compare verändern nur das linke Zeitpanel auf Segmentebene. Das nach UTC-Stunden gefaltete Panel, die Zeitachse der ausgewählten Stationen, Paarbildung und Analyse bleiben unverändert; das gewählte Bin wird unabhängig in `.config` gespeichert.
+- Leere Success-Zeit-Bins bleiben leer; sie werden nicht zu Evidenz mit einer Rate von null umgedeutet.
+- `Alle Ergebnisse zum Download vorbereiten` exportiert das aktuelle Ergebnis und die aktuellen Inspektor-Auswahlen. Der Paketinhalt steht im Abschnitt [Export und Reproduzierbarkeit](#sec-8-4).
 
 <a id="sec-6"></a>
-### 6. Fehlersuche und Datenqualit&auml;t
+
+### 5. Fehlersuche und Datenqualität
+
+Die Ursache leerer oder unerwarteter Ergebnisse lässt sich meist effizient finden, wenn du zuerst die Laufdefinition prüfst und anschließend den symptombezogenen Schritten folgst. So verhinderst du, dass eine geänderte Schwelle einen Fehler bei Rufzeichen, Band, Zeit oder Betriebsplan lediglich verdeckt.
 
 <a id="sec-6-1"></a>
-#### 6.1 H&auml;ufige Symptome
 
-| Symptom | Zuerst pr&uuml;fen |
-|---|---|
-| Kein Ergebnis oder keine Target-Evidenz | Exaktes Rufzeichen einschlie&szlig;lich Suffix, Target-QTH Grid-4, Band, UTC-Fenster und tats&auml;chlicher Target-Betrieb. |
-| Compare hat kein Delta SNR | Gemeinsame Peer-Identit&auml;ten, &uuml;berlappende Zyklen, Joint-Schwelle, Uhren und Reference-Betrieb. |
-| Success-Karte hat wenige Peers | Target+Gegen-Evidenz-Schwelle, kurzes Zeitfenster, Filter und Verf&uuml;gbarkeit unabh&auml;ngiger Best&auml;tigung. |
-| Viele Target-only-Success-Zeilen | Unabh&auml;ngige Best&auml;tigung fehlt; diese Zeilen gehen nicht in Success Rate ein. |
-| `Only Reference = 0` | Das kann nach Target-Active Gate, Schwellen und Bereichsauswahl korrekt sein. |
-| A/B-Ergebnis hat unerwartetes Vorzeichen | Zuordnung von Setup/Pfad, Frame-Polarit&auml;t, Korrekturvorzeichen, tats&auml;chliche Leistung und Reihenfolge Target/Reference. |
-| Lokales Ergebnis &auml;ndert sich mit dem Radius | Der aktive lokale Reference-Pool hat sich ge&auml;ndert; Beitr&auml;ger pr&uuml;fen. |
-| Alte Konfiguration mit `band=All` wird abgelehnt | Genau ein Band w&auml;hlen; eine automatische Umwandlung w&uuml;rde die wissenschaftliche Frage ver&auml;ndern. |
-| Aktuelle Spots wirken unvollst&auml;ndig | Etwa f&uuml;nf Minuten nach dem letzten Zyklus warten, danach Meldung und Upstream-Status pr&uuml;fen; siehe [Abschnitt 6.5](#sec-6-5). |
+#### 5.1 Zuerst die Laufdefinition prüfen
+
+Arbeite diese Prüfungen der Reihe nach ab:
+
+1. **Target-Identität:** Prüfe das exakte Rufzeichen einschließlich eines etwaigen Suffixes sowie die in WSJT-X konfigurierte Identität.
+2. **QTH:** Vergleiche den konfigurierten Locator und dessen erste vier Zeichen mit dem tatsächlich hochgeladenen Locator.
+3. **Band:** Prüfe das exakt gewählte Band und das Band, auf dem die Station tatsächlich in Betrieb war.
+4. **UTC-Evidenzfenster:** Prüfe die aufgelösten Start- und Endzeitstempel, nicht nur die relative Auswahl `Letzte X Stunden`.
+5. **Tatsächlicher Betrieb:** Stelle sicher, dass das Target wie vorgesehen sendete oder empfing und dass der WSPR-Upload aktiviert war.
+6. **Benchmark-Betrieb:** Prüfe für Compare die exakte Identität der Referenz oder von Setup B sowie den Betrieb der Gegenstelle während der vorgesehenen Überlappung.
+7. **Technische Umsetzung:** Prüfe gegebenenfalls Uhrensynchronisation, Zuordnung des TX-Zeitplans zu den Signalpfaden, Schaltfolge, Signalführung und gemeldete Leistung.
+
+Erst danach folgen Evidenzschwellen, Ausschlussfilter, Sonnenstandsauswahl und Kartenbereich. Ein weniger strenger Filter kann mehr qualifizierende Evidenz sichtbar machen, aber keinen Lauf reparieren, der auf die falsche Identität, das falsche Band oder den falschen Zeitraum zielt.
 
 <a id="sec-6-2"></a>
-#### 6.2 Rufzeichen- und Locatorprobleme
 
-Compare-Rufzeichen werden exakt abgeglichen. Der Success-Abgleich des Targets ist strenger: exaktes Rufzeichen plus die ersten vier Zeichen des konfigurierten QTH. L&auml;dt ein Target `JN37` hoch, w&auml;hrend die Konfiguration `JN38` enth&auml;lt, erf&uuml;llt es die Target-Bedingung von Success nicht.
+#### 5.2 Fehler nach Symptom eingrenzen
 
-Peer-Identit&auml;ten verwenden exaktes Rufzeichen plus vollst&auml;ndigen gemeldeten Locator-String. Falsche, veraltete oder wechselnde Locator k&ouml;nnen eine physische Station aufteilen, in das falsche Segment verschieben oder den Filter f&uuml;r bewegte Stationen ausl&ouml;sen.
+Folge nach den gemeinsamen Prüfungen aus Abschnitt 5.1 dem Zweig, der zum Ergebnis passt:
+
+| Symptom | Nächste Prüfungen |
+|---|---|
+| **Kein Ergebnis oder keine Target-Evidenz** | Prüfe den gemeldeten Status der strengen Abfrage mit `code = 1` beziehungsweise des historischen Fallbacks sowie die aktuelle Verfügbarkeit der Upstream-Daten. |
+| **Compare enthält kein Delta SNR** | Prüfe gemeinsame entfernte Peers in überlappenden Zyklen oder geplanten Paaren; danach Uhren, Zuordnung des TX-A/B-Zeitplans zu den Signalpfaden, Schaltfolge, Joint-Schwelle, Filter und Bereich. |
+| **Success enthält nur sehr wenige Peers** | Prüfe die unabhängige Netzaktivität; danach `Min. Target+Gegen-Evidenz pro Station`, Ausschluss- und Sonnenstandsfilter, Zeitraum und Kartenbereich. Ein längeres Fenster kann Evidenz hinzufügen, ohne die beabsichtigte Population zu verändern. |
+
+<div style="page-break-before: always;"></div>
+
+Wenn Evidenz vorhanden ist, aber unerwartet aussieht, fahre mit diesen Zweigen fort:
+
+| Symptom | Nächste Prüfungen |
+|---|---|
+| **Viele Target-only-Success-Zeilen** | Target-Evidenz ist vorhanden, aber nicht die für den Nenner erforderliche unabhängige Bestätigung. Die Zeilen bleiben prüfbar, gehen jedoch nicht in die Success Rate ein. |
+| **`Only Reference = 0`** | Prüfe das Target-Active Gate, die Evidenzschwellen und den ausgewählten Bereich; nach Anwendung dieser Regeln kann null korrekt sein. |
+| **Unerwartetes Vorzeichen des Delta SNR bei Hardware A/B** | Prüfe die physische A/B-Zuordnung, Reihenfolge von Target und Referenz, Zeitplanphasen, Vorzeichen der Korrektur, tatsächliche und gemeldete Leistung sowie Kalibriernotizen. Gleiche eine Station im Drill-Down ab. |
+| **Lokales Ergebnis ändert sich mit dem Radius** | Prüfe QTH und Radius und untersuche anschließend die beitragenden lokalen `callsign + locator`-Identitäten. Dokumentiere eine aussagekräftige Radiusabhängigkeit, statt nur den günstigsten Lauf auszuwählen. |
+| **Alte Konfiguration mit `band=All` wird abgelehnt** | Wähle genau ein Band; eine automatische Konvertierung würde die wissenschaftliche Fragestellung verändern. |
+| **Aktuelle Spots erscheinen unvollständig** | Warte nach dem letzten Zyklus ungefähr fünf Minuten und prüfe anschließend Upload und Upstream-Status wie in Abschnitt 5.6 beschrieben. |
+
+Ein Problem mit Upstream-Daten verändert, was wspr.live liefert. Ein Problem des Versuchsdesigns verändert, ob die beibehaltenen Zeilen die beabsichtigte Frage beantworten. Diagnostiziere und dokumentiere beides getrennt.
 
 <a id="sec-6-3"></a>
-#### 6.3 Historischer Decode-Code-Fallback
 
-WSPRadar fordert Zeilen zun&auml;chst mit wspr.live `code = 1` f&uuml;r WSPR-2-Evidenz an. Liefert diese strenge Abfrage keine Target-seitige Evidenz, wird aus Gr&uuml;nden historischer Kompatibilit&auml;t ohne dieses Pr&auml;dikat erneut versucht und der Fallback im Laufstatus gemeldet.
+#### 5.3 Rufzeichen und Locator prüfen
 
-Der Fallback erweitert die Auswahl. Aktuelle Exportmetadaten speichern nicht, welche Variante verwendet wurde; deshalb die sichtbare Fallback-Meldung dokumentieren, wenn sie relevant ist.
+Rufzeichen werden in Compare exakt zugeordnet. Das Target-Matching in Success ist strenger: exaktes Rufzeichen plus die ersten vier Zeichen des konfigurierten QTHs. Lädt ein Target `JN37` hoch, während die Konfiguration `JN38` enthält, erfüllt es die Target-Bedingung von Success nicht.
+
+Peer-Identitäten bestehen aus dem exakten Rufzeichen plus der vollständig gemeldeten Locator-Zeichenfolge. Falsche, veraltete oder wechselnde Locator-Angaben können eine physische Station aufteilen, in das falsche Segment verschieben oder den Filter für bewegliche Stationen auslösen.
 
 <a id="sec-6-4"></a>
-#### 6.4 Warnungen zum Target-Active Gate
 
-Das Gate ist bewusst Target-zentriert. Es best&auml;tigt die Teilnahme des Targets, schlie&szlig;t Reference-Evidenz au&szlig;erhalb dieser Zyklen aus und verhindert, dass bekannte Target-Ausfallzeit automatisch zum Misserfolg wird. Es weist weder Reference-Uptime noch einen offenen Funkpfad nach.
+#### 5.4 Fallback für historische Decode-Codes
 
-Ist die Target-Station beispielsweise &uuml;ber Nacht ausgeschaltet, werden Reference-Spots aus diesen Offline-Stunden nicht als Niederlagen gez&auml;hlt. Das ist der praktische Grund f&uuml;r das Gate. Es kann trotzdem nicht feststellen, ob die Reference in jedem erhaltenen Target-aktiven Zyklus durchgehend in Betrieb war.
+WSPRadar fragt für WSPR-2-Evidenz zunächst Zeilen mit wspr.live `code = 1` ab. Liefert die strenge Abfrage keine Target-seitige Evidenz, wird sie aus Gründen der historischen Kompatibilität ohne dieses Prädikat wiederholt; der Fallback wird im Laufstatus gemeldet.
 
-Ein Tausch von Target und Reference kann deshalb zul&auml;ssige Zyklen und Decode Outcomes ver&auml;ndern. Sequenzielles TX A/B verwendet nicht dasselbe simultane Gate.
+Der Fallback erweitert die Auswahl. Das aktuelle Exportpaket hält weder den effektiv verwendeten Decode-Filter noch den Fallback-Zustand fest. Bewahre deshalb den gemeldeten Laufstatus in den Versuchsnotizen auf – insbesondere, weil Compare und Success unterschiedliche Wege nehmen können.
 
 <a id="sec-6-5"></a>
-#### 6.5 Warnungen zu Upstream-Daten
 
-wspr.live erkl&auml;rt, dass seine Daten rohe WSPRnet-Meldungen sind und Duplikate, falsche Spots sowie andere Fehler enthalten k&ouml;nnen. Die freiwillig betriebene Infrastruktur garantiert weder Korrektheit noch Verf&uuml;gbarkeit oder Stabilit&auml;t. <a href="#ref-3">[Ref-3]</a>
+#### 5.5 Wie das Target-Active Gate die Evidenz prägt
 
-wspr.live beschreibt Echtzeitdaten mit einer Verz&ouml;gerung von einigen Minuten und gibt an, alle paar Minuten nach neuen Spots zu suchen. Als praktische Betriebssch&auml;tzung etwa **f&uuml;nf Minuten** nach dem letzten WSPR-Zyklus warten, bevor ein aktuelles Analysefenster als ausreichend gef&uuml;llt erwartet wird. F&uuml;nf Minuten sind keine Vollst&auml;ndigkeitsgarantie: Verz&ouml;gerte Uploads, Ingestionsunterbrechungen und sp&auml;tere Korrekturen k&ouml;nnen danach erscheinen. <a href="#ref-3">[Ref-3]</a>
+Das Target-Active Gate beschränkt simultane Vergleiche auf Zyklen, in denen eine Beteiligung des Targets beobachtbar ist. Referenz-Evidenz außerhalb dieser Zyklen wird ausgeschlossen, damit bekannte Ausfallzeiten des Targets nicht automatisch als Misserfolg gewertet werden.
 
-WSPRadar reduziert durch Paarung, Identit&auml;tsgruppierung, Mediane, Schwellen und Drill-Down die Empfindlichkeit gegen einzelne schlechte Zeilen. Wiederholte plausible Fehler verschwinden dadurch nicht.
+Ist die Target-Station beispielsweise über Nacht abgeschaltet, werden Referenz-Spots aus diesen Offline-Stunden nicht als Misserfolge der Target-Seite gezählt. Innerhalb der beibehaltenen Zyklen müssen die Verfügbarkeit der Referenz und die Verfügbarkeit des Funkwegs weiterhin anhand des Versuchskontexts belegt werden.
 
-Gemeldete Leistung und Locator stammen von Nutzern. Korrekte Mathematik auf einer falschen Leistung oder einem falschen Locator bleibt physikalisch falsch.
+Da das Gate bewusst Target-zentriert ist, kann ein Tausch von Target und Referenz die qualifizierenden Zyklen und Decode Outcomes verändern. Sequenzielles TX Hardware A/B verwendet anstelle desselben simultanen Gates seine deterministische Methode geplanter Paare.
+
+<a id="sec-6-6"></a>
+
+#### 5.6 Umgang mit Upstream-Daten
+
+wspr.live weist darauf hin, dass seine Daten von WSPRnet gemeldete Rohdaten sind und Duplikate, falsche Spots sowie andere Fehler enthalten können. Die ehrenamtlich betriebene Infrastruktur bietet keine Gewähr für Richtigkeit, Verfügbarkeit oder Stabilität. <a href="#ref-5">[Ref-5]</a>
+
+Nach Angaben von wspr.live stehen Echtzeitdaten mit einigen Minuten Verzögerung bereit; der Scraper prüft alle paar Minuten auf neue Spots. Als praktische Faustregel solltest du nach dem letzten WSPR-Zyklus ungefähr **fünf Minuten** warten, bevor du erwartest, dass ein aktuelles Analysefenster hinreichend gefüllt ist.
+
+Fünf Minuten sind keine Vollständigkeitsgarantie. Verzögerte Uploads, Unterbrechungen der Datenübernahme und spätere Korrekturen können erst danach erscheinen. <a href="#ref-5">[Ref-5]</a>
+
+WSPRadar verwendet Paarbildung, Gruppierung nach Identitäten, Mediane, Schwellen und Drill-Down, um die Empfindlichkeit gegenüber einzelnen fehlerhaften Zeilen zu verringern und deren Prüfung zu erleichtern. Wiederholt auftretende, plausibel wirkende Fehler können trotz dieser Maßnahmen erhalten bleiben.
+
+Gemeldete Leistung und Locator-Angaben stammen von den Nutzern. Auch mathematisch korrekte Berechnungen bleiben physikalisch falsch, wenn Leistung oder Locator falsch angegeben wurden.
+
+<div style="page-break-before: always;"></div>
+
+<a id="part-iii"></a>
+## Teil III: Wissenschaftliche Grundlagen, Methoden und Aussagen
+
+Dieser Teil ordnet WSPRadar in seine wissenschaftliche und amateurfunktechnische Entwicklungslinie ein und legt anschließend exakt fest, wie die Anwendung Evidenz aufbaut, zusammenfasst, interpretiert und sichert. Er unterstützt Methodenprüfung, Audit und belastbare Berichterstattung; für die praktische Arbeit mit der Anwendung bleiben die Versuchsleitfäden und Kapitel zur Ergebnisinterpretation der direkte Einstieg.
+
+<a id="sec-d"></a>
+### 6. Literatur, Vorarbeiten und Einordnung
+
+Dieses Kapitel erläutert, welche Ideen WSPRadar übernimmt, integriert und weiterentwickelt. Es stellt den nützlichen Beitrag jeder Quelle ebenso heraus wie die Grenzen dessen, was die jeweilige Quelle belegt. Es behauptet nicht, dass die Literatur jede Kennzahl oder Implementierungsentscheidung von WSPRadar validiert.
+
+<a id="sec-d-1"></a>
+#### 6.1 Vom Meldenetz zum Versuchsdatensatz
+
+Taylor und Walker stellten WSPRnet nicht nur als Live-Karte, sondern auch als Archiv vor: „The WSPRnet database represents a rich source of experimental data for propagation studies.“ Ihr Beispiel gruppiert Beobachtungen über mehrere Wochen nach Tageszeit. Es zeigt sowohl den Wert gesammelter Meldungen als auch die Notwendigkeit, sie als Beobachtungsdaten zu interpretieren. <a href="#ref-4">[Ref-4]</a>
+
+Frissell et al. ordnen WSPRNet zusammen mit dem Reverse Beacon Network und PSKReporter als etablierte Amateurfunk-Beobachtungsnetze ein, die „rich, ever-growing, long-term data of bottomside ionospheric observations“ liefern. Sie unterscheiden diese etablierten Netze von neueren, gezielt für Citizen Science aufgebauten Netzen und empfehlen eine Kreuzkalibrierung zwischen Instrumentennetzen. Der Übersichtsartikel stützt den wissenschaftlichen Wert von Amateurfunkbeobachtungen; er macht jedoch nicht jeden einzelnen Empfänger zu einem kalibrierten Messgerät. <a href="#ref-8">[Ref-8]</a>
+
+Das öffentliche WSPR-Archiv ist daher außerordentlich leistungsfähig, bleibt aber eine von unterschiedlich ausgestatteten, ehrenamtlich betriebenen Stationen erzeugte Aufzeichnung erfolgreicher Decodes. Historische Tiefe und geografische Reichweite beseitigen weder Auswahleffekte und Identitätsfehler noch wechselnde Ausrüstung oder unbekannte Betriebspläne.
+
+<a id="sec-d-2"></a>
+#### 6.2 WSPR-Beobachtungsdaten interpretierbar machen
+
+<a id="sec-d-lo"></a>
+Lo et al. untersuchten mit WSPR-Beobachtungen auf 7 MHz die Greyline-Ausbreitung und warnten ausdrücklich: „There is no official recording of the operating schedules for WSPR equipment.“ Bevor sie fehlende Verbindungen als Ausbreitungsverhalten interpretierten, prüften sie, ob ein Sender irgendwo gehört worden war beziehungsweise ob ein Empfänger irgendeine Station gehört hatte. Außerdem betonten sie die Konsistenz von Rufzeichen und Standort sowie die Nutzung mehrerer Standorte. <a href="#ref-3">[Ref-3]</a>
+
+Dieses Aktivitätsprinzip ist eine direkte methodische Vorarbeit für das Target-Active Gate von WSPRadar: Funkstille sollte erst dann zu Gegen-Evidenz werden, wenn der Betrieb beobachtbar ist. Lo et al. definieren jedoch weder das exakte asymmetrische Gate von WSPRadar noch dessen Success-Nenner oder Decode Outcomes. Diese bleiben WSPRadar-Designentscheidungen für eine andere Zielgröße.
+
+<a id="sec-d-3"></a>
+#### 6.3 Wissenschaftliche Vorarbeiten zu Antennen- und Stationsvergleichen
+
+<a id="sec-d-toledo"></a>
+**Toledo (2010): Warum langsames Abwechseln scheitert.** Sivan Toledo erprobte ungefähr eine Stunde lang eine Antenne und anschließend eine andere. Dabei änderte sich das SNR des Ausbreitungswegs in derselben Größenordnung wie die scheinbaren Antennenunterschiede. Sein Fazit war unmissverständlich: „Clearly, you can't compare antennas using WSPR using the naive technique that I was using.“ Als belastbarere Versuchsdesigns nannte er die Umschaltung in jedem Zyklus und simultane Aussendungen mit getrennter Hardware. Aus diesem praktischen Grund verwendet WSPRadar deterministische, abwechselnde TX-A/B-Zeitpläne statt langer Blöcke und bevorzugt den kürzesten praktikablen zeitlichen Abstand. Ein kurzer Abstand verringert zeitliche Konfundierung, kann sie aber nicht vollständig beseitigen. <a href="#ref-7">[Ref-7]</a>
+
+<a id="sec-d-milazzo"></a>
+**Milazzo (2011): Ein früher, von einer Funkamateurin durchgeführter End-to-End-Vergleich.** Carol Milazzo verglich zwei 29 km voneinander entfernte Stationen über einen gemeinsamen Empfänger in 1.750 km Entfernung. Sie korrigierte die gemeldeten SNR-Werte um Unterschiede der Sendeleistung, verglich den Verlauf mit VOACAP, berücksichtigte unterschiedliche Tastgrade und untersuchte auch reziproke RX-Meldungen. Ihre erste Schlussfolgerung lautete: „The WSPR network data permitted a comparison of signals from two antennas to a distant destination.“ Dies ist eine ungewöhnlich vollständige frühe Amateurfunk-Fallstudie und der früheste ausführliche Vergleich, der in diesem Handbuch berücksichtigt wird. Ein Anspruch, die erste Arbeit gewesen zu sein, ist damit nicht verbunden: Milazzo selbst verweist auf mehrere frühere WSPR-Antennenversuche. Unterschiedliche QTHs, Hardware und lokale Störpegel, nur ein ausgewählter entfernter Empfänger sowie das Fehlen einer formalen Unsicherheitsanalyse begrenzen die kausale Aussage. <a href="#ref-9">[Ref-9]</a>
+
+<a id="sec-d-griffiths-squibb"></a>
+**Griffiths und Squibb (2017): RX-Vergleich desselben Signals als Stationsdiagnose.** Für zwei Empfänger an getrennten QTHs behielten sie „only those reports of the same station at the same time selected for analysis“ bei und untersuchten den SNR-Unterschied in Abhängigkeit von Bodenfeuchte, Zeit, Entfernung und Änderungen an der Station. Die Arbeit zeigt, wie gepaarte WSPR-Daten das gesamte Empfangssystem diagnostizieren und Effekte sichtbar machen können, die reine Spot-Anzahlen verdecken. Da sich Antennen, QTHs, Störpegel und Ausrüstung unterschieden, stützt sie vergleichende Stationsevidenz, nicht jedoch kalibrierten Antennengewinn oder eine einzelne kausale Erklärung. <a href="#ref-10">[Ref-10]</a>
+
+<a id="sec-d-vanhamel"></a>
+**Vanhamel, Machiels und Lamy (2022): Konditioniertes simultanes RX.** In ihrer begutachteten Studie heißt es, dass „two identical 160-m band WSPR receiver stations are conditioned to compare the performance of different 160-m band antennas.“ Anschließend vergleicht ein kalibrierter Zweiempfängeraufbau gemeinsame entfernte Aussendungen simultan. Innerhalb dieser Quellenauswahl ist dies die stärkste direkte Vorarbeit für den RX Hardware A/B-Test und für die Charakterisierung von Unterschieden zwischen Empfangsketten vor einem Antennenvergleich. Ihr Ausbreitungsversuch zeigt außerdem, dass Polarisation und ionosphärische Effekte das gemeldete SNR verändern können. Selbst ein sorgfältig konditionierter Aufbau ergibt deshalb keine einzelne, kontextfreie Antennenkennzahl. <a href="#ref-2">[Ref-2]</a>
+
+<a id="sec-d-zander"></a>
+**Zander (2022): Ein mathematisches Modell für simultanen TX-Vergleich.** Zander untersucht zwei lokale Antennen, die im selben WSPR-Zyklus von getrennten, nominell leistungsgleichen Sendern mit unterschiedlichen Rufzeichen gespeist werden. Ein Empfänger wird nur berücksichtigt, wenn beide Signale „reported by the same station in the same time interval“ sind. Unter den Modellannahmen zeitgleicher Aussendungen, eines gemeinsamen Ausbreitungswegs und gleicher Sendeleistung heben sich gemeinsame Pfaddämpfung und Empfängerrauschen in der SNR-Differenz auf; getrennte schmalbandige Störungen, fehlgeschlagene Decodes und die ganzzahlige SNR-Quantisierung bleiben bestehen. Da jede Differenz innerhalb desselben entfernten Empfängers gebildet wird, gilt: „the method does not require any receiver calibration“. Gleiche beziehungsweise korrigierte Leistungen der beiden Sender bleiben dennoch erforderlich. <a href="#ref-1">[Ref-1]</a>
+
+In jedem Vorversuch sammelte Zander ungefähr 1.000 Meldungen in rund einer Stunde und behielt davon 150–200 Joint-Meldungen aus 15–35 Empfangsstationen bei. Die beobachtete Stichproben-Standardabweichung lag nahe 3 dB; für ungefähr 100 nutzbare Einzelbeobachtungen schätzt die Arbeit die Standardabweichung des arithmetischen Mittels auf unter 0,5 dB. Anschließend nennt sie eine „accuracy of less than a dB“ innerhalb weniger Stunden. Wissenschaftlich belegt diese Rechnung Wiederholbarkeit beziehungsweise Präzision unter den Annahmen des Modells, nicht eine metrologisch rückführbare Gesamtgenauigkeit: Die Arbeit benennt gesondert Verzerrungen durch die geografische Verteilung der Empfänger, Richtwirkung und unbekannte Elevationswinkel. Lange Läufe verringern zufällige Belegungs- und Kollisionseffekte, nicht aber diese systematischen Einflüsse. Die Studie stützt simultanes Delta SNR innerhalb desselben Empfängers deutlich; sie validiert weder das sequenzielle Ein-Sender-TX-A/B von WSPRadar noch stationsgleichgewichtete Mediane, Decode Outcomes oder andere Benchmark-Designs.
+
+<a id="sec-d-4"></a>
+#### 6.4 Analyseinfrastruktur und Werkzeuge für Funkamateure
+
+Griffiths und Robinett zeigten, wie eine relationale Zeitreihendatenbank einen Self-Join für den „same sender at the same time in the same band for two different reporters“ ermöglicht. Ihre Grafana-Beispiele kombinieren Scatterplots der SNR-Differenz, Mediane, Quartile, Zeit-Heatmaps, Entfernungs- und Azimutansichten sowie Datenexport. Dies ist eine wichtige Vorarbeit für prüfbare Vergleichsinfrastruktur, nicht jedoch für die exakten Qualifizierungsregeln, Nenner oder Schätzer von WSPRadar. <a href="#ref-11">[Ref-11]</a>
+
+WSPR.Rocks ermöglicht die schnelle Erkundung von WSPR-Daten mit SQL-Zugriff, Karten, Tabellen, SpotQ und weiteren Analysen. WSPRadar unterscheidet sich dadurch, dass der Arbeitsablauf auf ausdrücklichen Versuchsdesigns, Paarbildung und einem Audit bis auf Zeilenebene statt auf einer Rangliste beruht. <a href="#ref-12">[Ref-12]</a>
+
+WSPRdaemon konzentriert sich auf robuste Erfassung mit mehreren Empfängern, Zeitplanung und zusätzliche Rausch-/Doppler-Metadaten. Dies verdeutlicht, weshalb Erfassungsstabilität und Rauschkontext für RX-Analysen wichtig sind. <a href="#ref-13">[Ref-13]</a>
+
+SOTABEAMS WSPRlite und DXplorer bieten leicht zugängliche WSPR-basierte Antennen-/Standortvergleiche sowie die Kennzahl DX10. <a href="#ref-14">[Ref-14]</a>
+
+WSPR-Station-Compare stellt ausdrücklich einen Bezug zwischen Software für Stationsvergleiche und den Methoden von Vanhamel und Zander her. <a href="#ref-15">[Ref-15]</a>
+
+Das Antenna Performance Analysis Tool ist ein weiterer nutzerorientierter Dienst zur Auswertung von WSPR-Antennenmeldungen. Schon seine Existenz schließt die Behauptung aus, WSPRadar sei das erste Werkzeug zur WSPR-Antennenanalyse. <a href="#ref-16">[Ref-16]</a>
+
+WATT bietet Berichte, Kartendarstellung, Filter und Zeitleistenanalyse mit Excel/VBA und unterstreicht damit den praktischen Wert prüfbarer Daten gegenüber einer einzelnen starren Kennzahl. <a href="#ref-17">[Ref-17]</a>
+
+Diese Werkzeuge belegen umfangreiche Vorarbeiten bei Erfassung, Datenexploration, Rangbildung, Visualisierung und Antennenberichten. Sie sind Teil der Entwicklungslinie von WSPRadar und keine Schwäche seiner Einordnung.
+
+<a id="sec-d-5"></a>
+#### 6.5 Was WSPRadar übernimmt, integriert und ergänzt
+
+WSPRadar übernimmt wichtige Ideen, statt die Erfindung des WSPR-Vergleichs für sich zu beanspruchen: Für gesammelte Beobachtungen, Aktivitätsprüfungen, Korrektur anhand der gemeldeten Sendeleistung, Paarbildung unter gemeinsamen Bedingungen, kalibrierte Empfangsketten, geografische und zeitliche Ansichten sowie Datenbank-Joins gibt es jeweils klare Vorarbeiten.
+
+WSPRadar führt diese Ideen in einem Arbeitsablauf für Funkamateure zusammen. Dieser umfasst:
+
+* TX- und RX-Analyse mit den Designs `Kein Benchmark (nur Success)`, `Hardware A/B-Test (Eigenes Setup)`, `Fremdes Rufzeichen (Buddy-Test)` und `Lokaler Nachbarschafts-Benchmark`;
+* Prüfungen der Target-Aktivität, Vergleiche im selben Zyklus oder anhand deterministischer geplanter Paare, SNR-Normierung anhand der gemeldeten Sendeleistung sowie eine optionale Referenz-SNR-Korrektur;
+* bedingte Success-Evidenz, gepaartes Delta SNR und kategorische Decode Outcomes als getrennte Evidenzfragen;
+* Karten, Segment-Inspektor, Station Insights, Zeit-/Sonnenstandsansichten und Drill-Down bis auf Zeilenebene;
+* Evidenzschwellen, vergleichende Diagnosen auf Stations- und Beobachtungsebene sowie deskriptive Stability-Prüfungen;
+* geführte Demos, versionierte Konfigurationen, Laufmetadaten, verarbeitete Evidenz, Tabellen, Abbildungen und praktische Ergänzungen.
+
+Innerhalb der hier geprüften Literatur und Werkzeuge sind die deutlichsten WSPRadar-spezifischen Ergänzungen:
+
+* das bedingte Success-Opportunity-Modell mit ausdrücklich definierter Gegen-Evidenz im Nenner;
+* die ausdrückliche Trennung des gepaarten Delta SNR von den Decode Outcomes `Joint`, `Only Target`, `Only Reference` und `Both (Async)`;
+* der dynamische Aufbau der Benchmarks Lokaler Nachbarschafts-Median und Beste lokale Station;
+* die hierarchische, stationsgleichgewichtete geografische Aggregation, einschließlich genau eines Beitrags je lokaler Station, bevor ein Lokaler Nachbarschafts-Median gebildet wird;
+* die parallele Zusammensetzung nach `STATIONS` und `SPOTS` auf jeder Compare-Karte;
+* ein integrierter Prüfpfad von der Karte über Segment und Station bis zur einzelnen Zeile;
+* ein Reproduzierbarkeitspaket, das an den abgeschlossenen Lauf und die aktuellen Inspektor-Auswahlen gebunden ist.
+
+Dies ist eine begrenzte Einordnung, kein globaler Prioritätsanspruch. Die Medianaggregation selbst ist nicht neu; der Beitrag liegt in ihrer stationsgleichgewichteten Anwendung innerhalb des vollständigen Versuchs- und Inspektionsablaufs. Der besondere Wert von WSPRadar ist die durchgängige Integration und Zugänglichkeit für WSPR-Anwender im Amateurfunk – nicht die Behauptung, das erste Vergleichswerkzeug zu sein oder kalibrierte Antennenmessungen zu liefern.
+
+WSPRadar sollte nicht als Ersatz für wspr.live, WSPR.Rocks, WSPRdaemon, DXplorer oder kontrollierte HF-Messtechnik beschrieben werden. Methodisch arbeitet es eine Ebene oberhalb eines Spot-Browsers: **Welche Beobachtungen sind für diesen Versuch qualifizierend, welcher gepaarte Unterschied wurde beobachtet, welche einseitige Evidenz bleibt bestehen und lässt sich die Schlussfolgerung prüfen?**
 
 <a id="sec-7"></a>
-### 7. Wissenschaftliche Methodik
+### 7. Wissenschaftliche Methoden
 
-Dieses Kapitel ist die autoritative Stelle f&uuml;r Formeln, Abgleichregeln und Aggregation. Funkamateure k&ouml;nnen die fr&uuml;heren Kapitel nutzen, ohne jedes Implementierungsdetail zu lesen; wissenschaftlich ernsthafte Berichte sollten beide Ebenen verwenden.
+WSPRadar überführt öffentliche WSPR-Decodes in klar definierte Vergleichseinheiten und fasst diese anschließend so zusammen, dass eine einzelne sehr aktive Station das stationsgleichgewichtete Ergebnis nicht dominieren kann. Dieses Kapitel ist die maßgebliche Stelle für Formeln, Zuordnungsregeln, Zulässigkeitsbedingungen und Aggregation.
+
+**Methodischer Überblick**
+
+| Analysedesign | Target-Rolle | Referenz oder Gegen-Evidenz | Kleinste Beobachtungs-/Vergleichseinheit | Aktivitätsbedingung | Zeitlicher Bezug | Leistungsnormierung | Aggregation auf Stationsebene | Aggregation auf Segmentebene | Wichtigste Interpretationsgrenze |
+|---|---|---|---|---|---|---|---|---|---|
+| Kein Benchmark (nur Success), RX oder TX | Target-Empfänger oder -Sender | RX: derselbe Sender andernorts decodiert; TX: anderes Signal im selben Band vom Peer-Empfänger decodiert | ein Target-aktiver Peer-Zyklus | beobachtbare Target-Beteiligung | derselbe zweiminütige Zyklus | Rate: keine; Anzeige des erfolgreichen Target-SNR: auf gemeldete 1 W normiert | eine Success Rate pro Peer | arithmetisches Mittel der Peer-Raten; gepoolte Rate bleibt erhalten | bedingte Reichweite im Netzwerk, keine unbedingte Decode-Wahrscheinlichkeit |
+| Hardware A/B-Test, RX | Empfänger von Setup A | simultaner Empfänger von Setup B | ein konsolidierter Peer-Zyklus des entfernten Senders | Target-Active Gate | derselbe Sender und Zyklus | gemeinsame TX-Leistung fällt heraus; Korrektur gilt für Setup B | Median des Delta SNR | Median der Stationsmediane | kontrollierte lokale Empfangspfade nur in dem Maß, in dem die übrigen Ketten kontrolliert sind |
+| Hardware A/B-Test, TX | geplante Starts von Setup A | geplante Starts von Setup B | eine Peer-Identität in einem geplanten Target-/Referenzpaar | deterministische, überschneidungsfreie Zeitpläne; kein simultanes Gate | nächstgelegene Eins-zu-eins-Paarung der Starts innerhalb eines gemeinsamen Wiederholintervalls | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für Setup B | Median des Delta SNR der geplanten Paare | Median der Stationsmediane | sequenziell, nicht simultan; Zeitplan- und Schalteffekte bleiben bestehen |
+| Fremdes Rufzeichen (Buddy-Test), RX | Target-Empfänger | externer Referenzempfänger | ein konsolidierter Peer-Zyklus des entfernten Senders | Target-Active Gate; Referenz-Betriebszeit extern kontrolliert | derselbe Sender und Zyklus | gemeinsame TX-Leistung fällt heraus; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | vollständig aufgebaute Stationen und Umgebungen, nicht isolierte Empfängerempfindlichkeit |
+| Fremdes Rufzeichen (Buddy-Test), TX | Target-Sender | externer Referenzsender | ein konsolidierter Peer-Zyklus des entfernten Empfängers | Target-Active Gate; Referenz-Betriebszeit extern kontrolliert | derselbe Empfänger und Zyklus | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | vollständig aufgebaute Stationen; abhängig von der Genauigkeit der gemeldeten Leistung |
+| Lokaler Nachbarschafts-Median | Target RX oder TX | Zyklus-/Pfadmedian aus je einem Beitrag pro aktivem lokalem `callsign + locator` | ein Peer-Zyklus aus Target und lokaler Referenz | Target-Active Gate | derselbe Peer-Pfad und Zyklus | TX-Werte auf gemeldete 1 W normiert; Korrektur vor Bildung des lokalen Medians | Median des Delta SNR | Median der Stationsmediane | dynamischer, unkalibrierter Pool; Ergebnis hängt von Radius und aktiver Zusammensetzung ab |
+| Beste lokale Station | Target RX oder TX | stärkste qualifizierende lokale Station für diesen Zyklus/Pfad | ein Peer-Zyklus aus Target und bester Referenz | Target-Active Gate | derselbe Peer-Pfad und Zyklus | TX-Werte auf gemeldete 1 W normiert; Korrektur vor Auswahl der besten Station | Median des Delta SNR | Median der Stationsmediane | wechselnde Hüllkurve des besten Peers, weder lokaler Durchschnitt noch feste Referenz |
+
+Die Matrix dient der Orientierung. Maßgeblich sind die nachfolgenden Definitionen, Formeln und Verarbeitungsschritte.
 
 <a id="sec-7-1"></a>
-#### 7.1 Datenquelle und Zeitmodell
+#### 7.1 Datenquelle, Decode-Auswahl und Zeitmodell
 
-WSPRadar liest die &ouml;ffentliche Tabelle `wspr.rx` &uuml;ber die schreibgesch&uuml;tzte HTTP-Schnittstelle von wspr.live. Spots sind Beobachtungsdaten unabh&auml;ngig betriebener Sender, Empf&auml;nger, Software und Netze. Sie sind keine randomisierte oder kalibrierte Stichprobe m&ouml;glicher Pfade.
+WSPRadar liest die öffentliche Tabelle `wspr.rx` über die schreibgeschützte HTTP-Schnittstelle von wspr.live. Spots sind Beobachtungsdatensätze unabhängig betriebener Sender, Empfänger, Software und Netzwerke. Sie sind keine randomisierte oder kalibrierte Stichprobe möglicher Funkwege. Decode-Auswahl, historischer Fallback und das Verhalten bei vorgelagerten Datenproblemen sind einmalig in den [Abschnitten 5.4-5.6](#sec-6-4) dokumentiert.
 
-Gew&auml;hlte Endpunkte werden zur Wiederverwendung von Abfragen auf 15-Minuten-Grenzen abgerundet. Success-Abfragen verwenden ein halboffenes Intervall `start <= time < end`. Compare-Abfragen verwenden aktuell Datenbank-`BETWEEN` und schlie&szlig;en eine Beobachtung exakt am Endzeitpunkt ein. Ein Grenzzyklus kann deshalb in Compare, aber nicht in Success erscheinen.
+Die gewählten UTC-Endpunkte werden beim Start des Laufs aufgelöst und anschließend zur Wiederverwendung der Abfrage beide auf 15-Minuten-Grenzen abgerundet. Success verwendet ein halboffenes Intervall, `start <= time < end`: Eine Beobachtung genau am quantisierten Start ist zulässig, eine Beobachtung genau am quantisierten Ende dagegen ausgeschlossen. Compare verwendet derzeit in der Datenbank `BETWEEN` und kann daher eine Beobachtung exakt am quantisierten Start wie auch am quantisierten Ende einschließen. Eine Beobachtung auf der Intervallgrenze kann folglich in Compare, nicht aber in Success erscheinen; benachbarte Compare-Fenster können sich außerdem den exakten Endpunkt teilen.
 
-Ein **WSPR-Zyklus** ist das an einer geraden UTC-Minute ausgerichtete zweimin&uuml;tige Intervall. WSPRadar leitet simultane Zyklen aus Spot-Zeitstempeln ab. Sequenzielles TX A/B beh&auml;lt stattdessen Zeitstempel und ordnet Frame-Evidenz festen Uhrzeit-Bins zu.
+Ein **WSPR-Zyklus** ist das zweiminütige Intervall, das an einer geraden UTC-Minute beginnt. WSPRadar leitet simultane Zyklen aus den Spot-Zeitstempeln ab. Beim sequenziellen TX-A/B bleiben die Zeitstempel dagegen erhalten; zugelassen werden nur Starts, die dem konfigurierten Modulo-Zeitplan des jeweiligen Pfades entsprechen, und jedem Spot werden die geplanten Target- und Referenz-Starts seines nächstgelegenen Eins-zu-eins-Startpaares zugeordnet. Ein geplantes Paar ist nur zulässig, wenn beide geplanten Starts innerhalb des gewählten Vergleichsfensters liegen.
 
 <a id="sec-7-2"></a>
-#### 7.2 Identit&auml;ts- und Abgleichregeln
+#### 7.2 Identitäts- und Zuordnungsregeln
 
-| Analyse | Target-Abgleich | Peer-/Reference-Identit&auml;t | Kleinste Ergebniseinheit |
+WSPRadar behält die gemeldete Identität als Bestandteil der Evidenz bei. Rufzeichenvarianten und gemeldete Locator sind deshalb wissenschaftlich relevante Eingaben und keine bloßen Beschriftungen.
+
+| Analyse | Target-Zuordnung | Peer-/Referenzidentität | Kleinste Ergebniseinheit |
 |---|---|---|---|
-| RX Success | Exaktes RX-Rufzeichen plus Target-QTH Grid-4 | TX-Rufzeichen + gemeldeter TX-Locator | Ein Target-aktiver Peer-Zyklus |
-| TX Success | Exaktes TX-Rufzeichen plus Target-QTH Grid-4 | RX-Rufzeichen + gemeldeter RX-Locator | Ein Target-aktiver Peer-Zyklus |
-| Simultanes Compare | Exakte Target- und Reference-Rufzeichen | Entferntes Rufzeichen + gemeldeter Locator | Ein konsolidierter Peer-Zyklus |
-| Sequenzielles TX A/B | Exaktes, nach WSPR-Frame getrenntes Target-Rufzeichen | RX-Rufzeichen + gemeldeter Locator | Ein festes Zeit-Bin |
-| Lokaler Reference-Pool | Exaktes lokales Rufzeichen + Locator innerhalb des Radius | Entfernter Peer wie oben | Ein lokaler Identit&auml;tsbeitrag pro Zyklus/Pfad |
+| RX Success | exaktes RX-Rufzeichen plus Grid-4 des Target-QTH | TX-Rufzeichen + gemeldeter TX-Locator | ein Target-aktiver Peer-Zyklus |
+| TX Success | exaktes TX-Rufzeichen plus Grid-4 des Target-QTH | RX-Rufzeichen + gemeldeter RX-Locator | ein Target-aktiver Peer-Zyklus |
+| Simultanes Compare | exakte Target- und Referenzrufzeichen | entferntes Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
+| Sequenzielles TX-A/B | exaktes Target-Rufzeichen, aufgeteilt nach konfiguriertem UTC-Zeitplan | RX-Rufzeichen + gemeldeter Locator | ein geplantes Target-/Referenzpaar |
+| Lokaler Referenzpool | exaktes lokales Rufzeichen + Locator innerhalb des Radius | entfernter Peer wie oben | ein Beitrag je lokaler Identität pro Zyklus/Pfad |
 
-Mehrere qualifizierende Zeilen einer Seite in einem normalen simultanen Peer-Zyklus werden konsolidiert; das maximale normalisierte SNR repr&auml;sentiert diese Seite. Local Median bildet stattdessen zuerst einen Median innerhalb jeder lokalen Identit&auml;t und danach einen Median &uuml;ber die lokalen Identit&auml;ten.
+Rufzeichen werden in Compare exakt abgeglichen. Die Target-Zuordnung in Success ist strenger: Sie verwendet das exakte Rufzeichen zusammen mit den ersten vier Zeichen des Locators des konfigurierten QTH. Sendet ein Target `JN37`, während die Konfiguration `JN38` vorgibt, erfüllt es die Target-Bedingung von Success nicht.
+
+Peer-Identitäten bestehen aus dem exakten Rufzeichen und der vollständig gemeldeten Locator-Zeichenfolge. Falsche, veraltete oder wechselnde Locator können eine physische Station auf mehrere Identitäten aufteilen, sie einem falschen Segment zuordnen oder den Filter für bewegliche Stationen auslösen.
+
+Mehrere qualifizierende Zeilen für eine Seite eines normalen simultanen Peer-Zyklus werden konsolidiert; das höchste normierte SNR repräsentiert diese Seite. Beim lokalen Nachbarschafts-Median wird stattdessen zunächst innerhalb jeder lokalen Identität der Median und anschließend über die lokalen Identitäten hinweg erneut der Median gebildet.
+
+Der lokale Pool schließt das Target anhand des exakten Rufzeichens aus. Ein Basisrufzeichen und ein Rufzeichen mit Suffix sind daher unterschiedliche Identitäten, sofern nicht die exakte Target-Form übereinstimmt. Jeder lokale Beitrag behält seinen gemeldeten Locator als Bestandteil der Identität bei.
 
 <a id="sec-7-3"></a>
 #### 7.3 Target-Active Gate
 
-Success und simultanes Compare behalten Evidenz nur in Target-aktiven Zyklen:
+Das Target-Active Gate verankert Success und simultanes Compare in Zyklen, in denen eine Beteiligung des Targets beobachtbar ist:
 
-* **TX:** Mindestens ein qualifizierender Target-Sendespots existiert irgendwo im Zyklus.
-* **RX:** Mindestens ein qualifizierender, vom Target-Empf&auml;nger hochgeladener Decode existiert im Zyklus.
+* **TX:** Im Zyklus existiert irgendwo mindestens ein qualifizierender Spot einer Target-Aussendung.
+* **RX:** Im Zyklus existiert mindestens ein qualifizierender Decode, den der Target-Empfänger hochgeladen hat.
 
-Reference-Evidenz au&szlig;erhalb dieser Zyklen wird ausgeschlossen. Das reduziert Offline-Bias, erzeugt aber eine Target-zentrierte Sch&auml;tzgr&ouml;&szlig;e; ein symmetrisches Reference-Aktivit&auml;ts-Gate gibt es nicht.
+Das Gate verhindert, dass bekannte Ausfallzeiten des Targets automatisch als Misserfolg gewertet werden. Referenz-Spots aus Stunden, in denen die Target-Station ausgeschaltet war, zählen beispielsweise nicht als Niederlagen.
 
-Gemeinsames Delta SNR erfordert weiterhin beide Seiten f&uuml;r dieselbe Peer-Identit&auml;t und ist damit strenger als das Zyklus-Gate. Decode Outcomes enth&auml;lt einseitige Evidenz und verlangt eine vorsichtigere Interpretation der Uptime.
+Die Asymmetrie ist beabsichtigt: Ohne maßgebliche Betriebspläne definiert WSPRadar Success und simultanes Compare ausgehend vom festgelegten Target und lässt nur Zyklen mit beobachtbarer Target-Beteiligung zu. Bei Compare bildet die Betriebszeit der Referenz kein zweites Gate und muss daher von der experimentierenden Person kontrolliert werden.
 
-Sequenzielles TX A/B verwendet statt dieses simultanen Gates deterministische Frame-Zuordnung und gepaarte Bins.
+Da jede Joint-Beobachtung bereits eine Target-Beteiligung belegt, beeinflusst die Asymmetrie des Gates ausschließlich einseitige oder asynchrone Decode Outcomes sowie die Gegen-Evidenz im Nenner der Success Rate; das Gate selbst verändert reine Joint-Zusammenfassungen des Delta SNR nicht.
+
+Ein Tausch von Target und Referenz kann deshalb die zulässigen Zyklen und Decode Outcomes verändern. Sequenzielles TX-A/B verwendet statt dieses simultanen Gates eine deterministische Zeitplanzuordnung und geplante Paare. Die rollenunabhängige Gleichstandsregel beim halben Intervall erhält beim Tausch von A/B dieselben physischen Paare.
 
 <a id="sec-7-4"></a>
 #### 7.4 Success-Klassifikation und Formeln
 
-F&uuml;r jeden Target-aktiven Peer-Zyklus speichert WSPRadar Target-Evidenz und unabh&auml;ngige externe Evidenz.
+Success misst die bedingte Reichweite des Targets unter Opportunities, für die unabhängige Evidenz einer Netzaktivität vorliegt.
 
-* **Externe RX-Evidenz:** Ein anderer Empf&auml;nger meldete dieselbe Senderidentit&auml;t im selben Zyklus.
-* **Externe TX-Evidenz:** Der Peer-Empf&auml;nger meldete im selben Zyklus einen Nicht-Target-Sender auf demselben Band.
+WSPRadar erfasst für jeden Target-aktiven Peer-Zyklus Target-Evidenz und unabhängige externe Evidenz:
 
-Target erfordert sowohl Target- als auch externe Evidenz. Elsewhere / Other Signals erfordert externe Evidenz ohne Target. Target-only bedeutet Target-Evidenz ohne externe Evidenz und wird aus dem Nenner ausgeschlossen.
+* **Externe RX-Evidenz:** Ein anderer Empfänger meldete im selben Zyklus dieselbe Senderidentität.
+* **Externe TX-Evidenz:** Der Peer-Empfänger meldete im selben Zyklus einen anderen Sender im selben Band als das Target.
+
+`Target` bezeichnet den Fall, dass sowohl Target- als auch externe Evidenz vorliegt. `Elsewhere` / `Other Signals` bezeichnet externe Evidenz ohne Target. `Target-only` bezeichnet Target-Evidenz ohne externe Evidenz und bleibt vom Nenner ausgeschlossen.
 
 $$\text{Success Rate}_{RX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Elsewhere}}$$
 
 $$\text{Success Rate}_{TX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Other Signals}}$$
 
-Die zul&auml;ssige Peer-Population stammt nach Band, Zeit, Gate, Filtern und Schwellen aus dem globalen Netz. Success Rate ist deshalb von beobachtbarer Netzaktivit&auml;t und Ausbreitung bedingt und keine Sch&auml;tzung jedes Sendeversuchs oder einer kalibrierten Empf&auml;nger-Detektionswahrscheinlichkeit.
+Die zulässige Peer-Population wird nach Anwendung von Band, Zeit, Gate, Filtern und Schwellen aus dem globalen Netz gewonnen. Die Success Rate ist damit durch beobachtbare Netzaktivität und Ausbreitungsbedingungen bedingt. Sie ist weder eine Schätzung aller Sendeversuche noch eine kalibrierte Detektionswahrscheinlichkeit des Empfängers.
+
+Die Klassifikation der Success Rate selbst wird nicht leistungsnormiert. Das daneben angezeigte SNR erfolgreicher Target-Evidenz wird auf die gemeldete Leistung von 1 W normiert.
 
 <a id="sec-7-5"></a>
-#### 7.5 Leistungsnormalisierung, Korrektur und Delta SNR
+#### 7.5 Leistungsnormierung, Korrektur und Delta SNR
 
-WSPR-SNR ist ein vom Decoder gemeldeter dB-Wert auf der WSJT-Skala mit 2500 Hz Referenzbandbreite. WSPR-Nachrichten enthalten die gemeldete Sendeleistung in dBm. <a href="#ref-1">[Ref-1]</a>
+Die Leistungsnormierung bringt erfolgreiche TX-Evidenz auf eine gemeinsame Basis der gemeldeten Leistung. Das WSPR-SNR wird vom Decoder in dB auf der WSJT-Skala gemeldet, bezogen auf eine Bandbreite von 2500 Hz. WSPR-Nachrichten enthalten die gemeldete Sendeleistung in dBm. <a href="#ref-18">[Ref-18]</a>
 
-WSPRadar normalisiert erfolgreiches SNR auf eine gemeldete Referenz von 1 W / 30 dBm:
+WSPRadar normiert erfolgreiches SNR auf die gemeldete Referenzleistung von 1 W / 30 dBm:
 
 $$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
 
-Das entfernt den **gemeldeten** Leistungsterm. Antennengewinn, Wirkungsgrad, Speiseleitungsverlust, EIRP, Empf&auml;ngerkalibrierung oder lokales Rauschen werden nicht korrigiert.
+Damit wird der **gemeldete** Leistungsanteil herausgerechnet. Nicht korrigiert werden Antennengewinn, Wirkungsgrad, Speiseleitungsverlust, äquivalente isotrope Strahlungsleistung (EIRP), Empfängerkalibrierung oder lokales Rauschen.
 
-Reference SNR Correction wird zur Reference-Seite addiert:
+Die Referenz-SNR-Korrektur wird zur Referenzseite addiert:
 
 $$SNR_{reference,corrected} = SNR_{reference} + Correction$$
 
@@ -646,247 +1242,354 @@ Die allgemeine Vergleichsdefinition lautet:
 
 $$\Delta SNR = SNR_{target} - SNR_{reference,corrected}$$
 
-Eine positive Korrektur st&auml;rkt die Reference vor der Subtraktion und senkt Delta SNR. Eine negative Korrektur erh&ouml;ht Delta SNR.
+Eine positive Korrektur macht die Referenz vor der Subtraktion stärker und senkt damit Delta SNR. Eine negative Korrektur erhöht Delta SNR. Die betroffenen Zweige, das Vorzeichen bei der Eingabe und Hinweise zur Kalibrierung stehen in [Abschnitt 4.3](#sec-5-3) und [Anhang C](#sec-c).
 
-TX-Vergleiche verwenden normalisiertes SNR, weil unterschiedliche Sendeleistungen beteiligt sein k&ouml;nnen. Bei RX-Paaren desselben Senders hebt sich der gemeinsame Leistungsterm auf. TX-Vergleiche verschiedener Rufzeichen h&auml;ngen direkt von der Genauigkeit gemeldeter Leistungen ab.
+TX-Vergleiche verwenden normiertes SNR, weil unterschiedliche Sendeleistungen beteiligt sein können. Bei RX-Paaren desselben Senders fällt der gemeinsame Leistungsterm heraus. TX-Vergleiche zwischen verschiedenen Rufzeichen hängen unmittelbar von der Genauigkeit der gemeldeten Leistung ab.
 
 <a id="sec-7-6"></a>
 #### 7.6 Gepaarte Evidenz und Decode Outcomes
 
-Eine reine SNR-Analyse gepaarter Werte hat Survivorship-Bias: Beide Seiten m&uuml;ssen vergleichbare Evidenz erzeugen. Eine Konfiguration mit vielen zus&auml;tzlichen grenzwertigen Decodes kann einen niedrigeren gepoolten SNR-Median haben, gerade weil sie schw&auml;chere Signale erreicht.
+Compare stellt zwei einander ergänzende Sichtweisen auf das Vergleichsergebnis getrennt dar.
 
-WSPRadar beh&auml;lt deshalb:
+1. **Gepaartes Delta SNR:** der bedingte Wert Target minus Referenz, wenn beide Seiten vergleichbare Evidenz erzeugt haben.
+2. **Decode Outcomes:** Evidenz der Kategorien Joint, Only Target, Only Reference und Both (Async) außerhalb oder im Umfeld dieser gepaarten Teilmenge.
 
-1. **Paired Delta SNR:** Bedingte Signalst&auml;rkedifferenz, wenn beide Seiten vergleichbare Evidenz erzeugten.
-2. **Decode Outcomes:** Joint-, Only-Target-, Only-Reference- und Both-(Async)-Evidenz au&szlig;erhalb oder rund um diese gepaarte Teilmenge.
+Diese Trennung ist wichtig, weil eine ausschließlich gepaarte Delta-SNR-Analyse einer Selektionsverzerrung durch die Beschränkung auf erfolgreiche Paare (Survivorship Bias) unterliegt: Beide Seiten müssen vergleichbare Evidenz erzeugen. Ein Aufbau, der viele zusätzliche schwache Signale decodiert, kann gerade deshalb einen niedrigeren gepoolten SNR-Median aufweisen, weil er schwächere Signale erreicht.
 
-Decode Outcomes ist nicht leistungsnormalisiert. Bei einer exklusiven TX-Beobachtung fehlt das SNR der anderen Seite und kann nicht rekonstruiert werden. Ungleiche Sendeleistungen k&ouml;nnen daher exklusive TX-Evidenz dominieren, selbst wenn gemeinsames Delta SNR normalisiert ist.
+Decode Outcomes werden nicht leistungsnormiert. Bei einer exklusiven TX-Beobachtung fehlt das SNR der anderen Seite und lässt sich nicht rekonstruieren. Ungleiche Sendeleistungen können daher exklusive TX-Evidenz dominieren, selbst wenn das gemeinsame Delta SNR normiert ist.
 
-`STATIONS`-Kategorien einer Compare-Karte ordnen Identit&auml;ten zu; `SPOTS`-Kategorien z&auml;hlen Evidenzvolumen. Success-Kartenbalken verwenden dieselben zwei Ebenen, richten sie aber am Success-Nenner aus.
+Auf Compare-Karten ordnen die Kategorien unter `STATIONS` Identitäten zu; die Kategorien unter `SPOTS` zählen das Evidenzvolumen. Die Balken auf Success-Karten verwenden dieselben beiden Ebenen, richten sie jedoch am Success-Nenner aus. Ein `Joint Spot` ist eine konsolidierte Vergleichseinheit desselben Zyklus und nicht zwingend eine einzelne unveränderte Datenbankzeile.
 
 <a id="sec-7-7"></a>
 #### 7.7 Aggregationshierarchie
 
-Mediane verringern die Empfindlichkeit gegen einzelne Extremwerte, duplikat&auml;hnliche Bursts und quantisierte SNR-Ausrei&szlig;er. Sie entfernen jedoch weder systematischen Kalibrierfehler noch Ausbreitungsbias oder Korrelation &uuml;ber Zeit und Stationen. Die Berechnung eines Peer-Werts vor dem Segmentwert ist ebenfalls eine Gewichtungsentscheidung: Jeder qualifizierende Peer tr&auml;gt einmal bei, sodass eine Station mit hohem Volumen nicht allein wegen mehr hochgeladener Beobachtungen dominiert.
+WSPRadar berechnet zunächst einen Wert auf Peer-Ebene und daraus anschließend den Wert des geografischen Segments. In stationsgleichgewichteten Zusammenfassungen erhält dadurch jeder qualifizierende Peer dasselbe Gewicht; eine Station mit hohem Datenvolumen kann das Ergebnis nicht allein deshalb dominieren, weil sie mehr Beobachtungen hochgeladen hat.
+
+Mediane verringern die Empfindlichkeit gegenüber einzelnen Extremwerten, duplikatähnlichen Häufungen und Ausreißern des quantisierten SNR. Systematische Kalibrierfehler, Ausbreitungsverzerrungen oder zeitliche und räumliche Korrelationen zwischen Stationen beseitigen sie nicht.
 
 **Success**
 
 1. Jeden Target-aktiven Peer-Zyklus klassifizieren.
-2. Target, Gegen-Evidenz und Target-only nach Peer `Rufzeichen + Locator` summieren.
-3. Konfigurierte Target+Gegen-Evidenz-Schwelle verlangen.
-4. Eine Success Rate pro qualifizierendem Peer berechnen.
-5. Das arithmetische Segmentmittel der Peer-Raten berechnen.
-6. Die gepoolte Rate auf Beobachtungsebene als Diagnose behalten.
+2. Target, Gegen-Evidenz und Target-only nach Peer-`callsign + locator` summieren.
+3. Den konfigurierten Schwellenwert für `Target+Gegen-Evidenz` verlangen.
+4. Für jeden qualifizierenden Peer eine Success Rate berechnen.
+5. Für das Segment das arithmetische Mittel der Peer-Raten berechnen.
+6. Die gepoolte Rate auf Beobachtungsebene als Diagnosewert beibehalten.
+
+Der stationsgleichgewichtete Wert und der gepoolte Wert auf Beobachtungsebene beantworten unterschiedliche Fragen. Der erste beschreibt die typische qualifizierende Identität bei gleichem Peer-Gewicht; beim zweiten hat jede qualifizierende Beobachtung dasselbe Gewicht.
 
 **Simultanes Compare**
 
-1. Target- und Reference-Evidenz nach Zyklus und Peer-Identit&auml;t konsolidieren.
-2. Delta SNR f&uuml;r gemeinsame Zyklen berechnen.
-3. Konfigurierten Joint-Z&auml;hler pro Peer verlangen.
-4. Einen Delta-SNR-Stationsmedian berechnen.
-5. Segmentmedian &uuml;ber Stationsmediane berechnen.
+1. Target- und Referenzevidenz nach Zyklus und Peer-Identität konsolidieren.
+2. Für Joint-Zyklen Delta SNR berechnen.
+3. Für jeden Peer die konfigurierte Mindestanzahl an Joint-Evidenz verlangen.
+4. Für jede Station einen Median des Delta SNR berechnen.
+5. Für das Segment den Median über die Stationsmediane berechnen.
 
-**Sequenzielles TX A/B**
+**Sequenzielles TX-A/B**
 
-1. Spots den Target- und Reference-Frame-Folgen zuordnen.
-2. Jede Seite nach Zeit-Bin und Peer-Identit&auml;t gruppieren.
-3. Einen Mikro-Median pro Seite und Bin berechnen.
-4. Bin-Delta berechnen, wenn beide Mikro-Mediane existieren.
-5. Konfigurierte Anzahl gepaarter Bins verlangen.
-6. Stations- und Segmentmediane berechnen.
+1. Spots des exakten Rufzeichens nur dann behalten, wenn ihr UTC-Start dem konfigurierten Target- oder Referenzzeitplan entspricht.
+2. Geplante Target- und Referenz-Starts anhand des kleinsten zyklischen Abstands eins zu eins zuordnen und verlangen, dass beide geplanten Starts innerhalb des Vergleichsfensters liegen.
+3. Jede Seite nach geplantem Paar und Peer-`callsign + locator` gruppieren.
+4. Für jede Seite und jedes Paar einen Mikro-Median berechnen.
+5. Das Paar-Delta berechnen, wenn beide Mikro-Mediane vorhanden sind; ein einseitiges Paar als Only Target oder Only Reference beibehalten.
+6. Die konfigurierte Mindestanzahl gemeinsamer Paare verlangen.
+7. Stations- und Segmentmediane berechnen.
 
-**Local Median Reference**
+Die beiden Seiten bleiben zeitlich nacheinander. Ein kurzer Abstand und ein ausgewogener Betrieb verringern die Zeitdifferenz gegenüber langen Blöcken, doch Einflüsse von Zeitplan und Umschaltung können bestehen bleiben.
 
-1. Jede lokale Reference `Rufzeichen + Locator` innerhalb von Zyklus und entferntem Peer gruppieren.
-2. Das mediane normalisierte SNR dieser lokalen Identit&auml;t berechnen.
-3. Den exakten inklusiven Mittelpunktmedian &uuml;ber lokale Identit&auml;ten bilden.
-4. Target mit dieser zyklusbezogenen Reference vergleichen.
+**Lokale Referenz als Nachbarschafts-Median**
 
-Bei gerader Gr&ouml;&szlig;e des lokalen Pools wird der Mittelpunkt der beiden zentralen Werte verwendet. Der Pool kann sich in jedem Zyklus &auml;ndern.
+1. Jede lokale Referenz mit `callsign + locator` innerhalb eines Zyklus und entfernten Peers gruppieren.
+2. Den Median des normierten SNR dieser lokalen Identität berechnen.
+3. Dieser Identität unabhängig von der Zahl ihrer wiederholten Zeilen genau einen Beitrag geben.
+4. Eine Identität ohne qualifizierende Beobachtung für diesen Zyklus/Pfad auslassen; niemals einen Beitrag von `0 dB` erfinden.
+5. Über die beitragenden lokalen Identitäten den exakten Median bilden.
+6. Target mit dieser Referenz auf Zyklusebene vergleichen.
+
+Bei einem lokalen Pool mit gerader Anzahl wird der Mittelwert der beiden mittleren Werte verwendet. Die Zusammensetzung des Pools kann sich in jedem Zyklus ändern.
+
+**Lokale Referenz als beste Station**
+
+Für jeden Zyklus und Pfad verwendet Beste lokale Station die stärkste qualifizierende lokale Station als Referenz. Die Referenzkorrektur wird vor der Auswahl der besten Station angewendet. Das Ergebnis ist daher eine wechselnde Hüllkurve des besten Peers und weder ein lokaler Durchschnitt noch eine feste Referenz.
 
 <a id="sec-7-8"></a>
-#### 7.8 Stabilit&auml;t und Histogrammkonstruktion
+#### 7.8 Stabilität, Verteilungen und Gewichtung in der Inspektionsansicht
 
-WSPRadar verwendet ein deterministisches Perzentil-Bootstrap mit 500 Ziehungen mit Zur&uuml;cklegen und meldet das zentrale 90%-Intervall um den Median. Intervalle auf Stationsebene resamplen Stationsmediane. Rohe gepaarte Intervalle resamplen Delta-Werte von Peer-Zyklen oder gepaarten Bins.
+WSPRadar verwendet ein deterministisches Perzentil-Bootstrap mit 500 Stichprobenziehungen mit Zurücklegen und gibt das zentrale 90-%-Intervall um den Median an. Intervalle auf Stationsebene ziehen neue Stichproben aus den Stationsmedianen. Intervalle aus den Rohpaaren ziehen neue Stichproben aus den Delta-Werten der Peer-Zyklen oder geplanten Paare.
 
-Die Berechnung behandelt Werte als austauschbar, obwohl WSPR-Beobachtungen nach Station, Zeit und Geografie korreliert bleiben k&ouml;nnen. Es ist ein beschreibendes **Stabilit&auml;tsintervall**, kein Konfidenzintervall und kein Signifikanztest.
+Die Berechnung behandelt die Werte als austauschbar, obwohl WSPR-Beobachtungen nach Station, Zeit und Geografie korreliert sein können. Es handelt sich um ein deskriptives **Stability**-Intervall, nicht um ein Konfidenzintervall oder einen Signifikanztest.
 
-Compare-Delta-SNR-Histogramme verwenden feste Bins innerhalb eines Panels. Normalerweise sind es 1-dB-Bins; 0,5 dB wird nur bei einem klaren Halb-dB-Raster verwendet. Breite Bereiche werden auf 1, 2, 3, 6 oder 10 dB zusammengefasst, damit ein Panel h&ouml;chstens 40 Balken enth&auml;lt. Eine minimale sichtbare Spanne von 3 dB verhindert die optische &Uuml;bertreibung sehr kleiner Variation.
+Compare-Histogramme des Delta SNR verwenden innerhalb eines Panels feste Klassen. Normalerweise sind die Klassen 1 dB breit; 0,5 dB werden nur bei einem deutlichen Halb-dB-Raster verwendet. Große Wertebereiche werden zu Klassen von 1, 2, 3, 6 oder 10 dB zusammengefasst, damit ein Panel höchstens 40 Balken enthält. Ein sichtbarer Mindestbereich von 3 dB verhindert, dass geringe Streuung optisch überhöht wird.
+
+Compare-Zeit-Heatmaps zählen zunächst die Evidenz in Zellen, die aus UTC-Zeit- bzw. gefalteten UTC-Stundenklassen und auf ganzzahlige dB gerundeten Delta-SNR-Klassen gebildet werden. Jedes Panel wird unabhängig skaliert:
+
+$$D_{relative} = 100 \times \frac{n_{cell}}{\max(n_{cell,panel})}$$
+
+Die am dichtesten belegte Zelle erhält damit den Wert `100`, proportional belegte Zellen liegen zwischen `0` und `100`, und leere Zellen bleiben leer. Der Wert ist ein Prozentsatz der maximalen Zellbelegung dieses Panels und kein Anteil an der gesamten Evidenz. Werte und Farben ermöglichen deshalb keinen Vergleich absoluter Evidenzmengen zwischen getrennt normierten Panels. Compare-Zeitverläufe auf Segmentebene und für ausgewählte Stationen verwenden diese Regel; Success-Zeitverläufe behalten ihre dokumentierte Semantik für Success Rate und Anzahlen.
+
+Die vier Compare-Verteilungs- und Zeitpanels verwenden ausschließlich für die Darstellung eine medianzentrierte, nichtlineare Delta-SNR-Skala. Die beiden Zeitpanels des Segments teilen sich den Median aller gepaarten Beobachtungen im ausgewählten Segment. Die Verteilung der ausgewählten Stationen und ihr aktives Zeitpanel teilen sich dagegen den gepoolten Median der aktuell ausgewählten Station bzw. Stationen. Jeder aus zwei Panels bestehende Evidenzbereich hat somit ein gemeinsames Zentrum, während absolute Beschriftungen die Interpretation zwischen den Bereichen erhalten.
+
+Die weißen verbundenen Marker bleiben eine eigene Statistik: Sie zeigen den Median innerhalb jeder belegten Zeitklasse.
+
+`M` sei der exakte Evidenzmedian dieses Bereichs. Bei einem großen Wertebereich liegen äquidistante visuelle Anker bei `M`, `M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` und `M +/- 30 dB`; ein unbeschrifteter Randanker setzt sich bei `M +/- 60 dB` fort und wird bei Bedarf weiter extrapoliert. Beträgt jede erforderliche Abweichung von `M` höchstens `10 dB`, lauten die engeren sichtbaren Anker `M`, `M +/- 1`, `M +/- 3`, `M +/- 6` und `M +/- 10 dB`; unbeschriftete Anker bei `M +/- 20` und `M +/- 40 dB` definieren die komprimierte Fortsetzung außerhalb dieses sichtbaren Bereichs. Zur erforderlichen Abweichung zählen die Grenzen des Rohhistogramms und der gerundeten Heatmap-Klassen, eine Mindesthalbspanne von 3 dB sowie der absolute Wert `0 dB`, damit Ausläufer und die 0-dB-Referenz Target = Referenz nicht unbemerkt abgeschnitten werden.
+
+Die Skalenbeschriftungen zeigen das resultierende **absolute Delta SNR** und nicht den Abstand von `M`. Beispielsweise ergeben sich für `M = +6 dB` die Beschriftungen der breiten Skala `-24, -14, -4, 0, +3, +6 M, +9, +12, +16, +26, +36 dB`.
+
+Die Transformation verändert weder wissenschaftliche Werte noch Gruppierungen. Anzahlen und Klassengrenzen der Histogramme bleiben in untransformierten dB-Werten, die Zeitzellen bleiben auf ganzzahlige dB gerundete Klassen, Mediane und Stability-Intervalle bleiben Statistiken aus untransformierten dB-Werten, und die Farben der relativen Dichte behalten die oben angegebene Berechnung bei. Weil die nichtlineare vertikale Streckung gleich breiten Roh-dB-Klassen im Histogramm unterschiedliche dargestellte Höhen gibt, ist die **Balkenlänge** auf der Achse `Share (%)` abzulesen; die dargestellte Balkenfläche ist keine Wahrscheinlichkeit. Success-SNR-Diagramme bleiben linear.
+
+Die Diagramme ausgewählter Stationen verwenden die in [Abschnitt 2.6](#sec-3-7) beschriebenen Gewichtungs- und Darstellungsregeln auf Beobachtungsebene; diese Ansichtsoptionen verändern weder Kartenaggregation noch Opportunity-Klassifikation oder Paarbildung.
 
 <a id="sec-7-9"></a>
-#### 7.9 Geografie und Sonnenklassifikation
+#### 7.9 Geografie und Sonnenstandsklassifikation
 
-WSPRadar berechnet Entfernung und Azimut mit einem kugelf&ouml;rmigen Erdradius von 6371 km und zeichnet eine azimutal-&auml;quidistante Projektion um das Target-QTH. Radialgrenzen liegen bei 2500, 5000, 10000, 15000, 20000 und 22000 km; Azimutsektoren umfassen 22,5 Grad.
+WSPRadar berechnet Entfernung und Azimut mit einem sphärischen Erdradius von 6371 km und stellt die Karte in einer azimutal äquidistanten Projektion mit dem Target-QTH als Mittelpunkt dar. Die radialen Grenzen liegen bei 2500, 5000, 10000, 15000, 20000 und 22000 km; die Azimutsektoren sind 22,5 Grad breit.
 
-Das ist intern konsistente Kartengeometrie und keine vermessungstechnische Geod&auml;sie. Gemeldete Locator stehen f&uuml;r Positionen in Grid-Zellen, nicht f&uuml;r gemessene Antennenkoordinaten.
+Die Kartengeometrie ist in sich konsistent, erreicht aber keine vermessungstechnische Genauigkeit; gemeldete Locator repräsentieren Positionen von Locator-Feldern und keine vermessenen Antennenkoordinaten.
 
-`Lokaler QTH Sonnenstand` verwendet die Sonnenh&ouml;he am Target-QTH. Success-Evidenzdiagramme klassifizieren getrennt die abgetastete Beleuchtung des Gro&szlig;kreispfads als Nacht, Greyline/gemischt oder Tageslicht. Beide beantworten unterschiedliche Fragen.
+`Lokaler QTH Sonnenstand` verwendet die Sonnenhöhe am Target-QTH. Bei regulärer Evidenz aus demselben Zyklus wird dessen Zeitstempel verwendet. Beim automatischen geplanten TX-A/B wird die Mitte zwischen den beiden geplanten Starts verwendet, damit Target und Referenz eines Paares nicht unterschiedlichen solaren Klassen zugeordnet werden können. Success-Evidenzdiagramme klassifizieren die an Stützpunkten ausgewertete Beleuchtung des Großkreispfads separat als Nacht, Greyline/gemischt oder Tageslicht. Diese Klassifikationen beantworten unterschiedliche Fragen.
+
+<div style="page-break-before: always;"></div>
 
 <a id="sec-8"></a>
-### 8. Grenzen, zul&auml;ssige Aussagen und Reproduzierbarkeit
+### 8. Evidenzgerechte Aussagen und Reproduzierbarkeit
+
+WSPRadar ermöglicht präzise Aussagen über bedingte Reichweite, gepaarte Unterschiede, einseitige Evidenz und die räumliche Verteilung dieser Effekte. Eine belastbare Dokumentation beschreibt die tatsächlich erzeugte Evidenz, bewahrt die Definition des Laufs und hält Laborgrößen von beobachtbaren Netzwerkgrößen getrennt.
 
 <a id="sec-8-1"></a>
-#### 8.1 Was WSPRadar nicht isoliert
+#### 8.1 Aussagen, die von der Evidenz gestützt werden
 
-WSPRadar-Ergebnisse beschreiben arbeitende Stationssysteme unter ausgew&auml;hlten Netz- und Ausbreitungsbedingungen. Sie messen nicht direkt:
+Verwende den Ergebnistyp, der zur Aussage passt:
+
+* **Success** stützt eine Aussage über die bedingte Reichweite des Targets unter unabhängig bestätigten Opportunities. Für Aussagen zur Empfängerempfindlichkeit und zu einer erwarteten Rate von 100 % sind die entsprechenden Zeilen unten zusammen mit dem Nenner aus [Abschnitt 7.4](#sec-7-4) heranzuziehen.
+* **Compare Delta SNR** stützt eine Aussage über gepaarte Evidenz Target minus Referenz. Für Aussagen zu Gewinn und Signifikanz sind die entsprechenden Zeilen zusammen mit den [Abschnitten 7.5](#sec-7-5) und [7.6](#sec-7-6) heranzuziehen.
+* **Decode Outcomes** stützen eine Aussage über Joint- und einseitige Evidenz. Für exklusive Decodes ist die entsprechende Zeile zu verwenden und die gepaarte Teilmenge getrennt auszuweisen.
+* **Entfernungsabhängige Muster** stützen eine Aussage über die beobachteten Entfernungssegmente. Für Aussagen zum Abstrahlwinkel ist die entsprechende Zeile zu verwenden, da die Entfernung beobachtet, der Abstrahlwinkel jedoch nicht gemessen wird.
+* **Lokaler Nachbarschafts-Benchmark** stützt eine Aussage über die gewählte dynamische Definition der Nachbarschaft. Für Aussagen zum lokalen Median ist die entsprechende Zeile zu verwenden; Radius, Methode und aktive beitragende Stationen sind anzugeben.
+
+| Vermeiden | Evidenzgerechte Formulierung |
+|---|---|
+| "Antenne A hat 3 dBi mehr Gewinn." | "Pfad A ergab gegenüber B ein medianes normiertes Delta SNR von +3,0 dB für die gepaarte Evidenz in diesem Band, Zeitfenster und Segment." |
+| "Die Empfindlichkeit meines Empfängers beträgt 72 %." | "Die Success Rate des Target-Empfängers betrug 72 % unter qualifizierenden Peer-Zyklen, die andernorts unabhängig bestätigt wurden." |
+| "Success sollte nahe 100 % liegen." | "Success ist ein bedingtes Maß für die Reichweite im globalen Netzwerk; 100 % ist nicht der zu erwartende Ausgangswert." |
+| "A ist statistisch signifikant besser." | "Der gepaarte Median begünstigte A; das deskriptive 90-%-Stability-Intervall betrug [Bereich]. Ein Signifikanztest wurde nicht durchgeführt." |
+| "Die Antenne hat einen flacheren Abstrahlwinkel." | "Der beobachtete Vorteil konzentrierte sich auf die angegebenen größeren Entfernungssegmente; der Abstrahlwinkel wurde nicht gemessen." |
+| "A ist effizienter, weil es mehr exklusive Decodes hatte." | "A erzeugte unter den dokumentierten Leistungs-, Zeitplan- und Netzwerkbedingungen mehr exklusive Decode-Evidenz; der Wirkungsgrad wurde nicht isoliert." |
+| "Der lokale Median ist der Durchschnitt der lokalen Stationen." | "Die Referenz war der Zyklus-/Pfadmedian aus je einem Beitrag pro aktiver lokaler callsign+locator-Identität." |
+
+<a id="sec-8-2"></a>
+#### 8.2 Interpretationsgrenzen: Was gekoppelt oder unbeobachtet bleibt
+
+WSPRadar-Ergebnisse beschreiben Stationssysteme im tatsächlichen Betrieb unter den gewählten Netzwerk- und Ausbreitungsbedingungen. Sie können Vergleichsmuster aufgebauter Stationskonfigurationen sichtbar machen; die folgenden Laborgrößen werden jedoch nicht direkt gemessen:
 
 * Antennengewinn in dBi;
 * Strahlungswirkungsgrad;
 * Abstrahlwinkel;
-* kalibrierte Empf&auml;ngerempfindlichkeit;
-* absolute Feldst&auml;rke;
-* jeden versuchten oder geplanten Sendevorgang;
-* formale statistische Signifikanz oder Kausalit&auml;t.
+* kalibrierte Empfängerempfindlichkeit;
+* absolute Feldstärke;
+* jede versuchte oder geplante Aussendung;
+* formale statistische Signifikanz oder Kausalität.
 
-Wesentliche Einschr&auml;nkungen:
+Bei der Interpretation der Evidenz sind außerdem folgende Eigenschaften der Daten und des Versuchsdesigns zu berücksichtigen:
 
-* Crowd-sourced Rufzeichen, Locator, Leistungen und Spots k&ouml;nnen falsch sein;
-* das Archiv enth&auml;lt erfolgreiche Decodes statt vollst&auml;ndiger Versuchs-/Fehlerprotokolle;
-* Success Rate ist von global stammenden beobachtbaren Opportunities bedingt;
-* ein nirgends decodierter TX-Zyklus ist ohne externes Log nicht von keiner Sendung unterscheidbar;
-* Target-Active Gate ist asymmetrisch;
-* sequenzielles TX A/B bleibt zeitlich getrennt;
-* Normalisierung gemeldeter Leistung ist nur so genau wie das gemeldete Feld;
-* Stationshardware, Software, Gel&auml;nde, Rauschen, Polarisation und Ausbreitung bleiben kombiniert;
-* Netzdichte variiert nach Geografie, Band und Zeit;
-* Entfernung bestimmt weder Abstrahlwinkel noch Ausbreitungsart;
-* Upstream-Verf&uuml;gbarkeit und Archivkorrekturen bleiben extern.
+* aus der Community stammende Rufzeichen, Locator, Leistungsangaben und Spots können falsch sein;
+* das Archiv enthält erfolgreiche Decodes und keine vollständigen Protokolle aller Versuche und Fehlschläge;
+* die Success Rate ist durch global erfasste, beobachtbare Opportunities bedingt;
+* ein TX-Zyklus, der nirgends decodiert wurde, ist ohne externes Log nicht von einer ausgebliebenen Aussendung zu unterscheiden;
+* das Target-Active Gate ist asymmetrisch;
+* sequenzielles TX-A/B bleibt zeitlich getrennt;
+* die Normierung auf die gemeldete Leistung ist nur so genau wie das gemeldete Feld;
+* Stationshardware, Software, Gelände, Rauschen, Polarisation und Ausbreitung bleiben miteinander gekoppelt;
+* die Netzdichte variiert nach Geografie, Band und Zeit;
+* Entfernung weist weder Abstrahlwinkel noch Ausbreitungsart nach;
+* Verfügbarkeit und Korrekturen des vorgelagerten Archivs bleiben externe Faktoren.
 
-<a id="sec-8-2"></a>
-#### 8.2 Unterst&uuml;tzte und nicht unterst&uuml;tzte Formulierungen
-
-| Vermeiden | Evidenzgerechte Formulierung |
-|---|---|
-| "Antenne A hat 3 dBi mehr Gewinn." | "Pfad A erzeugte f&uuml;r die gepaarte Evidenz auf diesem Band, in diesem Fenster und Segment ein medianes normalisiertes Delta SNR von +3,0 dB gegen B." |
-| "Meine Empf&auml;ngerempfindlichkeit betr&auml;gt 72%." | "Die Success Rate des Target-Empf&auml;ngers betrug 72% unter qualifizierenden Peer-Zyklen, die unabh&auml;ngig anderswo best&auml;tigt wurden." |
-| "Success sollte nahe 100% liegen." | "Success ist ein bedingter globaler Faktor f&uuml;r Netzreichweite; 100% sind nicht der erwartete Ausgangswert." |
-| "A ist statistisch signifikant besser." | "Der gepaarte Median sprach f&uuml;r A, und sein beschreibendes 90%-Stabilit&auml;tsintervall betrug [Bereich]; ein Signifikanztest wurde nicht durchgef&uuml;hrt." |
-| "Die Antenne hat einen niedrigeren Abstrahlwinkel." | "Der beobachtete Vorteil konzentrierte sich auf die angegebenen Segmente mit gr&ouml;&szlig;erer Entfernung; der Abstrahlwinkel wurde nicht gemessen." |
-| "A ist effizienter, weil es mehr exklusive Decodes hatte." | "A erzeugte unter gemeldeter Leistung, Zeitplan und Netzbedingungen mehr exklusive Decode-Evidenz; Wirkungsgrad wurde nicht isoliert." |
-| "Der lokale Median ist die durchschnittliche lokale Station." | "Die Reference war der Zyklus-/Pfadmedian aus je einem Beitrag pro aktiver lokaler Identit&auml;t aus Rufzeichen+Locator." |
+Diese Grenzen verhindern keine nützlichen Stationsvergleiche. Sie bestimmen, welche Größe das Ergebnis repräsentiert und wie präzise darüber berichtet werden kann.
 
 <a id="sec-8-3"></a>
-#### 8.3 Checkliste f&uuml;r Berichte
+#### 8.3 Checkliste für die Ergebnisdokumentation
 
-F&uuml;r ein seri&ouml;ses Ergebnis angeben:
+Für ein belastbares Ergebnis sollten folgende Angaben dokumentiert werden:
 
-* WSPRadar-Version und vorzugsweise Git-Commit;
-* exakter UTC-Start und exaktes UTC-Ende;
+* die gespeicherte `.config` aufbewahren und die WSPRadar-Release- oder Git-Commit-Kennung separat festhalten, da der Export diese derzeit nicht erfasst;
+* konfigurierte UTC-Auswahl und, sofern aus den Laufnotizen verfügbar, die aufgelösten 15-Minuten-Abfragegrenzen; angeben, ob es sich um Success- oder Compare-Evidenz handelt, da sich die Behandlung des exakten Endpunkts unterscheidet;
 * exaktes Band und TX-/RX-Richtung;
 * Target-Rufzeichen und konfiguriertes QTH;
-* Benchmark-Design, Reference-Identit&auml;t oder lokalen Radius/Methode;
-* Hardware-Frame-/Bin-Design, falls anwendbar;
-* Reference SNR Correction und Kalibriergrundlage;
-* Filter f&uuml;r spezielle, bewegte Stationen und Sonnenstand;
+* Benchmark-Design, Referenzidentität oder lokalen Radius und Methode;
+* gegebenenfalls den TX-A/B-Zeitplan;
+* Referenz-SNR-Korrektur und deren Kalibriergrundlage;
+* Filter für spezielle und bewegte Stationen sowie solare Filter;
 * alle Evidenzschwellen;
-* Anzahl gemeinsamer Stationen und Spots/Bins;
-* Delta-SNR-Stationsmedian und 90%-Stabilit&auml;tsintervall;
-* Decode Outcomes und Verteilungen von `STATIONS` / `SPOTS`;
-* Success Rate mit Nenner und Gewichtungsebene;
-* Hardware, Leistung, Zeitplan und bekannte Einschr&auml;nkungen;
-* Exportpaket plus externe Experimentnotizen.
+* Anzahl der Joint-Stationen und Joint-Spots bzw. -Paare;
+* Median des Delta SNR auf Stationsebene und 90-%-Stability-Intervall;
+* Decode Outcomes sowie Verteilungen unter `STATIONS` / `SPOTS`;
+* Success Rate mit ihrem Nenner und der Gewichtungsebene;
+* Geräte, Leistung, Zeitplan und bekannte Einschränkungen;
+* Exportpaket zusammen mit externen Versuchsnotizen.
 
-Vor teuren Entscheidungen aufgrund einer kleinen Differenz Wiederholung, Pfadtausch oder unabh&auml;ngige Kalibrierung einsetzen.
+Eine Wiederholung, ein Tausch der Pfade oder eine unabhängige Kalibrierung kann einen kleinen beobachteten Unterschied erhärten, bevor daraus eine kostspielige Entscheidung abgeleitet wird.
 
 <a id="sec-8-4"></a>
-#### 8.4 Analyse-Exportpaket
+#### 8.4 Exportpaket der Analyse
 
-`Alle Ergebnisse zum Download vorbereiten` erstellt aus dem abgeschlossenen Lauf und den aktuellen Inspector-Auswahlwerten ein Paket. Ein typisches ZIP enth&auml;lt:
+`Alle Ergebnisse zum Download vorbereiten` erstellt aus dem abgeschlossenen Lauf und den aktuellen Auswahlen in der Inspektionsansicht ein Paket. Eine typische ZIP-Datei enthält:
 
 ```text
 config/
   wspradar_config.config
   run_metadata.json
-compare/                         # wenn ein Benchmark-Ergebnis existiert
+compare/                         # sofern ein Benchmark-Ergebnis vorliegt
   figure_map_highres.png
   figure_segment_insight.png
+  figure_segment_temporal_evidence.png
   figure_selected_station_evidence.png
   table_station_insights_current_segment.csv
   table_drilldown_selected_stations.csv
   table_drilldown_all_stations_current_segment.csv
   analysis_cache.parquet
-success/                         # wenn ein Success-Ergebnis existiert
-  ...gleiches Abbildungs-/Tabellenmuster...
+success/                         # sofern ein Success-Ergebnis vorliegt
+  ...gleiches Muster für Abbildungen/Tabellen...
   analysis_cache.parquet
 ```
 
-Abbildungen verwenden eine hochaufl&ouml;sende helle Papierdarstellung. Dateien ohne passende Exportanweisung oder ausgew&auml;hlte Evidenz k&ouml;nnen fehlen. CSV-Dateien spiegeln aktuelle Segment- und Stationsauswahl wider. Parquet-Dateien enthalten verarbeitete Evidenz nach Filtern und keine unver&auml;nderten wspr.live-Dumps.
+Die Abbildungen verwenden eine hochauflösende Darstellung auf hellem, druckgeeignetem Hintergrund. Dateien ohne anwendbares Exportrezept oder ohne ausgewählte Evidenz können fehlen. CSV-Dateien spiegeln die aktuelle Segment- und Stationsauswahl wider. Parquet-Dateien enthalten verarbeitete Evidenz nach Anwendung der Filter und keine unveränderten wspr.live-Dumps.
 
-Konfiguration und Laufmetadaten speichern Anwendungsversion, Exportzeit, Sprache, Richtung, Band, Benchmark-Auswahl, konfigurierte Zeitauswahl, Korrektur, Filter, Schwellen, Ergebnisbl&ouml;cke und Inspector-Auswahl.
+Bei Compare reproduziert `figure_selected_station_evidence.png` die für die ausgewählten Stationen aktive Zeitansicht zum Zeitpunkt der Exportvorbereitung. Der Modus `Chronologisch` verwendet die gewählte Compare-Zeitklasse; `UTC-Stunde` verwendet feste einstündige Zeitfenster und dieselben ausgewählten Evidenzzeilen. Der Modus wird in der gespeicherten `.config` und in `run_metadata.json` festgehalten.
 
-Das Paket unterst&uuml;tzt Audit und Reproduzierbarkeit, ist aber kein vollst&auml;ndiger Rechensnapshot. Derzeit fehlen:
+Die gespeicherte Konfiguration enthält die zutreffenden ausführbaren Einstellungen. `run_metadata.json` erfasst Anwendungsname und -version, Exportzeit, Sprache, Richtung, Band, Benchmark-Auswahl, konfigurierte Zeitauswahl, Korrektur, Filter, Schwellen, Ergebnisblöcke und Auswahlen in der Inspektionsansicht.
 
-* exaktes SQL oder unver&auml;nderte Upstream-Antworten;
-* Dependency-Lock oder Beschreibung des Betriebssystems;
-* Git-Commit-ID;
-* Zustand des strengen gegen&uuml;ber dem Fallback-Decode-Filter;
-* eigene exakt aufgel&ouml;ste/quantisierte Endpunkte eines Laufs mit `Letzte X Stunden`.
+Der effektive Zustand `code = 1` bzw. des historischen Fallbacks wird während des Laufs angezeigt, aber nicht im Paket gespeichert. Das Paket enthält außerdem weder einen Git-Commit noch die exakten aufgelösten Endpunkte vor der Quantisierung, eine stabile ausdrückliche Intervallkonvention oder einen Fingerabdruck der Abfrage bzw. Abfrageparameter. Quantisierte Kartengrenzen können innerhalb der nicht transparenten Exportsignatur vorkommen; dieser interne Wert ist jedoch keine versionierte Festlegung der Zeitgrenzen und darf nicht als solche behandelt werden.
 
-Das ZIP zusammen mit Stationsnotizen, Schaltzeitplan, Leistungsmessungen und Kalibrierdaten aufbewahren.
+Das Paket unterstützt Audit und Reproduzierbarkeit, ist jedoch kein vollständiger Rechen-Snapshot. Derzeit fehlen:
+
+* Git-Commit oder Nachweis eines unveränderten Arbeitsbaums;
+* ausdrückliche aufgelöste und quantisierte UTC-Endpunktfelder mit der jeweils geltenden Intervallkonvention;
+* der effektive Zustand des strikten `code = 1` gegenüber dem historischen Fallback je Ergebnisblock;
+* das exakte SQL, ein stabiler Fingerabdruck der Abfrage bzw. Abfrageparameter oder unveränderte vorgelagerte Antworten;
+* ein Abhängigkeits-Lockfile oder eine Beschreibung des Betriebssystems;
+* maßgebliche Betriebsprotokolle der Sender und Empfänger, Kalibrierdatensätze oder externe Versuchsnotizen.
+
+Bewahre die ZIP-Datei zusammen mit Stationsnotizen, Umschaltzeitplan, Leistungsmessungen und Kalibrierdaten auf.
 
 <a id="sec-8-5"></a>
-#### 8.5 Haftungsausschluss und Lizenz
+#### 8.5 Haftungsausschluss
 
-WSPRadar ist experimentelle Open-Source-Software und wird ohne Gew&auml;hrleistung "wie besehen" bereitgestellt. Quellcode und Methoden sind pr&uuml;fbar, aber Genauigkeit, Vollst&auml;ndigkeit, Verf&uuml;gbarkeit und Eignung werden nicht garantiert. Keine gro&szlig;en finanziellen oder sicherheitsrelevanten Entscheidungen allein auf WSPRadar st&uuml;tzen.
+WSPRadar ist experimentelle Open-Source-Software und wird in der vorliegenden Form („as is“) ohne Gewährleistung bereitgestellt. Quellcode und Methoden können geprüft werden; Genauigkeit, Vollständigkeit, Verfügbarkeit und Eignung werden jedoch nicht garantiert. Triff keine wesentlichen finanziellen oder sicherheitsrelevanten Entscheidungen allein auf Grundlage von WSPRadar.
 
-WSPRadar steht unter der GNU Affero General Public License Version 3 (AGPLv3). Ma&szlig;geblich ist die Datei `LICENSE` im Repository.
+<div style="page-break-before: always;"></div>
+
+<a id="sec-ref"></a>
+### Literatur und Quellen
+
+* <a id="ref-1"></a><a href="https://arxiv.org/abs/2209.08989">[Ref-1]</a> **Preprint.** Zander, J. (2022). *Simple HF antenna efficiency comparisons using the WSPR system*. arXiv:2209.08989v1. doi:10.48550/arXiv.2209.08989.
+
+* <a id="ref-2"></a><a href="https://doi.org/10.1155/2022/4809313">[Ref-2]</a> **Begutachteter Fachartikel.** Vanhamel, J.; Machiels, W.; Lamy, H. (2022). *Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band*. International Journal of Antennas and Propagation, 2022, 4809313. doi:10.1155/2022/4809313.
+
+* <a id="ref-3"></a><a href="https://www.mdpi.com/2073-4433/13/8/1340">[Ref-3]</a> **Begutachteter Fachartikel.** Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). *A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals*. Atmosphere, 13(8), 1340. doi:10.3390/atmos13081340.
+
+* <a id="ref-4"></a><a href="https://www.arrl.org/files/file/History/History%20of%20QST%20Volume%201%20-%20Technology/QS11-2010-Taylor.pdf">[Ref-4]</a> Taylor, J. H.; Walker, B. (2010). *WSPRing Around the World*. QST, 94(11), 30-32.
+
+* <a id="ref-5"></a><a href="https://wspr.live/">[Ref-5]</a> **Offizielle Dokumentation des Datendienstes.** WSPR.live, *Welcome to WSPR Live* und <a href="https://wspr.live/wspr_downloader.php">*WSPR Exporter*</a>: Datenbankbeschreibung, Schema, Zuordnung der Mode-Codes, Haftungsausschluss zu Rohdaten und Verfügbarkeit sowie Echtzeitverzögerung. Abgerufen am 2026-07-15.
+
+* <a id="ref-6"></a><a href="https://wsjt.sourceforge.io/wsjtx-main_en.html">[Ref-6]</a> **Offizielle Betriebsdokumentation.** WSJT-X 3.0.1 User Guide: WSPR-Nachrichtenformate und Decoderleistung; Dateitrennung unter Windows mit `--rig-name`; Audioeinstellungen und Dateispeicherorte. QRP Labs, <a href="https://www.qrp-labs.com/images/qmx/manuals/operation_1_03_000.pdf">*QMX Operating Manual, firmware 1_03_000*</a>: Beacon-Zeitplanung mit `Frame` und `Start` sowie Empfehlungen zur WSPR-Wiederholung; <a href="https://qrp-labs.com/images/ultimate3s/operation3.12a.pdf">*Ultimate3S Operating Manual, firmware v3.12a*</a>: globales Frame-/Start-Verhalten, sequenzielle Mode-Einträge und `Aux`-Werte je Eintrag; <a href="https://qrp-labs.com/images/appnotes/AN003_A4.pdf">*AN003: Ultimate3/3S relay-switched filters*</a>: Ansteuerung von Relais/Treibern für geschaltete Filter und Schaltintervalle ohne HF. Abgerufen am 2026-07-15.
+
+* <a id="ref-7"></a><a href="https://sivantoledotech.wordpress.com/2010/09/24/failure-to-use-wspr-to-compare-antennas/">[Ref-7]</a> **Technischer Erfahrungsbericht eines Funkamateurs.** Toledo, S. / 4X6IZ (2010). *Failure to Use WSPR to Compare Antennas*.
+
+* <a id="ref-8"></a><a href="https://www.frontiersin.org/journals/astronomy-and-space-sciences/articles/10.3389/fspas.2023.1184171/full">[Ref-8]</a> **Begutachteter Übersichtsartikel.** Frissell, N. A. et al. (2023). *Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations*. Frontiers in Astronomy and Space Sciences, 10, 1184171. doi:10.3389/fspas.2023.1184171.
+
+* <a id="ref-9"></a><a href="https://www.qsl.net/kp4md/wspr.htm">[Ref-9]</a> **Amateurfunk-Fachartikel und Clubvortrag.** Milazzo, C. F. / KP4MD (2011). *Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance*.
+
+* <a id="ref-10"></a><a href="https://www.researchgate.net/publication/319903566_Improving_HF_Band_SNR_from_analysis_of_WSPR_spots">[Ref-10]</a> **Amateurfunk-Zeitschriftenartikel.** Griffiths, G.; Squibb, N. J. (2017). *Improving HF Band SNR from analysis of WSPR spots*. Practical Wireless, October 2017, 23-26.
+
+* <a id="ref-11"></a><a href="https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf">[Ref-11]</a> **Konferenzbeitrag.** Griffiths, G.; Robinett, R. (2020). *Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana*. ARRL/TAPR Digital Communications Conference 2020.
+
+* <a id="ref-12"></a><a href="https://wspr.rocks/help.html">[Ref-12]</a> **Werkzeugdokumentation.** WSPR.Rocks, *Help &amp; Documentation*: SpotQ, SQL-Zugriff, Duplikatanalyse, Karten, Diagramme und Heatmaps.
+
+* <a id="ref-13"></a><a href="https://wsprdaemon.readthedocs.io/en/stable/description/how_it_works.html">[Ref-13]</a> **Werkzeugdokumentation.** WSPRdaemon, *How wsprdaemon Works*: Decodierung mit mehreren Empfängern, Reporting, Zeitplanung sowie Rausch- und Doppler-Metadaten.
+
+* <a id="ref-14"></a><a href="https://www.sotabeams.co.uk/wsprlite-classic">[Ref-14]</a> **Produktdokumentation.** SOTABEAMS, *WSPRlite Classic / DXplorer*: WSPR-basierte Analyse der Antennenleistung und DX10-Metrik.
+
+* <a id="ref-15"></a><a href="https://sites.google.com/myuba.be/wspr-station-compare/home">[Ref-15]</a> **Projektdokumentation.** WSPR-Station-Compare, Projektseite mit Verweisen auf Vanhamel et al. und Zander.
+
+* <a id="ref-16"></a><a href="https://wspr.bsdworld.org/">[Ref-16]</a> **Werkzeugdokumentation.** Antenna Performance Analysis Tool, WSPR-basierter Generator für Antennenberichte.
+
+* <a id="ref-17"></a><a href="https://www.gm4eau.com/home-page/wspr/">[Ref-17]</a> **Werkzeugdokumentation.** GM4EAU, *WATT WSPR Analysis Tool*: Berichte, Karten, Filter und Zeitachsenanimation in Excel/VBA.
+
+* <a id="ref-18"></a><a href="https://www.arrl.org/wspr">[Ref-18]</a> **Offizieller technischer Überblick.** ARRL, *WSPR*: Nachrichtenformat, Codierung, Dauer, Zeitsteuerung, belegte Bandbreite und SNR-Bezugsgröße. Abgerufen am 2026-07-12.
+
+<div style="page-break-before: always;"></div>
+
+<a id="part-iv"></a>
+## Teil IV: Praktische Ergänzungen
+
+Dieser Teil bündelt optionale Einrichtungsverfahren, das zeitgesteuerte Relais-Hilfsprogramm, Hinweise zur Kalibrierung der Referenzseite und die Projektlizenz. Verwende die Abschnitte, die für deine Station und deinen Versuch relevant sind.
 
 <a id="sec-a"></a>
 ### Anhang A: Parallele WSJT-X-Instanzen
 
-Dieses Verfahren erstellt unter Windows eine zweite isolierte WSJT-X-Instanz, zum Beispiel f&uuml;r simultanes RX Hardware A/B. Das aktuelle WSJT-X-Handbuch dokumentiert `--rig-name` als unterst&uuml;tzten Weg, Einstellungen und schreibbare Dateien jeder Instanz zu isolieren. WSJT-X-Versionen und Installationspfade k&ouml;nnen sich &auml;ndern; bei abweichenden Men&uuml;s das aktuelle Handbuch pr&uuml;fen. <a href="#ref-2">[Ref-2]</a>
+Mit diesem Verfahren wird unter Windows eine zweite isolierte WSJT-X-Instanz eingerichtet, beispielsweise für einen simultanen RX Hardware A/B-Test. Das aktuelle WSJT-X-Handbuch nennt `--rig-name` als unterstützten Weg, die Einstellungen und beschreibbaren Dateien jeder Instanz zu trennen. Da sich WSJT-X-Versionen und Installationspfade ändern können, sollte bei abweichenden Menüs das aktuelle Handbuch geprüft werden. <a href="#ref-6">[Ref-6]</a>
 
-#### A.1 Zweite Instanz erstellen
+<a id="sec-a-1"></a>
+#### A.1 Zweite Instanz anlegen
 
-1. Eine Desktop-Verkn&uuml;pfung f&uuml;r `wsjtx.exe` erstellen.
-2. Eigenschaften der Verkn&uuml;pfung &ouml;ffnen.
-3. Im Feld **Target/Ziel** der Verkn&uuml;pfung au&szlig;erhalb der Anf&uuml;hrungszeichen des Programmpfads einen eigenen Rig-Namen erg&auml;nzen. Den tats&auml;chlichen Pfad der Installation verwenden, zum Beispiel:
+1. Eine Desktop-Verknüpfung zu `wsjtx.exe` erstellen.
+2. Die Eigenschaften der Verknüpfung öffnen.
+3. Im Feld **Ziel** der Verknüpfung außerhalb der Anführungszeichen des Programmpfads einen eindeutigen Rig-Namen ergänzen. Den tatsächlichen Programmpfad der eigenen Installation verwenden, zum Beispiel:
    `"C:\WSJTX\bin\wsjtx.exe" --rig-name=SDR`
-4. Die Verkn&uuml;pfung einmal starten und wieder schlie&szlig;en. F&uuml;r `--rig-name=SDR` erstellt Windows diese isolierten Orte:
-   * Einstellungen: `%LOCALAPPDATA%\WSJT-X - SDR\WSJT-X - SDR.ini`
-   * Log-/Schreibverzeichnis: `%LOCALAPPDATA%\WSJT-X - SDR\`
-   * Standardverzeichnis f&uuml;r gespeicherte Audiodaten: `%LOCALAPPDATA%\WSJT-X - SDR\save\`
+4. Die Verknüpfung einmal starten und die Instanz wieder schließen. Für `--rig-name=SDR` legt Windows folgende getrennte Speicherorte an:
+    * Einstellungen: `%LOCALAPPDATA%\WSJT-X - SDR\WSJT-X - SDR.ini`
+    * Log-/Schreibverzeichnis: `%LOCALAPPDATA%\WSJT-X - SDR\`
+    * Standardverzeichnis für gespeicherte Audiodateien: `%LOCALAPPDATA%\WSJT-X - SDR\save\`
 
-#### A.2 Ausgangskonfiguration bei Bedarf klonen
+<a id="sec-a-2"></a>
+#### A.2 Ausgangskonfiguration bei Bedarf kopieren
 
-1. Alle WSJT-X-Instanzen schlie&szlig;en.
+1. Alle WSJT-X-Instanzen schließen.
 2. `%LOCALAPPDATA%\WSJT-X\WSJT-X.ini` kopieren.
-3. Die Datei in `%LOCALAPPDATA%\WSJT-X - SDR\` einf&uuml;gen.
-4. Die Kopie in `%LOCALAPPDATA%\WSJT-X - SDR\WSJT-X - SDR.ini` umbenennen und bei beabsichtigtem Klonen die neu initialisierte Instanzdatei ersetzen.
+3. Die Datei in `%LOCALAPPDATA%\WSJT-X - SDR\` einfügen.
+4. Die Kopie in `%LOCALAPPDATA%\WSJT-X - SDR\WSJT-X - SDR.ini` umbenennen und dabei, falls beabsichtigt, die neu initialisierte Instanzdatei ersetzen.
 
-#### A.3 Jeden Datenpfad trennen
+<a id="sec-a-3"></a>
+#### A.3 Alle Datenpfade trennen
 
-Eine geklonte Konfiguration kann beide Instanzen weiterhin auf denselben Audioeingang oder Speicherpfad verweisen lassen. Dadurch kann derselbe Audiostream doppelt decodiert werden oder es k&ouml;nnen Dateikonflikte entstehen. In der zweiten Instanz pr&uuml;fen:
+Eine kopierte Konfiguration kann weiterhin beide Instanzen auf denselben Audioeingang oder Speicherpfad verweisen lassen. Dadurch kann derselbe Audiostrom doppelt decodiert werden oder es können Dateikonflikte entstehen. In der zweiten Instanz Folgendes prüfen:
 
-1. **File > Settings > Audio** &ouml;ffnen.
-2. Unter **Soundcard** bei **Input** den vorgesehenen unabh&auml;ngigen Empf&auml;nger oder das Audioger&auml;t w&auml;hlen. Das WSJT-X-Handbuch verlangt eine Audioger&auml;tekonfiguration mit 48.000 Hz und 16 Bit.
+1. **File > Settings > Audio** öffnen.
+2. Unter **Soundcard** für **Input** den vorgesehenen unabhängigen Empfänger bzw. das vorgesehene unabhängige Audiogerät einstellen. Das WSJT-X-Handbuch nennt eine Audiogerätekonfiguration mit 48.000 Hz und 16 Bit.
 3. **Save Directory** auf einen instanzspezifischen Pfad setzen, normalerweise `%LOCALAPPDATA%\WSJT-X - SDR\save\`.
 4. **AzEl Directory** auf einen instanzspezifischen Pfad setzen, zum Beispiel `%LOCALAPPDATA%\WSJT-X - SDR\`.
-5. **File > Settings > General** &ouml;ffnen und das exakte Setup-B-Rufzeichen sowie den f&uuml;r Meldungen verwendeten Locator einstellen.
-6. Zur WSPR-Hauptansicht zur&uuml;ckkehren, Band und Audiopegel best&auml;tigen, bei Bedarf den Spot-Upload aktivieren und pr&uuml;fen, dass hochgeladene Zeilen die Setup-B-Identit&auml;t verwenden.
-7. Zeitsynchronisation beider Instanzen best&auml;tigen.
+5. **File > Settings > General** öffnen und dort exakt das Rufzeichen und den Locator von Setup B eintragen, die für Meldungen verwendet werden.
+6. Zum WSPR-Hauptfenster zurückkehren, das vorgesehene Band und den Audiopegel prüfen, bei Bedarf den Spot-Upload aktivieren und kontrollieren, dass hochgeladene Zeilen die Identität von Setup B verwenden.
+7. Die Zeitsynchronisation beider Instanzen prüfen.
 
-Getrennte Verzeichnisse beweisen keine Unabh&auml;ngigkeit der HF-Pfade. Empirisch best&auml;tigen, dass beide Datenstr&ouml;me die vorgesehene Hardware verwenden.
+Getrennte Verzeichnisse belegen noch keine Unabhängigkeit der HF-Pfade. Prüfe praktisch, ob beide Datenströme tatsächlich die vorgesehene Hardware verwenden.
+
+<div style="page-break-before: always;"></div>
 
 <a id="sec-b"></a>
-### Anhang B: Zeitgesteuerte A/B-Relaisumschaltung
+### Anhang B: Zeitgesteuerter A/B-Relaisumschalter
 
-Bei sequenziellen TX-A/B-Antennentests ist ein Sender, der &uuml;ber einen kontrollierten Schalter zwei HF-Pfade speist, normalerweise zwei unabh&auml;ngigen Sendern vorzuziehen. Sender, Frequenzreferenz, WSPR-Kette, Rufzeichen, Leistungseinstellung und Timing bleiben gemeinsam.
+Für sequenzielle TX-A/B-Antennentests ist ein Sender, der über einen kontrollierten Umschalter zwei HF-Pfade speist, normalerweise zwei unabhängigen Sendern vorzuziehen. Sender, Frequenzreferenz, WSPR-Kette, Rufzeichen, Leistungseinstellung und Zeitsteuerung bleiben damit gemeinsam.
 
-WSPRadar enth&auml;lt:
+WSPRadar enthält:
 
 `tools/Timed-AB-Relay-Switch`
 
-Release-Paket:
+Derzeit veröffentlichtes Release-Paket der Version 0.1:
 
-https://github.com/markusthemaker/WSPRadar/releases/download/timed-ab-relay-switch-v0.1.0/Timed-AB-Relay-Switch-v0.1.0.zip
+[Release-Paket des zeitgesteuerten A/B-Relaisumschalters herunterladen](https://github.com/markusthemaker/WSPRadar/releases/download/timed-ab-relay-switch-v0.1.0/Timed-AB-Relay-Switch-v0.1.0.zip)
 
-Das Hilfsprogramm steuert unterst&uuml;tzte USB-HID-Relais auf den beiden WSPR-Frame-Folgen:
+Das Hilfsprogramm im Repository verwendet dieselben Begriffe und Bedingungen für den Zeitplan wie WSPRadar:
 
-* Target-Frames: UTC `00, 04, 08, ...`
-* Reference-Frames: UTC `02, 06, 10, ...`
+* `Wiederholintervall` gilt gemeinsam für Target und Referenz; zulässig sind `4, 6, 10, 12, 20, 30` oder `60 min`.
+* `Target-Start` und `Referenz-Start` sind unterschiedliche gerade UTC-Phasen unterhalb dieses Intervalls.
+* Die Voreinstellung lautet `Wiederholintervall = 10`, `Target-Start = 00`, `Referenz-Start = 02`.
 
-Eine optionale Vorlaufzeit l&auml;sst den HF-Pfad vor der Sendung einschwingen. Das Hilfsprogramm zielt auf verbreitete ATtiny45/V-USB-HID-Relaisplatinen mit USB-VID/PID `16c0:05df` und verwendet den Python-HID-Stack unter Windows, Linux und macOS. Aktuelle Installation, Berechtigungen und Optionen stehen in seinem README.
+Das Relais wählt jeden Pfad vor dessen konfiguriertem Start und hält während nicht belegter Lücken den zuletzt gewählten Pfad. An ungenutzten zweiminütigen WSPR-Grenzen wird nicht geschaltet. Hilfsprogramm und WSPRadar müssen anhand der Aussendungen, die tatsächlich über den jeweiligen HF-Pfad erfolgen, identisch konfiguriert werden. Sendet beispielsweise ein QMX über ein alternierendes Relais bei `00, 10, 20, 30, 40, 50`, ergibt dies `Wiederholintervall = 20`, Target `00`, Referenz `10`; es ergibt nicht `10 / 00 / 02`. Ist die physische Polarität umgekehrt, muss geändert werden, ob Relais ON dem Target entspricht, oder die beiden Startzuordnungen müssen getauscht werden.
+
+Eine optionale Vorlaufzeit lässt den HF-Pfad vor jedem geplanten Start einschwingen. Die manuelle physische Relaissteuerung ON/OFF bleibt unabhängig vom automatischen Zeitplan verfügbar. Bestehende Modulo-4-Konfigurationen der Version 0.1 behalten beim Laden ihr bisheriges Verhalten als `4 / 00 / 02` oder `4 / 02 / 00`. Das Hilfsprogramm ist für verbreitete ATtiny45/V-USB-HID-Relaisplatinen mit USB-VID/PID `16c0:05df` ausgelegt und verwendet unter Windows, Linux und macOS den Python-HID-Stack. Aktuelle Hinweise zu Installation, Berechtigungen und Optionen stehen in seiner README-Datei.
+
+Das verlinkte Paket der Version 0.1 enthält noch den früheren festen Modulo-4-Zeitplaner. Bis ein neueres Paket veröffentlicht ist, ist für den hier beschriebenen konfigurierbaren Zeitplan die Version aus dem Repository zu verwenden.
 
 Installation aus dem Werkzeugverzeichnis:
 
@@ -900,14 +1603,14 @@ oder unter Linux/macOS:
 python3 -m pip install -r requirements-relay.txt
 ```
 
-Windows-Einrichtung und Testlauf:
+Einrichtung und Testlauf unter Windows:
 
 ```bat
 Start-Timed-AB-Relay-Switch.cmd --setup
 Start-Timed-AB-Relay-Switch.cmd --dry-run
 ```
 
-Linux/macOS-Einrichtung und Testlauf:
+Einrichtung und Testlauf unter Linux/macOS:
 
 ```sh
 chmod +x ./Start-Timed-AB-Relay-Switch.sh
@@ -915,146 +1618,38 @@ chmod +x ./Start-Timed-AB-Relay-Switch.sh
 ./Start-Timed-AB-Relay-Switch.sh --dry-run
 ```
 
-Ein kleines USB-Relais sollte normalerweise nicht direkt HF schalten. Es sollte ein passend dimensioniertes HF-Schalt- oder Relaissystem steuern. Spannung, Strom, Polarit&auml;t, ausfallsicheren Zustand, HF-Leistung, Isolation und Verriegelungen pr&uuml;fen.
+Ein kleines USB-Relais sollte die HF normalerweise nicht direkt schalten. Es sollte ein für die Aufgabe ausreichend dimensioniertes HF-Schaltsystem oder -Relais ansteuern. Spannung, Strom, Polarität, ausfallsicheren Zustand, HF-Leistung, Isolation und Verriegelungen prüfen.
 
 Vor dem Senden:
 
 * ohne HF-Leistung testen;
-* Polarit&auml;t der Target- und Reference-Pfade pr&uuml;fen;
-* sicherstellen, dass w&auml;hrend einer WSPR-Sendung nicht umgeschaltet wird;
-* Dummy Load oder Durchgangs-/SWR-Test mit geringer Leistung verwenden;
-* Relaiskanal, Polarit&auml;t, Vorlaufzeit, Frame-Zuordnung und Pfadzuordnung dokumentieren.
+* Polarität des Target- und Referenzpfads prüfen;
+* sicherstellen, dass während einer WSPR-Aussendung nicht umgeschaltet wird;
+* eine Kunstantenne (Dummy Load) oder einen Durchgangs-/SWR-Test mit geringer Leistung verwenden;
+* Relaiskanal, Polarität, Vorlaufzeit, Zeitplanzuordnung und Pfadbelegung dokumentieren.
 
-Schaltverlust, Isolation, Steckverbinder, Unterschiede der Speiseleitungen und Antennenumgebung bleiben Teil des Ergebnisses. Ein Tausch der Antennen zwischen Schaltpfaden kann helfen, Antennen- von Pfadeffekten zu trennen.
+Schaltverlust, Isolation, Steckverbinder, Unterschiede der Speiseleitungen und das Antennenumfeld bleiben Bestandteil des Ergebnisses. Ein Tausch der Antennen zwischen den Schaltpfaden kann helfen, Antenneneffekte von Pfadeffekten zu trennen.
+
+<div style="page-break-before: always;"></div>
 
 <a id="sec-c"></a>
 ### Anhang C: Referenz-SNR-Kalibrierung
 
-Dieses Verfahren sch&auml;tzt einen stabilen additiven Offset zwischen Empfangsketten oder Reference-seitigen Pfaden.
+Dieses Verfahren schätzt einen stabilen additiven Offset zwischen Empfangsketten oder Pfaden auf der Referenzseite.
 
-1. **Gemeinsamer Eingang:** Beide Empfangsketten &uuml;ber einen geeigneten Splitter und kontrollierte Kabel aus einer stabilen Antenne speisen.
-2. **Splitter charakterisieren:** Ausgangsungleichgewicht und Kabelunterschiede ber&uuml;cksichtigen; Ausg&auml;nge in einem Kontrolllauf tauschen, wenn praktisch m&ouml;glich.
-3. **Gepaarte Evidenz erfassen:** Gleichzeitig &uuml;ber die beabsichtigten Signalpegel arbeiten, ohne Verst&auml;rkung oder Decoder-Einstellungen zu &auml;ndern.
-4. **Offset sch&auml;tzen:** Gepaarte Delta-SNR-Evidenz verwenden und angeben, ob der Sch&auml;tzer stationsbalanciert oder ein Rohpaar-Sch&auml;tzer ist.
-5. **Stabilit&auml;t pr&uuml;fen:** Nach Station, Zeit und SNR untersuchen. Eine Konstante ist nicht vertretbar, wenn sich der Offset mit Pegel, Frequenz, AGC oder Zeit &auml;ndert.
-6. **Vorzeichen anwenden:** Beobachteten Offset `Target - Reference` mit demselben Vorzeichen eingeben.
-7. **Validieren:** Wiederholen oder Pfade tauschen und best&auml;tigen, dass das korrigierte Common-Input-Delta plausibel nahe null liegt.
+1. **Gemeinsames Eingangssignal:** Beide Empfangsketten über einen geeigneten Verteiler und charakterisierte Kabel aus einer stabilen Antenne speisen.
+2. **Verteiler charakterisieren:** Pegelunterschiede zwischen den Ausgängen und Kabeldifferenzen berücksichtigen; wenn praktikabel, die Ausgänge in einem Kontrolllauf vertauschen.
+3. **Gepaarte Evidenz sammeln:** Beide Ketten gleichzeitig über den vorgesehenen Signalpegelbereich betreiben, ohne Verstärkung oder Decoder-Einstellungen zu verändern.
+4. **Offset schätzen:** Gepaarte Delta-SNR-Evidenz verwenden und angeben, ob der Schätzer stationsgleichgewichtet oder aus den Rohpaaren berechnet ist.
+5. **Stabilität prüfen:** Nach Station, Zeit und SNR untersuchen. Ein konstanter Wert ist nicht vertretbar, wenn sich der Offset mit Pegel, Frequenz, AGC oder Zeit ändert.
+6. **Vorzeichen anwenden:** Den beobachteten Offset `target - reference` mit demselben Vorzeichen eingeben.
+7. **Validieren:** Messung wiederholen oder Pfade tauschen und prüfen, ob das korrigierte Delta des gemeinsamen Eingangssignals plausibel nahe null liegt.
 
-Ein schmales Stabilit&auml;tsintervall zeigt Wiederholbarkeit der vorhandenen Stichprobe und keine r&uuml;ckf&uuml;hrbare Laborgenauigkeit. Splitterverlust, Fehlanpassung, Kopplung und Quelleninstabilit&auml;t k&ouml;nnen verbleiben.
+Ein schmales Stability-Intervall zeigt die Wiederholbarkeit der verfügbaren Stichprobe und keine rückführbare Laborgenauigkeit. Verteilerverlust, Fehlanpassung, Kopplung und Instabilität der Quelle können bestehen bleiben.
 
-<a id="sec-d"></a>
-### Anhang D: Literatur, Stand der Technik und Einordnung
+<a id="sec-license"></a>
+### Lizenz
 
-Dieser Anhang st&uuml;tzt die Einordnung von WSPRadar, ohne den Arbeitsablauf f&uuml;r Funkamateure zu unterbrechen. Er behauptet nicht, dass die Literatur jede WSPRadar-Kennzahl oder Implementierungsentscheidung validiert.
+WSPRadar ist unter der GNU Affero General Public License Version 3 (AGPLv3) lizenziert. Maßgeblich ist die Datei `LICENSE` im Repository.
 
-#### D.1 WSPR als Beobachtungsnetz
-
-Taylor und Walker beschreiben Zweck und praktische weltweite Nutzung von WSPR als Weak Signal Propagation Reporter. <a href="#ref-4">[Ref-4]</a>
-
-Das &ouml;ffentliche Archiv ist kein Laborinstrument. Die Kombination aus breiter geografischer Beteiligung, historischer Tiefe und erfolgreichen Decode-Datens&auml;tzen macht es stark f&uuml;r Beobachtungsanalysen, verlangt aber einen ausdr&uuml;cklichen Umgang mit Stationsaktivit&auml;t, Identit&auml;t und Sampling.
-
-#### D.2 WSPR in der Funkwissenschaft
-
-Lo et al. verwendeten WSPR-Beobachtungen auf 7 MHz zur Untersuchung von Greyline-Ausbreitung. Sie diskutieren inkonsistente Stationsangaben, fehlende offizielle Betriebspl&auml;ne und den Nutzen, Sender- oder Empf&auml;ngeraktivit&auml;t an anderer Stelle im Netz zu pr&uuml;fen. Diese Aktivit&auml;tslogik ist relevantes Vorwissen f&uuml;r das Target-Active Gate von WSPRadar, obwohl sich die Sch&auml;tzgr&ouml;&szlig;en unterscheiden. <a href="#ref-5">[Ref-5]</a>
-
-Frissell et al. beschreiben WSPRNet, Reverse Beacon Network und PSKReporter als wichtige Amateurfunk-Beobachtungsnetze f&uuml;r Heliophysik und Citizen Science. Sie unterscheiden diese breiten Netze von gezielt gebauten, fein kalibrierten Instrumenten. <a href="#ref-6">[Ref-6]</a>
-
-Die Schlussfolgerung ist bewusst begrenzt: WSPR kann systematische funkwissenschaftliche Fragen unterst&uuml;tzen, wenn Aktivit&auml;t, Sampling, Identit&auml;t und St&ouml;rvariablen ausdr&uuml;cklich behandelt werden. Peer-Review macht nicht automatisch jeden Stationsvergleich valide.
-
-#### D.3 Vorarbeiten zu Antennen- und Stationsvergleichen
-
-Vanhamel, Machiels und Lamy verwendeten zwei konditionierte, nahezu identische 160-m-WSPR-Empfangsstationen zum Vergleich von Antennen und Ausbreitung. Ihr simultanes Design mit gemeinsamem Signal st&uuml;tzt RX Hardware A/B und die Notwendigkeit, Offsets der Empfangsketten zu charakterisieren. <a href="#ref-7">[Ref-7]</a>
-
-Zander untersucht den relativen Wirkungsgrad von HF-Antennen &uuml;ber das globale WSPR-Empf&auml;ngernetz und diskutiert Genauigkeit und Grenzen. Das ist relevante TX-seitige Vorarbeit, beweist aber nicht, dass jedes WSPR-Delta-SNR kalibrierter Wirkungsgrad ist. <a href="#ref-8">[Ref-8]</a>
-
-Milazzo liefert fr&uuml;here amateurfunktechnische Vorarbeiten zum WSPR-Antennenvergleich. Sie belegen einen langj&auml;hrigen praktischen Bedarf und kein peer-reviewtes standardisiertes Protokoll. <a href="#ref-9">[Ref-9]</a>
-
-Griffiths und Squibb verwendeten WSPR-Spot- und SNR-Informationen zur Untersuchung praktischer Verbesserungen von HF-Empfangssystemen. Das st&uuml;tzt eine Interpretation des gesamten Stationssystems einschlie&szlig;lich Antenne, Speiseleitung, lokalem Rauschen und Empf&auml;nger. <a href="#ref-10">[Ref-10]</a>
-
-#### D.4 Werkzeuge und praktische Vorarbeiten
-
-WSPR.Rocks bietet schnelle WSPR-Exploration, SQL-Zugriff, Karten, Tabellen, SpotQ und weitere Analysen. WSPRadar unterscheidet sich durch einen Arbeitsablauf rund um ausdr&uuml;ckliche Experimentdesigns, Paarung und Audit auf Zeilenebene statt einer Rangliste. <a href="#ref-11">[Ref-11]</a>
-
-Griffiths und Robinett demonstrieren Datenbank-Joins und Zeitreihenansichten zum Vergleich gemeinsamer WSPR-Sender, Zeiten und B&auml;nder. <a href="#ref-12">[Ref-12]</a>
-
-WSPRdaemon konzentriert sich auf robuste Erfassung mit mehreren Empf&auml;ngern, Zeitplanung und zus&auml;tzliche Rausch-/Doppler-Metadaten. Das zeigt, warum Erfassungsstabilit&auml;t und Rauschkontext f&uuml;r RX-Analysen wichtig sind. <a href="#ref-13">[Ref-13]</a>
-
-SOTABEAMS WSPRlite und DXplorer bieten zug&auml;ngliche WSPR-basierte Antennen-/Standortvergleiche und die DX10-Kennzahl. <a href="#ref-14">[Ref-14]</a>
-
-WSPR-Station-Compare verbindet Stationsvergleichssoftware ausdr&uuml;cklich mit den Methoden von Vanhamel und Zander. <a href="#ref-15">[Ref-15]</a>
-
-Das Antenna Performance Analysis Tool ist ein weiterer nutzerorientierter Dienst f&uuml;r WSPR-Antennenberichte. Seine Existenz bedeutet, dass WSPRadar nicht behaupten sollte, das erste WSPR-Antennenanalysewerkzeug zu sein. <a href="#ref-16">[Ref-16]</a>
-
-WATT bietet Berichte, Karten, Filter und Zeitleistenexploration in Excel/VBA. Das unterstreicht den praktischen Wert pr&uuml;fbarer Daten gegen&uuml;ber einer einzigen festen Punktzahl. <a href="#ref-17">[Ref-17]</a>
-
-#### D.5 Einordnung von WSPRadar
-
-Der Beitrag von WSPRadar ist die Integration von:
-
-* Pr&uuml;fungen der Target-Aktivit&auml;t;
-* Vergleichen im selben Zyklus oder in kontrollierten Bins;
-* Normalisierung gemeldeter Leistung;
-* Hardware-, Buddy- und lokalen Benchmark-Designs;
-* bedingter Success-Analyse;
-* gepaartem Delta SNR und kategorischen Decode Outcomes;
-* stationsbalancierter geografischer Aggregation;
-* Zusammensetzung von `STATIONS` und `SPOTS`;
-* Drill-Down und exportierbarer verarbeiteter Evidenz.
-
-WSPRadar sollte nicht als Ersatz f&uuml;r wspr.live, WSPR.Rocks, WSPRdaemon, DXplorer oder kontrollierte HF-Messungen beschrieben werden. Es arbeitet eine methodische Ebene &uuml;ber einem Spot-Browser: **Welche Beobachtungen sind f&uuml;r dieses Experiment zul&auml;ssig, welche gepaarte Differenz wurde beobachtet, welche einseitige Evidenz bleibt, und kann die Schlussfolgerung auditiert werden?**
-
-<a id="sec-ref"></a>
-### Quellen
-
-* <a id="ref-1"></a><a href="#ref-1">[Ref-1]</a> **Offizielle technische &Uuml;bersicht.** ARRL, *WSPR*: Nachrichtenformat, Codierung, Dauer, Timing, belegte Bandbreite und SNR-Referenz. Abgerufen am 12.07.2026.
-  https://www.arrl.org/wspr
-
-* <a id="ref-2"></a><a href="#ref-2">[Ref-2]</a> **Offizielle Softwaredokumentation.** WSJT-X 3.0.1 User Guide: WSPR-Nachrichtenformate und Decoderleistung; Windows-Dateitrennung mit `--rig-name`; Audioeinstellungen und Dateiorte. Abgerufen am 12.07.2026.
-  https://wsjt.sourceforge.io/wsjtx-main_en.html
-
-* <a id="ref-3"></a><a href="#ref-3">[Ref-3]</a> **Offizielle Datendienstdokumentation.** WSPR.live, *Welcome to WSPR Live* und *WSPR Exporter*: Datenbankbeschreibung, Schema, Mode-Code-Zuordnung, Rohdaten-/Verf&uuml;gbarkeitshinweis und Echtzeitverz&ouml;gerung. Abgerufen am 12.07.2026.
-  https://wspr.live/
-  https://wspr.live/wspr_downloader.php
-
-* <a id="ref-4"></a><a href="#ref-4">[Ref-4]</a> Taylor, J. H.; Walker, B. (2010). *WSPRing Around the World*. QST, 94(11), 30-32.
-  https://www.arrl.org/files/file/History/History%20of%20QST%20Volume%201%20-%20Technology/QS11-2010-Taylor.pdf
-
-* <a id="ref-5"></a><a href="#ref-5">[Ref-5]</a> **Peer-reviewter Artikel.** Lo, S.; Rankov, N.; Mitchell, C.; Witvliet, B. A.; Jayawardena, T. P.; Bust, G.; Liles, W.; Griffiths, G. (2022). *A Systematic Study of 7 MHz Greyline Propagation Using Amateur Radio Beacon Signals*. Atmosphere, 13(8), 1340. doi:10.3390/atmos13081340.
-  https://www.mdpi.com/2073-4433/13/8/1340
-
-* <a id="ref-6"></a><a href="#ref-6">[Ref-6]</a> **Peer-reviewter &Uuml;bersichtsartikel.** Frissell, N. A. et al. (2023). *Heliophysics and amateur radio: citizen science collaborations for atmospheric, ionospheric, and space physics research and operations*. Frontiers in Astronomy and Space Sciences, 10, 1184171. doi:10.3389/fspas.2023.1184171.
-  https://www.frontiersin.org/articles/10.3389/fspas.2023.1184171/full
-
-* <a id="ref-7"></a><a href="#ref-7">[Ref-7]</a> **Peer-reviewter Artikel.** Vanhamel, J.; Machiels, W.; Lamy, H. (2022). *Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band*. International Journal of Antennas and Propagation, 2022, 4809313. doi:10.1155/2022/4809313.
-  https://research.tudelft.nl/en/publications/using-the-wspr-mode-for-antenna-performance-evaluation-and-propag/
-
-* <a id="ref-8"></a><a href="#ref-8">[Ref-8]</a> **Preprint.** Zander, J. (2022). *Simple HF antenna efficiency comparisons using the WSPR system*. arXiv:2209.08989. doi:10.48550/arXiv.2209.08989.
-  https://arxiv.org/abs/2209.08989
-
-* <a id="ref-9"></a><a href="#ref-9">[Ref-9]</a> **Amateurfunk-Fachartikel.** Milazzo, C. F. / KP4MD (2011). *Using the Weak Signal Propagation Reporter Network to Compare Antenna Performance*.
-  https://www.qsl.net/kp4md/wspr.htm
-
-* <a id="ref-10"></a><a href="#ref-10">[Ref-10]</a> Griffiths, G.; Squibb, N. J. (2017). *Improving HF Band SNR from analysis of WSPR spots*. Practical Wireless, Oktober 2017, 23-26.
-  https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf
-
-* <a id="ref-11"></a><a href="#ref-11">[Ref-11]</a> **Werkzeugdokumentation.** WSPR.Rocks, *Help &amp; Documentation*: SpotQ, SQL-Zugriff, Duplikatanalyse, Karten, Diagramme und Heatmaps.
-  https://wspr.rocks/help.html
-
-* <a id="ref-12"></a><a href="#ref-12">[Ref-12]</a> Griffiths, G.; Robinett, R. (2020). *Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana*. ARRL/TAPR Digital Communications Conference 2020.
-  https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf
-
-* <a id="ref-13"></a><a href="#ref-13">[Ref-13]</a> **Werkzeugdokumentation.** WSPRdaemon, *How wsprdaemon Works*: Multi-Receiver-Decodierung, Meldung, Zeitplanung, Rausch- und Doppler-Metadaten.
-  https://wsprdaemon.readthedocs.io/en/stable/description/how_it_works.html
-
-* <a id="ref-14"></a><a href="#ref-14">[Ref-14]</a> **Produktdokumentation.** SOTABEAMS, *WSPRlite Classic / DXplorer*: WSPR-basierte Antennenleistungsanalyse und DX10-Kennzahl.
-  https://www.sotabeams.co.uk/wsprlite-classic
-
-* <a id="ref-15"></a><a href="#ref-15">[Ref-15]</a> **Projektdokumentation.** WSPR-Station-Compare, Projektseite mit Verweisen auf Vanhamel et al. und Zander.
-  https://sites.google.com/myuba.be/wspr-station-compare/home
-
-* <a id="ref-16"></a><a href="#ref-16">[Ref-16]</a> **Werkzeugdokumentation.** Antenna Performance Analysis Tool, WSPR-basierter Antennenbericht-Generator.
-  https://wspr.bsdworld.org/
-
-* <a id="ref-17"></a><a href="#ref-17">[Ref-17]</a> **Werkzeugdokumentation.** GM4EAU, *WATT WSPR Analysis Tool*: Excel/VBA-Berichte, Karten, Filter und Zeitleistenanimation.
-  https://www.gm4eau.com/home-page/wspr/
 """

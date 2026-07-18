@@ -9,7 +9,7 @@ generated end-user and scientific manual, not the repository engineering guide.
 | Path | Responsibility |
 | --- | --- |
 | `app.py` | Streamlit entry point and top-level page orchestration. |
-| `config/` | Application limits, bands, demo profiles, and plotting constants. |
+| `config/` | Application limits, bands, filename-ordered standalone demo configurations and their reader, saved-config schema constants and formal JSON Schema, and plotting constants. |
 | `core/` | Scientific analysis, SQL construction, data access, caching, admission control, map aggregation, and rendering primitives. |
 | `ui/` | Streamlit adapters, state, controls, analysis orchestration, inspectors, plots, and exports. |
 | `docs/` | English and German manuals plus lazy PDF generation. |
@@ -30,8 +30,12 @@ generated end-user and scientific manual, not the repository engineering guide.
 - `docs/architecture.md` is the authoritative code-level architecture guide.
 - `config/app_config.py` owns runtime URLs, cache settings, HTTP limits,
   admission limits, and inspector-cache limits.
-- `config/bands.py`, `config/demo_profiles.py`, and `config/plot_constants.py`
-  own band mappings, demo definitions, and map/scientific plotting constants.
+- `config/bands.py`, `config/demos/*.config`, `config/demo_profiles.py`,
+  `config/config_schema.py`, `config/config_codec.py`,
+  `config/wspradar-config.schema.json`, and `config/plot_constants.py` own band
+  mappings, ordered standalone demo definitions, demo loading, the versioned
+  saved-config contract, schema-version handling and formal JSON Schema, and
+  map/scientific plotting constants.
 - `core/analysis_context.py` defines canonical scientific configuration.
 - `core/presentation_context.py` defines language, labels, and theme inputs.
 - `core/opportunity_engine.py` defines the processed opportunity-row schema and
@@ -72,6 +76,13 @@ python -m pip install -r requirements-dev.txt
 For runtime-only installation, install `requirements.txt` instead. Linux needs
 the native Cairo/PROJ/GEOS support represented by `packages.txt` and
 `.devcontainer/devcontainer.json`.
+
+For automated Windows checks, invoke an existing repository environment directly
+as `.\.venv\Scripts\python.exe`; activation is unnecessary. Verify that this
+interpreter starts and imports the declared dependencies before running checks.
+Do not combine another Python runtime with `.venv` packages through `PYTHONPATH`;
+if the launcher fails, inspect `.venv/pyvenv.cfg` and base-interpreter access
+instead of treating the failure as evidence that dependencies are missing.
 
 Verification note: dependency imports and `python -m pip check` passed in the
 existing environment. A completely fresh environment install and the full
@@ -211,6 +222,18 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 - Do not perform unrelated refactoring, renaming, formatting, or cleanup.
 - A bug fix should include a regression test that fails without the fix.
 
+## Changelog Policy
+
+- Keep `CHANGELOG_DAILY.md` in reverse chronological order, with the newest
+  submission entry at the top.
+- Record only major or significant changes that are useful at project-history
+  level; omit minor styling, diagnostics and internal implementation details.
+- Consolidate work from consecutive unsubmitted days into one coherent entry
+  dated when that work is submitted to GitHub. Describe the final submitted
+  outcome rather than retaining intermediate designs that were replaced before
+  submission.
+- Preserve older submitted entries unless a factual correction is required.
+
 ## Architectural Constraints
 
 - The application is read-only with respect to wspr.live. Do not add upstream
@@ -261,8 +284,15 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 
 ## Compatibility
 
-- Treat saved `.config` files, exported metadata, Parquet projections, DataFrame
-  columns, and reproducibility packages as compatibility-sensitive interfaces.
+- Treat versioned JSON `.config` files, exported metadata, Parquet projections,
+  DataFrame columns, and reproducibility packages as compatibility-sensitive
+  interfaces. Every saved-config schema increase must retain an ordered
+  migration from each preceding supported version; do not guess at newer
+  unsupported schemas.
+- Saved configurations and built-in demo configurations must use the same
+  standalone document and grouped runnable-settings structure. Serialize only fields applicable to the
+  selected time and comparison branches; inactive hidden UI state is not part
+  of the configuration contract.
 - Changes to these interfaces require explicit migration or versioning decisions
   and corresponding regression tests.
 
@@ -277,14 +307,16 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 
 1. The implementation follows the existing core/UI and context boundaries.
 2. Scientific and user-visible behavior is unchanged unless the task explicitly
-   requests and documents a change.
+   requests a change. Document requested user-visible changes only when they
+   meet the end-user relevance criteria below.
 3. Tests cover changed behavior, including failure, ownership, concurrency, or
    persistence semantics where relevant.
 4. `python -m pytest tests/regression -q` passes.
 5. Python compilation and `git diff --check` pass.
 6. Streamlit starts successfully when entry-point or dependency behavior changes.
 7. No unrelated files or user changes are reverted.
-8. CHANGELOG_DAILY.md is updated for every meaningful change. Consecutive changes belonging to the same feature, fix, or refactoring effort are consolidated into one coherent entry that follows the existing changelog structure, tone, and level of detail.
+8. `CHANGELOG_DAILY.md` follows the Changelog Policy above and is updated for
+   every major or significant submitted change.
 9. Documentation and configuration are updated when contracts or commands change.
 10. Generated user documentation is changed through its authoritative source,
    followed by the sync workflow, rather than by editing `README.md` directly.
@@ -300,11 +332,15 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
   same change and make those changes explicit to the user once you are done
 - Do not update these files for implementation details that do not affect their
   documented contracts.
-- When end-user or scientific behavior changes, update `docs/doc_en.py` and
+- **Narrow the documentation-update trigger.** Update `docs/doc_en.py` and
   `docs/doc_de.py`, then regenerate `README.md` using
-  `scripts/sync_readme_from_doc_en.py`.
-- Before completing a task, verify that the documentation still maps to the
-  implementation.
+  `scripts/sync_readme_from_doc_en.py`, when a change alters workflow, controls,
+  result meaning, scientific interpretation, output contracts, limitations or
+  troubleshooting. Purely presentational changes do not require a manual update
+  unless they materially affect accessibility or correct interpretation.
+- Before completing a task, verify that factual claims and documented contracts
+  still map to the implementation. This verification does not require visual or
+  layout parity between the manual and the rendered UI.
 
 ### End-User Manual Style and Structure
 
@@ -336,17 +372,46 @@ for future end-user documentation work:
 - Keep the tone technically rigorous but practical and inviting. Each paragraph
   should help answer an operator's likely `so what?`; avoid dry implementation
   narration that does not change setup, interpretation, or claim language.
+- **Use an operator-relevance test.** Include a detail only if it changes what
+  the operator should do, how evidence should be interpreted, what real-world
+  consequence it has, what claim is supported, or how a problem is diagnosed.
+  When evidence supports practical value, explain it in a constructive,
+  appropriately positive tone without overstating the supported claim.
+- **Exclude self-evident presentation narration.** Do not document typography,
+  font style, legend placement, panel placement, title prefixes, spacing,
+  axis-label styling, or the absence of unrelated statistics or annotations.
+  The rendered UI is authoritative for its appearance and does not need an
+  explanation.
+- **Treat implementation and tests as fact-checking sources, not documentation
+  checklists.** They establish whether a claim is accurate; they do not establish
+  that every fact belongs in the manual.
+- **Keep scientific mechanics in one authoritative home.** Normalization,
+  nonlinear scales, binning, weighting, eligibility gates and edge cases belong
+  once in Controls or Scientific Methods. Practical sections should link there
+  only when a short warning is necessary to prevent a materially wrong
+  interpretation.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
 - Define each formula once in its scientific home, ensure it renders in both the
   Web UI and generated PDF, and link to it from practical sections when needed.
-- Use current UI labels, defaults, result units, export contents, and behavior.
-  Challenge documentation claims against implementation and regression tests;
-  report disagreements rather than changing runtime behavior to fit prose.
+- When the manual names a UI label, default, result unit, export field or
+  behavior, keep its name and meaning current. This is an accuracy requirement,
+  not a requirement to inventory every visible interface detail. Challenge
+  documentation claims against implementation and regression tests; report
+  disagreements rather than changing runtime behavior to fit prose.
 - Keep operational procedures and literature/prior art available without
   interrupting the main operator flow. Use appendices and cite every retained
   reference in order of first use.
-- During restructuring, preserve unique, correct user guidance. Classify content
-  before removal as duplicated, obsolete, implementation-only, scientifically
-  unsupported, or genuinely useful; do not silently lose the last category.
+- Render every source citation as a compact linked label in the form `[Ref-n]`,
+  assign numbers globally in order of first source use, and reuse the same
+  number for later citations of that source. Do not hyperlink author names,
+  publication titles, or explanatory phrases as source citations; reserve
+  descriptive links for structural navigation such as sections and appendices.
+- **Clarify the preservation rule.** During restructuring, preserve unique,
+  correct and useful user guidance. `Useful` means that the content changes
+  operator action, interpretation, diagnosis or supported claims. Technical
+  accuracy alone does not make a sentence useful operator guidance, and removing
+  duplicated material is not content loss. Classify content before removal as
+  duplicated, obsolete, implementation-only, scientifically unsupported, or
+  genuinely useful; do not silently lose the last category.

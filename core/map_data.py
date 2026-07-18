@@ -134,7 +134,9 @@ def build_map_data(
     min_spots: int,
     min_opportunities: int,
     base_min_stations: int,
-    tx_ab_bin_minutes: int,
+    tx_ab_repeat_interval_minutes: int,
+    tx_ab_target_start_minute: int,
+    tx_ab_reference_start_minute: int,
     owns_input: bool = False,
 ) -> MapData | None:
     """Return language-free station and segment aggregates for one map."""
@@ -176,7 +178,9 @@ def build_map_data(
             is_sequential=is_sequential,
             min_spots=int(min_spots),
             base_min_stations=int(base_min_stations),
-            tx_ab_bin_minutes=int(tx_ab_bin_minutes),
+            tx_ab_repeat_interval_minutes=int(tx_ab_repeat_interval_minutes),
+            tx_ab_target_start_minute=int(tx_ab_target_start_minute),
+            tx_ab_reference_start_minute=int(tx_ab_reference_start_minute),
         )
 
     if station_rows.empty or (segment_rows.empty and not is_opportunity):

@@ -6,9 +6,7 @@ from i18n import T
 from ui.config_io import (
     LOCAL_BENCHMARK_VALUES,
     MODE_VALUES,
-    SELF_TEST_VALUES,
     SOLAR_VALUES,
-    WSPR_FRAME_VALUES,
     canonical_from_translated,
 )
 
@@ -17,6 +15,7 @@ def build_analysis_context_from_session_state(session_state):
     """Convert localized Streamlit session values into one stable scalar context."""
     language = session_state.get("lang", "en")
     t = T.get(language, T["en"])
+    analysis_direction = session_state.get("val_analysis_direction")
 
     return AnalysisContext(
         run_mode=session_state.get("run_mode"),
@@ -36,23 +35,17 @@ def build_analysis_context_from_session_state(session_state):
         reference_callsign=str(session_state.get("val_ref_callsign", "")).strip().upper(),
         neighborhood_radius_km=int(session_state.get("val_ref_radius_km", 100)),
         reference_snr_correction_db=round(float(session_state.get("val_benchmark_offset_db", 0.0)), 1),
-        self_test_mode=canonical_from_translated(
-            session_state.get("val_self_test_mode", t["opt_self_rx"]),
-            SELF_TEST_VALUES,
-            "rx",
-        ),
+        self_test_mode="tx" if analysis_direction == "tx" else "rx",
         setup_b_callsign=str(session_state.get("val_self_call_b", "")).strip().upper(),
-        target_wspr_frame=canonical_from_translated(
-            session_state.get("val_target_wspr_frame", t["opt_wspr_frame_00_04_08"]),
-            WSPR_FRAME_VALUES,
-            "frame_00_04_08",
+        tx_ab_repeat_interval_minutes=int(
+            session_state.get("val_tx_ab_repeat_interval_minutes", 10)
         ),
-        reference_wspr_frame=canonical_from_translated(
-            session_state.get("val_reference_wspr_frame", t["opt_wspr_frame_02_06_10"]),
-            WSPR_FRAME_VALUES,
-            "frame_02_06_10",
+        tx_ab_target_start_minute=int(
+            session_state.get("val_tx_ab_target_start_minute", 0)
         ),
-        tx_ab_bin_minutes=int(session_state.get("val_tx_ab_bin_minutes", 8)),
+        tx_ab_reference_start_minute=int(
+            session_state.get("val_tx_ab_reference_start_minute", 2)
+        ),
         solar_state=canonical_from_translated(
             session_state.get("val_solar", t["opt_solar_all"]),
             SOLAR_VALUES,

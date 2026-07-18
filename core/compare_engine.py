@@ -2,7 +2,7 @@
 Compare-mode aggregation helpers for WSPRadar.
 
 This module keeps the A/B comparison science separate from map rendering:
-joint observations, non-joint evidence, sequential bin pairing, and segment
+joint observations, non-joint evidence, sequential scheduled pairing, and segment
 medians are calculated here; plot_engine only draws the resulting tables.
 """
 
@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from core.snr_utils import round_snr_like_columns
+from core.tx_ab_schedule import assign_tx_ab_pair_columns
 
 
 COMPARE_GROUP_KEYS = [
@@ -50,101 +51,144 @@ def _compare_spatial_aggregation_columns(df: pd.DataFrame) -> dict[str, str]:
     return spatial_agg
 
 
-def _aggregate_sequential_compare(
+def _aggregate_periodic_sequential_compare(
     df: pd.DataFrame,
     *,
-    min_joint_bins: int,
-    tx_ab_bin_minutes: int,
+    min_joint_pairs: int,
+    repeat_interval_minutes: int,
+    target_start_minute: int,
+    reference_start_minute: int,
     group_keys: list[str],
     spatial_agg: dict[str, str],
 ) -> pd.DataFrame:
-    """Aggregate sequential TX A/B observations into paired micro-median bins."""
-    df_plot = df.copy()
-    df_plot["dt_time"] = pd.to_datetime(df_plot["time"])
-    df_plot["time_bin"] = df_plot["dt_time"].dt.floor(f"{int(tx_ab_bin_minutes)}min")
+    """Aggregate decoded rows by deterministic scheduled Target/Reference pair."""
+    work = df.copy()
+    if "tx_ab_pair_id" not in work.columns:
+        work = assign_tx_ab_pair_columns(
+            work,
+            repeat_interval_minutes=repeat_interval_minutes,
+            target_start_minute_utc=target_start_minute,
+            reference_start_minute_utc=reference_start_minute,
+        )
 
-    df_t = df_plot[df_plot["is_me"] == 1].copy()
-    df_r = df_plot[df_plot["is_me"] == 0].copy()
+    pair_keys = ["tx_ab_pair_id"] + group_keys
     spatial_agg_named = {key: (key, value) for key, value in spatial_agg.items()}
-
-    bin_t = (
-        df_t.groupby(["time_bin"] + group_keys, dropna=False)
+    pair_spatial = (
+        work.groupby(pair_keys, dropna=False)
+        .agg(**spatial_agg_named)
+        .reset_index()
+    )
+    target_pairs = (
+        work[work["is_me"] == 1]
+        .groupby(pair_keys, dropna=False)
         .agg(
-            t_count=("stat_val", "size"),
-            t_med=("stat_val", "median"),
-            **spatial_agg_named,
+            target_decode_count=("stat_val", "size"),
+            target_micro_median=("stat_val", "median"),
         )
         .reset_index()
     )
-
-    bin_r = (
-        df_r.groupby(["time_bin"] + group_keys, dropna=False)
+    reference_pairs = (
+        work[work["is_me"] == 0]
+        .groupby(pair_keys, dropna=False)
         .agg(
-            r_count=("stat_val", "size"),
-            r_med=("stat_val", "median"),
+            reference_decode_count=("stat_val", "size"),
+            reference_micro_median=("stat_val", "median"),
         )
         .reset_index()
     )
+    pairs = pd.merge(target_pairs, reference_pairs, on=pair_keys, how="outer")
+    pairs = pairs.merge(pair_spatial, on=pair_keys, how="left")
+    pairs["target_decode_count"] = pairs["target_decode_count"].fillna(0)
+    pairs["reference_decode_count"] = pairs["reference_decode_count"].fillna(0)
+    pairs["is_joint"] = (
+        (pairs["target_decode_count"] > 0)
+        & (pairs["reference_decode_count"] > 0)
+    )
+    pairs["target_only_pair"] = (
+        (pairs["target_decode_count"] > 0)
+        & (pairs["reference_decode_count"] == 0)
+    ).astype("int64")
+    pairs["reference_only_pair"] = (
+        (pairs["target_decode_count"] == 0)
+        & (pairs["reference_decode_count"] > 0)
+    ).astype("int64")
+    pairs["pair_delta"] = (
+        pairs["target_micro_median"] - pairs["reference_micro_median"]
+    )
+    pairs = round_snr_like_columns(pairs, columns=["pair_delta"])
 
-    df_bins = pd.merge(bin_t, bin_r, on=["time_bin"] + group_keys, how="outer")
-    df_bins["t_count"] = df_bins["t_count"].fillna(0)
-    df_bins["r_count"] = df_bins["r_count"].fillna(0)
-    df_bins["is_joint"] = (df_bins["t_count"] > 0) & (df_bins["r_count"] > 0)
-    df_bins["bin_delta"] = df_bins["t_med"] - df_bins["r_med"]
-    df_bins = round_snr_like_columns(df_bins)
-
-    df_joint = df_bins[df_bins["is_joint"]]
-    df_excl = df_bins[~df_bins["is_joint"]]
+    joint_pairs = pairs[pairs["is_joint"]]
+    non_joint_pairs = pairs[~pairs["is_joint"]]
     spatial_agg_first = {key: (key, "first") for key in spatial_agg.keys()}
-
-    agg_joint = (
-        df_joint.groupby(group_keys, dropna=False)
+    aggregate_joint = (
+        joint_pairs.groupby(group_keys, dropna=False)
         .agg(
-            joint_bins_count=("time_bin", "size"),
-            spot_count_u=("t_count", "sum"),
-            spot_count_r=("r_count", "sum"),
-            stat_val=("bin_delta", "median"),
+            joint_pairs_count=("tx_ab_pair_id", "size"),
+            target_decode_count=("target_decode_count", "sum"),
+            reference_decode_count=("reference_decode_count", "sum"),
+            stat_val=("pair_delta", "median"),
             **spatial_agg_first,
         )
         .reset_index()
     )
-    agg_joint["spot_count"] = agg_joint["spot_count_u"] + agg_joint["spot_count_r"]
-
-    agg_excl = (
-        df_excl.groupby(group_keys, dropna=False)
+    aggregate_non_joint = (
+        non_joint_pairs.groupby(group_keys, dropna=False)
         .agg(
-            count_only_u=("t_count", "sum"),
-            count_only_r=("r_count", "sum"),
+            count_only_u=("target_only_pair", "sum"),
+            count_only_r=("reference_only_pair", "sum"),
             **spatial_agg_first,
         )
         .reset_index()
     )
-
-    df_agg = pd.merge(agg_joint, agg_excl, on=group_keys, how="outer", suffixes=("", "_excl"))
+    aggregate = pd.merge(
+        aggregate_joint,
+        aggregate_non_joint,
+        on=group_keys,
+        how="outer",
+        suffixes=("", "_non_joint"),
+    )
     for key in spatial_agg.keys():
-        duplicate_key = f"{key}_excl"
-        if duplicate_key in df_agg.columns:
-            df_agg[key] = df_agg[key].fillna(df_agg[duplicate_key])
-            df_agg = df_agg.drop(columns=[duplicate_key])
+        duplicate_key = f"{key}_non_joint"
+        if duplicate_key in aggregate.columns:
+            aggregate[key] = aggregate[key].fillna(aggregate[duplicate_key])
+            aggregate = aggregate.drop(columns=[duplicate_key])
 
-    df_agg = df_agg.fillna(
+    aggregate = aggregate.fillna(
         {
-            "joint_bins_count": 0,
-            "spot_count": 0,
+            "joint_pairs_count": 0,
+            "target_decode_count": 0,
+            "reference_decode_count": 0,
             "count_only_u": 0,
             "count_only_r": 0,
         }
     )
+    has_joint_evidence = aggregate["joint_pairs_count"] >= min_joint_pairs
+    has_target_only_evidence = aggregate["count_only_u"] >= min_joint_pairs
+    has_reference_only_evidence = aggregate["count_only_r"] >= min_joint_pairs
 
-    is_joint = df_agg["joint_bins_count"] >= min_joint_bins
-    is_u = df_agg["count_only_u"] >= min_joint_bins
-    is_r = df_agg["count_only_r"] >= min_joint_bins
-
-    df_agg["stat_val"] = np.where(is_joint, df_agg["stat_val"], np.nan)
-    df_agg["spot_count"] = np.where(is_joint, df_agg["spot_count"], 0)
-    df_agg["count_only_u"] = np.where(is_u, df_agg["count_only_u"], 0)
-    df_agg["count_only_r"] = np.where(is_r, df_agg["count_only_r"], 0)
-    return df_agg
+    aggregate["stat_val"] = np.where(
+        has_joint_evidence,
+        aggregate["stat_val"],
+        np.nan,
+    )
+    # ``spot_count`` remains the shared downstream evidence-count field. For
+    # periodic TX A/B it deliberately counts joint scheduled pairs, not raw rows.
+    aggregate["spot_count"] = np.where(
+        has_joint_evidence,
+        aggregate["joint_pairs_count"],
+        0,
+    )
+    aggregate["count_only_u"] = np.where(
+        has_target_only_evidence,
+        aggregate["count_only_u"],
+        0,
+    )
+    aggregate["count_only_r"] = np.where(
+        has_reference_only_evidence,
+        aggregate["count_only_r"],
+        0,
+    )
+    return aggregate
 
 
 def _aggregate_simultaneous_compare(
@@ -196,7 +240,9 @@ def aggregate_compare_map_data(
     is_sequential: bool,
     min_spots: int,
     base_min_stations: int,
-    tx_ab_bin_minutes: int = 8,
+    tx_ab_repeat_interval_minutes: int = 10,
+    tx_ab_target_start_minute: int = 0,
+    tx_ab_reference_start_minute: int = 2,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Aggregate raw Compare rows into map station rows and segment medians.
@@ -214,10 +260,12 @@ def aggregate_compare_map_data(
     spatial_agg = _compare_spatial_aggregation_columns(work)
 
     if is_sequential:
-        df_agg = _aggregate_sequential_compare(
+        df_agg = _aggregate_periodic_sequential_compare(
             work,
-            min_joint_bins=min_spots,
-            tx_ab_bin_minutes=tx_ab_bin_minutes,
+            min_joint_pairs=min_spots,
+            repeat_interval_minutes=tx_ab_repeat_interval_minutes,
+            target_start_minute=tx_ab_target_start_minute,
+            reference_start_minute=tx_ab_reference_start_minute,
             group_keys=COMPARE_GROUP_KEYS,
             spatial_agg=spatial_agg,
         )

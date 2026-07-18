@@ -2,8 +2,7 @@
 
 import os
 
-
-APP_VERSION = "v0.96"
+APP_VERSION = "v0.97"
 LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
 APP_URL = "https://wspradar.streamlit.app"
 DB_URL = "https://db1.wspr.live/"

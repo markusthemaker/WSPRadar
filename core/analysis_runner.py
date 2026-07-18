@@ -7,7 +7,10 @@ and provides data-filtering utilities (Solar) before plotting.
 from contextlib import nullcontext
 import pandas as pd
 import numpy as np
-from config import BAND_MAP, MAX_DYNAMIC_RADIUS_KM
+from config import (
+    BAND_MAP,
+    MAX_DYNAMIC_RADIUS_KM,
+)
 from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
@@ -17,8 +20,6 @@ from core.analysis_context import (
     SELF_TEST_RX,
     SELF_TEST_TX,
     solar_path_state,
-    wspr_frame_mod4,
-    wspr_frame_sql,
 )
 from core.input_validation import is_valid_callsign
 from core.math_utils import get_solar_state
@@ -29,6 +30,11 @@ from core.opportunity_engine import (
     prepare_opportunity_rows,
 )
 from core.snr_utils import round_snr_like_columns
+from core.tx_ab_schedule import (
+    assign_tx_ab_pair_columns,
+    tx_ab_schedule_sql,
+    validate_tx_ab_schedule,
+)
 
 
 DECODE_FILTER_STRICT = "strict_code_1"
@@ -105,8 +111,8 @@ def _build_tx_comparison_query(
     reference_snr_expr,
     target_sql,
     reference_sql,
-    target_frame_sql,
-    reference_frame_sql,
+    target_schedule_sql,
+    reference_schedule_sql,
     local_reference_snr_sql,
     local_reference_sign_sql,
     local_reference_dist_sql,
@@ -120,11 +126,11 @@ def _build_tx_comparison_query(
         return (
             "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
             f"rx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me "
-            f"FROM wspr.rx WHERE {target_sql} {target_frame_sql} AND rx_lat != 0 "
+            f"FROM wspr.rx WHERE {target_sql} {target_schedule_sql} AND rx_lat != 0 "
             "UNION ALL "
             "SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, "
             f"rx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
-            f"FROM wspr.rx WHERE {reference_sql} {reference_frame_sql} AND rx_lat != 0 "
+            f"FROM wspr.rx WHERE {reference_sql} {reference_schedule_sql} AND rx_lat != 0 "
             "FORMAT CSVWithNames"
         )
 
@@ -172,8 +178,8 @@ def _build_rx_comparison_query(
     reference_snr_expr,
     target_sql,
     reference_sql,
-    target_frame_sql,
-    reference_frame_sql,
+    target_schedule_sql,
+    reference_schedule_sql,
     local_reference_snr_sql,
     local_reference_sign_sql,
     local_reference_dist_sql,
@@ -187,11 +193,11 @@ def _build_rx_comparison_query(
         return (
             "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
             f"tx_lon AS peer_lon, snr, power, {target_snr_expr} AS stat_val, 1 AS is_me "
-            f"FROM wspr.rx WHERE {target_sql} {target_frame_sql} AND tx_lat != 0 "
+            f"FROM wspr.rx WHERE {target_sql} {target_schedule_sql} AND tx_lat != 0 "
             "UNION ALL "
             "SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, "
             f"tx_lon AS peer_lon, snr, power, {reference_snr_expr} AS stat_val, 0 AS is_me "
-            f"FROM wspr.rx WHERE {reference_sql} {reference_frame_sql} AND tx_lat != 0 "
+            f"FROM wspr.rx WHERE {reference_sql} {reference_schedule_sql} AND tx_lat != 0 "
             "FORMAT CSVWithNames"
         )
 
@@ -367,10 +373,25 @@ def build_analysis_batches(
     else:
         raise AnalysisConfigError(f"Unknown benchmark design '{comp_mode}'.")
 
-    target_wspr_frame_sql = wspr_frame_sql(analysis_context.target_wspr_frame) if is_sequential else ""
-    reference_wspr_frame_sql = wspr_frame_sql(analysis_context.reference_wspr_frame) if is_sequential else ""
-
-    target_frame_mod4 = wspr_frame_mod4(analysis_context.target_wspr_frame) if is_sequential else None
+    target_schedule_sql = ""
+    reference_schedule_sql = ""
+    if is_sequential:
+        try:
+            validate_tx_ab_schedule(
+                analysis_context.tx_ab_repeat_interval_minutes,
+                analysis_context.tx_ab_target_start_minute,
+                analysis_context.tx_ab_reference_start_minute,
+            )
+        except ValueError as exc:
+            raise AnalysisConfigError(f"Invalid TX A/B schedule: {exc}") from exc
+        target_schedule_sql = "AND " + tx_ab_schedule_sql(
+            analysis_context.tx_ab_repeat_interval_minutes,
+            analysis_context.tx_ab_target_start_minute,
+        )
+        reference_schedule_sql = "AND " + tx_ab_schedule_sql(
+            analysis_context.tx_ab_repeat_interval_minutes,
+            analysis_context.tx_ab_reference_start_minute,
+        )
         
     # Target SQL filters use one exact callsign; suffix callsigns are selected by entering that exact callsign.
     tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
@@ -453,8 +474,8 @@ def build_analysis_batches(
                 reference_snr_expr=benchmark_snr_expr,
                 target_sql=tx_target_sql,
                 reference_sql=tx_peer_sql,
-                target_frame_sql=target_wspr_frame_sql,
-                reference_frame_sql=reference_wspr_frame_sql,
+                target_schedule_sql=target_schedule_sql,
+                reference_schedule_sql=reference_schedule_sql,
                 local_reference_snr_sql=local_ref_snr_sql,
                 local_reference_sign_sql=local_ref_sign_sql,
                 local_reference_dist_sql=local_ref_dist_sql,
@@ -474,6 +495,8 @@ def build_analysis_batches(
                 "analysis_kind": "comparison",
                 "response_format": "csv",
                 "query": tx_comp_query,
+                "analysis_start_utc": start_t,
+                "analysis_end_utc": end_t,
             }))
         analyses.append(with_decode_fallback({
             "id": "TX_ABS",
@@ -495,7 +518,16 @@ def build_analysis_batches(
                 callsign=callsign,
                 qth=analysis_context.qth,
                 exclude_special_callsigns=analysis_context.exclude_special_callsigns,
-                target_frame_mod4=target_frame_mod4,
+                target_repeat_interval_minutes=(
+                    analysis_context.tx_ab_repeat_interval_minutes
+                    if is_sequential
+                    else None
+                ),
+                target_start_minute_utc=(
+                    analysis_context.tx_ab_target_start_minute
+                    if is_sequential
+                    else None
+                ),
                 require_decode_code=True,
             ),
         }))
@@ -508,8 +540,8 @@ def build_analysis_batches(
                 reference_snr_expr=benchmark_snr_expr,
                 target_sql=rx_target_sql,
                 reference_sql=rx_peer_sql,
-                target_frame_sql=target_wspr_frame_sql,
-                reference_frame_sql=reference_wspr_frame_sql,
+                target_schedule_sql=target_schedule_sql,
+                reference_schedule_sql=reference_schedule_sql,
                 local_reference_snr_sql=local_ref_snr_sql,
                 local_reference_sign_sql=local_ref_sign_sql,
                 local_reference_dist_sql=local_ref_dist_sql,
@@ -529,6 +561,8 @@ def build_analysis_batches(
                 "analysis_kind": "comparison",
                 "response_format": "csv",
                 "query": rx_comp_query,
+                "analysis_start_utc": start_t,
+                "analysis_end_utc": end_t,
             }))
         analyses.append(with_decode_fallback({
             "id": "RX_ABS",
@@ -598,12 +632,48 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
         with _timed_span(timing_collector, "opportunity filtered reset"):
             return df.reset_index(drop=True), None
 
+    if analysis.get("is_compare") and analysis.get("is_sequential"):
+        with _timed_span(timing_collector, "TX A/B scheduled pair assignment"):
+            df = assign_tx_ab_pair_columns(
+                df,
+                repeat_interval_minutes=(
+                    analysis_context.tx_ab_repeat_interval_minutes
+                ),
+                target_start_minute_utc=(
+                    analysis_context.tx_ab_target_start_minute
+                ),
+                reference_start_minute_utc=(
+                    analysis_context.tx_ab_reference_start_minute
+                ),
+                start_time=analysis.get("analysis_start_utc"),
+                end_time=analysis.get("analysis_end_utc"),
+                exclude_boundary_pairs=True,
+            )
+
     # 1. Solar filtering
     target_state = solar_path_state(analysis_context.solar_state)
     if target_state is not None:
         with _timed_span(timing_collector, "comparison solar filter"):
             if analysis['is_compare'] and not analysis['is_sequential']:
                 df['dt_time'] = pd.to_datetime(df['time_slot'] * 120, unit='s')
+            elif (
+                analysis.get('is_sequential')
+                and {
+                    'tx_ab_pair_target_time',
+                    'tx_ab_pair_reference_time',
+                }.issubset(df.columns)
+            ):
+                target_pair_time = pd.to_datetime(
+                    df['tx_ab_pair_target_time'],
+                    utc=True,
+                )
+                reference_pair_time = pd.to_datetime(
+                    df['tx_ab_pair_reference_time'],
+                    utc=True,
+                )
+                df['dt_time'] = target_pair_time + (
+                    (reference_pair_time - target_pair_time) / 2
+                )
             else:
                 df['dt_time'] = pd.to_datetime(df['time'])
 

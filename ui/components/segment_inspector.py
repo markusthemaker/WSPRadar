@@ -7,7 +7,10 @@ to allow UI updates without triggering full-page reruns.
 
 import inspect
 from collections import OrderedDict
+from collections.abc import Mapping
 from contextlib import nullcontext
+from functools import partial
+from numbers import Integral
 from pathlib import Path
 from time import perf_counter
 import pandas as pd
@@ -20,6 +23,8 @@ from config import (
     INSPECTOR_CACHE_PNG_MAX_ENTRIES,
     INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
     INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
+    SEGMENT_SELECTION_ALL,
+    STATION_SELECTION_ALL,
 )
 from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
@@ -60,11 +65,15 @@ from ui.inspector.view_models import (
 )
 from ui.inspector.session_cache import INSPECTOR_CACHE_STATE_KEY, SessionInspectorCache
 from ui.plots.evidence_figures import (
+    SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+    SELECTED_TEMPORAL_VIEW_UTC_HOUR,
     _add_horizontal_grid,
     _segment_figure_export_recipe,
+    _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
     _time_agg_options_for_span,
     render_segment_insight_export_figure,
+    render_segment_temporal_evidence_export_figure,
     render_selected_evidence_export_figure,
 )
 from ui.plots.opportunity_figures import (
@@ -77,14 +86,503 @@ from ui.plots.opportunity_figures import (
 
 STABILITY_CACHE_STATE_KEY = "segment_stability_cache"
 STABILITY_CACHE_MAX_ENTRIES = 4
-INSPECTOR_CACHE_VERSION = 1
-INSPECTOR_PNG_RENDER_VERSION = 1
+INSPECTOR_CACHE_VERSION = 12
+INSPECTOR_PNG_RENDER_VERSION = 11
+RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
+RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
+RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
+RESULTS_SELECTED_DIRECTIONS_COMPARE_STATE_KEY = (
+    "val_results_selected_directions_compare"
+)
+RESULTS_SELECTED_RANGES_ABSOLUTE_STATE_KEY = (
+    "val_results_selected_ranges_absolute"
+)
+RESULTS_SELECTED_DIRECTIONS_ABSOLUTE_STATE_KEY = (
+    "val_results_selected_directions_absolute"
+)
+RESULTS_TIME_BIN_COMPARE_STATE_KEY = "val_results_time_bin_compare"
+RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY = "val_results_time_bin_absolute"
+RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY = (
+    "val_results_segment_time_bin_compare"
+)
+RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY = (
+    "val_results_station_temporal_view_compare"
+)
+RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = (
+    "val_results_selected_stations_compare"
+)
+RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY = (
+    "val_results_selected_stations_absolute"
+)
+SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS = (1, 2)
 INSPECTOR_CACHE_NAMESPACE_LIMITS = {
     "options": INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES,
     "segment": INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
     "selected": INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
     "png": INSPECTOR_CACHE_PNG_MAX_ENTRIES,
 }
+
+
+def _time_bin_persistent_state_key(is_compare):
+    """Return the canonical saved-config state key for one evidence view."""
+    return (
+        RESULTS_TIME_BIN_COMPARE_STATE_KEY
+        if is_compare
+        else RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
+    )
+
+
+def _selected_stations_persistent_state_key(is_compare):
+    """Return the canonical selected-station state key for one result type."""
+    return (
+        RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+        if is_compare
+        else RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
+    )
+
+
+def _segment_scope_persistent_state_keys(is_compare):
+    """Return canonical range and direction keys for Compare or Success."""
+    if is_compare:
+        return (
+            RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY,
+            RESULTS_SELECTED_DIRECTIONS_COMPARE_STATE_KEY,
+        )
+    return (
+        RESULTS_SELECTED_RANGES_ABSOLUTE_STATE_KEY,
+        RESULTS_SELECTED_DIRECTIONS_ABSOLUTE_STATE_KEY,
+    )
+
+
+def _validated_time_bin(options, preferred, fallback):
+    """Return a supported bin, preferring the configured deterministic fallback."""
+    available_options = tuple(options)
+    if not available_options:
+        raise ValueError("At least one evidence time-bin option is required.")
+    if preferred in available_options:
+        return preferred
+    if fallback in available_options:
+        return fallback
+    return available_options[0]
+
+
+def _initialize_time_bin_widget_state(widget_key, persistent_key, options, fallback):
+    """Initialize a transient widget from its validated canonical saved value."""
+    selected_time_bin = _validated_time_bin(
+        options,
+        st.session_state.get(persistent_key),
+        fallback,
+    )
+    st.session_state[persistent_key] = selected_time_bin
+    st.session_state[widget_key] = selected_time_bin
+    return selected_time_bin
+
+
+def _initialize_choice_widget_state(
+    widget_key,
+    persistent_key,
+    options,
+    fallback,
+):
+    """Initialize a bounded widget choice from canonical saved-config state."""
+    available_options = tuple(options)
+    if not available_options:
+        raise ValueError("At least one display option is required.")
+    selected_option = st.session_state.get(persistent_key)
+    if selected_option not in available_options:
+        selected_option = (
+            fallback if fallback in available_options else available_options[0]
+        )
+    st.session_state[persistent_key] = selected_option
+    st.session_state[widget_key] = selected_option
+    return selected_option
+
+
+def _render_stretched_time_bin_control(
+    label,
+    options,
+    widget_key,
+    *,
+    on_change=None,
+    on_change_args=(),
+):
+    """Render one compact time-bin selector across its available container width."""
+    if hasattr(st, "segmented_control"):
+        control_kwargs = {
+            "key": widget_key,
+            "label_visibility": "collapsed",
+            "width": "stretch",
+        }
+        if on_change is not None:
+            control_kwargs["on_change"] = on_change
+            control_kwargs["args"] = tuple(on_change_args)
+        return st.segmented_control(label, options, **control_kwargs)
+
+    radio_kwargs = {
+        "horizontal": True,
+        "key": widget_key,
+        "label_visibility": "collapsed",
+    }
+    if on_change is not None:
+        radio_kwargs["on_change"] = on_change
+        radio_kwargs["args"] = tuple(on_change_args)
+    return st.radio(label, options, **radio_kwargs)
+
+
+def _segment_temporal_figure_title(title, analysis_id, selected_segment, t):
+    """Build the localized Compare-temporal title while preserving its scope text."""
+    original_title = str(title)
+    _, separator, comparison_title = original_title.partition(":")
+    if not separator:
+        comparison_title = original_title
+    if str(analysis_id).upper().startswith("TX"):
+        temporal_prefix = t.get(
+            "fig_tx_comp_temporal_prefix",
+            "TX Compare Temporal",
+        )
+    else:
+        temporal_prefix = t.get(
+            "fig_rx_comp_temporal_prefix",
+            "RX Compare Temporal",
+        )
+    return (
+        f"{temporal_prefix}: {comparison_title.strip()} - {selected_segment}"
+    )
+
+
+def _folded_utc_hour_panel_title(t):
+    """Return the complete localized title for the fixed one-hour folded panel."""
+    base_title = t.get(
+        "fig_segment_utc_hour_delta",
+        "\u0394 SNR by UTC Hour",
+    )
+    return t.get(
+        "fig_segment_utc_hour_title",
+        f"{base_title} (1 h bins)",
+    )
+
+
+def _sync_time_bin_widget_state(widget_key, persistent_key, options, fallback):
+    """Copy one widget selection into canonical state after option validation."""
+    selected_time_bin = _validated_time_bin(
+        options,
+        st.session_state.get(widget_key),
+        fallback,
+    )
+    st.session_state[persistent_key] = selected_time_bin
+    return selected_time_bin
+
+
+def _sync_choice_widget_state(widget_key, persistent_key, options, fallback):
+    """Copy one bounded widget choice into canonical saved-config state."""
+    available_options = tuple(options)
+    if not available_options:
+        raise ValueError("At least one display option is required.")
+    selected_option = st.session_state.get(widget_key)
+    if selected_option not in available_options:
+        selected_option = (
+            fallback if fallback in available_options else available_options[0]
+        )
+    st.session_state[persistent_key] = selected_option
+    return selected_option
+
+
+def _initialize_boolean_widget_state(widget_key, persistent_key, fallback):
+    """Initialize a transient toggle from a canonical boolean saved-config value."""
+    persistent_value = st.session_state.get(persistent_key)
+    selected_value = (
+        persistent_value
+        if isinstance(persistent_value, bool)
+        else bool(fallback)
+    )
+    st.session_state[persistent_key] = selected_value
+    st.session_state[widget_key] = selected_value
+    return selected_value
+
+
+def _sync_boolean_widget_state(widget_key, persistent_key):
+    """Copy one toggle value into canonical saved-config state."""
+    selected_value = bool(st.session_state.get(widget_key, False))
+    st.session_state[persistent_key] = selected_value
+    return selected_value
+
+
+def _station_identity_record(callsign, locator):
+    """Return one stable station identity record, or ``None`` for blank values."""
+    if callsign is None or locator is None:
+        return None
+    callsign_text = str(callsign).strip().upper()
+    locator_text = str(locator).strip().upper()
+    if not callsign_text or not locator_text:
+        return None
+    return {"callsign": callsign_text, "locator": locator_text}
+
+
+def _normalize_station_identity_records(configured_identities):
+    """Normalize and ordered-deduplicate saved ``callsign``/``locator`` pairs.
+
+    ``None`` is preserved because it means that no explicit selection exists and
+    the historical first-row default should apply. ``"all"`` preserves the
+    dynamic all-stations intent. Invalid records are ignored; an explicit empty
+    sequence remains an explicit empty selection.
+    """
+    if configured_identities is None:
+        return None
+    if configured_identities == STATION_SELECTION_ALL:
+        return STATION_SELECTION_ALL
+    if not isinstance(configured_identities, (list, tuple)):
+        return []
+
+    normalized_records = []
+    seen_identities = set()
+    for configured_identity in configured_identities:
+        if not isinstance(configured_identity, Mapping):
+            continue
+        identity_record = _station_identity_record(
+            configured_identity.get("callsign"),
+            configured_identity.get("locator"),
+        )
+        if identity_record is None:
+            continue
+        identity_pair = (
+            identity_record["callsign"],
+            identity_record["locator"],
+        )
+        if identity_pair in seen_identities:
+            continue
+        seen_identities.add(identity_pair)
+        normalized_records.append(identity_record)
+    return normalized_records
+
+
+def _station_selection_default_rows(
+    station_table,
+    station_column,
+    locator_column,
+    configured_identities,
+):
+    """Resolve saved station identities to current display-row positions.
+
+    The returned row positions follow the configured identity order. Missing
+    identities are reported separately and never cause a substitute row to be
+    selected. A ``None`` configuration retains the legacy first-row default,
+    whereas an empty list resolves to no selected rows.
+    """
+    normalized_identities = _normalize_station_identity_records(
+        configured_identities
+    )
+    if normalized_identities is None:
+        return ([0] if not station_table.empty else []), []
+    if normalized_identities == STATION_SELECTION_ALL:
+        return list(range(len(station_table))), []
+
+    available_rows = {}
+    for row_position, (callsign, locator) in enumerate(
+        station_table[[station_column, locator_column]].itertuples(
+            index=False,
+            name=None,
+        )
+    ):
+        identity_record = _station_identity_record(callsign, locator)
+        if identity_record is None:
+            continue
+        identity_pair = (
+            identity_record["callsign"],
+            identity_record["locator"],
+        )
+        available_rows.setdefault(identity_pair, row_position)
+
+    selected_rows = []
+    missing_identities = []
+    for identity_record in normalized_identities:
+        identity_pair = (
+            identity_record["callsign"],
+            identity_record["locator"],
+        )
+        row_position = available_rows.get(identity_pair)
+        if row_position is None:
+            missing_identities.append(identity_record)
+        else:
+            selected_rows.append(row_position)
+    return selected_rows, missing_identities
+
+
+def _station_identity_records_for_rows(
+    station_table,
+    selected_rows,
+    station_column,
+    locator_column,
+):
+    """Return ordered, deduplicated station records for valid selected rows."""
+    valid_rows = [
+        row_position
+        for row_position in selected_rows
+        if isinstance(row_position, Integral)
+        and 0 <= row_position < len(station_table)
+    ]
+    selected_records = []
+    seen_identities = set()
+    for row_position in valid_rows:
+        row = station_table.iloc[row_position]
+        identity_record = _station_identity_record(
+            row[station_column],
+            row[locator_column],
+        )
+        if identity_record is None:
+            continue
+        identity_pair = (
+            identity_record["callsign"],
+            identity_record["locator"],
+        )
+        if identity_pair in seen_identities:
+            continue
+        seen_identities.add(identity_pair)
+        selected_records.append(identity_record)
+    return selected_records
+
+
+def _sync_selected_station_state(
+    persistent_key,
+    station_table,
+    selected_rows,
+    station_column,
+    locator_column,
+    selection_universe_table=None,
+):
+    """Persist explicit identities or compact a complete selection to ``all``.
+
+    ``selection_universe_table`` must represent the table after durable
+    visibility controls but before transient table filters. This prevents a
+    filtered subset from being broadened when ``all`` is restored later.
+    """
+    selected_identities = _station_identity_records_for_rows(
+        station_table,
+        selected_rows,
+        station_column,
+        locator_column,
+    )
+    selection_universe_table = (
+        station_table
+        if selection_universe_table is None
+        else selection_universe_table
+    )
+    universe_identities = _station_identity_records_for_rows(
+        selection_universe_table,
+        range(len(selection_universe_table)),
+        station_column,
+        locator_column,
+    )
+    selected_identity_pairs = {
+        (identity["callsign"], identity["locator"])
+        for identity in selected_identities
+    }
+    universe_identity_pairs = {
+        (identity["callsign"], identity["locator"])
+        for identity in universe_identities
+    }
+    persisted_selection = (
+        STATION_SELECTION_ALL
+        if universe_identity_pairs
+        and selected_identity_pairs == universe_identity_pairs
+        else selected_identities
+    )
+    st.session_state[persistent_key] = persisted_selection
+    return persisted_selection
+
+
+def _mark_station_selection_changed(selection_changed_key):
+    """Record that a user, rather than a table default, changed selection."""
+    st.session_state[selection_changed_key] = True
+
+
+def _sync_selected_station_state_if_changed(
+    selection_changed_key,
+    persistent_key,
+    station_table,
+    selected_rows,
+    station_column,
+    locator_column,
+    selection_universe_table=None,
+):
+    """Persist visible rows only after a user-generated selection event.
+
+    Applying a saved default, changing transient segment scope, or rendering a
+    table that does not contain every saved identity must not rewrite the
+    canonical config state. A real selection event replaces it exactly,
+    including a deliberate empty selection.
+    """
+    if not st.session_state.pop(selection_changed_key, False):
+        return st.session_state.get(persistent_key)
+    return _sync_selected_station_state(
+        persistent_key,
+        station_table,
+        selected_rows,
+        station_column,
+        locator_column,
+        selection_universe_table,
+    )
+
+
+def _selection_requires_zero_hit_rows(
+    station_table,
+    station_column,
+    locator_column,
+    hit_column,
+    configured_identities,
+):
+    """Return whether a saved Success selection includes a hidden zero-hit row."""
+    normalized_identities = _normalize_station_identity_records(
+        configured_identities
+    )
+    if (
+        not normalized_identities
+        or normalized_identities == STATION_SELECTION_ALL
+    ):
+        return False
+    selected_pairs = {
+        (identity["callsign"], identity["locator"])
+        for identity in normalized_identities
+    }
+    hit_counts = pd.to_numeric(station_table[hit_column], errors="coerce")
+    for row_position, (callsign, locator) in enumerate(
+        station_table[[station_column, locator_column]].itertuples(
+            index=False,
+            name=None,
+        )
+    ):
+        identity_record = _station_identity_record(callsign, locator)
+        if identity_record is None:
+            continue
+        identity_pair = (
+            identity_record["callsign"],
+            identity_record["locator"],
+        )
+        if identity_pair not in selected_pairs:
+            continue
+        hit_count = hit_counts.iloc[row_position]
+        if pd.isna(hit_count) or hit_count <= 0:
+            return True
+    return False
+
+
+def _warn_missing_station_identities(missing_identities, t):
+    """Warn that saved identities are unavailable without choosing substitutes."""
+    if not missing_identities:
+        return
+    missing_labels = ", ".join(
+        f"{identity['callsign']} ({identity['locator']})"
+        for identity in missing_identities
+    )
+    warning_template = t.get(
+        "warn_saved_station_unavailable",
+        "Saved station selection could not be fully restored because these "
+        "stations are not available in the current Station Insights table: "
+        "{stations}. No substitute was selected.",
+    )
+    st.warning(
+        warning_template.format(stations=missing_labels),
+        icon=":material/warning:",
+    )
 
 
 def _timed_span(timing_collector, label, detail=""):
@@ -244,9 +742,34 @@ def _resolve_explicit_all_selection(current, previous, all_option, specific_opti
         return specifics
     return [all_option]
 
-def _initialize_explicit_all_multiselect(key, previous_key, all_option, specific_options):
-    """Prepare stable list state before constructing an explicit-All multiselect."""
-    current = st.session_state.get(key, [all_option])
+def _initialize_explicit_all_multiselect(
+    key,
+    previous_key,
+    all_option,
+    specific_options,
+    persistent_key=None,
+):
+    """Initialize a scope widget from canonical saved state for a new run."""
+    if key in st.session_state:
+        current = st.session_state[key]
+    else:
+        persisted_selection = st.session_state.get(
+            persistent_key,
+            SEGMENT_SELECTION_ALL,
+        )
+        if persisted_selection == SEGMENT_SELECTION_ALL:
+            current = [all_option]
+        elif isinstance(persisted_selection, (list, tuple)):
+            persisted_values = set(persisted_selection)
+            current = [
+                option for option in specific_options if option in persisted_values
+            ]
+            if not current:
+                current = [all_option]
+        else:
+            current = [all_option]
+            if persistent_key is not None:
+                st.session_state[persistent_key] = SEGMENT_SELECTION_ALL
     if isinstance(current, str):
         current = [current]
     previous = st.session_state.get(previous_key, [all_option])
@@ -256,13 +779,25 @@ def _initialize_explicit_all_multiselect(key, previous_key, all_option, specific
     st.session_state[key] = normalized
     st.session_state[previous_key] = normalized
 
-def _update_explicit_all_multiselect(key, previous_key, all_option, specific_options):
-    """Apply explicit-All behavior after the user changes a multiselect."""
+def _update_explicit_all_multiselect(
+    key,
+    previous_key,
+    all_option,
+    specific_options,
+    persistent_key=None,
+):
+    """Apply explicit-All behavior and persist a user-generated scope change."""
     current = st.session_state.get(key, [])
     previous = st.session_state.get(previous_key, [all_option])
     normalized = _resolve_explicit_all_selection(current, previous, all_option, specific_options)
     st.session_state[key] = normalized
     st.session_state[previous_key] = normalized
+    if persistent_key is not None:
+        st.session_state[persistent_key] = (
+            SEGMENT_SELECTION_ALL
+            if normalized == [all_option]
+            else [option for option in specific_options if option in normalized]
+        )
 
 def _canonical_specific_selection(selection, all_option, ordered_options):
     """Return selected specific options in their canonical UI order."""
@@ -434,6 +969,33 @@ def _segment_evidence_count_summary(
         f"{evidence_count} {evidence_unit_label}"
     )
 
+def _segment_summary_lines(
+    selected_segment,
+    joint_station_count,
+    evidence_count,
+    evidence_unit_label,
+    *,
+    is_compare,
+    station_summary,
+    spot_summary,
+):
+    """Build segment headings without redundant Compare metric summaries."""
+    summary_lines = [
+        f"Selected Segment: {selected_segment}",
+        _segment_evidence_count_summary(
+            joint_station_count,
+            evidence_count,
+            evidence_unit_label,
+        ),
+    ]
+    if not is_compare:
+        summary_lines.extend(
+            summary
+            for summary in (station_summary, spot_summary)
+            if summary
+        )
+    return summary_lines
+
 def _supports_dataframe_selection_default():
     """Return True when the installed Streamlit version can preselect dataframe rows."""
     try:
@@ -460,6 +1022,16 @@ def _evidence_labels(is_compare):
                 "y_label": "\u0394 SNR (dB)",
                 "x_label": "Datum/Uhrzeit (UTC)",
                 "aggregate": "Selected Stations",
+                "median_label": "Median",
+                "pooled_median_label": "Median",
+                "mean_label": "Mittelwert",
+                "pooled_mean_label": "Mittelwert",
+                "stability_label": "90% Stability",
+                "count_label": "Anzahl Joint Spots",
+                "density_label": "Relative Joint-Spot-Dichte (% des Panelmaximums)",
+                "median_focus_axis_label": (
+                    "\u0394 SNR (dB \u00b7 nichtlinear um Median zentriert)"
+                ),
             }
         return {
             "dist_title": "Normiertes SNR Verteilung",
@@ -467,6 +1039,11 @@ def _evidence_labels(is_compare):
             "y_label": "Normiertes SNR (dB @ 1W)",
             "x_label": "Datum/Uhrzeit (UTC)",
             "aggregate": "Selected Stations",
+            "median_label": "Median",
+            "pooled_median_label": "Gepoolter Median",
+            "mean_label": "Arithmetisches Mittel",
+            "pooled_mean_label": "Gepooltes arithmetisches Mittel",
+            "stability_label": "90% Stability",
         }
 
     if is_compare:
@@ -476,6 +1053,16 @@ def _evidence_labels(is_compare):
             "y_label": "\u0394 SNR (dB)",
             "x_label": "Date/Time (UTC)",
             "aggregate": "Selected Stations",
+            "median_label": "Median",
+            "pooled_median_label": "Median",
+            "mean_label": "Mean",
+            "pooled_mean_label": "Mean",
+            "stability_label": "90% Stability",
+            "count_label": "Joint spot count",
+            "density_label": "Relative joint-spot density (% of panel maximum)",
+            "median_focus_axis_label": (
+                "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
+            ),
         }
     return {
         "dist_title": "Normalized SNR Distribution",
@@ -483,6 +1070,11 @@ def _evidence_labels(is_compare):
         "y_label": "Normalized SNR (dB @ 1 W)",
         "x_label": "Date/Time (UTC)",
         "aggregate": "Selected Stations",
+        "median_label": "Median",
+        "pooled_median_label": "Pooled median",
+        "mean_label": "Arithmetic mean",
+        "pooled_mean_label": "Pooled arithmetic mean",
+        "stability_label": "90% Stability",
     }
 
 
@@ -575,13 +1167,18 @@ def _render_selected_station_evidence(
     selected_identity_df,
     is_compare,
     is_sequential,
-    tx_ab_bin_minutes,
+    tx_ab_repeat_interval_minutes,
+    tx_ab_target_start_minute,
+    tx_ab_reference_start_minute,
     *,
+    t,
+    analysis_id,
     run_id,
+    scope_token,
     cache_key,
     timing_collector=None,
 ):
-    """Render selected-station distribution and time evidence between insights and drill-down."""
+    """Render selected evidence with a saved Compare temporal-view selector."""
     identity_meta = _prepare_identity_meta(selected_identity_df)
     if identity_meta.empty:
         return None
@@ -600,22 +1197,42 @@ def _render_selected_station_evidence(
                 identity_meta,
                 is_compare,
                 is_sequential,
-                tx_ab_bin_minutes=tx_ab_bin_minutes,
+                tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
+                tx_ab_target_start_minute=tx_ab_target_start_minute,
+                tx_ab_reference_start_minute=tx_ab_reference_start_minute,
             )
         if evidence_df.empty:
             return None
 
         labels = _evidence_labels(is_compare)
+        if is_sequential:
+            labels["count_label"] = t.get(
+                "fig_scheduled_pair_count",
+                "Scheduled pair count",
+            )
+            labels["density_label"] = t.get(
+                "fig_relative_scheduled_pair_density",
+                "Relative scheduled-pair density (% of panel maximum)",
+            )
         identity_labels = identity_meta["identity"].tolist()
         selected_count = len(identity_labels)
         evidence_count = len(evidence_df)
-        evidence_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
+        evidence_basis = (
+            "scheduled pairs" if is_sequential
+            else "joint spots"
+            if is_compare
+            else "spots"
+        )
         evidence_title_base = "Ausgewaehlte Stations-Evidenz" if st.session_state.lang == "de" else "Selected Station Evidence"
         if selected_count == 1:
             evidence_title = f"{evidence_title_base}: {identity_labels[0]} | {evidence_count} {evidence_basis}"
         else:
             evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
         time_agg_options, time_agg_default = _time_agg_options_for_span(evidence_df)
+        folded_date_template = t.get(
+            "fig_segment_dates_folded",
+            "{count} UTC dates folded",
+        ).replace("{count}", "{utc_date_count}")
         base_recipe = _selected_evidence_export_recipe(
             evidence_df,
             evidence_title,
@@ -623,7 +1240,28 @@ def _render_selected_station_evidence(
             time_agg_default,
             is_compare,
             is_sequential,
+            folded_title=_folded_utc_hour_panel_title(t),
+            folded_date_annotation=folded_date_template,
+            folded_x_label=t.get(
+                "fig_segment_utc_hour_x",
+                "UTC hour",
+            ),
+            density_label=labels.get("density_label"),
+            folded_unavailable_text=t.get(
+                "fig_segment_folded_unavailable",
+                "UTC-hour pattern unavailable - requires joint evidence from at least 2 UTC dates.",
+            ),
+            median_focus_axis_label=t.get(
+                "fig_compare_median_focus_axis",
+                "\u0394 SNR (dB \u00b7 median-centered nonlinear)",
+            ),
         )
+        if base_recipe["utc_date_count"] < 2:
+            insufficient_date_label = t.get(
+                "fig_segment_dates_insufficient",
+                "{count} UTC dates available; folding unavailable",
+            ).format(count=base_recipe["utc_date_count"])
+            base_recipe["folded_date_annotation"] = insufficient_date_label
         selected_bundle = {
             "base_recipe": base_recipe,
             "time_agg_options": tuple(time_agg_options),
@@ -637,45 +1275,158 @@ def _render_selected_station_evidence(
             selected_bundle,
         )
 
-    ctrl_left, ctrl_time, ctrl_right = st.columns([1, 2, 0.05])
-    with ctrl_time:
-        time_agg_options = list(selected_bundle["time_agg_options"])
-        time_agg_default = selected_bundle["time_agg_default"]
-        view_defaults = st.session_state.get("demo_view_defaults", {})
-        preferred_time_agg = (
-            view_defaults.get("station_evidence_time_bin_compare")
-            if is_compare
-            else view_defaults.get("station_evidence_time_bin_absolute")
+    time_agg_options = list(selected_bundle["time_agg_options"])
+    time_agg_default = selected_bundle["time_agg_default"]
+    agg_key = (
+        f"evidence_time_agg_{analysis_id}_{run_id}_{scope_token}_"
+        f"{is_compare}_{is_sequential}"
+    )
+    persistent_time_bin_key = _time_bin_persistent_state_key(is_compare)
+    _initialize_time_bin_widget_state(
+        agg_key,
+        persistent_time_bin_key,
+        time_agg_options,
+        time_agg_default,
+    )
+
+    temporal_view = SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
+    if is_compare:
+        temporal_view_options = (
+            SELECTED_TEMPORAL_VIEW_UTC_HOUR,
+            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
         )
-        if preferred_time_agg in time_agg_options:
-            time_agg_default = preferred_time_agg
-        agg_key = f"evidence_time_agg_{st.session_state.get('run_id', 0)}_{is_compare}_{is_sequential}"
-        if st.session_state.get(agg_key) not in time_agg_options:
-            st.session_state[agg_key] = time_agg_default
-        if hasattr(st, "segmented_control"):
-            time_agg = st.segmented_control(
-                "Time aggregation",
-                time_agg_options,
-                key=agg_key,
-                label_visibility="collapsed"
-            )
-        else:
-            time_agg = st.radio(
-                "Time aggregation",
-                time_agg_options,
-                horizontal=True,
-                key=agg_key,
-                label_visibility="collapsed"
-            )
+        temporal_view_labels = {
+            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL: t.get(
+                "opt_temporal_chronological",
+                "Chronological",
+            ),
+            SELECTED_TEMPORAL_VIEW_UTC_HOUR: t.get(
+                "opt_temporal_utc_hour",
+                "UTC-Hour",
+            ),
+        }
+        temporal_view_key = (
+            f"evidence_temporal_view_{analysis_id}_{run_id}_{scope_token}_"
+            f"{is_sequential}"
+        )
+        temporal_view = _initialize_choice_widget_state(
+            temporal_view_key,
+            RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
+            temporal_view_options,
+            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+        )
+        view_control, detail_control = st.columns(
+            SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS,
+            vertical_alignment="center",
+        )
+        with view_control:
+            if hasattr(st, "segmented_control"):
+                temporal_view = st.segmented_control(
+                    t.get("lbl_selected_temporal_view", "Temporal view"),
+                    temporal_view_options,
+                    required=True,
+                    format_func=temporal_view_labels.__getitem__,
+                    key=temporal_view_key,
+                    label_visibility="collapsed",
+                    width="stretch",
+                    on_change=_sync_choice_widget_state,
+                    args=(
+                        temporal_view_key,
+                        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
+                        temporal_view_options,
+                        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+                    ),
+                )
+            else:
+                temporal_view = st.radio(
+                    t.get("lbl_selected_temporal_view", "Temporal view"),
+                    temporal_view_options,
+                    format_func=temporal_view_labels.__getitem__,
+                    horizontal=True,
+                    key=temporal_view_key,
+                    label_visibility="collapsed",
+                    on_change=_sync_choice_widget_state,
+                    args=(
+                        temporal_view_key,
+                        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
+                        temporal_view_options,
+                        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+                    ),
+                )
+        temporal_view = _sync_choice_widget_state(
+            temporal_view_key,
+            RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
+            temporal_view_options,
+            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+        )
+        with detail_control:
+            if temporal_view == SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL:
+                _render_stretched_time_bin_control(
+                    t.get(
+                        "lbl_chronological_bin_size",
+                        "Chronological bin size",
+                    ),
+                    time_agg_options,
+                    agg_key,
+                    on_change=_sync_time_bin_widget_state,
+                    on_change_args=(
+                        agg_key,
+                        persistent_time_bin_key,
+                        tuple(time_agg_options),
+                        time_agg_default,
+                    ),
+                )
+    else:
+        control_spacer, time_control, control_margin = st.columns([1, 2, 0.05])
+        with time_control:
+            if hasattr(st, "segmented_control"):
+                st.segmented_control(
+                    "Time aggregation",
+                    time_agg_options,
+                    key=agg_key,
+                    label_visibility="collapsed",
+                    on_change=_sync_time_bin_widget_state,
+                    args=(
+                        agg_key,
+                        persistent_time_bin_key,
+                        tuple(time_agg_options),
+                        time_agg_default,
+                    ),
+                )
+            else:
+                st.radio(
+                    "Time aggregation",
+                    time_agg_options,
+                    horizontal=True,
+                    key=agg_key,
+                    label_visibility="collapsed",
+                    on_change=_sync_time_bin_widget_state,
+                    args=(
+                        agg_key,
+                        persistent_time_bin_key,
+                        tuple(time_agg_options),
+                        time_agg_default,
+                    ),
+                )
+
+    if is_compare and temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR:
+        time_agg = "1h"
+    else:
+        time_agg = _sync_time_bin_widget_state(
+            agg_key,
+            persistent_time_bin_key,
+            time_agg_options,
+            time_agg_default,
+        )
 
     evidence_title = selected_bundle["title"]
     selected_recipe = dict(selected_bundle["base_recipe"])
     selected_recipe["time_bin"] = time_agg
-    st.markdown("<div style='height:0.9rem;'></div>", unsafe_allow_html=True)
+    selected_recipe["temporal_view"] = temporal_view
     _render_cached_recipe(
         selected_recipe,
         run_id=run_id,
-        cache_key=cache_key + (time_agg,),
+        cache_key=cache_key + (time_agg, temporal_view),
         subject="selected evidence",
         build_label="selected evidence figure build",
         render_figure=render_selected_evidence_export_figure,
@@ -684,7 +1435,74 @@ def _render_selected_station_evidence(
     return {
         "export_recipe": selected_recipe,
         "time_bin": time_agg,
+        "temporal_view": temporal_view,
         "title": evidence_title,
+    }
+
+
+def _render_segment_temporal_evidence(
+    temporal_bundle,
+    *,
+    analysis_id,
+    run_id,
+    scope_token,
+    cache_key,
+    t,
+    timing_collector=None,
+):
+    """Render one segment-scoped Compare timeline with a saved bin selector."""
+    if not temporal_bundle:
+        return None
+
+    time_bin_options = list(temporal_bundle["time_bin_options"])
+    time_bin_default = temporal_bundle["time_bin_default"]
+    widget_key = f"segment_evidence_time_agg_{analysis_id}_{run_id}_{scope_token}"
+    selected_time_bin = _initialize_time_bin_widget_state(
+        widget_key,
+        RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        time_bin_options,
+        time_bin_default,
+    )
+
+    _render_stretched_time_bin_control(
+        t.get(
+            "lbl_chronological_bin_size",
+            "Chronological bin size",
+        ),
+        time_bin_options,
+        widget_key,
+        on_change=_sync_time_bin_widget_state,
+        on_change_args=(
+            widget_key,
+            RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+            tuple(time_bin_options),
+            time_bin_default,
+        ),
+    )
+
+    selected_time_bin = _sync_time_bin_widget_state(
+        widget_key,
+        RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        time_bin_options,
+        time_bin_default,
+    )
+    temporal_recipe = dict(temporal_bundle["base_recipe"])
+    temporal_recipe["time_bin"] = selected_time_bin
+    temporal_recipe["chronological_title"] = temporal_bundle[
+        "chronological_title_template"
+    ].format(time_bin=selected_time_bin)
+    _render_cached_recipe(
+        temporal_recipe,
+        run_id=run_id,
+        cache_key=cache_key + ("segment temporal", selected_time_bin),
+        subject="segment temporal evidence",
+        build_label="segment temporal evidence figure build",
+        render_figure=render_segment_temporal_evidence_export_figure,
+        timing_collector=timing_collector,
+    )
+    return {
+        "export_recipe": temporal_recipe,
+        "time_bin": selected_time_bin,
     }
 
 
@@ -869,6 +1687,20 @@ def _render_opportunity_scope(
     full_segment_disp_df = opportunity_display_model["full_station_table"]
 
     zero_hits_key = f"opp_show_zero_hits_{analysis_id}_{run_id}_{scope_token}"
+    configured_station_identities = st.session_state.get(
+        RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
+    )
+    show_zero_hits = _initialize_boolean_widget_state(
+        zero_hits_key,
+        RESULTS_SHOW_ZERO_TARGET_STATE_KEY,
+        _selection_requires_zero_hit_rows(
+            full_segment_disp_df,
+            station_col,
+            loc_col,
+            hit_col,
+            configured_station_identities,
+        ),
+    )
     col_title, col_toggle, col_filter = st.columns(
         [0.56, 0.26, 0.18],
         vertical_alignment="center",
@@ -883,13 +1715,19 @@ def _render_opportunity_scope(
     with col_toggle:
         show_zero_hits = st.toggle(
             t.get("lbl_show_zero_hits", "Show Zero-Target"),
-            value=False,
             key=zero_hits_key,
+            on_change=_sync_boolean_widget_state,
+            args=(zero_hits_key, RESULTS_SHOW_ZERO_TARGET_STATE_KEY),
+        )
+        show_zero_hits = _sync_boolean_widget_state(
+            zero_hits_key,
+            RESULTS_SHOW_ZERO_TARGET_STATE_KEY,
         )
 
     disp_df = full_segment_disp_df.copy()
     if not show_zero_hits:
         disp_df = disp_df[disp_df[hit_col] > 0].reset_index(drop=True)
+    selection_universe_df = disp_df.copy()
 
     with col_filter:
         with st.popover("Filter", icon=":material/filter_alt:", width="stretch"):
@@ -917,16 +1755,31 @@ def _render_opportunity_scope(
                         ]
 
     table_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"
+    selection_changed_key = f"{table_key}_selection_changed"
     dataframe_kwargs = {
         "width": "stretch",
         "hide_index": True,
         "selection_mode": "multi-row",
-        "on_select": "rerun",
+        "on_select": partial(
+            _mark_station_selection_changed,
+            selection_changed_key,
+        ),
         "key": table_key,
         "column_config": _snr_column_config(disp_df),
     }
-    if not disp_df.empty and _supports_dataframe_selection_default():
-        dataframe_kwargs["selection_default"] = {"selection": {"rows": [0]}}
+    selection_default_rows, missing_station_identities = (
+        _station_selection_default_rows(
+            disp_df,
+            station_col,
+            loc_col,
+            configured_station_identities,
+        )
+    )
+    _warn_missing_station_identities(missing_station_identities, t)
+    if _supports_dataframe_selection_default():
+        dataframe_kwargs["selection_default"] = {
+            "selection": {"rows": selection_default_rows}
+        }
     with _timed_span(timing_collector, "opportunity station table render"):
         table_event = st.dataframe(disp_df, **dataframe_kwargs)
 
@@ -935,6 +1788,15 @@ def _render_opportunity_scope(
     selected_time_bin = None
     drilldown_selected_df = pd.DataFrame()
     selected_rows = [row for row in (table_event.selection.rows or []) if 0 <= row < len(disp_df)]
+    _sync_selected_station_state_if_changed(
+        selection_changed_key,
+        RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY,
+        disp_df,
+        selected_rows,
+        station_col,
+        loc_col,
+        selection_universe_df,
+    )
 
     if selected_rows:
         selected_meta_df = disp_df.iloc[selected_rows][[station_col, loc_col, km_col, az_col]].copy()
@@ -961,23 +1823,31 @@ def _render_opportunity_scope(
             ],
         }))
         selected_time_key = f"opp_time_agg_{analysis_id}_{run_id}_{scope_token}"
-        if st.session_state.get(selected_time_key) not in time_options:
-            st.session_state[selected_time_key] = time_default
-        if hasattr(st, "segmented_control"):
-            selected_time_bin = st.segmented_control(
-                "Time aggregation",
-                time_options,
-                key=selected_time_key,
-                label_visibility="collapsed",
-            )
-        else:
-            selected_time_bin = st.radio(
-                "Time aggregation",
-                time_options,
-                horizontal=True,
-                key=selected_time_key,
-                label_visibility="collapsed",
-            )
+        persistent_time_bin_key = RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
+        _initialize_time_bin_widget_state(
+            selected_time_key,
+            persistent_time_bin_key,
+            time_options,
+            time_default,
+        )
+        _render_stretched_time_bin_control(
+            "Time aggregation",
+            time_options,
+            selected_time_key,
+            on_change=_sync_time_bin_widget_state,
+            on_change_args=(
+                selected_time_key,
+                persistent_time_bin_key,
+                tuple(time_options),
+                time_default,
+            ),
+        )
+        selected_time_bin = _sync_time_bin_widget_state(
+            selected_time_key,
+            persistent_time_bin_key,
+            time_options,
+            time_default,
+        )
         evidence_title = (
             f"Selected Station Evidence: {selected_station_labels[0]}"
             if len(selected_station_labels) == 1
@@ -1049,7 +1919,15 @@ def _render_opportunity_scope(
                 "",
                 t,
                 station_rows_df=selected_station_rows,
-                tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+                tx_ab_repeat_interval_minutes=(
+                    analysis_context.tx_ab_repeat_interval_minutes
+                ),
+                tx_ab_target_start_minute=(
+                    analysis_context.tx_ab_target_start_minute
+                ),
+                tx_ab_reference_start_minute=(
+                    analysis_context.tx_ab_reference_start_minute
+                ),
                 target_callsign=analysis_context.callsign,
             )
         if info_msg:
@@ -1085,7 +1963,13 @@ def _render_opportunity_scope(
         "is_local_median": False,
         "col_u_name": analysis_context.callsign.upper(),
         "ref_header": "",
-        "tx_ab_bin_minutes": analysis_context.tx_ab_bin_minutes,
+        "tx_ab_repeat_interval_minutes": (
+            analysis_context.tx_ab_repeat_interval_minutes
+        ),
+        "tx_ab_target_start_minute": analysis_context.tx_ab_target_start_minute,
+        "tx_ab_reference_start_minute": (
+            analysis_context.tx_ab_reference_start_minute
+        ),
         "target_callsign": analysis_context.callsign,
         "lang": st.session_state.get("lang", "en"),
     }
@@ -1097,6 +1981,7 @@ def _render_opportunity_scope(
         selected_ranges=list(selected_ranges),
         selected_directions=list(selected_directions),
         show_non_joint=False,
+        show_zero_target=show_zero_hits,
         evidence_time_bin=selected_time_bin,
         selected_stations=selected_station_labels,
         segment_figure_recipe=segment_recipe,
@@ -1231,6 +2116,9 @@ def _render_segment_inspector_body(
     opt_all_dir = t.get("opt_all_dirs", "All Directions")
 
     valid_dirs = options_view_model.valid_directions
+    range_persistent_key, direction_persistent_key = (
+        _segment_scope_persistent_state_keys(is_compare)
+    )
 
     # Render stable explicit-All multiselects. The callback keeps All mutually
     # exclusive with specific values and restores All when the field is cleared.
@@ -1244,13 +2132,20 @@ def _render_segment_inspector_body(
             dist_previous_key,
             opt_full,
             valid_distances,
+            range_persistent_key,
         )
         selected_distance_values = st.multiselect(
             lbl_dist,
             dist_options,
             key=dist_key,
             on_change=_update_explicit_all_multiselect,
-            args=(dist_key, dist_previous_key, opt_full, valid_distances),
+            args=(
+                dist_key,
+                dist_previous_key,
+                opt_full,
+                valid_distances,
+                range_persistent_key,
+            ),
             label_visibility="collapsed",
         )
 
@@ -1263,13 +2158,20 @@ def _render_segment_inspector_body(
             dir_previous_key,
             opt_all_dir,
             valid_dirs,
+            direction_persistent_key,
         )
         selected_direction_values = st.multiselect(
             lbl_dir,
             dir_options,
             key=dir_key,
             on_change=_update_explicit_all_multiselect,
-            args=(dir_key, dir_previous_key, opt_all_dir, valid_dirs),
+            args=(
+                dir_key,
+                dir_previous_key,
+                opt_all_dir,
+                valid_dirs,
+                direction_persistent_key,
+            ),
             label_visibility="collapsed",
         )
 
@@ -1371,12 +2273,16 @@ def _render_segment_inspector_body(
             is_compare=is_compare,
         )
         toggle_key = f"tgl_{analysis_id}_{run_id}_{scope_token}"
-        view_defaults = st.session_state.get("demo_view_defaults", {})
-        if "show_non_joint" in view_defaults and view_defaults.get("show_non_joint") is not None:
-            default_state = bool(view_defaults.get("show_non_joint"))
-        else:
-            default_state = has_non_joint_rows and not has_joint_rows
-        show_non_joint = st.session_state.get(toggle_key, default_state) if is_compare else False
+        default_state = has_non_joint_rows and not has_joint_rows
+        show_non_joint = (
+            _initialize_boolean_widget_state(
+                toggle_key,
+                RESULTS_SHOW_NON_JOINT_STATE_KEY,
+                default_state,
+            )
+            if is_compare
+            else False
+        )
 
         segment_cache_key = (
             INSPECTOR_CACHE_VERSION,
@@ -1386,7 +2292,9 @@ def _render_segment_inspector_body(
             tuple(selected_directions),
             bool(is_compare),
             bool(is_sequential),
-            int(analysis_context.tx_ab_bin_minutes),
+            int(analysis_context.tx_ab_repeat_interval_minutes),
+            int(analysis_context.tx_ab_target_start_minute),
+            int(analysis_context.tx_ab_reference_start_minute),
             presentation_context.language,
             presentation_context.theme,
             title,
@@ -1416,6 +2324,7 @@ def _render_segment_inspector_body(
             has_plot_data = compare_view_model.has_plot_data
             stability_lookup = {}
             segment_figure_recipe = None
+            segment_temporal_bundle = None
             segment_summary = []
 
             if has_plot_data:
@@ -1425,7 +2334,15 @@ def _render_segment_inspector_body(
                         parquet_path,
                         is_compare,
                         is_sequential,
-                        tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+                        tx_ab_repeat_interval_minutes=(
+                            analysis_context.tx_ab_repeat_interval_minutes
+                        ),
+                        tx_ab_target_start_minute=(
+                            analysis_context.tx_ab_target_start_minute
+                        ),
+                        tx_ab_reference_start_minute=(
+                            analysis_context.tx_ab_reference_start_minute
+                        ),
                     )
                 segment_raw_values = (
                     segment_evidence_df["metric"]
@@ -1447,7 +2364,11 @@ def _render_segment_inspector_body(
                     cnt_async = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] > 0) & (df_seg["count_only_r"] > 0)])
                     cnt_u = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] > 0) & (df_seg["count_only_r"] == 0)])
                     cnt_r = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] == 0) & (df_seg["count_only_r"] > 0)])
-                    joint_lbl = t.get("tbl_col_joint_bins", "Joint Bins") if is_sequential else t.get("tbl_col_joint", "Joint")
+                    joint_lbl = (
+                        t.get("tbl_col_joint_pairs", "Joint Pairs")
+                        if is_sequential
+                        else t.get("tbl_col_joint", "Joint")
+                    )
                     async_lbl = t.get("leg_both_async", "Both (Async)")
                     segment_panel_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
                     segment_panel_labels = [col_u_name, joint_lbl, async_lbl, yield_ref_header]
@@ -1470,16 +2391,105 @@ def _render_segment_inspector_body(
                     panel_counts=segment_panel_counts,
                     panel_labels=segment_panel_labels,
                     panel_y_label=segment_panel_y_label,
-                )
-                spot_basis = "paired spot bins" if is_sequential else ("joint spots" if is_compare else "spots")
-                segment_summary = [
-                    f"Selected Segment: {selected_seg}",
-                    _segment_evidence_count_summary(
-                        len(vals),
-                        len(segment_raw_values),
-                        spot_basis,
+                    paired_evidence_title=(
+                        t.get(
+                            "fig_scheduled_pair_delta",
+                            "Scheduled-Pair \u0394 SNR",
+                        )
+                        if is_sequential
+                        else None
                     ),
-                ]
+                )
+                spot_basis = (
+                    "scheduled pairs" if is_sequential
+                    else "joint spots"
+                    if is_compare
+                    else "spots"
+                )
+                if is_compare and not segment_evidence_df.empty:
+                    if is_sequential:
+                        temporal_count_label = t.get(
+                            "fig_scheduled_pair_count",
+                            "Scheduled pair count",
+                        )
+                        temporal_density_label = t.get(
+                            "fig_relative_scheduled_pair_density",
+                            "Relative scheduled-pair density (% of panel maximum)",
+                        )
+                    else:
+                        temporal_count_label = t.get(
+                            "fig_joint_spot_count",
+                            "Joint spot count",
+                        )
+                        temporal_density_label = t.get(
+                            "fig_relative_joint_spot_density",
+                            "Relative joint-spot density (% of panel maximum)",
+                        )
+
+                    temporal_time_options, temporal_time_default = (
+                        _time_agg_options_for_span(segment_evidence_df)
+                    )
+                    chronological_title_label = t.get(
+                        "fig_segment_chronological_delta",
+                        "\u0394 SNR over Time",
+                    )
+                    chronological_title_template = (
+                        f"{chronological_title_label} ({{time_bin}} bins)"
+                    )
+                    folded_date_template = t.get(
+                        "fig_segment_dates_folded",
+                        "{count} UTC dates folded",
+                    ).replace("{count}", "{utc_date_count}")
+                    temporal_figure_title = _segment_temporal_figure_title(
+                        title,
+                        analysis_id,
+                        selected_seg,
+                        t,
+                    )
+                    temporal_base_recipe = _segment_temporal_evidence_export_recipe(
+                        segment_evidence_df,
+                        temporal_figure_title,
+                        temporal_time_default,
+                        temporal_count_label,
+                        chronological_title=chronological_title_template,
+                        chronological_x_label=t.get(
+                            "fig_segment_chronological_x",
+                            "Date/Time (UTC)",
+                        ),
+                        folded_title=_folded_utc_hour_panel_title(t),
+                        folded_date_annotation=folded_date_template,
+                        folded_x_label=t.get(
+                            "fig_segment_utc_hour_x",
+                            "UTC hour",
+                        ),
+                        density_label=temporal_density_label,
+                        folded_unavailable_text=t.get(
+                            "fig_segment_folded_unavailable",
+                            "UTC-hour pattern unavailable - requires joint evidence from at least 2 UTC dates.",
+                        ),
+                        median_focus_axis_label=t.get(
+                            "fig_compare_median_focus_axis",
+                            "\u0394 SNR (dB \u00b7 median-centered nonlinear)",
+                        ),
+                        median_label=t.get(
+                            "fig_median_label",
+                            "Median",
+                        ),
+                    )
+                    if temporal_base_recipe["utc_date_count"] < 2:
+                        insufficient_date_label = t.get(
+                            "fig_segment_dates_insufficient",
+                            "{count} UTC dates available; folding unavailable",
+                        ).format(count=temporal_base_recipe["utc_date_count"])
+                        temporal_base_recipe[
+                            "folded_date_annotation"
+                        ] = insufficient_date_label
+                    segment_temporal_bundle = {
+                        "base_recipe": temporal_base_recipe,
+                        "time_bin_options": tuple(temporal_time_options),
+                        "time_bin_default": temporal_time_default,
+                        "chronological_title_template": chronological_title_template,
+                    }
                 station_summary = _stability_summary(
                     vals,
                     is_compare,
@@ -1489,17 +2499,32 @@ def _render_segment_inspector_body(
                 spot_summary = _stability_summary(
                     segment_raw_values,
                     is_compare,
-                    "Joint-spot" if is_compare and not is_sequential else ("Paired spot-bin" if is_sequential else "Spot"),
+                    (
+                        t.get(
+                            "lbl_scheduled_pair_evidence",
+                            "Scheduled-pair",
+                        )
+                        if is_sequential
+                        else "Joint-spot"
+                        if is_compare
+                        else "Spot"
+                    ),
                     interval=spot_stability_interval,
                 )
-                if station_summary:
-                    segment_summary.append(station_summary)
-                if spot_summary:
-                    segment_summary.append(spot_summary)
+                segment_summary = _segment_summary_lines(
+                    selected_seg,
+                    len(vals),
+                    len(segment_raw_values),
+                    spot_basis,
+                    is_compare=is_compare,
+                    station_summary=station_summary,
+                    spot_summary=spot_summary,
+                )
 
             segment_bundle = {
                 "view_model": compare_view_model,
                 "figure_recipe": segment_figure_recipe,
+                "temporal_bundle": segment_temporal_bundle,
                 "summary": segment_summary,
                 "stability_lookup": stability_lookup,
             }
@@ -1512,6 +2537,7 @@ def _render_segment_inspector_body(
 
         compare_view_model = segment_bundle["view_model"]
         segment_figure_recipe = segment_bundle["figure_recipe"]
+        segment_temporal_bundle = segment_bundle.get("temporal_bundle")
         segment_summary = segment_bundle["summary"]
         stability_lookup = segment_bundle["stability_lookup"]
         ref_header = compare_view_model.reference_header
@@ -1528,6 +2554,7 @@ def _render_segment_inspector_body(
         full_segment_disp_df = compare_view_model.full_station_table
         has_plot_data = compare_view_model.has_plot_data
 
+        segment_temporal_export = None
         selected_evidence_export = None
         selected_station_labels = []
         drilldown_selected_df = pd.DataFrame()
@@ -1549,8 +2576,25 @@ def _render_segment_inspector_body(
                 render_figure=render_segment_insight_export_figure,
                 timing_collector=timing_collector,
             )
+            segment_temporal_export = _render_segment_temporal_evidence(
+                segment_temporal_bundle,
+                analysis_id=analysis_id,
+                run_id=run_id,
+                scope_token=scope_token,
+                cache_key=segment_cache_key,
+                t=t,
+                timing_collector=timing_collector,
+            )
         else:
-            st.info(t["lbl_no_joint"], icon="??????")
+            no_joint_message = (
+                t.get(
+                    "lbl_no_joint_pairs",
+                    "No joint scheduled pairs are available in this segment.",
+                )
+                if is_sequential
+                else t["lbl_no_joint"]
+            )
+            st.info(no_joint_message, icon="??????")
             st.markdown(f"<div style='font-size:11px; color:#ccc; margin-bottom:1rem; font-family:monospace;'>{line1_str}<br>{seg_line2}</div>", unsafe_allow_html=True)
 
         stability_col = t.get("tbl_col_stability", "90% Stability")
@@ -1565,6 +2609,8 @@ def _render_segment_inspector_body(
             }
             sorted_disp_df[stability_col] = row_identity.map(formatted_stability_lookup).fillna("n/a")
 
+        selection_universe_df = sorted_disp_df.copy()
+
         # --- 1. Define layout columns ---
         # Three columns: 50% for title, 30% for toggle, 20% for filter button.
         col_ins1, col_ins2, col_ins3 = st.columns([0.6, 0.3, 0.3], vertical_alignment="center")
@@ -1578,7 +2624,16 @@ def _render_segment_inspector_body(
             if is_compare:
                 # Default to showing non-joint rows only when the selected segment has no joint
                 # evidence but does contain target-only, reference-only, or async-both evidence.
-                show_non_joint = st.toggle("Show Non-Joint", value=default_state, key=toggle_key)
+                st.toggle(
+                    "Show Non-Joint",
+                    key=toggle_key,
+                    on_change=_sync_boolean_widget_state,
+                    args=(toggle_key, RESULTS_SHOW_NON_JOINT_STATE_KEY),
+                )
+                show_non_joint = _sync_boolean_widget_state(
+                    toggle_key,
+                    RESULTS_SHOW_NON_JOINT_STATE_KEY,
+                )
 
         # --- DYNAMIC EXCEL-STYLE FILTER ---
         # sorted_disp_df is ready, so render the filter button in column 3.
@@ -1608,16 +2663,37 @@ def _render_segment_inspector_body(
 
         # Die Tabelle rendert nun den gefilterten Zustand
         tbl_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"
+        selected_stations_state_key = _selected_stations_persistent_state_key(
+            is_compare
+        )
+        configured_station_identities = st.session_state.get(
+            selected_stations_state_key
+        )
+        selection_changed_key = f"{tbl_key}_selection_changed"
         dataframe_kwargs = {
             "width": "stretch",
             "hide_index": True,
             "selection_mode": "multi-row",
-            "on_select": "rerun",
+            "on_select": partial(
+                _mark_station_selection_changed,
+                selection_changed_key,
+            ),
             "key": tbl_key,
             "column_config": _snr_column_config(sorted_disp_df),
         }
-        if not sorted_disp_df.empty and _supports_dataframe_selection_default():
-            dataframe_kwargs["selection_default"] = {"selection": {"rows": [0]}}
+        selection_default_rows, missing_station_identities = (
+            _station_selection_default_rows(
+                sorted_disp_df,
+                station_col,
+                t['tbl_col_loc'],
+                configured_station_identities,
+            )
+        )
+        _warn_missing_station_identities(missing_station_identities, t)
+        if _supports_dataframe_selection_default():
+            dataframe_kwargs["selection_default"] = {
+                "selection": {"rows": selection_default_rows}
+            }
         with _timed_span(timing_collector, "station insights table render"):
             tbl_event = st.dataframe(sorted_disp_df, **dataframe_kwargs)
 
@@ -1635,7 +2711,15 @@ def _render_segment_inspector_body(
             "is_local_median": bool(is_local_median),
             "col_u_name": col_u_name,
             "ref_header": ref_header,
-            "tx_ab_bin_minutes": analysis_context.tx_ab_bin_minutes,
+            "tx_ab_repeat_interval_minutes": (
+                analysis_context.tx_ab_repeat_interval_minutes
+            ),
+            "tx_ab_target_start_minute": (
+                analysis_context.tx_ab_target_start_minute
+            ),
+            "tx_ab_reference_start_minute": (
+                analysis_context.tx_ab_reference_start_minute
+            ),
             "target_callsign": analysis_context.callsign,
             "lang": st.session_state.get("lang", "en"),
         }
@@ -1643,10 +2727,19 @@ def _render_segment_inspector_body(
         # ----------------------------------------------------
         # Render Raw Drill-Down Data (if user clicks a row)
         # ----------------------------------------------------
-        # Streamlit dataframe selection state is user-driven. The table can preselect row 0
-        # on first render, but a deliberate deselect-all must stay empty.
+        # Streamlit selection remains user-driven after saved identities establish
+        # the first render; a deliberate deselect-all is persisted as an empty list.
         raw_sel_rows = tbl_event.selection.rows or []
         sel_rows = [row for row in raw_sel_rows if 0 <= row < len(sorted_disp_df)]
+        _sync_selected_station_state_if_changed(
+            selection_changed_key,
+            selected_stations_state_key,
+            sorted_disp_df,
+            sel_rows,
+            station_col,
+            t['tbl_col_loc'],
+            selection_universe_df,
+        )
         if sel_rows:
             loc_col = t['tbl_col_loc']
             selected_meta_df = sorted_disp_df.iloc[sel_rows][[station_col, loc_col, t['tbl_col_km'], t['tbl_col_az']]].copy()
@@ -1682,8 +2775,13 @@ def _render_segment_inspector_body(
                     selected_identity_df,
                     is_compare,
                     is_sequential,
-                    analysis_context.tx_ab_bin_minutes,
+                    analysis_context.tx_ab_repeat_interval_minutes,
+                    analysis_context.tx_ab_target_start_minute,
+                    analysis_context.tx_ab_reference_start_minute,
+                    t=t,
+                    analysis_id=analysis_id,
                     run_id=run_id,
+                    scope_token=scope_token,
                     cache_key=(
                         INSPECTOR_CACHE_VERSION,
                         "comparison",
@@ -1696,7 +2794,9 @@ def _render_segment_inspector_body(
                         ),
                         bool(is_compare),
                         bool(is_sequential),
-                        int(analysis_context.tx_ab_bin_minutes),
+                        int(analysis_context.tx_ab_repeat_interval_minutes),
+                        int(analysis_context.tx_ab_target_start_minute),
+                        int(analysis_context.tx_ab_reference_start_minute),
                         presentation_context.language,
                         presentation_context.theme,
                     ),
@@ -1719,7 +2819,15 @@ def _render_segment_inspector_body(
                         ref_header,
                         t,
                         station_rows_df=station_df,
-                        tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+                        tx_ab_repeat_interval_minutes=(
+                            analysis_context.tx_ab_repeat_interval_minutes
+                        ),
+                        tx_ab_target_start_minute=(
+                            analysis_context.tx_ab_target_start_minute
+                        ),
+                        tx_ab_reference_start_minute=(
+                            analysis_context.tx_ab_reference_start_minute
+                        ),
                         target_callsign=analysis_context.callsign,
                     )
 
@@ -1756,8 +2864,12 @@ def _render_segment_inspector_body(
             selected_directions=list(selected_directions) if selected_directions else [opt_all_dir],
             show_non_joint=show_non_joint,
             evidence_time_bin=(selected_evidence_export or {}).get("time_bin"),
+            segment_evidence_time_bin=(segment_temporal_export or {}).get("time_bin"),
             selected_stations=selected_station_labels,
             segment_figure_recipe=segment_figure_recipe,
+            segment_temporal_evidence_figure_recipe=(
+                segment_temporal_export or {}
+            ).get("export_recipe"),
             selected_evidence_figure_recipe=(selected_evidence_export or {}).get("export_recipe"),
             station_insights_df=sorted_disp_df,
             drilldown_selected_df=drilldown_selected_df,

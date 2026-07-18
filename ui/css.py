@@ -9,7 +9,7 @@ import streamlit as st
 def apply_custom_css():
     """
     Injects the custom CSS definitions into the Streamlit DOM.
-    Handles fonts, button styling, dropdown state overrides, and mobile responsiveness.
+    Handles fonts, action and demo text styling, dropdowns, and responsive layout.
     """
     st.markdown("""
     <style>
@@ -21,7 +21,8 @@ def apply_custom_css():
         
         div.stButton > button[kind="primary"],
         div.stDownloadButton > button[kind="primary"],
-        div[data-testid="stDownloadButton"] button[kind="primary"] {
+        div[data-testid="stDownloadButton"] button[kind="primary"],
+        div[data-testid="stPopover"] button[kind="primary"] {
             background-color: transparent !important;
             color: #ffffff !important;
             border: 1px solid rgba(57, 255, 20, 0.35) !important;
@@ -35,7 +36,8 @@ def apply_custom_css():
 
         div.stButton > button[kind="primary"]:hover,
         div.stDownloadButton > button[kind="primary"]:hover,
-        div[data-testid="stDownloadButton"] button[kind="primary"]:hover {
+        div[data-testid="stDownloadButton"] button[kind="primary"]:hover,
+        div[data-testid="stPopover"] button[kind="primary"]:hover {
             background-color: rgba(57, 255, 20, 0.06) !important;
             border-color: rgba(57, 255, 20, 0.75) !important;
             color: #ffffff !important;
@@ -62,20 +64,25 @@ def apply_custom_css():
         div.stButton > button[kind="primary"] svg,
         div.stButton > button[kind="secondary"] svg,
         div.stDownloadButton > button[kind="primary"] svg,
+        div[data-testid="stPopover"] button[kind="primary"] svg,
         div.stButton > button[kind="primary"] [data-testid="stIconMaterial"],
         div.stButton > button[kind="secondary"] [data-testid="stIconMaterial"],
         div.stDownloadButton > button[kind="primary"] [data-testid="stIconMaterial"],
+        div[data-testid="stPopover"] button[kind="primary"] [data-testid="stIconMaterial"],
         div.stButton > button[kind="primary"] span[data-testid="stIconMaterial"],
         div.stButton > button[kind="secondary"] span[data-testid="stIconMaterial"],
-        div.stDownloadButton > button[kind="primary"] span[data-testid="stIconMaterial"] {
+        div.stDownloadButton > button[kind="primary"] span[data-testid="stIconMaterial"],
+        div[data-testid="stPopover"] button[kind="primary"] span[data-testid="stIconMaterial"] {
             color: #ffffff !important;
             fill: #ffffff !important;
         }
+        .st-key-run_analysis_button button[kind="primary"]:not(:disabled),
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"] {
             border-color: #39ff14 !important;
             box-shadow: 0 0 3px rgba(57, 255, 20, 0.65) !important;
             filter: drop-shadow(0 0 3px rgba(57, 255, 20, 0.45)) !important;
         }
+        .st-key-run_analysis_button button[kind="primary"]:not(:disabled):hover,
         div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"]:hover {
             border-color: #39ff14 !important;
             box-shadow: 0 0 5px rgba(57, 255, 20, 0.75) !important;
@@ -98,6 +105,15 @@ def apply_custom_css():
         div[data-testid="stFileUploader"] small,
         div[data-testid="stFileUploaderDropzoneInstructions"] > div:last-child {
             display: none !important;
+        }
+
+        /* Demo descriptions keep caption sizing while using normal white text. */
+        .st-key-demo_description div[data-testid="stCaptionContainer"],
+        .st-key-demo_description div[data-testid="stCaptionContainer"] p {
+            color: #ffffff !important;
+        }
+        .st-key-demo_description div[data-testid="stCaptionContainer"] {
+            opacity: 1 !important;
         }
 
         /* Selectbox (Language Selector) aligned with button styling */
@@ -198,6 +214,13 @@ def apply_custom_css():
 
         .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }
         .stMarkdown h4 { color: #ffffff !important; margin-top: 1.8rem; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
+        .st-key-documentation_body .stMarkdown h4 {
+            color: #39ff14 !important;
+        }
+        .st-key-documentation_body .stMarkdown strong.defined-term {
+            color: #39ff14 !important;
+            font-weight: 700 !important;
+        }
         .stMarkdown p {
             margin-top: 0.85rem !important;
             margin-bottom: 0.85rem !important;
@@ -209,7 +232,7 @@ def apply_custom_css():
             margin-top: 1.2rem;
             margin-bottom: 0.35rem;
         }
-        .stMarkdown p:has(> strong:only-child) strong {
+        .stMarkdown p:has(> strong:only-child) strong:not(.defined-term) {
             color: #ffffff !important;
             font-weight: 700 !important;
         }
@@ -218,7 +241,7 @@ def apply_custom_css():
             margin-bottom: 1.05rem !important;
             line-height: 1.55 !important;
         }
-        .stMarkdown p:has(> strong:first-child:not(:only-child)) strong:first-child {
+        .stMarkdown p:has(> strong:first-child:not(:only-child)) strong:first-child:not(.defined-term) {
             color: #ffffff !important;
             font-weight: 700 !important;
         }

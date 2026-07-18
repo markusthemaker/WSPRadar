@@ -20,7 +20,7 @@ measurement system.
 - TX and RX Success analyses that compare target opportunities with signals seen
   by other active stations.
 - TX and RX comparison analyses for local/reference setups, hardware A/B cases,
-  and sequential WSPR frame comparisons.
+  and deterministic scheduled TX A/B pairs.
 - Interactive configuration with English and German presentation.
 - Geographic station and segment aggregation on an azimuthal-equidistant map.
 - Segment Inspector views with station tables, evidence figures, and drilldown
@@ -31,7 +31,7 @@ measurement system.
 - Guided demo profiles for historical examples.
 - Process-wide analysis and export admission queues, duplicate-request rejection,
   bounded HTTP reads, shared artifact locking, and performance/RSS logging.
-- Section 1 rendered initially, with the table of contents and remaining manual
+- The preface rendered initially, with the table of contents and remaining manual
   loaded near its viewport boundary or through an explicit fallback; PDF
   generation remains process-cached and explicitly requested.
 
@@ -81,6 +81,13 @@ Use `requirements.txt` instead of `requirements-dev.txt` for a runtime-only
 environment. The `.devcontainer/devcontainer.json` definition is the available
 reproducible Linux setup path.
 
+For automated Windows checks, use `.\.venv\Scripts\python.exe` directly instead
+of activating the environment or combining another Python runtime with `.venv`
+packages through `PYTHONPATH`. Confirm that the interpreter starts and imports
+the declared dependencies first. If the launcher fails, inspect
+`.venv/pyvenv.cfg` and access to its recorded base interpreter before concluding
+that the dependency set is missing or broken.
+
 Verification status on 2026-07-11:
 
 - All runtime and test dependency imports succeeded under Python 3.12.13.
@@ -98,7 +105,11 @@ was found in the application path.
 | --- | --- |
 | `config/app_config.py` | Application metadata, public URLs, wspr.live URL, cache path/TTL, query limits, HTTP timeouts/response ceilings, admission queues, and inspector-cache limits. |
 | `config/bands.py` | User-facing WSPR bands and wspr.live band identifiers. |
-| `config/demo_profiles.py` | Guided demo inputs and historical time windows. |
+| `config/demos/*.config` | Authoritative guided demos. Each file is an ordinary standalone configuration; lexicographic filename order defines launcher order. |
+| `config/demo_profiles.py` | Dependency-free demo discovery, validation, duplicate-ID protection, stable filename ordering, and `DEMO_PROFILES` compatibility export. |
+| `config/config_schema.py` | Version-1 saved-configuration format identifier, schema version, grouped settings contract, and canonical enum values shared by demos and user files. |
+| `config/config_codec.py` | Dependency-free document-envelope and schema-version validation shared by demo and upload readers. |
+| `config/wspradar-config.schema.json` | Formal JSON Schema for every standalone saved or demo configuration. |
 | `config/plot_constants.py` | Map geometry, colors, and rendering/scientific plotting constants. |
 | `.streamlit/config.toml` | Streamlit theme and server CORS/XSRF configuration. |
 | `.gitignore` | Excludes a local `.streamlit/secrets.toml`; no example secrets file is committed. |
@@ -119,6 +130,55 @@ Important defaults currently include:
 These limits come directly from `config/app_config.py`; change them there and
 update the associated regression tests.
 
+Saved configurations and demos use the same strict standalone JSON document
+identified by `format: "wspradar.config"`. Its optional `profile` object carries
+a stable ID plus localized title and description, while its `settings`
+object mirrors the durable UI sections: `core_parameters`,
+`comparison_parameters`, `advanced_parameters`, and `results_view`. Every
+applicable setting is explicit, but fields belonging to an inactive time or
+comparison branch are omitted rather than copied from hidden widget state.
+Loading first resets inactive controls to application defaults and then applies
+the validated active branch, so a file cannot inherit stale values from the
+preceding session.
+
+The initial public runnable configuration schema is version 1. Hardware TX A/B
+settings use a shared `repeat_interval_minutes` plus disjoint
+`target_start_minute` and `reference_start_minute` phases. The visible UI names
+these three controls **Repeat Interval**, **Target Start**, and **Reference
+Start**; supported intervals are 4, 6, 10, 12, 20, 30, and 60 minutes, starts
+are even phases below the selected interval, and new sessions default to 10, 0,
+and 2 minutes respectively. Scheduled transmissions are paired by their planned
+starts; the unpublished fixed-bin prototype is not part of the public contract.
+
+`results_view` is divided into `success` and, when applicable, `compare`.
+It preserves each branch's Segment Inspector range/direction, selected-station
+chronological time bin, and station-selection intent. Explicit stations use
+canonical callsign/locator pairs, while `all` dynamically selects the complete
+reconstructed table under the saved visibility controls. Compare also preserves
+its selected temporal view, segment time bin, and `show_non_joint`; Success
+preserves `show_zero_target`. Table filters, Drill-Down filters, and other
+transient UI state remain outside the config contract. Optional non-core data
+belongs under `extensions` and is preserved across load and re-save.
+
+`config/config_codec.py` owns document-envelope and current-version validation;
+`ui/config_io.py` owns semantic settings validation, Streamlit-state
+application, and writing. No migration exists because version 1 is the first
+public contract. The first public schema bump must add an explicit migration
+from version 1 before the writer changes. Unsupported versions are rejected
+instead of being interpreted with guessed defaults. The formal JSON Schema
+enumerates valid fields, values, and conditional branches.
+
+`config/demo_profiles.py` discovers regular `config/demos/*.config` files in
+lexicographic filename order. The filename is an opaque ordering key and is
+independent of the document's required, stable `profile.id`. A configuration
+saved by the UI can therefore become a demo without format conversion: choose
+any `.config` filename that places it at the desired launcher position and put
+it in that directory. Installed demos require `profile.title.en` and, when a
+description is supplied, `profile.description.en`. German `de` values are
+optional; the launcher falls back to English when they are absent. Description
+strings accept GitHub-flavored Markdown links, and JSON `\n` escapes render as
+visible line breaks. Raw HTML remains escaped by the Streamlit caption renderer.
+
 ## Running the Application
 
 Start Streamlit from the repository root:
@@ -137,8 +197,9 @@ Streamlit health endpoint returned HTTP 200 with `ok`.
 Typical use is:
 
 1. Select English or German presentation.
-2. Load a demo or configure callsigns, locator, band, time window, and mode.
-3. Run TX or RX analysis.
+2. Load a demo or select RX/TX direction and configure callsigns, locator, band,
+   time window, and comparison mode.
+3. Run the single direction-aware analysis action.
 4. Inspect the map, segment and selected-station evidence.
 5. Prepare an export only when needed.
 
@@ -167,6 +228,8 @@ Useful files when tracing behavior:
 
 - `ui/run_controller.py`: end-to-end analysis orchestration.
 - `core/analysis_runner.py`: SQL and post-fetch analysis contracts.
+- `core/tx_ab_schedule.py`: periodic TX A/B validation, exact schedule SQL, and
+  stable planned-pair assignment.
 - `core/data_engine.py`: bounded upstream HTTP and query cache.
 - `core/compare_engine.py` and `core/opportunity_engine.py`: scientific
   aggregation and classification.
@@ -174,9 +237,12 @@ Useful files when tracing behavior:
   presentation rendering.
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
   orchestration and pure view models.
+- `ui/config_io.py` and `ui/config_save.py`: shared versioned-config semantics,
+  fragment-scoped profile/save controls, and relative-versus-frozen Last-X
+  writing.
 - `ui/results_export.py`: lazy export recipe execution and ZIP construction.
-- `ui/result_state.py`: lightweight result/export reset lifecycle used by idle
-  configuration callbacks.
+- `ui/result_state.py`: lightweight result/export reset and active-run time-window
+  lifecycle used by idle configuration callbacks.
 - `ui/documentation_scroll_trigger.py`: one-shot browser viewport sentinel for
   demand-driven full-manual rendering.
 - `core/artifact_store.py`: artifact namespaces and lifecycle.
@@ -192,6 +258,15 @@ Run the complete regression suite:
 ```powershell
 python -m pytest tests/regression -q
 ```
+
+In automated Windows sessions, use the direct equivalent
+`.\.venv\Scripts\python.exe -m pytest tests\regression -q` to run the provisioned
+test environment without a `PYTHONPATH` workaround.
+
+Pytest stores its disposable per-run files and cache under the ignored `.test/`
+directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
+session, preventing separately named root-level test directories from
+accumulating across runs.
 
 Verified result on 2026-07-11:
 

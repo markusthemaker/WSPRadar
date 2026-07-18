@@ -194,7 +194,9 @@ def test_map_data_is_pure_and_preserves_legacy_absolute_aggregates():
         min_spots=1,
         min_opportunities=5,
         base_min_stations=1,
-        tx_ab_bin_minutes=8,
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
     )
 
     pd.testing.assert_frame_equal(source, original)

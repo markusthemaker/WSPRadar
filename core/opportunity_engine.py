@@ -22,6 +22,7 @@ from config import (
 from core.input_validation import is_valid_6char_locator, is_valid_callsign
 from core.math_utils import locator_to_latlon
 from core.solar_path import classify_path_illumination
+from core.tx_ab_schedule import tx_ab_schedule_sql
 
 
 ABSOLUTE_METHOD_VERSION = "opportunity-v1"
@@ -230,7 +231,8 @@ def build_absolute_opportunity_query(
     callsign: str,
     qth: str,
     exclude_special_callsigns: bool = False,
-    target_frame_mod4: int | None = None,
+    target_repeat_interval_minutes: int | None = None,
+    target_start_minute_utc: int | None = None,
     require_decode_code: bool = True,
 ) -> str:
     """
@@ -276,9 +278,18 @@ def build_absolute_opportunity_query(
         peer_exclusions = " " + " ".join(
             f"AND {peer_sign} NOT LIKE '{prefix}%'" for prefix in ("Q", "0", "1")
         )
-    frame_filter = ""
-    if target_frame_mod4 in {0, 2}:
-        frame_filter = f"\n      AND toMinute(time) % 4 = {int(target_frame_mod4)}"
+    schedule_filter = ""
+    has_repeat_interval = target_repeat_interval_minutes is not None
+    has_start_minute = target_start_minute_utc is not None
+    if has_repeat_interval != has_start_minute:
+        raise ValueError(
+            "Target schedule requires both repeat interval and UTC start minute."
+        )
+    if has_repeat_interval:
+        schedule_filter = "\n      AND " + tx_ab_schedule_sql(
+            target_repeat_interval_minutes,
+            target_start_minute_utc,
+        )
     active_decode_filter = "\n      AND code = 1" if require_decode_code else ""
     main_decode_filter = "\n  AND code = 1" if require_decode_code else ""
 
@@ -290,7 +301,7 @@ WITH active_cycles AS
     PREWHERE band = {band_sql}
       AND time >= '{start_sql}'
       AND time < '{end_sql}'
-    WHERE {target_condition}{active_decode_filter}{frame_filter}
+    WHERE {target_condition}{active_decode_filter}{schedule_filter}
 )
 SELECT
     intDiv(toUnixTimestamp(time), 120) AS time_slot,

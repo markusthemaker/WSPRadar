@@ -171,6 +171,7 @@ def _draw_footer_summary_bars(
     colors,
     text_colors,
     theme_config,
+    evidence_plural="SPOTS",
 ):
     """Draw visible-scope station and spot composition as two stacked bars."""
     if not (
@@ -217,7 +218,7 @@ def _draw_footer_summary_bars(
         text_colors,
     ):
         rectangles = summary_axis.barh(
-            ["STATIONS", "SPOTS"],
+            ["STATIONS", evidence_plural],
             [station_pct, spot_pct],
             left=left_positions,
             color=color,
@@ -531,7 +532,14 @@ def render_map_figure(
         if is_sequential:
             meta_parts.append("Sync: Sequential A/B")
             meta_parts.append(
-                f"Joint Bins/Station: >={analysis_context.min_joint_spots_per_station}"
+                f"Joint Pairs/Station: "
+                f">={analysis_context.min_joint_spots_per_station}"
+            )
+            meta_parts.append(
+                "Schedule: "
+                f"{analysis_context.tx_ab_repeat_interval_minutes} min / "
+                f"T {analysis_context.tx_ab_target_start_minute:02d} / "
+                f"R {analysis_context.tx_ab_reference_start_minute:02d} UTC"
             )
             meta_parts.append(f"Joint Stations/Seg: >={base_min_stations}")
         else:
@@ -606,6 +614,7 @@ def render_map_figure(
             ],
             text_colors=["white", "black", "black", "black"],
             theme_config=theme_cfg,
+            evidence_plural="PAIRS" if is_sequential else "SPOTS",
         )
         fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer"], ha='center', fontsize=FONT_FOOTER)
         fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
@@ -666,7 +675,13 @@ def generate_map_plot(
             min_spots=analysis_context.min_joint_spots_per_station,
             min_opportunities=analysis_context.min_confirmed_opportunities_per_peer,
             base_min_stations=base_min_stations,
-            tx_ab_bin_minutes=analysis_context.tx_ab_bin_minutes,
+            tx_ab_repeat_interval_minutes=(
+                analysis_context.tx_ab_repeat_interval_minutes
+            ),
+            tx_ab_target_start_minute=analysis_context.tx_ab_target_start_minute,
+            tx_ab_reference_start_minute=(
+                analysis_context.tx_ab_reference_start_minute
+            ),
             owns_input=True,
         )
     if map_data is None:

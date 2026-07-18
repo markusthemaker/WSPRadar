@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from core.artifact_store import read_parquet_artifact
 from core.opportunity_engine import opportunity_utc_from_time_slot
+from core.tx_ab_schedule import assign_tx_ab_pair_columns
 from i18n import absolute_terms
 
 def _unique_station_order(stations):
@@ -111,7 +112,9 @@ def _build_drilldown_table(
     ref_header,
     t,
     station_rows_df=None,
-    tx_ab_bin_minutes=8,
+    tx_ab_repeat_interval_minutes=10,
+    tx_ab_target_start_minute=0,
+    tx_ab_reference_start_minute=2,
     target_callsign="",
 ):
     """Build the drill-down dataframe for selected or all current segment identities."""
@@ -197,19 +200,45 @@ def _build_drilldown_table(
             drill_df[col] = pd.to_numeric(drill_df[col], errors='coerce').round(1)
     else:
         if is_sequential:
-            bin_minutes = int(tx_ab_bin_minutes)
-            station_df['dt_time'] = pd.to_datetime(station_df['time'])
-            station_df['time_bin'] = station_df['dt_time'].dt.floor(f'{bin_minutes}min')
+            if 'tx_ab_pair_id' not in station_df.columns:
+                station_df = assign_tx_ab_pair_columns(
+                    station_df,
+                    repeat_interval_minutes=tx_ab_repeat_interval_minutes,
+                    target_start_minute_utc=tx_ab_target_start_minute,
+                    reference_start_minute_utc=tx_ab_reference_start_minute,
+                )
+            if station_df.empty:
+                return pd.DataFrame(), "No scheduled pairs available."
+            station_df['dt_time'] = pd.to_datetime(
+                station_df['time'],
+                utc=True,
+            )
+            pair_keys = ['peer_sign', 'peer_grid', 'tx_ab_pair_id']
+            pair_display_column = 'scheduled_pair_str'
+            pair_display_label = t.get(
+                'tbl_col_pair',
+                'Scheduled Pair (UTC)',
+            )
+            pair_delta_label = t.get('tbl_col_pair_delta', 'Pair \u0394')
 
             df_t = station_df[station_df['is_me'] == 1]
             df_r = station_df[station_df['is_me'] == 0]
+            pair_t = (
+                df_t.groupby(pair_keys, dropna=False)['stat_val']
+                .median()
+                .reset_index()
+                .rename(columns={'stat_val': 'micro_med_a'})
+            )
+            pair_r = (
+                df_r.groupby(pair_keys, dropna=False)['stat_val']
+                .median()
+                .reset_index()
+                .rename(columns={'stat_val': 'micro_med_b'})
+            )
 
-            bin_t = df_t.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_a'})
-            bin_r = df_r.groupby('time_bin')['stat_val'].median().reset_index().rename(columns={'stat_val': 'micro_med_b'})
-
-            station_df = pd.merge(station_df, bin_t, on='time_bin', how='left')
-            station_df = pd.merge(station_df, bin_r, on='time_bin', how='left')
-            station_df['bin_delta'] = np.where(
+            station_df = pd.merge(station_df, pair_t, on=pair_keys, how='left')
+            station_df = pd.merge(station_df, pair_r, on=pair_keys, how='left')
+            station_df['pair_delta'] = np.where(
                 station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna(),
                 station_df['micro_med_a'] - station_df['micro_med_b'],
                 np.nan
@@ -218,13 +247,25 @@ def _build_drilldown_table(
             if not show_non_joint:
                 station_df = station_df[station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna()]
                 if station_df.empty:
-                    return pd.DataFrame(), "No joint spots available for the selected station(s)."
+                    return pd.DataFrame(), "No joint scheduled pairs available for the selected station(s)."
 
             station_df['micro_med_b'] = np.where(station_df['is_me'] == 1, np.nan, station_df['micro_med_b'])
             station_df['micro_med_a'] = np.where(station_df['is_me'] == 0, np.nan, station_df['micro_med_a'])
 
             station_df = station_df.sort_values('dt_time', ascending=False)
-            station_df['time_bin_str'] = station_df['time_bin'].dt.strftime('%H:%M') + ' - ' + (station_df['time_bin'] + pd.Timedelta(minutes=bin_minutes)).dt.strftime('%H:%M')
+            target_pair_times = pd.to_datetime(
+                station_df['tx_ab_pair_target_time'],
+                utc=True,
+            )
+            reference_pair_times = pd.to_datetime(
+                station_df['tx_ab_pair_reference_time'],
+                utc=True,
+            )
+            station_df['scheduled_pair_str'] = (
+                target_pair_times.dt.strftime('%d-%b %H:%M')
+                + ' \u2194 '
+                + reference_pair_times.dt.strftime('%d-%b %H:%M')
+            )
             station_df['Date/Time (UTC)'] = station_df['dt_time'].dt.strftime('%d-%b-%Y %H:%M:%S')
             target_tx_label, ref_tx_label = _sequential_tx_drilldown_labels(
                 col_u_name,
@@ -233,14 +274,31 @@ def _build_drilldown_table(
             )
             station_df['tx_callsign'] = np.where(station_df['is_me'] == 1, target_tx_label, ref_tx_label)
 
-            drill_df = station_df[['Date/Time (UTC)', 'time_bin_str', 'tx_callsign', 'power', 'snr', 'stat_val', 'micro_med_a', 'micro_med_b', 'bin_delta']].copy()
+            drill_df = station_df[
+                [
+                    'Date/Time (UTC)',
+                    pair_display_column,
+                    station_col,
+                    loc_col,
+                    km_col,
+                    az_col,
+                    'tx_callsign',
+                    'power',
+                    'snr',
+                    'stat_val',
+                    'micro_med_a',
+                    'micro_med_b',
+                    'pair_delta',
+                ]
+            ].copy()
             drill_df.columns = [
-                'Date/Time (UTC)', t.get('tbl_col_bin', 'Time-Bin'), 'TX Station',
+                'Date/Time (UTC)', pair_display_label,
+                station_col, loc_col, km_col, az_col, 'TX Station',
                 'TX Power (dBm)', 'SNR (Raw)', 'Norm@1W',
-                t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')
+                t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), pair_delta_label
             ]
 
-            for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), t.get('tbl_col_bin_delta', 'Bin \u0394')]:
+            for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), pair_delta_label]:
                 drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
         else:
             joint_df = station_df.copy() if show_non_joint else station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()

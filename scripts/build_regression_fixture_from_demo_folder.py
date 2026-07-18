@@ -34,6 +34,7 @@ TABLE_FILES = [
 FIGURE_FILES = [
     "figure_map_highres.png",
     "figure_segment_insight.png",
+    "figure_segment_temporal_evidence.png",
     "figure_selected_station_evidence.png",
 ]
 BLOCK_FOLDERS = ["compare", "success"]

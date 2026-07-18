@@ -50,6 +50,12 @@ def test_analysis_request_fingerprint_changes_with_scientific_inputs():
     assert _fingerprint(context) != _fingerprint(
         replace(context, reference_snr_correction_db=1.2)
     )
+    assert _fingerprint(context) != _fingerprint(
+        replace(context, tx_ab_repeat_interval_minutes=20)
+    )
+    assert _fingerprint(context) != _fingerprint(
+        replace(context, tx_ab_reference_start_minute=4)
+    )
     assert _fingerprint(context) != _fingerprint(context, end_t=END + timedelta(minutes=2))
 
 

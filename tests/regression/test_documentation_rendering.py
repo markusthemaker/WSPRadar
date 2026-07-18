@@ -1,4 +1,5 @@
 import inspect
+import re
 from contextlib import nullcontext
 
 import pytest
@@ -8,6 +9,7 @@ from docs.doc_en import DOC_EN
 from docs.pdf_generator import get_docs
 from i18n import T
 from ui import documentation
+from ui import css as ui_css
 
 
 class _FakeStreamlit:
@@ -98,8 +100,8 @@ def test_load_and_hide_controls_have_english_and_german_labels():
 @pytest.mark.parametrize(
     ("documentation_text", "section_one_heading", "toc_heading"),
     [
-        (DOC_EN, "### 1. Why WSPRadar", "### Table of Contents"),
-        (DOC_DE, "### 1. Warum WSPRadar", "### Inhaltsverzeichnis"),
+        (DOC_EN, "### 0. Start Here", "### Table of Contents"),
+        (DOC_DE, "### 0. Einstieg", "### Inhaltsverzeichnis"),
     ],
     ids=("en", "de"),
 )
@@ -141,6 +143,160 @@ def test_manual_contains_one_stable_toc_marker_before_section_two(documentation_
     assert documentation_text.index(
         documentation.DOCUMENTATION_TOC_MARKER
     ) < documentation_text.index(documentation.DOCUMENTATION_SECTION_TWO_MARKER)
+
+
+def test_english_preface_numbering_and_first_defined_terms_are_explicit():
+    """The English preface must remain distinct from numbered operator chapters."""
+    assert "## Part 0: Preface" not in DOC_EN
+    assert DOC_EN.count("**Part 0: Preface**") == 1
+    assert "### 0. Start Here" in DOC_EN
+    assert "#### 0.3 What one run produces" in DOC_EN
+    assert "### 1. Experiment Playbooks" in DOC_EN
+    assert '<strong class="defined-term">Target</strong>' in DOC_EN
+    assert '<strong class="defined-term">Reference</strong>' in DOC_EN
+    assert DOC_EN.count('<strong class="defined-term">Success</strong>') >= 2
+
+
+def test_english_playbooks_define_success_evidence_and_tx_ab_timing():
+    """Operator playbooks must retain the clarified Success and TX A/B guidance."""
+    assert '<strong class="defined-term">Qualifying evidence</strong>' in DOC_EN
+    assert "independently confirmed global WSPR-network opportunities" in DOC_EN
+    assert "The default is `Repeat Interval = 10 min`" in DOC_EN
+    assert "Pairing is automatic." in DOC_EN
+    assert "**Ultimate3S: adjacent A/B slots followed by a pause.**" in DOC_EN
+    assert "enter `Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`" in DOC_EN
+    assert "an invented 3 dB report difference therefore creates an artificial 3 dB comparison offset" in DOC_EN
+    assert '<a id="sec-2-4-why"></a>' in DOC_EN
+
+
+def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
+    """Chapter 2 must avoid repeating run-identity guidance before interpretation."""
+    assert "#### 2.1 Confirm the run identity" not in DOC_EN
+    assert "**Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**" in DOC_EN
+    assert "#### 2.1 Read a Success result" in DOC_EN
+    assert "#### 2.2 Read a Compare result" in DOC_EN
+    assert "#### 2.8 Worked Compare example" in DOC_EN
+
+    rx_explanation = DOC_EN.index("* In simultaneous RX Compare")
+    tx_explanation = DOC_EN.index("* In simultaneous TX Compare")
+    sequential_explanation = DOC_EN.index("* Sequential TX A/B uses deterministic scheduled pairs")
+    assert rx_explanation < tx_explanation < sequential_explanation
+
+
+def test_bilingual_manuals_define_segment_temporal_density_and_scope():
+    """Keep the new Compare temporal view scientifically and operationally explicit."""
+    assert "exactly the same observation-level evidence rows" in DOC_EN
+    assert "at least two distinct UTC dates" in DOC_EN
+    assert "D_{relative} = 100" in DOC_EN
+    assert "The selected view is stored in `.config`" in DOC_EN
+
+    assert "genau dieselben Evidenzzeilen auf Beobachtungsebene" in DOC_DE
+    assert "mindestens zwei verschiedenen UTC-Tagen" in DOC_DE
+    assert "D_{relative} = 100" in DOC_DE
+    assert "Die gewählte Ansicht wird in `.config` gespeichert" in DOC_DE
+
+    assert "percentage of that panel's maximum cell count" in DOC_EN
+    assert "Prozentsatz der maximalen Zellbelegung dieses Panels" in DOC_DE
+    assert "Tick labels show the resulting **absolute Delta SNR**" in DOC_EN
+    assert "Die Skalenbeschriftungen zeigen das resultierende **absolute Delta SNR**" in DOC_DE
+    assert "The two segment temporal panels share the observation-level median" in DOC_EN
+    assert "Die beiden Zeitpanels des Segments teilen sich den Median" in DOC_DE
+    assert "not the segment median above" in DOC_EN
+    assert "nicht den darüber angezeigten Segmentmedian" in DOC_DE
+    assert "M +/- 1`, `M +/- 3`, `M +/- 6` and `M +/- 10 dB" in DOC_EN
+    assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` and `M +/- 30 dB" in DOC_EN
+    assert "M +/- 1`, `M +/- 3`, `M +/- 6` und `M +/- 10 dB" in DOC_DE
+    assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` und `M +/- 30 dB" in DOC_DE
+    assert "Histogram counts and bin edges remain in raw dB" in DOC_EN
+    assert "Anzahlen und Klassengrenzen der Histogramme bleiben in untransformierten dB-Werten" in DOC_DE
+    assert "white connected markers remain a separate statistic" in DOC_EN
+    assert "The selected-station plots use the observation-level weighting" in DOC_EN
+    assert "Die weißen verbundenen Marker bleiben eine eigene Statistik" in DOC_DE
+    assert "Gewichtungs- und Darstellungsregeln auf Beobachtungsebene" in DOC_DE
+    for documentation_text in (DOC_EN, DOC_DE):
+        assert "figure_segment_temporal_evidence.png" in documentation_text
+
+
+def test_bilingual_manuals_define_saved_inspector_scope_and_all_stations_intent():
+    """Saved result-view guidance must cover scope, zero targets, and dynamic all."""
+    assert "Compare and Success selections are saved independently" in DOC_EN
+    assert "Its setting is saved for Success" in DOC_EN
+    assert "stores an all-stations intent instead of enumerating the current table" in DOC_EN
+    assert "with a moving `Last X Hours` window" in DOC_EN
+
+    assert "für Compare und Success getrennt gespeichert" in DOC_DE
+    assert "Die Einstellung wird für Success gespeichert" in DOC_DE
+    assert "speichert die Konfiguration diese Absicht" in DOC_DE
+    assert "bei einem gleitenden Fenster `Letzte X Stunden`" in DOC_DE
+
+
+def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch):
+    """Documentation-only emphasis must not recolor unrelated Streamlit Markdown."""
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st,
+        "markdown",
+        lambda body, **_kwargs: rendered_styles.append(body),
+    )
+
+    ui_css.apply_custom_css()
+
+    assert len(rendered_styles) == 1
+    stylesheet = rendered_styles[0]
+    assert ".st-key-documentation_body .stMarkdown h4" in stylesheet
+    assert ".st-key-documentation_body .stMarkdown strong.defined-term" in stylesheet
+    assert "strong:first-child:not(.defined-term)" in stylesheet
+    assert "color: #39ff14 !important" in stylesheet
+    assert 'div[data-testid="stPopover"] button[kind="primary"]' in stylesheet
+
+
+@pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_manual_internal_links_resolve_to_unique_anchors(documentation_text):
+    """Every web/PDF internal link must target exactly one stable source anchor."""
+    anchors = re.findall(r'<a id="([^"]+)"></a>', documentation_text)
+    internal_links = re.findall(r'(?:href="|\]\()#([^"\)]+)', documentation_text)
+
+    assert len(anchors) == len(set(anchors))
+    assert set(internal_links) <= set(anchors)
+    for chapter_one_anchor in (
+        "sec-1",
+        "sec-1-0",
+        "sec-1-1",
+        "sec-1-2",
+        "sec-1-3",
+    ):
+        assert anchors.count(chapter_one_anchor) == 1
+
+
+def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
+    """Localized manuals must retain the same ordered runtime and chapter anchors."""
+    english_anchors = re.findall(r'<a id="([^"]+)"></a>', DOC_EN)
+    german_anchors = re.findall(r'<a id="([^"]+)"></a>', DOC_DE)
+
+    assert german_anchors == english_anchors
+
+    shared_runtime_anchors = {
+        "sec-1",
+        "sec-1-0",
+        "sec-1-1",
+        "sec-1-2",
+        "sec-1-3",
+        "documentation-toc",
+        "sec-2",
+        "sec-3",
+        "sec-4",
+        "sec-5",
+        "sec-6",
+        "sec-7",
+        "sec-8",
+        "sec-a",
+        "sec-b",
+        "sec-c",
+        "sec-d",
+        "sec-ref",
+    }
+    assert shared_runtime_anchors <= set(english_anchors)
+    assert shared_runtime_anchors <= set(german_anchors)
 
 
 @pytest.mark.parametrize(

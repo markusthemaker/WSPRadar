@@ -1,0 +1,1653 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wspradar.org/schemas/v1/wspradar-config.schema.json",
+  "title": "WSPRadar configuration document",
+  "description": "Version 1 of the portable WSPRadar run-and-view configuration contract. Optional profile metadata lets the same ordinary document serve as a personal saved configuration or an installed demo. Conditional objects contain only fields active for the selected time and comparison modes; inactive UI state is not serialized.",
+  "type": "object",
+  "required": [
+    "format",
+    "schema_version",
+    "settings"
+  ],
+  "properties": {
+    "format": {
+      "const": "wspradar.config",
+      "description": "Stable discriminator for a WSPRadar saved configuration."
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "Configuration contract version. Readers must reject unsupported versions rather than interpreting them with guessed defaults."
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "settings": {
+      "$ref": "#/$defs/settings"
+    },
+    "extensions": {
+      "$ref": "#/$defs/extensions"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "format": "wspradar.config",
+      "schema_version": 1,
+      "metadata": {
+        "created_utc": "2026-07-14T20:15:00Z",
+        "generator": {
+          "application": "WSPRadar.org",
+          "version": "1.0"
+        }
+      },
+      "profile": {
+        "id": "portable_test-8f3a21c0",
+        "title": {
+          "en": "Portable receiver test"
+        },
+        "description": {
+          "en": "Saved setup and result-view state for the portable test."
+        }
+      },
+      "settings": {
+        "core_parameters": {
+          "analysis_direction": "rx",
+          "callsign": "DL1MKS",
+          "qth": "JN37",
+          "band": "20m",
+          "time_selection": {
+            "mode": "last_x",
+            "hours": 24
+          }
+        },
+        "comparison_parameters": {
+          "mode": "none"
+        },
+        "advanced_parameters": {
+          "solar_state": "all",
+          "map_scope_km": 22000,
+          "exclude_special_callsigns": false,
+          "exclude_moving_stations": false,
+          "min_confirmed_opportunities_per_peer": 5,
+          "min_joint_stations_per_map_segment": 1
+        },
+        "results_view": {
+          "success": {
+            "selected_ranges": "all",
+            "selected_directions": "all",
+            "show_zero_target": false,
+            "station_evidence_time_bin": "3h",
+            "selected_stations": null
+          }
+        }
+      },
+      "extensions": {}
+    }
+  ],
+  "$defs": {
+    "extensions": {
+      "type": "object",
+      "description": "Open extension namespace for future or third-party data. Core settings must not be placed here merely to bypass validation.",
+      "default": {},
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional provenance written by exported configurations.",
+      "properties": {
+        "created_utc": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC creation timestamp in RFC 3339 form.",
+          "examples": [
+            "2026-07-14T20:15:00Z"
+          ]
+        },
+        "generator": {
+          "type": "object",
+          "description": "Application and release that wrote the file.",
+          "required": [
+            "application",
+            "version"
+          ],
+          "properties": {
+            "application": {
+              "const": "WSPRadar.org",
+              "description": "Canonical WSPRadar application name."
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Application release identifier.",
+              "examples": [
+                "1.0"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "profile": {
+      "type": "object",
+      "description": "Optional stable identity and localized presentation metadata. A config with this object can be installed directly as a demo without changing its document shape. Installed demos require English title text and English description text when a description is supplied; German is optional and falls back to English. Demo descriptions support GitHub-flavored Markdown links, and JSON newline escapes are displayed as line breaks.",
+      "required": [
+        "id",
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$",
+          "description": "Stable lowercase ASCII token used for filenames and identity.",
+          "examples": [
+            "portable_test-8f3a21c0"
+          ]
+        },
+        "title": {
+          "$ref": "#/$defs/localizedText"
+        },
+        "description": {
+          "$ref": "#/$defs/localizedText"
+        }
+      },
+      "additionalProperties": false
+    },
+    "localizedText": {
+      "type": "object",
+      "description": "One or more non-empty localized strings. Only languages actually supplied by the author are required.",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z]{2}(?:-[A-Z]{2})?$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
+    },
+    "settings": {
+      "type": "object",
+      "description": "Complete durable run and stable result-view state, grouped to mirror the UI.",
+      "required": [
+        "core_parameters",
+        "comparison_parameters",
+        "advanced_parameters",
+        "results_view"
+      ],
+      "properties": {
+        "core_parameters": {
+          "$ref": "#/$defs/coreParameters"
+        },
+        "comparison_parameters": {
+          "$ref": "#/$defs/comparisonParameters"
+        },
+        "advanced_parameters": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/advancedParametersNoComparison"
+            },
+            {
+              "$ref": "#/$defs/advancedParametersWithComparison"
+            }
+          ]
+        },
+        "results_view": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/resultsViewNoComparison"
+            },
+            {
+              "$ref": "#/$defs/resultsViewWithComparison"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "core_parameters": {
+                "properties": {
+                  "analysis_direction": {
+                    "const": "rx"
+                  }
+                },
+                "required": [
+                  "analysis_direction"
+                ]
+              },
+              "comparison_parameters": {
+                "properties": {
+                  "mode": {
+                    "const": "hardware_ab"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              }
+            },
+            "required": [
+              "core_parameters",
+              "comparison_parameters"
+            ]
+          },
+          "then": {
+            "properties": {
+              "comparison_parameters": {
+                "$ref": "#/$defs/hardwareAbRxComparison"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "core_parameters": {
+                "properties": {
+                  "analysis_direction": {
+                    "const": "tx"
+                  }
+                },
+                "required": [
+                  "analysis_direction"
+                ]
+              },
+              "comparison_parameters": {
+                "properties": {
+                  "mode": {
+                    "const": "hardware_ab"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              }
+            },
+            "required": [
+              "core_parameters",
+              "comparison_parameters"
+            ]
+          },
+          "then": {
+            "properties": {
+              "comparison_parameters": {
+                "$ref": "#/$defs/hardwareAbTxComparison"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "comparison_parameters": {
+                "properties": {
+                  "mode": {
+                    "const": "none"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              }
+            },
+            "required": [
+              "comparison_parameters"
+            ]
+          },
+          "then": {
+            "properties": {
+              "advanced_parameters": {
+                "$ref": "#/$defs/advancedParametersNoComparison"
+              },
+              "results_view": {
+                "$ref": "#/$defs/resultsViewNoComparison"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "advanced_parameters": {
+                "$ref": "#/$defs/advancedParametersWithComparison"
+              },
+              "results_view": {
+                "$ref": "#/$defs/resultsViewWithComparison"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "coreParameters": {
+      "type": "object",
+      "description": "Analysis direction, target identity, band, locator, and time selection.",
+      "required": [
+        "analysis_direction",
+        "callsign",
+        "qth",
+        "band",
+        "time_selection"
+      ],
+      "properties": {
+        "analysis_direction": {
+          "type": "string",
+          "enum": [
+            "rx",
+            "tx"
+          ],
+          "description": "Analysis direction. rx evaluates reception by the target station; tx evaluates reception of the target transmitter. This field is mandatory and deliberately has no default.",
+          "examples": [
+            "rx",
+            "tx"
+          ]
+        },
+        "callsign": {
+          "$ref": "#/$defs/callsign"
+        },
+        "qth": {
+          "$ref": "#/$defs/locator"
+        },
+        "band": {
+          "type": "string",
+          "enum": [
+            "LF",
+            "MF",
+            "160m",
+            "80m",
+            "60m",
+            "40m",
+            "30m",
+            "22m",
+            "20m",
+            "17m",
+            "15m",
+            "12m",
+            "10m",
+            "8m",
+            "6m",
+            "4m",
+            "2m",
+            "70cm",
+            "23cm"
+          ],
+          "description": "WSPR operating-band label used by the UI and wspr.live band mapping.",
+          "default": "20m",
+          "examples": [
+            "20m"
+          ]
+        },
+        "time_selection": {
+          "$ref": "#/$defs/timeSelection"
+        }
+      },
+      "additionalProperties": false
+    },
+    "callsign": {
+      "description": "Uppercase amateur-radio callsign. An empty string is permitted in a restorable draft; running an analysis may apply stricter completeness checks.",
+      "oneOf": [
+        {
+          "const": ""
+        },
+        {
+          "type": "string",
+          "pattern": "^[A-Z0-9/]{3,15}$"
+        }
+      ],
+      "examples": [
+        "DL1MKS",
+        "SK0WE/P"
+      ]
+    },
+    "locator": {
+      "description": "Uppercase four- or six-character Maidenhead locator. An empty string is permitted in a restorable draft.",
+      "type": "string",
+      "pattern": "^(?:|[A-R]{2}[0-9]{2}(?:[A-X]{2})?)$",
+      "examples": [
+        "JN37",
+        "JO20OT"
+      ]
+    },
+    "timeSelection": {
+      "description": "Exactly one active time-selection branch. last_x stores only hours; custom stores only absolute UTC boundaries.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/lastXTimeSelection"
+        },
+        {
+          "$ref": "#/$defs/customTimeSelection"
+        }
+      ]
+    },
+    "lastXTimeSelection": {
+      "type": "object",
+      "required": [
+        "mode",
+        "hours"
+      ],
+      "properties": {
+        "mode": {
+          "const": "last_x",
+          "description": "Use a rolling interval ending when the analysis is started."
+        },
+        "hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 168,
+          "description": "Length of the rolling interval in hours.",
+          "default": 24,
+          "examples": [
+            24,
+            168
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "customTimeSelection": {
+      "type": "object",
+      "required": [
+        "mode",
+        "start_date",
+        "end_date",
+        "start_time_utc",
+        "end_time_utc"
+      ],
+      "properties": {
+        "mode": {
+          "const": "custom",
+          "description": "Use explicit UTC start and end boundaries."
+        },
+        "start_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Inclusive UTC start calendar date in YYYY-MM-DD form.",
+          "examples": [
+            "2022-06-01"
+          ]
+        },
+        "end_date": {
+          "type": "string",
+          "format": "date",
+          "description": "UTC end calendar date in YYYY-MM-DD form.",
+          "examples": [
+            "2022-06-10"
+          ]
+        },
+        "start_time_utc": {
+          "$ref": "#/$defs/utcMinute"
+        },
+        "end_time_utc": {
+          "$ref": "#/$defs/utcMinute"
+        }
+      },
+      "additionalProperties": false
+    },
+    "utcMinute": {
+      "type": "string",
+      "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$",
+      "description": "UTC wall-clock time at one-minute precision in HH:MM form.",
+      "examples": [
+        "06:30",
+        "23:45"
+      ]
+    },
+    "comparisonParameters": {
+      "description": "Exactly one comparison mode and only its applicable sub-settings.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/noComparison"
+        },
+        {
+          "$ref": "#/$defs/referenceStationComparison"
+        },
+        {
+          "$ref": "#/$defs/localNeighborhoodComparison"
+        },
+        {
+          "$ref": "#/$defs/hardwareAbRxComparison"
+        },
+        {
+          "$ref": "#/$defs/hardwareAbTxComparison"
+        }
+      ]
+    },
+    "noComparison": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "const": "none",
+          "description": "Analyze success without a benchmark. No comparison sub-settings are active."
+        }
+      },
+      "additionalProperties": false
+    },
+    "referenceStationComparison": {
+      "type": "object",
+      "required": [
+        "mode",
+        "reference_callsign",
+        "snr_correction_db"
+      ],
+      "properties": {
+        "mode": {
+          "const": "reference_station",
+          "description": "Compare the target with one named reference station."
+        },
+        "reference_callsign": {
+          "$ref": "#/$defs/callsign"
+        },
+        "snr_correction_db": {
+          "$ref": "#/$defs/snrCorrectionDb"
+        }
+      },
+      "additionalProperties": false
+    },
+    "localNeighborhoodComparison": {
+      "type": "object",
+      "required": [
+        "mode",
+        "local_benchmark",
+        "neighborhood_radius_km",
+        "snr_correction_db"
+      ],
+      "properties": {
+        "mode": {
+          "const": "local_neighborhood",
+          "description": "Compare against eligible stations in a geographic neighborhood."
+        },
+        "local_benchmark": {
+          "type": "string",
+          "enum": [
+            "local_median",
+            "local_best"
+          ],
+          "description": "Neighborhood aggregation: median eligible peer or best eligible peer.",
+          "default": "local_median",
+          "examples": [
+            "local_median",
+            "local_best"
+          ]
+        },
+        "neighborhood_radius_km": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 250,
+          "description": "Neighborhood radius around the target locator, in kilometres.",
+          "default": 100,
+          "examples": [
+            100,
+            200
+          ]
+        },
+        "snr_correction_db": {
+          "$ref": "#/$defs/snrCorrectionDb"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hardwareAbRxComparison": {
+      "type": "object",
+      "description": "RX hardware A/B comparison. Analysis direction rx selects this branch.",
+      "required": [
+        "mode",
+        "setup_b_callsign",
+        "snr_correction_db"
+      ],
+      "properties": {
+        "mode": {
+          "const": "hardware_ab",
+          "description": "Compare alternating or parallel RX hardware setups."
+        },
+        "setup_b_callsign": {
+          "$ref": "#/$defs/callsign"
+        },
+        "snr_correction_db": {
+          "$ref": "#/$defs/snrCorrectionDb"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hardwareAbTxComparison": {
+      "type": "object",
+      "description": "TX hardware A/B comparison using two disjoint periodic UTC start phases within one shared repeat interval.",
+      "required": [
+        "mode",
+        "repeat_interval_minutes",
+        "target_start_minute",
+        "reference_start_minute",
+        "snr_correction_db"
+      ],
+      "properties": {
+        "mode": {
+          "const": "hardware_ab",
+          "description": "Compare sequential TX hardware setups identified by their deterministic schedules."
+        },
+        "repeat_interval_minutes": {
+          "$ref": "#/$defs/txAbRepeatIntervalMinutes"
+        },
+        "target_start_minute": {
+          "$ref": "#/$defs/txAbStartMinute"
+        },
+        "reference_start_minute": {
+          "$ref": "#/$defs/txAbStartMinute"
+        },
+        "snr_correction_db": {
+          "$ref": "#/$defs/snrCorrectionDb"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/txAbPeriodicPhaseRange"
+        },
+        {
+          "$ref": "#/$defs/txAbDistinctStarts"
+        }
+      ]
+    },
+    "txAbRepeatIntervalMinutes": {
+      "type": "integer",
+      "enum": [
+        4,
+        6,
+        10,
+        12,
+        20,
+        30,
+        60
+      ],
+      "description": "Shared recurrence interval for each physical TX path, in minutes. Supported values divide one UTC hour exactly.",
+      "default": 10,
+      "examples": [
+        10,
+        20
+      ]
+    },
+    "txAbStartMinute": {
+      "type": "integer",
+      "enum": [
+        0,
+        2,
+        4,
+        6,
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20,
+        22,
+        24,
+        26,
+        28,
+        30,
+        32,
+        34,
+        36,
+        38,
+        40,
+        42,
+        44,
+        46,
+        48,
+        50,
+        52,
+        54,
+        56,
+        58
+      ],
+      "description": "Even UTC start phase in minutes. The phase must be smaller than the selected repeat interval.",
+      "examples": [
+        0,
+        2
+      ]
+    },
+    "txAbPeriodicPhaseRange": {
+      "description": "Restrict both periodic start phases to the selected shared repeat interval.",
+      "oneOf": [
+        {
+          "properties": {
+            "repeat_interval_minutes": {
+              "const": 4
+            },
+            "target_start_minute": {
+              "enum": [
+                0,
+                2
+              ]
+            },
+            "reference_start_minute": {
+              "enum": [
+                0,
+                2
+              ]
+            }
+          },
+          "required": [
+            "repeat_interval_minutes",
+            "target_start_minute",
+            "reference_start_minute"
+          ]
+        },
+        {
+          "properties": {
+            "repeat_interval_minutes": {
+              "const": 6
+            },
+            "target_start_minute": {
+              "enum": [
+                0,
+                2,
+                4
+              ]
+            },
+            "reference_start_minute": {
+              "enum": [
+                0,
+                2,
+                4
+              ]
+            }
+          },
+          "required": [
+            "repeat_interval_minutes",
+            "target_start_minute",
+            "reference_start_minute"
+          ]
+        },
+        {
+          "properties": {
+            "repeat_interval_minutes": {
+              "const": 10
+            },
+            "target_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8
+              ]
+            },
+            "reference_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8
+              ]
+            }
+          },
+          "required": [
+            "repeat_interval_minutes",
+            "target_start_minute",
+            "reference_start_minute"
+          ]
+        },
+        {
+          "properties": {
+            "repeat_interval_minutes": {
+              "const": 12
+            },
+            "target_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8,
+                10
+              ]
+            },
+            "reference_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8,
+                10
+              ]
+            }
+          },
+          "required": [
+            "repeat_interval_minutes",
+            "target_start_minute",
+            "reference_start_minute"
+          ]
+        },
+        {
+          "properties": {
+            "repeat_interval_minutes": {
+              "const": 20
+            },
+            "target_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
+                14,
+                16,
+                18
+              ]
+            },
+            "reference_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
+                14,
+                16,
+                18
+              ]
+            }
+          },
+          "required": [
+            "repeat_interval_minutes",
+            "target_start_minute",
+            "reference_start_minute"
+          ]
+        },
+        {
+          "properties": {
+            "repeat_interval_minutes": {
+              "const": 30
+            },
+            "target_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
+                14,
+                16,
+                18,
+                20,
+                22,
+                24,
+                26,
+                28
+              ]
+            },
+            "reference_start_minute": {
+              "enum": [
+                0,
+                2,
+                4,
+                6,
+                8,
+                10,
+                12,
+                14,
+                16,
+                18,
+                20,
+                22,
+                24,
+                26,
+                28
+              ]
+            }
+          },
+          "required": [
+            "repeat_interval_minutes",
+            "target_start_minute",
+            "reference_start_minute"
+          ]
+        },
+        {
+          "properties": {
+            "repeat_interval_minutes": {
+              "const": 60
+            },
+            "target_start_minute": {
+              "$ref": "#/$defs/txAbStartMinute"
+            },
+            "reference_start_minute": {
+              "$ref": "#/$defs/txAbStartMinute"
+            }
+          },
+          "required": [
+            "repeat_interval_minutes",
+            "target_start_minute",
+            "reference_start_minute"
+          ]
+        }
+      ]
+    },
+    "txAbDistinctStarts": {
+      "description": "Target and Reference phases must identify different transmission slots.",
+      "not": {
+        "anyOf": [
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 0
+              },
+              "reference_start_minute": {
+                "const": 0
+              }
+            },
+            "required": [
+              "target_start_minute",
+              "reference_start_minute"
+            ]
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 2
+              },
+              "reference_start_minute": {
+                "const": 2
+              }
+            },
+            "required": [
+              "target_start_minute",
+              "reference_start_minute"
+            ]
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 4
+              },
+              "reference_start_minute": {
+                "const": 4
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 6
+              },
+              "reference_start_minute": {
+                "const": 6
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 8
+              },
+              "reference_start_minute": {
+                "const": 8
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 10
+              },
+              "reference_start_minute": {
+                "const": 10
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 12
+              },
+              "reference_start_minute": {
+                "const": 12
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 14
+              },
+              "reference_start_minute": {
+                "const": 14
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 16
+              },
+              "reference_start_minute": {
+                "const": 16
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 18
+              },
+              "reference_start_minute": {
+                "const": 18
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 20
+              },
+              "reference_start_minute": {
+                "const": 20
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 22
+              },
+              "reference_start_minute": {
+                "const": 22
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 24
+              },
+              "reference_start_minute": {
+                "const": 24
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 26
+              },
+              "reference_start_minute": {
+                "const": 26
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 28
+              },
+              "reference_start_minute": {
+                "const": 28
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 30
+              },
+              "reference_start_minute": {
+                "const": 30
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 32
+              },
+              "reference_start_minute": {
+                "const": 32
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 34
+              },
+              "reference_start_minute": {
+                "const": 34
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 36
+              },
+              "reference_start_minute": {
+                "const": 36
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 38
+              },
+              "reference_start_minute": {
+                "const": 38
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 40
+              },
+              "reference_start_minute": {
+                "const": 40
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 42
+              },
+              "reference_start_minute": {
+                "const": 42
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 44
+              },
+              "reference_start_minute": {
+                "const": 44
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 46
+              },
+              "reference_start_minute": {
+                "const": 46
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 48
+              },
+              "reference_start_minute": {
+                "const": 48
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 50
+              },
+              "reference_start_minute": {
+                "const": 50
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 52
+              },
+              "reference_start_minute": {
+                "const": 52
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 54
+              },
+              "reference_start_minute": {
+                "const": 54
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 56
+              },
+              "reference_start_minute": {
+                "const": 56
+              }
+            }
+          },
+          {
+            "properties": {
+              "target_start_minute": {
+                "const": 58
+              },
+              "reference_start_minute": {
+                "const": 58
+              }
+            }
+          }
+        ]
+      }
+    },
+    "snrCorrectionDb": {
+      "type": "number",
+      "minimum": -99.9,
+      "maximum": 99.9,
+      "description": "Signed correction applied to reference SNR values, in decibels.",
+      "default": 0.0,
+      "examples": [
+        0.0,
+        1.2
+      ]
+    },
+    "advancedParametersNoComparison": {
+      "type": "object",
+      "description": "Advanced controls active when comparison mode is none.",
+      "required": [
+        "solar_state",
+        "map_scope_km",
+        "exclude_special_callsigns",
+        "exclude_moving_stations",
+        "min_confirmed_opportunities_per_peer",
+        "min_joint_stations_per_map_segment"
+      ],
+      "properties": {
+        "solar_state": {
+          "$ref": "#/$defs/solarState"
+        },
+        "map_scope_km": {
+          "$ref": "#/$defs/mapScopeKm"
+        },
+        "exclude_special_callsigns": {
+          "$ref": "#/$defs/excludeSpecialCallsigns"
+        },
+        "exclude_moving_stations": {
+          "$ref": "#/$defs/excludeMovingStations"
+        },
+        "min_confirmed_opportunities_per_peer": {
+          "$ref": "#/$defs/minConfirmedOpportunitiesPerPeer"
+        },
+        "min_joint_stations_per_map_segment": {
+          "$ref": "#/$defs/minJointStationsPerMapSegment"
+        }
+      },
+      "additionalProperties": false
+    },
+    "advancedParametersWithComparison": {
+      "type": "object",
+      "description": "Advanced controls active for hardware A/B, reference-station, and local-neighborhood comparisons.",
+      "required": [
+        "solar_state",
+        "map_scope_km",
+        "exclude_special_callsigns",
+        "exclude_moving_stations",
+        "min_joint_spots_per_station",
+        "min_confirmed_opportunities_per_peer",
+        "min_joint_stations_per_map_segment"
+      ],
+      "properties": {
+        "solar_state": {
+          "$ref": "#/$defs/solarState"
+        },
+        "map_scope_km": {
+          "$ref": "#/$defs/mapScopeKm"
+        },
+        "exclude_special_callsigns": {
+          "$ref": "#/$defs/excludeSpecialCallsigns"
+        },
+        "exclude_moving_stations": {
+          "$ref": "#/$defs/excludeMovingStations"
+        },
+        "min_joint_spots_per_station": {
+          "$ref": "#/$defs/minJointSpotsPerStation"
+        },
+        "min_confirmed_opportunities_per_peer": {
+          "$ref": "#/$defs/minConfirmedOpportunitiesPerPeer"
+        },
+        "min_joint_stations_per_map_segment": {
+          "$ref": "#/$defs/minJointStationsPerMapSegment"
+        }
+      },
+      "additionalProperties": false
+    },
+    "solarState": {
+      "type": "string",
+      "enum": [
+        "all",
+        "day",
+        "night",
+        "greyline"
+      ],
+      "description": "Local target-QTH solar-state filter.",
+      "default": "all",
+      "examples": [
+        "all",
+        "day",
+        "night",
+        "greyline"
+      ]
+    },
+    "mapScopeKm": {
+      "type": "integer",
+      "enum": [
+        2500,
+        5000,
+        10000,
+        15000,
+        20000,
+        22000
+      ],
+      "description": "Maximum map distance from the target QTH, in kilometres.",
+      "default": 22000,
+      "examples": [
+        2500,
+        10000,
+        22000
+      ]
+    },
+    "excludeSpecialCallsigns": {
+      "type": "boolean",
+      "description": "Whether to exclude special callsigns ending in Q, 0, or 1.",
+      "default": false
+    },
+    "excludeMovingStations": {
+      "type": "boolean",
+      "description": "Whether to exclude callsigns observed at more than one locator.",
+      "default": false
+    },
+    "minJointSpotsPerStation": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "description": "Minimum number of joint target/reference spots required per station.",
+      "default": 1
+    },
+    "minConfirmedOpportunitiesPerPeer": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Minimum number of target-plus-counter evidence opportunities required per peer.",
+      "default": 5
+    },
+    "minJointStationsPerMapSegment": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Minimum number of qualifying stations required for a map segment.",
+      "default": 1
+    },
+    "resultsViewNoComparison": {
+      "type": "object",
+      "description": "Durable Success-result view state active when comparison mode is none.",
+      "required": [
+        "success"
+      ],
+      "properties": {
+        "success": {
+          "$ref": "#/$defs/successResultsView"
+        }
+      },
+      "additionalProperties": false
+    },
+    "resultsViewWithComparison": {
+      "type": "object",
+      "description": "Durable Compare and Success result-view state active for comparison analyses.",
+      "required": [
+        "success",
+        "compare"
+      ],
+      "properties": {
+        "success": {
+          "$ref": "#/$defs/successResultsView"
+        },
+        "compare": {
+          "$ref": "#/$defs/compareResultsView"
+        }
+      },
+      "additionalProperties": false
+    },
+    "successResultsView": {
+      "type": "object",
+      "description": "Success station-insight state.",
+      "required": [
+        "selected_ranges",
+        "selected_directions",
+        "show_zero_target",
+        "station_evidence_time_bin",
+        "selected_stations"
+      ],
+      "properties": {
+        "selected_ranges": {
+          "$ref": "#/$defs/selectedSegmentRanges"
+        },
+        "selected_directions": {
+          "$ref": "#/$defs/selectedSegmentDirections"
+        },
+        "show_zero_target": {
+          "type": "boolean",
+          "description": "Whether Success Station Insights includes qualifying stations with zero Target confirmations.",
+          "default": false
+        },
+        "station_evidence_time_bin": {
+          "$ref": "#/$defs/evidenceTimeBin"
+        },
+        "selected_stations": {
+          "$ref": "#/$defs/selectedStations"
+        }
+      },
+      "additionalProperties": false
+    },
+    "compareResultsView": {
+      "type": "object",
+      "description": "Compare segment and station-insight state.",
+      "required": [
+        "selected_ranges",
+        "selected_directions",
+        "show_non_joint",
+        "segment_evidence_time_bin",
+        "station_evidence_time_bin",
+        "station_evidence_temporal_view",
+        "selected_stations"
+      ],
+      "properties": {
+        "selected_ranges": {
+          "$ref": "#/$defs/selectedSegmentRanges"
+        },
+        "selected_directions": {
+          "$ref": "#/$defs/selectedSegmentDirections"
+        },
+        "show_non_joint": {
+          "type": "boolean",
+          "description": "Whether station evidence includes non-joint observations in comparison views.",
+          "default": false
+        },
+        "segment_evidence_time_bin": {
+          "$ref": "#/$defs/segmentEvidenceTimeBin"
+        },
+        "station_evidence_time_bin": {
+          "$ref": "#/$defs/evidenceTimeBin"
+        },
+        "station_evidence_temporal_view": {
+          "$ref": "#/$defs/stationEvidenceTemporalView"
+        },
+        "selected_stations": {
+          "$ref": "#/$defs/selectedStations"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidenceTimeBin": {
+      "type": "string",
+      "enum": [
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h"
+      ],
+      "description": "Time-bin width for station-evidence plots.",
+      "default": "3h",
+      "examples": [
+        "5m",
+        "3h",
+        "24h"
+      ]
+    },
+    "segmentEvidenceTimeBin": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h"
+      ],
+      "description": "Time-bin width for the Compare segment temporal plot. auto retains automatic selection.",
+      "default": "auto",
+      "examples": [
+        "auto",
+        "3h",
+        "24h"
+      ]
+    },
+    "stationEvidenceTemporalView": {
+      "type": "string",
+      "enum": [
+        "chronological",
+        "utc_hour"
+      ],
+      "description": "Whether the Compare station temporal plot uses chronological time or folds observations into UTC-hour bins.",
+      "default": "chronological"
+    },
+    "selectedSegmentRanges": {
+      "description": "Selected Segment Inspector distance ranges. all selects every currently available range; an array records one or more canonical range labels.",
+      "oneOf": [
+        {
+          "const": "all"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "[0-2500km]",
+              "[2500-5000km]",
+              "[5000-10000km]",
+              "[10000-15000km]",
+              "[15000-20000km]",
+              "[20000-22000km]"
+            ]
+          }
+        }
+      ]
+    },
+    "selectedSegmentDirections": {
+      "description": "Selected Segment Inspector compass directions. all selects every currently available direction; an array records one or more canonical compass identifiers.",
+      "oneOf": [
+        {
+          "const": "all"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "N",
+              "NNE",
+              "NE",
+              "ENE",
+              "E",
+              "ESE",
+              "SE",
+              "SSE",
+              "S",
+              "SSW",
+              "SW",
+              "WSW",
+              "W",
+              "WNW",
+              "NW",
+              "NNW"
+            ]
+          }
+        }
+      ]
+    },
+    "selectedStations": {
+      "description": "Station-selection intent. null requests automatic selection; all selects every station in the reconstructed table; an array records the explicit ordered selection, including an empty selection.",
+      "default": null,
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "const": "all"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/selectedStation"
+          },
+          "uniqueItems": true
+        }
+      ]
+    },
+    "selectedStation": {
+      "type": "object",
+      "description": "Stable station identity independent of table order or presentation labels.",
+      "required": [
+        "callsign",
+        "locator"
+      ],
+      "properties": {
+        "callsign": {
+          "type": "string",
+          "pattern": "^[A-Z0-9/]{3,15}$"
+        },
+        "locator": {
+          "type": "string",
+          "pattern": "^[A-R]{2}[0-9]{2}(?:[A-X]{2})?$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

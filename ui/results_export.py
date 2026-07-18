@@ -39,6 +39,7 @@ from core.presentation_context import PresentationContext
 from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
+from ui.config_save import render_config_save_control
 from ui.result_state import (
     EXPORT_RUN_ID_KEY,
     EXPORT_STATE_KEY,
@@ -269,9 +270,12 @@ def register_inspector_export(
     show_non_joint,
     evidence_time_bin,
     selected_stations,
+    show_zero_target=False,
+    segment_evidence_time_bin=None,
     selected_ranges=None,
     selected_directions=None,
     segment_figure_recipe=None,
+    segment_temporal_evidence_figure_recipe=None,
     selected_evidence_figure_recipe=None,
     station_insights_df=None,
     drilldown_selected_df=None,
@@ -288,9 +292,12 @@ def register_inspector_export(
         "selected_ranges": list(selected_ranges or []),
         "selected_directions": list(selected_directions or []),
         "show_non_joint": bool(show_non_joint),
+        "show_zero_target": bool(show_zero_target),
         "evidence_time_bin": evidence_time_bin,
+        "segment_evidence_time_bin": segment_evidence_time_bin,
         "selected_stations": selected_stations or [],
         "segment_figure_recipe": segment_figure_recipe,
+        "segment_temporal_evidence_figure_recipe": segment_temporal_evidence_figure_recipe,
         "selected_evidence_figure_recipe": selected_evidence_figure_recipe,
         "table_station_insights_current_segment.csv": station_insights_df.copy() if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_selected_stations.csv": drilldown_selected_df.copy() if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
@@ -343,8 +350,23 @@ def _json_default(value):
     return str(value)
 
 
+def _selected_evidence_temporal_view(block):
+    """Return the stable selected-evidence view token recorded by its recipe."""
+    recipe = block.get("selected_evidence_figure_recipe")
+    if not isinstance(recipe, dict):
+        return None
+    temporal_view = recipe.get("temporal_view")
+    if temporal_view not in {"chronological", "utc_hour"}:
+        return None
+    return temporal_view
+
+
 def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
-    config = config_payload.get("config", {})
+    settings = config_payload.get("settings", {})
+    core_parameters = settings.get("core_parameters", {})
+    comparison_parameters = settings.get("comparison_parameters", {})
+    advanced_parameters = settings.get("advanced_parameters", {})
+    time_selection = core_parameters.get("time_selection", {})
     compare_present = any(
         block.get("mode_folder") == COMPARE_EXPORT_FOLDER
         for block in blocks.values()
@@ -361,31 +383,31 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         "export_signature": _export_signature(blocks),
         "exported_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "language": st.session_state.get("lang"),
-        "run_mode": st.session_state.get("run_mode"),
+        "run_mode": str(core_parameters.get("analysis_direction", "")).upper(),
         "blocks_present": {
             COMPARE_EXPORT_FOLDER: compare_present,
             SUCCESS_EXPORT_FOLDER: success_present,
         },
-        "callsign": config.get("callsign"),
-        "reference_or_benchmark_mode": config.get("benchmark_mode"),
-        "band": config.get("band"),
+        "callsign": core_parameters.get("callsign"),
+        "reference_or_benchmark_mode": comparison_parameters.get("mode"),
+        "band": core_parameters.get("band"),
         "time_window": {
-            "time_mode": config.get("time_mode"),
-            "hours": config.get("hours"),
-            "start_date": config.get("start_date"),
-            "start_time": config.get("start_time"),
-            "end_date": config.get("end_date"),
-            "end_time": config.get("end_time"),
+            "time_mode": time_selection.get("mode"),
+            "hours": time_selection.get("hours"),
+            "start_date": time_selection.get("start_date"),
+            "start_time": time_selection.get("start_time_utc"),
+            "end_date": time_selection.get("end_date"),
+            "end_time": time_selection.get("end_time_utc"),
         },
-        "benchmark_snr_correction_db": config.get("benchmark_snr_correction_db"),
+        "benchmark_snr_correction_db": comparison_parameters.get("snr_correction_db"),
         "thresholds_and_filters": {
-            "solar_state": config.get("solar_state"),
-            "map_scope_km": config.get("map_scope_km"),
-            "exclude_special_callsigns": config.get("exclude_special_callsigns"),
-            "exclude_moving_stations": config.get("exclude_moving_stations"),
-            "min_joint_spots_per_station": config.get("min_joint_spots_per_station"),
-            "min_confirmed_opportunities_per_peer": config.get("min_confirmed_opportunities_per_peer"),
-            "min_joint_stations_per_map_segment": config.get("min_joint_stations_per_map_segment"),
+            "solar_state": advanced_parameters.get("solar_state"),
+            "map_scope_km": advanced_parameters.get("map_scope_km"),
+            "exclude_special_callsigns": advanced_parameters.get("exclude_special_callsigns"),
+            "exclude_moving_stations": advanced_parameters.get("exclude_moving_stations"),
+            "min_joint_spots_per_station": advanced_parameters.get("min_joint_spots_per_station"),
+            "min_confirmed_opportunities_per_peer": advanced_parameters.get("min_confirmed_opportunities_per_peer"),
+            "min_joint_stations_per_map_segment": advanced_parameters.get("min_joint_stations_per_map_segment"),
         },
         "result_blocks": [
             {
@@ -400,7 +422,12 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 "selected_directions": block.get("selected_directions", []),
                 "selected_stations": block.get("selected_stations", []),
                 "show_non_joint": block.get("show_non_joint"),
+                "show_zero_target": block.get("show_zero_target"),
                 "evidence_time_bin": block.get("evidence_time_bin"),
+                "selected_evidence_time_view": (
+                    _selected_evidence_temporal_view(block)
+                ),
+                "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
                 "is_compare": block.get("is_compare"),
                 "is_sequential": block.get("is_sequential"),
                 "analysis_kind": block.get("analysis_kind"),
@@ -433,7 +460,12 @@ def _export_signature(blocks):
             "selected_directions": block.get("selected_directions", []),
             "selected_stations": block.get("selected_stations", []),
             "show_non_joint": block.get("show_non_joint"),
+            "show_zero_target": block.get("show_zero_target"),
             "evidence_time_bin": block.get("evidence_time_bin"),
+            "selected_evidence_time_view": (
+                _selected_evidence_temporal_view(block)
+            ),
+            "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
             "map_context": block.get("map_context"),
             "station_table_shape": _table_signature_value(block.get("table_station_insights_current_segment.csv")),
             "selected_drilldown_shape": _table_signature_value(block.get("table_drilldown_selected_stations.csv")),
@@ -510,6 +542,9 @@ def _map_export_read_columns(block, parquet_path):
                 "peer_lon",
                 "stat_val",
                 "is_me",
+                "tx_ab_pair_id",
+                "tx_ab_pair_target_time",
+                "tx_ab_pair_reference_time",
             ],
             available_columns,
         )
@@ -600,10 +635,15 @@ def _render_inspector_png_for_block(block, figure_name):
     """Render one inspector figure from compact inputs only during ZIP preparation."""
     from ui.plots.evidence_figures import (
         render_segment_insight_export_figure,
+        render_segment_temporal_evidence_export_figure,
         render_selected_evidence_export_figure,
     )
     if figure_name == "figure_segment_insight.png":
         fig = render_segment_insight_export_figure(block.get("segment_figure_recipe"))
+    elif figure_name == "figure_segment_temporal_evidence.png":
+        fig = render_segment_temporal_evidence_export_figure(
+            block.get("segment_temporal_evidence_figure_recipe")
+        )
     elif figure_name == "figure_selected_station_evidence.png":
         fig = render_selected_evidence_export_figure(block.get("selected_evidence_figure_recipe"))
     else:
@@ -652,7 +692,18 @@ def _build_all_drilldown_for_block(block):
             context["ref_header"],
             t,
             station_rows_df=station_rows_df,
-            tx_ab_bin_minutes=context.get("tx_ab_bin_minutes", 8),
+            tx_ab_repeat_interval_minutes=context.get(
+                "tx_ab_repeat_interval_minutes",
+                10,
+            ),
+            tx_ab_target_start_minute=context.get(
+                "tx_ab_target_start_minute",
+                0,
+            ),
+            tx_ab_reference_start_minute=context.get(
+                "tx_ab_reference_start_minute",
+                2,
+            ),
             target_callsign=context.get("target_callsign", ""),
         )
         return drilldown_df
@@ -687,10 +738,17 @@ def build_results_zip():
 
         for block_key, block in exportable_blocks.items():
             folder = block["mode_folder"]
-            correction_db = config_payload.get("config", {}).get("benchmark_snr_correction_db", 0.0) if block.get("is_compare") else 0.0
+            correction_db = (
+                config_payload.get("settings", {})
+                .get("comparison_parameters", {})
+                .get("snr_correction_db", 0.0)
+                if block.get("is_compare")
+                else 0.0
+            )
             for figure_name in [
                 "figure_map_highres.png",
                 "figure_segment_insight.png",
+                "figure_segment_temporal_evidence.png",
                 "figure_selected_station_evidence.png",
             ]:
                 png_bytes = (
@@ -845,7 +903,7 @@ def _prepare_results_zip_with_admission(t):
 
 
 def render_download_all_results(t):
-    """Render the centered lazy all-results ZIP prepare/download controls."""
+    """Render adjacent result-export and redundant config-save controls."""
     blocks = _ensure_current_export_state()
     exportable_blocks = {
         key: block for key, block in blocks.items()
@@ -859,8 +917,12 @@ def render_download_all_results(t):
         _clear_prepared_results()
 
     st.markdown("<div style='height:1.0rem;'></div>", unsafe_allow_html=True)
-    c_left, c_mid, c_right = st.columns([0.25, 0.5, 0.25])
-    with c_mid:
+    export_column, save_column = st.columns(
+        [0.65, 0.35],
+        gap="large",
+        vertical_alignment="center",
+    )
+    with export_column:
         prepared_bytes = st.session_state.get(EXPORT_ZIP_BYTES_KEY)
         prepared_filename = st.session_state.get(EXPORT_ZIP_FILENAME_KEY)
         if prepared_bytes and prepared_filename:
@@ -873,28 +935,31 @@ def render_download_all_results(t):
                 type="primary",
                 width="stretch",
             )
-            return
-
-        if not st.button(
+        elif st.button(
             t.get("btn_prepare_all_results", "Prepare All Results for Download"),
             icon=":material/archive:",
             type="secondary",
             width="stretch",
         ):
-            return
-
-        zip_bytes, filename = _prepare_results_zip_with_admission(t)
-        if not zip_bytes:
-            return
-        st.session_state[EXPORT_ZIP_BYTES_KEY] = zip_bytes
-        st.session_state[EXPORT_ZIP_FILENAME_KEY] = filename
-        st.session_state[EXPORT_ZIP_SIGNATURE_KEY] = signature
-        st.download_button(
-            t.get("btn_download_prepared_results", "Download Prepared Results"),
-            data=zip_bytes,
-            file_name=filename,
-            mime="application/zip",
-            icon=":material/download:",
-            type="primary",
-            width="stretch",
+            zip_bytes, filename = _prepare_results_zip_with_admission(t)
+            if zip_bytes:
+                st.session_state[EXPORT_ZIP_BYTES_KEY] = zip_bytes
+                st.session_state[EXPORT_ZIP_FILENAME_KEY] = filename
+                st.session_state[EXPORT_ZIP_SIGNATURE_KEY] = signature
+                st.download_button(
+                    t.get(
+                        "btn_download_prepared_results",
+                        "Download Prepared Results",
+                    ),
+                    data=zip_bytes,
+                    file_name=filename,
+                    mime="application/zip",
+                    icon=":material/download:",
+                    type="primary",
+                    width="stretch",
+                )
+    with save_column:
+        render_config_save_control(
+            popover_key="config_save_results_trigger",
+            form_scope="results",
         )
