@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from i18n import T
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 from ui.plots.evidence_figures import (
     _build_compare_median_focus_spec,
@@ -344,7 +345,7 @@ def test_multi_station_histogram_keeps_row_weighted_statistics_with_standard_lab
         )
         for axis in (distribution_axis, time_axis):
             assert "+0.1 M" in _formatted_y_ticks(axis)
-        assert _legend_texts(time_axis) == ["Median +0.1 dB"]
+        assert _legend_texts(time_axis) == ["Median +0.1 dB", "Bin median"]
         assert not any(
             "Pooled" in text
             for text in [
@@ -472,7 +473,7 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             "Median +6.0 dB",
             "90% Stability",
         ]
-        assert _legend_texts(time_axis) == ["Median +6.0 dB"]
+        assert _legend_texts(time_axis) == ["Median +6.0 dB", "Bin median"]
         _assert_legend_keys_precede_text(figure, distribution_axis)
         _assert_legend_keys_precede_text(figure, time_axis)
         assert not _texts_with_gid(distribution_axis, "compare-median-focus-note")
@@ -713,6 +714,7 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
         )
         assert folded_axis.get_title() == "UTC-Profil (1 Tag)"
         assert folded_axis.get_xlabel() == "UTC-Stunde"
+        assert _legend_texts(folded_axis) == ["Median +1.0 dB"]
         assert not _texts_with_gid(folded_axis, "folded-utc-date-annotation")
         assert "1 UTC date available; folding unavailable" not in {
             text.get_text() for text in folded_axis.texts
@@ -810,12 +812,19 @@ def test_selected_compare_temporal_views_share_reference_line_hierarchy(
         assert median_lines[0].get_linewidth() == pytest.approx(1.0)
         assert median_lines[0].get_alpha() == pytest.approx(1.0)
         assert median_lines[0].get_zorder() == pytest.approx(3.2)
-        assert _legend_texts(temporal_axis) == ["Median +0.0 dB"]
+        assert _legend_texts(temporal_axis) == ["Median +0.0 dB", "Bin median"]
         temporal_legend = temporal_axis.get_legend()
         assert temporal_legend.get_zorder() == pytest.approx(10.0)
+        assert temporal_legend.legend_handles[1].get_facecolors()[0] == pytest.approx(
+            to_rgba("#c8f4ff")
+        )
+        assert temporal_legend.legend_handles[1].get_edgecolors()[0] == pytest.approx(
+            to_rgba("#00384d")
+        )
         assert {
             text.get_fontsize() for text in temporal_legend.get_texts()
         } == {8.0}
+        _assert_legend_keys_precede_text(figure, temporal_axis)
         assert max(
             line.get_zorder()
             for line in [
@@ -919,7 +928,7 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
             chronological_axis
         )
         for axis in (chronological_axis, folded_axis):
-            assert _legend_texts(axis) == ["Median +0.0 dB"]
+            assert _legend_texts(axis) == ["Median +0.0 dB", "Bin median"]
             median_lines = _lines_with_gid(
                 axis,
                 "compare-median-focus-center",
@@ -1025,6 +1034,7 @@ def test_segment_temporal_recipe_accepts_localized_labels():
             "\u0394 SNR (dB \u00b7 nichtlinear um Median zentriert)"
         ),
         median_label="Median",
+        bin_median_label=T["de"]["fig_temporal_bin_median"],
     )
 
     assert recipe["chronological_title"] == "Zeitverlauf (3h)"
@@ -1040,6 +1050,7 @@ def test_segment_temporal_recipe_accepts_localized_labels():
         "\u0394 SNR (dB \u00b7 nichtlinear um Median zentriert)"
     )
     assert recipe["median_label"] == "Median"
+    assert recipe["bin_median_label"] == "Lokaler Median"
 
 
 def test_segment_temporal_figure_keeps_folded_placeholder_for_one_utc_date():

@@ -1012,8 +1012,8 @@ def _snr_column_config(df):
     return config
 
 
-def _evidence_labels(is_compare):
-    """Return UI labels for the selected-station evidence plots."""
+def _evidence_labels(is_compare, translations):
+    """Return localized UI labels for the selected-station evidence plots."""
     if st.session_state.get("lang") == "de":
         if is_compare:
             return {
@@ -1023,6 +1023,10 @@ def _evidence_labels(is_compare):
                 "x_label": "Datum/Uhrzeit (UTC)",
                 "aggregate": "Selected Stations",
                 "median_label": "Median",
+                "bin_median_label": translations.get(
+                    "fig_temporal_bin_median",
+                    "Lokaler Median",
+                ),
                 "pooled_median_label": "Median",
                 "mean_label": "Mittelwert",
                 "pooled_mean_label": "Mittelwert",
@@ -1054,6 +1058,10 @@ def _evidence_labels(is_compare):
             "x_label": "Date/Time (UTC)",
             "aggregate": "Selected Stations",
             "median_label": "Median",
+            "bin_median_label": translations.get(
+                "fig_temporal_bin_median",
+                "Bin median",
+            ),
             "pooled_median_label": "Median",
             "mean_label": "Mean",
             "pooled_mean_label": "Mean",
@@ -1204,7 +1212,7 @@ def _render_selected_station_evidence(
         if evidence_df.empty:
             return None
 
-        labels = _evidence_labels(is_compare)
+        labels = _evidence_labels(is_compare, t)
         if is_sequential:
             labels["count_label"] = t.get(
                 "fig_scheduled_pair_count",
@@ -2474,6 +2482,10 @@ def _render_segment_inspector_body(
                         median_label=t.get(
                             "fig_median_label",
                             "Median",
+                        ),
+                        bin_median_label=t.get(
+                            "fig_temporal_bin_median",
+                            "Bin median",
                         ),
                     )
                     if temporal_base_recipe["utc_date_count"] < 2:

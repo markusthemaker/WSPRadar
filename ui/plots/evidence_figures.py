@@ -295,6 +295,7 @@ def _default_evidence_labels(is_compare):
             "x_label": "Date/Time (UTC)",
             "aggregate": "Selected Stations",
             "median_label": "Median",
+            "bin_median_label": "Bin median",
             "pooled_median_label": "Median",
             "mean_label": "Mean",
             "pooled_mean_label": "Mean",
@@ -488,7 +489,18 @@ def _apply_compare_median_focus_axis(
 
     _add_compare_absolute_zero_reference(ax, spec)
     if show_median_legend and median_reference_line is not None:
-        _place_metric_legend_top_right(ax, handles=[median_reference_line])
+        legend_handles = [median_reference_line]
+        bin_median_markers = next(
+            (
+                collection
+                for collection in ax.collections
+                if collection.get_gid() == "temporal-bin-median-markers"
+            ),
+            None,
+        )
+        if bin_median_markers is not None:
+            legend_handles.append(bin_median_markers)
+        _place_metric_legend_top_right(ax, handles=legend_handles)
 
 def _add_stability_band(ax, low, high, *, label="90% Stability"):
     """Draw and return the true horizontal Stability artist."""
@@ -1177,21 +1189,31 @@ def _draw_relative_density_mesh(ax, x_edges, y_edges, count_grid, *, density_nor
     )
 
 
-def _draw_temporal_median_overlay(ax, x_centers, median_df):
-    """Mark every nonempty-bin median and link adjacent well-supported bins."""
+def _draw_temporal_median_overlay(
+    ax,
+    x_centers,
+    median_df,
+    *,
+    label="Bin median",
+):
+    """Mark each nonempty-bin median for the legend and link supported neighbors."""
     medians = median_df["median"].to_numpy(dtype=float)
     counts = median_df["count"].fillna(0).to_numpy(dtype=float)
     has_median = ~np.isnan(medians) & (counts > 0)
 
-    ax.scatter(
-        x_centers[has_median],
-        medians[has_median],
-        s=26,
-        color="#c8f4ff",
-        edgecolors="#00384d",
-        linewidths=0.5,
-        zorder=5,
-    )
+    median_markers = None
+    if has_median.any():
+        median_markers = ax.scatter(
+            x_centers[has_median],
+            medians[has_median],
+            s=26,
+            color="#c8f4ff",
+            edgecolors="#00384d",
+            linewidths=0.5,
+            label=label,
+            zorder=5,
+        )
+        median_markers.set_gid("temporal-bin-median-markers")
     for index in range(len(x_centers) - 1):
         if (
             counts[index] >= TEMPORAL_MEDIAN_LINK_MIN_COUNT
@@ -1207,6 +1229,7 @@ def _draw_temporal_median_overlay(ax, x_centers, median_df):
                 alpha=0.75,
                 zorder=4,
             )
+    return median_markers
 
 
 def _chronological_density_components(work_df, bin_minutes, metric_bins):
@@ -1369,7 +1392,12 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
             shading="flat",
             zorder=1,
         )
-    _draw_temporal_median_overlay(ax, x_centers, median_df)
+    _draw_temporal_median_overlay(
+        ax,
+        x_centers,
+        median_df,
+        label=labels.get("bin_median_label", "Bin median"),
+    )
 
     count_label = labels.get("count_label")
     if not count_label:
@@ -1478,7 +1506,12 @@ def _draw_folded_utc_hour_heatmap(
         _folded_utc_hour_density_components(work_df, metric_bins)
     )
     mesh = _draw_relative_density_mesh(ax, x_edges, y_edges, count_grid)
-    _draw_temporal_median_overlay(ax, x_centers, median_df)
+    _draw_temporal_median_overlay(
+        ax,
+        x_centers,
+        median_df,
+        label=labels.get("bin_median_label", "Bin median"),
+    )
 
     count_label = labels.get("count_label")
     if not count_label:
@@ -1514,6 +1547,7 @@ def _segment_temporal_evidence_export_recipe(
     folded_unavailable_text=None,
     median_focus_axis_label=None,
     median_label=None,
+    bin_median_label=None,
 ):
     """Return compact arrays and optional localized labels for segment time evidence."""
     work_df = _prepare_temporal_metric_rows(plot_df)
@@ -1571,6 +1605,7 @@ def _segment_temporal_evidence_export_recipe(
             or "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
         ),
         "median_label": str(median_label or "Median"),
+        "bin_median_label": str(bin_median_label or "Bin median"),
         "utc_date_count": utc_date_count,
         "plot_time_ns": (
             work_df["plot_time"]
@@ -1655,6 +1690,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
         chronological_axis,
         chronological_centers,
         chronological_medians,
+        label=recipe.get("bin_median_label", "Bin median"),
     )
     folded_mesh = None
     if is_folded_available:
@@ -1665,7 +1701,12 @@ def render_segment_temporal_evidence_export_figure(recipe):
             folded_grid,
             density_norm=density_norm,
         )
-        _draw_temporal_median_overlay(folded_axis, folded_centers, folded_medians)
+        _draw_temporal_median_overlay(
+            folded_axis,
+            folded_centers,
+            folded_medians,
+            label=recipe.get("bin_median_label", "Bin median"),
+        )
     else:
         _draw_folded_utc_unavailable_annotation(
             folded_axis,
