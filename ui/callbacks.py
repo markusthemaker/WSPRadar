@@ -308,6 +308,7 @@ def set_reset_config():
     st.session_state.val_results_selected_stations_compare = None
     st.session_state.val_results_selected_stations_absolute = None
     st.session_state.val_config_profile = None
+    st.session_state.loaded_config_profile = None
     st.session_state.val_config_extensions = {}
     st.session_state.active_demo_profile = None
     st.session_state.show_demo_launcher = False

@@ -107,12 +107,15 @@ def apply_custom_css():
             display: none !important;
         }
 
-        /* Demo descriptions keep caption sizing while using normal white text. */
+        /* Profile descriptions keep caption sizing while using normal white text. */
         .st-key-demo_description div[data-testid="stCaptionContainer"],
-        .st-key-demo_description div[data-testid="stCaptionContainer"] p {
+        .st-key-demo_description div[data-testid="stCaptionContainer"] p,
+        .st-key-loaded_config_metadata_description div[data-testid="stCaptionContainer"],
+        .st-key-loaded_config_metadata_description div[data-testid="stCaptionContainer"] p {
             color: #ffffff !important;
         }
-        .st-key-demo_description div[data-testid="stCaptionContainer"] {
+        .st-key-demo_description div[data-testid="stCaptionContainer"],
+        .st-key-loaded_config_metadata_description div[data-testid="stCaptionContainer"] {
             opacity: 1 !important;
         }
 

@@ -1190,7 +1190,7 @@ def validate_config_upload(raw_bytes):
 
 
 def apply_config_state_values(config, session_state):
-    """Apply active values and reset every inactive widget to canonical defaults."""
+    """Apply active values, loaded metadata, and canonical inactive defaults."""
     lang = session_state.lang
     t = T[lang]
     defaults = _default_config()
@@ -1287,6 +1287,7 @@ def apply_config_state_values(config, session_state):
         config.get("selected_stations_absolute")
     )
     session_state.val_config_profile = deepcopy(config.get("profile"))
+    session_state.loaded_config_profile = deepcopy(config.get("profile"))
     session_state.val_config_extensions = deepcopy(config.get("extensions", {}))
 
 

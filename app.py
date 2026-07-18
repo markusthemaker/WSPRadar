@@ -34,7 +34,12 @@ from ui.callbacks import (
     set_reset_config,
     update_lang,
 )
-from ui.components.config_panel import render_advanced_expander, render_compare_expander, render_core_expander
+from ui.components.config_panel import (
+    render_advanced_expander,
+    render_compare_expander,
+    render_core_expander,
+    render_metadata_expander,
+)
 from ui.config_io import apply_config_values, validate_config_upload
 from ui.config_save import render_config_save_control
 from ui.css import apply_custom_css
@@ -227,6 +232,7 @@ if st.session_state.is_demo_mode:
     </style>
     """, unsafe_allow_html=True)
 
+render_metadata_expander(t)
 render_core_expander(t)
 render_compare_expander(t)
 render_advanced_expander(t)

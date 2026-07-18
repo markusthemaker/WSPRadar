@@ -6,6 +6,7 @@ Separating this from app.py keeps the main orchestrator file clean and focused.
 
 import streamlit as st
 from datetime import datetime, timedelta, timezone
+from string import punctuation
 from config import (
     MAX_DAYS_HISTORY,
     BAND_MAP,
@@ -13,11 +14,61 @@ from config import (
     MAP_SCOPE_OPTIONS,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
+from config.demo_profiles import prepare_demo_description_markdown
 from ui.callbacks import (
     reset_audit, handle_analysis_direction_change, handle_comp_mode_change,
     handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
     handle_tx_ab_target_start_change, swap_tx_ab_starts,
 )
+
+
+_PROFILE_TITLE_MARKDOWN_ESCAPES = str.maketrans(
+    {character: f"\\{character}" for character in punctuation}
+)
+
+
+def _resolve_loaded_profile_text(profile, field, language):
+    """Resolve loaded profile text in the UI language with safe fallbacks."""
+    localized_values = profile.get(field, {}) if isinstance(profile, dict) else {}
+    if not isinstance(localized_values, dict):
+        return ""
+
+    preferred_languages = tuple(
+        dict.fromkeys((str(language or "").strip(), "en", *localized_values))
+    )
+    for language_key in preferred_languages:
+        localized_text = localized_values.get(language_key)
+        if isinstance(localized_text, str) and localized_text.strip():
+            return localized_text.strip()
+    return ""
+
+
+def _prepare_loaded_profile_title_markdown(title):
+    """Bold a profile title while preserving every punctuation character."""
+    escaped_title = str(title or "").translate(_PROFILE_TITLE_MARKDOWN_ESCAPES)
+    return f"**{escaped_title}**"
+
+
+def render_metadata_expander(t):
+    """Render available title and description from the last loaded profile."""
+    loaded_profile = st.session_state.get("loaded_config_profile")
+    language = st.session_state.get("lang", "en")
+    title = _resolve_loaded_profile_text(loaded_profile, "title", language)
+    description = _resolve_loaded_profile_text(
+        loaded_profile,
+        "description",
+        language,
+    )
+    if not title and not description:
+        return
+
+    with st.expander(t.get("exp_metadata", "🏷️ Metadata"), expanded=True):
+        if title:
+            st.markdown(_prepare_loaded_profile_title_markdown(title))
+        if description:
+            with st.container(key="loaded_config_metadata_description"):
+                st.caption(prepare_demo_description_markdown(description))
+
 
 def _strip_text_state(key, callback=None, callback_args=(), callback_kwargs=None):
     value = st.session_state.get(key)

@@ -48,8 +48,8 @@ def test_run_analysis_action_shares_enabled_green_emphasis(monkeypatch):
     )
 
 
-def test_demo_description_uses_white_text_in_scoped_container(monkeypatch):
-    """The demo caption must be opaque white without changing other captions."""
+def test_profile_descriptions_use_white_text_in_scoped_containers(monkeypatch):
+    """Demo and loaded-metadata captions must share opaque white styling."""
     app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
     assert re.search(
         r'with st\.container\(key="demo_description"\):\s+'
@@ -73,13 +73,25 @@ def test_demo_description_uses_white_text_in_scoped_container(monkeypatch):
     )
     selector_start = stylesheet.index(caption_selector)
     rule_open = stylesheet.index("{", selector_start)
+    selector_group = stylesheet[selector_start:rule_open]
+    assert (
+        ".st-key-loaded_config_metadata_description "
+        'div[data-testid="stCaptionContainer"] p'
+        in selector_group
+    )
     rule_close = stylesheet.index("}", rule_open)
     assert "color: #ffffff !important" in stylesheet[rule_open:rule_close]
 
     container_selector = (
-        '.st-key-demo_description div[data-testid="stCaptionContainer"] {'
+        '.st-key-demo_description div[data-testid="stCaptionContainer"]'
     )
-    selector_start = stylesheet.index(container_selector)
+    selector_start = stylesheet.index(container_selector, rule_close + 1)
     rule_open = stylesheet.index("{", selector_start)
+    selector_group = stylesheet[selector_start:rule_open]
+    assert (
+        ".st-key-loaded_config_metadata_description "
+        'div[data-testid="stCaptionContainer"]'
+        in selector_group
+    )
     rule_close = stylesheet.index("}", rule_open)
     assert "opacity: 1 !important" in stylesheet[rule_open:rule_close]

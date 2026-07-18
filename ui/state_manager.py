@@ -160,5 +160,7 @@ def init_session_state():
     # --- Loaded/Saved Config Document State ---
     if "val_config_profile" not in st.session_state:
         st.session_state.val_config_profile = None
+    if "loaded_config_profile" not in st.session_state:
+        st.session_state.loaded_config_profile = None
     if "val_config_extensions" not in st.session_state:
         st.session_state.val_config_extensions = {}
