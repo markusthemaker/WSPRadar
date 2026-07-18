@@ -4,3 +4,4 @@
 .wspr_cache/
 /.test/
 __pycache__/
+/tmp/
