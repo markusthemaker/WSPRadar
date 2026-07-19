@@ -115,15 +115,16 @@ jobs:
           from __future__ import annotations
 
           import base64
+          import io
           from pathlib import Path
+
+          from PIL import Image
 
           from docs.pdf_generator import _generate_pdf_doc
 
-          logo_b64 = (
-              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/'
-              'x8AAusB9Wl2lQAAAABJRU5ErkJggg=='
-          )
-          base64.b64decode(logo_b64)
+          logo_buffer = io.BytesIO()
+          Image.new('RGB', (160, 64), (255, 255, 255)).save(logo_buffer, format='PNG')
+          logo_b64 = base64.b64encode(logo_buffer.getvalue()).decode('ascii')
           pdf_bytes = _generate_pdf_doc('en', logo_b64, 'candidate')
           if not pdf_bytes or not pdf_bytes.startswith(b'%PDF'):
               raise RuntimeError('English PDF generation did not produce a valid PDF header.')
