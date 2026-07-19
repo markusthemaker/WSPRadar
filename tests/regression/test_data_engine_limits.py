@@ -486,6 +486,34 @@ def test_parquet_response_over_limit_is_not_published(tmp_path, monkeypatch):
     assert list(tmp_path.rglob("*.tmp")) == []
 
 
+def test_parquet_local_io_error_records_the_exact_cache_stage(
+    tmp_path,
+    monkeypatch,
+):
+    """Retain a safe stage marker when temporary validation fails locally."""
+    original_stat = Path.stat
+
+    def fail_atomic_temporary_stat(path, *args, **kwargs):
+        if path.name.startswith(".query_") and path.name.endswith(".tmp"):
+            raise FileNotFoundError(path)
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse([b"parquet-payload"]),
+    )
+    monkeypatch.setattr(Path, "stat", fail_atomic_temporary_stat)
+
+    result = data_engine._fetch_wspr_parquet("SELECT disappearing_temporary")
+
+    assert result.error.code == "local_io_error"
+    assert result.error.scope == FetchFailureScope.LOCAL
+    assert result.error.failure_stage == "validate_query_cache_temporary"
+    assert Path(result.artifact_path).parent.parent.name == "queries"
+
+
 def test_parquet_fetch_preserves_table_after_bounded_stream(tmp_path, monkeypatch):
     expected = pd.DataFrame({"time_slot": [1], "target_seen": [1]})
     source_path = tmp_path / "source.parquet"

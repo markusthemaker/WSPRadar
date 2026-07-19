@@ -69,6 +69,7 @@ class FetchError:
     query: str = ""
     scope: FetchFailureScope = FetchFailureScope.REQUEST
     retry_after_seconds: float | None = None
+    failure_stage: str = ""
 
 
 @dataclass

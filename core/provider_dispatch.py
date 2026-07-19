@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
+from enum import Enum
 import math
 import threading
 import time
@@ -32,6 +33,17 @@ class ProviderAcquireTimeout(ProviderDispatchError):
 
 class ProviderRateLimitExceeded(ProviderDispatchError):
     """Raised when an unreserved request would exceed the local rolling budget."""
+
+
+class ProviderSkipReason(str, Enum):
+    """Stable reason why a higher-priority provider was not selected."""
+
+    REQUEST_PLAN_EXCEEDS_PROVIDER_LIMIT = "request_plan_exceeds_provider_limit"
+    CIRCUIT_OPEN = "circuit_open"
+    RECOVERY_PROBE_IN_FLIGHT = "recovery_probe_in_flight"
+    ROLLING_REQUEST_CAPACITY_UNAVAILABLE = (
+        "rolling_request_capacity_unavailable"
+    )
 
 
 @dataclass(frozen=True)
@@ -77,6 +89,8 @@ class ProviderRunLease:
     Reserved request slots become rolling-window timestamps only immediately
     before an actual HTTP attempt. Cache hits therefore consume no request
     budget, and unused reservations are returned when the lease is released.
+    ``skipped_source_reasons`` preserves the configured priority order as an
+    immutable tuple of source-key/reason pairs for every skipped candidate.
     """
 
     def __init__(
@@ -87,12 +101,14 @@ class ProviderRunLease:
         reserved_requests: int,
         is_probe: bool,
         skipped_sources: tuple[str, ...],
+        skipped_source_reasons: tuple[tuple[str, ProviderSkipReason], ...],
         failure_generation: int,
         recovery_generation: int,
     ) -> None:
         self._controller = controller
         self.provider = provider
         self.skipped_sources = skipped_sources
+        self.skipped_source_reasons = skipped_source_reasons
         self._remaining_reservations = int(reserved_requests)
         self._actual_requests = 0
         self._is_probe = bool(is_probe)
@@ -280,6 +296,7 @@ class ProviderDispatchController:
 
         permanently_oversized = True
         skipped_sources: list[str] = []
+        skipped_source_reasons: list[tuple[str, ProviderSkipReason]] = []
         with self._condition:
             now = self._clock()
             for provider in candidates:
@@ -288,6 +305,12 @@ class ProviderDispatchController:
                     raise ValueError("Required provider requests cannot be negative")
                 if required_requests > provider.request_limit:
                     skipped_sources.append(provider.key)
+                    skipped_source_reasons.append(
+                        (
+                            provider.key,
+                            ProviderSkipReason.REQUEST_PLAN_EXCEEDS_PROVIDER_LIMIT,
+                        )
+                    )
                     continue
                 permanently_oversized = False
 
@@ -296,10 +319,20 @@ class ProviderDispatchController:
                 is_cache_only = required_requests == 0
                 circuit_is_open = state.circuit_open_until > now
                 probe_is_required = state.requires_probe and not circuit_is_open
-                if not is_cache_only and (
-                    circuit_is_open or (probe_is_required and state.probe_in_flight)
-                ):
+                if not is_cache_only and circuit_is_open:
                     skipped_sources.append(provider.key)
+                    skipped_source_reasons.append(
+                        (provider.key, ProviderSkipReason.CIRCUIT_OPEN)
+                    )
+                    continue
+                if not is_cache_only and probe_is_required and state.probe_in_flight:
+                    skipped_sources.append(provider.key)
+                    skipped_source_reasons.append(
+                        (
+                            provider.key,
+                            ProviderSkipReason.RECOVERY_PROBE_IN_FLIGHT,
+                        )
+                    )
                     continue
 
                 occupied_requests = (
@@ -307,6 +340,12 @@ class ProviderDispatchController:
                 )
                 if occupied_requests + required_requests > provider.request_limit:
                     skipped_sources.append(provider.key)
+                    skipped_source_reasons.append(
+                        (
+                            provider.key,
+                            ProviderSkipReason.ROLLING_REQUEST_CAPACITY_UNAVAILABLE,
+                        )
+                    )
                     continue
 
                 is_probe = bool(not is_cache_only and probe_is_required)
@@ -320,6 +359,7 @@ class ProviderDispatchController:
                     reserved_requests=required_requests,
                     is_probe=is_probe,
                     skipped_sources=tuple(skipped_sources),
+                    skipped_source_reasons=tuple(skipped_source_reasons),
                     failure_generation=state.failure_generation,
                     recovery_generation=state.recovery_generation,
                 )

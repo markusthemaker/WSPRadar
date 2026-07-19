@@ -10,6 +10,7 @@ from core.provider_dispatch import (
     NoProviderAvailable,
     ProviderDispatchController,
     ProviderRateLimitExceeded,
+    ProviderSkipReason,
 )
 
 
@@ -41,6 +42,16 @@ def _controller(clock, *, request_limit=4, failure_threshold=1):
         acquire_timeout_seconds=1.0,
         poll_interval_seconds=0.01,
         clock=clock,
+    )
+
+
+def test_provider_skip_reason_values_are_stable_for_telemetry():
+    """Keep provider-selection diagnostics machine-readable across releases."""
+    assert tuple(reason.value for reason in ProviderSkipReason) == (
+        "request_plan_exceeds_provider_limit",
+        "circuit_open",
+        "recovery_probe_in_flight",
+        "rolling_request_capacity_unavailable",
     )
 
 
@@ -106,6 +117,13 @@ def test_rolling_budget_skips_primary_then_returns_after_window_expiry():
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     )
     assert fallback.source_key == "wd2"
+    assert fallback.skipped_sources == ("wspr_live",)
+    assert fallback.skipped_source_reasons == (
+        (
+            "wspr_live",
+            ProviderSkipReason.ROLLING_REQUEST_CAPACITY_UNAVAILABLE,
+        ),
+    )
     fallback.release()
 
     clock.advance(60.0)
@@ -174,6 +192,10 @@ def test_429_opens_primary_circuit_and_half_open_allows_one_probe():
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     )
     assert fallback.source_key == "wd2"
+    assert fallback.skipped_sources == ("wspr_live",)
+    assert fallback.skipped_source_reasons == (
+        ("wspr_live", ProviderSkipReason.CIRCUIT_OPEN),
+    )
     fallback.release()
 
     clock.advance(12.0)
@@ -185,6 +207,9 @@ def test_429_opens_primary_circuit_and_half_open_allows_one_probe():
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     )
     assert concurrent.source_key == "wd2"
+    assert concurrent.skipped_source_reasons == (
+        ("wspr_live", ProviderSkipReason.RECOVERY_PROBE_IN_FLIGHT),
+    )
     concurrent.release()
 
     probe.consume_request()
@@ -388,3 +413,23 @@ def test_excluding_every_provider_fails_without_retrying_prior_source():
             {"wspr_live": 1, "wd2": 1, "wd1": 1},
             excluded_sources={"wspr_live", "wd2", "wd1"},
         )
+
+
+def test_oversized_request_plan_records_stable_skip_reason():
+    """Expose permanent plan incompatibility separately from transient capacity."""
+    clock = _Clock()
+    controller = _controller(clock, request_limit=2)
+
+    fallback = controller.try_acquire_run(
+        {"wspr_live": 3, "wd2": 1, "wd1": 1}
+    )
+
+    assert fallback.source_key == "wd2"
+    assert fallback.skipped_sources == ("wspr_live",)
+    assert fallback.skipped_source_reasons == (
+        (
+            "wspr_live",
+            ProviderSkipReason.REQUEST_PLAN_EXCEEDS_PROVIDER_LIMIT,
+        ),
+    )
+    fallback.release()

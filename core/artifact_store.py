@@ -26,6 +26,10 @@ class ArtifactNamespace(str, Enum):
 SESSION_ARTIFACT_OWNER_KEY = "_artifact_session_id"
 SESSION_ARTIFACT_PATHS_KEY = "_session_artifact_paths"
 SESSION_ARTIFACT_LEASE_FILENAME = ".active-lease"
+_ATOMIC_TEMPORARY_NAME_PATTERN = re.compile(
+    r"^\.(?P<destination_name>.+)\.(?P<token>[0-9a-f]{32})\.tmp$"
+)
+_FUTURE_TIMESTAMP_TOLERANCE_SECONDS = 5.0
 
 
 def _session_run_directory(path: Path) -> Path | None:
@@ -180,7 +184,12 @@ class ArtifactStore:
 
     @contextmanager
     def atomic_output_path(self, destination) -> Iterator[Path]:
-        """Yield a unique sibling path and atomically publish it on success."""
+        """Yield a unique sibling path and atomically publish it on success.
+
+        Callers must hold ``key_lock(destination)`` for the complete context.
+        Cleanup recognizes this exact temporary-name contract and coordinates
+        abandoned-file removal through the same destination key.
+        """
         destination = Path(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
         temporary_path = destination.with_name(
@@ -276,6 +285,93 @@ class ArtifactStore:
             except FileNotFoundError:
                 return False
 
+    @staticmethod
+    def _atomic_destination_path(temporary_path: Path) -> Path | None:
+        """Return the destination encoded by one unique atomic temporary name."""
+        match = _ATOMIC_TEMPORARY_NAME_PATTERN.fullmatch(Path(temporary_path).name)
+        if match is None:
+            return None
+        return Path(temporary_path).with_name(match.group("destination_name"))
+
+    @staticmethod
+    def _cleanup_reference_time(now: float | None) -> float:
+        """Return a fixed test time or a fresh production cleanup timestamp."""
+        return time.time() if now is None else float(now)
+
+    def _is_namespace_file_expired(
+        self,
+        namespace: ArtifactNamespace,
+        modified_at: float,
+        *,
+        ttl_seconds: float,
+        now: float | None,
+    ) -> bool:
+        """Return whether one published artifact is stale or materially future-dated."""
+        reference_time = self._cleanup_reference_time(now)
+        cutoff = reference_time - max(float(ttl_seconds), 0.0)
+        if modified_at < cutoff:
+            return True
+        return (
+            namespace in {
+                ArtifactNamespace.QUERY,
+                ArtifactNamespace.DEMO_QUERY,
+            }
+            and modified_at
+            > reference_time + _FUTURE_TIMESTAMP_TOLERANCE_SECONDS
+        )
+
+    def cleanup_stale_temporary_files(
+        self,
+        cache_root,
+        namespace: ArtifactNamespace | str,
+        *,
+        now: float | None = None,
+    ) -> int:
+        """Remove abandoned atomic outputs without racing their destination writer.
+
+        A recognized temporary sibling must be older than the store's stale-lock
+        horizon. Cleanup then takes the encoded destination's key lock and
+        rechecks the age, so a live coordinated writer either finishes first or
+        keeps its temporary output protected.
+        """
+        namespace = ArtifactNamespace(namespace)
+        namespace_root = self.namespace_path(cache_root, namespace)
+        if not namespace_root.exists():
+            return 0
+
+        removed = 0
+        candidates = [
+            path
+            for path in namespace_root.rglob("*")
+            if path.is_file() and self._atomic_destination_path(path) is not None
+        ]
+        for temporary_path in candidates:
+            destination_path = self._atomic_destination_path(temporary_path)
+            if destination_path is None:
+                continue
+            try:
+                modified_at = temporary_path.stat().st_mtime
+                reference_time = self._cleanup_reference_time(now)
+                if modified_at >= reference_time - self._stale_lock_seconds:
+                    continue
+            except OSError:
+                continue
+
+            try:
+                with self.key_lock(destination_path):
+                    try:
+                        modified_at = temporary_path.stat().st_mtime
+                        reference_time = self._cleanup_reference_time(now)
+                        if modified_at >= reference_time - self._stale_lock_seconds:
+                            continue
+                        temporary_path.unlink()
+                        removed += 1
+                    except OSError:
+                        continue
+            except TimeoutError:
+                continue
+        return removed
+
     def cleanup_namespace(
         self,
         cache_root,
@@ -284,48 +380,67 @@ class ArtifactStore:
         ttl_seconds: float,
         now: float | None = None,
     ) -> int:
-        """Delete stale files in one namespace without racing active operations."""
+        """Delete stale published files without racing active operations.
+
+        Unique atomic temporary siblings are excluded from ordinary TTL and
+        future-timestamp decisions. Genuinely abandoned siblings are handled
+        separately under their encoded destination lock. Empty directories are
+        deliberately retained because pruning them can race a writer between
+        parent creation and opening its temporary output.
+        """
         namespace = ArtifactNamespace(namespace)
         namespace_root = self.namespace_path(cache_root, namespace)
         if not namespace_root.exists():
             return 0
 
-        reference_time = time.time() if now is None else float(now)
-        cutoff = reference_time - max(float(ttl_seconds), 0.0)
-        rejects_future_timestamp = namespace in {
-            ArtifactNamespace.QUERY,
-            ArtifactNamespace.DEMO_QUERY,
-        }
-        removed = 0
-        candidates = [path for path in namespace_root.rglob("*") if path.is_file()]
+        removed = self.cleanup_stale_temporary_files(
+            cache_root,
+            namespace,
+            now=now,
+        )
+        candidates = [
+            path
+            for path in namespace_root.rglob("*")
+            if path.is_file() and self._atomic_destination_path(path) is None
+        ]
         for path in candidates:
             try:
                 modified_at = path.stat().st_mtime
-                if modified_at >= cutoff and not (
-                    rejects_future_timestamp and modified_at > reference_time
+                if not self._is_namespace_file_expired(
+                    namespace,
+                    modified_at,
+                    ttl_seconds=ttl_seconds,
+                    now=now,
                 ):
                     continue
             except OSError:
                 continue
 
-            with self.key_lock(path):
-                try:
-                    if (
-                        namespace == ArtifactNamespace.SESSION_ARTIFACT
-                        and self._has_active_session_lease(path, cutoff)
-                    ):
+            try:
+                with self.key_lock(path):
+                    try:
+                        reference_time = self._cleanup_reference_time(now)
+                        cutoff = reference_time - max(float(ttl_seconds), 0.0)
+                        if (
+                            namespace == ArtifactNamespace.SESSION_ARTIFACT
+                            and self._has_active_session_lease(path, cutoff)
+                        ):
+                            continue
+                        modified_at = path.stat().st_mtime
+                        if not self._is_namespace_file_expired(
+                            namespace,
+                            modified_at,
+                            ttl_seconds=ttl_seconds,
+                            now=now,
+                        ):
+                            continue
+                        path.unlink()
+                        removed += 1
+                    except OSError:
                         continue
-                    modified_at = path.stat().st_mtime
-                    if modified_at >= cutoff and not (
-                        rejects_future_timestamp and modified_at > reference_time
-                    ):
-                        continue
-                    path.unlink()
-                    removed += 1
-                except OSError:
-                    continue
+            except TimeoutError:
+                continue
 
-        self.prune_empty_directories(namespace_root)
         return removed
 
     def cleanup_stale_lock_files(self, cache_root, *, now: float | None = None) -> int:
@@ -347,7 +462,7 @@ class ArtifactStore:
 
     @staticmethod
     def prune_empty_directories(root) -> None:
-        """Remove empty namespace subdirectories from deepest to shallowest."""
+        """Prune empty directories only during externally quiesced maintenance."""
         root = Path(root)
         if not root.exists():
             return
@@ -433,7 +548,7 @@ def touch_registered_session_artifacts(session_state: MutableMapping) -> int:
 
 
 def release_registered_session_artifacts(session_state: MutableMapping) -> int:
-    """Release and remove artifacts no longer referenced by one UI session."""
+    """Release artifacts and leases without pruning directories under writers."""
     paths = list(session_state.pop(SESSION_ARTIFACT_PATHS_KEY, []))
     run_directories = {
         directory
@@ -446,7 +561,6 @@ def release_registered_session_artifacts(session_state: MutableMapping) -> int:
             (run_directory / SESSION_ARTIFACT_LEASE_FILENAME).unlink()
         except OSError:
             pass
-        ARTIFACT_STORE.prune_empty_directories(run_directory.parent)
     return removed
 
 
@@ -508,5 +622,11 @@ def cleanup_artifact_namespaces(
             ttl_seconds=session_ttl_seconds,
         ),
     }
+    # Derived basemaps have no published-artifact TTL, but a process can still
+    # abandon one of their atomic temporary siblings during construction.
+    ARTIFACT_STORE.cleanup_stale_temporary_files(
+        cache_root,
+        ArtifactNamespace.DERIVED_ANALYSIS,
+    )
     ARTIFACT_STORE.cleanup_stale_lock_files(cache_root)
     return removed

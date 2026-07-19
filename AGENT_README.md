@@ -340,6 +340,20 @@ to TTL cleanup. Process memory also holds the query DataFrame LRU, admission
 state, inspector session models/PNGs, generated documentation PDF cache, and
 provider rolling-request, reservation, cooldown, and half-open probe state.
 
+Runtime TTL cleanup is process-local single-flight. After a successful sweep,
+further triggers are suppressed for 60 seconds; a failed sweep can be retried
+immediately. Physical deletion can therefore lag a freshness deadline even
+though an expired artifact is no longer reusable. A live sweep ignores atomic
+temporary siblings, reaps only recognized abandoned siblings older than the
+stale-lock horizon while holding the corresponding destination lock, and
+retains empty namespace directories so pruning cannot race a writer. Published
+query files are checked against a fresh clock reading with a five-second
+tolerance before a future modification time is treated as invalid.
+
+Structured fetch-failure telemetry records a safe lifecycle stage and, when a
+cache artifact is involved, its namespace and freshness policy. The performance
+event deliberately does not duplicate the SQL text or captured error body.
+
 Deleting `.wspr_cache` is safe only when no active process is using it. The next
 request will rebuild missing query, basemap, or session artifacts.
 

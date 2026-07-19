@@ -107,6 +107,131 @@ def test_atomic_output_is_unique_and_invisible_until_replace(tmp_path):
     assert list(destination.parent.glob("*.tmp")) == []
 
 
+def test_query_cleanup_does_not_delete_an_active_atomic_output(tmp_path):
+    """Keep a writer's unique sibling and parent intact during cleanup."""
+    store = ArtifactStore(lock_stripes=4)
+    destination = store.namespace_path(
+        tmp_path,
+        ArtifactNamespace.QUERY,
+        "wspr_live",
+        "query.parquet",
+    )
+    temporary_path_ready = threading.Event()
+    allow_publication = threading.Event()
+    active_temporary_path = None
+
+    def publish_artifact():
+        nonlocal active_temporary_path
+        with store.key_lock(destination):
+            with store.atomic_output_path(destination) as temporary_path:
+                active_temporary_path = temporary_path
+                temporary_path.write_bytes(b"complete")
+                temporary_path_ready.set()
+                assert allow_publication.wait(timeout=2.0)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        publication_future = executor.submit(publish_artifact)
+        assert temporary_path_ready.wait(timeout=1.0)
+
+        cleanup_future = executor.submit(
+            store.cleanup_namespace,
+            tmp_path,
+            ArtifactNamespace.QUERY,
+            ttl_seconds=3600.0,
+            now=time.time() - 1.0,
+        )
+        try:
+            assert cleanup_future.result(timeout=1.0) == 0
+            assert active_temporary_path is not None
+            assert active_temporary_path.read_bytes() == b"complete"
+            assert destination.parent.is_dir()
+        finally:
+            allow_publication.set()
+
+        publication_future.result(timeout=1.0)
+
+    assert destination.read_bytes() == b"complete"
+    assert list(destination.parent.glob("*.tmp")) == []
+
+
+def test_stale_atomic_temporary_cleanup_uses_destination_key_coordination(
+    tmp_path,
+):
+    """Remove only old orphan siblings and wait for the destination owner."""
+    store = ArtifactStore(
+        lock_stripes=4,
+        lock_timeout_seconds=1.0,
+        stale_lock_seconds=2.0,
+    )
+    destination = store.namespace_path(
+        tmp_path,
+        ArtifactNamespace.QUERY,
+        "wspr_live",
+        "query.parquet",
+    )
+    temporary_path = destination.with_name(
+        f".{destination.name}.{'a' * 32}.tmp"
+    )
+    temporary_path.parent.mkdir(parents=True)
+    temporary_path.write_bytes(b"orphan")
+    reference_time = time.time()
+
+    assert store.cleanup_stale_temporary_files(
+        tmp_path,
+        ArtifactNamespace.QUERY,
+        now=reference_time,
+    ) == 0
+    assert temporary_path.read_bytes() == b"orphan"
+
+    os.utime(
+        temporary_path,
+        (reference_time - 3.0, reference_time - 3.0),
+    )
+    destination_lock_acquired = threading.Event()
+    release_destination_lock = threading.Event()
+    cleanup_call_started = threading.Event()
+
+    def hold_destination_lock():
+        with store.key_lock(destination):
+            destination_lock_acquired.set()
+            assert release_destination_lock.wait(timeout=2.0)
+
+    def clean_orphan():
+        cleanup_call_started.set()
+        return store.cleanup_stale_temporary_files(
+            tmp_path,
+            ArtifactNamespace.QUERY,
+            now=reference_time,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        lock_future = executor.submit(hold_destination_lock)
+        assert destination_lock_acquired.wait(timeout=1.0)
+        cleanup_future = executor.submit(clean_orphan)
+        assert cleanup_call_started.wait(timeout=1.0)
+        time.sleep(0.05)
+        assert not cleanup_future.done()
+        assert temporary_path.read_bytes() == b"orphan"
+
+        os.utime(temporary_path, None)
+        release_destination_lock.set()
+        lock_future.result(timeout=1.0)
+        assert cleanup_future.result(timeout=1.0) == 0
+
+    assert temporary_path.read_bytes() == b"orphan"
+    os.utime(
+        temporary_path,
+        (reference_time - 3.0, reference_time - 3.0),
+    )
+    assert store.cleanup_stale_temporary_files(
+        tmp_path,
+        ArtifactNamespace.QUERY,
+        now=reference_time,
+    ) == 1
+
+    assert not temporary_path.exists()
+
+
 def test_same_key_builds_once_and_lock_bookkeeping_is_bounded(tmp_path):
     worker_count = 8
     store = ArtifactStore(lock_stripes=8)
@@ -222,6 +347,7 @@ def test_registered_session_artifacts_are_touched_and_released(tmp_path):
     assert SESSION_ARTIFACT_PATHS_KEY not in state
     assert not artifact_path.exists()
     assert not lease_path.exists()
+    assert artifact_path.parent.is_dir()
 
 
 def test_active_session_lease_prevents_ttl_cleanup(tmp_path):
@@ -355,6 +481,36 @@ def test_namespace_cleanup_applies_independent_query_lifetimes(tmp_path):
     assert paths[ArtifactNamespace.DERIVED_ANALYSIS].exists()
 
 
+def test_namespace_cleanup_reaps_only_orphaned_derived_temporary_outputs(
+    tmp_path,
+    monkeypatch,
+):
+    """Leave published basemaps untimed while reaping stale atomic siblings."""
+    published_path = ARTIFACT_STORE.namespace_path(
+        tmp_path,
+        ArtifactNamespace.DERIVED_ANALYSIS,
+        "basemaps",
+        "map.png",
+    )
+    temporary_path = published_path.with_name(
+        f".{published_path.name}.{'a' * 32}.tmp"
+    )
+    published_path.parent.mkdir(parents=True)
+    published_path.write_bytes(b"published")
+    temporary_path.write_bytes(b"orphan")
+    monkeypatch.setattr(
+        ARTIFACT_STORE,
+        "_stale_lock_seconds",
+        60.0,
+    )
+    _make_stale(temporary_path, seconds=61.0)
+
+    cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+
+    assert published_path.read_bytes() == b"published"
+    assert not temporary_path.exists()
+
+
 def test_query_cleanup_rejects_future_mtimes_without_expiring_session_data(
     tmp_path,
 ):
@@ -399,6 +555,38 @@ def test_query_cleanup_rejects_future_mtimes_without_expiring_session_data(
     assert not paths[ArtifactNamespace.QUERY].exists()
     assert not paths[ArtifactNamespace.DEMO_QUERY].exists()
     assert paths[ArtifactNamespace.SESSION_ARTIFACT].exists()
+
+
+@pytest.mark.parametrize(
+    "namespace",
+    (ArtifactNamespace.QUERY, ArtifactNamespace.DEMO_QUERY),
+)
+def test_query_cleanup_preserves_files_written_after_its_scan_reference(
+    tmp_path,
+    namespace,
+):
+    """Do not mistake a concurrent publication for a corrupt future timestamp."""
+    store = ArtifactStore(lock_stripes=4)
+    cleanup_scan_started_at = time.time()
+    artifact_path = store.namespace_path(
+        tmp_path,
+        namespace,
+        "wspr_live",
+        "query.parquet",
+    )
+    store.write(
+        artifact_path,
+        lambda temporary_path: temporary_path.write_bytes(b"concurrent"),
+    )
+
+    assert artifact_path.stat().st_mtime > cleanup_scan_started_at
+    assert store.cleanup_namespace(
+        tmp_path,
+        namespace,
+        ttl_seconds=60.0,
+        now=cleanup_scan_started_at,
+    ) == 0
+    assert artifact_path.read_bytes() == b"concurrent"
 
 
 def test_query_cache_constructs_once_under_concurrency(tmp_path, monkeypatch):

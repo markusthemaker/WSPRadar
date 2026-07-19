@@ -19,6 +19,15 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   transactional bundle, fully restarted on provider failure, and published only
   after one source succeeds; System Audit Status and export metadata record that
   source.
+- Hardened live cache cleanup against concurrent atomic publication. TTL sweeps
+  now ignore active temporary outputs, remove only stale recognized orphans
+  under the destination lock, retain namespace directories, tolerate small
+  clock skews, and run process-local single-flight with successful sweeps
+  throttled to once per minute.
+  Structured early failures now remain failures in run telemetry, safe cache
+  failure stages and policies are logged without SQL or error bodies, and System
+  Audit Status distinguishes primary selection, capacity spillover, failure
+  fallback and reuse of a committed source from each query's delivery tier.
 
 ## 2026-07-18
 

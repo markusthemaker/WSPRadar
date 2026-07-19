@@ -1,3 +1,4 @@
+from pathlib import Path
 from types import SimpleNamespace
 
 from config import WSPR_DATABASE_PROVIDERS
@@ -9,7 +10,7 @@ from core.fetch_models import (
     FetchResult,
     FetchSource,
 )
-from core.provider_dispatch import ProviderDispatchController
+from core.provider_dispatch import ProviderDispatchController, ProviderSkipReason
 from core.run_data_preparation import (
     PreparedAnalysisData,
     PreparedProviderBundle,
@@ -82,6 +83,7 @@ class _FakeStreamlit:
         self.errors = []
         self.warnings = []
         self.markdowns = []
+        self.codes = []
 
     def status(self, label, **_kwargs):
         status = _Status(label)
@@ -101,6 +103,9 @@ class _FakeStreamlit:
 
     def markdown(self, message):
         self.markdowns.append(str(message))
+
+    def code(self, body, *, language=None):
+        self.codes.append((str(body), language))
 
 
 class _ProfileTimer:
@@ -226,6 +231,154 @@ def test_session_artifacts_are_refreshed_before_global_cleanup(monkeypatch):
     assert calls == [("touch", fake_st.session_state), ("cleanup", None)]
 
 
+def test_fetch_failure_telemetry_omits_query_and_error_message(monkeypatch):
+    """Log safe structured diagnostics without duplicating sensitive SQL text."""
+    fake_st = _FakeStreamlit()
+    performance_events = []
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
+    fetch_result = FetchResult(
+        artifact_path=Path(".wspr_cache/demo-queries/wd2/query.parquet"),
+        source=FetchSource.WD2,
+        database_source=DatabaseSource.WD2,
+        error=FetchError(
+            code="local_io_error",
+            message="private filesystem detail",
+            scope=FetchFailureScope.LOCAL,
+            query="SELECT private_query_text",
+            failure_stage="validate_query_cache_temporary",
+        ),
+    )
+
+    run_controller._render_fetch_error(fetch_result)
+
+    assert performance_events == [(
+        "analysis_fetch_failure",
+        {
+            "source": "wd2",
+            "delivery_source": "WD2",
+            "failure_code": "local_io_error",
+            "failure_scope": "local",
+            "failure_stage": "validate_query_cache_temporary",
+            "cache_namespace": "demo-queries",
+            "cache_policy": "demo_absolute_24h",
+        },
+    )]
+    assert fake_st.codes == [("SELECT private_query_text", "sql")]
+
+
+def test_database_selection_reason_distinguishes_routing_paths():
+    """Keep admission spillover distinct from an in-run provider failure."""
+    assert run_controller._database_selection_reason(
+        "wspr_live",
+        failed_sources=[],
+        committed_source=None,
+    ) == "primary"
+    assert run_controller._database_selection_reason(
+        "wd2",
+        failed_sources=[],
+        committed_source=None,
+    ) == "capacity_spillover"
+    assert run_controller._database_selection_reason(
+        "wd2",
+        failed_sources=[],
+        committed_source=None,
+        skipped_source_reasons=(
+            ("wspr_live", ProviderSkipReason.CIRCUIT_OPEN),
+        ),
+    ) == "failure_fallback"
+    assert run_controller._database_selection_reason(
+        "wd2",
+        failed_sources=["wspr_live"],
+        committed_source=None,
+    ) == "failure_fallback"
+    assert run_controller._database_selection_reason(
+        "wd2",
+        failed_sources=[],
+        committed_source="wd2",
+    ) == "committed_source"
+    assert run_controller._database_selection_reason(
+        "wspr_live",
+        failed_sources=[],
+        committed_source="wspr_live",
+    ) == "committed_source"
+
+
+def test_structured_early_failure_marks_complete_run_telemetry_failed(monkeypatch):
+    """Propagate an admitted renderer's early failure into the run event."""
+    fake_st = _FakeStreamlit()
+    performance_events = []
+    permit = _Context()
+    fake_gate = SimpleNamespace(
+        acquire=lambda **_kwargs: permit,
+        counts=lambda: (0, 0),
+    )
+    analysis_context = SimpleNamespace(to_dict=lambda: {})
+
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(run_controller, "ANALYSIS_ADMISSION_GATE", fake_gate)
+    monkeypatch.setattr(run_controller, "is_valid_callsign", lambda _value: True)
+    monkeypatch.setattr(run_controller, "is_valid_locator", lambda _value: True)
+    monkeypatch.setattr(run_controller, "locator_to_latlon", lambda _value: (47.0, 8.0))
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_context_from_session_state",
+        lambda _state: analysis_context,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "build_presentation_context_from_session_state",
+        lambda *_args, **_kwargs: SimpleNamespace(),
+    )
+    monkeypatch.setattr(run_controller, "build_analysis_batches", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(
+        run_controller,
+        "_refresh_session_artifacts_before_cleanup",
+        lambda: {},
+    )
+    monkeypatch.setattr(run_controller, "session_artifact_owner", lambda _state: "owner")
+    monkeypatch.setattr(
+        run_controller,
+        "_analysis_request_fingerprint",
+        lambda **_kwargs: "request-key",
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_render_admitted_analysis_run",
+        lambda **_kwargs: "failed",
+    )
+    monkeypatch.setattr(run_controller, "process_rss_bytes", lambda: 0)
+    monkeypatch.setattr(run_controller, "process_peak_rss_bytes", lambda: 0)
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
+
+    run_controller.render_analysis_run(
+        t={},
+        run_status_slot=_RunStatusSlot(),
+        callsign="G3ZIL",
+        qth_locator="IO90",
+        band_filter=7,
+        start_t=SimpleNamespace(isoformat=lambda: "start"),
+        end_t=SimpleNamespace(isoformat=lambda: "end"),
+        max_dist_km=22000,
+        generate_map_plot=lambda *_args, **_kwargs: None,
+    )
+
+    run_event = next(
+        values
+        for event, values in performance_events
+        if event == "analysis_run"
+    )
+    assert run_event["outcome"] == "failed"
+
+
 def test_each_capacity_attempt_reinspects_source_specific_caches(monkeypatch):
     """Do not retain request estimates across a potentially long queue wait."""
     estimates = [
@@ -266,7 +419,7 @@ def test_each_capacity_attempt_reinspects_source_specific_caches(monkeypatch):
 
 def _render_fake_run(fake_st, permit, analyses, *, committed_source=None):
     """Execute the admitted transactional path without map rendering."""
-    run_controller._render_admitted_analysis_run(
+    fake_st.analysis_run_outcome = run_controller._render_admitted_analysis_run(
         t={"warn_no_data": "No data: {title}"},
         run_status_slot=_RunStatusSlot(),
         start_t="start",
@@ -324,7 +477,13 @@ def test_failed_success_preparation_restarts_whole_bundle_on_wd2(monkeypatch):
         )
         return bundle
 
+    performance_events = []
     _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
     _render_fake_run(fake_st, permit, analyses)
 
     assert attempts == [
@@ -333,7 +492,7 @@ def test_failed_success_preparation_restarts_whole_bundle_on_wd2(monkeypatch):
     ]
     assert get_active_run_database_source(fake_st.session_state) == "wd2"
     complete_audit = fake_st.placeholders[0].markdowns[-1]
-    assert "Database origin for complete run: **WD2** (fallback)" in complete_audit
+    assert "Database origin for complete run: **WD2** (failure fallback)" in complete_audit
     assert (
         "Compare — strict: **RAM cache** in 0.12s "
         "(no target-side evidence); legacy: **disk cache** in 0.34s "
@@ -342,6 +501,14 @@ def test_failed_success_preparation_restarts_whole_bundle_on_wd2(monkeypatch):
     assert "strict: **WD2**" not in complete_audit
     assert fake_st.errors == []
     assert fake_st.statuses[0].label == "Complete"
+    assert fake_st.analysis_run_outcome == "completed"
+    selection_event = next(
+        values
+        for event, values in performance_events
+        if event == "database_source_selected"
+    )
+    assert selection_event["selection_reason"] == "failure_fallback"
+    assert selection_event["failed_sources"] == ["wspr_live"]
 
 
 def test_two_provider_failures_restart_whole_bundle_on_wd1(monkeypatch):
@@ -373,7 +540,7 @@ def test_two_provider_failures_restart_whole_bundle_on_wd1(monkeypatch):
     ]
     assert get_active_run_database_source(fake_st.session_state) == "wd1"
     complete_audit = fake_st.placeholders[0].markdowns[-1]
-    assert "Database origin for complete run: **WD1** (fallback)" in complete_audit
+    assert "Database origin for complete run: **WD1** (failure fallback)" in complete_audit
     assert (
         "strict: **database request** in 0.10s "
         "(completed; no usable result); legacy: not needed"
@@ -415,6 +582,59 @@ def test_skipped_primary_is_not_retried_after_wd2_failure(monkeypatch):
 
     assert attempts == ["wd2", "wd1"]
     assert get_active_run_database_source(fake_st.session_state) == "wd1"
+
+
+def test_initial_nonprimary_selection_is_reported_as_capacity_spillover(monkeypatch):
+    """Do not describe admission-time provider capacity routing as a failure."""
+    fake_st = _FakeStreamlit()
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    primary_hold = controller.try_acquire_run({
+        provider.key: provider.request_limit
+        for provider in WSPR_DATABASE_PROVIDERS
+    })
+    initial_lease = controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 1, "wd1": 1}
+    )
+    assert initial_lease.source_key == "wd2"
+    permit = _AnalysisPermit(initial_lease)
+    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    performance_events = []
+
+    _patch_run_environment(
+        monkeypatch,
+        fake_st,
+        controller,
+        lambda plans, *, provider_lease, **_kwargs: _no_data_bundle(
+            provider_lease.source_key,
+            plans,
+        ),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
+    try:
+        _render_fake_run(fake_st, permit, analyses)
+    finally:
+        primary_hold.release()
+
+    complete_audit = fake_st.placeholders[0].markdowns[-1]
+    assert "Database origin for complete run: **WD2** (capacity spillover)" in complete_audit
+    selection_event = next(
+        values
+        for event, values in performance_events
+        if event == "database_source_selected"
+    )
+    assert selection_event["selection_reason"] == "capacity_spillover"
+    assert selection_event["failed_sources"] == []
+    assert selection_event["skipped_source_reasons"] == (
+        "wspr_live:rolling_request_capacity_unavailable",
+    )
 
 
 def test_all_provider_failures_publish_no_source_or_complete_result(monkeypatch):
@@ -490,7 +710,13 @@ def test_local_preparation_failure_does_not_switch_or_penalize_database(monkeypa
         attempts.append(provider_lease.source_key)
         raise ProviderBundlePreparationError("invalid local transformation")
 
+    performance_events = []
     _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
     _render_fake_run(fake_st, permit, analyses)
 
     assert attempts == ["wspr_live"]
@@ -498,6 +724,15 @@ def test_local_preparation_failure_does_not_switch_or_penalize_database(monkeypa
     assert get_active_run_database_source(fake_st.session_state) is None
     assert fake_st.statuses[0].label == "Analysis preparation failed"
     assert fake_st.session_state.run_mode is None
+    assert fake_st.analysis_run_outcome == "failed"
+    assert performance_events == [(
+        "analysis_preparation_failure",
+        {
+            "source": "wspr_live",
+            "failure_scope": "local",
+            "failure_type": "ProviderBundlePreparationError",
+        },
+    )]
 
 
 def test_cache_capacity_change_replans_without_poisoning_provider_health(monkeypatch):

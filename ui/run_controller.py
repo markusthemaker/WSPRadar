@@ -23,6 +23,7 @@ from core.analysis_runner import (
     build_analysis_batches,
 )
 from core.artifact_store import (
+    ArtifactNamespace,
     read_parquet_artifact,
     register_session_artifact,
     retire_registered_session_artifacts,
@@ -45,6 +46,7 @@ from core.provider_dispatch import (
     ProviderAcquireTimeout,
     ProviderDispatchError,
     ProviderRunLease,
+    ProviderSkipReason,
     UPSTREAM_PROVIDER_DISPATCH,
 )
 from core.run_data_preparation import (
@@ -95,6 +97,27 @@ def _render_fetch_error(fetch_result):
     error = fetch_result.error
     if error is None:
         return
+    failure_diagnostics = {
+        "source": fetch_result.database_source.value,
+        "delivery_source": fetch_result.source.value,
+        "failure_code": error.code,
+        "failure_scope": error.scope.value,
+    }
+    if error.status_code is not None:
+        failure_diagnostics["status_code"] = error.status_code
+    if error.retry_after_seconds is not None:
+        failure_diagnostics["retry_after_seconds"] = error.retry_after_seconds
+    if error.failure_stage:
+        failure_diagnostics["failure_stage"] = error.failure_stage
+    if fetch_result.artifact_path is not None:
+        artifact_parts = set(fetch_result.artifact_path.parts)
+        if ArtifactNamespace.DEMO_QUERY.value in artifact_parts:
+            failure_diagnostics["cache_namespace"] = ArtifactNamespace.DEMO_QUERY.value
+            failure_diagnostics["cache_policy"] = "demo_absolute_24h"
+        elif ArtifactNamespace.QUERY.value in artifact_parts:
+            failure_diagnostics["cache_namespace"] = ArtifactNamespace.QUERY.value
+            failure_diagnostics["cache_policy"] = "standard_access_1h"
+    log_performance_event("analysis_fetch_failure", **failure_diagnostics)
     if error.status_code is not None:
         st.error(f"CLICKHOUSE DATABASE ERROR {error.status_code}")
     else:
@@ -151,14 +174,42 @@ def _staged_artifact_paths(analyses, *, provider_key):
     }
 
 
-def _database_origin_status(provider_key):
+def _database_selection_reason(
+    provider_key,
+    *,
+    failed_sources,
+    committed_source,
+    skipped_source_reasons=(),
+):
+    """Classify why this run committed its selected database source."""
+    if committed_source is not None:
+        return "committed_source"
+    if failed_sources:
+        return "failure_fallback"
+    skip_reason_values = {
+        reason.value if isinstance(reason, ProviderSkipReason) else str(reason)
+        for _source_key, reason in skipped_source_reasons
+    }
+    provider_health_reasons = {
+        ProviderSkipReason.CIRCUIT_OPEN.value,
+        ProviderSkipReason.RECOVERY_PROBE_IN_FLIGHT.value,
+    }
+    if skip_reason_values.intersection(provider_health_reasons):
+        return "failure_fallback"
+    primary_source = next(
+        provider.key
+        for provider in UPSTREAM_PROVIDER_DISPATCH.providers
+        if provider.enabled
+    )
+    if provider_key == primary_source:
+        return "primary"
+    return "capacity_spillover"
+
+
+def _database_origin_status(provider_key, *, selection_reason):
     """Return committed-run origin wording without implying a new request."""
     provider = UPSTREAM_PROVIDER_DISPATCH.provider(provider_key)
-    role = (
-        "primary"
-        if provider == UPSTREAM_PROVIDER_DISPATCH.providers[0]
-        else "fallback"
-    )
+    role = selection_reason.replace("_", " ")
     return (
         "- Database origin for complete run: "
         f"**{provider.display_name}** ({role})"
@@ -409,10 +460,10 @@ def render_analysis_run(
         run_status_slot.empty()
     run_started = time.perf_counter()
     rss_start = process_rss_bytes()
-    run_outcome = "completed"
+    run_outcome = "failed"
     try:
         with permit:
-            return _render_admitted_analysis_run(
+            run_outcome = _render_admitted_analysis_run(
                 t=t,
                 run_status_slot=run_status_slot,
                 start_t=start_t,
@@ -470,7 +521,7 @@ def _render_admitted_analysis_run(
     request_counts_by_provider,
     committed_source,
 ):
-    """Execute one analysis run after the caller has acquired capacity."""
+    """Execute an admitted run and return its terminal telemetry outcome."""
 
     touch_registered_session_artifacts(st.session_state)
 
@@ -499,7 +550,7 @@ def _render_admitted_analysis_run(
         status_box.update(label="Database capacity error", state="error", expanded=True)
         st.error("The analysis was admitted without a database reservation.")
         st.session_state.run_mode = None
-        return
+        return "failed"
 
     attempted_sources = []
     excluded_sources = set(provider_lease.skipped_sources)
@@ -569,7 +620,7 @@ def _render_admitted_analysis_run(
                 )
                 _render_fetch_error(final_fetch_failure)
                 st.session_state.run_mode = None
-                return
+                return "failed"
 
             if may_replan_capacity:
                 capacity_replans += 1
@@ -623,7 +674,7 @@ def _render_admitted_analysis_run(
                 else:
                     st.error(str(acquire_error))
                 st.session_state.run_mode = None
-                return
+                return "failed"
             if not admission_permit.replace_capacity_lease(provider_lease):
                 status_box.update(
                     label="Analysis capacity expired",
@@ -631,9 +682,15 @@ def _render_admitted_analysis_run(
                     expanded=True,
                 )
                 st.session_state.run_mode = None
-                return
+                return "failed"
         except ProviderBundlePreparationError as exc:
             admission_permit.release_capacity_lease()
+            log_performance_event(
+                "analysis_preparation_failure",
+                source=provider.key,
+                failure_scope=FetchFailureScope.LOCAL.value,
+                failure_type=type(exc).__name__,
+            )
             status_log.append(f"- Local analysis preparation failed: {exc}")
             status_body.markdown("  \n".join(status_log))
             status_box.update(
@@ -643,7 +700,7 @@ def _render_admitted_analysis_run(
             )
             st.error(str(exc))
             st.session_state.run_mode = None
-            return
+            return "failed"
         else:
             status_log.extend(attempt_status_log)
 
@@ -665,7 +722,18 @@ def _render_admitted_analysis_run(
                 prepared_analysis.artifact_path,
             )
 
-    status_log.append(_database_origin_status(selected_source_key))
+    selection_reason = _database_selection_reason(
+        selected_source_key,
+        failed_sources=attempted_sources,
+        committed_source=committed_source,
+        skipped_source_reasons=provider_lease.skipped_source_reasons,
+    )
+    status_log.append(
+        _database_origin_status(
+            selected_source_key,
+            selection_reason=selection_reason,
+        )
+    )
     for index, prepared_analysis in enumerate(prepared_bundle.analyses):
         status_log.append(
             f"- Map {index + 1}/{len(prepared_bundle.analyses)}: "
@@ -678,7 +746,12 @@ def _render_admitted_analysis_run(
         source=selected_source_key,
         source_label=selected_provider.display_name,
         is_fallback=(selected_provider != UPSTREAM_PROVIDER_DISPATCH.providers[0]),
+        selection_reason=selection_reason,
         failed_sources=attempted_sources,
+        skipped_source_reasons=tuple(
+            f"{source_key}:{reason.value}"
+            for source_key, reason in provider_lease.skipped_source_reasons
+        ),
     )
 
     for index, prepared_analysis in enumerate(prepared_bundle.analyses):
@@ -706,7 +779,14 @@ def _render_admitted_analysis_run(
             )
             st.error(f"Error reading prepared analysis data: {exc}")
             st.session_state.run_mode = None
-            return
+            log_performance_event(
+                "analysis_preparation_failure",
+                source=selected_source_key,
+                failure_scope=FetchFailureScope.LOCAL.value,
+                failure_type=type(exc).__name__,
+                stage="read_prepared_artifact",
+            )
+            return "failed"
 
         profile_timer.add_memory(
             "staged post-filter dataframe",
@@ -858,3 +938,5 @@ def _render_admitted_analysis_run(
                     timing_collector=data["profile_timer"],
                     timing_label=inspector_span,
                 )
+
+    return "completed"

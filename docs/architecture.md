@@ -208,10 +208,13 @@ Streamlit UI. It provides:
 - unique temporary files and atomic promotion through the artifact store;
 - bounded error-response capture.
 
-The engine logs query and performance information to the terminal. It holds a
-module-level Requests session. Explicit proof of all concurrent session-use
-semantics was not found, so thread-safety beyond the exercised tests remains an
-operational uncertainty.
+The engine logs query and performance information to the terminal. Structured
+fetch failures carry a safe lifecycle stage; the `analysis_fetch_failure`
+performance event adds that stage and, when an artifact path is available, the
+cache namespace and policy. It deliberately excludes the SQL text and captured
+error body. The engine holds a module-level Requests session. Explicit proof of
+all concurrent session-use semantics was not found, so thread-safety beyond the
+exercised tests remains an operational uncertainty.
 
 `core/provider_dispatch.py` owns ordered provider selection, conservative
 complete-run request reservations, rolling actual-request timestamps, HTTP 429
@@ -459,6 +462,25 @@ Publication uses unique sibling temporary paths and `os.replace`. Lock
 bookkeeping is bounded with 64 in-process stripes, while lock files provide
 cross-process exclusion when processes share the same filesystem and cache root.
 
+Submission-triggered TTL cleanup is process-local single-flight and throttled to
+one completed sweep per 60 seconds. Overlapping or more-recent callers return
+without rescanning; a failed sweep does not advance the throttle. Consequently,
+physical deletion can lag a TTL boundary, while read-time freshness checks still
+prevent an expired query artifact from being reused.
+
+Ordinary namespace sweeps exclude every recognized unique atomic temporary
+sibling from TTL and future-timestamp decisions. A separate orphan pass considers
+only temporary names that encode the store's atomic-publication contract and are
+older than the stale-lock horizon, then acquires and rechecks under the encoded
+destination's key lock before deletion. Query and demo-query timestamps are
+compared with a fresh clock reading at each decision; only a modification time
+more than five seconds ahead is treated as materially future-dated. Routine
+cleanup deliberately does not prune empty namespace or provider directories,
+because removing a writer's parent between directory creation and temporary-file
+open would violate the atomic-publication lifecycle. Published derived basemaps
+remain untimed, but their recognized stale temporary siblings participate in
+the orphan pass.
+
 Read leases and access touching prevent normal TTL cleanup from deleting a file
 that an active session is inspecting. An active rerun refreshes its registered
 session artifacts before global TTL cleanup and again after any admission wait.
@@ -597,8 +619,12 @@ block elsewhere. Query cache keys include provider identity, while cache medium
 remains separate provenance. The committed source is shown in System Audit
 Status and stored once in export run metadata; each map's strict and optional
 legacy query reports its own database-request, RAM-cache, or disk-cache delivery
-tier and timing. Database origin is not a user configuration or scientific
-fingerprint input.
+tier and timing. Provider leases retain ordered skip reasons, so the origin
+annotation distinguishes selection of the primary source, request-capacity
+spillover to a lower-priority ready source, fallback after a provider-scoped
+failure or existing provider-health cooldown/recovery probe, and reuse of an
+already committed source on rerender. Database origin is not a user
+configuration or scientific fingerprint input.
 
 ### Serialized Matplotlib Rendering
 

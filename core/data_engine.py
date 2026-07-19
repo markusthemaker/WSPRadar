@@ -51,6 +51,9 @@ _HTTP_ERROR_BODY_MAX_BYTES = 64 * 1024
 _dataframe_cache = OrderedDict()
 _dataframe_cache_guard = threading.RLock()
 _CSV_PARSE_ENGINE = "c"
+_ARTIFACT_CLEANUP_MIN_INTERVAL_SECONDS = 60.0
+_artifact_cleanup_guard = threading.Lock()
+_last_artifact_cleanup_monotonic: float | None = None
 
 
 class FetchResponseTooLarge(ValueError):
@@ -407,13 +410,42 @@ def estimate_uncached_requests(analyses, *, is_demo, database_provider):
 
 
 def cleanup_old_parquets():
-    """Clean stale query and session artifacts using coordinated namespace locks."""
-    return cleanup_artifact_namespaces(
-        CACHE_DIR,
-        query_ttl_seconds=STANDARD_QUERY_CACHE_TTL_SEC,
-        demo_query_ttl_seconds=DEMO_QUERY_CACHE_TTL_SEC,
-        session_ttl_seconds=SESSION_ARTIFACT_TTL_SEC,
-    )
+    """Run at most one process-local artifact sweep per cleanup interval.
+
+    Submission bursts can call this hook concurrently. One caller performs the
+    coordinated namespace scan while overlapping or recently completed calls
+    return zero removal counts. A failed sweep does not advance the throttle,
+    allowing the next submission to retry.
+    """
+    global _last_artifact_cleanup_monotonic
+
+    empty_counts = {
+        ArtifactNamespace.QUERY.value: 0,
+        ArtifactNamespace.DEMO_QUERY.value: 0,
+        ArtifactNamespace.SESSION_ARTIFACT.value: 0,
+    }
+    if not _artifact_cleanup_guard.acquire(blocking=False):
+        return empty_counts
+
+    try:
+        started_at = time.monotonic()
+        if (
+            _last_artifact_cleanup_monotonic is not None
+            and started_at - _last_artifact_cleanup_monotonic
+            < _ARTIFACT_CLEANUP_MIN_INTERVAL_SECONDS
+        ):
+            return empty_counts
+
+        removed = cleanup_artifact_namespaces(
+            CACHE_DIR,
+            query_ttl_seconds=STANDARD_QUERY_CACHE_TTL_SEC,
+            demo_query_ttl_seconds=DEMO_QUERY_CACHE_TTL_SEC,
+            session_ttl_seconds=SESSION_ARTIFACT_TTL_SEC,
+        )
+        _last_artifact_cleanup_monotonic = time.monotonic()
+        return removed
+    finally:
+        _artifact_cleanup_guard.release()
 
 
 def _decode_response_bytes(payload, response):
@@ -527,6 +559,7 @@ def _request_error_result(
     *,
     database_provider,
     artifact_path=None,
+    failure_stage="",
 ):
     provider = _database_provider(database_provider)
     if isinstance(exc, requests.Timeout):
@@ -568,6 +601,7 @@ def _request_error_result(
             message=message,
             scope=scope,
             query=sql_query,
+            failure_stage=str(failure_stage or ""),
         ),
     )
 
@@ -846,6 +880,7 @@ def _fetch_wspr_parquet(
             f"[{datetime.now().strftime('%H:%M:%S')}] EXECUTING "
             f"{provider.display_name} PARQUET QUERY:\n{sql_query}\n"
         )
+        failure_stage = "provider_request"
         try:
             with http_session.get(
                 provider.url,
@@ -865,7 +900,9 @@ def _fetch_wspr_parquet(
                         response_text=_bounded_error_text(response),
                     )
 
+                failure_stage = "open_query_cache_temporary"
                 with ARTIFACT_STORE.atomic_output_path(cache_path) as temporary_path:
+                    failure_stage = "stream_response_to_query_cache"
                     with temporary_path.open("wb") as handle:
                         payload_bytes = 0
                         for chunk in response.iter_content(chunk_size=_HTTP_CHUNK_BYTES):
@@ -876,9 +913,12 @@ def _fetch_wspr_parquet(
                                         WSPR_PARQUET_MAX_RESPONSE_BYTES
                                     )
                                 handle.write(chunk)
+                    failure_stage = "validate_query_cache_temporary"
                     if temporary_path.stat().st_size == 0:
                         raise ValueError("WSPR Parquet response was empty")
+                    failure_stage = "publish_query_cache"
 
+            failure_stage = "read_published_query_cache"
             frame = _read_query_parquet(cache_path)
             elapsed = time.time() - start_time
             print(
@@ -898,6 +938,7 @@ def _fetch_wspr_parquet(
                 sql_query,
                 database_provider=provider,
                 artifact_path=cache_path,
+                failure_stage=failure_stage,
             )
 
 
