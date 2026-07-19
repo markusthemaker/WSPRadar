@@ -85,20 +85,26 @@ def test_documentation_text_is_process_cached_without_modification():
 
 
 def test_manual_names_primary_and_fallback_sources_concisely():
-    english_sentence = (
-        "WSPRadar uses wspr.live as its primary WSPR data source, with "
-        "WSPRDaemon WD2 and WD1 as fallback sources."
+    english_sentence_pattern = re.compile(
+        r"WSPRadar uses wspr\.live as its primary WSPR data source "
+        r'<a href="#ref-(?P<primary>\d+)">\[Ref-(?P=primary)\]</a>, with '
+        r"WSPRDaemon WD2 and WD1 as fallback sources "
+        r'<a href="#ref-(?P<fallback>\d+)">\[Ref-(?P=fallback)\]</a>\.'
     )
-    german_sentence = (
-        "WSPRadar nutzt wspr.live als primäre WSPR-Datenquelle; WSPRDaemon "
-        "WD2 und WD1 dienen als Ausweichquellen."
+    german_sentence_pattern = re.compile(
+        r"WSPRadar nutzt wspr\.live als primäre WSPR-Datenquelle "
+        r'<a href="#ref-(?P<primary>\d+)">\[Ref-(?P=primary)\]</a>; '
+        r"WSPRDaemon WD2 und WD1 dienen als Ausweichquellen "
+        r'<a href="#ref-(?P<fallback>\d+)">\[Ref-(?P=fallback)\]</a>\.'
     )
 
-    for manual, source_sentence in (
-        (DOC_EN, english_sentence),
-        (DOC_DE, german_sentence),
+    for manual, source_sentence_pattern in (
+        (DOC_EN, english_sentence_pattern),
+        (DOC_DE, german_sentence_pattern),
     ):
-        assert manual.count(source_sentence) == 1
+        source_sentence_matches = list(source_sentence_pattern.finditer(manual))
+        assert len(source_sentence_matches) == 1
+        source_sentence = source_sentence_matches[0].group(0)
         containing_paragraph = next(
             paragraph
             for paragraph in manual.split("\n\n")
@@ -123,8 +129,8 @@ def test_load_and_hide_controls_have_english_and_german_labels():
 @pytest.mark.parametrize(
     ("documentation_text", "section_one_heading", "toc_heading"),
     [
-        (DOC_EN, "### 0. Start Here", "### Table of Contents"),
-        (DOC_DE, "### 0. Einstieg", "### Inhaltsverzeichnis"),
+        (DOC_EN, "### 0. Why WSPRadar?", "### Table of Contents"),
+        (DOC_DE, "### 0. Warum WSPRadar?", "### Inhaltsverzeichnis"),
     ],
     ids=("en", "de"),
 )
@@ -168,16 +174,16 @@ def test_manual_contains_one_stable_toc_marker_before_section_two(documentation_
     ) < documentation_text.index(documentation.DOCUMENTATION_SECTION_TWO_MARKER)
 
 
-def test_english_preface_numbering_and_first_defined_terms_are_explicit():
+def test_english_preface_numbering_and_key_defined_terms_are_explicit():
     """The English preface must remain distinct from numbered operator chapters."""
     assert "## Part 0: Preface" not in DOC_EN
     assert DOC_EN.count("**Part 0: Preface**") == 1
-    assert "### 0. Start Here" in DOC_EN
+    assert "### 0. Why WSPRadar?" in DOC_EN
     assert "#### 0.3 What one run produces" in DOC_EN
     assert "### 1. Experiment Playbooks" in DOC_EN
     assert '<strong class="defined-term">Target</strong>' in DOC_EN
     assert '<strong class="defined-term">Reference</strong>' in DOC_EN
-    assert DOC_EN.count('<strong class="defined-term">Success</strong>') >= 2
+    assert '<strong class="defined-term">Success</strong>' in DOC_EN
 
 
 def test_english_playbooks_define_success_evidence_and_tx_ab_timing():
