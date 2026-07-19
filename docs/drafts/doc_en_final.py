@@ -1,10 +1,9 @@
 # docs/drafts/doc_en_final.py
 
-"""Complete reviewed English end-user and scientific manual candidate.
+"""Complete reviewed English end-user and scientific manual.
 
 Materialized from ``doc_en_candidate.py`` after repository validation.
-This is a review artifact; production integration should replace
-``docs/doc_en.py`` with equivalent content.
+The same DOC_EN content is integrated into authoritative ``docs/doc_en.py``.
 """
 
 DOC_EN = r"""
