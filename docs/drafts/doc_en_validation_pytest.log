@@ -1,0 +1,400 @@
+...........................................ss........................... [ 13%]
+.................................................................FF...F. [ 26%]
+.................................................s.....................F [ 40%]
+F.....F................................................................. [ 53%]
+........................................................................ [ 66%]
+........................................................................ [ 80%]
+........................................................................ [ 93%]
+...................................                                      [100%]
+=================================== FAILURES ===================================
+_____ test_demo_configs_follow_filename_order_and_keep_canonical_settings ______
+
+    def test_demo_configs_follow_filename_order_and_keep_canonical_settings():
+        """Derive stable demo order from filenames and keep each config complete."""
+        demo_paths = sorted(
+            DEMO_PROFILES_DIR.glob("*.config"),
+            key=lambda demo_path: demo_path.name,
+        )
+    
+>       assert [demo_path.name for demo_path in demo_paths] == EXPECTED_DEMO_FILENAMES
+E       AssertionError: assert ['000_griffit....config', ...] == ['000_griffit....config', ...]
+E         
+E         At index 3 diff: '02_vanhamel_rx_ab.config' != '02_vanhamel_rx_buddy.config'
+E         
+E         Full diff:
+E           [
+E               '000_griffiths_squibb_fig3.config',
+E               '001_griffiths_squibb_fig6.config',
+E               '01_vanhamel_rx_calibration.config',
+E         -     '02_vanhamel_rx_buddy.config',
+E         ?                      ----
+E         +     '02_vanhamel_rx_ab.config',
+E         ?                     +
+E         -     '03_zander_tx_buddy.config',
+E         +     '03_zander_tx_buddy_experiment_a.config',
+E         ?                        +++++++++++++
+E               '04_zander_tx_buddy_experiment_b.config',
+E               '05_milazzo_tx_buddy.config',
+E               '06_rx_local_median_neighborhood.config',
+E               '07_rx_calibration_ab.config',
+E               '08_rx_hardware_ab.config',
+E               '09_tx_hardware_ab.config',
+E           ]
+
+tests/regression/test_config_package.py:187: AssertionError
+_________________ test_demo_filenames_are_opaque_ordering_keys _________________
+
+tmp_path = PosixPath('/home/runner/work/WSPRadar/WSPRadar/.test/pytest-temp/test_demo_filenames_are_opaque0')
+
+    def test_demo_filenames_are_opaque_ordering_keys(tmp_path):
+        """Accept arbitrary stems and order profiles only by complete filename."""
+        demo_directory = tmp_path / "demos"
+        demo_directory.mkdir()
+        first_source = DEMO_PROFILES_DIR / "01_vanhamel_rx_calibration.config"
+        second_source = DEMO_PROFILES_DIR / "02_vanhamel_rx_buddy.config"
+        (demo_directory / "A first demo (chosen name).config").write_bytes(
+            first_source.read_bytes()
+        )
+        (demo_directory / "z-last demo; also chosen.config").write_bytes(
+>           second_source.read_bytes()
+        )
+
+tests/regression/test_config_package.py:216: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/pathlib.py:1019: in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/runner/work/WSPRadar/WSPRadar/config/demos/02_vanhamel_rx_buddy.config')
+mode = 'rb', buffering = -1, encoding = None, errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+>       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/WSPRadar/WSPRadar/config/demos/02_vanhamel_rx_buddy.config'
+
+/opt/hostedtoolcache/Python/3.12.13/x64/lib/python3.12/pathlib.py:1013: FileNotFoundError
+_ test_zander_experiment_b_demo_follows_experiment_a_with_expected_configuration _
+
+    def test_zander_experiment_b_demo_follows_experiment_a_with_expected_configuration():
+        """Keep both Zander experiments adjacent and preserve Experiment B inputs."""
+        profile_keys = list(DEMO_PROFILES)
+        experiment_a_index = profile_keys.index("zander_tx_buddy")
+        assert profile_keys[experiment_a_index + 1] == "zander_tx_buddy_experiment_b"
+>       assert "Experiment A" in DEMO_PROFILES["zander_tx_buddy"]["label"]["en"]
+E       AssertionError: assert 'Experiment A' in 'Dr. Zander et al. TX Antenna Comparison: Short Portable Vertical vs 5/8 λ Vertical'
+
+tests/regression/test_config_package.py:284: AssertionError
+_______ test_english_playbooks_define_success_evidence_and_tx_ab_timing ________
+
+    def test_english_playbooks_define_success_evidence_and_tx_ab_timing():
+        """Operator playbooks must retain the clarified Success and TX A/B guidance."""
+>       assert '<strong class="defined-term">Qualifying evidence</strong>' in DOC_EN
+E       assert '<strong class="defined-term">Qualifying evidence</strong>' in '\n\n---\n\n<a id="sec-1"></a>\n\n### 0. Why WSPRadar?\n\nRadio amateurs continually modify and improve their stations...censed under the GNU Affero General Public License version 3 (AGPLv3). The repository `LICENSE` file is controlling.\n'
+
+tests/regression/test_documentation_rendering.py:191: AssertionError
+______ test_results_chapter_uses_compact_ladder_and_consecutive_sections _______
+
+    def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
+        """Chapter 2 must avoid repeating run-identity guidance before interpretation."""
+        assert "#### 2.1 Confirm the run identity" not in DOC_EN
+        assert "**Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**" in DOC_EN
+        assert "#### 2.1 Read a Success result" in DOC_EN
+        assert "#### 2.2 Read a Compare result" in DOC_EN
+        assert "#### 2.8 Worked Compare example" in DOC_EN
+    
+        rx_explanation = DOC_EN.index("* In simultaneous RX Compare")
+>       tx_explanation = DOC_EN.index("* In simultaneous TX Compare")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: substring not found
+
+tests/regression/test_documentation_rendering.py:210: ValueError
+___ test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors ____
+
+    def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
+        """Localized manuals must retain the same ordered runtime and chapter anchors."""
+        english_anchors = re.findall(r'<a id="([^"]+)"></a>', DOC_EN)
+        german_anchors = re.findall(r'<a id="([^"]+)"></a>', DOC_DE)
+    
+>       assert german_anchors == english_anchors
+E       AssertionError: assert ['sec-1', 'se...ion-toc', ...] == ['sec-1', 'se...ion-toc', ...]
+E         
+E         At index 103 diff: 'sec-c' != 'sec-b-1'
+E         Right contains 5 more items, first extra item: 'sec-b-3'
+E         
+E         Full diff:
+E           [
+E               'sec-1',
+E               'sec-1-0',
+E               'sec-1-1',
+E               'sec-1-2',
+E               'sec-1-3',
+E               'documentation-toc',
+E               'part-i',
+E               'sec-2',
+E               'sec-2-1',
+E               'sec-2-2',
+E               'sec-2-3',
+E               'sec-2-4',
+E               'sec-2-4-why',
+E               'sec-2-5',
+E               'sec-2-6',
+E               'sec-2-7',
+E               'sec-3',
+E               'sec-3-1',
+E               'sec-3-2',
+E               'sec-3-3',
+E               'sec-3-4',
+E               'sec-3-5',
+E               'sec-3-6',
+E               'sec-3-6a',
+E               'sec-3-6b',
+E               'sec-3-7',
+E               'sec-3-7a',
+E               'sec-3-7b',
+E               'sec-3-8',
+E               'sec-3-9',
+E               'sec-4',
+E               'sec-4-1',
+E               'sec-4-2',
+E               'sec-4-3',
+E               'sec-4-4',
+E               'part-ii',
+E               'sec-5',
+E               'sec-5-1',
+E               'sec-5-2',
+E               'sec-5-3',
+E               'sec-5-4',
+E               'sec-5-5',
+E               'sec-6',
+E               'sec-6-1',
+E               'sec-6-2',
+E               'sec-6-3',
+E               'sec-6-4',
+E               'sec-6-5',
+E               'sec-6-6',
+E               'part-iii',
+E               'sec-d',
+E               'sec-d-1',
+E               'sec-d-2',
+E               'sec-d-lo',
+E               'sec-d-3',
+E               'sec-d-toledo',
+E               'sec-d-milazzo',
+E               'sec-d-griffiths-squibb',
+E               'sec-d-vanhamel',
+E               'sec-d-zander',
+E               'sec-d-4',
+E               'sec-d-5',
+E               'sec-7',
+E               'sec-7-1',
+E               'sec-7-2',
+E               'sec-7-3',
+E               'sec-7-4',
+E               'sec-7-5',
+E               'sec-7-6',
+E               'sec-7-7',
+E               'sec-7-8',
+E               'sec-7-9',
+E               'sec-8',
+E               'sec-8-1',
+E               'sec-8-2',
+E               'sec-8-3',
+E               'sec-8-4',
+E               'sec-8-5',
+E               'sec-ref',
+E               'ref-1',
+E               'ref-2',
+E               'ref-3',
+E               'ref-4',
+E               'ref-5',
+E               'ref-6',
+E               'ref-7',
+E               'ref-8',
+E               'ref-9',
+E               'ref-10',
+E               'ref-11',
+E               'ref-12',
+E               'ref-13',
+E               'ref-14',
+E               'ref-15',
+E               'ref-16',
+E               'ref-17',
+E               'ref-18',
+E               'part-iv',
+E               'sec-a',
+E               'sec-a-1',
+E               'sec-a-2',
+E               'sec-a-3',
+E               'sec-b',
+E         -     'sec-b-1',
+E         -     'sec-b-2',
+E         -     'sec-b-3',
+E         -     'sec-b-4',
+E         -     'sec-b-5',
+E               'sec-c',
+E               'sec-license',
+E           ]
+
+tests/regression/test_documentation_rendering.py:305: AssertionError
+=============================== warnings summary ===============================
+ui/plots/evidence_figures.py:38
+  /home/runner/work/WSPRadar/WSPRadar/ui/plots/evidence_figures.py:38: PendingDeprecationWarning: The set_bad function will be deprecated in a future version. Use cmap.with_extremes(bad=...) or Colormap(bad=...) instead.
+    EVIDENCE_HEATMAP_CMAP.set_bad((0, 0, 0, 0))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/regression/test_config_package.py::test_demo_configs_follow_filename_order_and_keep_canonical_settings - AssertionError: assert ['000_griffit....config', ...] == ['000_griffit....config', ...]
+  
+  At index 3 diff: '02_vanhamel_rx_ab.config' != '02_vanhamel_rx_buddy.config'
+  
+  Full diff:
+    [
+        '000_griffiths_squibb_fig3.config',
+        '001_griffiths_squibb_fig6.config',
+        '01_vanhamel_rx_calibration.config',
+  -     '02_vanhamel_rx_buddy.config',
+  ?                      ----
+  +     '02_vanhamel_rx_ab.config',
+  ?                     +
+  -     '03_zander_tx_buddy.config',
+  +     '03_zander_tx_buddy_experiment_a.config',
+  ?                        +++++++++++++
+        '04_zander_tx_buddy_experiment_b.config',
+        '05_milazzo_tx_buddy.config',
+        '06_rx_local_median_neighborhood.config',
+        '07_rx_calibration_ab.config',
+        '08_rx_hardware_ab.config',
+        '09_tx_hardware_ab.config',
+    ]
+FAILED tests/regression/test_config_package.py::test_demo_filenames_are_opaque_ordering_keys - FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/WSPRadar/WSPRadar/config/demos/02_vanhamel_rx_buddy.config'
+FAILED tests/regression/test_config_package.py::test_zander_experiment_b_demo_follows_experiment_a_with_expected_configuration - AssertionError: assert 'Experiment A' in 'Dr. Zander et al. TX Antenna Comparison: Short Portable Vertical vs 5/8 λ Vertical'
+FAILED tests/regression/test_documentation_rendering.py::test_english_playbooks_define_success_evidence_and_tx_ab_timing - assert '<strong class="defined-term">Qualifying evidence</strong>' in '\n\n---\n\n<a id="sec-1"></a>\n\n### 0. Why WSPRadar?\n\nRadio amateurs continually modify and improve their stations...censed under the GNU Affero General Public License version 3 (AGPLv3). The repository `LICENSE` file is controlling.\n'
+FAILED tests/regression/test_documentation_rendering.py::test_results_chapter_uses_compact_ladder_and_consecutive_sections - ValueError: substring not found
+FAILED tests/regression/test_documentation_rendering.py::test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors - AssertionError: assert ['sec-1', 'se...ion-toc', ...] == ['sec-1', 'se...ion-toc', ...]
+  
+  At index 103 diff: 'sec-c' != 'sec-b-1'
+  Right contains 5 more items, first extra item: 'sec-b-3'
+  
+  Full diff:
+    [
+        'sec-1',
+        'sec-1-0',
+        'sec-1-1',
+        'sec-1-2',
+        'sec-1-3',
+        'documentation-toc',
+        'part-i',
+        'sec-2',
+        'sec-2-1',
+        'sec-2-2',
+        'sec-2-3',
+        'sec-2-4',
+        'sec-2-4-why',
+        'sec-2-5',
+        'sec-2-6',
+        'sec-2-7',
+        'sec-3',
+        'sec-3-1',
+        'sec-3-2',
+        'sec-3-3',
+        'sec-3-4',
+        'sec-3-5',
+        'sec-3-6',
+        'sec-3-6a',
+        'sec-3-6b',
+        'sec-3-7',
+        'sec-3-7a',
+        'sec-3-7b',
+        'sec-3-8',
+        'sec-3-9',
+        'sec-4',
+        'sec-4-1',
+        'sec-4-2',
+        'sec-4-3',
+        'sec-4-4',
+        'part-ii',
+        'sec-5',
+        'sec-5-1',
+        'sec-5-2',
+        'sec-5-3',
+        'sec-5-4',
+        'sec-5-5',
+        'sec-6',
+        'sec-6-1',
+        'sec-6-2',
+        'sec-6-3',
+        'sec-6-4',
+        'sec-6-5',
+        'sec-6-6',
+        'part-iii',
+        'sec-d',
+        'sec-d-1',
+        'sec-d-2',
+        'sec-d-lo',
+        'sec-d-3',
+        'sec-d-toledo',
+        'sec-d-milazzo',
+        'sec-d-griffiths-squibb',
+        'sec-d-vanhamel',
+        'sec-d-zander',
+        'sec-d-4',
+        'sec-d-5',
+        'sec-7',
+        'sec-7-1',
+        'sec-7-2',
+        'sec-7-3',
+        'sec-7-4',
+        'sec-7-5',
+        'sec-7-6',
+        'sec-7-7',
+        'sec-7-8',
+        'sec-7-9',
+        'sec-8',
+        'sec-8-1',
+        'sec-8-2',
+        'sec-8-3',
+        'sec-8-4',
+        'sec-8-5',
+        'sec-ref',
+        'ref-1',
+        'ref-2',
+        'ref-3',
+        'ref-4',
+        'ref-5',
+        'ref-6',
+        'ref-7',
+        'ref-8',
+        'ref-9',
+        'ref-10',
+        'ref-11',
+        'ref-12',
+        'ref-13',
+        'ref-14',
+        'ref-15',
+        'ref-16',
+        'ref-17',
+        'ref-18',
+        'part-iv',
+        'sec-a',
+        'sec-a-1',
+        'sec-a-2',
+        'sec-a-3',
+        'sec-b',
+  -     'sec-b-1',
+  -     'sec-b-2',
+  -     'sec-b-3',
+  -     'sec-b-4',
+  -     'sec-b-5',
+        'sec-c',
+        'sec-license',
+    ]
+6 failed, 530 passed, 3 skipped, 1 warning in 13.78s

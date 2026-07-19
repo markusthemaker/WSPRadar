@@ -1,6 +1,5 @@
-# WSPRadar.org
 
-HAM RADIO STATION & ANTENNA BENCHMARKING
+---
 
 <a id="sec-1"></a>
 
