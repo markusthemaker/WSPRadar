@@ -33,141 +33,28 @@ jobs:
 
           agents_path = Path("AGENTS.md")
           agent_readme_path = Path("AGENT_README.md")
+          proposal_path = Path("docs/drafts/AGENTS_documentation_guidance_proposal.md")
 
           agents = agents_path.read_text(encoding="utf-8")
           marker = "### Manual Content Ownership and Relocation"
           if marker in agents:
-              raise RuntimeError("AGENTS.md already contains the proposed guidance marker")
+              raise RuntimeError("AGENTS.md already contains the guidance marker")
 
-          addition = r'''
+          proposal = proposal_path.read_text(encoding="utf-8")
+          start = proposal.index(marker)
+          end = proposal.index("\n---", start)
+          addition = proposal[start:end].rstrip()
+          addition = addition.replace(
+              "- README synchronization and web/PDF rendering are completed after authoritative integration;",
+              "- documentation tests assert required meaning and structure rather than obsolete incidental prose where practical;\n"
+              "- README synchronization and web/PDF rendering are completed after authoritative integration;",
+          )
+          addition = addition.replace(
+              "- the candidate or integrated manual imports/compiles and all anchor-bounded transformation assertions pass.",
+              "- the authoritative manuals import and compile, internal links resolve, and all relevant regression checks are run.",
+          )
 
-### Manual Content Ownership and Relocation
-
-Place end-user information in the layer where the reader needs it, and keep the
-complete explanation in one authoritative home:
-
-- **Part 0 — Preface:** motivation, minimum WSPR background, experiment-question
-  selection, and the result blocks produced by one run.
-- **Part I, Chapter 1 — Experiment Playbooks:** which experiment answers the
-  question, the minimum valid physical setup, critical pre-run warnings, and the
-  design's principal interpretation boundary. Do not reproduce complete control
-  ranges, exact algorithms, or device-specific procedures.
-- **Part I, Chapter 2 — Read Your Results:** how to interpret completed evidence,
-  including the map, Stations and Spots, Segment Inspector, Station Insights, and
-  Drill-Down. Summarize scientific mechanics only where omission would cause a
-  materially wrong reading.
-- **Part I, Chapter 3 — Strengthen and Communicate:** exploratory versus
-  confirmatory use, repetition, reversal and control experiments, conclusion
-  language, and preservation of physical station context.
-- **Part II — Controls and Troubleshooting:** exact UI labels, defaults, ranges,
-  applicability, configuration and saved-state behavior, and diagnosis.
-- **Part III, Chapter 6 — Literature and Positioning:** scientific lineage, prior
-  art, source-specific boundaries, and bounded novelty claims.
-- **Part III, Chapter 7 — Scientific Methods:** exact eligibility, identity,
-  matching, pairing, formulas, denominators, aggregation, estimators, edge cases,
-  and scientific display transforms.
-- **Part III, Chapter 8 — Claims and Reproducibility:** supported inference,
-  interpretation limits, reporting requirements, export contents, and
-  reproducibility boundaries.
-- **Part IV — Practical Supplements:** optional platform-, transmitter-,
-  accessory-, and procedure-specific setup or calibration guidance.
-
-Use this timing test when placement is unclear:
-
-- needed before or during the physical experiment -> Chapter 1;
-- needed while reading completed evidence -> Chapter 2;
-- needed when repeating, reporting, or preserving the experiment -> Chapter 3;
-- needed to operate an exact control or diagnose behavior -> Part II;
-- needed to audit the calculation or scientific claim -> Part III;
-- needed only for a particular device or platform -> Part IV.
-
-#### One authoritative home plus point-of-action reminders
-
-Define the complete explanation once. A concise warning or summary may appear at
-the point of action when omitting it could cause an invalid experiment, incorrect
-configuration, or materially wrong interpretation. The reminder must link to the
-authoritative home and must not reproduce the complete mechanics.
-
-Examples:
-
-- define the power-normalization equation in Section 7.5; retain `report actual
-  power` as a warning in the TX A/B playbook;
-- define scheduled-pair construction in Sections 7.1 and 7.7; retain `pairing is
-  automatic and deterministic` in the playbook;
-- define exact schedule choices in Section 4.3; retain `enter each path's actual
-  recurrence and UTC phase` in the playbook;
-- keep device-specific Ultimate3S or QMX procedures in an appendix and link to
-  them from the playbook.
-
-#### Relocation protocol
-
-For a substantial documentation move:
-
-1. Identify the authoritative destination before removing source text.
-2. Classify the source passage as unique useful guidance, duplicated explanation,
-   obsolete material, implementation-only detail, or unsupported claim.
-3. Add or improve the destination before removing unique guidance from the
-   source.
-4. Retain a concise reminder and cross-reference at the original decision point
-   when needed.
-5. Maintain a relocation ledger for multi-section or multi-part restructuring.
-6. Record verbatim any original passage not retained anywhere, together with its
-   section, disposition, and reason.
-7. Update the Table of Contents, anchors, incoming links, references, tests, and
-   both language versions in the same completed integration.
-8. Verify that no useful guidance remains only in an obsolete or removed
-   location.
-
-#### Exploratory and confirmatory guidance
-
-When documentation describes evidence strengthening, distinguish exploratory use
-from confirmatory repetition. An initial run may identify a possible pattern.
-Before a confirmatory run, instruct the operator to fix the relevant direction,
-band, benchmark, filters, thresholds, schedule, and primary evaluation scope.
-Alternative radii, time windows, or scopes should be reported as sensitivity
-analyses rather than selected only because they are favorable.
-
-#### Stability and repeatability
-
-Do not use `stable` ambiguously. Distinguish:
-
-- **sample Stability:** sensitivity of a displayed statistic to resampling the
-  evidence already present in one run;
-- **experimental repeatability:** persistence of the observed pattern in a new
-  controlled run or operating window.
-
-A narrow Stability interval does not by itself establish future repeatability,
-independence, calibration, or statistical significance.
-
-#### English and German structural parity
-
-English and German manuals must retain equivalent section ownership, claims,
-warnings, formulas, references, and cross-links. German should be a native
-technical adaptation using established amateur-radio terminology, not a
-mechanically literal translation. A relocation is incomplete until both languages
-have the same authoritative content home.
-
-#### Documentation restructuring checks
-
-For a substantial manual restructuring, verify:
-
-- every heading in the Table of Contents points to one existing anchor;
-- retained compatibility anchors do not create duplicate headings;
-- every defined term is introduced before it is relied upon;
-- formulas and complete algorithms have one authoritative home;
-- no device-specific procedure interrupts the main operator journey;
-- no useful original guidance was silently dropped;
-- source references remain globally numbered in order of first use;
-- English and German structures and claim boundaries remain equivalent;
-- documentation tests assert required meaning and structure rather than obsolete
-  incidental prose where practical;
-- README synchronization and web/PDF rendering are completed after authoritative
-  integration;
-- the authoritative manuals import and compile, internal links resolve, and all
-  relevant regression checks are run.
-'''
-
-          agents = agents.rstrip() + addition + "\n"
+          agents = agents.rstrip() + "\n\n" + addition + "\n"
           agents_path.write_text(agents, encoding="utf-8", newline="\n")
 
           agent_readme = agent_readme_path.read_text(encoding="utf-8")
@@ -189,14 +76,14 @@ For a substantial manual restructuring, verify:
 
           drafts = Path("docs/drafts")
           drafts.mkdir(parents=True, exist_ok=True)
-          (drafts / "AGENTS_updated_candidate.md").write_text(agents, encoding="utf-8", newline="\n")
-          (drafts / "AGENT_README_updated_candidate.md").write_text(
-              agent_readme, encoding="utf-8", newline="\n"
-          )
+          agents_draft = drafts / "AGENTS_updated_candidate.md"
+          readme_draft = drafts / "AGENT_README_updated_candidate.md"
+          agents_draft.write_text(agents, encoding="utf-8", newline="\n")
+          readme_draft.write_text(agent_readme, encoding="utf-8", newline="\n")
 
-          if (drafts / "AGENTS_updated_candidate.md").read_text(encoding="utf-8") != agents:
+          if agents_draft.read_text(encoding="utf-8") != agents:
               raise RuntimeError("AGENTS.md draft mirror differs from the integrated file")
-          if (drafts / "AGENT_README_updated_candidate.md").read_text(encoding="utf-8") != agent_readme:
+          if readme_draft.read_text(encoding="utf-8") != agent_readme:
               raise RuntimeError("AGENT_README.md draft mirror differs from the integrated file")
           PY
 
