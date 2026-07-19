@@ -323,6 +323,10 @@ and up to ten queued exports.
 active-run UTC interval, and reset lifecycle. Configuration callbacks can retire
 session artifacts and clear export, inspector, stability, and resolved-time
 state without importing Pandas, Matplotlib, the inspector, or export rendering.
+`ui/analysis_submission_state.py` separately owns the UUID-token lifecycle for
+one session's in-flight analysis. Keeping submission state separate from
+`run_mode` is required because `run_mode` remains set while completed results
+are reconstructed on later Streamlit reruns.
 
 Preparing an export reuses completed analysis and projected artifacts; it does
 not rerun the upstream scientific query. It renders paper-theme, high-resolution
@@ -410,6 +414,29 @@ A session cannot enqueue an identical request while its matching work is active
 or queued. Different sessions may run the same demo; this avoids turning popular
 demos into a cross-user single-result dependency. Admission state and deduplication
 are process-local and do not coordinate multiple application processes.
+
+The Run callback creates a session-scoped UUID submission token before the
+blocking script rerun begins. While that token is owned by a queued or active
+script, the Run action is disabled and another Streamlit rerun does not enter
+admission again. Terminal paths clear only the token they own, preventing an
+interrupted older script from clearing newer state. As a defensive fallback,
+the admission controller can look up an existing owner/request pair: duplicate
+rendering restores that request's personal queue position, or reports it as
+active, and follows it until release instead of replacing its status with an
+unrelated duplicate notice or acquiring a second permit. After release, that
+latest script performs one controlled rerun to reconstruct the published result
+and remove its final waiting status.
+Scientific configuration callbacks explicitly retire the current UI token when
+their new request replaces the queued or active one; Streamlit interruption then
+unwinds the old admission permit or ticket. The visible queue status deliberately
+omits global active and queued counts.
+
+Loading a built-in demo marks the applied inputs with that profile's trusted
+demo identity, and the ordinary direction-aware Run action preserves it.
+Scientific-control callbacks clear the identity after an edit, returning the
+modified configuration to the ordinary one-hour query-cache policy. Thus an
+unchanged loaded demo and an immediately launched demo share the same 24-hour
+cache namespace and provider-affinity behavior.
 
 The first FIFO ticket can become active only when an analysis slot and a
 complete-run provider reservation are both available. Provider reservation uses

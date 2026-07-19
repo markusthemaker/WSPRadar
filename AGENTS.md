@@ -45,7 +45,8 @@ generated end-user and scientific manual, not the repository engineering guide.
   leases, touching, and TTL cleanup.
 - `core/input_validation.py` and `core/time_utils.py` own dependency-free input
   and time helpers used by the idle shell; `ui/result_state.py` owns the
-  lightweight result-reset lifecycle and its session-state keys.
+  lightweight result-reset lifecycle and its session-state keys;
+  `ui/analysis_submission_state.py` owns token-aware in-flight submission state.
 - `ui/documentation_state.py` owns documentation visibility and one-shot scroll
   state; `ui/documentation_scroll_trigger.py` owns the browser viewport signal.
 - `tests/regression/` is the executable behavioral contract.
@@ -256,7 +257,9 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 - Duplicate analysis admission is keyed by stable session ownership plus a
   scientific request fingerprint. Demo identity is part of the fingerprint so
   separate users can run the same demo while one session cannot enqueue the
-  same work repeatedly.
+  same work repeatedly. The UI submission token is separate from `run_mode` and
+  must be cleared only by its owning terminal path or an explicit scientific
+  request replacement.
 - Upstream CSV and Parquet reads must retain connect/read deadlines, streamed
   byte ceilings, and structured errors.
 - The base-map cache is shared and constructed under same-key coordination.

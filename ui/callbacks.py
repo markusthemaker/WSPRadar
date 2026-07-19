@@ -20,6 +20,10 @@ from ui.config_io import (
     validate_config_document,
 )
 from ui.result_state import reset_result_state
+from ui.analysis_submission_state import (
+    begin_analysis_submission,
+    cancel_analysis_submission,
+)
 
 
 def _demo_config_document(profile):
@@ -34,6 +38,7 @@ def reset_audit():
     Triggered whenever a core parameter is changed by the user, ensuring that 
     stale or outdated map data isn't displayed on the screen.
     """
+    cancel_analysis_submission(st.session_state)
     st.session_state.run_mode = None
     st.session_state.active_demo_profile = None
     reset_result_state(st.session_state)
@@ -129,6 +134,7 @@ def update_lang():
                     st.session_state[state_key] = t_new[d_key]
                     break
                     
+    cancel_analysis_submission(st.session_state)
     st.session_state.lang = new_lang
     st.session_state.run_mode = None
 
@@ -194,13 +200,15 @@ def load_demo_profile_config(profile_key):
 
     reset_audit()
     st.session_state.is_demo_mode = False
-    st.session_state.active_demo_profile = None
     st.session_state.show_demo_launcher = False
     st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
     st.session_state.run_mode = None
     _apply_demo_profile_values(profile_key)
+    # The loaded values remain a trusted built-in demo until a scientific
+    # configuration callback calls ``reset_audit`` after an edit.
+    st.session_state.active_demo_profile = profile_key
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
@@ -215,6 +223,9 @@ def run_demo_profile(profile_key):
     if not profile:
         return
 
+    # A direct demo launch replaces any queued/running request whose editable
+    # state this callback is about to overwrite.
+    cancel_analysis_submission(st.session_state)
     st.session_state.is_demo_mode = False
     st.session_state.active_demo_profile = profile_key
     st.session_state.show_demo_launcher = False
@@ -226,6 +237,10 @@ def run_demo_profile(profile_key):
         raise ValueError(f"Demo profile {profile_key!r} has no analysis direction.")
     st.session_state.run_mode = analysis_direction.upper()
     st.session_state.run_id = int(time.time())
+    begin_analysis_submission(
+        st.session_state,
+        request_source="demo",
+    )
     collapse_documentation(st.session_state)
     reset_result_state(st.session_state)
     for key in list(st.session_state.keys()):
@@ -269,6 +284,7 @@ def set_reset_config():
     Resets all user inputs and configurations back to their default factory state.
     Exits demo mode securely and clears any active analysis run.
     """
+    cancel_analysis_submission(st.session_state)
     st.session_state.is_demo_mode = False
     t = T[st.session_state.lang]
     
@@ -326,6 +342,7 @@ def set_demo_config():
     Activates the Guided Sandbox demo mode. Locks core UI elements against 
     unwanted edits and loads the initial demographic profile.
     """
+    cancel_analysis_submission(st.session_state)
     st.session_state.is_demo_mode = True
     st.session_state.run_mode = None
     apply_demo_profile()

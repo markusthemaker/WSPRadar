@@ -37,6 +37,7 @@ from config.config_codec import prepare_config_document
 from config.json_utils import decode_strict_json_bytes
 from i18n import T
 from core.input_validation import is_valid_6char_locator, is_valid_callsign
+from ui.analysis_submission_state import cancel_analysis_submission
 from ui.result_state import reset_result_state
 
 
@@ -1295,6 +1296,7 @@ def apply_config_values(config):
     """Apply validated settings and reset the editable UI lifecycle."""
     session_state = st.session_state
 
+    cancel_analysis_submission(session_state)
     session_state.is_demo_mode = False
     session_state.active_demo_profile = None
     session_state.show_demo_launcher = False

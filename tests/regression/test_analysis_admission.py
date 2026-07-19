@@ -11,6 +11,7 @@ from core.analysis_admission import (
     AnalysisDuplicateRequest,
     AnalysisQueueFull,
     AnalysisQueueTimeout,
+    AdmissionSnapshot,
 )
 from core.provider_dispatch import ProviderDispatchController
 
@@ -228,6 +229,102 @@ def test_request_can_run_again_after_its_prior_permit_is_released():
     second = controller.acquire(owner="session-a", request_key="same-analysis")
     assert controller.counts() == (1, 0)
     second.release()
+
+
+def test_request_snapshot_reports_active_request_and_clears_after_release():
+    controller = _controller()
+    permit = controller.acquire(owner="session-a", request_key="same-analysis")
+
+    assert controller.request_snapshot("session-a", "same-analysis") == AdmissionSnapshot(
+        position=0,
+        active=1,
+        queued=0,
+        max_active=1,
+        max_queued=2,
+    )
+    assert controller.request_snapshot("session-a", "unknown-analysis") is None
+
+    permit.release()
+
+    assert controller.request_snapshot("session-a", "same-analysis") is None
+
+
+def test_request_snapshot_tracks_queued_request_through_admission_and_release():
+    controller = _controller(max_active=1, max_queued=2)
+    active = controller.acquire(owner="active-session", request_key="active-analysis")
+    queued_started = threading.Event()
+    queued_admitted = threading.Event()
+    release_queued = threading.Event()
+
+    def queued_worker():
+        with controller.acquire(
+            owner="queued-session",
+            request_key="queued-analysis",
+            on_wait=lambda _snapshot: queued_started.set(),
+        ):
+            queued_admitted.set()
+            assert release_queued.wait(timeout=1.0)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        queued_future = executor.submit(queued_worker)
+        assert queued_started.wait(timeout=1.0)
+        assert controller.request_snapshot(
+            "queued-session",
+            "queued-analysis",
+        ) == AdmissionSnapshot(
+            position=1,
+            active=1,
+            queued=1,
+            max_active=1,
+            max_queued=2,
+        )
+
+        active.release()
+        assert queued_admitted.wait(timeout=1.0)
+        assert controller.request_snapshot(
+            "queued-session",
+            "queued-analysis",
+        ) == AdmissionSnapshot(
+            position=0,
+            active=1,
+            queued=0,
+            max_active=1,
+            max_queued=2,
+        )
+
+        release_queued.set()
+        queued_future.result(timeout=1.0)
+
+    assert controller.request_snapshot("queued-session", "queued-analysis") is None
+
+
+def test_duplicate_follower_waits_until_the_original_request_is_released():
+    controller = _controller(max_active=1, max_queued=1)
+    active = controller.acquire(owner="session-a", request_key="same-analysis")
+    first_update = threading.Event()
+    observed_snapshots = []
+
+    def record_snapshot(snapshot):
+        observed_snapshots.append(snapshot)
+        first_update.set()
+
+    def follow_original_request():
+        controller.wait_for_request_completion(
+            "session-a",
+            "same-analysis",
+            on_update=record_snapshot,
+        )
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        follower = executor.submit(follow_original_request)
+        assert first_update.wait(timeout=1.0)
+        assert not follower.done()
+
+        active.release()
+        follower.result(timeout=1.0)
+
+    assert observed_snapshots[0].position == 0
+    assert controller.request_snapshot("session-a", "same-analysis") is None
 
 
 def test_external_capacity_waits_in_same_fifo_queue_without_using_active_slot():

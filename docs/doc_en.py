@@ -785,13 +785,13 @@ Exact formulas and processing rules remain in [Scientific Methods](#sec-7).
 
 #### 4.1 Workflow controls
 
-**`Load Demo`** opens maintained historical profiles. You can load a profile for inspection or run it immediately.
+**`Load Demo`** opens maintained historical profiles. You can load a profile for inspection or run it immediately. An unchanged loaded profile remains a guided demo when you subsequently use the main Run button, so it retains the demo query-cache policy. Editing a scientific control turns the edited configuration into an ordinary analysis.
 
 **`Load Config`** strictly validates and loads a versioned JSON `.config` file. Invalid identities, dates, choices, ranges, duplicate fields and unsupported schema versions are rejected.
 
 **`Save Config`** opens a compact profile form. Enter a title and optional description; an optional stable ID can be supplied or generated automatically. The resulting `<profile-id>.config` stores every applicable input and durable Compare/Success result-view choice. When the configured time mode is `Last X Hours`, saving also asks whether to retain that moving relative window or replace it with the active run's resolved absolute UTC start/end window. Choose the absolute form when a later run should address the same dates. A saved configuration does not contain result rows, external experiment notes or transient table filters.
 
-**`Run RX Analysis` / `Run TX Analysis`** is one direction-aware button. It runs Success and, when a benchmark is selected, Compare for the RX or TX Analysis chosen in Core Parameters.
+**`Run RX Analysis` / `Run TX Analysis`** is one direction-aware button. It runs Success and, when a benchmark is selected, Compare for the RX or TX Analysis chosen in Core Parameters. Once submitted, the button is disabled while that session's unchanged analysis is queued or running. Changing a scientific control creates a different request, so the Run action becomes available for the changed configuration. During a capacity wait, the status reports only your analysis's current queue position; it does not show unrelated users' queue totals.
 
 **`Prepare All Results for Download`** builds the current analysis export package on demand.
 

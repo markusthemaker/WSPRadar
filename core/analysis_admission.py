@@ -344,6 +344,86 @@ class AnalysisAdmissionController:
             self._expire_stale_leases_unlocked(self._clock())
             return len(self._active), len(self._queue)
 
+    def request_snapshot(
+        self,
+        owner: str,
+        request_key: str | None,
+    ) -> AdmissionSnapshot | None:
+        """Return one owner's matching active or queued request state.
+
+        A position of zero means the request is active. Positive positions are
+        one-based FIFO queue positions. The lookup changes no live request, but
+        it performs the controller's normal stale-active and expired-ticket
+        cleanup.
+        """
+        if request_key is None:
+            return None
+        normalized_owner = str(owner)
+        normalized_request_key = str(request_key)
+        with self._condition:
+            now = self._clock()
+            self._expire_stale_leases_unlocked(now)
+            is_active = any(
+                lease.owner == normalized_owner
+                and lease.request_key == normalized_request_key
+                for lease in self._active.values()
+            )
+            if is_active:
+                return AdmissionSnapshot(
+                    position=0,
+                    active=len(self._active),
+                    queued=len(self._queue),
+                    max_active=self.max_active,
+                    max_queued=self.max_queued,
+                )
+
+            queued_match = next(
+                (
+                    (index, ticket)
+                    for index, ticket in enumerate(self._queue, start=1)
+                    if ticket.owner == normalized_owner
+                    and ticket.request_key == normalized_request_key
+                ),
+                None,
+            )
+            if queued_match is None:
+                return None
+            position, queued_ticket = queued_match
+            if now >= queued_ticket.deadline:
+                self._remove_ticket_unlocked(queued_ticket.token)
+                return None
+            return AdmissionSnapshot(
+                position=position,
+                active=len(self._active),
+                queued=len(self._queue),
+                max_active=self.max_active,
+                max_queued=self.max_queued,
+            )
+
+    def wait_for_request_completion(
+        self,
+        owner: str,
+        request_key: str | None,
+        *,
+        on_update: Callable[[AdmissionSnapshot], None] | None = None,
+    ) -> None:
+        """Wait until one matching active or queued request has been released.
+
+        This read-only follower is used only to reconcile a defensive duplicate
+        Streamlit script with the request that already owns admission. It never
+        acquires an additional analysis slot or provider reservation.
+        """
+        last_snapshot = None
+        while True:
+            snapshot = self.request_snapshot(owner, request_key)
+            if snapshot is None:
+                return
+            if on_update is not None and snapshot != last_snapshot:
+                on_update(snapshot)
+                last_snapshot = snapshot
+            with self._condition:
+                self._condition.wait(timeout=self.poll_interval_seconds)
+
 
 ANALYSIS_ADMISSION_GATE = AnalysisAdmissionController(
     max_active=ANALYSIS_MAX_CONCURRENT,

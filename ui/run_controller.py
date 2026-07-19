@@ -55,6 +55,12 @@ from core.run_data_preparation import (
     prepare_provider_bundle,
 )
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
+from ui.analysis_submission_state import (
+    SUBMISSION_PHASE_QUEUED,
+    SUBMISSION_PHASE_RUNNING,
+    get_analysis_submission,
+    update_analysis_submission,
+)
 from ui.components.segment_inspector import render_segment_inspector
 from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
@@ -68,6 +74,9 @@ from ui.result_state import (
     get_active_run_database_source,
     set_active_run_database_source,
 )
+
+
+ANALYSIS_RUN_FOLLOWER_COMPLETED = "duplicate_follower_completed"
 
 
 def _analysis_request_fingerprint(
@@ -291,10 +300,17 @@ def render_analysis_run(
     if not st.session_state.run_mode:
         return
 
+    submission_snapshot = get_analysis_submission(st.session_state)
+    submission_token = (
+        submission_snapshot.token
+        if submission_snapshot is not None
+        else None
+    )
+
     if not is_valid_callsign(callsign):
         st.error(f"Invalid callsign '{callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 chars).")
         st.session_state.run_mode = None
-        st.stop()
+        return
 
     if not is_valid_locator(qth_locator):
         err_msg = (
@@ -304,7 +320,7 @@ def render_analysis_run(
         )
         st.error(err_msg)
         st.session_state.run_mode = None
-        st.stop()
+        return
 
     center_latitude, center_longitude = locator_to_latlon(qth_locator)
     active_demo_key = st.session_state.get("active_demo_profile")
@@ -348,7 +364,6 @@ def render_analysis_run(
         return provider_lease
 
     waiting_status = None
-    waiting_body = None
     queue_profile = {
         "initial_position": 0,
         "maximum_position": 0,
@@ -356,7 +371,7 @@ def render_analysis_run(
     admission_started = time.perf_counter()
 
     def show_waiting(snapshot):
-        nonlocal waiting_status, waiting_body
+        nonlocal waiting_status
         if queue_profile["initial_position"] == 0:
             queue_profile["initial_position"] = snapshot.position
         queue_profile["maximum_position"] = max(
@@ -365,22 +380,23 @@ def render_analysis_run(
         )
         label = t.get(
             "msg_analysis_queue_wait",
-            "Waiting for analysis capacity: position {position}",
+            "All analysis capacity is in use; queued at position {position}.",
         ).format(position=snapshot.position)
-        detail = t.get(
-            "msg_analysis_queue_detail",
-            "Analyses waiting: {queued}.",
-        ).format(
-            queued=snapshot.queued,
+        update_analysis_submission(
+            st.session_state,
+            submission_token,
+            phase=SUBMISSION_PHASE_QUEUED,
+            position=snapshot.position,
         )
         if waiting_status is None:
             with run_status_slot.container():
-                waiting_status = st.status(label, expanded=True, state="running")
-                with waiting_status:
-                    waiting_body = st.empty()
+                waiting_status = st.status(
+                    label,
+                    expanded=False,
+                    state="running",
+                )
         else:
-            waiting_status.update(label=label, expanded=True, state="running")
-        waiting_body.markdown(detail)
+            waiting_status.update(label=label, expanded=False, state="running")
 
     owner = session_artifact_owner(st.session_state)
     request_key = _analysis_request_fingerprint(
@@ -424,12 +440,56 @@ def render_analysis_run(
         )
     except AnalysisDuplicateRequest:
         log_admission("duplicate")
-        if waiting_status is not None:
-            run_status_slot.empty()
-        run_status_slot.info(t.get(
-            "msg_analysis_duplicate",
-            "This identical analysis is already active or queued for this session.",
-        ))
+        request_snapshot = getattr(
+            ANALYSIS_ADMISSION_GATE,
+            "request_snapshot",
+            lambda **_kwargs: None,
+        )(owner=owner, request_key=request_key)
+
+        def show_existing_request(snapshot):
+            """Mirror the original request while this duplicate script follows it."""
+            nonlocal waiting_status
+            if snapshot.position > 0:
+                show_waiting(snapshot)
+                return
+            update_analysis_submission(
+                st.session_state,
+                submission_token,
+                phase=SUBMISSION_PHASE_RUNNING,
+            )
+            running_label = t.get(
+                "msg_analysis_submission_active",
+                "Analysis submitted; Run Analysis is disabled until it finishes.",
+            )
+            if waiting_status is None:
+                with run_status_slot.container():
+                    waiting_status = st.status(
+                        running_label,
+                        expanded=False,
+                        state="running",
+                    )
+            else:
+                waiting_status.update(
+                    label=running_label,
+                    expanded=False,
+                    state="running",
+                )
+
+        if request_snapshot is None:
+            return
+        show_existing_request(request_snapshot)
+        wait_for_completion = getattr(
+            ANALYSIS_ADMISSION_GATE,
+            "wait_for_request_completion",
+            None,
+        )
+        if callable(wait_for_completion):
+            wait_for_completion(
+                owner,
+                request_key,
+                on_update=show_existing_request,
+            )
+            return ANALYSIS_RUN_FOLLOWER_COMPLETED
         return
     except AnalysisQueueFull:
         log_admission("queue_full")
@@ -458,6 +518,11 @@ def render_analysis_run(
         return
 
     log_admission("admitted")
+    update_analysis_submission(
+        st.session_state,
+        submission_token,
+        phase=SUBMISSION_PHASE_RUNNING,
+    )
     if waiting_status is not None:
         run_status_slot.empty()
     run_started = time.perf_counter()

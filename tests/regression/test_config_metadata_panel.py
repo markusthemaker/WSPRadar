@@ -11,6 +11,12 @@ import pytest
 from config import DEMO_PROFILES
 from i18n import T
 from ui import callbacks, config_io
+from ui.analysis_submission_state import (
+    begin_analysis_submission,
+    begin_main_analysis_submission,
+    claim_analysis_submission_request,
+    get_analysis_submission,
+)
 from ui.components import config_panel
 
 
@@ -250,12 +256,14 @@ def test_parameter_reset_preserves_loaded_profile_snapshot(monkeypatch):
         SimpleNamespace(session_state=session_state),
     )
     monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    begin_analysis_submission(session_state, request_source="main_button")
 
     callbacks.reset_audit()
 
     assert session_state.run_mode is None
     assert session_state.active_demo_profile is None
     assert session_state.loaded_config_profile == loaded_profile
+    assert get_analysis_submission(session_state) is None
 
 
 @pytest.mark.parametrize(
@@ -290,9 +298,38 @@ def test_public_demo_paths_preserve_loaded_metadata_after_execution(
 
     expected_profile = DEMO_PROFILES[profile_id]["configuration"]["profile"]
     assert session_state.loaded_config_profile == expected_profile
+    assert session_state.active_demo_profile == profile_id
     assert session_state.run_mode == expected_run_mode
     assert session_state.show_demo_launcher is False
     rerun.assert_called_once_with()
+
+
+def test_main_run_preserves_the_unchanged_loaded_demo_identity(monkeypatch):
+    """Keep a green-button rerun in the demo query-cache policy."""
+    profile_id = "vanhamel_rx_calibration"
+    session_state = _SessionState(lang="en", show_demo_launcher=True)
+    rerun = Mock()
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state, rerun=rerun),
+    )
+    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+
+    callbacks.load_demo_profile_config(profile_id)
+    begin_main_analysis_submission(session_state)
+    request = claim_analysis_submission_request(session_state)
+
+    assert request is not None
+    assert request.source == "main_button"
+    assert session_state.active_demo_profile == profile_id
+    assert DEMO_PROFILES.get(session_state.active_demo_profile) is not None
+    rerun.assert_called_once_with()
+
+    app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
+    assert "st.session_state.active_demo_profile = None" not in app_source
+    assert "begin_main_analysis_submission(st.session_state)" in app_source
+    assert "analysis_run_outcome == ANALYSIS_RUN_FOLLOWER_COMPLETED" in app_source
 
 
 def test_factory_reset_clears_loaded_profile_snapshot(monkeypatch):

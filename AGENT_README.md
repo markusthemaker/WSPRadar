@@ -256,6 +256,8 @@ Useful files when tracing behavior:
   fragment-scoped profile/save controls, and relative-versus-frozen Last-X
   writing.
 - `ui/results_export.py`: lazy export recipe execution and ZIP construction.
+- `ui/analysis_submission_state.py`: lightweight, token-aware in-flight analysis
+  ownership used to guard Streamlit reruns before admission.
 - `ui/result_state.py`: lightweight result/export reset and active-run time-window
   lifecycle used by idle configuration callbacks.
 - `ui/documentation_scroll_trigger.py`: one-shot browser viewport sentinel for
@@ -341,7 +343,11 @@ scientific analyses, and provider identity remains part of every query-cache
 key. Before issuing demo requests, provider selection prefers the first enabled
 source that can supply the complete current strict/legacy and Compare/Success
 bundle from fresh cache. The selected cache retains its actual provider origin;
-artifacts are neither relabelled nor combined across sources. Derived basemaps
+artifacts are neither relabelled nor combined across sources. Loading a built-in
+demo establishes this demo identity without immediately running it; the normal
+Run action preserves the identity while its scientific controls remain
+unchanged, and a scientific edit returns the configuration to ordinary cache
+policy. Derived basemaps
 are shared across sessions and are not currently subject to TTL cleanup. Process
 memory also holds the query DataFrame LRU, admission state, inspector session
 models/PNGs, generated documentation PDF cache, and provider rolling-request,

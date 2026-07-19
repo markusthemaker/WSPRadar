@@ -14,6 +14,7 @@ def test_run_analysis_action_shares_enabled_green_emphasis(monkeypatch):
         r'key="run_analysis_button",\s+type="primary"',
         app_source,
     )
+    assert 'class="wspr-analysis-run-busy"' in app_source
 
     rendered_styles = []
     monkeypatch.setattr(

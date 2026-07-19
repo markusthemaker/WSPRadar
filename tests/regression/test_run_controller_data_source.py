@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from config import DEMO_PROFILES, WSPR_DATABASE_PROVIDERS
 from core.analysis_admission import (
     AdmissionSnapshot,
+    AnalysisDuplicateRequest,
     AnalysisQueueFull,
     AnalysisQueueTimeout,
 )
@@ -24,6 +25,10 @@ from core.run_data_preparation import (
     ProviderBundlePreparationError,
 )
 from ui import run_controller
+from ui.analysis_submission_state import (
+    begin_analysis_submission,
+    claim_analysis_submission_request,
+)
 from ui.result_state import (
     EXPORT_STATE_KEY,
     INSPECTOR_CACHE_STATE_KEY,
@@ -298,7 +303,7 @@ def _patch_admission_presentation_environment(monkeypatch, fake_st, gate):
 
 def _render_admission_presentation(fake_st, run_status_slot, *, translations=None):
     """Invoke the public controller with fixed valid inputs for queue tests."""
-    run_controller.render_analysis_run(
+    return run_controller.render_analysis_run(
         t=translations or {},
         run_status_slot=run_status_slot,
         callsign="G3ZIL",
@@ -311,8 +316,8 @@ def _render_admission_presentation(fake_st, run_status_slot, *, translations=Non
     )
 
 
-def test_waiting_status_shows_queue_count_without_active_fraction(monkeypatch):
-    """Keep provider-capacity waits clear when no analysis slot is active."""
+def test_waiting_status_shows_only_the_sessions_own_queue_position(monkeypatch):
+    """Keep global active and waiting counts out of the personal queue status."""
     fake_st = _FakeStreamlit()
     run_status_slot = _RunStatusSlot()
 
@@ -334,8 +339,10 @@ def test_waiting_status_shows_queue_count_without_active_fraction(monkeypatch):
 
     _render_admission_presentation(fake_st, run_status_slot)
 
-    assert fake_st.placeholders[0].markdowns == ["Analyses waiting: 8."]
-    assert "0/2" not in fake_st.placeholders[0].markdowns[0]
+    assert [status.label for status in fake_st.statuses] == [
+        "All analysis capacity is in use; queued at position 8."
+    ]
+    assert fake_st.placeholders == []
 
 
 def test_queue_full_warning_uses_replaceable_run_status_slot(monkeypatch):
@@ -359,6 +366,93 @@ def test_queue_full_warning_uses_replaceable_run_status_slot(monkeypatch):
         "High demand right now. The analysis queue is full. Please try again shortly.",
     )]
     assert fake_st.warnings == []
+
+
+def test_duplicate_rerun_restores_the_existing_personal_queue_position(monkeypatch):
+    """Do not replace a live queued request with the generic duplicate notice."""
+    fake_st = _FakeStreamlit()
+    run_status_slot = _RunStatusSlot()
+    queued_snapshot = AdmissionSnapshot(
+        position=1,
+        active=0,
+        queued=7,
+        max_active=2,
+        max_queued=10,
+    )
+
+    def reject_duplicate(**_kwargs):
+        raise AnalysisDuplicateRequest("simulated duplicate")
+
+    gate = SimpleNamespace(
+        acquire=reject_duplicate,
+        counts=lambda: (0, 7),
+        request_snapshot=lambda *_args, **_kwargs: queued_snapshot,
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+
+    followed_requests = []
+
+    def follow_existing(owner, request_key, *, on_update):
+        followed_requests.append((owner, request_key))
+        on_update(queued_snapshot)
+
+    gate.wait_for_request_completion = follow_existing
+    follower_outcome = _render_admission_presentation(
+        fake_st,
+        run_status_slot,
+    )
+
+    assert [status.label for status in fake_st.statuses] == [
+        "All analysis capacity is in use; queued at position 1."
+    ]
+    assert run_status_slot.notices == []
+    assert fake_st.session_state.run_mode == "RX"
+    assert followed_requests == [("owner", "request-key")]
+    assert follower_outcome == run_controller.ANALYSIS_RUN_FOLLOWER_COMPLETED
+
+
+def test_main_submission_of_loaded_demo_reaches_demo_reservation_policy(monkeypatch):
+    """Classify an unchanged loaded demo as a demo after the main Run action."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.active_demo_profile = "vanhamel_rx_calibration"
+    submission_token = begin_analysis_submission(
+        fake_st.session_state,
+        request_source="main_button",
+    )
+    submission_request = claim_analysis_submission_request(fake_st.session_state)
+    assert submission_request is not None
+    assert submission_request.token == submission_token
+    assert submission_request.source == "main_button"
+
+    reservation_modes = []
+
+    def capture_demo_reservation(
+        _analyses,
+        *,
+        is_demo_run,
+        allowed_sources,
+    ):
+        reservation_modes.append((is_demo_run, allowed_sources))
+        return SimpleNamespace(), {"wspr_live": 0, "wd2": 0, "wd1": 0}
+
+    def reserve_then_stop(**kwargs):
+        kwargs["reserve_capacity"]()
+        raise AnalysisQueueFull("stop after reservation classification")
+
+    gate = SimpleNamespace(
+        acquire=reserve_then_stop,
+        counts=lambda: (0, 0),
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+    monkeypatch.setattr(
+        run_controller,
+        "_try_reserve_upstream_capacity",
+        capture_demo_reservation,
+    )
+
+    _render_admission_presentation(fake_st, _RunStatusSlot())
+
+    assert reservation_modes == [(True, None)]
 
 
 def test_fetch_failure_telemetry_omits_query_and_error_message(monkeypatch):

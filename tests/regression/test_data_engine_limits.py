@@ -405,6 +405,128 @@ def test_complete_demo_bundle_requires_every_compare_and_success_cache(
     ) == 1
 
 
+def test_demo_bundle_first_fetch_publishes_and_second_fetch_reuses_all_disk_rows(
+    tmp_path,
+    monkeypatch,
+):
+    """Publish strict/legacy Compare and Success rows, then reuse all four from disk."""
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    compare_strict_query = "SELECT demo_bundle_compare_strict FORMAT CSVWithNames"
+    compare_legacy_query = "SELECT demo_bundle_compare_legacy FORMAT CSVWithNames"
+    success_strict_query = "SELECT demo_bundle_success_strict FORMAT Parquet"
+    success_legacy_query = "SELECT demo_bundle_success_legacy FORMAT Parquet"
+    analyses = [
+        {
+            "analysis_kind": "comparison",
+            "is_sequential": False,
+            "query": compare_strict_query,
+            "legacy_query": compare_legacy_query,
+            "response_format": "csv",
+        },
+        {
+            "analysis_kind": "opportunity",
+            "is_sequential": False,
+            "query": success_strict_query,
+            "legacy_query": success_legacy_query,
+            "response_format": "parquet",
+        },
+    ]
+    compare_columns = (
+        "time_slot,peer_sign,peer_grid,peer_lat,peer_lon,snr_u_norm,"
+        "snr_r_norm,has_u,has_r,best_ref_sign,best_ref_dist\n"
+    )
+    response_payloads = {
+        compare_strict_query: (
+            compare_columns
+            + "1,K1AAA,AA00,1.0,2.0,-10,-11,0,1,K2BBB,10.0\n"
+        ).encode("utf-8"),
+        compare_legacy_query: (
+            compare_columns
+            + "1,K1AAA,AA00,1.0,2.0,-10,-11,1,1,K2BBB,10.0\n"
+        ).encode("utf-8"),
+    }
+    for query, target_seen in (
+        (success_strict_query, 0),
+        (success_legacy_query, 1),
+    ):
+        source_path = tmp_path / f"{target_seen}-{data_engine._query_digest(query)}.parquet"
+        pd.DataFrame(
+            {
+                "time_slot": [1],
+                "peer_sign": ["K1AAA"],
+                "peer_grid": ["AA00"],
+                "target_seen": [target_seen],
+                "external_seen": [1],
+                "target_snr": [-10],
+            }
+        ).to_parquet(source_path, index=False)
+        response_payloads[query] = source_path.read_bytes()
+
+    requested_queries = []
+
+    def fake_get(_url, *_args, **kwargs):
+        query = kwargs["params"]["query"]
+        requested_queries.append(query)
+        return _StreamingResponse([response_payloads[query]])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+
+    def fetch_complete_bundle():
+        """Fetch each strict and possible legacy query in execution order."""
+        fetched_results = []
+        for analysis in analyses:
+            for query in (analysis["query"], analysis["legacy_query"]):
+                fetched_results.append(data_engine.fetch_wspr_data(
+                    query,
+                    is_demo=True,
+                    response_format=analysis["response_format"],
+                    database_provider=provider,
+                ))
+        return fetched_results
+
+    assert data_engine.estimate_uncached_requests(
+        analyses,
+        is_demo=True,
+        database_provider=provider,
+    ) == 4
+
+    first_results = fetch_complete_bundle()
+
+    assert requested_queries == [
+        compare_strict_query,
+        compare_legacy_query,
+        success_strict_query,
+        success_legacy_query,
+    ]
+    assert all(result.error is None for result in first_results)
+    assert all(result.source == FetchSource.WSPR_LIVE for result in first_results)
+    for analysis in analyses:
+        for query in (analysis["query"], analysis["legacy_query"]):
+            cache_path = data_engine._query_cache_path(
+                query,
+                provider,
+                is_demo=True,
+            )
+            assert cache_path.is_file()
+            assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
+
+    data_engine._dataframe_cache.clear()
+
+    assert data_engine.estimate_uncached_requests(
+        analyses,
+        is_demo=True,
+        database_provider=provider,
+    ) == 0
+
+    second_results = fetch_complete_bundle()
+
+    assert len(requested_queries) == 4
+    assert all(result.error is None for result in second_results)
+    assert all(result.source == FetchSource.DISK_CACHE for result in second_results)
+
+
 def test_future_demo_query_mtime_is_rejected_as_an_invalid_freshness_anchor(
     tmp_path,
     monkeypatch,

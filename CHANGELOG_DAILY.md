@@ -12,7 +12,16 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   configured-first provider that already holds a complete cache-only bundle,
   without relabelling or mixing provider data. System Audit Status now separates
   the committed database origin and cache-affinity reason from each map's strict
-  and legacy delivery tier and timing.
+  and legacy delivery tier and timing. Unchanged profiles loaded from the demo
+  launcher now retain demo identity through the main Run action, preventing an
+  identical rerun from switching to the ordinary cache namespace.
+- Guarded each session's submitted analysis with a token-aware disabled Run
+  action so impatient reruns cannot replace or mutate a live queue submission.
+  Capacity waiting now reports only that analysis's own queue position, while a
+  defensive duplicate lookup restores the existing queued/active state instead
+  of displaying a misleading replacement notice. A scientific configuration
+  change explicitly retires the pending UI submission before enabling the
+  changed request.
 - Added source-pinned WSPR database resilience with wspr.live as primary and
   WSPRDaemon WD2 then WD1 as fallbacks. Provider readiness now participates in
   the existing bounded FIFO admission queue; process-local rolling budgets,

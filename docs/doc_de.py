@@ -784,13 +784,13 @@ Die exakten Formeln und Verarbeitungsregeln stehen weiterhin in den [Wissenschaf
 
 #### 4.1 Ablaufsteuerung
 
-**`Demo laden`** öffnet gepflegte historische Profile. Ein Profil kann zur Prüfung geladen oder sofort ausgeführt werden.
+**`Demo laden`** öffnet gepflegte historische Profile. Ein Profil kann zur Prüfung geladen oder sofort ausgeführt werden. Ein unverändert geladenes Profil bleibt auch beim anschließenden Start über die normale Analyse-Schaltfläche eine geführte Demo und behält damit die Demo-Cache-Richtlinie. Wird ein wissenschaftliches Bedienelement geändert, gilt die bearbeitete Konfiguration als normale Analyse.
 
 **`Konfig laden`** validiert eine versionierte JSON-`.config` streng und lädt sie anschließend. Ungültige Identitäten, Datumswerte, Auswahlwerte, Wertebereiche, doppelte Felder und nicht unterstützte Schemaversionen werden abgelehnt.
 
 **`Konfig speichern`** öffnet ein kompaktes Profilformular. Gib einen Titel und eine optionale Beschreibung ein; eine optionale stabile ID kann angegeben oder automatisch erzeugt werden. Die entstehende Datei `<profil-id>.config` speichert alle anwendbaren Eingaben und dauerhaften Compare-/Success-Ansichten. Ist `Letzte X Stunden` konfiguriert, fragt der Speichervorgang außerdem, ob dieses gleitende relative Fenster beibehalten oder durch die aufgelösten absoluten UTC-Start-/Endzeitpunkte des aktiven Laufs ersetzt werden soll. Wähle die absolute Form, wenn ein späterer Lauf dieselben Datumswerte verwenden soll. Eine gespeicherte Konfiguration enthält weder Ergebniszeilen noch externe Versuchsnotizen oder flüchtige Tabellenfilter.
 
-**`RX-Analyse starten` / `TX-Analyse starten`** ist eine richtungsabhängige Schaltfläche. Sie führt Success und – sofern ein Benchmark gewählt ist – Compare für die unter den Kernparametern gewählte RX- oder TX-Analyse aus.
+**`RX-Analyse starten` / `TX-Analyse starten`** ist eine richtungsabhängige Schaltfläche. Sie führt Success und – sofern ein Benchmark gewählt ist – Compare für die unter den Kernparametern gewählte RX- oder TX-Analyse aus. Nach dem Absenden bleibt die Schaltfläche deaktiviert, solange die unveränderte Analyse dieser Sitzung wartet oder ausgeführt wird. Wird ein wissenschaftliches Bedienelement geändert, entsteht ein anderer Auftrag und die Analyse-Schaltfläche wird für die geänderte Konfiguration wieder verfügbar. Beim Warten auf Kapazität zeigt der Status nur die aktuelle Position der eigenen Analyse und keine Warteschlangensummen anderer Nutzer.
 
 **`Alle Ergebnisse zum Download vorbereiten`** erstellt das Exportpaket der aktuellen Analyse bei Bedarf.
 
