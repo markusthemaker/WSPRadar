@@ -125,4 +125,4 @@ FAILED tests/regression/test_config_package.py::test_demo_configs_follow_filenam
     ]
 FAILED tests/regression/test_config_package.py::test_demo_filenames_are_opaque_ordering_keys - FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/work/WSPRadar/WSPRadar/config/demos/02_vanhamel_rx_buddy.config'
 FAILED tests/regression/test_config_package.py::test_zander_experiment_b_demo_follows_experiment_a_with_expected_configuration - AssertionError: assert 'Experiment A' in 'Dr. Zander et al. TX Antenna Comparison: Short Portable Vertical vs 5/8 λ Vertical'
-3 failed, 533 passed, 3 skipped, 1 warning in 15.71s
+3 failed, 533 passed, 3 skipped, 1 warning in 15.06s
