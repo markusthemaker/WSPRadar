@@ -8,9 +8,11 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   Compare now uses its existing RAM cache as L1 plus raw-query Parquet disk L2,
   while demo Success uses the same persistent namespace; both expire 24 hours
   after publication without extending freshness on hits. Ordinary query and
-  session-artifact retention remains one hour. System Audit Status now separates
-  the committed database origin from each map's strict and legacy delivery tier
-  and timing.
+  session-artifact retention remains one hour. Fresh demo runs now prefer the
+  configured-first provider that already holds a complete cache-only bundle,
+  without relabelling or mixing provider data. System Audit Status now separates
+  the committed database origin and cache-affinity reason from each map's strict
+  and legacy delivery tier and timing.
 - Added source-pinned WSPR database resilience with wspr.live as primary and
   WSPRDaemon WD2 then WD1 as fallbacks. Provider readiness now participates in
   the existing bounded FIFO admission queue; process-local rolling budgets,

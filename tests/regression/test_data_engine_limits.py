@@ -344,6 +344,67 @@ def test_demo_compare_disk_cache_informs_strict_and_legacy_request_estimate(
     ) == 1
 
 
+def test_complete_demo_bundle_requires_every_compare_and_success_cache(
+    tmp_path,
+    monkeypatch,
+):
+    """Recognize cross-map affinity only when one provider needs zero HTTP."""
+    primary, wd2, _wd1 = WSPR_DATABASE_PROVIDERS
+    analyses = [
+        {
+            "analysis_kind": "comparison",
+            "is_sequential": False,
+            "query": "SELECT bundle_compare_strict",
+            "legacy_query": "SELECT bundle_compare_legacy",
+            "response_format": "csv",
+        },
+        {
+            "analysis_kind": "opportunity",
+            "is_sequential": False,
+            "query": "SELECT bundle_success_strict",
+            "legacy_query": "SELECT bundle_success_legacy",
+            "response_format": "parquet",
+        },
+    ]
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+
+    cached_frames = {
+        analyses[0]["query"]: pd.DataFrame({"has_u": [0]}),
+        analyses[0]["legacy_query"]: pd.DataFrame({"has_u": [1]}),
+        analyses[1]["query"]: pd.DataFrame({"target_seen": [0]}),
+        analyses[1]["legacy_query"]: pd.DataFrame({"target_seen": [1]}),
+    }
+    for query, frame in cached_frames.items():
+        cache_path = data_engine._query_cache_path(query, wd2, is_demo=True)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        frame.to_parquet(cache_path, index=False)
+
+    assert data_engine.estimate_uncached_requests(
+        analyses,
+        is_demo=True,
+        database_provider=wd2,
+    ) == 0
+    assert data_engine.estimate_uncached_requests(
+        analyses,
+        is_demo=True,
+        database_provider=primary,
+    ) == 4
+
+    missing_legacy_path = data_engine._query_cache_path(
+        analyses[1]["legacy_query"],
+        wd2,
+        is_demo=True,
+    )
+    missing_legacy_path.unlink()
+
+    assert data_engine.estimate_uncached_requests(
+        analyses,
+        is_demo=True,
+        database_provider=wd2,
+    ) == 1
+
+
 def test_future_demo_query_mtime_is_rejected_as_an_invalid_freshness_anchor(
     tmp_path,
     monkeypatch,

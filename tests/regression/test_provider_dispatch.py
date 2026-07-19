@@ -104,6 +104,111 @@ def test_dispatch_uses_configured_priority_and_releases_unused_reservations():
     assert snapshot.active_runs == 0
 
 
+def test_cache_affinity_prefers_first_complete_cached_provider():
+    """Prefer the configured-first zero-request provider when explicitly asked."""
+    controller = _controller(_Clock())
+
+    lease = controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 0, "wd1": 0},
+        prefer_cache_only=True,
+    )
+
+    assert lease.source_key == "wd2"
+    assert lease.actual_requests == 0
+    assert lease.used_cache_affinity
+    assert lease.cache_affinity_bypassed_sources == ("wspr_live",)
+    assert controller.snapshot("wd2").reserved_requests == 0
+    lease.release()
+
+
+def test_cache_affinity_remains_explicit_when_primary_budget_is_exhausted():
+    """Describe cache-first demo routing even when primary capacity is occupied."""
+    controller = _controller(_Clock())
+    primary_hold = controller.try_acquire_run(
+        {"wspr_live": 4, "wd2": 4, "wd1": 4},
+    )
+
+    cached = controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 0, "wd1": 1},
+        prefer_cache_only=True,
+    )
+
+    assert cached.source_key == "wd2"
+    assert cached.used_cache_affinity
+    assert cached.skipped_source_reasons == ()
+    cached.release()
+    primary_hold.release()
+
+
+def test_default_dispatch_stays_primary_first_when_fallback_is_cached():
+    """Keep ordinary query routing unchanged when cache affinity is disabled."""
+    controller = _controller(_Clock())
+
+    lease = controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 0, "wd1": 0},
+    )
+
+    assert lease.source_key == "wspr_live"
+    assert not lease.used_cache_affinity
+    assert lease.cache_affinity_bypassed_sources == ()
+    lease.release()
+
+
+def test_cache_affinity_requires_a_complete_zero_request_bundle():
+    """Do not prefer a lower source merely because it needs fewer requests."""
+    controller = _controller(_Clock())
+
+    lease = controller.try_acquire_run(
+        {"wspr_live": 2, "wd2": 1, "wd1": 2},
+        prefer_cache_only=True,
+    )
+
+    assert lease.source_key == "wspr_live"
+    assert not lease.used_cache_affinity
+    lease.release()
+
+    incomplete_mapping = controller.try_acquire_run(
+        {"wspr_live": 1},
+        prefer_cache_only=True,
+    )
+    assert incomplete_mapping.source_key == "wspr_live"
+    assert not incomplete_mapping.used_cache_affinity
+    incomplete_mapping.release()
+
+
+def test_cache_affinity_respects_allowed_and_excluded_source_filters():
+    """Apply source pinning and failure exclusions before cache preference."""
+    controller = _controller(_Clock())
+    request_counts = {"wspr_live": 1, "wd2": 0, "wd1": 0}
+
+    excluded = controller.try_acquire_run(
+        request_counts,
+        excluded_sources={"wd2"},
+        prefer_cache_only=True,
+    )
+    assert excluded.source_key == "wd1"
+    assert excluded.cache_affinity_bypassed_sources == ("wspr_live",)
+    excluded.release()
+
+    pinned = controller.try_acquire_run(
+        request_counts,
+        allowed_sources={"wspr_live"},
+        prefer_cache_only=True,
+    )
+    assert pinned.source_key == "wspr_live"
+    assert not pinned.used_cache_affinity
+    pinned.release()
+
+    allowed = controller.try_acquire_run(
+        request_counts,
+        allowed_sources={"wd1"},
+        prefer_cache_only=True,
+    )
+    assert allowed.source_key == "wd1"
+    assert not allowed.used_cache_affinity
+    allowed.release()
+
+
 def test_rolling_budget_skips_primary_then_returns_after_window_expiry():
     clock = _Clock()
     controller = _controller(clock, request_limit=2)
@@ -169,6 +274,44 @@ def test_waiting_acquisition_rechecks_dynamic_cache_request_plan():
     assert cached_lease.source_key == provider.key
     assert cached_lease.actual_requests == 0
     assert supplier_calls >= 2
+    cached_lease.release()
+
+
+def test_waiting_cache_affinity_reorders_when_fallback_cache_appears():
+    """Reapply cache preference whenever a waiting request plan is refreshed."""
+    clock = _Clock()
+    controller = _controller(clock, request_limit=1)
+    for provider in controller.providers:
+        prior = controller.try_acquire_run(
+            {provider.key: 1},
+            allowed_sources={provider.key},
+        )
+        prior.consume_request()
+        prior.report_success()
+        prior.release()
+
+    fallback_cache_is_ready = False
+
+    def request_plan():
+        return {
+            "wspr_live": 1,
+            "wd2": 0 if fallback_cache_is_ready else 1,
+            "wd1": 1,
+        }
+
+    def mark_cache_ready(_snapshot):
+        nonlocal fallback_cache_is_ready
+        fallback_cache_is_ready = True
+
+    cached_lease = controller.acquire_run(
+        request_plan,
+        prefer_cache_only=True,
+        on_wait=mark_cache_ready,
+    )
+
+    assert cached_lease.source_key == "wd2"
+    assert cached_lease.used_cache_affinity
+    assert cached_lease.cache_affinity_bypassed_sources == ("wspr_live",)
     cached_lease.release()
 
 

@@ -219,10 +219,12 @@ exercised tests remains an operational uncertainty.
 `core/provider_dispatch.py` owns ordered provider selection, conservative
 complete-run request reservations, rolling actual-request timestamps, HTTP 429
 cooldowns, transient-failure circuits and half-open probes. A cache hit consumes
-no request token. `core/run_data_preparation.py` owns the transactional
-source-pinned prepare phase and writes processed blocks to unique, unregistered
-session artifacts so potentially large frames can be released one at a time.
-Database provenance is distinct from RAM/disk delivery tier.
+no request token. For guided demos, the dispatcher can stably promote the
+configured-first zero-request provider ahead of network-backed candidates after
+allowed/excluded-source filtering. `core/run_data_preparation.py` owns the
+transactional source-pinned prepare phase and writes processed blocks to unique,
+unregistered session artifacts so potentially large frames can be released one
+at a time. Database provenance is distinct from RAM/disk delivery tier.
 
 ### Scientific Engines
 
@@ -413,11 +415,13 @@ The first FIFO ticket can become active only when an analysis slot and a
 complete-run provider reservation are both available. Provider reservation uses
 the maximum currently uncached strict/legacy request count. The front ticket
 reinspects source-specific caches on every reservation attempt, and fallback
-recalculates them again. Each actual HTTP attempt converts one reservation into
-a rolling-window timestamp; unused slots are released. If every provider is
-temporarily unavailable, the request stays in the existing bounded queue and
-eventually reaches its normal timeout or causes later requests to receive the
-existing queue-full response.
+recalculates them again. For a guided demo, a zero-request estimate means one
+provider has the complete currently required bundle, so the first such provider
+in configured order is preferred before any network-backed candidate. Each
+actual HTTP attempt converts one reservation into a rolling-window timestamp;
+unused slots are released. If every provider is temporarily unavailable, the
+request stays in the existing bounded queue and eventually reaches its normal
+timeout or causes later requests to receive the existing queue-full response.
 
 This combined FIFO decision applies to initial admission. If a provider fails
 after a run has become active, that run keeps its analysis slot while it waits
@@ -428,7 +432,10 @@ can therefore be waiting in this mid-run state.
 
 1. Inspect source-specific caches and calculate a conservative request
    reservation for each enabled provider.
-2. Select the first eligible source in `wspr.live -> WD2 -> WD1` order.
+2. For a guided demo, first select the configured-first eligible provider whose
+   complete current bundle requires zero HTTP requests. If none exists, or for
+   an ordinary run, select the first eligible source in
+   `wspr.live -> WD2 -> WD1` order.
 3. Pin the complete strict/legacy and Compare/Success bundle to that source.
 4. Stage processed artifacts without exposing maps, inspectors or export blocks.
 5. On a provider-scoped failure, delete staged attempt artifacts, mark the
@@ -436,7 +443,8 @@ can therefore be waiting in this mid-run state.
 6. If a cache entry disappears after reservation planning, or cached raw rows
    fail the required schema, make no unreserved HTTP request. Remove an invalid
    entry, discard the attempt, recalculate capacity without marking the provider
-   unhealthy, and restart the unpublished bundle.
+   unhealthy, and restart the unpublished bundle. Providers bypassed only by
+   cache affinity remain eligible during this replan.
 7. On complete preparation, commit the run source, register all staged artifacts
    and publish results. A later rerender of the same `run_id` remains pinned.
 
@@ -619,12 +627,15 @@ block elsewhere. Query cache keys include provider identity, while cache medium
 remains separate provenance. The committed source is shown in System Audit
 Status and stored once in export run metadata; each map's strict and optional
 legacy query reports its own database-request, RAM-cache, or disk-cache delivery
-tier and timing. Provider leases retain ordered skip reasons, so the origin
-annotation distinguishes selection of the primary source, request-capacity
-spillover to a lower-priority ready source, fallback after a provider-scoped
-failure or existing provider-health cooldown/recovery probe, and reuse of an
-already committed source on rerender. Database origin is not a user
-configuration or scientific fingerprint input.
+tier and timing. Provider leases retain ordered skip reasons plus separate
+cache-affinity metadata, so the origin annotation distinguishes selection of the
+primary source, request-capacity spillover to a lower-priority ready source,
+demo cache affinity for a complete zero-request bundle, fallback after a
+provider-scoped failure or existing provider-health cooldown/recovery probe, and
+reuse of an already committed source on rerender. Cache affinity changes only
+selection order: provider-scoped keys, actual origin, and the one-source bundle
+remain intact. Database origin is not a user configuration or scientific
+fingerprint input.
 
 ### Serialized Matplotlib Rendering
 

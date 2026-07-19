@@ -156,6 +156,7 @@ def _try_reserve_upstream_capacity(
     provider_lease = UPSTREAM_PROVIDER_DISPATCH.try_acquire_run(
         request_counts_by_provider,
         allowed_sources=allowed_sources,
+        prefer_cache_only=is_demo_run,
     )
     return provider_lease, request_counts_by_provider
 
@@ -180,6 +181,7 @@ def _database_selection_reason(
     failed_sources,
     committed_source,
     skipped_source_reasons=(),
+    used_cache_affinity=False,
 ):
     """Classify why this run committed its selected database source."""
     if committed_source is not None:
@@ -196,6 +198,8 @@ def _database_selection_reason(
     }
     if skip_reason_values.intersection(provider_health_reasons):
         return "failure_fallback"
+    if used_cache_affinity:
+        return "cache_affinity"
     primary_source = next(
         provider.key
         for provider in UPSTREAM_PROVIDER_DISPATCH.providers
@@ -365,10 +369,8 @@ def render_analysis_run(
         ).format(position=snapshot.position)
         detail = t.get(
             "msg_analysis_queue_detail",
-            "{active}/{maximum} analyses active; {queued} waiting.",
+            "Analyses waiting: {queued}.",
         ).format(
-            active=snapshot.active,
-            maximum=snapshot.max_active,
             queued=snapshot.queued,
         )
         if waiting_status is None:
@@ -424,7 +426,7 @@ def render_analysis_run(
         log_admission("duplicate")
         if waiting_status is not None:
             run_status_slot.empty()
-        st.info(t.get(
+        run_status_slot.info(t.get(
             "msg_analysis_duplicate",
             "This identical analysis is already active or queued for this session.",
         ))
@@ -432,7 +434,7 @@ def render_analysis_run(
     except AnalysisQueueFull:
         log_admission("queue_full")
         st.session_state.run_mode = None
-        st.warning(t.get(
+        run_status_slot.warning(t.get(
             "warn_analysis_queue_full",
             "High demand right now. The analysis queue is full. Please try again shortly.",
         ))
@@ -442,7 +444,7 @@ def render_analysis_run(
         st.session_state.run_mode = None
         if waiting_status is not None:
             run_status_slot.empty()
-        st.warning(t.get(
+        run_status_slot.warning(t.get(
             "warn_analysis_queue_timeout",
             "Analysis capacity did not become available in time. Please run the analysis again.",
         ))
@@ -452,7 +454,7 @@ def render_analysis_run(
         st.session_state.run_mode = None
         if waiting_status is not None:
             run_status_slot.empty()
-        st.warning(str(exc))
+        run_status_slot.warning(str(exc))
         return
 
     log_admission("admitted")
@@ -655,6 +657,7 @@ def _render_admitted_analysis_run(
                     refreshed_fallback_request_counts,
                     excluded_sources=excluded_sources,
                     allowed_sources=allowed_sources,
+                    prefer_cache_only=is_demo_run,
                     on_wait=lambda _snapshot: status_box.update(
                         label=waiting_label,
                         state="running",
@@ -727,6 +730,7 @@ def _render_admitted_analysis_run(
         failed_sources=attempted_sources,
         committed_source=committed_source,
         skipped_source_reasons=provider_lease.skipped_source_reasons,
+        used_cache_affinity=provider_lease.used_cache_affinity,
     )
     status_log.append(
         _database_origin_status(
@@ -741,12 +745,27 @@ def _render_admitted_analysis_run(
             f"{_query_fetch_status(prepared_analysis)}"
         )
     status_body.markdown("  \n".join(status_log))
+    is_nonprimary_source = (
+        selected_provider != UPSTREAM_PROVIDER_DISPATCH.providers[0]
+    )
     log_performance_event(
         "database_source_selected",
         source=selected_source_key,
         source_label=selected_provider.display_name,
-        is_fallback=(selected_provider != UPSTREAM_PROVIDER_DISPATCH.providers[0]),
+        is_fallback=is_nonprimary_source,
+        is_nonprimary_source=is_nonprimary_source,
+        is_failure_fallback=(selection_reason == "failure_fallback"),
         selection_reason=selection_reason,
+        cache_affinity_applied=provider_lease.used_cache_affinity,
+        cache_affinity_bypassed_sources=(
+            provider_lease.cache_affinity_bypassed_sources
+        ),
+        planned_network_requests=int(
+            request_counts_by_provider.get(selected_source_key, 0)
+        ),
+        actual_network_requests=provider_lease.actual_requests,
+        is_demo_run=is_demo_run,
+        demo_profile=active_demo_key,
         failed_sources=attempted_sources,
         skipped_source_reasons=tuple(
             f"{source_key}:{reason.value}"

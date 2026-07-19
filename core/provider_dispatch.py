@@ -91,6 +91,8 @@ class ProviderRunLease:
     budget, and unused reservations are returned when the lease is released.
     ``skipped_source_reasons`` preserves the configured priority order as an
     immutable tuple of source-key/reason pairs for every skipped candidate.
+    Cache-affinity metadata is kept separately because a network-backed source
+    bypassed for a complete cache remains eligible if that cache later changes.
     """
 
     def __init__(
@@ -102,6 +104,7 @@ class ProviderRunLease:
         is_probe: bool,
         skipped_sources: tuple[str, ...],
         skipped_source_reasons: tuple[tuple[str, ProviderSkipReason], ...],
+        cache_affinity_bypassed_sources: tuple[str, ...],
         failure_generation: int,
         recovery_generation: int,
     ) -> None:
@@ -109,6 +112,7 @@ class ProviderRunLease:
         self.provider = provider
         self.skipped_sources = skipped_sources
         self.skipped_source_reasons = skipped_source_reasons
+        self._cache_affinity_bypassed_sources = cache_affinity_bypassed_sources
         self._remaining_reservations = int(reserved_requests)
         self._actual_requests = 0
         self._is_probe = bool(is_probe)
@@ -126,6 +130,16 @@ class ProviderRunLease:
     def actual_requests(self) -> int:
         """Return the number of HTTP attempts begun through this lease."""
         return self._actual_requests
+
+    @property
+    def used_cache_affinity(self) -> bool:
+        """Return whether a complete cache changed configured provider order."""
+        return bool(self._cache_affinity_bypassed_sources)
+
+    @property
+    def cache_affinity_bypassed_sources(self) -> tuple[str, ...]:
+        """Return network-backed sources bypassed by cache-first ordering."""
+        return self._cache_affinity_bypassed_sources
 
     def consume_request(self) -> None:
         """Consume one request slot immediately before an HTTP attempt."""
@@ -277,22 +291,75 @@ class ProviderDispatchController:
         *,
         excluded_sources: Collection[str] = (),
         allowed_sources: Collection[str] | None = None,
+        prefer_cache_only: bool = False,
     ) -> ProviderRunLease | None:
         """Atomically reserve the first eligible provider, or return ``None``.
 
         ``required_requests_by_provider`` is a conservative maximum for the
         complete strict/legacy analysis bundle after source-specific cache
         inspection. A value of zero permits cache-only reuse even while that
-        provider's network circuit is cooling down.
+        provider's network circuit is cooling down. When ``prefer_cache_only``
+        is true, zero-request candidates precede network-backed candidates while
+        retaining configured priority within both groups. Candidate filters are
+        applied first, so a committed or explicitly allowed source remains
+        pinned. Cache preference requires an explicit request count for every
+        filtered candidate; an incomplete mapping retains normal priority.
         """
         excluded = frozenset(str(source) for source in excluded_sources)
         allowed = self._normalized_source_filter(allowed_sources)
-        candidates = self._candidate_providers(
+        priority_candidates = self._candidate_providers(
             excluded_sources=excluded,
             allowed_sources=allowed,
         )
-        if not candidates:
+        if not priority_candidates:
             raise NoProviderAvailable("No untried WSPR database provider remains")
+
+        required_requests_by_source = {
+            provider.key: int(required_requests_by_provider.get(provider.key, 0))
+            for provider in priority_candidates
+        }
+        if any(
+            request_count < 0
+            for request_count in required_requests_by_source.values()
+        ):
+            raise ValueError("Required provider requests cannot be negative")
+
+        has_complete_request_plan = all(
+            provider.key in required_requests_by_provider
+            for provider in priority_candidates
+        )
+        selected_cache_source = None
+        cache_only_candidates = (
+            tuple(
+                provider
+                for provider in priority_candidates
+                if required_requests_by_source[provider.key] == 0
+            )
+            if prefer_cache_only and has_complete_request_plan
+            else ()
+        )
+        if cache_only_candidates:
+            cache_only_source_keys = {
+                provider.key for provider in cache_only_candidates
+            }
+            candidates = cache_only_candidates + tuple(
+                provider
+                for provider in priority_candidates
+                if provider.key not in cache_only_source_keys
+            )
+            selected_cache_source = cache_only_candidates[0].key
+            selected_cache_priority = next(
+                index
+                for index, provider in enumerate(priority_candidates)
+                if provider.key == selected_cache_source
+            )
+            cache_affinity_bypassed_sources = tuple(
+                provider.key
+                for provider in priority_candidates[:selected_cache_priority]
+            )
+        else:
+            candidates = priority_candidates
+            cache_affinity_bypassed_sources = ()
 
         permanently_oversized = True
         skipped_sources: list[str] = []
@@ -300,9 +367,7 @@ class ProviderDispatchController:
         with self._condition:
             now = self._clock()
             for provider in candidates:
-                required_requests = int(required_requests_by_provider.get(provider.key, 0))
-                if required_requests < 0:
-                    raise ValueError("Required provider requests cannot be negative")
+                required_requests = required_requests_by_source[provider.key]
                 if required_requests > provider.request_limit:
                     skipped_sources.append(provider.key)
                     skipped_source_reasons.append(
@@ -353,6 +418,11 @@ class ProviderDispatchController:
                 state.active_runs += 1
                 if is_probe:
                     state.probe_in_flight = True
+                selected_cache_bypassed_sources = (
+                    cache_affinity_bypassed_sources
+                    if provider.key == selected_cache_source
+                    else ()
+                )
                 return ProviderRunLease(
                     self,
                     provider,
@@ -360,6 +430,7 @@ class ProviderDispatchController:
                     is_probe=is_probe,
                     skipped_sources=tuple(skipped_sources),
                     skipped_source_reasons=tuple(skipped_source_reasons),
+                    cache_affinity_bypassed_sources=selected_cache_bypassed_sources,
                     failure_generation=state.failure_generation,
                     recovery_generation=state.recovery_generation,
                 )
@@ -378,12 +449,15 @@ class ProviderDispatchController:
         *,
         excluded_sources: Collection[str] = (),
         allowed_sources: Collection[str] | None = None,
+        prefer_cache_only: bool = False,
         on_wait: Callable[[ProviderCapacitySnapshot], None] | None = None,
     ) -> ProviderRunLease:
         """Wait for a provider reservation within the configured deadline.
 
         A callable request plan is reevaluated on every poll so cache changes
         can make a waiting run eligible without consuming network capacity.
+        ``prefer_cache_only`` reapplies zero-request preference to every fresh
+        plan after candidate filtering.
         """
         deadline = self._clock() + self.acquire_timeout_seconds
         excluded = tuple(sorted(str(source) for source in excluded_sources))
@@ -404,6 +478,7 @@ class ProviderDispatchController:
                 current_required_requests,
                 excluded_sources=excluded,
                 allowed_sources=allowed,
+                prefer_cache_only=prefer_cache_only,
             )
             if lease is not None:
                 return lease

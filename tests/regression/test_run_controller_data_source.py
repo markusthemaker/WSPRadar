@@ -1,7 +1,12 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from config import WSPR_DATABASE_PROVIDERS
+from config import DEMO_PROFILES, WSPR_DATABASE_PROVIDERS
+from core.analysis_admission import (
+    AdmissionSnapshot,
+    AnalysisQueueFull,
+    AnalysisQueueTimeout,
+)
 from core.analysis_runner import DECODE_FILTER_LEGACY, DECODE_FILTER_STRICT
 from core.fetch_models import (
     DatabaseSource,
@@ -67,8 +72,21 @@ class _Status(_Context):
 
 
 class _RunStatusSlot:
+    def __init__(self):
+        self.empty_calls = 0
+        self.notices = []
+
     def container(self):
         return _Context()
+
+    def empty(self):
+        self.empty_calls += 1
+
+    def info(self, message):
+        self.notices.append(("info", str(message)))
+
+    def warning(self, message):
+        self.notices.append(("warning", str(message)))
 
 
 class _FakeStreamlit:
@@ -231,6 +249,118 @@ def test_session_artifacts_are_refreshed_before_global_cleanup(monkeypatch):
     assert calls == [("touch", fake_st.session_state), ("cleanup", None)]
 
 
+def _patch_admission_presentation_environment(monkeypatch, fake_st, gate):
+    """Install the dependency-light shell needed to exercise queue notices."""
+    analysis_context = SimpleNamespace(to_dict=lambda: {})
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(run_controller, "ANALYSIS_ADMISSION_GATE", gate)
+    monkeypatch.setattr(run_controller, "is_valid_callsign", lambda _value: True)
+    monkeypatch.setattr(run_controller, "is_valid_locator", lambda _value: True)
+    monkeypatch.setattr(run_controller, "locator_to_latlon", lambda _value: (47.0, 8.0))
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_context_from_session_state",
+        lambda _state: analysis_context,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "build_presentation_context_from_session_state",
+        lambda *_args, **_kwargs: SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_batches",
+        lambda *_args, **_kwargs: [],
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_refresh_session_artifacts_before_cleanup",
+        lambda: {},
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "session_artifact_owner",
+        lambda _state: "owner",
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_analysis_request_fingerprint",
+        lambda **_kwargs: "request-key",
+    )
+    monkeypatch.setattr(run_controller, "process_rss_bytes", lambda: 0)
+    monkeypatch.setattr(run_controller, "process_peak_rss_bytes", lambda: 0)
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda *_args, **_kwargs: None,
+    )
+
+
+def _render_admission_presentation(fake_st, run_status_slot, *, translations=None):
+    """Invoke the public controller with fixed valid inputs for queue tests."""
+    run_controller.render_analysis_run(
+        t=translations or {},
+        run_status_slot=run_status_slot,
+        callsign="G3ZIL",
+        qth_locator="IO90",
+        band_filter=7,
+        start_t=SimpleNamespace(isoformat=lambda: "start"),
+        end_t=SimpleNamespace(isoformat=lambda: "end"),
+        max_dist_km=22000,
+        generate_map_plot=lambda *_args, **_kwargs: None,
+    )
+
+
+def test_waiting_status_shows_queue_count_without_active_fraction(monkeypatch):
+    """Keep provider-capacity waits clear when no analysis slot is active."""
+    fake_st = _FakeStreamlit()
+    run_status_slot = _RunStatusSlot()
+
+    def wait_then_timeout(**kwargs):
+        kwargs["on_wait"](AdmissionSnapshot(
+            position=8,
+            active=0,
+            queued=8,
+            max_active=2,
+            max_queued=10,
+        ))
+        raise AnalysisQueueTimeout("simulated queue timeout")
+
+    gate = SimpleNamespace(
+        acquire=wait_then_timeout,
+        counts=lambda: (0, 8),
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+
+    _render_admission_presentation(fake_st, run_status_slot)
+
+    assert fake_st.placeholders[0].markdowns == ["Analyses waiting: 8."]
+    assert "0/2" not in fake_st.placeholders[0].markdowns[0]
+
+
+def test_queue_full_warning_uses_replaceable_run_status_slot(monkeypatch):
+    """Ensure a later accepted retry can replace the prior queue-full notice."""
+    fake_st = _FakeStreamlit()
+    run_status_slot = _RunStatusSlot()
+
+    def reject_full_queue(**_kwargs):
+        raise AnalysisQueueFull("simulated full queue")
+
+    gate = SimpleNamespace(
+        acquire=reject_full_queue,
+        counts=lambda: (0, 10),
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+
+    _render_admission_presentation(fake_st, run_status_slot)
+
+    assert run_status_slot.notices == [(
+        "warning",
+        "High demand right now. The analysis queue is full. Please try again shortly.",
+    )]
+    assert fake_st.warnings == []
+
+
 def test_fetch_failure_telemetry_omits_query_and_error_message(monkeypatch):
     """Log safe structured diagnostics without duplicating sensitive SQL text."""
     fake_st = _FakeStreamlit()
@@ -282,6 +412,24 @@ def test_database_selection_reason_distinguishes_routing_paths():
         "wd2",
         failed_sources=[],
         committed_source=None,
+        used_cache_affinity=True,
+    ) == "cache_affinity"
+    assert run_controller._database_selection_reason(
+        "wd2",
+        failed_sources=["wspr_live"],
+        committed_source=None,
+        used_cache_affinity=True,
+    ) == "failure_fallback"
+    assert run_controller._database_selection_reason(
+        "wd2",
+        failed_sources=[],
+        committed_source="wd2",
+        used_cache_affinity=True,
+    ) == "committed_source"
+    assert run_controller._database_selection_reason(
+        "wd2",
+        failed_sources=[],
+        committed_source=None,
     ) == "capacity_spillover"
     assert run_controller._database_selection_reason(
         "wd2",
@@ -290,6 +438,7 @@ def test_database_selection_reason_distinguishes_routing_paths():
         skipped_source_reasons=(
             ("wspr_live", ProviderSkipReason.CIRCUIT_OPEN),
         ),
+        used_cache_affinity=True,
     ) == "failure_fallback"
     assert run_controller._database_selection_reason(
         "wd2",
@@ -388,7 +537,11 @@ def test_each_capacity_attempt_reinspects_source_specific_caches(monkeypatch):
     reservations = []
     fake_dispatch = SimpleNamespace(
         try_acquire_run=lambda counts, **kwargs: reservations.append(
-            (dict(counts), kwargs["allowed_sources"])
+            (
+                dict(counts),
+                kwargs["allowed_sources"],
+                kwargs["prefer_cache_only"],
+            )
         )
     )
     monkeypatch.setattr(run_controller, "UPSTREAM_PROVIDER_DISPATCH", fake_dispatch)
@@ -412,12 +565,64 @@ def test_each_capacity_attempt_reinspects_source_specific_caches(monkeypatch):
     assert first[1]["wspr_live"] == 2
     assert second[1]["wspr_live"] == 0
     assert reservations == [
-        ({"wspr_live": 2, "wd2": 2, "wd1": 2}, None),
-        ({"wspr_live": 0, "wd2": 2, "wd1": 2}, {"wspr_live"}),
+        ({"wspr_live": 2, "wd2": 2, "wd1": 2}, None, False),
+        ({"wspr_live": 0, "wd2": 2, "wd1": 2}, {"wspr_live"}, False),
     ]
 
 
-def _render_fake_run(fake_st, permit, analyses, *, committed_source=None):
+def test_demo_reservation_enables_cross_provider_cache_affinity(monkeypatch):
+    """Enable complete cached-provider preference only for guided demos."""
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    request_counts = {"wspr_live": 1, "wd2": 0, "wd1": 1}
+    monkeypatch.setattr(run_controller, "UPSTREAM_PROVIDER_DISPATCH", controller)
+    monkeypatch.setattr(
+        run_controller,
+        "_provider_request_counts",
+        lambda *_args, **_kwargs: dict(request_counts),
+    )
+
+    demo_lease, _counts = run_controller._try_reserve_upstream_capacity(
+        ["analysis"],
+        is_demo_run=True,
+        allowed_sources=None,
+    )
+    assert demo_lease.source_key == "wd2"
+    assert demo_lease.used_cache_affinity
+    demo_lease.release()
+
+    ordinary_lease, _counts = run_controller._try_reserve_upstream_capacity(
+        ["analysis"],
+        is_demo_run=False,
+        allowed_sources=None,
+    )
+    assert ordinary_lease.source_key == "wspr_live"
+    assert not ordinary_lease.used_cache_affinity
+    ordinary_lease.release()
+
+    pinned_lease, _counts = run_controller._try_reserve_upstream_capacity(
+        ["analysis"],
+        is_demo_run=True,
+        allowed_sources={"wspr_live"},
+    )
+    assert pinned_lease.source_key == "wspr_live"
+    assert not pinned_lease.used_cache_affinity
+    pinned_lease.release()
+
+
+def _render_fake_run(
+    fake_st,
+    permit,
+    analyses,
+    *,
+    committed_source=None,
+    is_demo_run=False,
+    active_demo_key=None,
+    request_counts_by_provider=None,
+):
     """Execute the admitted transactional path without map rendering."""
     fake_st.analysis_run_outcome = run_controller._render_admitted_analysis_run(
         t={"warn_no_data": "No data: {title}"},
@@ -434,10 +639,15 @@ def _render_fake_run(fake_st, permit, analyses, *, committed_source=None):
         presentation_context=SimpleNamespace(),
         center_latitude=47.0,
         center_longitude=8.0,
-        active_demo=None,
-        active_demo_key=None,
-        is_demo_run=False,
-        request_counts_by_provider={"wspr_live": 1, "wd2": 1, "wd1": 1},
+        active_demo=(
+            DEMO_PROFILES.get(active_demo_key) if is_demo_run else None
+        ),
+        active_demo_key=active_demo_key,
+        is_demo_run=is_demo_run,
+        request_counts_by_provider=(
+            request_counts_by_provider
+            or {"wspr_live": 1, "wd2": 1, "wd1": 1}
+        ),
         committed_source=committed_source,
     )
     return fake_st
@@ -635,6 +845,135 @@ def test_initial_nonprimary_selection_is_reported_as_capacity_spillover(monkeypa
     assert selection_event["skipped_source_reasons"] == (
         "wspr_live:rolling_request_capacity_unavailable",
     )
+
+
+def test_demo_cache_affinity_is_reported_in_audit_and_telemetry(monkeypatch):
+    """Separate cached WD2 origin, affinity routing, and disk delivery tier."""
+    fake_st = _FakeStreamlit()
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    request_counts = {"wspr_live": 1, "wd2": 0, "wd1": 1}
+    initial_lease = controller.try_acquire_run(
+        request_counts,
+        prefer_cache_only=True,
+    )
+    permit = _AnalysisPermit(initial_lease)
+    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    performance_events = []
+
+    def cached_bundle(plans, *, provider_lease, **_kwargs):
+        bundle = _no_data_bundle(provider_lease.source_key, plans)
+        for prepared_analysis in bundle.analyses:
+            prepared_analysis.query_fetches = (PreparedQueryFetch(
+                decode_filter_mode=DECODE_FILTER_STRICT,
+                elapsed_seconds=0.02,
+                delivery_source=FetchSource.DISK_CACHE,
+            ),)
+        return bundle
+
+    _patch_run_environment(monkeypatch, fake_st, controller, cached_bundle)
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
+    _render_fake_run(
+        fake_st,
+        permit,
+        analyses,
+        is_demo_run=True,
+        active_demo_key="vanhamel_rx_buddy",
+        request_counts_by_provider=request_counts,
+    )
+
+    complete_audit = fake_st.placeholders[0].markdowns[-1]
+    assert "Database origin for complete run: **WD2** (cache affinity)" in complete_audit
+    assert "Compare" in complete_audit
+    assert "strict: **disk cache** in 0.02s" in complete_audit
+    selection_event = next(
+        values
+        for event, values in performance_events
+        if event == "database_source_selected"
+    )
+    assert selection_event["source"] == "wd2"
+    assert selection_event["selection_reason"] == "cache_affinity"
+    assert selection_event["is_nonprimary_source"] is True
+    assert selection_event["is_failure_fallback"] is False
+    assert selection_event["cache_affinity_applied"] is True
+    assert selection_event["cache_affinity_bypassed_sources"] == ("wspr_live",)
+    assert selection_event["planned_network_requests"] == 0
+    assert selection_event["actual_network_requests"] == 0
+    assert selection_event["is_demo_run"] is True
+    assert selection_event["demo_profile"] == "vanhamel_rx_buddy"
+    assert selection_event["failed_sources"] == []
+    assert selection_event["skipped_source_reasons"] == ()
+
+
+def test_disappearing_demo_cache_replans_without_excluding_primary(monkeypatch):
+    """Return to normal priority if an affinity-selected cache becomes unusable."""
+    fake_st = _FakeStreamlit()
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    initial_counts = {"wspr_live": 1, "wd2": 0, "wd1": 1}
+    initial_lease = controller.try_acquire_run(
+        initial_counts,
+        prefer_cache_only=True,
+    )
+    permit = _AnalysisPermit(initial_lease)
+    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    attempts = []
+
+    def fake_prepare(plans, *, provider_lease, **_kwargs):
+        attempts.append(provider_lease.source_key)
+        if len(attempts) == 1:
+            raise _provider_failure(
+                provider_lease.source_key,
+                plans[0],
+                scope=FetchFailureScope.CAPACITY,
+            )
+        return _no_data_bundle(provider_lease.source_key, plans)
+
+    _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
+    performance_events = []
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_provider_request_counts",
+        lambda *_args, **_kwargs: {"wspr_live": 1, "wd2": 1, "wd1": 1},
+    )
+    _render_fake_run(
+        fake_st,
+        permit,
+        analyses,
+        is_demo_run=True,
+        active_demo_key="vanhamel_rx_buddy",
+        request_counts_by_provider=initial_counts,
+    )
+
+    assert attempts == ["wd2", "wspr_live"]
+    assert controller.snapshot("wd2").consecutive_failures == 0
+    assert get_active_run_database_source(fake_st.session_state) == "wspr_live"
+    complete_audit = fake_st.placeholders[0].markdowns[-1]
+    assert "Database origin for complete run: **wspr.live** (primary)" in complete_audit
+    selection_event = next(
+        values
+        for event, values in performance_events
+        if event == "database_source_selected"
+    )
+    assert selection_event["selection_reason"] == "primary"
+    assert selection_event["cache_affinity_applied"] is False
+    assert selection_event["cache_affinity_bypassed_sources"] == ()
+    assert selection_event["planned_network_requests"] == 1
 
 
 def test_all_provider_failures_publish_no_source_or_complete_result(monkeypatch):

@@ -33,7 +33,8 @@ measurement system.
 - Process-wide analysis and export admission queues, duplicate-request rejection,
   bounded HTTP reads, shared artifact locking, and performance/RSS logging.
 - Source-pinned database failover with process-local rolling request budgets,
-  provider cooldowns, source-isolated query caches, and run provenance.
+  provider cooldowns, source-isolated query caches, demo cache affinity, and run
+  provenance.
 - The preface rendered initially, with the table of contents and remaining manual
   loaded near its viewport boundary or through an explicit fallback; PDF
   generation remains process-cached and explicitly requested.
@@ -130,6 +131,8 @@ Important defaults currently include:
 - Ordinary query-cache TTL: 3600 seconds.
 - Guided-demo query-cache TTL: 86400 seconds from publication; cache reads do
   not extend this absolute freshness window.
+- Fresh guided-demo runs prefer the configured-first provider with a complete
+  zero-request cache bundle before normal network-backed provider selection.
 - Session-artifact TTL: 3600 seconds, with active leases and access touches.
 - WSPR database priority: wspr.live, WD2, then WD1; each currently has a
   process-local 20-request/60-second application budget.
@@ -335,10 +338,14 @@ do not touch their publication timestamp. Demo Compare keeps a process-memory
 DataFrame L1 and a Parquet disk L2; demo Success uses the same persistent demo
 namespace. Both tiers cache raw provider query results rather than completed
 scientific analyses, and provider identity remains part of every query-cache
-key. Derived basemaps are shared across sessions and are not currently subject
-to TTL cleanup. Process memory also holds the query DataFrame LRU, admission
-state, inspector session models/PNGs, generated documentation PDF cache, and
-provider rolling-request, reservation, cooldown, and half-open probe state.
+key. Before issuing demo requests, provider selection prefers the first enabled
+source that can supply the complete current strict/legacy and Compare/Success
+bundle from fresh cache. The selected cache retains its actual provider origin;
+artifacts are neither relabelled nor combined across sources. Derived basemaps
+are shared across sessions and are not currently subject to TTL cleanup. Process
+memory also holds the query DataFrame LRU, admission state, inspector session
+models/PNGs, generated documentation PDF cache, and provider rolling-request,
+reservation, cooldown, and half-open probe state.
 
 Runtime TTL cleanup is process-local single-flight. After a successful sweep,
 further triggers are suppressed for 60 seconds; a failed sweep can be retried
