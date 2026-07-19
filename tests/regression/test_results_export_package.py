@@ -33,6 +33,7 @@ def test_selected_temporal_view_is_recorded_and_changes_export_signature(monkeyp
     block = {
         "analysis_id": "RX_COMPARE",
         "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+        "database_source": "wspr_live",
         "evidence_time_bin": "1h",
         "selected_evidence_figure_recipe": {
             "temporal_view": "chronological",
@@ -78,6 +79,7 @@ def test_show_zero_target_is_recorded_and_changes_export_signature(monkeypatch):
     hidden_block = {
         "analysis_id": "RX_ABS",
         "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+        "database_source": "wspr_live",
         "show_zero_target": False,
     }
     shown_block = {**hidden_block, "show_zero_target": True}
@@ -91,6 +93,48 @@ def test_show_zero_target_is_recorded_and_changes_export_signature(monkeypatch):
     assert results_export._export_signature(
         {"RX_ABS": hidden_block}
     ) != results_export._export_signature({"RX_ABS": shown_block})
+
+
+def test_run_metadata_rejects_mixed_database_sources(monkeypatch):
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+    blocks = {
+        "RX_COMP": {
+            "analysis_id": "RX_COMP",
+            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        },
+        "RX_ABS": {
+            "analysis_id": "RX_ABS",
+            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "database_source": "wd2",
+        },
+    }
+
+    with pytest.raises(ValueError, match="share one database source"):
+        results_export._build_run_metadata(blocks, {"settings": {}})
+
+
+def test_run_metadata_rejects_missing_database_provenance(monkeypatch):
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+
+    with pytest.raises(ValueError, match="must record one database source"):
+        results_export._build_run_metadata(
+            {
+                "RX_ABS": {
+                    "analysis_id": "RX_ABS",
+                    "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+                }
+            },
+            {"settings": {}},
+        )
 
 
 @pytest.mark.parametrize("is_prepared", (False, True))
@@ -250,6 +294,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
             theme="light",
             solar_label="All",
         ),
+        database_source="wd2",
     )
     success_block = state[results_export.EXPORT_STATE_KEY]["RX_ABS"]
     success_block["table_station_insights_current_segment.csv"] = pd.DataFrame(
@@ -271,6 +316,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
     assert f"{export_root}/success/table_station_insights_current_segment.csv" in package_paths
     assert all("/absolute/" not in path for path in package_paths)
     assert metadata["blocks_present"] == {"compare": False, "success": True}
+    assert metadata["database_source"] == "wd2"
     assert metadata["result_blocks"][0]["folder"] == "success"
     assert metadata["result_blocks"][0]["success_method_version"] == "opportunity-v1"
     assert "absolute" not in json.dumps(metadata).casefold()

@@ -28,6 +28,7 @@ from core.artifact_store import (
 )
 from core.analysis_admission import AnalysisQueueFull, AnalysisQueueTimeout
 from core.export_admission import EXPORT_ADMISSION_GATE
+from core.fetch_models import DatabaseSource
 from core.matplotlib_runtime import matplotlib_operation_lock
 from core.opportunity_engine import OPPORTUNITY_MAP_EXPORT_COLUMNS
 from core.performance_timer import (
@@ -55,6 +56,16 @@ from ui.matplotlib_renderer import dispose_matplotlib_figure
 COMPARE_EXPORT_FOLDER = "compare"
 SUCCESS_EXPORT_FOLDER = "success"
 EXPORTABLE_RESULT_FOLDERS = frozenset({COMPARE_EXPORT_FOLDER, SUCCESS_EXPORT_FOLDER})
+
+
+def _normalized_database_source(source_key) -> str:
+    """Return a validated stable database-source key for export provenance."""
+    if isinstance(source_key, DatabaseSource):
+        return source_key.value
+    try:
+        return DatabaseSource(str(source_key)).value
+    except ValueError as exc:
+        raise ValueError("Export results require a known database source") from exc
 
 
 def _current_run_id():
@@ -226,8 +237,9 @@ def register_map_export_context(
     lon_0,
     analysis_context,
     presentation_context,
+    database_source,
 ):
-    """Register enough context to render the high-resolution light map on demand."""
+    """Register map recipe and immutable database provenance for one result."""
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis["id"], {})
     block.update({
@@ -243,6 +255,7 @@ def register_map_export_context(
         "analysis_kind": analysis.get("analysis_kind", "comparison"),
         "success_method_version": analysis.get("absolute_method_version"),
         "decode_filter_mode": analysis.get("decode_filter_mode"),
+        "database_source": _normalized_database_source(database_source),
         "map_context": {
             "parquet_path": parquet_path,
             "start_t": start_t,
@@ -376,6 +389,20 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         for block in blocks.values()
     )
     analysis_cache_paths = analysis_cache_paths or {}
+    database_sources = [block.get("database_source") for block in blocks.values()]
+    if database_sources and any(source is None for source in database_sources):
+        raise ValueError("Export result blocks must record one database source")
+    normalized_database_sources = {
+        _normalized_database_source(source)
+        for source in database_sources
+    }
+    if len(normalized_database_sources) > 1:
+        raise ValueError("Export result blocks must share one database source")
+    database_source = (
+        next(iter(normalized_database_sources))
+        if normalized_database_sources
+        else None
+    )
 
     return {
         "app": CONFIG_APP_NAME,
@@ -384,6 +411,7 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         "exported_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "language": st.session_state.get("lang"),
         "run_mode": str(core_parameters.get("analysis_direction", "")).upper(),
+        "database_source": database_source,
         "blocks_present": {
             COMPARE_EXPORT_FOLDER: compare_present,
             SUCCESS_EXPORT_FOLDER: success_present,
@@ -453,6 +481,7 @@ def _export_signature(blocks):
             "analysis_id": block.get("analysis_id"),
             "title": block.get("title"),
             "mode_folder": block.get("mode_folder"),
+            "database_source": block.get("database_source"),
             "selected_segment": block.get("selected_segment"),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),

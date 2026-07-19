@@ -1,6 +1,6 @@
 # WSPRadar Architecture
 
-This document describes the repository as inspected through 2026-07-17. It derives
+This document describes the repository as inspected through 2026-07-18. It derives
 component boundaries and behavior from the application code, configuration, and
 regression tests. Items explicitly marked uncertain were not established by the
 code or by the verification run.
@@ -8,10 +8,11 @@ code or by the verification run.
 ## System Context
 
 WSPRadar is a single Streamlit application process that queries historical WSPR
-observations from the public wspr.live ClickHouse HTTP endpoint. Scientific work
-is performed in core modules, while Streamlit state, controls, presentation, and
-downloads are managed in UI modules. Local process memory and a local artifact
-directory provide caching and session continuity.
+observations from public read-only ClickHouse HTTP endpoints. wspr.live is the
+primary source, followed by WSPRDaemon WD2 and WD1. Scientific work is performed
+in core modules, while Streamlit state, controls, presentation, and downloads are
+managed in UI modules. Local process memory and a local artifact directory
+provide caching and session continuity.
 
 ```text
 Browser
@@ -19,16 +20,17 @@ Browser
      -> UI configuration and context adapters
      -> analysis/export admission controllers
      -> analysis runner and data engine
-        -> wspr.live ClickHouse HTTP API
-        -> local query/session artifact store
+        -> provider dispatcher
+           -> wspr.live -> WD2 -> WD1 ClickHouse HTTP APIs
+        -> source-isolated query/session artifact store
      -> compare or opportunity engines
      -> map data and presentation rendering
      -> inspector view models and projected evidence reads
      -> optional export preparation
 ```
 
-The application reads wspr.live data. No upstream write path or database
-credential was found.
+The application reads one selected source per complete run. No upstream write
+path or database credential was found.
 
 ## Entry Points
 
@@ -70,7 +72,7 @@ operating risks. The Streamlit application neither imports nor starts it.
 
 | Module | Responsibility |
 | --- | --- |
-| `config/app_config.py` | Application identity, URLs, time-window limit, cache and HTTP limits, analysis/export admission settings, and inspector-cache limits. |
+| `config/app_config.py` | Application identity, ordered provider URLs and process-local budgets/cooldowns, time-window limit, cache and HTTP limits, analysis/export admission settings, and inspector-cache limits. |
 | `config/bands.py` | WSPR band labels and wspr.live numeric identifiers. |
 | `config/demos/*.config` | Authoritative guided demos. Each file is a standalone saved configuration and lexicographic filename order defines launcher order. |
 | `config/demo_profiles.py` | Strict dependency-free demo discovery, schema/profile validation, duplicate-ID protection, and stable filename-ordered `DEMO_PROFILES` mapping. |
@@ -161,6 +163,15 @@ builds contexts, computes a request fingerprint, acquires admission, asks
 processing, stores session evidence, renders maps and previews, registers export
 recipes, and invokes the Segment Inspector.
 
+Provider readiness participates in the same FIFO admission decision as the two
+active-analysis slots. Once admitted, the controller prepares every Compare and
+Success block against one provider before publishing any result. Strict and
+legacy compatibility requests remain on that provider. A classified provider
+failure deletes the attempt's unregistered session artifacts, releases its
+reservation, and restarts the complete bundle from Map 1 on the next source.
+Valid empty/scientific no-evidence results and local processing failures do not
+selectively switch databases.
+
 It also implements compatibility retry behavior for historical rows where a
 strict `code = 1` query returns no target evidence. The retry metadata is exposed
 in results and tested. This is scientific compatibility behavior and should not
@@ -184,10 +195,13 @@ outside their assigned path schedule and attaches stable
 It also applies mode-specific post-fetch synchronization and filtering.
 
 `core/data_engine.py` executes HTTP requests and returns structured
-`FetchResult`, source, and error data without rendering Streamlit UI. It provides:
+`FetchResult`, delivery-tier, database-source, and error data without rendering
+Streamlit UI. It provides:
 
 - a process-memory DataFrame LRU;
-- exact-query SHA-256 disk-cache keys;
+- provider-scoped exact-query SHA-256 disk-cache keys;
+- a separate provider-scoped demo-query namespace with an absolute 24-hour
+  freshness lifetime;
 - CSV and Parquet response handling;
 - connect/read deadlines;
 - streamed byte accounting and decompressed response ceilings;
@@ -198,6 +212,14 @@ The engine logs query and performance information to the terminal. It holds a
 module-level Requests session. Explicit proof of all concurrent session-use
 semantics was not found, so thread-safety beyond the exercised tests remains an
 operational uncertainty.
+
+`core/provider_dispatch.py` owns ordered provider selection, conservative
+complete-run request reservations, rolling actual-request timestamps, HTTP 429
+cooldowns, transient-failure circuits and half-open probes. A cache hit consumes
+no request token. `core/run_data_preparation.py` owns the transactional
+source-pinned prepare phase and writes processed blocks to unique, unregistered
+session artifacts so potentially large frames can be released one at a time.
+Database provenance is distinct from RAM/disk delivery tier.
 
 ### Scientific Engines
 
@@ -336,16 +358,19 @@ must remain outside `README.md`.
 ### Comparison Analysis
 
 1. Streamlit state is converted to canonical analysis and presentation contexts.
-2. The controller validates inputs and obtains an analysis permit.
+2. The controller validates inputs and obtains one combined analysis/provider
+   permit from the bounded FIFO queue.
 3. `analysis_runner` builds the mode-specific comparison SQL. Periodic TX A/B
    predicates select each path by its exact repeat interval and UTC start phase.
-4. `data_engine` returns a RAM-cache, disk-cache, or wspr.live result.
+4. `run_data_preparation` fetches and processes every run block against the
+   selected provider. Any provider failover restarts this unpublished phase.
 5. Post-fetch logic synchronizes cycles and applies mode-specific rounding. For
    periodic TX A/B data it also filters schedule mismatches, excludes a boundary
    pair unless both planned starts are within the analysis interval, and assigns
    the stable planned-pair columns.
-6. The processed rows, including planned-pair columns, are written to a session
-   Parquet artifact.
+6. The processed rows, including planned-pair columns, are staged as an
+   unregistered session Parquet artifact. All successful blocks are registered
+   together after complete-bundle preparation succeeds.
 7. `compare_engine` groups periodic pairs by peer identity and pair ID, applies
    per-side micro-medians, and builds station and segment aggregates.
 8. `map_data` and `plot_engine` render the map preview.
@@ -356,7 +381,8 @@ must remain outside `README.md`.
 
 ### Opportunity Analysis
 
-1. An active-cycle ClickHouse query returns one row per time slot and peer
+1. On the same run-pinned provider as Compare, an active-cycle ClickHouse query
+   returns one row per time slot and peer
    identity with target/external evidence and target SNR. Hardware TX Success
    additionally restricts active cycles to the configured Target repeat
    interval and start phase; the Reference schedule is not part of this query.
@@ -380,15 +406,53 @@ or queued. Different sessions may run the same demo; this avoids turning popular
 demos into a cross-user single-result dependency. Admission state and deduplication
 are process-local and do not coordinate multiple application processes.
 
+The first FIFO ticket can become active only when an analysis slot and a
+complete-run provider reservation are both available. Provider reservation uses
+the maximum currently uncached strict/legacy request count. The front ticket
+reinspects source-specific caches on every reservation attempt, and fallback
+recalculates them again. Each actual HTTP attempt converts one reservation into
+a rolling-window timestamp; unused slots are released. If every provider is
+temporarily unavailable, the request stays in the existing bounded queue and
+eventually reaches its normal timeout or causes later requests to receive the
+existing queue-full response.
+
+This combined FIFO decision applies to initial admission. If a provider fails
+after a run has become active, that run keeps its analysis slot while it waits
+for an eligible fallback reservation; at most the configured active-run limit
+can therefore be waiting in this mid-run state.
+
+### Provider Selection and Failover Flow
+
+1. Inspect source-specific caches and calculate a conservative request
+   reservation for each enabled provider.
+2. Select the first eligible source in `wspr.live -> WD2 -> WD1` order.
+3. Pin the complete strict/legacy and Compare/Success bundle to that source.
+4. Stage processed artifacts without exposing maps, inspectors or export blocks.
+5. On a provider-scoped failure, delete staged attempt artifacts, mark the
+   provider's cooldown/circuit state and restart Map 1 on the next source.
+6. If a cache entry disappears after reservation planning, or cached raw rows
+   fail the required schema, make no unreserved HTTP request. Remove an invalid
+   entry, discard the attempt, recalculate capacity without marking the provider
+   unhealthy, and restart the unpublished bundle.
+7. On complete preparation, commit the run source, register all staged artifacts
+   and publish results. A later rerender of the same `run_id` remains pinned.
+
+HTTP 408/429/5xx responses, transport timeouts/errors, malformed payloads and
+incompatible non-empty response schemas are provider-scoped. Valid empty data,
+the response-size safety ceiling, normal request/input errors, local filesystem
+errors, post-filter warnings and scientific no-evidence outcomes do not trigger
+cross-database selection.
+
 ## Persistence and Cache Lifecycles
 
-`core/artifact_store.py` divides local artifacts into three namespaces:
+`core/artifact_store.py` divides local artifacts into four namespaces:
 
 | Namespace | Contents | Lifecycle |
 | --- | --- | --- |
-| `queries` | Exact-query Parquet responses | TTL and last-access cleanup. |
+| `queries` | Provider-scoped ordinary exact-query Parquet responses | One-hour last-access freshness and cleanup. |
+| `demo-queries` | Provider-scoped raw Compare and Success demo-query rows, stored as Parquet | Absolute 24-hour freshness and cleanup; reads never extend publication time. |
 | `derived-analysis` | Shared basemap PNGs | Reused across sessions; no current TTL cleanup. |
-| `session-artifacts` | Per-owner, per-run analysis Parquet evidence | Active leases/touches plus TTL cleanup. |
+| `session-artifacts` | Per-owner, per-run analysis Parquet evidence | Active leases/touches plus one-hour cleanup. |
 
 All artifact paths are validated to remain under the configured cache root.
 Publication uses unique sibling temporary paths and `os.replace`. Lock
@@ -396,13 +460,26 @@ bookkeeping is bounded with 64 in-process stripes, while lock files provide
 cross-process exclusion when processes share the same filesystem and cache root.
 
 Read leases and access touching prevent normal TTL cleanup from deleting a file
-that an active session is inspecting. Old run fragments can remain until their
-lease/access state permits cleanup.
+that an active session is inspecting. An active rerun refreshes its registered
+session artifacts before global TTL cleanup and again after any admission wait.
+Old run fragments can remain until their lease/access state permits cleanup.
+Demo-query reads still take the same-key coordination lock but deliberately do
+not touch the file: its publication mtime is the immutable freshness anchor,
+and any RAM L1 entry expires at that same absolute deadline.
+
+Compare continues to request upstream CSV because that is its established
+transport and parser path, but guided-demo CSV rows are converted to raw
+Parquet in the disk L2 before scientific post-fetch processing. Success keeps
+its upstream Parquet transport and publishes it in the same demo namespace.
+Consequently both demo analysis types survive a process-memory eviction or
+restart when the local cache filesystem survives, without caching completed
+scientific output across code changes.
 
 The following state is process-memory only:
 
 - DataFrame query LRU;
 - analysis/export controller state;
+- provider rolling request timestamps, reservations and circuit/probe state;
 - inspector view-model and PNG cache;
 - generated documentation PDF cache;
 - Streamlit session state, including prepared export bytes.
@@ -416,12 +493,19 @@ implemented. Derived basemaps do not currently expire.
 
 ## External Services and Assets
 
-### wspr.live
+### WSPR ClickHouse sources
 
-The primary external dependency is `https://db1.wspr.live/`, configured in
-`config/app_config.py`. SQL is sent over HTTP and results are requested as CSV
-with names or Parquet. Response time, schema compatibility, and availability are
-outside this repository's control.
+The ordered external data dependencies configured in `config/app_config.py` are:
+
+1. wspr.live: `https://db1.wspr.live/`;
+2. WSPRDaemon WD2: `https://wd2.wsprdaemon.org/`;
+3. WSPRDaemon WD1: `https://wd1.wsprdaemon.org/`.
+
+SQL is sent over read-only HTTP and results are requested as CSV with names or
+Parquet. Response time, schema compatibility, data synchronization and
+availability are outside this repository's control. The configured WD request
+budgets are conservative local policies, not claims about published service
+quotas.
 
 ### Cartopy and Natural Earth
 
@@ -503,6 +587,19 @@ Analysis and export work enters explicit FIFO gates before consuming upstream,
 CPU, rendering, or ZIP resources. Duplicate rejection limits accidental
 same-session amplification while preserving independent demo use by other users.
 
+### One Database Source per Published Run
+
+Provider choice is scientifically material because the public databases are not
+assumed perfectly synchronized. Compare, Success and every strict/legacy request
+in one published run therefore share one stable `DatabaseSource`. Provider
+failure restarts the unpublished complete bundle rather than continuing another
+block elsewhere. Query cache keys include provider identity, while cache medium
+remains separate provenance. The committed source is shown in System Audit
+Status and stored once in export run metadata; each map's strict and optional
+legacy query reports its own database-request, RAM-cache, or disk-cache delivery
+tier and timing. Database origin is not a user configuration or scientific
+fingerprint input.
+
 ### Serialized Matplotlib Rendering
 
 Matplotlib access is serialized because global rendering state is not treated as
@@ -518,12 +615,15 @@ capabilities.
 
 ## Technical and Operational Risks
 
-1. **Public resource exhaustion:** The process-local gates cap active and queued
-   work but there is no IP rate limit, authentication, rolling request budget, or
-   distributed quota. Multiple sessions can be created by one client.
-2. **Process scope:** Admission, deduplication, Matplotlib serialization, and RAM
-   caches do not coordinate separate hosts or processes. Artifact file locks only
-   coordinate processes sharing the same cache filesystem.
+1. **Public resource exhaustion:** The process-local gates and per-provider
+   rolling budgets cap this process's work, but there is no authentication,
+   client/IP admission limit or distributed quota. Multiple sessions can be
+   created by one client.
+2. **Process scope:** Admission, provider budgets/circuits, deduplication,
+   Matplotlib serialization, and RAM caches do not coordinate separate hosts or
+   processes. Several replicas sharing one egress IP can therefore exceed a
+   provider limit even when each local counter is compliant. Artifact file locks
+   only coordinate processes sharing the same cache filesystem.
 3. **Streamlit security settings:** `.streamlit/config.toml` disables CORS and
    XSRF protection. The deployment reason is not documented in code. Restoring
    protection requires deployment testing, but the current state is a real public
@@ -535,9 +635,10 @@ capabilities.
    limits concurrency but not the size of one export.
 6. **Dependency reproducibility:** Most Python dependencies are unpinned. There
    is no lock file, hash checking, automated vulnerability audit, or test CI.
-7. **External availability:** wspr.live and first-use Cartopy asset downloads are
-   outside application control. Bounded HTTP work prevents indefinite or
-   unlimited responses but cannot make an unavailable service succeed.
+7. **External availability and divergence:** wspr.live, WD2, WD1 and first-use
+   Cartopy asset downloads are outside application control. Bounded HTTP work and
+   failover improve availability but cannot guarantee synchronized database
+   contents or make every unavailable/incompatible service succeed.
 8. **Regression-fixture gap:** The generated scientific fixture is absent, so one
    fixture-integrity test is skipped. Historical demo export files use an older
    schema and do not close this gap.

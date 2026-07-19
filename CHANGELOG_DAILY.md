@@ -2,6 +2,23 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-07-19
+
+- Added a separate provider-scoped demo query-cache lifecycle. Guided-demo
+  Compare now uses its existing RAM cache as L1 plus raw-query Parquet disk L2,
+  while demo Success uses the same persistent namespace; both expire 24 hours
+  after publication without extending freshness on hits. Ordinary query and
+  session-artifact retention remains one hour. System Audit Status now separates
+  the committed database origin from each map's strict and legacy delivery tier
+  and timing.
+- Added source-pinned WSPR database resilience with wspr.live as primary and
+  WSPRDaemon WD2 then WD1 as fallbacks. Provider readiness now participates in
+  the existing bounded FIFO admission queue; process-local rolling budgets,
+  Retry-After/circuit cooldowns and source-isolated caches prevent request and
+  provenance mixing. Compare, Success and strict/legacy work are staged as one
+  transactional bundle, fully restarted on provider failure, and published only
+  after one source succeeds; System Audit Status and export metadata record that
+  source.
 
 ## 2026-07-18
 

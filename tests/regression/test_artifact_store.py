@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 import pandas as pd
 
+from config import WSPR_DATABASE_PROVIDERS
 from core import data_engine
 from core.artifact_store import (
     ARTIFACT_STORE,
@@ -33,15 +34,60 @@ def test_artifact_namespaces_are_separate_and_reject_traversal(tmp_path):
     store = ArtifactStore(lock_stripes=4)
 
     query_path = store.namespace_path(tmp_path, ArtifactNamespace.QUERY, "same.parquet")
+    demo_query_path = store.namespace_path(
+        tmp_path,
+        ArtifactNamespace.DEMO_QUERY,
+        "same.parquet",
+    )
     derived_path = store.namespace_path(tmp_path, ArtifactNamespace.DERIVED_ANALYSIS, "same.parquet")
     session_path = store.namespace_path(tmp_path, ArtifactNamespace.SESSION_ARTIFACT, "same.parquet")
 
     assert query_path.parent.name == "queries"
+    assert demo_query_path.parent.name == "demo-queries"
     assert derived_path.parent.name == "derived-analysis"
     assert session_path.parent.name == "session-artifacts"
-    assert len({query_path.resolve(), derived_path.resolve(), session_path.resolve()}) == 3
+    assert len(
+        {
+            query_path.resolve(),
+            demo_query_path.resolve(),
+            derived_path.resolve(),
+            session_path.resolve(),
+        }
+    ) == 4
     with pytest.raises(ValueError):
         store.namespace_path(tmp_path, ArtifactNamespace.QUERY, "..", "escape.parquet")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-path normalization")
+def test_lock_key_normalizes_windows_extended_length_prefix(monkeypatch):
+    """Treat transient extended and ordinary spellings as one lock key."""
+    extended_path = Path(r"\\?\C:\cache\query.parquet")
+    monkeypatch.setattr(Path, "resolve", lambda _path: extended_path)
+
+    assert ArtifactStore._canonical_key("ignored") == os.path.normcase(
+        r"C:\cache\query.parquet"
+    )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-path normalization")
+def test_namespace_validation_normalizes_mixed_windows_path_spellings(monkeypatch):
+    """Do not reject one safe path when resolve transiently adds its prefix."""
+    def mixed_resolve(path):
+        if path.name == ArtifactNamespace.QUERY.value:
+            return Path(r"C:\cache\queries")
+        return Path(r"\\?\C:\cache\queries\wspr_live\query.parquet")
+
+    monkeypatch.setattr(Path, "resolve", mixed_resolve)
+    store = ArtifactStore()
+
+    path = store.namespace_path(
+        r"C:\cache",
+        ArtifactNamespace.QUERY,
+        "wspr_live",
+        "query.parquet",
+    )
+
+    assert path == Path(r"C:\cache\queries\wspr_live\query.parquet")
 
 
 def test_atomic_output_is_unique_and_invisible_until_replace(tmp_path):
@@ -128,6 +174,28 @@ def test_active_read_lease_serializes_ttl_cleanup(tmp_path):
         assert cleanup_future.result(timeout=1.0) == 1
 
     assert not artifact_path.exists()
+
+
+def test_no_touch_lease_preserves_demo_query_publication_time(tmp_path):
+    """Keep demo freshness absolute while coordinating a disk-cache read."""
+    store = ArtifactStore(lock_stripes=4)
+    artifact_path = store.namespace_path(
+        tmp_path,
+        ArtifactNamespace.DEMO_QUERY,
+        "wspr_live",
+        "query.parquet",
+    )
+    store.write(
+        artifact_path,
+        lambda temporary_path: temporary_path.write_bytes(b"demo-query"),
+    )
+    published_at = time.time() - 3600.0
+    os.utime(artifact_path, (published_at, published_at))
+
+    with store.lease(artifact_path, refresh_access=False) as leased_path:
+        assert leased_path.read_bytes() == b"demo-query"
+
+    assert artifact_path.stat().st_mtime == pytest.approx(published_at, abs=0.01)
 
 
 def test_registered_session_artifacts_are_touched_and_released(tmp_path):
@@ -246,7 +314,8 @@ def test_result_export_reset_retires_without_deleting_active_parquet(tmp_path, m
     assert SESSION_ARTIFACT_PATHS_KEY not in state
 
 
-def test_namespace_cleanup_expires_query_and_session_but_not_derived(tmp_path):
+def test_namespace_cleanup_applies_independent_query_lifetimes(tmp_path):
+    """Expire ordinary data before demo queries and never age derived data here."""
     store = ArtifactStore(lock_stripes=4)
     paths = {
         namespace: store.namespace_path(tmp_path, namespace, "stale.bin")
@@ -256,12 +325,80 @@ def test_namespace_cleanup_expires_query_and_session_but_not_derived(tmp_path):
         store.write(path, lambda temporary_path: temporary_path.write_bytes(b"stale"))
         _make_stale(path)
 
-    removed = cleanup_artifact_namespaces(tmp_path, ttl_seconds=60.0)
+    removed = cleanup_artifact_namespaces(
+        tmp_path,
+        query_ttl_seconds=60.0,
+        demo_query_ttl_seconds=3600.0,
+        session_ttl_seconds=60.0,
+    )
 
-    assert removed == {"queries": 1, "session-artifacts": 1}
+    assert removed == {
+        "queries": 1,
+        "demo-queries": 0,
+        "session-artifacts": 1,
+    }
     assert not paths[ArtifactNamespace.QUERY].exists()
+    assert paths[ArtifactNamespace.DEMO_QUERY].exists()
     assert not paths[ArtifactNamespace.SESSION_ARTIFACT].exists()
     assert paths[ArtifactNamespace.DERIVED_ANALYSIS].exists()
+
+    _make_stale(paths[ArtifactNamespace.DEMO_QUERY], seconds=3700.0)
+    second_removed = cleanup_artifact_namespaces(
+        tmp_path,
+        query_ttl_seconds=60.0,
+        demo_query_ttl_seconds=3600.0,
+        session_ttl_seconds=60.0,
+    )
+
+    assert second_removed[ArtifactNamespace.DEMO_QUERY.value] == 1
+    assert not paths[ArtifactNamespace.DEMO_QUERY].exists()
+    assert paths[ArtifactNamespace.DERIVED_ANALYSIS].exists()
+
+
+def test_query_cleanup_rejects_future_mtimes_without_expiring_session_data(
+    tmp_path,
+):
+    """Treat future query timestamps as corrupt while preserving session safety."""
+    store = ArtifactStore(lock_stripes=4)
+    reference_time = time.time()
+    future_mtime = reference_time + 300.0
+    paths = {
+        namespace: store.namespace_path(tmp_path, namespace, "future.bin")
+        for namespace in (
+            ArtifactNamespace.QUERY,
+            ArtifactNamespace.DEMO_QUERY,
+            ArtifactNamespace.SESSION_ARTIFACT,
+        )
+    }
+    for artifact_path in paths.values():
+        store.write(
+            artifact_path,
+            lambda temporary_path: temporary_path.write_bytes(b"future"),
+        )
+        os.utime(artifact_path, (future_mtime, future_mtime))
+
+    assert store.cleanup_namespace(
+        tmp_path,
+        ArtifactNamespace.QUERY,
+        ttl_seconds=60.0,
+        now=reference_time,
+    ) == 1
+    assert store.cleanup_namespace(
+        tmp_path,
+        ArtifactNamespace.DEMO_QUERY,
+        ttl_seconds=60.0,
+        now=reference_time,
+    ) == 1
+    assert store.cleanup_namespace(
+        tmp_path,
+        ArtifactNamespace.SESSION_ARTIFACT,
+        ttl_seconds=60.0,
+        now=reference_time,
+    ) == 0
+
+    assert not paths[ArtifactNamespace.QUERY].exists()
+    assert not paths[ArtifactNamespace.DEMO_QUERY].exists()
+    assert paths[ArtifactNamespace.SESSION_ARTIFACT].exists()
 
 
 def test_query_cache_constructs_once_under_concurrency(tmp_path, monkeypatch):
@@ -291,7 +428,7 @@ def test_query_cache_constructs_once_under_concurrency(tmp_path, monkeypatch):
         return FakeResponse()
 
     monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
-    monkeypatch.setattr(data_engine, "CACHE_TTL_SEC", 3600)
+    monkeypatch.setattr(data_engine, "STANDARD_QUERY_CACHE_TTL_SEC", 3600)
     monkeypatch.setattr(data_engine.http_session, "get", fake_get)
     monkeypatch.setattr(
         data_engine,
@@ -312,7 +449,33 @@ def test_query_cache_constructs_once_under_concurrency(tmp_path, monkeypatch):
         result.dataframe.equals(pd.DataFrame({"value": [1]}))
         for result in results
     )
-    assert cache_path.parent.name == "queries"
+    assert cache_path.parent.name == "wspr_live"
+    assert cache_path.parent.parent.name == "queries"
     assert cache_path.read_bytes() == b"parquet-payload"
     assert list(cache_path.parent.glob("*.tmp")) == []
     assert list((tmp_path / ".artifact-locks").glob("*.lock")) == []
+
+
+def test_query_cache_paths_are_isolated_by_database_and_demo_policy(
+    tmp_path,
+    monkeypatch,
+):
+    """Prevent provider or lifecycle identity from sharing one raw cache file."""
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    query = "SELECT source_isolation"
+
+    standard_paths = [
+        data_engine._query_cache_path(query, provider)
+        for provider in WSPR_DATABASE_PROVIDERS
+    ]
+    demo_paths = [
+        data_engine._query_cache_path(query, provider, is_demo=True)
+        for provider in WSPR_DATABASE_PROVIDERS
+    ]
+    paths = standard_paths + demo_paths
+
+    assert len({path.resolve() for path in paths}) == 6
+    assert [path.parent.name for path in standard_paths] == ["wspr_live", "wd2", "wd1"]
+    assert [path.parent.name for path in demo_paths] == ["wspr_live", "wd2", "wd1"]
+    assert all(path.parent.parent.name == "queries" for path in standard_paths)
+    assert all(path.parent.parent.name == "demo-queries" for path in demo_paths)

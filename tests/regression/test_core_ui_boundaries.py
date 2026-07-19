@@ -1,14 +1,19 @@
+from collections import OrderedDict
 from datetime import datetime, timezone
 import inspect
+import os
+import time
 import uuid
 
 import pandas as pd
 import pytest
 
+from config import WSPR_DATABASE_PROVIDERS
 from core import data_engine, plot_engine
 from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
 from core.analysis_runner import build_analysis_batches
-from core.fetch_models import FetchSource
+from core.artifact_store import ArtifactNamespace
+from core.fetch_models import DatabaseSource, FetchSource
 from core.map_data import build_map_data
 from core.map_models import MapFigure
 from core.presentation_context import PresentationContext
@@ -123,6 +128,7 @@ def test_data_engine_returns_structured_http_error_without_ui_calls(monkeypatch)
 
     assert result.dataframe is None
     assert result.source == FetchSource.WSPR_LIVE
+    assert result.database_source == DatabaseSource.WSPR_LIVE
     assert result.error is not None
     assert result.error.code == "http_error"
     assert result.error.status_code == 503
@@ -146,10 +152,11 @@ def test_standard_fetch_cache_is_copy_on_read(monkeypatch):
     assert request_count == 1
     assert first.source == FetchSource.WSPR_LIVE
     assert second.source == FetchSource.MEMORY_CACHE
+    assert second.database_source == DatabaseSource.WSPR_LIVE
     assert float(second.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
 
 
-def test_demo_and_standard_fetches_use_separate_cache_keys(monkeypatch):
+def test_demo_and_standard_fetches_use_separate_cache_keys(tmp_path, monkeypatch):
     query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
     request_count = 0
 
@@ -158,6 +165,8 @@ def test_demo_and_standard_fetches_use_separate_cache_keys(monkeypatch):
         request_count += 1
         return _StreamingResponse(b"peer_sign,stat_val\nK1AAA,-12.3\n")
 
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
     monkeypatch.setattr(data_engine.http_session, "get", fake_get)
     standard = data_engine.fetch_wspr_data(query, is_demo=False)
     demo = data_engine.fetch_wspr_data(query, is_demo=True)
@@ -169,6 +178,133 @@ def test_demo_and_standard_fetches_use_separate_cache_keys(monkeypatch):
     assert str(demo.dataframe["stat_val"].dtype) == "float64"
     assert standard_hit.source == FetchSource.MEMORY_CACHE
     assert demo_hit.source == FetchSource.MEMORY_CACHE
+
+
+def test_demo_compare_uses_direct_ram_and_disk_cache_with_copy_on_read(
+    tmp_path,
+    monkeypatch,
+):
+    """Persist raw demo CSV rows and isolate callers from both cache tiers."""
+    query = "SELECT demo_compare_cache FORMAT CSVWithNames"
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse(b"peer_sign,stat_val\nK1AAA,-12.3\n")
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+
+    direct_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    direct_result.dataframe.loc[0, "stat_val"] = 999.0
+    ram_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    ram_value_before_mutation = float(ram_result.dataframe.loc[0, "stat_val"])
+    ram_result.dataframe.loc[0, "stat_val"] = 888.0
+
+    data_engine._dataframe_cache.clear()
+    disk_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    disk_result.dataframe.loc[0, "stat_val"] = 777.0
+
+    data_engine._dataframe_cache.clear()
+    second_disk_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    cache_path = data_engine._query_cache_path(query, is_demo=True)
+
+    assert request_count == 1
+    assert direct_result.source == FetchSource.WSPR_LIVE
+    assert ram_result.source == FetchSource.MEMORY_CACHE
+    assert disk_result.source == FetchSource.DISK_CACHE
+    assert second_disk_result.source == FetchSource.DISK_CACHE
+    assert ram_value_before_mutation == pytest.approx(-12.3)
+    assert float(second_disk_result.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
+    assert disk_result.artifact_path == cache_path
+    assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
+
+
+def test_demo_compare_disk_reload_does_not_extend_absolute_expiry(
+    tmp_path,
+    monkeypatch,
+):
+    """Anchor RAM and disk freshness to the original demo publication time."""
+    query = "SELECT demo_compare_absolute_expiry FORMAT CSVWithNames"
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse(b"peer_sign,has_u\nK1AAA,0\n")
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+
+    data_engine.fetch_wspr_data(query, is_demo=True)
+    cache_path = data_engine._query_cache_path(query, is_demo=True)
+    late_publication_time = (
+        time.time() - data_engine.DEMO_QUERY_CACHE_TTL_SEC + 300.0
+    )
+    os.utime(cache_path, (late_publication_time, late_publication_time))
+    published_mtime = cache_path.stat().st_mtime
+    data_engine._dataframe_cache.clear()
+
+    disk_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=True,
+        database_provider=WSPR_DATABASE_PROVIDERS[0],
+    )
+    initial_ram_expiry = data_engine._dataframe_cache[cache_key][0]
+    first_ram_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    second_ram_result = data_engine.fetch_wspr_data(query, is_demo=True)
+    repeated_ram_expiry = data_engine._dataframe_cache[cache_key][0]
+
+    assert request_count == 1
+    assert disk_result.source == FetchSource.DISK_CACHE
+    assert first_ram_result.source == FetchSource.MEMORY_CACHE
+    assert second_ram_result.source == FetchSource.MEMORY_CACHE
+    assert cache_path.stat().st_mtime == pytest.approx(published_mtime, abs=0.01)
+    assert initial_ram_expiry == pytest.approx(
+        published_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC,
+        abs=0.01,
+    )
+    assert repeated_ram_expiry == initial_ram_expiry
+    assert data_engine._query_cache_expiry_epoch(
+        cache_path,
+        data_engine.DEMO_QUERY_CACHE_TTL_SEC,
+        now=published_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC + 1.0,
+    ) is None
+
+
+def test_identical_csv_query_caches_are_isolated_by_database_source(monkeypatch):
+    query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+    requested_urls = []
+
+    def fake_get(url, *_args, **_kwargs):
+        requested_urls.append(url)
+        value = -12.3 if "db1.wspr.live" in url else -9.4
+        return _StreamingResponse(
+            f"peer_sign,stat_val\nK1AAA,{value}\n".encode("utf-8")
+        )
+
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    primary, wd2, _wd1 = WSPR_DATABASE_PROVIDERS
+
+    live_result = data_engine.fetch_wspr_data(query, database_provider=primary)
+    wd2_result = data_engine.fetch_wspr_data(query, database_provider=wd2)
+    live_cached = data_engine.fetch_wspr_data(query, database_provider=primary)
+    wd2_cached = data_engine.fetch_wspr_data(query, database_provider=wd2)
+
+    assert requested_urls == [primary.url, wd2.url]
+    assert live_result.database_source == DatabaseSource.WSPR_LIVE
+    assert wd2_result.source == FetchSource.WD2
+    assert wd2_result.database_source == DatabaseSource.WD2
+    assert live_cached.source == FetchSource.MEMORY_CACHE
+    assert live_cached.database_source == DatabaseSource.WSPR_LIVE
+    assert wd2_cached.source == FetchSource.MEMORY_CACHE
+    assert wd2_cached.database_source == DatabaseSource.WD2
+    assert float(live_cached.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
+    assert float(wd2_cached.dataframe.loc[0, "stat_val"]) == pytest.approx(-9.4)
 
 
 def test_map_data_is_pure_and_preserves_legacy_absolute_aggregates():

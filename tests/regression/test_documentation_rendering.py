@@ -84,6 +84,29 @@ def test_documentation_text_is_process_cached_without_modification():
     assert get_docs.cache_info().hits == 1
 
 
+def test_manual_names_primary_and_fallback_sources_concisely():
+    english_sentence = (
+        "WSPRadar uses wspr.live as its primary WSPR data source, with "
+        "WSPRDaemon WD2 and WD1 as fallback sources."
+    )
+    german_sentence = (
+        "WSPRadar nutzt wspr.live als primäre WSPR-Datenquelle; WSPRDaemon "
+        "WD2 und WD1 dienen als Ausweichquellen."
+    )
+
+    for manual, source_sentence in (
+        (DOC_EN, english_sentence),
+        (DOC_DE, german_sentence),
+    ):
+        assert manual.count(source_sentence) == 1
+        containing_paragraph = next(
+            paragraph
+            for paragraph in manual.split("\n\n")
+            if source_sentence in paragraph
+        )
+        assert len(re.findall(r"\S+", containing_paragraph)) < 100
+
+
 def test_load_and_hide_controls_have_english_and_german_labels():
     assert T["en"]["btn_load_full_documentation"] == "Load full documentation"
     assert T["en"]["btn_hide_full_documentation"] == "Hide full documentation"

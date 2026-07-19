@@ -18,6 +18,7 @@ class ArtifactNamespace(str, Enum):
     """Independent cache lifecycles rooted below ``CACHE_DIR``."""
 
     QUERY = "queries"
+    DEMO_QUERY = "demo-queries"
     DERIVED_ANALYSIS = "derived-analysis"
     SESSION_ARTIFACT = "session-artifacts"
 
@@ -81,15 +82,34 @@ class ArtifactStore:
         namespace = ArtifactNamespace(namespace)
         base_path = Path(cache_root) / namespace.value
         candidate = base_path.joinpath(*(str(part) for part in parts))
-        resolved_base = base_path.resolve()
-        resolved_candidate = candidate.resolve()
-        if resolved_candidate != resolved_base and resolved_base not in resolved_candidate.parents:
+        canonical_base = self._canonical_key(base_path)
+        canonical_candidate = self._canonical_key(candidate)
+        try:
+            is_inside_namespace = (
+                os.path.commonpath((canonical_base, canonical_candidate))
+                == canonical_base
+            )
+        except ValueError:
+            is_inside_namespace = False
+        if not is_inside_namespace:
             raise ValueError(f"Artifact path escapes namespace: {candidate}")
         return candidate
 
     @staticmethod
     def _canonical_key(path) -> str:
-        return os.path.normcase(str(Path(path).resolve()))
+        """Return one stable lock key, including during Windows path creation.
+
+        Windows can expose the same resolved local path both with and without
+        its extended-length prefix while parent directories are being
+        created concurrently. Treating those spellings as different keys would
+        defeat in-process single-flight coordination.
+        """
+        canonical_path = os.path.normcase(str(Path(path).resolve()))
+        if os.name == "nt" and canonical_path.startswith("\\\\?\\"):
+            canonical_path = canonical_path[4:]
+            if canonical_path.startswith("unc\\"):
+                canonical_path = "\\\\" + canonical_path[4:]
+        return canonical_path
 
     @staticmethod
     def _cache_root_for(path: Path) -> Path:
@@ -230,14 +250,20 @@ class ArtifactStore:
             return touched
 
     @contextmanager
-    def lease(self, path) -> Iterator[Path]:
-        """Protect an artifact from cleanup and refresh access for one operation."""
+    def lease(self, path, *, refresh_access: bool = True) -> Iterator[Path]:
+        """Protect an artifact from cleanup for one coordinated read.
+
+        ``refresh_access`` remains enabled for sliding-lifetime query and
+        session artifacts. Demo-query readers disable it so the file's
+        publication mtime remains an absolute fetched-at timestamp.
+        """
         path = Path(path)
         with self.key_lock(path):
             if not path.is_file():
                 raise FileNotFoundError(path)
-            self.touch_unlocked(path)
-            self.touch_session_lease_unlocked(path)
+            if refresh_access:
+                self.touch_unlocked(path)
+                self.touch_session_lease_unlocked(path)
             yield path
 
     def delete(self, path) -> bool:
@@ -264,12 +290,20 @@ class ArtifactStore:
         if not namespace_root.exists():
             return 0
 
-        cutoff = (time.time() if now is None else float(now)) - max(float(ttl_seconds), 0.0)
+        reference_time = time.time() if now is None else float(now)
+        cutoff = reference_time - max(float(ttl_seconds), 0.0)
+        rejects_future_timestamp = namespace in {
+            ArtifactNamespace.QUERY,
+            ArtifactNamespace.DEMO_QUERY,
+        }
         removed = 0
         candidates = [path for path in namespace_root.rglob("*") if path.is_file()]
         for path in candidates:
             try:
-                if path.stat().st_mtime >= cutoff:
+                modified_at = path.stat().st_mtime
+                if modified_at >= cutoff and not (
+                    rejects_future_timestamp and modified_at > reference_time
+                ):
                     continue
             except OSError:
                 continue
@@ -281,7 +315,10 @@ class ArtifactStore:
                         and self._has_active_session_lease(path, cutoff)
                     ):
                         continue
-                    if path.stat().st_mtime >= cutoff:
+                    modified_at = path.stat().st_mtime
+                    if modified_at >= cutoff and not (
+                        rejects_future_timestamp and modified_at > reference_time
+                    ):
                         continue
                     path.unlink()
                     removed += 1
@@ -423,18 +460,52 @@ def retire_registered_session_artifacts(session_state: MutableMapping) -> int:
     return retained
 
 
-def cleanup_artifact_namespaces(cache_root, *, ttl_seconds: float) -> dict[str, int]:
-    """Clean TTL-managed query and session namespaces independently."""
+def cleanup_artifact_namespaces(
+    cache_root,
+    *,
+    query_ttl_seconds: float | None = None,
+    demo_query_ttl_seconds: float | None = None,
+    session_ttl_seconds: float | None = None,
+    ttl_seconds: float | None = None,
+) -> dict[str, int]:
+    """Clean each TTL-managed namespace according to its own lifecycle.
+
+    ``ttl_seconds`` is retained as an internal compatibility fallback for
+    callers that have not yet separated the three policies.
+    """
+    query_ttl_seconds = (
+        ttl_seconds if query_ttl_seconds is None else query_ttl_seconds
+    )
+    demo_query_ttl_seconds = (
+        ttl_seconds if demo_query_ttl_seconds is None else demo_query_ttl_seconds
+    )
+    session_ttl_seconds = (
+        ttl_seconds if session_ttl_seconds is None else session_ttl_seconds
+    )
+    if None in (
+        query_ttl_seconds,
+        demo_query_ttl_seconds,
+        session_ttl_seconds,
+    ):
+        raise TypeError(
+            "query, demo-query, and session TTL values must all be provided"
+        )
+
     removed = {
         ArtifactNamespace.QUERY.value: ARTIFACT_STORE.cleanup_namespace(
             cache_root,
             ArtifactNamespace.QUERY,
-            ttl_seconds=ttl_seconds,
+            ttl_seconds=query_ttl_seconds,
+        ),
+        ArtifactNamespace.DEMO_QUERY.value: ARTIFACT_STORE.cleanup_namespace(
+            cache_root,
+            ArtifactNamespace.DEMO_QUERY,
+            ttl_seconds=demo_query_ttl_seconds,
         ),
         ArtifactNamespace.SESSION_ARTIFACT.value: ARTIFACT_STORE.cleanup_namespace(
             cache_root,
             ArtifactNamespace.SESSION_ARTIFACT,
-            ttl_seconds=ttl_seconds,
+            ttl_seconds=session_ttl_seconds,
         ),
     }
     ARTIFACT_STORE.cleanup_stale_lock_files(cache_root)

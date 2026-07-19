@@ -1,9 +1,11 @@
 """Streamlit run orchestration for WSPRadar analyses."""
 
+from datetime import datetime
 import gc
 import hashlib
 import json
 import time
+import uuid
 
 import streamlit as st
 
@@ -16,27 +18,39 @@ from core.analysis_admission import (
 )
 from core.analysis_runner import (
     DECODE_FILTER_LEGACY,
+    DECODE_FILTER_STRICT,
     AnalysisConfigError,
-    apply_post_fetch_filters,
     build_analysis_batches,
-    should_retry_without_decode_filter,
 )
 from core.artifact_store import (
+    read_parquet_artifact,
     register_session_artifact,
+    retire_registered_session_artifacts,
     session_artifact_owner,
     session_artifact_path,
     touch_registered_session_artifacts,
-    write_parquet_artifact,
 )
-from core.data_engine import cleanup_old_parquets, fetch_wspr_data
+from core.data_engine import cleanup_old_parquets, estimate_uncached_requests
+from core.fetch_models import FetchFailureScope
 from core.input_validation import is_valid_callsign, is_valid_locator
 from core.math_utils import locator_to_latlon
 from core.matplotlib_runtime import matplotlib_profile_collector
 from core.performance_timer import (
-    PerformanceTimer,
     log_performance_event,
     process_peak_rss_bytes,
     process_rss_bytes,
+)
+from core.provider_dispatch import (
+    NoProviderAvailable,
+    ProviderAcquireTimeout,
+    ProviderDispatchError,
+    ProviderRunLease,
+    UPSTREAM_PROVIDER_DISPATCH,
+)
+from core.run_data_preparation import (
+    ProviderBundleFetchError,
+    ProviderBundlePreparationError,
+    prepare_provider_bundle,
 )
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.components.segment_inspector import render_segment_inspector
@@ -47,6 +61,11 @@ from ui.matplotlib_renderer import (
 )
 from ui.results_export import register_map_export_context
 from ui.presentation_context_adapter import build_presentation_context_from_session_state
+from ui.result_state import (
+    clear_rendered_result_state,
+    get_active_run_database_source,
+    set_active_run_database_source,
+)
 
 
 def _analysis_request_fingerprint(
@@ -87,6 +106,120 @@ def _render_fetch_error(fetch_result):
         st.code(error.query, language="sql")
 
 
+def _provider_request_counts(analyses, *, is_demo_run):
+    """Estimate complete-bundle network reservations for every data source."""
+    return {
+        provider.key: estimate_uncached_requests(
+            analyses,
+            is_demo=is_demo_run,
+            database_provider=provider,
+        )
+        for provider in UPSTREAM_PROVIDER_DISPATCH.providers
+        if provider.enabled
+    }
+
+
+def _try_reserve_upstream_capacity(
+    analyses,
+    *,
+    is_demo_run,
+    allowed_sources,
+):
+    """Reinspect provider caches immediately before one reservation attempt."""
+    request_counts_by_provider = _provider_request_counts(
+        analyses,
+        is_demo_run=is_demo_run,
+    )
+    provider_lease = UPSTREAM_PROVIDER_DISPATCH.try_acquire_run(
+        request_counts_by_provider,
+        allowed_sources=allowed_sources,
+    )
+    return provider_lease, request_counts_by_provider
+
+
+def _staged_artifact_paths(analyses, *, provider_key):
+    """Return unique unregistered paths for one transactional provider attempt."""
+    attempt_token = f"{provider_key}_{uuid.uuid4().hex[:12]}"
+    return {
+        analysis["id"]: session_artifact_path(
+            CACHE_DIR,
+            st.session_state,
+            run_id=f"{st.session_state.run_id}_{attempt_token}",
+            analysis_id=analysis["id"],
+        )
+        for analysis in analyses
+    }
+
+
+def _database_origin_status(provider_key):
+    """Return committed-run origin wording without implying a new request."""
+    provider = UPSTREAM_PROVIDER_DISPATCH.provider(provider_key)
+    role = (
+        "primary"
+        if provider == UPSTREAM_PROVIDER_DISPATCH.providers[0]
+        else "fallback"
+    )
+    return (
+        "- Database origin for complete run: "
+        f"**{provider.display_name}** ({role})"
+    )
+
+
+def _query_fetch_status(prepared_analysis):
+    """Render strict and legacy delivery tiers from one committed query trace."""
+    query_fetches = prepared_analysis.query_fetches
+    if not query_fetches:
+        return "query delivery details unavailable"
+
+    has_legacy_fetch = any(
+        query_fetch.decode_filter_mode == DECODE_FILTER_LEGACY
+        for query_fetch in query_fetches
+    )
+    has_usable_result = (
+        prepared_analysis.warning_message is None
+        and prepared_analysis.artifact_path is not None
+    )
+    fetch_descriptions = []
+    for query_index, query_fetch in enumerate(query_fetches):
+        is_legacy_fetch = query_fetch.decode_filter_mode == DECODE_FILTER_LEGACY
+        if is_legacy_fetch:
+            phase_label = "legacy"
+        elif query_fetch.decode_filter_mode == DECODE_FILTER_STRICT:
+            phase_label = "strict"
+        else:
+            phase_label = query_fetch.decode_filter_mode
+        is_selected_fetch = query_index == len(query_fetches) - 1
+
+        if not is_legacy_fetch and has_legacy_fetch:
+            outcome = "no target-side evidence"
+        elif is_selected_fetch and has_usable_result:
+            outcome = "used"
+        elif is_selected_fetch:
+            outcome = "completed; no usable result"
+        else:
+            outcome = "completed"
+        if is_legacy_fetch:
+            outcome += "; no code filter"
+
+        fetch_descriptions.append(
+            f"{phase_label}: **{query_fetch.delivery_source.delivery_label}** "
+            f"in {query_fetch.elapsed_seconds:.2f}s ({outcome})"
+        )
+
+    if (
+        prepared_analysis.analysis.get("legacy_query")
+        and not has_legacy_fetch
+    ):
+        fetch_descriptions.append("legacy: not needed")
+    return "; ".join(fetch_descriptions)
+
+
+def _refresh_session_artifacts_before_cleanup():
+    """Protect this session's retained artifacts before global TTL cleanup."""
+    touch_registered_session_artifacts(st.session_state)
+    return cleanup_old_parquets()
+
+
 def render_analysis_run(
     *,
     t,
@@ -117,6 +250,47 @@ def render_analysis_run(
         st.error(err_msg)
         st.session_state.run_mode = None
         st.stop()
+
+    center_latitude, center_longitude = locator_to_latlon(qth_locator)
+    active_demo_key = st.session_state.get("active_demo_profile")
+    active_demo = DEMO_PROFILES.get(active_demo_key) if active_demo_key else None
+    is_demo_run = active_demo is not None
+    analysis_context = build_analysis_context_from_session_state(st.session_state)
+    presentation_context = build_presentation_context_from_session_state(
+        st.session_state,
+        theme="dark",
+    )
+    try:
+        analyses = build_analysis_batches(
+            analysis_context,
+            start_t,
+            end_t,
+            center_latitude,
+            center_longitude,
+            band_filter,
+            presentation_context=presentation_context,
+            warn=st.warning,
+        )
+    except AnalysisConfigError as exc:
+        st.error(str(exc))
+        st.session_state.run_mode = None
+        return
+
+    _refresh_session_artifacts_before_cleanup()
+    request_counts_by_provider = {}
+    committed_source = get_active_run_database_source(st.session_state)
+    allowed_sources = {committed_source} if committed_source is not None else None
+
+    def reserve_upstream_capacity():
+        nonlocal request_counts_by_provider
+        provider_lease, latest_request_counts = _try_reserve_upstream_capacity(
+            analyses,
+            is_demo_run=is_demo_run,
+            allowed_sources=allowed_sources,
+        )
+        if provider_lease is not None:
+            request_counts_by_provider = latest_request_counts
+        return provider_lease
 
     waiting_status = None
     waiting_body = None
@@ -157,7 +331,7 @@ def render_analysis_run(
 
     owner = session_artifact_owner(st.session_state)
     request_key = _analysis_request_fingerprint(
-        analysis_context=build_analysis_context_from_session_state(st.session_state),
+        analysis_context=analysis_context,
         start_t=start_t,
         end_t=end_t,
         band_filter=band_filter,
@@ -167,16 +341,25 @@ def render_analysis_run(
 
     def log_admission(outcome):
         active, queued = ANALYSIS_ADMISSION_GATE.counts()
+        admission_values = {
+            "outcome": outcome,
+            "run_mode": st.session_state.get("run_mode"),
+            "wait_seconds": time.perf_counter() - admission_started,
+            "initial_queue_position": queue_profile["initial_position"],
+            "maximum_queue_position": queue_profile["maximum_position"],
+            "active": active,
+            "queued": queued,
+            "rss_bytes": process_rss_bytes(),
+        }
+        if outcome == "admitted":
+            admission_values = {
+                "started_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                **admission_values,
+            }
         log_performance_event(
             "analysis_admission",
-            outcome=outcome,
-            run_mode=st.session_state.get("run_mode"),
-            wait_seconds=time.perf_counter() - admission_started,
-            initial_queue_position=queue_profile["initial_position"],
-            maximum_queue_position=queue_profile["maximum_position"],
-            active=active,
-            queued=queued,
-            rss_bytes=process_rss_bytes(),
+            leading_blank_line=(outcome == "admitted"),
+            **admission_values,
         )
 
     try:
@@ -184,6 +367,7 @@ def render_analysis_run(
             owner=owner,
             request_key=request_key,
             on_wait=show_waiting,
+            reserve_capacity=reserve_upstream_capacity,
         )
     except AnalysisDuplicateRequest:
         log_admission("duplicate")
@@ -212,6 +396,13 @@ def render_analysis_run(
             "Analysis capacity did not become available in time. Please run the analysis again.",
         ))
         return
+    except ProviderDispatchError as exc:
+        log_admission(type(exc).__name__)
+        st.session_state.run_mode = None
+        if waiting_status is not None:
+            run_status_slot.empty()
+        st.warning(str(exc))
+        return
 
     log_admission("admitted")
     if waiting_status is not None:
@@ -224,14 +415,21 @@ def render_analysis_run(
             return _render_admitted_analysis_run(
                 t=t,
                 run_status_slot=run_status_slot,
-                callsign=callsign,
-                qth_locator=qth_locator,
-                band_filter=band_filter,
                 start_t=start_t,
                 end_t=end_t,
                 max_dist_km=max_dist_km,
                 generate_map_plot=generate_map_plot,
                 admission_permit=permit,
+                analyses=analyses,
+                analysis_context=analysis_context,
+                presentation_context=presentation_context,
+                center_latitude=center_latitude,
+                center_longitude=center_longitude,
+                active_demo=active_demo,
+                active_demo_key=active_demo_key,
+                is_demo_run=is_demo_run,
+                request_counts_by_provider=request_counts_by_provider,
+                committed_source=committed_source,
             )
     except BaseException as exc:
         run_outcome = type(exc).__name__
@@ -240,6 +438,7 @@ def render_analysis_run(
         active, queued = ANALYSIS_ADMISSION_GATE.counts()
         log_performance_event(
             "analysis_run",
+            trailing_blank_line=True,
             outcome=run_outcome,
             run_mode=st.session_state.get("run_mode"),
             duration_seconds=time.perf_counter() - run_started,
@@ -255,29 +454,25 @@ def _render_admitted_analysis_run(
     *,
     t,
     run_status_slot,
-    callsign,
-    qth_locator,
-    band_filter,
     start_t,
     end_t,
     max_dist_km,
     generate_map_plot,
     admission_permit,
+    analyses,
+    analysis_context,
+    presentation_context,
+    center_latitude,
+    center_longitude,
+    active_demo,
+    active_demo_key,
+    is_demo_run,
+    request_counts_by_provider,
+    committed_source,
 ):
     """Execute one analysis run after the caller has acquired capacity."""
 
-    lat_0, lon_0 = locator_to_latlon(qth_locator)
     touch_registered_session_artifacts(st.session_state)
-    cleanup_old_parquets()
-
-    active_demo_key = st.session_state.get("active_demo_profile")
-    active_demo = DEMO_PROFILES.get(active_demo_key) if active_demo_key else None
-    is_demo_run = active_demo is not None
-    analysis_context = build_analysis_context_from_session_state(st.session_state)
-    presentation_context = build_presentation_context_from_session_state(
-        st.session_state,
-        theme="dark",
-    )
 
     if active_demo:
         demo_label = active_demo.get("label", {}).get(
@@ -297,114 +492,233 @@ def _render_admitted_analysis_run(
     status_log.append("- Preparing synchronized WSPR cycles and analysis queries...")
     status_body.markdown("  \n".join(status_log))
 
-    try:
-        analyses = build_analysis_batches(
-            analysis_context,
-            start_t,
-            end_t,
-            lat_0,
-            lon_0,
-            band_filter,
-            presentation_context=presentation_context,
-            warn=st.warning,
-        )
-    except AnalysisConfigError as exc:
-        st.error(str(exc))
-        st.session_state.run_mode = None
-        st.stop()
-
     deferred_render_data = []
     loading_label = "⏳ Lade..." if st.session_state.lang == "de" else "⏳ Loading..."
+    provider_lease = admission_permit.capacity_lease
+    if not isinstance(provider_lease, ProviderRunLease):
+        status_box.update(label="Database capacity error", state="error", expanded=True)
+        st.error("The analysis was admitted without a database reservation.")
+        st.session_state.run_mode = None
+        return
 
-    for index, analysis in enumerate(analyses):
+    attempted_sources = []
+    excluded_sources = set(provider_lease.skipped_sources)
+    capacity_replans = 0
+    prepared_bundle = None
+    final_fetch_failure = None
+    attempt_status_log = []
+
+    def report_legacy_retry(index, analysis_count, _analysis):
+        attempt_status_log.append(
+            f"- Map {index + 1}/{analysis_count}: strict `code = 1` found no "
+            "target-side evidence; retrying legacy decode compatibility mode..."
+        )
+        status_body.markdown("  \n".join(status_log + attempt_status_log))
+
+    while prepared_bundle is None:
+        attempt_status_log.clear()
         admission_permit.touch()
-        profile_timer = PerformanceTimer()
-        fetch_start = time.time()
-
-        with st.spinner(t["msg_proc"].format(id=analysis["id"])):
-            fetch_result = fetch_wspr_data(
-                analysis["query"],
-                is_demo=is_demo_run,
-                response_format=analysis.get("response_format", "csv"),
+        provider = provider_lease.provider
+        excluded_sources.update(provider_lease.skipped_sources)
+        status_box.update(
+            label=f"Preparing complete run from {provider.display_name}...",
+            state="running",
+            expanded=True,
+        )
+        try:
+            prepared_bundle = prepare_provider_bundle(
+                analyses,
+                provider_lease=provider_lease,
+                is_demo_run=is_demo_run,
+                analysis_context=analysis_context,
+                center_latitude=center_latitude,
+                center_longitude=center_longitude,
+                labels=t,
+                artifact_paths=_staged_artifact_paths(
+                    analyses,
+                    provider_key=provider.key,
+                ),
+                on_legacy_retry=report_legacy_retry,
             )
-            _render_fetch_error(fetch_result)
-            df = fetch_result.dataframe
-            fetch_time = time.time() - fetch_start
+        except ProviderBundleFetchError as exc:
+            final_fetch_failure = exc.fetch_result
+            error = final_fetch_failure.error
+            is_provider_failure = bool(
+                error is not None and error.scope == FetchFailureScope.PROVIDER
+            )
+            is_capacity_failure = bool(
+                error is not None and error.scope == FetchFailureScope.CAPACITY
+            )
+            if is_provider_failure:
+                provider_lease.report_failure(error)
+                attempted_sources.append(provider.key)
+                excluded_sources.add(provider.key)
+            admission_permit.release_capacity_lease()
 
-            if should_retry_without_decode_filter(df, analysis):
+            may_fallback = is_provider_failure and committed_source is None
+            may_replan_capacity = is_capacity_failure and capacity_replans < 3
+            if not may_fallback and not may_replan_capacity:
                 status_log.append(
-                    f"- Map {index + 1}/{len(analyses)}: strict `code = 1` found no target-side evidence; "
-                    "retrying legacy decode compatibility mode..."
+                    f"- {provider.display_name} could not complete the data bundle."
                 )
                 status_body.markdown("  \n".join(status_log))
-                retry_start = time.time()
-                legacy_analysis = dict(analysis)
-                legacy_analysis["query"] = analysis["legacy_query"]
-                legacy_analysis["decode_filter_mode"] = analysis.get(
-                    "legacy_decode_filter_mode",
-                    DECODE_FILTER_LEGACY,
+                status_box.update(
+                    label="WSPR data request failed",
+                    state="error",
+                    expanded=True,
                 )
-                fetch_result = fetch_wspr_data(
-                    legacy_analysis["query"],
-                    is_demo=is_demo_run,
-                    response_format=legacy_analysis.get("response_format", "csv"),
-                )
-                _render_fetch_error(fetch_result)
-                df = fetch_result.dataframe
-                fetch_time += time.time() - retry_start
-                analysis = legacy_analysis
+                _render_fetch_error(final_fetch_failure)
+                st.session_state.run_mode = None
+                return
 
-            source_str = fetch_result.source.value
-            decode_note = (
-                " (legacy decode compatibility: no code filter)"
-                if analysis.get("decode_filter_mode") == DECODE_FILTER_LEGACY
-                else ""
-            )
-            status_log.append(
-                f"- Map {index + 1}/{len(analyses)}: {analysis['title']} loaded from "
-                f"**{source_str}** in {fetch_time:.2f}s{decode_note}"
-            )
-            profile_timer.add("fetch", fetch_time, detail=source_str + decode_note)
+            if may_replan_capacity:
+                capacity_replans += 1
+                status_log.append(
+                    "- Cached query availability changed; discarding partial "
+                    "results and replanning database capacity..."
+                )
+                waiting_label = "Waiting for database capacity..."
+                allowed_sources = (
+                    {committed_source} if committed_source is not None else None
+                )
+            else:
+                status_log.append(
+                    f"- {provider.display_name} could not complete the data bundle; "
+                    "discarding partial results and trying the next source..."
+                )
+                waiting_label = "Waiting for fallback database capacity..."
+                allowed_sources = None
             status_body.markdown("  \n".join(status_log))
 
-            if df is None or df.empty:
-                profile_timer.log_report(analysis_title=analysis["title"])
-                st.warning(t["warn_no_data"].format(title=analysis["title"]))
-                st.markdown("---")
-                continue
-
-            profile_timer.add_memory("fetched dataframe", df=df, detail=source_str)
-            with profile_timer.span("post-filtering"):
-                df, warning_msg = apply_post_fetch_filters(
-                    df,
-                    analysis,
-                    analysis_context,
-                    lat_0,
-                    lon_0,
-                    t,
-                    timing_collector=profile_timer,
+            def refreshed_fallback_request_counts():
+                """Reinspect caches throughout a mid-run provider wait."""
+                nonlocal request_counts_by_provider
+                request_counts_by_provider = _provider_request_counts(
+                    analyses,
+                    is_demo_run=is_demo_run,
                 )
+                return request_counts_by_provider
 
-            if warning_msg or df.empty:
-                profile_timer.log_report(analysis_title=analysis["title"])
-                st.warning(warning_msg or t["warn_no_data"].format(title=analysis["title"]))
-                st.markdown("---")
-                continue
-
-            profile_timer.add_memory("post-filter dataframe", df=df)
-            parquet_path = session_artifact_path(
-                CACHE_DIR,
-                st.session_state,
-                run_id=st.session_state.run_id,
-                analysis_id=analysis["id"],
-            )
             try:
-                write_parquet_artifact(df, parquet_path, index=False)
-                register_session_artifact(st.session_state, parquet_path)
-            except Exception as exc:
-                st.error(f"Error writing cache: {exc}")
+                provider_lease = UPSTREAM_PROVIDER_DISPATCH.acquire_run(
+                    refreshed_fallback_request_counts,
+                    excluded_sources=excluded_sources,
+                    allowed_sources=allowed_sources,
+                    on_wait=lambda _snapshot: status_box.update(
+                        label=waiting_label,
+                        state="running",
+                        expanded=True,
+                    ),
+                )
+            except (NoProviderAvailable, ProviderAcquireTimeout) as acquire_error:
+                status_log.append(f"- No fallback source completed the run: {acquire_error}")
+                status_body.markdown("  \n".join(status_log))
+                status_box.update(
+                    label="All WSPR database sources unavailable",
+                    state="error",
+                    expanded=True,
+                )
+                if final_fetch_failure is not None:
+                    _render_fetch_error(final_fetch_failure)
+                else:
+                    st.error(str(acquire_error))
+                st.session_state.run_mode = None
+                return
+            if not admission_permit.replace_capacity_lease(provider_lease):
+                status_box.update(
+                    label="Analysis capacity expired",
+                    state="error",
+                    expanded=True,
+                )
+                st.session_state.run_mode = None
+                return
+        except ProviderBundlePreparationError as exc:
+            admission_permit.release_capacity_lease()
+            status_log.append(f"- Local analysis preparation failed: {exc}")
+            status_body.markdown("  \n".join(status_log))
+            status_box.update(
+                label="Analysis preparation failed",
+                state="error",
+                expanded=True,
+            )
+            st.error(str(exc))
+            st.session_state.run_mode = None
+            return
+        else:
+            status_log.extend(attempt_status_log)
 
-            status_box.update(label=f"Rendering maps... ({index + 1}/{len(analyses)})", state="running", expanded=True)
+    provider_lease.report_success()
+    selected_provider = provider_lease.provider
+    selected_source_key = provider_lease.source_key
+    admission_permit.release_capacity_lease()
+    set_active_run_database_source(
+        st.session_state,
+        run_id=st.session_state.run_id,
+        source_key=selected_source_key,
+    )
+    retire_registered_session_artifacts(st.session_state)
+    clear_rendered_result_state(st.session_state)
+    for prepared_analysis in prepared_bundle.analyses:
+        if prepared_analysis.artifact_path is not None:
+            register_session_artifact(
+                st.session_state,
+                prepared_analysis.artifact_path,
+            )
+
+    status_log.append(_database_origin_status(selected_source_key))
+    for index, prepared_analysis in enumerate(prepared_bundle.analyses):
+        status_log.append(
+            f"- Map {index + 1}/{len(prepared_bundle.analyses)}: "
+            f"{prepared_analysis.analysis['title']} — "
+            f"{_query_fetch_status(prepared_analysis)}"
+        )
+    status_body.markdown("  \n".join(status_log))
+    log_performance_event(
+        "database_source_selected",
+        source=selected_source_key,
+        source_label=selected_provider.display_name,
+        is_fallback=(selected_provider != UPSTREAM_PROVIDER_DISPATCH.providers[0]),
+        failed_sources=attempted_sources,
+    )
+
+    for index, prepared_analysis in enumerate(prepared_bundle.analyses):
+        admission_permit.touch()
+        analysis = prepared_analysis.analysis
+        profile_timer = prepared_analysis.profile_timer
+        parquet_path = prepared_analysis.artifact_path
+
+        if prepared_analysis.warning_message or parquet_path is None:
+            profile_timer.log_report(analysis_title=analysis["title"])
+            st.warning(
+                prepared_analysis.warning_message
+                or t["warn_no_data"].format(title=analysis["title"])
+            )
+            st.markdown("---")
+            continue
+
+        try:
+            df = read_parquet_artifact(parquet_path)
+        except (OSError, ValueError) as exc:
+            status_box.update(
+                label="Prepared analysis data became unavailable",
+                state="error",
+                expanded=True,
+            )
+            st.error(f"Error reading prepared analysis data: {exc}")
+            st.session_state.run_mode = None
+            return
+
+        profile_timer.add_memory(
+            "staged post-filter dataframe",
+            df=df,
+            detail=prepared_bundle.database_source.display_name,
+        )
+        with st.spinner(t["msg_proc"].format(id=analysis["id"])):
+            status_box.update(
+                label=f"Rendering maps... ({index + 1}/{len(prepared_bundle.analyses)})",
+                state="running",
+                expanded=True,
+            )
             with (
                 profile_timer.span("map generation"),
                 matplotlib_profile_collector(profile_timer),
@@ -419,8 +733,8 @@ def _render_admitted_analysis_run(
                     max_dist_km,
                     analysis["id"],
                     st.session_state.val_min_stations,
-                    lat_0,
-                    lon_0,
+                    center_latitude,
+                    center_longitude,
                     analysis_context=analysis_context,
                     presentation_context=presentation_context,
                     analysis_kind=analysis.get("analysis_kind", "comparison"),
@@ -463,10 +777,11 @@ def _render_admitted_analysis_run(
                     end_t,
                     max_dist_km,
                     st.session_state.val_min_stations,
-                    lat_0,
-                    lon_0,
+                    center_latitude,
+                    center_longitude,
                     analysis_context,
                     presentation_context,
+                    database_source=selected_source_key,
                 )
             finally:
                 with (

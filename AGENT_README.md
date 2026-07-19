@@ -7,8 +7,9 @@ flows are documented in `docs/architecture.md`.
 ## Purpose
 
 WSPRadar is a public Streamlit application for semi-quantitative comparison of
-historical WSPR transmitting and receiving performance. It queries the public
-wspr.live ClickHouse HTTP endpoint and turns the returned observations into maps,
+historical WSPR transmitting and receiving performance. It queries read-only
+public ClickHouse HTTP endpoints, using wspr.live as primary and WSPRDaemon WD2
+then WD1 as fallbacks, and turns the returned observations into maps,
 segment summaries, evidence views, and export packages.
 
 The application is an analysis and science-education tool. It is not a live
@@ -31,6 +32,8 @@ measurement system.
 - Guided demo profiles for historical examples.
 - Process-wide analysis and export admission queues, duplicate-request rejection,
   bounded HTTP reads, shared artifact locking, and performance/RSS logging.
+- Source-pinned database failover with process-local rolling request budgets,
+  provider cooldowns, source-isolated query caches, and run provenance.
 - The preface rendered initially, with the table of contents and remaining manual
   loaded near its viewport boundary or through an explicit fallback; PDF
   generation remains process-cached and explicitly requested.
@@ -103,7 +106,7 @@ was found in the application path.
 
 | File | Configuration owned |
 | --- | --- |
-| `config/app_config.py` | Application metadata, public URLs, wspr.live URL, cache path/TTL, query limits, HTTP timeouts/response ceilings, admission queues, and inspector-cache limits. |
+| `config/app_config.py` | Application metadata, ordered WSPR database providers, provider budgets/cooldowns, cache path/TTL, query limits, HTTP timeouts/response ceilings, admission queues, and inspector-cache limits. |
 | `config/bands.py` | User-facing WSPR bands and wspr.live band identifiers. |
 | `config/demos/*.config` | Authoritative guided demos. Each file is an ordinary standalone configuration; lexicographic filename order defines launcher order. |
 | `config/demo_profiles.py` | Dependency-free demo discovery, validation, duplicate-ID protection, stable filename ordering, and `DEMO_PROFILES` compatibility export. |
@@ -124,7 +127,12 @@ Important defaults currently include:
 - Export admission: 1 active, 10 queued, 600-second queue wait.
 - CSV and Parquet decompressed response ceiling: 64 MiB each.
 - HTTP connect timeout: 10 seconds; read-inactivity timeout: 60 seconds.
-- Query cache TTL: 3600 seconds.
+- Ordinary query-cache TTL: 3600 seconds.
+- Guided-demo query-cache TTL: 86400 seconds from publication; cache reads do
+  not extend this absolute freshness window.
+- Session-artifact TTL: 3600 seconds, with active leases and access touches.
+- WSPR database priority: wspr.live, WD2, then WD1; each currently has a
+  process-local 20-request/60-second application budget.
 - Session inspector cache budget: 5 MiB.
 
 These limits come directly from `config/app_config.py`; change them there and
@@ -231,6 +239,10 @@ Useful files when tracing behavior:
 - `core/tx_ab_schedule.py`: periodic TX A/B validation, exact schedule SQL, and
   stable planned-pair assignment.
 - `core/data_engine.py`: bounded upstream HTTP and query cache.
+- `core/provider_dispatch.py`: provider priority, rolling request reservations,
+  circuit cooldowns, and complete-run leases.
+- `core/run_data_preparation.py`: transactional source-pinned fetch,
+  strict/legacy selection, processing, and unpublished artifact staging.
 - `core/compare_engine.py` and `core/opportunity_engine.py`: scientific
   aggregation and classification.
 - `core/map_data.py` and `core/plot_engine.py`: pure map aggregation and
@@ -310,27 +322,37 @@ ignored by Git:
 
 ```text
 .wspr_cache/
-  queries/
+  queries/<database-source>/
+  demo-queries/<database-source>/
   derived-analysis/basemaps/
   session-artifacts/<owner>/run_<id>/
   .artifact-locks/
 ```
 
-Query and session artifacts have TTL/access handling. Derived basemaps are
-shared across sessions and are not currently subject to TTL cleanup. Process
-memory also holds the query DataFrame LRU, admission state, inspector session
-models/PNGs, and generated documentation PDF cache.
+Ordinary query and session artifacts use one-hour access-aware cleanup. Guided
+demo query artifacts use a separate 24-hour absolute freshness lifetime: reads
+do not touch their publication timestamp. Demo Compare keeps a process-memory
+DataFrame L1 and a Parquet disk L2; demo Success uses the same persistent demo
+namespace. Both tiers cache raw provider query results rather than completed
+scientific analyses, and provider identity remains part of every query-cache
+key. Derived basemaps are shared across sessions and are not currently subject
+to TTL cleanup. Process memory also holds the query DataFrame LRU, admission
+state, inspector session models/PNGs, generated documentation PDF cache, and
+provider rolling-request, reservation, cooldown, and half-open probe state.
 
 Deleting `.wspr_cache` is safe only when no active process is using it. The next
 request will rebuild missing query, basemap, or session artifacts.
 
 ## Known Limitations and Risks
 
-- The application depends on availability and behavior of the public wspr.live
-  ClickHouse HTTP service. Requests are bounded by time and bytes, but upstream
-  failure still causes analyses to fail and require retry.
+- The application depends on the availability and compatible behavior of the
+  public wspr.live, WSPRDaemon WD2, and WSPRDaemon WD1 ClickHouse HTTP services.
+  One complete run is pinned to one source; a provider failure restarts its full
+  unpublished data bundle on the next source.
 - Analysis/export admission and duplicate tracking are process-local. Multiple
-  application processes do not share a global queue or request budget.
+  application processes do not share a global queue, provider circuit, or
+  request budget. The WD budgets are conservative application settings, not
+  documented upstream quota guarantees.
 - There is no authentication, IP rate limiting, or trusted-edge abuse control.
   A client can create multiple Streamlit sessions.
 - Streamlit CORS and XSRF protection are disabled in committed configuration.
@@ -348,8 +370,8 @@ request will rebuild missing query, basemap, or session artifacts.
   shared state but limits concurrent rendering throughput.
 - The first map for a new locator can incur Cartopy/Natural Earth asset loading
   and basemap construction. Later requests use the derived basemap cache.
-- Session and in-memory caches are lost on process restart. Local filesystem
-  persistence depends on the hosting environment retaining `.wspr_cache`.
+- In-memory caches are lost on process restart. Query and session disk artifacts
+  survive only when the hosting environment retains `.wspr_cache`.
 - Most dependencies are unpinned and there is no automated vulnerability or
   dependency audit workflow.
 - The committed historical demo export predates the current opportunity schema;

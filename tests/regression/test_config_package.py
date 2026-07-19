@@ -13,7 +13,9 @@ from config import (
     CONFIG_DOCUMENT_FORMAT,
     CONFIG_KEYS,
     CONFIG_SCHEMA_VERSION,
+    DB_URL,
     DEFAULT_BAND,
+    DEMO_QUERY_CACHE_TTL_SEC,
     DEMO_PROFILES,
     EXPORT_ACTIVE_LEASE_TIMEOUT_SEC,
     EXPORT_MAX_CONCURRENT,
@@ -21,10 +23,15 @@ from config import (
     EXPORT_QUEUE_POLL_INTERVAL_SEC,
     EXPORT_QUEUE_WAIT_TIMEOUT_SEC,
     MAP_SCOPE_OPTIONS,
+    SESSION_ARTIFACT_TTL_SEC,
+    STANDARD_QUERY_CACHE_TTL_SEC,
     WSPR_CSV_MAX_RESPONSE_BYTES,
+    WSPR_DATABASE_PROVIDERS,
     WSPR_HTTP_CONNECT_TIMEOUT_SEC,
     WSPR_HTTP_READ_TIMEOUT_SEC,
     WSPR_PARQUET_MAX_RESPONSE_BYTES,
+    WSPR_PROVIDER_ACQUIRE_POLL_INTERVAL_SEC,
+    WSPR_PROVIDER_ACQUIRE_TIMEOUT_SEC,
 )
 from config.demo_profiles import (
     DEMO_PROFILES_DIR,
@@ -124,6 +131,50 @@ def test_wspr_http_guardrails_are_safe_and_exported():
     assert 0 < WSPR_HTTP_CONNECT_TIMEOUT_SEC < WSPR_HTTP_READ_TIMEOUT_SEC
     assert WSPR_CSV_MAX_RESPONSE_BYTES >= 1024 * 1024
     assert WSPR_PARQUET_MAX_RESPONSE_BYTES >= 1024 * 1024
+
+
+def test_cache_lifecycle_ttls_are_explicit_and_exported():
+    """Keep ordinary artifacts at one hour and demo queries at one day."""
+    assert STANDARD_QUERY_CACHE_TTL_SEC == 3600
+    assert DEMO_QUERY_CACHE_TTL_SEC == 86400
+    assert SESSION_ARTIFACT_TTL_SEC == 3600
+
+
+def test_wspr_database_provider_priority_and_limits_are_explicit():
+    """Keep the chosen primary/fallback order and local budgets auditable."""
+    assert [provider.key for provider in WSPR_DATABASE_PROVIDERS] == [
+        "wspr_live",
+        "wd2",
+        "wd1",
+    ]
+    assert [provider.display_name for provider in WSPR_DATABASE_PROVIDERS] == [
+        "wspr.live",
+        "WD2",
+        "WD1",
+    ]
+    assert [provider.url for provider in WSPR_DATABASE_PROVIDERS] == [
+        "https://db1.wspr.live/",
+        "https://wd2.wsprdaemon.org/",
+        "https://wd1.wsprdaemon.org/",
+    ]
+    assert all(provider.enabled for provider in WSPR_DATABASE_PROVIDERS)
+    assert all(provider.request_limit == 20 for provider in WSPR_DATABASE_PROVIDERS)
+    assert all(provider.request_window_seconds == 60.0 for provider in WSPR_DATABASE_PROVIDERS)
+    assert all(
+        provider.circuit_failure_threshold == 1
+        for provider in WSPR_DATABASE_PROVIDERS
+    )
+    assert all(
+        provider.rate_limit_cooldown_seconds == 60.0
+        for provider in WSPR_DATABASE_PROVIDERS
+    )
+    assert all(
+        provider.failure_cooldown_seconds == 30.0
+        for provider in WSPR_DATABASE_PROVIDERS
+    )
+    assert WSPR_PROVIDER_ACQUIRE_TIMEOUT_SEC == 600
+    assert WSPR_PROVIDER_ACQUIRE_POLL_INTERVAL_SEC == 0.5
+    assert DB_URL == WSPR_DATABASE_PROVIDERS[0].url
 
 
 def test_demo_configs_follow_filename_order_and_keep_canonical_settings():

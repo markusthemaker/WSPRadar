@@ -24,7 +24,7 @@ The method builds on peer-reviewed research and established technical experiment
 
 <strong class="defined-term">WSPR</strong> stands for **Weak Signal Propagation Reporter**. Joe Taylor, K1JT, and Bruce Walker, W1BW, described it as a worldwide network of low-power stations exchanging beacon-like transmissions to probe possible propagation paths. A WSPR-2 transmission lasts just under two minutes and occupies about 6 Hz. Its message normally contains a callsign, a four-character Maidenhead locator and reported power in dBm; `30 dBm` is `1 W`. It can be decoded at about `-28 dB` signal-to-noise ratio (SNR) in a 2500 Hz reference bandwidth <a href="#ref-4">[Ref-4]</a>. A less negative SNR means a stronger signal relative to noise.
 
-When reporting is enabled, a receiver uploads each successful decode as a <strong class="defined-term">spot</strong>. A spot records transmitter and receiver identity, reported location, time, band, power and decoder-reported SNR. WSPRadar reads this history through wspr.live, a public ClickHouse database that stores WSPRnet-reported spots and checks for new reports every few minutes. A daily synchronization fills reports that were missed or uploaded late <a href="#ref-5">[Ref-5]</a>.
+When reporting is enabled, a receiver uploads each successful decode as a <strong class="defined-term">spot</strong>. A spot records transmitter and receiver identity, reported location, time, band, power and decoder-reported SNR. WSPRadar uses wspr.live as its primary WSPR data source, with WSPRDaemon WD2 and WD1 as fallback sources. wspr.live is a public ClickHouse database that stores WSPRnet-reported spots and checks for new reports every few minutes. A daily synchronization fills reports that were missed or uploaded late <a href="#ref-5">[Ref-5]</a>.
 
 One limitation matters for every analysis: the archive contains successful decodes, not a complete log of every attempted transmission. WSPRadar therefore constructs an <strong class="defined-term">opportunity</strong>: a Target-active two-minute cycle with independent evidence that the relevant remote transmitter or receiver was active. In RX, another receiver must have decoded the same transmitter; in TX, the remote receiver must have decoded another signal on the same band. Without that supporting activity, a missing spot is not automatically counted as a radio failure.
 
@@ -998,7 +998,9 @@ If evidence exists but looks unexpected, continue with these branches:
 | **Old config with `band=All` is rejected** | Choose one exact band; automatic conversion would change the scientific question. |
 | **Recent spots appear incomplete** | Allow about five minutes after the latest cycle, then check reporting and upstream status as described in Section 5.6. |
 
-An upstream-data issue changes what wspr.live supplies. An experiment-design issue changes whether the retained rows answer the intended question. Diagnose and report the two separately.
+An upstream-data issue changes what the selected source supplies. An experiment-design issue changes whether the retained rows answer the intended question. Diagnose and report the two separately.
+
+System Audit Status names the database origin once for the complete run, then reports `database request`, `RAM cache` or `disk cache` plus timing for each strict and optional historical-fallback query separately. Those delivery labels describe how rows reached the analysis; they do not identify different databases. On the same deployment, a guided demo can reuse raw provider query rows for up to 24 hours from their original fetch. Cache hits do not renew that deadline. A process restart loses the RAM tier, but the disk tier remains reusable if local storage survives; storage eviction can remove it sooner.
 
 <a id="sec-6-3"></a>
 
@@ -1012,7 +1014,7 @@ Peer identities use exact callsign plus the full reported locator string. Bad, s
 
 #### 5.4 Historical decode-code fallback
 
-WSPRadar first requests rows using wspr.live `code = 1` for WSPR-2 evidence. If the strict query returns no Target-side evidence, it retries without that predicate for historical compatibility and reports the fallback in run status.
+WSPRadar first requests rows using `code = 1` for WSPR-2 evidence. If the strict query returns no Target-side evidence, it retries without that predicate for historical compatibility and reports the fallback in run status.
 
 The fallback broadens selection. The current export package does not preserve the effective decode-filter or fallback state. Retain the reported run status in the experiment notes, especially because Compare and Success can take different paths.
 
@@ -1158,7 +1160,7 @@ The matrix is an orientation aid. The definitions, formulas and processing rules
 <a id="sec-7-1"></a>
 #### 7.1 Data source, decode selection and time model
 
-WSPRadar reads the public `wspr.rx` table through the read-only wspr.live HTTP interface. Spots are observational records from independently operated transmitters, receivers, software and networks. They are not a randomized or calibrated sample of possible paths. Decode selection, historical fallback and upstream-data behavior are documented once in [Sections 5.4-5.6](#sec-6-4).
+WSPRadar reads the public `wspr.rx` table through the selected read-only ClickHouse HTTP interface. Spots are observational records from independently operated transmitters, receivers, software and networks. They are not a randomized or calibrated sample of possible paths. Decode selection, historical fallback and upstream-data behavior are documented once in [Sections 5.4-5.6](#sec-6-4).
 
 The selected UTC endpoints are resolved when the run starts, then both are quantized down to 15-minute boundaries for query reuse. Success uses a half-open interval, `start <= time < end`: an observation exactly at the quantized start is eligible, while one exactly at the quantized end is excluded. Compare currently uses database `BETWEEN`, so it can include an observation exactly at both the quantized start and end. A boundary observation can therefore appear in Compare but not Success, and adjacent Compare windows can share the exact endpoint.
 
@@ -1450,7 +1452,7 @@ success/                         # when a Success result exists
   analysis_cache.parquet
 ```
 
-Figures use a high-resolution light/paper presentation. Files without an applicable recipe or selected evidence can be absent. CSV files reflect current segment and station selections. Parquet files contain processed post-filter evidence, not untouched wspr.live dumps.
+Figures use a high-resolution light/paper presentation. Files without an applicable recipe or selected evidence can be absent. CSV files reflect current segment and station selections. Parquet files contain processed post-filter evidence, not untouched upstream dumps.
 
 For Compare, `figure_selected_station_evidence.png` reproduces the selected-station temporal view active when the export is prepared. Chronological mode uses the selected Compare time bin; `UTC-Hour` uses fixed one-hour slots and the same selected evidence rows. The mode is stored in the saved `.config` and in `run_metadata.json`.
 

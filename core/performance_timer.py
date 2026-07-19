@@ -155,8 +155,14 @@ def _profile_logger() -> logging.Logger:
     return logger
 
 
-def log_performance_event(event: str, **values) -> None:
-    """Write one compact process-level performance event to the terminal."""
+def log_performance_event(
+    event: str,
+    *,
+    leading_blank_line: bool = False,
+    trailing_blank_line: bool = False,
+    **values,
+) -> None:
+    """Write one compact, optionally blank-line-framed performance event."""
     parts = [f'PERF event="{event}"']
     for key, value in values.items():
         if key.endswith("_bytes"):
@@ -170,7 +176,12 @@ def log_performance_event(event: str, **values) -> None:
         else:
             rendered = str(value)
         parts.append(f"{key}={rendered}")
-    _profile_logger().info(" ".join(parts))
+    message = " ".join(parts)
+    if leading_blank_line:
+        message = f"\n{message}"
+    if trailing_blank_line:
+        message = f"{message}\n"
+    _profile_logger().info(message)
 
 
 class PerformanceTimer:

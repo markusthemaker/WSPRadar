@@ -27,7 +27,7 @@ Die Methode baut auf begutachteter Forschung und etablierten technischen Versuch
 
 <strong class="defined-term">WSPR</strong> steht für **Weak Signal Propagation Reporter**. Joe Taylor, K1JT, und Bruce Walker, W1BW, beschrieben WSPR als weltweites Netz von QRP-Stationen, die bakensignalartige Aussendungen austauschen, um mögliche Ausbreitungswege zu untersuchen. Eine WSPR-2-Aussendung dauert knapp zwei Minuten und belegt etwa 6 Hz. Die Nachricht enthält üblicherweise ein Rufzeichen, einen vierstelligen Maidenhead-Locator und die gemeldete Leistung in dBm; `30 dBm` entsprechen `1 W`. Decodes sind bis etwa `-28 dB` Signal-Rausch-Verhältnis (SNR) bezogen auf eine Referenzbandbreite von 2500 Hz möglich <a href="#ref-4">[Ref-4]</a>. Ein weniger negativer SNR-Wert bedeutet ein stärkeres Signal gegenüber dem Rauschen.
 
-Ist das Reporting aktiviert, lädt ein Empfänger jeden erfolgreichen Decode als <strong class="defined-term">Spot</strong> hoch. Ein Spot enthält die Identität von Sender und Empfänger, den gemeldeten Standort, Zeit, Band, Leistung und den vom Decoder gemeldeten SNR. WSPRadar liest diese Historie über wspr.live, eine öffentliche ClickHouse-Datenbank, die von WSPRnet gemeldete Spots speichert und alle paar Minuten nach neuen Meldungen sucht. Eine tägliche Synchronisierung ergänzt Meldungen, die zunächst fehlten oder verspätet hochgeladen wurden <a href="#ref-5">[Ref-5]</a>.
+Ist das Reporting aktiviert, lädt ein Empfänger jeden erfolgreichen Decode als <strong class="defined-term">Spot</strong> hoch. Ein Spot enthält die Identität von Sender und Empfänger, den gemeldeten Standort, Zeit, Band, Leistung und den vom Decoder gemeldeten SNR. WSPRadar nutzt wspr.live als primäre WSPR-Datenquelle; WSPRDaemon WD2 und WD1 dienen als Ausweichquellen. wspr.live ist eine öffentliche ClickHouse-Datenbank, die von WSPRnet gemeldete Spots speichert und alle paar Minuten nach neuen Meldungen sucht. Eine tägliche Synchronisierung ergänzt Meldungen, die zunächst fehlten oder verspätet hochgeladen wurden <a href="#ref-5">[Ref-5]</a>.
 
 Eine Einschränkung ist für jede Analyse entscheidend: Das Archiv enthält erfolgreiche Decodes, aber kein vollständiges Protokoll aller Sendeversuche. WSPRadar konstruiert deshalb eine <strong class="defined-term">Opportunity</strong>: einen zweiminütigen Zyklus mit nachweislich aktivem Target und unabhängiger Evidenz dafür, dass der betreffende entfernte Sender oder Empfänger aktiv war. Bei RX muss ein anderer Empfänger denselben Sender decodiert haben; bei TX muss der entfernte Empfänger ein anderes Signal auf demselben Band decodiert haben. Ohne diesen Aktivitätsnachweis wird ein fehlender Spot nicht automatisch als funktechnischer Misserfolg gewertet.
 
@@ -1000,7 +1000,9 @@ Wenn Evidenz vorhanden ist, aber unerwartet aussieht, fahre mit diesen Zweigen f
 | **Alte Konfiguration mit `band=All` wird abgelehnt** | Wähle genau ein Band; eine automatische Konvertierung würde die wissenschaftliche Fragestellung verändern. |
 | **Aktuelle Spots erscheinen unvollständig** | Warte nach dem letzten Zyklus ungefähr fünf Minuten und prüfe anschließend Upload und Upstream-Status wie in Abschnitt 5.6 beschrieben. |
 
-Ein Problem mit Upstream-Daten verändert, was wspr.live liefert. Ein Problem des Versuchsdesigns verändert, ob die beibehaltenen Zeilen die beabsichtigte Frage beantworten. Diagnostiziere und dokumentiere beides getrennt.
+Ein Problem mit Upstream-Daten verändert, was die ausgewählte Quelle liefert. Ein Problem des Versuchsdesigns verändert, ob die beibehaltenen Zeilen die beabsichtigte Frage beantworten. Diagnostiziere und dokumentiere beides getrennt.
+
+Der System Audit Status nennt die Datenbankquelle einmal für den vollständigen Lauf und meldet anschließend `database request`, `RAM cache` oder `disk cache` samt Dauer getrennt für jede strenge Abfrage und den optionalen historischen Fallback. Diese Bereitstellungsangaben beschreiben, wie die Zeilen zur Analyse gelangten; sie bezeichnen keine unterschiedlichen Datenbanken. Auf derselben Bereitstellung kann eine geführte Demo rohe Abfragezeilen des Providers bis zu 24 Stunden nach dem ursprünglichen Abruf wiederverwenden. Cache-Treffer verlängern diese Frist nicht. Ein Prozessneustart verwirft die RAM-Stufe, die Disk-Stufe bleibt bei erhaltenem lokalen Speicher jedoch wiederverwendbar; eine Speicherbereinigung kann sie früher entfernen.
 
 <a id="sec-6-3"></a>
 
@@ -1014,7 +1016,7 @@ Peer-Identitäten bestehen aus dem exakten Rufzeichen plus der vollständig geme
 
 #### 5.4 Fallback für historische Decode-Codes
 
-WSPRadar fragt für WSPR-2-Evidenz zunächst Zeilen mit wspr.live `code = 1` ab. Liefert die strenge Abfrage keine Target-seitige Evidenz, wird sie aus Gründen der historischen Kompatibilität ohne dieses Prädikat wiederholt; der Fallback wird im Laufstatus gemeldet.
+WSPRadar fragt für WSPR-2-Evidenz zunächst Zeilen mit `code = 1` ab. Liefert die strenge Abfrage keine Target-seitige Evidenz, wird sie aus Gründen der historischen Kompatibilität ohne dieses Prädikat wiederholt; der Fallback wird im Laufstatus gemeldet.
 
 Der Fallback erweitert die Auswahl. Das aktuelle Exportpaket hält weder den effektiv verwendeten Decode-Filter noch den Fallback-Zustand fest. Bewahre deshalb den gemeldeten Laufstatus in den Versuchsnotizen auf – insbesondere, weil Compare und Success unterschiedliche Wege nehmen können.
 
@@ -1160,7 +1162,7 @@ Die Matrix dient der Orientierung. Maßgeblich sind die nachfolgenden Definition
 <a id="sec-7-1"></a>
 #### 7.1 Datenquelle, Decode-Auswahl und Zeitmodell
 
-WSPRadar liest die öffentliche Tabelle `wspr.rx` über die schreibgeschützte HTTP-Schnittstelle von wspr.live. Spots sind Beobachtungsdatensätze unabhängig betriebener Sender, Empfänger, Software und Netzwerke. Sie sind keine randomisierte oder kalibrierte Stichprobe möglicher Funkwege. Decode-Auswahl, historischer Fallback und das Verhalten bei vorgelagerten Datenproblemen sind einmalig in den [Abschnitten 5.4-5.6](#sec-6-4) dokumentiert.
+WSPRadar liest die öffentliche Tabelle `wspr.rx` über die ausgewählte schreibgeschützte ClickHouse-HTTP-Schnittstelle. Spots sind Beobachtungsdatensätze unabhängig betriebener Sender, Empfänger, Software und Netzwerke. Sie sind keine randomisierte oder kalibrierte Stichprobe möglicher Funkwege. Decode-Auswahl, historischer Fallback und das Verhalten bei vorgelagerten Datenproblemen sind einmalig in den [Abschnitten 5.4-5.6](#sec-6-4) dokumentiert.
 
 Die gewählten UTC-Endpunkte werden beim Start des Laufs aufgelöst und anschließend zur Wiederverwendung der Abfrage beide auf 15-Minuten-Grenzen abgerundet. Success verwendet ein halboffenes Intervall, `start <= time < end`: Eine Beobachtung genau am quantisierten Start ist zulässig, eine Beobachtung genau am quantisierten Ende dagegen ausgeschlossen. Compare verwendet derzeit in der Datenbank `BETWEEN` und kann daher eine Beobachtung exakt am quantisierten Start wie auch am quantisierten Ende einschließen. Eine Beobachtung auf der Intervallgrenze kann folglich in Compare, nicht aber in Success erscheinen; benachbarte Compare-Fenster können sich außerdem den exakten Endpunkt teilen.
 
@@ -1452,7 +1454,7 @@ success/                         # sofern ein Success-Ergebnis vorliegt
   analysis_cache.parquet
 ```
 
-Die Abbildungen verwenden eine hochauflösende Darstellung auf hellem, druckgeeignetem Hintergrund. Dateien ohne anwendbares Exportrezept oder ohne ausgewählte Evidenz können fehlen. CSV-Dateien spiegeln die aktuelle Segment- und Stationsauswahl wider. Parquet-Dateien enthalten verarbeitete Evidenz nach Anwendung der Filter und keine unveränderten wspr.live-Dumps.
+Die Abbildungen verwenden eine hochauflösende Darstellung auf hellem, druckgeeignetem Hintergrund. Dateien ohne anwendbares Exportrezept oder ohne ausgewählte Evidenz können fehlen. CSV-Dateien spiegeln die aktuelle Segment- und Stationsauswahl wider. Parquet-Dateien enthalten verarbeitete Evidenz nach Anwendung der Filter und keine unveränderten Upstream-Dumps.
 
 Bei Compare reproduziert `figure_selected_station_evidence.png` die für die ausgewählten Stationen aktive Zeitansicht zum Zeitpunkt der Exportvorbereitung. Der Modus `Chronologisch` verwendet die gewählte Compare-Zeitklasse; `UTC-Stunde` verwendet feste einstündige Zeitfenster und dieselben ausgewählten Evidenzzeilen. Der Modus wird in der gespeicherten `.config` und in `run_metadata.json` festgehalten.
 

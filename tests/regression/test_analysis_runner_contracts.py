@@ -229,6 +229,7 @@ def test_local_median_neighborhood_uses_station_weighted_reference_median_sql():
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
 
+    assert tx_compare["is_local_median"] is True
     assert "quantileExactInclusive(0.5)((snr - power + 30 + 0.0)) AS station_snr_norm" in tx_compare["query"]
     assert "GROUP BY time_slot, peer_sign, peer_grid, local_sign, local_grid" in tx_compare["query"]
     assert "quantileExactInclusiveIf(0.5)(station_snr_norm, is_me = 0) AS snr_r_norm" in tx_compare["query"]

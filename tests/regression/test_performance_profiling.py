@@ -100,3 +100,31 @@ def test_performance_event_formats_seconds_and_memory(monkeypatch):
         'PERF event="analysis_run" duration_seconds=1.235s '
         'rss_end_bytes="1.0 MiB" outcome=completed'
     ]
+
+
+def test_performance_event_can_frame_analysis_run_with_blank_lines(monkeypatch):
+    """Run-boundary events can be separated without changing other PERF logs."""
+    messages = []
+
+    class CapturingLogger:
+        def info(self, message):
+            messages.append(message)
+
+    monkeypatch.setattr(performance_timer, "_profile_logger", lambda: CapturingLogger())
+    performance_timer.log_performance_event(
+        "analysis_admission",
+        leading_blank_line=True,
+        started_at="2026-07-19T21:24:05+02:00",
+        outcome="admitted",
+    )
+    performance_timer.log_performance_event(
+        "analysis_run",
+        trailing_blank_line=True,
+        outcome="completed",
+    )
+
+    assert messages == [
+        '\nPERF event="analysis_admission" '
+        "started_at=2026-07-19T21:24:05+02:00 outcome=admitted",
+        'PERF event="analysis_run" outcome=completed\n',
+    ]

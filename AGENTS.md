@@ -28,8 +28,9 @@ generated end-user and scientific manual, not the repository engineering guide.
   script rewrites the complete file.
 - `AGENT_README.md` is the authoritative repository setup and operating guide.
 - `docs/architecture.md` is the authoritative code-level architecture guide.
-- `config/app_config.py` owns runtime URLs, cache settings, HTTP limits,
-  admission limits, and inspector-cache limits.
+- `config/app_config.py` owns ordered database providers, provider request and
+  cooldown policies, runtime URLs, cache settings, HTTP limits, admission
+  limits, and inspector-cache limits.
 - `config/bands.py`, `config/demos/*.config`, `config/demo_profiles.py`,
   `config/config_schema.py`, `config/config_codec.py`,
   `config/wspradar-config.schema.json`, and `config/plot_constants.py` own band
@@ -236,10 +237,18 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 
 ## Architectural Constraints
 
-- The application is read-only with respect to wspr.live. Do not add upstream
-  mutation or credentials without an explicit design review.
+- The application is read-only with respect to wspr.live, WSPRDaemon WD2, and
+  WSPRDaemon WD1. Do not add upstream mutation or credentials without an
+  explicit design review.
+- Every published analysis run must use exactly one database source across
+  Compare, Success, strict and legacy queries. On provider failover, discard the
+  unpublished partial bundle and restart it from Map 1. Database identity must
+  remain separate from cache medium and participate in query-cache identity and
+  run/export provenance.
 - Analysis and export gates are process-local. Their limits are safety controls,
-  not globally distributed quotas.
+  not globally distributed quotas. Provider request budgets and circuit state
+  are likewise process-local and cannot enforce a shared-egress-IP quota across
+  replicas.
 - Query, derived-analysis, and session-artifact files have different lifecycles.
   Do not collapse their namespaces or cleanup policies.
 - Session artifacts may remain in use after a Streamlit rerun. Cleanup must
