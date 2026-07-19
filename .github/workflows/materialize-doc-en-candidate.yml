@@ -7,6 +7,12 @@ on:
     paths:
       - docs/drafts/doc_en_candidate.py
       - .github/workflows/materialize-doc-en-candidate.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - docs/drafts/doc_en_candidate.py
+      - .github/workflows/materialize-doc-en-candidate.yml
   workflow_dispatch:
 
 permissions:
