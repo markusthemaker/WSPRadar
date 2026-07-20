@@ -107,6 +107,7 @@ def test_tx_ab_schedule_sql_filters_compare_and_success_to_configured_starts():
     context = _analysis_context(
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_TX,
+        qth="JN37UN",
         tx_ab_repeat_interval_minutes=10,
         tx_ab_target_start_minute=0,
         tx_ab_reference_start_minute=2,
@@ -118,6 +119,9 @@ def test_tx_ab_schedule_sql_filters_compare_and_success_to_configured_starts():
     assert "toMinute(time) % 10 = 0" in tx_compare["query"]
     assert "toMinute(time) % 10 = 2" in tx_compare["query"]
     assert "toMinute(time) % 10 = 0" in tx_absolute["query"]
+    assert tx_compare["query"].count(
+        "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
+    ) == 2
 
 
 def test_four_minute_tx_ab_schedule_uses_demo_query_contract():
@@ -163,14 +167,45 @@ def test_reference_station_matching_uses_exact_primary_callsign_filters():
     context = _analysis_context(
         comparison_mode=COMPARISON_REFERENCE_STATION,
         reference_callsign="DL2XYZ",
+        qth="JN37UN",
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
 
-    assert "tx_sign = 'DL1MKS'" in tx_compare["query"]
+    assert (
+        "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
+        in tx_compare["query"]
+    )
     assert "tx_sign = 'DL2XYZ'" in tx_compare["query"]
+    assert tx_compare["query"].count("substring(tx_loc, 1, 4) = 'JN37'") == 1
+    assert (
+        "tx_sign = 'DL2XYZ' AND substring(tx_loc, 1, 4)"
+        not in tx_compare["query"]
+    )
     assert "tx_sign LIKE 'DL1MKS%'" not in tx_compare["query"]
     assert "tx_sign LIKE 'DL2XYZ%'" not in tx_compare["query"]
+
+
+def test_rx_reference_station_constrains_only_target_to_configured_grid4():
+    context = _analysis_context(
+        run_mode="RX",
+        comparison_mode=COMPARISON_REFERENCE_STATION,
+        reference_callsign="DL2XYZ",
+        qth="jn37un",
+    )
+
+    rx_compare = _analysis_by_id(context, "RX_COMP")
+
+    assert (
+        "rx_sign = 'DL1MKS' AND substring(rx_loc, 1, 4) = 'JN37'"
+        in rx_compare["query"]
+    )
+    assert "rx_sign = 'DL2XYZ'" in rx_compare["query"]
+    assert rx_compare["query"].count("substring(rx_loc, 1, 4) = 'JN37'") == 1
+    assert (
+        "rx_sign = 'DL2XYZ' AND substring(rx_loc, 1, 4)"
+        not in rx_compare["query"]
+    )
 
 
 def test_reference_station_matching_accepts_one_exact_suffix_callsign_per_side():
@@ -200,6 +235,15 @@ def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
 
     assert "rx_sign = 'DL1MKS'" in rx_compare["query"]
     assert "rx_sign = 'DL1MKS/P'" in rx_compare["query"]
+    assert (
+        "rx_sign = 'DL1MKS' AND substring(rx_loc, 1, 4) = 'JN37'"
+        in rx_compare["query"]
+    )
+    assert (
+        "rx_sign = 'DL1MKS/P' AND substring(rx_loc, 1, 4) = 'JN37'"
+        in rx_compare["query"]
+    )
+    assert rx_compare["query"].count("substring(rx_loc, 1, 4) = 'JN37'") == 2
     assert "rx_sign LIKE 'DL1MKS%'" not in rx_compare["query"]
     assert "rx_sign LIKE 'DL1MKS/P%'" not in rx_compare["query"]
 
@@ -215,8 +259,14 @@ def test_rx_hardware_ab_matching_accepts_one_exact_setup_b_suffix_callsign():
 
     rx_compare = _analysis_by_id(context, "RX_COMP")
 
-    assert "rx_sign = 'DL1MKS/1'" in rx_compare["query"]
-    assert "rx_sign = 'DL1MKS/P'" in rx_compare["query"]
+    assert (
+        "rx_sign = 'DL1MKS/1' AND substring(rx_loc, 1, 4) = 'JN37'"
+        in rx_compare["query"]
+    )
+    assert (
+        "rx_sign = 'DL1MKS/P' AND substring(rx_loc, 1, 4) = 'JN37'"
+        in rx_compare["query"]
+    )
     assert "rx_sign LIKE 'DL1MKS%'" not in rx_compare["query"]
 
 
@@ -248,8 +298,13 @@ def test_local_neighborhood_excludes_only_the_exact_target_callsign():
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
 
-    assert "tx_sign = 'DL1MKS/P'" in tx_compare["query"]
+    assert (
+        "tx_sign = 'DL1MKS/P' AND substring(tx_loc, 1, 4) = 'JN37'"
+        in tx_compare["query"]
+    )
+    assert tx_compare["query"].count("substring(tx_loc, 1, 4) = 'JN37'") == 1
     assert "tx_sign != 'DL1MKS/P'" in tx_compare["query"]
+    assert "geoDistance(8.0, 47.0, tx_lon, tx_lat)" in tx_compare["query"]
     assert "tx_sign NOT LIKE 'DL1MKS%'" not in tx_compare["query"]
 
 
@@ -263,11 +318,32 @@ def test_rx_local_median_neighborhood_weights_receiver_reference_identities():
 
     rx_compare = _analysis_by_id(context, "RX_COMP")
 
+    assert (
+        "rx_sign = 'DL1MKS' AND substring(rx_loc, 1, 4) = 'JN37'"
+        in rx_compare["query"]
+    )
+    assert rx_compare["query"].count("substring(rx_loc, 1, 4) = 'JN37'") == 1
+    assert "geoDistance(8.0, 47.0, rx_lon, rx_lat)" in rx_compare["query"]
     assert "tx_sign AS peer_sign" in rx_compare["query"]
     assert "rx_sign AS local_sign" in rx_compare["query"]
     assert "rx_loc AS local_grid" in rx_compare["query"]
     assert "quantileExactInclusive(0.5)((snr - power + 30 + 0.0)) AS station_snr_norm" in rx_compare["query"]
     assert "GROUP BY time_slot, peer_sign, peer_grid, local_sign, local_grid" in rx_compare["query"]
+
+
+@pytest.mark.parametrize(
+    ("run_mode", "analysis_id"),
+    [("TX", "TX_COMP"), ("RX", "RX_COMP")],
+)
+def test_compare_queries_use_half_open_analysis_interval(run_mode, analysis_id):
+    context = _analysis_context(run_mode=run_mode)
+
+    comparison = _analysis_by_id(context, analysis_id)
+
+    for query in (comparison["query"], comparison["legacy_query"]):
+        assert query.count("time >= '2026-05-27 00:00:00'") == 2
+        assert query.count("time < '2026-05-28 00:00:00'") == 2
+        assert "time BETWEEN" not in query
 
 
 def test_non_sequential_cycle_synchronization_keeps_only_target_active_slots():

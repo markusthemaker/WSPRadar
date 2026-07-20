@@ -86,6 +86,15 @@ def test_presentation_context_preserves_existing_absolute_terminology():
             assert presentation.absolute_terms(mode) == absolute_terms(T[language], mode)
 
 
+def test_no_data_warning_prompts_for_primary_run_definition_inputs():
+    assert T["en"]["warn_no_data"].endswith(
+        "Are the callsign entries, locator, band, date, and UTC time correct?"
+    )
+    assert T["de"]["warn_no_data"].endswith(
+        "Sind Rufzeichenangaben, Locator, Band, Datum und UTC-Zeit korrekt?"
+    )
+
+
 def test_localized_presentation_changes_titles_but_not_queries():
     context = _analysis_context()
 

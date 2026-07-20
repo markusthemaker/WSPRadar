@@ -255,11 +255,12 @@ def assign_tx_ab_pair_columns(
     ``tx_ab_pair_id`` is the absolute planned Target-start epoch minute. Planned
     timestamps are timezone-aware UTC values.
 
-    Observation timestamps are restricted to the optional inclusive analysis
-    bounds. When ``exclude_boundary_pairs`` is true, a pair is retained only if
-    both planned starts also fall inside every supplied bound. Invalid times,
-    unknown paths, and rows outside their path's schedule are excluded. The
-    input frame is never mutated.
+    Observation timestamps are restricted to the optional half-open analysis
+    interval: the start is inclusive and the end is exclusive. When
+    ``exclude_boundary_pairs`` is true, a pair is retained only if both planned
+    starts also fall inside that interval. Invalid times, unknown paths, and
+    rows outside their path's schedule are excluded. The input frame is never
+    mutated.
     """
     if not isinstance(frame, pd.DataFrame):
         raise TypeError("frame must be a pandas DataFrame")
@@ -297,7 +298,7 @@ def assign_tx_ab_pair_columns(
     if analysis_start_time is not None:
         observation_mask &= decoded_times.ge(analysis_start_time).fillna(False).to_numpy()
     if analysis_end_time is not None:
-        observation_mask &= decoded_times.le(analysis_end_time).fillna(False).to_numpy()
+        observation_mask &= decoded_times.lt(analysis_end_time).fillna(False).to_numpy()
 
     epoch_minutes = np.floor_divide(
         decoded_times.to_numpy(dtype="datetime64[ns]").astype("int64"),
@@ -352,8 +353,8 @@ def assign_tx_ab_pair_columns(
             ) & (planned_reference_times >= analysis_start_time)
         if analysis_end_time is not None:
             complete_boundary_pairs &= (
-                planned_target_times <= analysis_end_time
-            ) & (planned_reference_times <= analysis_end_time)
+                planned_target_times < analysis_end_time
+            ) & (planned_reference_times < analysis_end_time)
         retained_positions = np.flatnonzero(complete_boundary_pairs)
         paired_frame = paired_frame.iloc[retained_positions].copy()
         pair_ids = pair_ids[retained_positions]

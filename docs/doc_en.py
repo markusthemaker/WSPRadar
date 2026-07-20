@@ -219,7 +219,7 @@ A clear question and a stable physical setup make the result easier to interpret
 * State whether this is an exploratory run or a confirmatory repetition of an earlier pattern.
 * Choose TX or RX Analysis, one exact band and the Benchmark Design.
 * Enter callsigns exactly as uploaded, including any valid `/P`, `/1` or `/QRP` suffix.
-* Verify the Target QTH. Success identifies the Target using the exact callsign together with the first four locator characters.
+* Verify the Target QTH. Success and Compare identify the Target using the exact callsign together with the configured QTH's first four locator characters.
 * Select a UTC window in which the Target was actually operating. Use a window long enough to cover the propagation states named in the intended conclusion; multi-day runs are preferable when the conclusion spans complete daily cycles.
 * Record the antennas, feedlines, tuner, transmitter or receiver, decoder, software version, power, schedule and intentional changes.
 
@@ -289,6 +289,8 @@ Select the UI choice `Hardware A/B-Test (Local Setup)` and operate two receivers
 * Setup A uses the Target callsign.
 * Setup B uses the `Setup B Callsign`.
 
+Both setups must upload locators whose first four characters match the configured Target QTH; their six-character subsquares may differ.
+
 Keep clocks, antenna routing, gain, audio paths, decoder settings and uploads controlled. Components intended to be common must be physically common; measure or document unavoidable differences between the two chains.
 
 The run produces an RX Hardware Compare result and the Target's separate RX Success result.
@@ -327,7 +329,7 @@ Sequential TX Hardware A/B assigns complete WSPR transmissions to Setup A and Se
 
 **Set up the experiment**
 
-Use the station's normal valid exact callsign for both paths. Path identity comes from the deterministic UTC schedule, not from `/1` and `/2` suffixes or different reported powers.
+Use the station's normal valid exact callsign for both paths, and ensure that both paths report the configured Target grid-4. Path identity comes from the deterministic UTC schedule, not from `/1` and `/2` suffixes or different reported powers.
 
 In `TX A/B Schedule`, enter each physical path's **actual recurrence and UTC phase**. Do not infer those values solely from a transmitter's `Frame` label. Use a deterministic scheduler or controller; standard WSJT-X randomized transmit-percentage operation does not create a valid fixed A/B sequence. Exact controls and supported phases are in [Section 4.3](#sec-5-3), while device-specific schedules and switching procedures are in [Appendix B](#sec-b). <a href="#ref-12">[Ref-12]</a>
 
@@ -372,7 +374,7 @@ Same-cycle TX pairs therefore share one remote receiver, while RX pairs share on
 
 **Set up the analysis**
 
-Select `Reference Station (Buddy Test)`. Enter one exact Target callsign and one different exact `Reference Callsign`. Choose a Reference whose location, hardware, reported power and operating schedule you understand.
+Select `Reference Station (Buddy Test)`. Enter one exact Target callsign and QTH and one different exact `Reference Callsign`. Target spots are constrained to the Target grid-4; the Buddy Reference is deliberately selected by exact callsign only, without a locator constraint. Choose a Reference whose location, hardware, reported power and operating schedule you understand.
 
 Both stations need overlapping operation on the same band. Verify Reference uptime independently. Apply a Reference SNR correction only when its calibration basis is defensible.
 
@@ -410,7 +412,7 @@ The Reference can change from cycle to cycle. It is a local activity benchmark r
 
 Select `Local Neighborhood Benchmark`, choose a radius from 10 to 250 km and choose `Local Median Neighborhood` under `Local Benchmark Method`.
 
-Verify the Target callsign and QTH because they determine Target exclusion from the local pool and define the radius origin. Choose the primary radius from local geography and expected station density before interpreting the result; it should have a clear local meaning and enough active identities.
+Verify the Target callsign and QTH: exact callsign plus grid-4 selects Target spots, the exact callsign excludes the Target from the local pool, and the QTH defines the radius origin. Choose the primary radius from local geography and expected station density before interpreting the result; it should have a clear local meaning and enough active identities.
 
 The run produces a Local Compare result and the Target's separate non-comparative Success result.
 
@@ -442,7 +444,7 @@ Local Best Station forms a changing best-peer envelope from active station ident
 
 Select `Local Neighborhood Benchmark`, choose a radius from 10 to 250 km and choose `Local Best Station` under `Local Benchmark Method`.
 
-Verify the Target callsign and QTH. Choose the primary radius from local geography and expected station density before interpreting the result; it must retain a meaningful and adequately populated local pool.
+Verify the Target callsign and QTH: exact callsign plus grid-4 selects Target spots, the exact callsign excludes the Target from the local pool, and the QTH defines the radius origin. Choose the primary radius from local geography and expected station density before interpreting the result; it must retain a meaningful and adequately populated local pool.
 
 The run produces a Local Compare result and the Target's separate non-comparative Success result.
 
@@ -583,7 +585,7 @@ For Success, `SPOTS` divides denominator evidence into Target and Elsewhere for 
 
 Footer counts follow the visible map scope. A large number of Spots from only a few Stations means repeated evidence from a narrow identity base. Many Stations show wider identity and geographic participation.
 
-A `callsign + locator` is an analysis identity, not proof of one unique physical station. Suffixes, stale locators and locator changes can split or move a physical station in the evidence.
+Within result grouping, a reported callsign plus its full reported locator is an analysis identity, not proof of one unique physical station. Selected Target and Reference query matching follows the mode-specific rules in [Section 7.2](#sec-7-2). Suffixes, stale locators and locator changes can split or move a physical station in the evidence.
 
 <a id="sec-3-6"></a>
 <a id="sec-3-6a"></a>
@@ -821,16 +823,16 @@ These controls define the Target, operating direction, band and evidence window.
 | UI label | Factory default | What it controls |
 |---|---|---|
 | **RX Analysis / TX Analysis** | none; required | RX evaluates the Target as a receiving WSPR station; TX evaluates it as a transmitting WSPR station. `Run` and `Save Config` remain disabled until either option is selected. |
-| **Your Callsign (Receiver under Test)** / **Your Callsign (Transmitter under Test)** | blank | Direction-specific exact Target identity. Accepted syntax is 3 to 15 characters from `A-Z`, `0-9` and `/`. |
-| **QTH Locator (4-6 Chars)** | blank | Map center and local-radius origin. Success also uses the first four characters to match Target identity. |
+| **Your Callsign (Receiver under Test)** / **Your Callsign (Transmitter under Test)** | blank | Direction-specific exact Target callsign. Accepted syntax is 3 to 15 characters from `A-Z`, `0-9` and `/`. |
+| **QTH Locator (4-6 Chars)** | blank | Map center and local-radius origin. Its first four characters constrain Target matching in Success and Compare. In local Hardware A/B, both setup sides must report this grid-4. |
 | **Operating Band** | `20m` | Exactly one of `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` or `23cm`. |
 | **Time Selection** | `Last X Hours` | Selects recent or custom UTC evidence. Recent mode allows 1 to 168 hours and defaults to 24. |
 | **Last hours back (DB updated every 15 min)** | `24` | Appears for `Last X Hours`; accepts 1 to 168 hours. The absolute endpoints are resolved when the run starts and retained for that active run. At save time, choose whether the file keeps `Last X Hours` or freezes those resolved UTC endpoints. |
-| **Start Date**, **End Date**, **Start Time (UTC)**, **End Time (UTC)** | previous day `00:00` through current day `23:59` | Appear for `Custom Date/Time`. Dates start at 2008 and one window is limited to 31 days. Resolved endpoints are quantized down to 15-minute boundaries. Success and Compare currently differ at the exact end boundary, as documented in [the time model](#sec-7-1). |
+| **Start Date**, **End Date**, **Start Time (UTC)**, **End Time (UTC)** | previous day `00:00` through current day `23:59` | Appear for `Custom Date/Time`. Dates start at 2008 and one window is limited to 31 days. Resolved endpoints are quantized down to 15-minute boundaries. Success and Compare both use the half-open interval described in [the time model](#sec-7-1). |
 
 Use the callsign exactly as uploaded. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` and `DL1MKS/QRP` are separate identities; WSPRadar does not apply hidden prefix matching.
 
-A Maidenhead locator is a compact grid-square location code. Four characters identify a broad area; six characters identify a smaller area inside it. WSPRadar uses the configured QTH as the map center and local-radius origin, while Success matches the Target using its first four locator characters.
+A Maidenhead locator is a compact grid-square location code. Four characters identify a broad area; six characters identify a smaller area inside it. WSPRadar uses the configured QTH as the map center and local-radius origin. Success and Compare match Target spots using its first four locator characters; grid-6 is not part of this selector.
 
 <a id="sec-5-3"></a>
 
@@ -1022,7 +1024,9 @@ An upstream-data issue changes what the selected source supplies. An experiment-
 
 #### 5.3 Callsign and locator checks
 
-Compare callsigns are matched exactly. Success Target matching is stricter: exact callsign plus the configured QTH's first four characters. A Target uploading `JN37` while the configuration says `JN38` will not satisfy the Success Target condition.
+Success and every Compare mode match Target spots by exact callsign plus the configured QTH's first four locator characters. A Target reporting `JN37` while configured as `JN38` matches neither result.
+
+Compare Reference matching remains mode-specific: a Buddy is selected by exact callsign only; local candidates are selected geographically; RX Hardware A/B requires both exact setup callsigns in the Target grid-4; and sequential TX Hardware A/B requires the shared exact callsign and Target grid-4 on both scheduled sides.
 
 Peer identities use exact callsign plus the full reported locator string. Bad, stale or changing locators can split one physical station, move it into the wrong segment or trigger the moving-station filter.
 
@@ -1188,9 +1192,9 @@ The matrix is an orientation aid. The definitions, formulas and processing rules
 
 WSPRadar reads the public `wspr.rx` table through the selected read-only ClickHouse HTTP interface. Spots are observational records from independently operated transmitters, receivers, software and networks. They are not a randomized or calibrated sample of possible paths. Decode selection, historical fallback and upstream-data behavior are documented once in [Sections 5.4-5.6](#sec-6-4).
 
-The selected UTC endpoints are resolved when the run starts, then both are quantized down to 15-minute boundaries for query reuse. Success uses a half-open interval, `start <= time < end`: an observation exactly at the quantized start is eligible, while one exactly at the quantized end is excluded. Compare currently uses database `BETWEEN`, so it can include an observation exactly at both the quantized start and end. A boundary observation can therefore appear in Compare but not Success, and adjacent Compare windows can share the exact endpoint.
+The selected UTC endpoints are resolved when the run starts, then both are quantized down to 15-minute boundaries for query reuse. Success and Compare use the same half-open interval, `start <= time < end`: an observation exactly at the quantized start is eligible, while one exactly at the quantized end is excluded. Adjacent analysis windows therefore do not share an endpoint observation.
 
-A **WSPR cycle** is the two-minute interval aligned to an even UTC minute. WSPRadar derives simultaneous cycles from spot timestamps. Sequential TX A/B instead retains timestamps, admits only each path's configured modulo schedule, and attaches the planned Target and Reference starts of its nearest one-to-one pair. A scheduled pair is eligible only when both planned starts lie inside the selected comparison window.
+A **WSPR cycle** is the two-minute interval aligned to an even UTC minute. WSPRadar derives simultaneous cycles from spot timestamps. Sequential TX A/B instead retains timestamps, admits only each path's configured modulo schedule, and attaches the planned Target and Reference starts of its nearest one-to-one pair. A scheduled pair is eligible only when both planned starts satisfy `start <= planned start < end`.
 
 <a id="sec-7-2"></a>
 #### 7.2 Identity and matching rules
@@ -1201,11 +1205,12 @@ WSPRadar retains the reported identity as part of the evidence. Callsign variant
 |---|---|---|---|
 | RX Success | exact RX callsign plus Target QTH grid-4 | TX callsign + reported TX locator | one Target-active peer-cycle |
 | TX Success | exact TX callsign plus Target QTH grid-4 | RX callsign + reported RX locator | one Target-active peer-cycle |
-| Simultaneous Compare | exact Target and Reference callsigns | remote callsign + reported locator | one consolidated peer-cycle |
-| Sequential TX A/B | exact Target callsign split by configured UTC schedule | RX callsign + reported locator | one planned Target/Reference pair |
-| Local Reference pool | exact local callsign + locator inside radius | remote peer as above | one local-identity contribution per cycle/path |
+| Buddy Compare | exact Target callsign plus Target QTH grid-4 | exact Reference callsign, locator unrestricted; remote callsign + reported locator | one consolidated peer-cycle |
+| RX Hardware A/B | exact Setup A callsign plus Target QTH grid-4 | exact Setup B callsign plus the same grid-4; remote TX callsign + reported locator | one consolidated peer-cycle |
+| Sequential TX Hardware A/B | exact shared Target callsign plus Target QTH grid-4, split by configured UTC schedule | same callsign and grid-4 on the Reference schedule; RX callsign + reported locator | one planned Target/Reference pair |
+| Local Compare | exact Target callsign plus Target QTH grid-4 | local callsign + reported locator inside the radius; remote peer as above | one Target/local-Reference peer-cycle |
 
-Compare callsigns are matched exactly. Success Target matching is stricter: it uses the exact callsign together with the configured QTH's first four locator characters. A Target uploading `JN37` while the configuration says `JN38` will not satisfy the Success Target condition.
+Success and all Compare modes use exact Target callsign plus configured Target grid-4. Grid-6 is not a selector: `JN37AA` and `JN37ZZ` both match `JN37`, while `JN38` does not. Reference matching deliberately remains mode-specific as shown above.
 
 Peer identities use exact callsign plus the full reported locator string. Bad, stale or changing locators can split one physical station, move it into the wrong segment or trigger the moving-station filter.
 
@@ -1315,7 +1320,7 @@ The station-balanced value and pooled observation-level value answer different q
 **Sequential TX A/B**
 
 1. Retain exact-callsign spots only when their UTC start matches the configured Target or Reference schedule.
-2. Pair scheduled Target and Reference starts one-to-one by nearest cyclic separation and require both planned starts to lie inside the comparison window.
+2. Pair scheduled Target and Reference starts one-to-one by nearest cyclic separation and require both planned starts to satisfy `start <= planned start < end`.
 3. Group each side by planned pair and peer `callsign + locator`.
 4. Calculate one micro-median per side and pair.
 5. Calculate Pair Delta where both micro-medians exist; retain a one-sided pair as Only Target or Only Reference.
@@ -1438,7 +1443,7 @@ These boundaries do not prevent useful station comparisons. They determine which
 For a serious result, preserve and report:
 
 * preserve the saved `.config`; it and `run_metadata.json` record the WSPRadar application version, but separately record the exact Git commit and clean-worktree state because the export package does not capture them;
-* configured UTC selection and, when available from the run notes, the resolved 15-minute query bounds; identify whether the evidence is Success or Compare because exact-endpoint handling differs;
+* configured UTC selection and, when available from the run notes, the resolved 15-minute query bounds, interpreted as the common half-open interval `[start, end)`;
 * exact band and TX/RX direction;
 * Target callsign and configured QTH;
 * Benchmark Design and, for Compare where applicable, the fixed Reference or Setup B identity or the local radius and benchmark method;
@@ -1484,12 +1489,12 @@ For Compare, `figure_selected_station_evidence.png` reproduces the selected-stat
 
 The saved configuration records the applicable runnable settings. `run_metadata.json` records the application name and version; export time; language; direction; band; benchmark choice; configured time selection; correction; filters; thresholds; result blocks and inspector selections.
 
-The effective `code = 1` or historical-fallback state is reported while the run executes but is not stored in the package. The package also does not provide a Git commit, exact resolved pre-quantization endpoints, a stable explicit interval convention, or a query/query-parameter fingerprint. Quantized map bounds can occur inside the opaque export signature, but that internal value is not a versioned endpoint contract and should not be treated as one.
+The effective `code = 1` or historical-fallback state is reported while the run executes but is not stored in the package. The package also does not provide a Git commit, exact resolved pre-quantization endpoints, an explicit field recording the half-open interval convention, or a query/query-parameter fingerprint. Quantized map bounds can occur inside the opaque export signature, but that internal value is not a versioned endpoint contract and should not be treated as one.
 
 The package supports audit and reproducibility but is not a complete computational snapshot. It does not currently include:
 
 * a Git commit or clean-worktree record;
-* explicit resolved and quantized UTC endpoint fields with the applicable interval convention;
+* explicit resolved and quantized UTC endpoint fields and a machine-readable half-open-interval marker;
 * effective strict `code = 1` versus historical-fallback state for each result block;
 * exact SQL, a stable query/query-parameter fingerprint or untouched upstream responses;
 * a dependency lock or operating-system description;

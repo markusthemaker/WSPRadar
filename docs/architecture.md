@@ -186,6 +186,19 @@ be changed as a generic query optimization.
 - periodic scheduled TX A/B comparisons;
 - TX and RX opportunity analyses.
 
+All analysis SQL uses the half-open UTC predicate `start <= time < end`.
+Scheduled TX A/B post-fetch eligibility applies the same convention to both
+planned starts, so adjacent windows cannot share an observation or planned
+pair.
+
+Every Success and Compare Target branch requires the exact direction-specific
+callsign and a reported endpoint locator whose first four characters equal the
+configured Target QTH grid-4. Reference matching remains mode-specific: Buddy
+uses exact callsign only; local benchmarks select geographically eligible
+callsign/full-locator identities; RX Hardware A/B applies the Target grid-4 to
+both exact setup callsigns; and scheduled TX Hardware A/B applies the shared
+callsign and Target grid-4 to both schedule branches.
+
 For periodic hardware A/B work, SQL applies the exact UTC-minute modulo
 predicate for each path's repeat interval and start phase. TX Success applies
 only the Target path's schedule. Comparison post-fetch processing rejects rows
@@ -236,7 +249,7 @@ independent of which path is called Target. Aggregation includes peer identity
 in the pair key, takes a micro-median when one peer has multiple decoded rows
 on either side of a scheduled pair, and computes Delta only for a pair with
 both sides. Boundary pairs are admitted only when both planned transmission
-starts lie inside the selected analysis interval.
+starts satisfy `start <= planned_start < end`.
 
 `core/tx_ab_schedule.py` owns supported repeat-interval and start validation,
 the exact ClickHouse schedule predicate, hourly previews, cyclic separation,
@@ -375,8 +388,8 @@ must remain outside `README.md`.
    selected provider. Any provider failover restarts this unpublished phase.
 5. Post-fetch logic synchronizes cycles and applies mode-specific rounding. For
    periodic TX A/B data it also filters schedule mismatches, excludes a boundary
-   pair unless both planned starts are within the analysis interval, and assigns
-   the stable planned-pair columns.
+   pair unless both planned starts satisfy `start <= planned_start < end`, and
+   assigns the stable planned-pair columns.
 6. The processed rows, including planned-pair columns, are staged as an
    unregistered session Parquet artifact. All successful blocks are registered
    together after complete-bundle preparation succeeds.

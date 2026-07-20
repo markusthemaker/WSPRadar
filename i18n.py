@@ -262,7 +262,7 @@ T = {
         "txt_tx_stations": "TX Stations",
         "warn_analysis_queue_full": "High demand right now. The analysis queue is full. Please try again shortly.",
         "warn_analysis_queue_timeout": "Analysis capacity did not become available in time. Please run the analysis again.",
-        "warn_no_data": "Not enough qualifying data found for **{title}** after applying filters.",
+        "warn_no_data": "Not enough qualifying data found for **{title}** after applying filters. Are the callsign entries, locator, band, date, and UTC time correct?",
         "err_config_load": "Config could not be loaded: {error}"
     },
     "de": {
@@ -525,7 +525,7 @@ T = {
         "txt_tx_stations": "TX Stationen",
         "warn_analysis_queue_full": "Hohe Auslastung. Die Analysewarteschlange ist voll. Bitte versuchen Sie es in Kuerze erneut.",
         "warn_analysis_queue_timeout": "Es wurde nicht rechtzeitig Analysekapazitaet frei. Bitte starten Sie die Analyse erneut.",
-        "warn_no_data": "Nicht genügend qualifizierte Daten für **{title}** nach Anwendung der Filter gefunden."
+        "warn_no_data": "Nicht genügend qualifizierte Daten für **{title}** nach Anwendung der Filter gefunden. Sind Rufzeichenangaben, Locator, Band, Datum und UTC-Zeit korrekt?"
     }
 }
 

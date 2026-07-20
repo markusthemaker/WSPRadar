@@ -215,10 +215,10 @@ def _is_valid_maidenhead(locator: str) -> bool:
 
 
 def target_grid4(qth: str) -> str:
-    """Return the configured four-character target grid used for identity matching."""
+    """Return the configured grid-4 shared by Success and Compare Target matching."""
     qth = str(qth or "").strip().upper()
     if not _is_valid_maidenhead(qth):
-        raise ValueError("Absolute opportunity analysis requires a valid target QTH locator.")
+        raise ValueError("Analysis requires a valid target QTH locator.")
     return qth[:4]
 
 

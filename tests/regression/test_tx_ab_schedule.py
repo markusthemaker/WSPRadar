@@ -255,7 +255,7 @@ def test_equidistant_pairing_is_role_independent_within_the_same_cycle():
     assert swapped_unordered_pairs == original_unordered_pairs
 
 
-def test_boundary_filter_requires_both_planned_starts_inside_inclusive_bounds():
+def test_boundary_filter_requires_both_planned_starts_inside_half_open_bounds():
     source = pd.DataFrame(
         {
             "time": pd.to_datetime(
@@ -263,10 +263,12 @@ def test_boundary_filter_requires_both_planned_starts_inside_inclusive_bounds():
                     "2026-01-01T00:00:00Z",
                     "2026-01-01T00:08:00Z",
                     "2026-01-01T00:10:00Z",
+                    "2026-01-01T00:18:00Z",
+                    "2026-01-01T00:20:00Z",
                 ],
                 utc=True,
             ),
-            "is_me": [1, 0, 1],
+            "is_me": [1, 0, 1, 0, 1],
         }
     )
 
@@ -276,7 +278,7 @@ def test_boundary_filter_requires_both_planned_starts_inside_inclusive_bounds():
         target_start_minute_utc=0,
         reference_start_minute_utc=8,
         start_time="2026-01-01T00:00:00Z",
-        end_time="2026-01-01T00:10:00Z",
+        end_time="2026-01-01T00:20:00Z",
         exclude_boundary_pairs=True,
     )
 
@@ -293,6 +295,40 @@ def test_boundary_filter_requires_both_planned_starts_inside_inclusive_bounds():
     assert paired.iloc[0]["tx_ab_pair_reference_time"] == pd.Timestamp(
         "2026-01-01T00:08:00Z"
     )
+
+
+def test_observation_bounds_include_start_and_exclude_end():
+    source = pd.DataFrame(
+        {
+            "time": pd.to_datetime(
+                ["2026-01-01T00:00:00Z", "2026-01-01T00:10:00Z"],
+                utc=True,
+            ),
+            "is_me": [1, 1],
+        }
+    )
+
+    first_window = assign_tx_ab_pair_columns(
+        source,
+        repeat_interval_minutes=10,
+        target_start_minute_utc=0,
+        reference_start_minute_utc=2,
+        start_time="2026-01-01T00:00:00Z",
+        end_time="2026-01-01T00:10:00Z",
+    )
+    adjacent_window = assign_tx_ab_pair_columns(
+        source,
+        repeat_interval_minutes=10,
+        target_start_minute_utc=0,
+        reference_start_minute_utc=2,
+        start_time="2026-01-01T00:10:00Z",
+        end_time="2026-01-01T00:20:00Z",
+    )
+
+    assert first_window["time"].tolist() == [pd.Timestamp("2026-01-01T00:00:00Z")]
+    assert adjacent_window["time"].tolist() == [
+        pd.Timestamp("2026-01-01T00:10:00Z")
+    ]
 
 
 def test_empty_pair_result_has_contract_dtypes_and_invalid_bounds_fail():

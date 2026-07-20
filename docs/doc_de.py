@@ -219,7 +219,7 @@ Eine klare Fragestellung und ein stabiler physischer Aufbau erleichtern die Inte
 * Lege fest, ob es sich um einen explorativen Lauf oder um die bestätigende Wiederholung eines zuvor beobachteten Musters handelt.
 * Wähle TX- oder RX-Analyse, genau ein Band und das Benchmark-Design.
 * Gib Rufzeichen exakt so ein, wie sie hochgeladen wurden, einschließlich eines gültigen Suffixes wie `/P`, `/1` oder `/QRP`.
-* Prüfe das Target-QTH. Success identifiziert das Target anhand des exakten Rufzeichens in Verbindung mit den ersten vier Zeichen des Locators.
+* Prüfe das Target-QTH. Success und Compare identifizieren das Target anhand des exakten Rufzeichens zusammen mit den ersten vier Locator-Zeichen des konfigurierten QTHs.
 * Wähle ein UTC-Zeitfenster, in dem das Target tatsächlich in Betrieb war. Das Fenster muss lang genug sein, um die Ausbreitungszustände abzudecken, auf die sich die beabsichtigte Aussage bezieht; für Aussagen über vollständige Tageszyklen sind mehrtägige Läufe vorzuziehen.
 * Protokolliere Antennen, Speiseleitungen, Tuner, Sender oder Empfänger, Decoder, Softwareversion, Leistung, Zeitplan und beabsichtigte Änderungen.
 
@@ -289,6 +289,8 @@ Wähle in der Benutzeroberfläche `Hardware A/B-Test (Eigenes Setup)` und betrei
 * Setup A verwendet das Target-Rufzeichen.
 * Setup B verwendet das `Setup B Callsign`.
 
+Beide Setups müssen Locator hochladen, deren erste vier Zeichen dem konfigurierten Target-QTH entsprechen; ihre sechsstelligen Unterfelder dürfen sich unterscheiden.
+
 Halte Uhren, Antennenführung, Verstärkung, Audiopfade, Decoder-Einstellungen und Uploads unter Kontrolle. Komponenten, die gemeinsam sein sollen, müssen physisch gemeinsam genutzt werden; unvermeidliche Unterschiede zwischen den beiden Ketten sind zu messen oder zu dokumentieren.
 
 Der Lauf erzeugt ein RX-Hardware-Compare-Ergebnis sowie ein separates RX-Success-Ergebnis für das Target.
@@ -327,7 +329,7 @@ Beim sequenziellen TX Hardware A/B-Test werden vollständige WSPR-Aussendungen a
 
 **Den Versuch einrichten**
 
-Verwende für beide Pfade das reguläre, gültige Rufzeichen der Station. Die Pfadidentität ergibt sich aus dem deterministischen UTC-Zeitplan, nicht aus Suffixen wie `/1` und `/2` oder unterschiedlichen gemeldeten Leistungen.
+Verwende für beide Pfade das reguläre, gültige Rufzeichen der Station und stelle sicher, dass beide Pfade das konfigurierte Target-Grid-4 melden. Die Pfadidentität ergibt sich aus dem deterministischen UTC-Zeitplan, nicht aus Suffixen wie `/1` und `/2` oder unterschiedlichen gemeldeten Leistungen.
 
 Trage im `TX-A/B-Zeitplan` für jeden physischen Pfad seine **tatsächliche Wiederholung und UTC-Phase** ein. Leite diese Werte nicht allein aus der `Frame`-Bezeichnung eines Senders ab. Verwende einen deterministischen Zeitgeber oder Controller; der zufällige Sendebetrieb über die prozentuale TX-Einstellung von WSJT-X erzeugt keine gültige feste A/B-Folge. Die exakten Bedienelemente und zulässigen Phasen stehen in [Abschnitt 4.3](#sec-5-3), gerätespezifische Zeitpläne und Umschaltverfahren in [Anhang B](#sec-b). <a href="#ref-12">[Ref-12]</a>
 
@@ -372,7 +374,7 @@ TX-Paare desselben Zyklus teilen damit einen entfernten Empfänger, RX-Paare ein
 
 **Die Analyse einrichten**
 
-Wähle `Fremdes Rufzeichen (Buddy-Test)`. Gib ein exaktes Target-Rufzeichen und ein davon verschiedenes exaktes `Referenz-Rufzeichen` ein. Wähle als Referenz eine Station, deren Standort, Hardware, gemeldete Leistung und Betriebsplan du kennst.
+Wähle `Fremdes Rufzeichen (Buddy-Test)`. Gib ein exaktes Target-Rufzeichen und QTH sowie ein davon verschiedenes exaktes `Referenz-Rufzeichen` ein. Target-Spots werden auf das Target-Grid-4 begrenzt; die Buddy-Referenz wird bewusst nur anhand des exakten Rufzeichens ohne Locator-Bedingung ausgewählt. Wähle als Referenz eine Station, deren Standort, Hardware, gemeldete Leistung und Betriebsplan du kennst.
 
 Beide Stationen müssen zeitgleich auf demselben Band in Betrieb sein. Prüfe die Betriebsbereitschaft der Referenz unabhängig. Verwende eine Referenz-SNR-Korrektur nur, wenn sie auf einer belastbaren Kalibrierung beruht.
 
@@ -409,7 +411,7 @@ Die Referenz kann sich von Zyklus zu Zyklus ändern. Sie ist ein lokaler Aktivit
 **Die Analyse einrichten**
 Wähle `Lokaler Nachbarschafts-Benchmark`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Lokaler Nachbarschafts-Median`.
 
-Prüfe Target-Rufzeichen und QTH, weil sie den Ausschluss des Targets aus dem lokalen Pool und den Ursprung des Radius bestimmen. Wähle den primären Radius vor der Interpretation anhand der lokalen Geografie und der zu erwartenden Stationsdichte. Er sollte eine klare lokale Bedeutung besitzen und genügend aktive Identitäten enthalten.
+Prüfe Target-Rufzeichen und QTH: Exaktes Rufzeichen plus Grid-4 wählt die Target-Spots aus, das exakte Rufzeichen schließt das Target aus dem lokalen Pool aus, und das QTH definiert den Ursprung des Radius. Wähle den primären Radius vor der Interpretation anhand der lokalen Geografie und der zu erwartenden Stationsdichte. Er sollte eine klare lokale Bedeutung besitzen und genügend aktive Identitäten enthalten.
 
 Der Lauf erzeugt ein lokales Compare-Ergebnis und ein separates nicht vergleichendes Success-Ergebnis für das Target.
 
@@ -441,7 +443,7 @@ Die Methode „Beste lokale Station“ bildet aus aktiven Stationsidentitäten i
 
 Wähle `Lokaler Nachbarschafts-Benchmark`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Beste lokale Station`.
 
-Prüfe Target-Rufzeichen und QTH. Wähle den primären Radius vor der Interpretation anhand der lokalen Geografie und der zu erwartenden Stationsdichte; er muss einen aussagekräftigen und ausreichend besetzten lokalen Pool erhalten.
+Prüfe Target-Rufzeichen und QTH: Exaktes Rufzeichen plus Grid-4 wählt die Target-Spots aus, das exakte Rufzeichen schließt das Target aus dem lokalen Pool aus, und das QTH definiert den Ursprung des Radius. Wähle den primären Radius vor der Interpretation anhand der lokalen Geografie und der zu erwartenden Stationsdichte; er muss einen aussagekräftigen und ausreichend besetzten lokalen Pool erhalten.
 
 Der Lauf erzeugt ein lokales Compare-Ergebnis und ein separates nicht vergleichendes Success-Ergebnis für das Target.
 
@@ -582,7 +584,7 @@ Bei Success unterteilt `SPOTS` die Nennerevidenz bei RX in Target und Elsewhere 
 
 Die Zähler am Kartenfuß beziehen sich auf den sichtbaren Kartenbereich. Viele Spots von nur wenigen Stationen bedeuten wiederholte Evidenz aus einer schmalen Identitätsbasis. Viele Stationen zeigen eine breitere Beteiligung unterschiedlicher Identitäten und geografischer Räume.
 
-Eine Identität `callsign + locator` ist eine Analyseidentität und kein Beweis für genau eine physische Station. Suffixe, veraltete Locator und Locatorwechsel können eine physische Station in der Evidenz aufteilen oder verschieben.
+In der Ergebnisgruppierung bilden ein gemeldetes Rufzeichen und sein vollständig gemeldeter Locator eine Analyseidentität, jedoch keinen Beweis für genau eine physische Station. Die Abfragezuordnung ausgewählter Target- und Referenzstationen folgt den modusspezifischen Regeln in [Abschnitt 7.2](#sec-7-2). Suffixe, veraltete Locator und Locatorwechsel können eine physische Station in der Evidenz aufteilen oder verschieben.
 
 <a id="sec-3-6"></a>
 <a id="sec-3-6a"></a>
@@ -819,16 +821,16 @@ Diese Bedienelemente definieren Target, Betriebsrichtung, Band und Evidenzfenste
 | UI-Bezeichnung | Werkseinstellung | Funktion |
 |---|---|---|
 | **RX-Analyse / TX-Analyse** | keine; erforderlich | RX wertet das Target als empfangende WSPR-Station aus, TX als sendende WSPR-Station. `RX-Analyse starten` / `TX-Analyse starten` und `Konfig speichern` bleiben deaktiviert, bis eine Option gewählt wurde. |
-| **Dein Rufzeichen (Empfänger im Test)** / **Dein Rufzeichen (Sender im Test)** | leer | Exakte Target-Identität für die gewählte Richtung. Zulässig sind 3 bis 15 Zeichen aus `A-Z`, `0-9` und `/`. |
-| **QTH Locator (4-6 Chars)** | leer | Kartenmittelpunkt und Ursprung des lokalen Radius. Success verwendet außerdem die ersten vier Zeichen zur Zuordnung der Target-Identität. |
+| **Dein Rufzeichen (Empfänger im Test)** / **Dein Rufzeichen (Sender im Test)** | leer | Exaktes Target-Rufzeichen für die gewählte Richtung. Zulässig sind 3 bis 15 Zeichen aus `A-Z`, `0-9` und `/`. |
+| **QTH Locator (4-6 Chars)** | leer | Kartenmittelpunkt und Ursprung des lokalen Radius. Die ersten vier Zeichen begrenzen die Target-Zuordnung in Success und Compare. Beim lokalen Hardware A/B-Test müssen beide Setup-Seiten dieses Grid-4 melden. |
 | **Frequenzband** | `20m` | Genau eines aus `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` oder `23cm`. |
 | **Zeitraum-Auswahl** | `Letzte X Stunden` | Wählt aktuelle oder benutzerdefinierte Evidenz in UTC. Der Modus `Letzte X Stunden` erlaubt 1 bis 168 Stunden und verwendet standardmäßig 24. |
 | **Stunden zurück (DB Update alle 15 Min)** | `24` | Erscheint für `Letzte X Stunden` und akzeptiert 1 bis 168 Stunden. Die absoluten Endpunkte werden beim Start aufgelöst und für diesen aktiven Lauf festgehalten. Beim Speichern wählst du, ob die Datei `Letzte X Stunden` beibehält oder diese aufgelösten UTC-Endpunkte festschreibt. |
-| **Startdatum**, **Enddatum**, **Startzeit (UTC)**, **Endzeit (UTC)** | Vortag `00:00` bis aktueller Tag `23:59` | Erscheinen für `Datum/Uhrzeit manuell`. Datumswerte beginnen im Jahr 2008; ein einzelnes Fenster ist auf 31 Tage begrenzt. Die aufgelösten Endpunkte werden auf 15-Minuten-Grenzen abgerundet. Success und Compare unterscheiden sich derzeit an der exakten Endgrenze, wie im [Zeitmodell](#sec-7-1) beschrieben. |
+| **Startdatum**, **Enddatum**, **Startzeit (UTC)**, **Endzeit (UTC)** | Vortag `00:00` bis aktueller Tag `23:59` | Erscheinen für `Datum/Uhrzeit manuell`. Datumswerte beginnen im Jahr 2008; ein einzelnes Fenster ist auf 31 Tage begrenzt. Die aufgelösten Endpunkte werden auf 15-Minuten-Grenzen abgerundet. Success und Compare verwenden beide das im [Zeitmodell](#sec-7-1) beschriebene halboffene Intervall. |
 
 Verwende das Rufzeichen exakt so, wie es hochgeladen wurde. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` und `DL1MKS/QRP` sind eigenständige Identitäten; WSPRadar führt keine verdeckte Präfixzuordnung durch.
 
-Ein Maidenhead-Locator ist eine kompakte Ortsangabe im Gitternetz. Vier Zeichen bezeichnen ein größeres Gebiet, sechs Zeichen ein kleineres Gebiet darin. WSPRadar verwendet das konfigurierte QTH als Kartenmittelpunkt und Ursprung des lokalen Radius. Für das Target-Matching in Success werden die ersten vier Locator-Zeichen herangezogen.
+Ein Maidenhead-Locator ist eine kompakte Ortsangabe im Gitternetz. Vier Zeichen bezeichnen ein größeres Gebiet, sechs Zeichen ein kleineres Gebiet darin. WSPRadar verwendet das konfigurierte QTH als Kartenmittelpunkt und Ursprung des lokalen Radius. Success und Compare ordnen Target-Spots anhand der ersten vier Locator-Zeichen zu; Grid-6 ist nicht Bestandteil dieses Selektors.
 
 <a id="sec-5-3"></a>
 
@@ -1020,7 +1022,9 @@ Ein Problem mit Upstream-Daten verändert, was die ausgewählte Quelle liefert. 
 
 #### 5.3 Rufzeichen und Locator prüfen
 
-Rufzeichen werden in Compare exakt zugeordnet. Das Target-Matching in Success ist strenger: exaktes Rufzeichen plus die ersten vier Zeichen des konfigurierten QTHs. Lädt ein Target `JN37` hoch, während die Konfiguration `JN38` enthält, erfüllt es die Target-Bedingung von Success nicht.
+Success und jeder Compare-Modus ordnen Target-Spots anhand des exakten Rufzeichens plus der ersten vier Locator-Zeichen des konfigurierten QTHs zu. Meldet ein Target `JN37`, während `JN38` konfiguriert ist, passt es zu keinem der beiden Ergebnisse.
+
+Die Zuordnung der Compare-Referenzseite bleibt modusspezifisch: Ein Buddy wird nur anhand des exakten Rufzeichens ausgewählt; lokale Kandidaten werden geografisch ausgewählt; RX Hardware A/B verlangt beide exakten Setup-Rufzeichen im Target-Grid-4; und sequenzielles TX Hardware A/B verlangt auf beiden Zeitplanseiten das gemeinsame exakte Rufzeichen und Target-Grid-4.
 
 Peer-Identitäten bestehen aus dem exakten Rufzeichen plus der vollständig gemeldeten Locator-Zeichenfolge. Falsche, veraltete oder wechselnde Locator-Angaben können eine physische Station aufteilen, in das falsche Segment verschieben oder den Filter für bewegliche Stationen auslösen.
 
@@ -1186,9 +1190,9 @@ Die Matrix dient der Orientierung. Maßgeblich sind die nachfolgenden Definition
 
 WSPRadar liest die öffentliche Tabelle `wspr.rx` über die ausgewählte schreibgeschützte ClickHouse-HTTP-Schnittstelle. Spots sind Beobachtungsdatensätze unabhängig betriebener Sender, Empfänger, Software und Netzwerke. Sie sind keine randomisierte oder kalibrierte Stichprobe möglicher Funkwege. Decode-Auswahl, historischer Fallback und das Verhalten bei vorgelagerten Datenproblemen sind einmalig in den [Abschnitten 5.4-5.6](#sec-6-4) dokumentiert.
 
-Die gewählten UTC-Endpunkte werden beim Start des Laufs aufgelöst und anschließend zur Wiederverwendung der Abfrage beide auf 15-Minuten-Grenzen abgerundet. Success verwendet ein halboffenes Intervall, `start <= time < end`: Eine Beobachtung genau am quantisierten Start ist zulässig, eine Beobachtung genau am quantisierten Ende dagegen ausgeschlossen. Compare verwendet derzeit in der Datenbank `BETWEEN` und kann daher eine Beobachtung exakt am quantisierten Start wie auch am quantisierten Ende einschließen. Eine Beobachtung auf der Intervallgrenze kann folglich in Compare, nicht aber in Success erscheinen; benachbarte Compare-Fenster können sich außerdem den exakten Endpunkt teilen.
+Die gewählten UTC-Endpunkte werden beim Start des Laufs aufgelöst und anschließend zur Wiederverwendung der Abfrage beide auf 15-Minuten-Grenzen abgerundet. Success und Compare verwenden dasselbe halboffene Intervall, `start <= time < end`: Eine Beobachtung genau am quantisierten Start ist zulässig, eine Beobachtung genau am quantisierten Ende ausgeschlossen. Benachbarte Analysefenster teilen sich daher keine Beobachtung am Endpunkt.
 
-Ein **WSPR-Zyklus** ist das zweiminütige Intervall, das an einer geraden UTC-Minute beginnt. WSPRadar leitet simultane Zyklen aus den Spot-Zeitstempeln ab. Beim sequenziellen TX-A/B bleiben die Zeitstempel dagegen erhalten; zugelassen werden nur Starts, die dem konfigurierten Modulo-Zeitplan des jeweiligen Pfades entsprechen, und jedem Spot werden die geplanten Target- und Referenz-Starts seines nächstgelegenen Eins-zu-eins-Startpaares zugeordnet. Ein geplantes Paar ist nur zulässig, wenn beide geplanten Starts innerhalb des gewählten Vergleichsfensters liegen.
+Ein **WSPR-Zyklus** ist das zweiminütige Intervall, das an einer geraden UTC-Minute beginnt. WSPRadar leitet simultane Zyklen aus den Spot-Zeitstempeln ab. Beim sequenziellen TX-A/B bleiben die Zeitstempel dagegen erhalten; zugelassen werden nur Starts, die dem konfigurierten Modulo-Zeitplan des jeweiligen Pfades entsprechen, und jedem Spot werden die geplanten Target- und Referenz-Starts seines nächstgelegenen Eins-zu-eins-Startpaares zugeordnet. Ein geplantes Paar ist nur zulässig, wenn beide geplanten Starts `start <= geplanter Start < end` erfüllen.
 
 <a id="sec-7-2"></a>
 #### 7.2 Identitäts- und Zuordnungsregeln
@@ -1199,11 +1203,12 @@ WSPRadar behält die gemeldete Identität als Bestandteil der Evidenz bei. Rufze
 |---|---|---|---|
 | RX Success | exaktes RX-Rufzeichen plus Grid-4 des Target-QTH | TX-Rufzeichen + gemeldeter TX-Locator | ein Target-aktiver Peer-Zyklus |
 | TX Success | exaktes TX-Rufzeichen plus Grid-4 des Target-QTH | RX-Rufzeichen + gemeldeter RX-Locator | ein Target-aktiver Peer-Zyklus |
-| Simultanes Compare | exakte Target- und Referenzrufzeichen | entferntes Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
-| Sequenzielles TX-A/B | exaktes Target-Rufzeichen, aufgeteilt nach konfiguriertem UTC-Zeitplan | RX-Rufzeichen + gemeldeter Locator | ein geplantes Target-/Referenzpaar |
-| Lokaler Referenzpool | exaktes lokales Rufzeichen + Locator innerhalb des Radius | entfernter Peer wie oben | ein Beitrag je lokaler Identität pro Zyklus/Pfad |
+| Buddy-Compare | exaktes Target-Rufzeichen plus Grid-4 des Target-QTH | exaktes Referenzrufzeichen ohne Locator-Beschränkung; entferntes Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
+| RX Hardware A/B | exaktes Setup-A-Rufzeichen plus Grid-4 des Target-QTH | exaktes Setup-B-Rufzeichen plus dasselbe Grid-4; entferntes TX-Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
+| Sequenzielles TX Hardware A/B | gemeinsames exaktes Target-Rufzeichen plus Grid-4 des Target-QTH, aufgeteilt nach UTC-Zeitplan | dasselbe Rufzeichen und Grid-4 im Referenzzeitplan; RX-Rufzeichen + gemeldeter Locator | ein geplantes Target-/Referenzpaar |
+| Lokales Compare | exaktes Target-Rufzeichen plus Grid-4 des Target-QTH | lokales Rufzeichen + gemeldeter Locator innerhalb des Radius; entfernter Peer wie oben | ein Peer-Zyklus aus Target und lokaler Referenz |
 
-Rufzeichen werden in Compare exakt abgeglichen. Die Target-Zuordnung in Success ist strenger: Sie verwendet das exakte Rufzeichen zusammen mit den ersten vier Zeichen des Locators des konfigurierten QTH. Sendet ein Target `JN37`, während die Konfiguration `JN38` vorgibt, erfüllt es die Target-Bedingung von Success nicht.
+Success und alle Compare-Modi verwenden das exakte Target-Rufzeichen plus das konfigurierte Target-Grid-4. Grid-6 ist kein Selektor: `JN37AA` und `JN37ZZ` passen beide zu `JN37`, `JN38` dagegen nicht. Die Referenzzuordnung bleibt bewusst modusspezifisch, wie oben dargestellt.
 
 Peer-Identitäten bestehen aus dem exakten Rufzeichen und der vollständig gemeldeten Locator-Zeichenfolge. Falsche, veraltete oder wechselnde Locator können eine physische Station auf mehrere Identitäten aufteilen, sie einem falschen Segment zuordnen oder den Filter für bewegliche Stationen auslösen.
 
@@ -1313,7 +1318,7 @@ Der stationsgleichgewichtete Wert und der gepoolte Wert auf Beobachtungsebene be
 **Sequenzielles TX-A/B**
 
 1. Spots des exakten Rufzeichens nur dann behalten, wenn ihr UTC-Start dem konfigurierten Target- oder Referenzzeitplan entspricht.
-2. Geplante Target- und Referenz-Starts anhand des kleinsten zyklischen Abstands eins zu eins zuordnen und verlangen, dass beide geplanten Starts innerhalb des Vergleichsfensters liegen.
+2. Geplante Target- und Referenz-Starts anhand des kleinsten zyklischen Abstands eins zu eins zuordnen und verlangen, dass beide geplanten Starts `start <= geplanter Start < end` erfüllen.
 3. Jede Seite nach geplantem Paar und Peer-`callsign + locator` gruppieren.
 4. Für jede Seite und jedes Paar einen Mikro-Median berechnen.
 5. Das Paar-Delta berechnen, wenn beide Mikro-Mediane vorhanden sind; ein einseitiges Paar als Only Target oder Only Reference beibehalten.
@@ -1436,7 +1441,7 @@ Diese Grenzen verhindern keine nützlichen Stationsvergleiche. Sie bestimmen, we
 Für ein belastbares Ergebnis bewahre folgende Angaben auf und dokumentiere sie:
 
 * die gespeicherte `.config`; sie und `run_metadata.json` erfassen die WSPRadar-Anwendungsversion. Halte jedoch den exakten Git-Commit und den Status des Arbeitsbaums separat fest, da das Exportpaket beides nicht erfasst;
-* konfigurierte UTC-Auswahl und, sofern aus den Laufnotizen verfügbar, die aufgelösten 15-Minuten-Abfragegrenzen; gib an, ob es sich um Success- oder Compare-Evidenz handelt, da sich die Behandlung des exakten Endpunkts unterscheidet;
+* konfigurierte UTC-Auswahl und, sofern aus den Laufnotizen verfügbar, die aufgelösten 15-Minuten-Abfragegrenzen, interpretiert als gemeinsames halboffenes Intervall `[start, end)`;
 * exaktes Band und TX-/RX-Richtung;
 * Target-Rufzeichen und konfiguriertes QTH;
 * Benchmark-Design und bei Compare gegebenenfalls die feste Referenz- oder Setup-B-Identität beziehungsweise den lokalen Radius und die Benchmark-Methode;
@@ -1482,12 +1487,12 @@ Bei Compare reproduziert `figure_selected_station_evidence.png` die für die aus
 
 Die gespeicherte Konfiguration enthält die zutreffenden ausführbaren Einstellungen. `run_metadata.json` erfasst Anwendungsname und -version, Exportzeit, Sprache, Richtung, Band, Benchmark-Auswahl, konfigurierte Zeitauswahl, Korrektur, Filter, Schwellen, Ergebnisblöcke und Auswahlen in der Inspektionsansicht.
 
-Der effektive Zustand `code = 1` bzw. des historischen Fallbacks wird während des Laufs angezeigt, aber nicht im Paket gespeichert. Das Paket enthält außerdem weder einen Git-Commit noch die exakten aufgelösten Endpunkte vor der Quantisierung, eine stabile ausdrückliche Intervallkonvention oder einen Fingerabdruck der Abfrage bzw. Abfrageparameter. Quantisierte Kartengrenzen können innerhalb der nicht transparenten Exportsignatur vorkommen; dieser interne Wert ist jedoch keine versionierte Festlegung der Zeitgrenzen und darf nicht als solche behandelt werden.
+Der effektive Zustand `code = 1` bzw. des historischen Fallbacks wird während des Laufs angezeigt, aber nicht im Paket gespeichert. Das Paket enthält außerdem weder einen Git-Commit noch die exakten aufgelösten Endpunkte vor der Quantisierung, ein ausdrückliches Feld, das die halboffene Intervallkonvention festhält, oder einen Fingerabdruck der Abfrage bzw. Abfrageparameter. Quantisierte Kartengrenzen können innerhalb der nicht transparenten Exportsignatur vorkommen; dieser interne Wert ist jedoch keine versionierte Festlegung der Zeitgrenzen und darf nicht als solche behandelt werden.
 
 Das Paket unterstützt Audit und Reproduzierbarkeit, ist jedoch kein vollständiger Rechen-Snapshot. Derzeit fehlen:
 
 * Git-Commit oder Nachweis eines unveränderten Arbeitsbaums;
-* ausdrückliche aufgelöste und quantisierte UTC-Endpunktfelder mit der jeweils geltenden Intervallkonvention;
+* ausdrückliche aufgelöste und quantisierte UTC-Endpunktfelder sowie eine maschinenlesbare Kennzeichnung des halboffenen Intervalls;
 * der effektive Zustand des strikten `code = 1` gegenüber dem historischen Fallback je Ergebnisblock;
 * das exakte SQL, ein stabiler Fingerabdruck der Abfrage bzw. Abfrageparameter oder unveränderte vorgelagerte Antworten;
 * ein Abhängigkeits-Lockfile oder eine Beschreibung des Betriebssystems;

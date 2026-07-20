@@ -28,6 +28,7 @@ from core.opportunity_engine import (
     build_absolute_opportunity_query,
     opportunity_utc_from_time_slot,
     prepare_opportunity_rows,
+    target_grid4,
 )
 from core.snr_utils import round_snr_like_columns
 from core.tx_ab_schedule import (
@@ -315,7 +316,8 @@ def build_analysis_batches(
 
     Success-only returns one opportunity batch. A selected benchmark returns the
     comparison batch first and the target's separate Success batch second.
-    Invalid callsigns, bands, or benchmark designs raise ``AnalysisConfigError``.
+    Invalid callsigns, locators, bands, or benchmark designs raise
+    ``AnalysisConfigError``.
     """
     labels = presentation_context.labels if presentation_context is not None else {}
 
@@ -333,9 +335,15 @@ def build_analysis_batches(
         raise AnalysisConfigError(
             f"Invalid operating band '{analysis_context.band}'. Choose one exact WSPR band."
         )
+    try:
+        target_qth_grid4 = target_grid4(analysis_context.qth)
+    except ValueError as exc:
+        raise AnalysisConfigError(str(exc)) from exc
 
     comp_mode = analysis_context.comparison_mode
-    time_filter = f"time BETWEEN '{start_t.strftime('%Y-%m-%d %H:%M:%S')}' AND '{end_t.strftime('%Y-%m-%d %H:%M:%S')}'"
+    start_sql = start_t.strftime("%Y-%m-%d %H:%M:%S")
+    end_sql = end_t.strftime("%Y-%m-%d %H:%M:%S")
+    time_filter = f"time >= '{start_sql}' AND time < '{end_sql}'"
     benchmark_offset_db = round(float(analysis_context.reference_snr_correction_db), 1)
     target_snr_expr = "(snr - power + 30)"
     benchmark_snr_expr = f"(snr - power + 30 + {benchmark_offset_db:.1f})"
@@ -393,9 +401,16 @@ def build_analysis_batches(
             analysis_context.tx_ab_reference_start_minute,
         )
         
-    # Target SQL filters use one exact callsign; suffix callsigns are selected by entering that exact callsign.
-    tx_target_sql = f"tx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
-    rx_target_sql = f"rx_sign = '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
+    # Target identity is the exact callsign plus configured four-character grid.
+    # A six-character QTH deliberately selects every reported subsquare in that grid-4.
+    tx_target_sql = (
+        f"tx_sign = '{callsign}' AND substring(tx_loc, 1, 4) = '{target_qth_grid4}' "
+        f"{band_filter} AND {time_filter}{decode_filter_sql}"
+    )
+    rx_target_sql = (
+        f"rx_sign = '{callsign}' AND substring(rx_loc, 1, 4) = '{target_qth_grid4}' "
+        f"{band_filter} AND {time_filter}{decode_filter_sql}"
+    )
 
     # Cycle synchronization is applied after fetching in apply_post_fetch_filters().
     # Keeping it outside SQL construction avoids query-builder data access.
@@ -435,8 +450,25 @@ def build_analysis_batches(
             ).format(radius=ref_radius_km)
         display_callsign = callsign
     else:
-        tx_peer_sql = f"tx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
-        rx_peer_sql = f"rx_sign = '{ref_callsign}' {band_filter} AND {time_filter}{decode_filter_sql}"
+        # Buddy References remain callsign-only. Hardware A/B compares two local
+        # paths, so both Setup A and Setup B use the configured Target grid-4.
+        tx_reference_grid_sql = ""
+        rx_reference_grid_sql = ""
+        if comp_mode == COMPARISON_HARDWARE_AB:
+            tx_reference_grid_sql = (
+                f" AND substring(tx_loc, 1, 4) = '{target_qth_grid4}'"
+            )
+            rx_reference_grid_sql = (
+                f" AND substring(rx_loc, 1, 4) = '{target_qth_grid4}'"
+            )
+        tx_peer_sql = (
+            f"tx_sign = '{ref_callsign}'{tx_reference_grid_sql} "
+            f"{band_filter} AND {time_filter}{decode_filter_sql}"
+        )
+        rx_peer_sql = (
+            f"rx_sign = '{ref_callsign}'{rx_reference_grid_sql} "
+            f"{band_filter} AND {time_filter}{decode_filter_sql}"
+        )
             
         if comp_mode == COMPARISON_HARDWARE_AB:
             if analysis_context.self_test_mode == SELF_TEST_RX:
