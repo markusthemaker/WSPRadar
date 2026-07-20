@@ -4,6 +4,10 @@ This document is for maintainers and coding agents. The generated `README.md`
 is the end-user and scientific manual. Code-level component boundaries and data
 flows are documented in `docs/architecture.md`.
 
+Repository-wide contributor rules, including end-user manual content ownership,
+relocation, bilingual parity, and validation requirements, are maintained in
+`AGENTS.md`.
+
 ## Purpose
 
 WSPRadar is a public Streamlit application for semi-quantitative comparison of

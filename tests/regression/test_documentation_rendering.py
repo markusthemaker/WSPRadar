@@ -188,14 +188,15 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
 
 def test_english_playbooks_define_success_evidence_and_tx_ab_timing():
     """Operator playbooks must retain the clarified Success and TX A/B guidance."""
-    assert '<strong class="defined-term">Qualifying evidence</strong>' in DOC_EN
+    assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
     assert "independently confirmed global WSPR-network opportunities" in DOC_EN
-    assert "The default is `Repeat Interval = 10 min`" in DOC_EN
-    assert "Pairing is automatic." in DOC_EN
-    assert "**Ultimate3S: adjacent A/B slots followed by a pause.**" in DOC_EN
-    assert "enter `Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`" in DOC_EN
-    assert "an invented 3 dB report difference therefore creates an artificial 3 dB comparison offset" in DOC_EN
-    assert '<a id="sec-2-4-why"></a>' in DOC_EN
+    assert "actual recurrence and UTC phase" in DOC_EN
+    assert "WSPRadar forms scheduled pairs automatically." in DOC_EN
+    assert "[Sections 7.1](#sec-7-1) and [7.7](#sec-7-7)" in DOC_EN
+    assert "#### B.3 Ultimate3S schedule example" in DOC_EN
+    assert "`Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`" in DOC_EN
+    assert "an invented power difference into an artificial comparison offset" in DOC_EN
+    assert '<a id="sec-b-5"></a>' in DOC_EN
 
 
 def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
@@ -207,9 +208,40 @@ def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
     assert "#### 2.8 Worked Compare example" in DOC_EN
 
     rx_explanation = DOC_EN.index("* In simultaneous RX Compare")
-    tx_explanation = DOC_EN.index("* In simultaneous TX Compare")
-    sequential_explanation = DOC_EN.index("* Sequential TX A/B uses deterministic scheduled pairs")
+    tx_explanation = DOC_EN.index("* In same-cycle TX Compare")
+    sequential_explanation = DOC_EN.index(
+        "* Sequential TX Hardware A/B uses deterministic scheduled pairs"
+    )
     assert rx_explanation < tx_explanation < sequential_explanation
+
+
+def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_policy():
+    """Meaningful documentation contracts must remain aligned across languages."""
+    for manual in (DOC_EN, DOC_DE):
+        before_references = manual.split('<a id="sec-ref"></a>', 1)[0]
+        first_use_order = list(
+            dict.fromkeys(
+                int(number)
+                for number in re.findall(r'href="#ref-(\d+)"', before_references)
+            )
+        )
+
+        assert first_use_order == list(range(1, 19))
+        assert manual.index(
+            '<strong class="defined-term">Stability</strong>'
+        ) < manual.index('<a id="sec-4-1"></a>')
+
+        gate_diagnostic = manual.split('<a id="sec-6-5"></a>', 1)[1].split(
+            '<a id="sec-6-6"></a>', 1
+        )[0]
+        assert "(#sec-7-3)" in gate_diagnostic
+
+    assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
+    assert '<strong class="defined-term">qualifizierende Evidenz</strong>' in DOC_DE
+    assert "where applicable" in DOC_EN
+    assert "bei Compare gegebenenfalls" in DOC_DE
+    assert "record the WSPRadar application version" in DOC_EN
+    assert "erfassen die WSPRadar-Anwendungsversion" in DOC_DE
 
 
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():

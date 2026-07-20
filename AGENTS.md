@@ -287,8 +287,10 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
   Streamlit Community Cloud resources.
 - `.streamlit/config.toml`, especially CORS and XSRF settings. They are currently
   disabled and are a documented security risk, not harmless formatting.
-- `docs/doc_en.py`, `docs/doc_de.py`, and README synchronization. Preserve full
-  manual content and translations.
+- `docs/doc_en.py`, `docs/doc_de.py`, and README synchronization. Preserve all
+  manual text and translations by default. Only a task that explicitly requests
+  restructuring may remove passages classified under the relocation protocol;
+  preserve all unique, correct and useful guidance and bilingual parity.
 - Release scripts. `git-baseline-temp.ps1` resets the local `temp` branch to its
   remote baseline and is destructive to uncommitted work.
 - Files under `tests/demo/`; they are historical exported evidence, not current
@@ -368,19 +370,23 @@ for future end-user documentation work:
 - Build understanding progressively. Introduce terms such as Target, Reference,
   peer, Success Rate, Decode Outcomes, and Delta SNR in plain operator language
   before relying on them. Do not front-load a dense glossary.
-- Preserve an operator journey: value and WSPR primer; valid Quick Start;
-  analysis choice and experiment design; result interpretation; controls and
-  defaults; troubleshooting; scientific methods; limitations, valid claim
-  language, and reproducibility; then operational and literature appendices.
-- Keep that structure MECE. Give experiment selection, UI interpretation,
-  configuration, scientific algorithms/formulas, and inference limits one
-  authoritative home each. Cross-reference instead of repeating full
-  explanations in several mode guides.
+- Preserve the manual's authoritative order: Part 0 Preface; Part I Operator
+  Guide with Experiment Playbooks, Read Your Results, and Strengthen and
+  Communicate Your Result; Part II Controls and Troubleshooting; Part III
+  Scientific Foundations, Methods and Claims with Literature, Prior Art and
+  Positioning, Scientific Methods, and Evidence-Matched Claims and
+  Reproducibility; References; Part IV Practical Supplements; then License.
+- Keep that structure as MECE as the subject permits. Give experiment
+  selection, UI interpretation, configuration, scientific formulas and
+  inference limits one authoritative home each. When a complex multi-stage
+  method requires a documented ownership split, follow the Authoritative
+  Ownership rules below. Cross-reference instead of repeating full explanations
+  in several mode guides.
 - Layer practical and scientific depth. State what a result means for the
   operator first, then place exact matching, denominators, evidence units,
-  aggregation, and formulas in the scientific section.
-- Make the Quick Start teach how to produce and recognize a valid result, not
-  merely which buttons to click.
+  aggregation, and formulas in Chapter 7, Scientific Methods.
+- Make the Preface and Experiment Playbooks teach how to produce and recognize
+  a valid result, not merely which buttons to click.
 - Keep the tone technically rigorous but practical and inviting. Each paragraph
   should help answer an operator's likely `so what?`; avoid dry implementation
   narration that does not change setup, interpretation, or claim language.
@@ -397,11 +403,12 @@ for future end-user documentation work:
 - **Treat implementation and tests as fact-checking sources, not documentation
   checklists.** They establish whether a claim is accurate; they do not establish
   that every fact belongs in the manual.
-- **Keep scientific mechanics in one authoritative home.** Normalization,
-  nonlinear scales, binning, weighting, eligibility gates and edge cases belong
-  once in Controls or Scientific Methods. Practical sections should link there
-  only when a short warning is necessary to prevent a materially wrong
-  interpretation.
+- **Keep scientific mechanics in Chapter 7.** Normalization, nonlinear scales,
+  binning, weighting, eligibility gates, estimators and edge cases belong once
+  in Scientific Methods. Part II owns exact control labels, defaults, ranges,
+  applicability, configuration behavior and diagnosis. Practical and control
+  sections should link to Chapter 7 when a short explanation is necessary to
+  prevent a materially wrong operation or interpretation.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
@@ -412,18 +419,162 @@ for future end-user documentation work:
   not a requirement to inventory every visible interface detail. Challenge
   documentation claims against implementation and regression tests; report
   disagreements rather than changing runtime behavior to fit prose.
-- Keep operational procedures and literature/prior art available without
-  interrupting the main operator flow. Use appendices and cite every retained
-  reference in order of first use.
+- Keep literature, prior art and positioning in Chapter 6. Keep platform-,
+  transmitter-, accessory- and procedure-specific guidance in the Part IV
+  appendices. Place References after Chapter 8 and cite every retained source in
+  order of first use.
 - Render every source citation as a compact linked label in the form `[Ref-n]`,
   assign numbers globally in order of first source use, and reuse the same
   number for later citations of that source. Do not hyperlink author names,
   publication titles, or explanatory phrases as source citations; reserve
   descriptive links for structural navigation such as sections and appendices.
-- **Clarify the preservation rule.** During restructuring, preserve unique,
-  correct and useful user guidance. `Useful` means that the content changes
-  operator action, interpretation, diagnosis or supported claims. Technical
-  accuracy alone does not make a sentence useful operator guidance, and removing
-  duplicated material is not content loss. Classify content before removal as
-  duplicated, obsolete, implementation-only, scientifically unsupported, or
-  genuinely useful; do not silently lose the last category.
+- **Clarify the preservation rule.** An ordinary documentation task must
+  preserve all existing text. During an explicitly requested restructuring,
+  preserve unique, correct and useful user guidance. `Useful` means that the
+  content changes operator action, interpretation, diagnosis or supported
+  claims. Technical accuracy alone does not make a sentence useful operator
+  guidance, and removing duplicated material is not content loss. Only during
+  such an explicitly requested restructuring may passages classified as
+  duplicated, obsolete, implementation-only or scientifically unsupported be
+  removed; do not silently lose genuinely useful guidance.
+
+### Manual Content Ownership and Relocation
+
+Place end-user information in the layer where the reader needs it and keep each
+rule's complete explanation in one authoritative home, subject to the explicit
+multi-stage-method ownership rule below:
+
+- **Part 0 — Preface:** motivation, minimum WSPR background,
+  experiment-question selection and the result blocks produced by one run.
+- **Part I, Chapter 1 — Experiment Playbooks:** which experiment answers the
+  question, the minimum valid physical setup, critical pre-run warnings and the
+  design's principal interpretation boundary. Do not reproduce complete control
+  ranges, exact algorithms or device-specific procedures.
+- **Part I, Chapter 2 — Read Your Results:** how to interpret the completed
+  result, including Success and Compare results, the map, Stations and Spots,
+  geographic segments, contributing stations, underlying evidence and the
+  worked Compare example. Summarize scientific mechanics only where omission
+  would cause a materially wrong reading.
+- **Part I, Chapter 3 — Strengthen and Communicate Your Result:** breadth,
+  sample Stability, experimental repeatability, repetition and controls,
+  evidence-matched conclusions, and preservation of the run and its physical
+  context.
+- **Part II, Chapter 4 — Controls and Configuration:** exact UI labels,
+  defaults, ranges, applicability, configuration behavior and saved-state
+  behavior.
+- **Part II, Chapter 5 — Troubleshooting and Data Quality:** run-definition,
+  symptom, callsign, locator, historical fallback, Target-Active Gate and
+  upstream-data diagnosis.
+- **Part III, Chapter 6 — Literature, Prior Art and Positioning:** scientific
+  lineage, prior art, source-specific boundaries and bounded novelty claims.
+- **Part III, Chapter 7 — Scientific Methods:** data source, decode selection,
+  time model, identity, matching, Target-Active Gate, Success classification and
+  formulas, power normalization, correction, Delta SNR, paired evidence, Decode
+  Outcomes, aggregation hierarchy, Stability, distributions, inspection-layer
+  weighting, geography and solar classification.
+- **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:**
+  supported inference, interpretation limits, reporting requirements, export
+  content and disclaimer.
+- **References:** the consolidated source list follows Chapter 8 and precedes
+  Part IV.
+- **Part IV — Practical Supplements:** Appendix A owns parallel WSJT-X setup;
+  Appendix B owns sequential TX A/B scheduling, switching and device examples;
+  Appendix C owns Reference SNR Calibration. The License follows Appendix C.
+
+Use this timing test when placement is unclear:
+
+- needed before or during the physical experiment -> Chapter 1;
+- needed while reading completed evidence -> Chapter 2;
+- needed when repeating, reporting or preserving the experiment -> Chapter 3;
+- needed to operate an exact control or diagnose behavior -> Part II;
+- needed to establish scientific lineage, prior art or positioning -> Chapter 6;
+- needed to audit a calculation or scientific method -> Chapter 7;
+- needed to bound, report or reproduce a claim -> Chapter 8;
+- needed to provide consolidated source metadata -> References;
+- needed only for a particular device, platform or calibration procedure ->
+  Part IV.
+
+#### Authoritative ownership plus point-of-action reminders
+
+Give each rule, formula or procedure one authoritative explanation. A complex
+multi-stage method may be split across sections when each section owns a
+distinct scientific role and forcing the complete method into one section would
+make it harder to audit. In that case, state the split explicitly and
+cross-reference every section needed to reconstruct the method. A concise
+warning or summary may appear at the point of action when omitting it could
+cause an invalid experiment, incorrect configuration or materially wrong
+interpretation. The reminder must link to the authoritative explanation and
+must not reproduce the complete mechanics.
+
+Examples:
+
+- define the power-normalization equation in Section 7.5; retain `report actual power` as a warning in the TX A/B playbook;
+- for sequential TX A/B, treat Sections 7.1 and 7.7 as jointly necessary:
+  Section 7.1 owns the time model and window eligibility, while Section 7.7
+  presents the end-to-end pair construction, micro-medians, one-sided outcomes
+  and aggregation sequence. Section 7.6 owns the interpretation of paired
+  evidence and Decode Outcomes, and Section 7.3 may state the
+  Target/Reference-swap consequence of the tie rule. Cross-reference Sections
+  7.1 and 7.7 together from practical guidance; retain `pairing is automatic
+  and deterministic` in the playbook;
+- define exact schedule choices in Section 4.3; retain `enter each path's actual recurrence and UTC phase` in the playbook;
+- keep the Ultimate3S and QMX schedule examples in Appendix B, Sections B.3 and
+  B.4, and link to them from the playbook.
+
+#### Relocation protocol
+
+A restructuring is substantial when it relocates content across multiple
+sections or parts, or removes or merges passages. For such work:
+
+The relocation-ledger requirement is prospective. A manually integrated
+baseline that the user explicitly accepts as grandfathered does not require a
+reconstructed ledger; apply the ledger requirement to later substantial
+restructures.
+
+1. Identify the authoritative destination before removing source text.
+2. Classify the source passage as unique useful guidance, duplicated explanation, obsolete material, implementation-only detail or unsupported claim.
+3. Add or improve the destination before removing unique guidance from the source.
+4. Retain a concise reminder and cross-reference at the original decision point when needed.
+5. Create and commit a task-specific relocation ledger at
+   `docs/relocation-ledgers/<topic>.md`, using a concise descriptive topic name.
+6. Record verbatim any original passage not retained anywhere, together with its section, disposition and reason.
+7. Update the Table of Contents, anchors, internal cross-references, known
+   compatibility anchors, references and both language versions in the same
+   completed integration.
+8. Verify that no useful guidance remains only in an obsolete or removed location.
+
+#### Exploratory and confirmatory guidance
+
+When documentation describes evidence strengthening, distinguish exploratory use from confirmatory repetition. An initial run may identify a possible pattern. Before a confirmatory run, instruct the operator to fix the relevant direction, band, benchmark, filters, thresholds, schedule and primary evaluation scope. Alternative radii, time windows or scopes should be reported as sensitivity analyses rather than selected only because they are favorable.
+
+#### Stability and repeatability
+
+Do not use `stable` ambiguously. Distinguish:
+
+- **sample Stability:** sensitivity of a displayed statistic to resampling the evidence already present in one run;
+- **experimental repeatability:** persistence of the observed pattern in a new controlled run or operating window.
+
+A narrow Stability interval does not by itself establish future repeatability, independence, calibration or statistical significance.
+
+#### English and German structural parity
+
+English and German manuals must retain equivalent section ownership, claims, warnings, formulas, references and cross-links. German should be a native technical adaptation using established amateur-radio terminology, not a mechanically literal translation. A relocation is incomplete until both languages have the same authoritative content home.
+
+#### Documentation restructuring checks
+
+For a substantial manual restructuring, verify:
+
+- every Table of Contents link resolves to exactly one existing anchor;
+- retained compatibility anchors do not create duplicate headings;
+- every defined term is introduced before it is relied upon;
+- formulas have one authoritative home; complex multi-stage methods follow the
+  explicitly documented ownership split and cross-links;
+- no device-specific procedure interrupts the main operator journey;
+- no useful original guidance was silently dropped;
+- source references remain globally numbered in order of first use;
+- English and German structures and claim boundaries remain equivalent;
+- documentation tests assert required meaning and structure rather than obsolete incidental prose where practical;
+- README synchronization and web/PDF rendering are completed after authoritative integration;
+- the authoritative manuals import and compile, internal links resolve, and the
+  complete regression suite plus any applicable documentation-specific checks
+  pass.

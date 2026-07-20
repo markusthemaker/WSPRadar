@@ -30,11 +30,11 @@ Used this way, WSPR becomes more valuable to the wider amateur community as well
 
 WSPRadar evaluates one <strong class="defined-term">Target</strong> under one explicit experiment design. The Target can be a complete installed station or one controlled hardware path. It can be evaluated on its own or against a meaningful <strong class="defined-term">Reference</strong>. Depending on the question, the Reference can be Setup B at the same station, one known external station, the active local WSPR neighborhood or its strongest active member.
 
-The Reference is part of the scientific question, not merely a display option. A <strong class="defined-term">Hardware A/B Test</strong> can narrow the comparison to two local antennas, feedlines, receivers or complete receive chains when the remaining variables are held stable. A <strong class="defined-term">Reference Station / Buddy Test</strong> compares two complete stations, including their QTHs, equipment, terrain and noise environments. A Local Neighborhood Benchmark asks how the Target compares with a changing population of active nearby WSPR stations. With no benchmark, WSPRadar asks where the Target produced qualifying evidence among independently confirmed opportunities.
+The Reference is part of the scientific question, not merely a display option. A <strong class="defined-term">Hardware A/B Test</strong> can narrow the comparison to two local antennas, feedlines, receivers or complete receive chains when the remaining variables are held stable. A <strong class="defined-term">Reference Station / Buddy Test</strong> compares two complete stations, including their QTHs, equipment, terrain and noise environments. A Local Neighborhood Benchmark asks how the Target compares with a changing population of active nearby WSPR stations. With no benchmark, WSPRadar asks where the Target produced <strong class="defined-term">qualifying evidence</strong>—evidence retained after the run's eligibility rules—among independently confirmed opportunities.
 
 These designs are not interchangeable. A Buddy or neighborhood result cannot isolate antenna gain because station location, hardware and noise remain part of the comparison. A Hardware A/B result narrows the cause only as far as the experiment actually controls the rest of the chain. No later statistic can remove a variable that the operating design never controlled.
 
-The method builds on established WSPR comparison ideas: same-receiver TX differences under common conditions, conditioned simultaneous RX comparisons, independent activity checks where operating schedules are unknown, and the practical lesson that slow alternation can be confounded by propagation <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integrates and extends that foundation with Target-activity qualification, purpose-built benchmark designs, same-cycle or deterministic schedule matching, reported-power normalization, separate Success, Delta SNR and Decode Outcomes, station-balanced geographic summaries, descriptive Stability checks and drill-down to the contributing evidence. [Chapter 6](#sec-d) documents this lineage, WSPRadar's additions and their boundaries.
+The method builds on established WSPR comparison ideas: same-receiver TX differences under common conditions, conditioned simultaneous RX comparisons, independent activity checks where operating schedules are unknown, and the practical lesson that slow alternation can be confounded by propagation <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integrates and extends that foundation with Target-activity qualification, purpose-built benchmark designs, same-cycle or deterministic schedule matching, reported-power normalization, separate Success, Delta SNR and Decode Outcomes, station-balanced geographic summaries and drill-down to the contributing evidence. Its descriptive <strong class="defined-term">Stability</strong> check describes a displayed median's sensitivity to resampling the evidence available in one run. [Chapter 6](#sec-d) documents this lineage, WSPRadar's additions and their boundaries.
 
 The intended conclusion is therefore bounded but operationally useful: **under this band, UTC window, station population and experiment design, how did the Target perform, relative to which Reference, where and when did the difference appear, and how much evidence supports it?** WSPRadar can show an observed relative advantage and its geographic or temporal scope. It does not directly measure isolated gain in dBi, radiation efficiency, take-off angle or receiver sensitivity; those require separate calibrated measurements.
 
@@ -84,7 +84,7 @@ Results open on a map and can be followed through one evidence path:
 
 **Run identity -> Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**
 
-The map locates the effect; it is the start of the analysis, not the conclusion. The Segment Inspector shows the evidence for a selected distance and direction. Station Insights shows which identities contribute. Drill-Down exposes the observations, same-cycle pairs or scheduled TX A/B pairs behind the summaries.
+The map locates the observed pattern; it is the start of the analysis, not the conclusion. The Segment Inspector shows the evidence for a selected distance and direction. Station Insights shows which identities contribute. Drill-Down exposes the observations, same-cycle pairs or scheduled TX A/B pairs behind the summaries.
 
 A strong result is one in which the run definition, station breadth, observation volume, geographic and time pattern, descriptive Stability and underlying rows tell a consistent story. Repeating the same design across another suitable window can show whether that story persists.
 
@@ -115,7 +115,7 @@ The aim is a clear operating conclusion: **what differed, where and when, relati
 * [2. Read Your Results](#sec-3)
     * [2.1 Read a Success result](#sec-3-2)
     * [2.2 Read a Compare result](#sec-3-3)
-    * [2.3 Use the map to locate the effect](#sec-3-4)
+    * [2.3 Use the map to locate the observed pattern](#sec-3-4)
     * [2.4 Check Stations and Spots](#sec-3-5)
     * [2.5a Inspect a Geographic Segment (Success Mode)](#sec-3-6a)
     * [2.5b Inspect a Geographic Segment (Compare Mode)](#sec-3-6b)
@@ -124,7 +124,7 @@ The aim is a clear operating conclusion: **what differed, where and when, relati
     * [2.7 Verify the underlying evidence](#sec-3-8)
     * [2.8 Worked Compare example](#sec-3-9)
 * [3. Strengthen and Communicate Your Result](#sec-4)
-    * [3.1 Recognize broad and stable evidence](#sec-4-1)
+    * [3.1 Judge breadth, Stability and repeatability](#sec-4-1)
     * [3.2 Strengthen a result through repetition and control](#sec-4-2)
     * [3.3 Write an evidence-matched conclusion](#sec-4-3)
     * [3.4 Preserve the run and its context](#sec-4-4)
@@ -177,7 +177,12 @@ The aim is a clear operating conclusion: **what differed, where and when, relati
     * [A.1 Create the second instance](#sec-a-1)
     * [A.2 Clone the starting configuration if required](#sec-a-2)
     * [A.3 Separate every data path](#sec-a-3)
-* [Appendix B: Timed A/B Relay Switch](#sec-b)
+* [Appendix B: Sequential TX A/B Scheduling and Switching](#sec-b)
+    * [B.1 Requirements for a valid scheduled experiment](#sec-b-1)
+    * [B.2 WSPRadar Timed A/B Relay Switch](#sec-b-2)
+    * [B.3 Ultimate3S schedule example](#sec-b-3)
+    * [B.4 QMX schedule examples](#sec-b-4)
+    * [B.5 Verify mapping and preserve the experiment](#sec-b-5)
 * [Appendix C: Reference SNR Calibration](#sec-c)
 * [License](#sec-license)
 
@@ -187,7 +192,9 @@ The aim is a clear operating conclusion: **what differed, where and when, relati
 
 ## Part I: Operator Guide
 
-This part takes you from an operating question to a well-supported result. Use it to choose an analysis, set up the experiment, inspect the evidence and describe what WSPRadar found. Exact controls, processing methods and reproducibility details are collected in Parts II and III.
+This part takes you from an operating question to a well-supported result. Use Chapter 1 to choose and operate the experiment, Chapter 2 to inspect the evidence, and Chapter 3 to strengthen, report and preserve the conclusion. Exact controls, processing methods and reproducibility details are collected in Parts II and III.
+
+In this guide, the **experiment** is the physical on-air operation and station configuration. A **run** or **analysis** is WSPRadar's configured processing of the resulting observations. A **result** is the Success or Compare evidence produced by that run.
 
 ---
 
@@ -195,17 +202,18 @@ This part takes you from an operating question to a well-supported result. Use i
 
 ### 1. Experiment Playbooks
 
-Choose the playbook that matches the question in [Section 0.2](#sec-1-2). Each playbook describes the operating setup and the result it creates. Exact matching, normalization and aggregation are defined once in [Scientific Methods](#sec-7).
+Choose the playbook that matches the question in [Section 0.2](#sec-1-2). Each playbook describes the minimum valid operating setup, the result it creates and its principal interpretation boundary. Exact controls are in Part II; matching, normalization and aggregation are defined once in [Scientific Methods](#sec-7).
 
 <a id="sec-2-1"></a>
 
 #### 1.1 A strong foundation for every experiment
 
-A clear question and a stable operating setup make the result easier to interpret.
+A clear question and a stable physical setup make the result easier to interpret.
 
-**Define the run**
+**Define the experiment and run**
 
 * State the question and the variable under test in one sentence.
+* State whether this is an exploratory run or a confirmatory repetition of an earlier pattern.
 * Choose TX or RX Analysis, one exact band and the Benchmark Design.
 * Enter callsigns exactly as uploaded, including any valid `/P`, `/1` or `/QRP` suffix.
 * Verify the Target QTH. Success identifies the Target using the exact callsign together with the first four locator characters.
@@ -214,7 +222,7 @@ A clear question and a stable operating setup make the result easier to interpre
 
 Every run uses one exact band; combining bands would mix different propagation, activity, station populations and observability.
 
-**Keep the experiment stable**
+**Keep the physical experiment stable**
 
 * Keep every non-tested variable as stable as practical.
 * Keep station clocks synchronized.
@@ -222,24 +230,24 @@ Every run uses one exact band; combining bands would mix different propagation, 
 * For RX, keep gain, filtering, audio routing, decoder settings and upload behavior stable unless one of those is the tested variable.
 * Confirm that each benchmark side operates as intended. The <strong class="defined-term">Target-Active Gate</strong> protects periods without observable Target activity, but it does not prove Reference uptime.
 
-Once the run completes, use the evidence ladder in [Chapter 2](#sec-3) to inspect its geographic breadth, observation volume and underlying rows.
+For an exploratory run, use the evidence ladder in [Chapter 2](#sec-3) to identify a possible pattern. Before a confirmatory repetition, define the primary geographic and temporal scope and keep direction, band, benchmark, filters, thresholds and schedule fixed unless the change itself is part of the stated test.
 
 <a id="sec-2-2"></a>
 
 #### 1.2 Success only: explore Target reach
 
-<strong class="defined-term">Qualifying evidence</strong> means the decoded WSPR observations retained after the run's identity, locator, band, UTC-window, Target-activity and filter rules, for peers and segments that also satisfy the configured evidence thresholds. For Success, this includes Target decodes and the independent same-cycle activity used to establish opportunities that are fair to count.
-
 **Question answered**
 
-Where, when and at what signal strength does the Target produce qualifying evidence among remote stations or signals independently shown to be active?
+Where, when and how consistently does the Target produce qualifying evidence among remote stations or signals independently shown to be active, and what SNR is observed for successful Target decodes?
 
 **What WSPRadar shows**
+
+For this playbook, <strong class="defined-term">qualifying evidence</strong> is the Target and independent activity evidence retained after the run's identity, band, time, Target-activity, filter and threshold rules.
 
 * **RX Success** compares Target receiver decodes with independently confirmed remote transmitter-cycles.
 * **TX Success** compares Target transmitter decodes with remote receiver-cycles shown to contain other same-band activity.
 
-There is no Reference station or Setup B.
+There is no Reference station or Setup B. Success Rate describes conditional reach; successful Target SNR is a separate signal-strength summary. [Section 2.1](#sec-3-2) explains the operator classifications and weighting, and [Section 7.4](#sec-7-4) defines the exact denominator.
 
 **Set up the analysis**
 
@@ -247,15 +255,13 @@ Choose `RX Analysis` or `TX Analysis`, enter the exact Target callsign and QTH, 
 
 **Strengthen the evidence**
 
-Use an operating window with observable Target activity and enough independent WSPR activity. Check the geographic scope, Stations, Spots and time views. If only a few peers survive the selected filters or evidence thresholds, extend the run or broaden the evidence before drawing a wide conclusion.
+Use an operating window with observable Target activity and enough independent WSPR activity. Check geographic scope, Stations, Spots and time views. If only a few peers survive, extend the observation window or narrow the geographic or temporal scope of the conclusion. Change filters or thresholds only for a stated experimental reason and report the changed configuration as a separate run.
 
 **Evidence-matched conclusion**
 
 > For this Target, band, UTC window and selected peer population, the displayed Success Rate summarizes the fraction of independently confirmed global WSPR-network opportunities in which the Target also produced qualifying evidence, calculated per peer and then balanced across qualifying peers.
 
-In everyday station terms: among the worldwide WSPR activity that this run could independently verify and fairly test, the result shows how consistently your station also produced the expected TX or RX evidence.
-
-Success describes conditional network reach. [Section 2.1](#sec-3-2) explains its classifications and weighting.
+In everyday station terms: among the worldwide WSPR activity that this run could independently verify and fairly test, the result shows how consistently your station also produced the expected TX or RX evidence. The successful-decode SNR view separately shows the signal strengths of the Target evidence that was actually decoded.
 
 <a id="sec-2-3"></a>
 
@@ -265,11 +271,13 @@ Success describes conditional network reach. [Section 2.1](#sec-3-2) explains it
 
 Did two local receive paths differ while observing the same remote WSPR transmissions?
 
-For a ham operator, this can mean comparing two antennas with one receiver and decoder path per antenna; comparing two receivers fed from the same antenna through a characterized splitter; comparing preamplifiers, filters or feedlines; or comparing two complete parallel receive chains. Keep everything outside the item under test as similar and stable as practical.
+For a radio amateur, this can mean comparing two antennas, each feeding its own independently reporting receiver/decoder chain; two receivers fed from one antenna through a characterized splitter; preamplifiers, filters or feedlines; or two complete parallel receive chains.
 
 **What WSPRadar shows**
 
 Simultaneous RX Hardware A/B compares two local receiving paths at one station. Setup A and Setup B observe the same remote transmitter identities in the same WSPR cycles. This is WSPRadar's closest design to a controlled same-signal hardware comparison.
+
+Unless receiver, audio and decoder differences have been characterized, the result compares the complete receive paths rather than the antennas alone.
 
 **Set up the experiment**
 
@@ -278,13 +286,13 @@ Select the UI choice `Hardware A/B-Test (Local Setup)` and operate two receivers
 * Setup A uses the Target callsign.
 * Setup B uses the `Setup B Callsign`.
 
-Keep clocks, antenna routing, gain, audio paths, decoder settings and uploads controlled.
+Keep clocks, antenna routing, gain, audio paths, decoder settings and uploads controlled. Components intended to be common must be physically common; measure or document unavoidable differences between the two chains.
 
 The run produces an RX Hardware Compare result and the Target's separate RX Success result.
 
 **Strengthen the evidence**
 
-Document splitter balance, feedline differences, receiver gain, automatic gain control (AGC) behavior, clipping, decoder configuration and upload behavior. Keep shared hardware genuinely common. A measured Reference SNR correction can compensate for a stable offset; it cannot correct nonlinear or time-varying behavior.
+Document splitter balance, feedline differences, receiver gain, automatic gain control (AGC) behavior, clipping, decoder configuration and upload behavior. A measured Reference SNR correction can compensate for a stable offset; it cannot correct nonlinear or time-varying behavior.
 
 [Appendix A](#sec-a) describes parallel WSJT-X instances. [Appendix C](#sec-c) describes Reference SNR calibration.
 
@@ -302,61 +310,45 @@ In everyday station terms: for remote signals that both paths observed at the sa
 
 Did two local antennas, feedlines or switched RF paths differ when driven by one common station setup?
 
+<a id="sec-2-4-why"></a>
+
+**Why deterministic alternation is used**
+
+When two nearby antennas radiate the same WSPR waveform and callsign in the same cycle and frequency channel, a remote receiver observes their combined field. Its spot cannot identify how much came from antenna A or B. Distinguishable simultaneous signals normally require separate callsigns and transmitter chains, introducing additional power, calibration, timing and frequency differences.
+
+Deterministic alternation instead retains one callsign and preferably one common transmitter chain while exposing both paths repeatedly to changing propagation and receiver conditions. It remains a sequential comparison: shorter separation reduces the time available for conditions to change, but does not make the observations simultaneous.
+
 **What WSPRadar shows**
 
-Sequential TX Hardware A/B alternates complete WSPR transmissions between Setup A and Setup B. The configured schedule identifies the two sides, and WSPRadar compares evidence from deterministic one-to-one scheduled pairs.
-
-This design keeps one callsign and normally one transmitter chain. Target and Reference can be two minutes apart, but lower-duty-cycle schedules with a greater separation are also valid. Shorter separation limits the time available for propagation, interference and receiver conditions to change; it does not make a sequential comparison simultaneous.
+Sequential TX Hardware A/B assigns complete WSPR transmissions to Setup A and Setup B from a time-locked schedule. WSPRadar then forms deterministic one-to-one scheduled pairs for each remote receiver identity and reports scheduled-pair Delta SNR plus one-sided Decode Outcomes.
 
 **Set up the experiment**
 
-The time-locked schedule, rather than callsign `/1` and `/2` suffixes, identifies the two paths.
+Use the station's normal valid exact callsign for both paths. Path identity comes from the deterministic UTC schedule, not from `/1` and `/2` suffixes or different reported powers.
 
-Use the station's normal valid exact callsign for both paths. In `TX A/B Schedule`, enter the actual recurrence and UTC phase of each physical path:
+In `TX A/B Schedule`, enter each physical path's **actual recurrence and UTC phase**. Do not infer those values solely from a transmitter's `Frame` label. Use a deterministic scheduler or controller; standard WSJT-X randomized transmit-percentage operation does not create a valid fixed A/B sequence. Exact controls and supported phases are in [Section 4.3](#sec-5-3), while device-specific schedules and switching procedures are in [Appendix B](#sec-b). <a href="#ref-12">[Ref-12]</a>
 
-* `Repeat Interval` is shared by Target and Reference. The available intervals are `4, 6, 10, 12, 20, 30` and `60 min`; each is an even WSPR-compatible divisor of one UTC hour.
-* `Target Start` is the even UTC minute phase used by Setup A.
-* `Reference Start` is the different even UTC minute phase used by Setup B.
+WSPRadar forms scheduled pairs automatically. Exact pair assignment, edge-window eligibility and micro-median aggregation are defined in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7).
 
-The default is `Repeat Interval = 10 min`, `Target Start = 00 UTC` and `Reference Start = 02 UTC`. The preview then shows Target at `00, 10, 20, 30, 40, 50` and Reference at `02, 12, 22, 32, 42, 52`. WSPRadar keeps the starts disjoint and reports the cyclic separation and transmissions per hour. The repeat interval describes **each physical path's actual schedule**; it is not necessarily the `Frame` value shown by a transmitter that alternates one output between two paths.
+Report the actual transmit power. Do not encode path identity through false reported-power values: TX normalization would turn an invented power difference into an artificial comparison offset. [Section 7.5](#sec-7-5) defines the calculation, and [Appendix C](#sec-c) describes defensible Reference-side calibration.
 
-Pairing is automatic. For each receiver `callsign + locator`, WSPRadar pairs every scheduled Target start one-to-one with the nearest scheduled Reference start. An exact half-interval tie uses the same lower/higher-phase pairing regardless of which path is called Target, so swapping A/B preserves the physical pairs and reverses only the Delta sign. Multiple retained observations on one side of one pair are reduced to a micro-median. A pair decoded on both sides contributes one Pair Delta; a one-sided decode remains Only Target or Only Reference; a pair with neither side decoded produces no row. A pair is excluded when either of its two planned starts falls outside the selected comparison window.
-
-Use a deterministic scheduler or controller. Standard WSJT-X randomized transmit-percentage operation does not create the required fixed A/B sequence.
-
-**Ultimate3S: adjacent A/B slots followed by a pause.** The QRP Labs Ultimate3S can run a sequence of WSPR entries and apply a per-entry `Aux` output to external path-switching hardware. When a two-entry sequence begins at `00`, a global 10-minute frame can therefore use Target at `00`, Reference at `02`, then pause until the next sequence at `10`; in WSPRadar this is `Repeat Interval = 10`, `Target Start = 00`, `Reference Start = 02`. The same arrangement with a 20-minute global frame gives each path a 20-minute recurrence while retaining two-minute A/B separation. The Ultimate3S manual documents `Start = 00` specially as "not used", so verify the displayed and observed UTC sequence and enter its actual phases rather than assuming a literal setting-to-time mapping. The `Aux` lines share display signals; use the documented filtered driver or relay interface and switch only in the RF-off interval <a href="#ref-12">[Ref-12]</a>.
-
-**QMX: distinguish one-transmitter and two-transmitter schedules.** One QMX with `Frame = 10`, `Start = 0` transmits at `00, 10, 20, 30, 40, 50`. If an external switch alternates those transmissions between paths, Target is `00, 20, 40` and Reference is `10, 30, 50`; each path repeats every 20 minutes, so enter `Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`. A single QMX cannot produce an adjacent `00/02` pair followed by an eight-minute pause with that beacon scheduler. It can alternate adjacent paths only by transmitting every two minutes, which the QMX manual discourages as antisocial network use. Two independently scheduled QMX units with `Frame = 10`, Starts `00` and `02`, do implement WSPRadar's `10 / 00 / 02` schedule, but their transmitter chains and actual powers must be controlled as separate hardware <a href="#ref-12">[Ref-12]</a>.
-
-Do not encode path identity by reporting false values such as `30 dBm` for one path and `33 dBm` for the other. WSPRadar normalizes TX SNR as `SNR - reported power + 30`; an invented 3 dB report difference therefore creates an artificial 3 dB comparison offset. Time-locking identifies the paths. Report the actual power and use a measured Reference correction for a real, defensible path offset.
-
-The physical schedule-to-path mapping determines which antenna or path is Target and which is Reference. Verify it without RF first. A reversed mapping labels the paths backwards and reverses the practical interpretation of the Delta SNR sign.
+Verify the physical schedule-to-path mapping without RF before starting. A reversed mapping labels the paths backwards and reverses the practical interpretation of the Delta SNR sign.
 
 The run produces a sequential TX Hardware Compare result and a separate TX Success result. Success is limited to the configured Target schedule and therefore describes Setup A.
 
-<a id="sec-2-4-why"></a>
-
-**Why alternating transmissions are useful**
-
-When two nearby antennas radiate the same WSPR waveform and callsign in the same cycle and frequency channel, a remote receiver observes their combined field. Its spot cannot identify how much came from antenna A or antenna B.
-
-Distinguishable simultaneous signals normally require separate callsigns and transmit chains. That introduces transmitter calibration, power, timing and frequency differences; closely spaced antennas and feed systems can also couple or inject RF into the other chain.
-
-Alternating complete scheduled transmissions retains one common transmitter chain and gives both paths repeated exposure to changing propagation and receiver conditions. Over a balanced run lasting many hours or days, short-term changes repeatedly affect both sides and tend to average down.
-
 **Strengthen the evidence**
 
-Control switch loss, feedline differences, antenna coupling, clock accuracy, schedule-to-path mapping and switching timing. Keep actual and reported power stable. Extend the run across the propagation periods relevant to the question, and reverse the A/B schedule assignments in a repeated experiment when a small difference matters.
+Control switch loss, feedline differences, antenna coupling, clock accuracy, schedule-to-path mapping and switching timing. Use the shortest practical separation and extend the run across the propagation periods relevant to the question.
 
-Scheduled TX A/B remains sequential: Setup A and Setup B are observed at different times. Use the shortest practical separation, because a longer gap gives propagation, interference and receiver conditions more time to change. Reversed assignments and repeated balanced runs help reveal systematic timing or switching effects. [Section 6.3](#sec-d-toledo) gives the experimental lineage and explains why short alternation is preferable to long blocks <a href="#ref-3">[Ref-3]</a>.
+Across a balanced run, random short-term variation may average down because both paths are repeatedly exposed to changing conditions. Systematic schedule-, switching- or time-of-cycle effects do not necessarily average down. When a small difference matters, repeat the experiment with the A/B schedule assignments reversed and compare like-for-like runs as described in [Section 3.2](#sec-4-2).
 
-[Appendix B](#sec-b) describes WSPRadar's timed USB-relay helper. [Appendix C](#sec-c) describes Reference SNR calibration.
+[Section 6.3](#sec-d-toledo) gives the experimental lineage and explains why short alternation is preferable to long blocks <a href="#ref-3">[Ref-3]</a>.
 
 **Evidence-matched conclusion**
 
 > Under the documented time-locked schedule, scheduled-pair Delta SNR showed the observed difference between switched paths A and B for the selected receivers, times and geographic scope.
 
-In everyday station terms: after repeatedly alternating the two RF paths, the result shows whether path A or B tended to produce stronger reports for the receivers and propagation periods represented in the run. [Why alternating transmissions are useful](#sec-2-4-why) and [Section 6.3](#sec-d-toledo) explain why this comparison is defensible while still remaining sequential rather than simultaneous.
+In everyday station terms: after repeatedly alternating the two RF paths, the result shows whether path A or B tended to produce stronger reports for the receivers and propagation periods represented in the run, while remaining sequential rather than simultaneous.
 
 <a id="sec-2-5"></a>
 
@@ -370,10 +362,10 @@ How did the Target station compare with one known external station during overla
 
 A Buddy Test compares two complete installed station systems. The comparison includes their locations, antennas, feedlines, transmitters or receivers, local noise, terrain, software and operating environments.
 
-* In TX, the same remote receiver compares Target and Reference where both were decoded in the same cycle.
-* In RX, Target and Reference receivers compare the same remote transmitter identity in the same cycle.
+* In TX, Target and Reference are compared at the same remote receiver when both were decoded in the same cycle.
+* In RX, Target and Reference receivers are compared on the same remote transmitter identity in the same cycle.
 
-Same-cycle pairing gives the two sides a shared endpoint and reduces many path, transmitter or receiver differences within each pair.
+Same-cycle TX pairs therefore share one remote receiver, while RX pairs share one remote transmitter. This controls one endpoint of the comparison; it does not remove differences in QTH, radio path, station hardware, terrain or local noise.
 
 **Set up the analysis**
 
@@ -397,8 +389,6 @@ A known Reference station is a meaningful comparison partner, not automatically 
 
 In everyday station terms: this shows how your complete on-air station performed against your buddy's complete station on shared paths; it does not assign the observed difference to one antenna, receiver or location by itself.
 
-<div style="page-break-before: always;"></div>
-
 <a id="sec-2-6"></a>
 
 #### 1.6 Local Median Neighborhood
@@ -417,15 +407,15 @@ The Reference can change from cycle to cycle. It is a local activity benchmark r
 
 Select `Local Neighborhood Benchmark`, choose a radius from 10 to 250 km and choose `Local Median Neighborhood` under `Local Benchmark Method`.
 
-Verify the Target callsign and QTH because they determine Target exclusion from the local pool and define the radius origin. Choose a radius with a clear local meaning and enough active station identities.
+Verify the Target callsign and QTH because they determine Target exclusion from the local pool and define the radius origin. Choose the primary radius from local geography and expected station density before interpreting the result; it should have a clear local meaning and enough active identities.
 
 The run produces a Local Compare result and the Target's separate non-comparative Success result.
 
 **Strengthen the evidence**
 
-Inspect which local identities contribute, their evidence counts and how the result changes with radius. A smaller radius can describe a more similar local environment but may leave a fragile pool; a larger radius can provide more contributors while including different terrain, noise and station conditions.
+Inspect which local identities contribute and their evidence counts. Alternative scientifically defensible radii can be reported as a sensitivity analysis: a smaller radius can describe a more similar local environment but leave a fragile pool, while a larger radius can add contributors but mix different terrain, noise and station conditions. Do not retain only the radius producing the most favorable result.
 
-Local stations can differ in antenna, hardware, schedule and reported-power accuracy. Report the selected radius, method, contributors and evidence counts with the result.
+Local stations can differ in antenna, hardware, schedule and reported-power accuracy. Report the primary radius, method, contributors, evidence counts and any sensitivity runs.
 
 **Evidence-matched conclusion**
 
@@ -449,15 +439,15 @@ Local Best Station forms a changing best-peer envelope from active station ident
 
 Select `Local Neighborhood Benchmark`, choose a radius from 10 to 250 km and choose `Local Best Station` under `Local Benchmark Method`.
 
-Verify the Target callsign and QTH, then choose a radius that retains a meaningful and adequately populated local pool.
+Verify the Target callsign and QTH. Choose the primary radius from local geography and expected station density before interpreting the result; it must retain a meaningful and adequately populated local pool.
 
 The run produces a Local Compare result and the Target's separate non-comparative Success result.
 
 **Strengthen the evidence**
 
-Inspect the local Reference contributors and repeat the analysis with scientifically defensible radii when the conclusion depends strongly on pool membership. Report the changing best-peer definition rather than describing the result as a comparison with one fixed station.
+Inspect the changing local Reference contributors. Alternative scientifically defensible radii can be reported as a sensitivity analysis when the conclusion depends strongly on pool membership; do not retain only the radius producing the most favorable comparison.
 
-As with the median method, local contributors can differ in terrain, equipment, noise, schedule and reported-power accuracy.
+Local contributors can differ in terrain, equipment, noise, schedule and reported-power accuracy. Report the changing best-peer definition rather than describing the result as a comparison with one fixed station.
 
 **Evidence-matched conclusion**
 
@@ -476,7 +466,7 @@ Read every run through the same evidence ladder:
 **Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**
 
 * Confirm the result and run definition.
-* Use the map to locate the effect.
+* Use the map to locate the observed pattern.
 * Select the relevant distance and direction for further inspection in Segment Inspector.
 * Inspect station-level evidence in Station Insights.
 * Drill down to observation-level evidence.
@@ -531,25 +521,27 @@ In the operator view, Delta SNR is the Target-side SNR minus the corrected Refer
 Paired Delta SNR is normally the primary quantitative comparison because the two sides share the closest available conditions:
 
 * In simultaneous RX Compare, Target and Reference receivers measure the same remote transmitter. This reduces transmitter-power, waveform and shared-path differences within the pair.
-* In simultaneous TX Compare, the same remote receiver measures Target and Reference. This reduces receiver-hardware, antenna, local-noise and reporting differences within the pair.
-* Sequential TX A/B uses deterministic scheduled pairs rather than same-cycle evidence.
+* In same-cycle TX Compare, such as applicable Buddy or Local Neighborhood comparisons, the same remote receiver measures Target and Reference. This reduces receiver-hardware, antenna, local-noise and reporting differences within the pair.
+* Sequential TX Hardware A/B uses deterministic scheduled pairs rather than same-cycle evidence.
 
 **Decode Outcomes**
 
-Decode Outcomes show what happened inside and outside the paired subset:
+Decode Outcomes show joint and one-sided evidence inside and outside the paired subset:
 
 * <strong class="defined-term">Joint / Joint Spots / Joint Pairs:</strong> qualifying paired evidence exists.
 * <strong class="defined-term">Only Target:</strong> Target evidence exists without Reference evidence in the relevant comparison unit.
 * <strong class="defined-term">Only Reference:</strong> Reference evidence exists without Target evidence.
 * <strong class="defined-term">Both (Async):</strong> both sides have evidence for the peer identity, but no qualifying joint unit survives for that category.
 
-Use Delta SNR to describe the paired strength difference and Decode Outcomes to describe comparative reach. A result can have a clear paired median while retaining substantial one-sided evidence; both observations belong in the conclusion.
+Use Delta SNR to describe the paired strength difference and Decode Outcomes to describe the joint and one-sided decode evidence. A result can have a clear paired median while retaining substantial one-sided evidence; both observations belong in the conclusion.
 
-Same-cycle pairing reduces shared confounders but does not make separated stations or different hardware chains physically identical. In simultaneous comparisons, the Target-Active Gate protects Target downtime from being counted as failure, while Reference uptime still needs independent confirmation.
+Decode Outcomes do not reconstruct or power-normalize a missing-side SNR. In TX comparisons, interpret one-sided outcomes together with actual and reported transmit power. [Section 7.6](#sec-7-6) defines this boundary.
+
+Same-cycle pairing reduces shared confounders but does not make separated stations or different hardware chains physically identical. In same-cycle comparisons, the Target-Active Gate protects Target downtime from being counted as failure, while Reference uptime still needs independent confirmation.
 
 <a id="sec-3-4"></a>
 
-#### 2.3 Use the map to locate the effect
+#### 2.3 Use the map to locate the observed pattern
 
 The map is the geographic overview. Use its colors, category labels and markers to identify the distance and direction worth inspecting next.
 
@@ -573,7 +565,7 @@ Read the category label as well as its color:
 
 Near rings can be consistent with shorter skip or near-vertical incidence skywave (NVIS) behavior; far rings can be consistent with DX behavior. The rings describe path distance and are not direct elevation-angle measurements.
 
-Map color points to the effect. The following evidence levels show how broad and well-supported it is.
+Map color locates the observed pattern. The following evidence levels show how broad and well-supported it is.
 
 <a id="sec-3-5"></a>
 
@@ -587,6 +579,8 @@ For Compare, both rows are divided into Only Target, Joint, Both (Async) and Onl
 For Success, `SPOTS` divides denominator evidence into Target and Elsewhere for RX, or Target and Other Signals for TX. `STATIONS` divides qualifying identities into peers with at least one Target observation and peers with counter-evidence only. Target-only and ineligible evidence are excluded because they do not enter Success Rate.
 
 Footer counts follow the visible map scope. A large number of Spots from only a few Stations means repeated evidence from a narrow identity base. Many Stations show wider identity and geographic participation.
+
+A `callsign + locator` is an analysis identity, not proof of one unique physical station. Suffixes, stale locators and locator changes can split or move a physical station in the evidence.
 
 <a id="sec-3-6"></a>
 <a id="sec-3-6a"></a>
@@ -611,7 +605,7 @@ Zero-Target stations are omitted from that scatter plot because they would all a
 
 **Decode Outcomes** show the breadth of Joint, Only Target, Both (Async) and Only Reference stations. This establishes whether the paired Delta SNR describes much of the footprint or a narrower joint subset.
 
-**Station Medians (Delta SNR)** gives each contributing station one value: its median paired Delta SNR. Stations therefore receive equal weight. A distribution concentrated above or below zero shows a consistent Target- or Reference-favoring direction across the available paths. A wide or split distribution shows that the effect varies by path.
+**Station Medians (Delta SNR)** gives each contributing station one value: its median paired Delta SNR. Stations therefore receive equal weight. A distribution concentrated above or below zero shows a consistent Target- or Reference-favoring direction across the available paths. A wide or split distribution shows that the observed difference varies by path.
 
 **Joint-spot or scheduled-pair Delta SNR** shows every consolidated same-cycle pair or every valid scheduled pair in sequential TX A/B. This view exposes spread, quantization and outliers, while allowing active stations to contribute multiple values. A shift between this distribution and Station Medians shows how observation volume differs from the station-balanced picture.
 
@@ -643,7 +637,7 @@ Select one or multiple stations to open the selected station evidence view. `Sta
 `Drill-Down` is the row-level audit surface:
 
 * Success exposes target-active peer-cycle classifications, including Target-only.
-* Simultaneous Compare exposes same-cycle Target/Reference evidence and Delta SNR.
+* Same-cycle Compare exposes Target/Reference evidence and Delta SNR from the shared cycle.
 * Local Median Neighborhood expands the local Reference identities behind the cycle median.
 * Sequential TX A/B exposes the planned UTC pair, `Micro-Med A`, `Micro-Med B` and Pair Delta.
 
@@ -675,7 +669,7 @@ A strong WSPRadar result combines a clear experiment, broad evidence and languag
 
 <a id="sec-4-1"></a>
 
-#### 3.1 Recognize broad and stable evidence
+#### 3.1 Judge breadth, Stability and repeatability
 
 Judge the result from the complete evidence picture:
 
@@ -689,15 +683,19 @@ Judge the result from the complete evidence picture:
 * identity and locator quality;
 * experiment control and repetition.
 
-Evidence is **broader** when several identities and adjacent segments agree. It is **more stable** when the station-balanced view, observation-level view, time views and repeated runs tell a compatible story. It is **better controlled** when the selected playbook's operating requirements were followed and documented.
+Evidence is **broader** when several identities and adjacent segments agree. It is **more internally consistent** when station-balanced, observation-level and time views tell a compatible story. It is **better controlled** when the selected playbook's operating requirements were followed and documented.
 
 <strong class="defined-term">90% Stability</strong> is a descriptive bootstrap interval around a median. A narrow interval means the displayed median changes little when the available values are resampled. Use it to describe sensitivity to the observed sample. It is not a confidence interval or statistical significance test, and it does not establish independence or eliminate data bias.
+
+**Sample Stability and experimental repeatability are different.** The Stability interval resamples evidence already present in this run. Repeating the experiment in another suitable window tests whether the observed pattern persists under new operating and propagation conditions.
 
 WSPRadar deliberately does not collapse these dimensions into one proof grade. The visible counts, distributions and underlying rows let the operator judge the result in the context of the actual experiment.
 
 <a id="sec-4-2"></a>
 
 #### 3.2 Strengthen a result through repetition and control
+
+Use an initial exploratory run to identify a possible pattern. Before a confirmatory repetition, freeze the direction, band, benchmark, filters, evidence thresholds, schedule and primary geographic or temporal evaluation scope. Report alternative radii or scopes as sensitivity analyses rather than retaining only the most favorable view.
 
 When the result will support an important station decision:
 
@@ -710,7 +708,7 @@ When the result will support an important station decision:
 * investigate any identity, locator or short interval that supplies a large fraction of the evidence;
 * preserve setup notes so a later run can reproduce the station configuration.
 
-Small observed differences become more useful when they recur across stations, time periods, adjacent segments and controlled repetitions.
+Small observed differences become more useful when they recur across stations, time periods, adjacent segments and controlled repetitions. A reversed sequential TX assignment is especially useful because it can expose schedule-, switch-path- or time-of-cycle effects that ordinary repetition leaves in the same role.
 
 TX and RX use different peer populations and opportunity definitions. Compare like-for-like TX and RX runs when investigating station balance or an "alligator" pattern.
 
@@ -718,19 +716,17 @@ TX and RX use different peer populations and opportunity definitions. Compare li
 
 #### 3.3 Write an evidence-matched conclusion
 
-A useful conclusion states:
+A minimum operator statement identifies the Target and, for Compare where applicable, the fixed Reference, Setup B or local benchmark definition. It also identifies the TX or RX direction, band, UTC window, geographic scope, result type, displayed value and supporting station/evidence count.
 
-* Target and Reference definition;
-* TX or RX direction;
-* band and resolved UTC window;
-* selected geographic scope;
-* result type;
-* station-balanced value;
-* observation-level value where relevant;
+A full technical report also states:
+
+* station-balanced and observation-level values where both apply;
 * Stations and Spots or joint-station and joint-spot/pair counts;
 * Decode Outcomes for Compare;
 * experiment conditions and any Reference correction;
-* whether the pattern repeated across time, stations or runs.
+* filters and evidence thresholds;
+* whether the pattern repeated across time, stations or runs;
+* any alternative radius or scope used as a sensitivity analysis.
 
 **Success wording**
 
@@ -766,7 +762,7 @@ Preserve external notes alongside that package:
 * transmitter or receiver hardware;
 * power measurements and reporting basis;
 * decoder and software versions;
-* operating schedule;
+* operating schedule, physical schedule-to-path mapping and any reversed assignment;
 * calibration procedure;
 * weather, faults or intentional changes relevant to the run.
 
@@ -859,6 +855,8 @@ Success-only skips Compare. The other choices add Compare while retaining the se
 
 Hardware A/B Test follows the selected **RX Analysis / TX Analysis** option. RX displays the two-receiver Setup B callsign; TX displays the shared Repeat Interval, two disjoint Start controls, a swap action and the resulting one-hour schedule preview. Pairing follows that schedule automatically.
 
+For TX Hardware A/B, `Repeat Interval` is each physical path's actual recurrence. It is not necessarily the `Frame` label shown by a transmitter that alternates one output between two paths. Check the preview against observed on-air starts and the physical switch mapping. Device-specific examples are in [Appendix B](#sec-b); exact pair construction is in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7).
+
 Switching direction or benchmark mode hides the inapplicable branch. Its previous widget values are neither saved nor restored. A Success-only configuration therefore contains no dormant comparison parameters.
 
 ##### Reference SNR Correction sign
@@ -878,7 +876,7 @@ A constant correction is suitable for a defensible constant offset. Clipping, un
 
 #### 4.4 Filters and evidence thresholds
 
-These controls let you shape the peer population, illumination period and minimum evidence required for display.
+These controls let you shape the peer population, illumination period and minimum evidence required for display. Choose them from the intended population and evidence floor. Do not relax filters or thresholds after inspecting the result solely to obtain a denser or more favorable map; report a changed analysis as a separate configuration.
 
 **`Exclude Special Callsigns Q, 0, 1`**
 
@@ -1017,8 +1015,6 @@ If evidence exists but looks unexpected, continue with these branches:
 
 An upstream-data issue changes what the selected source supplies. An experiment-design issue changes whether the retained rows answer the intended question. Diagnose and report the two separately.
 
-System Audit Status names the database origin once for the complete run. Its reason is `primary` when the first-priority source was selected, `cache affinity` when a guided demo selected a complete fresh bundle from a lower-priority provider before normal network-backed provider selection, `capacity spillover` when a lower-priority ready source admitted the complete request bundle because higher-priority request capacity could not, `failure fallback` when this run restarted after a provider-scoped failure or a higher-priority source was already unavailable during provider-health cooldown or recovery probing, or `committed source` when a rerender retained the run's already committed source. It then reports `database request`, `RAM cache` or `disk cache` plus timing for each strict and optional historical-fallback query separately. Those delivery labels describe how rows reached the analysis; they do not identify different databases or change the origin reason. On the same deployment, a guided demo can reuse raw provider query rows for up to 24 hours from their original fetch. Before making a new demo request, WSPRadar prefers the first configured provider that already has the complete required demo bundle cached. The cached rows retain their actual provider origin and are never combined across providers. Cache hits do not renew the deadline. A process restart loses the RAM tier, but the disk tier remains reusable if local storage survives; storage eviction can remove it sooner.
-
 <a id="sec-6-3"></a>
 
 #### 5.3 Callsign and locator checks
@@ -1045,6 +1041,8 @@ For example, if the Target station is shut down overnight, Reference spots from 
 
 Because the gate is intentionally Target-centric, swapping Target and Reference can change eligible cycles and Decode Outcomes. Sequential TX Hardware A/B uses its deterministic scheduled-pair method rather than the same simultaneous gate.
 
+The exact eligibility rules and Target-centric asymmetry are defined in [Section 7.3](#sec-7-3).
+
 <a id="sec-6-6"></a>
 
 #### 5.6 Working with upstream data
@@ -1058,6 +1056,14 @@ Five minutes is not a completeness guarantee. Delayed uploads, ingestion interru
 WSPRadar uses pairing, identity grouping, medians, thresholds and Drill-Down to reduce sensitivity to isolated bad rows and make them easier to inspect. Repeated plausible errors can still survive those controls.
 
 Reported power and locators are user-supplied. Correct mathematics applied to an incorrect power or locator remains physically wrong.
+
+**Read System Audit Status**
+
+System Audit Status names the database origin once for the complete run. Its reason is `primary` when the first-priority source was selected, `cache affinity` when a guided demo selected a complete fresh bundle from a lower-priority provider before normal network-backed provider selection, `capacity spillover` when a lower-priority ready source admitted the complete request bundle because higher-priority request capacity could not, `failure fallback` when this run restarted after a provider-scoped failure or a higher-priority source was already unavailable during provider-health cooldown or recovery probing, or `committed source` when a rerender retained the run's already committed source.
+
+It then reports `database request`, `RAM cache` or `disk cache` plus timing for each strict and optional historical-fallback query separately. Those delivery labels describe how rows reached the analysis; they do not identify different databases or change the origin reason.
+
+On the same deployment, a guided demo can reuse raw provider query rows for up to 24 hours from their original fetch. Before making a new demo request, WSPRadar prefers the first configured provider that already has the complete required demo bundle cached. The cached rows retain their actual provider origin and are never combined across providers. Cache hits do not renew the deadline. A process restart loses the RAM tier, but the disk tier remains reusable if local storage survives; storage eviction can remove it sooner.
 
 <div style="page-break-before: always;"></div>
 
@@ -1371,7 +1377,7 @@ This gives internally consistent mapping geometry. It is not survey-grade geodes
 <a id="sec-8"></a>
 ### 8. Evidence-Matched Claims and Reproducibility
 
-WSPRadar supports precise statements about conditional reach, paired differences, one-sided evidence and where those effects were observed. Strong reporting describes the evidence actually produced, preserves the run definition and keeps laboratory quantities separate from network observables.
+WSPRadar supports precise statements about conditional reach, paired differences, one-sided evidence and where those observed patterns appeared. Strong reporting describes the evidence actually produced, preserves the run definition and keeps laboratory quantities separate from network observables.
 
 <a id="sec-8-1"></a>
 #### 8.1 Claims the evidence supports
@@ -1426,13 +1432,13 @@ These boundaries do not prevent useful station comparisons. They determine which
 <a id="sec-8-3"></a>
 #### 8.3 Reporting checklist
 
-For a serious result, report:
+For a serious result, preserve and report:
 
-* preserve the saved `.config` and separately record the WSPRadar release or Git commit because the export does not currently capture it;
+* preserve the saved `.config`; it and `run_metadata.json` record the WSPRadar application version, but separately record the exact Git commit and clean-worktree state because the export package does not capture them;
 * configured UTC selection and, when available from the run notes, the resolved 15-minute query bounds; identify whether the evidence is Success or Compare because exact-endpoint handling differs;
 * exact band and TX/RX direction;
 * Target callsign and configured QTH;
-* Benchmark Design, Reference identity or local radius/method;
+* Benchmark Design and, for Compare where applicable, the fixed Reference or Setup B identity or the local radius and benchmark method;
 * Hardware schedule design where applicable;
 * Reference SNR Correction and calibration basis;
 * special, moving-station and solar filters;
@@ -1539,7 +1545,7 @@ WSPRadar is experimental open-source software provided "as is" without warrantie
 <a id="part-iv"></a>
 ## Part IV: Practical Supplements
 
-This part collects optional setup procedures, the timed relay helper, Reference-side calibration guidance and the project license. Use the sections that apply to your station and experiment.
+This part collects optional setup procedures, sequential TX A/B scheduling and switching guidance, Reference-side calibration and the project license. Use the sections that apply to your station and experiment.
 
 <a id="sec-a"></a>
 ### Appendix A: Parallel WSJT-X Instances
@@ -1584,9 +1590,27 @@ Separate directories do not prove RF-path independence. Confirm empirically that
 <div style="page-break-before: always;"></div>
 
 <a id="sec-b"></a>
-### Appendix B: Timed A/B Relay Switch
+### Appendix B: Sequential TX A/B Scheduling and Switching
+
+This appendix collects the practical schedule and switching guidance behind the TX Hardware A/B playbook. Exact UI controls are in [Section 4.3](#sec-5-3), and exact scheduled-pair construction is in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7).
+
+<a id="sec-b-1"></a>
+#### B.1 Requirements for a valid scheduled experiment
 
 For sequential TX A/B antenna tests, one transmitter feeding two RF paths through a controlled switch is normally preferable to two independent transmitters. Transmitter, frequency reference, WSPR chain, callsign, power setting and timing remain common.
+
+Use one normal valid callsign for both paths and identify the paths through different deterministic UTC phases. Enter the transmissions that actually occur on each RF path:
+
+* `Repeat Interval` is each path's actual recurrence, not necessarily a transmitter's displayed `Frame` value.
+* `Target Start` and `Reference Start` are different even UTC phases below that interval.
+* Use the shortest practical separation compatible with reliable operation and an acceptable duty cycle.
+* Report actual power; do not encode path identity through false dBm values.
+* Verify clock synchronization and the physical schedule-to-path mapping before transmitting.
+
+A deterministic scheduler or controller is required. Standard randomized WSJT-X transmit-percentage operation does not create a fixed A/B sequence.
+
+<a id="sec-b-2"></a>
+#### B.2 WSPRadar Timed A/B Relay Switch
 
 WSPRadar includes:
 
@@ -1602,7 +1626,7 @@ The repository helper uses the same schedule vocabulary and constraints as WSPRa
 * `Target Start` and `Reference Start` are different even UTC phases below that interval.
 * The default is `Repeat Interval = 10`, `Target Start = 00`, `Reference Start = 02`.
 
-The relay selects each path before its configured start and holds the most recently selected path through unscheduled gaps. It does not switch at unused two-minute WSPR boundaries. Configure the helper and WSPRadar identically from the transmissions that actually occur on each RF path. For example, one QMX emitting at `00, 10, 20, 30, 40, 50` through an alternating relay produces `Repeat Interval = 20`, Target `00`, Reference `10`; it does not produce `10 / 00 / 02`. If physical polarity is reversed, change whether relay ON means Target or swap the two Start assignments.
+The relay selects each path before its configured start and holds the most recently selected path through unscheduled gaps. It does not switch at unused two-minute WSPR boundaries. Configure the helper and WSPRadar identically from the transmissions that actually occur on each RF path. If physical polarity is reversed, change whether relay ON means Target or swap the two Start assignments.
 
 An optional lead time lets the RF path settle before every scheduled start. Manual physical relay ON/OFF control remains available independently of automatic scheduling. Existing version-0.1 modulo-4 configurations retain their old behavior as `4 / 00 / 02` or `4 / 02 / 00` when loaded. The helper targets common ATtiny45/V-USB HID relay boards with USB VID/PID `16c0:05df` and uses the Python HID stack on Windows, Linux and macOS. Consult its README for current installation, permissions and options.
 
@@ -1637,15 +1661,32 @@ chmod +x ./Start-Timed-AB-Relay-Switch.sh
 
 A small USB relay should not normally switch RF directly. It should control a properly rated RF switch or relay system. Verify voltage, current, polarity, fail-safe state, RF power, isolation and interlocks.
 
+<a id="sec-b-3"></a>
+#### B.3 Ultimate3S schedule example
+
+The QRP Labs Ultimate3S can run a sequence of WSPR entries and apply a per-entry `Aux` output to external path-switching hardware. When a two-entry sequence begins at `00`, a global 10-minute frame can use Target at `00`, Reference at `02`, then pause until the next sequence at `10`; in WSPRadar this is `Repeat Interval = 10`, `Target Start = 00`, `Reference Start = 02`. The same arrangement with a 20-minute global frame gives each path a 20-minute recurrence while retaining two-minute A/B separation.
+
+The Ultimate3S manual documents `Start = 00` specially as "not used", so verify the displayed and observed UTC sequence and enter its actual phases rather than assuming a literal setting-to-time mapping. The `Aux` lines share display signals; use the documented filtered driver or relay interface and switch only in the RF-off interval <a href="#ref-12">[Ref-12]</a>.
+
+<a id="sec-b-4"></a>
+#### B.4 QMX schedule examples
+
+One QMX with `Frame = 10`, `Start = 0` transmits at `00, 10, 20, 30, 40, 50`. If an external switch alternates those transmissions between paths, Target is `00, 20, 40` and Reference is `10, 30, 50`; each path repeats every 20 minutes. Enter `Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`; do not enter `10 / 00 / 02`.
+
+A single QMX cannot produce an adjacent `00/02` pair followed by an eight-minute pause with that beacon scheduler. It can alternate adjacent paths only by transmitting every two minutes, which the QMX manual discourages as antisocial network use. Two independently scheduled QMX units with `Frame = 10`, Starts `00` and `02`, do implement WSPRadar's `10 / 00 / 02` schedule, but their transmitter chains and actual powers must be controlled as separate hardware <a href="#ref-12">[Ref-12]</a>.
+
+<a id="sec-b-5"></a>
+#### B.5 Verify mapping and preserve the experiment
+
 Before transmitting:
 
 * test without RF power;
 * verify Target and Reference path polarity;
 * verify no transition occurs during a WSPR transmission;
 * use a dummy load or low-power continuity/SWR test;
-* document relay channel, polarity, lead time, schedule assignment and path mapping.
+* document relay channel, polarity, lead time, actual on-air schedule, schedule assignment and path mapping.
 
-Switch loss, isolation, connectors, feedline differences and antenna surroundings remain part of the result. Swapping antennas between switch paths can help separate antenna effects from path effects.
+Switch loss, isolation, connectors, feedline differences and antenna surroundings remain part of the result. Swapping antennas between switch paths can help separate antenna effects from path effects. Repeating the experiment with reversed schedule assignments can help expose timing or role-dependent effects.
 
 <div style="page-break-before: always;"></div>
 
