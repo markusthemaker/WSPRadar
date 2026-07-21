@@ -65,6 +65,23 @@ def test_tx_ab_threshold_wording_describes_scheduled_pairs(language):
     )
 
 
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_callsign_entry_guidance_recommends_standard_forms_in_both_languages(
+    language,
+):
+    """Explain both accepted suffix forms without presenting aliases as equivalent."""
+    labels = T[language]
+
+    assert "DL1MKS/P" in labels["hlp_callsign_entry"]
+    assert "DL1MKS-1" in labels["hlp_callsign_entry"]
+    assert "standard" in labels["hlp_callsign_entry"].lower()
+    assert "distinct" in labels["hlp_callsign_entry"].lower() or "eigene" in labels[
+        "hlp_callsign_entry"
+    ].lower()
+    assert "DL1MKS/P" in labels["ph_reference_callsign"]
+    assert "DL1MKS-1" in labels["ph_reference_callsign"]
+
+
 @pytest.mark.parametrize(
     ("language", "expected_rx_label", "expected_tx_label"),
     [
@@ -154,7 +171,7 @@ def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
         {
             "val_callsign": "dl1mks",
             "val_qth": "jn37aa",
-            "val_ref_callsign": "dl1mks/p",
+            "val_ref_callsign": "dl1mks-1",
             "val_ref_qth": "jo62",
             "is_demo_mode": False,
         }
@@ -186,6 +203,12 @@ def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
         "disabled": True,
     }
     assert text_input.call_args_list[1].kwargs["key"] == "val_ref_callsign"
+    assert text_input.call_args_list[1].kwargs["help"] == T["en"][
+        "hlp_callsign_entry"
+    ]
+    assert text_input.call_args_list[1].kwargs["placeholder"] == T["en"][
+        "ph_reference_callsign"
+    ]
     assert text_input.call_args_list[2].kwargs == {
         "value": "JN37",
         "disabled": True,
@@ -196,6 +219,45 @@ def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
     }
     assert session_state.val_ref_qth == "jo62"
     error.assert_not_called()
+
+
+def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
+    """Attach the same exact-identity guidance to the editable Target field."""
+    text_input = Mock()
+    session_state = _SessionState(
+        {
+            "config_panels_expanded": True,
+            "val_analysis_direction": "rx",
+            "val_callsign": "DL1MKS-1",
+            "val_qth": "JN37",
+            "val_time_mode": T["en"]["opt_last_x"],
+            "is_demo_mode": False,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            expander=Mock(return_value=_NullContext()),
+            columns=Mock(return_value=(_NullContext(), _NullContext())),
+            error=Mock(),
+            selectbox=Mock(),
+            radio=Mock(),
+            slider=Mock(),
+        ),
+    )
+    monkeypatch.setattr(config_panel, "_render_analysis_direction_selector", Mock())
+    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
+
+    config_panel.render_core_expander(T["en"])
+
+    target_callsign_input = next(
+        call
+        for call in text_input.call_args_list
+        if call.kwargs.get("key") == "val_callsign"
+    )
+    assert target_callsign_input.kwargs["help"] == T["en"]["hlp_callsign_entry"]
 
 
 def test_reference_station_identity_keeps_reference_grid4_editable(monkeypatch):
@@ -553,7 +615,7 @@ def test_removed_all_band_session_state_returns_to_exact_default(monkeypatch):
 
 
 def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatch):
-    """Load Experiment B entirely from its embedded versioned config document."""
+    """Load an active demo entirely from its embedded versioned config document."""
     session_state = _SessionState({"lang": "en", "val_max_dist": 22000})
     monkeypatch.setattr(
         callbacks,
@@ -561,21 +623,21 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
         SimpleNamespace(session_state=session_state),
     )
 
-    callbacks._apply_demo_profile_values("zander_tx_buddy_experiment_b")
+    callbacks._apply_demo_profile_values("milazzo_tx_buddy")
 
-    assert session_state.val_callsign == "SK0WE/B"
-    assert session_state.val_qth == "JO89"
+    assert session_state.val_callsign == "KP4MD"
+    assert session_state.val_qth == "CM98"
     assert session_state.val_band == "40m"
-    assert session_state.val_ref_callsign == "SK0WE"
+    assert session_state.val_ref_callsign == "WB6RQN"
     assert session_state.val_analysis_direction == "tx"
     assert session_state.val_comp_mode == T["en"]["opt_comp_buddy"]
-    assert session_state.val_max_dist == 2500
-    assert session_state.val_min_opportunities == 1
+    assert session_state.val_max_dist == 5000
+    assert session_state.val_min_opportunities == 5
     assert session_state.val_results_show_non_joint is False
     assert session_state.val_results_show_zero_target is False
     assert session_state.val_results_selected_ranges_compare == "all"
     assert session_state.val_results_selected_directions_compare == "all"
     assert session_state.val_results_selected_ranges_absolute == "all"
     assert session_state.val_results_selected_directions_absolute == "all"
-    assert session_state.val_results_time_bin_compare == "5m"
-    assert session_state.val_results_time_bin_absolute == "5m"
+    assert session_state.val_results_time_bin_compare == "3h"
+    assert session_state.val_results_time_bin_absolute == "3h"

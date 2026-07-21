@@ -199,7 +199,14 @@ def _render_reference_identity(t, *, derives_hardware_grid4):
         text_input_no_autocomplete(
             t.get("lbl_reference_callsign", "Reference Callsign"),
             key="val_ref_callsign",
-            placeholder=t.get("ph_reference_callsign", "e.g. Callsign/P"),
+            placeholder=t.get(
+                "ph_reference_callsign",
+                "e.g. DL1MKS/P or DL1MKS-1",
+            ),
+            help=t.get(
+                "hlp_callsign_entry",
+                "Use the exact WSPR archive identifier; standard callsign forms are recommended.",
+            ),
             max_chars=15,
             normalize_uppercase=True,
             disabled=st.session_state.is_demo_mode,
@@ -424,6 +431,10 @@ def render_core_expander(t):
             text_input_no_autocomplete(
                 callsign_label,
                 key="val_callsign",
+                help=t.get(
+                    "hlp_callsign_entry",
+                    "Use the exact WSPR archive identifier; standard callsign forms are recommended.",
+                ),
                 max_chars=15,
                 normalize_uppercase=True,
                 disabled=st.session_state.is_demo_mode,

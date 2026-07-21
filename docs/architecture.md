@@ -396,8 +396,17 @@ documentation-fragment rerun, expands the manual, and completes the deferred
 same-page navigation after the target enters the DOM. Existing mounted anchors,
 external links, modified clicks, and middle clicks retain native browser
 behavior. A fresh direct URL fragment for a deferred manual anchor uses the same
-expansion path. Back and Forward explicitly scroll an already mounted manual
-anchor, or reuse the expansion path when that history target is not mounted.
+expansion path. While the reader scrolls through the mounted manual, the browser
+controller replaces the current URL fragment with the last explicit manual
+anchor that crosses the existing landing offset; scrolling therefore keeps a
+meaningful return location without adding browser-history entries. Explicit
+internal-link navigation still creates a history step. Back and Forward
+explicitly scroll an already mounted manual anchor, or reuse the expansion path
+when that history target is not mounted.
+After lazy content mounts, the same controller assigns documentation-only
+weighted column layouts to four anchor-bounded tables. Each multiplier is
+applied to the localized table's natural browser widths and normalized back to
+the unchanged total table width.
 Hiding an already loaded manual does not immediately re-expand it.
 `Load full documentation` is a prominent explicit fallback, and the same control
 can hide the loaded content. Starting an analysis collapses the manual and

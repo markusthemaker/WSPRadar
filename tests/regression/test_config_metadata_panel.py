@@ -223,7 +223,7 @@ def test_config_load_replaces_or_clears_loaded_profile_snapshot():
     first_config = config_io.validate_config_document(
         _demo_document("vanhamel_rx_calibration")
     )
-    second_document = _demo_document("zander_tx_buddy_experiment_b")
+    second_document = _demo_document("milazzo_tx_buddy")
     second_config = config_io.validate_config_document(second_document)
 
     config_io.apply_config_state_values(first_config, session_state)

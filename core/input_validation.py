@@ -8,7 +8,7 @@ _CALLSIGN_RE = re.compile(
     r"^(?=.{3,15}$)(?:[A-Z0-9]+/)*"
     r"(?:[A-Z0-9]*[A-Z][A-Z0-9]*[0-9][A-Z0-9]*|"
     r"[A-Z0-9]*[0-9][A-Z0-9]*[A-Z][A-Z0-9]*)"
-    r"(?:/[A-Z0-9]+)*$"
+    r"(?:/[A-Z0-9]+)*(?:-[A-Z0-9]+)?$"
 )
 _GRID4_RE = re.compile(r"^[A-R]{2}[0-9]{2}$")
 _LOCATOR_RE = re.compile(r"^[A-R]{2}[0-9]{2}(?:[A-X]{2})?$")
@@ -29,8 +29,9 @@ def is_valid_callsign(callsign: str) -> bool:
     """Return whether a value is a plausible, SQL-safe WSPR callsign token.
 
     The validator accepts three to fifteen ASCII characters, optional non-empty
-    slash-separated prefixes or suffixes, and requires at least one segment
-    containing both a letter and a digit. It validates archive-token syntax,
+    slash-separated prefixes or suffixes, and one optional terminal alphanumeric
+    hyphen suffix. At least one slash-separated segment before any hyphen suffix
+    must contain both a letter and a digit. It validates archive-token syntax,
     not whether a callsign has been legally assigned.
     """
     normalized_callsign = str(callsign or "").strip()

@@ -469,6 +469,14 @@ def test_hardware_schema_rejects_redundant_reference_qth(
         ("callsign", "ABC"),
         ("callsign", "123"),
         ("callsign", "DL1ABC//P"),
+        ("callsign", "-DL1MKS"),
+        ("callsign", "DL1MKS-"),
+        ("callsign", "DL1MKS--1"),
+        ("callsign", "DL1MKS-1-2"),
+        ("callsign", "DL1MKS-1/P"),
+        ("callsign", "DL1MKS/-1"),
+        ("callsign", "ABC-1"),
+        ("callsign", "123-P"),
         ("callsign", "DL1\u00df"),
         ("callsign", "D\u01311ABC"),
         ("qth", "SS00"),
@@ -492,7 +500,17 @@ def test_formal_schema_rejects_malformed_or_unicode_target_identities(
 
 @pytest.mark.parametrize(
     "callsign",
-    ["W1A", "DL1MKS", "SK0WE/P", "EA8/DL1ABC/P", "VK2FXXX/MM"],
+    [
+        "W1A",
+        "DL1MKS",
+        "SK0WE/P",
+        "EA8/DL1ABC/P",
+        "VK2FXXX/MM",
+        "DL1MKS-1",
+        "DL1MKS-P",
+        "EA8/DL1ABC-1",
+        "DL1MKS/P-1",
+    ],
 )
 def test_formal_schema_accepts_plausible_callsign_tokens(
     config_validator,
@@ -505,7 +523,23 @@ def test_formal_schema_accepts_plausible_callsign_tokens(
     config_validator.validate(config)
 
 
-@pytest.mark.parametrize("callsign", ["ABC", "123", "DL1ABC//P", "DL1\u00df"])
+@pytest.mark.parametrize(
+    "callsign",
+    [
+        "ABC",
+        "123",
+        "DL1ABC//P",
+        "-DL1MKS",
+        "DL1MKS-",
+        "DL1MKS--1",
+        "DL1MKS-1-2",
+        "DL1MKS-1/P",
+        "DL1MKS/-1",
+        "ABC-1",
+        "123-P",
+        "DL1\u00df",
+    ],
+)
 def test_selected_station_schema_uses_the_same_callsign_contract(
     config_validator,
     callsign,
@@ -518,6 +552,23 @@ def test_selected_station_schema_uses_the_same_callsign_contract(
 
     with pytest.raises(ValidationError):
         config_validator.validate(config)
+
+
+@pytest.mark.parametrize(
+    "callsign",
+    ["DL1MKS-1", "DL1MKS-P", "EA8/DL1ABC-1", "DL1MKS/P-1"],
+)
+def test_selected_station_schema_accepts_hyphen_suffix_callsigns(
+    config_validator,
+    callsign,
+):
+    """Keep persisted peer identities aligned with the core callsign grammar."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["results_view"]["success"]["selected_stations"][0][
+        "callsign"
+    ] = callsign
+
+    config_validator.validate(config)
 
 
 @pytest.mark.parametrize(

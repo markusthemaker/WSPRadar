@@ -236,7 +236,7 @@ A clear question and a stable physical setup make the result easier to interpret
 * State the question and the variable under test in one sentence.
 * State whether this is an exploratory run or a confirmatory repetition of an earlier pattern.
 * Choose TX or RX Analysis, one exact band and the Benchmark Design.
-* Enter callsigns exactly as uploaded, including any valid `/P`, `/1` or `/QRP` suffix.
+* Enter callsigns exactly as uploaded. Prefer standard callsign forms; when the archive identity actually uses a suffix, retain it exactly, including `/P`, `/1`, `/QRP` or a terminal hyphen form such as `-1`.
 * Verify the Target QTH. Success and Compare identify the Target using the exact callsign together with the configured QTH's first four locator characters.
 * Select a UTC window in which the Target was actually operating. Use a window long enough to cover the propagation states named in the intended conclusion; multi-day runs are preferable when the conclusion spans complete daily cycles.
 * Record the antennas, feedlines, tuner, transmitter or receiver, decoder, software version, power, schedule and intentional changes.
@@ -339,8 +339,10 @@ TX Hardware A/B offers two methods. `Simultaneous TX` is the default for a new c
 
 | Method | Principal advantage | Principal cost and interpretation boundary |
 |---|---|---|
-| **Simultaneous TX** | Each joint Delta SNR compares the Target and Reference at the same remote receiver in the same UTC cycle, strongly reducing temporal path variation within that pair. | Requires two distinguishable transmitter chains, exact power/correction control, separate callsigns and separated frequencies. Coupling, intermodulation, near/far effects and chain differences can bias the result. It compares the documented complete transmit paths, not automatically the antennas alone. |
-| **Sequential TX** | Can retain one transmitter, waveform, callsign and frequency reference while a controlled switch alternates the two RF paths; simultaneous-transmitter coupling is avoided. | The two observations are time-separated. Short, balanced alternation reduces but cannot eliminate propagation, interference, schedule and switching differences. |
+| **Simultaneous TX** | Each Joint Delta SNR is formed from Target and Reference decoded by the same remote receiver in the same two-minute WSPR cycle. Shared receiver hardware, receive antenna, noise environment and propagation time remove the sequential time gap in which QRM, short-term fading and ionospheric conditions can change. | Requires two distinguishable transmitter chains, exact power/correction control, separate callsigns and separated frequencies. Frequency-selective QRM or fading, coupling, intermodulation, near/far effects and chain differences can still bias the result. It compares the documented complete transmit paths, not automatically the antennas alone. |
+| **Sequential TX** | Works with one transmitter switched between two RF paths or with two transmitter chains on non-overlapping schedules; the one-transmitter arrangement retains a common callsign and frequency reference. Coupling between simultaneously active transmitters is avoided. | The two observations are time-separated. Short, balanced alternation reduces but cannot eliminate propagation, interference, schedule and switching differences. |
+
+The WSPR-cycle definition and Joint-pair processing are specified in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7). [Section 6.3](#sec-d-zander) explains the scientific basis and remaining limits of same-receiver, same-cycle TX comparison.
 
 Choose from the hardware actually available and the claim you need to support. Simultaneous operation is not automatically superior if the two transmitter chains cannot be calibrated or isolated. Sequential operation is not simultaneous, even with adjacent WSPR frames.
 
@@ -373,7 +375,9 @@ $$f_{RF} \approx f_{dial} + f_{TX\ audio}$$
 
 For example, the Target could use `Tx Freq = 1450 Hz` and the Reference `Tx Freq = 1550 Hz`, with both transmissions starting in the same UTC cycle. These values are illustrative: inspect the band, leave comfortable separation, and allow for frequency error, strong-signal leakage and occupied signals. WSJT-X exposes a WSPR TX-frequency control and red waterfall marker, although their placement varies between versions and can be easy to overlook. Its randomized `Tx Pct` operation does not by itself guarantee deliberate two-radio synchronization. <a href="#ref-12">[Ref-12]</a>
 
-Measure or defensibly correct the power difference between the complete Target and Reference paths. Also control antenna coupling, transmitter isolation, harmonics/intermodulation, clock alignment and uploaded identities. A 100 Hz audio/RF separation is negligible as a propagation-frequency difference on an HF band, but receiver passband shape, local interference and frequency-specific transmitter response can still create a systematic offset. For a small claimed difference, repeat with the Target/Reference frequency assignments exchanged, or otherwise characterize that offset.
+Calibrate both transmitter chains at the comparison point appropriate to the variable under test. For an antenna-only comparison, measure the actual RF power delivered to each antenna feed point, or correct measured transmitter output for feedline loss. If the complete transmit paths are under test, retain transmitter and feedline differences as part of the compared systems and document them rather than correcting them away. Report the actual power for each WSPR identity; reported-power normalization cannot correct an unmeasured transmitter-chain or feedline offset. [Section 7.5](#sec-7-5) defines this limit.
+
+Two transmitter chains can also be characterized without simultaneous radiation through the Sequential TX calibration approach in [Section 1.4.2](#sec-2-4-sequential).
 
 The strongest hardware check is a crossover repetition: exchange the antenna or component under test between the two calibrated transmitter chains while holding the role definitions and analysis scope fixed. This helps distinguish the device-under-test effect from a persistent chain effect.
 
@@ -389,12 +393,6 @@ In everyday station terms: for receivers that decoded both distinguishable signa
 
 <a id="sec-2-4-why"></a>
 
-**Why deterministic alternation is used**
-
-When two nearby antennas radiate the same WSPR waveform and callsign in the same cycle and frequency channel, a remote receiver observes their combined field. Its spot cannot identify how much came from the Target or Reference path. Distinguishable simultaneous signals require separate callsigns and separated frequencies, normally with separate transmitter chains; the simultaneous playbook above states the resulting calibration and isolation requirements.
-
-Deterministic alternation instead retains one callsign and preferably one common transmitter chain while exposing both paths repeatedly to changing propagation and receiver conditions. It remains a sequential comparison: shorter separation reduces the time available for conditions to change, but does not make the observations simultaneous.
-
 **What WSPRadar shows**
 
 Sequential TX Hardware A/B assigns complete WSPR transmissions to Target and Reference from a time-locked schedule. WSPRadar then forms deterministic one-to-one scheduled pairs for each remote receiver identity and reports scheduled-pair Delta SNR plus one-sided Decode Outcomes.
@@ -408,6 +406,8 @@ In `TX A/B Schedule`, enter each physical path's **actual recurrence and UTC pha
 WSPRadar forms scheduled pairs automatically. Exact pair assignment, edge-window eligibility and micro-median aggregation are defined in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7).
 
 Report the actual transmit power. Do not encode path identity through false reported-power values: TX normalization would turn an invented power difference into an artificial comparison offset. [Section 7.5](#sec-7-5) defines the calculation, and [Appendix C](#sec-c) describes defensible Reference-side calibration.
+
+A dedicated Sequential TX calibration run can characterize the offset between two transmitter chains without simultaneous radiation. Assign the chains to non-overlapping schedule phases and operate them alternately through the same downstream RF path, or measure both at the same calibrated RF reference plane. Correct actual output power and feedline loss only when they lie outside the variable under test; otherwise the observed Delta SNR includes the chain offset.
 
 Verify the physical schedule-to-path mapping without RF before starting. A reversed mapping labels the paths backwards and reverses the practical interpretation of the Delta SNR sign.
 
@@ -897,18 +897,16 @@ These controls define the Target, operating direction, band and evidence window.
 | UI label | Factory default | What it controls |
 |---|---|---|
 | **RX Analysis / TX Analysis** | none; required | RX evaluates the Target as a receiving WSPR station; TX evaluates it as a transmitting WSPR station. `Run` and `Save Config` remain disabled until either option is selected. |
-| **Your Callsign (Receiver under Test)** / **Your Callsign (Transmitter under Test)** | blank | Direction-specific exact Target callsign. Accepted syntax is 3 to 15 ASCII characters: letters `A-Z`, digits `0-9`, and optional `/` separators between non-empty alphanumeric segments. At least one segment must contain both a letter and a digit. |
-| **QTH Locator (4 or 6 chars)** | blank | Valid four- or six-character Maidenhead locator: two letters `A-R`, two digits, and optionally two subsquare letters `A-X`. The complete value is the map center, local-radius origin and geographic calculation input; its first four characters constrain Target matching in Success and Compare. Reference Station uses a separately entered Reference Grid-4, while Hardware A/B derives both displayed grid-4 fields from this Target QTH. |
+| **Your Callsign (Receiver under Test)** / **Your Callsign (Transmitter under Test)** | blank | Valid exact Target callsign; valid `/` variants and one terminal `-` suffix are accepted. |
+| **QTH Locator (4 or 6 chars)** | blank | Map center and local-radius origin; its first four characters constrain Target matching. |
 | **Operating Band** | `20m` | Exactly one of `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` or `23cm`. |
 | **Time Selection** | `Last X Hours` | Selects recent or custom UTC evidence. Recent mode allows 1 to 168 hours and defaults to 24. |
 | **Last hours back (DB updated every 15 min)** | `24` | Appears for `Last X Hours`; accepts 1 to 168 hours. The absolute endpoints are resolved when the run starts and retained for that active run. At save time, choose whether the file keeps `Last X Hours` or freezes those resolved UTC endpoints. |
 | **Start Date**, **End Date**, **Start Time (UTC)**, **End Time (UTC)** | previous day `00:00` through current day `23:59` | Appear for `Custom Date/Time`. Dates start at 2008 and one window is limited to 31 days. Resolved endpoints are quantized down to 15-minute boundaries. |
 
-Use the callsign exactly as uploaded. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` and `DL1MKS/QRP` are separate identities; WSPRadar does not apply hidden prefix matching.
+Use the callsign exactly as uploaded. Prefer standard callsign forms and enter a hyphenated reporting identifier only when that is the exact archive identity you need to query. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1`, `DL1MKS/QRP` and `DL1MKS-1` are separate identities; WSPRadar neither treats `/` and `-` as aliases nor applies hidden prefix matching.
 
 A Maidenhead locator is a compact grid-square location code. Four characters identify a broad area; six characters identify a smaller area inside it. WSPRadar uses the configured QTH as the map center and local-radius origin. Success and Compare match Target spots using its first four locator characters; grid-6 is not part of this selector.
-
-Callsign and QTH text is normalized to uppercase. A non-empty malformed Target or Reference value produces a field-specific validation message, and invalid values are rejected when a run or configuration is submitted. Callsign validation establishes plausible archive-token syntax; it cannot verify that a callsign is legally assigned or that the station actually used it.
 
 <a id="sec-5-3"></a>
 
@@ -925,12 +923,12 @@ Success-only skips Compare. The other choices add Compare while retaining the se
 
 | UI label | Default and range | When it appears and what it controls |
 |---|---|---|
-| **Reference SNR Correction (dB)** | `0.0`; `-99.9` to `+99.9` in `0.1 dB` steps | Appears for Compare and is hidden for Success-only. The value is added to the Reference-side SNR before Delta SNR is calculated. |
-| **Target Callsign** | value from Core Parameters; read-only | Appears in the fixed-reference identity block for Reference Station, RX Hardware A/B and simultaneous TX Hardware A/B. It makes the Target side explicit without creating a second source of Target state. |
-| **Target QTH** | value from Core Parameters; read-only | Appears for Reference Station and retains all four or six configured characters because the complete Target QTH also anchors geometry. |
-| **Target Grid-4** | first four characters of Target QTH; read-only | Appears for RX and simultaneous TX Hardware A/B beside the equally derived Reference Grid-4. |
-| **Reference Callsign** | blank; example placeholder | Reference Station, RX Hardware A/B and simultaneous TX Hardware A/B. Enter the Reference's different exact reporting callsign. |
-| **Reference Grid-4** | blank and editable for Reference Station; derived Target grid-4 and read-only for Hardware A/B | Exactly four Maidenhead characters. Reference Station permits an independently chosen grid-4. Hardware A/B displays the shared value but has no independent Reference-QTH setting or serialized `reference_qth`; the operator must still ensure physical co-location. |
+| **Reference SNR Correction (dB)** | `0.0 dB`; range `-99.9` to `+99.9 dB` | Added to the Reference-side SNR before Delta SNR is calculated. |
+| **Target Callsign** | from Core Parameters | Makes the Target side explicit. |
+| **Target QTH** | from Core Parameters | Makes the Target QTH explicit. |
+| **Target Grid-4** | first four characters of Target QTH | Makes the Target grid-4 explicit. |
+| **Reference Callsign** | blank | Exact reporting callsign for the Reference side. |
+| **Reference Grid-4** | independent grid-4 for Reference Station; Target grid-4 for Hardware A/B | Four-character Maidenhead grid for Reference matching. |
 | **Local Benchmark Method** | `Local Median Neighborhood` | Local Neighborhood Benchmark. Selects `Local Median Neighborhood` or the strict `Local Best Station`. |
 | **Neighborhood Radius (km)** | `100`; 10 to 250 km in 10 km steps | Local Neighborhood Benchmark. Includes local Reference coordinates around the configured QTH. |
 | **TX A/B Method** | `Simultaneous TX` | TX Hardware A/B Test. Switches between `Simultaneous TX` and `Sequential TX`; the selected branch alone is displayed and saved. |
@@ -1400,6 +1398,8 @@ The station-balanced value and pooled observation-level value answer different q
 3. Require the configured joint count for each peer.
 4. Calculate one station-level median Delta SNR.
 5. Calculate the segment median across station medians.
+
+A Joint comparison is formed only when the same remote receiver decodes both distinguishable signals in the same WSPR cycle. This removes the sequential time gap in which QRM, short-term fading, receiver state and ionospheric conditions can change. It does not remove frequency-selective QRM or fading, transmitter-chain response differences or other systematic offsets; repeated Joint cycles can reduce random variation but not systematic bias.
 
 **Sequential TX A/B**
 

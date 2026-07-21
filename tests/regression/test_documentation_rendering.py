@@ -268,6 +268,16 @@ def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity()
     assert "nicht veröffentlichte v1-Prototypen werden nicht migriert" in DOC_DE
 
 
+def test_bilingual_manuals_define_hyphen_suffix_as_one_exact_identity():
+    """Recommend standard forms while documenting the accepted archive token."""
+    assert "Prefer standard callsign forms" in DOC_EN
+    assert "Bevorzuge standardmäßige Rufzeichenformen" in DOC_DE
+    assert "`DL1MKS-1`" in DOC_EN
+    assert "`DL1MKS-1`" in DOC_DE
+    assert "neither treats `/` and `-` as aliases" in DOC_EN
+    assert "behandelt `/` und `-` weder als gleichbedeutend" in DOC_DE
+
+
 def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
     """Chapter 2 must avoid repeating run-identity guidance before interpretation."""
     assert "#### 2.1 Confirm the run identity" not in DOC_EN
@@ -382,6 +392,12 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
     assert len(rendered_styles) == 1
     stylesheet = rendered_styles[0]
     assert ".st-key-documentation_body .stMarkdown h4" in stylesheet
+    assert ".st-key-documentation_body .stMarkdown h5" in stylesheet
+    assert (
+        ".st-key-documentation_body table.documentation-weighted-columns"
+        in stylesheet
+    )
+    assert "table-layout: fixed !important" in stylesheet
     assert ".st-key-documentation_body .stMarkdown strong.defined-term" in stylesheet
     assert ".st-key-documentation_body a[id]:not(.header-anchor)" in stylesheet
     assert "scroll-margin-top: 5rem" in stylesheet

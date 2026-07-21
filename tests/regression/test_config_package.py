@@ -47,7 +47,6 @@ EXPECTED_DEMO_FILENAMES = [
     "01_vanhamel_rx_calibration.config",
     "02_vanhamel_rx_ab.config",
     "03_zander_tx_buddy_experiment_a.config",
-    "04_zander_tx_buddy_experiment_b.config",
     "05_milazzo_tx_buddy.config",
     "06_rx_local_median_neighborhood.config",
     "07_rx_calibration_ab.config",
@@ -60,7 +59,6 @@ EXPECTED_DEMO_PROFILE_IDS = [
     "vanhamel_rx_calibration",
     "vanhamel_rx_buddy",
     "zander_tx_buddy",
-    "zander_tx_buddy_experiment_b",
     "milazzo_tx_buddy",
     "rx_local_median_neighborhood",
     "rx_calibration_ab",
@@ -276,50 +274,6 @@ def test_demo_directory_reader_requires_english_fallback_text(tmp_path, field):
 
     with pytest.raises(ValueError, match=rf"profile\.{field}\.en"):
         load_demo_profiles(demo_directory)
-
-
-def test_zander_experiment_b_demo_follows_experiment_a_with_expected_configuration():
-    """Keep both Zander experiments adjacent and preserve Experiment B inputs."""
-    profile_keys = list(DEMO_PROFILES)
-    experiment_a_index = profile_keys.index("zander_tx_buddy")
-    assert profile_keys[experiment_a_index + 1] == "zander_tx_buddy_experiment_b"
-    assert "Short Portable Vertical" in DEMO_PROFILES[
-        "zander_tx_buddy"
-    ]["label"]["en"]
-
-    experiment_b = DEMO_PROFILES["zander_tx_buddy_experiment_b"]
-    assert "T2FD" in experiment_b["label"]["en"]
-    assert set(experiment_b) == {"id", "label", "description", "configuration"}
-    settings = experiment_b["configuration"]["settings"]
-    core_parameters = settings["core_parameters"]
-    comparison_parameters = settings["comparison_parameters"]
-    advanced_parameters = settings["advanced_parameters"]
-    time_selection = core_parameters["time_selection"]
-
-    assert core_parameters["analysis_direction"] == "tx"
-    assert core_parameters["callsign"] == "SK0WE/B"
-    assert core_parameters["qth"] == "JO89"
-    assert core_parameters["band"] == "40m"
-    assert time_selection == {
-        "mode": "custom",
-        "start_date": "2022-06-01",
-        "end_date": "2022-06-10",
-        "start_time_utc": "06:30",
-        "end_time_utc": "23:45",
-    }
-    assert comparison_parameters == {
-        "mode": "reference_station",
-        "reference_callsign": "SK0WE",
-        "reference_qth": "JO89",
-        "snr_correction_db": 0.0,
-    }
-    assert advanced_parameters["map_scope_km"] == 2500
-    assert advanced_parameters["min_confirmed_opportunities_per_peer"] == 1
-    assert (
-        DEMO_PROFILES["zander_tx_buddy"]["configuration"]["settings"]
-        ["comparison_parameters"]["reference_callsign"]
-        == "SK0WE/1"
-    )
 
 
 def test_tx_hardware_ab_demo_selects_scheduled_pair_science():

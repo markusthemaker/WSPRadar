@@ -59,6 +59,112 @@ def test_history_navigation_scrolls_mounted_anchors_and_expands_missing_anchors(
     assert "scheduledAnchorId === anchorId" in javascript
 
 
+def test_manual_scroll_replaces_the_current_hash_without_polluting_history():
+    """Track the nearest mounted anchor while reserving pushes for link clicks."""
+    javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
+
+    assert "function synchronizeVisibleAnchor()" in javascript
+    assert "for (const anchorId of anchorIds)" in javascript
+    assert "documentationContainer.contains(anchor)" in javascript
+    assert "window.getComputedStyle(anchor).scrollMarginTop" in javascript
+    assert "anchor.getBoundingClientRect().top <= activationLine" in javascript
+    assert (
+        "window.history.replaceState(window.history.state, '', encodedHash)"
+        in javascript
+    )
+    assert javascript.count("window.history.replaceState") == 1
+    assert javascript.count("window.history.pushState") == 1
+    assert javascript.index("synchronizeVisibleAnchor();") < javascript.index(
+        "requestNavigation(anchorId, true)"
+    )
+
+
+def test_manual_scroll_synchronization_is_throttled_guarded_and_cleaned_up():
+    """Avoid layout work per event and never overwrite pending navigation."""
+    javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
+
+    assert "window[pendingAnchorProperty]" in javascript
+    assert "scheduledAnchorId !== null" in javascript
+    assert "let visibleAnchorFrame = null" in javascript
+    assert (
+        "documentationContainer?.closest('[data-testid=\"stMain\"]')"
+        in javascript
+    )
+    assert (
+        "scrollContainer.addEventListener('scroll', "
+        "scheduleVisibleAnchorSynchronization"
+        in javascript
+    )
+    assert "scrollContainer.scrollTop + scrollContainer.clientHeight" in javascript
+    assert ">= scrollContainer.scrollHeight" in javascript
+    assert "passive: true" in javascript
+    assert (
+        "window.addEventListener('resize', scheduleVisibleAnchorSynchronization)"
+        in javascript
+    )
+    assert "scrollContainer.removeEventListener(" in javascript
+    assert (
+        "window.removeEventListener('resize', scheduleVisibleAnchorSynchronization)"
+        in javascript
+    )
+    assert "window.cancelAnimationFrame(visibleAnchorFrame)" in javascript
+
+
+def test_documentation_tables_multiply_their_natural_column_widths_by_section():
+    """Keep layout ratios relative to each localized table's rendered widths."""
+    javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
+
+    expected_layouts = (
+        (
+            "layoutName: 'section-1-4'",
+            "startAnchorId: 'sec-2-4'",
+            "endAnchorId: 'sec-2-4-simultaneous'",
+            "widthMultipliers: [2, 1, 1]",
+        ),
+        (
+            "layoutName: 'section-4-0'",
+            "startAnchorId: 'sec-5'",
+            "endAnchorId: 'sec-5-1'",
+            "widthMultipliers: [1.5, 1, 1]",
+        ),
+        (
+            "layoutName: 'section-4-2'",
+            "startAnchorId: 'sec-5-2'",
+            "endAnchorId: 'sec-5-3'",
+            "widthMultipliers: [1.5, 1.5, 1]",
+        ),
+        (
+            "layoutName: 'section-4-3'",
+            "startAnchorId: 'sec-5-3'",
+            "endAnchorId: 'sec-5-4'",
+            "widthMultipliers: [1.5, 1, 1]",
+        ),
+    )
+    for layout_contract in expected_layouts:
+        for expected_source in layout_contract:
+            assert expected_source in javascript
+
+    assert "compareDocumentPosition(table)" in javascript
+    assert "table.compareDocumentPosition(endAnchor)" in javascript
+    assert "headerCell.getBoundingClientRect().width" in javascript
+    assert "width * specification.widthMultipliers[index]" in javascript
+    assert "weightedWidth / totalWeightedWidth" in javascript
+    assert "document.createElement('colgroup')" in javascript
+    assert "table.classList.add(weightedTableClassName)" in javascript
+
+
+def test_documentation_table_layout_waits_for_lazy_dom_and_cleans_up():
+    """Apply scoped widths after expansion without leaving a DOM observer alive."""
+    javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
+
+    assert "let documentationObserver = null" in javascript
+    assert "documentationObserver = new MutationObserver" in javascript
+    assert "documentationObserver.observe(documentationContainer" in javascript
+    assert "scheduleDocumentationTableLayouts();" in javascript
+    assert "documentationObserver?.disconnect()" in javascript
+    assert "window.cancelAnimationFrame(tableLayoutFrame)" in javascript
+
+
 def test_scroll_trigger_sentinel_is_invisible_but_has_observable_geometry():
     html = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_HTML
     css = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_CSS

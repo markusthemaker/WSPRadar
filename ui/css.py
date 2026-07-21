@@ -226,6 +226,13 @@ def apply_custom_css():
         .st-key-documentation_body .stMarkdown h4 {
             color: #39ff14 !important;
         }
+        .st-key-documentation_body .stMarkdown h5 {
+            color: #39ff14 !important;
+        }
+        .st-key-documentation_body table.documentation-weighted-columns {
+            table-layout: fixed !important;
+            width: 100% !important;
+        }
         .st-key-documentation_body .stMarkdown strong.defined-term {
             color: #39ff14 !important;
             font-weight: 700 !important;

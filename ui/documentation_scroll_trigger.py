@@ -1,4 +1,4 @@
-"""Browser triggers for demand-driven documentation expansion and navigation."""
+"""Browser controls for demand-driven documentation, navigation, and layout."""
 
 from collections.abc import Callable
 
@@ -33,9 +33,40 @@ export default function(component) {
     const documentationContainer = document.querySelector(
         '.st-key-documentation_body'
     );
+    const scrollContainer = (
+        documentationContainer?.closest('[data-testid="stMain"]')
+        ?? window
+    );
     const anchorIds = new Set(data?.anchorIds ?? []);
     const pendingAnchorProperty = '__wspradarPendingDocumentationAnchor';
     const requestedAnchorProperty = '__wspradarRequestedDocumentationAnchor';
+    const weightedTableClassName = 'documentation-weighted-columns';
+    const tableLayoutSpecifications = [
+        {
+            layoutName: 'section-1-4',
+            startAnchorId: 'sec-2-4',
+            endAnchorId: 'sec-2-4-simultaneous',
+            widthMultipliers: [2, 1, 1],
+        },
+        {
+            layoutName: 'section-4-0',
+            startAnchorId: 'sec-5',
+            endAnchorId: 'sec-5-1',
+            widthMultipliers: [1.5, 1, 1],
+        },
+        {
+            layoutName: 'section-4-2',
+            startAnchorId: 'sec-5-2',
+            endAnchorId: 'sec-5-3',
+            widthMultipliers: [1.5, 1.5, 1],
+        },
+        {
+            layoutName: 'section-4-3',
+            startAnchorId: 'sec-5-3',
+            endAnchorId: 'sec-5-4',
+            widthMultipliers: [1.5, 1, 1],
+        },
+    ];
 
     function anchorIdFromHash(hash) {
         if (!hash || hash === '#') {
@@ -67,6 +98,170 @@ export default function(component) {
         setTriggerValue('navigate', anchorId);
     }
 
+    function findTableBetweenAnchors(startAnchorId, endAnchorId) {
+        const startAnchor = document.getElementById(startAnchorId);
+        const endAnchor = document.getElementById(endAnchorId);
+        if (
+            !documentationContainer
+            || !startAnchor
+            || !endAnchor
+            || !documentationContainer.contains(startAnchor)
+            || !documentationContainer.contains(endAnchor)
+        ) {
+            return null;
+        }
+
+        return Array.from(documentationContainer.querySelectorAll('table')).find(
+            (table) => (
+                Boolean(
+                    startAnchor.compareDocumentPosition(table)
+                    & Node.DOCUMENT_POSITION_FOLLOWING
+                )
+                && Boolean(
+                    table.compareDocumentPosition(endAnchor)
+                    & Node.DOCUMENT_POSITION_FOLLOWING
+                )
+            )
+        ) ?? null;
+    }
+
+    function applyWeightedColumnLayout(table, specification) {
+        if (table.dataset.documentationColumnLayout === specification.layoutName) {
+            return;
+        }
+
+        const headerCells = Array.from(
+            table.querySelectorAll('thead tr:first-child > th')
+        );
+        if (headerCells.length !== specification.widthMultipliers.length) {
+            return;
+        }
+
+        // Capture the localized table's automatic layout before fixed column
+        // widths are applied, so each multiplier is relative to what the user
+        // was already seeing rather than to an arbitrary equal-width baseline.
+        const naturalWidths = headerCells.map(
+            (headerCell) => headerCell.getBoundingClientRect().width
+        );
+        if (naturalWidths.some((width) => !Number.isFinite(width) || width <= 0)) {
+            return;
+        }
+
+        const weightedWidths = naturalWidths.map(
+            (width, index) => width * specification.widthMultipliers[index]
+        );
+        const totalWeightedWidth = weightedWidths.reduce(
+            (total, width) => total + width,
+            0
+        );
+        if (!Number.isFinite(totalWeightedWidth) || totalWeightedWidth <= 0) {
+            return;
+        }
+
+        const columnGroup = document.createElement('colgroup');
+        columnGroup.dataset.documentationColumnLayout = specification.layoutName;
+        for (const weightedWidth of weightedWidths) {
+            const column = document.createElement('col');
+            column.style.width = `${(weightedWidth / totalWeightedWidth) * 100}%`;
+            columnGroup.appendChild(column);
+        }
+
+        table.dataset.documentationColumnLayout = specification.layoutName;
+        table.classList.add(weightedTableClassName);
+        table.insertBefore(columnGroup, table.firstChild);
+    }
+
+    function applyDocumentationTableLayouts() {
+        for (const specification of tableLayoutSpecifications) {
+            const table = findTableBetweenAnchors(
+                specification.startAnchorId,
+                specification.endAnchorId
+            );
+            if (table) {
+                applyWeightedColumnLayout(table, specification);
+            }
+        }
+    }
+
+    let tableLayoutFrame = null;
+    function scheduleDocumentationTableLayouts() {
+        if (tableLayoutFrame !== null) {
+            return;
+        }
+        tableLayoutFrame = window.requestAnimationFrame(() => {
+            tableLayoutFrame = null;
+            applyDocumentationTableLayouts();
+        });
+    }
+
+    let scheduledAnchorId = null;
+    function synchronizeVisibleAnchor() {
+        if (
+            !documentationContainer
+            || window[pendingAnchorProperty]
+            || scheduledAnchorId !== null
+        ) {
+            return;
+        }
+
+        const documentationBounds = documentationContainer.getBoundingClientRect();
+        let visibleAnchorId = null;
+        let lastMountedAnchorId = null;
+        for (const anchorId of anchorIds) {
+            const anchor = document.getElementById(anchorId);
+            if (!anchor || !documentationContainer.contains(anchor)) {
+                continue;
+            }
+
+            lastMountedAnchorId = anchorId;
+            const scrollMarginTop = Number.parseFloat(
+                window.getComputedStyle(anchor).scrollMarginTop
+            ) || 0;
+            const activationLine = scrollMarginTop + 1;
+            if (
+                documentationBounds.top <= activationLine
+                && documentationBounds.bottom > activationLine
+                && anchor.getBoundingClientRect().top <= activationLine
+            ) {
+                visibleAnchorId = anchorId;
+            }
+        }
+
+        const isAtDocumentBottom = scrollContainer === window
+            ? (
+                Math.ceil(window.scrollY + window.innerHeight)
+                >= document.documentElement.scrollHeight
+            )
+            : (
+                Math.ceil(scrollContainer.scrollTop + scrollContainer.clientHeight)
+                >= scrollContainer.scrollHeight
+            );
+        if (isAtDocumentBottom && lastMountedAnchorId) {
+            visibleAnchorId = lastMountedAnchorId;
+        }
+        if (!visibleAnchorId) {
+            return;
+        }
+
+        const encodedHash = `#${encodeURIComponent(visibleAnchorId)}`;
+        if (window.location.hash !== encodedHash) {
+            // Scrolling updates the current entry; only explicit link
+            // navigation should add a new Back/Forward history step.
+            window.history.replaceState(window.history.state, '', encodedHash);
+        }
+    }
+
+    let visibleAnchorFrame = null;
+    function scheduleVisibleAnchorSynchronization() {
+        if (visibleAnchorFrame !== null) {
+            return;
+        }
+        visibleAnchorFrame = window.requestAnimationFrame(() => {
+            visibleAnchorFrame = null;
+            synchronizeVisibleAnchor();
+        });
+    }
+
     function handleDocumentationLinkClick(event) {
         if (
             event.defaultPrevented
@@ -90,10 +285,12 @@ export default function(component) {
         }
 
         const anchorId = anchorIdFromHash(link.getAttribute('href'));
-        if (
-            !anchorIds.has(anchorId)
-            || document.getElementById(anchorId)
-        ) {
+        if (!anchorIds.has(anchorId)) {
+            return;
+        }
+
+        synchronizeVisibleAnchor();
+        if (document.getElementById(anchorId)) {
             return;
         }
 
@@ -102,7 +299,6 @@ export default function(component) {
     }
 
     let scrollObserver = null;
-    let scheduledAnchorId = null;
     function scrollToAnchor(anchorId, shouldClearPendingNavigation) {
         if (
             !anchorIds.has(anchorId)
@@ -128,6 +324,7 @@ export default function(component) {
                 window[requestedAnchorProperty] = null;
             }
             scheduledAnchorId = null;
+            scheduleVisibleAnchorSynchronization();
         });
         return true;
     }
@@ -152,6 +349,24 @@ export default function(component) {
     document.addEventListener('click', handleDocumentationLinkClick, true);
     window.addEventListener('hashchange', handleHistoryNavigation);
     window.addEventListener('popstate', handleHistoryNavigation);
+    scrollContainer.addEventListener('scroll', scheduleVisibleAnchorSynchronization, {
+        passive: true,
+    });
+    window.addEventListener('resize', scheduleVisibleAnchorSynchronization);
+
+    let documentationObserver = null;
+    if (documentationContainer && 'MutationObserver' in window) {
+        documentationObserver = new MutationObserver(() => {
+            scheduleDocumentationTableLayouts();
+            scheduleVisibleAnchorSynchronization();
+        });
+        documentationObserver.observe(documentationContainer, {
+            childList: true,
+            subtree: true,
+        });
+    }
+    scheduleDocumentationTableLayouts();
+    scheduleVisibleAnchorSynchronization();
 
     if (
         data?.isExpanded
@@ -202,8 +417,20 @@ export default function(component) {
         document.removeEventListener('click', handleDocumentationLinkClick, true);
         window.removeEventListener('hashchange', handleHistoryNavigation);
         window.removeEventListener('popstate', handleHistoryNavigation);
+        scrollContainer.removeEventListener(
+            'scroll',
+            scheduleVisibleAnchorSynchronization
+        );
+        window.removeEventListener('resize', scheduleVisibleAnchorSynchronization);
+        documentationObserver?.disconnect();
         scrollObserver?.disconnect();
         observer?.disconnect();
+        if (tableLayoutFrame !== null) {
+            window.cancelAnimationFrame(tableLayoutFrame);
+        }
+        if (visibleAnchorFrame !== null) {
+            window.cancelAnimationFrame(visibleAnchorFrame);
+        }
         if (sentinel?.documentationScrollObserver === observer) {
             sentinel.documentationScrollObserver = null;
         }
@@ -229,7 +456,7 @@ def render_documentation_scroll_trigger(
     on_navigation: Callable[[], None],
     on_trigger: Callable[[], None],
 ) -> None:
-    """Mount viewport and unresolved-anchor triggers for the manual fragment."""
+    """Mount the manual's viewport, navigation, and table-layout controller."""
     _DOCUMENTATION_SCROLL_TRIGGER(
         data={
             "anchorIds": list(anchor_ids),

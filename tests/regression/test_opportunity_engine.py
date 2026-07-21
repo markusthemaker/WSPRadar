@@ -535,6 +535,29 @@ def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():
     assert query.endswith("FORMAT Parquet")
 
 
+@pytest.mark.parametrize(
+    ("mode", "target_column"),
+    [("RX", "rx_sign"), ("TX", "tx_sign")],
+)
+def test_opportunity_query_accepts_exact_hyphen_suffix_target(
+    mode,
+    target_column,
+):
+    """Preserve one hyphen-suffixed Target as an exact archive identity."""
+    query = build_absolute_opportunity_query(
+        mode=mode,
+        start_t=datetime(2026, 5, 27, tzinfo=timezone.utc),
+        end_t=datetime(2026, 5, 28, tzinfo=timezone.utc),
+        band_value="14",
+        callsign=" dl1mks-1 ",
+        qth="JN37",
+    )
+
+    assert f"{target_column} = 'DL1MKS-1'" in query
+    assert f"{target_column} != 'DL1MKS-1'" in query
+    assert f"{target_column} LIKE 'DL1MKS%" not in query
+
+
 def test_rx_query_can_disable_decode_code_for_legacy_rows():
     query = build_absolute_opportunity_query(
         mode="RX",

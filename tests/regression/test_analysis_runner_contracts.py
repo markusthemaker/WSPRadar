@@ -404,20 +404,30 @@ def test_rx_reference_station_constrains_each_side_to_its_configured_grid4():
     assert rx_compare["query"].count("substring(rx_loc, 1, 4) = 'JO62'") == 1
 
 
-def test_reference_station_matching_accepts_one_exact_suffix_callsign_per_side():
+@pytest.mark.parametrize(
+    ("target_callsign", "reference_callsign"),
+    [
+        ("DL1MKS/P", "DL2XYZ/QRP"),
+        ("DL1MKS-1", "DL2XYZ/P"),
+        ("DL1MKS/P", "DL2XYZ-1"),
+    ],
+)
+def test_reference_station_matching_accepts_exact_suffix_callsigns_per_side(
+    target_callsign,
+    reference_callsign,
+):
     context = _analysis_context(
         comparison_mode=COMPARISON_REFERENCE_STATION,
-        callsign="DL1MKS/P",
-        reference_callsign="DL2XYZ/QRP",
+        callsign=target_callsign,
+        reference_callsign=reference_callsign,
         reference_qth="JO62",
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
 
-    assert "tx_sign = 'DL1MKS/P'" in tx_compare["query"]
-    assert "tx_sign = 'DL2XYZ/QRP'" in tx_compare["query"]
-    assert "LIKE 'DL1MKS%'" not in tx_compare["query"]
-    assert "LIKE 'DL2XYZ%'" not in tx_compare["query"]
+    assert f"tx_sign = '{target_callsign}'" in tx_compare["query"]
+    assert f"tx_sign = '{reference_callsign}'" in tx_compare["query"]
+    assert "tx_sign LIKE" not in tx_compare["query"]
 
 
 def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():

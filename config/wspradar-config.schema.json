@@ -391,19 +391,20 @@
       "additionalProperties": false
     },
     "callsign": {
-      "description": "Plausible uppercase ASCII amateur-radio callsign/reporting identifier with non-empty slash-separated segments and at least one segment containing both a letter and a digit. An empty string is permitted in a restorable draft; running an analysis requires a complete value.",
+      "description": "Plausible uppercase ASCII amateur-radio callsign/reporting identifier with non-empty slash-separated segments, one optional terminal alphanumeric hyphen suffix, and at least one pre-hyphen segment containing both a letter and a digit. An empty string is permitted in a restorable draft; running an analysis requires a complete value.",
       "oneOf": [
         {
           "const": ""
         },
         {
           "type": "string",
-          "pattern": "^(?=.{3,15}$)(?:[A-Z0-9]+/)*(?:[A-Z0-9]*[A-Z][A-Z0-9]*[0-9][A-Z0-9]*|[A-Z0-9]*[0-9][A-Z0-9]*[A-Z][A-Z0-9]*)(?:/[A-Z0-9]+)*$"
+          "pattern": "^(?=.{3,15}$)(?:[A-Z0-9]+/)*(?:[A-Z0-9]*[A-Z][A-Z0-9]*[0-9][A-Z0-9]*|[A-Z0-9]*[0-9][A-Z0-9]*[A-Z][A-Z0-9]*)(?:/[A-Z0-9]+)*(?:-[A-Z0-9]+)?$"
         }
       ],
       "examples": [
         "DL1MKS",
-        "SK0WE/P"
+        "SK0WE/P",
+        "DL1MKS-1"
       ]
     },
     "locator": {
@@ -1696,7 +1697,7 @@
       "properties": {
         "callsign": {
           "type": "string",
-          "pattern": "^(?=.{3,15}$)(?:[A-Z0-9]+/)*(?:[A-Z0-9]*[A-Z][A-Z0-9]*[0-9][A-Z0-9]*|[A-Z0-9]*[0-9][A-Z0-9]*[A-Z][A-Z0-9]*)(?:/[A-Z0-9]+)*$"
+          "pattern": "^(?=.{3,15}$)(?:[A-Z0-9]+/)*(?:[A-Z0-9]*[A-Z][A-Z0-9]*[0-9][A-Z0-9]*|[A-Z0-9]*[0-9][A-Z0-9]*[A-Z][A-Z0-9]*)(?:/[A-Z0-9]+)*(?:-[A-Z0-9]+)?$"
         },
         "locator": {
           "type": "string",

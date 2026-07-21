@@ -149,6 +149,24 @@ def test_reference_station_accepts_an_explicit_different_reference_qth():
     assert normalized["reference_qth"] == "JO62"
 
 
+def test_hyphen_suffixes_normalize_across_config_callsign_inputs():
+    """Normalize accepted Target, Reference, and selected-station suffixes."""
+    settings = _valid_settings(comparison_mode="reference_station")
+    settings["core_parameters"]["callsign"] = " dl1mks-1 "
+    settings["comparison_parameters"]["reference_callsign"] = " dl2xyz-p "
+    settings["results_view"]["success"]["selected_stations"] = [
+        {"callsign": " k1abc-1 ", "locator": " fn31 "},
+    ]
+
+    normalized = config_io.validate_config_document(_config_document(settings))
+
+    assert normalized["callsign"] == "DL1MKS-1"
+    assert normalized["reference_callsign"] == "DL2XYZ-P"
+    assert normalized["selected_stations_absolute"] == [
+        {"callsign": "K1ABC-1", "locator": "FN31"},
+    ]
+
+
 def test_reference_station_requires_an_exact_grid4_reference_qth():
     """Keep the editable Buddy selector aligned with its grid-4 query scope."""
     settings = _valid_settings(comparison_mode="reference_station")

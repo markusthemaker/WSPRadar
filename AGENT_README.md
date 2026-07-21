@@ -268,8 +268,9 @@ Useful files when tracing behavior:
   ownership used to guard Streamlit reruns before admission.
 - `ui/result_state.py`: lightweight result/export reset and active-run time-window
   lifecycle used by idle configuration callbacks.
-- `ui/documentation_scroll_trigger.py`: browser viewport and unresolved-anchor
-  controller for demand-driven full-manual rendering and deferred navigation.
+- `ui/documentation_scroll_trigger.py`: browser viewport, history/navigation,
+  and anchor-bounded table-layout controller for demand-driven full-manual
+  rendering.
 - `core/artifact_store.py`: artifact namespaces and lifecycle.
 
 The separate `tools/Timed-AB-Relay-Switch/` utility has its own README,

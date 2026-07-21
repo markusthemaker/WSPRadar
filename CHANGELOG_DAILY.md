@@ -16,14 +16,20 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   display disabled Target/Reference grid-4 values derived from Target QTH and
   omit redundant `reference_qth` from saved configurations. Callsign and
   Maidenhead inputs now normalize and validate plausible field syntax with
-  field-specific feedback. Saved configurations remain schema version 1 but
-  require the applicable new active-branch fields; no migration is provided for
-  unpublished pre-production v1 files.
+  field-specific feedback. Exact callsign/archive identities accept existing
+  slash affixes or one terminal alphanumeric hyphen suffix, while standard
+  callsign forms remain recommended. Saved configurations remain schema version
+  1 but require the applicable new active-branch fields; no migration is
+  provided for unpublished pre-production v1 files.
 - Audited every guided demo Reference grid-4 against its archive window. Zander
   Experiment A is now the simultaneous Hardware A/B example, Experiment B stays
   a QTH-constrained Reference Station example, and the English/German manuals
   now compare simultaneous and sequential tradeoffs with separate playbooks,
-  frequency-separation and two-transmitter safety guidance.
+  frequency-separation and two-transmitter safety guidance. The TX playbooks now
+  explain the same-receiver, same-cycle Joint method and its QRM/ionospheric
+  limits, distinguish one switched transmitter from two non-overlapping
+  transmitter chains for Sequential TX, and place transmitter-power/feedline
+  calibration according to the variable under test.
 
 ## 2026-07-19
 
