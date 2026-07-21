@@ -80,6 +80,14 @@ def _replace_pdf_math(md_text):
             "D<sub>relativ</sub> = 100 &times; "
             "n<sub>Zelle</sub> / max(n<sub>Zelle,Panel</sub>)"
         ),
+        r"f_{RF} \approx f_{dial} + f_{TX\ audio}": _formula(
+            "f<sub>RF</sub> approx. f<sub>dial</sub> + "
+            "f<sub>TX audio</sub>"
+        ),
+        r"f_{HF} \approx f_{Dial} + f_{TX\ Audio}": _formula(
+            "f<sub>RF</sub> approx. f<sub>dial</sub> + "
+            "f<sub>TX audio</sub>"
+        ),
     }
 
     for latex, html in block_replacements.items():

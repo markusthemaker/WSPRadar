@@ -12,6 +12,8 @@ from core.analysis_context import (
     LOCAL_BENCHMARK_MEDIAN,
     SELF_TEST_RX,
     SELF_TEST_TX,
+    TX_AB_METHOD_SEQUENTIAL,
+    TX_AB_METHOD_SIMULTANEOUS,
 )
 from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
 from i18n import T
@@ -29,6 +31,7 @@ def _analysis_context(**overrides):
         "band": "20m",
         "comparison_mode": COMPARISON_REFERENCE_STATION,
         "reference_callsign": "DL2XYZ",
+        "reference_qth": "JO62",
         "tx_ab_repeat_interval_minutes": 10,
         "tx_ab_target_start_minute": 0,
         "tx_ab_reference_start_minute": 2,
@@ -76,6 +79,24 @@ def test_analysis_batch_builder_rejects_removed_all_band_context():
         )
 
 
+@pytest.mark.parametrize(
+    ("overrides", "error_pattern"),
+    [
+        ({"callsign": "DL1\u00df"}, "Invalid Target Callsign"),
+        ({"qth": "J\u013137"}, "valid target QTH locator"),
+        ({"reference_callsign": "DL2\ufb00"}, "Invalid Reference Callsign"),
+        ({"reference_qth": "J\u212a37"}, "four-character Reference QTH"),
+    ],
+)
+def test_batch_builder_rejects_unicode_before_case_expansion(
+    overrides,
+    error_pattern,
+):
+    """Revalidate raw identities before any core normalization or SQL."""
+    with pytest.raises(ValueError, match=error_pattern):
+        _build_analyses(_analysis_context(**overrides))
+
+
 def test_added_live_wspr_bands_build_numeric_opportunity_predicates():
     for band, band_value in {
         "LF": "-1",
@@ -107,6 +128,7 @@ def test_tx_ab_schedule_sql_filters_compare_and_success_to_configured_starts():
     context = _analysis_context(
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_TX,
+        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
         qth="JN37UN",
         tx_ab_repeat_interval_minutes=10,
         tx_ab_target_start_minute=0,
@@ -128,6 +150,7 @@ def test_four_minute_tx_ab_schedule_uses_demo_query_contract():
     context = _analysis_context(
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_TX,
+        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
         tx_ab_repeat_interval_minutes=4,
         tx_ab_target_start_minute=2,
         tx_ab_reference_start_minute=0,
@@ -145,11 +168,182 @@ def test_tx_ab_schedule_rejects_overlapping_starts_before_sql_is_built():
     context = _analysis_context(
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_TX,
+        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
         tx_ab_target_start_minute=0,
         tx_ab_reference_start_minute=0,
     )
 
     with pytest.raises(ValueError, match="Invalid TX A/B schedule"):
+        _build_analyses(context)
+
+
+def test_tx_hardware_ab_defaults_to_simultaneous_fixed_reference_comparison():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=SELF_TEST_TX,
+        qth="JN37UN",
+        reference_callsign="DL2XYZ/P",
+        reference_qth="",
+    )
+
+    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_absolute = _analysis_by_id(context, "TX_ABS")
+
+    assert context.tx_ab_method == TX_AB_METHOD_SIMULTANEOUS
+    assert tx_compare["is_sequential"] is False
+    assert (
+        "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
+        in tx_compare["query"]
+    )
+    assert (
+        "tx_sign = 'DL2XYZ/P' AND substring(tx_loc, 1, 4) = 'JN37'"
+        in tx_compare["query"]
+    )
+    assert "toMinute(time) %" not in tx_compare["query"]
+    assert "toMinute(time) %" not in tx_absolute["query"]
+    assert tx_compare["title"] == (
+        "TX Compare: DL1MKS (Target) vs. DL2XYZ/P (Reference)"
+    )
+
+
+def test_sequential_tx_hardware_ab_preserves_shared_identity_and_schedule_title():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=SELF_TEST_TX,
+        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
+        reference_callsign="",
+        reference_qth="",
+    )
+
+    tx_compare = _analysis_by_id(context, "TX_COMP")
+
+    assert tx_compare["is_sequential"] is True
+    assert tx_compare["query"].count(
+        "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
+    ) == 2
+    assert "toMinute(time) % 10 = 0" in tx_compare["query"]
+    assert "toMinute(time) % 10 = 2" in tx_compare["query"]
+    assert tx_compare["title"] == (
+        "TX Compare: DL1MKS (Target) vs. DL1MKS (Reference)"
+    )
+
+
+@pytest.mark.parametrize(
+    ("run_mode", "self_test_mode", "analysis_id"),
+    [
+        ("TX", SELF_TEST_TX, "TX_COMP"),
+        ("RX", SELF_TEST_RX, "RX_COMP"),
+    ],
+)
+def test_simultaneous_hardware_ab_reuses_fixed_reference_query_contract(
+    run_mode,
+    self_test_mode,
+    analysis_id,
+):
+    reference_analysis = _analysis_by_id(
+        _analysis_context(
+            comparison_mode=COMPARISON_REFERENCE_STATION,
+            run_mode=run_mode,
+            self_test_mode=self_test_mode,
+            qth="JN37UN",
+            reference_callsign="DL2XYZ",
+            reference_qth="JN37",
+            reference_snr_correction_db=1.2,
+        ),
+        analysis_id,
+    )
+    hardware_analysis = _analysis_by_id(
+        _analysis_context(
+            comparison_mode=COMPARISON_HARDWARE_AB,
+            tx_ab_method=TX_AB_METHOD_SIMULTANEOUS,
+            run_mode=run_mode,
+            self_test_mode=self_test_mode,
+            qth="JN37UN",
+            reference_callsign="DL2XYZ",
+            reference_qth="",
+            reference_snr_correction_db=1.2,
+        ),
+        analysis_id,
+    )
+
+    assert hardware_analysis["is_sequential"] is False
+    assert hardware_analysis["query"] == reference_analysis["query"]
+    assert hardware_analysis["title"] == reference_analysis["title"]
+
+
+@pytest.mark.parametrize(
+    ("self_test_mode", "tx_ab_method"),
+    [
+        (SELF_TEST_RX, TX_AB_METHOD_SIMULTANEOUS),
+        (SELF_TEST_TX, TX_AB_METHOD_SIMULTANEOUS),
+    ],
+)
+def test_hardware_ab_derives_reference_grid4_from_target_qth(
+    self_test_mode,
+    tx_ab_method,
+):
+    context = _analysis_context(
+        run_mode=self_test_mode.upper(),
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=self_test_mode,
+        tx_ab_method=tx_ab_method,
+        qth="JN37UN",
+        reference_callsign="DL2XYZ",
+        reference_qth="JO62",
+    )
+
+    comparison = _analysis_by_id(
+        context,
+        "RX_COMP" if self_test_mode == SELF_TEST_RX else "TX_COMP",
+    )
+
+    identity_column = "rx" if self_test_mode == SELF_TEST_RX else "tx"
+    assert (
+        f"{identity_column}_sign = 'DL2XYZ' AND "
+        f"substring({identity_column}_loc, 1, 4) = 'JN37'"
+        in comparison["query"]
+    )
+    assert "'JO62'" not in comparison["query"]
+
+
+def test_simultaneous_hardware_ab_rejects_identical_callsigns():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=SELF_TEST_TX,
+        reference_callsign="DL1MKS",
+        reference_qth="",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="requires distinct Target and Reference callsigns",
+    ):
+        _build_analyses(context)
+
+
+def test_tx_hardware_ab_rejects_unknown_method_before_query_construction():
+    context = _analysis_context(
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        self_test_mode=SELF_TEST_TX,
+        tx_ab_method="parallel-ish",
+    )
+
+    with pytest.raises(ValueError, match="Unknown TX Hardware A/B method"):
+        _build_analyses(context)
+
+
+def test_reference_station_requires_valid_reference_qth():
+    context = _analysis_context(reference_qth="")
+
+    with pytest.raises(ValueError, match="four-character Reference QTH"):
+        _build_analyses(context)
+
+
+def test_reference_station_rejects_grid6_reference_qth():
+    """Keep the independently editable Reference selector exactly grid-4."""
+    context = _analysis_context(reference_qth="JO62QM")
+
+    with pytest.raises(ValueError, match="four-character Reference QTH"):
         _build_analyses(context)
 
 
@@ -163,11 +357,12 @@ def test_positive_reference_snr_correction_is_added_to_reference_side():
     assert "maxIf((snr - power + 30 + 1.6), is_me = 1)" not in tx_compare["query"]
 
 
-def test_reference_station_matching_uses_exact_primary_callsign_filters():
+def test_reference_station_matching_uses_exact_callsign_and_grid4_per_side():
     context = _analysis_context(
         comparison_mode=COMPARISON_REFERENCE_STATION,
         reference_callsign="DL2XYZ",
         qth="JN37UN",
+        reference_qth="JO62",
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
@@ -176,22 +371,23 @@ def test_reference_station_matching_uses_exact_primary_callsign_filters():
         "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
         in tx_compare["query"]
     )
-    assert "tx_sign = 'DL2XYZ'" in tx_compare["query"]
-    assert tx_compare["query"].count("substring(tx_loc, 1, 4) = 'JN37'") == 1
     assert (
-        "tx_sign = 'DL2XYZ' AND substring(tx_loc, 1, 4)"
-        not in tx_compare["query"]
+        "tx_sign = 'DL2XYZ' AND substring(tx_loc, 1, 4) = 'JO62'"
+        in tx_compare["query"]
     )
+    assert tx_compare["query"].count("substring(tx_loc, 1, 4) = 'JN37'") == 1
+    assert tx_compare["query"].count("substring(tx_loc, 1, 4) = 'JO62'") == 1
     assert "tx_sign LIKE 'DL1MKS%'" not in tx_compare["query"]
     assert "tx_sign LIKE 'DL2XYZ%'" not in tx_compare["query"]
 
 
-def test_rx_reference_station_constrains_only_target_to_configured_grid4():
+def test_rx_reference_station_constrains_each_side_to_its_configured_grid4():
     context = _analysis_context(
         run_mode="RX",
         comparison_mode=COMPARISON_REFERENCE_STATION,
         reference_callsign="DL2XYZ",
         qth="jn37un",
+        reference_qth="jo62",
     )
 
     rx_compare = _analysis_by_id(context, "RX_COMP")
@@ -200,12 +396,12 @@ def test_rx_reference_station_constrains_only_target_to_configured_grid4():
         "rx_sign = 'DL1MKS' AND substring(rx_loc, 1, 4) = 'JN37'"
         in rx_compare["query"]
     )
-    assert "rx_sign = 'DL2XYZ'" in rx_compare["query"]
-    assert rx_compare["query"].count("substring(rx_loc, 1, 4) = 'JN37'") == 1
     assert (
-        "rx_sign = 'DL2XYZ' AND substring(rx_loc, 1, 4)"
-        not in rx_compare["query"]
+        "rx_sign = 'DL2XYZ' AND substring(rx_loc, 1, 4) = 'JO62'"
+        in rx_compare["query"]
     )
+    assert rx_compare["query"].count("substring(rx_loc, 1, 4) = 'JN37'") == 1
+    assert rx_compare["query"].count("substring(rx_loc, 1, 4) = 'JO62'") == 1
 
 
 def test_reference_station_matching_accepts_one_exact_suffix_callsign_per_side():
@@ -213,6 +409,7 @@ def test_reference_station_matching_accepts_one_exact_suffix_callsign_per_side()
         comparison_mode=COMPARISON_REFERENCE_STATION,
         callsign="DL1MKS/P",
         reference_callsign="DL2XYZ/QRP",
+        reference_qth="JO62",
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
@@ -228,7 +425,8 @@ def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
         run_mode="RX",
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_RX,
-        setup_b_callsign="DL1MKS/P",
+        reference_callsign="DL1MKS/P",
+        reference_qth="",
     )
 
     rx_compare = _analysis_by_id(context, "RX_COMP")
@@ -248,13 +446,14 @@ def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
     assert "rx_sign LIKE 'DL1MKS/P%'" not in rx_compare["query"]
 
 
-def test_rx_hardware_ab_matching_accepts_one_exact_setup_b_suffix_callsign():
+def test_rx_hardware_ab_matching_accepts_one_exact_reference_suffix_callsign():
     context = _analysis_context(
         run_mode="RX",
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_RX,
         callsign="DL1MKS/1",
-        setup_b_callsign="DL1MKS/P",
+        reference_callsign="DL1MKS/P",
+        reference_qth="",
     )
 
     rx_compare = _analysis_by_id(context, "RX_COMP")
@@ -372,6 +571,7 @@ def test_sequential_comparison_does_not_apply_async_cycle_synchronization():
     context = _analysis_context(
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_TX,
+        tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
     )
     analysis = {
         "analysis_kind": "comparison",

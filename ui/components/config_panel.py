@@ -15,6 +15,12 @@ from config import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.demo_profiles import prepare_demo_description_markdown
+from core.input_validation import (
+    is_valid_callsign,
+    is_valid_grid4,
+    is_valid_locator,
+    normalize_ascii_upper,
+)
 from ui.callbacks import (
     reset_audit, handle_analysis_direction_change, handle_comp_mode_change,
     handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
@@ -70,10 +76,20 @@ def render_metadata_expander(t):
                 st.caption(prepare_demo_description_markdown(description))
 
 
-def _strip_text_state(key, callback=None, callback_args=(), callback_kwargs=None):
+def _normalize_text_state(
+    key,
+    should_uppercase=False,
+    callback=None,
+    callback_args=(),
+    callback_kwargs=None,
+):
+    """Normalize one identity field before its ordinary change callback."""
     value = st.session_state.get(key)
     if isinstance(value, str):
-        st.session_state[key] = value.strip()
+        normalized_value = value.strip()
+        if should_uppercase:
+            normalized_value = normalize_ascii_upper(normalized_value)
+        st.session_state[key] = normalized_value
     if callback:
         callback(*(callback_args or ()), **(callback_kwargs or {}))
 
@@ -85,15 +101,50 @@ def _round_float_state(key, digits=1, callback=None, callback_args=(), callback_
         callback(*(callback_args or ()), **(callback_kwargs or {}))
 
 def text_input_no_autocomplete(*args, **kwargs):
+    """Render a text input with optional identity normalization."""
     kwargs.setdefault("autocomplete", "off")
+    should_uppercase = bool(kwargs.pop("normalize_uppercase", False))
     key = kwargs.get("key")
     if key:
         callback = kwargs.get("on_change")
         callback_args = kwargs.pop("args", ())
         callback_kwargs = kwargs.pop("kwargs", {})
-        kwargs["on_change"] = _strip_text_state
-        kwargs["args"] = (key, callback, callback_args, callback_kwargs)
+        kwargs["on_change"] = _normalize_text_state
+        kwargs["args"] = (
+            key,
+            should_uppercase,
+            callback,
+            callback_args,
+            callback_kwargs,
+        )
     return st.text_input(*args, **kwargs)
+
+
+def _render_identity_format_error(
+    t,
+    value,
+    *,
+    identity_kind,
+    message_key=None,
+):
+    """Show one localized point-of-entry error for a malformed identity."""
+    normalized_value = str(value or "").strip()
+    if not normalized_value:
+        return True
+    if identity_kind == "callsign":
+        is_valid = is_valid_callsign(normalized_value)
+        default_message_key = "err_callsign_format"
+    elif identity_kind == "grid4":
+        is_valid = is_valid_grid4(normalized_value)
+        default_message_key = "err_reference_grid4_format"
+    elif identity_kind == "qth":
+        is_valid = is_valid_locator(normalized_value)
+        default_message_key = "err_qth_format"
+    else:
+        raise ValueError(f"Unknown identity kind {identity_kind!r}.")
+    if not is_valid:
+        st.error(t[message_key or default_message_key])
+    return is_valid
 
 def _benchmark_mode_options(t):
     """Return Success-only first, followed by the available benchmark designs."""
@@ -106,14 +157,8 @@ def _benchmark_mode_options(t):
 
 
 def _comparison_column_widths(t, comparison_mode, analysis_direction):
-    """Allocate more width to comparison designs with denser controls."""
-    if comparison_mode == t["opt_comp_self"] and analysis_direction == "tx":
-        return [0.32, 0.68]
-    if comparison_mode in {t["opt_comp_self"], t["opt_comp_buddy"]}:
-        return [0.40, 0.60]
-    if comparison_mode == t["opt_comp_radius"]:
-        return [0.48, 0.52]
-    return [0.62, 0.38]
+    """Return the consistent half-width split used by configuration panels."""
+    return [0.5, 0.5]
 
 
 def _tx_ab_threshold_label_and_help(t):
@@ -124,6 +169,110 @@ def _tx_ab_threshold_label_and_help(t):
             "hlp_min_joint_pairs",
             "Sequential TX A/B requires joint scheduled pairs.",
         ),
+    )
+
+
+def _render_reference_identity(t, *, derives_hardware_grid4):
+    """Render Target/Reference identities and the mode-specific QTH contract.
+
+    Reference Station owns an editable four-character Reference grid. Hardware
+    A/B instead displays one shared grid-4 derived from Target QTH, without
+    mutating the inactive Reference Station field in session state.
+    """
+    target_callsign = normalize_ascii_upper(
+        st.session_state.get("val_callsign", "")
+    )
+    target_qth = normalize_ascii_upper(st.session_state.get("val_qth", ""))
+    hardware_grid4 = target_qth[:4] if is_valid_locator(target_qth) else ""
+
+    target_callsign_column, reference_callsign_column = st.columns(
+        2,
+        gap="large",
+    )
+    with target_callsign_column:
+        text_input_no_autocomplete(
+            t.get("lbl_target_callsign", "Target Callsign"),
+            value=target_callsign,
+            disabled=True,
+        )
+    with reference_callsign_column:
+        text_input_no_autocomplete(
+            t.get("lbl_reference_callsign", "Reference Callsign"),
+            key="val_ref_callsign",
+            placeholder=t.get("ph_reference_callsign", "e.g. Callsign/P"),
+            max_chars=15,
+            normalize_uppercase=True,
+            disabled=st.session_state.is_demo_mode,
+            on_change=reset_audit,
+        )
+
+    target_qth_column, reference_qth_column = st.columns(2, gap="large")
+    with target_qth_column:
+        text_input_no_autocomplete(
+            (
+                t.get("lbl_target_grid4", "Target Grid-4")
+                if derives_hardware_grid4
+                else t.get("lbl_target_qth", "Target QTH")
+            ),
+            value=hardware_grid4 if derives_hardware_grid4 else target_qth,
+            disabled=True,
+        )
+    with reference_qth_column:
+        if derives_hardware_grid4:
+            text_input_no_autocomplete(
+                t.get("lbl_reference_grid4", "Reference Grid-4"),
+                value=hardware_grid4,
+                disabled=True,
+            )
+        else:
+            text_input_no_autocomplete(
+                t.get("lbl_reference_grid4", "Reference Grid-4"),
+                key="val_ref_qth",
+                placeholder=t.get("ph_reference_qth", "e.g. JN37"),
+                max_chars=4,
+                normalize_uppercase=True,
+                disabled=st.session_state.is_demo_mode,
+                on_change=reset_audit,
+            )
+
+    reference_callsign = normalize_ascii_upper(
+        st.session_state.get("val_ref_callsign", "")
+    )
+    is_reference_callsign_valid = _render_identity_format_error(
+        t,
+        reference_callsign,
+        identity_kind="callsign",
+        message_key="err_reference_callsign_format",
+    )
+    if not derives_hardware_grid4:
+        _render_identity_format_error(
+            t,
+            st.session_state.get("val_ref_qth", ""),
+            identity_kind="grid4",
+        )
+    if (
+        is_reference_callsign_valid
+        and reference_callsign
+        and reference_callsign == target_callsign
+    ):
+        st.error(t.get("err_reference_callsign_same", t["err_self_test"]))
+
+
+def _render_tx_ab_method_selector(t):
+    """Render the governing simultaneous/sequential TX A/B method selector."""
+    st.segmented_control(
+        t.get("lbl_tx_ab_method", "TX A/B Method"),
+        ("simultaneous", "sequential"),
+        selection_mode="single",
+        required=True,
+        key="val_tx_ab_method",
+        format_func=lambda method: t.get(
+            f"opt_tx_ab_{method}",
+            method.title(),
+        ),
+        disabled=st.session_state.is_demo_mode,
+        width="stretch",
+        on_change=reset_audit,
     )
 
 
@@ -272,8 +421,32 @@ def render_core_expander(t):
                 f"lbl_callsign_{direction}",
                 t["lbl_callsign"],
             )
-            text_input_no_autocomplete(callsign_label, key="val_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-            text_input_no_autocomplete(t["lbl_qth"], key="val_qth", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            text_input_no_autocomplete(
+                callsign_label,
+                key="val_callsign",
+                max_chars=15,
+                normalize_uppercase=True,
+                disabled=st.session_state.is_demo_mode,
+                on_change=reset_audit,
+            )
+            _render_identity_format_error(
+                t,
+                st.session_state.get("val_callsign", ""),
+                identity_kind="callsign",
+            )
+            text_input_no_autocomplete(
+                t["lbl_qth"],
+                key="val_qth",
+                max_chars=6,
+                normalize_uppercase=True,
+                disabled=st.session_state.is_demo_mode,
+                on_change=reset_audit,
+            )
+            _render_identity_format_error(
+                t,
+                st.session_state.get("val_qth", ""),
+                identity_kind="qth",
+            )
             st.selectbox(t["lbl_band"], list(BAND_MAP.keys()), key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
 
         with core_right:
@@ -328,8 +501,6 @@ def render_compare_expander(t):
                 )
         
         with col_comp_r:
-            callsign = st.session_state.val_callsign.strip().upper()
-            
             if comp_mode == t["opt_comp_radius"]:
                 st.radio(
                     t["lbl_local_benchmark"],
@@ -339,23 +510,26 @@ def render_compare_expander(t):
                 )
                 st.slider(t["lbl_ref_radius_km"], 10, MAX_DYNAMIC_RADIUS_KM, step=10, key="val_ref_radius_km", on_change=reset_audit)
             elif comp_mode == t["opt_comp_buddy"]:
-                text_input_no_autocomplete(t["lbl_ref_call"], key="val_ref_callsign", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-                
-                # Validation error
-                if st.session_state.val_ref_callsign.strip().upper() == callsign and callsign != "":
-                    st.error(t["err_self_test"])
+                _render_reference_identity(
+                    t,
+                    derives_hardware_grid4=False,
+                )
                     
             elif comp_mode == t["opt_comp_self"]:
                 if analysis_direction == "rx":
-                    cs1, cs2 = st.columns(2, gap="large")
-                    with cs1: text_input_no_autocomplete("Setup A Callsign", value=callsign, disabled=True)
-                    with cs2: text_input_no_autocomplete("Setup B Callsign", key="val_self_call_b", placeholder="e.g. Callsign/P", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-                    
-                    self_call_b = st.session_state.val_self_call_b.strip().upper()
-                    if len(self_call_b) > 0 and self_call_b == callsign:
-                        st.error("Setup B callsign must be different from Setup A (e.g., use a /P suffix).")
+                    _render_reference_identity(
+                        t,
+                        derives_hardware_grid4=True,
+                    )
                 elif analysis_direction == "tx":
-                    _render_tx_ab_schedule(t)
+                    _render_tx_ab_method_selector(t)
+                    if st.session_state.get("val_tx_ab_method") == "sequential":
+                        _render_tx_ab_schedule(t)
+                    else:
+                        _render_reference_identity(
+                            t,
+                            derives_hardware_grid4=True,
+                        )
                 else:
                     st.info(t["msg_select_analysis_direction_hardware"])
 
@@ -373,7 +547,11 @@ def render_advanced_expander(t):
         with col4:
             min_spots_label = t["lbl_min_spots"]
             min_spots_help = t["hlp_min_spots"]
-            if st.session_state.val_comp_mode == t["opt_comp_self"] and st.session_state.get("val_analysis_direction") == "tx":
+            if (
+                st.session_state.val_comp_mode == t["opt_comp_self"]
+                and st.session_state.get("val_analysis_direction") == "tx"
+                and st.session_state.get("val_tx_ab_method") == "sequential"
+            ):
                 min_spots_label, min_spots_help = (
                     _tx_ab_threshold_label_and_help(t)
                 )

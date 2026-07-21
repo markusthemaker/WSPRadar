@@ -1,6 +1,6 @@
 # WSPRadar Architecture
 
-This document describes the repository as inspected through 2026-07-18. It derives
+This document describes the repository as inspected through 2026-07-21. It derives
 component boundaries and behavior from the application code, configuration, and
 regression tests. Items explicitly marked uncertain were not established by the
 code or by the verification run.
@@ -111,13 +111,25 @@ public schema bump is incomplete until the preceding published version has an
 explicit migration; unsupported versions are rejected rather than interpreted
 with current defaults.
 
-The hardware TX A/B branch records a shared `repeat_interval_minutes` and
-disjoint `target_start_minute` and `reference_start_minute` phases. The UI
-exposes **Repeat Interval**, **Target Start**, and **Reference Start**,
-offers intervals of 4, 6, 10, 12, 20, 30, or 60 minutes, restricts starts to
-distinct even phases below the interval, and defaults them to 10, 0, and 2
-minutes. Sequential Compare always assigns planned pairs from this schedule;
-the unpublished fixed-bin prototype is not a supported runtime branch.
+Reference Station comparison state stores `reference_callsign` plus an
+independent `reference_qth` constrained to exactly four Maidenhead characters.
+RX Hardware A/B stores only the distinct `reference_callsign`; both displayed
+grid-4 values and both SQL locator predicates derive from core Target `qth`.
+
+The TX Hardware A/B branch records a required `tx_ab_method`. New session state
+defaults to `simultaneous`; that active branch stores `reference_callsign` and
+derives both comparison grid-4 values from the first four characters of core
+Target `qth`. It deliberately omits redundant `reference_qth`. The `sequential`
+branch instead stores a shared
+`repeat_interval_minutes` plus disjoint `target_start_minute` and
+`reference_start_minute` phases. The UI exposes **Repeat Interval**,
+**Target Start**, and **Reference Start** only for sequential operation, offers
+intervals of 4, 6, 10, 12, 20, 30, or 60 minutes, restricts starts to distinct
+even phases below the interval, and defaults them to 10, 0, and 2 minutes.
+Sequential Compare always assigns planned pairs from this schedule; the
+unpublished fixed-bin prototype is not a supported runtime branch. This remains
+schema version 1: pre-production v1 documents without the now-required active
+branch fields are rejected rather than migrated or guessed.
 
 The reusable configuration's optional `profile` carries the stable ID and
 localized presentation text used by built-in demos. `config/demo_profiles.py`
@@ -145,7 +157,13 @@ run; result reset or config load clears it.
 
 `core/analysis_context.py` defines an immutable `AnalysisContext` containing
 canonical scientific settings. `ui/analysis_context_adapter.py` translates
-Streamlit session values and localized choices into that context.
+Streamlit session values and localized choices into that context. Reference
+Station identity consists of `reference_callsign` plus an independently entered,
+exactly four-character `reference_qth` grid. RX and simultaneous TX Hardware A/B
+carry only the distinct `reference_callsign`; both sides use the grid-4 derived
+from core Target `qth`. TX Hardware A/B additionally carries the canonical
+`tx_ab_method`. Target and Reference role names are presentation terms and do
+not replace these scientific identity fields.
 
 `core/presentation_context.py` defines an immutable `PresentationContext` for
 language, labels, theme, and solar display. `ui/presentation_context_adapter.py`
@@ -182,7 +200,7 @@ be changed as a generic query optimization.
 `core/analysis_runner.py` builds ClickHouse SQL for:
 
 - TX and RX comparison analyses;
-- local/reference and hardware A/B comparisons;
+- local, fixed-reference and same-cycle hardware A/B comparisons;
 - periodic scheduled TX A/B comparisons;
 - TX and RX opportunity analyses.
 
@@ -193,11 +211,17 @@ pair.
 
 Every Success and Compare Target branch requires the exact direction-specific
 callsign and a reported endpoint locator whose first four characters equal the
-configured Target QTH grid-4. Reference matching remains mode-specific: Buddy
-uses exact callsign only; local benchmarks select geographically eligible
-callsign/full-locator identities; RX Hardware A/B applies the Target grid-4 to
-both exact setup callsigns; and scheduled TX Hardware A/B applies the shared
-callsign and Target grid-4 to both schedule branches.
+configured Target QTH grid-4. The complete four- or six-character Target QTH is
+retained separately as the geographic origin for map, radius, distance/azimuth,
+and solar calculations. Reference Station requires the exact Reference callsign
+and a reported endpoint locator matching its independently configured, exactly
+four-character Reference grid-4. RX and simultaneous TX Hardware A/B require
+distinct callsigns but derive the shared grid-4 for both sides from Target QTH;
+there is no independent Hardware `reference_qth`. Physical co-location remains
+an experiment invariant that archive rows cannot prove. Local benchmarks select
+geographically eligible callsign/full-locator identities. Sequential TX
+Hardware A/B applies the shared Target callsign and grid-4 to both schedule
+branches.
 
 For periodic hardware A/B work, SQL applies the exact UTC-minute modulo
 predicate for each path's repeat interval and start phase. TX Success applies
@@ -242,7 +266,10 @@ at a time. Database provenance is distinct from RAM/disk delivery tier.
 ### Scientific Engines
 
 `core/compare_engine.py` performs pure comparison aggregation for simultaneous
-and scheduled observations. For periodic TX A/B analysis, each planned Target
+and scheduled observations. Simultaneous TX Hardware A/B follows the same
+Target-Active, peer-cycle consolidation, joint Delta SNR and one-sided outcome
+path as other fixed-reference same-cycle comparisons. For periodic TX A/B
+analysis, each planned Target
 slot is paired bijectively with its nearest planned Reference slot. An exact
 half-interval tie pairs the lower and higher phases in the same repeat cycle,
 independent of which path is called Target. Aggregation includes peer identity
@@ -277,8 +304,11 @@ great-circle samples, endpoint solar states, and path-illumination classes. The
 opportunity pipeline transfers frame ownership so enrichment does not create an
 additional full-frame copy.
 
-`core/input_validation.py` contains dependency-free callsign and locator
-validation, and `core/time_utils.py` contains dependency-free query-time
+`core/input_validation.py` contains dependency-free callsign and Maidenhead
+locator validation. Core Target QTH accepts four or six characters; the
+Reference Station comparison field requires exactly one grid-4, while Hardware
+A/B derives its grid-4 from Target QTH rather than accepting Reference locator
+state. `core/time_utils.py` contains dependency-free query-time
 quantization. Keeping these idle-shell helpers separate prevents NumPy-backed
 geometry from loading before an analysis is requested. `core/math_utils.py`
 retains compatibility exports while owning Maidenhead conversion, geometry, and
@@ -390,8 +420,11 @@ must remain outside `README.md`.
 1. Streamlit state is converted to canonical analysis and presentation contexts.
 2. The controller validates inputs and obtains one combined analysis/provider
    permit from the bounded FIFO queue.
-3. `analysis_runner` builds the mode-specific comparison SQL. Periodic TX A/B
-   predicates select each path by its exact repeat interval and UTC start phase.
+3. `analysis_runner` builds the mode-specific comparison SQL. Reference Station
+   uses its exact callsign plus independent Reference grid-4; simultaneous
+   Hardware A/B uses distinct callsigns plus one Target-derived grid-4. Periodic
+   TX A/B predicates select each path by its exact repeat interval and UTC start
+   phase.
 4. `run_data_preparation` fetches and processes every run block against the
    selected provider. Any provider failover restarts this unpublished phase.
 5. Post-fetch logic synchronizes cycles and applies mode-specific rounding. For

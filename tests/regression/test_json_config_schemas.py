@@ -107,6 +107,7 @@ def _tx_hardware_ab_config():
     }
     settings["comparison_parameters"] = {
         "mode": "hardware_ab",
+        "tx_ab_method": "sequential",
         "repeat_interval_minutes": 10,
         "target_start_minute": 0,
         "reference_start_minute": 2,
@@ -140,6 +141,42 @@ def _tx_hardware_ab_config():
                 },
             ],
         },
+    }
+    return config
+
+
+def _tx_simultaneous_hardware_ab_config():
+    """Return a representative simultaneous TX hardware A/B config."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["comparison_parameters"] = {
+        "mode": "hardware_ab",
+        "tx_ab_method": "simultaneous",
+        "reference_callsign": "DL1MKS/P",
+        "snr_correction_db": 0.0,
+    }
+    return config
+
+
+def _rx_hardware_ab_config():
+    """Return a representative RX hardware A/B config."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["core_parameters"]["analysis_direction"] = "rx"
+    config["settings"]["comparison_parameters"] = {
+        "mode": "hardware_ab",
+        "reference_callsign": "DL1MKS/P",
+        "snr_correction_db": 0.0,
+    }
+    return config
+
+
+def _reference_station_config():
+    """Return a fixed Reference Station config with an independent grid-4."""
+    config = _rx_hardware_ab_config()
+    config["settings"]["comparison_parameters"] = {
+        "mode": "reference_station",
+        "reference_callsign": "DL2XYZ",
+        "reference_qth": "JO62",
+        "snr_correction_db": 0.0,
     }
     return config
 
@@ -182,6 +219,9 @@ def test_every_demo_is_an_ordinary_config_matching_the_formal_schema(
     [
         _no_comparison_config,
         _tx_hardware_ab_config,
+        _tx_simultaneous_hardware_ab_config,
+        _rx_hardware_ab_config,
+        _reference_station_config,
     ],
 )
 def test_representative_saved_configs_match_formal_schema(
@@ -389,11 +429,125 @@ def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
         config_validator.validate(config)
 
 
+def test_reference_station_requires_explicit_reference_qth(config_validator):
+    """Persist the independently editable Reference Station grid-4."""
+    config = _reference_station_config()
+    config["settings"]["comparison_parameters"].pop("reference_qth")
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+def test_reference_station_schema_rejects_grid6_reference_qth(config_validator):
+    """Represent the actual grid-4 query selector without unused precision."""
+    config = _reference_station_config()
+    config["settings"]["comparison_parameters"]["reference_qth"] = "JO62QM"
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+@pytest.mark.parametrize(
+    "config_factory",
+    [_rx_hardware_ab_config, _tx_simultaneous_hardware_ab_config],
+)
+def test_hardware_schema_rejects_redundant_reference_qth(
+    config_validator,
+    config_factory,
+):
+    """Keep Target QTH as the sole serialized Hardware location."""
+    config = config_factory()
+    config["settings"]["comparison_parameters"]["reference_qth"] = "JN37"
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_identity"),
+    [
+        ("callsign", "ABC"),
+        ("callsign", "123"),
+        ("callsign", "DL1ABC//P"),
+        ("callsign", "DL1\u00df"),
+        ("callsign", "D\u01311ABC"),
+        ("qth", "SS00"),
+        ("qth", "JN37YY"),
+        ("qth", "J\u013137"),
+        ("qth", "J\u212a37"),
+    ],
+)
+def test_formal_schema_rejects_malformed_or_unicode_target_identities(
+    config_validator,
+    field,
+    invalid_identity,
+):
+    """Keep formal identity syntax aligned with semantic validation."""
+    config = _no_comparison_config()
+    config["settings"]["core_parameters"][field] = invalid_identity
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+@pytest.mark.parametrize(
+    "callsign",
+    ["W1A", "DL1MKS", "SK0WE/P", "EA8/DL1ABC/P", "VK2FXXX/MM"],
+)
+def test_formal_schema_accepts_plausible_callsign_tokens(
+    config_validator,
+    callsign,
+):
+    """Accept the same portable/prefix forms as semantic validation."""
+    config = _no_comparison_config()
+    config["settings"]["core_parameters"]["callsign"] = callsign
+
+    config_validator.validate(config)
+
+
+@pytest.mark.parametrize("callsign", ["ABC", "123", "DL1ABC//P", "DL1\u00df"])
+def test_selected_station_schema_uses_the_same_callsign_contract(
+    config_validator,
+    callsign,
+):
+    """Do not weaken identity validation in persisted station selections."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["results_view"]["success"]["selected_stations"][0][
+        "callsign"
+    ] = callsign
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+@pytest.mark.parametrize(
+    ("config_factory", "inactive_field", "inactive_value"),
+    [
+        (_tx_simultaneous_hardware_ab_config, "repeat_interval_minutes", 10),
+        (_tx_hardware_ab_config, "reference_callsign", "DL1MKS/P"),
+        (_rx_hardware_ab_config, "tx_ab_method", "simultaneous"),
+    ],
+)
+def test_hardware_ab_method_branches_reject_inactive_fields(
+    config_validator,
+    config_factory,
+    inactive_field,
+    inactive_value,
+):
+    """Keep simultaneous identities and sequential schedules mutually exclusive."""
+    config = config_factory()
+    config["settings"]["comparison_parameters"][inactive_field] = inactive_value
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
 @pytest.mark.parametrize(
     "comparison_parameters",
     [
         {
             "mode": "hardware_ab",
+            "tx_ab_method": "sequential",
             "repeat_interval_minutes": 8,
             "target_start_minute": 0,
             "reference_start_minute": 2,
@@ -401,6 +555,7 @@ def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
         },
         {
             "mode": "hardware_ab",
+            "tx_ab_method": "sequential",
             "repeat_interval_minutes": 10,
             "target_start_minute": 1,
             "reference_start_minute": 2,
@@ -408,6 +563,7 @@ def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
         },
         {
             "mode": "hardware_ab",
+            "tx_ab_method": "sequential",
             "repeat_interval_minutes": 10,
             "target_start_minute": 0,
             "reference_start_minute": 10,
@@ -415,6 +571,7 @@ def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
         },
         {
             "mode": "hardware_ab",
+            "tx_ab_method": "sequential",
             "repeat_interval_minutes": 10,
             "target_start_minute": 2,
             "reference_start_minute": 2,
@@ -422,6 +579,7 @@ def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
         },
         {
             "mode": "hardware_ab",
+            "tx_ab_method": "sequential",
             "pairing_model": "periodic_starts",
             "repeat_interval_minutes": 10,
             "target_start_minute": 0,
@@ -430,6 +588,7 @@ def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
         },
         {
             "mode": "hardware_ab",
+            "tx_ab_method": "sequential",
             "repeat_interval_minutes": 10,
             "target_start_minute": 0,
             "reference_start_minute": 2,
@@ -438,6 +597,7 @@ def test_hardware_ab_shape_must_match_analysis_direction(config_validator):
         },
         {
             "mode": "hardware_ab",
+            "tx_ab_method": "sequential",
             "target_wspr_frame": "frame_00_04_08",
             "reference_wspr_frame": "frame_02_06_10",
             "tx_ab_bin_minutes": 8,

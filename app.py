@@ -25,6 +25,12 @@ from config.demo_profiles import (
     prepare_demo_description_markdown,
     resolve_demo_profile_text,
 )
+from core.input_validation import (
+    is_valid_callsign,
+    is_valid_grid4,
+    is_valid_locator,
+    normalize_ascii_upper,
+)
 from core.time_utils import quantize_time
 from i18n import T
 from ui.callbacks import (
@@ -252,8 +258,8 @@ if st.session_state.get("_collapse_config_panels_once", False):
 
 run_status_slot = st.empty()
 
-callsign = st.session_state.val_callsign.strip().upper()
-qth_locator = st.session_state.val_qth.strip()
+callsign = normalize_ascii_upper(st.session_state.val_callsign)
+qth_locator = normalize_ascii_upper(st.session_state.val_qth)
 band = st.session_state.val_band
 time_mode = st.session_state.val_time_mode
 hours = st.session_state.val_hours
@@ -396,10 +402,52 @@ is_main_button_submission = bool(
 )
 submission_initialization_failed = False
 if is_main_button_submission:
-    if comp_mode == t["opt_comp_self"] and analysis_direction == "rx":
-        setup_b_callsign = st.session_state.val_self_call_b
-        if not setup_b_callsign or setup_b_callsign == callsign:
-            st.error("Please configure a distinct callsign for Setup B (e.g., DL1MKS/P).")
+    requires_reference_identity = (
+        comp_mode == t["opt_comp_buddy"]
+        or (
+            comp_mode == t["opt_comp_self"]
+            and (
+                analysis_direction == "rx"
+                or st.session_state.get("val_tx_ab_method") == "simultaneous"
+            )
+        )
+    )
+    if not is_valid_callsign(callsign):
+        st.error(t["err_callsign_format"])
+        st.session_state.run_mode = None
+        submission_initialization_failed = True
+    elif not is_valid_locator(qth_locator):
+        st.error(t["err_qth_format"])
+        st.session_state.run_mode = None
+        submission_initialization_failed = True
+    elif requires_reference_identity:
+        reference_callsign = normalize_ascii_upper(
+            st.session_state.get("val_ref_callsign", "")
+        )
+        reference_grid4 = normalize_ascii_upper(
+            st.session_state.get("val_ref_qth", "")
+        )
+        if not reference_callsign:
+            st.error(t["err_reference_callsign_required"])
+            st.session_state.run_mode = None
+            submission_initialization_failed = True
+        elif not is_valid_callsign(reference_callsign):
+            st.error(t["err_reference_callsign_format"])
+            st.session_state.run_mode = None
+            submission_initialization_failed = True
+        elif reference_callsign == callsign:
+            st.error(t["err_reference_callsign_same"])
+            st.session_state.run_mode = None
+            submission_initialization_failed = True
+        elif comp_mode == t["opt_comp_buddy"] and not reference_grid4:
+            st.error(t["err_reference_qth_required"])
+            st.session_state.run_mode = None
+            submission_initialization_failed = True
+        elif (
+            comp_mode == t["opt_comp_buddy"]
+            and not is_valid_grid4(reference_grid4)
+        ):
+            st.error(t["err_reference_grid4_format"])
             st.session_state.run_mode = None
             submission_initialization_failed = True
     if not submission_initialization_failed:

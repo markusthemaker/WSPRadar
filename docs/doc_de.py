@@ -31,7 +31,7 @@ So eingesetzt wird WSPR auch für die gesamte Amateurfunkgemeinschaft wertvoller
 
 #### 0.0 Was WSPRadar zeigen kann
 
-WSPRadar wertet ein <strong class="defined-term">Target</strong> innerhalb eines klar definierten Versuchsdesigns aus. Das Target kann eine vollständig aufgebaute Station oder ein kontrollierter Signalweg sein. Es kann für sich allein oder gegenüber einer aussagekräftigen <strong class="defined-term">Referenz</strong> ausgewertet werden. Je nach Fragestellung kann die Referenz Setup B an derselben Station, eine bekannte externe Station, die aktive lokale WSPR-Nachbarschaft oder deren stärkstes aktives Mitglied sein.
+WSPRadar wertet ein <strong class="defined-term">Target</strong> innerhalb eines klar definierten Versuchsdesigns aus. Das Target kann eine vollständig aufgebaute Station oder ein kontrollierter Signalweg sein. Es kann für sich allein oder gegenüber einer aussagekräftigen <strong class="defined-term">Referenz</strong> ausgewertet werden. Je nach Fragestellung kann die Referenz ein zweiter kontrollierter Signalweg an derselben Station, eine bekannte externe Station, die aktive lokale WSPR-Nachbarschaft oder deren stärkstes aktives Mitglied sein.
 
 Die Referenz ist Teil der wissenschaftlichen Fragestellung und nicht nur eine Darstellungsoption. Ein <strong class="defined-term">Hardware A/B-Test</strong> kann den Vergleich auf zwei lokale Antennen, Speiseleitungen, Empfänger oder vollständige Empfangsketten eingrenzen, wenn die übrigen Variablen stabil gehalten werden. Ein <strong class="defined-term">Referenzstations-/Buddy-Test</strong> vergleicht zwei vollständige Stationen einschließlich ihrer QTHs, Geräte, des Geländes sowie der lokalen Stör- und Rauschumgebungen. Ein lokaler Nachbarschafts-Benchmark fragt, wie das Target gegenüber einer wechselnden Population aktiver WSPR-Stationen in der Umgebung abschneidet. Ohne Benchmark fragt WSPRadar, wo das Target unter unabhängig bestätigten Opportunities <strong class="defined-term">qualifizierende Evidenz</strong> geliefert hat – also Evidenz, die nach Anwendung der Regeln des Laufs erhalten bleibt.
 
@@ -129,7 +129,9 @@ Nutze beim Interpretieren des Success-Ergebnisses [Abschnitt 2.1](#sec-3-2). Wen
     * [1.1 Solide Grundlagen für jeden Versuch](#sec-2-1)
     * [1.2 Nur Success: die Target-Reichweite untersuchen](#sec-2-2)
     * [1.3 RX Hardware A/B: simultane Empfangspfade vergleichen](#sec-2-3)
-    * [1.4 TX Hardware A/B: abwechselnde Sendepfade vergleichen](#sec-2-4)
+    * [1.4 TX Hardware A/B: simultane oder sequenzielle Sendepfade wählen](#sec-2-4)
+        * [1.4.1 Leitfaden für simultanes TX](#sec-2-4-simultaneous)
+        * [1.4.2 Leitfaden für sequenzielles TX](#sec-2-4-sequential)
     * [1.5 Referenzstations-/Buddy-Test](#sec-2-5)
     * [1.6 Lokaler Nachbarschafts-Median](#sec-2-6)
     * [1.7 Beste lokale Station](#sec-2-7)
@@ -198,6 +200,7 @@ Nutze beim Interpretieren des Success-Ergebnisses [Abschnitt 2.1](#sec-3-2). Wen
     * [A.1 Zweite Instanz anlegen](#sec-a-1)
     * [A.2 Ausgangskonfiguration bei Bedarf kopieren](#sec-a-2)
     * [A.3 Alle Datenpfade trennen](#sec-a-3)
+    * [A.4 Unterscheidbares simultanes TX konfigurieren](#sec-a-4)
 * [Anhang B: Sequenzielle TX-A/B-Zeitplanung und Umschaltung](#sec-b)
     * [B.1 Anforderungen an einen gültigen zeitgesteuerten Versuch](#sec-b-1)
     * [B.2 Zeitgesteuerter WSPRadar-A/B-Relaisumschalter](#sec-b-2)
@@ -268,7 +271,7 @@ Für diesen Leitfaden bezeichnet <strong class="defined-term">qualifizierende Ev
 * **RX Success** vergleicht die Decodes des Target-Empfängers mit unabhängig bestätigten Zyklen entfernter Sender.
 * **TX Success** vergleicht die Decodes des Target-Senders mit Zyklen entfernter Empfänger, in denen andere Aktivitäten auf demselben Band nachgewiesen wurden.
 
-Es gibt weder eine Referenzstation noch ein Setup B. Die Success Rate beschreibt bedingte Erreichbarkeit; der SNR erfolgreicher Target-Decodes ist eine getrennte Signalstärkezusammenfassung. [Abschnitt 2.1](#sec-3-2) erläutert die sichtbaren Klassifikationen und Gewichtungen, [Abschnitt 7.4](#sec-7-4) definiert den exakten Nenner.
+Es gibt weder eine Referenzstation noch einen Referenzpfad. Die Success Rate beschreibt bedingte Erreichbarkeit; der SNR erfolgreicher Target-Decodes ist eine getrennte Signalstärkezusammenfassung. [Abschnitt 2.1](#sec-3-2) erläutert die sichtbaren Klassifikationen und Gewichtungen, [Abschnitt 7.4](#sec-7-4) definiert den exakten Nenner.
 
 **Die Analyse einrichten**
 
@@ -296,18 +299,18 @@ Für Funkamateure kann das bedeuten: zwei Antennen zu vergleichen, die jeweils e
 
 **Was WSPRadar zeigt**
 
-Beim simultanen RX Hardware A/B-Test werden zwei lokale Empfangspfade an derselben Station verglichen. Setup A und Setup B beobachten dieselben entfernten Senderidentitäten in denselben WSPR-Zyklen. Dieses Design kommt in WSPRadar einem kontrollierten Hardwarevergleich mit demselben Signal am nächsten.
+Beim simultanen RX Hardware A/B-Test werden zwei lokale Empfangspfade an derselben Station verglichen. Target- und Referenzempfänger beobachten dieselben entfernten Senderidentitäten in denselben WSPR-Zyklen. Dieses Design kommt in WSPRadar einem kontrollierten Hardwarevergleich mit demselben Signal am nächsten.
 
 Solange Unterschiede zwischen Empfänger, Audiopfad und Decoder nicht charakterisiert wurden, vergleicht das Ergebnis die vollständigen Empfangspfade und nicht die Antennen allein.
 
 **Den Versuch einrichten**
 
-Wähle in der Benutzeroberfläche `Hardware A/B-Test (Eigenes Setup)` und betreibe zwei Empfänger gleichzeitig mit unterschiedlichen exakten Melderufzeichen:
+Wähle in der Benutzeroberfläche `Hardware A/B-Test (Eigenes Setup)` und betreibe zwei Empfänger gleichzeitig mit unterschiedlichen exakten Melderufzeichen. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter die deaktivierten Felder `Target-Grid-4` und `Referenz-Grid-4`. Beide Grid-4-Werte werden aus den ersten vier Zeichen des Target-QTHs der Kernparameter abgeleitet; gib nur das exakte Rufzeichen ein, unter dem der Referenzempfänger seine Meldungen hochlädt.
 
-* Setup A verwendet das Target-Rufzeichen.
-* Setup B verwendet das `Setup B Callsign`.
+* Der Target-Empfänger verwendet Target-Rufzeichen und Target-QTH.
+* Der Referenzempfänger verwendet das Referenz-Rufzeichen und meldet aus demselben Target-Grid-4.
 
-Beide Setups müssen Locator hochladen, deren erste vier Zeichen dem konfigurierten Target-QTH entsprechen; ihre sechsstelligen Unterfelder dürfen sich unterscheiden.
+Hardware A/B besitzt keine unabhängige Referenz-QTH-Einstellung und speichert eine solche auch nicht in einer Konfiguration. Die Archivzuordnung beider Rufzeichen verwendet die ersten vier Zeichen des Target-QTHs. Beide Empfänger müssen außerdem am selben physischen Test-QTH betrieben werden; die Zuordnung zu einem gemeinsamen Grid-4 belegt keine physische Ko-Lokation.
 
 Halte Uhren, Antennenführung, Verstärkung, Audiopfade, Decoder-Einstellungen und Uploads unter Kontrolle. Komponenten, die gemeinsam sein sollen, müssen physisch gemeinsam genutzt werden; unvermeidliche Unterschiede zwischen den beiden Ketten sind zu messen oder zu dokumentieren.
 
@@ -321,29 +324,83 @@ Dokumentiere die Pegelgleichheit der Verteilerausgänge, Unterschiede der Speise
 
 **Evidenzgerechte Schlussfolgerung**
 
-> Unter dem dokumentierten simultanen RX-Aufbau zeigte das gepaarte Delta SNR den beobachteten Unterschied zwischen den Empfangspfaden A und B für die gemeinsamen Sender, Zyklen und den untersuchten geografischen Bereich.
+> Unter dem dokumentierten simultanen RX-Aufbau zeigte das gepaarte Delta SNR den beobachteten Unterschied zwischen Target- und Referenzempfangspfad für die gemeinsamen Sender, Zyklen und den untersuchten geografischen Bereich.
 
 In der Stationspraxis bedeutet das: Für entfernte Signale, die beide Pfade gleichzeitig beobachteten, zeigt das Ergebnis, welcher Empfangspfad tendenziell stärkere Decodes lieferte, wo der Unterschied auftrat und wie viel gemeinsame Evidenz ihn stützte.
 
 <a id="sec-2-4"></a>
 
-#### 1.4 TX Hardware A/B: abwechselnde Sendepfade vergleichen
+#### 1.4 TX Hardware A/B: simultane oder sequenzielle Sendepfade wählen
 
 **Beantwortete Frage**
 
-Unterschieden sich zwei lokale Antennen, Speiseleitungen oder geschaltete HF-Pfade, wenn sie von derselben Stationsausrüstung gespeist wurden?
+Unterschieden sich zwei lokale Antennen, Speiseleitungen oder HF-Pfade an einem kontrollierten Test-QTH?
+
+**Vergleichsmethode wählen**
+
+TX Hardware A/B bietet zwei Methoden. `Simultanes TX` ist die Voreinstellung einer neuen Konfiguration; `Sequenzielles TX` erhält den deterministischen `TX-A/B-Zeitplan` als Alternative.
+
+| Methode | Wesentlicher Vorteil | Wesentlicher Aufwand und Interpretationsgrenze |
+|---|---|---|
+| **Simultanes TX** | Jedes gemeinsame Delta SNR vergleicht Target und Referenz am selben entfernten Empfänger im selben UTC-Zyklus. Dadurch wird die zeitliche Funkwegvariation innerhalb dieses Paars stark reduziert. | Erfordert zwei unterscheidbare Sendeketten, genaue Kontrolle von Leistung und Korrektur, getrennte Rufzeichen sowie getrennte Frequenzen. Kopplung, Intermodulation, Nah-/Fern-Effekte und Kettenunterschiede können das Ergebnis verzerren. Verglichen werden die dokumentierten vollständigen Sendepfade, nicht automatisch nur die Antennen. |
+| **Sequenzielles TX** | Ein Sender, eine Signalform, ein Rufzeichen und eine Frequenzreferenz können gemeinsam bleiben, während ein kontrollierter Umschalter zwischen den beiden HF-Pfaden wechselt; eine Kopplung zwischen gleichzeitig aktiven Sendern wird vermieden. | Die beiden Beobachtungen sind zeitlich getrennt. Kurzes, ausgewogenes Abwechseln verringert Unterschiede durch Ausbreitung, Störungen, Zeitplan und Umschaltung, kann sie aber nicht beseitigen. |
+
+Wähle die Methode nach der tatsächlich verfügbaren Hardware und der Aussage, die der Versuch stützen soll. Simultanbetrieb ist nicht automatisch überlegen, wenn sich die beiden Sendeketten nicht kalibrieren oder ausreichend isolieren lassen. Sequenzieller Betrieb ist auch bei unmittelbar aufeinanderfolgenden WSPR-Frames nicht simultan.
+
+Betreibe bei beiden Methoden beide Pfade am selben physischen Test-QTH und begrenze ihre gemeldeten Locator auf das konfigurierte Target-Grid-4. Hardware A/B leitet beide angezeigten Grid-4-Werte aus dem Target-QTH ab, statt einen unabhängigen Referenzstandort zuzulassen. Melde die tatsächliche Sendeleistung und dokumentiere alles, was nicht gemeinsam ist. Das separate TX-Success-Ergebnis beschreibt stets das Target; die Referenz liefert Vergleichsevidenz, aber kein zweites Success-Ergebnis.
+
+<a id="sec-2-4-simultaneous"></a>
+
+##### 1.4.1 Leitfaden für simultanes TX
+
+**Was WSPRadar zeigt**
+
+Beim simultanen TX Hardware A/B-Test werden an jedem entfernten Empfänger zwei bewusst synchronisierte und unterscheidbare WSPR-Signale verglichen. Delta SNR wird nur berechnet, wenn dieser Empfänger Target und Referenz im selben UTC-Zyklus decodiert. Die regulären Decode Outcomes erhalten außerdem Target-only-, Reference-only- und asynchrone Evidenz; `Show Non-Joint` steuert, ob Stationen ohne qualifizierende gemeinsame Evidenz in die Inspektionsansicht einbezogen werden. Derselbe UTC-Zyklus kann daher an einem Empfänger joint und an einem anderen einseitig sein.
+
+Das Target-Active Gate bleibt Target-zentriert: Ein Zyklus ist nur zulässig, wenn das Target irgendwo decodiert wurde. Innerhalb eines zulässigen Zyklus kann ein Empfänger dennoch einseitige Referenzevidenz beitragen. Ein Zyklus, in dem die Referenz decodiert wurde, das Target jedoch nirgends, wird ausgeschlossen und nicht als Target-Niederlage gewertet. [Abschnitt 7.3](#sec-7-3) definiert diese Grenze.
+
+**Den Versuch einrichten**
+
+Wähle `Simultanes TX`. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter die deaktivierten Felder `Target-Grid-4` und `Referenz-Grid-4`. Beide Grid-4-Werte entsprechen den ersten vier Zeichen des Target-QTHs aus den Kernparametern. Verwende zwei unterschiedliche exakte Rufzeichen, melde beide Pfade innerhalb dieses konfigurierten Grid-4 und betreibe beide vollständigen Sendepfade am selben physischen Test-QTH.
+
+Ein simultaner WSPR-Vergleich mit zwei Sendern benötigt normalerweise:
+
+* unterschiedliche Rufzeichen, damit Decoder und Meldedatenbank die beiden Pfade unterscheiden können; und
+* unterschiedliche, nicht überlappende Sendefrequenzen innerhalb des ungefähr 200 Hz breiten WSPR-Teilbands.
+
+Jedes WSPR-Signal belegt ungefähr 6 Hz. Dieselbe Frequenz birgt das Risiko einer Kollision oder, bei identischen Signalformen, eines nicht trennbaren überlagerten Feldes. Zu eng beieinanderliegende Signale können nicht decodiert werden oder unzuverlässige SNR-Meldungen erzeugen. Auch Zanders simultane Methode verwendet getrennte Rufzeichen und unterschiedliche Frequenzen im selben Zwei-Minuten-Zyklus. <a href="#ref-1">[Ref-1]</a>
+
+Unterschiedliche Abstimmfrequenzen der Funkgeräte sind nicht erforderlich. Verwende bei zwei WSJT-X-Instanzen oder Funkgeräten auf der normalen WSPR-Abstimmfrequenz unterschiedliche Audio-Sendeversätze innerhalb des WSPR-Durchlassbereichs. Ohne Split-, XIT- und Transverter-Versätze gilt näherungsweise:
+
+$$f_{HF} \approx f_{Dial} + f_{TX\ Audio}$$
+
+Beispielsweise könnte das Target `Tx Freq = 1450 Hz` und die Referenz `Tx Freq = 1550 Hz` verwenden, wobei beide Aussendungen im selben UTC-Zyklus beginnen. Diese Werte sind nur Beispiele: Prüfe die Bandbelegung, halte ausreichenden Abstand und berücksichtige Frequenzfehler, Ausläufer starker Signale und bereits belegte Frequenzen. WSJT-X stellt eine WSPR-Sendefrequenzsteuerung und eine rote Markierung im Wasserfall bereit; ihre Position variiert jedoch zwischen Versionen und ist leicht zu übersehen. Der Zufallsbetrieb über `Tx Pct` gewährleistet für sich allein keine bewusste Synchronisierung zweier Funkgeräte. <a href="#ref-12">[Ref-12]</a>
+
+Miss den Leistungsunterschied zwischen den vollständigen Target- und Referenzpfaden oder korrigiere ihn auf belastbare Weise. Kontrolliere außerdem Antennenkopplung, Senderisolation, Oberwellen und Intermodulation, Uhrensynchronisation sowie die hochgeladenen Identitäten. Ein Abstand von 100 Hz im Audio- beziehungsweise HF-Signal ist auf einem HF-Band als Ausbreitungsfrequenzunterschied vernachlässigbar; Form des Empfängerdurchlassbereichs, lokale Störungen und der frequenzabhängige Sendergang können dennoch einen systematischen Versatz verursachen. Ist ein kleiner beobachteter Unterschied entscheidend, wiederhole den Versuch mit vertauschten Target-/Referenz-Frequenzzuordnungen oder charakterisiere diesen Versatz auf andere Weise.
+
+Die stärkste Hardwarekontrolle ist eine Überkreuz-Wiederholung: Tausche die geprüfte Antenne oder Komponente zwischen den beiden kalibrierten Sendeketten, während Rollendefinitionen und Analyseumfang unverändert bleiben. So lässt sich der Effekt des Prüfobjekts besser von einem dauerhaften Ketteneffekt unterscheiden.
+
+**Evidenzgerechte Schlussfolgerung**
+
+> Unter dem dokumentierten simultanen Aufbau mit zwei Sendern zeigte das Delta SNR desselben Empfängers und Zyklus den beobachteten Unterschied zwischen Target- und Referenzsendepfad für die ausgewählten Empfänger und den untersuchten geografischen Bereich.
+
+In der Stationspraxis bedeutet das: Für Empfänger, die beide unterscheidbaren Signale im selben Zyklus decodierten, zeigt das Ergebnis, welcher vollständige lokale Sendepfad tendenziell stärkere Meldungen erzeugte. Der Unterschied lässt sich daraus nicht von selbst einer einzelnen Antenne zuordnen, sofern die übrigen Pfade nicht kontrolliert oder über Kreuz getauscht wurden.
+
+<a id="sec-2-4-sequential"></a>
+
+##### 1.4.2 Leitfaden für sequenzielles TX
 
 <a id="sec-2-4-why"></a>
 
 **Warum deterministisches Abwechseln verwendet wird**
 
-Senden zwei nahe beieinanderstehende Antennen im selben WSPR-Zyklus und Frequenzkanal dieselbe WSPR-Aussendung mit demselben Rufzeichen, empfängt eine entfernte Station die Überlagerung beider Felder. Ihr Spot lässt nicht erkennen, welcher Anteil von Antenne A oder B stammt. Unterscheidbare simultane Signale erfordern normalerweise getrennte Rufzeichen und Sendeketten; dadurch kommen zusätzliche Unterschiede bei Leistung, Kalibrierung, Zeit und Frequenz hinzu.
+Senden zwei nahe beieinanderstehende Antennen im selben WSPR-Zyklus und Frequenzkanal dieselbe WSPR-Aussendung mit demselben Rufzeichen, empfängt eine entfernte Station die Überlagerung beider Felder. Ihr Spot lässt nicht erkennen, welcher Anteil vom Target- oder Referenzpfad stammt. Unterscheidbare simultane Signale erfordern getrennte Rufzeichen und getrennte Frequenzen, normalerweise mit getrennten Sendeketten; der Leitfaden für simultanes TX oben nennt die daraus folgenden Anforderungen an Kalibrierung und Isolation.
 
 Ein deterministischer Wechsel behält dagegen ein Rufzeichen und vorzugsweise eine gemeinsame Sendekette bei, während beide Pfade wiederholt wechselnden Ausbreitungs- und Empfangsbedingungen ausgesetzt werden. Der Vergleich bleibt sequenziell: Ein kürzerer Abstand verringert die Zeit, in der sich die Bedingungen ändern können, macht die Beobachtungen aber nicht simultan.
 
 **Was WSPRadar zeigt**
 
-Beim sequenziellen TX Hardware A/B-Test werden vollständige WSPR-Aussendungen anhand eines zeitlich festgelegten Sendeplans Setup A und Setup B zugeordnet. WSPRadar bildet anschließend für jede entfernte Empfängeridentität deterministische Eins-zu-eins-Paare und meldet das Delta SNR der geplanten Paare sowie einseitige Decode Outcomes.
+Beim sequenziellen TX Hardware A/B-Test werden vollständige WSPR-Aussendungen anhand eines zeitlich festgelegten Sendeplans Target und Referenz zugeordnet. WSPRadar bildet anschließend für jede entfernte Empfängeridentität deterministische Eins-zu-eins-Paare und meldet das Delta SNR der geplanten Paare sowie einseitige Decode Outcomes.
 
 **Den Versuch einrichten**
 
@@ -357,21 +414,21 @@ Melde die tatsächliche Sendeleistung. Kennzeichne die Pfade nicht durch falsche
 
 Prüfe die physische Zuordnung von Zeitplan und Pfad vor dem Start ohne HF. Eine vertauschte Zuordnung beschriftet die Pfade falsch und kehrt die praktische Interpretation des Delta-SNR-Vorzeichens um.
 
-Der Lauf erzeugt ein sequenzielles TX-Hardware-Compare-Ergebnis und ein separates TX-Success-Ergebnis. Success ist auf den konfigurierten Target-Zeitplan begrenzt und beschreibt daher Setup A.
+Der Lauf erzeugt ein sequenzielles TX-Hardware-Compare-Ergebnis und ein separates TX-Success-Ergebnis. Success ist auf den konfigurierten Target-Zeitplan begrenzt.
 
 **Die Evidenz stärken**
 
 Kontrolliere Schaltverluste, Unterschiede der Speiseleitungen, Antennenkopplung, Ganggenauigkeit der Uhr, Zuordnung des Zeitplans zu den Pfaden sowie den Schaltzeitpunkt. Verwende den kürzesten praktikablen Abstand und dehne den Lauf über die für die Fragestellung relevanten Ausbreitungszeiten aus.
 
-In einem ausgewogenen Lauf können sich zufällige kurzfristige Schwankungen teilweise ausmitteln, weil beide Pfade wiederholt wechselnden Bedingungen ausgesetzt sind. Systematische Effekte des Zeitplans, des Umschalters oder der Position im Zyklus mitteln sich dagegen nicht zwangsläufig aus. Wenn ein kleiner Unterschied entscheidend ist, wiederhole den Versuch mit vertauschter A/B-Zeitplanzuordnung und vergleiche gleichartig konfigurierte Läufe, wie in [Abschnitt 3.2](#sec-4-2) beschrieben.
+In einem ausgewogenen Lauf können sich zufällige kurzfristige Schwankungen teilweise ausmitteln, weil beide Pfade wiederholt wechselnden Bedingungen ausgesetzt sind. Systematische Effekte des Zeitplans, des Umschalters oder der Position im Zyklus mitteln sich dagegen nicht zwangsläufig aus. Wenn ein kleiner Unterschied entscheidend ist, wiederhole den Versuch mit vertauschter Target-/Referenz-Zeitplanzuordnung und vergleiche gleichartig konfigurierte Läufe, wie in [Abschnitt 3.2](#sec-4-2) beschrieben.
 
 [Abschnitt 6.3](#sec-d-toledo) erläutert die experimentellen Vorarbeiten und warum kurze Wechsel langen Blöcken vorzuziehen sind <a href="#ref-3">[Ref-3]</a>.
 
 **Evidenzgerechte Schlussfolgerung**
 
-> Unter dem dokumentierten, zeitlich festgelegten Sendeplan zeigte das Delta SNR der geplanten Paare den beobachteten Unterschied zwischen den geschalteten Pfaden A und B für die ausgewählten Empfänger, Zeiträume und den untersuchten geografischen Bereich.
+> Unter dem dokumentierten, zeitlich festgelegten Sendeplan zeigte das Delta SNR der geplanten Paare den beobachteten Unterschied zwischen den geschalteten Target- und Referenzpfaden für die ausgewählten Empfänger, Zeiträume und den untersuchten geografischen Bereich.
 
-In der Stationspraxis bedeutet das: Nach wiederholtem Wechsel der beiden HF-Pfade zeigt das Ergebnis, ob Pfad A oder B für die im Lauf vertretenen Empfänger und Ausbreitungszeiten tendenziell stärkere Meldungen erzeugte; der Vergleich bleibt dabei sequenziell und nicht simultan.
+In der Stationspraxis bedeutet das: Nach wiederholtem Wechsel der beiden HF-Pfade zeigt das Ergebnis, ob Target- oder Referenzpfad für die im Lauf vertretenen Empfänger und Ausbreitungszeiten tendenziell stärkere Meldungen erzeugte; der Vergleich bleibt dabei sequenziell und nicht simultan.
 
 <a id="sec-2-5"></a>
 
@@ -392,7 +449,7 @@ TX-Paare desselben Zyklus teilen damit einen entfernten Empfänger, RX-Paare ein
 
 **Die Analyse einrichten**
 
-Wähle `Fremdes Rufzeichen (Buddy-Test)`. Gib ein exaktes Target-Rufzeichen und QTH sowie ein davon verschiedenes exaktes `Referenz-Rufzeichen` ein. Target-Spots werden auf das Target-Grid-4 begrenzt; die Buddy-Referenz wird bewusst nur anhand des exakten Rufzeichens ohne Locator-Bedingung ausgewählt. Wähle als Referenz eine Station, deren Standort, Hardware, gemeldete Leistung und Betriebsplan du kennst.
+Wähle `Fremdes Rufzeichen (Buddy-Test)`. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter `Target-QTH` und `Referenz-Grid-4`. Die Target-Werte stammen aus den Kernparametern. Anders als bei Hardware A/B bleiben beide Referenzfelder editierbar: Gib das exakte Melderufzeichen der Referenz und ihr unabhängig gewähltes vierstelliges Maidenhead-Grid ein. WSPRadar ordnet beide festen Seiten anhand des jeweiligen exakten Rufzeichens plus des eigenen Grid-4 zu. Wähle als Referenz eine Station, deren Standort, Hardware, gemeldete Leistung und Betriebsplan du kennst.
 
 Beide Stationen müssen zeitgleich auf demselben Band in Betrieb sein. Prüfe die Betriebsbereitschaft der Referenz unabhängig. Verwende eine Referenz-SNR-Korrektur nur, wenn sie auf einer belastbaren Kalibrierung beruht.
 
@@ -543,7 +600,7 @@ Aus Anwendersicht ist Delta SNR das SNR der Target-Seite minus das korrigierte S
 Das gepaarte Delta SNR ist normalerweise der wichtigste quantitative Vergleich, weil für beide Seiten die am besten vergleichbaren verfügbaren Bedingungen gelten:
 
 * Beim simultanen RX Compare messen Target- und Referenzempfänger denselben entfernten Sender. Dadurch werden Unterschiede bei Sendeleistung, Signalform und gemeinsamem Pfad innerhalb des Paars verringert.
-* Bei TX Compare im selben Zyklus, beispielsweise bei passenden Buddy- oder lokalen Nachbarschaftsvergleichen, misst derselbe entfernte Empfänger Target und Referenz. Dadurch werden Unterschiede bei Empfängerhardware, Empfangsantenne, lokalem Rauschen und Reporting innerhalb des Paars verringert.
+* Bei TX Compare im selben Zyklus, einschließlich simultanem TX Hardware A/B und passenden Buddy- oder lokalen Nachbarschaftsvergleichen, misst derselbe entfernte Empfänger Target und Referenz. Dadurch werden Unterschiede bei Empfängerhardware, Empfangsantenne, lokalem Rauschen und Reporting innerhalb des Paars verringert.
 * Sequenzielles TX Hardware A/B verwendet deterministisch geplante Paare statt Evidenz aus demselben Zyklus.
 
 **Decode Outcomes**
@@ -661,7 +718,7 @@ Wähle eine oder mehrere Stationen aus, um die Evidenzansicht für diese Auswahl
 * Success zeigt die Klassifikationen Target-aktiver Peer-Zyklen einschließlich Target-only.
 * Compare im selben Zyklus zeigt Target-/Referenz-Evidenz und Delta SNR aus dem gemeinsamen Zyklus.
 * Der lokale Nachbarschafts-Median schlüsselt die lokalen Referenzidentitäten hinter dem Zyklusmedian auf.
-* Sequenzielles TX A/B zeigt das geplante UTC-Paar, `Micro-Med A`, `Micro-Med B` und `Paar Δ`.
+* Sequenzielles TX A/B zeigt das geplante UTC-Paar, `Target-Mikromedian`, `Referenz-Mikromedian` und `Paar Δ`.
 
 Nutze diese Zeilen, um einen überraschenden Stations- oder Segmentwert nachzuvollziehen, Locatorwechsel oder einzelne Ausreißer zu erkennen und zu bestätigen, welche Beobachtungen gepaart oder ausgeschlossen wurden. Drill-Down ist der Prüfpfad hinter den Zusammenfassungen und keine eigene Leistungskennzahl.
 
@@ -723,7 +780,7 @@ Wenn das Ergebnis eine wichtige Stationsentscheidung stützen soll:
 * dehne das Beobachtungsfenster über die Ausbreitungszustände aus, die in der Schlussfolgerung genannt werden;
 * bevorzuge für Aussagen über vollständige Tageszyklen mehrtägige Evidenz;
 * wiederhole den Versuch an einem anderen Tag oder in einem anderen Ausbreitungszeitraum;
-* vertausche bei sequenziellem TX Hardware A/B die A/B-Zeitplanzuordnungen;
+* vertausche bei sequenziellem TX Hardware A/B die Target-/Referenz-Zeitplanzuordnungen;
 * halte nicht untersuchte Variablen zwischen den Wiederholungen stabil;
 * vergleiche Läufe mit derselben Richtung, demselben Band, Benchmark, denselben Filtern und Evidenzschwellen;
 * untersuche jede Identität, jeden Locator oder kurzen Zeitraum, der einen großen Anteil der Evidenz liefert;
@@ -737,7 +794,7 @@ TX und RX verwenden unterschiedliche Peer-Populationen und Opportunity-Definitio
 
 #### 3.3 Eine evidenzgerechte Schlussfolgerung formulieren
 
-Eine kurze betriebliche Aussage nennt das Target und bei Compare gegebenenfalls die feste Referenz, Setup B oder die lokale Benchmark-Definition. Außerdem nennt sie TX- oder RX-Richtung, Band, UTC-Zeitfenster, geografischen Bereich, Ergebnistyp, angezeigten Wert und die stützende Stations- beziehungsweise Evidenzanzahl.
+Eine kurze betriebliche Aussage nennt das Target und bei Compare gegebenenfalls die feste Referenz oder die lokale Benchmark-Definition. Außerdem nennt sie TX- oder RX-Richtung, Band, UTC-Zeitfenster, geografischen Bereich, Ergebnistyp, angezeigten Wert und die stützende Stations- beziehungsweise Evidenzanzahl.
 
 Ein vollständiger technischer Bericht nennt zusätzlich:
 
@@ -820,6 +877,8 @@ Die exakten Formeln und Verarbeitungsregeln stehen weiterhin in den [Wissenschaf
 
 **`Konfig laden`** validiert eine versionierte JSON-`.config` streng und lädt sie anschließend. Ungültige Identitäten, Datumswerte, Auswahlwerte, Wertebereiche, doppelte Felder und nicht unterstützte Schemaversionen werden abgelehnt.
 
+Da WSPRadar noch vor dem Produktivbetrieb steht, bleibt der Konfigurationsvertrag bei Schemaversion 1. Die Referenzstation verlangt `Referenz-Rufzeichen` plus ihr unabhängiges vierstelliges `Referenz-Grid-4`. RX und simultanes TX Hardware A/B verlangen das abweichende `Referenz-Rufzeichen`, leiten ihr gemeinsames Grid-4 jedoch aus dem Target-QTH ab und speichern deshalb kein redundantes `reference_qth`; TX Hardware A/B verlangt außerdem die Felder der gewählten Methode. Frühere, nicht veröffentlichte v1-Prototypen werden nicht migriert. Speichere sie mit den aktuellen Bedienelementen neu oder erstelle sie neu.
+
 **`Konfig speichern`** öffnet ein kompaktes Profilformular. Gib einen Titel und eine optionale Beschreibung ein; eine optionale stabile ID kann angegeben oder automatisch erzeugt werden. Die entstehende Datei `<profil-id>.config` speichert alle anwendbaren Eingaben und dauerhaften Compare-/Success-Ansichten. Ist `Letzte X Stunden` konfiguriert, fragt der Speichervorgang außerdem, ob dieses gleitende relative Fenster beibehalten oder durch die aufgelösten absoluten UTC-Start-/Endzeitpunkte des aktiven Laufs ersetzt werden soll. Wähle die absolute Form, wenn ein späterer Lauf dieselben Datumswerte verwenden soll. Eine gespeicherte Konfiguration enthält weder Ergebniszeilen noch externe Versuchsnotizen oder flüchtige Tabellenfilter.
 
 **`RX-Analyse starten` / `TX-Analyse starten`** ist eine richtungsabhängige Schaltfläche. Sie führt Success und – sofern ein Benchmark gewählt ist – Compare für die unter den Kernparametern gewählte RX- oder TX-Analyse aus. Nach dem Absenden bleibt die Schaltfläche deaktiviert, solange die unveränderte Analyse dieser Sitzung wartet oder ausgeführt wird. Wird ein wissenschaftliches Bedienelement geändert, entsteht ein anderer Auftrag und die Analyse-Schaltfläche wird für die geänderte Konfiguration wieder verfügbar. Beim Warten auf Kapazität zeigt der Status nur die aktuelle Position der eigenen Analyse und keine Warteschlangensummen anderer Nutzer.
@@ -839,8 +898,8 @@ Diese Bedienelemente definieren Target, Betriebsrichtung, Band und Evidenzfenste
 | UI-Bezeichnung | Werkseinstellung | Funktion |
 |---|---|---|
 | **RX-Analyse / TX-Analyse** | keine; erforderlich | RX wertet das Target als empfangende WSPR-Station aus, TX als sendende WSPR-Station. `RX-Analyse starten` / `TX-Analyse starten` und `Konfig speichern` bleiben deaktiviert, bis eine Option gewählt wurde. |
-| **Dein Rufzeichen (Empfänger im Test)** / **Dein Rufzeichen (Sender im Test)** | leer | Exaktes Target-Rufzeichen für die gewählte Richtung. Zulässig sind 3 bis 15 Zeichen aus `A-Z`, `0-9` und `/`. |
-| **QTH Locator (4-6 Chars)** | leer | Kartenmittelpunkt und Ursprung des lokalen Radius. Die ersten vier Zeichen begrenzen die Target-Zuordnung in Success und Compare. Beim lokalen Hardware A/B-Test müssen beide Setup-Seiten dieses Grid-4 melden. |
+| **Dein Rufzeichen (Empfänger im Test)** / **Dein Rufzeichen (Sender im Test)** | leer | Exaktes Target-Rufzeichen für die gewählte Richtung. Zulässig sind 3 bis 15 ASCII-Zeichen: Buchstaben `A-Z`, Ziffern `0-9` und optionale `/`-Trenner zwischen nicht leeren alphanumerischen Segmenten. Mindestens ein Segment muss sowohl einen Buchstaben als auch eine Ziffer enthalten. |
+| **QTH-Locator (4 oder 6 Zeichen)** | leer | Gültiger vier- oder sechsstelliger Maidenhead-Locator: zwei Buchstaben `A-R`, zwei Ziffern und optional zwei Unterfeldbuchstaben `A-X`. Der vollständige Wert dient als Kartenmittelpunkt, Ursprung des lokalen Radius und Eingabe geografischer Berechnungen; seine ersten vier Zeichen begrenzen die Target-Zuordnung in Success und Compare. Die Referenzstation verwendet ein separat eingegebenes Referenz-Grid-4, während Hardware A/B beide angezeigten Grid-4-Felder aus diesem Target-QTH ableitet. |
 | **Frequenzband** | `20m` | Genau eines aus `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` oder `23cm`. |
 | **Zeitraum-Auswahl** | `Letzte X Stunden` | Wählt aktuelle oder benutzerdefinierte Evidenz in UTC. Der Modus `Letzte X Stunden` erlaubt 1 bis 168 Stunden und verwendet standardmäßig 24. |
 | **Stunden zurück (DB Update alle 15 Min)** | `24` | Erscheint für `Letzte X Stunden` und akzeptiert 1 bis 168 Stunden. Die absoluten Endpunkte werden beim Start aufgelöst und für diesen aktiven Lauf festgehalten. Beim Speichern wählst du, ob die Datei `Letzte X Stunden` beibehält oder diese aufgelösten UTC-Endpunkte festschreibt. |
@@ -849,6 +908,8 @@ Diese Bedienelemente definieren Target, Betriebsrichtung, Band und Evidenzfenste
 Verwende das Rufzeichen exakt so, wie es hochgeladen wurde. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` und `DL1MKS/QRP` sind eigenständige Identitäten; WSPRadar führt keine verdeckte Präfixzuordnung durch.
 
 Ein Maidenhead-Locator ist eine kompakte Ortsangabe im Gitternetz. Vier Zeichen bezeichnen ein größeres Gebiet, sechs Zeichen ein kleineres Gebiet darin. WSPRadar verwendet das konfigurierte QTH als Kartenmittelpunkt und Ursprung des lokalen Radius. Success und Compare ordnen Target-Spots anhand der ersten vier Locator-Zeichen zu; Grid-6 ist nicht Bestandteil dieses Selektors.
+
+Rufzeichen- und QTH-Eingaben werden in Großbuchstaben normalisiert. Ein nicht leerer, fehlerhafter Target- oder Referenzwert erzeugt eine feldbezogene Validierungsmeldung; ungültige Werte werden beim Start eines Laufs oder beim Einreichen einer Konfiguration abgelehnt. Die Rufzeichenprüfung bestätigt eine plausible Syntax für ein Archiv-Token, nicht die rechtmäßige Zuteilung des Rufzeichens oder dessen tatsächliche Verwendung durch die Station.
 
 <a id="sec-5-3"></a>
 
@@ -866,15 +927,19 @@ Nur Success überspringt Compare. Die übrigen Optionen ergänzen das eigenstän
 | UI-Bezeichnung | Standard und Wertebereich | Wann sie erscheint und was sie steuert |
 |---|---|---|
 | **Referenz-SNR-Korrektur (dB)** | `0.0`; `-99.9` bis `+99.9` in Schritten von `0.1 dB` | Erscheint für Compare und ist bei `Kein Benchmark (nur Success)` ausgeblendet. Der Wert wird zum SNR der Referenzseite addiert, bevor Delta SNR berechnet wird. |
-| **Referenz-Rufzeichen** | Beispiel `DL2XYZ` | `Fremdes Rufzeichen (Buddy-Test)`. Ersetze das Beispiel durch ein exaktes Rufzeichen, das sich vom Target unterscheidet. |
+| **Target-Rufzeichen** | Wert aus den Kernparametern; schreibgeschützt | Erscheint im Identitätsblock für feste Referenzen bei Referenzstation, RX Hardware A/B und simultanem TX Hardware A/B. Es macht die Target-Seite sichtbar, ohne eine zweite Quelle für den Target-Zustand zu schaffen. |
+| **Target-QTH** | Wert aus den Kernparametern; schreibgeschützt | Erscheint bei der Referenzstation und behält alle vier oder sechs konfigurierten Zeichen, weil das vollständige Target-QTH auch die Geometrie verankert. |
+| **Target-Grid-4** | erste vier Zeichen des Target-QTHs; schreibgeschützt | Erscheint bei RX und simultanem TX Hardware A/B neben dem ebenso abgeleiteten Referenz-Grid-4. |
+| **Referenz-Rufzeichen** | leer; Beispiel-Platzhalter | Referenzstation, RX Hardware A/B und simultanes TX Hardware A/B. Gib das andere exakte Melderufzeichen der Referenz ein. |
+| **Referenz-Grid-4** | leer und editierbar bei Referenzstation; abgeleitetes Target-Grid-4 und schreibgeschützt bei Hardware A/B | Exakt vier Maidenhead-Zeichen. Die Referenzstation erlaubt ein unabhängig gewähltes Grid-4. Hardware A/B zeigt den gemeinsamen Wert an, besitzt jedoch keine unabhängige Referenz-QTH-Einstellung und kein serialisiertes `reference_qth`; die physische Ko-Lokation muss weiterhin vom Anwender sichergestellt werden. |
 | **Lokale Benchmark-Methode** | `Lokaler Nachbarschafts-Median` | Lokaler Nachbarschafts-Benchmark. Wählt `Lokaler Nachbarschafts-Median` oder die strenge Methode `Beste lokale Station`. |
 | **Nachbarschaftsradius (km)** | `100`; 10 bis 250 km in Schritten von 10 km | Lokaler Nachbarschafts-Benchmark. Bezieht lokale Referenzkoordinaten rund um das konfigurierte QTH ein. |
-| **Setup B Callsign** | leer | RX Hardware A/B-Test. Gib ein exaktes Rufzeichen ein, das sich von Setup A unterscheidet. |
-| **Wiederholintervall** | `10 min`; `4, 6, 10, 12, 20, 30, 60 min` | TX Hardware A/B-Test. Gemeinsames Wiederholintervall jedes physischen Signalpfads. Alle Werte sind gerade, WSPR-kompatible Teiler einer UTC-Stunde. |
-| **Target-Start** | `00 UTC`; gerade Phasen unterhalb des Wiederholintervalls | TX Hardware A/B-Test. Definiert die UTC-Startphase des Targets / Setups A. |
-| **Referenz-Start** | `02 UTC`; gerade Phasen unterhalb des Wiederholintervalls | TX Hardware A/B-Test. Definiert die UTC-Startphase der Referenz / des Setups B und wird so gewählt, dass sie sich nicht mit dem Target-Start überschneidet. |
+| **TX-A/B-Methode** | `Simultanes TX` | TX Hardware A/B-Test. Wechselt zwischen `Simultanes TX` und `Sequenzielles TX`; nur der ausgewählte Zweig wird angezeigt und gespeichert. |
+| **Wiederholintervall** | `10 min`; `4, 6, 10, 12, 20, 30, 60 min` | Sequenzielles TX Hardware A/B. Gemeinsames Wiederholintervall jedes physischen Signalpfads. Alle Werte sind gerade, WSPR-kompatible Teiler einer UTC-Stunde. |
+| **Target-Start** | `00 UTC`; gerade Phasen unterhalb des Wiederholintervalls | Sequenzielles TX Hardware A/B. Definiert die UTC-Startphase des Targets. |
+| **Referenz-Start** | `02 UTC`; gerade Phasen unterhalb des Wiederholintervalls | Sequenzielles TX Hardware A/B. Definiert die UTC-Startphase der Referenz und wird so gewählt, dass sie sich nicht mit dem Target-Start überschneidet. |
 
-Der Hardware A/B-Test folgt der gewählten Option **RX-Analyse / TX-Analyse**. RX zeigt für den Aufbau mit zwei Empfängern das Rufzeichen von Setup B. TX zeigt das gemeinsame Wiederholintervall, zwei Startphasen ohne Überschneidung, eine Tauschfunktion und die daraus entstehende Zeitplanvorschau für eine Stunde. Die Paarbildung folgt diesem Zeitplan automatisch.
+Der Hardware A/B-Test folgt der gewählten Option **RX-Analyse / TX-Analyse**. RX zeigt immer den festen Target-/Referenz-Identitätsblock. TX zeigt zuerst die Methodenauswahl: Bei simultanem Betrieb wird derselbe Identitätsblock geladen, bei sequenziellem Betrieb das gemeinsame Wiederholintervall, zwei Startphasen ohne Überschneidung, eine Tauschfunktion und die daraus entstehende Zeitplanvorschau für eine Stunde. Die Paarbildung folgt automatisch der jeweils anwendbaren Methode desselben Zyklus oder des Zeitplans.
 
 Bei TX Hardware A/B bezeichnet das `Wiederholintervall` die tatsächliche Wiederkehr jedes physischen Pfads. Es entspricht nicht zwangsläufig der `Frame`-Bezeichnung eines Senders, der einen Ausgang abwechselnd auf zwei Pfade schaltet. Vergleiche die Vorschau mit den beobachteten Startzeiten auf Sendung und der physischen Schaltzuordnung. Gerätespezifische Beispiele stehen in [Anhang B](#sec-b), die exakte Paarbildung in den [Abschnitten 7.1](#sec-7-1) und [7.7](#sec-7-7).
 
@@ -886,7 +951,7 @@ Eine positive Korrektur erhöht den korrigierten Referenz-SNR-Wert und verringer
 
 Die Korrektur gilt für:
 
-- Setup B oder den Referenzzeitplan im `Hardware A/B-Test`;
+- den Referenzempfänger, -sender oder -zeitplan im `Hardware A/B-Test`;
 - das Referenz-Rufzeichen bei `Fremdes Rufzeichen (Buddy-Test)`;
 - den ausgewählten lokalen Wert bei `Beste lokale Station`; und
 - jeden lokalen Beitrag vor der Aggregation zum `Lokalen Nachbarschafts-Median`.
@@ -1004,7 +1069,7 @@ Arbeite diese Prüfungen der Reihe nach ab:
 3. **Band:** Prüfe das exakt gewählte Band und das Band, auf dem die Station tatsächlich in Betrieb war.
 4. **UTC-Evidenzfenster:** Prüfe die aufgelösten Start- und Endzeitstempel, nicht nur die relative Auswahl `Letzte X Stunden`.
 5. **Tatsächlicher Betrieb:** Stelle sicher, dass das Target wie vorgesehen sendete oder empfing und dass der WSPR-Upload aktiviert war.
-6. **Benchmark-Betrieb:** Prüfe für Compare die exakte Identität der Referenz oder von Setup B sowie den Betrieb der Gegenstelle während der vorgesehenen Überlappung.
+6. **Benchmark-Betrieb:** Prüfe für Compare die exakte Identität der Referenz sowie den Betrieb der Gegenstelle während der vorgesehenen Überlappung.
 7. **Technische Umsetzung:** Prüfe gegebenenfalls Uhrensynchronisation, Zuordnung des TX-Zeitplans zu den Signalpfaden, Schaltfolge, Signalführung und gemeldete Leistung.
 
 Erst danach folgen Evidenzschwellen, Ausschlussfilter, Sonnenstandsauswahl und Kartenbereich. Ein weniger strenger Filter kann mehr qualifizierende Evidenz sichtbar machen, aber keinen Lauf reparieren, der auf die falsche Identität, das falsche Band oder den falschen Zeitraum zielt.
@@ -1042,7 +1107,9 @@ Ein Problem mit Upstream-Daten verändert, was die ausgewählte Quelle liefert. 
 
 Success und jeder Compare-Modus ordnen Target-Spots anhand des exakten Rufzeichens plus der ersten vier Locator-Zeichen des konfigurierten QTHs zu. Meldet ein Target `JN37`, während `JN38` konfiguriert ist, passt es zu keinem der beiden Ergebnisse.
 
-Die Zuordnung der Compare-Referenzseite bleibt modusspezifisch: Ein Buddy wird nur anhand des exakten Rufzeichens ausgewählt; lokale Kandidaten werden geografisch ausgewählt; RX Hardware A/B verlangt beide exakten Setup-Rufzeichen im Target-Grid-4; und sequenzielles TX Hardware A/B verlangt auf beiden Zeitplanseiten das gemeinsame exakte Rufzeichen und Target-Grid-4.
+Jede Referenzstation wird anhand des exakten Rufzeichens plus ihres unabhängig konfigurierten, exakt vierstelligen Referenz-Grid-4 zugeordnet. RX und simultanes TX Hardware A/B leiten dagegen beide deaktivierten Grid-4-Anzeigen aus den ersten vier Zeichen des Target-QTHs ab und führen keine unabhängige Referenz-QTH-Einstellung; sequenzielles TX Hardware A/B verwendet auf beiden Zeitplanseiten das gemeinsame exakte Target-Rufzeichen und Target-Grid-4. Lokale Kandidaten werden weiterhin geografisch ausgewählt.
+
+Zeigt ein nicht leeres Rufzeichen oder ein Locator eine ungültige Syntax, korrigiere zunächst die feldbezogene Meldung, bevor du fehlende Archivevidenz untersuchst. Rufzeichen müssen der ASCII-Token-Regel mit 3 bis 15 Zeichen aus [Abschnitt 4.2](#sec-5-2) entsprechen. Locator bestehen aus vier oder sechs Maidenhead-Zeichen mit Feldbuchstaben `A-R`, Ziffern an dritter und vierter Position und optionalen Unterfeldbuchstaben `A-X`; das Referenz-Grid-4 einer Referenzstation besteht exakt aus den ersten vier Zeichen. Diese Prüfungen weisen fehlerhafte Eingaben zurück, belegen aber weder die rechtmäßige Rufzeichenzuteilung noch tatsächlichen Betrieb oder physischen Standort.
 
 Peer-Identitäten bestehen aus dem exakten Rufzeichen plus der vollständig gemeldeten Locator-Zeichenfolge. Falsche, veraltete oder wechselnde Locator-Angaben können eine physische Station aufteilen, in das falsche Segment verschieben oder den Filter für bewegliche Stationen auslösen.
 
@@ -1194,8 +1261,9 @@ WSPRadar überführt öffentliche WSPR-Decodes in klar definierte Vergleichseinh
 | Analysedesign | Target-Rolle | Referenz oder Gegen-Evidenz | Kleinste Beobachtungs-/Vergleichseinheit | Aktivitätsbedingung | Zeitlicher Bezug | Leistungsnormierung | Aggregation auf Stationsebene | Aggregation auf Segmentebene | Wichtigste Interpretationsgrenze |
 |---|---|---|---|---|---|---|---|---|---|
 | Kein Benchmark (nur Success), RX oder TX | Target-Empfänger oder -Sender | RX: derselbe Sender andernorts decodiert; TX: anderes Signal im selben Band vom Peer-Empfänger decodiert | ein Target-aktiver Peer-Zyklus | beobachtbare Target-Beteiligung | derselbe zweiminütige Zyklus | Rate: keine; Anzeige des erfolgreichen Target-SNR: auf gemeldete 1 W normiert | eine Success Rate pro Peer | arithmetisches Mittel der Peer-Raten; gepoolte Rate bleibt erhalten | bedingte Reichweite im Netzwerk, keine unbedingte Decode-Wahrscheinlichkeit |
-| Hardware A/B-Test, RX | Empfänger von Setup A | simultaner Empfänger von Setup B | ein konsolidierter Peer-Zyklus des entfernten Senders | Target-Active Gate | derselbe Sender und Zyklus | gemeinsame TX-Leistung fällt heraus; Korrektur gilt für Setup B | Median des Delta SNR | Median der Stationsmediane | kontrollierte lokale Empfangspfade nur in dem Maß, in dem die übrigen Ketten kontrolliert sind |
-| Hardware A/B-Test, TX | geplante Starts von Setup A | geplante Starts von Setup B | eine Peer-Identität in einem geplanten Target-/Referenzpaar | deterministische, überschneidungsfreie Zeitpläne; kein simultanes Gate | nächstgelegene Eins-zu-eins-Paarung der Starts innerhalb eines gemeinsamen Wiederholintervalls | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für Setup B | Median des Delta SNR der geplanten Paare | Median der Stationsmediane | sequenziell, nicht simultan; Zeitplan- und Schalteffekte bleiben bestehen |
+| Hardware A/B-Test, RX | Target-Empfänger | simultaner Referenzempfänger | ein konsolidierter Peer-Zyklus des entfernten Senders | Target-Active Gate | derselbe Sender und Zyklus | gemeinsame TX-Leistung fällt heraus; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | kontrollierte lokale Empfangspfade nur in dem Maß, in dem die übrigen Ketten kontrolliert sind |
+| Hardware A/B-Test, simultanes TX | Target-Sender | simultaner Referenzsender | ein konsolidierter Peer-Zyklus des entfernten Empfängers | Target-Active Gate | derselbe Empfänger und Zyklus | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | zwei unterscheidbare vollständige Sendeketten; Leistung, Frequenzgang, Isolation und Kopplung bleiben experimentelle Kontrollgrößen |
+| Hardware A/B-Test, sequenzielles TX | geplante Target-Starts | geplante Referenz-Starts | eine Peer-Identität in einem geplanten Target-/Referenzpaar | deterministische, überschneidungsfreie Zeitpläne; kein simultanes Gate | nächstgelegene Eins-zu-eins-Paarung der Starts innerhalb eines gemeinsamen Wiederholintervalls | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für die Referenz | Median des Delta SNR der geplanten Paare | Median der Stationsmediane | sequenziell, nicht simultan; Zeitplan- und Schalteffekte bleiben bestehen |
 | Fremdes Rufzeichen (Buddy-Test), RX | Target-Empfänger | externer Referenzempfänger | ein konsolidierter Peer-Zyklus des entfernten Senders | Target-Active Gate; Referenz-Betriebszeit extern kontrolliert | derselbe Sender und Zyklus | gemeinsame TX-Leistung fällt heraus; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | vollständig aufgebaute Stationen und Umgebungen, nicht isolierte Empfängerempfindlichkeit |
 | Fremdes Rufzeichen (Buddy-Test), TX | Target-Sender | externer Referenzsender | ein konsolidierter Peer-Zyklus des entfernten Empfängers | Target-Active Gate; Referenz-Betriebszeit extern kontrolliert | derselbe Empfänger und Zyklus | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | vollständig aufgebaute Stationen; abhängig von der Genauigkeit der gemeldeten Leistung |
 | Lokaler Nachbarschafts-Median | Target RX oder TX | Zyklus-/Pfadmedian aus je einem Beitrag pro aktivem lokalem `callsign + locator` | ein Peer-Zyklus aus Target und lokaler Referenz | Target-Active Gate | derselbe Peer-Pfad und Zyklus | TX-Werte auf gemeldete 1 W normiert; Korrektur vor Bildung des lokalen Medians | Median des Delta SNR | Median der Stationsmediane | dynamischer, unkalibrierter Pool; Ergebnis hängt von Radius und aktiver Zusammensetzung ab |
@@ -1221,12 +1289,13 @@ WSPRadar behält die gemeldete Identität als Bestandteil der Evidenz bei. Rufze
 |---|---|---|---|
 | RX Success | exaktes RX-Rufzeichen plus Grid-4 des Target-QTH | TX-Rufzeichen + gemeldeter TX-Locator | ein Target-aktiver Peer-Zyklus |
 | TX Success | exaktes TX-Rufzeichen plus Grid-4 des Target-QTH | RX-Rufzeichen + gemeldeter RX-Locator | ein Target-aktiver Peer-Zyklus |
-| Buddy-Compare | exaktes Target-Rufzeichen plus Grid-4 des Target-QTH | exaktes Referenzrufzeichen ohne Locator-Beschränkung; entferntes Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
-| RX Hardware A/B | exaktes Setup-A-Rufzeichen plus Grid-4 des Target-QTH | exaktes Setup-B-Rufzeichen plus dasselbe Grid-4; entferntes TX-Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
+| Buddy-Compare | exaktes Target-Rufzeichen plus Grid-4 des Target-QTH | exaktes Referenzrufzeichen plus unabhängiges Referenz-Grid-4; entferntes Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
+| RX Hardware A/B | exaktes Target-Rufzeichen plus Grid-4 des Target-QTH | exaktes Referenzrufzeichen plus dasselbe abgeleitete Target-Grid-4; entferntes TX-Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
+| Simultanes TX Hardware A/B | exaktes Target-Rufzeichen plus Grid-4 des Target-QTH | exaktes Referenzrufzeichen plus dasselbe abgeleitete Target-Grid-4; RX-Rufzeichen + gemeldeter Locator | ein konsolidierter Peer-Zyklus |
 | Sequenzielles TX Hardware A/B | gemeinsames exaktes Target-Rufzeichen plus Grid-4 des Target-QTH, aufgeteilt nach UTC-Zeitplan | dasselbe Rufzeichen und Grid-4 im Referenzzeitplan; RX-Rufzeichen + gemeldeter Locator | ein geplantes Target-/Referenzpaar |
 | Lokales Compare | exaktes Target-Rufzeichen plus Grid-4 des Target-QTH | lokales Rufzeichen + gemeldeter Locator innerhalb des Radius; entfernter Peer wie oben | ein Peer-Zyklus aus Target und lokaler Referenz |
 
-Success und alle Compare-Modi verwenden das exakte Target-Rufzeichen plus das konfigurierte Target-Grid-4. Grid-6 ist kein Selektor: `JN37AA` und `JN37ZZ` passen beide zu `JN37`, `JN38` dagegen nicht. Die Referenzzuordnung bleibt bewusst modusspezifisch, wie oben dargestellt.
+Success und alle Compare-Modi verwenden das exakte Target-Rufzeichen plus die ersten vier Zeichen des konfigurierten Target-QTHs. Ein sechsstelliges Target-QTH bleibt außerhalb der Archivauswahl bedeutsam, weil sein vollständiger Wert Karten, lokale Radiusgeometrie, Azimut/Entfernung und Sonnenstandsberechnungen verankert. Die Referenzstation verwendet ein unabhängiges exaktes Referenzrufzeichen plus ein exakt vierstelliges Referenz-Grid-4. Hardware A/B leitet das gemeinsame Grid-4 aus dem Target-QTH ab und speichert kein separates Referenz-QTH. Grid-6 ist somit kein Abfrageselektor: `JN37AA` und `JN37XX` wählen beide `JN37`, `JN38` dagegen nicht. Die gemeinsame Hardware-A/B-Zuordnung zum Grid-4 kann den tatsächlichen Betrieb am selben physischen QTH nicht nachweisen.
 
 Peer-Identitäten bestehen aus dem exakten Rufzeichen und der vollständig gemeldeten Locator-Zeichenfolge. Falsche, veraltete oder wechselnde Locator können eine physische Station auf mehrere Identitäten aufteilen, sie einem falschen Segment zuordnen oder den Filter für bewegliche Stationen auslösen.
 
@@ -1248,7 +1317,7 @@ Die Asymmetrie ist beabsichtigt: Ohne maßgebliche Betriebspläne definiert WSPR
 
 Da jede Joint-Beobachtung bereits eine Target-Beteiligung belegt, beeinflusst die Asymmetrie des Gates ausschließlich einseitige oder asynchrone Decode Outcomes sowie die Gegen-Evidenz im Nenner der Success Rate; das Gate selbst verändert reine Joint-Zusammenfassungen des Delta SNR nicht.
 
-Ein Tausch von Target und Referenz kann deshalb die zulässigen Zyklen und Decode Outcomes verändern. Sequenzielles TX-A/B verwendet statt dieses simultanen Gates eine deterministische Zeitplanzuordnung und geplante Paare. Die rollenunabhängige Gleichstandsregel beim halben Intervall erhält beim Tausch von A/B dieselben physischen Paare.
+Ein Tausch von Target und Referenz kann deshalb die zulässigen Zyklen und Decode Outcomes verändern. Sequenzielles TX-A/B verwendet statt dieses simultanen Gates eine deterministische Zeitplanzuordnung und geplante Paare. Die rollenunabhängige Gleichstandsregel beim halben Intervall erhält beim Tausch von Target und Referenz dieselben physischen Paare.
 
 <a id="sec-7-4"></a>
 #### 7.4 Success-Klassifikation und Formeln
@@ -1444,6 +1513,7 @@ Bei der Interpretation der Evidenz sind außerdem folgende Eigenschaften der Dat
 * die Success Rate ist durch global erfasste, beobachtbare Opportunities bedingt;
 * ein TX-Zyklus, der nirgends decodiert wurde, ist ohne externes Log nicht von einer ausgebliebenen Aussendung zu unterscheiden;
 * das Target-Active Gate ist asymmetrisch;
+* simultanes TX-A/B behält Unterschiede zwischen den beiden Ketten bei Leistung, Frequenzgang, Isolation und Kopplung bei;
 * sequenzielles TX-A/B bleibt zeitlich getrennt;
 * die Normierung auf die gemeldete Leistung ist nur so genau wie das gemeldete Feld;
 * Stationshardware, Software, Gelände, Rauschen, Polarisation und Ausbreitung bleiben miteinander gekoppelt;
@@ -1460,7 +1530,7 @@ Für ein belastbares Ergebnis bewahre die Analysedefinition, die Evidenz hinter 
 
 * Speichere die versionierte `.config`. Sie erfasst die für den Lauf zutreffenden Einstellungen:
     * **Kernparameter:** RX-/TX-Richtung, Target-Rufzeichen und QTH, Band sowie relative oder absolute UTC-Zeitauswahl;
-    * **Benchmark-Einstellungen:** Benchmark-Design und, soweit zutreffend, Identität der Referenz oder von Setup B, lokale Benchmark-Methode und Radius, Wiederholintervall und Pfadphasen beim geplanten TX-A/B sowie Referenz-SNR-Korrektur;
+    * **Benchmark-Einstellungen:** Benchmark-Design und, soweit zutreffend, TX-Hardware-A/B-Methode, Referenz-Rufzeichen, das unabhängige Grid-4 der Referenzstation, lokale Benchmark-Methode und Radius, Wiederholintervall und Pfadphasen beim geplanten TX-A/B sowie Referenz-SNR-Korrektur; Hardware A/B serialisiert kein redundantes Referenz-QTH;
     * **erweiterte Einstellungen:** Auswahl des solaren Zustands, Kartenumfang, Ausschluss spezieller Rufzeichen und bewegter Stationen sowie die zutreffenden Evidenzschwellen;
     * **dauerhafte Einstellungen der Ergebnisansicht:** ausgewählte Entfernungs- und Richtungsbereiche, ausgewählte Stationen, Evidenz-Zeitklassen und Zeitansicht sowie die Sichtbarkeit nicht gemeinsamer Evidenz oder von Evidenz ohne Target-Beobachtung.
 
@@ -1567,12 +1637,12 @@ WSPRadar ist experimentelle Open-Source-Software und wird in der vorliegenden Fo
 <a id="part-iv"></a>
 ## Teil IV: Praktische Ergänzungen
 
-Dieser Teil bündelt optionale Einrichtungsverfahren, Hinweise zur sequenziellen TX-A/B-Zeitplanung und Umschaltung, die Kalibrierung der Referenzseite und die Projektlizenz. Verwende die Abschnitte, die für deine Station und deinen Versuch relevant sind.
+Dieser Teil bündelt optionale Verfahren für parallele WSJT-X-Instanzen und die Einrichtung simultaner Sender, Hinweise zur sequenziellen TX-A/B-Zeitplanung und Umschaltung, die Kalibrierung der Referenzseite und die Projektlizenz. Verwende die Abschnitte, die für deine Station und deinen Versuch relevant sind.
 
 <a id="sec-a"></a>
 ### Anhang A: Parallele WSJT-X-Instanzen
 
-Mit diesem Verfahren wird unter Windows eine zweite isolierte WSJT-X-Instanz eingerichtet, beispielsweise für einen simultanen RX Hardware A/B-Test. Das aktuelle WSJT-X-Handbuch nennt `--rig-name` als unterstützten Weg, die Einstellungen und beschreibbaren Dateien jeder Instanz zu trennen. Da sich WSJT-X-Versionen und Installationspfade ändern können, sollte bei abweichenden Menüs das aktuelle Handbuch geprüft werden. <a href="#ref-12">[Ref-12]</a>
+Mit diesem Verfahren wird unter Windows eine zweite isolierte WSJT-X-Instanz eingerichtet, beispielsweise für einen simultanen RX- oder TX-Hardware-A/B-Test. Das aktuelle WSJT-X-Handbuch nennt `--rig-name` als unterstützten Weg, die Einstellungen und beschreibbaren Dateien jeder Instanz zu trennen. Da sich WSJT-X-Versionen und Installationspfade ändern können, sollte bei abweichenden Menüs das aktuelle Handbuch geprüft werden. <a href="#ref-12">[Ref-12]</a>
 
 <a id="sec-a-1"></a>
 #### A.1 Zweite Instanz anlegen
@@ -1603,11 +1673,25 @@ Eine kopierte Konfiguration kann weiterhin beide Instanzen auf denselben Audioei
 2. Unter **Soundcard** für **Input** den vorgesehenen unabhängigen Empfänger bzw. das vorgesehene unabhängige Audiogerät einstellen. Das WSJT-X-Handbuch nennt eine Audiogerätekonfiguration mit 48.000 Hz und 16 Bit.
 3. **Save Directory** auf einen instanzspezifischen Pfad setzen, normalerweise `%LOCALAPPDATA%\WSJT-X - SDR\save\`.
 4. **AzEl Directory** auf einen instanzspezifischen Pfad setzen, zum Beispiel `%LOCALAPPDATA%\WSJT-X - SDR\`.
-5. **File > Settings > General** öffnen und dort exakt das Rufzeichen und den Locator von Setup B eintragen, die für Meldungen verwendet werden.
-6. Zum WSPR-Hauptfenster zurückkehren, das vorgesehene Band und den Audiopegel prüfen, bei Bedarf den Spot-Upload aktivieren und kontrollieren, dass hochgeladene Zeilen die Identität von Setup B verwenden.
+5. **File > Settings > General** öffnen und dort exakt das Referenz-Rufzeichen und den Referenz-Locator eintragen, die für Meldungen verwendet werden.
+6. Zum WSPR-Hauptfenster zurückkehren, das vorgesehene Band und den Audiopegel prüfen, bei Bedarf den Spot-Upload aktivieren und kontrollieren, dass hochgeladene Zeilen die Referenzidentität verwenden.
 7. Die Zeitsynchronisation beider Instanzen prüfen.
 
 Getrennte Verzeichnisse belegen noch keine Unabhängigkeit der HF-Pfade. Prüfe praktisch, ob beide Datenströme tatsächlich die vorgesehene Hardware verwenden.
+
+<a id="sec-a-4"></a>
+#### A.4 Unterscheidbares simultanes TX konfigurieren
+
+Für simultanes TX Hardware A/B ist die Trennung der Einstellungen nur die softwareseitige Grundlage. Prüfe den vollständigen Aufbau mit zwei Sendern vor dem Senden an geeigneten Abschlüssen oder über einen sicher ausgelegten Testpfad mit geringer Leistung:
+
+1. Weise einer Instanz das exakte Target-Rufzeichen und Target-QTH und der anderen das davon verschiedene exakte Referenz-Rufzeichen zu. Konfiguriere die Referenzinstanz für Meldungen vom selben Test-QTH; WSPRadar zeigt deaktivierte Target- und Referenz-Grid-4-Felder an, die beide aus den ersten vier Zeichen des Target-QTHs abgeleitet werden, und ordnet beide hochgeladenen Identitäten diesem gemeinsamen Grid-4 zu.
+2. Führe jede Instanz zum vorgesehenen Funkgerät, zur richtigen Steuerschnittstelle und zum richtigen Audioausgang. Eine kopierte Konfiguration darf nicht den falschen Sender tasten oder ansteuern.
+3. Verwende bei Bedarf auf beiden Funkgeräten die normale WSPR-Abstimmfrequenz, aber getrennte Audio-Sendeversätze wie `1450 Hz` und `1550 Hz`. Prüfe den Wasserfall und wähle freie, nicht überlappende Positionen, statt anzunehmen, dass diese Beispielwerte unbelegt sind.
+4. Konfiguriere bewusst gleichzeitige Starts im selben Zyklus. Unabhängige Zufallseinstellungen für `Tx Pct` definieren keinen synchronisierten Vergleichszeitplan.
+5. Prüfe vor dem Sammeln von Evidenz für beide Pfade Frequenz, tatsächliche HF-Leistung, spektrale Reinheit, Uhrensynchronisation und hochgeladene Angaben zu Rufzeichen, QTH und Leistung.
+6. Stelle ausreichende Isolation zwischen den aktiven Sendern und Antennen sicher. Eingekoppelte Leistung kann Geräte desensibilisieren oder beschädigen sowie Intermodulation oder irreführende Spots erzeugen; verwende eine für die Station geeignete Filterung, räumliche Trennung, Leistung und HF-technische Auslegung.
+
+Ist ein kleiner beobachteter Unterschied entscheidend, wiederhole den Versuch mit vertauschten Audiofrequenz-Zuordnungen und führe nach Möglichkeit einen Hardware-Kreuztausch durch. Bewahre beide Läufe getrennt auf; führe sie erst zusammen, wenn Rollen, Korrektur und Analyseumfang übereinstimmen.
 
 <div style="page-break-before: always;"></div>
 

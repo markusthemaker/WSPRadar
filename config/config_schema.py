@@ -70,3 +70,4 @@ PROFILE_ID_PATTERN = rf"^{PROFILE_ID_TOKEN_PATTERN}$"
 LOCALIZED_LANGUAGE_PATTERN = r"^[a-z]{2}(?:-[A-Z]{2})?$"
 
 TX_AB_REPEAT_INTERVAL_OPTIONS = (4, 6, 10, 12, 20, 30, 60)
+TX_AB_METHODS = frozenset({"simultaneous", "sequential"})

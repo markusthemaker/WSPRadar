@@ -12,7 +12,6 @@ from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     LOCAL_BENCHMARK_MEDIAN,
-    SELF_TEST_RX,
 )
 
 
@@ -112,21 +111,19 @@ def compare_scope_availability(scope_rows: pd.DataFrame, *, is_compare: bool) ->
     return has_joint_rows, has_non_joint_rows
 
 
-def _compare_labels(analysis_context, labels):
+def _compare_labels(analysis_context, labels, *, is_sequential):
+    """Return Target/Reference labels for fixed, local, and scheduled Compare."""
     target_call = analysis_context.callsign.upper()
-    if analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:
-        if analysis_context.self_test_mode == SELF_TEST_RX:
-            target_only_label = labels["leg_only_me"].format(callsign=target_call)
-            reference_header = analysis_context.setup_b_callsign.upper()
-            reference_only_label = labels["leg_only_ref"].format(
-                ref_callsign=reference_header
-            )
-            target_name = target_call
-        else:
-            target_only_label = labels["leg_only_me"].format(callsign="Setup A")
-            reference_only_label = labels["leg_only_ref"].format(ref_callsign="Setup B")
-            reference_header = "Setup B"
-            target_name = "Setup A"
+    if (
+        analysis_context.comparison_mode == COMPARISON_HARDWARE_AB
+        and is_sequential
+    ):
+        target_name = labels.get("txt_target", "Target")
+        reference_header = labels.get("txt_reference", "Reference")
+        target_only_label = labels["leg_only_me"].format(callsign=target_name)
+        reference_only_label = labels["leg_only_ref"].format(
+            ref_callsign=reference_header
+        )
     else:
         target_only_label = labels["leg_only_me"].format(callsign=target_call)
         target_name = target_call
@@ -158,9 +155,12 @@ def build_compare_inspector_view_model(
         is_compare=is_compare,
     )
     values = scope_rows["stat_val"].dropna()
-    target_name, reference_header, target_only_label, reference_only_label = _compare_labels(
-        analysis_context,
-        labels,
+    target_name, reference_header, target_only_label, reference_only_label = (
+        _compare_labels(
+            analysis_context,
+            labels,
+            is_sequential=is_sequential,
+        )
     )
     is_local_median = (
         analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD

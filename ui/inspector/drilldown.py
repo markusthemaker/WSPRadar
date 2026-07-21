@@ -57,11 +57,10 @@ def _sort_drilldown_default(drill_df):
     return sort_df.drop(columns=["_sort_time"]).reset_index(drop=True)
 
 def _sequential_tx_drilldown_labels(col_u_name, ref_header, *, target_callsign=""):
-    """Use actual callsign plus role/setup for TX A/B drill-down traceability."""
-    if col_u_name == "Setup A" and ref_header == "Setup B":
-        base_call = str(target_callsign or "").strip().upper()
-        if base_call:
-            return f"{base_call} (Target / Setup A)", f"{base_call} (Reference / Setup B)"
+    """Combine the shared sequential TX callsign with each scheduled role."""
+    base_call = str(target_callsign or "").strip().upper()
+    if base_call:
+        return f"{base_call} ({col_u_name})", f"{base_call} ({ref_header})"
     return col_u_name, ref_header
 
 def _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col, columns=None):
@@ -295,10 +294,10 @@ def _build_drilldown_table(
                 'Date/Time (UTC)', pair_display_label,
                 station_col, loc_col, km_col, az_col, 'TX Station',
                 'TX Power (dBm)', 'SNR (Raw)', 'Norm@1W',
-                t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), pair_delta_label
+                t.get('tbl_col_micro_a', 'Target Micro-Median'), t.get('tbl_col_micro_b', 'Reference Micro-Median'), pair_delta_label
             ]
 
-            for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Micro-Med A'), t.get('tbl_col_micro_b', 'Micro-Med B'), pair_delta_label]:
+            for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Target Micro-Median'), t.get('tbl_col_micro_b', 'Reference Micro-Median'), pair_delta_label]:
                 drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
         else:
             joint_df = station_df.copy() if show_non_joint else station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()

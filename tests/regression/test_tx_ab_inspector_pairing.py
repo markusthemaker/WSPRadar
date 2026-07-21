@@ -80,13 +80,14 @@ def test_periodic_drilldown_keeps_peer_identity_and_pair_delta_separate():
         is_sequential=True,
         show_non_joint=False,
         is_local_median=False,
-        col_u_name="Setup A",
-        ref_header="Setup B",
+        col_u_name="Target",
+        ref_header="Reference",
         t=T["en"],
         station_rows_df=station_rows,
         tx_ab_repeat_interval_minutes=10,
         tx_ab_target_start_minute=0,
         tx_ab_reference_start_minute=2,
+        target_callsign="DL1MKS",
     )
 
     assert info is None
@@ -99,4 +100,8 @@ def test_periodic_drilldown_keeps_peer_identity_and_pair_delta_separate():
     assert deltas_by_station == {
         "K1AAA": {"+2.0"},
         "K2BBB": {"+15.0"},
+    }
+    assert set(drilldown["TX Station"]) == {
+        "DL1MKS (Target)",
+        "DL1MKS (Reference)",
     }

@@ -1,0 +1,64 @@
+{
+  "format": "wspradar.config",
+  "schema_version": 1,
+  "profile": {
+    "id": "zander_tx_buddy_experiment_b",
+    "title": {
+      "en": "Dr. Zander et al. TX Antenna Comparison: T2FD vs Inverted-V Dipole",
+      "de": "Dr. Zander et al. TX-Antennenvergleich: T2FD gegen Inverted-V-Dipol"
+    },
+    "description": {
+      "en": "[Publication: Zander, J. (2022). Simple HF antenna efficiency comparisons using the WSPR system](https://arxiv.org/abs/2209.08989)\n\nRe-examines Experiment B Figure 5 by pairing SK0WE/B’s 25 m Diamond WD-330 T2FD with SK0WE’s half-wave inverted-V at the same remote receiver and in the same WSPR cycle. The Reference identity is explicitly constrained to SK0WE at JO89; contemporaneous SK0WE reports from JO97 are excluded. The paired archive reports differ by only 0–5 Hz in reported frequency, so this profile remains a Reference Station reconstruction rather than a recommended simultaneous Hardware A/B setup example. In TX Compare → Segment Insight, compare Figure 5 with the right-hand Joint-Spot ΔSNR histogram—not the middle Station Medians histogram. WSPRadar’s finer 1 dB percent bins split the paper’s coarser density bins, making the same strongly negative distribution look more finely structured; aligning the bins reconciles the histogram shape. The constrained demo contains 65 joint receiver-cycles across 17 receivers, with mean ΔSNR −9.18 dB, median −9.0 dB and sample σ = 3.09 dB—close to the paper’s −8.4 dB mean and 2.8 dB spread, though not numerically identical. Both analyses show a large disadvantage for the T2FD over the sampled paths.",
+      "de": "[Publikation: Zander, J. (2022). Simple HF antenna efficiency comparisons using the WSPR system](https://arxiv.org/abs/2209.08989)\n\nUntersucht Experiment B, Abbildung 5, erneut, indem die 25 m lange Diamond WD-330 T2FD von SK0WE/B mit dem Halbwellen-Inverted-V-Dipol von SK0WE beim selben entfernten Empfänger im selben WSPR-Zyklus gepaart wird. Die Referenzidentität ist ausdrücklich auf SK0WE in JO89 begrenzt; zeitgleiche SK0WE-Berichte aus JO97 werden ausgeschlossen. Die gemeldeten Frequenzen der gepaarten Archivberichte unterscheiden sich nur um 0–5 Hz. Deshalb bleibt dieses Profil eine Rekonstruktion als Referenzstationsvergleich und ist kein empfohlenes Aufbaubeispiel für einen simultanen Hardware-A/B-Test. Vergleiche unter TX Compare → Segment Insight Abbildung 5 mit dem rechten Joint-Spot-ΔSNR-Histogramm, nicht mit dem mittleren Histogramm der Stationsmediane. Die feineren 1-dB-Prozentklassen von WSPRadar teilen die gröberen Dichteklassen der Publikation auf; dadurch wirkt dieselbe stark negative Verteilung feiner gegliedert, lässt sich durch angeglichene Klassen jedoch in Einklang bringen. Die begrenzte Demo enthält 65 gemeinsame Empfängerzyklen von 17 Empfängern mit einem mittleren ΔSNR von −9,18 dB, einem Median von −9,0 dB und einer Stichproben-Standardabweichung σ = 3,09 dB. Dies liegt nahe am Mittelwert von −8,4 dB und an der Streuung von 2,8 dB in der Publikation, ist aber nicht numerisch identisch. Beide Auswertungen zeigen auf den erfassten Pfaden einen großen Nachteil der T2FD."
+    }
+  },
+  "settings": {
+    "core_parameters": {
+      "analysis_direction": "tx",
+      "callsign": "SK0WE/B",
+      "qth": "JO89",
+      "band": "40m",
+      "time_selection": {
+        "mode": "custom",
+        "start_date": "2022-06-01",
+        "end_date": "2022-06-10",
+        "start_time_utc": "06:30",
+        "end_time_utc": "23:45"
+      }
+    },
+    "comparison_parameters": {
+      "mode": "reference_station",
+      "reference_callsign": "SK0WE",
+      "reference_qth": "JO89",
+      "snr_correction_db": 0.0
+    },
+    "advanced_parameters": {
+      "solar_state": "all",
+      "map_scope_km": 2500,
+      "exclude_special_callsigns": false,
+      "exclude_moving_stations": false,
+      "min_joint_spots_per_station": 1,
+      "min_confirmed_opportunities_per_peer": 1,
+      "min_joint_stations_per_map_segment": 1
+    },
+    "results_view": {
+      "success": {
+        "selected_ranges": "all",
+        "selected_directions": "all",
+        "show_zero_target": false,
+        "station_evidence_time_bin": "5m",
+        "selected_stations": null
+      },
+      "compare": {
+        "selected_ranges": "all",
+        "selected_directions": "all",
+        "show_non_joint": false,
+        "segment_evidence_time_bin": "auto",
+        "station_evidence_time_bin": "5m",
+        "station_evidence_temporal_view": "chronological",
+        "selected_stations": null
+      }
+    }
+  },
+  "extensions": {}
+}

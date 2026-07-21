@@ -19,7 +19,11 @@ from config import (
     ABS_PATH_SAMPLE_POINTS,
     ABS_PATH_TWILIGHT_ELEVATION_DEG,
 )
-from core.input_validation import is_valid_6char_locator, is_valid_callsign
+from core.input_validation import (
+    is_valid_callsign,
+    is_valid_locator,
+    normalize_ascii_upper,
+)
 from core.math_utils import locator_to_latlon
 from core.solar_path import classify_path_illumination
 from core.tx_ab_schedule import tx_ab_schedule_sql
@@ -203,23 +207,15 @@ def _sql_literal(value: str) -> str:
 
 
 def _is_valid_maidenhead(locator: str) -> bool:
-    locator = str(locator or "").strip().upper()
-    if len(locator) == 4:
-        return (
-            "A" <= locator[0] <= "R" and
-            "A" <= locator[1] <= "R" and
-            locator[2].isdigit() and
-            locator[3].isdigit()
-        )
-    return is_valid_6char_locator(locator)
+    return is_valid_locator(locator)
 
 
 def target_grid4(qth: str) -> str:
     """Return the configured grid-4 shared by Success and Compare Target matching."""
-    qth = str(qth or "").strip().upper()
-    if not _is_valid_maidenhead(qth):
+    stripped_qth = str(qth or "").strip()
+    if not _is_valid_maidenhead(stripped_qth):
         raise ValueError("Analysis requires a valid target QTH locator.")
-    return qth[:4]
+    return normalize_ascii_upper(stripped_qth)[:4]
 
 
 def build_absolute_opportunity_query(
@@ -243,11 +239,12 @@ def build_absolute_opportunity_query(
     geographic functions, arrays, and exact quantiles.
     """
     mode = str(mode).strip().upper()
-    callsign = str(callsign or "").strip().upper()
+    stripped_callsign = str(callsign or "").strip()
     if mode not in {"RX", "TX"}:
         raise ValueError("mode must be RX or TX.")
-    if not is_valid_callsign(callsign):
+    if not is_valid_callsign(stripped_callsign):
         raise ValueError("Absolute opportunity analysis requires a valid exact target callsign.")
+    callsign = normalize_ascii_upper(stripped_callsign)
     if not str(band_value or "").strip():
         raise ValueError("Absolute opportunity analysis requires one exact operating band.")
 
@@ -332,9 +329,10 @@ def _locator_coordinates(locators: pd.Series) -> pd.DataFrame:
     """Resolve unique Maidenhead locators to their cell-centre coordinates."""
     rows = []
     for locator in pd.Series(locators, dtype="string").dropna().drop_duplicates():
-        locator = str(locator).strip().upper()
-        if not _is_valid_maidenhead(locator):
+        stripped_locator = str(locator).strip()
+        if not _is_valid_maidenhead(stripped_locator):
             continue
+        locator = normalize_ascii_upper(stripped_locator)
         lat, lon = locator_to_latlon(locator)
         rows.append((locator, float(lat), float(lon)))
     return pd.DataFrame(rows, columns=["peer_grid", "peer_lat", "peer_lon"])
@@ -381,7 +379,12 @@ def prepare_opportunity_rows(
         work["external_seen"] = (work["external_seen"].fillna(0) > 0).astype("int8")
 
     with _timed_span(timing_collector, "opportunity target identity filter"):
-        target_call = str(target_callsign or "").strip().upper()
+        stripped_target_call = str(target_callsign or "").strip()
+        if not is_valid_callsign(stripped_target_call):
+            raise ValueError(
+                "Opportunity preparation requires a valid exact Target Callsign."
+            )
+        target_call = normalize_ascii_upper(stripped_target_call)
         _ = target_grid4(target_qth)
         target_latitude, target_longitude = locator_to_latlon(target_qth)
         is_target_identity = work["peer_sign"].eq(target_call)

@@ -10,7 +10,11 @@ import pytest
 
 from config import WSPR_DATABASE_PROVIDERS
 from core import data_engine, plot_engine
-from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
+from core.analysis_context import (
+    AnalysisContext,
+    COMPARISON_HARDWARE_AB,
+    COMPARISON_REFERENCE_STATION,
+)
 from core.analysis_runner import build_analysis_batches
 from core.artifact_store import ArtifactNamespace
 from core.fetch_models import DatabaseSource, FetchSource
@@ -55,6 +59,7 @@ def _analysis_context(**overrides):
         "band": "20m",
         "comparison_mode": COMPARISON_REFERENCE_STATION,
         "reference_callsign": "DL2XYZ",
+        "reference_qth": "JO62",
     }
     values.update(overrides)
     return AnalysisContext(**values)
@@ -431,6 +436,28 @@ def test_compare_view_model_localization_cannot_change_scope_or_evidence():
     pd.testing.assert_frame_equal(english.evidence_identities, german.evidence_identities)
     pd.testing.assert_series_equal(english.values, german.values)
     assert list(english.station_table.columns) != list(german.station_table.columns)
+
+
+def test_hardware_compare_labels_use_fixed_identities_or_scheduled_roles():
+    """Expose callsigns for simultaneous paths and roles for one-callsign schedules."""
+    simultaneous_context = _analysis_context(
+        comparison_mode=COMPARISON_HARDWARE_AB,
+        reference_callsign="DL2XYZ/P",
+        reference_qth="JN37",
+    )
+    simultaneous = view_models._compare_labels(
+        simultaneous_context,
+        T["en"],
+        is_sequential=False,
+    )
+    sequential = view_models._compare_labels(
+        simultaneous_context,
+        T["en"],
+        is_sequential=True,
+    )
+
+    assert simultaneous[:2] == ("DL1MKS", "DL2XYZ/P")
+    assert sequential[:2] == ("Target", "Reference")
 
 
 def test_cached_all_rows_view_model_derives_identical_joint_only_table():

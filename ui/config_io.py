@@ -31,12 +31,18 @@ from config.config_schema import (
     SEGMENT_SELECTION_ALL,
     STATION_SELECTION_ALL,
     STATION_EVIDENCE_TEMPORAL_VIEWS,
+    TX_AB_METHODS,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.config_codec import prepare_config_document
 from config.json_utils import decode_strict_json_bytes
 from i18n import T
-from core.input_validation import is_valid_6char_locator, is_valid_callsign
+from core.input_validation import (
+    is_valid_callsign,
+    is_valid_grid4,
+    is_valid_locator,
+    normalize_ascii_upper,
+)
 from ui.analysis_submission_state import cancel_analysis_submission
 from ui.result_state import reset_result_state
 
@@ -102,9 +108,10 @@ def _default_config():
         "benchmark_mode": "none",
         "local_benchmark": "local_median",
         "reference_callsign": "",
+        "reference_qth": "",
         "neighborhood_radius_km": 100,
         "benchmark_snr_correction_db": 0.0,
-        "setup_b_callsign": "",
+        "tx_ab_method": "simultaneous",
         "tx_ab_repeat_interval_minutes": 10,
         "tx_ab_target_start_minute": 0,
         "tx_ab_reference_start_minute": 2,
@@ -225,33 +232,37 @@ def _validate_tx_ab_schedule_values(
 
 
 def _validate_callsign(value, field, allow_empty=True):
-    value = str(value or "").strip().upper()
-    if not value and allow_empty:
+    if not isinstance(value, str):
+        raise ValueError(f"{field} must be a string.")
+    stripped_value = value.strip()
+    if not stripped_value and allow_empty:
         return ""
-    if not is_valid_callsign(value):
+    if not is_valid_callsign(stripped_value):
         raise ValueError(f"{field} is not a valid callsign.")
-    return value
-
-
-def _is_valid_locator_strict(locator):
-    locator = str(locator or "").strip().upper()
-    if len(locator) == 4:
-        return (
-            "A" <= locator[0] <= "R" and
-            "A" <= locator[1] <= "R" and
-            locator[2].isdigit() and
-            locator[3].isdigit()
-        )
-    return is_valid_6char_locator(locator)
+    return normalize_ascii_upper(stripped_value)
 
 
 def _validate_locator(value, field, allow_empty=True):
-    value = str(value or "").strip().upper()
-    if not value and allow_empty:
+    if not isinstance(value, str):
+        raise ValueError(f"{field} must be a string.")
+    stripped_value = value.strip()
+    if not stripped_value and allow_empty:
         return ""
-    if not _is_valid_locator_strict(value):
+    if not is_valid_locator(stripped_value):
         raise ValueError(f"{field} is not a valid 4- or 6-character Maidenhead locator.")
-    return value
+    return normalize_ascii_upper(stripped_value)
+
+
+def _validate_grid4(value, field, allow_empty=True):
+    """Validate and normalize one exact four-character Maidenhead grid."""
+    if not isinstance(value, str):
+        raise ValueError(f"{field} must be a string.")
+    stripped_value = value.strip()
+    if not stripped_value and allow_empty:
+        return ""
+    if not is_valid_grid4(stripped_value):
+        raise ValueError(f"{field} is not a valid 4-character Maidenhead grid.")
+    return normalize_ascii_upper(stripped_value)
 
 
 def _validate_selected_stations(value, field):
@@ -428,9 +439,12 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
             1,
         )
     if benchmark_mode == "reference_station":
-        comparison_parameters["reference_callsign"] = str(
+        comparison_parameters["reference_callsign"] = normalize_ascii_upper(
             state.get("val_ref_callsign", defaults["reference_callsign"])
-        ).strip().upper()
+        )
+        comparison_parameters["reference_qth"] = normalize_ascii_upper(
+            state.get("val_ref_qth", defaults["reference_qth"])
+        )
     elif benchmark_mode == "local_neighborhood":
         comparison_parameters["local_benchmark"] = _canonical_from_translated(
             state.get(
@@ -447,32 +461,48 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
             )
         )
     elif benchmark_mode == "hardware_ab" and analysis_direction == "rx":
-        comparison_parameters["setup_b_callsign"] = str(
-            state.get("val_self_call_b", defaults["setup_b_callsign"])
-        ).strip().upper()
-    elif benchmark_mode == "hardware_ab":
-        comparison_parameters.update(
-            {
-                "repeat_interval_minutes": int(
-                    state.get(
-                        "val_tx_ab_repeat_interval_minutes",
-                        defaults["tx_ab_repeat_interval_minutes"],
-                    )
-                ),
-                "target_start_minute": int(
-                    state.get(
-                        "val_tx_ab_target_start_minute",
-                        defaults["tx_ab_target_start_minute"],
-                    )
-                ),
-                "reference_start_minute": int(
-                    state.get(
-                        "val_tx_ab_reference_start_minute",
-                        defaults["tx_ab_reference_start_minute"],
-                    )
-                ),
-            }
+        comparison_parameters["reference_callsign"] = normalize_ascii_upper(
+            state.get("val_ref_callsign", defaults["reference_callsign"])
         )
+    elif benchmark_mode == "hardware_ab":
+        tx_ab_method = str(
+            state.get("val_tx_ab_method", defaults["tx_ab_method"])
+        )
+        comparison_parameters["tx_ab_method"] = tx_ab_method
+        if tx_ab_method == "simultaneous":
+            comparison_parameters.update(
+                {
+                    "reference_callsign": normalize_ascii_upper(
+                        state.get(
+                            "val_ref_callsign",
+                            defaults["reference_callsign"],
+                        )
+                    ),
+                }
+            )
+        else:
+            comparison_parameters.update(
+                {
+                    "repeat_interval_minutes": int(
+                        state.get(
+                            "val_tx_ab_repeat_interval_minutes",
+                            defaults["tx_ab_repeat_interval_minutes"],
+                        )
+                    ),
+                    "target_start_minute": int(
+                        state.get(
+                            "val_tx_ab_target_start_minute",
+                            defaults["tx_ab_target_start_minute"],
+                        )
+                    ),
+                    "reference_start_minute": int(
+                        state.get(
+                            "val_tx_ab_reference_start_minute",
+                            defaults["tx_ab_reference_start_minute"],
+                        )
+                    ),
+                }
+            )
     advanced_parameters = {
         "solar_state": _canonical_from_translated(
             state.get("val_solar", T[lang]["opt_solar_all"]),
@@ -597,10 +627,12 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
     return {
         "core_parameters": {
             "analysis_direction": analysis_direction,
-            "callsign": str(
+            "callsign": normalize_ascii_upper(
                 state.get("val_callsign", defaults["callsign"])
-            ).strip().upper(),
-            "qth": str(state.get("val_qth", defaults["qth"])).strip().upper(),
+            ),
+            "qth": normalize_ascii_upper(
+                state.get("val_qth", defaults["qth"])
+            ),
             "band": state.get("val_band", defaults["band"]),
             "time_selection": time_selection,
         },
@@ -946,7 +978,11 @@ def normalize_config_settings(raw_settings):
     normalized["benchmark_mode"] = benchmark_mode
     comparison_fields = {"mode"}
     if benchmark_mode == "reference_station":
-        comparison_fields |= {"reference_callsign", "snr_correction_db"}
+        comparison_fields |= {
+            "reference_callsign",
+            "reference_qth",
+            "snr_correction_db",
+        }
     elif benchmark_mode == "local_neighborhood":
         comparison_fields |= {
             "local_benchmark",
@@ -956,13 +992,23 @@ def normalize_config_settings(raw_settings):
     elif benchmark_mode == "hardware_ab":
         comparison_fields.add("snr_correction_db")
         if normalized["analysis_direction"] == "rx":
-            comparison_fields.add("setup_b_callsign")
+            comparison_fields.add("reference_callsign")
         else:
-            comparison_fields |= {
-                "repeat_interval_minutes",
-                "target_start_minute",
-                "reference_start_minute",
-            }
+            comparison_fields.add("tx_ab_method")
+            tx_ab_method = _validate_choice(
+                comparison.get("tx_ab_method"),
+                "tx_ab_method",
+                TX_AB_METHODS,
+            )
+            normalized["tx_ab_method"] = tx_ab_method
+            if tx_ab_method == "simultaneous":
+                comparison_fields.add("reference_callsign")
+            else:
+                comparison_fields |= {
+                    "repeat_interval_minutes",
+                    "target_start_minute",
+                    "reference_start_minute",
+                }
     _validate_object_fields(
         comparison,
         "settings.comparison_parameters",
@@ -979,6 +1025,9 @@ def normalize_config_settings(raw_settings):
     if benchmark_mode == "reference_station":
         normalized["reference_callsign"] = _validate_callsign(
             comparison["reference_callsign"], "reference_callsign"
+        )
+        normalized["reference_qth"] = _validate_grid4(
+            comparison["reference_qth"], "reference_qth"
         )
         if (
             normalized["callsign"]
@@ -1001,17 +1050,21 @@ def normalize_config_settings(raw_settings):
             10,
             MAX_DYNAMIC_RADIUS_KM,
         )
-    elif benchmark_mode == "hardware_ab" and normalized["analysis_direction"] == "rx":
-        normalized["setup_b_callsign"] = _validate_callsign(
-            comparison["setup_b_callsign"], "setup_b_callsign"
+    elif benchmark_mode == "hardware_ab" and (
+        normalized["analysis_direction"] == "rx"
+        or normalized["tx_ab_method"] == "simultaneous"
+    ):
+        normalized["reference_callsign"] = _validate_callsign(
+            comparison["reference_callsign"], "reference_callsign"
         )
         if (
             normalized["callsign"]
-            and normalized["setup_b_callsign"]
-            and normalized["callsign"] == normalized["setup_b_callsign"]
+            and normalized["reference_callsign"]
+            and normalized["callsign"] == normalized["reference_callsign"]
         ):
             raise ValueError(
-                "setup_b_callsign must be different from callsign in RX A/B mode."
+                "reference_callsign must be different from callsign in "
+                "Hardware A/B mode."
             )
     elif benchmark_mode == "hardware_ab":
         normalized.update(
@@ -1220,14 +1273,17 @@ def apply_config_state_values(config, session_state):
     session_state.val_ref_callsign = config.get(
         "reference_callsign", defaults["reference_callsign"]
     )
+    session_state.val_ref_qth = config.get(
+        "reference_qth", defaults["reference_qth"]
+    )
     session_state.val_ref_radius_km = config.get(
         "neighborhood_radius_km", defaults["neighborhood_radius_km"]
     )
     session_state.val_benchmark_offset_db = config.get(
         "benchmark_snr_correction_db", defaults["benchmark_snr_correction_db"]
     )
-    session_state.val_self_call_b = config.get(
-        "setup_b_callsign", defaults["setup_b_callsign"]
+    session_state.val_tx_ab_method = config.get(
+        "tx_ab_method", defaults["tx_ab_method"]
     )
     session_state.val_tx_ab_repeat_interval_minutes = config.get(
         "tx_ab_repeat_interval_minutes",

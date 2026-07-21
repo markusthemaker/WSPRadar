@@ -1,7 +1,8 @@
 """Build canonical core analysis context objects from Streamlit UI state."""
 
 from config import DEFAULT_BAND
-from core.analysis_context import AnalysisContext
+from core.analysis_context import AnalysisContext, COMPARISON_HARDWARE_AB
+from core.input_validation import normalize_ascii_upper
 from i18n import T
 from ui.config_io import (
     LOCAL_BENCHMARK_VALUES,
@@ -16,27 +17,39 @@ def build_analysis_context_from_session_state(session_state):
     language = session_state.get("lang", "en")
     t = T.get(language, T["en"])
     analysis_direction = session_state.get("val_analysis_direction")
+    comparison_mode = canonical_from_translated(
+        session_state.get("val_comp_mode", t["opt_comp_none"]),
+        MODE_VALUES,
+        "none",
+    )
+    target_qth = normalize_ascii_upper(session_state.get("val_qth", ""))
+    reference_qth = (
+        target_qth[:4]
+        if comparison_mode == COMPARISON_HARDWARE_AB
+        else normalize_ascii_upper(session_state.get("val_ref_qth", ""))
+    )
 
     return AnalysisContext(
         run_mode=session_state.get("run_mode"),
-        callsign=str(session_state.get("val_callsign", "")).strip().upper(),
-        qth=str(session_state.get("val_qth", "")).strip().upper(),
+        callsign=normalize_ascii_upper(session_state.get("val_callsign", "")),
+        qth=target_qth,
         band=session_state.get("val_band", DEFAULT_BAND),
-        comparison_mode=canonical_from_translated(
-            session_state.get("val_comp_mode", t["opt_comp_none"]),
-            MODE_VALUES,
-            "none",
-        ),
+        comparison_mode=comparison_mode,
         local_benchmark=canonical_from_translated(
             session_state.get("val_local_benchmark", t["opt_local_median"]),
             LOCAL_BENCHMARK_VALUES,
             "local_median",
         ),
-        reference_callsign=str(session_state.get("val_ref_callsign", "")).strip().upper(),
+        reference_callsign=normalize_ascii_upper(
+            session_state.get("val_ref_callsign", "")
+        ),
+        reference_qth=reference_qth,
         neighborhood_radius_km=int(session_state.get("val_ref_radius_km", 100)),
         reference_snr_correction_db=round(float(session_state.get("val_benchmark_offset_db", 0.0)), 1),
         self_test_mode="tx" if analysis_direction == "tx" else "rx",
-        setup_b_callsign=str(session_state.get("val_self_call_b", "")).strip().upper(),
+        tx_ab_method=str(
+            session_state.get("val_tx_ab_method", "simultaneous")
+        ),
         tx_ab_repeat_interval_minutes=int(
             session_state.get("val_tx_ab_repeat_interval_minutes", 10)
         ),

@@ -28,7 +28,7 @@ Used this way, WSPR becomes more valuable to the wider amateur community as well
 
 #### 0.0 What WSPRadar can show
 
-WSPRadar evaluates one <strong class="defined-term">Target</strong> under one explicit experiment design. The Target can be a complete installed station or one controlled hardware path. It can be evaluated on its own or against a meaningful <strong class="defined-term">Reference</strong>. Depending on the question, the Reference can be Setup B at the same station, one known external station, the active local WSPR neighborhood or its strongest active member.
+WSPRadar evaluates one <strong class="defined-term">Target</strong> under one explicit experiment design. The Target can be a complete installed station or one controlled hardware path. It can be evaluated on its own or against a meaningful <strong class="defined-term">Reference</strong>. Depending on the question, the Reference can be a second controlled path at the same station, one known external station, the active local WSPR neighborhood or its strongest active member.
 
 The Reference is part of the scientific question, not merely a display option. A <strong class="defined-term">Hardware A/B Test</strong> can narrow the comparison to two local antennas, feedlines, receivers or complete receive chains when the remaining variables are held stable. A <strong class="defined-term">Reference Station / Buddy Test</strong> compares two complete stations, including their QTHs, equipment, terrain and noise environments. A Local Neighborhood Benchmark asks how the Target compares with a changing population of active nearby WSPR stations. With no benchmark, WSPRadar asks where the Target produced <strong class="defined-term">qualifying evidence</strong>—evidence retained after the run's eligibility rules—among independently confirmed opportunities.
 
@@ -126,7 +126,9 @@ Use [Section 2.1](#sec-3-2) while interpreting the Success result. If the demo a
     * [1.1 A strong foundation for every experiment](#sec-2-1)
     * [1.2 Success only: explore Target reach](#sec-2-2)
     * [1.3 RX Hardware A/B: compare simultaneous receive paths](#sec-2-3)
-    * [1.4 TX Hardware A/B: compare alternating transmit paths](#sec-2-4)
+    * [1.4 TX Hardware A/B: choose simultaneous or sequential transmit paths](#sec-2-4)
+        * [1.4.1 Simultaneous TX playbook](#sec-2-4-simultaneous)
+        * [1.4.2 Sequential TX playbook](#sec-2-4-sequential)
     * [1.5 Reference Station / Buddy Test](#sec-2-5)
     * [1.6 Local Median Neighborhood](#sec-2-6)
     * [1.7 Local Best Station](#sec-2-7)
@@ -195,6 +197,7 @@ Use [Section 2.1](#sec-3-2) while interpreting the Success result. If the demo a
     * [A.1 Create the second instance](#sec-a-1)
     * [A.2 Clone the starting configuration if required](#sec-a-2)
     * [A.3 Separate every data path](#sec-a-3)
+    * [A.4 Configure distinguishable simultaneous TX](#sec-a-4)
 * [Appendix B: Sequential TX A/B Scheduling and Switching](#sec-b)
     * [B.1 Requirements for a valid scheduled experiment](#sec-b-1)
     * [B.2 WSPRadar Timed A/B Relay Switch](#sec-b-2)
@@ -265,7 +268,7 @@ For this playbook, <strong class="defined-term">qualifying evidence</strong> is 
 * **RX Success** compares Target receiver decodes with independently confirmed remote transmitter-cycles.
 * **TX Success** compares Target transmitter decodes with remote receiver-cycles shown to contain other same-band activity.
 
-There is no Reference station or Setup B. Success Rate describes conditional reach; successful Target SNR is a separate signal-strength summary. [Section 2.1](#sec-3-2) explains the operator classifications and weighting, and [Section 7.4](#sec-7-4) defines the exact denominator.
+There is no Reference station or Reference path. Success Rate describes conditional reach; successful Target SNR is a separate signal-strength summary. [Section 2.1](#sec-3-2) explains the operator classifications and weighting, and [Section 7.4](#sec-7-4) defines the exact denominator.
 
 **Set up the analysis**
 
@@ -293,18 +296,18 @@ For a radio amateur, this can mean comparing two antennas, each feeding its own 
 
 **What WSPRadar shows**
 
-Simultaneous RX Hardware A/B compares two local receiving paths at one station. Setup A and Setup B observe the same remote transmitter identities in the same WSPR cycles. This is WSPRadar's closest design to a controlled same-signal hardware comparison.
+Simultaneous RX Hardware A/B compares two local receiving paths at one station. The Target and Reference receivers observe the same remote transmitter identities in the same WSPR cycles. This is WSPRadar's closest design to a controlled same-signal hardware comparison.
 
 Unless receiver, audio and decoder differences have been characterized, the result compares the complete receive paths rather than the antennas alone.
 
 **Set up the experiment**
 
-Select the UI choice `Hardware A/B-Test (Local Setup)` and operate two receivers simultaneously with different exact reporting callsigns:
+Select the UI choice `Hardware A/B-Test (Local Setup)` and operate two receivers simultaneously with different exact reporting callsigns. The identity controls show `Target Callsign` and `Reference Callsign` on the first row, followed by disabled `Target Grid-4` and `Reference Grid-4` fields. Both grid-4 values are derived from the first four characters of Core Parameters' Target QTH; enter only the exact callsign uploaded by the Reference receiver.
 
-* Setup A uses the Target callsign.
-* Setup B uses the `Setup B Callsign`.
+* The Target receiver uses the Target callsign and QTH.
+* The Reference receiver uses the Reference callsign and reports from the same Target grid-4.
 
-Both setups must upload locators whose first four characters match the configured Target QTH; their six-character subsquares may differ.
+Hardware A/B has no independent Reference-QTH setting and does not store one in a saved configuration. Archive matching for both callsigns uses the Target QTH's first four characters. Both receivers must also be operated at the same physical test QTH; shared grid-4 matching cannot prove physical co-location.
 
 Keep clocks, antenna routing, gain, audio paths, decoder settings and uploads controlled. Components intended to be common must be physically common; measure or document unavoidable differences between the two chains.
 
@@ -318,29 +321,83 @@ Document splitter balance, feedline differences, receiver gain, automatic gain c
 
 **Evidence-matched conclusion**
 
-> Under the documented simultaneous RX setup, paired Delta SNR showed the observed difference between receive paths A and B for the shared transmitters, cycles and geographic scope.
+> Under the documented simultaneous RX setup, paired Delta SNR showed the observed difference between the Target and Reference receive paths for the shared transmitters, cycles and geographic scope.
 
 In everyday station terms: for remote signals that both paths observed at the same time, the result shows which receive path tended to produce stronger decodes, where that difference appeared and how much shared evidence supported it.
 
 <a id="sec-2-4"></a>
 
-#### 1.4 TX Hardware A/B: compare alternating transmit paths
+#### 1.4 TX Hardware A/B: choose simultaneous or sequential transmit paths
 
 **Question answered**
 
-Did two local antennas, feedlines or switched RF paths differ when driven by one common station setup?
+Did two local antennas, feedlines or RF paths differ at one controlled test QTH?
+
+**Choose the comparison method**
+
+TX Hardware A/B offers two methods. `Simultaneous TX` is the default for a new configuration; `Sequential TX` retains the deterministic TX A/B Schedule alternative.
+
+| Method | Principal advantage | Principal cost and interpretation boundary |
+|---|---|---|
+| **Simultaneous TX** | Each joint Delta SNR compares the Target and Reference at the same remote receiver in the same UTC cycle, strongly reducing temporal path variation within that pair. | Requires two distinguishable transmitter chains, exact power/correction control, separate callsigns and separated frequencies. Coupling, intermodulation, near/far effects and chain differences can bias the result. It compares the documented complete transmit paths, not automatically the antennas alone. |
+| **Sequential TX** | Can retain one transmitter, waveform, callsign and frequency reference while a controlled switch alternates the two RF paths; simultaneous-transmitter coupling is avoided. | The two observations are time-separated. Short, balanced alternation reduces but cannot eliminate propagation, interference, schedule and switching differences. |
+
+Choose from the hardware actually available and the claim you need to support. Simultaneous operation is not automatically superior if the two transmitter chains cannot be calibrated or isolated. Sequential operation is not simultaneous, even with adjacent WSPR frames.
+
+For either method, operate both paths at the same physical test QTH and report locators within the configured Target grid-4. Hardware A/B derives both displayed grid-4 values from Target QTH rather than accepting an independent Reference location. Report actual transmitter power and document everything that is not common. The separate TX Success result always describes the Target; the Reference contributes comparison evidence but is not a second Success result.
+
+<a id="sec-2-4-simultaneous"></a>
+
+##### 1.4.1 Simultaneous TX playbook
+
+**What WSPRadar shows**
+
+Simultaneous TX Hardware A/B compares two deliberately synchronized, distinguishable WSPR signals at each remote receiver. Delta SNR is calculated only when that receiver decodes both the Target and Reference in the same UTC cycle. The standard Decode Outcomes also retain Target-only, Reference-only and asynchronous evidence; `Show Non-Joint` controls whether stations without qualifying joint evidence are included in the inspection view. One UTC cycle can therefore be joint at one receiver and one-sided at another.
+
+The Target-Active Gate remains Target-centric: a cycle is eligible only when the Target was decoded somewhere. Within an eligible cycle, a receiver may still contribute one-sided Reference evidence. A cycle in which Reference was decoded but Target was decoded nowhere is excluded rather than counted as a Target loss. [Section 7.3](#sec-7-3) defines this boundary.
+
+**Set up the experiment**
+
+Select `Simultaneous TX`. The identity controls show `Target Callsign` and `Reference Callsign` on the first row, followed by disabled `Target Grid-4` and `Reference Grid-4` fields. Both grid-4 values are the first four characters of Target QTH from Core Parameters. Use two different exact callsigns, report both paths within that configured grid-4, and operate the two complete transmit paths at the same physical test QTH.
+
+A simultaneous two-TX WSPR comparison normally needs:
+
+* different callsigns, so the decoder and reporting database can identify the two paths; and
+* different, non-overlapping TX frequencies within the approximately 200 Hz WSPR sub-band.
+
+Each WSPR signal occupies about 6 Hz. Using the same frequency risks a collision or, for identical waveforms, an inseparable combined field. Signals placed too close together can fail to decode or produce unreliable SNR reports. Zander's simultaneous method likewise uses separate callsigns and different frequencies in the same two-minute slot. <a href="#ref-1">[Ref-1]</a>
+
+Different radio dial frequencies are not required. With two WSJT-X instances or radios on the normal WSPR dial frequency, choose different audio TX offsets within the WSPR passband. Ignoring split, XIT and transverter offsets, the approximate relation is:
+
+$$f_{RF} \approx f_{dial} + f_{TX\ audio}$$
+
+For example, the Target could use `Tx Freq = 1450 Hz` and the Reference `Tx Freq = 1550 Hz`, with both transmissions starting in the same UTC cycle. These values are illustrative: inspect the band, leave comfortable separation, and allow for frequency error, strong-signal leakage and occupied signals. WSJT-X exposes a WSPR TX-frequency control and red waterfall marker, although their placement varies between versions and can be easy to overlook. Its randomized `Tx Pct` operation does not by itself guarantee deliberate two-radio synchronization. <a href="#ref-12">[Ref-12]</a>
+
+Measure or defensibly correct the power difference between the complete Target and Reference paths. Also control antenna coupling, transmitter isolation, harmonics/intermodulation, clock alignment and uploaded identities. A 100 Hz audio/RF separation is negligible as a propagation-frequency difference on an HF band, but receiver passband shape, local interference and frequency-specific transmitter response can still create a systematic offset. For a small claimed difference, repeat with the Target/Reference frequency assignments exchanged, or otherwise characterize that offset.
+
+The strongest hardware check is a crossover repetition: exchange the antenna or component under test between the two calibrated transmitter chains while holding the role definitions and analysis scope fixed. This helps distinguish the device-under-test effect from a persistent chain effect.
+
+**Evidence-matched conclusion**
+
+> Under the documented simultaneous two-transmitter setup, same-receiver, same-cycle Delta SNR showed the observed difference between the Target and Reference transmit paths for the selected receivers and geographic scope.
+
+In everyday station terms: for receivers that decoded both distinguishable signals in the same cycle, the result shows which complete local transmit path tended to produce stronger reports. It does not by itself assign that difference to one antenna unless the rest of the paths were controlled or crossed over.
+
+<a id="sec-2-4-sequential"></a>
+
+##### 1.4.2 Sequential TX playbook
 
 <a id="sec-2-4-why"></a>
 
 **Why deterministic alternation is used**
 
-When two nearby antennas radiate the same WSPR waveform and callsign in the same cycle and frequency channel, a remote receiver observes their combined field. Its spot cannot identify how much came from antenna A or B. Distinguishable simultaneous signals normally require separate callsigns and transmitter chains, introducing additional power, calibration, timing and frequency differences.
+When two nearby antennas radiate the same WSPR waveform and callsign in the same cycle and frequency channel, a remote receiver observes their combined field. Its spot cannot identify how much came from the Target or Reference path. Distinguishable simultaneous signals require separate callsigns and separated frequencies, normally with separate transmitter chains; the simultaneous playbook above states the resulting calibration and isolation requirements.
 
 Deterministic alternation instead retains one callsign and preferably one common transmitter chain while exposing both paths repeatedly to changing propagation and receiver conditions. It remains a sequential comparison: shorter separation reduces the time available for conditions to change, but does not make the observations simultaneous.
 
 **What WSPRadar shows**
 
-Sequential TX Hardware A/B assigns complete WSPR transmissions to Setup A and Setup B from a time-locked schedule. WSPRadar then forms deterministic one-to-one scheduled pairs for each remote receiver identity and reports scheduled-pair Delta SNR plus one-sided Decode Outcomes.
+Sequential TX Hardware A/B assigns complete WSPR transmissions to Target and Reference from a time-locked schedule. WSPRadar then forms deterministic one-to-one scheduled pairs for each remote receiver identity and reports scheduled-pair Delta SNR plus one-sided Decode Outcomes.
 
 **Set up the experiment**
 
@@ -354,21 +411,21 @@ Report the actual transmit power. Do not encode path identity through false repo
 
 Verify the physical schedule-to-path mapping without RF before starting. A reversed mapping labels the paths backwards and reverses the practical interpretation of the Delta SNR sign.
 
-The run produces a sequential TX Hardware Compare result and a separate TX Success result. Success is limited to the configured Target schedule and therefore describes Setup A.
+The run produces a sequential TX Hardware Compare result and a separate TX Success result. Success is limited to the configured Target schedule.
 
 **Strengthen the evidence**
 
 Control switch loss, feedline differences, antenna coupling, clock accuracy, schedule-to-path mapping and switching timing. Use the shortest practical separation and extend the run across the propagation periods relevant to the question.
 
-Across a balanced run, random short-term variation may average down because both paths are repeatedly exposed to changing conditions. Systematic schedule-, switching- or time-of-cycle effects do not necessarily average down. When a small difference matters, repeat the experiment with the A/B schedule assignments reversed and compare like-for-like runs as described in [Section 3.2](#sec-4-2).
+Across a balanced run, random short-term variation may average down because both paths are repeatedly exposed to changing conditions. Systematic schedule-, switching- or time-of-cycle effects do not necessarily average down. When a small difference matters, repeat the experiment with the Target/Reference schedule assignments reversed and compare like-for-like runs as described in [Section 3.2](#sec-4-2).
 
 [Section 6.3](#sec-d-toledo) gives the experimental lineage and explains why short alternation is preferable to long blocks <a href="#ref-3">[Ref-3]</a>.
 
 **Evidence-matched conclusion**
 
-> Under the documented time-locked schedule, scheduled-pair Delta SNR showed the observed difference between switched paths A and B for the selected receivers, times and geographic scope.
+> Under the documented time-locked schedule, scheduled-pair Delta SNR showed the observed difference between the Target and Reference switched paths for the selected receivers, times and geographic scope.
 
-In everyday station terms: after repeatedly alternating the two RF paths, the result shows whether path A or B tended to produce stronger reports for the receivers and propagation periods represented in the run, while remaining sequential rather than simultaneous.
+In everyday station terms: after repeatedly alternating the two RF paths, the result shows whether the Target or Reference path tended to produce stronger reports for the receivers and propagation periods represented in the run, while remaining sequential rather than simultaneous.
 
 <a id="sec-2-5"></a>
 
@@ -389,7 +446,7 @@ Same-cycle TX pairs therefore share one remote receiver, while RX pairs share on
 
 **Set up the analysis**
 
-Select `Reference Station (Buddy Test)`. Enter one exact Target callsign and QTH and one different exact `Reference Callsign`. Target spots are constrained to the Target grid-4; the Buddy Reference is deliberately selected by exact callsign only, without a locator constraint. Choose a Reference whose location, hardware, reported power and operating schedule you understand.
+Select `Reference Station (Buddy Test)`. The identity controls show `Target Callsign` and `Reference Callsign` on the first row, followed by `Target QTH` and `Reference Grid-4`. The Target values come from Core Parameters. Unlike Hardware A/B, both Reference fields remain editable: enter the Reference's exact reporting callsign and its independently chosen four-character Maidenhead grid. WSPRadar matches each fixed side by exact callsign plus its own grid-4. Choose a Reference whose location, hardware, reported power and operating schedule you understand.
 
 Both stations need overlapping operation on the same band. Verify Reference uptime independently. Apply a Reference SNR correction only when its calibration basis is defensible.
 
@@ -541,7 +598,7 @@ In the operator view, Delta SNR is the Target-side SNR minus the corrected Refer
 Paired Delta SNR is normally the primary quantitative comparison because the two sides share the closest available conditions:
 
 * In simultaneous RX Compare, Target and Reference receivers measure the same remote transmitter. This reduces transmitter-power, waveform and shared-path differences within the pair.
-* In same-cycle TX Compare, such as applicable Buddy or Local Neighborhood comparisons, the same remote receiver measures Target and Reference. This reduces receiver-hardware, antenna, local-noise and reporting differences within the pair.
+* In same-cycle TX Compare, including simultaneous TX Hardware A/B and applicable Buddy or Local Neighborhood comparisons, the same remote receiver measures Target and Reference. This reduces receiver-hardware, antenna, local-noise and reporting differences within the pair.
 * Sequential TX Hardware A/B uses deterministic scheduled pairs rather than same-cycle evidence.
 
 **Decode Outcomes**
@@ -659,7 +716,7 @@ Select one or multiple stations to open the selected station evidence view. `Sta
 * Success exposes target-active peer-cycle classifications, including Target-only.
 * Same-cycle Compare exposes Target/Reference evidence and Delta SNR from the shared cycle.
 * Local Median Neighborhood expands the local Reference identities behind the cycle median.
-* Sequential TX A/B exposes the planned UTC pair, `Micro-Med A`, `Micro-Med B` and Pair Delta.
+* Sequential TX A/B exposes the planned UTC pair, `Target Micro-Median`, `Reference Micro-Median` and Pair Delta.
 
 Use these rows to reconcile a surprising station or segment value, identify locator changes or isolated outliers, and confirm which observations were paired or excluded. Drill-Down is the audit trail behind the summaries rather than a separate performance metric.
 
@@ -722,7 +779,7 @@ When the result will support an important station decision:
 * extend the observation window across the propagation states named in the conclusion;
 * prefer multi-day evidence for statements spanning complete daily cycles;
 * repeat the experiment on another day or propagation period;
-* for sequential TX Hardware A/B, reverse the A/B schedule assignments;
+* for sequential TX Hardware A/B, reverse the Target/Reference schedule assignments;
 * keep non-tested variables stable between repetitions;
 * compare runs with the same direction, band, benchmark, filters and evidence thresholds;
 * investigate any identity, locator or short interval that supplies a large fraction of the evidence;
@@ -736,7 +793,7 @@ TX and RX use different peer populations and opportunity definitions. Compare li
 
 #### 3.3 Write an evidence-matched conclusion
 
-A minimum operator statement identifies the Target and, for Compare where applicable, the fixed Reference, Setup B or local benchmark definition. It also identifies the TX or RX direction, band, UTC window, geographic scope, result type, displayed value and supporting station/evidence count.
+A minimum operator statement identifies the Target and, for Compare where applicable, the fixed Reference or local benchmark definition. It also identifies the TX or RX direction, band, UTC window, geographic scope, result type, displayed value and supporting station/evidence count.
 
 A full technical report also states:
 
@@ -819,6 +876,8 @@ Exact formulas and processing rules remain in [Scientific Methods](#sec-7).
 
 **`Load Config`** strictly validates and loads a versioned JSON `.config` file. Invalid identities, dates, choices, ranges, duplicate fields and unsupported schema versions are rejected.
 
+The pre-production contract remains schema version 1. Reference Station requires `Reference Callsign` plus its independent four-character `Reference Grid-4`. RX and simultaneous TX Hardware A/B require the distinct `Reference Callsign` but derive their shared grid-4 from Target QTH and therefore store no redundant `reference_qth`; TX Hardware A/B also requires its method-specific fields. Earlier unpublished v1 prototypes are not migrated; resave or recreate them with the current controls.
+
 **`Save Config`** opens a compact profile form. Enter a title and optional description; an optional stable ID can be supplied or generated automatically. The resulting `<profile-id>.config` stores every applicable input and durable Compare/Success result-view choice. When the configured time mode is `Last X Hours`, saving also asks whether to retain that moving relative window or replace it with the active run's resolved absolute UTC start/end window. Choose the absolute form when a later run should address the same dates. A saved configuration does not contain result rows, external experiment notes or transient table filters.
 
 **`Run RX Analysis` / `Run TX Analysis`** is one direction-aware button. It runs Success and, when a benchmark is selected, Compare for the RX or TX Analysis chosen in Core Parameters. Once submitted, the button is disabled while that session's unchanged analysis is queued or running. Changing a scientific control creates a different request, so the Run action becomes available for the changed configuration. During a capacity wait, the status reports only your analysis's current queue position; it does not show unrelated users' queue totals.
@@ -838,8 +897,8 @@ These controls define the Target, operating direction, band and evidence window.
 | UI label | Factory default | What it controls |
 |---|---|---|
 | **RX Analysis / TX Analysis** | none; required | RX evaluates the Target as a receiving WSPR station; TX evaluates it as a transmitting WSPR station. `Run` and `Save Config` remain disabled until either option is selected. |
-| **Your Callsign (Receiver under Test)** / **Your Callsign (Transmitter under Test)** | blank | Direction-specific exact Target callsign. Accepted syntax is 3 to 15 characters from `A-Z`, `0-9` and `/`. |
-| **QTH Locator (4-6 Chars)** | blank | Map center and local-radius origin. Its first four characters constrain Target matching in Success and Compare. In local Hardware A/B, both setup sides must report this grid-4. |
+| **Your Callsign (Receiver under Test)** / **Your Callsign (Transmitter under Test)** | blank | Direction-specific exact Target callsign. Accepted syntax is 3 to 15 ASCII characters: letters `A-Z`, digits `0-9`, and optional `/` separators between non-empty alphanumeric segments. At least one segment must contain both a letter and a digit. |
+| **QTH Locator (4 or 6 chars)** | blank | Valid four- or six-character Maidenhead locator: two letters `A-R`, two digits, and optionally two subsquare letters `A-X`. The complete value is the map center, local-radius origin and geographic calculation input; its first four characters constrain Target matching in Success and Compare. Reference Station uses a separately entered Reference Grid-4, while Hardware A/B derives both displayed grid-4 fields from this Target QTH. |
 | **Operating Band** | `20m` | Exactly one of `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` or `23cm`. |
 | **Time Selection** | `Last X Hours` | Selects recent or custom UTC evidence. Recent mode allows 1 to 168 hours and defaults to 24. |
 | **Last hours back (DB updated every 15 min)** | `24` | Appears for `Last X Hours`; accepts 1 to 168 hours. The absolute endpoints are resolved when the run starts and retained for that active run. At save time, choose whether the file keeps `Last X Hours` or freezes those resolved UTC endpoints. |
@@ -848,6 +907,8 @@ These controls define the Target, operating direction, band and evidence window.
 Use the callsign exactly as uploaded. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` and `DL1MKS/QRP` are separate identities; WSPRadar does not apply hidden prefix matching.
 
 A Maidenhead locator is a compact grid-square location code. Four characters identify a broad area; six characters identify a smaller area inside it. WSPRadar uses the configured QTH as the map center and local-radius origin. Success and Compare match Target spots using its first four locator characters; grid-6 is not part of this selector.
+
+Callsign and QTH text is normalized to uppercase. A non-empty malformed Target or Reference value produces a field-specific validation message, and invalid values are rejected when a run or configuration is submitted. Callsign validation establishes plausible archive-token syntax; it cannot verify that a callsign is legally assigned or that the station actually used it.
 
 <a id="sec-5-3"></a>
 
@@ -865,15 +926,19 @@ Success-only skips Compare. The other choices add Compare while retaining the se
 | UI label | Default and range | When it appears and what it controls |
 |---|---|---|
 | **Reference SNR Correction (dB)** | `0.0`; `-99.9` to `+99.9` in `0.1 dB` steps | Appears for Compare and is hidden for Success-only. The value is added to the Reference-side SNR before Delta SNR is calculated. |
-| **Reference Callsign** | `DL2XYZ` example | Reference Station / Buddy Test. Replace the example with one exact callsign different from the Target. |
+| **Target Callsign** | value from Core Parameters; read-only | Appears in the fixed-reference identity block for Reference Station, RX Hardware A/B and simultaneous TX Hardware A/B. It makes the Target side explicit without creating a second source of Target state. |
+| **Target QTH** | value from Core Parameters; read-only | Appears for Reference Station and retains all four or six configured characters because the complete Target QTH also anchors geometry. |
+| **Target Grid-4** | first four characters of Target QTH; read-only | Appears for RX and simultaneous TX Hardware A/B beside the equally derived Reference Grid-4. |
+| **Reference Callsign** | blank; example placeholder | Reference Station, RX Hardware A/B and simultaneous TX Hardware A/B. Enter the Reference's different exact reporting callsign. |
+| **Reference Grid-4** | blank and editable for Reference Station; derived Target grid-4 and read-only for Hardware A/B | Exactly four Maidenhead characters. Reference Station permits an independently chosen grid-4. Hardware A/B displays the shared value but has no independent Reference-QTH setting or serialized `reference_qth`; the operator must still ensure physical co-location. |
 | **Local Benchmark Method** | `Local Median Neighborhood` | Local Neighborhood Benchmark. Selects `Local Median Neighborhood` or the strict `Local Best Station`. |
 | **Neighborhood Radius (km)** | `100`; 10 to 250 km in 10 km steps | Local Neighborhood Benchmark. Includes local Reference coordinates around the configured QTH. |
-| **Setup B Callsign** | blank | RX Hardware A/B Test. Enter one exact callsign different from Setup A. |
-| **Repeat Interval** | `10 min`; `4, 6, 10, 12, 20, 30, 60 min` | TX Hardware A/B Test. Shared recurrence of each physical path. All choices are even WSPR-compatible divisors of one UTC hour. |
-| **Target Start** | `00 UTC`; even phases below the Repeat Interval | TX Hardware A/B Test. Defines the Target / Setup A UTC start phase. |
-| **Reference Start** | `02 UTC`; even phases below the Repeat Interval | TX Hardware A/B Test. Defines the Reference / Setup B UTC start phase and is kept disjoint from Target. |
+| **TX A/B Method** | `Simultaneous TX` | TX Hardware A/B Test. Switches between `Simultaneous TX` and `Sequential TX`; the selected branch alone is displayed and saved. |
+| **Repeat Interval** | `10 min`; `4, 6, 10, 12, 20, 30, 60 min` | Sequential TX Hardware A/B. Shared recurrence of each physical path. All choices are even WSPR-compatible divisors of one UTC hour. |
+| **Target Start** | `00 UTC`; even phases below the Repeat Interval | Sequential TX Hardware A/B. Defines the Target UTC start phase. |
+| **Reference Start** | `02 UTC`; even phases below the Repeat Interval | Sequential TX Hardware A/B. Defines the Reference UTC start phase and is kept disjoint from Target. |
 
-Hardware A/B Test follows the selected **RX Analysis / TX Analysis** option. RX displays the two-receiver Setup B callsign; TX displays the shared Repeat Interval, two disjoint Start controls, a swap action and the resulting one-hour schedule preview. Pairing follows that schedule automatically.
+Hardware A/B Test follows the selected **RX Analysis / TX Analysis** option. RX always displays the fixed Target/Reference identity block. TX first displays the method selector: simultaneous operation loads the same identity block, while sequential operation loads the shared Repeat Interval, two disjoint Start controls, a swap action and the resulting one-hour schedule preview. Pairing follows the applicable same-cycle or scheduled method automatically.
 
 For TX Hardware A/B, `Repeat Interval` is each physical path's actual recurrence. It is not necessarily the `Frame` label shown by a transmitter that alternates one output between two paths. Check the preview against observed on-air starts and the physical switch mapping. Device-specific examples are in [Appendix B](#sec-b); exact pair construction is in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7).
 
@@ -885,7 +950,7 @@ A positive correction makes the corrected Reference SNR stronger and therefore r
 
 The correction applies to:
 
-- Setup B or the Reference schedule in Hardware A/B Test;
+- the Reference receiver, transmitter or schedule in Hardware A/B Test;
 - the Reference callsign in Reference Station / Buddy Test;
 - the selected local value in Local Best Station; and
 - every local contribution before Local Median Neighborhood aggregation.
@@ -1003,7 +1068,7 @@ Work through these checks in order:
 3. **Band:** confirm one exact band and the band on which the station operated.
 4. **UTC evidence window:** confirm the resolved start and end timestamps, not only the relative `Last X Hours` selection.
 5. **Actual operation:** confirm that the Target was transmitting or receiving as intended and that WSPR uploading was enabled.
-6. **Benchmark operation:** for Compare, confirm the exact Reference or Setup B identity and that the counterpart was operating during the intended overlap.
+6. **Benchmark operation:** for Compare, confirm the exact Reference identity and that the counterpart was operating during the intended overlap.
 7. **Design mechanics:** where applicable, confirm clock synchronization, TX schedule-to-path mapping, switching schedule, signal routing and reported power.
 
 After these are established, inspect thresholds, exclusion filters, solar selection and map scope. A looser filter can reveal more qualifying evidence, but it cannot repair a run aimed at the wrong identity, band or time.
@@ -1041,7 +1106,9 @@ An upstream-data issue changes what the selected source supplies. An experiment-
 
 Success and every Compare mode match Target spots by exact callsign plus the configured QTH's first four locator characters. A Target reporting `JN37` while configured as `JN38` matches neither result.
 
-Compare Reference matching remains mode-specific: a Buddy is selected by exact callsign only; local candidates are selected geographically; RX Hardware A/B requires both exact setup callsigns in the Target grid-4; and sequential TX Hardware A/B requires the shared exact callsign and Target grid-4 on both scheduled sides.
+Every Reference Station is matched by exact callsign plus its independently configured, exactly four-character Reference Grid-4. RX and simultaneous TX Hardware A/B instead derive both disabled grid-4 displays from the first four Target-QTH characters and carry no independent Reference-QTH setting; sequential TX Hardware A/B uses the shared exact Target callsign and Target grid-4 on both scheduled sides. Local candidates remain selected geographically.
+
+If a non-empty callsign or locator has invalid syntax, correct the field-specific message before diagnosing missing archive evidence. Callsigns must follow the 3-to-15-character ASCII token rule in [Section 4.2](#sec-5-2). Locators must be four or six Maidenhead characters with field letters `A-R`, digits in positions three and four, and optional subsquare letters `A-X`. These checks reject malformed input but do not establish legal callsign assignment, actual operation or physical location.
 
 Peer identities use exact callsign plus the full reported locator string. Bad, stale or changing locators can split one physical station, move it into the wrong segment or trigger the moving-station filter.
 
@@ -1193,8 +1260,9 @@ WSPRadar turns public WSPR decodes into explicit comparison units, then summariz
 | Analysis design | Target role | Reference or counter-evidence | Lowest observation/comparison unit | Activity requirement | Timing relationship | Power normalization | Station-level aggregation | Segment-level aggregation | Principal interpretation boundary |
 |---|---|---|---|---|---|---|---|---|---|
 | No benchmark (Success only), RX or TX | Target receiver or transmitter | RX: same transmitter decoded elsewhere; TX: other same-band signal decoded by the peer receiver | one Target-active peer-cycle | observable Target participation | same two-minute cycle | rate: none; successful Target SNR display: reported 1 W | one Success Rate per peer | arithmetic mean of peer rates; pooled rate retained | conditional network reach, not unconditional decode probability |
-| Hardware A/B Test, RX | Setup A receiver | simultaneous Setup B receiver | one consolidated remote-transmitter peer-cycle | Target-Active Gate | same transmitter and cycle | common TX power cancels; correction applies to Setup B | median Delta SNR | median of station medians | controlled local receive paths only to the extent the remaining chains are controlled |
-| Hardware A/B Test, TX | Setup A scheduled starts | Setup B scheduled starts | one peer identity in one planned Target/Reference pair | deterministic disjoint schedules; no simultaneous gate | nearest one-to-one starts under one shared Repeat Interval | both sides normalized to reported 1 W; correction applies to Setup B | median scheduled-pair Delta SNR | median of station medians | sequential, not simultaneous; timing and switching effects remain |
+| Hardware A/B Test, RX | Target receiver | simultaneous Reference receiver | one consolidated remote-transmitter peer-cycle | Target-Active Gate | same transmitter and cycle | common TX power cancels; correction applies to Reference | median Delta SNR | median of station medians | controlled local receive paths only to the extent the remaining chains are controlled |
+| Hardware A/B Test, simultaneous TX | Target transmitter | simultaneous Reference transmitter | one consolidated remote-receiver peer-cycle | Target-Active Gate | same receiver and cycle | both sides normalized to reported 1 W; correction applies to Reference | median Delta SNR | median of station medians | two distinguishable complete TX chains; power, frequency response, isolation and coupling remain experimental controls |
+| Hardware A/B Test, sequential TX | Target scheduled starts | Reference scheduled starts | one peer identity in one planned Target/Reference pair | deterministic disjoint schedules; no simultaneous gate | nearest one-to-one starts under one shared Repeat Interval | both sides normalized to reported 1 W; correction applies to Reference | median scheduled-pair Delta SNR | median of station medians | sequential, not simultaneous; timing and switching effects remain |
 | Reference Station / Buddy Test, RX | Target receiver | external Reference receiver | one consolidated remote-transmitter peer-cycle | Target-Active Gate; Reference uptime controlled externally | same transmitter and cycle | common TX power cancels; correction applies to the Reference | median Delta SNR | median of station medians | complete installed stations and environments, not isolated receiver sensitivity |
 | Reference Station / Buddy Test, TX | Target transmitter | external Reference transmitter | one consolidated remote-receiver peer-cycle | Target-Active Gate; Reference uptime controlled externally | same receiver and cycle | both sides normalized to reported 1 W; correction applies to the Reference | median Delta SNR | median of station medians | complete installed stations; depends on reported-power accuracy |
 | Local Median Neighborhood | Target RX or TX | cycle/path median of one contribution per active local `callsign + locator` | one Target/local-Reference peer-cycle | Target-Active Gate | same peer path and cycle | TX values normalized to reported 1 W; correction applied before the local median | median Delta SNR | median of station medians | dynamic uncalibrated pool; result depends on radius and active membership |
@@ -1220,12 +1288,13 @@ WSPRadar retains the reported identity as part of the evidence. Callsign variant
 |---|---|---|---|
 | RX Success | exact RX callsign plus Target QTH grid-4 | TX callsign + reported TX locator | one Target-active peer-cycle |
 | TX Success | exact TX callsign plus Target QTH grid-4 | RX callsign + reported RX locator | one Target-active peer-cycle |
-| Buddy Compare | exact Target callsign plus Target QTH grid-4 | exact Reference callsign, locator unrestricted; remote callsign + reported locator | one consolidated peer-cycle |
-| RX Hardware A/B | exact Setup A callsign plus Target QTH grid-4 | exact Setup B callsign plus the same grid-4; remote TX callsign + reported locator | one consolidated peer-cycle |
+| Buddy Compare | exact Target callsign plus Target QTH grid-4 | exact Reference callsign plus independent Reference Grid-4; remote callsign + reported locator | one consolidated peer-cycle |
+| RX Hardware A/B | exact Target callsign plus Target QTH grid-4 | exact Reference callsign plus the same derived Target grid-4; remote TX callsign + reported locator | one consolidated peer-cycle |
+| Simultaneous TX Hardware A/B | exact Target callsign plus Target QTH grid-4 | exact Reference callsign plus the same derived Target grid-4; RX callsign + reported locator | one consolidated peer-cycle |
 | Sequential TX Hardware A/B | exact shared Target callsign plus Target QTH grid-4, split by configured UTC schedule | same callsign and grid-4 on the Reference schedule; RX callsign + reported locator | one planned Target/Reference pair |
 | Local Compare | exact Target callsign plus Target QTH grid-4 | local callsign + reported locator inside the radius; remote peer as above | one Target/local-Reference peer-cycle |
 
-Success and all Compare modes use exact Target callsign plus configured Target grid-4. Grid-6 is not a selector: `JN37AA` and `JN37ZZ` both match `JN37`, while `JN38` does not. Reference matching deliberately remains mode-specific as shown above.
+Success and all Compare modes use exact Target callsign plus the first four characters of configured Target QTH. A six-character Target QTH remains meaningful outside archive selection because its full value anchors maps, local-radius geometry, azimuth/distance and solar calculations. Reference Station uses an independent exact Reference callsign plus exactly four-character Reference Grid-4. Hardware A/B derives the shared grid-4 from Target QTH and stores no separate Reference QTH. Thus grid-6 is not a query selector: `JN37AA` and `JN37XX` both select `JN37`, while `JN38` does not. Shared Hardware A/B grid-4 matching cannot establish physical co-location.
 
 Peer identities use exact callsign plus the full reported locator string. Bad, stale or changing locators can split one physical station, move it into the wrong segment or trigger the moving-station filter.
 
@@ -1247,7 +1316,7 @@ The asymmetry is deliberate: in the absence of authoritative operating schedules
 
 Because every Joint observation already demonstrates Target participation, the gate's asymmetry affects only one-sided or asynchronous Decode Outcomes and the counter-evidence denominator of Success Rate; the gate itself does not alter Joint-only Delta SNR summaries.
 
-Swapping Target and Reference can therefore change eligible cycles and Decode Outcomes. Sequential TX A/B uses deterministic schedule assignment and planned pairs rather than this simultaneous gate. Its role-independent half-interval tie rule preserves the same physical pairs when A/B is swapped.
+Swapping Target and Reference can therefore change eligible cycles and Decode Outcomes. Sequential TX A/B uses deterministic schedule assignment and planned pairs rather than this simultaneous gate. Its role-independent half-interval tie rule preserves the same physical pairs when Target and Reference are swapped.
 
 <a id="sec-7-4"></a>
 #### 7.4 Success classification and formulas
@@ -1443,6 +1512,7 @@ The evidence must also be interpreted with these properties of the data and desi
 * Success Rate is conditional on globally sourced observable opportunities;
 * a TX cycle decoded nowhere is indistinguishable from no transmission without an external log;
 * Target-active gating is asymmetric;
+* simultaneous TX A/B retains two-chain power, frequency-response, isolation and coupling differences;
 * sequential TX A/B remains time-separated;
 * reported-power normalization is only as accurate as the reported field;
 * station hardware, software, terrain, noise, polarization and propagation remain combined;
@@ -1459,7 +1529,7 @@ For a serious result, preserve the analysis definition, the evidence supporting 
 
 * Save the versioned `.config`. It records the settings applicable to the run:
     * **Core Parameters:** RX/TX direction, Target callsign and QTH, band, and relative or absolute UTC time selection;
-    * **Comparison Parameters:** Benchmark Design and, as applicable, Reference or Setup B identity, local benchmark method and radius, scheduled TX A/B repeat interval and path phases, and Reference SNR Correction;
+    * **Comparison Parameters:** Benchmark Design and, as applicable, TX Hardware A/B method, Reference callsign, the Reference Station's independent grid-4, local benchmark method and radius, scheduled TX A/B repeat interval and path phases, and Reference SNR Correction; Hardware A/B does not serialize a redundant Reference QTH;
     * **Advanced Settings:** solar-state selection, map scope, special-callsign and moving-station exclusions, and the applicable evidence thresholds;
     * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of non-joint or zero-Target evidence.
 
@@ -1566,12 +1636,12 @@ WSPRadar is experimental open-source software provided "as is" without warrantie
 <a id="part-iv"></a>
 ## Part IV: Practical Supplements
 
-This part collects optional setup procedures, sequential TX A/B scheduling and switching guidance, Reference-side calibration and the project license. Use the sections that apply to your station and experiment.
+This part collects optional parallel WSJT-X and simultaneous-TX setup procedures, sequential TX A/B scheduling and switching guidance, Reference-side calibration and the project license. Use the sections that apply to your station and experiment.
 
 <a id="sec-a"></a>
 ### Appendix A: Parallel WSJT-X Instances
 
-This procedure creates a second isolated WSJT-X instance, for example for simultaneous RX Hardware A/B Test on Windows. The current WSJT-X guide documents `--rig-name` as the supported way to isolate each instance's settings and writable files. WSJT-X versions and installation paths can change, so verify the current guide if your menus differ. <a href="#ref-12">[Ref-12]</a>
+This procedure creates a second isolated WSJT-X instance, for example for simultaneous RX or TX Hardware A/B Test on Windows. The current WSJT-X guide documents `--rig-name` as the supported way to isolate each instance's settings and writable files. WSJT-X versions and installation paths can change, so verify the current guide if your menus differ. <a href="#ref-12">[Ref-12]</a>
 
 <a id="sec-a-1"></a>
 #### A.1 Create the second instance
@@ -1602,11 +1672,25 @@ A cloned configuration can still point both instances at the same audio input or
 2. Under **Soundcard**, set **Input** to the intended independent receiver or audio device. The WSJT-X guide specifies 48,000 Hz, 16-bit audio-device configuration.
 3. Set **Save Directory** to an instance-specific path, normally `%LOCALAPPDATA%\WSJT-X - SDR\save\`.
 4. Set **AzEl Directory** to an instance-specific path, for example `%LOCALAPPDATA%\WSJT-X - SDR\`.
-5. Open **File > Settings > General** and set the exact Setup B callsign and locator used for reporting.
-6. Return to the main WSPR screen, confirm the intended band and audio level, enable spot uploading when required, and verify that uploaded rows use the Setup B identity.
+5. Open **File > Settings > General** and set the exact Reference callsign and locator used for reporting.
+6. Return to the main WSPR screen, confirm the intended band and audio level, enable spot uploading when required, and verify that uploaded rows use the Reference identity.
 7. Confirm clock synchronization for both instances.
 
 Separate directories do not prove RF-path independence. Confirm empirically that both streams use the intended hardware.
+
+<a id="sec-a-4"></a>
+#### A.4 Configure distinguishable simultaneous TX
+
+For simultaneous TX Hardware A/B, isolation of settings is only the software foundation. Before radiating, verify the complete two-transmitter arrangement into suitable loads or through a safely engineered low-power test path:
+
+1. Assign the exact Target callsign and QTH to one instance and the different exact Reference callsign to the other. Configure the Reference instance to report from the same test QTH; WSPRadar displays disabled Target and Reference Grid-4 fields derived from the first four Target-QTH characters and matches both uploaded identities within that shared grid-4.
+2. Route each instance to its intended radio, control interface and audio output. A copied configuration must not key or feed the wrong transmitter.
+3. Use the normal WSPR dial frequency on both radios if appropriate, but assign separated audio TX offsets such as `1450 Hz` and `1550 Hz`. Inspect the waterfall and choose clear, non-overlapping positions rather than assuming those illustrative values are free.
+4. Configure deliberate same-cycle starts. Independent randomized `Tx Pct` settings do not define a synchronized comparison schedule.
+5. Verify frequency, actual RF power, spectral cleanliness, clock alignment and uploaded callsign/QTH/power for both paths before collecting evidence.
+6. Confirm adequate isolation between active transmitters and antennas. Coupled power can desensitize or damage equipment and can create intermodulation or misleading spots; use appropriate filtering, spacing, power levels and RF engineering for the station.
+
+For a small observed difference, repeat with exchanged audio-frequency assignments and perform a hardware crossover where practical. Preserve both runs separately; do not pool them until the role, correction and analysis scope are aligned.
 
 <div style="page-break-before: always;"></div>
 

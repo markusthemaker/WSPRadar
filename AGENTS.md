@@ -143,6 +143,13 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
   rendering. Add fields deliberately because they affect cache keys and tests.
 - Keep SQL construction and post-fetch classification deterministic. Validate
   callsigns, locators, dates, and mode-specific inputs before interpolation.
+- Treat UI values, uploaded configurations, and other external data as
+  untrusted. Validate and normalize runtime inputs at their input boundary with
+  explicit types, allowlists or ranges, and mode-specific invariants; reject
+  invalid values with actionable field-specific errors. Repeat safety-critical
+  validation at core boundaries, do not rely on widget constraints alone, and
+  escape or encode text for its output context rather than interpolating
+  unchecked values into SQL, paths, HTML, shell commands, or filenames.
 - Preserve numerical precision unless a scientific equivalence test justifies
   changing it. Coordinates, SNR values, solar calculations, time-bin rules,
   outcome definitions, and aggregation denominators are scientific behavior.

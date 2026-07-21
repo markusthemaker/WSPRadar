@@ -29,6 +29,14 @@ class _SessionState(dict):
         self[key] = value
 
 
+class _NullContext:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+
 def test_benchmark_design_options_put_success_only_before_comparisons():
     assert list(MODE_KEYS) == [
         "none",
@@ -95,6 +103,207 @@ def test_analysis_selector_uses_full_width_segments_without_visible_heading(
     assert keyword_args["format_func"]("tx") == expected_tx_label
 
 
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_tx_ab_method_selector_uses_canonical_required_segments(
+    monkeypatch,
+    language,
+):
+    """Keep method state language-independent while localizing both choices."""
+    segmented_control = Mock(return_value=None)
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=SimpleNamespace(is_demo_mode=False),
+            segmented_control=segmented_control,
+        ),
+    )
+
+    labels = T[language]
+    config_panel._render_tx_ab_method_selector(labels)
+
+    positional_args, keyword_args = segmented_control.call_args
+    assert positional_args == (
+        labels["lbl_tx_ab_method"],
+        ("simultaneous", "sequential"),
+    )
+    assert keyword_args["selection_mode"] == "single"
+    assert keyword_args["required"] is True
+    assert keyword_args["key"] == "val_tx_ab_method"
+    assert keyword_args["format_func"]("simultaneous") == labels[
+        "opt_tx_ab_simultaneous"
+    ]
+    assert keyword_args["format_func"]("sequential") == labels[
+        "opt_tx_ab_sequential"
+    ]
+
+
+def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
+    monkeypatch,
+):
+    """Show one shared Hardware grid-4 without owning independent QTH state."""
+    text_input = Mock()
+    error = Mock()
+    columns = Mock(
+        side_effect=[
+            (_NullContext(), _NullContext()),
+            (_NullContext(), _NullContext()),
+        ]
+    )
+    session_state = _SessionState(
+        {
+            "val_callsign": "dl1mks",
+            "val_qth": "jn37aa",
+            "val_ref_callsign": "dl1mks/p",
+            "val_ref_qth": "jo62",
+            "is_demo_mode": False,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            columns=columns,
+            error=error,
+        ),
+    )
+    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
+
+    config_panel._render_reference_identity(
+        T["en"],
+        derives_hardware_grid4=True,
+    )
+
+    assert [call.args[0] for call in text_input.call_args_list] == [
+        "Target Callsign",
+        "Reference Callsign",
+        "Target Grid-4",
+        "Reference Grid-4",
+    ]
+    assert text_input.call_args_list[0].kwargs == {
+        "value": "DL1MKS",
+        "disabled": True,
+    }
+    assert text_input.call_args_list[1].kwargs["key"] == "val_ref_callsign"
+    assert text_input.call_args_list[2].kwargs == {
+        "value": "JN37",
+        "disabled": True,
+    }
+    assert text_input.call_args_list[3].kwargs == {
+        "value": "JN37",
+        "disabled": True,
+    }
+    assert session_state.val_ref_qth == "jo62"
+    error.assert_not_called()
+
+
+def test_reference_station_identity_keeps_reference_grid4_editable(monkeypatch):
+    """Keep Buddy QTH independent while retaining the shared identity layout."""
+    text_input = Mock()
+    error = Mock()
+    columns = Mock(
+        side_effect=[
+            (_NullContext(), _NullContext()),
+            (_NullContext(), _NullContext()),
+        ]
+    )
+    session_state = _SessionState(
+        {
+            "val_callsign": "DL1MKS",
+            "val_qth": "JN37AA",
+            "val_ref_callsign": "DL2XYZ",
+            "val_ref_qth": "JO62",
+            "is_demo_mode": False,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            columns=columns,
+            error=error,
+        ),
+    )
+    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
+
+    config_panel._render_reference_identity(
+        T["en"],
+        derives_hardware_grid4=False,
+    )
+
+    assert text_input.call_args_list[2].kwargs == {
+        "value": "JN37AA",
+        "disabled": True,
+    }
+    reference_qth_parameters = text_input.call_args_list[3].kwargs
+    assert reference_qth_parameters["key"] == "val_ref_qth"
+    assert reference_qth_parameters["max_chars"] == 4
+    assert reference_qth_parameters["disabled"] is False
+    assert session_state.val_ref_qth == "JO62"
+    error.assert_not_called()
+
+
+def test_reference_station_identity_reports_invalid_reference_fields(monkeypatch):
+    """Give field-specific feedback before malformed identities reach a run."""
+    text_input = Mock()
+    error = Mock()
+    columns = Mock(
+        side_effect=[
+            (_NullContext(), _NullContext()),
+            (_NullContext(), _NullContext()),
+        ]
+    )
+    session_state = _SessionState(
+        {
+            "val_callsign": "DL1MKS",
+            "val_qth": "JN37AA",
+            "val_ref_callsign": "ABC",
+            "val_ref_qth": "JO62AA",
+            "is_demo_mode": False,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            columns=columns,
+            error=error,
+        ),
+    )
+    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
+
+    config_panel._render_reference_identity(
+        T["en"],
+        derives_hardware_grid4=False,
+    )
+
+    assert [call.args[0] for call in error.call_args_list] == [
+        T["en"]["err_reference_callsign_format"],
+        T["en"]["err_reference_grid4_format"],
+    ]
+
+
+@pytest.mark.parametrize("identity", ["DL1\u00df", "D\u01311ABC", "J\u212a37"])
+def test_identity_normalization_does_not_expand_unicode_into_ascii(
+    monkeypatch,
+    identity,
+):
+    """Preserve non-ASCII input so validation can reject it visibly."""
+    session_state = _SessionState({"identity": f" {identity} "})
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    config_panel._normalize_text_state("identity", should_uppercase=True)
+
+    assert session_state.identity == identity
+
+
 def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     session_state = _SessionState()
     monkeypatch.setattr(
@@ -107,6 +316,9 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
 
     assert session_state.val_analysis_direction is None
     assert session_state.val_comp_mode == T["en"]["opt_comp_none"]
+    assert session_state.val_ref_callsign == ""
+    assert session_state.val_ref_qth == ""
+    assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_results_show_zero_target is False
     assert session_state.val_results_selected_ranges_compare == "all"
     assert session_state.val_results_selected_directions_compare == "all"
@@ -120,6 +332,8 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert analysis_context.tx_ab_repeat_interval_minutes == 10
     assert analysis_context.tx_ab_target_start_minute == 0
     assert analysis_context.tx_ab_reference_start_minute == 2
+    assert analysis_context.tx_ab_method == "simultaneous"
+    assert analysis_context.reference_qth == ""
 
 
 def test_reset_config_returns_to_success_only(monkeypatch):
@@ -140,6 +354,8 @@ def test_reset_config_returns_to_success_only(monkeypatch):
     assert session_state.val_comp_mode == T["en"]["opt_comp_none"]
     assert session_state.val_band == DEFAULT_BAND
     assert session_state.val_analysis_direction is None
+    assert session_state.val_ref_qth == ""
+    assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_results_show_non_joint is None
     assert session_state.val_results_show_zero_target is False
     assert session_state.val_results_selected_ranges_compare == "all"
@@ -170,6 +386,37 @@ def test_analysis_context_derives_hardware_direction_from_analysis_direction(
     assert analysis_context.self_test_mode == expected_self_test_mode
 
 
+def test_analysis_context_derives_hardware_reference_grid4_from_target_qth():
+    """Do not carry the inactive Buddy QTH into a Hardware request."""
+    analysis_context = build_analysis_context_from_session_state(
+        {
+            "lang": "en",
+            "val_analysis_direction": "tx",
+            "val_comp_mode": T["en"]["opt_comp_self"],
+            "val_qth": "jn37aa",
+            "val_ref_qth": "JO62",
+        }
+    )
+
+    assert analysis_context.qth == "JN37AA"
+    assert analysis_context.reference_qth == "JN37"
+
+
+def test_analysis_context_preserves_reference_station_grid4():
+    """Keep the independently authored Buddy grid in Reference Station mode."""
+    analysis_context = build_analysis_context_from_session_state(
+        {
+            "lang": "en",
+            "val_analysis_direction": "tx",
+            "val_comp_mode": T["en"]["opt_comp_buddy"],
+            "val_qth": "JN37AA",
+            "val_ref_qth": "jo62",
+        }
+    )
+
+    assert analysis_context.reference_qth == "JO62"
+
+
 def test_direction_change_resets_active_hardware_design(monkeypatch):
     """Prevent direction-specific Hardware A/B fields from being reinterpreted."""
     session_state = _SessionState(
@@ -178,7 +425,9 @@ def test_direction_change_resets_active_hardware_design(monkeypatch):
             "val_analysis_direction": "tx",
             "val_comp_mode": T["en"]["opt_comp_self"],
             "val_benchmark_offset_db": 1.5,
-            "val_self_call_b": "DL1MKS/P",
+            "val_ref_callsign": "DL1MKS/P",
+            "val_ref_qth": "JN37",
+            "val_tx_ab_method": "sequential",
             "val_tx_ab_repeat_interval_minutes": 4,
             "val_tx_ab_target_start_minute": 2,
             "val_tx_ab_reference_start_minute": 0,
@@ -195,7 +444,9 @@ def test_direction_change_resets_active_hardware_design(monkeypatch):
 
     assert session_state.val_comp_mode == T["en"]["opt_comp_none"]
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.val_self_call_b == ""
+    assert session_state.val_ref_callsign == "DL1MKS/P"
+    assert session_state.val_ref_qth == "JN37"
+    assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_tx_ab_repeat_interval_minutes == 10
     assert session_state.val_tx_ab_target_start_minute == 0
     assert session_state.val_tx_ab_reference_start_minute == 2
@@ -228,11 +479,13 @@ def test_schedule_preview_and_comparison_widths_match_the_tx_ab_ui():
     assert target == (0, 10, 20, 30, 40, 50)
     assert reference == (2, 12, 22, 32, 42, 52)
     assert separation == 2
-    assert _comparison_column_widths(
-        T["en"],
-        T["en"]["opt_comp_self"],
-        "tx",
-    ) == [0.32, 0.68]
+    for comparison_mode in _benchmark_mode_options(T["en"]):
+        for analysis_direction in (None, "rx", "tx"):
+            assert _comparison_column_widths(
+                T["en"],
+                comparison_mode,
+                analysis_direction,
+            ) == [0.5, 0.5]
 
 
 @pytest.mark.parametrize(
@@ -261,6 +514,29 @@ def test_each_benchmark_design_starts_with_zero_snr_correction(monkeypatch, benc
     callbacks.handle_comp_mode_change()
 
     assert session_state.val_benchmark_offset_db == 0.0
+
+
+def test_hardware_design_does_not_overwrite_retained_buddy_qth(monkeypatch):
+    """Hardware derives its grid from Target without changing Buddy state."""
+    session_state = _SessionState(
+        {
+            "lang": "en",
+            "val_comp_mode": T["en"]["opt_comp_self"],
+            "val_benchmark_offset_db": -1.0,
+            "val_qth": "jn37aa",
+            "val_ref_qth": "JO62",
+        }
+    )
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
+    monkeypatch.setattr(callbacks, "apply_demo_profile", lambda: None)
+
+    callbacks.handle_comp_mode_change()
+    assert session_state.val_ref_qth == "JO62"
 
 
 def test_removed_all_band_session_state_returns_to_exact_default(monkeypatch):

@@ -90,9 +90,14 @@ def init_session_state():
     if st.session_state.val_local_benchmark not in [t_cur["opt_local_best"], t_cur["opt_local_median"]]:
         st.session_state.val_local_benchmark = t_cur["opt_local_median"]
     if "val_ref_callsign" not in st.session_state: 
-        st.session_state.val_ref_callsign = "DL2XYZ"
-    if "val_self_call_b" not in st.session_state: 
-        st.session_state.val_self_call_b = ""
+        st.session_state.val_ref_callsign = ""
+    if "val_ref_qth" not in st.session_state:
+        st.session_state.val_ref_qth = ""
+    if st.session_state.get("val_tx_ab_method") not in {
+        "simultaneous",
+        "sequential",
+    }:
+        st.session_state.val_tx_ab_method = "simultaneous"
     if "val_tx_ab_repeat_interval_minutes" not in st.session_state:
         st.session_state.val_tx_ab_repeat_interval_minutes = 10
         st.session_state.val_tx_ab_target_start_minute = 0

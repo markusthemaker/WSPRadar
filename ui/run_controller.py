@@ -308,17 +308,22 @@ def render_analysis_run(
     )
 
     if not is_valid_callsign(callsign):
-        st.error(f"Invalid callsign '{callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 chars).")
+        st.error(
+            t.get(
+                "err_callsign_format",
+                "Enter a plausible 3-15 character callsign/reporting identifier.",
+            )
+        )
         st.session_state.run_mode = None
         return
 
     if not is_valid_locator(qth_locator):
-        err_msg = (
-            "Fehler: Bitte einen gültigen 4- oder 6-stelligen Locator (z.B. JN37 oder JN37AA) eingeben."
-            if st.session_state.lang == "de"
-            else "Error: Please enter a valid 4- or 6-character locator (e.g., JN37 or JN37AA)."
+        st.error(
+            t.get(
+                "err_qth_format",
+                "Enter a valid 4- or 6-character Maidenhead locator.",
+            )
         )
-        st.error(err_msg)
         st.session_state.run_mode = None
         return
 

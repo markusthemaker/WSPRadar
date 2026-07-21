@@ -45,8 +45,8 @@ EXPECTED_DEMO_FILENAMES = [
     "000_griffiths_squibb_fig3.config",
     "001_griffiths_squibb_fig6.config",
     "01_vanhamel_rx_calibration.config",
-    "02_vanhamel_rx_buddy.config",
-    "03_zander_tx_buddy.config",
+    "02_vanhamel_rx_ab.config",
+    "03_zander_tx_buddy_experiment_a.config",
     "04_zander_tx_buddy_experiment_b.config",
     "05_milazzo_tx_buddy.config",
     "06_rx_local_median_neighborhood.config",
@@ -186,7 +186,9 @@ def test_demo_configs_follow_filename_order_and_keep_canonical_settings():
 
     assert [demo_path.name for demo_path in demo_paths] == EXPECTED_DEMO_FILENAMES
     assert list(DEMO_PROFILES) == EXPECTED_DEMO_PROFILE_IDS
-    assert "Hervé" in DEMO_PROFILES["vanhamel_rx_calibration"]["label"]["en"]
+    assert "RX Chain Calibration" in DEMO_PROFILES[
+        "vanhamel_rx_calibration"
+    ]["label"]["en"]
 
     for expected_id, demo_path in zip(EXPECTED_DEMO_PROFILE_IDS, demo_paths):
         stored_configuration = json.loads(demo_path.read_text(encoding="utf-8"))
@@ -208,7 +210,7 @@ def test_demo_filenames_are_opaque_ordering_keys(tmp_path):
     demo_directory = tmp_path / "demos"
     demo_directory.mkdir()
     first_source = DEMO_PROFILES_DIR / "01_vanhamel_rx_calibration.config"
-    second_source = DEMO_PROFILES_DIR / "02_vanhamel_rx_buddy.config"
+    second_source = DEMO_PROFILES_DIR / "02_vanhamel_rx_ab.config"
     (demo_directory / "A first demo (chosen name).config").write_bytes(
         first_source.read_bytes()
     )
@@ -281,10 +283,12 @@ def test_zander_experiment_b_demo_follows_experiment_a_with_expected_configurati
     profile_keys = list(DEMO_PROFILES)
     experiment_a_index = profile_keys.index("zander_tx_buddy")
     assert profile_keys[experiment_a_index + 1] == "zander_tx_buddy_experiment_b"
-    assert "Experiment A" in DEMO_PROFILES["zander_tx_buddy"]["label"]["en"]
+    assert "Short Portable Vertical" in DEMO_PROFILES[
+        "zander_tx_buddy"
+    ]["label"]["en"]
 
     experiment_b = DEMO_PROFILES["zander_tx_buddy_experiment_b"]
-    assert "Experiment B" in experiment_b["label"]["en"]
+    assert "T2FD" in experiment_b["label"]["en"]
     assert set(experiment_b) == {"id", "label", "description", "configuration"}
     settings = experiment_b["configuration"]["settings"]
     core_parameters = settings["core_parameters"]
@@ -306,6 +310,7 @@ def test_zander_experiment_b_demo_follows_experiment_a_with_expected_configurati
     assert comparison_parameters == {
         "mode": "reference_station",
         "reference_callsign": "SK0WE",
+        "reference_qth": "JO89",
         "snr_correction_db": 0.0,
     }
     assert advanced_parameters["map_scope_km"] == 2500
@@ -317,13 +322,14 @@ def test_zander_experiment_b_demo_follows_experiment_a_with_expected_configurati
     )
 
 
-def test_tx_hardware_ab_demo_uses_scheduled_pair_science():
-    """Keep the TX demo on the sole supported periodic schedule contract."""
+def test_tx_hardware_ab_demo_selects_scheduled_pair_science():
+    """Keep the sequential TX demo explicit on the periodic schedule branch."""
     profile = DEMO_PROFILES["tx_hardware_ab"]
     assert "scheduled sequential" in profile["description"]["en"]
     assert "geplante sequenzielle" in profile["description"]["de"]
     assert profile["configuration"]["settings"]["comparison_parameters"] == {
         "mode": "hardware_ab",
+        "tx_ab_method": "sequential",
         "repeat_interval_minutes": 4,
         "target_start_minute": 0,
         "reference_start_minute": 2,

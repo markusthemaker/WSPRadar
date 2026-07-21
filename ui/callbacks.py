@@ -265,15 +265,15 @@ def handle_analysis_direction_change():
     Reset active results after selecting RX or TX analysis direction.
 
     Hardware A/B uses direction-specific parameters. Changing direction while
-    that design is active returns to Success-only mode so an RX Setup-B
-    callsign can never be reinterpreted as a TX schedule configuration, or vice
+    that design is active returns to Success-only mode so a fixed-reference
+    identity can never be reinterpreted as a TX schedule configuration, or vice
     versa.
     """
     t = T[st.session_state.lang]
     if st.session_state.get("val_comp_mode") == t["opt_comp_self"]:
         st.session_state.val_comp_mode = t["opt_comp_none"]
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.val_self_call_b = ""
+        st.session_state.val_tx_ab_method = "simultaneous"
         st.session_state.val_tx_ab_repeat_interval_minutes = 10
         st.session_state.val_tx_ab_target_start_minute = 0
         st.session_state.val_tx_ab_reference_start_minute = 2
@@ -300,8 +300,9 @@ def set_reset_config():
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_local_benchmark = t["opt_local_median"]
-    st.session_state.val_ref_callsign = "DL2XYZ"
-    st.session_state.val_self_call_b = ""
+    st.session_state.val_ref_callsign = ""
+    st.session_state.val_ref_qth = ""
+    st.session_state.val_tx_ab_method = "simultaneous"
     st.session_state.val_tx_ab_repeat_interval_minutes = 10
     st.session_state.val_tx_ab_target_start_minute = 0
     st.session_state.val_tx_ab_reference_start_minute = 2

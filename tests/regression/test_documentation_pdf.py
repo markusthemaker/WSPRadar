@@ -51,6 +51,7 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
         assert "&Delta;" not in rendered
         assert "Delta SNR =" in rendered
         assert "D<sub>relativ" in rendered
+        assert "f<sub>RF</sub> approx. f<sub>dial</sub>" in rendered
 
 
 def test_pdf_markdown_extensions_preserve_fenced_code_blocks():

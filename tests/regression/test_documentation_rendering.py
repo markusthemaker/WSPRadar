@@ -239,6 +239,35 @@ def test_english_playbooks_define_success_evidence_and_tx_ab_timing():
     assert '<a id="sec-b-5"></a>' in DOC_EN
 
 
+def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity():
+    """Keep the operator method choice, matching rules, and gate boundary aligned."""
+    expected_anchors = (
+        '<a id="sec-2-4-simultaneous"></a>',
+        '<a id="sec-2-4-sequential"></a>',
+        '<a id="sec-a-4"></a>',
+    )
+    for manual in (DOC_EN, DOC_DE):
+        for anchor in expected_anchors:
+            assert anchor in manual
+        assert "1450 Hz" in manual
+        assert "1550 Hz" in manual
+        assert "Setup A" not in manual
+        assert "Setup B" not in manual
+
+    assert "TX Hardware A/B offers two methods" in DOC_EN
+    assert "TX Hardware A/B bietet zwei Methoden" in DOC_DE
+    assert "`Simultaneous TX` is the default" in DOC_EN
+    assert "`Simultanes TX` ist die Voreinstellung" in DOC_DE
+    assert "Target Callsign` and `Reference Callsign" in DOC_EN
+    assert "Target-Rufzeichen` und `Referenz-Rufzeichen" in DOC_DE
+    assert "exact callsign plus its own grid-4" in DOC_EN
+    assert "jeweiligen exakten Rufzeichens plus des eigenen Grid-4" in DOC_DE
+    assert "Target was decoded nowhere is excluded" in DOC_EN
+    assert "Target jedoch nirgends, wird ausgeschlossen" in DOC_DE
+    assert "Earlier unpublished v1 prototypes are not migrated" in DOC_EN
+    assert "nicht veröffentlichte v1-Prototypen werden nicht migriert" in DOC_DE
+
+
 def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
     """Chapter 2 must avoid repeating run-identity guidance before interpretation."""
     assert "#### 2.1 Confirm the run identity" not in DOC_EN

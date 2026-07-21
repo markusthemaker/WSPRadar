@@ -1,7 +1,10 @@
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 
-from core.analysis_context import AnalysisContext
+from core.analysis_context import (
+    AnalysisContext,
+    TX_AB_METHOD_SEQUENTIAL,
+)
 from ui.run_controller import _analysis_request_fingerprint
 
 
@@ -51,6 +54,12 @@ def test_analysis_request_fingerprint_changes_with_scientific_inputs():
         replace(context, reference_snr_correction_db=1.2)
     )
     assert _fingerprint(context) != _fingerprint(
+        replace(context, reference_qth="JO62")
+    )
+    assert _fingerprint(context) != _fingerprint(
+        replace(context, tx_ab_method=TX_AB_METHOD_SEQUENTIAL)
+    )
+    assert _fingerprint(context) != _fingerprint(
         replace(context, tx_ab_repeat_interval_minutes=20)
     )
     assert _fingerprint(context) != _fingerprint(
@@ -63,3 +72,16 @@ def test_analysis_request_fingerprint_preserves_demo_identity():
     assert _fingerprint(active_demo_profile="demo-rx-europe") != _fingerprint(
         active_demo_profile="demo-tx-europe"
     )
+
+
+def test_analysis_context_serializes_only_canonical_target_reference_identity():
+    values = AnalysisContext(
+        callsign="DL1MKS",
+        qth="JN37UN",
+        reference_callsign="DL2XYZ",
+        reference_qth="JO62",
+    ).to_dict()
+
+    assert values["reference_callsign"] == "DL2XYZ"
+    assert values["reference_qth"] == "JO62"
+    assert "setup_b_callsign" not in values

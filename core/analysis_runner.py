@@ -5,6 +5,7 @@ and provides data-filtering utilities (Solar) before plotting.
 """
 
 from contextlib import nullcontext
+import math
 import pandas as pd
 import numpy as np
 from config import (
@@ -19,9 +20,15 @@ from core.analysis_context import (
     LOCAL_BENCHMARK_MEDIAN,
     SELF_TEST_RX,
     SELF_TEST_TX,
+    TX_AB_METHOD_SEQUENTIAL,
+    TX_AB_METHOD_SIMULTANEOUS,
     solar_path_state,
 )
-from core.input_validation import is_valid_callsign
+from core.input_validation import (
+    is_valid_callsign,
+    is_valid_grid4,
+    normalize_ascii_upper,
+)
 from core.math_utils import get_solar_state
 from core.opportunity_engine import (
     ABSOLUTE_METHOD_VERSION,
@@ -302,6 +309,27 @@ def should_retry_without_decode_filter(df, analysis):
     )
 
 
+def _validated_reference_callsign(reference_callsign):
+    """Return one normalized exact Reference callsign or raise a config error."""
+    stripped_callsign = str(reference_callsign or "").strip()
+    if not is_valid_callsign(stripped_callsign):
+        raise AnalysisConfigError(
+            "Invalid Reference Callsign. Enter 3-15 ASCII characters with at "
+            "least one slash-separated segment containing a letter and a digit."
+        )
+    return normalize_ascii_upper(stripped_callsign)
+
+
+def _validated_reference_grid4(reference_qth):
+    """Return the configured Reference grid-4 or raise a role-specific error."""
+    stripped_reference_grid = str(reference_qth or "").strip()
+    if not is_valid_grid4(stripped_reference_grid):
+        raise AnalysisConfigError(
+            "Analysis requires a valid four-character Reference QTH grid."
+        )
+    return normalize_ascii_upper(stripped_reference_grid)
+
+
 def build_analysis_batches(
     analysis_context,
     start_t,
@@ -315,22 +343,28 @@ def build_analysis_batches(
     """Build direction-specific Success and optional Compare execution batches.
 
     Success-only returns one opportunity batch. A selected benchmark returns the
-    comparison batch first and the target's separate Success batch second.
-    Invalid callsigns, locators, bands, or benchmark designs raise
-    ``AnalysisConfigError``.
+    comparison batch first and the Target's separate Success batch second.
+    Reference Station requires an exact callsign and four-character grid
+    identity. Simultaneous Hardware A/B requires distinct callsigns and derives
+    both paths' shared grid-4 from Target QTH; sequential TX Hardware A/B
+    validates and applies its periodic schedule.
+    Invalid identities, bands, methods, schedules, or benchmark designs raise
+    ``AnalysisConfigError`` before query execution.
     """
     labels = presentation_context.labels if presentation_context is not None else {}
 
     def label(key, default):
         return str(labels.get(key, default))
 
-    callsign = analysis_context.callsign.upper().strip()
+    stripped_callsign = str(analysis_context.callsign or "").strip()
 
     # Defense-in-depth: validate callsign before any SQL is assembled.
-    if not is_valid_callsign(callsign):
+    if not is_valid_callsign(stripped_callsign):
         raise AnalysisConfigError(
-            f"Invalid callsign '{callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
+            "Invalid Target Callsign. Enter 3-15 ASCII characters with at least "
+            "one slash-separated segment containing a letter and a digit."
         )
+    callsign = normalize_ascii_upper(stripped_callsign)
     if analysis_context.band not in BAND_MAP:
         raise AnalysisConfigError(
             f"Invalid operating band '{analysis_context.band}'. Choose one exact WSPR band."
@@ -344,7 +378,22 @@ def build_analysis_batches(
     start_sql = start_t.strftime("%Y-%m-%d %H:%M:%S")
     end_sql = end_t.strftime("%Y-%m-%d %H:%M:%S")
     time_filter = f"time >= '{start_sql}' AND time < '{end_sql}'"
-    benchmark_offset_db = round(float(analysis_context.reference_snr_correction_db), 1)
+    try:
+        benchmark_offset_db = float(
+            analysis_context.reference_snr_correction_db
+        )
+    except (TypeError, ValueError) as exc:
+        raise AnalysisConfigError(
+            "Reference SNR Correction must be a finite value from -99.9 to 99.9 dB."
+        ) from exc
+    if (
+        not math.isfinite(benchmark_offset_db)
+        or not -99.9 <= benchmark_offset_db <= 99.9
+    ):
+        raise AnalysisConfigError(
+            "Reference SNR Correction must be a finite value from -99.9 to 99.9 dB."
+        )
+    benchmark_offset_db = round(benchmark_offset_db, 1)
     target_snr_expr = "(snr - power + 30)"
     benchmark_snr_expr = f"(snr - power + 30 + {benchmark_offset_db:.1f})"
     decode_filter_sql = _decode_filter_sql(require_decode_code=True)
@@ -356,6 +405,7 @@ def build_analysis_batches(
             time_filter += f" AND tx_sign NOT LIKE '{prefix}%' AND rx_sign NOT LIKE '{prefix}%'"
     
     is_sequential = False
+    reference_qth_grid4 = None
     
     # Determine Reference / Buddy Parameters
     if comp_mode == COMPARISON_NONE:
@@ -363,20 +413,44 @@ def build_analysis_batches(
     elif comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         ref_radius_km = min(analysis_context.neighborhood_radius_km, MAX_DYNAMIC_RADIUS_KM)
     elif comp_mode == COMPARISON_REFERENCE_STATION:
-        ref_callsign = analysis_context.reference_callsign.upper().strip()
-        if not is_valid_callsign(ref_callsign):
-            raise AnalysisConfigError(
-                f"Invalid reference callsign '{ref_callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
-            )
+        ref_callsign = _validated_reference_callsign(
+            analysis_context.reference_callsign
+        )
+        reference_qth_grid4 = _validated_reference_grid4(
+            analysis_context.reference_qth
+        )
     elif comp_mode == COMPARISON_HARDWARE_AB:
-        ref_callsign = callsign  # defaults to target callsign (already validated above)
         if analysis_context.self_test_mode == SELF_TEST_TX:
-            is_sequential = True
-        elif analysis_context.self_test_mode == SELF_TEST_RX:
-            ref_callsign = analysis_context.setup_b_callsign.upper().strip()
-            if not is_valid_callsign(ref_callsign):
+            if analysis_context.tx_ab_method not in {
+                TX_AB_METHOD_SIMULTANEOUS,
+                TX_AB_METHOD_SEQUENTIAL,
+            }:
                 raise AnalysisConfigError(
-                    f"Invalid Setup B callsign '{ref_callsign}'. Only A-Z, 0-9, and '/' are allowed (3-15 characters)."
+                    f"Unknown TX Hardware A/B method '{analysis_context.tx_ab_method}'."
+                )
+            is_sequential = (
+                analysis_context.tx_ab_method == TX_AB_METHOD_SEQUENTIAL
+            )
+        elif analysis_context.self_test_mode == SELF_TEST_RX:
+            is_sequential = False
+        else:
+            raise AnalysisConfigError(
+                f"Unknown Hardware A/B direction '{analysis_context.self_test_mode}'."
+            )
+
+        if is_sequential:
+            # Sequential TX compares two scheduled paths under one transmitter
+            # identity and one configured Target grid-4.
+            ref_callsign = callsign
+            reference_qth_grid4 = target_qth_grid4
+        else:
+            ref_callsign = _validated_reference_callsign(
+                analysis_context.reference_callsign
+            )
+            reference_qth_grid4 = target_qth_grid4
+            if ref_callsign == callsign:
+                raise AnalysisConfigError(
+                    "Hardware A/B requires distinct Target and Reference callsigns."
                 )
     else:
         raise AnalysisConfigError(f"Unknown benchmark design '{comp_mode}'.")
@@ -450,17 +524,16 @@ def build_analysis_batches(
             ).format(radius=ref_radius_km)
         display_callsign = callsign
     else:
-        # Buddy References remain callsign-only. Hardware A/B compares two local
-        # paths, so both Setup A and Setup B use the configured Target grid-4.
-        tx_reference_grid_sql = ""
-        rx_reference_grid_sql = ""
-        if comp_mode == COMPARISON_HARDWARE_AB:
-            tx_reference_grid_sql = (
-                f" AND substring(tx_loc, 1, 4) = '{target_qth_grid4}'"
-            )
-            rx_reference_grid_sql = (
-                f" AND substring(rx_loc, 1, 4) = '{target_qth_grid4}'"
-            )
+        # Every fixed Reference identity is constrained by its exact callsign
+        # and grid-4. Reference Station owns an independent grid, while Hardware
+        # A/B derives its grid from Target QTH; sequential TX uses the Target
+        # identity for both scheduled paths.
+        tx_reference_grid_sql = (
+            f" AND substring(tx_loc, 1, 4) = '{reference_qth_grid4}'"
+        )
+        rx_reference_grid_sql = (
+            f" AND substring(rx_loc, 1, 4) = '{reference_qth_grid4}'"
+        )
         tx_peer_sql = (
             f"tx_sign = '{ref_callsign}'{tx_reference_grid_sql} "
             f"{band_filter} AND {time_filter}{decode_filter_sql}"
@@ -470,19 +543,11 @@ def build_analysis_batches(
             f"{band_filter} AND {time_filter}{decode_filter_sql}"
         )
             
-        if comp_mode == COMPARISON_HARDWARE_AB:
-            if analysis_context.self_test_mode == SELF_TEST_RX:
-                display_callsign = f"{callsign} (Setup A)"
-                comp_title = f"{ref_callsign} (Setup B)"
-            else:
-                display_callsign = f"{callsign} (Setup A)"
-                comp_title = f"{callsign} (Setup B)"
-        else:
-            display_callsign = callsign
-            comp_title = label(
-                "comp_title_ref",
-                "{callsign} (Reference)",
-            ).format(callsign=ref_callsign)
+        display_callsign = callsign
+        comp_title = label(
+            "comp_title_ref",
+            "{callsign} (Reference)",
+        ).format(callsign=ref_callsign)
 
     # Assemble Analysis Batches
     analyses = []
@@ -726,7 +791,7 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
 
     
     # 3. Vectorized cycle synchronization (RX and TX).
-    # A cycle is counted only when Setup A was demonstrably active.
+    # A cycle is counted only when the Target was demonstrably active.
     # TX: the transmitter must have sent in this cycle.
     # RX: the receiver must have heard at least one station in this cycle.
     if analysis['is_compare'] and not analysis['is_sequential'] and 'has_u' in df.columns:

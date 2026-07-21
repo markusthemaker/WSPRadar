@@ -16,6 +16,9 @@ LOCAL_BENCHMARK_BEST = "local_best"
 SELF_TEST_RX = "rx"
 SELF_TEST_TX = "tx"
 
+TX_AB_METHOD_SIMULTANEOUS = "simultaneous"
+TX_AB_METHOD_SEQUENTIAL = "sequential"
+
 SOLAR_ALL = "all"
 SOLAR_DAY = "day"
 SOLAR_NIGHT = "night"
@@ -32,8 +35,10 @@ _SOLAR_PATH_STATE = {
 class AnalysisContext:
     """Stable, localized-label-free configuration used by core analysis code.
 
-    Periodic TX A/B fields describe one shared repeat interval and two disjoint
-    even UTC start phases.
+    Reference Station identifies each side by an exact callsign and
+    four-character Maidenhead grid. Hardware A/B derives its shared grid-4 from
+    Target QTH. Periodic sequential TX A/B fields describe one shared repeat
+    interval and two disjoint even UTC start phases.
     """
 
     run_mode: str | None = None
@@ -43,10 +48,11 @@ class AnalysisContext:
     comparison_mode: str = COMPARISON_NONE
     local_benchmark: str = LOCAL_BENCHMARK_MEDIAN
     reference_callsign: str = ""
+    reference_qth: str = ""
     neighborhood_radius_km: int = 100
     reference_snr_correction_db: float = 0.0
     self_test_mode: str = SELF_TEST_RX
-    setup_b_callsign: str = ""
+    tx_ab_method: str = TX_AB_METHOD_SIMULTANEOUS
     tx_ab_repeat_interval_minutes: int = 10
     tx_ab_target_start_minute: int = 0
     tx_ab_reference_start_minute: int = 2

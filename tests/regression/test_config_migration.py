@@ -13,6 +13,7 @@ from config import (
     DEMO_PROFILES,
     prepare_config_document,
 )
+from i18n import T
 from ui import config_io
 
 
@@ -21,6 +22,7 @@ def _valid_settings(
     analysis_direction="rx",
     comparison_mode="reference_station",
     time_mode="custom",
+    tx_ab_method="simultaneous",
 ):
     """Return one valid grouped settings object for the requested active branches."""
     if time_mode == "last_x":
@@ -39,6 +41,7 @@ def _valid_settings(
         comparison_parameters["snr_correction_db"] = 0.0
     if comparison_mode == "reference_station":
         comparison_parameters["reference_callsign"] = "DL2XYZ"
+        comparison_parameters["reference_qth"] = "JO62"
     elif comparison_mode == "local_neighborhood":
         comparison_parameters.update(
             {
@@ -47,15 +50,25 @@ def _valid_settings(
             }
         )
     elif comparison_mode == "hardware_ab" and analysis_direction == "rx":
-        comparison_parameters["setup_b_callsign"] = "DL1MKS/P"
-    elif comparison_mode == "hardware_ab":
         comparison_parameters.update(
             {
+                "reference_callsign": "DL1MKS/P",
+            }
+        )
+    elif comparison_mode == "hardware_ab":
+        comparison_parameters["tx_ab_method"] = tx_ab_method
+        if tx_ab_method == "simultaneous":
+            comparison_parameters.update(
+                {
+                    "reference_callsign": "DL1MKS/P",
+                }
+            )
+        else:
+            comparison_parameters.update({
                 "repeat_interval_minutes": 10,
                 "target_start_minute": 0,
                 "reference_start_minute": 2,
-            }
-        )
+            })
 
     advanced_parameters = {
         "solar_state": "all",
@@ -126,6 +139,93 @@ def test_current_config_document_validates_complete_settings():
     assert config["callsign"] == "DL1MKS"
     assert config["qth"] == "JN37"
     assert config["start_date"].isoformat() == "2026-05-27"
+
+
+def test_reference_station_accepts_an_explicit_different_reference_qth():
+    """Keep Buddy comparisons geographically independent while matching QTH."""
+    normalized = config_io.validate_config_document(_config_document())
+
+    assert normalized["reference_callsign"] == "DL2XYZ"
+    assert normalized["reference_qth"] == "JO62"
+
+
+def test_reference_station_requires_an_exact_grid4_reference_qth():
+    """Keep the editable Buddy selector aligned with its grid-4 query scope."""
+    settings = _valid_settings(comparison_mode="reference_station")
+    settings["comparison_parameters"]["reference_qth"] = "JO62QM"
+
+    with pytest.raises(ValueError, match="reference_qth.*4-character"):
+        config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize("analysis_direction", ["rx", "tx"])
+def test_hardware_ab_rejects_a_serialized_reference_qth(analysis_direction):
+    """Persist only the Target QTH from which Hardware grid-4 is derived."""
+    settings = _valid_settings(
+        analysis_direction=analysis_direction,
+        comparison_mode="hardware_ab",
+    )
+    settings["comparison_parameters"]["reference_qth"] = "JO62"
+
+    with pytest.raises(
+        ValueError,
+        match=r"Unknown settings\.comparison_parameters field.*reference_qth",
+    ):
+        config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize(
+    ("field_path", "invalid_value"),
+    [
+        (("core_parameters", "callsign"), True),
+        (("core_parameters", "qth"), 1234),
+        (("comparison_parameters", "reference_callsign"), False),
+        (("comparison_parameters", "reference_qth"), ["JO62"]),
+    ],
+)
+def test_identity_fields_reject_non_string_json_values(field_path, invalid_value):
+    """Do not coerce JSON booleans, numbers, or arrays into identities."""
+    settings = _valid_settings(comparison_mode="reference_station")
+    section, field = field_path
+    settings[section][field] = invalid_value
+
+    with pytest.raises(ValueError, match=f"{field} must be a string"):
+        config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize(
+    ("field_path", "unicode_value"),
+    [
+        (("core_parameters", "callsign"), "DL1\u00df"),
+        (("core_parameters", "callsign"), "D\u01311ABC"),
+        (("core_parameters", "qth"), "J\u013137"),
+        (("comparison_parameters", "reference_callsign"), "DL2\ufb00"),
+        (("comparison_parameters", "reference_qth"), "J\u212a37"),
+    ],
+)
+def test_identity_validation_rejects_unicode_before_uppercase_expansion(
+    field_path,
+    unicode_value,
+):
+    """Reject confusables that Python uppercasing could turn into valid ASCII."""
+    settings = _valid_settings(comparison_mode="reference_station")
+    section, field = field_path
+    settings[section][field] = unicode_value
+
+    with pytest.raises(ValueError, match=f"{field} is not a valid"):
+        config_io.validate_config_document(_config_document(settings))
+
+
+def test_tx_hardware_v1_requires_explicit_method_without_legacy_fallback():
+    """Keep the revised pre-production v1 contract strict and unambiguous."""
+    settings = _valid_settings(
+        analysis_direction="tx",
+        comparison_mode="hardware_ab",
+    )
+    settings["comparison_parameters"].pop("tx_ab_method")
+
+    with pytest.raises(ValueError, match="tx_ab_method"):
+        config_io.validate_config_document(_config_document(settings))
 
 
 def test_config_envelope_preparation_returns_an_independent_copy():
@@ -262,6 +362,7 @@ def test_initial_tx_ab_contract_rejects_prototype_fields(
     settings = _valid_settings(
         analysis_direction="tx",
         comparison_mode="hardware_ab",
+        tx_ab_method="sequential",
     )
     settings["comparison_parameters"][prototype_field] = prototype_value
 
@@ -506,8 +607,9 @@ def test_loading_active_only_config_resets_inactive_widget_state():
         val_start_t="stale-time",
         val_end_t="stale-time",
         val_ref_callsign="STALE",
+        val_ref_qth="AA00",
         val_ref_radius_km=250,
-        val_self_call_b="STALE/P",
+        val_tx_ab_method="sequential",
         val_min_spots=50,
         val_results_show_non_joint=True,
         val_results_show_zero_target=True,
@@ -521,8 +623,9 @@ def test_loading_active_only_config_resets_inactive_widget_state():
     config_io.apply_config_state_values(normalized, session_state)
 
     assert session_state.val_ref_callsign == ""
+    assert session_state.val_ref_qth == ""
     assert session_state.val_ref_radius_km == 100
-    assert session_state.val_self_call_b == ""
+    assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_min_spots == 1
     assert session_state.val_results_show_non_joint is None
     assert session_state.val_results_show_zero_target is False
@@ -541,17 +644,29 @@ def test_loading_active_only_config_resets_inactive_widget_state():
 
 
 @pytest.mark.parametrize(
-    ("analysis_direction", "comparison_mode", "expected_comparison_fields"),
+    (
+        "analysis_direction",
+        "comparison_mode",
+        "tx_ab_method",
+        "expected_comparison_fields",
+    ),
     [
-        ("rx", "none", {"mode"}),
+        ("rx", "none", "simultaneous", {"mode"}),
         (
             "rx",
             "reference_station",
-            {"mode", "reference_callsign", "snr_correction_db"},
+            "simultaneous",
+            {
+                "mode",
+                "reference_callsign",
+                "reference_qth",
+                "snr_correction_db",
+            },
         ),
         (
             "rx",
             "local_neighborhood",
+            "simultaneous",
             {
                 "mode",
                 "local_benchmark",
@@ -562,13 +677,31 @@ def test_loading_active_only_config_resets_inactive_widget_state():
         (
             "rx",
             "hardware_ab",
-            {"mode", "setup_b_callsign", "snr_correction_db"},
+            "simultaneous",
+            {
+                "mode",
+                "reference_callsign",
+                "snr_correction_db",
+            },
         ),
         (
             "tx",
             "hardware_ab",
+            "simultaneous",
             {
                 "mode",
+                "tx_ab_method",
+                "reference_callsign",
+                "snr_correction_db",
+            },
+        ),
+        (
+            "tx",
+            "hardware_ab",
+            "sequential",
+            {
+                "mode",
+                "tx_ab_method",
                 "repeat_interval_minutes",
                 "target_start_minute",
                 "reference_start_minute",
@@ -580,12 +713,14 @@ def test_loading_active_only_config_resets_inactive_widget_state():
 def test_comparison_modes_use_only_their_active_fields(
     analysis_direction,
     comparison_mode,
+    tx_ab_method,
     expected_comparison_fields,
 ):
     """Keep each mode self-contained without persisting hidden mode state."""
     settings = _valid_settings(
         analysis_direction=analysis_direction,
         comparison_mode=comparison_mode,
+        tx_ab_method=tx_ab_method,
     )
 
     normalized = config_io.validate_config_document(_config_document(settings))
@@ -595,6 +730,56 @@ def test_comparison_modes_use_only_their_active_fields(
     if comparison_mode == "none":
         assert "min_joint_spots_per_station" not in settings["advanced_parameters"]
         assert set(settings["results_view"]) == {"success"}
+
+
+@pytest.mark.parametrize(
+    ("tx_ab_method", "expected_fields"),
+    [
+        (
+            "simultaneous",
+            {
+                "mode",
+                "tx_ab_method",
+                "reference_callsign",
+                "snr_correction_db",
+            },
+        ),
+        (
+            "sequential",
+            {
+                "mode",
+                "tx_ab_method",
+                "repeat_interval_minutes",
+                "target_start_minute",
+                "reference_start_minute",
+                "snr_correction_db",
+            },
+        ),
+    ],
+)
+def test_tx_hardware_writer_omits_inactive_method_fields(
+    tx_ab_method,
+    expected_fields,
+):
+    """Do not let hidden identity or schedule state affect saved TX A/B work."""
+    state = {
+        "val_analysis_direction": "tx",
+        "val_comp_mode": T["en"]["opt_comp_self"],
+        "val_callsign": "DL1MKS",
+        "val_qth": "JN37",
+        "val_ref_callsign": "DL1MKS/P",
+        "val_ref_qth": "JO62",
+        "val_tx_ab_method": tx_ab_method,
+        "val_tx_ab_repeat_interval_minutes": 10,
+        "val_tx_ab_target_start_minute": 0,
+        "val_tx_ab_reference_start_minute": 2,
+    }
+
+    settings = config_io._settings_from_session_state(state, "en")
+
+    assert set(settings["comparison_parameters"]) == expected_fields
+    assert "reference_qth" not in settings["comparison_parameters"]
+    config_io.normalize_config_settings(settings)
 
 
 def test_time_modes_reject_fields_from_the_inactive_branch():

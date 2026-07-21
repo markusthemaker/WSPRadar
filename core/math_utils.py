@@ -8,13 +8,16 @@ from core.input_validation import (
     is_valid_6char_locator,
     is_valid_callsign,
     is_valid_locator,
+    normalize_ascii_upper,
 )
 from core.time_utils import quantize_time
 
 def locator_to_latlon(grid: str) -> tuple:
-    """Konvertiert einen Maidenhead Locator (4 oder 6 Stellen) in Lat/Lon."""
-    grid = grid.upper().strip()
-    if len(grid) < 4: return 0.0, 0.0
+    """Convert a validated four- or six-character Maidenhead locator to Lat/Lon."""
+    stripped_grid = str(grid or "").strip()
+    if not is_valid_locator(stripped_grid):
+        raise ValueError("A valid 4- or 6-character Maidenhead locator is required.")
+    grid = normalize_ascii_upper(stripped_grid)
     lon = -180.0 + (ord(grid[0]) - 65) * 20.0 + int(grid[2]) * 2.0
     lat = -90.0 + (ord(grid[1]) - 65) * 10.0 + int(grid[3]) * 1.0
     if len(grid) >= 6:

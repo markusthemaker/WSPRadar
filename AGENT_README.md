@@ -157,14 +157,17 @@ Loading first resets inactive controls to application defaults and then applies
 the validated active branch, so a file cannot inherit stale values from the
 preceding session.
 
-The initial public runnable configuration schema is version 1. Hardware TX A/B
-settings use a shared `repeat_interval_minutes` plus disjoint
-`target_start_minute` and `reference_start_minute` phases. The visible UI names
-these three controls **Repeat Interval**, **Target Start**, and **Reference
-Start**; supported intervals are 4, 6, 10, 12, 20, 30, and 60 minutes, starts
-are even phases below the selected interval, and new sessions default to 10, 0,
-and 2 minutes respectively. Scheduled transmissions are paired by their planned
-starts; the unpublished fixed-bin prototype is not part of the public contract.
+The initial public runnable configuration schema is version 1. TX Hardware A/B
+settings select a `tx_ab_method`. The simultaneous branch stores the distinct
+`reference_callsign` and derives both paths' grid-4 from the core Target QTH, so
+it does not serialize a redundant `reference_qth`. The sequential branch uses a
+shared `repeat_interval_minutes` plus disjoint `target_start_minute` and
+`reference_start_minute` phases. The visible UI names these three controls
+**Repeat Interval**, **Target Start**, and **Reference Start**; supported
+intervals are 4, 6, 10, 12, 20, 30, and 60 minutes, starts are even phases below
+the selected interval, and new sessions default to 10, 0, and 2 minutes
+respectively. Scheduled transmissions are paired by their planned starts; the
+unpublished fixed-bin prototype is not part of the public contract.
 
 `results_view` is divided into `success` and, when applicable, `compare`.
 It preserves each branch's Segment Inspector range/direction, selected-station

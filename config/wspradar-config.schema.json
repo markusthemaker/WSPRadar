@@ -391,14 +391,14 @@
       "additionalProperties": false
     },
     "callsign": {
-      "description": "Uppercase amateur-radio callsign. An empty string is permitted in a restorable draft; running an analysis may apply stricter completeness checks.",
+      "description": "Plausible uppercase ASCII amateur-radio callsign/reporting identifier with non-empty slash-separated segments and at least one segment containing both a letter and a digit. An empty string is permitted in a restorable draft; running an analysis requires a complete value.",
       "oneOf": [
         {
           "const": ""
         },
         {
           "type": "string",
-          "pattern": "^[A-Z0-9/]{3,15}$"
+          "pattern": "^(?=.{3,15}$)(?:[A-Z0-9]+/)*(?:[A-Z0-9]*[A-Z][A-Z0-9]*[0-9][A-Z0-9]*|[A-Z0-9]*[0-9][A-Z0-9]*[A-Z][A-Z0-9]*)(?:/[A-Z0-9]+)*$"
         }
       ],
       "examples": [
@@ -413,6 +413,15 @@
       "examples": [
         "JN37",
         "JO20OT"
+      ]
+    },
+    "grid4": {
+      "description": "Uppercase four-character Maidenhead grid. An empty string is permitted in a restorable draft.",
+      "type": "string",
+      "pattern": "^(?:|[A-R]{2}[0-9]{2})$",
+      "examples": [
+        "JN37",
+        "JO20"
       ]
     },
     "timeSelection": {
@@ -537,15 +546,19 @@
       "required": [
         "mode",
         "reference_callsign",
+        "reference_qth",
         "snr_correction_db"
       ],
       "properties": {
         "mode": {
           "const": "reference_station",
-          "description": "Compare the target with one named reference station."
+          "description": "Compare the Target with one named Reference callsign and exact four-character Reference grid."
         },
         "reference_callsign": {
           "$ref": "#/$defs/callsign"
+        },
+        "reference_qth": {
+          "$ref": "#/$defs/grid4"
         },
         "snr_correction_db": {
           "$ref": "#/$defs/snrCorrectionDb"
@@ -598,18 +611,18 @@
     },
     "hardwareAbRxComparison": {
       "type": "object",
-      "description": "RX hardware A/B comparison. Analysis direction rx selects this branch.",
+      "description": "RX hardware A/B comparison. Both paths use the grid-4 derived from core Target QTH; analysis direction rx selects this branch.",
       "required": [
         "mode",
-        "setup_b_callsign",
+        "reference_callsign",
         "snr_correction_db"
       ],
       "properties": {
         "mode": {
           "const": "hardware_ab",
-          "description": "Compare alternating or parallel RX hardware setups."
+          "description": "Compare controlled RX hardware paths identified as Target and Reference."
         },
-        "setup_b_callsign": {
+        "reference_callsign": {
           "$ref": "#/$defs/callsign"
         },
         "snr_correction_db": {
@@ -619,10 +632,49 @@
       "additionalProperties": false
     },
     "hardwareAbTxComparison": {
+      "description": "TX hardware A/B comparison using simultaneous Target/Reference identities or a sequential periodic schedule.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/hardwareAbTxSimultaneousComparison"
+        },
+        {
+          "$ref": "#/$defs/hardwareAbTxSequentialComparison"
+        }
+      ]
+    },
+    "hardwareAbTxSimultaneousComparison": {
       "type": "object",
-      "description": "TX hardware A/B comparison using two disjoint periodic UTC start phases within one shared repeat interval.",
+      "description": "Simultaneous TX hardware A/B comparison using distinct Target and Reference callsigns, the grid-4 derived from core Target QTH, and synchronized WSPR cycles.",
       "required": [
         "mode",
+        "tx_ab_method",
+        "reference_callsign",
+        "snr_correction_db"
+      ],
+      "properties": {
+        "mode": {
+          "const": "hardware_ab",
+          "description": "Compare controlled TX hardware paths."
+        },
+        "tx_ab_method": {
+          "const": "simultaneous",
+          "description": "Compare distinct Target and Reference transmitters in the same WSPR cycles."
+        },
+        "reference_callsign": {
+          "$ref": "#/$defs/callsign"
+        },
+        "snr_correction_db": {
+          "$ref": "#/$defs/snrCorrectionDb"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hardwareAbTxSequentialComparison": {
+      "type": "object",
+      "description": "Sequential TX hardware A/B comparison using two disjoint periodic UTC start phases within one shared repeat interval.",
+      "required": [
+        "mode",
+        "tx_ab_method",
         "repeat_interval_minutes",
         "target_start_minute",
         "reference_start_minute",
@@ -632,6 +684,10 @@
         "mode": {
           "const": "hardware_ab",
           "description": "Compare sequential TX hardware setups identified by their deterministic schedules."
+        },
+        "tx_ab_method": {
+          "const": "sequential",
+          "description": "Compare one shared Target identity through its deterministic Target and Reference schedules."
         },
         "repeat_interval_minutes": {
           "$ref": "#/$defs/txAbRepeatIntervalMinutes"
@@ -1640,7 +1696,7 @@
       "properties": {
         "callsign": {
           "type": "string",
-          "pattern": "^[A-Z0-9/]{3,15}$"
+          "pattern": "^(?=.{3,15}$)(?:[A-Z0-9]+/)*(?:[A-Z0-9]*[A-Z][A-Z0-9]*[0-9][A-Z0-9]*|[A-Z0-9]*[0-9][A-Z0-9]*[A-Z][A-Z0-9]*)(?:/[A-Z0-9]+)*$"
         },
         "locator": {
           "type": "string",

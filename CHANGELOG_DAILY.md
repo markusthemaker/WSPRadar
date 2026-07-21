@@ -2,6 +2,29 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-07-21
+
+- Added simultaneous TX Hardware A/B as the default alternative to the existing
+  sequential TX A/B Schedule. Same-cycle TX Hardware A/B reuses the fixed
+  Reference comparison path while retaining Target-Active gating, standard
+  joint/non-joint Decode Outcomes and joint-only Delta SNR; sequential operation
+  retains deterministic scheduled pairing and Target-only Success scope.
+- Unified fixed comparison identities and terminology across RX, TX and Buddy
+  tests. Core Target QTH remains a four- or six-character geographic origin,
+  while its first four characters select archive rows. Reference Station uses
+  an editable independent Reference grid-4; RX and simultaneous TX Hardware A/B
+  display disabled Target/Reference grid-4 values derived from Target QTH and
+  omit redundant `reference_qth` from saved configurations. Callsign and
+  Maidenhead inputs now normalize and validate plausible field syntax with
+  field-specific feedback. Saved configurations remain schema version 1 but
+  require the applicable new active-branch fields; no migration is provided for
+  unpublished pre-production v1 files.
+- Audited every guided demo Reference grid-4 against its archive window. Zander
+  Experiment A is now the simultaneous Hardware A/B example, Experiment B stays
+  a QTH-constrained Reference Station example, and the English/German manuals
+  now compare simultaneous and sequential tradeoffs with separate playbooks,
+  frequency-separation and two-transmitter safety guidance.
+
 ## 2026-07-19
 
 - Added a separate provider-scoped demo query-cache lifecycle. Guided-demo

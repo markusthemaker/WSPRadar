@@ -30,7 +30,6 @@ from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     LOCAL_BENCHMARK_MEDIAN,
-    SELF_TEST_RX,
 )
 from core.opportunity_engine import (
     SUCCESS_RATE_BOUNDS,
@@ -43,6 +42,7 @@ from core.map_data import build_map_data
 from core.map_base import create_base_map_figure, create_preview_cached_base_map_figure
 from core.map_models import MapFigure
 from core.matplotlib_runtime import ensure_agg_canvas, synchronized_matplotlib
+from core.input_validation import normalize_ascii_upper
 from core.math_utils import locator_to_latlon
 
 MIN_LABEL_CUTOFF_PCT = 0.02
@@ -138,7 +138,7 @@ def _preview_base_map_cache_enabled():
 
 def _preview_basemap_cache_center(qth, fallback_latitude, fallback_longitude):
     """Return the 4-character QTH cache label and static preview basemap center."""
-    basemap_qth = str(qth or "").strip().upper()[:4]
+    basemap_qth = normalize_ascii_upper(qth)[:4]
     if len(basemap_qth) != 4:
         return "", fallback_latitude, fallback_longitude
 
@@ -346,16 +346,18 @@ def render_map_figure(
     target_call = analysis_context.callsign.upper()
     absolute_mode = "TX" if analysis_id.startswith("TX") else "RX"
     abs_terms = presentation_context.absolute_terms(absolute_mode)
-    # Setup specific labels based on the active test mode
-    if analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:
-        if analysis_context.self_test_mode == SELF_TEST_RX:
-            lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
-            lbl_only_ref = t_lang['leg_only_ref'].format(
-                ref_callsign=analysis_context.setup_b_callsign.upper()
-            )
-        else:
-            lbl_only_me = t_lang['leg_only_me'].format(callsign="Setup A")
-            lbl_only_ref = t_lang['leg_only_ref'].format(ref_callsign="Setup B")
+    # Fixed identities use their callsigns. Sequential TX uses path roles
+    # because Target and Reference share one transmitter callsign.
+    if (
+        analysis_context.comparison_mode == COMPARISON_HARDWARE_AB
+        and is_sequential
+    ):
+        lbl_only_me = t_lang['leg_only_me'].format(
+            callsign=t_lang.get('txt_target', 'Target')
+        )
+        lbl_only_ref = t_lang['leg_only_ref'].format(
+            ref_callsign=t_lang.get('txt_reference', 'Reference')
+        )
     else:
         lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
         if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
@@ -562,7 +564,13 @@ def render_map_figure(
             ref_radius = analysis_context.neighborhood_radius_km
             meta_parts.append(f"Ref: {local_mode} (≤{ref_radius} km)")
         elif analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:
-            meta_parts.append(f"Ref: Self-Test Config")
+            if is_sequential:
+                reference_role = t_lang.get('txt_reference', 'Reference')
+                meta_parts.append(f"Ref: {reference_role}")
+            else:
+                meta_parts.append(
+                    f"Ref: {analysis_context.reference_callsign.upper()}"
+                )
         else: meta_parts.append(f"Ref: {analysis_context.reference_callsign.upper()}")
     elif is_opportunity:
         meta_parts.append(
