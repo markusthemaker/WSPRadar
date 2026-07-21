@@ -40,7 +40,8 @@ measurement system.
   provider cooldowns, source-isolated query caches, demo cache affinity, and run
   provenance.
 - The preface rendered initially, with the table of contents and remaining manual
-  loaded near its viewport boundary or through an explicit fallback; PDF
+  loaded near its viewport boundary, through an explicit fallback, or when an
+  unresolved preface link requests a deferred chapter/reference anchor; PDF
   generation remains process-cached and explicitly requested.
 
 See `README.md` for the scientific method, UI walkthrough, interpretation, and
@@ -264,8 +265,8 @@ Useful files when tracing behavior:
   ownership used to guard Streamlit reruns before admission.
 - `ui/result_state.py`: lightweight result/export reset and active-run time-window
   lifecycle used by idle configuration callbacks.
-- `ui/documentation_scroll_trigger.py`: one-shot browser viewport sentinel for
-  demand-driven full-manual rendering.
+- `ui/documentation_scroll_trigger.py`: browser viewport and unresolved-anchor
+  controller for demand-driven full-manual rendering and deferred navigation.
 - `core/artifact_store.py`: artifact namespaces and lifecycle.
 
 The separate `tools/Timed-AB-Relay-Switch/` utility has its own README,

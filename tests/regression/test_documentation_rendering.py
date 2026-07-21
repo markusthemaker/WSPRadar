@@ -75,6 +75,26 @@ def _render_with_fake_streamlit(monkeypatch, fake_st, lang="en"):
     return labels, pdf_calls, scroll_trigger_calls
 
 
+def _assert_documentation_trigger_call(
+    trigger_call,
+    documentation_text,
+    *,
+    is_auto_expand_enabled,
+    is_documentation_expanded,
+    allow_initial_hash_expansion,
+):
+    """Assert the stable browser-controller inputs without duplicating anchors."""
+    assert trigger_call == {
+        "key": documentation.DOCUMENTATION_SCROLL_TRIGGER_KEY,
+        "anchor_ids": documentation._documentation_anchor_ids(documentation_text),
+        "is_auto_expand_enabled": is_auto_expand_enabled,
+        "is_documentation_expanded": is_documentation_expanded,
+        "allow_initial_hash_expansion": allow_initial_hash_expansion,
+        "on_navigation": documentation._expand_documentation_from_navigation,
+        "on_trigger": documentation._expand_documentation_from_scroll,
+    }
+
+
 def test_documentation_text_is_process_cached_without_modification():
     get_docs.cache_clear()
 
@@ -82,6 +102,18 @@ def test_documentation_text_is_process_cached_without_modification():
     assert get_docs("de") is DOC_DE
     assert get_docs("en") is DOC_EN
     assert get_docs.cache_info().hits == 1
+
+
+@pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_documentation_anchor_extraction_is_ordered_and_complete(documentation_text):
+    """Pass every explicit manual anchor to the browser navigation controller."""
+    anchor_ids = documentation._documentation_anchor_ids(documentation_text)
+
+    assert anchor_ids[0] == "sec-1"
+    assert "documentation-toc" in anchor_ids
+    assert "sec-2" in anchor_ids
+    assert "ref-1" in anchor_ids
+    assert len(anchor_ids) == len(set(anchor_ids))
 
 
 def test_manual_names_primary_and_fallback_sources_concisely():
@@ -145,6 +177,7 @@ def test_manual_split_is_three_way_lossless_and_language_independent(
 
     assert section_one_heading in section_one
     assert '<a id="sec-1-3"></a>' in section_one
+    assert '<a id="sec-1-4"></a>' in section_one
     assert documentation.DOCUMENTATION_TOC_MARKER not in section_one
     assert documentation.DOCUMENTATION_SECTION_TWO_MARKER not in section_one
     assert table_of_contents.startswith(documentation.DOCUMENTATION_TOC_MARKER)
@@ -180,6 +213,10 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
     assert DOC_EN.count("**Part 0: Preface**") == 1
     assert "### 0. Why WSPRadar?" in DOC_EN
     assert "#### 0.3 What one run produces" in DOC_EN
+    assert "#### 0.4 Your first useful run: start with a guided demo" in DOC_EN
+    assert "`Run Selected Demo`" in DOC_EN
+    assert "`Load Selected Demo Configuration`" in DOC_EN
+    assert "A demo is a worked example of WSPRadar's method" in DOC_EN
     assert "### 1. Experiment Playbooks" in DOC_EN
     assert '<strong class="defined-term">Target</strong>' in DOC_EN
     assert '<strong class="defined-term">Reference</strong>' in DOC_EN
@@ -189,7 +226,10 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
 def test_english_playbooks_define_success_evidence_and_tx_ab_timing():
     """Operator playbooks must retain the clarified Success and TX A/B guidance."""
     assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
-    assert "independently confirmed global WSPR-network opportunities" in DOC_EN
+    assert (
+        "independently confirmed WSPR-network opportunities represented in the selected evidence"
+        in DOC_EN
+    )
     assert "actual recurrence and UTC phase" in DOC_EN
     assert "WSPRadar forms scheduled pairs automatically." in DOC_EN
     assert "[Sections 7.1](#sec-7-1) and [7.7](#sec-7-7)" in DOC_EN
@@ -240,8 +280,16 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
     assert '<strong class="defined-term">qualifizierende Evidenz</strong>' in DOC_DE
     assert "where applicable" in DOC_EN
     assert "bei Compare gegebenenfalls" in DOC_DE
-    assert "record the WSPRadar application version" in DOC_EN
-    assert "erfassen die WSPRadar-Anwendungsversion" in DOC_DE
+    assert "automatically records the application name and version" in DOC_EN
+    assert "erfasst automatisch Anwendungsname und -version" in DOC_DE
+
+
+def test_end_user_manuals_omit_internal_interval_boundary_convention():
+    """Keep deterministic interval-boundary mechanics out of operator guidance."""
+    assert "half-open" not in DOC_EN
+    assert "start <= time < end" not in DOC_EN
+    assert "halboffen" not in DOC_DE
+    assert "start <= geplanter Start < end" not in DOC_DE
 
 
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():
@@ -306,6 +354,8 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
     stylesheet = rendered_styles[0]
     assert ".st-key-documentation_body .stMarkdown h4" in stylesheet
     assert ".st-key-documentation_body .stMarkdown strong.defined-term" in stylesheet
+    assert ".st-key-documentation_body a[id]:not(.header-anchor)" in stylesheet
+    assert "scroll-margin-top: 5rem" in stylesheet
     assert "strong:first-child:not(.defined-term)" in stylesheet
     assert "color: #39ff14 !important" in stylesheet
     assert 'div[data-testid="stPopover"] button[kind="primary"]' in stylesheet
@@ -325,6 +375,7 @@ def test_manual_internal_links_resolve_to_unique_anchors(documentation_text):
         "sec-1-1",
         "sec-1-2",
         "sec-1-3",
+        "sec-1-4",
     ):
         assert anchors.count(chapter_one_anchor) == 1
 
@@ -342,6 +393,7 @@ def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
         "sec-1-1",
         "sec-1-2",
         "sec-1-3",
+        "sec-1-4",
         "documentation-toc",
         "sec-2",
         "sec-3",
@@ -458,12 +510,14 @@ def test_initial_render_shows_only_section_one_and_prominent_load_fallback(
             "width": "stretch",
         }
     ]
-    assert scroll_trigger_calls == [
-        {
-            "key": documentation.DOCUMENTATION_SCROLL_TRIGGER_KEY,
-            "on_trigger": documentation._expand_documentation_from_scroll,
-        }
-    ]
+    assert len(scroll_trigger_calls) == 1
+    _assert_documentation_trigger_call(
+        scroll_trigger_calls[0],
+        DOC_EN,
+        is_auto_expand_enabled=True,
+        is_documentation_expanded=False,
+        allow_initial_hash_expansion=True,
+    )
     assert pdf_calls == [(labels, "en", "logo", "v1")]
 
 
@@ -476,7 +530,7 @@ def test_initial_render_shows_only_section_one_and_prominent_load_fallback(
     ],
     ids=("already-consumed", "tx-run-active", "rx-run-active"),
 )
-def test_scroll_trigger_is_suppressed_after_consumption_or_during_run(
+def test_navigation_controller_remains_mounted_when_scroll_trigger_is_suppressed(
     monkeypatch,
     session_state,
 ):
@@ -486,7 +540,17 @@ def test_scroll_trigger_is_suppressed_after_consumption_or_during_run(
         fake_st,
     )
 
-    assert scroll_trigger_calls == []
+    assert len(scroll_trigger_calls) == 1
+    _assert_documentation_trigger_call(
+        scroll_trigger_calls[0],
+        DOC_EN,
+        is_auto_expand_enabled=False,
+        is_documentation_expanded=False,
+        allow_initial_hash_expansion=not session_state.get(
+            documentation.DOCUMENTATION_SCROLL_TRIGGER_CONSUMED_KEY,
+            False,
+        ),
+    )
     assert fake_st.buttons[0]["label"] == "Load full documentation"
 
 
@@ -518,7 +582,14 @@ def test_scroll_callback_expands_once_and_renders_toc_and_remainder(monkeypatch)
     )
     rendered_bodies = [body for body, _kwargs in fake_st.markdowns]
 
-    assert scroll_trigger_calls == []
+    assert len(scroll_trigger_calls) == 1
+    _assert_documentation_trigger_call(
+        scroll_trigger_calls[0],
+        DOC_EN,
+        is_auto_expand_enabled=False,
+        is_documentation_expanded=True,
+        allow_initial_hash_expansion=False,
+    )
     assert section_one_lead in rendered_bodies
     assert section_one_completion in rendered_bodies
     assert table_of_contents in rendered_bodies
@@ -540,6 +611,22 @@ def test_scroll_callback_does_not_expand_or_consume_while_run_is_active(
     assert (
         documentation.DOCUMENTATION_SCROLL_TRIGGER_CONSUMED_KEY
         not in fake_st.session_state
+    )
+
+
+def test_explicit_anchor_navigation_expands_during_an_active_run(monkeypatch):
+    """Treat a documentation-link click like the explicit load control."""
+    fake_st = _FakeStreamlit(session_state={"run_mode": "tx"})
+    monkeypatch.setattr(documentation, "st", fake_st)
+
+    documentation._expand_documentation_from_navigation()
+
+    assert fake_st.session_state[documentation.DOCUMENTATION_EXPANDED_KEY] is True
+    assert (
+        fake_st.session_state[
+            documentation.DOCUMENTATION_SCROLL_TRIGGER_CONSUMED_KEY
+        ]
+        is True
     )
 
 
@@ -573,7 +660,14 @@ def test_expanded_render_restores_toc_exact_remainder_and_hide_control(monkeypat
     assert fake_st.buttons[0]["label"] == labels["btn_hide_full_documentation"]
     assert fake_st.buttons[0]["icon"] == ":material/expand_less:"
     assert fake_st.buttons[0]["width"] == "stretch"
-    assert scroll_trigger_calls == []
+    assert len(scroll_trigger_calls) == 1
+    _assert_documentation_trigger_call(
+        scroll_trigger_calls[0],
+        DOC_DE,
+        is_auto_expand_enabled=False,
+        is_documentation_expanded=True,
+        allow_initial_hash_expansion=True,
+    )
     assert pdf_calls == [(labels, "de", "logo", "v1")]
 
 
@@ -599,7 +693,14 @@ def test_manual_load_hide_and_reload_preserve_consumed_autoload(monkeypatch):
     documentation._render_documentation_section(labels, "en", "logo", "v1")
     assert fake_st.buttons[0]["label"] == labels["btn_hide_full_documentation"]
     assert fake_st.buttons[0]["on_click"] is documentation._hide_full_documentation
-    assert scroll_trigger_calls == []
+    assert len(scroll_trigger_calls) == 1
+    _assert_documentation_trigger_call(
+        scroll_trigger_calls[0],
+        DOC_EN,
+        is_auto_expand_enabled=False,
+        is_documentation_expanded=True,
+        allow_initial_hash_expansion=False,
+    )
 
     fake_st.buttons[0]["on_click"]()
     assert fake_st.session_state[documentation.DOCUMENTATION_EXPANDED_KEY] is False
@@ -612,10 +713,18 @@ def test_manual_load_hide_and_reload_preserve_consumed_autoload(monkeypatch):
 
     fake_st.markdowns.clear()
     fake_st.buttons.clear()
+    scroll_trigger_calls.clear()
     documentation._render_documentation_section(labels, "en", "logo", "v1")
     assert fake_st.buttons[0]["label"] == labels["btn_load_full_documentation"]
     assert fake_st.buttons[0]["on_click"] is documentation._load_full_documentation
-    assert scroll_trigger_calls == []
+    assert len(scroll_trigger_calls) == 1
+    _assert_documentation_trigger_call(
+        scroll_trigger_calls[0],
+        DOC_EN,
+        is_auto_expand_enabled=False,
+        is_documentation_expanded=False,
+        allow_initial_hash_expansion=False,
+    )
 
     fake_st.buttons[0]["on_click"]()
     assert fake_st.session_state[documentation.DOCUMENTATION_EXPANDED_KEY] is True

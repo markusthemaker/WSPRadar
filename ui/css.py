@@ -215,6 +215,12 @@ def apply_custom_css():
             contain-intrinsic-size: auto 12000px;
         }
 
+        .st-key-documentation_body a[id]:not(.header-anchor) {
+            display: block;
+            height: 0;
+            scroll-margin-top: 5rem;
+        }
+
         .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }
         .stMarkdown h4 { color: #ffffff !important; margin-top: 1.8rem; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
         .st-key-documentation_body .stMarkdown h4 {

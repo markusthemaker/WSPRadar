@@ -1,5 +1,7 @@
 """On-demand rendering for the long-form scientific documentation section."""
 
+import re
+
 import streamlit as st
 
 from docs.pdf_generator import get_docs, render_documentation_pdf_control
@@ -18,6 +20,7 @@ DOCUMENTATION_SCROLL_TRIGGER_KEY = "documentation_scroll_boundary_trigger"
 DOCUMENTATION_SECTION_ONE_TRIGGER_MARKER = '<a id="sec-1-3"></a>'
 DOCUMENTATION_TOC_MARKER = '<a id="documentation-toc"></a>'
 DOCUMENTATION_SECTION_TWO_MARKER = '<a id="sec-2"></a>'
+DOCUMENTATION_ANCHOR_PATTERN = re.compile(r'<a id="([^"]+)"></a>')
 
 
 def _split_documentation_sections(documentation_text):
@@ -96,6 +99,11 @@ def _hide_full_documentation():
     hide_documentation(st.session_state)
 
 
+def _expand_documentation_from_navigation():
+    """Expand the manual after an explicit unresolved-anchor navigation."""
+    expand_documentation(st.session_state)
+
+
 def _expand_documentation_from_scroll():
     """Expand the manual when visible Section 0.3 enters the viewport."""
     if st.session_state.get("run_mode"):
@@ -115,6 +123,11 @@ def _should_render_scroll_trigger(is_documentation_expanded):
     )
 
 
+def _documentation_anchor_ids(documentation_text):
+    """Return the ordered explicit anchors that internal manual links may target."""
+    return tuple(DOCUMENTATION_ANCHOR_PATTERN.findall(documentation_text))
+
+
 def _render_documentation_section(t, lang, logo_base64, version):
     """Render the preface, loading the TOC and remaining manual on demand."""
     documentation_text = get_docs(lang)
@@ -128,6 +141,12 @@ def _render_documentation_section(t, lang, logo_base64, version):
     )
     is_documentation_expanded = bool(
         st.session_state.get(DOCUMENTATION_EXPANDED_KEY, False)
+    )
+    is_scroll_trigger_consumed = bool(
+        st.session_state.get(
+            DOCUMENTATION_SCROLL_TRIGGER_CONSUMED_KEY,
+            False,
+        )
     )
 
     doc_title = "Dokumentation" if lang == "de" else "Documentation"
@@ -148,11 +167,17 @@ def _render_documentation_section(t, lang, logo_base64, version):
 
     with st.container(key=DOCUMENTATION_CONTAINER_KEY):
         st.markdown(section_one_lead, unsafe_allow_html=True)
-        if _should_render_scroll_trigger(is_documentation_expanded):
-            render_documentation_scroll_trigger(
-                key=DOCUMENTATION_SCROLL_TRIGGER_KEY,
-                on_trigger=_expand_documentation_from_scroll,
-            )
+        render_documentation_scroll_trigger(
+            key=DOCUMENTATION_SCROLL_TRIGGER_KEY,
+            anchor_ids=_documentation_anchor_ids(documentation_text),
+            is_auto_expand_enabled=_should_render_scroll_trigger(
+                is_documentation_expanded
+            ),
+            is_documentation_expanded=is_documentation_expanded,
+            allow_initial_hash_expansion=not is_scroll_trigger_consumed,
+            on_navigation=_expand_documentation_from_navigation,
+            on_trigger=_expand_documentation_from_scroll,
+        )
         st.markdown(section_one_completion, unsafe_allow_html=True)
         toggle_label_key = (
             "btn_hide_full_documentation"

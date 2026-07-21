@@ -108,7 +108,7 @@ def test_pdf_preprocessing_preserves_numbering_and_nested_map_bullets():
 def test_pdf_html_adds_named_destinations_without_removing_web_ids():
     rendered = pdf_generator._render_pdf_html(DOC_EN)
 
-    for anchor in ("sec-1", "sec-1-3", "sec-2", "sec-7", "sec-ref"):
+    for anchor in ("sec-1", "sec-1-3", "sec-1-4", "sec-2", "sec-7", "sec-ref"):
         assert f'<a id="{anchor}" name="{anchor}"></a>' in rendered
 
 

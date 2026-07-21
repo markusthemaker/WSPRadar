@@ -395,6 +395,12 @@ for future end-user documentation work:
   consequence it has, what claim is supported, or how a problem is diagnosed.
   When evidence supports practical value, explain it in a constructive,
   appropriately positive tone without overstating the supported claim.
+- **Keep automatic interval-boundary semantics out of the end-user manual.**
+  The half-open query/window convention is a deterministic internal rule, not
+  an operator choice or reporting requirement. Do not mention it in
+  `docs/doc_en.py`, `docs/doc_de.py` or generated `README.md`; retain exact
+  boundary semantics only in code, tests and engineering architecture where
+  they protect implementation correctness.
 - **Exclude self-evident presentation narration.** Do not document typography,
   font style, legend placement, panel placement, title prefixes, spacing,
   axis-label styling, or the absence of unrelated statistics or annotations.

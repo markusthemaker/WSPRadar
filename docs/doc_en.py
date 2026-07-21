@@ -23,7 +23,7 @@ The real challenge is therefore not merely to observe a difference. It is to det
 
 This is where WSPR provides an unusually suitable foundation. Its repeated, time-stamped and machine-decoded low-power transmissions create observations across many stations, distances, directions and propagation states within a worldwide volunteer network <a href="#ref-6">[Ref-6]</a> <a href="#ref-7">[Ref-7]</a> <a href="#ref-8">[Ref-8]</a>. WSPRadar does not turn those observations into a calibrated antenna range. It organizes them into a more controlled, semi-quantitative and auditable station experiment: comparable conditions are brought together, station activity is checked, differences in reported transmit power are accounted for, and the result remains traceable to the contributing stations and spots.
 
-Depending on the band, station activity and selected time window, hundreds to thousands of observations can accumulate over hours or days. Repetition across many radio paths and propagation states helps distinguish chance events from recurring patterns and supports semi-quantitative statements about the magnitude, geographic distribution and persistence over time of an observed effect. This is not a calibrated laboratory measurement, but it can provide a solid technical and scientific evidence base for evaluating the complete station under real operating conditions.
+Depending on the band, station activity and selected time window, hundreds to thousands of observations can accumulate over hours or days. Repetition across many radio paths and propagation states helps distinguish chance events from recurring patterns and supports semi-quantitative statements about the magnitude, geographic distribution and persistence over time of an observed difference or pattern. This is not a calibrated laboratory measurement, but it can provide a solid technical and scientific evidence base for evaluating the complete station under real operating conditions.
 
 Used this way, WSPR becomes more valuable to the wider amateur community as well. Accurate callsigns, locators and power reports, stable operation and documented changes turn routine WSPR beaconing into evidence that can be reused rather than merely watched.
 
@@ -89,9 +89,26 @@ Results open on a map and can be followed through one evidence path:
 
 The map locates the observed pattern; it is the start of the analysis, not the conclusion. The Segment Inspector shows the evidence for a selected distance and direction. Station Insights shows which identities contribute. Drill-Down exposes the observations, same-cycle pairs or scheduled TX A/B pairs behind the summaries.
 
-A strong result is one in which the run definition, station breadth, observation volume, geographic and time pattern, descriptive Stability and underlying rows tell a consistent story. Repeating the same design across another suitable window can show whether that story persists.
+A strong result is one in which the run definition, station breadth, observation volume, geographic and time pattern, descriptive Stability and underlying rows are mutually consistent and support the same bounded interpretation. Repeating the same design across another suitable window can show whether that interpretation persists.
 
 The aim is a clear operating conclusion: **what differed, where and when, relative to which Reference, by how much, and with how much supporting evidence.**
+
+<a id="sec-1-4"></a>
+
+#### 0.4 Your first useful run: start with a guided demo
+
+The quickest way to learn WSPRadar is to run a maintained demo before configuring your own station. Open `Load Demo`, select a profile, and then choose one of two actions:
+
+* **`Run Selected Demo`** runs the maintained configuration unchanged.
+* **`Load Selected Demo Configuration`** loads it into the controls so you can inspect the Target, Direction, band, UTC window, Benchmark Design, filters and evidence thresholds before starting it with `Run RX Analysis` or `Run TX Analysis`.
+
+For the first pass, leave the scientific controls unchanged. An unchanged loaded profile remains a guided demo. Editing a scientific control changes the experimental question and turns the profile into an ordinary analysis. A demo is a worked example of WSPRadar's method, not evidence about your own station.
+
+When the results open, follow the standard evidence path introduced above:
+
+**Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**
+
+Use [Section 2.1](#sec-3-2) while interpreting the Success result. If the demo also produces a Compare result, read [Section 2.2](#sec-3-3) before interpreting Delta SNR or Decode Outcomes. Then return to [Section 0.2](#sec-1-2), choose the experiment design that matches your station question, and configure your first station run.
 
 <a id="documentation-toc"></a>
 
@@ -104,6 +121,7 @@ The aim is a clear operating conclusion: **what differed, where and when, relati
     * [0.1 WSPR in 2 Minutes](#sec-1-1)
     * [0.2 Choose the question you want to answer](#sec-1-2)
     * [0.3 What one run produces](#sec-1-3)
+    * [0.4 Your first useful run: start with a guided demo](#sec-1-4)
 
 **Part I: Operator Guide**
 
@@ -262,7 +280,7 @@ Use an operating window with observable Target activity and enough independent W
 
 **Evidence-matched conclusion**
 
-> For this Target, band, UTC window and selected peer population, the displayed Success Rate summarizes the fraction of independently confirmed global WSPR-network opportunities in which the Target also produced qualifying evidence, calculated per peer and then balanced across qualifying peers.
+> For this Target, band, UTC window and selected peer population, the displayed Success Rate summarizes how often the Target also produced qualifying evidence among the independently confirmed WSPR-network opportunities represented in the selected evidence, calculated per peer and then balanced across qualifying peers.
 
 In everyday station terms: among the worldwide WSPR activity that this run could independently verify and fairly test, the result shows how consistently your station also produced the expected TX or RX evidence. The successful-decode SNR view separately shows the signal strengths of the Target evidence that was actually decoded.
 
@@ -828,7 +846,7 @@ These controls define the Target, operating direction, band and evidence window.
 | **Operating Band** | `20m` | Exactly one of `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` or `23cm`. |
 | **Time Selection** | `Last X Hours` | Selects recent or custom UTC evidence. Recent mode allows 1 to 168 hours and defaults to 24. |
 | **Last hours back (DB updated every 15 min)** | `24` | Appears for `Last X Hours`; accepts 1 to 168 hours. The absolute endpoints are resolved when the run starts and retained for that active run. At save time, choose whether the file keeps `Last X Hours` or freezes those resolved UTC endpoints. |
-| **Start Date**, **End Date**, **Start Time (UTC)**, **End Time (UTC)** | previous day `00:00` through current day `23:59` | Appear for `Custom Date/Time`. Dates start at 2008 and one window is limited to 31 days. Resolved endpoints are quantized down to 15-minute boundaries. Success and Compare both use the half-open interval described in [the time model](#sec-7-1). |
+| **Start Date**, **End Date**, **Start Time (UTC)**, **End Time (UTC)** | previous day `00:00` through current day `23:59` | Appear for `Custom Date/Time`. Dates start at 2008 and one window is limited to 31 days. Resolved endpoints are quantized down to 15-minute boundaries. |
 
 Use the callsign exactly as uploaded. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` and `DL1MKS/QRP` are separate identities; WSPRadar does not apply hidden prefix matching.
 
@@ -1036,7 +1054,7 @@ Peer identities use exact callsign plus the full reported locator string. Bad, s
 
 WSPRadar first requests rows using `code = 1` for WSPR-2 evidence. If the strict query returns no Target-side evidence, it retries without that predicate for historical compatibility and reports the fallback in run status.
 
-The fallback broadens selection. The current export package does not preserve the effective decode-filter or fallback state. Retain the reported run status in the experiment notes, especially because Compare and Success can take different paths.
+The fallback broadens selection and can differ between Compare and Success. WSPRadar applies it automatically; run status shows which query path was used for diagnosis.
 
 <a id="sec-6-5"></a>
 
@@ -1192,9 +1210,9 @@ The matrix is an orientation aid. The definitions, formulas and processing rules
 
 WSPRadar reads the public `wspr.rx` table through the selected read-only ClickHouse HTTP interface. Spots are observational records from independently operated transmitters, receivers, software and networks. They are not a randomized or calibrated sample of possible paths. Decode selection, historical fallback and upstream-data behavior are documented once in [Sections 5.4-5.6](#sec-6-4).
 
-The selected UTC endpoints are resolved when the run starts, then both are quantized down to 15-minute boundaries for query reuse. Success and Compare use the same half-open interval, `start <= time < end`: an observation exactly at the quantized start is eligible, while one exactly at the quantized end is excluded. Adjacent analysis windows therefore do not share an endpoint observation.
+The selected UTC endpoints are resolved when the run starts, then both are quantized down to 15-minute boundaries for query reuse. WSPRadar applies the resulting time window consistently to Success and Compare.
 
-A **WSPR cycle** is the two-minute interval aligned to an even UTC minute. WSPRadar derives simultaneous cycles from spot timestamps. Sequential TX A/B instead retains timestamps, admits only each path's configured modulo schedule, and attaches the planned Target and Reference starts of its nearest one-to-one pair. A scheduled pair is eligible only when both planned starts satisfy `start <= planned start < end`.
+A **WSPR cycle** is the two-minute interval aligned to an even UTC minute. WSPRadar derives simultaneous cycles from spot timestamps. Sequential TX A/B instead retains timestamps, admits only each path's configured modulo schedule, and attaches the planned Target and Reference starts of its nearest one-to-one pair. A scheduled pair is eligible only when both planned starts fall within the analysis window.
 
 <a id="sec-7-2"></a>
 #### 7.2 Identity and matching rules
@@ -1214,7 +1232,7 @@ Success and all Compare modes use exact Target callsign plus configured Target g
 
 Peer identities use exact callsign plus the full reported locator string. Bad, stale or changing locators can split one physical station, move it into the wrong segment or trigger the moving-station filter.
 
-Multiple qualifying rows for one side of a normal simultaneous peer-cycle are consolidated; the maximum normalized SNR represents that side. Local Median Neighborhood instead takes a within-local-identity median and then a median across local identities.
+Across four audited demos, 99.83% of 223,197 side station-cycles contained exactly one qualifying row; all 373 multi-row cases occurred in the 2017 legacy dataset, while the other three demos had none. When multiple rows occur, WSPRadar uses the strongest qualifying normalized SNR as the logical station identity's best-observed value. Exact repeats and weaker secondary decodes cannot lower it, consistent with best-SNR merging in some multi-receiver systems. <a href="#ref-11">[Ref-11]</a> This is not a central estimate for one physical receiver; differences between sides in the number or distribution of non-identical rows can favor one side. Local Median Neighborhood instead takes a median within each local identity and then across identities.
 
 The local pool excludes the Target by exact callsign. A base callsign and a suffixed callsign are therefore distinct identities unless the exact Target form matches. Each local contribution retains its reported locator as part of identity.
 
@@ -1320,7 +1338,7 @@ The station-balanced value and pooled observation-level value answer different q
 **Sequential TX A/B**
 
 1. Retain exact-callsign spots only when their UTC start matches the configured Target or Reference schedule.
-2. Pair scheduled Target and Reference starts one-to-one by nearest cyclic separation and require both planned starts to satisfy `start <= planned start < end`.
+2. Pair scheduled Target and Reference starts one-to-one by nearest cyclic separation and require both planned starts to fall within the analysis window.
 3. Group each side by planned pair and peer `callsign + locator`.
 4. Calculate one micro-median per side and pair.
 5. Calculate Pair Delta where both micro-medians exist; retain a one-sided pair as Only Target or Only Reference.
@@ -1440,23 +1458,32 @@ These boundaries do not prevent useful station comparisons. They determine which
 <a id="sec-8-3"></a>
 #### 8.3 Reporting checklist
 
-For a serious result, preserve and report:
+For a serious result, preserve the analysis definition, the evidence supporting the conclusion and the external experiment record.
 
-* preserve the saved `.config`; it and `run_metadata.json` record the WSPRadar application version, but separately record the exact Git commit and clean-worktree state because the export package does not capture them;
-* configured UTC selection and, when available from the run notes, the resolved 15-minute query bounds, interpreted as the common half-open interval `[start, end)`;
-* exact band and TX/RX direction;
-* Target callsign and configured QTH;
-* Benchmark Design and, for Compare where applicable, the fixed Reference or Setup B identity or the local radius and benchmark method;
-* Hardware schedule design where applicable;
-* Reference SNR Correction and calibration basis;
-* special, moving-station and solar filters;
-* all evidence thresholds;
-* joint station and joint spot/pair counts;
-* station-level median Delta SNR and 90% Stability interval;
-* Decode Outcomes and `STATIONS` / `SPOTS` distributions;
-* Success Rate with its denominator and weighting level;
-* equipment, power, schedule and known limitations;
-* export package plus external experiment notes.
+* Save the versioned `.config`. It records the settings applicable to the run:
+    * **Core Parameters:** RX/TX direction, Target callsign and QTH, band, and relative or absolute UTC time selection;
+    * **Comparison Parameters:** Benchmark Design and, as applicable, Reference or Setup B identity, local benchmark method and radius, scheduled TX A/B repeat interval and path phases, and Reference SNR Correction;
+    * **Advanced Settings:** solar-state selection, map scope, special-callsign and moving-station exclusions, and the applicable evidence thresholds;
+    * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of non-joint or zero-Target evidence.
+
+  Inactive comparison branches, table and Drill-Down filters and other transient UI state are not stored. When preserving a completed run made with `Last X Hours`, save its resolved absolute UTC window if a later run should address the same period; otherwise the relative selection intentionally advances with time.
+
+* Retain the analysis export package and report the evidence actually used for the conclusion:
+    * UTC period, band, direction, Target identity, comparison design and selected geographic and temporal scope;
+    * Success Rate with its denominator and weighting level;
+    * for Compare, joint-station and joint-spot or pair counts, station-level median Delta SNR and its 90% Stability interval;
+    * relevant Decode Outcomes and `STATIONS` / `SPOTS` distributions;
+    * the bounded interpretation and any known evidence limitations.
+
+* Separately record experimental context that WSPRadar cannot infer or independently verify:
+    * physical antenna, feedline and RF-path arrangement;
+    * switch or splitter topology and the mapping between configured identities and physical paths;
+    * transmitter, receiver, decoder and supporting software;
+    * actual transmit power, its WSPR reporting basis and any calibration measurements;
+    * actual operating or switching schedule, interruptions and reversed assignments;
+    * faults, intentional changes, local interference, weather or other conditions relevant to interpretation.
+
+The saved configuration restores the applicable analysis settings automatically. Retain the original export package as the evidence record for that run because a later retrieval can reflect changes in upstream records or WSPRadar.
 
 Replication, path swapping or independent calibration can strengthen a small observed difference before it supports an expensive decision.
 
@@ -1487,20 +1514,9 @@ Figures use a high-resolution light/paper presentation. Files without an applica
 
 For Compare, `figure_selected_station_evidence.png` reproduces the selected-station temporal view active when the export is prepared. Chronological mode uses the selected Compare time bin; `UTC-Hour` uses fixed one-hour slots and the same selected evidence rows. The mode is stored in the saved `.config` and in `run_metadata.json`.
 
-The saved configuration records the applicable runnable settings. `run_metadata.json` records the application name and version; export time; language; direction; band; benchmark choice; configured time selection; correction; filters; thresholds; result blocks and inspector selections.
+The saved configuration records the applicable runnable settings. `run_metadata.json` automatically records the application name and version; export time; language; direction; band; benchmark choice; configured time selection; correction; filters; thresholds; result blocks and inspector selections.
 
-The effective `code = 1` or historical-fallback state is reported while the run executes but is not stored in the package. The package also does not provide a Git commit, exact resolved pre-quantization endpoints, an explicit field recording the half-open interval convention, or a query/query-parameter fingerprint. Quantized map bounds can occur inside the opaque export signature, but that internal value is not a versioned endpoint contract and should not be treated as one.
-
-The package supports audit and reproducibility but is not a complete computational snapshot. It does not currently include:
-
-* a Git commit or clean-worktree record;
-* explicit resolved and quantized UTC endpoint fields and a machine-readable half-open-interval marker;
-* effective strict `code = 1` versus historical-fallback state for each result block;
-* exact SQL, a stable query/query-parameter fingerprint or untouched upstream responses;
-* a dependency lock or operating-system description;
-* authoritative transmitter/receiver operating logs, calibration records or external experiment notes.
-
-Retain the ZIP with station notes, switching schedule, power measurements and calibration data.
+The package contains the processed evidence used by the completed analysis, not untouched upstream responses or authoritative external operating and calibration records. Retain the ZIP with the external experiment record described in [Section 8.3](#sec-8-3).
 
 <a id="sec-8-5"></a>
 #### 8.5 Disclaimer

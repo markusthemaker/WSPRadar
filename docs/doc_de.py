@@ -23,7 +23,7 @@ Die eigentliche Herausforderung besteht deshalb nicht darin, überhaupt einen Un
 
 Genau hierfür bietet WSPR eine ungewöhnlich geeignete Grundlage. Seine wiederholten, zeitgestempelten und maschinell decodierten QRP-Aussendungen erzeugen in einem weltweiten Netz freiwillig betriebener Stationen Beobachtungen über viele Stationen, Entfernungen, Richtungen und Ausbreitungszustände <a href="#ref-6">[Ref-6]</a> <a href="#ref-7">[Ref-7]</a> <a href="#ref-8">[Ref-8]</a>. WSPRadar macht daraus kein kalibriertes Antennenmesslabor. Es ordnet die Beobachtungen jedoch zu einem kontrollierteren, semiquantitativen und nachvollziehbaren Stationsversuch: Vergleichbare Bedingungen werden zusammengeführt, Stationsaktivität wird geprüft, Unterschiede der gemeldeten Sendeleistung werden berücksichtigt, und das Ergebnis bleibt bis zu den beitragenden Stationen und Spots überprüfbar.
 
-Je nach Band, Stationsaktivität und gewähltem Zeitfenster können dabei über Stunden oder Tage Hunderte bis Tausende Beobachtungen zusammenkommen. Diese Wiederholung über viele Funkwege und Ausbreitungszustände hilft, zufällige Einzelereignisse von wiederkehrenden Mustern zu unterscheiden und semiquantitative Aussagen über Größe, räumliche Verteilung und zeitliche Beständigkeit eines beobachteten Effekts abzuleiten. So entsteht keine kalibrierte Labormessung, wohl aber eine solide technisch-wissenschaftliche Evidenzbasis für die Bewertung der vollständigen Station unter realen Betriebsbedingungen.
+Je nach Band, Stationsaktivität und gewähltem Zeitfenster können dabei über Stunden oder Tage Hunderte bis Tausende Beobachtungen zusammenkommen. Diese Wiederholung über viele Funkwege und Ausbreitungszustände hilft, zufällige Einzelereignisse von wiederkehrenden Mustern zu unterscheiden und semiquantitative Aussagen über Größe, räumliche Verteilung und zeitliche Beständigkeit eines beobachteten Unterschieds oder Musters abzuleiten. So entsteht keine kalibrierte Labormessung, wohl aber eine solide technisch-wissenschaftliche Evidenzbasis für die Bewertung der vollständigen Station unter realen Betriebsbedingungen.
 
 So eingesetzt wird WSPR auch für die gesamte Amateurfunkgemeinschaft wertvoller. Korrekte Rufzeichen, Locator und Leistungsangaben, stabiler Betrieb und dokumentierte Änderungen machen aus gewöhnlichem WSPR-Bakenbetrieb Evidenz, die sich wiederverwenden lässt, statt lediglich auf der Karte betrachtet zu werden.
 
@@ -89,9 +89,26 @@ Die Ergebnisse öffnen sich auf einer Karte und lassen sich entlang eines durchg
 
 Die Karte lokalisiert das beobachtete Muster; sie ist der Ausgangspunkt der Analyse, nicht die Schlussfolgerung. Der Segment-Inspektor zeigt die Evidenz für eine gewählte Entfernung und Richtung. Station Insights zeigt, welche Identitäten beitragen. Drill-Down legt die Beobachtungen, Paare desselben Zyklus oder geplanten TX-A/B-Paare hinter den Zusammenfassungen offen.
 
-Ein belastbares Ergebnis liegt vor, wenn Laufdefinition, Breite der Stationsbasis, Beobachtungsumfang, räumliches und zeitliches Muster, deskriptive Stability und die zugrunde liegenden Datenzeilen ein konsistentes Bild ergeben. Die Wiederholung desselben Designs in einem weiteren geeigneten Zeitfenster kann zeigen, ob dieses Bild Bestand hat.
+Ein belastbares Ergebnis liegt vor, wenn Laufdefinition, Breite der Stationsbasis, Beobachtungsumfang, räumliches und zeitliches Muster, deskriptive Stability und die zugrunde liegenden Datenzeilen miteinander vereinbar sind und dieselbe klar begrenzte Interpretation stützen. Die Wiederholung desselben Designs in einem weiteren geeigneten Zeitfenster kann zeigen, ob diese Interpretation Bestand hat.
 
 Das Ziel ist eine klare betriebliche Aussage: **Was unterschied sich wo und wann gegenüber welcher Referenz, um wie viel und mit wie viel stützender Evidenz?**
+
+<a id="sec-1-4"></a>
+
+#### 0.4 Der erste sinnvolle Lauf: mit einer geführten Demo beginnen
+
+Am schnellsten lernst du WSPRadar kennen, wenn du vor der Konfiguration deiner eigenen Station eine gepflegte Demo ausführst. Öffne `Demo laden`, wähle ein Profil und anschließend eine von zwei Aktionen:
+
+* **`Ausgewaehlte Demo starten`** führt die gepflegte Konfiguration unverändert aus.
+* **`Ausgewaehlte Demo-Konfiguration laden`** lädt sie in die Bedienelemente, damit du Target, Richtung, Band, UTC-Zeitfenster, Benchmark-Design, Filter und Evidenzschwellen prüfen kannst, bevor du sie mit `RX-Analyse starten` oder `TX-Analyse starten` ausführst.
+
+Lass die wissenschaftlichen Bedienelemente beim ersten Durchlauf unverändert. Ein unverändert geladenes Profil bleibt eine geführte Demo. Das Bearbeiten eines wissenschaftlichen Bedienelements ändert die Versuchsfrage und macht aus dem Profil eine gewöhnliche Analyse. Eine Demo ist ein durchgearbeitetes Beispiel für die Methode von WSPRadar, keine Evidenz über deine eigene Station.
+
+Wenn sich die Ergebnisse öffnen, folge dem oben eingeführten Standardpfad durch die Evidenz:
+
+**Karte -> Stationen und Spots -> Segment-Inspektor -> Station Insights -> Drill-Down**
+
+Nutze beim Interpretieren des Success-Ergebnisses [Abschnitt 2.1](#sec-3-2). Wenn die Demo auch ein Compare-Ergebnis erzeugt, lies vor der Interpretation von Delta SNR oder Decode Outcomes [Abschnitt 2.2](#sec-3-3). Kehre danach zu [Abschnitt 0.2](#sec-1-2) zurück, wähle das zu deiner Stationsfrage passende Versuchsdesign und konfiguriere deinen ersten Lauf mit der eigenen Station.
 
 <a id="documentation-toc"></a>
 
@@ -104,6 +121,7 @@ Das Ziel ist eine klare betriebliche Aussage: **Was unterschied sich wo und wann
     * [0.1 WSPR in zwei Minuten](#sec-1-1)
     * [0.2 Die passende Fragestellung wählen](#sec-1-2)
     * [0.3 Was ein Lauf liefert](#sec-1-3)
+    * [0.4 Der erste sinnvolle Lauf: mit einer geführten Demo beginnen](#sec-1-4)
 
 **Teil I: Leitfaden für den Funkbetrieb**
 
@@ -262,7 +280,7 @@ Verwende ein Betriebsfenster mit beobachtbarer Target-Aktivität und genügend u
 
 **Evidenzgerechte Schlussfolgerung**
 
-> Für dieses Target, Band, UTC-Zeitfenster und die ausgewählte Peer-Population fasst die angezeigte Success Rate den Anteil der unabhängig bestätigten Opportunities im weltweiten WSPR-Netz zusammen, in denen auch das Target qualifizierende Evidenz lieferte. Die Rate wird zunächst je Peer berechnet und anschließend gleichgewichtet über alle qualifizierenden Peers gemittelt.
+> Für dieses Target, Band, UTC-Zeitfenster und die ausgewählte Peer-Population fasst die angezeigte Success Rate zusammen, wie oft das Target unter den unabhängig bestätigten WSPR-Netzwerk-Opportunities, die in der ausgewählten Evidenz vertreten sind, ebenfalls qualifizierende Evidenz lieferte. Die Rate wird zunächst je Peer berechnet und anschließend gleichgewichtet über alle qualifizierenden Peers gemittelt.
 
 In der Stationspraxis bedeutet das: Von den weltweiten WSPR-Aktivitäten, die dieser Lauf unabhängig bestätigen und damit belastbar prüfen konnte, zeigt das Ergebnis, wie regelmäßig deine Station ebenfalls die erwartete TX- oder RX-Evidenz lieferte. Die SNR-Ansicht der erfolgreichen Decodes zeigt davon getrennt die Signalstärken der tatsächlich decodierten Target-Evidenz.
 
@@ -826,7 +844,7 @@ Diese Bedienelemente definieren Target, Betriebsrichtung, Band und Evidenzfenste
 | **Frequenzband** | `20m` | Genau eines aus `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` oder `23cm`. |
 | **Zeitraum-Auswahl** | `Letzte X Stunden` | Wählt aktuelle oder benutzerdefinierte Evidenz in UTC. Der Modus `Letzte X Stunden` erlaubt 1 bis 168 Stunden und verwendet standardmäßig 24. |
 | **Stunden zurück (DB Update alle 15 Min)** | `24` | Erscheint für `Letzte X Stunden` und akzeptiert 1 bis 168 Stunden. Die absoluten Endpunkte werden beim Start aufgelöst und für diesen aktiven Lauf festgehalten. Beim Speichern wählst du, ob die Datei `Letzte X Stunden` beibehält oder diese aufgelösten UTC-Endpunkte festschreibt. |
-| **Startdatum**, **Enddatum**, **Startzeit (UTC)**, **Endzeit (UTC)** | Vortag `00:00` bis aktueller Tag `23:59` | Erscheinen für `Datum/Uhrzeit manuell`. Datumswerte beginnen im Jahr 2008; ein einzelnes Fenster ist auf 31 Tage begrenzt. Die aufgelösten Endpunkte werden auf 15-Minuten-Grenzen abgerundet. Success und Compare verwenden beide das im [Zeitmodell](#sec-7-1) beschriebene halboffene Intervall. |
+| **Startdatum**, **Enddatum**, **Startzeit (UTC)**, **Endzeit (UTC)** | Vortag `00:00` bis aktueller Tag `23:59` | Erscheinen für `Datum/Uhrzeit manuell`. Datumswerte beginnen im Jahr 2008; ein einzelnes Fenster ist auf 31 Tage begrenzt. Die aufgelösten Endpunkte werden auf 15-Minuten-Grenzen abgerundet. |
 
 Verwende das Rufzeichen exakt so, wie es hochgeladen wurde. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1` und `DL1MKS/QRP` sind eigenständige Identitäten; WSPRadar führt keine verdeckte Präfixzuordnung durch.
 
@@ -1034,7 +1052,7 @@ Peer-Identitäten bestehen aus dem exakten Rufzeichen plus der vollständig geme
 
 WSPRadar fragt für WSPR-2-Evidenz zunächst Zeilen mit `code = 1` ab. Liefert die strenge Abfrage keine Target-seitige Evidenz, wird sie aus Gründen der historischen Kompatibilität ohne dieses Prädikat wiederholt; der Fallback wird im Laufstatus gemeldet.
 
-Der Fallback erweitert die Auswahl. Das aktuelle Exportpaket hält weder den effektiv verwendeten Decode-Filter noch den Fallback-Zustand fest. Bewahre deshalb den gemeldeten Laufstatus in den Versuchsnotizen auf – insbesondere, weil Compare und Success unterschiedliche Wege nehmen können.
+Der Fallback erweitert die Auswahl und kann für Compare und Success unterschiedlich ausfallen. WSPRadar wendet ihn automatisch an; der Laufstatus zeigt zu Diagnosezwecken, welcher Abfrageweg verwendet wurde.
 
 <a id="sec-6-5"></a>
 
@@ -1190,9 +1208,9 @@ Die Matrix dient der Orientierung. Maßgeblich sind die nachfolgenden Definition
 
 WSPRadar liest die öffentliche Tabelle `wspr.rx` über die ausgewählte schreibgeschützte ClickHouse-HTTP-Schnittstelle. Spots sind Beobachtungsdatensätze unabhängig betriebener Sender, Empfänger, Software und Netzwerke. Sie sind keine randomisierte oder kalibrierte Stichprobe möglicher Funkwege. Decode-Auswahl, historischer Fallback und das Verhalten bei vorgelagerten Datenproblemen sind einmalig in den [Abschnitten 5.4-5.6](#sec-6-4) dokumentiert.
 
-Die gewählten UTC-Endpunkte werden beim Start des Laufs aufgelöst und anschließend zur Wiederverwendung der Abfrage beide auf 15-Minuten-Grenzen abgerundet. Success und Compare verwenden dasselbe halboffene Intervall, `start <= time < end`: Eine Beobachtung genau am quantisierten Start ist zulässig, eine Beobachtung genau am quantisierten Ende ausgeschlossen. Benachbarte Analysefenster teilen sich daher keine Beobachtung am Endpunkt.
+Die gewählten UTC-Endpunkte werden beim Start des Laufs aufgelöst und anschließend zur Wiederverwendung der Abfrage beide auf 15-Minuten-Grenzen abgerundet. WSPRadar wendet das resultierende Zeitfenster konsistent auf Success und Compare an.
 
-Ein **WSPR-Zyklus** ist das zweiminütige Intervall, das an einer geraden UTC-Minute beginnt. WSPRadar leitet simultane Zyklen aus den Spot-Zeitstempeln ab. Beim sequenziellen TX-A/B bleiben die Zeitstempel dagegen erhalten; zugelassen werden nur Starts, die dem konfigurierten Modulo-Zeitplan des jeweiligen Pfades entsprechen, und jedem Spot werden die geplanten Target- und Referenz-Starts seines nächstgelegenen Eins-zu-eins-Startpaares zugeordnet. Ein geplantes Paar ist nur zulässig, wenn beide geplanten Starts `start <= geplanter Start < end` erfüllen.
+Ein **WSPR-Zyklus** ist das zweiminütige Intervall, das an einer geraden UTC-Minute beginnt. WSPRadar leitet simultane Zyklen aus den Spot-Zeitstempeln ab. Beim sequenziellen TX-A/B bleiben die Zeitstempel dagegen erhalten; zugelassen werden nur Starts, die dem konfigurierten Modulo-Zeitplan des jeweiligen Pfades entsprechen, und jedem Spot werden die geplanten Target- und Referenz-Starts seines nächstgelegenen Eins-zu-eins-Startpaares zugeordnet. Ein geplantes Paar ist nur zulässig, wenn beide geplanten Starts innerhalb des Analysefensters liegen.
 
 <a id="sec-7-2"></a>
 #### 7.2 Identitäts- und Zuordnungsregeln
@@ -1212,7 +1230,7 @@ Success und alle Compare-Modi verwenden das exakte Target-Rufzeichen plus das ko
 
 Peer-Identitäten bestehen aus dem exakten Rufzeichen und der vollständig gemeldeten Locator-Zeichenfolge. Falsche, veraltete oder wechselnde Locator können eine physische Station auf mehrere Identitäten aufteilen, sie einem falschen Segment zuordnen oder den Filter für bewegliche Stationen auslösen.
 
-Mehrere qualifizierende Zeilen für eine Seite eines normalen simultanen Peer-Zyklus werden konsolidiert; das höchste normierte SNR repräsentiert diese Seite. Beim lokalen Nachbarschafts-Median wird stattdessen zunächst innerhalb jeder lokalen Identität der Median und anschließend über die lokalen Identitäten hinweg erneut der Median gebildet.
+Über vier geprüfte Demos hinweg enthielten 99,83 % von 223.197 seitenbezogenen Stationszyklen genau eine qualifizierende Zeile; alle 373 Fälle mit mehreren Zeilen traten im Legacy-Datensatz von 2017 auf, während die drei übrigen Demos keine aufwiesen. Wenn mehrere Zeilen auftreten, verwendet WSPRadar das stärkste qualifizierende normierte SNR als beobachteten Bestwert der logischen Stationsidentität. Exakte Wiederholungen und schwächere sekundäre Decodes können ihn nicht absenken; dies entspricht der Zusammenführung nach dem besten SNR in manchen Meldesystemen mit mehreren Empfängern. <a href="#ref-11">[Ref-11]</a> Dieser Wert ist kein Zentralwert für einen einzelnen physischen Empfänger; Unterschiede zwischen den Seiten in Anzahl oder Verteilung nicht identischer Zeilen können eine Seite begünstigen. Beim lokalen Nachbarschafts-Median wird stattdessen zunächst innerhalb jeder lokalen Identität der Median und anschließend über die lokalen Identitäten hinweg erneut der Median gebildet.
 
 Der lokale Pool schließt das Target anhand des exakten Rufzeichens aus. Ein Basisrufzeichen und ein Rufzeichen mit Suffix sind daher unterschiedliche Identitäten, sofern nicht die exakte Target-Form übereinstimmt. Jeder lokale Beitrag behält seinen gemeldeten Locator als Bestandteil der Identität bei.
 
@@ -1318,7 +1336,7 @@ Der stationsgleichgewichtete Wert und der gepoolte Wert auf Beobachtungsebene be
 **Sequenzielles TX-A/B**
 
 1. Spots des exakten Rufzeichens nur dann behalten, wenn ihr UTC-Start dem konfigurierten Target- oder Referenzzeitplan entspricht.
-2. Geplante Target- und Referenz-Starts anhand des kleinsten zyklischen Abstands eins zu eins zuordnen und verlangen, dass beide geplanten Starts `start <= geplanter Start < end` erfüllen.
+2. Geplante Target- und Referenz-Starts anhand des kleinsten zyklischen Abstands eins zu eins zuordnen und verlangen, dass beide geplanten Starts innerhalb des Analysefensters liegen.
 3. Jede Seite nach geplantem Paar und Peer-`callsign + locator` gruppieren.
 4. Für jede Seite und jedes Paar einen Mikro-Median berechnen.
 5. Das Paar-Delta berechnen, wenn beide Mikro-Mediane vorhanden sind; ein einseitiges Paar als Only Target oder Only Reference beibehalten.
@@ -1438,23 +1456,32 @@ Diese Grenzen verhindern keine nützlichen Stationsvergleiche. Sie bestimmen, we
 <a id="sec-8-3"></a>
 #### 8.3 Checkliste für die Ergebnisdokumentation
 
-Für ein belastbares Ergebnis bewahre folgende Angaben auf und dokumentiere sie:
+Für ein belastbares Ergebnis bewahre die Analysedefinition, die Evidenz hinter der Schlussfolgerung und die externen Versuchsaufzeichnungen auf.
 
-* die gespeicherte `.config`; sie und `run_metadata.json` erfassen die WSPRadar-Anwendungsversion. Halte jedoch den exakten Git-Commit und den Status des Arbeitsbaums separat fest, da das Exportpaket beides nicht erfasst;
-* konfigurierte UTC-Auswahl und, sofern aus den Laufnotizen verfügbar, die aufgelösten 15-Minuten-Abfragegrenzen, interpretiert als gemeinsames halboffenes Intervall `[start, end)`;
-* exaktes Band und TX-/RX-Richtung;
-* Target-Rufzeichen und konfiguriertes QTH;
-* Benchmark-Design und bei Compare gegebenenfalls die feste Referenz- oder Setup-B-Identität beziehungsweise den lokalen Radius und die Benchmark-Methode;
-* gegebenenfalls den TX-A/B-Zeitplan;
-* Referenz-SNR-Korrektur und deren Kalibriergrundlage;
-* Filter für spezielle und bewegte Stationen sowie solare Filter;
-* alle Evidenzschwellen;
-* Anzahl der Joint-Stationen und Joint-Spots bzw. -Paare;
-* Median des Delta SNR auf Stationsebene und 90-%-Stability-Intervall;
-* Decode Outcomes sowie Verteilungen unter `STATIONS` / `SPOTS`;
-* Success Rate mit ihrem Nenner und der Gewichtungsebene;
-* Geräte, Leistung, Zeitplan und bekannte Einschränkungen;
-* Exportpaket zusammen mit externen Versuchsnotizen.
+* Speichere die versionierte `.config`. Sie erfasst die für den Lauf zutreffenden Einstellungen:
+    * **Kernparameter:** RX-/TX-Richtung, Target-Rufzeichen und QTH, Band sowie relative oder absolute UTC-Zeitauswahl;
+    * **Benchmark-Einstellungen:** Benchmark-Design und, soweit zutreffend, Identität der Referenz oder von Setup B, lokale Benchmark-Methode und Radius, Wiederholintervall und Pfadphasen beim geplanten TX-A/B sowie Referenz-SNR-Korrektur;
+    * **erweiterte Einstellungen:** Auswahl des solaren Zustands, Kartenumfang, Ausschluss spezieller Rufzeichen und bewegter Stationen sowie die zutreffenden Evidenzschwellen;
+    * **dauerhafte Einstellungen der Ergebnisansicht:** ausgewählte Entfernungs- und Richtungsbereiche, ausgewählte Stationen, Evidenz-Zeitklassen und Zeitansicht sowie die Sichtbarkeit nicht gemeinsamer Evidenz oder von Evidenz ohne Target-Beobachtung.
+
+  Inaktive Vergleichszweige, Tabellen- und Drill-Down-Filter sowie anderer flüchtiger UI-Zustand werden nicht gespeichert. Wird ein abgeschlossener Lauf mit `Letzte X Stunden` aufbewahrt, speichere sein aufgelöstes absolutes UTC-Zeitfenster, wenn ein späterer Lauf denselben Zeitraum untersuchen soll; andernfalls wandert die relative Auswahl absichtlich mit der Zeit weiter.
+
+* Bewahre das Analyse-Exportpaket auf und dokumentiere die Evidenz, auf der die Schlussfolgerung tatsächlich beruht:
+    * UTC-Zeitraum, Band, Richtung, Target-Identität, Vergleichsdesign sowie ausgewählter geografischer und zeitlicher Umfang;
+    * Success Rate mit ihrem Nenner und ihrer Gewichtungsebene;
+    * bei Compare die Anzahl der Joint-Stationen und Joint-Spots beziehungsweise -Paare, den Median des Delta SNR auf Stationsebene und sein 90-%-Stability-Intervall;
+    * relevante Decode Outcomes sowie Verteilungen unter `STATIONS` / `SPOTS`;
+    * die klar begrenzte Interpretation und alle bekannten Einschränkungen der Evidenz.
+
+* Dokumentiere separat den Versuchskontext, den WSPRadar weder ableiten noch unabhängig überprüfen kann:
+    * physische Anordnung von Antenne, Speiseleitung und HF-Pfaden;
+    * Schalter- oder Splittertopologie und die Zuordnung konfigurierter Identitäten zu den physischen Pfaden;
+    * Sender, Empfänger, Decoder und unterstützende Software;
+    * tatsächliche Sendeleistung, Grundlage der WSPR-Leistungsangabe und gegebenenfalls Kalibriermessungen;
+    * tatsächlicher Betriebs- oder Schaltzeitplan, Unterbrechungen und vertauschte Zuordnungen;
+    * Störungen, beabsichtigte Änderungen, lokale Interferenz, Wetter oder andere für die Interpretation relevante Bedingungen.
+
+Die gespeicherte Konfiguration stellt die zutreffenden Analyseeinstellungen automatisch wieder her. Bewahre das ursprüngliche Exportpaket als Evidenznachweis dieses Laufs auf, da eine spätere Abfrage Änderungen der Upstream-Daten oder von WSPRadar widerspiegeln kann.
 
 Eine Wiederholung, ein Tausch der Pfade oder eine unabhängige Kalibrierung kann einen kleinen beobachteten Unterschied erhärten, bevor daraus eine kostspielige Entscheidung abgeleitet wird.
 
@@ -1485,20 +1512,9 @@ Die Abbildungen verwenden eine hochauflösende Darstellung auf hellem, druckgeei
 
 Bei Compare reproduziert `figure_selected_station_evidence.png` die für die ausgewählten Stationen aktive Zeitansicht zum Zeitpunkt der Exportvorbereitung. Der Modus `Chronologisch` verwendet die gewählte Compare-Zeitklasse; `UTC-Stunde` verwendet feste einstündige Zeitfenster und dieselben ausgewählten Evidenzzeilen. Der Modus wird in der gespeicherten `.config` und in `run_metadata.json` festgehalten.
 
-Die gespeicherte Konfiguration enthält die zutreffenden ausführbaren Einstellungen. `run_metadata.json` erfasst Anwendungsname und -version, Exportzeit, Sprache, Richtung, Band, Benchmark-Auswahl, konfigurierte Zeitauswahl, Korrektur, Filter, Schwellen, Ergebnisblöcke und Auswahlen in der Inspektionsansicht.
+Die gespeicherte Konfiguration enthält die zutreffenden ausführbaren Einstellungen. `run_metadata.json` erfasst automatisch Anwendungsname und -version, Exportzeit, Sprache, Richtung, Band, Benchmark-Auswahl, konfigurierte Zeitauswahl, Korrektur, Filter, Schwellen, Ergebnisblöcke und Auswahlen in der Inspektionsansicht.
 
-Der effektive Zustand `code = 1` bzw. des historischen Fallbacks wird während des Laufs angezeigt, aber nicht im Paket gespeichert. Das Paket enthält außerdem weder einen Git-Commit noch die exakten aufgelösten Endpunkte vor der Quantisierung, ein ausdrückliches Feld, das die halboffene Intervallkonvention festhält, oder einen Fingerabdruck der Abfrage bzw. Abfrageparameter. Quantisierte Kartengrenzen können innerhalb der nicht transparenten Exportsignatur vorkommen; dieser interne Wert ist jedoch keine versionierte Festlegung der Zeitgrenzen und darf nicht als solche behandelt werden.
-
-Das Paket unterstützt Audit und Reproduzierbarkeit, ist jedoch kein vollständiger Rechen-Snapshot. Derzeit fehlen:
-
-* Git-Commit oder Nachweis eines unveränderten Arbeitsbaums;
-* ausdrückliche aufgelöste und quantisierte UTC-Endpunktfelder sowie eine maschinenlesbare Kennzeichnung des halboffenen Intervalls;
-* der effektive Zustand des strikten `code = 1` gegenüber dem historischen Fallback je Ergebnisblock;
-* das exakte SQL, ein stabiler Fingerabdruck der Abfrage bzw. Abfrageparameter oder unveränderte vorgelagerte Antworten;
-* ein Abhängigkeits-Lockfile oder eine Beschreibung des Betriebssystems;
-* maßgebliche Betriebsprotokolle der Sender und Empfänger, Kalibrierdatensätze oder externe Versuchsnotizen.
-
-Bewahre die ZIP-Datei zusammen mit Stationsnotizen, Umschaltzeitplan, Leistungsmessungen und Kalibrierdaten auf.
+Das Paket enthält die vom abgeschlossenen Lauf verwendete verarbeitete Evidenz, nicht jedoch unveränderte Upstream-Antworten oder maßgebliche externe Betriebs- und Kalibrieraufzeichnungen. Bewahre die ZIP-Datei zusammen mit den in [Abschnitt 8.3](#sec-8-3) beschriebenen externen Versuchsaufzeichnungen auf.
 
 <a id="sec-8-5"></a>
 #### 8.5 Haftungsausschluss

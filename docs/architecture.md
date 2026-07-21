@@ -356,11 +356,19 @@ contained by single-export admission.
 
 `docs/doc_en.py` and `docs/doc_de.py` hold the full manuals as source strings.
 `ui/documentation.py` initially renders only the Part 0 preface in a Streamlit fragment.
-`ui/documentation_scroll_trigger.py` mounts a one-pixel browser visibility
-sentinel immediately before visible Section 0.3 (the stable `sec-1-3` anchor).
-When that boundary enters the viewport,
-the fragment renders the table of contents and remaining chapters once per
-session while the reader finishes Section 0.3.
+`ui/documentation_scroll_trigger.py` mounts a one-pixel browser controller
+immediately before visible Section 0.3 (the stable `sec-1-3` anchor). Its
+visibility sentinel renders the table of contents and remaining chapters once
+per session when that boundary enters the viewport while the reader finishes
+Section 0.3. The same controller intercepts an explicit preface link only when
+its known manual anchor is not yet mounted, retains that anchor across the
+documentation-fragment rerun, expands the manual, and completes the deferred
+same-page navigation after the target enters the DOM. Existing mounted anchors,
+external links, modified clicks, and middle clicks retain native browser
+behavior. A fresh direct URL fragment for a deferred manual anchor uses the same
+expansion path. Back and Forward explicitly scroll an already mounted manual
+anchor, or reuse the expansion path when that history target is not mounted.
+Hiding an already loaded manual does not immediately re-expand it.
 `Load full documentation` is a prominent explicit fallback, and the same control
 can hide the loaded content. Starting an analysis collapses the manual and
 suppresses the viewport trigger while the run remains active, without rearming a
