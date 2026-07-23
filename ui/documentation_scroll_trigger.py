@@ -37,7 +37,8 @@ export default function(component) {
         documentationContainer?.closest('[data-testid="stMain"]')
         ?? window
     );
-    const anchorIds = new Set(data?.anchorIds ?? []);
+    const orderedAnchorIds = Array.from(new Set(data?.anchorIds ?? []));
+    const anchorIds = new Set(orderedAnchorIds);
     const pendingAnchorProperty = '__wspradarPendingDocumentationAnchor';
     const requestedAnchorProperty = '__wspradarRequestedDocumentationAnchor';
     const weightedTableClassName = 'documentation-weighted-columns';
@@ -194,39 +195,80 @@ export default function(component) {
         });
     }
 
+    let mountedDocumentationAnchors = [];
+    let documentationActivationLine = 1;
+    function refreshMountedDocumentationAnchors() {
+        mountedDocumentationAnchors = [];
+        for (const anchorId of orderedAnchorIds) {
+            const anchor = document.getElementById(anchorId);
+            if (
+                anchor
+                && documentationContainer?.contains(anchor)
+            ) {
+                mountedDocumentationAnchors.push({ anchorId, anchor });
+            }
+        }
+
+        const firstMountedAnchor = mountedDocumentationAnchors[0]?.anchor;
+        documentationActivationLine = firstMountedAnchor
+            ? (
+                Number.parseFloat(
+                    window.getComputedStyle(firstMountedAnchor).scrollMarginTop
+                ) || 0
+            ) + 1
+            : 1;
+    }
+
+    function findVisibleMountedAnchorId(activationLine) {
+        let lowerBound = 0;
+        let upperBound = mountedDocumentationAnchors.length - 1;
+        let visibleAnchorId = null;
+
+        // Explicit manual anchors share one scroll-margin rule and retain source
+        // order in the DOM, so geometry is monotonic and supports binary search.
+        while (lowerBound <= upperBound) {
+            const middleIndex = Math.floor((lowerBound + upperBound) / 2);
+            const mountedAnchor = mountedDocumentationAnchors[middleIndex];
+            if (
+                mountedAnchor.anchor.getBoundingClientRect().top
+                <= activationLine
+            ) {
+                visibleAnchorId = mountedAnchor.anchorId;
+                lowerBound = middleIndex + 1;
+            } else {
+                upperBound = middleIndex - 1;
+            }
+        }
+        return visibleAnchorId;
+    }
+
     let scheduledAnchorId = null;
     function synchronizeVisibleAnchor() {
         if (
             !documentationContainer
             || window[pendingAnchorProperty]
             || scheduledAnchorId !== null
+            || mountedDocumentationAnchors.length === 0
         ) {
             return;
         }
 
         const documentationBounds = documentationContainer.getBoundingClientRect();
         let visibleAnchorId = null;
-        let lastMountedAnchorId = null;
-        for (const anchorId of anchorIds) {
-            const anchor = document.getElementById(anchorId);
-            if (!anchor || !documentationContainer.contains(anchor)) {
-                continue;
-            }
-
-            lastMountedAnchorId = anchorId;
-            const scrollMarginTop = Number.parseFloat(
-                window.getComputedStyle(anchor).scrollMarginTop
-            ) || 0;
-            const activationLine = scrollMarginTop + 1;
-            if (
-                documentationBounds.top <= activationLine
-                && documentationBounds.bottom > activationLine
-                && anchor.getBoundingClientRect().top <= activationLine
-            ) {
-                visibleAnchorId = anchorId;
-            }
+        if (
+            documentationBounds.top <= documentationActivationLine
+            && documentationBounds.bottom > documentationActivationLine
+        ) {
+            visibleAnchorId = findVisibleMountedAnchorId(
+                documentationActivationLine
+            );
         }
 
+        const lastMountedAnchorId = (
+            mountedDocumentationAnchors[
+                mountedDocumentationAnchors.length - 1
+            ]?.anchorId ?? null
+        );
         const isAtDocumentBottom = scrollContainer === window
             ? (
                 Math.ceil(window.scrollY + window.innerHeight)
@@ -357,6 +399,7 @@ export default function(component) {
     let documentationObserver = null;
     if (documentationContainer && 'MutationObserver' in window) {
         documentationObserver = new MutationObserver(() => {
+            refreshMountedDocumentationAnchors();
             scheduleDocumentationTableLayouts();
             scheduleVisibleAnchorSynchronization();
         });
@@ -365,6 +408,7 @@ export default function(component) {
             subtree: true,
         });
     }
+    refreshMountedDocumentationAnchors();
     scheduleDocumentationTableLayouts();
     scheduleVisibleAnchorSynchronization();
 

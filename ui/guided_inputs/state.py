@@ -28,6 +28,9 @@ GUIDED_SCOPE_MODES = frozenset({"general", "custom", "demo"})
 COMPARISON_MODES = frozenset(
     {"hardware_ab", "reference_station", "local_neighborhood"}
 )
+DEMO_OFFSET_INTENTS = {
+    "vanhamel_rx_calibration": "establish_offset",
+}
 
 
 def derive_guided_use_case(state: Mapping[str, Any]) -> str | None:
@@ -256,9 +259,15 @@ def reconstruct_guided_transients(
     if benchmark_mode in COMPARISON_MODES:
         state["guided_last_compare_mode"] = benchmark_mode
     correction_db = round(float(state.get("val_benchmark_offset_db", 0.0)), 1)
-    state["guided_offset_intent"] = (
-        "established_offset" if correction_db != 0.0 else "no_offset"
+    demo_offset_intent = DEMO_OFFSET_INTENTS.get(
+        state.get("active_demo_profile")
     )
+    if demo_offset_intent == "establish_offset" and correction_db == 0.0:
+        state["guided_offset_intent"] = demo_offset_intent
+    else:
+        state["guided_offset_intent"] = (
+            "established_offset" if correction_db != 0.0 else "no_offset"
+        )
     if has_loaded_demo:
         state["guided_scope_mode"] = "demo"
     else:

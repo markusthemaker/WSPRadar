@@ -64,10 +64,10 @@ def test_manual_scroll_replaces_the_current_hash_without_polluting_history():
     javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
 
     assert "function synchronizeVisibleAnchor()" in javascript
-    assert "for (const anchorId of anchorIds)" in javascript
-    assert "documentationContainer.contains(anchor)" in javascript
-    assert "window.getComputedStyle(anchor).scrollMarginTop" in javascript
-    assert "anchor.getBoundingClientRect().top <= activationLine" in javascript
+    assert "findVisibleMountedAnchorId(" in javascript
+    assert "mountedDocumentationAnchors.length === 0" in javascript
+    assert "documentationBounds.top <= documentationActivationLine" in javascript
+    assert "documentationBounds.bottom > documentationActivationLine" in javascript
     assert (
         "window.history.replaceState(window.history.state, '', encodedHash)"
         in javascript
@@ -76,6 +76,39 @@ def test_manual_scroll_replaces_the_current_hash_without_polluting_history():
     assert javascript.count("window.history.pushState") == 1
     assert javascript.index("synchronizeVisibleAnchor();") < javascript.index(
         "requestNavigation(anchorId, true)"
+    )
+
+
+def test_manual_scroll_uses_a_cached_sublinear_anchor_lookup():
+    """Keep full-manual anchor scans and style reads out of scroll frames."""
+    javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
+
+    assert "const orderedAnchorIds = Array.from(new Set(" in javascript
+    assert "let mountedDocumentationAnchors = []" in javascript
+    assert "function refreshMountedDocumentationAnchors()" in javascript
+    assert "for (const anchorId of orderedAnchorIds)" in javascript
+    assert "documentationContainer?.contains(anchor)" in javascript
+    assert "window.getComputedStyle(firstMountedAnchor).scrollMarginTop" in javascript
+    assert "function findVisibleMountedAnchorId(activationLine)" in javascript
+    assert "while (lowerBound <= upperBound)" in javascript
+    assert "lowerBound = middleIndex + 1" in javascript
+    assert "upperBound = middleIndex - 1" in javascript
+
+    synchronize_source = javascript.split(
+        "function synchronizeVisibleAnchor()",
+        maxsplit=1,
+    )[1].split("let visibleAnchorFrame", maxsplit=1)[0]
+    assert "for (const anchorId" not in synchronize_source
+    assert "window.getComputedStyle" not in synchronize_source
+
+    observer_source = javascript.split(
+        "documentationObserver = new MutationObserver",
+        maxsplit=1,
+    )[1].split("documentationObserver.observe", maxsplit=1)[0]
+    assert "refreshMountedDocumentationAnchors();" in observer_source
+    assert (
+        javascript.index("refreshMountedDocumentationAnchors();")
+        < javascript.index("scheduleDocumentationTableLayouts();")
     )
 
 

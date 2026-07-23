@@ -753,6 +753,20 @@ def test_reconstruct_guided_transients_from_canonical_loaded_config():
     assert state["guided_scope_mode"] == "demo"
 
 
+def test_reconstruct_guided_transients_selects_calibration_demo_intent():
+    """Present the unchanged Vanhamel calibration demo as an establishment run."""
+    state = _complete_state(
+        active_demo_profile="vanhamel_rx_calibration",
+        guided_offset_intent=None,
+        val_benchmark_offset_db=0.0,
+    )
+
+    reconstruct_guided_transients(state, has_loaded_demo=True)
+
+    assert state["guided_offset_intent"] == "establish_offset"
+    assert state["val_benchmark_offset_db"] == 0.0
+
+
 def test_reconstruct_success_and_general_defaults_from_canonical_state():
     """Derive Success and general-purpose transient choices from ordinary values."""
     state = _complete_state(

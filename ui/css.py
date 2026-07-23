@@ -9,7 +9,8 @@ import streamlit as st
 def apply_custom_css():
     """
     Injects the custom CSS definitions into the Streamlit DOM.
-    Handles fonts, action and demo text styling, dropdowns, and responsive layout.
+    Handles fonts, action and demo text styling, dropdowns across supported
+    Streamlit DOM variants, and responsive layout.
     """
     st.markdown("""
     <style>
@@ -139,8 +140,12 @@ def apply_custom_css():
             line-height: 1.55 !important;
         }
 
-        /* Selectbox (Language Selector) aligned with button styling */
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        /*
+         * Align selectboxes with button styling across Streamlit's legacy
+         * BaseWeb markup and its current React Aria combobox markup.
+         */
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+        div[data-testid="stSelectbox"] div[role="group"]:has(> input[role="combobox"]) {
             background-color: transparent !important;
             border: 1px solid rgba(57, 255, 20, 0.35) !important;
             border-radius: 0.5rem !important;
@@ -152,7 +157,8 @@ def apply_custom_css():
             cursor: pointer;
             box-shadow: none !important;
         }
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover,
+        div[data-testid="stSelectbox"] div[role="group"]:has(> input[role="combobox"]):hover {
             border-color: rgba(57, 255, 20, 0.75) !important;
             box-shadow: 0 0 6px rgba(57, 255, 20, 0.18) !important;
         }
@@ -166,7 +172,21 @@ def apply_custom_css():
             padding-left: 24px; /* Visual compensation for the right-side arrow icon */
         }
 
-        /* Enforce font and size inside the closed select field */
+        /*
+         * React Aria keeps the displayed value in an input beside a 32 px
+         * arrow button. Its extra left padding compensates for that sibling so
+         * centered text remains centered over the complete control.
+         */
+        div[data-testid="stSelectbox"] input[role="combobox"] {
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.85rem !important;
+            color: inherit !important;
+            text-align: center !important;
+            padding-left: 2.5rem !important;
+            cursor: pointer;
+        }
+
+        /* Enforce font and size inside the legacy closed select field */
         div[data-testid="stSelectbox"] div[data-baseweb="select"] span {
             font-family: 'Space Mono', monospace !important;
             font-size: 0.85rem !important;
@@ -175,38 +195,56 @@ def apply_custom_css():
         }
                 
         /* Colorize the dropdown arrow icon */
-        div[data-testid="stSelectbox"] div[data-baseweb="select"] svg {
+        div[data-testid="stSelectbox"] div[data-baseweb="select"] svg,
+        div[data-testid="stSelectbox"] button[aria-label="Open"] svg {
             fill: rgba(57, 255, 20, 0.75) !important;
+            color: rgba(57, 255, 20, 0.75) !important;
         }
         
         /* Disabled State via :has() Pseudo-Class */
-        div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div {
+        div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div,
+        div[data-testid="stSelectbox"] div[role="group"]:has(> input[role="combobox"]:disabled),
+        div[data-testid="stSelectbox"] div[role="group"][data-disabled] {
             border-color: rgba(255, 255, 255, 0.2) !important;
             background-color: transparent !important;
             cursor: not-allowed !important;
         }
-        div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div:hover {
+        div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] > div:hover,
+        div[data-testid="stSelectbox"] div[role="group"]:has(> input[role="combobox"]:disabled):hover,
+        div[data-testid="stSelectbox"] div[role="group"][data-disabled]:hover {
             border-color: rgba(255, 255, 255, 0.2) !important;
             box-shadow: none !important;
         }
-        div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] svg {
+        div[data-testid="stSelectbox"]:has(input[disabled]) div[data-baseweb="select"] svg,
+        div[data-testid="stSelectbox"]:has(input[role="combobox"]:disabled) button[aria-label="Open"] svg,
+        div[data-testid="stSelectbox"] button[aria-label="Open"][data-disabled] svg {
             fill: #888888 !important;
+            color: #888888 !important;
         }
         
         /* Style the opened dropdown menu (Popover) */
-        div[data-baseweb="popover"] ul {
+        div[data-baseweb="popover"] ul,
+        div[data-testid="stSelectboxVirtualDropdown"] {
             background-color: #0a1428 !important;
             border: 1px solid rgba(57, 255, 20, 0.35) !important;
             border-radius: 0.5rem !important;
         }
-        div[data-baseweb="popover"] ul li {
+        div[data-testid="stSelectboxVirtualDropdown"] [role="listbox"] {
+            background-color: transparent !important;
+        }
+        div[data-baseweb="popover"] ul li,
+        div[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+        div[data-testid="stSelectboxVirtualDropdown"] [role="option"] > div {
             font-family: 'Space Mono', monospace !important;
             font-size: 0.85rem !important;
             color: #e0e0e0 !important;
             background-color: transparent !important;
             text-align: center !important;
         }
-        div[data-baseweb="popover"] ul li:hover {
+        div[data-baseweb="popover"] ul li:hover,
+        div[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover,
+        div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-hovered],
+        div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-focused] {
             color: #39ff14 !important;
             background-color: rgba(57, 255, 20, 0.1) !important;
         }

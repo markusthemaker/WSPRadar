@@ -165,3 +165,77 @@ def test_profile_descriptions_use_white_text_in_scoped_containers(monkeypatch):
     )
     rule_close = stylesheet.index("}", rule_open)
     assert "opacity: 1 !important" in stylesheet[rule_open:rule_close]
+
+
+def test_selectboxes_support_legacy_and_current_streamlit_dom_contracts(
+    monkeypatch,
+):
+    """Keep toolbar select styling stable across BaseWeb and React Aria."""
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st,
+        "markdown",
+        lambda body, **_kwargs: rendered_styles.append(body),
+    )
+
+    ui_css.apply_custom_css()
+
+    assert len(rendered_styles) == 1
+    stylesheet = rendered_styles[0]
+    legacy_control = (
+        'div[data-testid="stSelectbox"] '
+        'div[data-baseweb="select"] > div'
+    )
+    current_control = (
+        'div[data-testid="stSelectbox"] '
+        'div[role="group"]:has(> input[role="combobox"])'
+    )
+    control_start = stylesheet.index(legacy_control)
+    control_rule_open = stylesheet.index("{", control_start)
+    control_selectors = stylesheet[control_start:control_rule_open]
+    assert current_control in control_selectors
+    control_rule_close = stylesheet.index("}", control_rule_open)
+    control_rule = stylesheet[control_rule_open:control_rule_close]
+    assert "background-color: transparent !important" in control_rule
+    assert (
+        "border: 1px solid rgba(57, 255, 20, 0.35) !important"
+        in control_rule
+    )
+    assert "min-height: 40px !important" in control_rule
+
+    current_value = (
+        'div[data-testid="stSelectbox"] input[role="combobox"]'
+    )
+    value_start = stylesheet.index(current_value)
+    value_rule_open = stylesheet.index("{", value_start)
+    value_rule_close = stylesheet.index("}", value_rule_open)
+    value_rule = stylesheet[value_rule_open:value_rule_close]
+    assert "font-family: 'Space Mono', monospace !important" in value_rule
+    assert "font-size: 0.85rem !important" in value_rule
+    assert "text-align: center !important" in value_rule
+    assert "padding-left: 2.5rem !important" in value_rule
+
+    current_arrow = (
+        'div[data-testid="stSelectbox"] '
+        'button[aria-label="Open"] svg'
+    )
+    arrow_start = stylesheet.index(current_arrow)
+    arrow_rule_open = stylesheet.index("{", arrow_start)
+    arrow_rule_close = stylesheet.index("}", arrow_rule_open)
+    arrow_rule = stylesheet[arrow_rule_open:arrow_rule_close]
+    assert "fill: rgba(57, 255, 20, 0.75) !important" in arrow_rule
+    assert "color: rgba(57, 255, 20, 0.75) !important" in arrow_rule
+
+    assert (
+        'div[data-testid="stSelectboxVirtualDropdown"] [role="listbox"]'
+        in stylesheet
+    )
+    assert (
+        'div[data-testid="stSelectboxVirtualDropdown"] [role="option"]'
+        in stylesheet
+    )
+    assert (
+        'div[data-testid="stSelectbox"] '
+        'div[role="group"]:has(> input[role="combobox"]:disabled)'
+        in stylesheet
+    )
