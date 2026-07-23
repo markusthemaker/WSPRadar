@@ -63,10 +63,16 @@ class OpportunityInspectorViewModel:
     snr_column: str
 
 
-def build_inspector_options(enriched_df: pd.DataFrame, *, max_dist_km: float) -> InspectorOptionsViewModel:
-    """Return stable scope options from inspectable map station rows."""
+def build_inspector_options(
+    enriched_df: pd.DataFrame,
+    *,
+    max_peer_distance_km: float,
+) -> InspectorOptionsViewModel:
+    """Return inspectable options inside the half-open peer-distance scope."""
     source_rows = enriched_df[enriched_df["SegmentID"] != "Out of Bounds"].copy()
-    source_rows = source_rows[source_rows["r_min"] < max_dist_km]
+    source_rows = source_rows[
+        source_rows["r_min"] < max_peer_distance_km
+    ]
     valid_distances = sorted(
         [value for value in source_rows["dist_label"].dropna().unique()],
         key=lambda value: int(value.strip("[]km").split("-")[0]),

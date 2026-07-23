@@ -231,7 +231,7 @@ def register_map_export_context(
     parquet_path,
     start_t,
     end_t,
-    max_dist_km,
+    max_peer_distance_km,
     base_min_stations,
     lat_0,
     lon_0,
@@ -260,7 +260,7 @@ def register_map_export_context(
             "parquet_path": parquet_path,
             "start_t": start_t,
             "end_t": end_t,
-            "max_dist_km": max_dist_km,
+            "max_peer_distance_km": max_peer_distance_km,
             "base_min_stations": base_min_stations,
             "lat_0": lat_0,
             "lon_0": lon_0,
@@ -430,7 +430,9 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         "benchmark_snr_correction_db": comparison_parameters.get("snr_correction_db"),
         "thresholds_and_filters": {
             "solar_state": advanced_parameters.get("solar_state"),
-            "map_scope_km": advanced_parameters.get("map_scope_km"),
+            "max_peer_distance_km": advanced_parameters.get(
+                "max_peer_distance_km"
+            ),
             "exclude_special_callsigns": advanced_parameters.get("exclude_special_callsigns"),
             "exclude_moving_stations": advanced_parameters.get("exclude_moving_stations"),
             "min_joint_spots_per_station": advanced_parameters.get("min_joint_spots_per_station"),
@@ -641,7 +643,7 @@ def _render_map_png_for_block(block):
         block.get("is_sequential", False),
         context["start_t"],
         context["end_t"],
-        context["max_dist_km"],
+        context["max_peer_distance_km"],
         block.get("analysis_id"),
         context["base_min_stations"],
         context["lat_0"],

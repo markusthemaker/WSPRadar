@@ -8,3 +8,4 @@ openpyxl
 ephem
 markdown
 xhtml2pdf
+jsonschema>=4.23

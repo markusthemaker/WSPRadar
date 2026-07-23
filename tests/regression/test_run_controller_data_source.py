@@ -311,7 +311,6 @@ def _render_admission_presentation(fake_st, run_status_slot, *, translations=Non
         band_filter=7,
         start_t=SimpleNamespace(isoformat=lambda: "start"),
         end_t=SimpleNamespace(isoformat=lambda: "end"),
-        max_dist_km=22000,
         generate_map_plot=lambda *_args, **_kwargs: None,
     )
 
@@ -610,7 +609,6 @@ def test_structured_early_failure_marks_complete_run_telemetry_failed(monkeypatc
         band_filter=7,
         start_t=SimpleNamespace(isoformat=lambda: "start"),
         end_t=SimpleNamespace(isoformat=lambda: "end"),
-        max_dist_km=22000,
         generate_map_plot=lambda *_args, **_kwargs: None,
     )
 
@@ -723,13 +721,12 @@ def _render_fake_run(
         run_status_slot=_RunStatusSlot(),
         start_t="start",
         end_t="end",
-        max_dist_km=22000,
         generate_map_plot=lambda *_args, **_kwargs: (_ for _ in ()).throw(
             AssertionError("No map should render for no-data staged results")
         ),
         admission_permit=permit,
         analyses=analyses,
-        analysis_context=SimpleNamespace(),
+        analysis_context=SimpleNamespace(max_peer_distance_km=22000),
         presentation_context=SimpleNamespace(),
         center_latitude=47.0,
         center_longitude=8.0,

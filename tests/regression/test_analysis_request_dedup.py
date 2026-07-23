@@ -23,7 +23,6 @@ def _fingerprint(context=None, **overrides):
         "start_t": START,
         "end_t": END,
         "band_filter": "AND band = '14'",
-        "max_dist_km": 22000,
         "active_demo_profile": None,
     }
     values.update(overrides)
@@ -64,6 +63,9 @@ def test_analysis_request_fingerprint_changes_with_scientific_inputs():
     )
     assert _fingerprint(context) != _fingerprint(
         replace(context, tx_ab_reference_start_minute=4)
+    )
+    assert _fingerprint(context) != _fingerprint(
+        replace(context, max_peer_distance_km=10000)
     )
     assert _fingerprint(context) != _fingerprint(context, end_t=END + timedelta(minutes=2))
 

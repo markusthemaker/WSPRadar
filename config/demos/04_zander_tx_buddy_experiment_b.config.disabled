@@ -34,7 +34,7 @@
     },
     "advanced_parameters": {
       "solar_state": "all",
-      "map_scope_km": 2500,
+      "max_peer_distance_km": 2500,
       "exclude_special_callsigns": false,
       "exclude_moving_stations": false,
       "min_joint_spots_per_station": 1,

@@ -186,7 +186,7 @@ def render_config_save_control(
             ),
         )
 
-        is_last_x = session_state.get("val_time_mode") == translations["opt_last_x"]
+        is_last_x = session_state.get("val_time_mode") == "last_x"
         active_run_time_window = None
         time_policy = TIME_POLICY_RELATIVE
         if is_last_x:

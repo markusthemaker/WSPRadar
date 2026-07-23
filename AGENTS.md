@@ -129,6 +129,91 @@ There is no configured Ruff, Flake8, Black, mypy, pre-commit, or equivalent
 lint command. Do not document or require one until its configuration is added.
 The GitHub workflow currently wakes the deployed app; it does not run tests.
 
+## Verification Scope and Proportionality
+
+Select the least expensive verification level that still exercises every
+changed contract. Classify work by blast radius and failure consequence, not by
+line count alone: a one-line scientific or cache-key change can require full
+verification, while a multi-line localized-copy change can remain focused. If
+the scope cannot be established confidently, use full verification.
+
+For every change:
+
+- run the most specific regression tests that exercise the changed behavior;
+- run `git diff --check`;
+- compile changed Python files or their containing package when Python changed;
+- expand verification when a focused check exposes unexpected coupling, an
+  affected caller lacks direct coverage, or a failure appears outside the
+  expected scope;
+- state the checks actually run and distinguish existing unrelated failures
+  from failures caused by the change.
+
+### Focused verification
+
+Focused verification is sufficient only when the change is demonstrably
+isolated, has direct regression coverage, and does not alter a shared runtime
+contract. Typical examples are:
+
+- localized copy, labels, help text, or non-interactive presentation composed
+  from established UI primitives;
+- a narrow documentation correction that is not a substantial manual
+  restructuring;
+- an isolated test, fixture, or private helper change after its callers and
+  contracts have been inspected.
+
+Run the directly affected test nodes or modules plus applicable localization
+parity, schema, rendering, or synchronization checks. Compile only the changed
+Python scope. The complete regression suite is not required for this class
+during incremental work.
+
+Focused verification is not sufficient for changes to scientific calculations,
+SQL, time synchronization, normalization, classification, geometry, context or
+cache-key inputs, saved schemas or migrations, persistence and artifact
+lifecycle, DataFrame ownership or projections, concurrency and admission,
+provider selection or failover, shared callbacks or session ownership,
+exports, dependencies, startup/import boundaries, security settings, or other
+compatibility-sensitive interfaces.
+
+### Targeted UI and browser verification
+
+UI changes to CSS, layout, widget interaction, visibility, navigation,
+accessibility, responsive behavior, upload/download flows, or browser-specific
+integration require focused UI tests and the shortest additional runtime check
+needed to prove the changed behavior. Prefer seeded state, component tests,
+Streamlit AppTest, DOM assertions, or a targeted screenshot over manually
+walking through prerequisite workflow steps.
+
+A browser walkthrough is not required merely because a task includes a
+screenshot or changes visible copy. Use browser verification only when the user
+explicitly requests it, the behavior is browser-specific, or automated
+structural tests cannot establish the requested visual or interactive outcome.
+Do not continue through unrelated parts of the workflow after the changed
+behavior has been verified.
+
+### Full verification
+
+Run the complete regression suite, full repository Python compilation, and
+`git diff --check` when any of the following applies:
+
+- the change touches one of the shared or compatibility-sensitive contracts
+  excluded from focused verification above;
+- the change spans multiple architectural layers or performs a broad refactor;
+- focused tests reveal unexpected coupling or the blast radius remains
+  uncertain;
+- work is being finalized for release or submission to GitHub.
+
+Accumulated changes that used focused verification incrementally must receive
+one full verification run before their final release or GitHub submission.
+Start Streamlit and check its health endpoint when entry-point, dependency,
+startup, or import-boundary behavior changes. Add a targeted browser smoke test
+only when the changed contract is browser-specific or remains unproven by
+automated tests.
+
+Documentation-only work uses the applicable documentation, rendering, link, and
+synchronization checks. A substantial manual restructuring remains subject to
+the complete verification requirements in **Documentation restructuring
+checks** below.
+
 ## Coding Conventions
 
 - Preserve the separation between scientific configuration and presentation.
@@ -307,9 +392,13 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 
 - Treat versioned JSON `.config` files, exported metadata, Parquet projections,
   DataFrame columns, and reproducibility packages as compatibility-sensitive
-  interfaces. Every saved-config schema increase must retain an ordered
-  migration from each preceding supported version; do not guess at newer
-  unsupported schemas.
+  interfaces. The current saved-config schema version 1 is explicitly
+  pre-production and may be revised in place before the first production
+  release; unpublished version-1 prototypes need not be migrated and may be
+  rejected. After a schema has been published for production, every subsequent
+  saved-config schema increase must retain an ordered migration from each
+  preceding supported production version; do not guess at newer unsupported
+  schemas.
 - Saved configurations and built-in demo configurations must use the same
   standalone document and grouped runnable-settings structure. Serialize only fields applicable to the
   selected time and comparison branches; inactive hidden UI state is not part
@@ -321,6 +410,8 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
 
 - Summarize changed behavior, not merely changed files.
 - State which checks were actually executed and their results.
+- When full-suite or browser verification was not required, name the selected
+  verification scope and why the narrower checks covered the changed contract.
 - Explicitly identify unverified assumptions, remaining risks, and checks that
   could not be run.
 
@@ -332,9 +423,14 @@ The GitHub workflow currently wakes the deployed app; it does not run tests.
    meet the end-user relevance criteria below.
 3. Tests cover changed behavior, including failure, ownership, concurrency, or
    persistence semantics where relevant.
-4. `python -m pytest tests/regression -q` passes.
-5. Python compilation and `git diff --check` pass.
-6. Streamlit starts successfully when entry-point or dependency behavior changes.
+4. The checks required by **Verification Scope and Proportionality** pass.
+   `python -m pytest tests/regression -q` passes for full-verification work and
+   final release or GitHub submission; focused incremental work records its
+   narrower passing checks instead.
+5. `git diff --check` passes. Changed Python scope compiles, and full repository
+   compilation passes when full verification is required.
+6. Streamlit starts successfully when entry-point, dependency, startup, or
+   import-boundary behavior changes.
 7. No unrelated files or user changes are reverted.
 8. `CHANGELOG_DAILY.md` follows the Changelog Policy above and is updated for
    every major or significant submitted change.

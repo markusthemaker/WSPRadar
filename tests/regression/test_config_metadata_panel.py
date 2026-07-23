@@ -10,7 +10,7 @@ import pytest
 
 from config import DEMO_PROFILES
 from i18n import T
-from ui import callbacks, config_io
+from ui import callbacks, config_io, page_navigation
 from ui.analysis_submission_state import (
     begin_analysis_submission,
     begin_main_analysis_submission,
@@ -103,11 +103,11 @@ def test_metadata_expander_is_hidden_without_loaded_profile(monkeypatch):
 
 
 def test_metadata_expander_precedes_core_parameters():
-    """Keep loaded context immediately above the first editable parameter panel."""
+    """Keep Classic loaded context above its first editable parameter panel."""
     app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
 
-    metadata_call_index = app_source.index("\nrender_metadata_expander(t)\n")
-    core_call_index = app_source.index("\nrender_core_expander(t)\n")
+    metadata_call_index = app_source.index("render_metadata_expander(t)")
+    core_call_index = app_source.index("render_core_expander(t)")
 
     assert metadata_call_index < core_call_index
 
@@ -267,16 +267,25 @@ def test_parameter_reset_preserves_loaded_profile_snapshot(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("callback_name", "expected_run_mode"),
+    ("callback_name", "expected_run_mode", "expected_anchor_id"),
     [
-        ("load_demo_profile_config", None),
-        ("run_demo_profile", "RX"),
+        (
+            "load_demo_profile_config",
+            None,
+            page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+        ),
+        (
+            "run_demo_profile",
+            "RX",
+            page_navigation.RESULTS_INSPECTION_ANCHOR_ID,
+        ),
     ],
 )
 def test_public_demo_paths_preserve_loaded_metadata_after_execution(
     monkeypatch,
     callback_name,
     expected_run_mode,
+    expected_anchor_id,
 ):
     """Keep the selected demo metadata after either loading or executing it."""
     profile_id = "vanhamel_rx_calibration"
@@ -301,6 +310,12 @@ def test_public_demo_paths_preserve_loaded_metadata_after_execution(
     assert session_state.active_demo_profile == profile_id
     assert session_state.run_mode == expected_run_mode
     assert session_state.show_demo_launcher is False
+    navigation_request = page_navigation.consume_page_navigation_request(
+        session_state
+    )
+    assert navigation_request is not None
+    assert navigation_request["anchor_id"] == expected_anchor_id
+    assert navigation_request["should_scroll"] is True
     rerun.assert_called_once_with()
 
 

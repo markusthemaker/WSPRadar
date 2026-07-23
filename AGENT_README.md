@@ -26,7 +26,8 @@ measurement system.
   by other active stations.
 - TX and RX comparison analyses for local/reference setups, hardware A/B cases,
   and deterministic scheduled TX A/B pairs.
-- Interactive configuration with English and German presentation.
+- Interactive configuration through a novice-oriented Guided Input flow or the
+  full Classic editor, with English and German presentation in both views.
 - Geographic station and segment aggregation on an azimuthal-equidistant map.
 - Segment Inspector views with station tables, evidence figures, and drilldown
   tables backed by projected Parquet reads.
@@ -119,6 +120,8 @@ was found in the application path.
 | `config/config_schema.py` | Version-1 saved-configuration format identifier, schema version, grouped settings contract, and canonical enum values shared by demos and user files. |
 | `config/config_codec.py` | Dependency-free document-envelope and schema-version validation shared by demo and upload readers. |
 | `config/wspradar-config.schema.json` | Formal JSON Schema for every standalone saved or demo configuration. |
+| `config/guided_input_flow.json` | Ordered, conditional Guided Input steps and registered renderer keys. |
+| `config/guided_input_flow.schema.json` | Strict JSON Schema for the declarative Guided Input flow. |
 | `config/plot_constants.py` | Map geometry, colors, and rendering/scientific plotting constants. |
 | `.streamlit/config.toml` | Streamlit theme and server CORS/XSRF configuration. |
 | `.gitignore` | Excludes a local `.streamlit/secrets.toml`; no example secrets file is committed. |
@@ -157,8 +160,11 @@ Loading first resets inactive controls to application defaults and then applies
 the validated active branch, so a file cannot inherit stale values from the
 preceding session.
 
-The initial public runnable configuration schema is version 1. TX Hardware A/B
-settings select a `tx_ab_method`. The simultaneous branch stores the distinct
+The current runnable configuration schema is version 1 and remains explicitly
+pre-production. It is not the first public production contract and may be
+revised in place until the first production release; earlier unpublished
+version-1 documents may therefore be rejected without migration. TX Hardware
+A/B settings select a `tx_ab_method`. The simultaneous branch stores the distinct
 `reference_callsign` and derives both paths' grid-4 from the core Target QTH, so
 it does not serialize a redundant `reference_qth`. The sequential branch uses a
 shared `repeat_interval_minutes` plus disjoint `target_start_minute` and
@@ -181,11 +187,24 @@ belongs under `extensions` and is preserved across load and re-save.
 
 `config/config_codec.py` owns document-envelope and current-version validation;
 `ui/config_io.py` owns semantic settings validation, Streamlit-state
-application, and writing. No migration exists because version 1 is the first
-public contract. The first public schema bump must add an explicit migration
-from version 1 before the writer changes. Unsupported versions are rejected
-instead of being interpreted with guessed defaults. The formal JSON Schema
-enumerates valid fields, values, and conditional branches.
+application, and writing. No migration is promised between unpublished
+pre-production version-1 revisions. Once a configuration schema is published
+for production, each subsequent schema bump must add ordered migrations from
+every preceding supported production version before the writer changes.
+Unsupported versions are rejected instead of being interpreted with guessed
+defaults. The formal JSON Schema enumerates valid fields, values, and
+conditional branches.
+
+Guided and Classic are two editors over the same canonical Streamlit session
+fields; neither owns a separate scientific configuration. The selected
+`input_view` and Guided navigation choices are transient session UI state and
+are not added to the version-1 saved-config contract. Guided reconstructs its
+question branch from canonical values after loading a personal configuration or
+demo. Its order and conditions come from the schema-validated
+`config/guided_input_flow.json`, while registered Python renderers and the
+separate bilingual `GUIDED_INPUTS` content in `i18n.py` provide controls and
+novice explanations. A run produces exactly one active result family: Success
+when no benchmark is selected, or Compare when any benchmark is selected.
 
 `config/demo_profiles.py` discovers regular `config/demos/*.config` files in
 lexicographic filename order. The filename is an opaque ordering key and is
@@ -216,8 +235,8 @@ Streamlit health endpoint returned HTTP 200 with `ok`.
 Typical use is:
 
 1. Select English or German presentation.
-2. Load a demo or select RX/TX direction and configure callsigns, locator, band,
-   time window, and comparison mode.
+2. Use Guided Input (the default) for the question-led workflow, switch to
+   Classic for direct access to all controls, or load a demo into either view.
 3. Run the single direction-aware analysis action.
 4. Inspect the map, segment and selected-station evidence.
 5. Prepare an export only when needed.
@@ -238,6 +257,18 @@ localized labels. `PresentationContext` contains language, labels, and theme.
 Streamlit state is translated into these contexts in UI adapters before core
 work begins.
 
+`AnalysisContext.max_peer_distance_km`, displayed as **Maximum peer distance
+from Target (km)**, is scientific rather than presentation state.
+Post-fetch processing retains only peer rows strictly nearer than this
+great-circle distance from Target QTH before scientific thresholds,
+aggregation, session artifacts, and exports. The map, footer, and Segment
+Inspector consume that same retained population, and Inspector controls cannot
+widen it. Target-Active eligibility and moving-station integrity remain
+geographically global checks on the otherwise eligible population before
+distance scope; in Compare, they follow solar selection in moving-then-activity
+order. Provider SQL responses and raw-query cache entries likewise remain
+global across scope choices.
+
 The runtime source directories are regular Python packages with committed
 `__init__.py` markers. Preserve those markers: Streamlit watches a PEP 420
 namespace package as a directory, and first-import `__pycache__` writes inside
@@ -247,6 +278,8 @@ Useful files when tracing behavior:
 
 - `ui/run_controller.py`: end-to-end analysis orchestration.
 - `core/analysis_runner.py`: SQL and post-fetch analysis contracts.
+- `core/geographic_scope.py`: strict great-circle peer-scope validation and
+  vectorized post-fetch filtering.
 - `core/tx_ab_schedule.py`: periodic TX A/B validation, exact schedule SQL, and
   stable planned-pair assignment.
 - `core/data_engine.py`: bounded upstream HTTP and query cache.
@@ -260,6 +293,10 @@ Useful files when tracing behavior:
   presentation rendering.
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
   orchestration and pure view models.
+- `ui/components/config_fields.py`: shared canonical field-composition surface
+  used by Guided and Classic without duplicating scientific controls.
+- `ui/guided_inputs/`: validated flow loading/evaluation, transient Guided
+  state, summaries, and Streamlit accordion composition.
 - `ui/config_io.py` and `ui/config_save.py`: shared versioned-config semantics,
   fragment-scoped profile/save controls, and relative-versus-frozen Last-X
   writing.
@@ -268,6 +305,8 @@ Useful files when tracing behavior:
   ownership used to guard Streamlit reruns before admission.
 - `ui/result_state.py`: lightweight result/export reset and active-run time-window
   lifecycle used by idle configuration callbacks.
+- `ui/page_navigation.py`: stable application-region anchors, coarse scroll
+  tracking, and one-shot browser navigation requests above the manual boundary.
 - `ui/documentation_scroll_trigger.py`: browser viewport, history/navigation,
   and anchor-bounded table-layout controller for demand-driven full-manual
   rendering.
@@ -349,9 +388,13 @@ do not touch their publication timestamp. Demo Compare keeps a process-memory
 DataFrame L1 and a Parquet disk L2; demo Success uses the same persistent demo
 namespace. Both tiers cache raw provider query results rather than completed
 scientific analyses, and provider identity remains part of every query-cache
-key. Before issuing demo requests, provider selection prefers the first enabled
-source that can supply the complete current strict/legacy and Compare/Success
-bundle from fresh cache. The selected cache retains its actual provider origin;
+key. Geographic Analysis Scope is intentionally absent from this raw-query
+identity because its scientific filtering happens post-fetch; the scope remains
+part of the canonical analysis request and processed artifacts. Before issuing
+demo requests, provider selection prefers the first enabled
+source that can supply the selected active result's complete current
+strict/legacy request bundle from fresh cache. The selected cache retains its
+actual provider origin;
 artifacts are neither relabelled nor combined across sources. Loading a built-in
 demo establishes this demo identity without immediately running it; the normal
 Run action preserves the identity while its scientific controls remain

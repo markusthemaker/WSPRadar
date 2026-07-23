@@ -4,6 +4,7 @@ import pandas as pd
 
 from i18n import T
 from ui.components import segment_inspector
+from ui.inspector import view_models
 from ui.inspector.session_cache import (
     SessionInspectorCache,
     estimate_cache_value_bytes,
@@ -375,6 +376,61 @@ def test_segment_scope_initializes_from_saved_state_and_syncs_user_changes(
         "[0-2500km]",
         "[5000-10000km]",
     ]
+
+
+def test_inspector_distance_options_stop_at_ten_thousand_kilometres():
+    """Keep Inspector choices inside the run's geographic analysis scope."""
+    station_rows = pd.DataFrame(
+        {
+            "SegmentID": ["a", "b", "c", "d", "Out of Bounds"],
+            "r_min": [0, 2500, 5000, 10000, 0],
+            "dist_label": [
+                "[0-2500km]",
+                "[2500-5000km]",
+                "[5000-10000km]",
+                "[10000-15000km]",
+                "[0-2500km]",
+            ],
+            "dir_name": ["N", "NE", "E", "SE", "S"],
+        }
+    )
+
+    options = view_models.build_inspector_options(
+        station_rows,
+        max_peer_distance_km=10000,
+    )
+
+    assert options.valid_distances == [
+        "[0-2500km]",
+        "[2500-5000km]",
+        "[5000-10000km]",
+    ]
+    assert options.valid_directions == ["N", "NE", "E"]
+    assert set(options.source_rows["r_min"]) == {0, 2500, 5000}
+
+
+def test_saved_inspector_range_beyond_ten_thousand_km_falls_back_to_all(
+    monkeypatch,
+):
+    """Do not let stale saved Inspector state widen the active analysis scope."""
+    persistent_key = segment_inspector.RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY
+    session_state = {persistent_key: ["[10000-15000km]"]}
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    segment_inspector._initialize_explicit_all_multiselect(
+        "range_widget",
+        "range_widget_previous",
+        "Full Range",
+        ["[0-2500km]", "[2500-5000km]", "[5000-10000km]"],
+        persistent_key,
+    )
+
+    assert session_state["range_widget"] == ["Full Range"]
+    assert session_state[persistent_key] == "all"
 
 
 def test_station_selection_defaults_distinguish_legacy_none_from_explicit_empty():

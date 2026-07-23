@@ -68,7 +68,7 @@
         },
         "advanced_parameters": {
           "solar_state": "all",
-          "map_scope_km": 22000,
+          "max_peer_distance_km": 22000,
           "exclude_special_callsigns": false,
           "exclude_moving_stations": false,
           "min_confirmed_opportunities_per_peer": 5,
@@ -1327,7 +1327,7 @@
       "description": "Advanced controls active when comparison mode is none.",
       "required": [
         "solar_state",
-        "map_scope_km",
+        "max_peer_distance_km",
         "exclude_special_callsigns",
         "exclude_moving_stations",
         "min_confirmed_opportunities_per_peer",
@@ -1337,8 +1337,8 @@
         "solar_state": {
           "$ref": "#/$defs/solarState"
         },
-        "map_scope_km": {
-          "$ref": "#/$defs/mapScopeKm"
+        "max_peer_distance_km": {
+          "$ref": "#/$defs/maxPeerDistanceKm"
         },
         "exclude_special_callsigns": {
           "$ref": "#/$defs/excludeSpecialCallsigns"
@@ -1360,7 +1360,7 @@
       "description": "Advanced controls active for hardware A/B, reference-station, and local-neighborhood comparisons.",
       "required": [
         "solar_state",
-        "map_scope_km",
+        "max_peer_distance_km",
         "exclude_special_callsigns",
         "exclude_moving_stations",
         "min_joint_spots_per_station",
@@ -1371,8 +1371,8 @@
         "solar_state": {
           "$ref": "#/$defs/solarState"
         },
-        "map_scope_km": {
-          "$ref": "#/$defs/mapScopeKm"
+        "max_peer_distance_km": {
+          "$ref": "#/$defs/maxPeerDistanceKm"
         },
         "exclude_special_callsigns": {
           "$ref": "#/$defs/excludeSpecialCallsigns"
@@ -1409,7 +1409,7 @@
         "greyline"
       ]
     },
-    "mapScopeKm": {
+    "maxPeerDistanceKm": {
       "type": "integer",
       "enum": [
         2500,
@@ -1419,7 +1419,7 @@
         20000,
         22000
       ],
-      "description": "Maximum map distance from the target QTH, in kilometres.",
+      "description": "Maximum distance from the target QTH at which mapped peer stations enter the scientific evidence population, in kilometres.",
       "default": 22000,
       "examples": [
         2500,

@@ -69,7 +69,7 @@ def _no_comparison_config():
             },
             "advanced_parameters": {
                 "solar_state": "all",
-                "map_scope_km": 22000,
+                "max_peer_distance_km": 22000,
                 "exclude_special_callsigns": False,
                 "exclude_moving_stations": False,
                 "min_confirmed_opportunities_per_peer": 5,

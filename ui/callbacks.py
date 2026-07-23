@@ -19,6 +19,11 @@ from ui.config_io import (
     apply_config_state_values,
     validate_config_document,
 )
+from ui.page_navigation import (
+    PARAMETER_SETTINGS_ANCHOR_ID,
+    RESULTS_INSPECTION_ANCHOR_ID,
+    request_page_navigation,
+)
 from ui.result_state import reset_result_state
 from ui.analysis_submission_state import (
     begin_analysis_submission,
@@ -38,10 +43,34 @@ def reset_audit():
     Triggered whenever a core parameter is changed by the user, ensuring that 
     stale or outdated map data isn't displayed on the screen.
     """
+    had_current_result = bool(st.session_state.get("run_mode"))
     cancel_analysis_submission(st.session_state)
     st.session_state.run_mode = None
     st.session_state.active_demo_profile = None
     reset_result_state(st.session_state)
+    if had_current_result:
+        st.session_state.configuration_changed_since_run = True
+
+
+def handle_reference_correction_context_change():
+    """Clear a correction when its identity, band, or Reference design changes.
+
+    Reference-side corrections are established for one controlled path or
+    Target–Reference pair and operating design. Carrying one across a changed
+    identity, QTH, band, local method, or TX schedule would silently alter every
+    reported Delta SNR under a context for which it was not established.
+    """
+    active_mode = st.session_state.get("val_comp_mode")
+    retained_mode = st.session_state.get("guided_last_compare_mode")
+    comparison_modes = {
+        "hardware_ab",
+        "reference_station",
+        "local_neighborhood",
+    }
+    if active_mode in comparison_modes or retained_mode in comparison_modes:
+        st.session_state.val_benchmark_offset_db = 0.0
+        st.session_state.guided_offset_intent = "no_offset"
+    reset_audit()
 
 
 def _normalize_tx_ab_schedule_state(changed_start=None):
@@ -77,66 +106,56 @@ def _normalize_tx_ab_schedule_state(changed_start=None):
     st.session_state.val_tx_ab_reference_start_minute = int(reference_start)
 
 
-def handle_tx_ab_repeat_interval_change():
-    """Reconcile both UTC starts after changing the shared repeat interval."""
+def _finish_tx_ab_schedule_change(after_change=None, after_change_args=()):
+    """Run the requested editor callback after schedule normalization."""
+    if after_change is None:
+        reset_audit()
+    else:
+        after_change(*(after_change_args or ()))
+
+
+def handle_tx_ab_repeat_interval_change(after_change=None, after_change_args=()):
+    """Reconcile both UTC starts, then invalidate the owning editor's result."""
     _normalize_tx_ab_schedule_state()
-    reset_audit()
+    _finish_tx_ab_schedule_change(after_change, after_change_args)
 
 
-def handle_tx_ab_target_start_change():
-    """Keep Reference Start disjoint after changing Target Start."""
+def handle_tx_ab_target_start_change(after_change=None, after_change_args=()):
+    """Keep Reference Start disjoint, then notify the owning editor."""
     _normalize_tx_ab_schedule_state(changed_start="target")
-    reset_audit()
+    _finish_tx_ab_schedule_change(after_change, after_change_args)
 
 
-def handle_tx_ab_reference_start_change():
-    """Keep Target Start disjoint after changing Reference Start."""
+def handle_tx_ab_reference_start_change(after_change=None, after_change_args=()):
+    """Keep Target Start disjoint, then notify the owning editor."""
     _normalize_tx_ab_schedule_state(changed_start="reference")
-    reset_audit()
+    _finish_tx_ab_schedule_change(after_change, after_change_args)
 
 
-def swap_tx_ab_starts():
-    """Swap Target and Reference schedule attribution without allowing overlap."""
+def swap_tx_ab_starts(after_change=None, after_change_args=()):
+    """Swap schedule attribution, then notify the owning editor."""
     target_start = st.session_state.val_tx_ab_target_start_minute
     st.session_state.val_tx_ab_target_start_minute = (
         st.session_state.val_tx_ab_reference_start_minute
     )
     st.session_state.val_tx_ab_reference_start_minute = target_start
     _normalize_tx_ab_schedule_state()
-    reset_audit()
+    _finish_tx_ab_schedule_change(after_change, after_change_args)
 
 def update_lang():
-    """
-    Handles UI language changes globally. 
-    Translates all string-based session states to the new language to prevent 
-    StreamlitAPIExceptions and preserve user settings across hidden and visible fields.
-    """
-    old_lang = st.session_state.lang
+    """Apply the selected display language while canonical state stays unchanged."""
     new_lang = {"EN": "en", "DE": "de"}[st.session_state.lang_selector_ui]
-    
-    t_old = T[old_lang]
-    t_new = T[new_lang]
-    
-    # Mapping of session_state keys to their possible translation dictionary keys
-    state_map = {
-        "val_time_mode": ["opt_last_x", "opt_custom"],
-        "val_comp_mode": ["opt_comp_none", "opt_comp_radius", "opt_comp_buddy", "opt_comp_self"],
-        "val_local_benchmark": ["opt_local_median", "opt_local_best"],
-        "val_solar": ["opt_solar_all", "opt_solar_day", "opt_solar_night", "opt_solar_grey"]
-    }
-    
-    # Translate the current values to the new language
-    for state_key, dict_keys in state_map.items():
-        if state_key in st.session_state:
-            current_val = st.session_state[state_key]
-            for d_key in dict_keys:
-                if current_val == t_old.get(d_key):
-                    st.session_state[state_key] = t_new[d_key]
-                    break
-                    
+
     cancel_analysis_submission(st.session_state)
     st.session_state.lang = new_lang
     st.session_state.run_mode = None
+
+
+def handle_input_view_change():
+    """Reconstruct Guided presentation state without changing scientific state."""
+    if st.session_state.get("input_view") == "guided":
+        st.session_state.guided_reconstruct_requested = True
+        st.session_state.guided_collapse_all = False
 
 def _profile_matches_current_mode(profile, t):
     """Return True when a demo profile matches the currently selected comparison UI."""
@@ -146,8 +165,7 @@ def _profile_matches_current_mode(profile, t):
         return False
 
     benchmark_mode = normalized_config.get("benchmark_mode")
-    mode_key = MODE_KEYS.get(benchmark_mode)
-    if not mode_key or t.get(mode_key) != st.session_state.val_comp_mode:
+    if benchmark_mode not in MODE_KEYS or benchmark_mode != st.session_state.val_comp_mode:
         return False
 
     selected_direction = st.session_state.get("val_analysis_direction")
@@ -170,6 +188,7 @@ def _apply_demo_profile_values(profile_key):
         return
 
     normalized_config = validate_config_document(_demo_config_document(profile))
+    st.session_state.guided_last_compare_mode = None
     apply_config_state_values(normalized_config, st.session_state)
 
 def apply_demo_profile(profile_key=None):
@@ -209,6 +228,16 @@ def load_demo_profile_config(profile_key):
     # The loaded values remain a trusted built-in demo until a scientific
     # configuration callback calls ``reset_audit`` after an edit.
     st.session_state.active_demo_profile = profile_key
+    st.session_state.guided_loaded_demo_profile = profile_key
+    st.session_state.guided_demo_metadata_open = True
+    st.session_state.guided_reconstruct_requested = True
+    st.session_state.guided_collapse_all = False
+    st.session_state.configuration_changed_since_run = False
+    request_page_navigation(
+        st.session_state,
+        PARAMETER_SETTINGS_ANCHOR_ID,
+        should_scroll=True,
+    )
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
@@ -228,6 +257,11 @@ def run_demo_profile(profile_key):
     cancel_analysis_submission(st.session_state)
     st.session_state.is_demo_mode = False
     st.session_state.active_demo_profile = profile_key
+    st.session_state.guided_loaded_demo_profile = profile_key
+    st.session_state.guided_demo_metadata_open = False
+    st.session_state.guided_reconstruct_requested = True
+    st.session_state.guided_collapse_all = True
+    st.session_state.configuration_changed_since_run = False
     st.session_state.show_demo_launcher = False
     st.session_state.config_panels_expanded = False
     st.session_state._collapse_config_panels_once = True
@@ -240,6 +274,11 @@ def run_demo_profile(profile_key):
     begin_analysis_submission(
         st.session_state,
         request_source="demo",
+    )
+    request_page_navigation(
+        st.session_state,
+        RESULTS_INSPECTION_ANCHOR_ID,
+        should_scroll=True,
     )
     collapse_documentation(st.session_state)
     reset_result_state(st.session_state)
@@ -265,18 +304,29 @@ def handle_analysis_direction_change():
     Reset active results after selecting RX or TX analysis direction.
 
     Hardware A/B uses direction-specific parameters. Changing direction while
-    that design is active returns to Success-only mode so a fixed-reference
-    identity can never be reinterpreted as a TX schedule configuration, or vice
-    versa.
+    that design is active or retained returns to Success-only mode so an RX
+    identity can never become a TX schedule configuration, or vice versa.
+    Reference Station and Local Neighborhood keep their identities/scope but
+    clear any direction-specific correction.
     """
-    t = T[st.session_state.lang]
-    if st.session_state.get("val_comp_mode") == t["opt_comp_self"]:
-        st.session_state.val_comp_mode = t["opt_comp_none"]
+    active_mode = st.session_state.get("val_comp_mode")
+    retained_mode = st.session_state.get("guided_last_compare_mode")
+    if active_mode == "hardware_ab" or retained_mode == "hardware_ab":
+        st.session_state.val_comp_mode = "none"
+        st.session_state.guided_reference_design = None
+        st.session_state.guided_last_compare_mode = None
         st.session_state.val_benchmark_offset_db = 0.0
+        st.session_state.guided_offset_intent = "no_offset"
         st.session_state.val_tx_ab_method = "simultaneous"
         st.session_state.val_tx_ab_repeat_interval_minutes = 10
         st.session_state.val_tx_ab_target_start_minute = 0
         st.session_state.val_tx_ab_reference_start_minute = 2
+    elif active_mode in {"reference_station", "local_neighborhood"} or retained_mode in {
+        "reference_station",
+        "local_neighborhood",
+    }:
+        st.session_state.val_benchmark_offset_db = 0.0
+        st.session_state.guided_offset_intent = "no_offset"
     reset_audit()
 
 def set_reset_config():
@@ -286,27 +336,25 @@ def set_reset_config():
     """
     cancel_analysis_submission(st.session_state)
     st.session_state.is_demo_mode = False
-    t = T[st.session_state.lang]
-    
     st.session_state.val_callsign = ""
     st.session_state.val_analysis_direction = None
     st.session_state.val_qth = ""
     st.session_state.val_band = DEFAULT_BAND
-    st.session_state.val_time_mode = t["opt_last_x"]
+    st.session_state.val_time_mode = "last_x"
     st.session_state.val_hours = 24
-    st.session_state.val_solar = t["opt_solar_all"]
-    st.session_state.val_comp_mode = t["opt_comp_none"]
+    st.session_state.val_solar = "all"
+    st.session_state.val_comp_mode = "none"
     st.session_state.val_ref_stations = 10
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0
-    st.session_state.val_local_benchmark = t["opt_local_median"]
+    st.session_state.val_local_benchmark = "local_median"
     st.session_state.val_ref_callsign = ""
     st.session_state.val_ref_qth = ""
     st.session_state.val_tx_ab_method = "simultaneous"
     st.session_state.val_tx_ab_repeat_interval_minutes = 10
     st.session_state.val_tx_ab_target_start_minute = 0
     st.session_state.val_tx_ab_reference_start_minute = 2
-    st.session_state.val_max_dist = 22000
+    st.session_state.val_max_peer_distance_km = 22000
     st.session_state.val_exclude_special_callsigns = False
     st.session_state.val_filter_moving = False
     st.session_state.val_min_spots = 1
@@ -333,6 +381,17 @@ def set_reset_config():
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
     st.session_state.run_mode = None
+    st.session_state.guided_use_case = None
+    st.session_state.guided_reference_design = None
+    st.session_state.guided_last_compare_mode = None
+    st.session_state.guided_offset_intent = "no_offset"
+    st.session_state.guided_scope_mode = "general"
+    st.session_state.guided_active_node = "use_case"
+    st.session_state.guided_reconstruct_requested = False
+    st.session_state.guided_demo_metadata_open = False
+    st.session_state.guided_loaded_demo_profile = None
+    st.session_state.guided_collapse_all = False
+    st.session_state.configuration_changed_since_run = False
     reset_result_state(st.session_state)
     for state_key in tuple(st.session_state.keys()):
         if state_key.startswith("config_save_"):

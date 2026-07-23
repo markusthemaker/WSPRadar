@@ -1,7 +1,7 @@
 """Dependency-free validation of versioned WSPRadar config documents.
 
-The codec verifies the stable document discriminator and initial public schema
-version before validating an independent copy of the current document envelope.
+The codec verifies the stable document discriminator and current pre-production
+schema version before validating an independent copy of the document envelope.
 Scientific and UI-setting semantics remain with their owning validators; this
 module owns the shared persistence envelope, provenance metadata, and optional
 reusable-profile metadata.
@@ -168,9 +168,10 @@ def _validate_current_envelope(payload):
 def prepare_config_document(payload):
     """Return an independent, validated current-schema config document.
 
-    The input must be a decoded JSON object. This initial public contract has no
-    predecessor, so every unsupported schema version is rejected rather than
-    guessed. The returned dictionary never aliases the caller's nested objects.
+    The input must be a decoded JSON object. The pre-production version-1
+    contract has no supported predecessor or migration path, so every
+    unsupported schema version is rejected rather than guessed. The returned
+    dictionary never aliases the caller's nested objects.
     """
     if not isinstance(payload, dict):
         raise ValueError("The config file must contain a JSON object.")

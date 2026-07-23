@@ -59,8 +59,8 @@ Beginne mit der betrieblichen Fragestellung, nicht mit einer Karte oder Kennzahl
 
 | Deine Frage | Auswahl |
 |---|---|
-| Wo wird mein Sender von Empfängern decodiert, deren Aktivität unabhängig nachgewiesen ist? | TX-Analyse mit `Kein Benchmark (nur Success)` |
-| Welche andernorts unabhängig bestätigten Signale decodiert auch mein Empfänger? | RX-Analyse mit `Kein Benchmark (nur Success)` |
+| Wo wird mein Sender von Empfängern decodiert, deren Aktivität unabhängig nachgewiesen ist? | TX-Analyse mit `Success — nur Target` |
+| Welche andernorts unabhängig bestätigten Signale decodiert auch mein Empfänger? | RX-Analyse mit `Success — nur Target` |
 | Unterscheidet sich der kontrollierte lokale Antennen-, Speiseleitungs- oder Hardwarepfad A von Pfad B? | Hardware A/B-Test |
 | Wie schneidet meine vollständige Station gegenüber einer bekannten Station ab? | Referenzstations-/Buddy-Test |
 | Ist meine Station im Großen und Ganzen typisch für nahegelegene aktive WSPR-Stationen? | Lokaler Nachbarschafts-Benchmark mit lokalem Nachbarschafts-Median |
@@ -76,10 +76,10 @@ Wähle das am engsten gefasste Design, das die beabsichtigte Aussage tatsächlic
 
 #### 0.3 Was ein Lauf liefert
 
-Jeder Lauf legt eine <strong class="defined-term">Analyserichtung</strong>, genau ein Band, eine Target-Identität und ein aufgelöstes UTC-Zeitfenster fest. Sein <strong class="defined-term">Benchmark-Design</strong> bestimmt die Ergebnisblöcke. Ein Lauf erzeugt ein Evidenzpaket für diese klar definierte Fragestellung und keine universelle Kennzahl für die Station.
+Jeder Lauf legt eine <strong class="defined-term">Analyserichtung</strong>, genau ein Band, eine Target-Identität und ein aufgelöstes UTC-Zeitfenster fest. Sein <strong class="defined-term">Benchmark-Design</strong> wählt genau einen aktiven Ergebnistyp. Ein Lauf erzeugt ein Evidenzpaket für diese klar definierte Fragestellung und keine universelle Kennzahl für die Station.
 
 * <strong class="defined-term">Success</strong> ist das nicht vergleichende Target-Ergebnis. Die bedingte Success Rate zeigt, wie oft das Target unter unabhängig bestätigten Opportunities qualifizierende Evidenz lieferte.
-* <strong class="defined-term">Compare</strong> kommt hinzu, sobald ein Benchmark ausgewählt ist. Das Ergebnis enthält gepaartes **Delta SNR** und **Decode Outcomes**. Delta SNR ist das SNR der Target-Seite minus das SNR der Referenzseite nach einer gegebenenfalls konfigurierten Referenzkorrektur. Positive Werte sprechen für das Target, negative für die Referenz. Decode Outcomes weisen sowohl gepaarte Evidenz als auch Fälle aus, in denen nur eine Seite decodiert wurde.
+* <strong class="defined-term">Compare</strong> ist das Ergebnis, sobald ein Benchmark ausgewählt ist. Es enthält gepaartes **Delta SNR** und **Decode Outcomes**. Delta SNR ist das SNR der Target-Seite minus das SNR der Referenzseite nach einer gegebenenfalls konfigurierten Referenzkorrektur. Positive Werte sprechen für das Target, negative für die Referenz. Decode Outcomes weisen sowohl gepaarte Evidenz als auch Fälle aus, in denen nur eine Seite decodiert wurde.
 
 Success, Delta SNR und Decode Outcomes beantworten unterschiedliche Fragen. WSPRadar hält sie getrennt, damit eine einzelne eingängige Zahl eine geringe Opportunity-Abdeckung, einseitige Decodes oder eine gepaarte Teilmenge, die nur einen Teil der Evidenz repräsentiert, nicht verdeckt.
 
@@ -97,10 +97,7 @@ Das Ziel ist eine klare betriebliche Aussage: **Was unterschied sich wo und wann
 
 #### 0.4 Der erste sinnvolle Lauf: mit einer geführten Demo beginnen
 
-Am schnellsten lernst du WSPRadar kennen, wenn du vor der Konfiguration deiner eigenen Station eine gepflegte Demo ausführst. Öffne `Demo laden`, wähle ein Profil und anschließend eine von zwei Aktionen:
-
-* **`Ausgewaehlte Demo starten`** führt die gepflegte Konfiguration unverändert aus.
-* **`Ausgewaehlte Demo-Konfiguration laden`** lädt sie in die Bedienelemente, damit du Target, Richtung, Band, UTC-Zeitfenster, Benchmark-Design, Filter und Evidenzschwellen prüfen kannst, bevor du sie mit `RX-Analyse starten` oder `TX-Analyse starten` ausführst.
+Am schnellsten lernst du WSPRadar kennen, wenn du vor der Konfiguration deiner eigenen Station eine gepflegte Demo ausführst. Öffne in der voreingestellten Geführten Eingabe `Demo laden`, wähle ein Profil und anschließend **`Ausgewaehlte Demo-Konfiguration laden`**. Titel und Beschreibung erscheinen zuerst, einschließlich eines Publikations- oder Quellenlinks, wenn das Profil einen enthält; die voreingestellten wissenschaftlichen Schritte bleiben darunter zugeklappt. Wähle **`Einstellungen Schritt für Schritt durchgehen`**, um die vorbelegten zutreffenden Schritte nacheinander zu prüfen; **`Weiter`** führt jeweils zum nächsten zutreffenden Schritt. Wähle **`Direkt zu „Prüfen und starten“`**, um sofort die vollständige Abschlussprüfung zu öffnen. Keine der beiden Optionen startet die Analyse; starte sie ausdrücklich mit `RX-Analyse starten` oder `TX-Analyse starten`. Die Klassische Eingabe bietet zusätzlich **`Ausgewaehlte Demo starten`** für den unmittelbaren unveränderten Start.
 
 Lass die wissenschaftlichen Bedienelemente beim ersten Durchlauf unverändert. Ein unverändert geladenes Profil bleibt eine geführte Demo. Das Bearbeiten eines wissenschaftlichen Bedienelements ändert die Versuchsfrage und macht aus dem Profil eine gewöhnliche Analyse. Eine Demo ist ein durchgearbeitetes Beispiel für die Methode von WSPRadar, keine Evidenz über deine eigene Station.
 
@@ -108,7 +105,7 @@ Wenn sich die Ergebnisse öffnen, folge dem oben eingeführten Standardpfad durc
 
 **Karte -> Stationen und Spots -> Segment-Inspektor -> Station Insights -> Drill-Down**
 
-Nutze beim Interpretieren des Success-Ergebnisses [Abschnitt 2.1](#sec-3-2). Wenn die Demo auch ein Compare-Ergebnis erzeugt, lies vor der Interpretation von Delta SNR oder Decode Outcomes [Abschnitt 2.2](#sec-3-3). Kehre danach zu [Abschnitt 0.2](#sec-1-2) zurück, wähle das zu deiner Stationsfrage passende Versuchsdesign und konfiguriere deinen ersten Lauf mit der eigenen Station.
+Nutze [Abschnitt 2.1](#sec-3-2), wenn das aktive Demo-Ergebnis Success ist. Ist das aktive Ergebnis Compare, lies vor der Interpretation von Delta SNR oder Decode Outcomes [Abschnitt 2.2](#sec-3-3). Kehre danach zu [Abschnitt 0.2](#sec-1-2) zurück, wähle das zu deiner Stationsfrage passende Versuchsdesign und konfiguriere deinen ersten Lauf mit der eigenen Station.
 
 <a id="documentation-toc"></a>
 
@@ -156,8 +153,8 @@ Nutze beim Interpretieren des Success-Ergebnisses [Abschnitt 2.1](#sec-3-2). Wen
 
 * [4. Bedienelemente und Konfiguration](#sec-5)
     * [4.1 Ablaufsteuerung](#sec-5-1)
-    * [4.2 Kernparameter](#sec-5-2)
-    * [4.3 Benchmark-Einstellungen](#sec-5-3)
+    * [4.2 Target und Messzeitraum](#sec-5-2)
+    * [4.3 Ergebnisansicht und Benchmark-Einstellungen](#sec-5-3)
     * [4.4 Filter und Evidenzschwellen](#sec-5-4)
     * [4.5 Karten-, Inspektor- und Exporteinstellungen](#sec-5-5)
 * [5. Fehlersuche und Datenqualität](#sec-6)
@@ -275,7 +272,7 @@ Es gibt weder eine Referenzstation noch einen Referenzpfad. Die Success Rate bes
 
 **Die Analyse einrichten**
 
-Wähle `RX-Analyse` oder `TX-Analyse`, gib das exakte Target-Rufzeichen und QTH ein, wähle ein Band und ein aktives UTC-Zeitfenster und anschließend `Kein Benchmark (nur Success)`.
+Wähle `RX-Analyse` oder `TX-Analyse`, gib das exakte Target-Rufzeichen und QTH ein, wähle ein Band und ein aktives UTC-Zeitfenster und anschließend `Success — nur Target`.
 
 **Die Evidenz stärken**
 
@@ -305,7 +302,7 @@ Solange Unterschiede zwischen Empfänger, Audiopfad und Decoder nicht charakteri
 
 **Den Versuch einrichten**
 
-Wähle in der Benutzeroberfläche `Hardware A/B-Test (Eigenes Setup)` und betreibe zwei Empfänger gleichzeitig mit unterschiedlichen exakten Melderufzeichen. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter die deaktivierten Felder `Target-Grid-4` und `Referenz-Grid-4`. Beide Grid-4-Werte werden aus den ersten vier Zeichen des Target-QTHs der Kernparameter abgeleitet; gib nur das exakte Rufzeichen ein, unter dem der Referenzempfänger seine Meldungen hochlädt.
+Wähle in der Benutzeroberfläche `Compare — Hardware A/B` und betreibe zwei Empfänger gleichzeitig mit unterschiedlichen exakten Melderufzeichen. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter die deaktivierten Felder `Target-Grid-4` und `Referenz-Grid-4`. Beide Grid-4-Werte werden aus den ersten vier Zeichen des Target-QTHs im Bereich `Target und Messzeitraum` abgeleitet; gib nur das exakte Rufzeichen ein, unter dem der Referenzempfänger seine Meldungen hochlädt.
 
 * Der Target-Empfänger verwendet Target-Rufzeichen und Target-QTH.
 * Der Referenzempfänger verwendet das Referenz-Rufzeichen und meldet aus demselben Target-Grid-4.
@@ -314,7 +311,7 @@ Hardware A/B besitzt keine unabhängige Referenz-QTH-Einstellung und speichert e
 
 Halte Uhren, Antennenführung, Verstärkung, Audiopfade, Decoder-Einstellungen und Uploads unter Kontrolle. Komponenten, die gemeinsam sein sollen, müssen physisch gemeinsam genutzt werden; unvermeidliche Unterschiede zwischen den beiden Ketten sind zu messen oder zu dokumentieren.
 
-Der Lauf erzeugt ein RX-Hardware-Compare-Ergebnis sowie ein separates RX-Success-Ergebnis für das Target.
+Der Lauf erzeugt ein einziges RX-Hardware-Compare-Ergebnis. Soll zusätzlich die nicht vergleichende Target-Frage beantwortet werden, ist dafür eine zweite Konfiguration mit `Success — nur Target` auszuführen.
 
 **Die Evidenz stärken**
 
@@ -349,7 +346,7 @@ Die Definition des WSPR-Zyklus und die Verarbeitung der Joint-Paare stehen in de
 
 Wähle die Methode nach der tatsächlich verfügbaren Hardware und der Aussage, die der Versuch stützen soll. Simultanbetrieb ist nicht automatisch überlegen, wenn sich die beiden Sendeketten nicht kalibrieren oder ausreichend isolieren lassen. Sequenzieller Betrieb ist auch bei unmittelbar aufeinanderfolgenden WSPR-Frames nicht simultan.
 
-Betreibe bei beiden Methoden beide Pfade am selben physischen Test-QTH und begrenze ihre gemeldeten Locator auf das konfigurierte Target-Grid-4. Hardware A/B leitet beide angezeigten Grid-4-Werte aus dem Target-QTH ab, statt einen unabhängigen Referenzstandort zuzulassen. Melde die tatsächliche Sendeleistung und dokumentiere alles, was nicht gemeinsam ist. Das separate TX-Success-Ergebnis beschreibt stets das Target; die Referenz liefert Vergleichsevidenz, aber kein zweites Success-Ergebnis.
+Betreibe bei beiden Methoden beide Pfade am selben physischen Test-QTH und begrenze ihre gemeldeten Locator auf das konfigurierte Target-Grid-4. Hardware A/B leitet beide angezeigten Grid-4-Werte aus dem Target-QTH ab, statt einen unabhängigen Referenzstandort zuzulassen. Melde die tatsächliche Sendeleistung und dokumentiere alles, was nicht gemeinsam ist. Der Hardware-A/B-Lauf erzeugt nur Compare; verwende eine separate Konfiguration mit `Success — nur Target`, wenn auch die nicht vergleichende Target-Frage relevant ist.
 
 <a id="sec-2-4-simultaneous"></a>
 
@@ -363,7 +360,7 @@ Das Target-Active Gate bleibt Target-zentriert: Ein Zyklus ist nur zulässig, we
 
 **Den Versuch einrichten**
 
-Wähle `Simultanes TX`. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter die deaktivierten Felder `Target-Grid-4` und `Referenz-Grid-4`. Beide Grid-4-Werte entsprechen den ersten vier Zeichen des Target-QTHs aus den Kernparametern. Verwende zwei unterschiedliche exakte Rufzeichen, melde beide Pfade innerhalb dieses konfigurierten Grid-4 und betreibe beide vollständigen Sendepfade am selben physischen Test-QTH.
+Wähle `Simultanes TX`. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter die deaktivierten Felder `Target-Grid-4` und `Referenz-Grid-4`. Beide Grid-4-Werte entsprechen den ersten vier Zeichen des Target-QTHs aus `Target und Messzeitraum`. Verwende zwei unterschiedliche exakte Rufzeichen, melde beide Pfade innerhalb dieses konfigurierten Grid-4 und betreibe beide vollständigen Sendepfade am selben physischen Test-QTH.
 
 Ein simultaner WSPR-Vergleich mit zwei Sendern benötigt normalerweise:
 
@@ -414,7 +411,7 @@ Ein eigener sequenzieller TX-Kalibrierlauf kann den Offset zwischen zwei Sendeke
 
 Prüfe die physische Zuordnung von Zeitplan und Pfad vor dem Start ohne HF. Eine vertauschte Zuordnung beschriftet die Pfade falsch und kehrt die praktische Interpretation des Delta-SNR-Vorzeichens um.
 
-Der Lauf erzeugt ein sequenzielles TX-Hardware-Compare-Ergebnis und ein separates TX-Success-Ergebnis. Success ist auf den konfigurierten Target-Zeitplan begrenzt.
+Der Lauf erzeugt ein einziges sequenzielles TX-Hardware-Compare-Ergebnis. Die separate Success-Abfrage wird nicht ausgeführt; verwende für nicht vergleichende Target-Evidenz einen eigenen Lauf mit `Success — nur Target`.
 
 **Die Evidenz stärken**
 
@@ -449,11 +446,11 @@ TX-Paare desselben Zyklus teilen damit einen entfernten Empfänger, RX-Paare ein
 
 **Die Analyse einrichten**
 
-Wähle `Fremdes Rufzeichen (Buddy-Test)`. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter `Target-QTH` und `Referenz-Grid-4`. Die Target-Werte stammen aus den Kernparametern. Anders als bei Hardware A/B bleiben beide Referenzfelder editierbar: Gib das exakte Melderufzeichen der Referenz und ihr unabhängig gewähltes vierstelliges Maidenhead-Grid ein. WSPRadar ordnet beide festen Seiten anhand des jeweiligen exakten Rufzeichens plus des eigenen Grid-4 zu. Wähle als Referenz eine Station, deren Standort, Hardware, gemeldete Leistung und Betriebsplan du kennst.
+Wähle `Compare — bekannte Referenzstation`. Die Identitätsfelder zeigen in der ersten Zeile `Target-Rufzeichen` und `Referenz-Rufzeichen`, darunter `Target-QTH` und `Referenz-Grid-4`. Die Target-Werte stammen aus `Target und Messzeitraum`. Anders als bei Hardware A/B bleiben beide Referenzfelder editierbar: Gib das exakte Melderufzeichen der Referenz und ihr unabhängig gewähltes vierstelliges Maidenhead-Grid ein. WSPRadar ordnet beide festen Seiten anhand des jeweiligen exakten Rufzeichens plus des eigenen Grid-4 zu. Wähle als Referenz eine Station, deren Standort, Hardware, gemeldete Leistung und Betriebsplan du kennst.
 
 Beide Stationen müssen zeitgleich auf demselben Band in Betrieb sein. Prüfe die Betriebsbereitschaft der Referenz unabhängig. Verwende eine Referenz-SNR-Korrektur nur, wenn sie auf einer belastbaren Kalibrierung beruht.
 
-Der Lauf erzeugt ein TX- oder RX-Compare-Ergebnis gegenüber dem Buddy und ein separates nicht vergleichendes Target-Success-Ergebnis.
+Der Lauf erzeugt ein einziges TX- oder RX-Compare-Ergebnis gegenüber dem Buddy. Ein nicht vergleichendes Target-Success-Ergebnis erfordert einen separaten Lauf mit `Success — nur Target`.
 
 **Die Evidenz stärken**
 
@@ -484,11 +481,11 @@ Der lokale Nachbarschafts-Median bildet aus aktiven Stationsidentitäten innerha
 Die Referenz kann sich von Zyklus zu Zyklus ändern. Sie ist ein lokaler Aktivitätsbenchmark und keine einzelne feste oder kalibrierte Station.
 
 **Die Analyse einrichten**
-Wähle `Lokaler Nachbarschafts-Benchmark`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Lokaler Nachbarschafts-Median`.
+Wähle `Compare — lokaler Nachbarschaftsvergleich`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Lokaler Nachbarschafts-Median`.
 
 Prüfe Target-Rufzeichen und QTH: Exaktes Rufzeichen plus Grid-4 wählt die Target-Spots aus, das exakte Rufzeichen schließt das Target aus dem lokalen Pool aus, und das QTH definiert den Ursprung des Radius. Wähle den primären Radius vor der Interpretation anhand der lokalen Geografie und der zu erwartenden Stationsdichte. Er sollte eine klare lokale Bedeutung besitzen und genügend aktive Identitäten enthalten.
 
-Der Lauf erzeugt ein lokales Compare-Ergebnis und ein separates nicht vergleichendes Success-Ergebnis für das Target.
+Der Lauf erzeugt ein einziges lokales Compare-Ergebnis. Ein nicht vergleichendes Target-Success-Ergebnis erfordert einen separaten Lauf mit `Success — nur Target`.
 
 **Die Evidenz stärken**
 
@@ -516,11 +513,11 @@ Die Methode „Beste lokale Station“ bildet aus aktiven Stationsidentitäten i
 
 **Die Analyse einrichten**
 
-Wähle `Lokaler Nachbarschafts-Benchmark`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Beste lokale Station`.
+Wähle `Compare — lokaler Nachbarschaftsvergleich`, einen Radius von 10 bis 250 km und unter `Lokale Benchmark-Methode` die Option `Beste lokale Station`.
 
 Prüfe Target-Rufzeichen und QTH: Exaktes Rufzeichen plus Grid-4 wählt die Target-Spots aus, das exakte Rufzeichen schließt das Target aus dem lokalen Pool aus, und das QTH definiert den Ursprung des Radius. Wähle den primären Radius vor der Interpretation anhand der lokalen Geografie und der zu erwartenden Stationsdichte; er muss einen aussagekräftigen und ausreichend besetzten lokalen Pool erhalten.
 
-Der Lauf erzeugt ein lokales Compare-Ergebnis und ein separates nicht vergleichendes Success-Ergebnis für das Target.
+Der Lauf erzeugt ein einziges lokales Compare-Ergebnis. Ein nicht vergleichendes Target-Success-Ergebnis erfordert einen separaten Lauf mit `Success — nur Target`.
 
 **Die Evidenz stärken**
 
@@ -572,18 +569,20 @@ WSPRadar verwendet vier sichtbare Klassifikationen:
 
 Wurde beispielsweise ein entfernter Sender in acht qualifizierenden Zyklen unabhängig bestätigt und in drei davon auch vom Target-Empfänger decodiert, beträgt die RX Success Rate dieses Peers `3 von 8 = 37,5 %`. Erzeugte ein aktiver Empfänger zehn qualifizierende Zyklen und decodierte den Target-Sender in vier davon, beträgt seine TX Success Rate `4 von 10 = 40 %`.
 
-Die Kandidatenpopulation wird weltweit gebildet:
+Die Roh-Kandidatenpopulation wird weltweit gebildet:
 
 * Bei RX kann sie bis zu allen weltweit aktiven Sendern auf dem Band in den Zyklen anwachsen, in denen der Target-Empfänger aktiv war.
 * Bei TX kann sie bis zu allen weltweit aktiven Empfängern auf dem Band während der Target-Sendezyklen anwachsen.
 
-Es tragen nur Peers bei, die das gewählte Zeitfenster, Band, die Filter und Evidenzschwellen erfüllen. Der angezeigte Kartenbereich kann einen geografischen Ausschnitt darstellen.
+Zum beibehaltenen Ergebnis tragen nur Peers bei, die das gewählte Zeitfenster, Band, die Filter, den geografischen Analyseumfang und die Evidenzschwellen erfüllen. Peer-Zeilen, deren Entfernung vom Target-QTH nicht strikt kleiner als `Maximale Peer-Entfernung vom Target (km)` ist, werden aus wissenschaftlichen Berechnungen, verarbeiteten Artefakten und Exporten sowie aus Karte und Inspector ausgeschlossen.
+
+Das <strong class="defined-term">Target-Active Gate</strong> bleibt bewusst global. Evidenz außerhalb des geografischen Analyseumfangs darf belegen, dass das Target in einem Zyklus in Betrieb war; der betreffende Peer außerhalb des Umfangs geht jedoch nicht in begrenzte Outcomes, Raten, Anzahlen oder exportierte Evidenz ein. So bleibt die Aktivitätsprüfung erhalten, ohne dass entfernte Peers das ausgewählte geografische Ergebnis verändern.
 
 Zunächst wird die Rate jedes Peers berechnet. In einem Success-Kartensegment erhält anschließend jede qualifizierende Peer-Identität genau eine gleich große Stimme; angezeigt wird das arithmetische Mittel dieser Stationsraten. Das ist der <strong class="defined-term">stationsgleichgewichtete</strong> Wert. Der Segment-Inspektor zeigt zusätzlich die gepoolte Rate auf <strong class="defined-term">Beobachtungsebene</strong>, bei der jede qualifizierende Beobachtung gleich gewichtet wird.
 
 Die Success Rate wird nicht auf die Sendeleistung normiert. Der daneben angezeigte SNR erfolgreicher Target-Decodes wird dagegen auf die gemeldete Leistung von 1 W normiert.
 
-Angezeigte `100%` bedeuten, dass das Target bei jeder qualifizierenden Opportunity der Station oder des ausgewählten Bereichs erfolgreich war. Sie bedeuten nicht, dass jede mögliche oder geplante Aussendung decodiert wurde. Da Success eine anspruchsvolle, weltweit gebildete Opportunity-Population misst, ergibt sich die praktische Aussage aus Geografie, Stationen, Spots, Zeitverlauf und Wiederholung – nicht allein aus der Nähe zu `100%`.
+Angezeigte `100%` bedeuten, dass das Target bei jeder qualifizierenden Opportunity der Station oder des ausgewählten Bereichs erfolgreich war. Sie bedeuten nicht, dass jede mögliche oder geplante Aussendung decodiert wurde. Da Success mit einer anspruchsvollen, weltweit gebildeten Opportunity-Population beginnt und anschließend den konfigurierten geografischen Analyseumfang anwendet, ergibt sich die praktische Aussage aus Geografie, Stationen, Spots, Zeitverlauf und Wiederholung – nicht allein aus der Nähe zu `100%`.
 
 <a id="sec-3-3"></a>
 
@@ -657,7 +656,7 @@ Bei Compare werden beide Zeilen in Only Target, Joint, Both (Async) und Only Ref
 
 Bei Success unterteilt `SPOTS` die Nennerevidenz bei RX in Target und Elsewhere beziehungsweise bei TX in Target und Other Signals. `STATIONS` unterteilt die qualifizierenden Identitäten in Peers mit mindestens einer Target-Beobachtung und Peers ausschließlich mit Gegen-Evidenz. Target-only und nicht qualifizierende Evidenz werden ausgeschlossen, weil sie nicht in die Success Rate eingehen.
 
-Die Zähler am Kartenfuß beziehen sich auf den sichtbaren Kartenbereich. Viele Spots von nur wenigen Stationen bedeuten wiederholte Evidenz aus einer schmalen Identitätsbasis. Viele Stationen zeigen eine breitere Beteiligung unterschiedlicher Identitäten und geografischer Räume.
+Die Zähler am Kartenfuß beziehen sich auf den beibehaltenen geografischen Analyseumfang. Viele Spots von nur wenigen Stationen bedeuten wiederholte Evidenz aus einer schmalen Identitätsbasis. Viele Stationen zeigen eine breitere Beteiligung unterschiedlicher Identitäten und geografischer Räume.
 
 In der Ergebnisgruppierung bilden ein gemeldetes Rufzeichen und sein vollständig gemeldeter Locator eine Analyseidentität, jedoch keinen Beweis für genau eine physische Station. Die Abfragezuordnung ausgewählter Target- und Referenzstationen folgt den modusspezifischen Regeln in [Abschnitt 7.2](#sec-7-2). Suffixe, veraltete Locator und Locatorwechsel können eine physische Station in der Evidenz aufteilen oder verschieben.
 
@@ -666,7 +665,7 @@ In der Ergebnisgruppierung bilden ein gemeldetes Rufzeichen und sein vollständi
 
 #### 2.5a Ein geografisches Segment untersuchen (Success-Modus)
 
-Wähle im `Segment-Inspektor` einen oder mehrere Entfernungsbereiche und Himmelsrichtungen aus. Dadurch öffnet sich die Evidenz hinter dem entsprechenden Kartenausschnitt.
+Wähle im `Segment-Inspektor` einen oder mehrere Entfernungsbereiche und Himmelsrichtungen aus. Dadurch öffnet sich die Evidenz hinter dem entsprechenden Kartenausschnitt. Inspector-Auswahlen können den geografischen Analyseumfang des abgeschlossenen Laufs weiter eingrenzen, ihn aber nicht erweitern oder durch die Maximalentfernung ausgeschlossene Peer-Zeilen wiederherstellen.
 
 **Target und Gegen-Evidenz.** Die Anzahlen für Target und Elsewhere/Other Signals zeigen die Beobachtungen, die in den Success-Nenner des ausgewählten Segments eingehen.
 
@@ -773,7 +772,7 @@ WSPRadar verdichtet diese Dimensionen bewusst nicht zu einer einzigen Beweisstuf
 
 #### 3.2 Ein Ergebnis durch Wiederholung und Kontrolle absichern
 
-Nutze einen ersten explorativen Lauf, um ein mögliches Muster zu erkennen. Lege vor einer bestätigenden Wiederholung Richtung, Band, Benchmark, Filter, Evidenzschwellen, Zeitplan sowie den primären geografischen oder zeitlichen Auswertungsbereich fest. Dokumentiere alternative Radien oder Bereiche als Sensitivitätsanalysen, statt nur die günstigste Ansicht beizubehalten.
+Nutze einen ersten explorativen Lauf, um ein mögliches Muster zu erkennen. Lege vor einer bestätigenden Wiederholung Richtung, Band, Benchmark, Filter, Evidenzschwellen, Zeitplan sowie den primären geografischen oder zeitlichen Auswertungsbereich einschließlich `Maximale Peer-Entfernung vom Target (km)` fest. Führe alternative Maximalentfernungen als separat aufbewahrte Sensitivitätsanalysen aus, statt erst nach Betrachtung des Ergebnisses nur den günstigsten Umfang auszuwählen.
 
 Wenn das Ergebnis eine wichtige Stationsentscheidung stützen soll:
 
@@ -862,8 +861,8 @@ WSPRadar trennt Bedienelemente, welche die wissenschaftliche Analyse verändern,
 
 | Klasse | Was sie verändert | Konfiguration und Reproduzierbarkeit |
 |---|---|---|
-| **Wissenschaftliche Bedienelemente** | Abfragepopulation, Paarbildung, Klassifikation, Normierung, Qualifizierung oder Aggregation. Dazu gehören Richtung, Identität, Band, Zeit, Benchmark, Korrektur, Sonnenstandsfilter, Ausschlussfilter und Evidenzschwellen. | Werden gespeichert, sofern sie gelten, und im Exportpaket festgehalten. Eine Änderung verwirft das abgeschlossene Ergebnis, damit die Analyse mit der neuen Definition erneut ausgeführt werden kann. |
-| **Ansichtsbedienelemente** | Welche abgeschlossene Evidenz dargestellt oder untersucht wird, ohne die vorgelagerte Abfrage erneut auszuführen. Dazu gehören Kartenbereich, ausgewähltes Segment, ausgewählte Stationen, Sichtbarkeit von Non-Joint- beziehungsweise Zero-Target-Evidenz, Zeitansicht und Zeit-Bin der Evidenz. | Kartenbereich, Bereich/Richtung im Segment Inspector und die jeweils anwendbaren dauerhaften Compare-/Success-Ansichten werden gespeichert. Tabellenfilter und weitere beiläufige Interaktionen bleiben flüchtig. |
+| **Wissenschaftliche Bedienelemente** | Abfragepopulation, Paarbildung, Klassifikation, Normierung, Qualifizierung oder Aggregation. Dazu gehören Richtung, Identität, Band, Zeit, Benchmark, Korrektur, Sonnenstandsfilter, geografischer Analyseumfang, Ausschlussfilter und Evidenzschwellen. | Werden gespeichert, sofern sie gelten, und im Exportpaket festgehalten. Eine Änderung verwirft das abgeschlossene Ergebnis, damit die Analyse mit der neuen Definition erneut ausgeführt werden kann. |
+| **Ansichtsbedienelemente** | Welche abgeschlossene Evidenz dargestellt oder untersucht wird, ohne die beibehaltene Analysepopulation zu verändern. Dazu gehören ausgewähltes Inspector-Segment, ausgewählte Stationen, Sichtbarkeit von Non-Joint- beziehungsweise Zero-Target-Evidenz, Zeitansicht und Zeit-Bin der Evidenz. | Bereich/Richtung im Segment Inspector und die jeweils anwendbaren dauerhaften Compare-/Success-Ansichten werden gespeichert. Inspector-Auswahlen können den abgeschlossenen geografischen Umfang eingrenzen, ihn aber nicht überschreiben. Tabellenfilter und weitere beiläufige Interaktionen bleiben flüchtig. |
 | **Flüchtiger UI-Zustand** | Auf- und Zuklappen von Bereichen, Tabellen- und Drill-Down-Filter, Sichtbarkeit der Dokumentation, vorbereitete Download-Bytes und weitere beiläufige Interaktionszustände der Sitzung. | Gehört nicht zur wissenschaftlichen Konfiguration und wird normalerweise nicht serialisiert. |
 | **Zur Reproduzierbarkeit gespeicherte Konfigurationsfelder** | Der jeweils anwendbare wissenschaftliche Zweig sowie ausdrücklich unterstützte dauerhafte Ansichtseinstellungen. | Werden in der versionierten `.config` gespeichert. Inaktive ausgeblendete Zweige werden weggelassen, statt als ruhende Werte erhalten zu bleiben. |
 
@@ -873,7 +872,9 @@ Die exakten Formeln und Verarbeitungsregeln stehen weiterhin in den [Wissenschaf
 
 #### 4.1 Ablaufsteuerung
 
-**`Demo laden`** öffnet gepflegte historische Profile. Ein Profil kann zur Prüfung geladen oder sofort ausgeführt werden. Ein unverändert geladenes Profil bleibt auch beim anschließenden Start über die normale Analyse-Schaltfläche eine geführte Demo und behält damit die Demo-Cache-Richtlinie. Wird ein wissenschaftliches Bedienelement geändert, gilt die bearbeitete Konfiguration als normale Analyse.
+**`Eingabeansicht`** wechselt zwischen `Geführt` und `Klassisch`. Geführt ist die Werkseinstellung und führt von der Betriebsfrage über Target und Zeitraum, gegebenenfalls Referenzdesign, Offset-Absicht, Umfang und Evidenz bis zur abschließenden Prüfung. Jede Geführte Eingabe erläutert, was einzutragen ist, wie WSPRadar den Wert verwendet und welche Folgen oder Evidenzabwägungen damit verbunden sind. Klassisch zeigt dieselben wissenschaftlichen Bedienelemente in kompakten Bereichen. Beide Editoren lesen und schreiben eine gemeinsame kanonische Konfiguration; ein Ansichtswechsel erhält daher Eingaben und abgeschlossene Ergebnisse. Die gewählte Eingabeansicht ist flüchtiger Darstellungszustand und wird nicht in einer `.config`-Datei gespeichert.
+
+**`Demo laden`** öffnet gepflegte historische Profile. Im Geführten Modus wird das gewählte Profil zur Prüfung geladen; seine Metadaten erscheinen vor den zugeklappten voreingestellten Schritten. **`Einstellungen Schritt für Schritt durchgehen`** öffnet den ersten vorbelegten zutreffenden Schritt, und **`Weiter`** führt jeweils zum nächsten zutreffenden Schritt. **`Direkt zu „Prüfen und starten“`** öffnet sofort die Abschlussprüfung. Keine der beiden Optionen startet eine Analyse. Im Klassischen Modus kann das Profil entweder geladen oder sofort ausgeführt werden. Ein unverändert geladenes Profil bleibt auch beim anschließenden Start über die normale Analyse-Schaltfläche eine geführte Demo und behält damit die Demo-Cache-Richtlinie. Wird ein wissenschaftliches Bedienelement geändert, gilt die bearbeitete Konfiguration als normale Analyse.
 
 **`Konfig laden`** validiert eine versionierte JSON-`.config` streng und lädt sie anschließend. Ungültige Identitäten, Datumswerte, Auswahlwerte, Wertebereiche, doppelte Felder und nicht unterstützte Schemaversionen werden abgelehnt.
 
@@ -881,7 +882,7 @@ Da WSPRadar noch vor dem Produktivbetrieb steht, bleibt der Konfigurationsvertra
 
 **`Konfig speichern`** öffnet ein kompaktes Profilformular. Gib einen Titel und eine optionale Beschreibung ein; eine optionale stabile ID kann angegeben oder automatisch erzeugt werden. Die entstehende Datei `<profil-id>.config` speichert alle anwendbaren Eingaben und dauerhaften Compare-/Success-Ansichten. Ist `Letzte X Stunden` konfiguriert, fragt der Speichervorgang außerdem, ob dieses gleitende relative Fenster beibehalten oder durch die aufgelösten absoluten UTC-Start-/Endzeitpunkte des aktiven Laufs ersetzt werden soll. Wähle die absolute Form, wenn ein späterer Lauf dieselben Datumswerte verwenden soll. Eine gespeicherte Konfiguration enthält weder Ergebniszeilen noch externe Versuchsnotizen oder flüchtige Tabellenfilter.
 
-**`RX-Analyse starten` / `TX-Analyse starten`** ist eine richtungsabhängige Schaltfläche. Sie führt Success und – sofern ein Benchmark gewählt ist – Compare für die unter den Kernparametern gewählte RX- oder TX-Analyse aus. Nach dem Absenden bleibt die Schaltfläche deaktiviert, solange die unveränderte Analyse dieser Sitzung wartet oder ausgeführt wird. Wird ein wissenschaftliches Bedienelement geändert, entsteht ein anderer Auftrag und die Analyse-Schaltfläche wird für die geänderte Konfiguration wieder verfügbar. Beim Warten auf Kapazität zeigt der Status nur die aktuelle Position der eigenen Analyse und keine Warteschlangensummen anderer Nutzer.
+**`RX-Analyse starten` / `TX-Analyse starten`** ist eine richtungsabhängige Schaltfläche. Sie führt genau das unter `Ergebnisansicht und Benchmark-Design` ausgewählte aktive Ergebnis aus: Success bei `Success — nur Target` oder Compare bei einem Benchmark. Nach dem Absenden bleibt die Schaltfläche deaktiviert, solange die unveränderte Analyse dieser Sitzung wartet oder ausgeführt wird. Wird ein wissenschaftliches Bedienelement geändert, entsteht ein anderer Auftrag; das alte Ergebnis wird verworfen und ein Hinweis fordert zum erneuten Start auf. Beim Warten auf Kapazität zeigt der Status nur die aktuelle Position der eigenen Analyse und keine Warteschlangensummen anderer Nutzer.
 
 **`Alle Ergebnisse zum Download vorbereiten`** erstellt das Exportpaket der aktuellen Analyse bei Bedarf.
 
@@ -891,18 +892,18 @@ Da WSPRadar noch vor dem Produktivbetrieb steht, bleibt der Konfigurationsvertra
 
 <a id="sec-5-2"></a>
 
-#### 4.2 Kernparameter
+#### 4.2 Target und Messzeitraum
 
 Diese Bedienelemente definieren Target, Betriebsrichtung, Band und Evidenzfenster.
 
 | UI-Bezeichnung | Werkseinstellung | Funktion |
 |---|---|---|
 | **RX-Analyse / TX-Analyse** | keine; erforderlich | RX wertet das Target als empfangende WSPR-Station aus, TX als sendende WSPR-Station. `RX-Analyse starten` / `TX-Analyse starten` und `Konfig speichern` bleiben deaktiviert, bis eine Option gewählt wurde. |
-| **Dein Rufzeichen (Empfänger im Test)** / **Dein Rufzeichen (Sender im Test)** | leer | Gültiges exaktes Target-Rufzeichen; gültige Varianten mit `/` und ein abschließendes `-`-Suffix sind zulässig. |
-| **QTH-Locator (4 oder 6 Zeichen)** | leer | Kartenmittelpunkt und Ursprung des lokalen Radius; die ersten vier Zeichen begrenzen die Target-Zuordnung. |
+| **Target-Rufzeichen (Empfänger im Test)** / **Target-Rufzeichen (Sender im Test)** | leer | Gültiges exaktes Target-Rufzeichen; gültige Varianten mit `/` und ein abschließendes `-`-Suffix sind zulässig. |
+| **Target-QTH (4 oder 6 Zeichen)** | leer | Kartenmittelpunkt und Ursprung des lokalen Radius; die ersten vier Zeichen begrenzen die Target-Zuordnung. |
 | **Frequenzband** | `20m` | Genau eines aus `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` oder `23cm`. |
-| **Zeitraum-Auswahl** | `Letzte X Stunden` | Wählt aktuelle oder benutzerdefinierte Evidenz in UTC. Der Modus `Letzte X Stunden` erlaubt 1 bis 168 Stunden und verwendet standardmäßig 24. |
-| **Stunden zurück (DB Update alle 15 Min)** | `24` | Erscheint für `Letzte X Stunden` und akzeptiert 1 bis 168 Stunden. Die absoluten Endpunkte werden beim Start aufgelöst und für diesen aktiven Lauf festgehalten. Beim Speichern wählst du, ob die Datei `Letzte X Stunden` beibehält oder diese aufgelösten UTC-Endpunkte festschreibt. |
+| **UTC-Messzeitraum** | `Letzte X Stunden` | Wählt aktuelle oder benutzerdefinierte Evidenz in UTC. Der Modus `Letzte X Stunden` erlaubt 1 bis 168 Stunden und verwendet standardmäßig 24. |
+| **Letzte X Stunden** | `24` | Erscheint für `Letzte X Stunden` und akzeptiert 1 bis 168 Stunden. Die absoluten Endpunkte werden beim Start aufgelöst und für diesen aktiven Lauf festgehalten. Beim Speichern wählst du, ob die Datei `Letzte X Stunden` beibehält oder diese aufgelösten UTC-Endpunkte festschreibt. |
 | **Startdatum**, **Enddatum**, **Startzeit (UTC)**, **Endzeit (UTC)** | Vortag `00:00` bis aktueller Tag `23:59` | Erscheinen für `Datum/Uhrzeit manuell`. Datumswerte beginnen im Jahr 2008; ein einzelnes Fenster ist auf 31 Tage begrenzt. Die aufgelösten Endpunkte werden auf 15-Minuten-Grenzen abgerundet. |
 
 Verwende das Rufzeichen exakt so, wie es hochgeladen wurde. Bevorzuge standardmäßige Rufzeichenformen und gib eine Meldekennung mit Bindestrich nur dann ein, wenn genau diese Archividentität abgefragt werden soll. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1`, `DL1MKS/QRP` und `DL1MKS-1` sind eigenständige Identitäten; WSPRadar behandelt `/` und `-` weder als gleichbedeutend noch führt es eine verdeckte Präfixzuordnung durch.
@@ -911,22 +912,22 @@ Ein Maidenhead-Locator ist eine kompakte Ortsangabe im Gitternetz. Vier Zeichen 
 
 <a id="sec-5-3"></a>
 
-#### 4.3 Benchmark-Einstellungen
+#### 4.3 Ergebnisansicht und Benchmark-Einstellungen
 
-**`Benchmark-Design`** hat die Werkseinstellung `Kein Benchmark (nur Success)`. Zur Auswahl stehen:
+**`Ergebnisansicht und Benchmark-Design`** hat die Werkseinstellung `Success — nur Target`. Zur Auswahl stehen:
 
-- `Kein Benchmark (nur Success)`
-- `Hardware A/B-Test (Eigenes Setup)`
-- `Fremdes Rufzeichen (Buddy-Test)`
-- `Lokaler Nachbarschafts-Benchmark`
+- `Success — nur Target`
+- `Compare — Hardware A/B`
+- `Compare — bekannte Referenzstation`
+- `Compare — lokaler Nachbarschaftsvergleich`
 
-Nur Success überspringt Compare. Die übrigen Optionen ergänzen das eigenständige Success-Ergebnis um Compare.
+Die Optionen wählen einander ausschließende Ergebnistypen. Ohne Benchmark entsteht nur Success; jede Benchmark-Option erzeugt nur Compare und stellt kein separates Success-Ergebnis dar, untersucht es nicht und exportiert es nicht.
 
 | UI-Bezeichnung | Standard und Wertebereich | Wann sie erscheint und was sie steuert |
 |---|---|---|
-| **Referenz-SNR-Korrektur (dB)** | `0.0 dB`; Wertebereich `-99.9` bis `+99.9 dB` | Wird zum SNR der Referenzseite addiert, bevor Delta SNR berechnet wird. |
-| **Target-Rufzeichen** | aus den Kernparametern | Macht die Target-Seite explizit. |
-| **Target-QTH** | aus den Kernparametern | Macht das Target-QTH explizit. |
+| **Referenzseitige SNR-Korrektur (dB)** | `0.0 dB`; Wertebereich `-99.9` bis `+99.9 dB` | Wird zum SNR der Referenzseite addiert, bevor Delta SNR berechnet wird. |
+| **Target-Rufzeichen** | aus Target und Messzeitraum | Macht die Target-Seite explizit. |
+| **Target-QTH** | aus Target und Messzeitraum | Macht das Target-QTH explizit. |
 | **Target-Grid-4** | erste vier Zeichen des Target-QTHs | Macht das Target-Grid-4 explizit. |
 | **Referenz-Rufzeichen** | leer | Exaktes Melderufzeichen der Referenzseite. |
 | **Referenz-Grid-4** | unabhängiges Grid-4 für die Referenzstation; Target-Grid-4 für Hardware A/B | Vierstelliges Maidenhead-Grid für die Referenzzuordnung. |
@@ -941,20 +942,22 @@ Der Hardware A/B-Test folgt der gewählten Option **RX-Analyse / TX-Analyse**. R
 
 Bei TX Hardware A/B bezeichnet das `Wiederholintervall` die tatsächliche Wiederkehr jedes physischen Pfads. Es entspricht nicht zwangsläufig der `Frame`-Bezeichnung eines Senders, der einen Ausgang abwechselnd auf zwei Pfade schaltet. Vergleiche die Vorschau mit den beobachteten Startzeiten auf Sendung und der physischen Schaltzuordnung. Gerätespezifische Beispiele stehen in [Anhang B](#sec-b), die exakte Paarbildung in den [Abschnitten 7.1](#sec-7-1) und [7.7](#sec-7-7).
 
-Beim Wechsel der Richtung oder des Benchmark-Modus wird der nicht anwendbare Zweig ausgeblendet. Seine bisherigen Widget-Werte werden weder gespeichert noch wiederhergestellt. Eine Konfiguration mit `Kein Benchmark (nur Success)` enthält deshalb keine ruhenden Compare-Parameter.
+Beim Wechsel der Richtung oder des Benchmark-Modus wird der nicht anwendbare Zweig ausgeblendet. Die aktuelle Browser-Sitzung kann inaktive Werte behalten, damit der Wechsel zwischen Geführter und Klassischer Eingabe keine Arbeit löscht; gespeichert wird jedoch nur der aktive Zweig. Ein Zweigwechsel löscht Werte, deren wissenschaftliche Bedeutung im neuen Design nicht mehr gültig ist, etwa eine neu interpretierte Korrektur oder Identität. Eine gespeicherte Konfiguration mit `Success — nur Target` enthält deshalb keine ruhenden Compare-Parameter.
 
-##### Vorzeichen der Referenz-SNR-Korrektur
+##### Vorzeichen der referenzseitigen SNR-Korrektur
 
 Eine positive Korrektur erhöht den korrigierten Referenz-SNR-Wert und verringert dadurch das Delta SNR Target minus Referenz. Gib einen gemessenen Kalibrierversatz `target - reference` mit demselben Vorzeichen ein. Ergibt beispielsweise eine Kalibrierung mit gemeinsamem Eingang `+1.6 dB`, wird `+1.6 dB` eingetragen. Die exakten Gleichungen stehen in der [Delta-SNR-Methode](#sec-7-5).
 
 Die Korrektur gilt für:
 
 - den Referenzempfänger, -sender oder -zeitplan im `Hardware A/B-Test`;
-- das Referenz-Rufzeichen bei `Fremdes Rufzeichen (Buddy-Test)`;
+- das Referenz-Rufzeichen bei `Compare — bekannte Referenzstation`;
 - den ausgewählten lokalen Wert bei `Beste lokale Station`; und
 - jeden lokalen Beitrag vor der Aggregation zum `Lokalen Nachbarschafts-Median`.
 
 Eine konstante Korrektur eignet sich für einen belastbar bestimmten konstanten Versatz. Übersteuerung, instabile AGC, zeitweilig fehlerhafte Signalführung, frequenzabhängiger Amplitudengang und falsche Leistungsangaben müssen dagegen im Versuchsaufbau oder in der Hardware behoben werden. [Anhang C](#sec-c) beschreibt die Kalibrierung.
+
+Die Geführte Eingabe bietet für kontrolliertes Hardware A/B und bekannte Referenzstationen `Kein ermittelter Offset — 0,0 dB verwenden`, `Ermittelten Offset eingeben` und `Beim Ermitteln eines Offsets helfen`. Der Hilfepfad verwendet weiterhin die vorhandene Compare-Methode, setzt die Korrektur auf `0,0 dB` und kennzeichnet den Lauf als Offset-Ermittlungslauf; ein Schätzer wird weder automatisch ausgewählt noch angewandt. Bei Hardware A/B ist unter einem gemeinsamen Eingang eine stabile Differenz der vollständigen Signalpfade zu bestimmen. Bei einer Referenzstation darf nur eine wiederholbare Basislinie für genau dieses Target–Referenz-Paar, Band, diesen Aufbau und dieses Betriebsdesign abgeleitet werden; sie ist keine absolute Kalibrierung geografisch getrennter Stationen. Kehre nach Prüfung der Basislinien-Evidenz zum Offset-Schritt zurück und trage den belastbaren Wert manuell ein.
 
 <a id="sec-5-4"></a>
 
@@ -979,10 +982,10 @@ Setze dieses Bedienelement passend zur Fragestellung ein:
 
 - **Standard:** aus
 - **Gilt für:** kartierte Peers
-- **Wirkung:** entfernt ein Peer-Rufzeichen, wenn es nach Anwendung der übrigen Filter mehr als einen vierstelligen Locator meldet.
+- **Wirkung:** entfernt ein Peer-Rufzeichen, wenn es in der vollständigen, ansonsten qualifizierenden globalen Kandidatenpopulation vor Anwendung des geografischen Umfangs mehr als einen vierstelligen Locator meldet. Ein engerer Entfernungsumfang kann ein Rufzeichen mit wechselndem Standort daher nicht als stationär erscheinen lassen.
 - **Ändern, wenn:** mobile Identitäten oder wechselnde Locator-Angaben sonst mehrere Orte unter einem Rufzeichen vermischen würden. Prüfe im Drill-Down, ob wahrscheinlich Bewegung oder ein fehlerhafter Locator vorliegt.
 
-**`Lokaler QTH Sonnenstand`**
+**`Sonnenstand am Target-QTH`**
 
 - **Standard:** `Ganze 24h`
 - **Auswahl:** `Ganze 24h`, `Tag (Elev > +6°)`, `Nacht (Elev < -6°)`, `Greyline (-6° bis +6°)`
@@ -990,15 +993,17 @@ Setze dieses Bedienelement passend zur Fragestellung ein:
 - **Wirkung:** behält Zyklen bei, die anhand der Sonnenhöhe am Target-QTH klassifiziert wurden.
 - **Ändern, wenn:** die wissenschaftliche Fragestellung gezielt einen lokalen Beleuchtungszustand betrifft. Dies unterscheidet sich von den in der Success-Evidenz gezeigten Beleuchtungsklassen des Ausbreitungspfads.
 
-**`Kartenbereich (Max. Distanz km)`**
+**`Maximale Peer-Entfernung vom Target (km)`**
 
 - **Standard:** `22000`
 - **Auswahl:** `2500`, `5000`, `10000`, `15000`, `20000`, `22000`
-- **Gilt für:** Karten- und Inspektionsansichten
-- **Wirkung:** legt den sichtbaren und inspizierbaren radialen Bereich fest; die vorgelagerte Abfrage wird dadurch nicht eingeengt.
-- **Ändern, wenn:** eine regionale Ansicht sinnvoll ist. Der Kartenbereich ist ein reproduzierbarkeitsrelevantes Ansichtsbedienelement und kein vorgelagerter Datenfilter.
+- **Gilt für:** alle Success- und Compare-Ergebnisse
+- **Wirkung:** schließt kartierte Peer-Zeilen aus wissenschaftlichen Berechnungen, verarbeiteten Analyseartefakten und Exporten aus, wenn ihre Entfernung vom Target-QTH nicht strikt kleiner als die gewählte Maximalentfernung ist. Karte, Kartenfuß und Segment Inspector verwenden dieselbe beibehaltene Population; Inspector-Auswahlen können sie eingrenzen, aber ausgeschlossene Zeilen nicht wiederherstellen.
+- **Globale Aktivitätsausnahme:** Das Target-Active Gate darf weiterhin Evidenz außerhalb dieses geografischen Umfangs ausschließlich dazu verwenden, den Betrieb des Targets zu bestätigen. Solche Peers außerhalb des Umfangs gehen nicht in begrenzte Outcomes, Statistiken, Anzahlen oder Exporte ein.
+- **Verarbeitung und Integrität:** Der Filter wird nach dem Abruf angewandt; Provider-Abfragen und ihr Rohabfrage-Cache bleiben daher global und wiederverwendbar. Die Integritätsprüfung auf wechselnde Stationsstandorte erfolgt global vor diesem Entfernungsfilter.
+- **Ändern, wenn:** die wissenschaftliche Fragestellung eine begründbare regionale Peer-Population betrifft. Lege die primäre Maximalentfernung vor einem bestätigenden Lauf fest und dokumentiere andere Entfernungen als separate Sensitivitätsanalysen, statt eine wegen ihres günstigen Ergebnisses auszuwählen.
 
-**`Min. Joint Spots pro Station`**
+**`Minimale Joint-Evidenz pro Station`**
 
 - **Standard:** `1`
 - **Wertebereich:** 1 bis 50
@@ -1006,7 +1011,7 @@ Setze dieses Bedienelement passend zur Fragestellung ein:
 - **Wirkung:** verlangt diese Anzahl von Joint-Peer-Zyklen, bevor eine Station gepaartes Delta SNR beiträgt.
 - **Ändern, wenn:** du mehr wiederholte gepaarte Evidenz pro Station verlangst und dafür eine geringere geografische Abdeckung in Kauf nimmst.
 
-**`Min. Joint-Paare`**
+**`Minimale geplante Paare pro Station`**
 
 - **Standard:** `1`
 - **Wertebereich:** 1 bis 50
@@ -1016,7 +1021,7 @@ Setze dieses Bedienelement passend zur Fragestellung ein:
 
 Die Joint-Schwelle für Compare unterdrückt außerdem exklusive Kategorien, deren eigene Anzahl unter demselben Zahlenwert liegt. Bei sequenziellem TX Hardware A/B wird die Qualifizierung für gepaarte Evidenz in geplanten Paaren gezählt; exklusive Evidenz wird in einseitigen geplanten Paaren gezählt und mit demselben Zahlenwert verglichen.
 
-**`Min. Target+Gegen-Evidenz pro Station`**
+**`Minimale bestätigte Gelegenheiten pro Station`**
 
 - **Standard:** `5`
 - **Wertebereich:** 1 bis 100
@@ -1026,7 +1031,7 @@ Die Joint-Schwelle für Compare unterdrückt außerdem exklusive Kategorien, der
 
 Eine niedrigere Schwelle erhöht die Kartenabdeckung. Stationsraten werden jedoch gröber gestuft, wenn sie nur auf einer oder zwei qualifizierenden Opportunities beruhen. Werte wie `0 %`, `50 %` oder `100 %` können dann sehr wenig Evidenz repräsentieren. Lies die Anzahl neben der Rate und erweitere eine kleine Stichprobe durch einen längeren oder wiederholten Lauf.
 
-**`Min. qualifizierte Stationen pro Karten-Segment`**
+**`Minimale qualifizierte Stationen pro Kartensegment`**
 
 - **Standard:** `1`
 - **Wertebereich:** 1 bis 10
@@ -1070,7 +1075,7 @@ Arbeite diese Prüfungen der Reihe nach ab:
 6. **Benchmark-Betrieb:** Prüfe für Compare die exakte Identität der Referenz sowie den Betrieb der Gegenstelle während der vorgesehenen Überlappung.
 7. **Technische Umsetzung:** Prüfe gegebenenfalls Uhrensynchronisation, Zuordnung des TX-Zeitplans zu den Signalpfaden, Schaltfolge, Signalführung und gemeldete Leistung.
 
-Erst danach folgen Evidenzschwellen, Ausschlussfilter, Sonnenstandsauswahl und Kartenbereich. Ein weniger strenger Filter kann mehr qualifizierende Evidenz sichtbar machen, aber keinen Lauf reparieren, der auf die falsche Identität, das falsche Band oder den falschen Zeitraum zielt.
+Erst danach folgen Evidenzschwellen, Ausschlussfilter, Sonnenstandsauswahl und geografischer Analyseumfang. Ein weniger strenger Filter oder ein weiterer Umfang kann mehr qualifizierende Evidenz erhalten, aber keinen Lauf reparieren, der auf die falsche Identität, das falsche Band oder den falschen Zeitraum zielt.
 
 <a id="sec-6-2"></a>
 
@@ -1082,7 +1087,7 @@ Folge nach den gemeinsamen Prüfungen aus Abschnitt 5.1 dem Zweig, der zum Ergeb
 |---|---|
 | **Kein Ergebnis oder keine Target-Evidenz** | Prüfe den gemeldeten Status der strengen Abfrage mit `code = 1` beziehungsweise des historischen Fallbacks sowie die aktuelle Verfügbarkeit der Upstream-Daten. |
 | **Compare enthält kein Delta SNR** | Prüfe gemeinsame entfernte Peers in überlappenden Zyklen oder geplanten Paaren; danach Uhren, Zuordnung des TX-A/B-Zeitplans zu den Signalpfaden, Schaltfolge, Joint-Schwelle, Filter und Bereich. |
-| **Success enthält nur sehr wenige Peers** | Prüfe die unabhängige Netzaktivität; danach `Min. Target+Gegen-Evidenz pro Station`, Ausschluss- und Sonnenstandsfilter, Zeitraum und Kartenbereich. Ein längeres Fenster kann Evidenz hinzufügen, ohne die beabsichtigte Population zu verändern. |
+| **Success enthält nur sehr wenige Peers** | Prüfe die unabhängige Netzaktivität; danach `Minimale bestätigte Gelegenheiten pro Station`, Ausschluss- und Sonnenstandsfilter, Zeitraum und `Maximale Peer-Entfernung vom Target (km)`. Ein längeres Fenster kann Evidenz hinzufügen, ohne die beabsichtigte Population zu verändern. |
 
 <div style="page-break-before: always;"></div>
 
@@ -1228,7 +1233,7 @@ WSPRadar übernimmt wichtige Ideen, statt die Erfindung des WSPR-Vergleichs für
 
 WSPRadar führt diese Ideen in einem Arbeitsablauf für Funkamateure zusammen. Dieser umfasst:
 
-* TX- und RX-Analyse mit den Designs `Kein Benchmark (nur Success)`, `Hardware A/B-Test (Eigenes Setup)`, `Fremdes Rufzeichen (Buddy-Test)` und `Lokaler Nachbarschafts-Benchmark`;
+* TX- und RX-Analyse mit den Designs `Success — nur Target`, `Compare — Hardware A/B`, `Compare — bekannte Referenzstation` und `Compare — lokaler Nachbarschaftsvergleich`;
 * Prüfungen der Target-Aktivität, Vergleiche im selben Zyklus oder anhand deterministischer geplanter Paare, SNR-Normierung anhand der gemeldeten Sendeleistung sowie eine optionale Referenz-SNR-Korrektur;
 * bedingte Success-Evidenz, gepaartes Delta SNR und kategorische Decode Outcomes als getrennte Evidenzfragen;
 * Karten, Segment-Inspektor, Station Insights, Zeit-/Sonnenstandsansichten und Drill-Down bis auf Zeilenebene;
@@ -1258,7 +1263,7 @@ WSPRadar überführt öffentliche WSPR-Decodes in klar definierte Vergleichseinh
 
 | Analysedesign | Target-Rolle | Referenz oder Gegen-Evidenz | Kleinste Beobachtungs-/Vergleichseinheit | Aktivitätsbedingung | Zeitlicher Bezug | Leistungsnormierung | Aggregation auf Stationsebene | Aggregation auf Segmentebene | Wichtigste Interpretationsgrenze |
 |---|---|---|---|---|---|---|---|---|---|
-| Kein Benchmark (nur Success), RX oder TX | Target-Empfänger oder -Sender | RX: derselbe Sender andernorts decodiert; TX: anderes Signal im selben Band vom Peer-Empfänger decodiert | ein Target-aktiver Peer-Zyklus | beobachtbare Target-Beteiligung | derselbe zweiminütige Zyklus | Rate: keine; Anzeige des erfolgreichen Target-SNR: auf gemeldete 1 W normiert | eine Success Rate pro Peer | arithmetisches Mittel der Peer-Raten; gepoolte Rate bleibt erhalten | bedingte Reichweite im Netzwerk, keine unbedingte Decode-Wahrscheinlichkeit |
+| Success — nur Target, RX oder TX | Target-Empfänger oder -Sender | RX: derselbe Sender andernorts decodiert; TX: anderes Signal im selben Band vom Peer-Empfänger decodiert | ein Target-aktiver Peer-Zyklus | beobachtbare Target-Beteiligung | derselbe zweiminütige Zyklus | Rate: keine; Anzeige des erfolgreichen Target-SNR: auf gemeldete 1 W normiert | eine Success Rate pro Peer | arithmetisches Mittel der Peer-Raten; gepoolte Rate bleibt erhalten | bedingte Reichweite im Netzwerk, keine unbedingte Decode-Wahrscheinlichkeit |
 | Hardware A/B-Test, RX | Target-Empfänger | simultaner Referenzempfänger | ein konsolidierter Peer-Zyklus des entfernten Senders | Target-Active Gate | derselbe Sender und Zyklus | gemeinsame TX-Leistung fällt heraus; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | kontrollierte lokale Empfangspfade nur in dem Maß, in dem die übrigen Ketten kontrolliert sind |
 | Hardware A/B-Test, simultanes TX | Target-Sender | simultaner Referenzsender | ein konsolidierter Peer-Zyklus des entfernten Empfängers | Target-Active Gate | derselbe Empfänger und Zyklus | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für die Referenz | Median des Delta SNR | Median der Stationsmediane | zwei unterscheidbare vollständige Sendeketten; Leistung, Frequenzgang, Isolation und Kopplung bleiben experimentelle Kontrollgrößen |
 | Hardware A/B-Test, sequenzielles TX | geplante Target-Starts | geplante Referenz-Starts | eine Peer-Identität in einem geplanten Target-/Referenzpaar | deterministische, überschneidungsfreie Zeitpläne; kein simultanes Gate | nächstgelegene Eins-zu-eins-Paarung der Starts innerhalb eines gemeinsamen Wiederholintervalls | beide Seiten auf gemeldete 1 W normiert; Korrektur gilt für die Referenz | Median des Delta SNR der geplanten Paare | Median der Stationsmediane | sequenziell, nicht simultan; Zeitplan- und Schalteffekte bleiben bestehen |
@@ -1348,7 +1353,7 @@ $$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
 
 Damit wird der **gemeldete** Leistungsanteil herausgerechnet. Nicht korrigiert werden Antennengewinn, Wirkungsgrad, Speiseleitungsverlust, äquivalente isotrope Strahlungsleistung (EIRP), Empfängerkalibrierung oder lokales Rauschen.
 
-Die Referenz-SNR-Korrektur wird zur Referenzseite addiert:
+Die referenzseitige SNR-Korrektur wird zur Referenzseite addiert:
 
 $$SNR_{reference,corrected} = SNR_{reference} + Correction$$
 
@@ -1463,7 +1468,11 @@ WSPRadar berechnet Entfernung und Azimut mit einem sphärischen Erdradius von 63
 
 Die Kartengeometrie ist in sich konsistent, erreicht aber keine vermessungstechnische Genauigkeit; gemeldete Locator repräsentieren Positionen von Locator-Feldern und keine vermessenen Antennenkoordinaten.
 
-`Lokaler QTH Sonnenstand` verwendet die Sonnenhöhe am Target-QTH. Bei regulärer Evidenz aus demselben Zyklus wird dessen Zeitstempel verwendet. Beim automatischen geplanten TX-A/B wird die Mitte zwischen den beiden geplanten Starts verwendet, damit Target und Referenz eines Paares nicht unterschiedlichen solaren Klassen zugeordnet werden können. Success-Evidenzdiagramme klassifizieren die an Stützpunkten ausgewertete Beleuchtung des Großkreispfads separat als Nacht, Greyline/gemischt oder Tageslicht. Diese Klassifikationen beantworten unterschiedliche Fragen.
+`Maximale Peer-Entfernung vom Target (km)` wendet dieselbe Target-QTH-Geometrie nach dem Abruf des weltweit gebildeten Provider-Ergebnisses auf kartierte Peer-Zeilen an. Nur Peers, deren Entfernung strikt kleiner als die gewählte Maximalentfernung ist, bleiben erhalten. Die übrigen Zeilen werden vor wissenschaftlicher Aggregation und vor Veröffentlichung des verarbeiteten Parquet-Artefakts entfernt, sodass Berechnungen, Kartensegmente, Anzahlen am Kartenfuß, Inspector-Evidenz und Exporte dieselbe Peer-Population beschreiben. Der Segment Inspector kann daraus eine engere Kombination aus Entfernung und Richtung wählen, den Laufumfang aber nicht überschreiben. Provider-Abfragen und ihr Rohabfrage-Cache bleiben global.
+
+Zwei Integritätsregeln liegen bewusst vor diesem geografischen Filter. Das Target-Active Gate bleibt global, weil Evidenz außerhalb des Umfangs den Betrieb des Targets bestätigen darf, ohne zu einem begrenzten Peer-Outcome zu werden. Ist `Bewegliche Stationen filtern` aktiviert, werden Rufzeichen mit wechselndem Standort vor Anwendung des Umfangs in der ansonsten qualifizierenden globalen Population erkannt, sodass ein enger Radius Bewegung nicht verbergen kann.
+
+`Sonnenstand am Target-QTH` verwendet die Sonnenhöhe am Target-QTH. Bei regulärer Evidenz aus demselben Zyklus wird dessen Zeitstempel verwendet. Beim automatischen geplanten TX-A/B wird die Mitte zwischen den beiden geplanten Starts verwendet, damit Target und Referenz eines Paares nicht unterschiedlichen solaren Klassen zugeordnet werden können. Success-Evidenzdiagramme klassifizieren die an Stützpunkten ausgewertete Beleuchtung des Großkreispfads separat als Nacht, Greyline/gemischt oder Tageslicht. Diese Klassifikationen beantworten unterschiedliche Fragen.
 
 <div style="page-break-before: always;"></div>
 
@@ -1530,8 +1539,8 @@ Für ein belastbares Ergebnis bewahre die Analysedefinition, die Evidenz hinter 
 
 * Speichere die versionierte `.config`. Sie erfasst die für den Lauf zutreffenden Einstellungen:
     * **Kernparameter:** RX-/TX-Richtung, Target-Rufzeichen und QTH, Band sowie relative oder absolute UTC-Zeitauswahl;
-    * **Benchmark-Einstellungen:** Benchmark-Design und, soweit zutreffend, TX-Hardware-A/B-Methode, Referenz-Rufzeichen, das unabhängige Grid-4 der Referenzstation, lokale Benchmark-Methode und Radius, Wiederholintervall und Pfadphasen beim geplanten TX-A/B sowie Referenz-SNR-Korrektur; Hardware A/B serialisiert kein redundantes Referenz-QTH;
-    * **erweiterte Einstellungen:** Auswahl des solaren Zustands, Kartenumfang, Ausschluss spezieller Rufzeichen und bewegter Stationen sowie die zutreffenden Evidenzschwellen;
+    * **Benchmark-Einstellungen:** Benchmark-Design und, soweit zutreffend, TX-Hardware-A/B-Methode, Referenz-Rufzeichen, das unabhängige Grid-4 der Referenzstation, lokale Benchmark-Methode und Radius, Wiederholintervall und Pfadphasen beim geplanten TX-A/B sowie referenzseitige SNR-Korrektur; Hardware A/B serialisiert kein redundantes Referenz-QTH;
+    * **erweiterte Einstellungen:** Auswahl des solaren Zustands, geografischer Analyseumfang, Ausschluss spezieller Rufzeichen und bewegter Stationen sowie die zutreffenden Evidenzschwellen;
     * **dauerhafte Einstellungen der Ergebnisansicht:** ausgewählte Entfernungs- und Richtungsbereiche, ausgewählte Stationen, Evidenz-Zeitklassen und Zeitansicht sowie die Sichtbarkeit nicht gemeinsamer Evidenz oder von Evidenz ohne Target-Beobachtung.
 
   Inaktive Vergleichszweige, Tabellen- und Drill-Down-Filter sowie anderer flüchtiger UI-Zustand werden nicht gespeichert. Wird ein abgeschlossener Lauf mit `Letzte X Stunden` aufbewahrt, speichere sein aufgelöstes absolutes UTC-Zeitfenster, wenn ein späterer Lauf denselben Zeitraum untersuchen soll; andernfalls wandert die relative Auswahl absichtlich mit der Zeit weiter.
@@ -1578,7 +1587,7 @@ success/                         # sofern ein Success-Ergebnis vorliegt
   analysis_cache.parquet
 ```
 
-Die Abbildungen verwenden eine hochauflösende Darstellung auf hellem, druckgeeignetem Hintergrund. Dateien ohne anwendbares Exportrezept oder ohne ausgewählte Evidenz können fehlen. CSV-Dateien spiegeln die aktuelle Segment- und Stationsauswahl wider. Parquet-Dateien enthalten verarbeitete Evidenz nach Anwendung der Filter und keine unveränderten Upstream-Dumps.
+Die Abbildungen verwenden eine hochauflösende Darstellung auf hellem, druckgeeignetem Hintergrund. Dateien ohne anwendbares Exportrezept oder ohne ausgewählte Evidenz können fehlen. CSV-Dateien spiegeln die aktuelle Segment- und Stationsauswahl wider. Parquet-Dateien enthalten verarbeitete Evidenz nach Anwendung der Filter einschließlich ausschließlich der vom geografischen Analyseumfang des Laufs beibehaltenen Peer-Zeilen und keine unveränderten Upstream-Dumps.
 
 Bei Compare reproduziert `figure_selected_station_evidence.png` die für die ausgewählten Stationen aktive Zeitansicht zum Zeitpunkt der Exportvorbereitung. Der Modus `Chronologisch` verwendet die gewählte Compare-Zeitklasse; `UTC-Stunde` verwendet feste einstündige Zeitfenster und dieselben ausgewählten Evidenzzeilen. Der Modus wird in der gespeicherten `.config` und in `run_metadata.json` festgehalten.
 

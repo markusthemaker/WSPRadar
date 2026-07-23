@@ -1,6 +1,6 @@
 # WSPRadar Architecture
 
-This document describes the repository as inspected through 2026-07-21. It derives
+This document describes the repository as inspected through 2026-07-23. It derives
 component boundaries and behavior from the application code, configuration, and
 regression tests. Items explicitly marked uncertain were not established by the
 code or by the verification run.
@@ -42,7 +42,8 @@ path or database credential was found.
 - emits page configuration and the lightweight application shell before
   importing scientific analysis dependencies;
 - initializes Streamlit session state;
-- renders language, demo, and analysis configuration controls;
+- renders language, demo, the persistent Guided/Classic input-view selector,
+  and analysis configuration controls;
 - validates the requested time interval;
 - imports `ui/run_controller.py`, plotting, inspector, DataFrame, HTTP, and
   Cartopy dependencies only after a TX or RX run is active;
@@ -79,6 +80,8 @@ operating risks. The Streamlit application neither imports nor starts it.
 | `config/config_schema.py` | Saved-config format identifier, current schema version, grouped settings contract, and canonical enum values. |
 | `config/config_codec.py` | Dependency-free document-envelope and schema-version validation shared by personal-config and demo readers. |
 | `config/wspradar-config.schema.json` | Formal JSON Schema for every saved and demo configuration. |
+| `config/guided_input_flow.json` | Ordered Guided Input nodes, branch conditions, required state fields, and registered renderer names. |
+| `config/guided_input_flow.schema.json` | Strict Draft 2020-12 schema for the declarative Guided Input flow. |
 | `config/json_utils.py` | Shared strict UTF-8 JSON decoder rejecting duplicate keys and non-finite numbers. |
 | `config/plot_constants.py` | Map extent, projection/render constants, colors, and scientific display constants. |
 | `config/__init__.py` | Compatibility re-exports for configuration consumers. |
@@ -105,11 +108,14 @@ segment temporal bin, and the selected-station `chronological` versus `utc_hour`
 view; Success preserves `show_zero_target`. Table and Drill-Down filters,
 expander state, and other transient controls are deliberately not serialized.
 `config/config_codec.py` validates the current document envelope and exact
-initial schema version, while `ui/config_io.py` validates and applies the
-semantic settings. There is no migration from unpublished prototypes. A future
-public schema bump is incomplete until the preceding published version has an
-explicit migration; unsupported versions are rejected rather than interpreted
-with current defaults.
+schema version, while `ui/config_io.py` validates and applies the semantic
+settings. Version 1 is explicitly pre-production, not a first public production
+contract. It may be revised in place before the first production release, and
+earlier unpublished version-1 prototypes are rejected rather than migrated or
+guessed. After a configuration schema has been published for production, a
+subsequent schema bump is incomplete until every preceding supported production
+version has an explicit ordered migration; unsupported versions are rejected
+rather than interpreted with current defaults.
 
 Reference Station comparison state stores `reference_callsign` plus an
 independent `reference_qth` constrained to exactly four Maidenhead characters.
@@ -153,17 +159,51 @@ interval to `custom`. `ui/result_state.py` keeps that quantized interval keyed
 by `run_id`, so full-page rerenders cannot move the bounds of an already active
 run; result reset or config load clears it.
 
+### Input Editors
+
+Guided Input and Classic Input are two Streamlit compositions over the same
+canonical `val_*` session fields. `input_view` defaults to `guided` and persists
+for the browser session, but the editor choice and Guided navigation keys are
+transient presentation state outside `AnalysisContext` and the version-1 saved
+configuration. Switching editors therefore does not translate, copy, or reset
+the scientific values. `ui/components/config_fields.py` is the shared
+composition surface for Target/window, Reference, scope, station-population,
+offset, and evidence-threshold controls; its established implementations remain
+in `ui/components/config_panel.py` so both editors retain the same widget keys,
+normalization, and callbacks.
+
+`config/guided_input_flow.json` declares the ordered question graph from use
+case through review. `ui/guided_inputs/flow_loader.py` performs bounded strict
+JSON decoding, Draft 2020-12 schema validation, registered-renderer checks,
+bilingual content-key checks, and graph reachability/cycle validation before
+the flow is rendered. `ui/guided_inputs/flow_engine.py` evaluates its restricted
+condition vocabulary without arbitrary session-state access.
+`ui/guided_inputs/state.py` derives and validates transient Guided decisions
+from canonical fields, including reconstruction after a saved configuration or
+demo is loaded. `ui/guided_inputs/renderer.py` composes the accordion and
+registered renderers, while the separate bilingual `GUIDED_INPUTS` structure in
+`i18n.py` owns Guided explanations and choice consequences. Built-in demos are
+load-only in Guided Input so their metadata and preset settings can be reviewed;
+Classic retains the immediate demo-run action.
+
 ### Context Boundary
 
 `core/analysis_context.py` defines an immutable `AnalysisContext` containing
 canonical scientific settings. `ui/analysis_context_adapter.py` translates
-Streamlit session values and localized choices into that context. Reference
+canonical Streamlit session values into that context. Reference
 Station identity consists of `reference_callsign` plus an independently entered,
 exactly four-character `reference_qth` grid. RX and simultaneous TX Hardware A/B
 carry only the distinct `reference_callsign`; both sides use the grid-4 derived
 from core Target `qth`. TX Hardware A/B additionally carries the canonical
 `tx_ab_method`. Target and Reference role names are presentation terms and do
 not replace these scientific identity fields.
+
+`AnalysisContext.max_peer_distance_km` is a canonical scientific input. The UI
+presents it as **Maximum peer distance from Target (km)**. A peer row
+is in scope only when its distance from Target QTH is strictly less than this
+value. The scope therefore participates in request identity and constrains
+retained evidence, calculations, artifacts, exports, the map/footer, and the
+Segment Inspector; it is not merely a rendering extent.
 
 `core/presentation_context.py` defines an immutable `PresentationContext` for
 language, labels, theme, and solar display. `ui/presentation_context_adapter.py`
@@ -182,11 +222,13 @@ processing, stores session evidence, renders maps and previews, registers export
 recipes, and invokes the Segment Inspector.
 
 Provider readiness participates in the same FIFO admission decision as the two
-active-analysis slots. Once admitted, the controller prepares every Compare and
-Success block against one provider before publishing any result. Strict and
-legacy compatibility requests remain on that provider. A classified provider
-failure deletes the attempt's unregistered session artifacts, releases its
-reservation, and restarts the complete bundle from Map 1 on the next source.
+active-analysis slots. Once admitted, the controller prepares every block
+required by the selected active result against one provider before publishing
+it. A no-benchmark run prepares Success only; a run with any benchmark prepares
+Compare only. Strict and legacy compatibility requests remain on that provider.
+A classified provider failure deletes the attempt's unregistered session
+artifacts, releases its reservation, and restarts the complete active-result
+bundle from Map 1 on the next source.
 Valid empty/scientific no-evidence results and local processing failures do not
 selectively switch databases.
 
@@ -223,13 +265,32 @@ geographically eligible callsign/full-locator identities. Sequential TX
 Hardware A/B applies the shared Target callsign and grid-4 to both schedule
 branches.
 
-For periodic hardware A/B work, SQL applies the exact UTC-minute modulo
-predicate for each path's repeat interval and start phase. TX Success applies
-only the Target path's schedule. Comparison post-fetch processing rejects rows
-outside their assigned path schedule and attaches stable
+For periodic hardware A/B Compare work, SQL applies the exact UTC-minute modulo
+predicate for each path's repeat interval and start phase. Comparison post-fetch
+processing rejects rows outside their assigned path schedule and attaches stable
 `tx_ab_pair_id`, `tx_ab_pair_target_time`, and
 `tx_ab_pair_reference_time` columns before evidence is written to Parquet.
 It also applies mode-specific post-fetch synchronization and filtering.
+
+Geographic Analysis Scope is deliberately a post-fetch scientific gate, not a
+provider-SQL predicate. Provider responses and their raw-query cache entries
+therefore remain global and reusable across scope choices. Post-fetch
+processing resolves each peer's coordinates and retains the row only when its
+great-circle distance from Target QTH is strictly less than
+`AnalysisContext.max_peer_distance_km`. The retained population is then used for
+thresholds, aggregation, session Parquet artifacts, exports, map/footer, and
+Inspector evidence.
+
+Two integrity rules intentionally operate on the geographically global,
+otherwise eligible post-fetch population before this geographic gate. In
+Compare, solar selection occurs first, followed by moving-station integrity and
+then Target-Active synchronization before geographic scope. Target-Active
+synchronization may therefore use an out-of-scope row to establish that the
+Target was active, but that row cannot subsequently contribute an outcome,
+rate, count, artifact, or export. When moving-station exclusion is enabled, a
+peer's locator history is likewise evaluated before scope filtering, so
+choosing a narrower scope cannot hide evidence that the peer moved. Scheduled
+TX A/B pair assignment also precedes geographic filtering.
 
 `core/data_engine.py` executes HTTP requests and returns structured
 `FetchResult`, delivery-tier, database-source, and error data without rendering
@@ -318,6 +379,10 @@ solar helpers for the scientific path.
 
 `core/map_data.py` converts comparison or opportunity rows into pure `MapData`
 aggregates. `core/map_models.py` defines the `MapData` and `MapFigure` contracts.
+These consumers receive evidence already constrained by Geographic Analysis
+Scope. The same maximum distance controls the rendered extent and footer, so
+the visible map and its reported scope describe the scientific population
+rather than applying a second presentation-only filter.
 
 `core/map_base.py` builds a Cartopy azimuthal-equidistant basemap with Natural
 Earth land, ocean, coastline, and border data, plus distance rings and compass
@@ -346,6 +411,11 @@ for selections and rendering. Preparation is split into pure modules:
 - `ui/inspector/session_cache.py` maintains a run-scoped bounded LRU for options,
   segment models, selected models, and PNGs;
 - `ui/plots/` renders evidence figures from pure recipes.
+
+Inspector range and direction controls may narrow the retained geographic
+population for exploration, but they cannot widen the completed run or
+re-admit peer rows excluded by Geographic Analysis Scope. A broader scientific
+scope requires a new analysis run.
 
 Opportunity segment reads request only `time_slot`, `peer_sign`, `peer_grid`,
 `hit`, and `miss`. Selected-station reads request only evidence columns required
@@ -381,6 +451,27 @@ metadata.
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
 session state for download. This is a known peak and idle-memory risk, partially
 contained by single-export admission.
+
+### Page Navigation
+
+`ui/page_navigation.py` owns the language-independent, always-mounted runtime
+anchors `wspradar-page-top`, `wspradar-parameter-settings`, and
+`wspradar-results-inspection`. Its one-pixel browser controller tracks the
+active application region only while the viewport is above the documentation
+boundary; the documentation controller owns fragments from that boundary
+downward. Passive scrolling replaces the current fragment without adding
+browser-history entries. Guided Continue replaces a stale manual fragment with
+the parameter-settings anchor without forcing a scroll. Loading a demo and
+either demo navigation action (Walkthrough or Skip) may request a one-shot
+scroll to the appropriate application region. The main Run action clears stale
+manual navigation without issuing a scroll request, so the processing statements
+and their in-place System Audit Status replacement remain in the current
+viewport while passive location tracking continues. Application and manual
+anchors have disjoint ownership, unknown fragments remain untouched, and Back
+or Forward scrolls the anchor owned by the corresponding controller without
+adding another history entry. Application navigation also cancels any
+unresolved manual-navigation request so a later documentation fragment rerun
+cannot reclaim the viewport.
 
 ### Documentation Pipeline
 
@@ -434,15 +525,19 @@ must remain outside `README.md`.
    Hardware A/B uses distinct callsigns plus one Target-derived grid-4. Periodic
    TX A/B predicates select each path by its exact repeat interval and UTC start
    phase.
-4. `run_data_preparation` fetches and processes every run block against the
-   selected provider. Any provider failover restarts this unpublished phase.
-5. Post-fetch logic synchronizes cycles and applies mode-specific rounding. For
+4. `run_data_preparation` fetches and processes every block required by the
+   active Compare result against the selected provider. Any provider failover
+   restarts this unpublished phase.
+5. Post-fetch logic applies solar selection, evaluates moving-station integrity
+   and then Target-Active synchronization against the geographically global
+   population that otherwise remains eligible, and finally retains only peers
+   strictly nearer than Geographic Analysis Scope. For
    periodic TX A/B data it also filters schedule mismatches, excludes a boundary
    pair unless both planned starts satisfy `start <= planned_start < end`, and
-   assigns the stable planned-pair columns.
-6. The processed rows, including planned-pair columns, are staged as an
-   unregistered session Parquet artifact. All successful blocks are registered
-   together after complete-bundle preparation succeeds.
+   assigns the stable planned-pair columns before geographic filtering.
+6. The geographically scoped processed rows, including planned-pair columns,
+   are staged as an unregistered session Parquet artifact. All successful blocks
+   are registered together after complete active-result preparation succeeds.
 7. `compare_engine` groups periodic pairs by peer identity and pair ID, applies
    per-side micro-medians, and builds station and segment aggregates.
 8. `map_data` and `plot_engine` render the map preview.
@@ -453,25 +548,31 @@ must remain outside `README.md`.
 
 ### Opportunity Analysis
 
-1. On the same run-pinned provider as Compare, an active-cycle ClickHouse query
-   returns one row per time slot and peer
-   identity with target/external evidence and target SNR. Hardware TX Success
-   additionally restricts active cycles to the configured Target repeat
-   interval and start phase; the Reference schedule is not part of this query.
-2. The fetched frame is normalized into the explicit opportunity schema.
-3. Peer coordinates are resolved and assigned without a full coordinate merge.
-4. Hit, miss, target-only, outcome, and eligibility columns are computed.
-5. Solar path enrichment operates on the owned frame.
-6. The final categorized artifact is written as session Parquet.
-7. Map and segment aggregates use the corresponding narrow projections.
-8. The inspector loads selected evidence only when required.
+1. In a no-benchmark Success run, an active-cycle ClickHouse query returns one
+   row per time slot and peer identity with target/external evidence and target
+   SNR. Hidden benchmark and scheduled TX A/B settings do not participate in
+   this standalone Success query.
+2. The fetched globally Target-Active frame is normalized into the explicit
+   opportunity schema. Peer coordinates are assigned without a full coordinate
+   merge, outcomes are classified, and solar path enrichment operates on the
+   owned frame.
+3. Target-QTH solar selection and global moving-station integrity are applied,
+   followed by Geographic Analysis Scope; only peers strictly nearer than the
+   configured maximum remain.
+4. The final categorized, geographically scoped artifact is written as session
+   Parquet.
+5. Map and segment aggregates use the corresponding narrow projections.
+6. The inspector loads selected evidence only when required.
 
 ### Duplicate and Admission Flow
 
 `core/analysis_admission.py` implements FIFO admission with a condition variable,
 active leases, queue timeouts, and bounded active/queued counts. Each Streamlit
 session receives a stable owner identifier. The request key includes canonical
-scientific inputs and demo identity.
+scientific inputs, including `max_peer_distance_km`, and demo identity. Changing
+Geographic Analysis Scope therefore defines a distinct scientific request even
+though provider raw-query cache entries remain reusable because the gate is
+post-fetch.
 
 A session cannot enqueue an identical request while its matching work is active
 or queued. Different sessions may run the same demo; this avoids turning popular
@@ -526,7 +627,8 @@ can therefore be waiting in this mid-run state.
    complete current bundle requires zero HTTP requests. If none exists, or for
    an ordinary run, select the first eligible source in
    `wspr.live -> WD2 -> WD1` order.
-3. Pin the complete strict/legacy and Compare/Success bundle to that source.
+3. Pin the selected active result's complete strict/legacy request bundle to
+   that source.
 4. Stage processed artifacts without exposing maps, inspectors or export blocks.
 5. On a provider-scoped failure, delete staged attempt artifacts, mark the
    provider's cooldown/circuit state and restart Map 1 on the next source.
@@ -693,7 +795,10 @@ memory without reducing coordinate, SNR, or solar-calculation precision.
 
 Large opportunity evidence is stored as session Parquet rather than retained as
 a complete Streamlit object graph. The inspector and exports reload only required
-columns. Leases preserve interactive continuity across Streamlit reruns.
+columns. These artifacts contain only the peer rows retained by Geographic
+Analysis Scope, so neither Inspector controls nor export preparation can
+reconstruct or re-admit excluded peers. Leases preserve interactive continuity
+across Streamlit reruns.
 
 ### Local Single-Flight and Atomic Publication
 
@@ -710,10 +815,11 @@ same-session amplification while preserving independent demo use by other users.
 ### One Database Source per Published Run
 
 Provider choice is scientifically material because the public databases are not
-assumed perfectly synchronized. Compare, Success and every strict/legacy request
-in one published run therefore share one stable `DatabaseSource`. Provider
-failure restarts the unpublished complete bundle rather than continuing another
-block elsewhere. Query cache keys include provider identity, while cache medium
+assumed perfectly synchronized. The single active Compare or Success result and
+every strict/legacy request in one published run therefore share one stable
+`DatabaseSource`. Provider failure restarts the unpublished active-result bundle
+rather than continuing another block elsewhere. Query cache keys include
+provider identity, while cache medium
 remains separate provenance. The committed source is shown in System Audit
 Status and stored once in export run metadata; each map's strict and optional
 legacy query reports its own database-request, RAM-cache, or disk-cache delivery

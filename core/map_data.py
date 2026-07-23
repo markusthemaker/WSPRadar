@@ -5,8 +5,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from config import AZIMUTH_STEP, COMPASS, DIST_BINS, EARTH_RADIUS_KM
+from config import AZIMUTH_STEP, COMPASS, DIST_BINS
 from core.compare_engine import aggregate_compare_map_data
+from core.geographic_scope import great_circle_distances_km
 from core.map_models import MapData
 from core.opportunity_engine import aggregate_opportunity_peers, aggregate_opportunity_segments
 from core.snr_utils import round_snr_like_columns
@@ -14,16 +15,17 @@ from core.snr_utils import round_snr_like_columns
 
 def _attach_map_geometry(frame: pd.DataFrame, *, center_latitude: float, center_longitude: float) -> None:
     """Attach distance, bearing, and stable segment keys to an owned frame."""
+    frame["calc_dist"] = great_circle_distances_km(
+        center_latitude=center_latitude,
+        center_longitude=center_longitude,
+        peer_latitudes=frame["peer_lat"],
+        peer_longitudes=frame["peer_lon"],
+    )
+
     lat_1, lon_1, lat_2, lon_2 = map(
         np.radians,
         [center_latitude, center_longitude, frame["peer_lat"], frame["peer_lon"]],
     )
-    haversine = (
-        np.sin((lat_2 - lat_1) / 2.0) ** 2
-        + np.cos(lat_1) * np.cos(lat_2) * np.sin((lon_2 - lon_1) / 2.0) ** 2
-    )
-    frame["calc_dist"] = (2 * EARTH_RADIUS_KM) * np.arcsin(np.sqrt(haversine))
-
     bearing_y = np.sin(lon_2 - lon_1) * np.cos(lat_2)
     bearing_x = (
         np.cos(lat_1) * np.sin(lat_2)

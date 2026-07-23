@@ -68,6 +68,41 @@ def test_no_benchmark_builds_only_the_directional_success_analysis():
     assert all(analysis["analysis_kind"] == "opportunity" for analysis in tx_analyses + rx_analyses)
 
 
+@pytest.mark.parametrize(
+    "comparison_mode",
+    [
+        COMPARISON_HARDWARE_AB,
+        COMPARISON_REFERENCE_STATION,
+        COMPARISON_LOCAL_NEIGHBORHOOD,
+    ],
+)
+@pytest.mark.parametrize(
+    ("run_mode", "self_test_mode", "expected_analysis_id"),
+    [
+        ("RX", SELF_TEST_RX, "RX_COMP"),
+        ("TX", SELF_TEST_TX, "TX_COMP"),
+    ],
+)
+def test_benchmark_builds_only_the_directional_compare_analysis(
+    comparison_mode,
+    run_mode,
+    self_test_mode,
+    expected_analysis_id,
+):
+    """Keep every benchmark run Compare-only in both analysis directions."""
+    analyses = _build_analyses(
+        _analysis_context(
+            run_mode=run_mode,
+            self_test_mode=self_test_mode,
+            comparison_mode=comparison_mode,
+        )
+    )
+
+    assert [analysis["id"] for analysis in analyses] == [expected_analysis_id]
+    assert analyses[0]["analysis_kind"] == "comparison"
+    assert analyses[0]["is_compare"] is True
+
+
 def test_analysis_batch_builder_rejects_removed_all_band_context():
     with pytest.raises(ValueError, match="Choose one exact WSPR band"):
         _build_analyses(
@@ -124,7 +159,7 @@ def test_added_live_wspr_bands_build_numeric_opportunity_predicates():
         assert f"band = {band_value}" in analyses[0]["query"]
 
 
-def test_tx_ab_schedule_sql_filters_compare_and_success_to_configured_starts():
+def test_tx_ab_schedule_sql_filters_compare_to_both_configured_starts():
     context = _analysis_context(
         comparison_mode=COMPARISON_HARDWARE_AB,
         self_test_mode=SELF_TEST_TX,
@@ -136,11 +171,9 @@ def test_tx_ab_schedule_sql_filters_compare_and_success_to_configured_starts():
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
-    tx_absolute = _analysis_by_id(context, "TX_ABS")
 
     assert "toMinute(time) % 10 = 0" in tx_compare["query"]
     assert "toMinute(time) % 10 = 2" in tx_compare["query"]
-    assert "toMinute(time) % 10 = 0" in tx_absolute["query"]
     assert tx_compare["query"].count(
         "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
     ) == 2
@@ -157,11 +190,9 @@ def test_four_minute_tx_ab_schedule_uses_demo_query_contract():
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
-    tx_absolute = _analysis_by_id(context, "TX_ABS")
 
     assert "toMinute(time) % 4 = 2" in tx_compare["query"]
     assert "toMinute(time) % 4 = 0" in tx_compare["query"]
-    assert "toMinute(time) % 4 = 2" in tx_absolute["query"]
 
 
 def test_tx_ab_schedule_rejects_overlapping_starts_before_sql_is_built():
@@ -187,7 +218,6 @@ def test_tx_hardware_ab_defaults_to_simultaneous_fixed_reference_comparison():
     )
 
     tx_compare = _analysis_by_id(context, "TX_COMP")
-    tx_absolute = _analysis_by_id(context, "TX_ABS")
 
     assert context.tx_ab_method == TX_AB_METHOD_SIMULTANEOUS
     assert tx_compare["is_sequential"] is False
@@ -200,7 +230,6 @@ def test_tx_hardware_ab_defaults_to_simultaneous_fixed_reference_comparison():
         in tx_compare["query"]
     )
     assert "toMinute(time) %" not in tx_compare["query"]
-    assert "toMinute(time) %" not in tx_absolute["query"]
     assert tx_compare["title"] == (
         "TX Compare: DL1MKS (Target) vs. DL2XYZ/P (Reference)"
     )

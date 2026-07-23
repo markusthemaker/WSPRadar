@@ -3,6 +3,7 @@
 
 import base64
 import time
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 from html import escape
 
@@ -32,9 +33,10 @@ from core.input_validation import (
     normalize_ascii_upper,
 )
 from core.time_utils import quantize_time
-from i18n import T
+from i18n import GUIDED_INPUTS, T
 from ui.callbacks import (
     handle_comp_mode_change,
+    handle_input_view_change,
     load_demo_profile_config,
     reset_audit,
     run_demo_profile,
@@ -46,6 +48,16 @@ from ui.components.config_panel import (
     render_compare_expander,
     render_core_expander,
     render_metadata_expander,
+)
+from ui.guided_inputs.renderer import render_guided_inputs
+from ui.page_navigation import (
+    PAGE_TOP_ANCHOR_ID,
+    PARAMETER_SETTINGS_ANCHOR_ID,
+    RESULTS_INSPECTION_ANCHOR_ID,
+    consume_page_navigation_request,
+    render_page_anchor,
+    render_page_navigation_controller,
+    request_page_navigation,
 )
 from ui.config_io import apply_config_values, validate_config_upload
 from ui.config_save import render_config_save_control
@@ -84,6 +96,11 @@ if not st.session_state.get("_initial_config_loaded", False):
 
 t = T[st.session_state.lang]
 apply_custom_css()
+
+render_page_anchor(PAGE_TOP_ANCHOR_ID)
+render_page_navigation_controller(
+    consume_page_navigation_request(st.session_state)
+)
 
 st.markdown(f"""
     <meta property="og:title" content="WSPRadar.org | Antenna Benchmarking" />
@@ -145,13 +162,30 @@ def render_demo_launcher():
         if demo_description:
             with st.container(key="demo_description"):
                 st.caption(prepare_demo_description_markdown(demo_description))
-        col_load_demo, col_run_demo = st.columns(2)
-        with col_load_demo:
-            if st.button(t.get("btn_load_demo_selected", "Load selected demo configuration"), width="stretch"):
+        if st.session_state.get("input_view") == "guided":
+            if st.button(
+                t.get("btn_load_demo_selected", "Load selected demo configuration"),
+                key="load_selected_demo_configuration",
+                type="primary",
+                width="stretch",
+            ):
                 load_demo_profile_config(selected_demo)
-        with col_run_demo:
-            if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width="stretch"):
-                run_demo_profile(selected_demo)
+        else:
+            col_load_demo, col_run_demo = st.columns(2)
+            with col_load_demo:
+                if st.button(
+                    t.get(
+                        "btn_load_demo_selected",
+                        "Load selected demo configuration",
+                    ),
+                    key="load_selected_demo_configuration",
+                    type="primary",
+                    width="stretch",
+                ):
+                    load_demo_profile_config(selected_demo)
+            with col_run_demo:
+                if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width="stretch"):
+                    run_demo_profile(selected_demo)
 
 
 def render_config_loader():
@@ -187,7 +221,10 @@ st.markdown(f"""
 <div class="dev-credit-container" style='text-align: center; color: #888888; font-size: 0.85rem; margin-top: 0.5rem; margin-bottom: 1.5rem; line-height: 1.3;'>{t["dev_credit"]}</div>
 """, unsafe_allow_html=True)
 
-col_lang, col_b1, col_b2, col_b3 = st.columns(4, vertical_alignment="bottom")
+col_lang, col_b1, col_view, col_b2, col_b3 = st.columns(
+    5,
+    vertical_alignment="bottom",
+)
 
 with col_lang:
     def format_lang_ui(lang_key):
@@ -205,12 +242,29 @@ with col_lang:
     )
 
 with col_b1:
-    if st.button(t["btn_demo"], icon=":material/rocket_launch:", width="stretch"):
+    if st.button(
+        t["btn_demo"],
+        icon=":material/rocket_launch:",
+        key="load_demo_launcher",
+        type="secondary",
+        width="stretch",
+    ):
         next_demo_state = not st.session_state.get("show_demo_launcher", False)
         st.session_state.show_demo_launcher = next_demo_state
         if next_demo_state:
             st.session_state.show_config_loader = False
         reset_audit()
+
+with col_view:
+    guided_mode_content = GUIDED_INPUTS[st.session_state.lang]["mode"]
+    st.selectbox(
+        guided_mode_content["label"],
+        ("guided", "classic"),
+        key="input_view",
+        label_visibility="collapsed",
+        format_func=lambda input_view: guided_mode_content[input_view],
+        on_change=handle_input_view_change,
+    )
 
 with col_b2:
     if st.button(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", width="stretch"):
@@ -222,7 +276,13 @@ with col_b2:
 
 with col_b3:
     reset_label = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
-    st.button(reset_label, icon=":material/restart_alt:", on_click=set_reset_config, width="stretch")
+    st.button(
+        reset_label,
+        icon=":material/restart_alt:",
+        key="reset_configuration",
+        on_click=set_reset_config,
+        width="stretch",
+    )
 
 if st.session_state.get("show_demo_launcher", False):
     render_demo_launcher()
@@ -233,29 +293,43 @@ if st.session_state.get("show_config_loader", False):
 if st.session_state.is_demo_mode:
     st.markdown("""
     <style>
-        div[data-testid="stHorizontalBlock"] > div:nth-child(4) div.stButton > button {
+        .st-key-reset_configuration button {
             border-color: #39ff14 !important;
             color: #39ff14 !important;
             text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
             box-shadow: 0 0 15px rgba(57, 255, 20, 0.8), inset 0 0 8px rgba(57, 255, 20, 0.3) !important;
             transition: all 0.3s ease;
         }
-        div[data-testid="stHorizontalBlock"] > div:nth-child(4) div.stButton > button:hover {
+        .st-key-reset_configuration button:hover {
             background-color: rgba(57, 255, 20, 0.1) !important;
             box-shadow: 0 0 25px rgba(57, 255, 20, 1.0), inset 0 0 15px rgba(57, 255, 20, 0.5) !important;
         }
     </style>
     """, unsafe_allow_html=True)
 
-render_metadata_expander(t)
-render_core_expander(t)
-render_compare_expander(t)
-render_advanced_expander(t)
+render_page_anchor(PARAMETER_SETTINGS_ANCHOR_ID)
+
+guided_render_result = None
+if st.session_state.input_view == "guided":
+    with st.container(key="guided_input_flow"):
+        guided_render_result = render_guided_inputs(t)
+else:
+    render_metadata_expander(t)
+    render_core_expander(t)
+    render_compare_expander(t)
+    render_advanced_expander(t)
+
+if st.session_state.get("configuration_changed_since_run", False):
+    st.warning(
+        GUIDED_INPUTS[st.session_state.lang]["messages"]["configuration_changed"],
+        icon=":material/update:",
+    )
 
 if st.session_state.get("_collapse_config_panels_once", False):
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
 
+render_page_anchor(RESULTS_INSPECTION_ANCHOR_ID)
 run_status_slot = st.empty()
 
 callsign = normalize_ascii_upper(st.session_state.val_callsign)
@@ -268,12 +342,11 @@ end_d = st.session_state.val_end_d
 start_t_input = st.session_state.val_start_t
 end_t_input = st.session_state.val_end_t
 comp_mode = st.session_state.val_comp_mode
-max_dist_km = st.session_state.val_max_dist
 
 band_value = BAND_MAP.get(band, "")
 band_filter = f"AND band = '{band_value}'"
 
-if time_mode == t["opt_last_x"]:
+if time_mode == "last_x":
     end_t_base = datetime.now(timezone.utc)
     start_t_base = end_t_base - timedelta(hours=hours)
 else:
@@ -304,8 +377,15 @@ def collapse_config_panels():
 
 
 def request_main_analysis_submission():
-    """Claim this session's Run action before the blocking analysis rerun starts."""
+    """Claim the Run action while keeping its live status area in view."""
     collapse_config_panels()
+    st.session_state.guided_collapse_all = True
+    st.session_state.configuration_changed_since_run = False
+    request_page_navigation(
+        st.session_state,
+        RESULTS_INSPECTION_ANCHOR_ID,
+        should_scroll=False,
+    )
     begin_main_analysis_submission(st.session_state)
 
 
@@ -318,7 +398,6 @@ run_button_icons = {
     "rx": ":material/headphones:",
     "tx": ":material/cell_tower:",
 }
-run_col, save_col = st.columns([0.65, 0.35], gap="large")
 submission_request = claim_analysis_submission_request(st.session_state)
 submission_snapshot = get_analysis_submission(st.session_state)
 is_existing_run_rerender = False
@@ -389,12 +468,29 @@ def render_run_analysis_button(*, is_busy):
         on_click=request_main_analysis_submission,
     )
 
-with run_col:
+guided_actions_available = bool(
+    guided_render_result is not None
+    and guided_render_result.is_ready
+    and guided_render_result.review_actions_slot is not None
+)
+should_render_actions = (
+    st.session_state.input_view == "classic" or guided_actions_available
+)
+if should_render_actions:
+    action_context = (
+        guided_render_result.review_actions_slot.container()
+        if guided_actions_available
+        else nullcontext()
+    )
+    with action_context:
+        run_col, save_col = st.columns([0.65, 0.35], gap="large")
+        with run_col:
+            run_analysis_button_slot = st.empty()
+            render_run_analysis_button(is_busy=submission_snapshot is not None)
+        with save_col:
+            render_config_save_control(popover_key="config_save_top_trigger")
+else:
     run_analysis_button_slot = st.empty()
-    render_run_analysis_button(is_busy=submission_snapshot is not None)
-
-with save_col:
-    render_config_save_control(popover_key="config_save_top_trigger")
 
 is_main_button_submission = bool(
     submission_request is not None
@@ -403,9 +499,9 @@ is_main_button_submission = bool(
 submission_initialization_failed = False
 if is_main_button_submission:
     requires_reference_identity = (
-        comp_mode == t["opt_comp_buddy"]
+        comp_mode == "reference_station"
         or (
-            comp_mode == t["opt_comp_self"]
+            comp_mode == "hardware_ab"
             and (
                 analysis_direction == "rx"
                 or st.session_state.get("val_tx_ab_method") == "simultaneous"
@@ -439,12 +535,12 @@ if is_main_button_submission:
             st.error(t["err_reference_callsign_same"])
             st.session_state.run_mode = None
             submission_initialization_failed = True
-        elif comp_mode == t["opt_comp_buddy"] and not reference_grid4:
+        elif comp_mode == "reference_station" and not reference_grid4:
             st.error(t["err_reference_qth_required"])
             st.session_state.run_mode = None
             submission_initialization_failed = True
         elif (
-            comp_mode == t["opt_comp_buddy"]
+            comp_mode == "reference_station"
             and not is_valid_grid4(reference_grid4)
         ):
             st.error(t["err_reference_grid4_format"])
@@ -453,6 +549,7 @@ if is_main_button_submission:
     if not submission_initialization_failed:
         st.session_state.run_mode = analysis_direction.upper()
         st.session_state.run_id = int(time.time())
+        st.session_state.configuration_changed_since_run = False
         collapse_documentation(st.session_state)
         reset_result_state(st.session_state)
         set_active_run_time_window(
@@ -508,7 +605,6 @@ elif st.session_state.run_mode and should_execute_analysis:
                 band_filter=band_filter,
                 start_t=start_t,
                 end_t=end_t,
-                max_dist_km=max_dist_km,
                 generate_map_plot=generate_map_plot,
             )
         finally:

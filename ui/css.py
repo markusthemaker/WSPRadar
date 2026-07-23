@@ -18,6 +18,14 @@ def apply_custom_css():
         .stApp { background-color: #050a15; background-image: radial-gradient(circle at 50% 50%, #0a1428 0%, #02040a 100%); color: #e0e0e0; }
         
         .block-container { max-width: 1024px !important; padding-top: 2rem !important; }
+
+        .wspradar-page-anchor {
+            display: block;
+            height: 0;
+            overflow: hidden;
+            scroll-margin-top: 5rem;
+            visibility: hidden;
+        }
         
         div.stButton > button[kind="primary"],
         div.stDownloadButton > button[kind="primary"],
@@ -76,14 +84,20 @@ def apply_custom_css():
             color: #ffffff !important;
             fill: #ffffff !important;
         }
-        .st-key-run_analysis_button button[kind="primary"]:not(:disabled),
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"] {
+        .st-key-load_selected_demo_configuration button[kind="primary"]:not(:disabled),
+        .st-key-guided_demo_walkthrough button[kind="primary"]:not(:disabled),
+        .st-key-guided_demo_skip_to_review button[kind="primary"]:not(:disabled),
+        div[class*="st-key-guided_continue_"] button[kind="primary"]:not(:disabled),
+        .st-key-run_analysis_button button[kind="primary"]:not(:disabled) {
             border-color: #39ff14 !important;
             box-shadow: 0 0 3px rgba(57, 255, 20, 0.65) !important;
             filter: drop-shadow(0 0 3px rgba(57, 255, 20, 0.45)) !important;
         }
-        .st-key-run_analysis_button button[kind="primary"]:not(:disabled):hover,
-        div[data-testid="stHorizontalBlock"] > div:nth-child(2) div.stButton > button[kind="secondary"]:hover {
+        .st-key-load_selected_demo_configuration button[kind="primary"]:not(:disabled):hover,
+        .st-key-guided_demo_walkthrough button[kind="primary"]:not(:disabled):hover,
+        .st-key-guided_demo_skip_to_review button[kind="primary"]:not(:disabled):hover,
+        div[class*="st-key-guided_continue_"] button[kind="primary"]:not(:disabled):hover,
+        .st-key-run_analysis_button button[kind="primary"]:not(:disabled):hover {
             border-color: #39ff14 !important;
             box-shadow: 0 0 5px rgba(57, 255, 20, 0.75) !important;
             filter: drop-shadow(0 0 4px rgba(57, 255, 20, 0.65)) !important;
@@ -117,6 +131,12 @@ def apply_custom_css():
         .st-key-demo_description div[data-testid="stCaptionContainer"],
         .st-key-loaded_config_metadata_description div[data-testid="stCaptionContainer"] {
             opacity: 1 !important;
+        }
+
+        /* Keep the demo explanation blue while matching surrounding captions. */
+        .st-key-guided_demo_context div[data-testid="stAlert"] p {
+            font-size: 0.875rem !important;
+            line-height: 1.55 !important;
         }
 
         /* Selectbox (Language Selector) aligned with button styling */
@@ -233,7 +253,8 @@ def apply_custom_css():
             table-layout: fixed !important;
             width: 100% !important;
         }
-        .st-key-documentation_body .stMarkdown strong.defined-term {
+        .st-key-documentation_body .stMarkdown strong.defined-term,
+        .st-key-guided_input_flow .stMarkdown strong.defined-term {
             color: #39ff14 !important;
             font-weight: 700 !important;
         }

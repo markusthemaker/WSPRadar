@@ -761,11 +761,16 @@ def _initialize_explicit_all_multiselect(
             current = [all_option]
         elif isinstance(persisted_selection, (list, tuple)):
             persisted_values = set(persisted_selection)
-            current = [
-                option for option in specific_options if option in persisted_values
-            ]
-            if not current:
+            if persisted_values and persisted_values.issubset(specific_options):
+                current = [
+                    option
+                    for option in specific_options
+                    if option in persisted_values
+                ]
+            else:
                 current = [all_option]
+                if persistent_key is not None:
+                    st.session_state[persistent_key] = SEGMENT_SELECTION_ALL
         else:
             current = [all_option]
             if persistent_key is not None:
@@ -2016,7 +2021,7 @@ def render_segment_inspector(
     parquet_path,
     line1_str,
     t,
-    max_dist_km,
+    max_peer_distance_km,
     analysis_context,
     presentation_context,
     analysis_start_t=None,
@@ -2039,7 +2044,7 @@ def render_segment_inspector(
             parquet_path,
             line1_str,
             t,
-            max_dist_km,
+            max_peer_distance_km,
             analysis_context,
             presentation_context,
             analysis_start_t=analysis_start_t,
@@ -2063,7 +2068,7 @@ def _render_segment_inspector_body(
     parquet_path,
     line1_str,
     t,
-    max_dist_km,
+    max_peer_distance_km,
     analysis_context,
     presentation_context,
     analysis_start_t=None,
@@ -2096,7 +2101,7 @@ def _render_segment_inspector_body(
     options_cache_key = (
         INSPECTOR_CACHE_VERSION,
         analysis_id,
-        float(max_dist_km),
+        float(max_peer_distance_km),
     )
     options_view_model, options_cache_hit = _inspector_cache_get(
         run_id,
@@ -2108,7 +2113,7 @@ def _render_segment_inspector_body(
     if not options_cache_hit:
         options_view_model = build_inspector_options(
             enriched_df,
-            max_dist_km=max_dist_km,
+            max_peer_distance_km=max_peer_distance_km,
         )
         _inspector_cache_put(
             run_id,

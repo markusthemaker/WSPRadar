@@ -258,7 +258,7 @@ def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity()
     assert "TX Hardware A/B bietet zwei Methoden" in DOC_DE
     assert "`Simultaneous TX` is the default" in DOC_EN
     assert "`Simultanes TX` ist die Voreinstellung" in DOC_DE
-    assert "Target Callsign` and `Reference Callsign" in DOC_EN
+    assert "Target callsign` and `Reference callsign" in DOC_EN
     assert "Target-Rufzeichen` und `Referenz-Rufzeichen" in DOC_DE
     assert "exact callsign plus its own grid-4" in DOC_EN
     assert "jeweiligen exakten Rufzeichens plus des eigenen Grid-4" in DOC_DE
@@ -379,7 +379,7 @@ def test_bilingual_manuals_define_saved_inspector_scope_and_all_stations_intent(
 
 
 def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch):
-    """Documentation-only emphasis must not recolor unrelated Streamlit Markdown."""
+    """Share explicit defined-term emphasis without recoloring ordinary bold text."""
     rendered_styles = []
     monkeypatch.setattr(
         ui_css.st,
@@ -399,6 +399,7 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
     )
     assert "table-layout: fixed !important" in stylesheet
     assert ".st-key-documentation_body .stMarkdown strong.defined-term" in stylesheet
+    assert ".st-key-guided_input_flow .stMarkdown strong.defined-term" in stylesheet
     assert ".st-key-documentation_body a[id]:not(.header-anchor)" in stylesheet
     assert "scroll-margin-top: 5rem" in stylesheet
     assert "strong:first-child:not(.defined-term)" in stylesheet

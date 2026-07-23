@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "start_node": "use_case",
+  "terminal_node": "review_and_run",
+  "node_order": [
+    "use_case",
+    "target_and_window",
+    "reference_design",
+    "offset_calibration",
+    "scope_and_evidence",
+    "review_and_run"
+  ],
+  "nodes": {
+    "use_case": {
+      "content_key": "steps.use_case",
+      "renderer": "use_case_selector",
+      "summary_renderer": "use_case_summary",
+      "required_fields": [
+        "guided_use_case"
+      ],
+      "transitions": [
+        {
+          "when": {
+            "field": "guided_use_case",
+            "in": [
+              "rx_success",
+              "tx_success",
+              "rx_compare",
+              "tx_compare"
+            ]
+          },
+          "next": "target_and_window"
+        }
+      ]
+    },
+    "target_and_window": {
+      "content_key": "steps.target_and_window",
+      "renderer": "target_and_window_fields",
+      "summary_renderer": "target_and_window_summary",
+      "required_fields": [
+        "analysis_direction",
+        "callsign",
+        "qth",
+        "band",
+        "time_mode"
+      ],
+      "transitions": [
+        {
+          "when": {
+            "field": "guided_use_case",
+            "in": [
+              "rx_success",
+              "tx_success"
+            ]
+          },
+          "next": "scope_and_evidence"
+        },
+        {
+          "when": {
+            "field": "guided_use_case",
+            "in": [
+              "rx_compare",
+              "tx_compare"
+            ]
+          },
+          "next": "reference_design"
+        }
+      ]
+    },
+    "reference_design": {
+      "content_key": "steps.reference_design",
+      "renderer": "reference_design_fields",
+      "summary_renderer": "reference_design_summary",
+      "required_fields": [
+        "benchmark_mode"
+      ],
+      "transitions": [
+        {
+          "when": {
+            "field": "benchmark_mode",
+            "in": [
+              "hardware_ab",
+              "reference_station"
+            ]
+          },
+          "next": "offset_calibration"
+        },
+        {
+          "when": {
+            "field": "benchmark_mode",
+            "equals": "local_neighborhood"
+          },
+          "next": "scope_and_evidence"
+        }
+      ]
+    },
+    "offset_calibration": {
+      "content_key": "steps.offset_calibration",
+      "renderer": "offset_calibration_fields",
+      "summary_renderer": "offset_calibration_summary",
+      "required_fields": [
+        "guided_offset_intent"
+      ],
+      "transitions": [
+        {
+          "when": {
+            "field": "guided_offset_intent",
+            "in": [
+              "no_offset",
+              "established_offset",
+              "establish_offset"
+            ]
+          },
+          "next": "scope_and_evidence"
+        }
+      ]
+    },
+    "scope_and_evidence": {
+      "content_key": "steps.scope_and_evidence",
+      "renderer": "scope_and_evidence_fields",
+      "summary_renderer": "scope_and_evidence_summary",
+      "required_fields": [
+        "guided_scope_mode"
+      ],
+      "transitions": [
+        {
+          "when": {
+            "field": "guided_scope_mode",
+            "in": [
+              "general",
+              "custom",
+              "demo"
+            ]
+          },
+          "next": "review_and_run"
+        }
+      ]
+    },
+    "review_and_run": {
+      "content_key": "steps.review_and_run",
+      "renderer": "review_and_run",
+      "summary_renderer": "review_and_run_summary",
+      "required_fields": [],
+      "transitions": []
+    }
+  }
+}

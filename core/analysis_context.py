@@ -38,7 +38,10 @@ class AnalysisContext:
     Reference Station identifies each side by an exact callsign and
     four-character Maidenhead grid. Hardware A/B derives its shared grid-4 from
     Target QTH. Periodic sequential TX A/B fields describe one shared repeat
-    interval and two disjoint even UTC start phases.
+    interval and two disjoint even UTC start phases. The maximum peer distance
+    is a half-open Target-QTH radius for mapped scientific peers; global
+    moving-station validation and Target-active evidence are intentionally
+    outside that radius.
     """
 
     run_mode: str | None = None
@@ -57,7 +60,7 @@ class AnalysisContext:
     tx_ab_target_start_minute: int = 0
     tx_ab_reference_start_minute: int = 2
     solar_state: str = SOLAR_ALL
-    map_scope_km: int = 22000
+    max_peer_distance_km: int = 22000
     exclude_special_callsigns: bool = False
     exclude_moving_stations: bool = False
     min_joint_spots_per_station: int = 1

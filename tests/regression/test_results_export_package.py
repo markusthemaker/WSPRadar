@@ -255,7 +255,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
                 "time_selection": {"mode": "last_x", "hours": 24},
             },
             "comparison_parameters": {"mode": "none"},
-            "advanced_parameters": {},
+            "advanced_parameters": {"max_peer_distance_km": 10000},
         },
     }
     config_bytes = json.dumps(config_payload).encode("utf-8")
@@ -284,7 +284,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         parquet_path=str(parquet_path),
         start_t="2026-07-01T00:00:00Z",
         end_t="2026-07-02T00:00:00Z",
-        max_dist_km=22000,
+        max_peer_distance_km=10000,
         base_min_stations=1,
         lat_0=50.0,
         lon_0=5.0,
@@ -317,6 +317,9 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
     assert all("/absolute/" not in path for path in package_paths)
     assert metadata["blocks_present"] == {"compare": False, "success": True}
     assert metadata["database_source"] == "wd2"
+    assert (
+        metadata["thresholds_and_filters"]["max_peer_distance_km"] == 10000
+    )
     assert metadata["result_blocks"][0]["folder"] == "success"
     assert metadata["result_blocks"][0]["success_method_version"] == "opportunity-v1"
     assert "absolute" not in json.dumps(metadata).casefold()

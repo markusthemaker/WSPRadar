@@ -3,7 +3,6 @@
 from config import DEFAULT_BAND
 from core.analysis_context import AnalysisContext, COMPARISON_HARDWARE_AB
 from core.input_validation import normalize_ascii_upper
-from i18n import T
 from ui.config_io import (
     LOCAL_BENCHMARK_VALUES,
     MODE_VALUES,
@@ -14,11 +13,9 @@ from ui.config_io import (
 
 def build_analysis_context_from_session_state(session_state):
     """Convert localized Streamlit session values into one stable scalar context."""
-    language = session_state.get("lang", "en")
-    t = T.get(language, T["en"])
     analysis_direction = session_state.get("val_analysis_direction")
     comparison_mode = canonical_from_translated(
-        session_state.get("val_comp_mode", t["opt_comp_none"]),
+        session_state.get("val_comp_mode", "none"),
         MODE_VALUES,
         "none",
     )
@@ -36,7 +33,7 @@ def build_analysis_context_from_session_state(session_state):
         band=session_state.get("val_band", DEFAULT_BAND),
         comparison_mode=comparison_mode,
         local_benchmark=canonical_from_translated(
-            session_state.get("val_local_benchmark", t["opt_local_median"]),
+            session_state.get("val_local_benchmark", "local_median"),
             LOCAL_BENCHMARK_VALUES,
             "local_median",
         ),
@@ -60,11 +57,13 @@ def build_analysis_context_from_session_state(session_state):
             session_state.get("val_tx_ab_reference_start_minute", 2)
         ),
         solar_state=canonical_from_translated(
-            session_state.get("val_solar", t["opt_solar_all"]),
+            session_state.get("val_solar", "all"),
             SOLAR_VALUES,
             "all",
         ),
-        map_scope_km=int(session_state.get("val_max_dist", 22000)),
+        max_peer_distance_km=int(
+            session_state.get("val_max_peer_distance_km", 22000)
+        ),
         exclude_special_callsigns=bool(session_state.get("val_exclude_special_callsigns", False)),
         exclude_moving_stations=bool(session_state.get("val_filter_moving", False)),
         min_joint_spots_per_station=int(session_state.get("val_min_spots", 1)),

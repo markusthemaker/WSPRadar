@@ -24,6 +24,7 @@ from core.analysis_context import (
     TX_AB_METHOD_SIMULTANEOUS,
     solar_path_state,
 )
+from core.geographic_scope import filter_peer_rows_by_distance
 from core.input_validation import (
     is_valid_callsign,
     is_valid_grid4,
@@ -341,10 +342,11 @@ def build_analysis_batches(
     presentation_context=None,
     warn=None,
 ):
-    """Build direction-specific Success and optional Compare execution batches.
+    """Build exactly one direction-specific Success or Compare execution batch.
 
-    Success-only returns one opportunity batch. A selected benchmark returns the
-    comparison batch first and the Target's separate Success batch second.
+    Success-only returns one opportunity batch. Any selected benchmark returns
+    only its comparison batch, preventing inactive Success queries, inspectors,
+    and export artifacts while leaving comparison mathematics unchanged.
     Reference Station requires an exact callsign and four-character grid
     identity. Simultaneous Hardware A/B requires distinct callsigns and derives
     both paths' shared grid-4 from Target QTH; sequential TX Hardware A/B
@@ -598,39 +600,30 @@ def build_analysis_batches(
                 "analysis_start_utc": start_t,
                 "analysis_end_utc": end_t,
             }))
-        analyses.append(with_decode_fallback({
-            "id": "TX_ABS",
-            "title": label(
-                "fig_tx_abs",
-                "TX Success: Target {callsign} vs. Other Signals at Active RX Stations",
-            ).format(callsign=callsign),
-            "is_compare": False,
-            "is_sequential": False,
-            "analysis_kind": "opportunity",
-            "absolute_mode": "TX",
-            "absolute_method_version": ABSOLUTE_METHOD_VERSION,
-            "response_format": "parquet",
-            "query": build_absolute_opportunity_query(
-                mode="TX",
-                start_t=start_t,
-                end_t=end_t,
-                band_value=BAND_MAP[analysis_context.band],
-                callsign=callsign,
-                qth=analysis_context.qth,
-                exclude_special_callsigns=analysis_context.exclude_special_callsigns,
-                target_repeat_interval_minutes=(
-                    analysis_context.tx_ab_repeat_interval_minutes
-                    if is_sequential
-                    else None
+        if comp_mode == COMPARISON_NONE:
+            analyses.append(with_decode_fallback({
+                "id": "TX_ABS",
+                "title": label(
+                    "fig_tx_abs",
+                    "TX Success: Target {callsign} vs. Other Signals at Active RX Stations",
+                ).format(callsign=callsign),
+                "is_compare": False,
+                "is_sequential": False,
+                "analysis_kind": "opportunity",
+                "absolute_mode": "TX",
+                "absolute_method_version": ABSOLUTE_METHOD_VERSION,
+                "response_format": "parquet",
+                "query": build_absolute_opportunity_query(
+                    mode="TX",
+                    start_t=start_t,
+                    end_t=end_t,
+                    band_value=BAND_MAP[analysis_context.band],
+                    callsign=callsign,
+                    qth=analysis_context.qth,
+                    exclude_special_callsigns=analysis_context.exclude_special_callsigns,
+                    require_decode_code=True,
                 ),
-                target_start_minute_utc=(
-                    analysis_context.tx_ab_target_start_minute
-                    if is_sequential
-                    else None
-                ),
-                require_decode_code=True,
-            ),
-        }))
+            }))
 
     elif analysis_context.run_mode == "RX":
         if comp_mode != COMPARISON_NONE:
@@ -665,36 +658,41 @@ def build_analysis_batches(
                 "analysis_start_utc": start_t,
                 "analysis_end_utc": end_t,
             }))
-        analyses.append(with_decode_fallback({
-            "id": "RX_ABS",
-            "title": label(
-                "fig_rx_abs",
-                "RX Success: Target {callsign} vs. Same Signals Heard Elsewhere",
-            ).format(callsign=callsign),
-            "is_compare": False,
-            "is_sequential": False,
-            "analysis_kind": "opportunity",
-            "absolute_mode": "RX",
-            "absolute_method_version": ABSOLUTE_METHOD_VERSION,
-            "response_format": "parquet",
-            "query": build_absolute_opportunity_query(
-                mode="RX",
-                start_t=start_t,
-                end_t=end_t,
-                band_value=BAND_MAP[analysis_context.band],
-                callsign=callsign,
-                qth=analysis_context.qth,
-                exclude_special_callsigns=analysis_context.exclude_special_callsigns,
-                require_decode_code=True,
-            ),
-        }))
+        if comp_mode == COMPARISON_NONE:
+            analyses.append(with_decode_fallback({
+                "id": "RX_ABS",
+                "title": label(
+                    "fig_rx_abs",
+                    "RX Success: Target {callsign} vs. Same Signals Heard Elsewhere",
+                ).format(callsign=callsign),
+                "is_compare": False,
+                "is_sequential": False,
+                "analysis_kind": "opportunity",
+                "absolute_mode": "RX",
+                "absolute_method_version": ABSOLUTE_METHOD_VERSION,
+                "response_format": "parquet",
+                "query": build_absolute_opportunity_query(
+                    mode="RX",
+                    start_t=start_t,
+                    end_t=end_t,
+                    band_value=BAND_MAP[analysis_context.band],
+                    callsign=callsign,
+                    qth=analysis_context.qth,
+                    exclude_special_callsigns=analysis_context.exclude_special_callsigns,
+                    require_decode_code=True,
+                ),
+            }))
 
     return analyses
 
 def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, timing_collector=None):
-    """
-    Applies mathematical and logical filters (Solar, Cycle-Sync, Moving Stations) 
-    to the fetched dataframe before it is handed over to the plotting engine.
+    """Apply scientific post-fetch gates before staging analysis evidence.
+
+    Solar selection is followed by the existing global moving-station integrity
+    check and global Target-active synchronization. Geographic scope is applied
+    only afterward, so distant peer rows can establish those global exclusions
+    but cannot enter thresholds, aggregation, staged artifacts, or exports.
+    Scheduled TX A/B pair assignment likewise precedes geographic filtering.
     """
     if analysis.get("analysis_kind") == "opportunity":
         with _timed_span(timing_collector, "opportunity prepare rows"):
@@ -727,6 +725,17 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
                     .index
                 )
                 df = df[df["peer_sign"].isin(static_peers)]
+
+        if not df.empty:
+            with _timed_span(timing_collector, "opportunity geographic scope filter"):
+                df = filter_peer_rows_by_distance(
+                    df,
+                    center_latitude=lat_0,
+                    center_longitude=lon_0,
+                    max_peer_distance_km=(
+                        analysis_context.max_peer_distance_km
+                    ),
+                )
 
         if df.empty:
             return df, t["warn_no_data"].format(title=analysis["title"])
@@ -800,7 +809,16 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
         with _timed_span(timing_collector, "comparison cycle synchronization"):
             active_slots = df[df['has_u'] > 0]['time_slot'].unique()
             df = df[df['time_slot'].isin(active_slots)]
-    
+
+    if not df.empty:
+        with _timed_span(timing_collector, "comparison geographic scope filter"):
+            df = filter_peer_rows_by_distance(
+                df,
+                center_latitude=lat_0,
+                center_longitude=lon_0,
+                max_peer_distance_km=analysis_context.max_peer_distance_km,
+            )
+
     # Alternative cycle synchronization (strictly TX only).
     # In RX comparison, zero spots may represent a deaf antenna, so the cycle can be evidence.
     # In TX comparison, zero spots may mean no transmission, so dropping the cycle can be fairer.

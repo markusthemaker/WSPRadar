@@ -85,7 +85,6 @@ def _analysis_request_fingerprint(
     start_t,
     end_t,
     band_filter,
-    max_dist_km,
     active_demo_profile,
 ):
     """Return a stable key for one session's complete analysis request."""
@@ -94,7 +93,6 @@ def _analysis_request_fingerprint(
         "start_t": start_t.isoformat(),
         "end_t": end_t.isoformat(),
         "band_filter": str(band_filter),
-        "max_dist_km": int(max_dist_km),
         "active_demo_profile": active_demo_profile,
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -293,7 +291,6 @@ def render_analysis_run(
     band_filter,
     start_t,
     end_t,
-    max_dist_km,
     generate_map_plot,
 ):
     """Admit one active run, then execute it with unconditional slot release."""
@@ -409,7 +406,6 @@ def render_analysis_run(
         start_t=start_t,
         end_t=end_t,
         band_filter=band_filter,
-        max_dist_km=max_dist_km,
         active_demo_profile=st.session_state.get("active_demo_profile"),
     )
 
@@ -540,7 +536,6 @@ def render_analysis_run(
                 run_status_slot=run_status_slot,
                 start_t=start_t,
                 end_t=end_t,
-                max_dist_km=max_dist_km,
                 generate_map_plot=generate_map_plot,
                 admission_permit=permit,
                 analyses=analyses,
@@ -579,7 +574,6 @@ def _render_admitted_analysis_run(
     run_status_slot,
     start_t,
     end_t,
-    max_dist_km,
     generate_map_plot,
     admission_permit,
     analyses,
@@ -595,6 +589,7 @@ def _render_admitted_analysis_run(
 ):
     """Execute an admitted run and return its terminal telemetry outcome."""
 
+    max_peer_distance_km = analysis_context.max_peer_distance_km
     touch_registered_session_artifacts(st.session_state)
 
     if active_demo:
@@ -899,7 +894,7 @@ def _render_admitted_analysis_run(
                     analysis["is_sequential"],
                     start_t,
                     end_t,
-                    max_dist_km,
+                    max_peer_distance_km,
                     analysis["id"],
                     st.session_state.val_min_stations,
                     center_latitude,
@@ -940,16 +935,16 @@ def _render_admitted_analysis_run(
                         subject="map",
                     )
                 register_map_export_context(
-                    analysis,
-                    parquet_path,
-                    start_t,
-                    end_t,
-                    max_dist_km,
-                    st.session_state.val_min_stations,
-                    center_latitude,
-                    center_longitude,
-                    analysis_context,
-                    presentation_context,
+                    analysis=analysis,
+                    parquet_path=parquet_path,
+                    start_t=start_t,
+                    end_t=end_t,
+                    max_peer_distance_km=max_peer_distance_km,
+                    base_min_stations=st.session_state.val_min_stations,
+                    lat_0=center_latitude,
+                    lon_0=center_longitude,
+                    analysis_context=analysis_context,
+                    presentation_context=presentation_context,
                     database_source=selected_source_key,
                 )
             finally:
@@ -1017,7 +1012,7 @@ def _render_admitted_analysis_run(
                     data["parquet_path"],
                     data["line1_str"],
                     t,
-                    max_dist_km,
+                    max_peer_distance_km,
                     analysis_context,
                     presentation_context,
                     analysis_start_t=data["start_t"],

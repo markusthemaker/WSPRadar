@@ -2,6 +2,38 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-07-23
+
+- Made **Geographic Analysis Scope (Max Peer Distance km)** a scientific
+  post-fetch gate for Success and Compare. Only peers strictly nearer than the
+  selected maximum now enter thresholds, aggregation, processed artifacts,
+  exports, the map/footer, or the Segment Inspector; Inspector controls can
+  narrow but not widen that population. Target-Active and moving-station
+  integrity remain geographically global checks on the otherwise eligible
+  pre-scope population, while provider queries and raw-query caches remain
+  reusable across scope choices.
+- Added a bilingual, question-led Guided Input editor as the default alternative
+  to the existing Classic panels. A schema-validated declarative flow controls
+  the conditional flow of up to six steps, while whitelisted renderers reuse the same
+  canonical field widgets, validation, callbacks and saved-configuration state
+  as Classic. Switching editors is transient and preserves inputs and current
+  results; loaded configurations reconstruct the Guided path, and loaded demos
+  show their descriptive and available source context before collapsed preset
+  steps. Operators can either inspect every pre-populated applicable step in
+  sequence or skip directly to final review without starting the analysis.
+- Added novice-facing explanations for every Guided decision and input group,
+  including exact archive identity, QTH, band/window trade-offs, Reference
+  design boundaries, station population, scope and evidence thresholds. Guided
+  offset setup now distinguishes common-input Hardware A/B calibration from a
+  pair-specific Reference Station baseline, supports a clearly marked zero-dB
+  establishment run, and leaves offset selection and application manual.
+- Made result selection mutually exclusive without changing comparison
+  mathematics: no benchmark now executes and exposes Success only, while every
+  benchmark executes and exposes Compare only. Classic labels state the active
+  result explicitly, inactive Success queries and export artifacts are avoided
+  for Compare runs, and the current pre-production schema-version-1 document
+  retains both durable result-view branches.
+
 ## 2026-07-21
 
 - Added simultaneous TX Hardware A/B as the default alternative to the existing
@@ -85,7 +117,7 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
 - Added `No benchmark (Success only)` as the first and default Benchmark Design. It builds only the requested TX or RX Success analysis, hides reference and joint-evidence inputs, and leaves Hardware A/B, Buddy and Local Neighborhood as explicit comparison designs that still produce Compare plus Success results. Every normal benchmark-design selection now resets Reference SNR Correction to its documented `0.0 dB` default before an explicit demo profile can override it. Renamed the compare categorical panel from `System Sensitivity (Yield)` to `Decode Outcomes` without changing its evidence classifications.
 - Removed `Band = All`, rejected legacy all-band configs with a clear migration error, centralized `20m` as the consistent default, and exposed the exact `LF`, `MF`, `22m`, `8m` and `4m` buckets present in the live wspr.live `bands` table. Every analysis now requires one explicit band so opportunities and comparison evidence cannot be pooled across incompatible band conditions.
 - Replaced the English and German manuals with the reviewed operator-first structure and regenerated `README.md` from the authoritative English source. The manuals now progress from WSPR and WSPRadar fundamentals through experiment choice, result interpretation, controls, troubleshooting, scientific methods and valid claim language; explain every Segment Insight, Station Insights, selected-evidence and Drill-Down view; document sequential TX A/B design, source-validated WSPR sensitivity and fresh-spot delay guidance; and retain operational procedures, literature, exact aggregation rules and export limitations in layered sections and appendices. PDF conversion now preserves the manuals' formulas, code blocks and numbered procedures, and descriptive tables keep wrapped cell text left-aligned.
-- Made map footer summaries consistent across analyses: Local Neighborhood Compare maps now retain the `SPOTS` row alongside `STATIONS`, and Success maps add denominator-aligned `SPOTS` and `STATIONS` rows for Target versus Elsewhere/Other Signals evidence and qualifying Target versus counter-evidence-only station identities. Counts follow the visible map scope and exclude ineligible and Target-only evidence.
+- Made map footer summaries consistent across analyses: Local Neighborhood Compare maps now retain the `SPOTS` row alongside `STATIONS`, and Success maps add denominator-aligned `SPOTS` and `STATIONS` rows for Target versus Elsewhere/Other Signals evidence and qualifying Target versus counter-evidence-only station identities. Counts follow the retained geographic analysis scope and exclude ineligible and Target-only evidence.
 - Removed the heuristic `Very low`/`Low`/`Medium`/`Strong` grading from Compare Segment Insight. `Selected Segment Evidence` now reports only the factual number of joint stations and total joint spots, or paired spot bins for sequential TX A/B, leaving evidence-strength interpretation to the operator.
 - Established the operator-first, progressively layered English-manual style as a contributor standard in `AGENTS.md`, and refined the Hardware A/B guide to explain why controlled local TX comparisons use sequential adjacent WSPR frames, how repeated balanced alternation reduces temporal confounding, and why it cannot guarantee exact cancellation of propagation or interference changes.
 - Fixed the first analysis after a cold deployment repeatedly re-entering same-session admission and showing the identical-analysis message. Runtime source directories are now regular Python packages, preventing Streamlit's namespace-package directory watcher from treating first-import `__pycache__` writes as source changes; regression coverage protects the package/watch-path contract without changing scientific behavior or admission policy.

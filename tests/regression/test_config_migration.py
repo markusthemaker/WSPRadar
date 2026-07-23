@@ -72,7 +72,7 @@ def _valid_settings(
 
     advanced_parameters = {
         "solar_state": "all",
-        "map_scope_km": 22000,
+        "max_peer_distance_km": 22000,
         "exclude_special_callsigns": False,
         "exclude_moving_stations": False,
         "min_confirmed_opportunities_per_peer": 5,
@@ -316,6 +316,24 @@ def test_complete_result_view_state_round_trips_without_transient_row_ids():
     ]
 
 
+def test_saved_inspector_range_outside_analysis_scope_falls_back_to_all():
+    """Prevent saved result-view state from widening a 10,000 km analysis."""
+    settings = _valid_settings()
+    settings["advanced_parameters"]["max_peer_distance_km"] = 10000
+    settings["results_view"]["success"]["selected_ranges"] = [
+        "[10000-15000km]"
+    ]
+    settings["results_view"]["compare"]["selected_ranges"] = [
+        "[5000-10000km]",
+        "[10000-15000km]",
+    ]
+
+    normalized = config_io.validate_config_document(_config_document(settings))
+
+    assert normalized["selected_ranges_absolute"] == "all"
+    assert normalized["selected_ranges_compare"] == "all"
+
+
 def test_selected_station_validation_rejects_normalized_duplicate_identities():
     """Do not silently change authored station-selection order during loading."""
     settings = _valid_settings()
@@ -346,10 +364,13 @@ def test_future_config_schema_is_rejected_instead_of_guessed():
 def test_current_schema_requires_all_settings_and_rejects_unknown_core_fields():
     """Keep scientific reproducibility explicit and route additions to extensions."""
     missing_settings = deepcopy(_valid_settings())
-    del missing_settings["advanced_parameters"]["map_scope_km"]
+    del missing_settings["advanced_parameters"]["max_peer_distance_km"]
     with pytest.raises(
         ValueError,
-        match=r"Missing required settings\.advanced_parameters field.*map_scope_km",
+        match=(
+            r"Missing required settings\.advanced_parameters field"
+            r".*max_peer_distance_km"
+        ),
     ):
         config_io.validate_config_document(_config_document(missing_settings))
 
@@ -376,7 +397,7 @@ def test_initial_tx_ab_contract_rejects_prototype_fields(
     prototype_field,
     prototype_value,
 ):
-    """Keep unpublished pairing and fixed-bin fields out of public schema v1."""
+    """Keep unpublished pairing and fixed-bin fields out of pre-production v1."""
     settings = _valid_settings(
         analysis_direction="tx",
         comparison_mode="hardware_ab",

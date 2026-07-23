@@ -4,9 +4,12 @@ Contains the UI rendering functions for the main configuration expanders.
 Separating this from app.py keeps the main orchestrator file clean and focused.
 """
 
-import streamlit as st
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 from string import punctuation
+
+import streamlit as st
+
 from config import (
     MAX_DAYS_HISTORY,
     BAND_MAP,
@@ -23,6 +26,7 @@ from core.input_validation import (
 )
 from ui.callbacks import (
     reset_audit, handle_analysis_direction_change, handle_comp_mode_change,
+    handle_reference_correction_context_change,
     handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
     handle_tx_ab_target_start_change, swap_tx_ab_starts,
 )
@@ -147,13 +151,24 @@ def _render_identity_format_error(
     return is_valid
 
 def _benchmark_mode_options(t):
-    """Return Success-only first, followed by the available benchmark designs."""
+    """Return stable Success/Compare design tokens in their displayed order."""
     return [
-        t["opt_comp_none"],
-        t["opt_comp_self"],
-        t["opt_comp_buddy"],
-        t["opt_comp_radius"],
+        "none",
+        "hardware_ab",
+        "reference_station",
+        "local_neighborhood",
     ]
+
+
+def _format_benchmark_mode(t, benchmark_mode):
+    """Localize one stable benchmark-design token for display."""
+    translation_keys = {
+        "none": "opt_comp_none",
+        "hardware_ab": "opt_comp_self",
+        "reference_station": "opt_comp_buddy",
+        "local_neighborhood": "opt_comp_radius",
+    }
+    return t[translation_keys[benchmark_mode]]
 
 
 def _comparison_column_widths(t, comparison_mode, analysis_direction):
@@ -172,13 +187,21 @@ def _tx_ab_threshold_label_and_help(t):
     )
 
 
-def _render_reference_identity(t, *, derives_hardware_grid4):
+def _render_reference_identity(
+    t,
+    *,
+    derives_hardware_grid4,
+    on_change=reset_audit,
+    on_change_args=(),
+    help_overrides=None,
+):
     """Render Target/Reference identities and the mode-specific QTH contract.
 
     Reference Station owns an editable four-character Reference grid. Hardware
     A/B instead displays one shared grid-4 derived from Target QTH, without
     mutating the inactive Reference Station field in session state.
     """
+    help_overrides = help_overrides or {}
     target_callsign = normalize_ascii_upper(
         st.session_state.get("val_callsign", "")
     )
@@ -203,14 +226,18 @@ def _render_reference_identity(t, *, derives_hardware_grid4):
                 "ph_reference_callsign",
                 "e.g. DL1MKS/P or DL1MKS-1",
             ),
-            help=t.get(
-                "hlp_callsign_entry",
-                "Use the exact WSPR archive identifier; standard callsign forms are recommended.",
+            help=help_overrides.get(
+                "reference_callsign",
+                t.get(
+                    "hlp_callsign_entry",
+                    "Use the exact WSPR archive identifier; standard callsign forms are recommended.",
+                ),
             ),
             max_chars=15,
             normalize_uppercase=True,
             disabled=st.session_state.is_demo_mode,
-            on_change=reset_audit,
+            on_change=on_change,
+            args=on_change_args,
         )
 
     target_qth_column, reference_qth_column = st.columns(2, gap="large")
@@ -232,6 +259,7 @@ def _render_reference_identity(t, *, derives_hardware_grid4):
                 disabled=True,
             )
         else:
+            reference_qth_help = help_overrides.get("reference_qth")
             text_input_no_autocomplete(
                 t.get("lbl_reference_grid4", "Reference Grid-4"),
                 key="val_ref_qth",
@@ -239,7 +267,13 @@ def _render_reference_identity(t, *, derives_hardware_grid4):
                 max_chars=4,
                 normalize_uppercase=True,
                 disabled=st.session_state.is_demo_mode,
-                on_change=reset_audit,
+                on_change=on_change,
+                args=on_change_args,
+                **(
+                    {"help": reference_qth_help}
+                    if reference_qth_help
+                    else {}
+                ),
             )
 
     reference_callsign = normalize_ascii_upper(
@@ -265,11 +299,36 @@ def _render_reference_identity(t, *, derives_hardware_grid4):
         st.error(t.get("err_reference_callsign_same", t["err_self_test"]))
 
 
-def _render_tx_ab_method_selector(t):
-    """Render the governing simultaneous/sequential TX A/B method selector."""
+def _render_tx_ab_method_selector(
+    t,
+    *,
+    on_change=reset_audit,
+    on_change_args=(),
+    method_content=None,
+    help_text=None,
+):
+    """Render the governing TX A/B method in its editor-specific presentation."""
+    methods = ("simultaneous", "sequential")
+    if method_content is not None:
+        st.radio(
+            t.get("lbl_tx_ab_method", "TX A/B Method"),
+            methods,
+            key="val_tx_ab_method",
+            format_func=lambda method: method_content[method]["label"],
+            captions=tuple(
+                method_content[method]["description"] for method in methods
+            ),
+            help=help_text,
+            disabled=st.session_state.is_demo_mode,
+            width="stretch",
+            on_change=on_change,
+            args=on_change_args,
+        )
+        return
+
     st.segmented_control(
         t.get("lbl_tx_ab_method", "TX A/B Method"),
-        ("simultaneous", "sequential"),
+        methods,
         selection_mode="single",
         required=True,
         key="val_tx_ab_method",
@@ -279,7 +338,8 @@ def _render_tx_ab_method_selector(t):
         ),
         disabled=st.session_state.is_demo_mode,
         width="stretch",
-        on_change=reset_audit,
+        on_change=on_change,
+        args=on_change_args,
     )
 
 
@@ -299,7 +359,12 @@ def _format_utc_minute(minute):
     return f"{int(minute):02d} UTC"
 
 
-def _render_tx_ab_schedule(t):
+def _render_tx_ab_schedule(
+    t,
+    *,
+    on_change=reset_audit,
+    on_change_args=(),
+):
     """Render the shared repeat interval, coupled starts, and schedule preview."""
     repeat_interval = int(
         st.session_state.get("val_tx_ab_repeat_interval_minutes", 10)
@@ -326,6 +391,7 @@ def _render_tx_ab_schedule(t):
             disabled=st.session_state.is_demo_mode,
             help=t.get("hlp_tx_ab_repeat_interval", ""),
             on_change=handle_tx_ab_repeat_interval_change,
+            args=(on_change, on_change_args),
         )
         st.caption(
             t.get(
@@ -348,6 +414,7 @@ def _render_tx_ab_schedule(t):
                 disabled=st.session_state.is_demo_mode,
                 help=t.get("hlp_tx_ab_start", ""),
                 on_change=handle_tx_ab_target_start_change,
+                args=(on_change, on_change_args),
             )
         with swap_column:
             st.button(
@@ -356,6 +423,7 @@ def _render_tx_ab_schedule(t):
                 help=t.get("hlp_tx_ab_swap", "Swap Target and Reference starts"),
                 disabled=st.session_state.is_demo_mode,
                 on_click=swap_tx_ab_starts,
+                args=(on_change, on_change_args),
                 width="stretch",
             )
         with reference_column:
@@ -367,6 +435,7 @@ def _render_tx_ab_schedule(t):
                 disabled=st.session_state.is_demo_mode,
                 help=t.get("hlp_tx_ab_start", ""),
                 on_change=handle_tx_ab_reference_start_change,
+                args=(on_change, on_change_args),
             )
 
         target_minutes, reference_minutes, separation_minutes = (
@@ -399,7 +468,12 @@ def _render_tx_ab_schedule(t):
         if repeat_interval in {4, 6}:
             st.warning(t.get("warn_tx_ab_high_duty", ""), icon=":material/warning:")
 
-def _render_analysis_direction_selector(t):
+def _render_analysis_direction_selector(
+    t,
+    *,
+    on_change=handle_analysis_direction_change,
+    on_change_args=(),
+):
     """Render the required RX/TX choice as one full-width segmented control."""
     st.segmented_control(
         t["lbl_analysis_selector"],
@@ -411,81 +485,310 @@ def _render_analysis_direction_selector(t):
         disabled=st.session_state.is_demo_mode,
         label_visibility="collapsed",
         width="stretch",
-        on_change=handle_analysis_direction_change,
+        on_change=on_change,
+        args=on_change_args,
     )
 
-def render_core_expander(t):
-    """Render analysis direction, target identity, band, and time controls."""
-    with st.expander(t["exp_core"], expanded=st.session_state.get("config_panels_expanded", True)):
-        _render_analysis_direction_selector(t)
+def render_target_and_window_fields(
+    t,
+    *,
+    on_change=reset_audit,
+    on_change_args=(),
+    correction_context_on_change=None,
+    correction_context_on_change_args=(),
+    help_overrides=None,
+):
+    """Render shared Target identity, band, and time controls.
 
-        # Build widgets column-first so keyboard navigation moves down the left
-        # column before continuing at the top of the right column.
-        core_left, core_right = st.columns([0.5, 0.5], gap="large")
-        with core_left:
-            direction = st.session_state.get("val_analysis_direction")
-            callsign_label = t.get(
-                f"lbl_callsign_{direction}",
-                t["lbl_callsign"],
-            )
-            text_input_no_autocomplete(
-                callsign_label,
-                key="val_callsign",
-                help=t.get(
+    Both input editors use the same widget keys, normalization and scientific
+    callbacks. ``help_overrides`` adds Guided explanations without changing the
+    canonical values or Classic wording. Identity/QTH/band changes may use a
+    separate callback because they invalidate an established pair correction,
+    while changing only the time window does not.
+    """
+    help_overrides = help_overrides or {}
+    correction_context_on_change = correction_context_on_change or on_change
+    correction_context_on_change_args = (
+        correction_context_on_change_args
+        if correction_context_on_change_args
+        else on_change_args
+    )
+
+    # Build widgets column-first so keyboard navigation moves down the left
+    # column before continuing at the top of the right column.
+    core_left, core_right = st.columns([0.5, 0.5], gap="large")
+    with core_left:
+        direction = st.session_state.get("val_analysis_direction")
+        callsign_label = t.get(f"lbl_callsign_{direction}", t["lbl_callsign"])
+        text_input_no_autocomplete(
+            callsign_label,
+            key="val_callsign",
+            help=help_overrides.get(
+                "callsign",
+                t.get(
                     "hlp_callsign_entry",
                     "Use the exact WSPR archive identifier; standard callsign forms are recommended.",
                 ),
-                max_chars=15,
-                normalize_uppercase=True,
-                disabled=st.session_state.is_demo_mode,
-                on_change=reset_audit,
-            )
-            _render_identity_format_error(
-                t,
-                st.session_state.get("val_callsign", ""),
-                identity_kind="callsign",
-            )
-            text_input_no_autocomplete(
-                t["lbl_qth"],
-                key="val_qth",
-                max_chars=6,
-                normalize_uppercase=True,
-                disabled=st.session_state.is_demo_mode,
-                on_change=reset_audit,
-            )
-            _render_identity_format_error(
-                t,
-                st.session_state.get("val_qth", ""),
-                identity_kind="qth",
-            )
-            st.selectbox(t["lbl_band"], list(BAND_MAP.keys()), key="val_band", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+            ),
+            max_chars=15,
+            normalize_uppercase=True,
+            disabled=st.session_state.is_demo_mode,
+            on_change=correction_context_on_change,
+            args=correction_context_on_change_args,
+        )
+        _render_identity_format_error(
+            t,
+            st.session_state.get("val_callsign", ""),
+            identity_kind="callsign",
+        )
+        text_input_no_autocomplete(
+            t["lbl_qth"],
+            key="val_qth",
+            help=help_overrides.get("qth"),
+            max_chars=6,
+            normalize_uppercase=True,
+            disabled=st.session_state.is_demo_mode,
+            on_change=correction_context_on_change,
+            args=correction_context_on_change_args,
+        )
+        _render_identity_format_error(
+            t,
+            st.session_state.get("val_qth", ""),
+            identity_kind="qth",
+        )
+        st.selectbox(
+            t["lbl_band"],
+            list(BAND_MAP.keys()),
+            key="val_band",
+            help=help_overrides.get("band"),
+            disabled=st.session_state.is_demo_mode,
+            on_change=correction_context_on_change,
+            args=correction_context_on_change_args,
+        )
 
-        with core_right:
-            st.radio(t["lbl_time_mode"], [t["opt_last_x"], t["opt_custom"]], key="val_time_mode", horizontal=True, disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+    with core_right:
+        st.radio(
+            t["lbl_time_mode"],
+            ["last_x", "custom"],
+            key="val_time_mode",
+            horizontal=True,
+            help=help_overrides.get("time"),
+            disabled=st.session_state.is_demo_mode,
+            on_change=on_change,
+            args=on_change_args,
+            format_func=lambda time_mode: t[
+                "opt_last_x" if time_mode == "last_x" else "opt_custom"
+            ],
+        )
 
-            if st.session_state.val_time_mode == t["opt_last_x"]:
-                st.slider(t["lbl_hours"], 1, 168, key="val_hours", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+        if st.session_state.val_time_mode == "last_x":
+            st.slider(
+                t["lbl_hours"],
+                1,
+                168,
+                key="val_hours",
+                disabled=st.session_state.is_demo_mode,
+                on_change=on_change,
+                args=on_change_args,
+            )
+        else:
+            today_utc = datetime.now(timezone.utc).date()
+
+            date_start, date_end = st.columns(
+                2, gap="large", vertical_alignment="bottom"
+            )
+            with date_start:
+                st.date_input(
+                    t["lbl_start_d"],
+                    key="val_start_d",
+                    min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
+                    max_value=today_utc,
+                    disabled=st.session_state.is_demo_mode,
+                    on_change=on_change,
+                    args=on_change_args,
+                    format="DD-MM-YYYY",
+                )
+            max_allowed_end = min(
+                st.session_state.val_start_d + timedelta(days=MAX_DAYS_HISTORY),
+                today_utc,
+            )
+            min_allowed_end = st.session_state.val_start_d
+
+            # Defensive check inside the render loop.
+            if st.session_state.val_end_d > max_allowed_end:
+                st.session_state.val_end_d = max_allowed_end
+            elif st.session_state.val_end_d < min_allowed_end:
+                st.session_state.val_end_d = min_allowed_end
+
+            with date_end:
+                st.date_input(
+                    t["lbl_end_d"],
+                    key="val_end_d",
+                    min_value=min_allowed_end,
+                    max_value=max_allowed_end,
+                    disabled=st.session_state.is_demo_mode,
+                    on_change=on_change,
+                    args=on_change_args,
+                    format="DD-MM-YYYY",
+                )
+
+            time_start, time_end = st.columns(
+                2, gap="large", vertical_alignment="bottom"
+            )
+            with time_start:
+                st.time_input(
+                    t["lbl_start_t"],
+                    key="val_start_t",
+                    disabled=st.session_state.is_demo_mode,
+                    on_change=on_change,
+                    args=on_change_args,
+                )
+            with time_end:
+                st.time_input(
+                    t["lbl_end_t"],
+                    key="val_end_t",
+                    disabled=st.session_state.is_demo_mode,
+                    on_change=on_change,
+                    args=on_change_args,
+                )
+
+
+def render_core_expander(t):
+    """Render analysis direction, target identity, band, and time controls."""
+    with st.expander(
+        t["exp_core"],
+        expanded=st.session_state.get("config_panels_expanded", True),
+    ):
+        _render_analysis_direction_selector(t)
+        render_target_and_window_fields(
+            t,
+            correction_context_on_change=handle_reference_correction_context_change,
+        )
+
+
+def render_reference_correction_field(
+    t,
+    *,
+    on_change=reset_audit,
+    on_change_args=(),
+    help_text=None,
+):
+    """Render the shared Reference-side SNR correction field."""
+    st.number_input(
+        t["lbl_benchmark_offset_db"],
+        min_value=-99.9,
+        max_value=99.9,
+        step=0.1,
+        format="%.1f",
+        key="val_benchmark_offset_db",
+        help=help_text or t["hlp_benchmark_offset_db"],
+        on_change=_round_float_state,
+        args=(
+            "val_benchmark_offset_db",
+            1,
+            on_change,
+            on_change_args,
+            {},
+        ),
+    )
+
+
+def render_reference_design_fields(
+    t,
+    *,
+    on_change=handle_reference_correction_context_change,
+    on_change_args=(),
+    help_overrides=None,
+    local_benchmark_content=None,
+    tx_ab_method_content=None,
+):
+    """Render canonical Reference fields with optional Guided choice captions."""
+    help_overrides = help_overrides or {}
+    comp_mode = st.session_state.get("val_comp_mode")
+    analysis_direction = st.session_state.get("val_analysis_direction")
+    if comp_mode == "local_neighborhood":
+        local_methods = ("local_median", "local_best")
+        local_radio_kwargs = {}
+        if local_benchmark_content is not None:
+            format_local_benchmark = (
+                lambda method: local_benchmark_content[method]["label"]
+            )
+            local_radio_kwargs = {
+                "captions": tuple(
+                    local_benchmark_content[method]["description"]
+                    for method in local_methods
+                ),
+                "width": "stretch",
+            }
+        else:
+            format_local_benchmark = lambda method: t[
+                (
+                    "opt_local_median"
+                    if method == "local_median"
+                    else "opt_local_best"
+                )
+            ]
+        st.radio(
+            t["lbl_local_benchmark"],
+            local_methods,
+            key="val_local_benchmark",
+            help=help_overrides.get("local_benchmark"),
+            on_change=on_change,
+            args=on_change_args,
+            format_func=format_local_benchmark,
+            **local_radio_kwargs,
+        )
+        st.slider(
+            t["lbl_ref_radius_km"],
+            10,
+            MAX_DYNAMIC_RADIUS_KM,
+            step=10,
+            key="val_ref_radius_km",
+            help=help_overrides.get("local_radius"),
+            on_change=on_change,
+            args=on_change_args,
+        )
+    elif comp_mode == "reference_station":
+        _render_reference_identity(
+            t,
+            derives_hardware_grid4=False,
+            on_change=on_change,
+            on_change_args=on_change_args,
+            help_overrides=help_overrides,
+        )
+    elif comp_mode == "hardware_ab":
+        if analysis_direction == "rx":
+            _render_reference_identity(
+                t,
+                derives_hardware_grid4=True,
+                on_change=on_change,
+                on_change_args=on_change_args,
+                help_overrides=help_overrides,
+            )
+        elif analysis_direction == "tx":
+            _render_tx_ab_method_selector(
+                t,
+                on_change=on_change,
+                on_change_args=on_change_args,
+                method_content=tx_ab_method_content,
+                help_text=help_overrides.get("tx_ab_method"),
+            )
+            if st.session_state.get("val_tx_ab_method") == "sequential":
+                _render_tx_ab_schedule(
+                    t,
+                    on_change=on_change,
+                    on_change_args=on_change_args,
+                )
             else:
-                today_utc = datetime.now(timezone.utc).date()
-
-                date_start, date_end = st.columns(2, gap="large", vertical_alignment="bottom")
-                with date_start:
-                    st.date_input(t["lbl_start_d"], key="val_start_d", min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(), max_value=today_utc, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
-                max_allowed_end = min(st.session_state.val_start_d + timedelta(days=MAX_DAYS_HISTORY), today_utc)
-                min_allowed_end = st.session_state.val_start_d
-                
-                # Defensive check inside the render loop
-                if st.session_state.val_end_d > max_allowed_end: st.session_state.val_end_d = max_allowed_end
-                elif st.session_state.val_end_d < min_allowed_end: st.session_state.val_end_d = min_allowed_end
-
-                with date_end:
-                    st.date_input(t["lbl_end_d"], key="val_end_d", min_value=min_allowed_end, max_value=max_allowed_end, disabled=st.session_state.is_demo_mode, on_change=reset_audit, format="DD-MM-YYYY")
-
-                time_start, time_end = st.columns(2, gap="large", vertical_alignment="bottom")
-                with time_start:
-                    st.time_input(t["lbl_start_t"], key="val_start_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
-                with time_end:
-                    st.time_input(t["lbl_end_t"], key="val_end_t", disabled=st.session_state.is_demo_mode, on_change=reset_audit)
+                _render_reference_identity(
+                    t,
+                    derives_hardware_grid4=True,
+                    on_change=on_change,
+                    on_change_args=on_change_args,
+                    help_overrides=help_overrides,
+                )
+        else:
+            st.info(t["msg_select_analysis_direction_hardware"])
 
 def render_compare_expander(t):
     """Render the Success-only choice and optional benchmark-design controls."""
@@ -497,81 +800,133 @@ def render_compare_expander(t):
             gap="large",
         )
         with col_comp_l:
-            st.radio(t["lbl_comp_mode"], _benchmark_mode_options(t), key="val_comp_mode", on_change=handle_comp_mode_change)
-            if st.session_state.val_comp_mode != t["opt_comp_none"]:
-                st.number_input(
-                    t["lbl_benchmark_offset_db"],
-                    min_value=-99.9,
-                    max_value=99.9,
-                    step=0.1,
-                    format="%.1f",
-                    key="val_benchmark_offset_db",
-                    help=t["hlp_benchmark_offset_db"],
-                    on_change=_round_float_state,
-                    args=("val_benchmark_offset_db", 1, reset_audit, (), {})
-                )
+            st.radio(
+                t["lbl_comp_mode"],
+                _benchmark_mode_options(t),
+                key="val_comp_mode",
+                label_visibility="collapsed",
+                on_change=handle_comp_mode_change,
+                format_func=lambda benchmark_mode: _format_benchmark_mode(
+                    t, benchmark_mode
+                ),
+            )
+            if st.session_state.val_comp_mode != "none":
+                render_reference_correction_field(t)
         
         with col_comp_r:
-            if comp_mode == t["opt_comp_radius"]:
-                st.radio(
-                    t["lbl_local_benchmark"],
-                    [t["opt_local_median"], t["opt_local_best"]],
-                    key="val_local_benchmark",
-                    on_change=reset_audit
-                )
-                st.slider(t["lbl_ref_radius_km"], 10, MAX_DYNAMIC_RADIUS_KM, step=10, key="val_ref_radius_km", on_change=reset_audit)
-            elif comp_mode == t["opt_comp_buddy"]:
-                _render_reference_identity(
-                    t,
-                    derives_hardware_grid4=False,
-                )
-                    
-            elif comp_mode == t["opt_comp_self"]:
-                if analysis_direction == "rx":
-                    _render_reference_identity(
-                        t,
-                        derives_hardware_grid4=True,
-                    )
-                elif analysis_direction == "tx":
-                    _render_tx_ab_method_selector(t)
-                    if st.session_state.get("val_tx_ab_method") == "sequential":
-                        _render_tx_ab_schedule(t)
-                    else:
-                        _render_reference_identity(
-                            t,
-                            derives_hardware_grid4=True,
-                        )
-                else:
-                    st.info(t["msg_select_analysis_direction_hardware"])
+            render_reference_design_fields(t)
 
-def render_advanced_expander(t):
-    """Renders the third expander: Advanced scientific configurations, filters, and exclusions."""
-    with st.expander(t["exp_adv"], expanded=st.session_state.get("config_panels_expanded", True)):
-        col3, col4 = st.columns(2, gap="large")
+def render_station_population_fields(
+    t,
+    *,
+    on_change=reset_audit,
+    on_change_args=(),
+):
+    """Render shared identity-population exclusions."""
+    st.toggle(
+        t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"),
+        key="val_exclude_special_callsigns",
+        help=t.get("tt_exclude_special", "Filter out balloon telemetry."),
+        on_change=on_change,
+        args=on_change_args,
+    )
+    st.toggle(
+        t.get("lbl_filter_moving", "Exclude Moving Stations"),
+        key="val_filter_moving",
+        help=t.get("tt_filter_moving", ""),
+        on_change=on_change,
+        args=on_change_args,
+    )
 
-        with col3:
-            st.toggle(t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"), key="val_exclude_special_callsigns", help=t.get("tt_exclude_special", "Filter out balloon telemetry."), on_change=reset_audit)
-            st.toggle(t.get("lbl_filter_moving", "Exclude Moving Stations"), key="val_filter_moving", help=t.get("tt_filter_moving", ""), on_change=reset_audit)
-            st.selectbox(t["lbl_solar"], [t["opt_solar_all"], t["opt_solar_day"], t["opt_solar_night"], t["opt_solar_grey"]], key="val_solar", on_change=reset_audit)
-            st.selectbox(t["lbl_max_dist"], MAP_SCOPE_OPTIONS, key="val_max_dist", help=t["hlp_max_dist"], on_change=reset_audit)
 
-        with col4:
-            min_spots_label = t["lbl_min_spots"]
-            min_spots_help = t["hlp_min_spots"]
-            if (
-                st.session_state.val_comp_mode == t["opt_comp_self"]
-                and st.session_state.get("val_analysis_direction") == "tx"
-                and st.session_state.get("val_tx_ab_method") == "sequential"
-            ):
-                min_spots_label, min_spots_help = (
-                    _tx_ab_threshold_label_and_help(t)
-                )
+def render_scope_fields(
+    t,
+    *,
+    on_change=reset_audit,
+    on_change_args=(),
+    use_two_column_layout=False,
+):
+    """Render scope controls vertically or in two equal-width columns."""
+    scope_containers = (
+        st.columns(2, gap="large")
+        if use_two_column_layout
+        else (nullcontext(), nullcontext())
+    )
+    with scope_containers[0]:
+        st.selectbox(
+            t["lbl_solar"],
+            ["all", "day", "night", "greyline"],
+            key="val_solar",
+            on_change=on_change,
+            args=on_change_args,
+            format_func=lambda solar_state: t[
+                {
+                    "all": "opt_solar_all",
+                    "day": "opt_solar_day",
+                    "night": "opt_solar_night",
+                    "greyline": "opt_solar_grey",
+                }[solar_state]
+            ],
+        )
+    with scope_containers[1]:
+        st.selectbox(
+            t["lbl_max_dist"],
+            MAP_SCOPE_OPTIONS,
+            key="val_max_peer_distance_km",
+            help=t["hlp_max_dist"],
+            on_change=on_change,
+            args=on_change_args,
+        )
 
-            st.session_state.val_min_spots = min(max(int(st.session_state.get("val_min_spots", 1)), 1), 50)
-            st.session_state.val_min_opportunities = min(max(int(st.session_state.get("val_min_opportunities", 5)), 1), 100)
-            st.session_state.val_min_stations = min(max(int(st.session_state.get("val_min_stations", 1)), 1), 10)
-            if st.session_state.val_comp_mode != t["opt_comp_none"]:
-                st.slider(min_spots_label, 1, 50, key="val_min_spots", help=min_spots_help, on_change=reset_audit)
+
+def render_evidence_threshold_fields(
+    t,
+    *,
+    result_type=None,
+    on_change=reset_audit,
+    on_change_args=(),
+    use_two_column_layout=False,
+):
+    """Render active evidence thresholds vertically or in equal-width columns."""
+    if result_type is None:
+        result_type = (
+            "success" if st.session_state.get("val_comp_mode") == "none" else "compare"
+        )
+    min_spots_label = t["lbl_min_spots"]
+    min_spots_help = t["hlp_min_spots"]
+    if (
+        st.session_state.get("val_comp_mode") == "hardware_ab"
+        and st.session_state.get("val_analysis_direction") == "tx"
+        and st.session_state.get("val_tx_ab_method") == "sequential"
+    ):
+        min_spots_label, min_spots_help = _tx_ab_threshold_label_and_help(t)
+
+    st.session_state.val_min_spots = min(
+        max(int(st.session_state.get("val_min_spots", 1)), 1), 50
+    )
+    st.session_state.val_min_opportunities = min(
+        max(int(st.session_state.get("val_min_opportunities", 5)), 1), 100
+    )
+    st.session_state.val_min_stations = min(
+        max(int(st.session_state.get("val_min_stations", 1)), 1), 10
+    )
+    threshold_containers = (
+        st.columns(2, gap="large")
+        if use_two_column_layout
+        else (nullcontext(), nullcontext())
+    )
+    with threshold_containers[0]:
+        if result_type == "compare":
+            st.slider(
+                min_spots_label,
+                1,
+                50,
+                key="val_min_spots",
+                help=min_spots_help,
+                on_change=on_change,
+                args=on_change_args,
+            )
+        else:
             st.slider(
                 t.get("lbl_min_opportunities", "Min. Confirmed H+M per Station"),
                 1,
@@ -581,6 +936,33 @@ def render_advanced_expander(t):
                     "hlp_min_opportunities",
                     "Absolute success-rate views include a station only after this many confirmed H+M observations.",
                 ),
-                on_change=reset_audit,
+                on_change=on_change,
+                args=on_change_args,
             )
-            st.slider(t["lbl_min_stations"], 1, 10, key="val_min_stations", help=t["hlp_min_stations"], on_change=reset_audit)
+    with threshold_containers[1]:
+        st.slider(
+            t["lbl_min_stations"],
+            1,
+            10,
+            key="val_min_stations",
+            help=t["hlp_min_stations"],
+            on_change=on_change,
+            args=on_change_args,
+        )
+
+
+def render_advanced_expander(t):
+    """Render shared population, scope, and active-result evidence controls."""
+    with st.expander(
+        t["exp_adv"],
+        expanded=st.session_state.get("config_panels_expanded", True),
+    ):
+        col3, col4 = st.columns(2, gap="large")
+        with col3:
+            st.markdown(f"**{t['hdr_remote_station_filters']}**")
+            render_station_population_fields(t)
+            st.markdown(f"**{t['hdr_analysis_scope']}**")
+            render_scope_fields(t)
+        with col4:
+            st.markdown(f"**{t['hdr_evidence_requirements']}**")
+            render_evidence_threshold_fields(t)

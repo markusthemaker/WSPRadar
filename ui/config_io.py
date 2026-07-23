@@ -36,7 +36,7 @@ from config.config_schema import (
 )
 from config.config_codec import prepare_config_document
 from config.json_utils import decode_strict_json_bytes
-from i18n import T
+from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
 from core.input_validation import (
     is_valid_callsign,
     is_valid_grid4,
@@ -71,7 +71,13 @@ LOCAL_BENCHMARK_VALUES = {value: key for key, value in LOCAL_BENCHMARK_KEYS.item
 SOLAR_VALUES = {value: key for key, value in SOLAR_KEYS.items()}
 
 def _canonical_from_translated(state_value, value_map, fallback):
-    """Translate the current localized UI value into a stable config key."""
+    """Return a stable token, accepting display text from pre-migration sessions."""
+    canonical_values = frozenset(value_map.values())
+    if state_value in canonical_values:
+        return state_value
+    legacy_canonical_value = LEGACY_LOCALIZED_STATE_VALUES.get(state_value)
+    if legacy_canonical_value in canonical_values:
+        return legacy_canonical_value
     for lang_dict in T.values():
         for translation_key, canonical in value_map.items():
             if state_value == lang_dict.get(translation_key):
@@ -116,7 +122,7 @@ def _default_config():
         "tx_ab_target_start_minute": 0,
         "tx_ab_reference_start_minute": 2,
         "solar_state": "all",
-        "map_scope_km": 22000,
+        "max_peer_distance_km": 22000,
         "exclude_special_callsigns": False,
         "exclude_moving_stations": False,
         "min_joint_spots_per_station": 1,
@@ -332,6 +338,21 @@ def _validate_segment_selection(value, field, choices):
     return normalized_values
 
 
+def _limit_segment_selection_to_analysis_scope(
+    selection,
+    *,
+    max_peer_distance_km,
+):
+    """Return All when a saved distance selection exceeds the analysis radius."""
+    if selection == SEGMENT_SELECTION_ALL:
+        return SEGMENT_SELECTION_ALL
+    scope_option_index = MAP_SCOPE_OPTIONS.index(max_peer_distance_km)
+    available_ranges = set(SEGMENT_RANGE_OPTIONS[: scope_option_index + 1])
+    if any(selected_range not in available_ranges for selected_range in selection):
+        return SEGMENT_SELECTION_ALL
+    return selection
+
+
 def _date_state_to_iso(value):
     """Serialize one Streamlit date value as an ISO calendar date."""
     if hasattr(value, "isoformat"):
@@ -385,12 +406,13 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
         "analysis_direction",
         ANALYSIS_DIRECTIONS,
     )
-    time_mode = (
-        "last_x"
-        if state.get("val_time_mode", T[lang]["opt_last_x"])
-        == T[lang]["opt_last_x"]
-        else "custom"
-    )
+    time_mode_value = state.get("val_time_mode", "last_x")
+    if time_mode_value in {"last_x", "custom"}:
+        time_mode = time_mode_value
+    else:
+        time_mode = (
+            "last_x" if time_mode_value == T[lang]["opt_last_x"] else "custom"
+        )
     frozen_time_selection = _time_selection_from_frozen_window(frozen_time_window)
     if frozen_time_selection is not None:
         time_selection = frozen_time_selection
@@ -423,7 +445,7 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
         }
 
     benchmark_mode = _canonical_from_translated(
-        state.get("val_comp_mode", T[lang]["opt_comp_none"]),
+        state.get("val_comp_mode", "none"),
         MODE_VALUES,
         "none",
     )
@@ -449,7 +471,7 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
         comparison_parameters["local_benchmark"] = _canonical_from_translated(
             state.get(
                 "val_local_benchmark",
-                T[lang]["opt_local_median"],
+                "local_median",
             ),
             LOCAL_BENCHMARK_VALUES,
             "local_median",
@@ -505,12 +527,15 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
             )
     advanced_parameters = {
         "solar_state": _canonical_from_translated(
-            state.get("val_solar", T[lang]["opt_solar_all"]),
+            state.get("val_solar", "all"),
             SOLAR_VALUES,
             "all",
         ),
-        "map_scope_km": int(
-            state.get("val_max_dist", defaults["map_scope_km"])
+        "max_peer_distance_km": int(
+            state.get(
+                "val_max_peer_distance_km",
+                defaults["max_peer_distance_km"],
+            )
         ),
         "exclude_special_callsigns": bool(
             state.get(
@@ -544,13 +569,18 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
 
     results_view = {
         "success": {
-            "selected_ranges": _validate_segment_selection(
-                state.get(
-                    "val_results_selected_ranges_absolute",
-                    defaults["selected_ranges_absolute"],
+            "selected_ranges": _limit_segment_selection_to_analysis_scope(
+                _validate_segment_selection(
+                    state.get(
+                        "val_results_selected_ranges_absolute",
+                        defaults["selected_ranges_absolute"],
+                    ),
+                    "results_view.success.selected_ranges",
+                    SEGMENT_RANGE_OPTIONS,
                 ),
-                "results_view.success.selected_ranges",
-                SEGMENT_RANGE_OPTIONS,
+                max_peer_distance_km=advanced_parameters[
+                    "max_peer_distance_km"
+                ],
             ),
             "selected_directions": _validate_segment_selection(
                 state.get(
@@ -581,13 +611,18 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
     }
     if benchmark_mode != "none":
         results_view["compare"] = {
-                "selected_ranges": _validate_segment_selection(
-                    state.get(
-                        "val_results_selected_ranges_compare",
-                        defaults["selected_ranges_compare"],
+                "selected_ranges": _limit_segment_selection_to_analysis_scope(
+                    _validate_segment_selection(
+                        state.get(
+                            "val_results_selected_ranges_compare",
+                            defaults["selected_ranges_compare"],
+                        ),
+                        "results_view.compare.selected_ranges",
+                        SEGMENT_RANGE_OPTIONS,
                     ),
-                    "results_view.compare.selected_ranges",
-                    SEGMENT_RANGE_OPTIONS,
+                    max_peer_distance_km=advanced_parameters[
+                        "max_peer_distance_km"
+                    ],
                 ),
                 "selected_directions": _validate_segment_selection(
                     state.get(
@@ -1077,7 +1112,7 @@ def normalize_config_settings(raw_settings):
 
     advanced_fields = {
         "solar_state",
-        "map_scope_km",
+        "max_peer_distance_km",
         "exclude_special_callsigns",
         "exclude_moving_stations",
         "min_confirmed_opportunities_per_peer",
@@ -1093,9 +1128,9 @@ def normalize_config_settings(raw_settings):
     normalized["solar_state"] = _validate_choice(
         advanced["solar_state"], "solar_state", SOLAR_KEYS.keys()
     )
-    normalized["map_scope_km"] = _validate_int(
-        advanced["map_scope_km"],
-        "map_scope_km",
+    normalized["max_peer_distance_km"] = _validate_int(
+        advanced["max_peer_distance_km"],
+        "max_peer_distance_km",
         min(MAP_SCOPE_OPTIONS),
         max(MAP_SCOPE_OPTIONS),
         allowed_values=MAP_SCOPE_OPTIONS,
@@ -1145,10 +1180,15 @@ def normalize_config_settings(raw_settings):
             "selected_stations",
         },
     )
-    normalized["selected_ranges_absolute"] = _validate_segment_selection(
-        success_results_view["selected_ranges"],
-        "results_view.success.selected_ranges",
-        SEGMENT_RANGE_OPTIONS,
+    normalized["selected_ranges_absolute"] = (
+        _limit_segment_selection_to_analysis_scope(
+            _validate_segment_selection(
+                success_results_view["selected_ranges"],
+                "results_view.success.selected_ranges",
+                SEGMENT_RANGE_OPTIONS,
+            ),
+            max_peer_distance_km=normalized["max_peer_distance_km"],
+        )
     )
     normalized["selected_directions_absolute"] = _validate_segment_selection(
         success_results_view["selected_directions"],
@@ -1182,10 +1222,15 @@ def normalize_config_settings(raw_settings):
                 "selected_stations",
             },
         )
-        normalized["selected_ranges_compare"] = _validate_segment_selection(
-            compare_results_view["selected_ranges"],
-            "results_view.compare.selected_ranges",
-            SEGMENT_RANGE_OPTIONS,
+        normalized["selected_ranges_compare"] = (
+            _limit_segment_selection_to_analysis_scope(
+                _validate_segment_selection(
+                    compare_results_view["selected_ranges"],
+                    "results_view.compare.selected_ranges",
+                    SEGMENT_RANGE_OPTIONS,
+                ),
+                max_peer_distance_km=normalized["max_peer_distance_km"],
+            )
         )
         normalized["selected_directions_compare"] = _validate_segment_selection(
             compare_results_view["selected_directions"],
@@ -1245,15 +1290,13 @@ def validate_config_upload(raw_bytes):
 
 def apply_config_state_values(config, session_state):
     """Apply active values, loaded metadata, and canonical inactive defaults."""
-    lang = session_state.lang
-    t = T[lang]
     defaults = _default_config()
 
     session_state.val_analysis_direction = config["analysis_direction"]
     session_state.val_callsign = config["callsign"]
     session_state.val_qth = config["qth"]
     session_state.val_band = config["band"]
-    session_state.val_time_mode = t["opt_last_x"] if config["time_mode"] == "last_x" else t["opt_custom"]
+    session_state.val_time_mode = config["time_mode"]
     session_state.val_hours = config.get("hours", defaults["hours"])
     session_state.val_start_d = config.get(
         "start_date", datetime.fromisoformat(defaults["start_date"]).date()
@@ -1263,12 +1306,9 @@ def apply_config_state_values(config, session_state):
     )
     session_state.val_start_t = config.get("start_time", dt_time(0, 0))
     session_state.val_end_t = config.get("end_time", dt_time(23, 59))
-    session_state.val_comp_mode = _translated_from_canonical(config["benchmark_mode"], MODE_KEYS, lang, t["opt_comp_none"])
-    session_state.val_local_benchmark = _translated_from_canonical(
-        config.get("local_benchmark", defaults["local_benchmark"]),
-        LOCAL_BENCHMARK_KEYS,
-        lang,
-        t["opt_local_median"],
+    session_state.val_comp_mode = config["benchmark_mode"]
+    session_state.val_local_benchmark = config.get(
+        "local_benchmark", defaults["local_benchmark"]
     )
     session_state.val_ref_callsign = config.get(
         "reference_callsign", defaults["reference_callsign"]
@@ -1297,8 +1337,8 @@ def apply_config_state_values(config, session_state):
         "tx_ab_reference_start_minute",
         defaults["tx_ab_reference_start_minute"],
     )
-    session_state.val_solar = _translated_from_canonical(config["solar_state"], SOLAR_KEYS, lang, t["opt_solar_all"])
-    session_state.val_max_dist = config["map_scope_km"]
+    session_state.val_solar = config["solar_state"]
+    session_state.val_max_peer_distance_km = config["max_peer_distance_km"]
     session_state.val_exclude_special_callsigns = config["exclude_special_callsigns"]
     session_state.val_filter_moving = config["exclude_moving_stations"]
     session_state.val_min_spots = config.get(
@@ -1360,6 +1400,12 @@ def apply_config_values(config):
     session_state.config_panels_expanded = True
     session_state._collapse_config_panels_once = False
     session_state.run_mode = None
+    session_state.guided_loaded_demo_profile = None
+    session_state.guided_demo_metadata_open = False
+    session_state.guided_last_compare_mode = None
+    session_state.guided_reconstruct_requested = True
+    session_state.guided_collapse_all = False
+    session_state.configuration_changed_since_run = False
     reset_result_state(session_state)
     for state_key in tuple(session_state.keys()):
         if state_key.startswith("config_save_"):
