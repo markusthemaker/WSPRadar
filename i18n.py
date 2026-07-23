@@ -614,7 +614,7 @@ GUIDED_INPUTS = {
         "steps": {
             "use_case": {
                 "title": "What do you want to investigate?",
-                "body_md": """Choose the practical question you want WSPRadar to answer. The <strong class="defined-term">Target</strong> is the station or signal path you want to examine. <strong class="defined-term">RX</strong> means receiving; <strong class="defined-term">TX</strong> means transmitting. Choose <strong class="defined-term">Success</strong> to assess the Target on its own. Choose <strong class="defined-term">Compare</strong> when you want to compare the Target against a <strong class="defined-term">Reference</strong>. This choice determines the remaining steps and whether the results show stand-alone Target values or relative Target-versus-Reference values.""",
+                "body_md": """Turn WSPR spots into evidence about your station. Explore where, when and how well your receiver or transmitter performs, benchmark an antenna, radio or complete signal path against a Reference, or start with one of the prepared demos above. The <strong class="defined-term">Target</strong> is the station or signal path you want to examine. <strong class="defined-term">RX</strong> means receiving; <strong class="defined-term">TX</strong> means transmitting. Choose <strong class="defined-term">Success</strong> to assess the Target on its own. Choose <strong class="defined-term">Compare</strong> when you want to compare the Target against a <strong class="defined-term">Reference</strong>. This choice determines the remaining steps and whether the results show stand-alone Target values or relative Target-versus-Reference values.""",
             },
             "target_and_window": {
                 "title": "Define the Target and measurement window",
@@ -627,7 +627,7 @@ GUIDED_INPUTS = {
 **Compare terminology**
 
 - **SNR** is the signal-to-noise ratio reported by the WSPR decoder, in dB. A less-negative value represents a stronger signal relative to noise.
-- **ΔSNR** ("delta SNR") is the Target SNR minus the corrected Reference SNR. A positive value favors the Target; a negative value favors the Reference.
+- **ΔSNR** ("delta SNR") is the Target SNR minus the Reference SNR. A positive value favors the Target; a negative value favors the Reference.
 - **Joint evidence** means that comparable evidence is available for both sides: the same transmission was decoded by both RX sides, corresponding Target and Reference reports were made at the same receiving station, or a scheduled Target–Reference pair is available for sequential TX.""",
             },
             "offset_calibration": {
@@ -821,7 +821,7 @@ GUIDED_INPUTS = {
         "steps": {
             "use_case": {
                 "title": "Was möchtest du untersuchen?",
-                "body_md": """Wähle zuerst die praktische Frage, die WSPRadar beantworten soll. Das <strong class="defined-term">Target</strong> ist die Station oder der Signalpfad, den du untersuchen möchtest. <strong class="defined-term">RX</strong> bedeutet Empfang, <strong class="defined-term">TX</strong> bedeutet Senden. Wähle <strong class="defined-term">Success</strong>, wenn du das Target für sich bewerten möchtest. Wähle <strong class="defined-term">Compare</strong>, wenn du das Target mit einer <strong class="defined-term">Referenz</strong> vergleichen möchtest. Diese Auswahl bestimmt die weiteren Schritte und ob die Ergebnisse eigenständige Target-Werte oder relative Target–Referenz-Werte zeigen.""",
+                "body_md": """WSPR-Spots liefern belastbare Evidenz über deine Station. Untersuche, wo, wann und wie gut dein Empfänger oder Sender arbeitet, vergleiche eine Antenne, einen Transceiver oder einen vollständigen Signalpfad systematisch mit einer Referenz – oder starte mit einer der oben vorbereiteten Demos. Das <strong class="defined-term">Target</strong> ist die Station oder der Signalpfad, den du untersuchen möchtest. <strong class="defined-term">RX</strong> bedeutet Empfang, <strong class="defined-term">TX</strong> bedeutet Senden. Wähle <strong class="defined-term">Success</strong>, wenn du das Target für sich bewerten möchtest. Wähle <strong class="defined-term">Compare</strong>, wenn du das Target mit einer <strong class="defined-term">Referenz</strong> vergleichen möchtest. Diese Auswahl bestimmt die weiteren Schritte und ob die Ergebnisse eigenständige Target-Werte oder relative Target–Referenz-Werte zeigen.""",
             },
             "target_and_window": {
                 "title": "Target und Messzeitraum festlegen",
@@ -834,7 +834,7 @@ GUIDED_INPUTS = {
 **Begriffe in Compare**
 
 - **SNR** ist das vom WSPR-Decoder gemeldete Signal-Rausch-Verhältnis in dB. Ein weniger negativer Wert bedeutet ein stärkeres Signal im Verhältnis zum Rauschen.
-- **ΔSNR** ("Delta-SNR") ist Target-SNR minus korrigiertes Referenz-SNR. Ein positiver Wert spricht für das Target, ein negativer Wert für die Referenz.
+- **ΔSNR** ("Delta-SNR") ist Target-SNR minus Referenz-SNR. Ein positiver Wert spricht für das Target, ein negativer Wert für die Referenz.
 - **Joint-Evidenz** bedeutet, dass für beide Seiten vergleichbare Daten vorliegen: dieselbe Aussendung wurde von beiden RX-Seiten dekodiert, an derselben Empfangsstation liegen passende Reports für Target und Referenz vor, oder bei sequenziellem TX gibt es ein geplantes Target–Referenz-Paar.""",
             },
             "offset_calibration": {
