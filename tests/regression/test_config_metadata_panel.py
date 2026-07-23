@@ -308,6 +308,8 @@ def test_public_demo_paths_preserve_loaded_metadata_after_execution(
     expected_profile = DEMO_PROFILES[profile_id]["configuration"]["profile"]
     assert session_state.loaded_config_profile == expected_profile
     assert session_state.active_demo_profile == profile_id
+    assert session_state.val_snr_correction_mode == "establish_offset"
+    assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.run_mode == expected_run_mode
     assert session_state.show_demo_launcher is False
     navigation_request = page_navigation.consume_page_navigation_request(

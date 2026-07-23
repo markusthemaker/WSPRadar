@@ -111,6 +111,7 @@ def _tx_hardware_ab_config():
         "repeat_interval_minutes": 10,
         "target_start_minute": 0,
         "reference_start_minute": 2,
+        "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
     }
     settings["advanced_parameters"]["min_joint_spots_per_station"] = 1
@@ -152,6 +153,7 @@ def _tx_simultaneous_hardware_ab_config():
         "mode": "hardware_ab",
         "tx_ab_method": "simultaneous",
         "reference_callsign": "DL1MKS/P",
+        "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
     }
     return config
@@ -164,6 +166,7 @@ def _rx_hardware_ab_config():
     config["settings"]["comparison_parameters"] = {
         "mode": "hardware_ab",
         "reference_callsign": "DL1MKS/P",
+        "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
     }
     return config
@@ -176,6 +179,20 @@ def _reference_station_config():
         "mode": "reference_station",
         "reference_callsign": "DL2XYZ",
         "reference_qth": "JO62",
+        "snr_correction_mode": "no_offset",
+        "snr_correction_db": 0.0,
+    }
+    return config
+
+
+def _local_neighborhood_config():
+    """Return a dynamic local-neighborhood comparison config."""
+    config = _rx_hardware_ab_config()
+    config["settings"]["comparison_parameters"] = {
+        "mode": "local_neighborhood",
+        "local_benchmark": "local_median",
+        "neighborhood_radius_km": 100,
+        "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
     }
     return config
@@ -222,6 +239,7 @@ def test_every_demo_is_an_ordinary_config_matching_the_formal_schema(
         _tx_simultaneous_hardware_ab_config,
         _rx_hardware_ab_config,
         _reference_station_config,
+        _local_neighborhood_config,
     ],
 )
 def test_representative_saved_configs_match_formal_schema(
@@ -230,6 +248,67 @@ def test_representative_saved_configs_match_formal_schema(
 ):
     """Accept rolling/no-comparison and custom/TX-hardware saved documents."""
     config_validator.validate(configuration_factory())
+
+
+@pytest.mark.parametrize(
+    ("snr_correction_mode", "snr_correction_db"),
+    [
+        ("no_offset", 0.0),
+        ("establish_offset", 0.0),
+        ("established_offset", 0.0),
+        ("established_offset", 1.2),
+        ("established_offset", -1.2),
+    ],
+)
+def test_formal_schema_preserves_explicit_correction_meaning(
+    config_validator,
+    snr_correction_mode,
+    snr_correction_db,
+):
+    """Accept every valid mode/value pairing without inferring from numeric zero."""
+    config = _rx_hardware_ab_config()
+    comparison = config["settings"]["comparison_parameters"]
+    comparison["snr_correction_mode"] = snr_correction_mode
+    comparison["snr_correction_db"] = snr_correction_db
+
+    config_validator.validate(config)
+
+
+@pytest.mark.parametrize("snr_correction_mode", ["no_offset", "establish_offset"])
+def test_formal_schema_rejects_nonzero_uncorrected_modes(
+    config_validator,
+    snr_correction_mode,
+):
+    """Require no-offset and establishment runs to remain numerically uncorrected."""
+    config = _rx_hardware_ab_config()
+    comparison = config["settings"]["comparison_parameters"]
+    comparison["snr_correction_mode"] = snr_correction_mode
+    comparison["snr_correction_db"] = 0.1
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+def test_formal_schema_rejects_missing_preproduction_correction_mode(
+    config_validator,
+):
+    """Reject ambiguous unpublished v1 files instead of guessing from 0.0 dB."""
+    config = _rx_hardware_ab_config()
+    del config["settings"]["comparison_parameters"]["snr_correction_mode"]
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+def test_formal_schema_rejects_local_offset_establishment(config_validator):
+    """Exclude controlled offset-establishment workflow from dynamic neighborhoods."""
+    config = _local_neighborhood_config()
+    config["settings"]["comparison_parameters"][
+        "snr_correction_mode"
+    ] = "establish_offset"
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
 
 
 def test_formal_schema_accepts_two_hour_station_evidence_bins(config_validator):
@@ -602,6 +681,7 @@ def test_hardware_ab_method_branches_reject_inactive_fields(
             "repeat_interval_minutes": 8,
             "target_start_minute": 0,
             "reference_start_minute": 2,
+            "snr_correction_mode": "no_offset",
             "snr_correction_db": 0.0,
         },
         {
@@ -610,6 +690,7 @@ def test_hardware_ab_method_branches_reject_inactive_fields(
             "repeat_interval_minutes": 10,
             "target_start_minute": 1,
             "reference_start_minute": 2,
+            "snr_correction_mode": "no_offset",
             "snr_correction_db": 0.0,
         },
         {
@@ -618,6 +699,7 @@ def test_hardware_ab_method_branches_reject_inactive_fields(
             "repeat_interval_minutes": 10,
             "target_start_minute": 0,
             "reference_start_minute": 10,
+            "snr_correction_mode": "no_offset",
             "snr_correction_db": 0.0,
         },
         {
@@ -626,6 +708,7 @@ def test_hardware_ab_method_branches_reject_inactive_fields(
             "repeat_interval_minutes": 10,
             "target_start_minute": 2,
             "reference_start_minute": 2,
+            "snr_correction_mode": "no_offset",
             "snr_correction_db": 0.0,
         },
         {
@@ -635,6 +718,7 @@ def test_hardware_ab_method_branches_reject_inactive_fields(
             "repeat_interval_minutes": 10,
             "target_start_minute": 0,
             "reference_start_minute": 2,
+            "snr_correction_mode": "no_offset",
             "snr_correction_db": 0.0,
         },
         {
@@ -644,6 +728,7 @@ def test_hardware_ab_method_branches_reject_inactive_fields(
             "target_start_minute": 0,
             "reference_start_minute": 2,
             "legacy_bin_minutes": 8,
+            "snr_correction_mode": "no_offset",
             "snr_correction_db": 0.0,
         },
         {
@@ -652,6 +737,7 @@ def test_hardware_ab_method_branches_reject_inactive_fields(
             "target_wspr_frame": "frame_00_04_08",
             "reference_wspr_frame": "frame_02_06_10",
             "tx_ab_bin_minutes": 8,
+            "snr_correction_mode": "no_offset",
             "snr_correction_db": 0.0,
         },
     ],

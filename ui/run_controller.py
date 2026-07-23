@@ -1,6 +1,6 @@
 """Streamlit run orchestration for WSPRadar analyses."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import gc
 import hashlib
 import json
@@ -423,12 +423,13 @@ def render_analysis_run(
         }
         if outcome == "admitted":
             admission_values = {
-                "started_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "started_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 **admission_values,
             }
         log_performance_event(
             "analysis_admission",
             leading_blank_line=(outcome == "admitted"),
+            banner_label="ANALYSIS RUN START" if outcome == "admitted" else None,
             **admission_values,
         )
 

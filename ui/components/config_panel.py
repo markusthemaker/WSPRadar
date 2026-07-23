@@ -15,6 +15,7 @@ from config import (
     BAND_MAP,
     MAX_DYNAMIC_RADIUS_KM,
     MAP_SCOPE_OPTIONS,
+    SNR_CORRECTION_MODES,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.demo_profiles import prepare_demo_description_markdown
@@ -103,6 +104,33 @@ def _round_float_state(key, digits=1, callback=None, callback_args=(), callback_
         st.session_state[key] = round(float(value), digits)
     if callback:
         callback(*(callback_args or ()), **(callback_kwargs or {}))
+
+
+def _normalize_reference_correction_state(
+    callback=None,
+    callback_args=(),
+    callback_kwargs=None,
+):
+    """Normalize the correction value and preserve its explicit semantic mode."""
+    correction_db = round(
+        float(st.session_state.get("val_benchmark_offset_db", 0.0)),
+        1,
+    )
+    st.session_state.val_benchmark_offset_db = correction_db
+    correction_mode = st.session_state.get("val_snr_correction_mode")
+    if correction_db != 0.0:
+        correction_mode = "established_offset"
+    elif correction_mode not in SNR_CORRECTION_MODES:
+        correction_mode = "no_offset"
+    if (
+        st.session_state.get("val_comp_mode") == "local_neighborhood"
+        and correction_mode == "establish_offset"
+    ):
+        correction_mode = "no_offset"
+    st.session_state.val_snr_correction_mode = correction_mode
+    if callback:
+        callback(*(callback_args or ()), **(callback_kwargs or {}))
+
 
 def text_input_no_autocomplete(*args, **kwargs):
     """Render a text input with optional identity normalization."""
@@ -682,10 +710,8 @@ def render_reference_correction_field(
         format="%.1f",
         key="val_benchmark_offset_db",
         help=help_text or t["hlp_benchmark_offset_db"],
-        on_change=_round_float_state,
+        on_change=_normalize_reference_correction_state,
         args=(
-            "val_benchmark_offset_db",
-            1,
             on_change,
             on_change_args,
             {},

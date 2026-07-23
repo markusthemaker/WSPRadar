@@ -108,8 +108,11 @@ Verification status on 2026-07-11:
 
 ## Configuration
 
-Runtime configuration is code-based; no required secret or database credential
-was found in the application path.
+Source-controlled configuration is split between typed policy/constants in
+Python modules and schema-validated JSON data for standalone configurations and
+Guided flow. Runtime code interprets these inputs generically; record identity
+does not select behavior. No required secret or database credential was found in
+the application path.
 
 | File | Configuration owned |
 | --- | --- |
@@ -164,8 +167,17 @@ The current runnable configuration schema is version 1 and remains explicitly
 pre-production. It is not the first public production contract and may be
 revised in place until the first production release; earlier unpublished
 version-1 documents may therefore be rejected without migration. TX Hardware
-A/B settings select a `tx_ab_method`. The simultaneous branch stores the distinct
-`reference_callsign` and derives both paths' grid-4 from the core Target QTH, so
+Every active comparison stores `snr_correction_mode` separately from
+`snr_correction_db`. `no_offset` and `establish_offset` require an applied
+correction of exactly `0.0 dB`; `established_offset` carries a documented signed
+value and may explicitly carry a genuinely established `0.0 dB`. Dynamic Local
+Neighborhood comparisons support `no_offset` and `established_offset` but not
+the controlled offset-establishment workflow. Success-only configurations omit
+both fields. Applicable unpublished version-1 documents that lack the mode are
+rejected rather than interpreted from an ambiguous numeric zero.
+
+TX Hardware A/B settings select a `tx_ab_method`. The simultaneous branch stores
+the distinct `reference_callsign` and derives both paths' grid-4 from the core Target QTH, so
 it does not serialize a redundant `reference_qth`. The sequential branch uses a
 shared `repeat_interval_minutes` plus disjoint `target_start_minute` and
 `reference_start_minute` phases. The visible UI names these three controls
@@ -198,9 +210,14 @@ conditional branches.
 Guided and Classic are two editors over the same canonical Streamlit session
 fields; neither owns a separate scientific configuration. The selected
 `input_view` and Guided navigation choices are transient session UI state and
-are not added to the version-1 saved-config contract. Guided reconstructs its
-question branch from canonical values after loading a personal configuration or
-demo. Its order and conditions come from the schema-validated
+are not added to the version-1 saved-config contract. Correction mode is durable
+operator/configuration provenance rather than navigation state: both editors
+preserve it, Guided renders its choice from the canonical mode, and Classic
+numeric edits generically select `established_offset` when a nonzero value is
+entered. Only the numeric correction enters `AnalysisContext` and scientific
+request identity. Guided reconstructs its question branch from canonical values
+after loading a personal configuration or demo. Its order and conditions come
+from the schema-validated
 `config/guided_input_flow.json`, while registered Python renderers and the
 separate bilingual `GUIDED_INPUTS` content in `i18n.py` provide controls and
 novice explanations. A run produces exactly one active result family: Success
@@ -208,8 +225,10 @@ when no benchmark is selected, or Compare when any benchmark is selected.
 
 `config/demo_profiles.py` discovers regular `config/demos/*.config` files in
 lexicographic filename order. The filename is an opaque ordering key and is
-independent of the document's required, stable `profile.id`. A configuration
-saved by the UI can therefore become a demo without format conversion: choose
+independent of the document's required, stable `profile.id`. Profile IDs are
+opaque identity and may participate generically in demo/cache ownership; they
+must never act as runtime feature flags or select record-specific behavior. A
+configuration saved by the UI can therefore become a demo without format conversion: choose
 any `.config` filename that places it at the desired launcher position and put
 it in that directory. Installed demos require `profile.title.en` and, when a
 description is supplied, `profile.description.en`. German `de` values are

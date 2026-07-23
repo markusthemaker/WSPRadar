@@ -160,9 +160,10 @@ def log_performance_event(
     *,
     leading_blank_line: bool = False,
     trailing_blank_line: bool = False,
+    banner_label: str | None = None,
     **values,
 ) -> None:
-    """Write one compact, optionally blank-line-framed performance event."""
+    """Write one compact performance event with optional visual framing."""
     parts = [f'PERF event="{event}"']
     for key, value in values.items():
         if key.endswith("_bytes"):
@@ -177,6 +178,13 @@ def log_performance_event(
             rendered = str(value)
         parts.append(f"{key}={rendered}")
     message = " ".join(parts)
+    if banner_label is not None:
+        separator_line = "=" * 96
+        message = (
+            f"{separator_line}\n"
+            f"{banner_label} | {message}\n"
+            f"{separator_line}"
+        )
     if leading_blank_line:
         message = f"\n{message}"
     if trailing_blank_line:

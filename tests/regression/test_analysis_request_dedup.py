@@ -5,6 +5,7 @@ from core.analysis_context import (
     AnalysisContext,
     TX_AB_METHOD_SEQUENTIAL,
 )
+from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.run_controller import _analysis_request_fingerprint
 
 
@@ -68,6 +69,26 @@ def test_analysis_request_fingerprint_changes_with_scientific_inputs():
         replace(context, max_peer_distance_km=10000)
     )
     assert _fingerprint(context) != _fingerprint(context, end_t=END + timedelta(minutes=2))
+
+
+def test_correction_workflow_mode_does_not_change_request_fingerprint():
+    """Exclude correction provenance when the applied numeric value is unchanged."""
+    base_state = {
+        "val_analysis_direction": "rx",
+        "val_comp_mode": "hardware_ab",
+        "val_snr_correction_mode": "no_offset",
+        "val_benchmark_offset_db": 0.0,
+    }
+    establishment_state = {
+        **base_state,
+        "val_snr_correction_mode": "establish_offset",
+    }
+
+    assert _fingerprint(
+        build_analysis_context_from_session_state(base_state)
+    ) == _fingerprint(
+        build_analysis_context_from_session_state(establishment_state)
+    )
 
 
 def test_analysis_request_fingerprint_preserves_demo_identity():

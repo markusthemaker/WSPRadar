@@ -278,6 +278,17 @@ def test_bilingual_manuals_define_hyphen_suffix_as_one_exact_identity():
     assert "behandelt `/` und `-` weder als gleichbedeutend" in DOC_DE
 
 
+def test_bilingual_manuals_document_explicit_snr_correction_modes():
+    """Keep the durable correction meaning distinct from its numeric dB value."""
+    assert "`no_offset` and `establish_offset` require `0.0 dB`" in DOC_EN
+    assert "`no_offset` und `establish_offset` verlangen `0,0 dB`" in DOC_DE
+    assert "`Set up an offset-establishment run`" in DOC_EN
+    assert "`Offset-Ermittlungslauf einrichten`" in DOC_DE
+    for manual in (DOC_EN, DOC_DE):
+        assert "`benchmark_snr_correction_mode`" in manual
+        assert "`benchmark_snr_correction_db`" in manual
+
+
 def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
     """Chapter 2 must avoid repeating run-identity guidance before interpretation."""
     assert "#### 2.1 Confirm the run identity" not in DOC_EN

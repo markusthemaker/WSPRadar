@@ -10,6 +10,7 @@ from config import (
     BAND_MAP,
     DEFAULT_BAND,
     SEGMENT_SELECTION_ALL,
+    SNR_CORRECTION_MODES,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
@@ -77,12 +78,6 @@ def init_session_state():
         st.session_state.guided_reference_design = None
     if "guided_last_compare_mode" not in st.session_state:
         st.session_state.guided_last_compare_mode = None
-    if st.session_state.get("guided_offset_intent") not in {
-        "no_offset",
-        "established_offset",
-        "establish_offset",
-    }:
-        st.session_state.guided_offset_intent = "no_offset"
     if st.session_state.get("guided_scope_mode") not in {
         "general",
         "custom",
@@ -146,6 +141,18 @@ def init_session_state():
     if "val_ref_radius_km" not in st.session_state:
         st.session_state.val_ref_radius_km = 100
     if "val_benchmark_offset_db" not in st.session_state:
+        st.session_state.val_benchmark_offset_db = 0.0
+    if st.session_state.get("val_snr_correction_mode") not in SNR_CORRECTION_MODES:
+        st.session_state.val_snr_correction_mode = "no_offset"
+    if (
+        st.session_state.val_comp_mode == "local_neighborhood"
+        and st.session_state.val_snr_correction_mode == "establish_offset"
+    ):
+        st.session_state.val_snr_correction_mode = "no_offset"
+    if st.session_state.val_snr_correction_mode in {
+        "no_offset",
+        "establish_offset",
+    }:
         st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_local_benchmark = _canonicalize_localized_state(
         st.session_state.get("val_local_benchmark"),
@@ -261,6 +268,7 @@ def init_session_state():
         "val_ref_qth",
         "val_ref_radius_km",
         "val_benchmark_offset_db",
+        "val_snr_correction_mode",
         "val_tx_ab_method",
         "val_tx_ab_repeat_interval_minutes",
         "val_tx_ab_target_start_minute",

@@ -91,7 +91,7 @@ def reference_design_summary(state, guided_content, step_number, language):
 
 def offset_calibration_summary(state, guided_content, step_number, language):
     """Summarize no, established, or requested offset calibration intent."""
-    intent = state.get("guided_offset_intent")
+    intent = state.get("val_snr_correction_mode")
     summary_key = {
         "no_offset": "offset_none",
         "established_offset": "offset_established",

@@ -95,6 +95,36 @@ def test_show_zero_target_is_recorded_and_changes_export_signature(monkeypatch):
     ) != results_export._export_signature({"RX_ABS": shown_block})
 
 
+def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
+    """Preserve operator correction provenance beside its scientific value."""
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+    metadata = results_export._build_run_metadata(
+        {
+            "RX_COMPARE": {
+                "analysis_id": "RX_COMPARE",
+                "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+                "database_source": "wspr_live",
+            }
+        },
+        {
+            "settings": {
+                "comparison_parameters": {
+                    "mode": "hardware_ab",
+                    "snr_correction_mode": "establish_offset",
+                    "snr_correction_db": 0.0,
+                }
+            }
+        },
+    )
+
+    assert metadata["benchmark_snr_correction_mode"] == "establish_offset"
+    assert metadata["benchmark_snr_correction_db"] == 0.0
+
+
 def test_run_metadata_rejects_mixed_database_sources(monkeypatch):
     monkeypatch.setattr(
         results_export,

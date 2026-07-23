@@ -38,6 +38,7 @@ def _valid_settings(
 
     comparison_parameters = {"mode": comparison_mode}
     if comparison_mode != "none":
+        comparison_parameters["snr_correction_mode"] = "no_offset"
         comparison_parameters["snr_correction_db"] = 0.0
     if comparison_mode == "reference_station":
         comparison_parameters["reference_callsign"] = "DL2XYZ"
@@ -139,6 +140,63 @@ def test_current_config_document_validates_complete_settings():
     assert config["callsign"] == "DL1MKS"
     assert config["qth"] == "JN37"
     assert config["start_date"].isoformat() == "2026-05-27"
+    assert config["snr_correction_mode"] == "no_offset"
+
+
+@pytest.mark.parametrize(
+    ("snr_correction_mode", "snr_correction_db"),
+    [
+        ("no_offset", 0.0),
+        ("establish_offset", 0.0),
+        ("established_offset", 0.0),
+        ("established_offset", 1.2),
+        ("established_offset", -1.2),
+    ],
+)
+def test_correction_mode_preserves_meaning_independently_from_numeric_value(
+    snr_correction_mode,
+    snr_correction_db,
+):
+    """Keep correction provenance explicit even when distinct modes use 0.0 dB."""
+    settings = _valid_settings(comparison_mode="hardware_ab")
+    settings["comparison_parameters"]["snr_correction_mode"] = snr_correction_mode
+    settings["comparison_parameters"]["snr_correction_db"] = snr_correction_db
+
+    normalized = config_io.validate_config_document(_config_document(settings))
+
+    assert normalized["snr_correction_mode"] == snr_correction_mode
+    assert normalized["benchmark_snr_correction_db"] == snr_correction_db
+
+
+def test_preproduction_v1_rejects_missing_correction_mode_instead_of_guessing():
+    """Do not infer correction meaning from an ambiguous numeric zero."""
+    settings = _valid_settings(comparison_mode="hardware_ab")
+    del settings["comparison_parameters"]["snr_correction_mode"]
+
+    with pytest.raises(ValueError, match="snr_correction_mode"):
+        config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize("snr_correction_mode", ["no_offset", "establish_offset"])
+def test_uncorrected_modes_reject_nonzero_correction(
+    snr_correction_mode,
+):
+    """Require modes that promise an uncorrected run to carry exactly 0.0 dB."""
+    settings = _valid_settings(comparison_mode="hardware_ab")
+    settings["comparison_parameters"]["snr_correction_mode"] = snr_correction_mode
+    settings["comparison_parameters"]["snr_correction_db"] = 0.1
+
+    with pytest.raises(ValueError, match="snr_correction_db must be 0.0"):
+        config_io.validate_config_document(_config_document(settings))
+
+
+def test_local_neighborhood_rejects_offset_establishment_mode():
+    """Keep the controlled establishment workflow out of dynamic neighborhoods."""
+    settings = _valid_settings(comparison_mode="local_neighborhood")
+    settings["comparison_parameters"]["snr_correction_mode"] = "establish_offset"
+
+    with pytest.raises(ValueError, match="not available for local-neighborhood"):
+        config_io.validate_config_document(_config_document(settings))
 
 
 def test_reference_station_accepts_an_explicit_different_reference_qth():
@@ -508,6 +566,32 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
     assert filename == f"{payload['profile']['id']}.config"
 
 
+def test_config_writer_preserves_explicit_offset_establishment_mode():
+    """Round-trip operator intent without deriving it from the numeric correction."""
+    state = {
+        "lang": "en",
+        "val_analysis_direction": "rx",
+        "val_comp_mode": "hardware_ab",
+        "val_ref_callsign": "DL1MKS/P",
+        "val_snr_correction_mode": "establish_offset",
+        "val_benchmark_offset_db": 0.0,
+    }
+
+    payload_bytes, _ = config_io.build_config_payload(
+        title="RX baseline",
+        state=state,
+    )
+    payload = json.loads(payload_bytes)
+    normalized, warnings = config_io.validate_config_upload(payload_bytes)
+
+    assert warnings == []
+    assert payload["settings"]["comparison_parameters"][
+        "snr_correction_mode"
+    ] == "establish_offset"
+    assert normalized["snr_correction_mode"] == "establish_offset"
+    assert normalized["benchmark_snr_correction_db"] == 0.0
+
+
 def test_config_writer_preserves_other_localizations_and_extensions():
     """Re-saving edits only the current language and retains namespaced data."""
     session_state = {
@@ -648,6 +732,8 @@ def test_loading_active_only_config_resets_inactive_widget_state():
         val_ref_callsign="STALE",
         val_ref_qth="AA00",
         val_ref_radius_km=250,
+        val_snr_correction_mode="established_offset",
+        val_benchmark_offset_db=1.2,
         val_tx_ab_method="sequential",
         val_min_spots=50,
         val_results_show_non_joint=True,
@@ -664,6 +750,8 @@ def test_loading_active_only_config_resets_inactive_widget_state():
     assert session_state.val_ref_callsign == ""
     assert session_state.val_ref_qth == ""
     assert session_state.val_ref_radius_km == 100
+    assert session_state.val_snr_correction_mode == "no_offset"
+    assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_min_spots == 1
     assert session_state.val_results_show_non_joint is None
@@ -699,6 +787,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
                 "mode",
                 "reference_callsign",
                 "reference_qth",
+                "snr_correction_mode",
                 "snr_correction_db",
             },
         ),
@@ -710,6 +799,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
                 "mode",
                 "local_benchmark",
                 "neighborhood_radius_km",
+                "snr_correction_mode",
                 "snr_correction_db",
             },
         ),
@@ -720,6 +810,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
             {
                 "mode",
                 "reference_callsign",
+                "snr_correction_mode",
                 "snr_correction_db",
             },
         ),
@@ -731,6 +822,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
                 "mode",
                 "tx_ab_method",
                 "reference_callsign",
+                "snr_correction_mode",
                 "snr_correction_db",
             },
         ),
@@ -744,6 +836,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
                 "repeat_interval_minutes",
                 "target_start_minute",
                 "reference_start_minute",
+                "snr_correction_mode",
                 "snr_correction_db",
             },
         ),
@@ -780,6 +873,7 @@ def test_comparison_modes_use_only_their_active_fields(
                 "mode",
                 "tx_ab_method",
                 "reference_callsign",
+                "snr_correction_mode",
                 "snr_correction_db",
             },
         ),
@@ -791,6 +885,7 @@ def test_comparison_modes_use_only_their_active_fields(
                 "repeat_interval_minutes",
                 "target_start_minute",
                 "reference_start_minute",
+                "snr_correction_mode",
                 "snr_correction_db",
             },
         ),

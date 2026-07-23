@@ -57,7 +57,7 @@
         "benchmark_mode",
         "local_benchmark",
         "tx_ab_method",
-        "guided_offset_intent",
+        "snr_correction_mode",
         "guided_scope_mode"
       ]
     },

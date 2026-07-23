@@ -102,7 +102,7 @@ def _complete_state(**overrides):
         "val_tx_ab_repeat_interval_minutes": 10,
         "val_tx_ab_target_start_minute": 0,
         "val_tx_ab_reference_start_minute": 2,
-        "guided_offset_intent": "no_offset",
+        "val_snr_correction_mode": "no_offset",
         "val_benchmark_offset_db": 0.0,
         "guided_scope_mode": "general",
         "val_solar": "all",
@@ -535,7 +535,7 @@ def test_every_specified_branch_reaches_review(
         "benchmark_mode": benchmark_mode,
         "local_benchmark": local_benchmark,
         "tx_ab_method": tx_ab_method,
-        "guided_offset_intent": offset_intent,
+        "snr_correction_mode": offset_intent,
         "guided_scope_mode": "general",
     }
 
@@ -634,8 +634,8 @@ def test_complete_hardware_state_satisfies_every_node_rule():
         ("target_and_window", {"val_qth": "ZZ99"}),
         ("target_and_window", {"val_hours": True}),
         ("reference_design", {"val_ref_callsign": "DL1MKS"}),
-        ("offset_calibration", {"guided_offset_intent": "no_offset", "val_benchmark_offset_db": 1.0}),
-        ("offset_calibration", {"guided_offset_intent": "established_offset", "val_benchmark_offset_db": float("nan")}),
+        ("offset_calibration", {"val_snr_correction_mode": "no_offset", "val_benchmark_offset_db": 1.0}),
+        ("offset_calibration", {"val_snr_correction_mode": "established_offset", "val_benchmark_offset_db": float("nan")}),
         ("scope_and_evidence", {"val_solar": "local_noon"}),
         ("scope_and_evidence", {"val_min_stations": True}),
     ],
@@ -736,7 +736,7 @@ def test_reconstruct_guided_transients_from_canonical_loaded_config():
         val_comp_mode="reference_station",
         guided_reference_design=None,
         val_benchmark_offset_db=1.2,
-        guided_offset_intent=None,
+        val_snr_correction_mode="established_offset",
         guided_scope_mode=None,
         val_max_peer_distance_km=5000,
     )
@@ -746,24 +746,23 @@ def test_reconstruct_guided_transients_from_canonical_loaded_config():
     assert state["guided_use_case"] == "tx_compare"
     assert state["guided_reference_design"] == "reference_station"
     assert state["guided_last_compare_mode"] == "reference_station"
-    assert state["guided_offset_intent"] == "established_offset"
+    assert state["val_snr_correction_mode"] == "established_offset"
     assert state["guided_scope_mode"] == "custom"
 
     reconstruct_guided_transients(state, has_loaded_demo=True)
     assert state["guided_scope_mode"] == "demo"
 
 
-def test_reconstruct_guided_transients_selects_calibration_demo_intent():
-    """Present the unchanged Vanhamel calibration demo as an establishment run."""
+def test_reconstruct_guided_transients_preserves_configured_establishment_mode():
+    """Preserve an explicit establishment mode without consulting profile identity."""
     state = _complete_state(
-        active_demo_profile="vanhamel_rx_calibration",
-        guided_offset_intent=None,
+        val_snr_correction_mode="establish_offset",
         val_benchmark_offset_db=0.0,
     )
 
     reconstruct_guided_transients(state, has_loaded_demo=True)
 
-    assert state["guided_offset_intent"] == "establish_offset"
+    assert state["val_snr_correction_mode"] == "establish_offset"
     assert state["val_benchmark_offset_db"] == 0.0
 
 
@@ -775,7 +774,7 @@ def test_reconstruct_success_and_general_defaults_from_canonical_state():
         val_comp_mode="none",
         guided_reference_design="hardware_ab",
         val_benchmark_offset_db=0.0,
-        guided_offset_intent=None,
+        val_snr_correction_mode="no_offset",
         guided_scope_mode=None,
         val_solar="night",
         val_max_peer_distance_km=5000,
@@ -794,7 +793,7 @@ def test_reconstruct_success_and_general_defaults_from_canonical_state():
 
     assert state["guided_use_case"] == "rx_success"
     assert state["guided_reference_design"] is None
-    assert state["guided_offset_intent"] == "no_offset"
+    assert state["val_snr_correction_mode"] == "no_offset"
     assert state["guided_scope_mode"] == "general"
 
 

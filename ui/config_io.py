@@ -29,6 +29,7 @@ from config.config_schema import (
     SEGMENT_EVIDENCE_TIME_BINS,
     SEGMENT_RANGE_OPTIONS,
     SEGMENT_SELECTION_ALL,
+    SNR_CORRECTION_MODES,
     STATION_SELECTION_ALL,
     STATION_EVIDENCE_TEMPORAL_VIEWS,
     TX_AB_METHODS,
@@ -116,6 +117,7 @@ def _default_config():
         "reference_callsign": "",
         "reference_qth": "",
         "neighborhood_radius_km": 100,
+        "snr_correction_mode": "no_offset",
         "benchmark_snr_correction_db": 0.0,
         "tx_ab_method": "simultaneous",
         "tx_ab_repeat_interval_minutes": 10,
@@ -451,6 +453,14 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
     )
     comparison_parameters = {"mode": benchmark_mode}
     if benchmark_mode != "none":
+        comparison_parameters["snr_correction_mode"] = _validate_choice(
+            state.get(
+                "val_snr_correction_mode",
+                defaults["snr_correction_mode"],
+            ),
+            "snr_correction_mode",
+            SNR_CORRECTION_MODES,
+        )
         comparison_parameters["snr_correction_db"] = round(
             float(
                 state.get(
@@ -1016,16 +1026,18 @@ def normalize_config_settings(raw_settings):
         comparison_fields |= {
             "reference_callsign",
             "reference_qth",
+            "snr_correction_mode",
             "snr_correction_db",
         }
     elif benchmark_mode == "local_neighborhood":
         comparison_fields |= {
             "local_benchmark",
             "neighborhood_radius_km",
+            "snr_correction_mode",
             "snr_correction_db",
         }
     elif benchmark_mode == "hardware_ab":
-        comparison_fields.add("snr_correction_db")
+        comparison_fields |= {"snr_correction_mode", "snr_correction_db"}
         if normalized["analysis_direction"] == "rx":
             comparison_fields.add("reference_callsign")
         else:
@@ -1051,12 +1063,35 @@ def normalize_config_settings(raw_settings):
     )
 
     if benchmark_mode != "none":
+        snr_correction_mode = _validate_choice(
+            comparison["snr_correction_mode"],
+            "snr_correction_mode",
+            SNR_CORRECTION_MODES,
+        )
+        if (
+            benchmark_mode == "local_neighborhood"
+            and snr_correction_mode == "establish_offset"
+        ):
+            raise ValueError(
+                "snr_correction_mode establish_offset is not available for "
+                "local-neighborhood comparisons."
+            )
+        raw_snr_correction_db = comparison["snr_correction_db"]
         normalized["benchmark_snr_correction_db"] = _validate_float(
-            comparison["snr_correction_db"],
+            raw_snr_correction_db,
             "snr_correction_db",
             -99.9,
             99.9,
         )
+        if (
+            snr_correction_mode in {"no_offset", "establish_offset"}
+            and float(raw_snr_correction_db) != 0.0
+        ):
+            raise ValueError(
+                f"snr_correction_db must be 0.0 when snr_correction_mode is "
+                f"{snr_correction_mode}."
+            )
+        normalized["snr_correction_mode"] = snr_correction_mode
     if benchmark_mode == "reference_station":
         normalized["reference_callsign"] = _validate_callsign(
             comparison["reference_callsign"], "reference_callsign"
@@ -1321,6 +1356,9 @@ def apply_config_state_values(config, session_state):
     )
     session_state.val_benchmark_offset_db = config.get(
         "benchmark_snr_correction_db", defaults["benchmark_snr_correction_db"]
+    )
+    session_state.val_snr_correction_mode = config.get(
+        "snr_correction_mode", defaults["snr_correction_mode"]
     )
     session_state.val_tx_ab_method = config.get(
         "tx_ab_method", defaults["tx_ab_method"]

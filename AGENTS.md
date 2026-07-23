@@ -253,6 +253,44 @@ checks** below.
   should manage selection and rendering, not duplicate scientific preparation.
 - Follow existing naming and module boundaries before adding abstractions.
 
+### Configuration-Driven Variation
+
+- Separate mechanism from policy and instance data. Runtime code implements
+  generic behavior; authoritative configuration owns values and choices expected
+  to vary by demo, profile, deployment, workflow, provider, presentation or
+  operating context.
+- Never branch runtime behavior on a specific record identity such as a
+  demo/profile ID, filename, title, callsign, locator, display label or
+  translated string. Identifiers identify records; they are not feature flags.
+- Do not infer an independent semantic state from naming conventions, prose or a
+  sentinel value when several meanings can share that value. Represent the state
+  with an explicit typed configuration field.
+- When records using one schema require different behavior, extend the schema
+  with a validated field and implement one generic interpreter. Adding another
+  record that uses an existing capability must require configuration changes,
+  not another runtime branch.
+- Keep each configurable value in one authoritative location. Do not duplicate
+  configuration-owned mappings, defaults, thresholds or record-specific choices
+  in callbacks, UI reconstruction, algorithms or compatibility tables.
+- Keep configuration strict and auditable: define allowed values, defaults,
+  conditional applicability and cross-field invariants in its authoritative
+  schema and semantic validator. At persisted or external configuration
+  boundaries, reject invalid combinations instead of silently repairing or
+  guessing them.
+- Preserve the scientific/presentation boundary. Persisted workflow or
+  presentation configuration must not enter `AnalysisContext`, SQL, scientific
+  branches, cache identity or request fingerprints unless it genuinely changes
+  the scientific result.
+- Code-defined constants remain appropriate for intrinsic algorithms,
+  mathematical definitions, protocol/schema identifiers, security boundaries,
+  safety limits, implementation dispatch and invariants that must not be
+  operator-configurable. Centralize them in their authoritative module and
+  document non-obvious cases.
+- Before adding a literal record ID, per-record mapping or special-case branch to
+  runtime code, stop and determine whether the distinction belongs in
+  configuration. If code is genuinely required, document why configuration is
+  unsuitable and cover the exception with a regression test.
+
 ### Readability, Naming, and Documentation
 
 - Optimize code for human readability and maintainability, not merely for
@@ -437,7 +475,10 @@ checks** below.
 9. Documentation and configuration are updated when contracts or commands change.
 10. Generated user documentation is changed through its authoritative source,
    followed by the sync workflow, rather than by editing `README.md` directly.
-11. Any check that could not be run is stated explicitly in the handoff.
+11. Record-specific behavior is expressed through validated configuration rather
+    than literal identifiers or per-record runtime branches. Adding a record
+    that uses an existing capability requires no runtime-code change.
+12. Any check that could not be run is stated explicitly in the handoff.
 
 ## Documentation Maintenance
 

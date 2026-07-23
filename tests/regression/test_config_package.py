@@ -1,4 +1,6 @@
+import ast
 import json
+from pathlib import Path
 
 import pytest
 
@@ -24,6 +26,7 @@ from config import (
     EXPORT_QUEUE_WAIT_TIMEOUT_SEC,
     MAP_SCOPE_OPTIONS,
     SESSION_ARTIFACT_TTL_SEC,
+    SNR_CORRECTION_MODES,
     STANDARD_QUERY_CACHE_TTL_SEC,
     WSPR_CSV_MAX_RESPONSE_BYTES,
     WSPR_DATABASE_PROVIDERS,
@@ -39,6 +42,7 @@ from config.demo_profiles import (
     prepare_demo_description_markdown,
     resolve_demo_profile_text,
 )
+from i18n import GUIDED_INPUTS
 
 
 EXPECTED_DEMO_FILENAMES = [
@@ -65,6 +69,19 @@ EXPECTED_DEMO_PROFILE_IDS = [
     "rx_hardware_ab",
     "tx_hardware_ab",
 ]
+EXPECTED_DEMO_SNR_CORRECTION_MODES = {
+    "griffiths_squibb_fig3": "no_offset",
+    "griffiths_squibb_fig6": "no_offset",
+    "vanhamel_rx_calibration": "establish_offset",
+    "vanhamel_rx_buddy": "established_offset",
+    "zander_tx_buddy": "no_offset",
+    "milazzo_tx_buddy": "no_offset",
+    "rx_local_median_neighborhood": "no_offset",
+    "rx_calibration_ab": "establish_offset",
+    "rx_hardware_ab": "no_offset",
+    "tx_hardware_ab": "no_offset",
+}
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _copy_demo_directory(destination):
@@ -81,7 +98,46 @@ def test_config_package_exports_core_constants_and_demo_profiles():
     assert BAND_MAP["20m"] == "14"
     assert "All" not in BAND_MAP
     assert MAP_SCOPE_OPTIONS[-1] == 22000
+    assert SNR_CORRECTION_MODES == {
+        "no_offset",
+        "established_offset",
+        "establish_offset",
+    }
     assert "vanhamel_rx_calibration" in DEMO_PROFILES
+
+
+def test_snr_correction_mode_owners_remain_in_enum_parity():
+    """Keep Python, formal schema, Guided flow, and bilingual choices aligned."""
+    formal_schema = json.loads(
+        (REPOSITORY_ROOT / "config" / "wspradar-config.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    guided_flow = json.loads(
+        (REPOSITORY_ROOT / "config" / "guided_input_flow.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    formal_modes = set(
+        formal_schema["$defs"]["snrCorrectionMode"]["enum"]
+    )
+    local_modes = set(
+        formal_schema["$defs"]["localNeighborhoodComparison"]["properties"][
+            "snr_correction_mode"
+        ]["enum"]
+    )
+    guided_flow_modes = set(
+        guided_flow["nodes"]["offset_calibration"]["transitions"][0]["when"]["in"]
+    )
+    bilingual_option_modes = {
+        language: frozenset(content["options"]["offset_intent"])
+        for language, content in GUIDED_INPUTS.items()
+    }
+
+    assert formal_modes == SNR_CORRECTION_MODES
+    assert guided_flow_modes == SNR_CORRECTION_MODES
+    assert set(bilingual_option_modes.values()) == {SNR_CORRECTION_MODES}
+    assert local_modes == SNR_CORRECTION_MODES - {"establish_offset"}
 
 
 def test_band_map_exposes_canonical_exact_wspr_bands_in_ui_order():
@@ -203,6 +259,48 @@ def test_demo_configs_follow_filename_order_and_keep_canonical_settings():
         assert set(configuration["settings"]) == CONFIG_KEYS
 
 
+def test_demo_correction_modes_are_explicit_configuration():
+    """Keep every demo's correction meaning in its standalone config document."""
+    actual_modes = {
+        profile_id: profile["configuration"]["settings"]["comparison_parameters"].get(
+            "snr_correction_mode"
+        )
+        for profile_id, profile in DEMO_PROFILES.items()
+    }
+
+    assert actual_modes == EXPECTED_DEMO_SNR_CORRECTION_MODES
+
+
+def test_runtime_python_does_not_branch_on_literal_demo_profile_ids():
+    """Keep demo identity opaque by excluding exact profile IDs from runtime code."""
+    production_paths = [REPOSITORY_ROOT / "app.py"]
+    for source_directory in ("config", "core", "ui"):
+        production_paths.extend(
+            (REPOSITORY_ROOT / source_directory).rglob("*.py")
+        )
+
+    demo_profile_ids = frozenset(DEMO_PROFILES)
+    violations = {}
+    for source_path in production_paths:
+        syntax_tree = ast.parse(
+            source_path.read_text(encoding="utf-8"),
+            filename=str(source_path),
+        )
+        literal_profile_ids = {
+            node.value
+            for node in ast.walk(syntax_tree)
+            if isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and node.value in demo_profile_ids
+        }
+        if literal_profile_ids:
+            violations[str(source_path.relative_to(REPOSITORY_ROOT))] = sorted(
+                literal_profile_ids
+            )
+
+    assert violations == {}
+
+
 def test_demo_filenames_are_opaque_ordering_keys(tmp_path):
     """Accept arbitrary stems and order profiles only by complete filename."""
     demo_directory = tmp_path / "demos"
@@ -287,6 +385,7 @@ def test_tx_hardware_ab_demo_selects_scheduled_pair_science():
         "repeat_interval_minutes": 4,
         "target_start_minute": 0,
         "reference_start_minute": 2,
+        "snr_correction_mode": "no_offset",
         "snr_correction_db": 0.0,
     }
 

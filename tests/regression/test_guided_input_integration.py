@@ -96,7 +96,7 @@ def _canonical_state(**overrides):
             "guided_use_case": "rx_success",
             "guided_reference_design": None,
             "guided_last_compare_mode": None,
-            "guided_offset_intent": "no_offset",
+            "val_snr_correction_mode": "no_offset",
             "guided_scope_mode": "general",
             "guided_active_node": "use_case",
             "guided_collapse_all": False,
@@ -311,6 +311,7 @@ def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch):
             option["description"] for option in options.values()
         )
         assert keyword_args["width"] == "stretch"
+        assert keyword_args["key"] == "val_snr_correction_mode"
         assert keyword_args["on_change"] is renderer._handle_offset_intent_change
         assert [
             keyword_args["format_func"](option_key)
@@ -1024,7 +1025,7 @@ def test_guided_direction_change_requires_hardware_design_confirmation(
         guided_use_case="tx_compare",
         guided_reference_design="hardware_ab",
         guided_last_compare_mode="hardware_ab",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_analysis_direction="rx",
         val_comp_mode="hardware_ab",
         val_ref_callsign="DL1ABC-1",
@@ -1043,7 +1044,7 @@ def test_guided_direction_change_requires_hardware_design_confirmation(
     assert session_state.guided_reference_design is None
     assert session_state.guided_last_compare_mode is None
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_tx_ab_repeat_interval_minutes == 10
     assert session_state.val_tx_ab_target_start_minute == 0
@@ -1081,7 +1082,7 @@ def test_direction_change_resets_reference_station_pair_correction(monkeypatch):
         guided_use_case="tx_compare",
         guided_reference_design="reference_station",
         guided_last_compare_mode="reference_station",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_analysis_direction="rx",
         val_comp_mode="reference_station",
         val_ref_callsign="DL2XYZ",
@@ -1097,7 +1098,7 @@ def test_direction_change_resets_reference_station_pair_correction(monkeypatch):
     assert session_state.val_ref_callsign == "DL2XYZ"
     assert session_state.val_ref_qth == "JO63"
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
 
 
 def test_reference_branch_change_clears_only_pair_specific_canonical_values(
@@ -1107,7 +1108,7 @@ def test_reference_branch_change_clears_only_pair_specific_canonical_values(
     session_state = _canonical_state(
         guided_use_case="rx_compare",
         guided_reference_design="local_neighborhood",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_comp_mode="reference_station",
         val_ref_callsign="DL2XYZ",
         val_ref_qth="JO63",
@@ -1125,7 +1126,7 @@ def test_reference_branch_change_clears_only_pair_specific_canonical_values(
     assert session_state.val_ref_callsign == ""
     assert session_state.val_ref_qth == ""
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.val_callsign == "DL1ABC"
     assert session_state.val_band == "40m"
     assert session_state.val_max_peer_distance_km == 5000
@@ -1140,7 +1141,7 @@ def test_known_station_to_hardware_requires_reference_identity_confirmation(
     session_state = _canonical_state(
         guided_use_case="rx_compare",
         guided_reference_design="hardware_ab",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_comp_mode="reference_station",
         val_ref_callsign="DL2XYZ",
         val_ref_qth="JO63",
@@ -1154,7 +1155,7 @@ def test_known_station_to_hardware_requires_reference_identity_confirmation(
     assert session_state.val_ref_callsign == ""
     assert session_state.val_ref_qth == ""
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
 
 
 def test_hardware_to_known_station_requires_reference_identity_confirmation(
@@ -1164,7 +1165,7 @@ def test_hardware_to_known_station_requires_reference_identity_confirmation(
     session_state = _canonical_state(
         guided_use_case="rx_compare",
         guided_reference_design="reference_station",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_comp_mode="hardware_ab",
         val_ref_callsign="DL1ABC-1",
         val_ref_qth="JO63",
@@ -1178,7 +1179,7 @@ def test_hardware_to_known_station_requires_reference_identity_confirmation(
     assert session_state.val_ref_callsign == ""
     assert session_state.val_ref_qth == ""
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
 
 
 def test_offset_intents_share_the_one_canonical_correction_field(monkeypatch):
@@ -1186,7 +1187,7 @@ def test_offset_intents_share_the_one_canonical_correction_field(monkeypatch):
     session_state = _canonical_state(
         guided_use_case="rx_compare",
         guided_reference_design="hardware_ab",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_comp_mode="hardware_ab",
         val_ref_callsign="DL1ABC-1",
         val_benchmark_offset_db=-1.3,
@@ -1196,7 +1197,7 @@ def test_offset_intents_share_the_one_canonical_correction_field(monkeypatch):
     renderer._handle_offset_intent_change()
     assert session_state.val_benchmark_offset_db == -1.3
 
-    session_state.guided_offset_intent = "establish_offset"
+    session_state.val_snr_correction_mode = "establish_offset"
     renderer._handle_offset_intent_change()
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.guided_active_node == "offset_calibration"
@@ -1208,7 +1209,7 @@ def test_guided_identity_edit_clears_established_pair_correction(monkeypatch):
         guided_use_case="rx_compare",
         guided_reference_design="reference_station",
         guided_last_compare_mode="reference_station",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_comp_mode="reference_station",
         val_ref_callsign="DL2XYZ",
         val_ref_qth="JO63",
@@ -1219,7 +1220,7 @@ def test_guided_identity_edit_clears_established_pair_correction(monkeypatch):
     renderer._guided_correction_context_change("target_and_window")
 
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.guided_active_node == "target_and_window"
 
 
@@ -1303,7 +1304,7 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
         guided_use_case="rx_compare",
         guided_reference_design="hardware_ab",
         guided_last_compare_mode="hardware_ab",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         guided_scope_mode="custom",
         guided_reconstruct_requested=False,
         guided_collapse_all=True,
@@ -1333,7 +1334,7 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
     assert session_state.guided_use_case == "tx_compare"
     assert session_state.guided_reference_design == "local_neighborhood"
     assert session_state.guided_last_compare_mode == "local_neighborhood"
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "established_offset"
     assert session_state.guided_scope_mode == "general"
     assert session_state.run_mode == "TX"
     assert session_state.result_export_blocks == {"compare": ["retained"]}
@@ -1347,7 +1348,7 @@ def test_view_round_trip_preserves_retained_inactive_compare_design(monkeypatch)
         guided_use_case="rx_success",
         guided_reference_design=None,
         guided_last_compare_mode="reference_station",
-        guided_offset_intent="established_offset",
+        val_snr_correction_mode="established_offset",
         val_comp_mode="none",
         val_ref_callsign="DL2XYZ",
         val_ref_qth="JO63",

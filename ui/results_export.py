@@ -427,6 +427,9 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
             "end_date": time_selection.get("end_date"),
             "end_time": time_selection.get("end_time_utc"),
         },
+        "benchmark_snr_correction_mode": comparison_parameters.get(
+            "snr_correction_mode"
+        ),
         "benchmark_snr_correction_db": comparison_parameters.get("snr_correction_db"),
         "thresholds_and_filters": {
             "solar_state": advanced_parameters.get("solar_state"),

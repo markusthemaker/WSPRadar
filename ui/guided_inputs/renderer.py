@@ -77,7 +77,7 @@ def _guided_correction_context_change(node_id: str) -> None:
     retained_mode = st.session_state.get("guided_last_compare_mode")
     if active_mode in COMPARISON_MODES or retained_mode in COMPARISON_MODES:
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
     _guided_scientific_change(node_id)
 
 
@@ -113,7 +113,7 @@ def _handle_use_case_change() -> None:
         st.session_state.guided_reference_design = None
         st.session_state.guided_last_compare_mode = None
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
         st.session_state.val_tx_ab_method = "simultaneous"
         st.session_state.val_tx_ab_repeat_interval_minutes = 10
         st.session_state.val_tx_ab_target_start_minute = 0
@@ -126,7 +126,7 @@ def _handle_use_case_change() -> None:
         # A correction established for one direction is not an established
         # baseline for the other, even when the identities/scope remain useful.
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
     st.session_state.val_analysis_direction = analysis_direction
     if result_type == "success":
         current_mode = st.session_state.get("val_comp_mode")
@@ -165,18 +165,18 @@ def _handle_reference_design_change() -> None:
         st.session_state.val_ref_callsign = ""
         st.session_state.val_ref_qth = ""
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
     if new_mode == "local_neighborhood":
         st.session_state.val_ref_callsign = ""
         st.session_state.val_ref_qth = ""
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
     _guided_scientific_change("reference_design")
 
 
 def _handle_offset_intent_change() -> None:
     """Keep no-offset and calibration runs pinned to the canonical 0.0 dB value."""
-    intent = st.session_state.get("guided_offset_intent")
+    intent = st.session_state.get("val_snr_correction_mode")
     if intent not in GUIDED_OFFSET_INTENTS:
         return
     if intent in {"no_offset", "establish_offset"}:
@@ -363,14 +363,14 @@ def _render_offset_calibration_fields(t, guided_content):
     st.radio(
         guided_content["steps"]["offset_calibration"]["title"],
         tuple(options),
-        key="guided_offset_intent",
+        key="val_snr_correction_mode",
         label_visibility="collapsed",
         format_func=lambda value: options[value]["label"],
         captions=tuple(option["description"] for option in options.values()),
         on_change=_handle_offset_intent_change,
         width="stretch",
     )
-    intent = st.session_state.get("guided_offset_intent")
+    intent = st.session_state.get("val_snr_correction_mode")
     if intent == "established_offset":
         render_reference_correction_field(
             t,
@@ -547,7 +547,7 @@ def _render_review_and_run(t, guided_content):
         ]
     )
     st.markdown("\n".join(lines))
-    if st.session_state.get("guided_offset_intent") == "establish_offset":
+    if st.session_state.get("val_snr_correction_mode") == "establish_offset":
         st.warning(messages["calibration_run_notice"])
     st.button(
         messages["open_classic"],

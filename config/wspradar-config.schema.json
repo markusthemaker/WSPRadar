@@ -548,6 +548,7 @@
         "mode",
         "reference_callsign",
         "reference_qth",
+        "snr_correction_mode",
         "snr_correction_db"
       ],
       "properties": {
@@ -561,11 +562,19 @@
         "reference_qth": {
           "$ref": "#/$defs/grid4"
         },
+        "snr_correction_mode": {
+          "$ref": "#/$defs/snrCorrectionMode"
+        },
         "snr_correction_db": {
           "$ref": "#/$defs/snrCorrectionDb"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/snrCorrectionValueConsistency"
+        }
+      ]
     },
     "localNeighborhoodComparison": {
       "type": "object",
@@ -573,6 +582,7 @@
         "mode",
         "local_benchmark",
         "neighborhood_radius_km",
+        "snr_correction_mode",
         "snr_correction_db"
       ],
       "properties": {
@@ -604,11 +614,24 @@
             200
           ]
         },
+        "snr_correction_mode": {
+          "type": "string",
+          "enum": [
+            "no_offset",
+            "established_offset"
+          ],
+          "description": "Local-neighborhood comparisons may apply a documented correction but do not provide the controlled offset-establishment workflow."
+        },
         "snr_correction_db": {
           "$ref": "#/$defs/snrCorrectionDb"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/snrCorrectionValueConsistency"
+        }
+      ]
     },
     "hardwareAbRxComparison": {
       "type": "object",
@@ -616,6 +639,7 @@
       "required": [
         "mode",
         "reference_callsign",
+        "snr_correction_mode",
         "snr_correction_db"
       ],
       "properties": {
@@ -626,11 +650,19 @@
         "reference_callsign": {
           "$ref": "#/$defs/callsign"
         },
+        "snr_correction_mode": {
+          "$ref": "#/$defs/snrCorrectionMode"
+        },
         "snr_correction_db": {
           "$ref": "#/$defs/snrCorrectionDb"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/snrCorrectionValueConsistency"
+        }
+      ]
     },
     "hardwareAbTxComparison": {
       "description": "TX hardware A/B comparison using simultaneous Target/Reference identities or a sequential periodic schedule.",
@@ -650,6 +682,7 @@
         "mode",
         "tx_ab_method",
         "reference_callsign",
+        "snr_correction_mode",
         "snr_correction_db"
       ],
       "properties": {
@@ -664,11 +697,19 @@
         "reference_callsign": {
           "$ref": "#/$defs/callsign"
         },
+        "snr_correction_mode": {
+          "$ref": "#/$defs/snrCorrectionMode"
+        },
         "snr_correction_db": {
           "$ref": "#/$defs/snrCorrectionDb"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/snrCorrectionValueConsistency"
+        }
+      ]
     },
     "hardwareAbTxSequentialComparison": {
       "type": "object",
@@ -679,6 +720,7 @@
         "repeat_interval_minutes",
         "target_start_minute",
         "reference_start_minute",
+        "snr_correction_mode",
         "snr_correction_db"
       ],
       "properties": {
@@ -699,6 +741,9 @@
         "reference_start_minute": {
           "$ref": "#/$defs/txAbStartMinute"
         },
+        "snr_correction_mode": {
+          "$ref": "#/$defs/snrCorrectionMode"
+        },
         "snr_correction_db": {
           "$ref": "#/$defs/snrCorrectionDb"
         }
@@ -710,6 +755,9 @@
         },
         {
           "$ref": "#/$defs/txAbDistinctStarts"
+        },
+        {
+          "$ref": "#/$defs/snrCorrectionValueConsistency"
         }
       ]
     },
@@ -1309,6 +1357,37 @@
             }
           }
         ]
+      }
+    },
+    "snrCorrectionMode": {
+      "type": "string",
+      "enum": [
+        "no_offset",
+        "established_offset",
+        "establish_offset"
+      ],
+      "description": "Operator meaning of the Reference-side correction: apply none, apply a documented established value, or run an uncorrected baseline to establish one."
+    },
+    "snrCorrectionValueConsistency": {
+      "if": {
+        "properties": {
+          "snr_correction_mode": {
+            "enum": [
+              "no_offset",
+              "establish_offset"
+            ]
+          }
+        },
+        "required": [
+          "snr_correction_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "snr_correction_db": {
+            "const": 0.0
+          }
+        }
       }
     },
     "snrCorrectionDb": {

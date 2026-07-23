@@ -617,6 +617,15 @@ def test_structured_early_failure_marks_complete_run_telemetry_failed(monkeypatc
         for event, values in performance_events
         if event == "analysis_run"
     )
+    admission_event = next(
+        values
+        for event, values in performance_events
+        if event == "analysis_admission"
+    )
+    assert admission_event["banner_label"] == "ANALYSIS RUN START"
+    assert admission_event["leading_blank_line"] is True
+    assert admission_event["started_at_utc"].endswith("+00:00")
+    assert admission_event["outcome"] == "admitted"
     assert run_event["outcome"] == "failed"
 
 

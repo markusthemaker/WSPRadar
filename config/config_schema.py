@@ -28,6 +28,9 @@ ANALYSIS_DIRECTIONS = frozenset({"rx", "tx"})
 COMPARISON_MODES = frozenset(
     {"none", "hardware_ab", "reference_station", "local_neighborhood"}
 )
+SNR_CORRECTION_MODES = frozenset(
+    {"no_offset", "established_offset", "establish_offset"}
+)
 EVIDENCE_TIME_BINS = frozenset(
     {"5m", "15m", "30m", "1h", "2h", "3h", "6h", "12h", "24h"}
 )

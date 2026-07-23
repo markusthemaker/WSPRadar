@@ -772,6 +772,8 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert session_state.val_comp_mode == "none"
     assert session_state.val_ref_callsign == ""
     assert session_state.val_ref_qth == ""
+    assert session_state.val_snr_correction_mode == "no_offset"
+    assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_tx_ab_method == "simultaneous"
     assert session_state.val_results_show_zero_target is False
     assert session_state.val_results_selected_ranges_compare == "all"
@@ -779,6 +781,7 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert session_state.val_results_selected_ranges_absolute == "all"
     assert session_state.val_results_selected_directions_absolute == "all"
     assert _default_config()["benchmark_mode"] == COMPARISON_NONE
+    assert _default_config()["snr_correction_mode"] == "no_offset"
     assert _default_config()["band"] == DEFAULT_BAND
     analysis_context = build_analysis_context_from_session_state({})
     assert analysis_context.comparison_mode == COMPARISON_NONE
@@ -789,6 +792,57 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert analysis_context.tx_ab_method == "simultaneous"
     assert analysis_context.reference_qth == ""
     assert analysis_context.max_peer_distance_km == 22000
+
+
+@pytest.mark.parametrize(
+    "initial_state",
+    [
+        {
+            "val_comp_mode": "hardware_ab",
+            "val_snr_correction_mode": "no_offset",
+            "val_benchmark_offset_db": 1.2,
+        },
+        {
+            "val_comp_mode": "local_neighborhood",
+            "val_snr_correction_mode": "establish_offset",
+            "val_benchmark_offset_db": 0.0,
+        },
+    ],
+)
+def test_session_initialization_repairs_invalid_correction_pairs(
+    monkeypatch,
+    initial_state,
+):
+    """Keep live state inside the same mode/value contract as saved configs."""
+    session_state = _SessionState(initial_state)
+    monkeypatch.setattr(
+        state_manager,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    state_manager.init_session_state()
+
+    assert session_state.val_snr_correction_mode == "no_offset"
+    assert session_state.val_benchmark_offset_db == 0.0
+
+
+def test_correction_workflow_mode_does_not_change_analysis_context():
+    """Keep operator provenance out of the scientific analysis context."""
+    base_state = {
+        "val_analysis_direction": "rx",
+        "val_comp_mode": "hardware_ab",
+        "val_snr_correction_mode": "no_offset",
+        "val_benchmark_offset_db": 0.0,
+    }
+    establishment_state = {
+        **base_state,
+        "val_snr_correction_mode": "establish_offset",
+    }
+
+    assert build_analysis_context_from_session_state(
+        base_state
+    ) == build_analysis_context_from_session_state(establishment_state)
 
 
 @pytest.mark.parametrize(
@@ -942,7 +996,7 @@ def test_classic_direction_change_clears_retained_guided_hardware(monkeypatch):
             "val_comp_mode": "none",
             "guided_reference_design": None,
             "guided_last_compare_mode": "hardware_ab",
-            "guided_offset_intent": "established_offset",
+            "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": 1.2,
             "val_tx_ab_method": "simultaneous",
             "val_tx_ab_repeat_interval_minutes": 10,
@@ -963,7 +1017,7 @@ def test_classic_direction_change_clears_retained_guided_hardware(monkeypatch):
     assert session_state.guided_reference_design is None
     assert session_state.guided_last_compare_mode is None
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
 
 
 @pytest.mark.parametrize("comparison_mode", ["reference_station", "local_neighborhood"])
@@ -976,7 +1030,7 @@ def test_classic_direction_change_clears_direction_specific_correction(
         {
             "val_comp_mode": comparison_mode,
             "guided_last_compare_mode": comparison_mode,
-            "guided_offset_intent": "established_offset",
+            "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": -0.8,
         }
     )
@@ -992,7 +1046,7 @@ def test_classic_direction_change_clears_direction_specific_correction(
     assert session_state.val_comp_mode == comparison_mode
     assert session_state.guided_last_compare_mode == comparison_mode
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
 
 
 def test_schedule_callbacks_keep_starts_disjoint(monkeypatch):
@@ -1065,7 +1119,7 @@ def test_classic_context_edit_clears_established_reference_correction(monkeypatc
         {
             "val_comp_mode": "reference_station",
             "guided_last_compare_mode": "reference_station",
-            "guided_offset_intent": "established_offset",
+            "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": 1.2,
         }
     )
@@ -1080,8 +1134,51 @@ def test_classic_context_edit_clears_established_reference_correction(monkeypatc
     callbacks.handle_reference_correction_context_change()
 
     assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.guided_offset_intent == "no_offset"
+    assert session_state.val_snr_correction_mode == "no_offset"
     reset.assert_called_once_with()
+
+
+def test_classic_nonzero_correction_edit_sets_established_mode(monkeypatch):
+    """Keep Classic numeric edits consistent with the durable correction mode."""
+    callback = Mock()
+    session_state = _SessionState(
+        {
+            "val_comp_mode": "hardware_ab",
+            "val_snr_correction_mode": "no_offset",
+            "val_benchmark_offset_db": 1.24,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    config_panel._normalize_reference_correction_state(callback)
+
+    assert session_state.val_benchmark_offset_db == 1.2
+    assert session_state.val_snr_correction_mode == "established_offset"
+    callback.assert_called_once_with()
+
+
+def test_classic_zero_correction_preserves_explicit_established_mode(monkeypatch):
+    """Do not infer that an explicitly established 0.0 dB means no offset."""
+    session_state = _SessionState(
+        {
+            "val_comp_mode": "hardware_ab",
+            "val_snr_correction_mode": "established_offset",
+            "val_benchmark_offset_db": 0.0,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    config_panel._normalize_reference_correction_state()
+
+    assert session_state.val_snr_correction_mode == "established_offset"
 
 
 def test_hardware_design_does_not_overwrite_retained_buddy_qth(monkeypatch):
@@ -1137,6 +1234,7 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
     assert session_state.val_qth == "CM98"
     assert session_state.val_band == "40m"
     assert session_state.val_ref_callsign == "WB6RQN"
+    assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.val_analysis_direction == "tx"
     assert session_state.val_comp_mode == "reference_station"
     assert session_state.val_max_peer_distance_km == 5000

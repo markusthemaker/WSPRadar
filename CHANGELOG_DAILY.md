@@ -27,6 +27,13 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   offset setup now distinguishes common-input Hardware A/B calibration from a
   pair-specific Reference Station baseline, supports a clearly marked zero-dB
   establishment run, and leaves offset selection and application manual.
+- Made the correction purpose explicit in every comparison configuration:
+  `no_offset`, `established_offset` and, where supported,
+  `establish_offset` are now stored independently of the signed dB value.
+  Built-in demos declare this behavior in their standalone configuration
+  documents, Guided and Classic preserve one canonical value, exports record
+  both fields, and applicable unpublished v1 documents without the purpose are
+  rejected rather than inferred from an ambiguous zero or a profile ID.
 - Made result selection mutually exclusive without changing comparison
   mathematics: no benchmark now executes and exposes Success only, while every
   benchmark executes and exposes Compare only. Classic labels state the active

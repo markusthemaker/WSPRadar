@@ -699,7 +699,7 @@ GUIDED_INPUTS = {
             "offset_intent": {
                 "no_offset": {
                     "label": "No established offset — use 0.0 dB",
-                    "description": """Apply no Reference-side correction. Use this for a first exploratory or offset-establishment run, or whenever no defensible baseline exists. Any stable Target–Reference bias remains part of the reported ΔSNR.""",
+                    "description": """Apply no Reference-side correction. Use this for a first exploratory run or whenever no defensible baseline exists and you are not establishing one in this run. Any stable Target–Reference bias remains part of the reported ΔSNR.""",
                 },
                 "established_offset": {
                     "label": "Use an established correction",
@@ -906,7 +906,7 @@ GUIDED_INPUTS = {
             "offset_intent": {
                 "no_offset": {
                     "label": "Kein ermittelter Offset — 0,0 dB verwenden",
-                    "description": """Wende keine referenzseitige Korrektur an. Verwende dies für einen ersten Erkundungs- oder Offset-Ermittlungslauf oder wenn keine belastbare Basislinie vorliegt. Ein stabiler Target–Referenz-Versatz bleibt dann Teil des ausgewiesenen ΔSNR.""",
+                    "description": """Wende keine referenzseitige Korrektur an. Verwende dies für einen ersten Erkundungslauf oder wenn keine belastbare Basislinie vorliegt und in diesem Lauf keine ermittelt wird. Ein stabiler Target–Referenz-Versatz bleibt dann Teil des ausgewiesenen ΔSNR.""",
                 },
                 "established_offset": {
                     "label": "Ermittelte Korrektur verwenden",

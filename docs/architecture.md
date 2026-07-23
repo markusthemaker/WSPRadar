@@ -117,6 +117,16 @@ subsequent schema bump is incomplete until every preceding supported production
 version has an explicit ordered migration; unsupported versions are rejected
 rather than interpreted with current defaults.
 
+Every active comparison carries an explicit `snr_correction_mode` beside
+`snr_correction_db`. `no_offset` means that no established correction is
+applied; `establish_offset` marks a deliberately uncorrected baseline run; both
+require exactly `0.0 dB`. `established_offset` applies a documented signed value
+and explicitly permits a genuinely established `0.0 dB`. Local Neighborhood
+supports `no_offset` and `established_offset` but not the controlled
+offset-establishment workflow. Success-only documents omit both correction
+fields. Applicable unpublished v1 documents without the mode are rejected:
+neither the numeric value nor profile identity is used to guess its meaning.
+
 Reference Station comparison state stores `reference_callsign` plus an
 independent `reference_qth` constrained to exactly four Maidenhead characters.
 RX Hardware A/B stores only the distinct `reference_callsign`; both displayed
@@ -141,7 +151,9 @@ The reusable configuration's optional `profile` carries the stable ID and
 localized presentation text used by built-in demos. `config/demo_profiles.py`
 discovers regular `config/demos/*.config` files in lexicographic filename order.
 Each filename is an opaque ordering key independent of the document's required
-`profile.id`. There is no second demo envelope or schema: a personal
+`profile.id`. Profile IDs provide generic identity for loading, cache policy and
+request ownership; runtime code must not use a literal profile ID as a feature
+flag or record-specific dispatch key. There is no second demo envelope or schema: a personal
 configuration becomes a built-in demo by choosing any `.config` filename that
 places it at the desired launcher position and putting the unchanged document
 in that directory. Installed demos use English as their required presentation
@@ -165,8 +177,14 @@ Guided Input and Classic Input are two Streamlit compositions over the same
 canonical `val_*` session fields. `input_view` defaults to `guided` and persists
 for the browser session, but the editor choice and Guided navigation keys are
 transient presentation state outside `AnalysisContext` and the version-1 saved
-configuration. Switching editors therefore does not translate, copy, or reset
-the scientific values. `ui/components/config_fields.py` is the shared
+configuration. Correction mode is different: it is durable operator provenance
+stored in the configuration, held in the canonical
+`val_snr_correction_mode` field, and preserved when editors switch. Guided
+renders the three-way choice directly from this field. Classic keeps its
+numeric editor; entering a nonzero value generically selects
+`established_offset`, while an explicit established `0.0 dB` remains
+distinguishable from `no_offset`. Switching editors therefore does not
+translate, copy, or reset the scientific values. `ui/components/config_fields.py` is the shared
 composition surface for Target/window, Reference, scope, station-population,
 offset, and evidence-threshold controls; its established implementations remain
 in `ui/components/config_panel.py` so both editors retain the same widget keys,
@@ -180,7 +198,9 @@ the flow is rendered. `ui/guided_inputs/flow_engine.py` evaluates its restricted
 condition vocabulary without arbitrary session-state access.
 `ui/guided_inputs/state.py` derives and validates transient Guided decisions
 from canonical fields, including reconstruction after a saved configuration or
-demo is loaded. `ui/guided_inputs/renderer.py` composes the accordion and
+demo is loaded. It consumes correction mode generically and never dispatches on
+profile identity or infers the mode from `snr_correction_db`.
+`ui/guided_inputs/renderer.py` composes the accordion and
 registered renderers, while the separate bilingual `GUIDED_INPUTS` structure in
 `i18n.py` owns Guided explanations and choice consequences. Built-in demos are
 load-only in Guided Input so their metadata and preset settings can be reviewed;
@@ -197,6 +217,13 @@ carry only the distinct `reference_callsign`; both sides use the grid-4 derived
 from core Target `qth`. TX Hardware A/B additionally carries the canonical
 `tx_ab_method`. Target and Reference role names are presentation terms and do
 not replace these scientific identity fields.
+
+`snr_correction_mode` does not enter `AnalysisContext`, SQL, cache identity or
+the scientific request fingerprint. It records why a correction value is being
+used; only the validated numeric `snr_correction_db` becomes
+`AnalysisContext.reference_snr_correction_db`. Runs with the same numeric value
+therefore remain scientifically identical even when one is explicitly marked
+as an offset-establishment workflow.
 
 `AnalysisContext.max_peer_distance_km` is a canonical scientific input. The UI
 presents it as **Maximum peer distance from Target (km)**. A peer row

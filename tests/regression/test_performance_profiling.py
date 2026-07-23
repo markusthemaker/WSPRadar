@@ -102,8 +102,10 @@ def test_performance_event_formats_seconds_and_memory(monkeypatch):
     ]
 
 
-def test_performance_event_can_frame_analysis_run_with_blank_lines(monkeypatch):
-    """Run-boundary events can be separated without changing other PERF logs."""
+def test_performance_event_can_frame_analysis_run_with_banner_and_blank_lines(
+    monkeypatch,
+):
+    """Make run starts immediately visible without changing other PERF logs."""
     messages = []
 
     class CapturingLogger:
@@ -114,7 +116,8 @@ def test_performance_event_can_frame_analysis_run_with_blank_lines(monkeypatch):
     performance_timer.log_performance_event(
         "analysis_admission",
         leading_blank_line=True,
-        started_at="2026-07-19T21:24:05+02:00",
+        banner_label="ANALYSIS RUN START",
+        started_at_utc="2026-07-19T19:24:05+00:00",
         outcome="admitted",
     )
     performance_timer.log_performance_event(
@@ -124,7 +127,10 @@ def test_performance_event_can_frame_analysis_run_with_blank_lines(monkeypatch):
     )
 
     assert messages == [
-        '\nPERF event="analysis_admission" '
-        "started_at=2026-07-19T21:24:05+02:00 outcome=admitted",
+        "\n"
+        + "=" * 96
+        + '\nANALYSIS RUN START | PERF event="analysis_admission" '
+        "started_at_utc=2026-07-19T19:24:05+00:00 outcome=admitted\n"
+        + "=" * 96,
         'PERF event="analysis_run" outcome=completed\n',
     ]

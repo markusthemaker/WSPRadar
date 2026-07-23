@@ -30,6 +30,7 @@
       "mode": "reference_station",
       "reference_callsign": "SK0WE",
       "reference_qth": "JO89",
+      "snr_correction_mode": "no_offset",
       "snr_correction_db": 0.0
     },
     "advanced_parameters": {

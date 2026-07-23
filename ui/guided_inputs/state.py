@@ -12,6 +12,7 @@ from config import (
     MAP_SCOPE_OPTIONS,
     MAX_DAYS_HISTORY,
     MAX_DYNAMIC_RADIUS_KM,
+    SNR_CORRECTION_MODES,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from core.input_validation import is_valid_callsign, is_valid_grid4, is_valid_locator
@@ -21,16 +22,11 @@ from ui.config_io import _default_config
 GUIDED_USE_CASES = frozenset(
     {"rx_success", "tx_success", "rx_compare", "tx_compare"}
 )
-GUIDED_OFFSET_INTENTS = frozenset(
-    {"no_offset", "established_offset", "establish_offset"}
-)
+GUIDED_OFFSET_INTENTS = SNR_CORRECTION_MODES
 GUIDED_SCOPE_MODES = frozenset({"general", "custom", "demo"})
 COMPARISON_MODES = frozenset(
     {"hardware_ab", "reference_station", "local_neighborhood"}
 )
-DEMO_OFFSET_INTENTS = {
-    "vanhamel_rx_calibration": "establish_offset",
-}
 
 
 def derive_guided_use_case(state: Mapping[str, Any]) -> str | None:
@@ -59,7 +55,7 @@ def guided_facts(state: Mapping[str, Any]) -> dict[str, Any]:
         "benchmark_mode": state.get("val_comp_mode"),
         "local_benchmark": state.get("val_local_benchmark"),
         "tx_ab_method": state.get("val_tx_ab_method"),
-        "guided_offset_intent": state.get("guided_offset_intent"),
+        "snr_correction_mode": state.get("val_snr_correction_mode"),
         "guided_scope_mode": state.get("guided_scope_mode"),
     }
 
@@ -158,7 +154,7 @@ def _reference_design_complete(state: Mapping[str, Any]) -> bool:
 
 def _offset_complete(state: Mapping[str, Any]) -> bool:
     """Validate Guided offset intent against the one canonical correction field."""
-    intent = state.get("guided_offset_intent")
+    intent = state.get("val_snr_correction_mode")
     if intent not in GUIDED_OFFSET_INTENTS:
         return False
     try:
@@ -258,16 +254,6 @@ def reconstruct_guided_transients(
     )
     if benchmark_mode in COMPARISON_MODES:
         state["guided_last_compare_mode"] = benchmark_mode
-    correction_db = round(float(state.get("val_benchmark_offset_db", 0.0)), 1)
-    demo_offset_intent = DEMO_OFFSET_INTENTS.get(
-        state.get("active_demo_profile")
-    )
-    if demo_offset_intent == "establish_offset" and correction_db == 0.0:
-        state["guided_offset_intent"] = demo_offset_intent
-    else:
-        state["guided_offset_intent"] = (
-            "established_offset" if correction_db != 0.0 else "no_offset"
-        )
     if has_loaded_demo:
         state["guided_scope_mode"] = "demo"
     else:

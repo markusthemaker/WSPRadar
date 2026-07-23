@@ -99,12 +99,12 @@
       "renderer": "offset_calibration_fields",
       "summary_renderer": "offset_calibration_summary",
       "required_fields": [
-        "guided_offset_intent"
+        "snr_correction_mode"
       ],
       "transitions": [
         {
           "when": {
-            "field": "guided_offset_intent",
+            "field": "snr_correction_mode",
             "in": [
               "no_offset",
               "established_offset",

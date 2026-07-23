@@ -69,7 +69,7 @@ def handle_reference_correction_context_change():
     }
     if active_mode in comparison_modes or retained_mode in comparison_modes:
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
     reset_audit()
 
 
@@ -295,6 +295,7 @@ def handle_comp_mode_change():
     demo mode can then load an explicit profile correction when one exists.
     """
     st.session_state.val_benchmark_offset_db = 0.0
+    st.session_state.val_snr_correction_mode = "no_offset"
     reset_audit()
     apply_demo_profile()
 
@@ -316,7 +317,7 @@ def handle_analysis_direction_change():
         st.session_state.guided_reference_design = None
         st.session_state.guided_last_compare_mode = None
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
         st.session_state.val_tx_ab_method = "simultaneous"
         st.session_state.val_tx_ab_repeat_interval_minutes = 10
         st.session_state.val_tx_ab_target_start_minute = 0
@@ -326,7 +327,7 @@ def handle_analysis_direction_change():
         "local_neighborhood",
     }:
         st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.guided_offset_intent = "no_offset"
+        st.session_state.val_snr_correction_mode = "no_offset"
     reset_audit()
 
 def set_reset_config():
@@ -347,6 +348,7 @@ def set_reset_config():
     st.session_state.val_ref_stations = 10
     st.session_state.val_ref_radius_km = 100
     st.session_state.val_benchmark_offset_db = 0.0
+    st.session_state.val_snr_correction_mode = "no_offset"
     st.session_state.val_local_benchmark = "local_median"
     st.session_state.val_ref_callsign = ""
     st.session_state.val_ref_qth = ""
@@ -384,7 +386,6 @@ def set_reset_config():
     st.session_state.guided_use_case = None
     st.session_state.guided_reference_design = None
     st.session_state.guided_last_compare_mode = None
-    st.session_state.guided_offset_intent = "no_offset"
     st.session_state.guided_scope_mode = "general"
     st.session_state.guided_active_node = "use_case"
     st.session_state.guided_reconstruct_requested = False
