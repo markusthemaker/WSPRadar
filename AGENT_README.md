@@ -310,6 +310,8 @@ Useful files when tracing behavior:
   aggregation and classification.
 - `core/map_data.py` and `core/plot_engine.py`: pure map aggregation and
   presentation rendering.
+- `ui/result_hierarchy.py` and `ui/result_guidance.py`: semantic result-flow
+  presentation, scope copy, and bilingual mode-aware interpretation help.
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
   orchestration and pure view models.
 - `ui/components/config_fields.py`: shared canonical field-composition surface

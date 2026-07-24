@@ -713,6 +713,1238 @@ T = {
 }
 
 
+# Result guidance is shared by Guided and Classic because both input editors
+# render the same completed-result hierarchy. Keep this content separate from
+# ``GUIDED_INPUTS``: it explains how to read established result contracts and
+# must never select scientific behavior.
+RESULT_GUIDANCE = {
+    "en": {
+        "trigger": "How to read this",
+        "trigger_help": "How to read {section}",
+        "read_label": "How to read it.",
+        "limits_label": "What it does and does not establish.",
+        "sections": {
+            "context_rx_success": {
+                "read": (
+                    "The **Target** is the receiver being examined. The "
+                    "**Target-Active Gate** first keeps only UTC cycles in which "
+                    "the archive shows the Target receiver reporting at least one "
+                    "decode. Within one of those cycles, a **confirmed "
+                    "opportunity** is a remote transmitter-cycle independently "
+                    "heard by another receiver under the run's eligibility rules. "
+                    "**Elsewhere** means that this independent receiver decoded the "
+                    "transmitter but the Target did not. **Target-only** means that "
+                    "the Target decoded it without the independent confirmation "
+                    "required by the Success Rate denominator. Displayed RX "
+                    "Success Rate (%) is "
+                    "`100 × Target / (Target + Elsewhere)`."
+                ),
+                "limits": (
+                    "This result can describe the Target receiver's conditional "
+                    "reach for the stated band, UTC window, geography and evidence "
+                    "rules. It does not measure absolute receiver sensitivity, "
+                    "include every transmitted signal or explain why a signal was "
+                    "missed."
+                ),
+            },
+            "context_tx_success": {
+                "read": (
+                    "The **Target** is the transmitter being examined. The "
+                    "**Target-Active Gate** first keeps only UTC cycles in which at "
+                    "least one receiver reported the Target transmission. Within "
+                    "one of those cycles, a **confirmed opportunity** is a remote "
+                    "receiver-cycle shown to be active through **Other Signals** "
+                    "on the same band under the run's eligibility rules. "
+                    "**Target-only** means that the Target was decoded without the "
+                    "independent receiver-activity evidence required by the Success "
+                    "Rate denominator. Displayed TX Success Rate (%) is "
+                    "`100 × Target / (Target + Other Signals)`."
+                ),
+                "limits": (
+                    "This result can describe conditional Target reach across the "
+                    "retained active receiver population. It does not include every "
+                    "intended transmission, measure actual radiated power or antenna "
+                    "efficiency, or explain why a receiver missed the Target."
+                ),
+            },
+            "context_rx_compare": {
+                "read": (
+                    "**SNR** is the signal-to-noise ratio reported by the WSPR "
+                    "decoder in decibels (dB); a less-negative value is stronger "
+                    "relative to noise. The **Target** is the receiving path being "
+                    "examined and the **Reference** is its benchmark. **Delta SNR "
+                    "(ΔSNR)** is Target SNR minus corrected Reference SNR. Positive "
+                    "ΔSNR favors the Target; negative ΔSNR favors the Reference. RX "
+                    "Compare pairs reports of the same remote transmitter in the "
+                    "same UTC cycle."
+                ),
+                "limits": (
+                    "This result can describe an observed paired difference between "
+                    "the complete receiving paths for the retained transmitters, "
+                    "cycles and geography. It does not establish isolated antenna "
+                    "gain, receiver sensitivity or causation unless the experiment "
+                    "independently controlled the remaining path differences."
+                ),
+            },
+            "context_tx_compare": {
+                "read": (
+                    "**SNR** is the signal-to-noise ratio reported by the WSPR "
+                    "decoder in decibels (dB); a less-negative value is stronger "
+                    "relative to noise. The **Target** is the transmitting path "
+                    "being examined and the **Reference** is its benchmark. Paired "
+                    "SNR is normalized to reported 1 W before **Delta SNR (ΔSNR)** "
+                    "is calculated as Target SNR minus corrected Reference SNR. "
+                    "Positive ΔSNR favors the Target; negative ΔSNR favors the "
+                    "Reference. "
+                    "Same-cycle TX Compare uses reports from the same remote "
+                    "receiver and UTC cycle."
+                ),
+                "limits": (
+                    "This result can describe an observed paired difference between "
+                    "the complete transmitting paths at the retained receivers. It "
+                    "does not establish actual radiated power, isolated antenna "
+                    "efficiency or a causal hardware effect unless power, reporting "
+                    "and the remaining RF paths were controlled."
+                ),
+            },
+            "context_tx_compare_scheduled": {
+                "read": (
+                    "**SNR** is the signal-to-noise ratio reported by the WSPR "
+                    "decoder in decibels (dB); a less-negative value is stronger "
+                    "relative to noise. The **Target** and **Reference** are the two "
+                    "scheduled transmitting paths. Their reports are normalized to "
+                    "reported 1 W. **Delta SNR (ΔSNR)** is Target SNR minus "
+                    "corrected Reference SNR; positive values favor the Target and "
+                    "negative values favor the Reference. WSPRadar "
+                    "forms deterministic **scheduled pairs** from the configured "
+                    "UTC schedule. The paired transmissions are time-separated, "
+                    "not simultaneous."
+                ),
+                "limits": (
+                    "This result can describe the observed paired difference under "
+                    "the configured schedule. It cannot eliminate propagation, "
+                    "interference, switching or time-of-cycle differences between "
+                    "the transmissions. A recurring schedule-phase bias can resemble "
+                    "a hardware difference."
+                ),
+            },
+            "benchmark_hardware": {
+                "read": (
+                    "The Reference is the other controlled path operating within "
+                    "the shared Grid-4."
+                ),
+                "limits": (
+                    "This design can narrow the observed difference to the compared "
+                    "paths only as far as the remainder of the experiment was held "
+                    "constant. It does not by itself establish antenna gain or "
+                    "identify one component as the cause."
+                ),
+            },
+            "benchmark_reference": {
+                "read": (
+                    "The Reference is the complete comparison station selected by "
+                    "its exact callsign and independently configured Reference "
+                    "Grid-4."
+                ),
+                "limits": (
+                    "The result compares two installed stations and their operating "
+                    "environments. It does not isolate the antenna, radio, terrain, "
+                    "local noise or location of either station."
+                ),
+            },
+            "benchmark_local_median": {
+                "read": (
+                    "The Reference is the median of qualifying active local "
+                    "identities within {radius} km, recalculated for each applicable "
+                    "path and cycle."
+                ),
+                "limits": (
+                    "The result shows how the Target compared with a changing local "
+                    "group. It is not a comparison with one fixed or calibrated "
+                    "Reference, and it depends on the selected radius and active "
+                    "membership."
+                ),
+            },
+            "benchmark_local_best": {
+                "read": (
+                    "The Reference is the strongest qualifying local identity within "
+                    "{radius} km for each applicable path and cycle."
+                ),
+                "limits": (
+                    "The result describes a changing best-peer envelope. It is not "
+                    "a local average, a fixed Reference station or a calibrated "
+                    "performance ceiling."
+                ),
+            },
+            "map_compare_rx": {
+                "read": (
+                    "Use the colored distance-and-direction sectors to locate where "
+                    "the paired Target–Reference difference appeared. Each sector "
+                    "summarizes the median of the contributing reported-identity "
+                    "median ΔSNR values. **Station-balanced** means that each "
+                    "qualifying reported identity contributes one station-level "
+                    "value before the sector is summarized. Markers and footer bars "
+                    "separate **Joint** evidence, **Both (Async)**, **Only Target** "
+                    "and **Only Reference**. **Joint** marks an identity with at "
+                    "least one usable pair. **Both (Async)** means both sides "
+                    "contributed for that identity but no usable pair was formed; "
+                    "Only Target or Only Reference means only that side "
+                    "contributed. `STATIONS` describes reported "
+                    "callsign-plus-locator participation; `SPOTS` describes "
+                    "processed qualifying evidence volume. Read both because many "
+                    "spots can come from relatively few identities."
+                ),
+                "limits": (
+                    "The map can locate an observed paired pattern and show how "
+                    "paired and one-sided evidence is distributed geographically. "
+                    "It does not establish propagation mode, radiation angle, "
+                    "calibrated gain, causation or the missing SNR of a side that was "
+                    "not decoded. The S-unit labels are a display convention; use "
+                    "the numerical dB values for magnitude."
+                ),
+            },
+            "map_compare_tx": {
+                "read": (
+                    "Use the colored distance-and-direction sectors to locate where "
+                    "the paired Target–Reference difference appeared. Each sector "
+                    "summarizes the median of the contributing reported-identity "
+                    "median ΔSNR values. **Station-balanced** means that each "
+                    "qualifying reported identity contributes one station-level "
+                    "value before the sector is summarized. Markers and footer bars "
+                    "separate **Joint** evidence, **Both (Async)**, **Only Target** "
+                    "and **Only Reference**. **Joint** marks an identity with at "
+                    "least one usable pair. **Both (Async)** means both sides "
+                    "contributed for that identity but no usable pair was formed; "
+                    "Only Target or Only Reference means only that side "
+                    "contributed. `STATIONS` describes reported "
+                    "callsign-plus-locator participation; `SPOTS` or `PAIRS` "
+                    "describes processed qualifying evidence volume."
+                ),
+                "limits": (
+                    "The map can locate an observed paired pattern and show how "
+                    "paired and one-sided evidence is distributed geographically. "
+                    "It does not establish propagation mode, radiation angle, "
+                    "actual radiated power, calibrated gain or causation. A missing "
+                    "side has no SNR to normalize, so exclusive TX outcomes are not "
+                    "power-normalized. The S-unit labels are a display convention."
+                ),
+            },
+            "map_success": {
+                "read": (
+                    "Use the sectors to locate geographic patterns in conditional "
+                    "Success Rate among remote {peer_type} identities. Each sector "
+                    "averages the qualifying identity rates after giving every "
+                    "identity one equal vote; this is the **station-balanced** view. "
+                    "Green markers identify identities with Target evidence and grey "
+                    "markers identify qualifying **{counter}**-only evidence. "
+                    "`STATIONS` describes reported callsign-plus-locator "
+                    "participation; `SPOTS` describes processed Target and "
+                    "{counter} evidence volume."
+                ),
+                "limits": (
+                    "The map can locate where station-balanced conditional reach was "
+                    "higher or lower within the retained evidence. It does not "
+                    "establish unconditional coverage, calibrated reception "
+                    "probability, antenna gain, propagation mode or causation. A "
+                    "displayed 100% means success in every confirmed opportunity "
+                    "represented there, not every possible transmission."
+                ),
+            },
+            "segment": {
+                "read": (
+                    "The distance and direction selectors define the **active "
+                    "scope**. Every following figure, station table and "
+                    "selected-station view inherits this geographic subset. Read "
+                    "`Evidence in scope` as two complementary quantities: "
+                    "qualifying identities contributing a paired or confirmed "
+                    "result, and qualifying joint spots, scheduled pairs or "
+                    "confirmed opportunities."
+                ),
+                "limits": (
+                    "The Inspector can show how the completed result changes across "
+                    "explicit geographic subsets. It does not start a new analysis, "
+                    "widen the original run or restore peers removed by the "
+                    "maximum-distance control. More qualifying identities add "
+                    "breadth; more evidence units add repeated observations. "
+                    "Neither alone establishes independence, representativeness or "
+                    "experimental quality."
+                ),
+            },
+            "comparison_evidence_joint": {
+                "read": (
+                    "**Decode Outcomes** counts reported identities with **Joint**, "
+                    "**Only Target**, **Both (Async)** or **Only Reference** "
+                    "evidence. Joint means at least one usable same-cycle pair; "
+                    "Both (Async) means evidence from both sides without such a "
+                    "pair; Only Target or Only Reference means one side only. A "
+                    "**Joint Spot** is a consolidated same-cycle unit with "
+                    "comparable evidence for both sides. **Station Medians** "
+                    "gives each qualifying identity one median ΔSNR, so identities "
+                    "receive equal weight. **Joint-Spot ΔSNR** gives every joint "
+                    "spot one value, so high-volume identities may contribute many "
+                    "values. Compare both distributions: a shift between them shows "
+                    "that observation-volume weighting differs from equal-identity "
+                    "weighting. The median is less influenced by isolated extremes; "
+                    "the arithmetic mean is more sensitive to them."
+                ),
+                "limits": (
+                    "These figures can show whether the paired direction recurs "
+                    "across identities, how much one-sided evidence remains, and "
+                    "the observation-level spread and outliers. They do not establish "
+                    "formal statistical significance, a universal advantage or the "
+                    "physical cause. Paired ΔSNR describes only the subset where "
+                    "both sides produced comparable evidence; always read it with "
+                    "Decode Outcomes."
+                ),
+            },
+            "comparison_evidence_scheduled": {
+                "read": (
+                    "**Decode Outcomes** counts reported identities with paired and "
+                    "one-sided scheduled evidence. Both (Async) describes an "
+                    "identity with evidence from both scheduled paths but no valid "
+                    "pair; Only Target or Only Reference describes one path only. "
+                    "A **Scheduled Pair** is the deterministic Target–Reference unit "
+                    "formed from the configured UTC schedule. **Station Medians** "
+                    "identity one median Pair ΔSNR. **Scheduled-Pair ΔSNR** gives "
+                    "every valid pair one value, so high-volume identities may "
+                    "contribute many values. Compare both distributions to see "
+                    "whether observation-volume weighting changes the equal-identity "
+                    "picture. The median is less influenced by isolated extremes; "
+                    "the arithmetic mean is more sensitive to them."
+                ),
+                "limits": (
+                    "These figures can show identity-level consistency, one-sided "
+                    "scheduled outcomes and pair-level spread. They do not establish "
+                    "formal statistical significance, a universal advantage or "
+                    "causation. Paired ΔSNR excludes incomplete pairs, and the "
+                    "scheduled design cannot remove changes between the two "
+                    "time-separated transmissions."
+                ),
+            },
+            "temporal_evidence_joint": {
+                "read": (
+                    "Both panels use the same observation-level Joint Spots as the "
+                    "Joint-Spot ΔSNR distribution; Station Insights selections do "
+                    "not change this segment-level view. **Chronological** preserves "
+                    "the actual UTC dates and times, showing when the paired pattern "
+                    "changed or became sparse. **UTC-Hour** folds all represented "
+                    "dates onto one 24-hour UTC clock to look for an hour-of-day "
+                    "association across dates. Color shows **relative density** "
+                    "within each panel: the densest cell in that panel is 100%, not "
+                    "100% of all evidence. Use numerical dB labels and median traces "
+                    "because the ΔSNR axis is visually expanded around its median."
+                ),
+                "limits": (
+                    "The chronological panel can establish a time-resolved pattern "
+                    "during this run; the folded panel can reveal a recurring "
+                    "UTC-hour association when at least two UTC dates contribute. "
+                    "Neither establishes that time, daylight, propagation or "
+                    "equipment caused the pattern. Relative-density colors are not "
+                    "absolute counts and cannot be compared directly between the "
+                    "separately normalized panels."
+                ),
+            },
+            "temporal_evidence_scheduled": {
+                "read": (
+                    "Both panels use the same observation-level Scheduled Pairs as "
+                    "the Scheduled-Pair ΔSNR distribution; Station Insights "
+                    "selections do not change this segment-level view. "
+                    "**Chronological** preserves the actual UTC dates and planned "
+                    "pair times. **UTC-Hour** folds all represented dates onto one "
+                    "24-hour UTC clock. Color shows **relative density** within each "
+                    "panel, not an absolute pair count. Use numerical dB labels and "
+                    "median traces because the ΔSNR axis is visually expanded around "
+                    "its median."
+                ),
+                "limits": (
+                    "These panels can show time-resolved and recurring UTC-hour "
+                    "associations in the scheduled evidence. They cannot establish "
+                    "whether a change came from hardware, propagation, interference, "
+                    "switching or the schedule. A repeated schedule-phase bias can "
+                    "resemble a path difference, and colors cannot be compared as "
+                    "absolute evidence volume between panels."
+                ),
+            },
+            "success_evidence": {
+                "read": (
+                    "Displayed Success Rate (%) is **100 × {formula}**. **Station "
+                    "Success Rate by Evidence Count** places one identity with at "
+                    "least one Target observation at each point: height is its rate "
+                    "and horizontal position is its qualifying evidence count on a "
+                    "base-2 logarithmic scale. Eligible zero-Target identities are "
+                    "omitted here but can be restored in Station Insights with "
+                    "`Show Zero-Target`. **Average Station Success Rate** gives "
+                    "every qualifying identity one equal vote in each "
+                    "time-and-distance cell. "
+                    "**Observation-Level Success Rate** pools all qualifying Target "
+                    "and {counter} observations, so high-volume identities receive "
+                    "more weight. Empty cells mean no qualifying evidence, not 0%."
+                ),
+                "limits": (
+                    "These figures can show which displayed rates have repeated "
+                    "evidence, how conditional reach varies across distance and time, "
+                    "and whether observation volume changes the station-balanced "
+                    "picture. They do not convert evidence count into statistical "
+                    "confidence or establish why rates differ. Similar weighting "
+                    "views support internal consistency; divergence identifies a "
+                    "station-mix or evidence-volume difference to investigate."
+                ),
+            },
+            "station_insights_compare_joint": {
+                "read": (
+                    "Each row represents one reported {peer_type} "
+                    "callsign-plus-locator identity in the active scope. Read its "
+                    "Joint Spots, one-sided counts and station median ΔSNR together. "
+                    "`Include Unpaired Evidence` reveals identities with one-sided "
+                    "or asynchronous evidence but no usable paired ΔSNR. Select one "
+                    "or more rows to open their pooled evidence view. Table filters "
+                    "change the displayed rows and selection, not the completed "
+                    "analysis."
+                ),
+                "limits": (
+                    "The table can identify which reported paths contribute, where "
+                    "identity-level results differ and whether evidence is "
+                    "concentrated among a small subset. A callsign-plus-locator "
+                    "identity is not proof of one unique physical station, and a row "
+                    "without paired evidence cannot establish a Target–Reference "
+                    "strength difference."
+                ),
+            },
+            "station_insights_compare_scheduled": {
+                "read": (
+                    "Each row represents one reported RX callsign-plus-locator "
+                    "identity in the active scope. Read its Scheduled Pairs, "
+                    "one-sided scheduled counts and station median Pair ΔSNR "
+                    "together. `Include Unpaired Evidence` reveals identities "
+                    "without a complete pair. Select one or more rows to open their "
+                    "pooled evidence view. Table filters change the displayed rows "
+                    "and selection, not the completed analysis."
+                ),
+                "limits": (
+                    "The table can identify which reported receivers contribute, "
+                    "where identity-level results differ and whether evidence is "
+                    "concentrated among a small subset. A reporting identity is not "
+                    "proof of one unique physical station, and an incomplete pair "
+                    "cannot establish a Pair ΔSNR."
+                ),
+            },
+            "station_insights_success": {
+                "read": (
+                    "Each row represents one reported {peer_type} "
+                    "callsign-plus-locator identity. Read Target, **{counter}**, "
+                    "Success Rate and median successful Target SNR together. "
+                    "`Show Zero-Target` restores qualifying identities with no "
+                    "Target observation. **Normalized SNR at reported 1 W** removes "
+                    "the reported transmit-power term from successful Target "
+                    "decodes; a less-negative SNR is stronger relative to noise. "
+                    "Success Rate itself is not power-normalized. Table filters "
+                    "change the displayed rows and selection, not the completed "
+                    "analysis."
+                ),
+                "limits": (
+                    "The table can show which identities contribute, their "
+                    "conditional rates, denominator depth and successful-decode "
+                    "strength summaries. It cannot show the SNR of missed signals, "
+                    "prove physical-station uniqueness, measure receiver sensitivity "
+                    "or correct inaccurate reported power."
+                ),
+            },
+            "selected_compare_joint": {
+                "read": (
+                    "This view pools the selected identities' Joint Spots; when "
+                    "several identities are selected, those with more observations "
+                    "contribute more values. It is not an equal-station estimator. "
+                    "**ΔSNR Distribution** shows the paired center, spread and "
+                    "outliers; read bar length against `Share (%)` and use the "
+                    "numerical dB labels, median and mean. **Chronological** places "
+                    "the same evidence in its actual UTC sequence. **UTC-Hour** "
+                    "folds represented dates by UTC hour to look for a recurring "
+                    "association. Relative density is normalized within the active "
+                    "time panel."
+                ),
+                "limits": (
+                    "These figures can describe the selected paired evidence and its "
+                    "time pattern. They do not represent unselected identities, "
+                    "replace the segment's station-balanced result, reconstruct "
+                    "missing-side SNR or establish why a time pattern occurred. "
+                    "UTC hour is not equivalent to a solar or propagation cause."
+                ),
+            },
+            "selected_compare_scheduled": {
+                "read": (
+                    "This view pools the selected receivers' Scheduled Pairs; "
+                    "receivers with more valid pairs contribute more values. It is "
+                    "not an equal-station estimator. **ΔSNR Distribution** shows "
+                    "the pair-level center, spread and outliers. **Chronological** "
+                    "places the same pairs in their planned UTC sequence. "
+                    "**UTC-Hour** folds represented dates by UTC hour. Use the "
+                    "numerical dB labels, median and mean; relative density is "
+                    "normalized within the active time panel."
+                ),
+                "limits": (
+                    "These figures can describe the selected scheduled-pair evidence "
+                    "and its time pattern. They do not replace the segment's "
+                    "station-balanced result or separate a hardware-path difference "
+                    "from systematic propagation, interference, switching or "
+                    "schedule-phase effects."
+                ),
+            },
+            "selected_success": {
+                "read": (
+                    "This view pools the selected identities' Target and "
+                    "**{counter}** evidence; high-volume identities contribute more "
+                    "observations, so it is not an equal-station summary. **Station "
+                    "Success Rate + Evidence over Time** combines the rate line "
+                    "with stacked Target and {counter} counts. The colors classify "
+                    "the sampled great-circle path as night, greyline/mixed or "
+                    "daylight. **Target SNR** contains only successful Target "
+                    "decodes normalized to reported 1 W; a less-negative value is "
+                    "stronger relative to noise."
+                ),
+                "limits": (
+                    "The time panel can show when conditional outcomes and evidence "
+                    "volume changed and whether they were associated with path "
+                    "illumination. It does not establish that illumination or "
+                    "propagation caused the change. The SNR distribution cannot show "
+                    "the strength of missed signals, determine a receiver threshold, "
+                    "measure actual radiated power or describe the complete incoming "
+                    "signal population."
+                ),
+            },
+            "drilldown_compare_joint": {
+                "read": (
+                    "Drill-Down exposes **processed row-level evidence** after the "
+                    "run's matching and filters, not untouched provider rows. "
+                    "Same-cycle Compare shows the Target and Reference values used "
+                    "for a pair and its ΔSNR. Use the table to reconcile summaries, "
+                    "inspect exact UTC times and identities, and check exceptional "
+                    "observations. Filters change only the displayed table."
+                ),
+                "limits": (
+                    "The rows can establish how processed evidence formed the "
+                    "displayed summaries. They are an audit surface, not a new "
+                    "performance metric. A missing-side SNR is not reconstructed, "
+                    "one exceptional row does not establish the general result, and "
+                    "the archive cannot verify the physical setup behind every "
+                    "field."
+                ),
+            },
+            "drilldown_compare_scheduled": {
+                "read": (
+                    "Drill-Down exposes **processed scheduled evidence**, not "
+                    "untouched provider rows. It shows the planned UTC pair, TX role, "
+                    "Target and Reference micro-medians and Pair ΔSNR. Use the table to "
+                    "confirm that displayed values follow the configured schedule "
+                    "and reconcile with the summaries. Filters change only the "
+                    "displayed table."
+                ),
+                "limits": (
+                    "The rows can establish how the configured pairing produced the "
+                    "displayed evidence. They are an audit surface, not a new "
+                    "performance metric, and they cannot establish that propagation "
+                    "or interference remained unchanged between transmissions."
+                ),
+            },
+            "drilldown_success": {
+                "read": (
+                    "Drill-Down exposes **processed row-level evidence** after the "
+                    "run's eligibility rules and filters, not untouched provider "
+                    "rows. Outcomes show Target, **{counter}** and Target-only "
+                    "classifications. Target-only remains auditable but does not "
+                    "enter the Success Rate denominator. Use the table to reconcile "
+                    "the numerator and denominator with their contributing cycles. "
+                    "Filters change only the displayed table."
+                ),
+                "limits": (
+                    "The rows can establish how retained cycles formed the displayed "
+                    "summaries. They cannot reveal unobserved transmissions without "
+                    "independent confirmation, explain why a decode failed or turn "
+                    "one exceptional row into a general conclusion."
+                ),
+            },
+            "drilldown_local_median": {
+                "read": (
+                    "For Local Median Neighborhood, the table expands the local "
+                    "Reference identities that contributed to each applicable cycle "
+                    "median."
+                ),
+                "limits": (
+                    "Those expanded rows explain the dynamic Reference construction; "
+                    "they do not turn the neighborhood into one fixed or calibrated "
+                    "Reference station."
+                ),
+            },
+            "download": {
+                "read": (
+                    "The **analysis evidence package** preserves the completed-run "
+                    "configuration and metadata and the processed evidence retained "
+                    "by the run's geographic scope. It also records the current "
+                    "Inspector scope and station selection and includes applicable "
+                    "tables and high-resolution figures. `Save Config` separately "
+                    "preserves reusable analysis settings rather than the evidence "
+                    "from this run."
+                ),
+                "limits": (
+                    "The package supports audit, sharing and reproduction of the "
+                    "WSPRadar analysis state at export time. It does not independently "
+                    "validate the experiment, contain untouched upstream responses "
+                    "or capture physical setup, calibration, actual power, switching, "
+                    "weather, faults and other external observations. A later archive "
+                    "retrieval can differ as upstream records or WSPRadar change."
+                ),
+            },
+        },
+    },
+    "de": {
+        "trigger": "So liest du diesen Abschnitt",
+        "trigger_help": "So liest du den Bereich „{section}“",
+        "read_label": "So liest du den Abschnitt.",
+        "limits_label": "Was es belegt und nicht belegt.",
+        "sections": {
+            "context_rx_success": {
+                "read": (
+                    "Das **Target** ist der untersuchte Empfänger. Das "
+                    "**Target-Active Gate** behält zunächst nur UTC-Zyklen, in "
+                    "denen das Archiv mindestens einen vom Target-Empfänger "
+                    "gemeldeten Decode enthält. Innerhalb eines solchen Zyklus ist "
+                    "eine **bestätigte Gelegenheit** der Zyklus eines entfernten "
+                    "Senders, dessen Aktivität nach den Zulässigkeitsregeln des "
+                    "Laufs durch den Decode eines anderen Empfängers unabhängig "
+                    "bestätigt wurde. "
+                    "**Elsewhere** bedeutet, dass dieser unabhängige Empfänger den "
+                    "Sender decodierte, das Target jedoch nicht. **Target-only** "
+                    "bedeutet, dass das Target den Sender ohne die für den Nenner "
+                    "der Success Rate erforderliche unabhängige Bestätigung "
+                    "decodierte. Die angezeigte RX Success Rate (%) ist "
+                    "`100 × Target / (Target + Elsewhere)`."
+                ),
+                "limits": (
+                    "Dieses Ergebnis kann die bedingte Reichweite des "
+                    "Target-Empfängers für das angegebene Band, UTC-Zeitfenster, "
+                    "die Geografie und die Evidenzregeln beschreiben. Es misst "
+                    "keine absolute Empfängerempfindlichkeit, umfasst nicht jedes "
+                    "gesendete Signal und erklärt nicht, warum ein Signal nicht "
+                    "decodiert wurde."
+                ),
+            },
+            "context_tx_success": {
+                "read": (
+                    "Das **Target** ist der untersuchte Sender. Das "
+                    "**Target-Active Gate** behält zunächst nur UTC-Zyklen, in "
+                    "denen mindestens ein Empfänger die Target-Aussendung gemeldet "
+                    "hat. Innerhalb eines solchen Zyklus ist eine "
+                    "**bestätigte Gelegenheit** der Zyklus eines entfernten "
+                    "Empfängers, dessen Aktivität nach den Zulässigkeitsregeln des "
+                    "Laufs durch **Other Signals** im selben Band belegt ist. "
+                    "**Target-only** bedeutet, dass das Target ohne die für den "
+                    "Nenner der Success Rate erforderliche unabhängige Evidenz zur "
+                    "Empfängeraktivität decodiert wurde. Die angezeigte TX Success "
+                    "Rate (%) ist "
+                    "`100 × Target / (Target + Other Signals)`."
+                ),
+                "limits": (
+                    "Dieses Ergebnis kann die bedingte Target-Reichweite in der "
+                    "beibehaltenen Population aktiver Empfänger beschreiben. Es "
+                    "umfasst nicht jede beabsichtigte Aussendung, misst weder die "
+                    "tatsächlich abgestrahlte Leistung noch den Antennenwirkungsgrad "
+                    "und erklärt nicht, warum ein Empfänger das Target nicht "
+                    "decodierte."
+                ),
+            },
+            "context_rx_compare": {
+                "read": (
+                    "**SNR** ist das vom WSPR-Decoder gemeldete "
+                    "Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger "
+                    "negativer Wert ist relativ zum Rauschen stärker. Das "
+                    "**Target** ist der untersuchte Empfangspfad, die "
+                    "**Referenz** sein Benchmark. **Delta SNR (ΔSNR)** ist "
+                    "Target-SNR minus korrigiertes Referenz-SNR. Ein positives "
+                    "ΔSNR begünstigt das Target, ein negatives die Referenz. RX "
+                    "Compare paart Reports desselben entfernten Senders im selben "
+                    "UTC-Zyklus."
+                ),
+                "limits": (
+                    "Dieses Ergebnis kann einen beobachteten gepaarten Unterschied "
+                    "zwischen den vollständigen Empfangspfaden für die "
+                    "beibehaltenen Sender, Zyklen und den geografischen Bereich "
+                    "beschreiben. Es belegt weder isolierten Antennengewinn noch "
+                    "Empfängerempfindlichkeit oder Kausalität, sofern der Versuch "
+                    "die übrigen Pfadunterschiede nicht unabhängig kontrollierte."
+                ),
+            },
+            "context_tx_compare": {
+                "read": (
+                    "**SNR** ist das vom WSPR-Decoder gemeldete "
+                    "Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger "
+                    "negativer Wert ist relativ zum Rauschen stärker. Das "
+                    "**Target** ist der untersuchte Sendepfad, die **Referenz** "
+                    "sein Benchmark. Gepaarte SNR-Werte werden vor der Berechnung "
+                    "von **Delta SNR (ΔSNR)** auf die gemeldete Leistung von 1 W "
+                    "normiert. ΔSNR ist Target-SNR minus korrigiertes "
+                    "Referenz-SNR. Ein positives ΔSNR begünstigt das Target, ein "
+                    "negatives die Referenz. Für TX Compare im selben UTC-Zyklus "
+                    "werden Reports desselben entfernten Empfängers und "
+                    "UTC-Zyklus gepaart."
+                ),
+                "limits": (
+                    "Dieses Ergebnis kann einen beobachteten gepaarten Unterschied "
+                    "zwischen den vollständigen Sendepfaden an den beibehaltenen "
+                    "Empfängern beschreiben. Es belegt weder tatsächlich "
+                    "abgestrahlte Leistung, isolierten Antennenwirkungsgrad noch "
+                    "einen kausalen Hardwareeffekt, sofern Leistung, Meldung und "
+                    "die übrigen HF-Pfade nicht kontrolliert wurden."
+                ),
+            },
+            "context_tx_compare_scheduled": {
+                "read": (
+                    "**SNR** ist das vom WSPR-Decoder gemeldete "
+                    "Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger "
+                    "negativer Wert ist relativ zum Rauschen stärker. "
+                    "**Target** und **Referenz** sind die beiden geplanten "
+                    "Sendepfade. Ihre Reports werden auf die gemeldete Leistung "
+                    "von 1 W normiert. **Delta SNR (ΔSNR)** ist Target-SNR minus "
+                    "korrigiertes Referenz-SNR; positive Werte begünstigen das "
+                    "Target, negative die Referenz. "
+                    "WSPRadar bildet aus dem konfigurierten UTC-Zeitplan "
+                    "deterministische **geplante Paare**. Die gepaarten "
+                    "Aussendungen sind zeitlich getrennt, nicht gleichzeitig."
+                ),
+                "limits": (
+                    "Dieses Ergebnis kann den beobachteten gepaarten Unterschied "
+                    "unter dem konfigurierten Zeitplan beschreiben. Es kann "
+                    "Unterschiede durch Ausbreitung, Störungen, Umschaltung oder "
+                    "Zyklusphase zwischen den Aussendungen nicht beseitigen. Eine "
+                    "wiederkehrende Zeitplanverzerrung kann wie ein "
+                    "Hardwareunterschied aussehen."
+                ),
+            },
+            "benchmark_hardware": {
+                "read": (
+                    "Die Referenz ist der andere kontrollierte Pfad innerhalb des "
+                    "gemeinsamen Grid-4."
+                ),
+                "limits": (
+                    "Dieses Design kann den beobachteten Unterschied nur so weit "
+                    "auf die verglichenen Pfade eingrenzen, wie der übrige Versuch "
+                    "konstant gehalten wurde. Es belegt für sich weder "
+                    "Antennengewinn noch eine einzelne Komponente als Ursache."
+                ),
+            },
+            "benchmark_reference": {
+                "read": (
+                    "Die Referenz ist die vollständige Vergleichsstation, "
+                    "ausgewählt über ihr exaktes Rufzeichen und das unabhängig "
+                    "konfigurierte Referenz-Grid-4."
+                ),
+                "limits": (
+                    "Das Ergebnis vergleicht zwei vollständige Stationssysteme und "
+                    "ihre Betriebsumgebungen. Es isoliert weder Antenne, Funkgerät, "
+                    "Gelände, lokales Rauschen noch den Standort einer Station."
+                ),
+            },
+            "benchmark_local_median": {
+                "read": (
+                    "Die Referenz ist der Median qualifizierender aktiver lokaler "
+                    "Identitäten innerhalb von {radius} km und wird für jeden "
+                    "anwendbaren Pfad und Zyklus neu berechnet."
+                ),
+                "limits": (
+                    "Das Ergebnis zeigt den Vergleich des Targets mit einer "
+                    "wechselnden lokalen Gruppe. Es ist kein Vergleich mit einer "
+                    "einzelnen festen oder kalibrierten Referenz und hängt vom "
+                    "gewählten Radius sowie der aktiven Zusammensetzung ab."
+                ),
+            },
+            "benchmark_local_best": {
+                "read": (
+                    "Die Referenz ist für jeden anwendbaren Pfad und Zyklus die "
+                    "stärkste qualifizierende lokale Identität innerhalb von "
+                    "{radius} km."
+                ),
+                "limits": (
+                    "Das Ergebnis beschreibt eine wechselnde Hüllkurve des besten "
+                    "Peers. Es ist weder lokaler Durchschnitt noch feste "
+                    "Referenzstation oder kalibrierte Leistungsgrenze."
+                ),
+            },
+            "map_compare_rx": {
+                "read": (
+                    "Nutze die farbigen Entfernungs- und Richtungssegmente, um zu "
+                    "erkennen, wo der gepaarte Target-Referenz-Unterschied auftrat. "
+                    "Jedes Segment fasst den Median der beitragenden Mediane des "
+                    "ΔSNR je gemeldeter Identität zusammen. "
+                    "**Stationsgleichgewichtet** bedeutet, dass jede "
+                    "qualifizierende gemeldete Identität vor der "
+                    "Segmentzusammenfassung genau einen Stationswert beiträgt. "
+                    "Marker und Balken trennen **Joint**, **Both (Async)**, "
+                    "**Only Target** und **Only Reference**. **Joint** kennzeichnet "
+                    "eine Identität mit mindestens einem nutzbaren Paar. "
+                    "**Both (Async)** bedeutet, dass beide Seiten für diese "
+                    "Identität beitrugen, aber kein nutzbares Paar entstand; Only "
+                    "Target oder Only Reference bedeutet, dass nur diese Seite "
+                    "beitrug. `STATIONS` beschreibt "
+                    "die Beteiligung gemeldeter Rufzeichen-plus-Locator-Identitäten; "
+                    "`SPOTS` den Umfang verarbeiteter qualifizierender Evidenz. "
+                    "Lies beides zusammen, weil viele Spots von relativ wenigen "
+                    "Identitäten stammen können."
+                ),
+                "limits": (
+                    "Die Karte kann ein beobachtetes gepaartes Muster lokalisieren "
+                    "und die geografische Verteilung gepaarter und einseitiger "
+                    "Evidenz zeigen. Sie belegt weder Ausbreitungsart, "
+                    "Abstrahlwinkel, kalibrierten Gewinn, Kausalität noch das "
+                    "fehlende SNR einer nicht decodierten Seite. Die S-Stufen sind "
+                    "nur eine Darstellungskonvention; nutze für den Betrag die "
+                    "numerischen dB-Werte."
+                ),
+            },
+            "map_compare_tx": {
+                "read": (
+                    "Nutze die farbigen Entfernungs- und Richtungssegmente, um zu "
+                    "erkennen, wo der gepaarte Target-Referenz-Unterschied auftrat. "
+                    "Jedes Segment fasst den Median der beitragenden Mediane des "
+                    "ΔSNR je gemeldeter Identität zusammen. "
+                    "**Stationsgleichgewichtet** bedeutet, dass jede "
+                    "qualifizierende gemeldete Identität vor der "
+                    "Segmentzusammenfassung genau einen Stationswert beiträgt. "
+                    "Marker und Balken trennen **Joint**, **Both (Async)**, "
+                    "**Only Target** und **Only Reference**. **Joint** kennzeichnet "
+                    "eine Identität mit mindestens einem nutzbaren Paar. "
+                    "**Both (Async)** bedeutet, dass beide Seiten für diese "
+                    "Identität beitrugen, aber kein nutzbares Paar entstand; Only "
+                    "Target oder Only Reference bedeutet, dass nur diese Seite "
+                    "beitrug. `STATIONS` beschreibt "
+                    "die Beteiligung gemeldeter Rufzeichen-plus-Locator-Identitäten; "
+                    "`SPOTS` oder `PAIRS` den Umfang verarbeiteter "
+                    "qualifizierender Evidenz."
+                ),
+                "limits": (
+                    "Die Karte kann ein beobachtetes gepaartes Muster lokalisieren "
+                    "und die geografische Verteilung gepaarter und einseitiger "
+                    "Evidenz zeigen. Sie belegt weder Ausbreitungsart, "
+                    "Abstrahlwinkel, tatsächlich abgestrahlte Leistung, "
+                    "kalibrierten Gewinn noch Kausalität. Für eine fehlende Seite "
+                    "gibt es kein normierbares SNR; exklusive TX-Ergebnisse sind "
+                    "daher nicht leistungsnormiert. Die S-Stufen sind nur eine "
+                    "Darstellungskonvention."
+                ),
+            },
+            "map_success": {
+                "read": (
+                    "Nutze die Segmente, um geografische Muster der bedingten "
+                    "Success Rate unter entfernten {peer_type}-Identitäten zu "
+                    "lokalisieren. Jedes Segment mittelt die qualifizierenden "
+                    "Identitätsraten, nachdem jede Identität genau eine gleich "
+                    "große Stimme erhalten hat; dies ist die "
+                    "**stationsgleichgewichtete** Ansicht. Grüne Marker "
+                    "kennzeichnen Identitäten mit Target-Evidenz; graue Marker "
+                    "kennzeichnen Identitäten, für die ausschließlich "
+                    "qualifizierende **{counter}**-Evidenz vorliegt. `STATIONS` "
+                    "beschreibt die Beteiligung gemeldeter "
+                    "Rufzeichen-plus-Locator-Identitäten; "
+                    "`SPOTS` den Umfang verarbeiteter Target- und "
+                    "{counter}-Evidenz."
+                ),
+                "limits": (
+                    "Die Karte kann lokalisieren, wo die stationsgleichgewichtete "
+                    "bedingte Reichweite innerhalb der beibehaltenen Evidenz höher "
+                    "oder niedriger war. Sie belegt weder unbedingte Abdeckung, "
+                    "kalibrierte Empfangswahrscheinlichkeit, Antennengewinn, "
+                    "Ausbreitungsart noch Kausalität. Angezeigte 100 % bedeuten "
+                    "Erfolg in jeder dort dargestellten bestätigten Gelegenheit, "
+                    "nicht in jeder möglichen Aussendung."
+                ),
+            },
+            "segment": {
+                "read": (
+                    "Die Auswahl von Entfernung und Richtung definiert den "
+                    "**aktiven Bereich**. Jede folgende Abbildung, Stationstabelle "
+                    "und Ansicht ausgewählter Stationen übernimmt diesen "
+                    "geografischen Teilbereich. Lies `Evidenz im aktiven Bereich` "
+                    "als zwei ergänzende Größen: qualifizierende Identitäten, die "
+                    "ein gepaartes oder bestätigtes Ergebnis beitragen, und "
+                    "qualifizierende Joint Spots, geplante Paare oder bestätigte "
+                    "Gelegenheiten."
+                ),
+                "limits": (
+                    "Der Inspektor kann zeigen, wie sich das abgeschlossene "
+                    "Ergebnis in ausdrücklich ausgewählten geografischen "
+                    "Teilbereichen verändert. Er startet keine neue Analyse, "
+                    "erweitert den ursprünglichen Lauf nicht und stellt keine durch "
+                    "die maximale Entfernung entfernten Peers wieder her. Mehr "
+                    "qualifizierende Identitäten vergrößern die Breite; mehr "
+                    "Evidenzeinheiten liefern wiederholte Beobachtungen. Keines von "
+                    "beidem belegt für sich Unabhängigkeit, Repräsentativität oder "
+                    "Versuchsqualität."
+                ),
+            },
+            "comparison_evidence_joint": {
+                "read": (
+                    "**Decode Outcomes** zählt gemeldete Identitäten mit "
+                    "**Joint**, **Only Target**, **Both (Async)** oder "
+                    "**Only Reference**. Joint bedeutet mindestens ein nutzbares "
+                    "Paar im selben UTC-Zyklus; Both (Async) bedeutet Evidenz von "
+                    "beiden Seiten ohne ein solches Paar; Only Target oder Only "
+                    "Reference bedeutet nur eine Seite. Ein **Joint Spot** ist eine "
+                    "konsolidierte Einheit desselben Zyklus mit vergleichbarer "
+                    "Evidenz für beide Seiten. **Stationsmediane** gibt jeder "
+                    "Identität genau ein medianes ΔSNR und damit dasselbe Gewicht. "
+                    "**Joint-Spot ΔSNR** gibt jedem Joint Spot einen Wert; "
+                    "Identitäten mit hohem Umfang können daher viele Werte "
+                    "beitragen. Vergleiche beide Verteilungen: Eine Verschiebung "
+                    "zeigt, dass die Gewichtung nach Beobachtungsumfang vom gleichen "
+                    "Identitätsgewicht abweicht. Der Median reagiert weniger auf "
+                    "einzelne Extremwerte; das arithmetische Mittel stärker."
+                ),
+                "limits": (
+                    "Diese Abbildungen können zeigen, ob die gepaarte Richtung über "
+                    "Identitäten wiederkehrt, wie viel einseitige Evidenz bleibt und "
+                    "wie Streuung und Ausreißer auf Beobachtungsebene aussehen. Sie "
+                    "belegen weder formale statistische Signifikanz, einen "
+                    "allgemeingültigen Vorteil noch die physische Ursache. Das "
+                    "gepaarte ΔSNR beschreibt nur die Teilmenge, in der beide Seiten "
+                    "vergleichbare Evidenz erzeugten; lies es immer zusammen mit "
+                    "den Decode Outcomes."
+                ),
+            },
+            "comparison_evidence_scheduled": {
+                "read": (
+                    "**Decode Outcomes** zählt gemeldete Identitäten mit gepaarter "
+                    "und einseitiger geplanter Evidenz. Both (Async) beschreibt "
+                    "eine Identität mit Evidenz aus beiden geplanten Pfaden, aber "
+                    "ohne gültiges Paar; Only Target oder Only Reference beschreibt "
+                    "nur einen Pfad. Ein **geplantes Paar** ist die deterministische "
+                    "Target-Referenz-Einheit aus dem konfigurierten UTC-Zeitplan. "
+                    "**Stationsmediane** gibt jeder "
+                    "qualifizierenden Identität genau ein medianes Paar-ΔSNR. "
+                    "**ΔSNR je geplantem Paar** gibt jedem gültigen Paar einen Wert; "
+                    "Identitäten mit hohem Umfang können daher viele Werte "
+                    "beitragen. Vergleiche beide Verteilungen, um zu sehen, ob die "
+                    "Gewichtung nach Beobachtungsumfang das Bild mit gleichem "
+                    "Identitätsgewicht verändert. Der Median reagiert weniger auf "
+                    "einzelne Extremwerte; das arithmetische Mittel stärker."
+                ),
+                "limits": (
+                    "Diese Abbildungen können Konsistenz auf Identitätsebene, "
+                    "einseitige geplante Ergebnisse und die Streuung der Paare "
+                    "zeigen. Sie belegen weder formale statistische Signifikanz, "
+                    "einen allgemeingültigen Vorteil noch Kausalität. Das gepaarte "
+                    "ΔSNR schließt unvollständige Paare aus, und das geplante Design "
+                    "kann Änderungen zwischen den zeitlich getrennten Aussendungen "
+                    "nicht beseitigen."
+                ),
+            },
+            "temporal_evidence_joint": {
+                "read": (
+                    "Beide Panels verwenden dieselben Joint Spots auf "
+                    "Beobachtungsebene wie die Verteilung des Joint-Spot ΔSNR; die "
+                    "Auswahl in Station Insights verändert diese Segmentansicht "
+                    "nicht. **Chronologisch** behält tatsächliche UTC-Daten und "
+                    "-Zeiten bei und zeigt, wann sich das gepaarte Muster änderte "
+                    "oder nur wenig Evidenz vorlag. **UTC-Stunde** faltet alle "
+                    "dargestellten Tage auf eine gemeinsame 24-Stunden-UTC-Uhr, um "
+                    "eine stundenbezogene Zuordnung über mehrere Tage zu suchen. "
+                    "Die Farbe zeigt die **relative Dichte** innerhalb jedes "
+                    "Panels: Die dichteste Zelle dieses Panels ist 100 %, nicht "
+                    "100 % der gesamten Evidenz. Nutze die numerischen dB-Werte und "
+                    "Medianlinien, weil die ΔSNR-Achse um ihren Median optisch "
+                    "gedehnt ist."
+                ),
+                "limits": (
+                    "Das chronologische Panel kann ein zeitaufgelöstes Muster "
+                    "dieses Laufs zeigen; das gefaltete Panel kann bei mindestens "
+                    "zwei beitragenden UTC-Tagen eine wiederkehrende Zuordnung zur "
+                    "UTC-Stunde sichtbar machen. Keines belegt, dass Zeit, "
+                    "Tageslicht, Ausbreitung oder Hardware das Muster verursachte. "
+                    "Relative Dichte ist keine absolute Anzahl und kann zwischen "
+                    "den separat normierten Panels nicht direkt verglichen werden."
+                ),
+            },
+            "temporal_evidence_scheduled": {
+                "read": (
+                    "Beide Panels verwenden dieselben geplanten Paare auf "
+                    "Beobachtungsebene wie die Verteilung des ΔSNR je geplantem "
+                    "Paar; die Auswahl in Station Insights verändert diese "
+                    "Segmentansicht "
+                    "nicht. **Chronologisch** behält tatsächliche UTC-Daten und die "
+                    "geplanten Paarzeiten bei. **UTC-Stunde** faltet alle "
+                    "dargestellten Tage auf eine gemeinsame 24-Stunden-UTC-Uhr. "
+                    "Die Farbe zeigt die **relative Dichte** innerhalb jedes Panels, "
+                    "keine absolute Paaranzahl. Nutze die numerischen dB-Werte und "
+                    "Medianlinien, weil die ΔSNR-Achse um ihren Median optisch "
+                    "gedehnt ist."
+                ),
+                "limits": (
+                    "Diese Panels können zeitaufgelöste und wiederkehrende "
+                    "Zuordnungen zur UTC-Stunde in der geplanten Evidenz zeigen. Sie "
+                    "belegen nicht, ob eine Änderung durch Hardware, Ausbreitung, "
+                    "Störungen, Umschaltung oder Zeitplan entstand. Eine wiederholte "
+                    "Zeitplanverzerrung kann wie ein Pfadunterschied aussehen; "
+                    "Farben sind zwischen Panels nicht als absolutes Evidenzvolumen "
+                    "vergleichbar."
+                ),
+            },
+            "success_evidence": {
+                "read": (
+                    "Die angezeigte Success Rate (%) ist **100 × {formula}**. "
+                    "**Station Success Rate by Evidence Count** zeigt jede "
+                    "Identität mit mindestens einer Target-Beobachtung als Punkt: "
+                    "Die Höhe ist ihre Rate, die horizontale Position ihre "
+                    "qualifizierende Evidenzanzahl auf einer logarithmischen "
+                    "Basis-2-Skala. Qualifizierende Identitäten ohne Target fehlen "
+                    "hier, können aber in Station Insights mit "
+                    "`Zero-Target-Stationen zeigen` wieder eingeblendet werden. "
+                    "**Average Station Success Rate** gibt jeder "
+                    "qualifizierenden Identität "
+                    "in jeder Zeit- und Entfernungszelle eine gleich große Stimme. "
+                    "**Observation-Level Success Rate** fasst alle "
+                    "qualifizierenden Target- und "
+                    "{counter}-Beobachtungen zusammen; Identitäten mit hohem Umfang "
+                    "erhalten daher mehr Gewicht. Leere Zellen bedeuten fehlende "
+                    "qualifizierende Evidenz, nicht 0 %."
+                ),
+                "limits": (
+                    "Diese Abbildungen können zeigen, welche Raten wiederholte "
+                    "Evidenz haben, wie sich bedingte Reichweite über Entfernung und "
+                    "Zeit verändert und ob Beobachtungsumfang das "
+                    "stationsgleichgewichtete Bild verändert. Sie wandeln die "
+                    "Evidenzanzahl nicht in statistische Sicherheit um und belegen "
+                    "nicht, warum Raten abweichen. Ähnliche Gewichtungsansichten "
+                    "stützen interne Konsistenz; Abweichungen kennzeichnen einen zu "
+                    "untersuchenden Unterschied in Stationsmix oder Evidenzumfang."
+                ),
+            },
+            "station_insights_compare_joint": {
+                "read": (
+                    "Jede Zeile steht für eine gemeldete {peer_type}-Identität aus "
+                    "Rufzeichen plus Locator im aktiven Bereich. Lies Joint Spots, "
+                    "einseitige Anzahlen und das mediane Stations-ΔSNR zusammen. "
+                    "`Ungepaarte Evidenz einbeziehen` zeigt Identitäten mit "
+                    "einseitiger oder asynchroner Evidenz, aber ohne nutzbares "
+                    "gepaartes ΔSNR. Wähle eine oder mehrere Zeilen, um ihre "
+                    "gepoolte Evidenzansicht zu öffnen. Tabellenfilter verändern "
+                    "angezeigte Zeilen und Auswahl, nicht die abgeschlossene Analyse."
+                ),
+                "limits": (
+                    "Die Tabelle kann zeigen, welche gemeldeten Pfade beitragen, wo "
+                    "Ergebnisse auf Identitätsebene abweichen und ob Evidenz auf "
+                    "eine kleine Teilmenge konzentriert ist. Eine "
+                    "Rufzeichen-plus-Locator-Identität belegt keine einzelne "
+                    "physische Station; eine Zeile ohne gepaarte Evidenz belegt "
+                    "keinen Target-Referenz-Stärkeunterschied."
+                ),
+            },
+            "station_insights_compare_scheduled": {
+                "read": (
+                    "Jede Zeile steht für eine gemeldete RX-Identität aus Rufzeichen "
+                    "plus Locator im aktiven Bereich. Lies geplante Paare, "
+                    "einseitige geplante Anzahlen und das mediane Paar-ΔSNR der "
+                    "Station zusammen. `Ungepaarte Evidenz einbeziehen` zeigt "
+                    "Identitäten ohne vollständiges Paar. Wähle eine oder mehrere "
+                    "Zeilen, um ihre gepoolte Evidenzansicht zu öffnen. "
+                    "Tabellenfilter verändern angezeigte Zeilen und Auswahl, nicht "
+                    "die abgeschlossene Analyse."
+                ),
+                "limits": (
+                    "Die Tabelle kann zeigen, welche gemeldeten Empfänger beitragen, "
+                    "wo Ergebnisse auf Identitätsebene abweichen und ob Evidenz auf "
+                    "eine kleine Teilmenge konzentriert ist. Eine Meldeidentität "
+                    "belegt keine einzelne physische Station; ein unvollständiges "
+                    "Paar belegt kein Paar-ΔSNR."
+                ),
+            },
+            "station_insights_success": {
+                "read": (
+                    "Jede Zeile steht für eine gemeldete {peer_type}-Identität aus "
+                    "Rufzeichen plus Locator. Lies Target, **{counter}**, Success "
+                    "Rate und den Median des SNR erfolgreicher Target-Decodes "
+                    "zusammen. `Zero-Target-Stationen zeigen` stellt qualifizierende "
+                    "Identitäten ohne Target-Beobachtung wieder her. **Auf die "
+                    "gemeldete Leistung von 1 W normiertes SNR** entfernt den gemeldeten "
+                    "Sendeleistungsterm aus erfolgreichen Target-Decodes; ein "
+                    "weniger negatives SNR ist relativ zum Rauschen stärker. Die "
+                    "Success Rate selbst ist nicht leistungsnormiert. Tabellenfilter "
+                    "verändern angezeigte Zeilen und Auswahl, nicht die "
+                    "abgeschlossene Analyse."
+                ),
+                "limits": (
+                    "Die Tabelle kann beitragende Identitäten, ihre bedingten Raten, "
+                    "den Umfang des Nenners und Stärkezusammenfassungen erfolgreicher "
+                    "Decodes zeigen. Sie kann weder das SNR verfehlter Signale "
+                    "zeigen noch die Einzigartigkeit einer physischen Station "
+                    "belegen, "
+                    "Empfängerempfindlichkeit messen oder eine falsche gemeldete "
+                    "Leistung korrigieren."
+                ),
+            },
+            "selected_compare_joint": {
+                "read": (
+                    "Diese Ansicht fasst die Joint Spots der ausgewählten Identitäten "
+                    "zusammen; bei mehreren Identitäten tragen solche mit mehr "
+                    "Beobachtungen mehr Werte bei. Sie ist kein Schätzer mit "
+                    "gleichem Stationsgewicht. **ΔSNR-Verteilung** zeigt Zentrum, "
+                    "Streuung und Ausreißer der Paare; lies den Anteil an der "
+                    "Balkenlänge auf der Achse `Anteil (%)` ab und nutze numerische "
+                    "dB-Werte, Median und Mittelwert. **Chronologisch** ordnet "
+                    "dieselbe Evidenz in ihrer tatsächlichen UTC-Folge an. "
+                    "**UTC-Stunde** faltet dargestellte "
+                    "Tage nach UTC-Stunde, um eine wiederkehrende Zuordnung zu "
+                    "suchen. Die relative Dichte wird innerhalb des aktiven "
+                    "Zeitpanels normiert."
+                ),
+                "limits": (
+                    "Diese Abbildungen können die ausgewählte gepaarte Evidenz und "
+                    "ihr Zeitmuster beschreiben. Sie repräsentieren keine nicht "
+                    "ausgewählten Identitäten, ersetzen nicht das "
+                    "stationsgleichgewichtete Segmentergebnis, rekonstruieren kein "
+                    "fehlendes SNR und belegen nicht die Ursache eines Zeitmusters. "
+                    "UTC-Stunde ist nicht gleichbedeutend mit einer solaren oder "
+                    "Ausbreitungsursache."
+                ),
+            },
+            "selected_compare_scheduled": {
+                "read": (
+                    "Diese Ansicht fasst die geplanten Paare der ausgewählten "
+                    "Empfänger zusammen; Empfänger mit mehr gültigen Paaren tragen "
+                    "mehr Werte bei. Sie ist kein Schätzer mit gleichem "
+                    "Stationsgewicht. **ΔSNR-Verteilung** zeigt Zentrum, Streuung "
+                    "und Ausreißer der Paare. **Chronologisch** ordnet dieselben "
+                    "Paare in ihrer geplanten UTC-Folge an. **UTC-Stunde** faltet "
+                    "dargestellte Tage nach UTC-Stunde. Nutze numerische dB-Werte, "
+                    "Median und Mittelwert; die relative Dichte wird innerhalb des "
+                    "aktiven Zeitpanels normiert."
+                ),
+                "limits": (
+                    "Diese Abbildungen können die ausgewählte Evidenz aus geplanten "
+                    "Paaren und ihr Zeitmuster beschreiben. Sie ersetzen nicht das "
+                    "stationsgleichgewichtete Segmentergebnis und trennen einen "
+                    "Hardwarepfad-Unterschied nicht von systematischen Einflüssen "
+                    "durch Ausbreitung, Störungen, Umschaltung oder Zeitplanphase."
+                ),
+            },
+            "selected_success": {
+                "read": (
+                    "Diese Ansicht fasst Target- und **{counter}**-Evidenz der "
+                    "ausgewählten Identitäten zusammen; Identitäten mit hohem Umfang "
+                    "tragen mehr Beobachtungen bei. Sie ist daher keine "
+                    "Zusammenfassung mit gleichem Stationsgewicht. **Station Success "
+                    "Rate + Evidence over Time** verbindet die Ratenlinie mit "
+                    "gestapelten Target- und {counter}-Anzahlen. Die Farben "
+                    "klassifizieren die an Stützpunkten ausgewertete Beleuchtung "
+                    "des Großkreispfads als Nacht, Greyline/gemischt oder "
+                    "Tageslicht. **Target SNR** enthält nur "
+                    "erfolgreiche Target-Decodes, normiert auf die gemeldete Leistung "
+                    "von 1 W; ein weniger negativer Wert ist relativ zum Rauschen "
+                    "stärker."
+                ),
+                "limits": (
+                    "Das Zeitpanel kann zeigen, wann sich bedingte Ergebnisse und "
+                    "Evidenzumfang änderten und ob dies mit der Pfadbeleuchtung "
+                    "zusammenhing. Es belegt nicht, dass Beleuchtung oder "
+                    "Ausbreitung die Änderung verursachte. Die SNR-Verteilung kann "
+                    "weder die Stärke verfehlter Signale noch eine "
+                    "Empfängerschwelle oder tatsächlich abgestrahlte Leistung "
+                    "bestimmen und beschreibt nicht die vollständige Population "
+                    "eingehender Signale."
+                ),
+            },
+            "drilldown_compare_joint": {
+                "read": (
+                    "Der Drill-Down zeigt **verarbeitete Evidenz auf Zeilenebene** "
+                    "nach Zuordnung und Filtern des Laufs, keine unveränderten "
+                    "Provider-Zeilen. Compare im selben UTC-Zyklus zeigt die für "
+                    "ein Paar verwendeten Target- und Referenzwerte sowie sein "
+                    "ΔSNR. Nutze die Tabelle, um Zusammenfassungen abzugleichen, "
+                    "genaue UTC-Zeiten und Identitäten zu prüfen und außergewöhnliche "
+                    "Beobachtungen zu untersuchen. Filter verändern nur die "
+                    "angezeigte Tabelle."
+                ),
+                "limits": (
+                    "Die Zeilen können belegen, wie verarbeitete Evidenz die "
+                    "angezeigten Zusammenfassungen gebildet hat. Sie sind eine "
+                    "Prüfoberfläche, keine neue Leistungskennzahl. Ein fehlendes "
+                    "SNR wird nicht rekonstruiert, eine außergewöhnliche Zeile "
+                    "belegt nicht das Gesamtergebnis, und das Archiv kann den "
+                    "physischen Aufbau hinter jedem Feld nicht verifizieren."
+                ),
+            },
+            "drilldown_compare_scheduled": {
+                "read": (
+                    "Der Drill-Down zeigt **verarbeitete geplante Evidenz**, keine "
+                    "unveränderten Provider-Zeilen. Er zeigt das geplante UTC-Paar, "
+                    "die TX-Rolle, Target- und Referenz-Mikromediane sowie Paar-ΔSNR. "
+                    "Nutze die Tabelle, um zu bestätigen, dass die angezeigten Werte "
+                    "dem konfigurierten Zeitplan folgen und mit den "
+                    "Zusammenfassungen übereinstimmen. Filter verändern nur die "
+                    "angezeigte Tabelle."
+                ),
+                "limits": (
+                    "Die Zeilen können belegen, wie die konfigurierte Paarung die "
+                    "angezeigte Evidenz erzeugte. Sie sind eine Prüfoberfläche, "
+                    "keine neue Leistungskennzahl, und können nicht belegen, dass "
+                    "Ausbreitung oder Störungen zwischen den Aussendungen "
+                    "unverändert blieben."
+                ),
+            },
+            "drilldown_success": {
+                "read": (
+                    "Der Drill-Down zeigt **verarbeitete Evidenz auf Zeilenebene** "
+                    "nach den Zulässigkeitsregeln und Filtern des Laufs, keine "
+                    "unveränderten Provider-Zeilen. Outcomes zeigen Target, "
+                    "**{counter}** und Target-only. Target-only bleibt prüfbar, "
+                    "fließt aber nicht in den Nenner der Success Rate ein. Nutze "
+                    "die Tabelle, um Zähler und Nenner mit den beitragenden Zyklen "
+                    "abzugleichen. Filter verändern nur die angezeigte Tabelle."
+                ),
+                "limits": (
+                    "Die Zeilen können belegen, wie die beibehaltenen Zyklen die "
+                    "angezeigten Zusammenfassungen gebildet haben. Sie können weder "
+                    "unbeobachtete Aussendungen ohne unabhängige Bestätigung "
+                    "sichtbar machen noch erklären, warum ein Signal nicht "
+                    "decodiert wurde, oder eine einzelne außergewöhnliche Zeile in "
+                    "eine allgemeine "
+                    "Schlussfolgerung verwandeln."
+                ),
+            },
+            "drilldown_local_median": {
+                "read": (
+                    "Beim Lokalen Nachbarschafts-Median erweitert die Tabelle die "
+                    "lokalen Referenzidentitäten, die zu jedem anwendbaren "
+                    "Zyklusmedian beitrugen."
+                ),
+                "limits": (
+                    "Diese erweiterten Zeilen erklären die dynamische "
+                    "Referenzbildung; sie machen aus der Nachbarschaft keine "
+                    "einzelne feste oder kalibrierte Referenzstation."
+                ),
+            },
+            "download": {
+                "read": (
+                    "Das **Analyse-Evidenzpaket** enthält Konfiguration und "
+                    "Metadaten des abgeschlossenen Laufs sowie die verarbeitete "
+                    "Evidenz, die im geografischen Bereich des Laufs beibehalten "
+                    "wurde. Es zeichnet außerdem den aktuellen Inspector-Bereich "
+                    "und die Stationsauswahl auf und enthält anwendbare Tabellen "
+                    "und hochauflösende Abbildungen. `Konfig speichern` speichert "
+                    "separat wiederverwendbare Analyseeinstellungen statt der "
+                    "Evidenz dieses Laufs."
+                ),
+                "limits": (
+                    "Das Paket unterstützt Prüfung, Weitergabe und Reproduktion des "
+                    "WSPRadar-Analysestands zum Exportzeitpunkt. Es validiert den "
+                    "Versuch nicht unabhängig, enthält keine unveränderten "
+                    "Upstream-Antworten und erfasst weder physischen Aufbau, "
+                    "Kalibrierung, tatsächliche Leistung, Umschaltung, Wetter, "
+                    "Fehler noch andere externe Beobachtungen. Eine spätere "
+                    "Archivabfrage kann durch Änderungen an Upstream-Daten oder "
+                    "WSPRadar abweichen."
+                ),
+            },
+        },
+    },
+}
+
+
 # Streamlit sessions created before canonical widget tokens were introduced can
 # survive a deployment rerun with the old display label still stored as state.
 # Keep these historical labels explicit so changing UI wording never changes a

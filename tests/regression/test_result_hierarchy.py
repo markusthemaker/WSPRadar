@@ -727,9 +727,7 @@ def test_segment_heading_precedes_accessibly_labelled_scope_selectors():
     body_start = source.index("def _render_segment_inspector_body(")
     body = source[body_start:]
 
-    heading_index = body.index(
-        't.get("hdr_results_segment_inspector", "Segment Inspector")'
-    )
+    heading_index = body.index('"hdr_results_segment_inspector"')
     level_two_index = body.index('f"results_evidence_level_2_')
     distance_selector_index = body.index(
         "selected_distance_values = st.multiselect("
@@ -822,9 +820,7 @@ def test_scope_evidence_precedes_compare_and_success_figure_groups():
     opportunity_body = source[opportunity_start:opportunity_end]
     assert (
         opportunity_body.index("scope_summary_placeholder.markdown(")
-        < opportunity_body.index(
-            't.get(\n                    "hdr_results_success_temporal",'
-        )
+        < opportunity_body.index('"hdr_results_success_temporal"')
     )
 
     inspector_body = source[opportunity_end:]
@@ -832,9 +828,7 @@ def test_scope_evidence_precedes_compare_and_success_figure_groups():
     compare_body = inspector_body[compare_start:]
     assert (
         compare_body.index("scope_summary_placeholder.markdown(")
-        < compare_body.index(
-            't.get(\n                        "hdr_results_comparison_evidence",'
-        )
+        < compare_body.index('"hdr_results_comparison_evidence"')
     )
     assert inspector_body.count('f"results_evidence_level_3_') == 1
     assert inspector_body.count('f"results_evidence_level_4_') == 1

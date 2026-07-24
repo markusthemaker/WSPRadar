@@ -41,6 +41,10 @@ from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
 from ui.config_save import render_config_save_control
+from ui.result_guidance import (
+    RESULT_GUIDANCE_DOWNLOAD,
+    render_result_guidance_popover,
+)
 from ui.result_hierarchy import utility_header_html
 from ui.result_state import (
     EXPORT_RUN_ID_KEY,
@@ -962,6 +966,13 @@ def render_download_all_results(t):
             ),
         ),
         unsafe_allow_html=True,
+    )
+    render_result_guidance_popover(
+        RESULT_GUIDANCE_DOWNLOAD,
+        t.get("hdr_results_download_evidence", "Download Evidence"),
+        language=st.session_state.get("lang", "en"),
+        translations=t,
+        key=f"results_guidance_download_{_current_run_id()}",
     )
     export_column, save_column = st.columns(
         [0.65, 0.35],

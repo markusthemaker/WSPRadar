@@ -90,6 +90,16 @@ from ui.result_hierarchy import (
     station_scope_text,
     transition_prompt_html,
 )
+from ui.result_guidance import (
+    RESULT_GUIDANCE_COMPARISON_EVIDENCE,
+    RESULT_GUIDANCE_DRILLDOWN,
+    RESULT_GUIDANCE_SEGMENT,
+    RESULT_GUIDANCE_SELECTED_STATIONS,
+    RESULT_GUIDANCE_STATION_INSIGHTS,
+    RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+    RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+    render_result_guidance_popover,
+)
 
 INSPECTOR_CACHE_VERSION = 16
 INSPECTOR_PNG_RENDER_VERSION = 12
@@ -1087,17 +1097,21 @@ def _render_drilldown_dataframe(
     scope_token,
     t,
     is_compare,
+    is_sequential,
+    analysis_context,
+    language,
     timing_collector=None,
 ):
     """Render selected drill-down rows with local filters and return the displayed dataframe."""
     if drill_df is None or drill_df.empty:
         return pd.DataFrame()
 
+    drilldown_title = t.get("hdr_results_drilldown", "Drill-Down Data")
     st.markdown(
         evidence_level_header_html(
             5,
             t.get("lbl_results_level_rows", "Row-level evidence"),
-            t.get("hdr_results_drilldown", "Drill-Down Data"),
+            drilldown_title,
             drilldown_subtitle(
                 selected_station_labels,
                 analysis_id,
@@ -1105,6 +1119,20 @@ def _render_drilldown_dataframe(
             ),
         ),
         unsafe_allow_html=True,
+    )
+    render_result_guidance_popover(
+        RESULT_GUIDANCE_DRILLDOWN,
+        drilldown_title,
+        language=language,
+        translations=t,
+        key=(
+            f"results_guidance_drilldown_"
+            f"{analysis_id}_{run_id}_{scope_token}"
+        ),
+        analysis_id=analysis_id,
+        is_compare=is_compare,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
     )
     normalization_note = (
         "SNR-Werte sind auf 1 W normiert."
@@ -1180,6 +1208,8 @@ def _render_selected_station_evidence(
     run_id,
     scope_token,
     cache_key,
+    analysis_context,
+    language,
     timing_collector=None,
 ):
     """Render selected evidence with a saved Compare temporal-view selector."""
@@ -1207,14 +1237,15 @@ def _render_selected_station_evidence(
                 tx_ab_reference_start_minute=tx_ab_reference_start_minute,
             )
         if evidence_df.empty:
+            selected_evidence_heading = t.get(
+                "hdr_results_selected_station_evidence",
+                "Selected Station Evidence",
+            )
             st.markdown(
                 evidence_level_header_html(
                     4,
                     t.get("lbl_results_level_selection", "Selected stations"),
-                    t.get(
-                        "hdr_results_selected_station_evidence",
-                        "Selected Station Evidence",
-                    ),
+                    selected_evidence_heading,
                     selected_station_context(
                         identity_labels,
                         0,
@@ -1225,6 +1256,20 @@ def _render_selected_station_evidence(
                     ),
                 ),
                 unsafe_allow_html=True,
+            )
+            render_result_guidance_popover(
+                RESULT_GUIDANCE_SELECTED_STATIONS,
+                selected_evidence_heading,
+                language=language,
+                translations=t,
+                key=(
+                    f"results_guidance_selected_stations_"
+                    f"{analysis_id}_{run_id}_{scope_token}"
+                ),
+                analysis_id=analysis_id,
+                is_compare=is_compare,
+                is_sequential=is_sequential,
+                analysis_context=analysis_context,
             )
             st.markdown(
                 scope_context_html(
@@ -1312,14 +1357,15 @@ def _render_selected_station_evidence(
 
     identity_labels = list(selected_bundle["identity_labels"])
     evidence_count = int(selected_bundle["evidence_count"])
+    selected_evidence_heading = t.get(
+        "hdr_results_selected_station_evidence",
+        "Selected Station Evidence",
+    )
     st.markdown(
         evidence_level_header_html(
             4,
             t.get("lbl_results_level_selection", "Selected stations"),
-            t.get(
-                "hdr_results_selected_station_evidence",
-                "Selected Station Evidence",
-            ),
+            selected_evidence_heading,
             selected_station_context(
                 identity_labels,
                 evidence_count,
@@ -1330,6 +1376,20 @@ def _render_selected_station_evidence(
             ),
         ),
         unsafe_allow_html=True,
+    )
+    render_result_guidance_popover(
+        RESULT_GUIDANCE_SELECTED_STATIONS,
+        selected_evidence_heading,
+        language=language,
+        translations=t,
+        key=(
+            f"results_guidance_selected_stations_"
+            f"{analysis_id}_{run_id}_{scope_token}"
+        ),
+        analysis_id=analysis_id,
+        is_compare=is_compare,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
     )
 
     time_agg_options = list(selected_bundle["time_agg_options"])
@@ -1505,21 +1565,42 @@ def _render_segment_temporal_evidence(
     scope_token,
     cache_key,
     t,
+    is_sequential,
+    analysis_context,
+    language,
     timing_collector=None,
 ):
     """Render one segment-scoped Compare timeline with a saved bin selector."""
     if not temporal_bundle:
         return None
 
+    temporal_evidence_title = t.get(
+        "hdr_results_temporal_evidence",
+        "Temporal Evidence",
+    )
     st.markdown(
         evidence_child_header_html(
-            t.get("hdr_results_temporal_evidence", "Temporal Evidence"),
+            temporal_evidence_title,
             t.get(
                 "sub_results_temporal_evidence",
                 "The same paired evidence shown chronologically and by UTC hour.",
             ),
         ),
         unsafe_allow_html=True,
+    )
+    render_result_guidance_popover(
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+        temporal_evidence_title,
+        language=language,
+        translations=t,
+        key=(
+            f"results_guidance_temporal_evidence_"
+            f"{analysis_id}_{run_id}_{scope_token}"
+        ),
+        analysis_id=analysis_id,
+        is_compare=True,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
     )
 
     time_bin_options = list(temporal_bundle["time_bin_options"])
@@ -1756,12 +1837,13 @@ def _render_opportunity_scope(
     )
 
     with level_two_container:
+        success_evidence_title = t.get(
+            "hdr_results_success_temporal",
+            "Success & Temporal Evidence",
+        )
         st.markdown(
             evidence_child_header_html(
-                t.get(
-                    "hdr_results_success_temporal",
-                    "Success & Temporal Evidence",
-                ),
+                success_evidence_title,
                 t.get(
                     "sub_results_success_temporal",
                     "Evidence depth, station-balanced and observation-level "
@@ -1769,6 +1851,20 @@ def _render_opportunity_scope(
                 ),
             ),
             unsafe_allow_html=True,
+        )
+        render_result_guidance_popover(
+            RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+            success_evidence_title,
+            language=presentation_context.language,
+            translations=t,
+            key=(
+                f"results_guidance_success_evidence_"
+                f"{analysis_id}_{run_id}_{scope_token}"
+            ),
+            analysis_id=analysis_id,
+            is_compare=False,
+            is_sequential=False,
+            analysis_context=analysis_context,
         )
         st.markdown(
             "<div style='text-align:center; color:white; font-size:0.95rem; "
@@ -1821,11 +1917,12 @@ def _render_opportunity_scope(
         )
     )
     station_type = remote_station_type(analysis_id)
+    station_insights_title = t.get("lbl_insights", "Station Insights")
     level_three_container.markdown(
         evidence_level_header_html(
             3,
             t.get("lbl_results_level_stations", "Contributing stations"),
-            t.get("lbl_insights", "Station Insights"),
+            station_insights_title,
             t.get(
                 "sub_results_station_insights",
                 "Contributing {station_type} stations in the active scope. "
@@ -1841,6 +1938,21 @@ def _render_opportunity_scope(
         ),
         unsafe_allow_html=True,
     )
+    with level_three_container:
+        render_result_guidance_popover(
+            RESULT_GUIDANCE_STATION_INSIGHTS,
+            station_insights_title,
+            language=presentation_context.language,
+            translations=t,
+            key=(
+                f"results_guidance_station_insights_"
+                f"{analysis_id}_{run_id}_{scope_token}"
+            ),
+            analysis_id=analysis_id,
+            is_compare=False,
+            is_sequential=False,
+            analysis_context=analysis_context,
+        )
 
     col_title, col_toggle, col_filter = level_three_container.columns(
         [0.56, 0.26, 0.18],
@@ -1976,14 +2088,15 @@ def _render_opportunity_scope(
                 f"{analysis_id}_{run_id}_{scope_token}"
             )
         )
+        selected_evidence_heading = t.get(
+            "hdr_results_selected_station_evidence",
+            "Selected Station Evidence",
+        )
         level_four_container.markdown(
             evidence_level_header_html(
                 4,
                 t.get("lbl_results_level_selection", "Selected stations"),
-                t.get(
-                    "hdr_results_selected_station_evidence",
-                    "Selected Station Evidence",
-                ),
+                selected_evidence_heading,
                 selected_station_context(
                     selected_station_labels,
                     confirmed_opportunity_count,
@@ -1995,6 +2108,21 @@ def _render_opportunity_scope(
             ),
             unsafe_allow_html=True,
         )
+        with level_four_container:
+            render_result_guidance_popover(
+                RESULT_GUIDANCE_SELECTED_STATIONS,
+                selected_evidence_heading,
+                language=presentation_context.language,
+                translations=t,
+                key=(
+                    f"results_guidance_selected_stations_"
+                    f"{analysis_id}_{run_id}_{scope_token}"
+                ),
+                analysis_id=analysis_id,
+                is_compare=False,
+                is_sequential=False,
+                analysis_context=analysis_context,
+            )
 
         time_options, time_default = _time_agg_options_for_span(pd.DataFrame({
             "plot_time": [
@@ -2139,6 +2267,9 @@ def _render_opportunity_scope(
                     scope_token,
                     t,
                     False,
+                    False,
+                    analysis_context,
+                    presentation_context.language,
                     timing_collector=timing_collector,
                 )
     else:
@@ -2316,11 +2447,15 @@ def _render_segment_inspector_body(
     level_two_container = st.container(
         key=f"results_evidence_level_2_{analysis_id}_{run_id}"
     )
+    segment_inspector_title = t.get(
+        "hdr_results_segment_inspector",
+        "Segment Inspector",
+    )
     level_two_container.markdown(
         evidence_level_header_html(
             2,
             t.get("lbl_results_level_scope", "Geographic scope"),
-            t.get("hdr_results_segment_inspector", "Segment Inspector"),
+            segment_inspector_title,
             t.get(
                 "sub_results_segment_inspector",
                 "Choose one or more distance ranges and directions. "
@@ -2329,6 +2464,18 @@ def _render_segment_inspector_body(
         ),
         unsafe_allow_html=True,
     )
+    with level_two_container:
+        render_result_guidance_popover(
+            RESULT_GUIDANCE_SEGMENT,
+            segment_inspector_title,
+            language=presentation_context.language,
+            translations=t,
+            key=f"results_guidance_segment_{analysis_id}_{run_id}",
+            analysis_id=analysis_id,
+            is_compare=is_compare,
+            is_sequential=is_sequential,
+            analysis_context=analysis_context,
+        )
 
     lbl_dist = t.get("lbl_results_distance_range", "Distance range")
     lbl_dir = t.get("lbl_results_direction", "Direction")
@@ -2817,12 +2964,13 @@ def _render_segment_inspector_body(
         )
 
         with level_two_container:
+            comparison_evidence_title = t.get(
+                "hdr_results_comparison_evidence",
+                "Comparison Evidence",
+            )
             st.markdown(
                 evidence_child_header_html(
-                    t.get(
-                        "hdr_results_comparison_evidence",
-                        "Comparison Evidence",
-                    ),
+                    comparison_evidence_title,
                     t.get(
                         comparison_subtitle_key,
                         "Decode Outcomes, station medians, and paired ΔSNR "
@@ -2830,6 +2978,20 @@ def _render_segment_inspector_body(
                     ),
                 ),
                 unsafe_allow_html=True,
+            )
+            render_result_guidance_popover(
+                RESULT_GUIDANCE_COMPARISON_EVIDENCE,
+                comparison_evidence_title,
+                language=presentation_context.language,
+                translations=t,
+                key=(
+                    f"results_guidance_comparison_evidence_"
+                    f"{analysis_id}_{run_id}_{scope_token}"
+                ),
+                analysis_id=analysis_id,
+                is_compare=True,
+                is_sequential=is_sequential,
+                analysis_context=analysis_context,
             )
 
             if has_plot_data:
@@ -2860,6 +3022,9 @@ def _render_segment_inspector_body(
                     scope_token=scope_token,
                     cache_key=segment_cache_key,
                     t=t,
+                    is_sequential=is_sequential,
+                    analysis_context=analysis_context,
+                    language=presentation_context.language,
                     timing_collector=timing_collector,
                 )
             else:
@@ -2887,11 +3052,12 @@ def _render_segment_inspector_body(
             )
         )
         station_type = remote_station_type(analysis_id)
+        station_insights_title = t.get("lbl_insights", "Station Insights")
         level_three_container.markdown(
             evidence_level_header_html(
                 3,
                 t.get("lbl_results_level_stations", "Contributing stations"),
-                t.get("lbl_insights", "Station Insights"),
+                station_insights_title,
                 t.get(
                     "sub_results_station_insights",
                     "Contributing {station_type} stations in the active scope. "
@@ -2907,6 +3073,21 @@ def _render_segment_inspector_body(
             ),
             unsafe_allow_html=True,
         )
+        with level_three_container:
+            render_result_guidance_popover(
+                RESULT_GUIDANCE_STATION_INSIGHTS,
+                station_insights_title,
+                language=presentation_context.language,
+                translations=t,
+                key=(
+                    f"results_guidance_station_insights_"
+                    f"{analysis_id}_{run_id}_{scope_token}"
+                ),
+                analysis_id=analysis_id,
+                is_compare=True,
+                is_sequential=is_sequential,
+                analysis_context=analysis_context,
+            )
 
         # --- 1. Define layout columns ---
         # Give localized toggle labels enough room while preserving the filter width.
@@ -3110,6 +3291,8 @@ def _render_segment_inspector_body(
                             presentation_context.language,
                             presentation_context.theme,
                         ),
+                        analysis_context=analysis_context,
+                        language=presentation_context.language,
                         timing_collector=timing_collector,
                     )
                 level_four_container.markdown(
@@ -3171,6 +3354,9 @@ def _render_segment_inspector_body(
                             scope_token,
                             t,
                             is_compare,
+                            is_sequential,
+                            analysis_context,
+                            presentation_context.language,
                             timing_collector=timing_collector,
                         )
 

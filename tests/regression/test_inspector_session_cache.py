@@ -124,6 +124,7 @@ def test_station_insights_toggle_has_room_for_single_line_label():
 def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     """Keep level 04 visible when only retained non-joint rows can be audited."""
     markdown_calls = []
+    guidance_calls = []
     monkeypatch.setattr(
         segment_inspector,
         "st",
@@ -142,6 +143,11 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
         "_build_evidence_points",
         lambda *_args, **_kwargs: pd.DataFrame(),
     )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *args, **kwargs: guidance_calls.append((args, kwargs)),
+    )
 
     result = segment_inspector._render_selected_station_evidence(
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
@@ -156,6 +162,8 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
         run_id=7,
         scope_token="all",
         cache_key=("selected",),
+        analysis_context=SimpleNamespace(),
+        language="en",
     )
 
     rendered_markup = "".join(markdown_calls)
@@ -168,6 +176,11 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     assert "Selected Station Evidence" in rendered_markup
     assert "G3AAA (IO90) · 0 joint spots" in rendered_markup
     assert T["en"]["txt_results_selected_no_paired_evidence"] in rendered_markup
+    assert len(guidance_calls) == 1
+    assert (
+        guidance_calls[0][0][0]
+        == segment_inspector.RESULT_GUIDANCE_SELECTED_STATIONS
+    )
 
 
 def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():

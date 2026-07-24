@@ -2,6 +2,16 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-07-24
+
+- Added optional bilingual **How to read this** guidance throughout the shared
+  Guided and Classic result flow, from run context and Map View through Segment
+  Inspector, figure groups, Station Insights, selected-station evidence,
+  Drill-Down and evidence download. The guidance adapts to RX/TX,
+  Compare/Success, benchmark type and scheduled TX Hardware A/B; introduces
+  result terms and explains how related figures differ; and states what each
+  view does and does not establish without interpreting the live values.
+
 ## 2026-07-23
 
 - Made **Geographic Analysis Scope (Max Peer Distance km)** a scientific

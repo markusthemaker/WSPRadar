@@ -74,6 +74,11 @@ from ui.result_hierarchy import (
     result_context_html,
     transition_prompt_html,
 )
+from ui.result_guidance import (
+    RESULT_GUIDANCE_CONTEXT,
+    RESULT_GUIDANCE_MAP,
+    render_result_guidance_popover,
+)
 from ui.results_export import register_map_export_context
 from ui.presentation_context_adapter import build_presentation_context_from_session_state
 from ui.result_state import (
@@ -957,6 +962,20 @@ def _render_admitted_analysis_run(
                     result_context_html(result_context),
                     unsafe_allow_html=True,
                 )
+                render_result_guidance_popover(
+                    RESULT_GUIDANCE_CONTEXT,
+                    result_context.title,
+                    language=presentation_context.language,
+                    translations=t,
+                    key=(
+                        f"results_guidance_context_"
+                        f"{analysis['id']}_{run_id}"
+                    ),
+                    analysis_id=analysis["id"],
+                    is_compare=analysis["is_compare"],
+                    is_sequential=analysis["is_sequential"],
+                    analysis_context=analysis_context,
+                )
                 with st.container(
                     key=f"results_evidence_spine_{analysis['id']}_{run_id}"
                 ):
@@ -976,6 +995,20 @@ def _render_admitted_analysis_run(
                         unsafe_allow_html=True,
                     )
                     with level_one_container:
+                        render_result_guidance_popover(
+                            RESULT_GUIDANCE_MAP,
+                            t.get("hdr_results_map_view", "Map View"),
+                            language=presentation_context.language,
+                            translations=t,
+                            key=(
+                                f"results_guidance_map_"
+                                f"{analysis['id']}_{run_id}"
+                            ),
+                            analysis_id=analysis["id"],
+                            is_compare=analysis["is_compare"],
+                            is_sequential=analysis["is_sequential"],
+                            analysis_context=analysis_context,
+                        )
                         try:
                             with (
                                 profile_timer.span(
