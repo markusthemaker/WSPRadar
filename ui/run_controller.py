@@ -1087,8 +1087,6 @@ def _render_admitted_analysis_run(
 
         st.markdown("---")
 
-    status_box.update(label="Complete", state="complete", expanded=False)
-
     for index, data in enumerate(deferred_render_data):
         admission_permit.touch()
         data["skeleton_ph"].empty()
@@ -1115,5 +1113,7 @@ def _render_admitted_analysis_run(
                     timing_collector=data["profile_timer"],
                     timing_label=inspector_span,
                 )
+
+    status_box.update(label="Complete", state="complete", expanded=False)
 
     return "completed"

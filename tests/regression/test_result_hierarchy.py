@@ -703,6 +703,22 @@ def test_map_and_deferred_inspector_share_one_progressive_flow_container():
     assert "sub_results_stations_spots" not in result_flow
 
 
+def test_run_is_complete_only_after_deferred_inspectors_finish():
+    """Do not publish a terminal status while result sections still render."""
+    source = (REPOSITORY_ROOT / "ui" / "run_controller.py").read_text(
+        encoding="utf-8"
+    )
+    result_start = source.index("deferred_render_data = []")
+    result_flow = source[result_start:]
+
+    inspector_render_index = result_flow.index("render_segment_inspector(")
+    complete_status_index = result_flow.index(
+        'status_box.update(label="Complete"'
+    )
+
+    assert inspector_render_index < complete_status_index
+
+
 def test_segment_heading_precedes_accessibly_labelled_scope_selectors():
     """Explain the narrowing step before compact, accessibly named controls."""
     source = (
