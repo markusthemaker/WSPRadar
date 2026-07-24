@@ -77,6 +77,7 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "sub_results_success_temporal",
     "sub_results_station_insights",
     "sub_results_selected_station_single",
+    "sub_results_selected_station_named",
     "sub_results_selected_station_multi",
     "sub_results_drilldown_single",
     "sub_results_drilldown_multi",
@@ -454,10 +455,11 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
         else "unit_confirmed_opportunity_plural"
     )
     assert selected_multi == translations[
-        "sub_results_selected_station_multi"
+        "sub_results_selected_station_named"
     ].format(
         selected_count=2,
         station_type=expected_station_type,
+        stations=", ".join(identities),
         evidence_count=2,
         evidence_unit=translations[expected_multi_unit_key],
     )
@@ -476,6 +478,55 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
     ) == translations["sub_results_drilldown_multi"].format(
         count=2,
         station_type=expected_station_type,
+    )
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+def test_selected_station_context_lists_at_most_five_station_identities(language):
+    """List exact station identities through five, then use the count summary."""
+    translations = T[language]
+    identities = [
+        "G1AAA (IO91)",
+        "G2BBB (IO92)",
+        "G3CCC (IO93)",
+        "G4DDD (IO94)",
+        "G5EEE (IO95)",
+        "G6FFF (IO96)",
+    ]
+
+    five_station_context = selected_station_context(
+        identities[:5],
+        12,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        is_sequential=False,
+        translations=translations,
+    )
+    assert five_station_context == translations[
+        "sub_results_selected_station_named"
+    ].format(
+        selected_count=5,
+        station_type="TX",
+        stations=", ".join(identities[:5]),
+        evidence_count=12,
+        evidence_unit=translations["unit_joint_spot_plural"],
+    )
+
+    six_station_context = selected_station_context(
+        identities,
+        12,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        is_sequential=False,
+        translations=translations,
+    )
+    assert six_station_context == translations[
+        "sub_results_selected_station_multi"
+    ].format(
+        selected_count=6,
+        station_type="TX",
+        evidence_count=12,
+        evidence_unit=translations["unit_joint_spot_plural"],
     )
 
 

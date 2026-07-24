@@ -39,6 +39,7 @@ from core.opportunity_engine import (
     opportunity_utc_from_time_slot,
 )
 from core.artifact_store import ARTIFACT_STORE, read_parquet_artifact
+from core.compare_engine import compare_footer_counts
 from core.performance_timer import log_performance_event
 from ui.inspector.evidence_data import (
     _build_evidence_points,
@@ -101,8 +102,8 @@ from ui.result_guidance import (
     render_result_guidance_popover,
 )
 
-INSPECTOR_CACHE_VERSION = 16
-INSPECTOR_PNG_RENDER_VERSION = 12
+INSPECTOR_CACHE_VERSION = 19
+INSPECTOR_PNG_RENDER_VERSION = 15
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
 RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
@@ -954,14 +955,34 @@ def _segment_summary_lines(
     ]
 
 
-def _compare_metric_distribution_summary(values, template):
-    """Format the median and arithmetic mean of one plotted Compare distribution."""
+def _format_summary_count(count):
+    """Format an integer summary count with an apostrophe thousands separator."""
+    return f"{int(count):,}".replace(",", "'")
+
+
+def _compare_metric_distribution_summary(
+    values,
+    template,
+    *,
+    total_count=None,
+    joint_count=None,
+    joint_label="Joint",
+):
+    """Format one Compare distribution summary with optional outcome counts."""
     numeric_values = np.asarray(values, dtype=float)
     numeric_values = numeric_values[np.isfinite(numeric_values)]
     if len(numeric_values) == 0:
         return None
 
+    count_context = ""
+    if total_count is not None and joint_count is not None:
+        count_context = (
+            f" (n={_format_summary_count(total_count)}; "
+            f"{joint_label}={_format_summary_count(joint_count)})"
+        )
+
     return template.format(
+        count_context=count_context,
         median=f"{float(np.median(numeric_values)):+.1f}",
         mean=f"{float(np.mean(numeric_values)):+.1f}",
     )
@@ -2705,6 +2726,11 @@ def _render_segment_inspector_body(
             segment_summary = []
             segment_station_count = 0
             segment_evidence_count = 0
+            segment_station_total_count = None
+            segment_station_joint_count = None
+            segment_spot_total_count = None
+            segment_spot_joint_count = None
+            joint_lbl = t.get("txt_joint", "Joint")
 
             if has_plot_data:
                 with _timed_span(timing_collector, "segment evidence points build"):
@@ -2732,23 +2758,58 @@ def _render_segment_inspector_body(
                 segment_evidence_count = len(segment_raw_values)
                 compare_layout = is_compare and "count_only_u" in df_seg.columns
                 if compare_layout:
-                    cnt_joint = len(df_seg[df_seg["spot_count"] > 0])
-                    cnt_async = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] > 0) & (df_seg["count_only_r"] > 0)])
-                    cnt_u = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] > 0) & (df_seg["count_only_r"] == 0)])
-                    cnt_r = len(df_seg[(df_seg["spot_count"] == 0) & (df_seg["count_only_u"] == 0) & (df_seg["count_only_r"] > 0)])
+                    outcome_counts = compare_footer_counts(
+                        df_seg,
+                        max_dist_km=float("inf"),
+                    )
                     joint_lbl = (
                         t.get("tbl_col_joint_pairs", "Joint Pairs")
                         if is_sequential
-                        else t.get("tbl_col_joint", "Joint")
+                        else t.get("txt_joint", "Joint")
                     )
                     async_lbl = t.get("leg_both_async", "Both (Async)")
-                    segment_panel_counts = [cnt_u, cnt_joint, cnt_async, cnt_r]
-                    segment_panel_labels = [col_u_name, joint_lbl, async_lbl, yield_ref_header]
-                    segment_panel_y_label = t["lbl_hist_count"]
+                    segment_panel_station_counts = [
+                        outcome_counts["stat_only_u"],
+                        outcome_counts["stat_joint"],
+                        outcome_counts["stat_both_async"],
+                        outcome_counts["stat_only_r"],
+                    ]
+                    segment_panel_spot_counts = [
+                        outcome_counts["spot_only_u"],
+                        outcome_counts["spot_joint"],
+                        outcome_counts["spot_both_async"],
+                        outcome_counts["spot_only_r"],
+                    ]
+                    segment_panel_counts = []
+                    segment_panel_labels = [
+                        compare_view_model.target_only_label,
+                        joint_lbl,
+                        async_lbl,
+                        compare_view_model.reference_only_label,
+                    ]
+                    segment_panel_y_label = "Share (%)"
+                    segment_panel_series_labels = [
+                        t.get("lbl_results_stations", "Stations"),
+                        (
+                            t.get(
+                                "lbl_results_scheduled_pairs",
+                                "Scheduled pairs",
+                            )
+                            if is_sequential
+                            else t.get("lbl_results_spots", "Spots")
+                        ),
+                    ]
+                    segment_station_total_count = sum(segment_panel_station_counts)
+                    segment_station_joint_count = outcome_counts["stat_joint"]
+                    segment_spot_total_count = sum(segment_panel_spot_counts)
+                    segment_spot_joint_count = outcome_counts["spot_joint"]
                 else:
                     segment_panel_counts = [len(df_seg), int(df_seg["spot_count"].sum())]
                     segment_panel_labels = ["Stations", "Spots"]
                     segment_panel_y_label = "Count"
+                    segment_panel_station_counts = []
+                    segment_panel_spot_counts = []
+                    segment_panel_series_labels = []
 
                 segment_figure_recipe = _segment_figure_export_recipe(
                     title=title,
@@ -2761,6 +2822,9 @@ def _render_segment_inspector_body(
                     panel_counts=segment_panel_counts,
                     panel_labels=segment_panel_labels,
                     panel_y_label=segment_panel_y_label,
+                    panel_station_counts=segment_panel_station_counts,
+                    panel_spot_counts=segment_panel_spot_counts,
+                    panel_series_labels=segment_panel_series_labels,
                     paired_evidence_title=(
                         t.get(
                             "fig_scheduled_pair_delta",
@@ -2863,9 +2927,12 @@ def _render_segment_inspector_body(
                         segment_figure_recipe["station_values"],
                         t.get(
                             "fmt_results_station_delta_summary",
-                            "Station-level · Median {median} dB · "
+                            "Stations{count_context} · Median {median} dB · "
                             "Mean {mean} dB",
                         ),
+                        total_count=segment_station_total_count,
+                        joint_count=segment_station_joint_count,
+                        joint_label=joint_lbl,
                     )
                     observation_summary_key = (
                         "fmt_results_scheduled_pair_delta_summary"
@@ -2873,10 +2940,10 @@ def _render_segment_inspector_body(
                         else "fmt_results_joint_spot_delta_summary"
                     )
                     observation_summary_fallback = (
-                        "Scheduled-Pair level · Median {median} dB · "
+                        "Scheduled pairs{count_context} · Median {median} dB · "
                         "Mean {mean} dB"
                         if is_sequential
-                        else "Joint-Spot level · Median {median} dB · "
+                        else "Spots{count_context} · Median {median} dB · "
                         "Mean {mean} dB"
                     )
                     spot_summary = _compare_metric_distribution_summary(
@@ -2885,6 +2952,9 @@ def _render_segment_inspector_body(
                             observation_summary_key,
                             observation_summary_fallback,
                         ),
+                        total_count=segment_spot_total_count,
+                        joint_count=segment_spot_joint_count,
+                        joint_label=joint_lbl,
                     )
                 else:
                     station_summary = _metric_median_summary(
@@ -2999,7 +3069,8 @@ def _render_segment_inspector_body(
                     st.markdown(
                         "<div style='text-align:center; color:white; "
                         "font-size:0.95rem; margin-top:-0.25rem; "
-                        f"margin-bottom:1.0rem;'>{'<br>'.join(segment_summary)}</div>",
+                        "margin-bottom:1.0rem;'>"
+                        f"{'<br>'.join(segment_summary)}</div>",
                         unsafe_allow_html=True,
                     )
                 st.markdown(

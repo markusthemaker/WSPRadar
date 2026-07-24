@@ -12,6 +12,8 @@ from core.analysis_context import (
     LOCAL_BENCHMARK_BEST,
 )
 
+SELECTED_STATION_IDENTITY_LIST_LIMIT = 5
+
 
 @dataclass(frozen=True)
 class ResultContext:
@@ -428,7 +430,7 @@ def selected_station_context(
     is_sequential,
     translations,
 ):
-    """Return localized context for one or several selected station identities."""
+    """Return localized context, naming selections of at most five stations."""
     identities = [str(identity) for identity in station_identities]
     unit = evidence_unit_label(
         evidence_count,
@@ -444,6 +446,18 @@ def selected_station_context(
         ).format(
             station=station,
             locator=locator,
+            evidence_count=int(evidence_count),
+            evidence_unit=unit,
+        )
+    if 1 < len(identities) <= SELECTED_STATION_IDENTITY_LIST_LIMIT:
+        return translations.get(
+            "sub_results_selected_station_named",
+            "{selected_count} selected {station_type} stations: {stations} · "
+            "combined view · {evidence_count} {evidence_unit}",
+        ).format(
+            selected_count=len(identities),
+            station_type=remote_station_type(analysis_id),
+            stations=", ".join(identities),
             evidence_count=int(evidence_count),
             evidence_unit=unit,
         )

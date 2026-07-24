@@ -21,6 +21,7 @@ from core.evidence_statistics import (
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
+STATION_EVIDENCE_HATCH = "//////"
 SEGMENT_FIGURE_BOTTOM = 0.15
 SEGMENT_FIGURE_FOOTER_Y = 0.055
 EVIDENCE_TIME_AGG_PRESETS = [
@@ -680,8 +681,15 @@ def _draw_single_vertical_raincloud(ax, values, label, color="#36aaf9"):
     _draw_raincloud(ax, [values], [label], [color])
     return float(np.median(values))
 
-def _draw_vertical_metric_histogram(ax, values, color="#36aaf9"):
-    """Draw a conventional histogram with the SNR metric on the horizontal axis."""
+def _draw_vertical_metric_histogram(
+    ax,
+    values,
+    color="#36aaf9",
+    *,
+    hatch=None,
+    artist_gid=None,
+):
+    """Draw a conventional horizontal-metric histogram and return its median."""
     values = _metric_values(values)
     if len(values) == 0:
         return np.nan
@@ -692,17 +700,21 @@ def _draw_vertical_metric_histogram(ax, values, color="#36aaf9"):
         return np.nan
 
     shares = 100.0 * counts.astype(float) / float(counts.sum())
-    ax.bar(
+    rectangles = ax.bar(
         centers,
         shares,
         width=bin_width * 0.82,
-        color=color,
-        alpha=0.70,
-        edgecolor="#67c4ff",
+        facecolor="none" if hatch else color,
+        alpha=1.0 if hatch else 0.70,
+        edgecolor=color if hatch else "#67c4ff",
+        hatch=hatch,
         linewidth=0.7,
         align="center",
         zorder=2
     )
+    if artist_gid:
+        for rectangle in rectangles:
+            rectangle.set_gid(artist_gid)
     ax.set_ylabel("Share (%)", color="white")
     ax.set_ylim(bottom=0.0)
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
@@ -2003,6 +2015,9 @@ def _segment_figure_export_recipe(
     panel_counts,
     panel_labels,
     panel_y_label,
+    panel_station_counts=None,
+    panel_spot_counts=None,
+    panel_series_labels=None,
     paired_evidence_title=None,
 ):
     """Store compact numeric inputs needed to rebuild the Segment Insight figure."""
@@ -2017,10 +2032,149 @@ def _segment_figure_export_recipe(
         "panel_counts": [int(value) for value in panel_counts],
         "panel_labels": [str(value) for value in panel_labels],
         "panel_y_label": str(panel_y_label),
+        "panel_station_counts": [
+            int(value)
+            for value in (
+                [] if panel_station_counts is None else panel_station_counts
+            )
+        ],
+        "panel_spot_counts": [
+            int(value)
+            for value in (
+                [] if panel_spot_counts is None else panel_spot_counts
+            )
+        ],
+        "panel_series_labels": [
+            str(value)
+            for value in (
+                [] if panel_series_labels is None else panel_series_labels
+            )
+        ],
         "paired_evidence_title": (
             str(paired_evidence_title) if paired_evidence_title else None
         ),
     }
+
+
+def _percentage_shares(counts):
+    """Return nonnegative count composition as percentages of its own total."""
+    numeric_counts = np.asarray(counts, dtype=float)
+    if np.any(~np.isfinite(numeric_counts)) or np.any(numeric_counts < 0):
+        raise ValueError("Outcome counts must be finite and nonnegative")
+    total_count = float(numeric_counts.sum())
+    if total_count <= 0:
+        return np.zeros(len(numeric_counts), dtype=float)
+    return numeric_counts * 100.0 / total_count
+
+
+def _format_integer_percentage(percentage):
+    """Format a compact integer percentage without hiding a nonzero sub-1% share."""
+    percentage = float(percentage)
+    if percentage <= 0:
+        return "0%"
+    if percentage < 1:
+        return "<1%"
+    return f"{percentage:.0f}%"
+
+
+def _draw_compare_outcome_bars(
+    ax,
+    *,
+    panel_labels,
+    station_counts,
+    spot_counts,
+    series_labels,
+):
+    """Draw station-left and spot-right outcome shares with stable visual encoding."""
+    if not (
+        len(panel_labels) == len(station_counts) == len(spot_counts)
+    ):
+        raise ValueError("Compare outcome labels and count series must align")
+    if len(series_labels) != 2:
+        raise ValueError("Compare outcome bars require station and spot labels")
+
+    station_percentages = _percentage_shares(station_counts)
+    spot_percentages = _percentage_shares(spot_counts)
+    category_positions = np.arange(len(panel_labels), dtype=float)
+    bar_width = 0.34
+    bar_offset = 0.19
+
+    station_bars = ax.bar(
+        category_positions - bar_offset,
+        station_percentages,
+        width=bar_width,
+        facecolor="none",
+        edgecolor=EVIDENCE_AGG_COLOR,
+        hatch=STATION_EVIDENCE_HATCH,
+        linewidth=1.0,
+        zorder=2,
+    )
+    spot_bars = ax.bar(
+        category_positions + bar_offset,
+        spot_percentages,
+        width=bar_width,
+        facecolor=EVIDENCE_AGG_COLOR,
+        edgecolor="#67c4ff",
+        alpha=0.80,
+        linewidth=0.7,
+        zorder=2,
+    )
+    for rectangle in station_bars:
+        rectangle.set_gid("decode-outcome-stations")
+    for rectangle in spot_bars:
+        rectangle.set_gid("decode-outcome-spots")
+
+    for rectangles, percentages in (
+        (station_bars, station_percentages),
+        (spot_bars, spot_percentages),
+    ):
+        for rectangle, percentage in zip(rectangles, percentages):
+            annotation = ax.text(
+                rectangle.get_x() + rectangle.get_width() / 2.0,
+                rectangle.get_height() + 2.0,
+                _format_integer_percentage(percentage),
+                ha="center",
+                va="bottom",
+                color="white",
+                fontsize=9,
+                fontweight="bold",
+            )
+            annotation.set_gid("decode-outcome-percentage")
+
+    station_key = mpl.patches.Patch(
+        facecolor="none",
+        edgecolor=EVIDENCE_AGG_COLOR,
+        hatch=STATION_EVIDENCE_HATCH,
+        linewidth=1.0,
+        label=series_labels[0],
+    )
+    spot_key = mpl.patches.Patch(
+        facecolor=EVIDENCE_AGG_COLOR,
+        edgecolor="#67c4ff",
+        linewidth=0.7,
+        label=series_labels[1],
+    )
+    station_legend = _place_metric_legend(
+        ax,
+        handles=[station_key],
+        loc="upper left",
+        borderaxespad=0.35,
+        gid="decode-outcome-station-legend",
+    )
+    ax.add_artist(station_legend)
+    _place_metric_legend(
+        ax,
+        handles=[spot_key],
+        loc="upper right",
+        borderaxespad=0.35,
+        gid="decode-outcome-spot-legend",
+    )
+    ax.set_xticks(category_positions)
+    ax.set_xticklabels(panel_labels)
+    ax.set_ylim(0.0, 120.0)
+    ax.set_yticks(np.arange(0.0, 101.0, 20.0))
+    return station_bars, spot_bars
+
 
 @synchronized_matplotlib
 def render_segment_insight_export_figure(recipe):
@@ -2038,6 +2192,9 @@ def render_segment_insight_export_figure(recipe):
     spot_values = np.asarray(recipe.get("spot_values", []), dtype=float)
     panel_counts = list(recipe.get("panel_counts", []))
     panel_labels = list(recipe.get("panel_labels", []))
+    panel_station_counts = list(recipe.get("panel_station_counts", []))
+    panel_spot_counts = list(recipe.get("panel_spot_counts", []))
+    panel_series_labels = list(recipe.get("panel_series_labels", []))
 
     fig_hist = create_agg_figure(figsize=(13, 5.6), facecolor="black")
     fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
@@ -2056,24 +2213,19 @@ def render_segment_insight_export_figure(recipe):
         spine.set_color("#444444")
     _add_horizontal_grid(ax_panel)
 
-    bars = ax_panel.bar(panel_labels, panel_counts, color="#36aaf9", alpha=0.8, edgecolor="black")
-    ax_panel.set_ylabel(recipe.get("panel_y_label", "Count"), color="white")
     if compare_layout:
+        _draw_compare_outcome_bars(
+            ax_panel,
+            panel_labels=panel_labels,
+            station_counts=panel_station_counts,
+            spot_counts=panel_spot_counts,
+            series_labels=panel_series_labels,
+        )
+        ax_panel.set_ylabel(
+            recipe.get("panel_y_label", "Share (%)"),
+            color="white",
+        )
         ax_panel.set_title("Decode Outcomes", color="white", fontweight="bold", pad=10)
-        total_count = sum(panel_counts)
-        if total_count > 0:
-            for bar in bars:
-                height = bar.get_height()
-                ax_panel.text(
-                    bar.get_x() + bar.get_width() / 2.0,
-                    height + (max(panel_counts) * 0.02),
-                    f"{(height / total_count) * 100:.1f}%",
-                    ha="center",
-                    va="bottom",
-                    color="white",
-                    fontsize=10,
-                    fontweight="bold",
-                )
         ax_hist.set_title("Station Medians (\u0394 SNR)", color="white", fontweight="bold", pad=10)
         ax_spot.set_title(
             recipe.get("paired_evidence_title")
@@ -2087,6 +2239,14 @@ def render_segment_insight_export_figure(recipe):
             pad=10,
         )
     else:
+        bars = ax_panel.bar(
+            panel_labels,
+            panel_counts,
+            color=EVIDENCE_AGG_COLOR,
+            alpha=0.8,
+            edgecolor="black",
+        )
+        ax_panel.set_ylabel(recipe.get("panel_y_label", "Count"), color="white")
         ax_panel.set_title("Segment Activity", color="white", fontweight="bold", pad=10)
         if panel_counts and max(panel_counts) > 0:
             for bar in bars:
@@ -2132,7 +2292,13 @@ def render_segment_insight_export_figure(recipe):
         spine.set_color("#444444")
 
     if len(station_values):
-        station_median = _draw_vertical_metric_histogram(ax_hist, station_values, color="#36aaf9")
+        station_median = _draw_vertical_metric_histogram(
+            ax_hist,
+            station_values,
+            color=EVIDENCE_AGG_COLOR,
+            hatch=STATION_EVIDENCE_HATCH if is_compare else None,
+            artist_gid="station-median-histogram",
+        )
         station_median_line = _add_metric_median_reference(
             ax_hist,
             station_median,
@@ -2154,7 +2320,12 @@ def render_segment_insight_export_figure(recipe):
         ax_hist.set_xticks([])
         ax_hist.set_yticks([])
 
-    spot_median = _draw_vertical_metric_histogram(ax_spot, spot_values, color="#36aaf9")
+    spot_median = _draw_vertical_metric_histogram(
+        ax_spot,
+        spot_values,
+        color=EVIDENCE_AGG_COLOR,
+        artist_gid="spot-metric-histogram",
+    )
     if pd.notna(spot_median):
         spot_median_line = _add_metric_median_reference(
             ax_spot,

@@ -112,9 +112,12 @@ T = {
         "hdr_results_comparison_evidence": "Comparison Evidence",
         "sub_results_comparison_evidence_joint": "Decode Outcomes, station medians, and joint-spot ΔSNR for the active scope.",
         "sub_results_comparison_evidence_scheduled": "Decode Outcomes, station medians, and scheduled-pair ΔSNR for the active scope.",
-        "fmt_results_station_delta_summary": "Station-level · Median {median} dB · Mean {mean} dB",
-        "fmt_results_joint_spot_delta_summary": "Joint-Spot level · Median {median} dB · Mean {mean} dB",
-        "fmt_results_scheduled_pair_delta_summary": "Scheduled-Pair level · Median {median} dB · Mean {mean} dB",
+        "fmt_results_station_delta_summary": "Stations{count_context} · Median {median} dB · Mean {mean} dB",
+        "fmt_results_joint_spot_delta_summary": "Spots{count_context} · Median {median} dB · Mean {mean} dB",
+        "fmt_results_scheduled_pair_delta_summary": "Scheduled pairs{count_context} · Median {median} dB · Mean {mean} dB",
+        "lbl_results_stations": "Stations",
+        "lbl_results_spots": "Spots",
+        "lbl_results_scheduled_pairs": "Scheduled pairs",
         "hdr_results_temporal_evidence": "Temporal Evidence",
         "sub_results_temporal_evidence": "The same paired evidence shown chronologically and by UTC hour.",
         "lbl_include_unpaired_evidence": "Include Unpaired Evidence",
@@ -124,6 +127,7 @@ T = {
         "txt_results_station_scope": "Active scope · {distance} · {direction} · {station_count}",
         "hdr_results_selected_station_evidence": "Selected Station Evidence",
         "sub_results_selected_station_single": "{station} ({locator}) · {evidence_count} {evidence_unit}",
+        "sub_results_selected_station_named": "{selected_count} selected {station_type} stations: {stations} · combined view · {evidence_count} {evidence_unit}",
         "sub_results_selected_station_multi": "{selected_count} selected {station_type} stations · combined view · {evidence_count} {evidence_unit}",
         "txt_results_selected_no_paired_evidence": "No paired evidence is available for this selection; retained unpaired rows can still be audited below.",
         "hdr_results_drilldown": "Drill-Down Data",
@@ -463,9 +467,12 @@ T = {
         "hdr_results_comparison_evidence": "Vergleichsevidenz",
         "sub_results_comparison_evidence_joint": "Decode Outcomes, Stationsmediane und Δ SNR aus Joint Spots im aktiven Bereich.",
         "sub_results_comparison_evidence_scheduled": "Decode Outcomes, Stationsmediane und Δ SNR aus geplanten Paaren im aktiven Bereich.",
-        "fmt_results_station_delta_summary": "Stationsebene · Median {median} dB · Mittelwert {mean} dB",
-        "fmt_results_joint_spot_delta_summary": "Joint-Spot-Ebene · Median {median} dB · Mittelwert {mean} dB",
-        "fmt_results_scheduled_pair_delta_summary": "Ebene geplanter Paare · Median {median} dB · Mittelwert {mean} dB",
+        "fmt_results_station_delta_summary": "Stationen{count_context} · Median {median} dB · Mittelwert {mean} dB",
+        "fmt_results_joint_spot_delta_summary": "Spots{count_context} · Median {median} dB · Mittelwert {mean} dB",
+        "fmt_results_scheduled_pair_delta_summary": "Geplante Paare{count_context} · Median {median} dB · Mittelwert {mean} dB",
+        "lbl_results_stations": "Stationen",
+        "lbl_results_spots": "Spots",
+        "lbl_results_scheduled_pairs": "Geplante Paare",
         "hdr_results_temporal_evidence": "Zeitliche Evidenz",
         "sub_results_temporal_evidence": "Dieselbe gepaarte Evidenz, chronologisch und nach UTC-Stunde dargestellt.",
         "lbl_include_unpaired_evidence": "Ungepaarte Evidenz einbeziehen",
@@ -475,6 +482,7 @@ T = {
         "txt_results_station_scope": "Aktiver Bereich · {distance} · {direction} · {station_count}",
         "hdr_results_selected_station_evidence": "Evidenz ausgewählter Stationen",
         "sub_results_selected_station_single": "{station} ({locator}) · {evidence_count} {evidence_unit}",
+        "sub_results_selected_station_named": "{selected_count} ausgewählte {station_type}-Stationen: {stations} · kombinierte Ansicht · {evidence_count} {evidence_unit}",
         "sub_results_selected_station_multi": "{selected_count} ausgewählte {station_type}-Stationen · kombinierte Ansicht · {evidence_count} {evidence_unit}",
         "txt_results_selected_no_paired_evidence": "Für diese Auswahl liegt keine gepaarte Evidenz vor; beibehaltene ungepaarte Zeilen können unten weiterhin geprüft werden.",
         "hdr_results_drilldown": "Drill-Down-Daten",
@@ -719,1302 +727,254 @@ T = {
 # must never select scientific behavior.
 RESULT_GUIDANCE = {
     "en": {
-        "trigger": "How to read this",
-        "trigger_help": "How to read {section}",
-        "read_label": "What this view can establish and how to read it.",
-        "limits_label": "Evidence boundary.",
+        "trigger": 'How to read this',
+        "trigger_help": 'How to read {section}',
+        "read_label": 'What this view shows and how to read it.',
+        "limits_label": 'Keep in mind.',
         "sections": {
             "context_rx_success": {
-                "read": (
-                    "RX Success can establish how consistently the "
-                    '<strong class="defined-term">Target</strong> receiver decoded '
-                    "signals within independently confirmed opportunities for this "
-                    "band, UTC window and geographic scope. The "
-                    '<strong class="defined-term">Target-Active Gate</strong> first '
-                    "retains only UTC cycles in which the archive shows the Target "
-                    "receiver reporting at least one decode. Within those cycles, a "
-                    '<strong class="defined-term">confirmed opportunity</strong> is '
-                    "a remote TX-station cycle in which another receiver "
-                    "independently decoded the same transmitter under the run's "
-                    "eligibility rules. "
-                    '<strong class="defined-term">Elsewhere</strong> means that the '
-                    "other receiver decoded it but the Target did not; "
-                    '<strong class="defined-term">Target-only</strong> means that '
-                    "the Target decoded it without the independent confirmation "
-                    "required by the denominator. Displayed "
-                    '<strong class="defined-term">RX Success Rate</strong> (%) is '
-                    "`100 × Target / (Target + Elsewhere)`."
-                ),
-                "limits": (
-                    "This is a conditional reach measure within confirmed archive "
-                    "evidence, not an absolute sensitivity measurement or an "
-                    "explanation for individual missed decodes."
-                ),
+                "read": """RX Success shows how consistently the <strong class="defined-term">Target</strong> receiver decoded remote transmitters when the archive independently confirms that the signal was available to be heard. WSPRadar evaluates only WSPR cycles in which the Target receiver is known to be active. A <strong class="defined-term">confirmed opportunity</strong> exists when another eligible receiver decoded the same transmitter in the same cycle. <strong class="defined-term">Elsewhere</strong> means that the other receiver decoded it but the Target did not; <strong class="defined-term">Target-only</strong> means that the Target decoded it without the independent confirmation required for the rate. The <strong class="defined-term">RX Success Rate</strong> is `100 × Target / (Target + Elsewhere)`. Repetition across many transmitters, directions and times turns individual spots into a broader picture of receiver performance.""",
+                "limits": """This is conditional performance within confirmed archive opportunities, not an absolute receiver-sensitivity measurement. A missed decode has no recorded SNR, and its cause remains unknown.""",
             },
             "context_tx_success": {
-                "read": (
-                    "TX Success can establish how consistently the "
-                    '<strong class="defined-term">Target</strong> transmitter was '
-                    "decoded by receivers that were independently shown to be "
-                    "active for this band, UTC window and geographic scope. The "
-                    '<strong class="defined-term">Target-Active Gate</strong> first '
-                    "retains only UTC cycles in which at least one receiver "
-                    "reported the Target transmission. Within those cycles, a "
-                    '<strong class="defined-term">confirmed opportunity</strong> is '
-                    "a remote RX-station cycle containing qualifying "
-                    '<strong class="defined-term">Other Signals</strong> on the '
-                    "same band. Other Signals means that the receiver decoded "
-                    "another signal but not the Target; "
-                    '<strong class="defined-term">Target-only</strong> means that '
-                    "it decoded the Target without the independent activity "
-                    "evidence required by the denominator. Displayed "
-                    '<strong class="defined-term">TX Success Rate</strong> (%) is '
-                    "`100 × Target / (Target + Other Signals)`."
-                ),
-                "limits": (
-                    "This measures conditional reach across the retained active "
-                    "receivers; it does not measure actual radiated power, antenna "
-                    "efficiency or the cause of an individual missed decode."
-                ),
+                "read": """TX Success shows how consistently the <strong class="defined-term">Target</strong> transmitter was decoded by remote receivers that were independently confirmed active. WSPRadar evaluates WSPR cycles in which the Target transmission is visible somewhere in the network. At a remote receiver, a <strong class="defined-term">confirmed opportunity</strong> exists when that receiver decoded another qualifying signal on the same band, showing that it was listening. <strong class="defined-term">Other Signals</strong> means that the receiver was active but did not decode the Target; <strong class="defined-term">Target-only</strong> means that it decoded the Target without the independent activity confirmation required for the rate. The <strong class="defined-term">TX Success Rate</strong> is `100 × Target / (Target + Other Signals)`. Repetition across many receivers, directions and times builds a much stronger picture than any single spot report.""",
+                "limits": """This is conditional reach among confirmed active receivers, not a measurement of radiated power or antenna efficiency. It cannot explain why an individual receiver missed the signal.""",
             },
             "context_rx_compare": {
-                "read": (
-                    "RX Compare can establish the direction and magnitude of an "
-                    "observed paired difference between the complete "
-                    '<strong class="defined-term">Target</strong> and '
-                    '<strong class="defined-term">Reference</strong> receiving '
-                    "paths. <strong class=\"defined-term\">SNR</strong> is the "
-                    "signal-to-noise ratio reported by the WSPR decoder in "
-                    "decibels (dB); a less-negative value is stronger relative to "
-                    "noise. <strong class=\"defined-term\">Delta SNR (ΔSNR)</strong> "
-                    "is Target SNR minus corrected Reference SNR: positive values "
-                    "favor the Target and negative values favor the Reference. RX "
-                    "Compare forms a pair when both receivers report the same "
-                    "remote transmitter in the same UTC cycle."
-                ),
-                "limits": (
-                    "The result compares complete receiving paths; it isolates "
-                    "antenna gain, receiver sensitivity or a cause only to the "
-                    "extent that the experiment controlled the remaining path "
-                    "differences."
-                ),
+                "read": """RX Compare shows how the complete <strong class="defined-term">Target</strong> receiving path performed relative to the <strong class="defined-term">Reference</strong> when both decoded the same remote transmitter in the same WSPR cycle. <strong class="defined-term">SNR</strong> is the decoder-reported signal-to-noise ratio in decibels (dB); a less-negative value is stronger relative to noise. <strong class="defined-term">Delta SNR (ΔSNR)</strong> is Target SNR minus corrected Reference SNR: positive values favor the Target and negative values favor the Reference. Each joint observation holds the transmitter, time and much of the radio path in common. Repetition across many transmitters and times reveals whether a difference is persistent or only an isolated event.""",
+                "limits": """The result compares complete receiving paths. It supports a claim about an antenna, receiver or component only as far as the remaining path differences were controlled.""",
             },
             "context_tx_compare": {
-                "read": (
-                    "TX Compare can establish the direction and magnitude of an "
-                    "observed paired difference between the complete "
-                    '<strong class="defined-term">Target</strong> and '
-                    '<strong class="defined-term">Reference</strong> transmitting '
-                    "paths at the same remote receivers. "
-                    '<strong class="defined-term">SNR</strong> is the '
-                    "signal-to-noise ratio reported by the WSPR decoder in "
-                    "decibels (dB); a less-negative value is stronger relative to "
-                    "noise. SNR is normalized to reported 1 W before "
-                    '<strong class="defined-term">Delta SNR (ΔSNR)</strong> is '
-                    "calculated as Target SNR minus corrected Reference SNR. "
-                    "Positive values favor the Target and negative values favor the "
-                    "Reference. Same-cycle TX Compare forms a pair when one "
-                    "receiver reports both signals in the same UTC cycle."
-                ),
-                "limits": (
-                    "The result compares complete transmitting paths; attribution "
-                    "to power, antenna efficiency or individual hardware requires "
-                    "those remaining variables to be independently controlled."
-                ),
+                "read": """TX Compare shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers. <strong class="defined-term">SNR</strong> is the decoder-reported signal-to-noise ratio in decibels (dB); a less-negative value is stronger relative to noise. WSPRadar first normalizes SNR to the reported power of 1 W, then calculates <strong class="defined-term">Delta SNR (ΔSNR)</strong> as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. Same-cycle evidence is formed when one receiver reports both signals in the same WSPR cycle. Many receivers and repeated pairs reveal geographic and temporal consistency that a single report cannot.""",
+                "limits": """The result compares complete transmitting paths and relies on the reported power values. Attribution to antenna efficiency, output power or one component requires those other variables to be controlled independently.""",
             },
             "context_tx_compare_scheduled": {
-                "read": (
-                    "Scheduled TX Compare can establish the direction, magnitude "
-                    "and repeatability of an observed difference between the "
-                    "scheduled <strong class=\"defined-term\">Target</strong> and "
-                    '<strong class="defined-term">Reference</strong> transmitting '
-                    "paths. <strong class=\"defined-term\">SNR</strong> is the "
-                    "decoder-reported signal-to-noise ratio in decibels (dB), "
-                    "normalized to reported 1 W. "
-                    '<strong class="defined-term">Delta SNR (ΔSNR)</strong> is '
-                    "Target SNR minus corrected Reference SNR: positive values "
-                    "favor the Target and negative values favor the Reference. "
-                    "WSPRadar forms each "
-                    '<strong class="defined-term">Scheduled Pair</strong> from the '
-                    "configured UTC schedule; its two transmissions are "
-                    "time-separated rather than simultaneous."
-                ),
-                "limits": (
-                    "The result retains schedule-timing, propagation, interference "
-                    "and switching differences between the two transmissions, so a "
-                    "recurring schedule-phase effect can resemble a path difference."
-                ),
+                "read": """Scheduled TX Compare shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers under the configured switching schedule. <strong class="defined-term">SNR</strong> is normalized to the reported power of 1 W before <strong class="defined-term">Delta SNR (ΔSNR)</strong> is calculated as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. A <strong class="defined-term">Scheduled Pair</strong> combines the planned Target and Reference transmissions for one receiver. Repeated pairs across many receivers show whether the observed difference is consistent across geography and time.""",
+                "limits": """The two transmissions in a Scheduled Pair are time-separated. Propagation, interference, switching or schedule phase can change between them and may resemble a path difference.""",
             },
             "benchmark_hardware": {
-                "read": (
-                    "The <strong class=\"defined-term\">Hardware A/B "
-                    "benchmark</strong> is designed to compare two controlled paths "
-                    "operating within the shared Grid-4. When the rest of the setup "
-                    "is held constant, it supports attributing the observed "
-                    "difference to the controlled path change."
-                ),
-                "limits": (
-                    "It does not isolate one component or establish calibrated gain "
-                    "unless the experimental controls support that narrower claim."
-                ),
+                "read": """The <strong class="defined-term">Hardware A/B benchmark</strong> compares two controlled paths at the same station—for example antennas, feedlines, radios or complete chains. Sharing the site and much of the surrounding system removes many differences that affect a station-to-station comparison. When only the intended path changes, repeated evidence from many remote stations can reveal small, directional or time-dependent differences.""",
+                "limits": """The result still describes the complete installed paths. It isolates one component or calibrated gain only if the experiment controlled every other relevant difference.""",
             },
             "benchmark_reference": {
-                "read": (
-                    "The <strong class=\"defined-term\">Reference Station "
-                    "benchmark</strong> can establish how the Target's complete "
-                    "installed station performed relative to the selected "
-                    '<strong class="defined-term">Reference</strong> station. '
-                    "WSPRadar selects that Reference by its exact callsign and "
-                    "independently configured Reference Grid-4."
-                ),
-                "limits": (
-                    "The comparison includes both stations' radios, antennas, "
-                    "terrain, noise and locations; it does not isolate any one of "
-                    "them."
-                ),
+                "read": """The <strong class="defined-term">Reference Station benchmark</strong> compares the complete Target station with one known <strong class="defined-term">Reference</strong> station selected by exact callsign and Reference Grid-4. It is useful for tracking a repeatable whole-station difference across directions, distances and time.""",
+                "limits": """Both stations' sites, terrain, local noise, antennas, radios and operating practice remain part of the comparison; no single cause is isolated.""",
             },
             "benchmark_local_median": {
-                "read": (
-                    "<strong class=\"defined-term\">Local Median "
-                    "Neighborhood</strong> can establish how the Target compared "
-                    "with the typical qualifying local station within {radius} km. "
-                    "WSPRadar recalculates the Reference as the median of the active "
-                    "local stations for each applicable path and cycle."
-                ),
-                "limits": (
-                    "The Reference changes with local participation and depends on "
-                    "the chosen radius; it is not one fixed or calibrated station."
-                ),
+                "read": """<strong class="defined-term">Local Median Neighborhood</strong> compares the Target with the typical qualifying local station within {radius} km. For each comparable path and cycle, WSPRadar forms the Reference from the median SNR of the active local stations. This reduces the influence of one unusually strong neighbor and provides a practical local baseline across many cycles.""",
+                "limits": """The contributing stations can change over time, and the result depends on the selected radius. This is a dynamic local benchmark, not one fixed or calibrated station.""",
             },
             "benchmark_local_best": {
-                "read": (
-                    "<strong class=\"defined-term\">Local Best Station</strong> can "
-                    "establish how the Target compared with the strongest "
-                    "qualifying local station available within {radius} km for each "
-                    "applicable path and cycle."
-                ),
-                "limits": (
-                    "This is a changing best-peer benchmark, not a local average, "
-                    "fixed Reference station or calibrated performance ceiling."
-                ),
+                "read": """<strong class="defined-term">Local Best Station</strong> compares the Target with the strongest qualifying local station available within {radius} km for each comparable path and cycle. It is a demanding benchmark that asks whether the Target approaches the best local performer repeatedly, rather than merely the local average.""",
+                "limits": """The best peer can change from cycle to cycle. It is not a fixed Reference station, a typical-neighborhood value or a calibrated performance ceiling.""",
             },
             "map_compare_rx": {
-                "read": (
-                    "Map View can establish where the observed Target–Reference "
-                    "difference appeared and how widely the supporting evidence "
-                    "was distributed. Each colored distance-and-direction sector "
-                    "shows the median of its contributing stations' median "
-                    '<strong class="defined-term">ΔSNR</strong> values. This is '
-                    '<strong class="defined-term">station-balanced</strong>: every '
-                    "qualifying station contributes one station-level value before "
-                    "the sector is summarized. Markers and footer bars separate "
-                    '<strong class="defined-term">Joint</strong>, '
-                    '<strong class="defined-term">Both (Async)</strong>, '
-                    '<strong class="defined-term">Only Target</strong> and '
-                    '<strong class="defined-term">Only Reference</strong> evidence. '
-                    "Joint means that a station has at least one usable pair; Both "
-                    "(Async) means that both sides contributed for that station but "
-                    "no usable pair was formed. "
-                    '<strong class="defined-term">STATIONS</strong> shows '
-                    "callsign-plus-locator participation, while "
-                    '<strong class="defined-term">SPOTS</strong> shows processed '
-                    "evidence volume. Read both: many spots can come from relatively "
-                    "few stations."
-                ),
-                "limits": (
-                    "The map does not identify propagation mode, radiation angle, "
-                    "calibrated gain, causation or the missing SNR of an undecoded "
-                    "side. S-unit labels are a display convention; use the "
-                    "numerical dB values for magnitude."
-                ),
+                "read": """Map View is the geographic overview of the RX comparison. Each colored distance-and-direction sector shows the median of the contributing TX stations' median ΔSNR values. This is <strong class="defined-term">station-balanced</strong>: every qualifying station contributes one station-level value before the sector is summarized, regardless of how many spots it uploaded. Markers and footer bars separate <strong class="defined-term">Joint</strong>, <strong class="defined-term">Both (Async)</strong>, <strong class="defined-term">Only Target</strong> and <strong class="defined-term">Only Reference</strong> evidence. Joint means at least one usable pair; Both (Async) means both sides produced evidence but no pair could be formed. <strong class="defined-term">STATIONS</strong> shows geographic breadth, while <strong class="defined-term">SPOTS</strong> shows repeated evidence volume. The most convincing map patterns combine a clear ΔSNR direction with many stations and many spots.""",
+                "limits": """The map locates an observed pattern; it does not identify propagation mode, radiation angle, calibrated gain or physical cause. Use the numerical dB values—not S-unit labels—for magnitude.""",
             },
             "map_compare_tx": {
-                "read": (
-                    "Map View can establish where the observed Target–Reference "
-                    "difference appeared and how widely the supporting evidence "
-                    "was distributed. Each colored distance-and-direction sector "
-                    "shows the median of its contributing stations' median "
-                    '<strong class="defined-term">ΔSNR</strong> values. This is '
-                    '<strong class="defined-term">station-balanced</strong>: every '
-                    "qualifying station contributes one station-level value before "
-                    "the sector is summarized. Markers and footer bars separate "
-                    '<strong class="defined-term">Joint</strong>, '
-                    '<strong class="defined-term">Both (Async)</strong>, '
-                    '<strong class="defined-term">Only Target</strong> and '
-                    '<strong class="defined-term">Only Reference</strong> evidence. '
-                    "Joint means that a station has at least one usable pair; Both "
-                    "(Async) means that both sides contributed for that station but "
-                    "no usable pair was formed. "
-                    '<strong class="defined-term">STATIONS</strong> shows '
-                    "callsign-plus-locator participation, while "
-                    '<strong class="defined-term">SPOTS</strong> or '
-                    '<strong class="defined-term">PAIRS</strong> shows processed '
-                    "evidence volume."
-                ),
-                "limits": (
-                    "The map does not identify propagation mode, radiation angle, "
-                    "actual radiated power, calibrated gain or causation. An "
-                    "undecoded side has no SNR to normalize, so one-sided TX "
-                    "outcomes are not power-normalized."
-                ),
+                "read": """Map View is the geographic overview of the TX comparison. Each colored distance-and-direction sector shows the median of the contributing RX stations' median ΔSNR values. This is <strong class="defined-term">station-balanced</strong>: every qualifying receiver contributes one station-level value before the sector is summarized, regardless of its report count. Markers and footer bars separate <strong class="defined-term">Joint</strong>, <strong class="defined-term">Both (Async)</strong>, <strong class="defined-term">Only Target</strong> and <strong class="defined-term">Only Reference</strong> evidence. Joint means at least one usable pair; Both (Async) means both sides produced evidence but no pair could be formed. <strong class="defined-term">STATIONS</strong> shows geographic breadth; <strong class="defined-term">SPOTS</strong> or <strong class="defined-term">PAIRS</strong> shows repeated evidence volume. A pattern supported by many receivers and many observations is more persuasive than the same color based on a few stations.""",
+                "limits": """The map does not identify propagation mode, radiation angle, actual radiated power or physical cause. An undecoded side has no SNR to compare or normalize.""",
             },
             "map_success": {
-                "read": (
-                    "Map View can establish where station-balanced conditional "
-                    '<strong class="defined-term">Success Rate</strong> was higher '
-                    "or lower and how broadly the evidence was distributed. Each "
-                    "sector first calculates one rate per qualifying {peer_type} "
-                    "station, then gives every station one equal vote. This is the "
-                    '<strong class="defined-term">station-balanced</strong> view. '
-                    "Green markers identify stations with Target evidence; grey "
-                    "markers identify qualifying "
-                    '<strong class="defined-term">{counter}</strong>-only stations. '
-                    '<strong class="defined-term">STATIONS</strong> shows '
-                    "callsign-plus-locator participation, while "
-                    '<strong class="defined-term">SPOTS</strong> shows processed '
-                    "Target and {counter} evidence volume."
-                ),
-                "limits": (
-                    "This is conditional reach within confirmed opportunities, not "
-                    "unconditional coverage or calibrated decode probability. A "
-                    "displayed 100% means success in every retained opportunity "
-                    "represented there, not every possible transmission."
-                ),
+                "read": """Map View shows where conditional <strong class="defined-term">Success Rate</strong> was higher or lower and how widely the supporting evidence was distributed. Each sector first calculates one rate for every qualifying {peer_type} station, then averages those station rates so that every station has one equal vote. This is the <strong class="defined-term">station-balanced</strong> view. Green markers identify stations with Target evidence; grey markers identify qualifying <strong class="defined-term">{counter}</strong>-only stations. <strong class="defined-term">STATIONS</strong> shows geographic breadth, while <strong class="defined-term">SPOTS</strong> shows the volume of Target and {counter} evidence. Look for sectors where a clear rate is supported by both many stations and repeated observations.""",
+                "limits": """This is conditional reach within confirmed opportunities, not unconditional coverage or a calibrated decode probability. A displayed 100% applies only to the retained opportunities represented there.""",
             },
             "segment": {
-                "read": (
-                    "Segment Inspector can establish whether the completed result "
-                    "persists, changes or concentrates within a chosen geographic "
-                    "subset. The distance and direction selectors define the "
-                    '<strong class="defined-term">active scope</strong>, which '
-                    "every following figure, station table and Selected Station "
-                    "Evidence view inherits. "
-                    '<strong class="defined-term">Evidence in scope</strong> reports '
-                    "two complementary quantities: the contributing stations and "
-                    "their qualifying Joint Spots, Scheduled Pairs or confirmed "
-                    "opportunities. More stations show broader participation; more "
-                    "evidence units show more repeated observations."
-                ),
-                "limits": (
-                    "Changing the active scope does not rerun or widen the analysis, "
-                    "and it cannot restore stations excluded by the run's "
-                    "maximum-distance setting. Evidence counts alone do not "
-                    "establish independence or experimental quality."
-                ),
+                "read": """Segment Inspector lets you test whether the complete-run pattern persists, changes or concentrates within a chosen geographic subset. The distance and direction controls define the <strong class="defined-term">active scope</strong>; every figure, station table and Selected Station Evidence view below inherits that scope. <strong class="defined-term">Evidence in scope</strong> reports both the number of contributing stations and the number of Joint Spots, Scheduled Pairs or confirmed opportunities. These are complementary: station count shows breadth across radio paths, while evidence count shows repeated depth. A result supported by both is stronger than one built from many observations at only a few stations.""",
+                "limits": """Changing scope filters the completed run; it does not rerun or widen it, and it cannot restore peers excluded by the original maximum-distance setting. Counts alone do not guarantee independence or experimental control.""",
             },
             "comparison_evidence_joint": {
-                "read": (
-                    "Together, these figures can establish how broad the paired "
-                    "result is, how consistently its direction appears across "
-                    "stations and how much spot-level variation surrounds it. "
-                    '<strong class="defined-term">Decode Outcomes</strong> counts '
-                    "stations with <strong class=\"defined-term\">Joint</strong>, "
-                    '<strong class="defined-term">Only Target</strong>, '
-                    '<strong class="defined-term">Both (Async)</strong> or '
-                    '<strong class="defined-term">Only Reference</strong> evidence. '
-                    "A <strong class=\"defined-term\">Joint Spot</strong> is a "
-                    "consolidated same-cycle unit containing comparable Target and "
-                    "Reference evidence. **Station Medians (Δ SNR)** gives every "
-                    "qualifying station one median ΔSNR and therefore one equal "
-                    "vote. **Joint-Spot Δ SNR** gives every Joint Spot one value, "
-                    "so "
-                    "stations with more observations contribute more values. "
-                    "Agreement between the two distributions supports a result "
-                    "that is similar under station and spot weighting; a difference "
-                    "shows where evidence volume changes the picture. The median "
-                    "resists isolated extremes more than the arithmetic mean."
-                ),
-                "limits": (
-                    "ΔSNR describes only the paired subset. Read it with Decode "
-                    "Outcomes; these figures do not by themselves establish formal "
-                    "significance, universality or physical cause."
-                ),
+                "read": """These three figures show the composition, station-to-station consistency and observation-level spread of the paired result. <strong class="defined-term">Decode Outcomes</strong> counts stations and spots with Joint, Only Target, Both (Async) or Only Reference evidence. A <strong class="defined-term">Joint Spot</strong> is one consolidated same-cycle Target–Reference observation. **Station Medians (Δ SNR)** gives every qualifying station one median ΔSNR and therefore one equal vote. **Joint-Spot Δ SNR** gives every Joint Spot one value, so stations with more observations carry more weight. When both distributions point in the same direction and have a similar center across many stations and spots, the result is less likely to be driven by one prolific station or a few unusual reports. The median is more resistant to isolated extremes than the mean.""",
+                "limits": """ΔSNR describes only the paired subset; read it together with Decode Outcomes. These descriptive views do not by themselves identify physical cause or prove that all observations are independent.""",
             },
             "comparison_evidence_scheduled": {
-                "read": (
-                    "Together, these figures can establish how broad the scheduled "
-                    "result is, how consistently its direction appears across RX "
-                    "stations and how much pair-level variation surrounds it. "
-                    '<strong class="defined-term">Decode Outcomes</strong> separates '
-                    "complete Scheduled Pairs from one-sided and asynchronous "
-                    "scheduled evidence. A "
-                    '<strong class="defined-term">Scheduled Pair</strong> is the '
-                    "deterministic Target–Reference unit formed from the configured "
-                    "UTC schedule. **Station Medians (Δ SNR)** gives every "
-                    "qualifying "
-                    "RX station one median Pair ΔSNR and therefore one equal vote. "
-                    "**Scheduled-Pair Δ SNR** gives every valid pair one value, so "
-                    "stations with more pairs contribute more values. Agreement "
-                    "between the two distributions supports a result that is "
-                    "similar under station and pair weighting; a difference shows "
-                    "where evidence volume changes the picture. The median resists "
-                    "isolated extremes more than the arithmetic mean."
-                ),
-                "limits": (
-                    "Pair ΔSNR excludes incomplete pairs, and the time-separated "
-                    "design retains changes between transmissions. These figures "
-                    "do not by themselves establish formal significance or "
-                    "physical cause."
-                ),
+                "read": """These three figures show the composition, station-to-station consistency and pair-level spread of the scheduled result. <strong class="defined-term">Decode Outcomes</strong> classifies RX stations by whether they provide complete Scheduled Pairs, one-sided scheduled evidence or asynchronous evidence. A <strong class="defined-term">Scheduled Pair</strong> is the Target–Reference unit formed from the configured UTC schedule at one RX station. **Station Medians (Δ SNR)** gives every qualifying RX station one median Pair ΔSNR and therefore one equal vote. **Scheduled-Pair Δ SNR** gives every complete pair one value, so stations with more pairs carry more weight. Similar centers and signs under both weightings, supported by many stations and pairs, indicate that the result is not dominated by one receiver or a few pair events. The median is more resistant to isolated extremes than the mean.""",
+                "limits": """Pair ΔSNR excludes incomplete pairs, and the time-separated design retains changes between transmissions. These views do not by themselves identify whether hardware, propagation, interference or switching caused the difference.""",
             },
             "temporal_evidence_joint": {
-                "read": (
-                    "Temporal Evidence can establish when the paired pattern "
-                    "occurred during the run and whether a similar UTC-hour pattern "
-                    "recurred across dates. Both panels use the same Joint Spots as "
-                    "**Joint-Spot Δ SNR**; Station Insights selections do not "
-                    "change "
-                    "this segment-level view. "
-                    '<strong class="defined-term">Chronological</strong> preserves '
-                    "the actual UTC dates and times, revealing changes, gaps and "
-                    "short-lived patterns. "
-                    '<strong class="defined-term">UTC-Hour</strong> folds all '
-                    "represented dates onto one 24-hour clock to reveal recurring "
-                    "hour-of-day associations when at least two UTC dates "
-                    "contribute. Color shows "
-                    '<strong class="defined-term">relative density</strong> within '
-                    "each panel: its densest cell is 100%, not 100% of all evidence. "
-                    "Use the numerical dB labels and median traces because the ΔSNR "
-                    "axis is visually expanded around its median."
-                ),
-                "limits": (
-                    "These panels establish time patterns within the retained run, "
-                    "not their cause. Because each panel is normalized separately, "
-                    "its density colors are not absolute counts and cannot be "
-                    "compared directly with the other panel."
-                ),
+                "read": """Temporal Evidence arranges the same Joint Spots in two complementary ways. <strong class="defined-term">Chronological</strong> preserves the real UTC sequence, so steps, drifts, gaps and short-lived events remain visible. <strong class="defined-term">UTC-Hour</strong> folds all represented dates onto one 24-hour clock to reveal patterns that recur at similar hours across multiple days. The accompanying counts show how much evidence contributes to each time bin; the ΔSNR density and median traces show where the values cluster. Color is <strong class="defined-term">relative density</strong> within each panel: its densest cell is 100%, not 100% of all evidence. A pattern repeated across several dates and supported by many Joint Spots is more persuasive than one isolated bin.""",
+                "limits": """The panels reveal time associations, not their cause. Their density scales are normalized separately, so colors are not absolute counts and should not be compared directly between panels.""",
             },
             "temporal_evidence_scheduled": {
-                "read": (
-                    "Temporal Evidence can establish when the scheduled-pair "
-                    "pattern occurred and whether a similar UTC-hour pattern "
-                    "recurred across dates. Both panels use the same Scheduled Pairs "
-                    "as **Scheduled-Pair Δ SNR**; Station Insights selections do "
-                    "not "
-                    "change this segment-level view. "
-                    '<strong class="defined-term">Chronological</strong> preserves '
-                    "the actual UTC dates and planned pair times. "
-                    '<strong class="defined-term">UTC-Hour</strong> folds all '
-                    "represented dates onto one 24-hour clock. Color shows "
-                    '<strong class="defined-term">relative density</strong> within '
-                    "each panel rather than an absolute pair count. Use the "
-                    "numerical dB labels and median traces because the ΔSNR axis is "
-                    "visually expanded around its median."
-                ),
-                "limits": (
-                    "These panels establish schedule-linked time patterns, not "
-                    "whether hardware, propagation, interference or switching "
-                    "caused them. Separately normalized density colors cannot be "
-                    "compared as absolute evidence volume."
-                ),
+                "read": """Temporal Evidence arranges the same Scheduled Pairs in two complementary ways. <strong class="defined-term">Chronological</strong> preserves the actual UTC sequence and planned pair times, revealing steps, drifts, gaps and isolated events. <strong class="defined-term">UTC-Hour</strong> folds all represented dates onto one 24-hour clock to show patterns that recur at similar schedule phases or hours. The accompanying counts show pair volume per time bin; the ΔSNR density and median traces show where Pair ΔSNR values cluster. Color is <strong class="defined-term">relative density</strong> within each panel rather than an absolute pair count. Repetition across several dates and many receivers is stronger evidence than one isolated schedule bin.""",
+                "limits": """The panels reveal schedule-linked time associations, not whether hardware, propagation, interference or switching caused them. Separately normalized colors cannot be compared as absolute evidence volume.""",
             },
             "success_evidence": {
-                "read": (
-                    "These figures can establish the "
-                    '<strong class="defined-term">Success Rate</strong>, the '
-                    "evidence depth behind it and whether high-volume stations "
-                    "change the station-balanced picture. Displayed Success Rate "
-                    "(%) is `100 × {formula}`. **Station Success Rate by Evidence "
-                    "Count** places one station with at least one Target observation "
-                    "at each point: height is its Success Rate, while horizontal "
-                    "position is its qualifying evidence count on a base-2 "
-                    "logarithmic scale. Points farther right have more repeated "
-                    "evidence. Qualifying zero-Target stations are omitted from this "
-                    "plot but remain available in Station Insights through "
-                    "`Show Zero-Target`. **Average Station Success Rate** gives "
-                    "every qualifying station one equal vote in each "
-                    "time-and-distance cell. **Observation-Level Success Rate** "
-                    "pools all Target and {counter} observations, so stations with "
-                    "more evidence receive more weight. Agreement supports a result "
-                    "that is similar under both weightings; divergence shows where "
-                    "station mix or evidence volume matters. Empty cells mean no "
-                    "qualifying evidence, not 0%."
-                ),
-                "limits": (
-                    "Evidence count shows depth, not statistical confidence, and "
-                    "these figures do not establish why rates differ."
-                ),
+                "read": """These figures show <strong class="defined-term">Success Rate</strong>, the evidence depth behind it and the effect of station weighting. The displayed rate is `100 × {formula}`. **Station Success Rate by Evidence Count** places one station with at least one Target observation at each point: height is its rate and horizontal position is its qualifying evidence count. The horizontal scale is base-2 logarithmic, so each step to the right roughly doubles the evidence. Qualifying zero-Target stations are available in Station Insights through `Show Zero-Target`, but are not plotted here. **Average Station Success Rate** gives every qualifying station one equal vote in each time-and-distance cell. **Observation-Level Success Rate** pools all Target and {counter} observations, so high-volume stations carry more weight. Agreement between both heatmaps, especially in cells with broad and deep evidence, supports a result that is not driven by station mix alone. Empty cells mean no qualifying evidence, not 0%.""",
+                "limits": """Evidence count shows depth, not guaranteed statistical independence or confidence. Success Rate remains conditional on the confirmed opportunities and does not explain why rates differ.""",
             },
             "station_insights_compare_joint": {
-                "read": (
-                    "Station Insights can establish which {peer_type} stations "
-                    "support the paired result, how their station-level results "
-                    "differ and where evidence is concentrated. Each row is one "
-                    "reported station, represented by its callsign plus locator. "
-                    "Read <strong class=\"defined-term\">Joint Spots</strong>, "
-                    "one-sided counts and station median "
-                    '<strong class="defined-term">ΔSNR</strong> together. '
-                    "`Include Unpaired Evidence` adds stations with one-sided or "
-                    "asynchronous evidence but no usable paired ΔSNR. Select one or "
-                    "more station rows to open their Selected Station Evidence. "
-                    "Table filters change only the displayed rows and selection, "
-                    "not the completed analysis."
-                ),
-                "limits": (
-                    "A callsign-plus-locator row is not proof of one unique physical "
-                    "station, and a row without paired evidence cannot establish a "
-                    "Target–Reference strength difference."
-                ),
+                "read": """Station Insights identifies the {peer_type} stations behind the paired result. Each row is one reported callsign-plus-locator identity. Read <strong class="defined-term">Joint Spots</strong> as evidence depth, the one-sided counts as Decode Outcome context, and the station median ΔSNR as that station's typical paired difference. Sorting by Joint Spots helps separate a repeatable station result from an extreme value based on little evidence; comparing many rows shows whether the map pattern is broad or concentrated in a few stations. `Include Unpaired Evidence` adds stations with one-sided or asynchronous evidence but no usable ΔSNR. Select rows to open their detailed evidence. Table filters affect only display and selection.""",
+                "limits": """A callsign-plus-locator row is an archive identity, not proof of one unique physical station. Without paired evidence, no Target–Reference SNR difference can be calculated.""",
             },
             "station_insights_compare_scheduled": {
-                "read": (
-                    "Station Insights can establish which RX stations support the "
-                    "scheduled result, how their station-level results differ and "
-                    "where evidence is concentrated. Each row is one reported RX "
-                    "station, represented by its callsign plus locator. Read "
-                    '<strong class="defined-term">Scheduled Pairs</strong>, '
-                    "one-sided scheduled counts and station median "
-                    '<strong class="defined-term">Pair ΔSNR</strong> together. '
-                    "`Include Unpaired Evidence` adds stations without a complete "
-                    "pair. Select one or more station rows to open their Selected "
-                    "Station Evidence. Table filters change only the displayed rows "
-                    "and selection, not the completed analysis."
-                ),
-                "limits": (
-                    "A callsign-plus-locator row is not proof of one unique physical "
-                    "station, and an incomplete pair cannot establish Pair ΔSNR."
-                ),
+                "read": """Station Insights identifies the RX stations behind the scheduled result. Each row is one reported callsign-plus-locator identity. Read <strong class="defined-term">Scheduled Pairs</strong> as evidence depth, the one-sided scheduled counts as Decode Outcome context, and median Pair ΔSNR as that station's typical scheduled difference. Sorting by pair count helps distinguish a repeatable station result from an extreme value based on few pairs; comparing many rows shows whether the pattern is broad or concentrated in a few receivers. `Include Unpaired Evidence` adds stations without a complete pair. Select rows to open their detailed evidence. Table filters affect only display and selection.""",
+                "limits": """A callsign-plus-locator row is an archive identity, not proof of one unique physical station. An incomplete pair has no Pair ΔSNR.""",
             },
             "station_insights_success": {
-                "read": (
-                    "Station Insights can establish which {peer_type} stations "
-                    "contribute to Success Rate, the evidence depth behind each "
-                    "rate and how successful Target SNR differs among stations. "
-                    "Each row is one reported station, represented by its callsign "
-                    "plus locator. Read Target, "
-                    '<strong class="defined-term">{counter}</strong>, '
-                    '<strong class="defined-term">Success Rate</strong> and median '
-                    "successful Target SNR together. `Show Zero-Target` adds "
-                    "qualifying stations with no Target observation. "
-                    '<strong class="defined-term">Normalized SNR at reported '
-                    "1 W</strong> removes the reported transmit-power term from "
-                    "successful Target decodes; a less-negative value is stronger "
-                    "relative to noise. Success Rate itself is not power-normalized. "
-                    "Select station rows to inspect their evidence. Table filters "
-                    "change only the displayed rows and selection."
-                ),
-                "limits": (
-                    "The table cannot show the SNR of a missed signal or correct "
-                    "inaccurate reported power, and a station row does not prove a "
-                    "unique physical station."
-                ),
+                "read": """Station Insights identifies the {peer_type} stations behind Success Rate and shows how much evidence supports each row. Read Target, <strong class="defined-term">{counter}</strong>, total confirmed opportunities and Success Rate together; an extreme rate based on many opportunities carries more descriptive weight than the same rate based on only a few. `Show Zero-Target` adds qualifying stations that had confirmed opportunities but no Target decode. The median successful <strong class="defined-term">SNR normalized to reported 1 W</strong> describes only the Target decodes that succeeded; a less-negative value is stronger relative to noise. Select rows to inspect their time pattern and underlying evidence. Table filters affect only display and selection.""",
+                "limits": """A missed signal has no recorded SNR, and normalization cannot correct an inaccurate reported power. A row is an archive callsign-plus-locator identity, not proof of one unique physical station.""",
             },
             "selected_compare_joint": {
-                "read": (
-                    "Selected Station Evidence can establish how the paired "
-                    "difference is distributed and changes over time for the "
-                    "selected {peer_type} stations. The view "
-                    '<strong class="defined-term">pools</strong> their Joint Spots, '
-                    "meaning that it combines all selected observations; a station "
-                    "with more Joint Spots contributes more values. **Δ SNR "
-                    "Distribution** shows the paired center, spread and outliers. "
-                    "Read bar length against `Share (%)` and compare the numerical "
-                    "median and mean. **Chronological** places the same Joint Spots "
-                    "in their actual UTC sequence. **UTC-Hour** folds the represented "
-                    "dates by UTC hour to reveal recurring associations. Relative "
-                    "density is normalized within the active time panel."
-                ),
-                "limits": (
-                    "This is an observation-weighted view of the selected stations; "
-                    "it does not replace the segment's station-balanced result or "
-                    "establish the cause of a time pattern."
-                ),
+                "read": """Selected Station Evidence zooms from the station-balanced segment result into the chosen {peer_type} stations. If several stations are selected, the view <strong class="defined-term">pools</strong> all their Joint Spots; a station with more spots contributes more values. **Δ SNR Distribution** shows the center, spread and outliers of the selected paired observations; read `Share (%)` together with the numerical median and mean. **Chronological** places those same observations in their real UTC order, while **UTC-Hour** folds the represented dates onto one 24-hour clock. Use this view to check whether the segment result recurs at individual stations and remains stable through time. Repeated agreement across several selected stations is stronger evidence than one isolated cluster.""",
+                "limits": """This is an observation-weighted view of the selected stations and does not replace the segment's station-balanced summary. A time pattern still does not identify its physical cause.""",
             },
             "selected_compare_scheduled": {
-                "read": (
-                    "Selected Station Evidence can establish how Pair ΔSNR is "
-                    "distributed and changes over time for the selected RX "
-                    "stations. The view "
-                    '<strong class="defined-term">pools</strong> their Scheduled '
-                    "Pairs, meaning that it combines all selected pairs; a station "
-                    "with more valid pairs contributes more values. **Δ SNR "
-                    "Distribution** shows the pair-level center, spread and "
-                    "outliers. **Chronological** places the same pairs in their "
-                    "planned UTC sequence. **UTC-Hour** folds the represented dates "
-                    "by UTC hour to reveal recurring associations. Use the numerical "
-                    "dB labels, median and mean; relative density is normalized "
-                    "within the active time panel."
-                ),
-                "limits": (
-                    "This is an observation-weighted view of the selected stations; "
-                    "it does not replace the segment's station-balanced result or "
-                    "separate a path difference from propagation, switching or "
-                    "schedule-phase effects."
-                ),
+                "read": """Selected Station Evidence zooms from the station-balanced segment result into the chosen RX stations. If several stations are selected, the view <strong class="defined-term">pools</strong> all their Scheduled Pairs; a station with more complete pairs contributes more values. **Δ SNR Distribution** shows the center, spread and outliers of Pair ΔSNR; read the numerical median and mean together. **Chronological** places those same pairs in their planned UTC sequence, while **UTC-Hour** folds the represented dates onto one 24-hour clock. Use this view to see whether the scheduled result recurs at individual receivers and through time. Agreement across several receivers and many pairs is stronger than one isolated cluster.""",
+                "limits": """This is an observation-weighted view and does not replace the segment's station-balanced summary. It cannot separate a path difference from propagation, switching or schedule-phase effects.""",
             },
             "selected_success": {
-                "read": (
-                    "Selected Station Evidence can establish when outcomes and "
-                    "evidence volume changed for the selected {peer_type} stations "
-                    "and how successful Target SNR was distributed. The view "
-                    '<strong class="defined-term">pools</strong> the selected '
-                    "stations' Target and "
-                    '<strong class="defined-term">{counter}</strong> evidence, so a '
-                    "station with more observations contributes more weight. "
-                    "**Station Success Rate + Evidence over Time** combines the "
-                    "Success Rate line with stacked Target and {counter} counts; "
-                    "read the rate together with its evidence volume. The colors "
-                    "classify the sampled great-circle path as night, "
-                    "greyline/mixed or daylight, allowing time patterns to be "
-                    "compared with path illumination. **Target SNR** contains only "
-                    "successful Target decodes normalized to reported 1 W; a "
-                    "less-negative value is stronger relative to noise."
-                ),
-                "limits": (
-                    "The view can show an association with path illumination but "
-                    "not that illumination caused the change. Target SNR cannot "
-                    "reveal the strength of missed signals or measure actual "
-                    "radiated power."
-                ),
+                "read": """Selected Station Evidence shows how outcomes, evidence volume and successful Target SNR changed for the chosen {peer_type} stations. If several stations are selected, the view <strong class="defined-term">pools</strong> their Target and {counter} observations, so high-volume stations contribute more weight. **Station Success Rate + Evidence over Time** combines the rate line with stacked Target and {counter} counts; always read a rate together with the number of observations beneath it. Bar colors classify the sampled great-circle path as night, greyline/mixed or daylight, making recurring illumination-related patterns visible. **Target SNR** shows only successful Target decodes normalized to reported 1 W; a less-negative value is stronger relative to noise. Patterns repeated across several bins and stations are more informative than one sparse spike.""",
+                "limits": """The view can show an association with path illumination but not prove that illumination caused it. Target SNR cannot reveal the strength of missed signals or actual radiated power.""",
             },
             "drilldown_compare_joint": {
-                "read": (
-                    "Drill-Down Data provides the audit trail from the paired "
-                    "result back to its contributing evidence. It shows "
-                    '<strong class="defined-term">processed row-level '
-                    "evidence</strong> after WSPRadar's matching and filters, "
-                    "rather than untouched provider rows. Same-cycle Compare shows "
-                    "the Target and Reference values used for each pair and its "
-                    "ΔSNR. Use exact UTC times, stations and values to reconcile "
-                    "summaries and inspect exceptional observations. Filters "
-                    "change only the displayed table."
-                ),
-                "limits": (
-                    "The rows establish how WSPRadar formed the displayed "
-                    "summaries; they do not reconstruct a missing-side SNR or turn "
-                    "one exceptional row into a general result."
-                ),
+                "read": """Drill-Down Data is the audit trail from the paired summaries back to the contributing observations. It shows <strong class="defined-term">processed row-level evidence</strong> after WSPRadar's matching and filters, including the Target and Reference values used for each same-cycle pair and the resulting ΔSNR. Use exact UTC times, station identities and values to reconcile a summary, inspect a step in the timeline or understand an outlier. The strength of WSPRadar remains the repeated pattern across many rows; Drill-Down makes that pattern traceable rather than replacing it with one anecdotal observation. Table filters change only what is displayed.""",
+                "limits": """These are processed analysis rows, not untouched provider responses. They cannot reconstruct a missing-side SNR, and one exceptional row should not be generalized.""",
             },
             "drilldown_compare_scheduled": {
-                "read": (
-                    "Drill-Down Data provides the audit trail from the scheduled "
-                    "result back to its contributing pairs. It shows "
-                    '<strong class="defined-term">processed scheduled '
-                    "evidence</strong>, including the planned UTC pair, TX role, "
-                    "Target and Reference micro-medians and Pair ΔSNR. Use it to "
-                    "confirm that the displayed values follow the configured "
-                    "schedule and reconcile with the summaries. Filters change "
-                    "only the displayed table."
-                ),
-                "limits": (
-                    "The rows establish how WSPRadar formed the displayed scheduled "
-                    "evidence; they cannot show that propagation or interference "
-                    "remained unchanged between transmissions."
-                ),
+                "read": """Drill-Down Data is the audit trail from the scheduled summaries back to the contributing pairs. It shows <strong class="defined-term">processed scheduled evidence</strong>: the planned UTC pair, TX role, Target and Reference micro-medians and Pair ΔSNR. Use it to verify that pairs follow the configured schedule, reconcile a station or time-bin summary and inspect unusual pairs. The broader conclusion should come from the repeated pattern across many receivers and pairs; the rows make that evidence directly traceable. Table filters change only what is displayed.""",
+                "limits": """The rows verify pair formation and calculated values, but cannot show that propagation or interference remained unchanged between the two transmissions.""",
             },
             "drilldown_success": {
-                "read": (
-                    "Drill-Down Data provides the audit trail from Success Rate "
-                    "back to its contributing cycles. It shows "
-                    '<strong class="defined-term">processed row-level '
-                    "evidence</strong> after WSPRadar's eligibility rules and "
-                    "filters, rather than untouched provider rows. Outcomes "
-                    "identify Target, <strong class=\"defined-term\">{counter}"
-                    "</strong> and <strong class=\"defined-term\">Target-only"
-                    "</strong> evidence. Target-only remains auditable but does "
-                    "not enter the Success Rate denominator. Use the table to "
-                    "reconcile numerator and denominator with their contributing "
-                    "cycles. Filters change only the displayed table."
-                ),
-                "limits": (
-                    "The rows establish how the retained evidence formed the "
-                    "displayed summaries; they cannot reveal unobserved "
-                    "transmissions or explain why a decode failed."
-                ),
+                "read": """Drill-Down Data is the audit trail from Success Rate back to the contributing WSPR cycles. It shows <strong class="defined-term">processed row-level evidence</strong> after WSPRadar's eligibility rules and filters. Outcomes identify Target, <strong class="defined-term">{counter}</strong> and <strong class="defined-term">Target-only</strong> evidence; Target-only remains visible for audit but does not enter the Success Rate denominator. Use the UTC time, station identity and outcome to reconcile numerator and denominator, inspect a time pattern or understand an unusual row. The broader conclusion should come from repetition across many opportunities, not one cycle. Table filters change only what is displayed.""",
+                "limits": """The rows show how retained evidence formed the summaries. They cannot reveal unobserved transmissions, the SNR of a missed signal or the cause of a failed decode.""",
             },
             "drilldown_local_median": {
-                "read": (
-                    "For Local Median Neighborhood, Drill-Down also identifies the "
-                    "local Reference stations that contributed to each applicable "
-                    "cycle median. This makes the changing neighborhood benchmark "
-                    "directly auditable."
-                ),
-                "limits": (
-                    "The contributing stations explain the dynamic Reference; they "
-                    "do not turn it into one fixed or calibrated Reference station."
-                ),
+                "read": """For Local Median Neighborhood, Drill-Down also lists the local Reference stations that contributed to each cycle's median. This lets you audit how the dynamic neighborhood Reference was built and see whether a change reflects the Target, a changing peer pool or both.""",
+                "limits": """The contributing stations explain the dynamic Reference; they do not turn it into one fixed or calibrated station.""",
             },
             "download": {
-                "read": (
-                    "Download Evidence preserves the completed analysis in an "
-                    '<strong class="defined-term">analysis evidence '
-                    "package</strong> for audit, sharing and reproducibility. It "
-                    "includes the run configuration and metadata, processed "
-                    "evidence retained by the run's geographic scope, and the "
-                    "applicable tables and high-resolution figures for the current "
-                    "Inspector scope and selected stations. `Save Config` "
-                    "separately preserves reusable analysis settings without the "
-                    "evidence from this run."
-                ),
-                "limits": (
-                    "The package reproduces WSPRadar's recorded analysis state, not "
-                    "the physical experiment or untouched provider responses. A "
-                    "later archive retrieval may differ if upstream records or "
-                    "WSPRadar change."
-                ),
+                "read": """Download Evidence preserves the completed run as an <strong class="defined-term">analysis evidence package</strong> for audit, sharing and reproducibility. It includes the run configuration and metadata, the processed evidence retained by the run, and the applicable tables and high-resolution figures for the current Inspector scope and selected stations. This keeps the large-scale summaries connected to the settings and row-level evidence that produced them. `Save Config` is different: it stores reusable analysis settings without this run's evidence.""",
+                "limits": """The package records WSPRadar's analysis state, not the physical experiment or untouched provider responses. A later archive retrieval may differ if upstream records or WSPRadar change.""",
             },
         },
     },
     "de": {
-        "trigger": "So liest du das",
-        "trigger_help": "So liest du „{section}“",
-        "read_label": "Was dieser Bereich belegen kann und wie du ihn liest.",
-        "limits_label": "Aussagegrenze.",
+        "trigger": 'So liest du das',
+        "trigger_help": 'So liest du „{section}“',
+        "read_label": 'Was diese Ansicht zeigt und wie du sie liest.',
+        "limits_label": 'Wichtig zu wissen.',
         "sections": {
             "context_rx_success": {
-                "read": (
-                    "RX Success kann belegen, wie zuverlässig der "
-                    '<strong class="defined-term">Target</strong>-Empfänger '
-                    "Signale innerhalb unabhängig bestätigter Gelegenheiten für "
-                    "Band, UTC-Zeitfenster und geografischen Bereich dieses Laufs "
-                    "decodierte. Das "
-                    '<strong class="defined-term">Target-Active Gate</strong> '
-                    "berücksichtigt zunächst nur UTC-Zyklen, in denen der "
-                    "Target-Empfänger mindestens einen Decode gemeldet hat. Eine "
-                    '<strong class="defined-term">bestätigte Gelegenheit</strong> '
-                    "liegt innerhalb dieser Zyklen vor, wenn eine andere "
-                    "qualifizierende Empfangsstation denselben entfernten Sender "
-                    "decodiert und damit dessen Aktivität unabhängig bestätigt. "
-                    '<strong class="defined-term">Elsewhere</strong> bedeutet: Die '
-                    "andere Station decodierte den Sender, das Target nicht. "
-                    '<strong class="defined-term">Target-only</strong> bedeutet: '
-                    "Das Target decodierte ihn, aber die unabhängige Bestätigung "
-                    "für den Nenner fehlt. Die angezeigte RX Success Rate (%) ist "
-                    "`100 × Target / (Target + Elsewhere)`."
-                ),
-                "limits": (
-                    "Das ist bedingte Reichweite innerhalb bestätigter "
-                    "Archivevidenz, keine absolute Empfindlichkeitsmessung oder "
-                    "Erklärung einzelner fehlender Decodes."
-                ),
+                "read": """RX Success zeigt, wie zuverlässig der <strong class="defined-term">Target</strong>-Empfänger entfernte Sender decodiert hat, wenn das Archiv unabhängig bestätigt, dass der Sender aktiv war und andernorts empfangen wurde. WSPRadar wertet nur WSPR-Zyklen aus, in denen der Target-Empfänger nachweislich aktiv war. Eine <strong class="defined-term">bestätigte Gelegenheit</strong> liegt vor, wenn eine andere geeignete Empfangsstation denselben Sender im selben Zyklus decodiert hat. <strong class="defined-term">Elsewhere</strong> bedeutet, dass die andere Empfangsstation ihn decodierte, das Target aber nicht; <strong class="defined-term">Target-only</strong> bedeutet, dass das Target ihn decodierte, jedoch die unabhängige Bestätigung für die Rate fehlt. Die <strong class="defined-term">RX Success Rate</strong> ist `100 × Target / (Target + Elsewhere)`. Wiederholungen über viele Sender, Richtungen und Zeiten machen aus einzelnen Spots ein belastbares Gesamtbild der Empfangsleistung.""",
+                "limits": """Das ist bedingte Leistung innerhalb bestätigter Archivgelegenheiten, keine absolute Messung der Empfängerempfindlichkeit. Für einen fehlenden Decode gibt es kein gemeldetes SNR; seine Ursache bleibt unbekannt.""",
             },
             "context_tx_success": {
-                "read": (
-                    "TX Success kann belegen, wie zuverlässig der "
-                    '<strong class="defined-term">Target</strong>-Sender von '
-                    "Empfangsstationen decodiert wurde, die für Band, "
-                    "UTC-Zeitfenster und geografischen Bereich dieses Laufs "
-                    "unabhängig als aktiv bestätigt sind. Das "
-                    '<strong class="defined-term">Target-Active Gate</strong> '
-                    "berücksichtigt zunächst nur UTC-Zyklen, in denen mindestens "
-                    "eine Empfangsstation die Target-Aussendung gemeldet hat. Eine "
-                    '<strong class="defined-term">bestätigte Gelegenheit</strong> '
-                    "liegt innerhalb dieser Zyklen vor, wenn eine entfernte "
-                    "Empfangsstation durch qualifizierende "
-                    '<strong class="defined-term">Other Signals</strong> im selben '
-                    "Band nachweislich aktiv war. "
-                    '<strong class="defined-term">Target-only</strong> bedeutet: '
-                    "Die Station decodierte das Target, aber die unabhängige "
-                    "Aktivitätsbestätigung für den Nenner fehlt. Die angezeigte TX "
-                    "Success Rate (%) ist "
-                    "`100 × Target / (Target + Other Signals)`."
-                ),
-                "limits": (
-                    "Das misst bedingte Reichweite unter den bestätigten aktiven "
-                    "Empfangsstationen, nicht tatsächlich abgestrahlte Leistung, "
-                    "Antennenwirkungsgrad oder die Ursache einzelner fehlender "
-                    "Decodes."
-                ),
+                "read": """TX Success zeigt, wie zuverlässig der <strong class="defined-term">Target</strong>-Sender von entfernten Empfangsstationen decodiert wurde, deren Aktivität unabhängig bestätigt ist. WSPRadar wertet WSPR-Zyklen aus, in denen die Target-Aussendung irgendwo im Netz sichtbar ist. An einer entfernten Empfangsstation liegt eine <strong class="defined-term">bestätigte Gelegenheit</strong> vor, wenn sie auf demselben Band ein anderes qualifizierendes Signal decodiert hat und damit nachweislich aktiv war. <strong class="defined-term">Other Signals</strong> bedeutet, dass die Station aktiv war, das Target aber nicht decodierte; <strong class="defined-term">Target-only</strong> bedeutet, dass sie das Target decodierte, jedoch die unabhängige Aktivitätsbestätigung für die Rate fehlt. Die <strong class="defined-term">TX Success Rate</strong> ist `100 × Target / (Target + Other Signals)`. Wiederholungen über viele Empfangsstationen, Richtungen und Zeiten liefern ein deutlich stärkeres Bild als ein einzelner Spot.""",
+                "limits": """Das ist bedingte Reichweite unter bestätigt aktiven Empfangsstationen, keine Messung der abgestrahlten Leistung oder des Antennenwirkungsgrads. Warum eine einzelne Station das Signal nicht decodierte, lässt sich daraus nicht ableiten.""",
             },
             "context_rx_compare": {
-                "read": (
-                    "RX Compare kann Richtung und Größe eines beobachteten "
-                    "gepaarten Unterschieds zwischen dem vollständigen "
-                    '<strong class="defined-term">Target</strong>- und '
-                    '<strong class="defined-term">Referenz</strong>-Empfangspfad '
-                    "belegen. <strong class=\"defined-term\">SNR</strong> ist das "
-                    "vom WSPR-Decoder gemeldete Signal-Rausch-Verhältnis in "
-                    "Dezibel (dB); ein weniger negativer Wert ist relativ zum "
-                    "Rauschen stärker. "
-                    '<strong class="defined-term">Delta SNR (ΔSNR)</strong> ist '
-                    "Target-SNR minus korrigiertes Referenz-SNR: Positive Werte "
-                    "sprechen für das Target, negative für die Referenz. RX "
-                    "Compare paart Reports desselben entfernten Senders im selben "
-                    "UTC-Zyklus."
-                ),
-                "limits": (
-                    "Das Ergebnis vergleicht vollständige Empfangspfade; "
-                    "Antennengewinn, Empfängerempfindlichkeit oder eine Ursache "
-                    "isoliert es nur, soweit der Versuch die übrigen "
-                    "Pfadunterschiede kontrollierte."
-                ),
+                "read": """RX Compare zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Empfangspfad relativ zur <strong class="defined-term">Referenz</strong> abschnitt, wenn beide denselben entfernten Sender im selben WSPR-Zyklus decodierten. <strong class="defined-term">SNR</strong> ist das vom Decoder gemeldete Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger negativer Wert ist relativ zum Rauschen stärker. <strong class="defined-term">Delta SNR (ΔSNR)</strong> ist Target-SNR minus korrigiertes Referenz-SNR: Positive Werte sprechen für das Target, negative für die Referenz. Jede Joint-Beobachtung hält Sender, Zeitpunkt und einen großen Teil des Funkwegs gemeinsam. Wiederholungen über viele Sender und Zeiten zeigen, ob ein Unterschied beständig ist oder nur einmalig auftrat.""",
+                "limits": """Das Ergebnis vergleicht vollständige Empfangspfade. Eine Aussage über Antenne, Empfänger oder Einzelkomponente ist nur so eng möglich, wie die übrigen Pfadunterschiede im Versuch kontrolliert wurden.""",
             },
             "context_tx_compare": {
-                "read": (
-                    "TX Compare kann Richtung und Größe eines beobachteten "
-                    "gepaarten Unterschieds zwischen dem vollständigen "
-                    '<strong class="defined-term">Target</strong>- und '
-                    '<strong class="defined-term">Referenz</strong>-Sendepfad an '
-                    "denselben entfernten Empfangsstationen belegen. "
-                    '<strong class="defined-term">SNR</strong> ist das vom '
-                    "WSPR-Decoder gemeldete Signal-Rausch-Verhältnis in Dezibel "
-                    "(dB); ein weniger negativer Wert ist relativ zum Rauschen "
-                    "stärker. SNR wird zunächst auf die gemeldete Leistung von 1 W "
-                    "normiert. "
-                    '<strong class="defined-term">Delta SNR (ΔSNR)</strong> ist '
-                    "Target-SNR minus korrigiertes Referenz-SNR: Positive Werte "
-                    "sprechen für das Target, negative für die Referenz. "
-                    "Same-cycle TX Compare paart beide Signale an derselben "
-                    "Empfangsstation im selben UTC-Zyklus."
-                ),
-                "limits": (
-                    "Das Ergebnis vergleicht vollständige Sendepfade; Leistung, "
-                    "Antennenwirkungsgrad oder einzelne Hardware isoliert es nur "
-                    "bei entsprechender Kontrolle der übrigen Variablen."
-                ),
+                "read": """TX Compare zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen abschnitt. <strong class="defined-term">SNR</strong> ist das vom Decoder gemeldete Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger negativer Wert ist relativ zum Rauschen stärker. WSPRadar normiert das SNR zunächst auf die gemeldete Leistung von 1 W und berechnet danach <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz. Positive Werte sprechen für das Target, negative für die Referenz. Same-cycle-Evidenz entsteht, wenn eine Empfangsstation beide Signale im selben WSPR-Zyklus meldet. Viele Empfangsstationen und wiederholte Paare zeigen geografische und zeitliche Beständigkeit, die ein einzelner Report nicht liefern kann.""",
+                "limits": """Das Ergebnis vergleicht vollständige Sendepfade und stützt sich auf die gemeldeten Leistungswerte. Eine Zuordnung zu Antennenwirkungsgrad, Ausgangsleistung oder Einzelkomponente setzt voraus, dass die übrigen Variablen unabhängig kontrolliert wurden.""",
             },
             "context_tx_compare_scheduled": {
-                "read": (
-                    "Scheduled TX Compare kann Richtung, Größe und Wiederholbarkeit "
-                    "eines beobachteten Unterschieds zwischen den geplanten "
-                    '<strong class="defined-term">Target</strong>- und '
-                    '<strong class="defined-term">Referenz</strong>-Sendepfaden '
-                    "belegen. <strong class=\"defined-term\">SNR</strong> ist das "
-                    "vom WSPR-Decoder gemeldete Signal-Rausch-Verhältnis in "
-                    "Dezibel (dB), normiert auf die gemeldete Leistung von 1 W. "
-                    '<strong class="defined-term">Delta SNR (ΔSNR)</strong> ist '
-                    "Target-SNR minus korrigiertes Referenz-SNR: Positive Werte "
-                    "sprechen für das Target, negative für die Referenz. WSPRadar "
-                    "bildet aus dem konfigurierten UTC-Zeitplan deterministische "
-                    '<strong class="defined-term">geplante Paare</strong>. Die '
-                    "beiden Aussendungen eines Paars sind zeitlich getrennt."
-                ),
-                "limits": (
-                    "Zeitplan, Ausbreitung, Störungen und Umschaltung können sich "
-                    "zwischen beiden Aussendungen ändern; ein wiederkehrender "
-                    "Zeitplaneffekt kann daher wie ein Pfadunterschied aussehen."
-                ),
+                "read": """Scheduled TX Compare zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen unter dem konfigurierten Umschaltzeitplan abschnitt. <strong class="defined-term">SNR</strong> wird auf die gemeldete Leistung von 1 W normiert, bevor <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz berechnet wird. Positive Werte sprechen für das Target, negative für die Referenz. Ein <strong class="defined-term">Scheduled Pair</strong> verbindet die geplante Target- und Referenzaussendung für eine Empfangsstation. Wiederholte Paare über viele Empfangsstationen zeigen, ob der beobachtete Unterschied geografisch und zeitlich konsistent ist.""",
+                "limits": """Die beiden Aussendungen eines Scheduled Pair sind zeitlich getrennt. Ausbreitung, Störungen, Umschaltung oder Zeitplanphase können sich dazwischen ändern und wie ein Pfadunterschied wirken.""",
             },
             "benchmark_hardware": {
-                "read": (
-                    "Der <strong class=\"defined-term\">Hardware-A/B-"
-                    "Benchmark</strong> vergleicht zwei kontrollierte Pfade im "
-                    "gemeinsamen Grid-4. Bleibt der übrige Aufbau konstant, "
-                    "unterstützt er die Zuordnung des beobachteten Unterschieds "
-                    "zur kontrollierten Pfadänderung."
-                ),
-                "limits": (
-                    "Eine einzelne Komponente oder kalibrierten Antennengewinn "
-                    "isoliert er nur mit entsprechend engeren Versuchskontrollen."
-                ),
+                "read": """Der <strong class="defined-term">Hardware-A/B-Benchmark</strong> vergleicht zwei kontrollierte Pfade an derselben Station—zum Beispiel Antennen, Speiseleitungen, Funkgeräte oder vollständige Ketten. Der gemeinsame Standort und große Teile des umgebenden Systems beseitigen viele Unterschiede eines Stationsvergleichs. Wenn nur der beabsichtigte Pfad wechselt, kann wiederholte Evidenz vieler Gegenstationen auch kleine, richtungsabhängige oder zeitabhängige Unterschiede sichtbar machen.""",
+                "limits": """Das Ergebnis beschreibt weiterhin die vollständigen installierten Pfade. Eine einzelne Komponente oder kalibrierten Gewinn isoliert es nur, wenn der Versuch alle übrigen relevanten Unterschiede kontrolliert hat.""",
             },
             "benchmark_reference": {
-                "read": (
-                    "Der <strong class=\"defined-term\">Referenzstations-"
-                    "Benchmark</strong> kann belegen, wie die vollständig "
-                    "installierte Target-Station relativ zur ausgewählten "
-                    '<strong class="defined-term">Referenz</strong> abschnitt. '
-                    "WSPRadar wählt die Referenz über ihr exaktes Rufzeichen und "
-                    "das unabhängig konfigurierte Referenz-Grid-4."
-                ),
-                "limits": (
-                    "Der Vergleich umfasst Funkgeräte, Antennen, Gelände, lokales "
-                    "Rauschen und Standorte beider Stationen; keinen dieser "
-                    "Einflüsse isoliert er für sich."
-                ),
+                "read": """Der <strong class="defined-term">Referenzstations-Benchmark</strong> vergleicht die vollständige Target-Station mit einer bekannten <strong class="defined-term">Referenz</strong>, die über exaktes Rufzeichen und Referenz-Grid-4 festgelegt ist. Damit lässt sich ein wiederholbarer Gesamtstationsunterschied über Richtungen, Entfernungen und Zeit verfolgen.""",
+                "limits": """Standort, Gelände, lokales Rauschen, Antennen, Funkgeräte und Betriebspraxis beider Stationen bleiben Teil des Vergleichs; keine einzelne Ursache wird isoliert.""",
             },
             "benchmark_local_median": {
-                "read": (
-                    "<strong class=\"defined-term\">Lokaler "
-                    "Nachbarschaftsmedian</strong> kann belegen, wie das Target "
-                    "gegenüber der typischen qualifizierenden lokalen Station "
-                    "innerhalb von {radius} km abschnitt. WSPRadar berechnet die "
-                    "Referenz für jeden anwendbaren Pfad und Zyklus neu als Median "
-                    "der aktiven lokalen Stationen."
-                ),
-                "limits": (
-                    "Die Referenz ändert sich mit der lokalen Beteiligung und hängt "
-                    "vom Radius ab; sie ist keine feste oder kalibrierte Station."
-                ),
+                "read": """<strong class="defined-term">Local Median Neighborhood</strong> vergleicht das Target mit der typischen qualifizierenden lokalen Station innerhalb von {radius} km. Für jeden vergleichbaren Funkweg und Zyklus bildet WSPRadar die Referenz aus dem Median-SNR der aktiven lokalen Stationen. Dadurch verliert ein einzelner ungewöhnlich starker Nachbar an Einfluss und es entsteht über viele Zyklen eine praktische lokale Basislinie.""",
+                "limits": """Die beitragenden Stationen können sich im Zeitverlauf ändern, und das Ergebnis hängt vom gewählten Radius ab. Es ist ein dynamischer lokaler Benchmark, keine feste oder kalibrierte Station.""",
             },
             "benchmark_local_best": {
-                "read": (
-                    "<strong class=\"defined-term\">Beste lokale "
-                    "Station</strong> kann belegen, wie das Target gegenüber der "
-                    "stärksten verfügbaren qualifizierenden Station innerhalb von "
-                    "{radius} km für jeden anwendbaren Pfad und Zyklus abschnitt."
-                ),
-                "limits": (
-                    "Das ist ein wechselnder Best-Peer-Benchmark, kein lokaler "
-                    "Durchschnitt, keine feste Referenzstation und keine "
-                    "kalibrierte Leistungsgrenze."
-                ),
+                "read": """<strong class="defined-term">Local Best Station</strong> vergleicht das Target in jedem vergleichbaren Funkweg und Zyklus mit der stärksten verfügbaren qualifizierenden Station innerhalb von {radius} km. Dieser anspruchsvolle Benchmark fragt, ob das Target wiederholt an den jeweils besten lokalen Teilnehmer herankommt, nicht nur an den lokalen Durchschnitt.""",
+                "limits": """Der beste Peer kann von Zyklus zu Zyklus wechseln. Er ist weder eine feste Referenzstation noch ein typischer Nachbarschaftswert oder eine kalibrierte Leistungsgrenze.""",
             },
             "map_compare_rx": {
-                "read": (
-                    "Die Kartenansicht kann belegen, wo der beobachtete "
-                    "Target–Referenz-Unterschied auftrat und wie breit die "
-                    "stützende Evidenz verteilt war. Jedes farbige Entfernungs- "
-                    "und Richtungssegment zeigt den Median der Stationsmediane des "
-                    '<strong class="defined-term">ΔSNR</strong>. '
-                    '<strong class="defined-term">Stationsgleichgewichtet</strong> '
-                    "bedeutet: Jede qualifizierende Station zählt einmal, "
-                    "unabhängig von ihrer Spot-Anzahl. Marker und Fußbalken "
-                    "unterscheiden <strong class=\"defined-term\">Joint</strong>, "
-                    '<strong class="defined-term">Both (Async)</strong>, '
-                    '<strong class="defined-term">Only Target</strong> und '
-                    '<strong class="defined-term">Only Reference</strong>. Joint '
-                    "bedeutet mindestens ein nutzbares Paar; Both (Async) bedeutet "
-                    "Evidenz auf beiden Seiten, aber kein nutzbares Paar. "
-                    "`STATIONS` zeigt die geografische Breite der beitragenden "
-                    "Stationen, `SPOTS` den Umfang wiederholter Evidenz. Lies "
-                    "beides zusammen: Viele Spots können von relativ wenigen "
-                    "Stationen stammen."
-                ),
-                "limits": (
-                    "Die Karte leitet die Ursache des Musters nicht her und kennt "
-                    "kein SNR für eine nicht decodierte Seite; für die Größe des "
-                    "Unterschieds sind die numerischen dB-Werte maßgeblich."
-                ),
+                "read": """Die Kartenansicht ist der geografische Überblick des RX-Vergleichs. Jeder farbige Entfernungs- und Richtungssektor zeigt den Median der medianen ΔSNR-Werte der beitragenden TX-Stationen. Die Darstellung ist <strong class="defined-term">stationsgleichgewichtet</strong>: Jede qualifizierende Station liefert zunächst genau einen Stationswert, unabhängig von ihrer Spot-Anzahl. Marker und Fußbalken trennen <strong class="defined-term">Joint</strong>, <strong class="defined-term">Both (Async)</strong>, <strong class="defined-term">Only Target</strong> und <strong class="defined-term">Only Reference</strong>. Joint bedeutet mindestens ein nutzbares Paar; Both (Async) bedeutet Evidenz auf beiden Seiten, aber kein bildbares Paar. <strong class="defined-term">STATIONS</strong> zeigt geografische Breite, <strong class="defined-term">SPOTS</strong> die Tiefe wiederholter Evidenz. Am überzeugendsten sind Kartenmuster mit klarer ΔSNR-Richtung, vielen Stationen und vielen Spots.""",
+                "limits": """Die Karte lokalisiert ein beobachtetes Muster; sie bestimmt weder Ausbreitungsart, Abstrahlwinkel, kalibrierten Gewinn noch physische Ursache. Für die Größe zählen die numerischen dB-Werte, nicht S-Stufenangaben.""",
             },
             "map_compare_tx": {
-                "read": (
-                    "Die Kartenansicht kann belegen, wo der beobachtete "
-                    "Target–Referenz-Unterschied auftrat und wie breit die "
-                    "stützende Evidenz verteilt war. Jedes farbige Entfernungs- "
-                    "und Richtungssegment zeigt den Median der Stationsmediane des "
-                    '<strong class="defined-term">ΔSNR</strong>. '
-                    '<strong class="defined-term">Stationsgleichgewichtet</strong> '
-                    "bedeutet: Jede qualifizierende Empfangsstation zählt einmal, "
-                    "unabhängig von ihrem Evidenzumfang. Marker und Fußbalken "
-                    "unterscheiden <strong class=\"defined-term\">Joint</strong>, "
-                    '<strong class="defined-term">Both (Async)</strong>, '
-                    '<strong class="defined-term">Only Target</strong> und '
-                    '<strong class="defined-term">Only Reference</strong>. Joint '
-                    "bedeutet mindestens ein nutzbares Paar; Both (Async) bedeutet "
-                    "Evidenz auf beiden Seiten, aber kein nutzbares Paar. "
-                    "`STATIONS` zeigt die geografische Breite der beitragenden "
-                    "Empfangsstationen, `SPOTS` beziehungsweise `PAIRS` den Umfang "
-                    "wiederholter Evidenz."
-                ),
-                "limits": (
-                    "Die Karte leitet weder Ursache noch tatsächlich abgestrahlte "
-                    "Leistung her; eine nicht decodierte Seite besitzt kein "
-                    "normierbares SNR."
-                ),
+                "read": """Die Kartenansicht ist der geografische Überblick des TX-Vergleichs. Jeder farbige Entfernungs- und Richtungssektor zeigt den Median der medianen ΔSNR-Werte der beitragenden RX-Stationen. Die Darstellung ist <strong class="defined-term">stationsgleichgewichtet</strong>: Jede qualifizierende Empfangsstation liefert zunächst genau einen Stationswert, unabhängig von ihrer Report-Anzahl. Marker und Fußbalken trennen <strong class="defined-term">Joint</strong>, <strong class="defined-term">Both (Async)</strong>, <strong class="defined-term">Only Target</strong> und <strong class="defined-term">Only Reference</strong>. Joint bedeutet mindestens ein nutzbares Paar; Both (Async) bedeutet Evidenz auf beiden Seiten, aber kein bildbares Paar. <strong class="defined-term">STATIONS</strong> zeigt geografische Breite; <strong class="defined-term">SPOTS</strong> oder <strong class="defined-term">PAIRS</strong> zeigt die Tiefe wiederholter Evidenz. Ein Muster mit vielen Empfangsstationen und vielen Beobachtungen ist aussagekräftiger als dieselbe Farbe auf Basis weniger Stationen.""",
+                "limits": """Die Karte bestimmt weder Ausbreitungsart, Abstrahlwinkel, tatsächlich abgestrahlte Leistung noch physische Ursache. Für eine nicht decodierte Seite existiert kein vergleichbares oder normierbares SNR.""",
             },
             "map_success": {
-                "read": (
-                    "Die Kartenansicht kann belegen, wo die bedingte "
-                    '<strong class="defined-term">Success Rate</strong> innerhalb '
-                    "dieses Laufs höher oder niedriger war und wie breit die "
-                    "Evidenz verteilt ist. Jedes Segment berechnet zunächst eine "
-                    "Rate je qualifizierender {peer_type}-Station und gewichtet "
-                    "anschließend jede Station gleich; dies ist die "
-                    '<strong class="defined-term">stationsgleichgewichtete</strong> '
-                    "Ansicht. Grüne Marker zeigen Stationen mit Target-Evidenz, "
-                    "graue Marker Stationen mit ausschließlich "
-                    '<strong class="defined-term">{counter}</strong>-Evidenz. '
-                    "`STATIONS` zeigt die geografische Breite, `SPOTS` den Umfang "
-                    "der Target- und {counter}-Evidenz."
-                ),
-                "limits": (
-                    "Das ist bedingte Reichweite, keine unbedingte Abdeckung oder "
-                    "kalibrierte Empfangswahrscheinlichkeit; 100 % gelten nur für "
-                    "die dargestellten bestätigten Gelegenheiten."
-                ),
+                "read": """Die Kartenansicht zeigt, wo die bedingte <strong class="defined-term">Success Rate</strong> höher oder niedriger war und wie breit die stützende Evidenz verteilt ist. Jeder Sektor berechnet zunächst eine Rate für jede qualifizierende {peer_type}-Station und mittelt anschließend diese Stationsraten, sodass jede Station eine gleich große Stimme erhält. Das ist die <strong class="defined-term">stationsgleichgewichtete</strong> Ansicht. Grüne Marker kennzeichnen Stationen mit Target-Evidenz; graue Marker qualifizierende Stationen mit ausschließlich <strong class="defined-term">{counter}</strong>-Evidenz. <strong class="defined-term">STATIONS</strong> zeigt geografische Breite, <strong class="defined-term">SPOTS</strong> das Volumen der Target- und {counter}-Evidenz. Suche nach Sektoren, in denen eine klare Rate zugleich von vielen Stationen und wiederholten Beobachtungen getragen wird.""",
+                "limits": """Das ist bedingte Reichweite innerhalb bestätigter Gelegenheiten, keine unbedingte Abdeckung oder kalibrierte Decode-Wahrscheinlichkeit. Angezeigte 100 % gelten nur für die dort enthaltenen bestätigten Gelegenheiten.""",
             },
             "segment": {
-                "read": (
-                    "Der Segment-Inspektor kann belegen, ob das abgeschlossene "
-                    "Ergebnis "
-                    "in einem gewählten geografischen Teilbereich bestehen bleibt, "
-                    "sich ändert oder konzentriert. Die Auswahl von Entfernung und "
-                    "Richtung definiert den "
-                    '<strong class="defined-term">aktiven Bereich</strong>. Alle '
-                    "folgenden Abbildungen, Stationstabellen und Ansichten "
-                    "ausgewählter Stationen beziehen sich auf diesen Ausschnitt. "
-                    '<strong class="defined-term">Evidenz im aktiven '
-                    "Bereich</strong> zeigt zwei ergänzende Größen: die "
-                    "qualifizierenden beitragenden Stationen und die zugehörigen "
-                    "Joint Spots, geplanten Paare oder bestätigten Gelegenheiten. "
-                    "Mehr Stationen zeigen größere Breite; mehr Evidenzeinheiten "
-                    "zeigen mehr wiederholte Beobachtungen."
-                ),
-                "limits": (
-                    "Die Auswahl startet keine neue Analyse und kann Stationen "
-                    "außerhalb des ursprünglichen Laufs nicht zurückholen; die "
-                    "Anzahlen allein belegen keine Unabhängigkeit oder "
-                    "Versuchsqualität."
-                ),
+                "read": """Mit dem Segment-Inspektor prüfst du, ob das Muster des vollständigen Laufs in einem gewählten geografischen Teilbereich bestehen bleibt, sich verändert oder konzentriert. Entfernung und Richtung definieren den <strong class="defined-term">aktiven Bereich</strong>; alle folgenden Abbildungen, Stationstabellen und Ansichten ausgewählter Stationen übernehmen ihn. <strong class="defined-term">Evidenz im aktiven Bereich</strong> nennt sowohl die Zahl beitragender Stationen als auch die Zahl der Joint Spots, Scheduled Pairs oder bestätigten Gelegenheiten. Beides ergänzt sich: Die Stationszahl zeigt Breite über verschiedene Funkwege, die Evidenzzahl wiederholte Tiefe. Ein Ergebnis mit beidem ist stärker als viele Beobachtungen von nur wenigen Stationen.""",
+                "limits": """Die Bereichsauswahl filtert den abgeschlossenen Lauf; sie startet ihn nicht neu und erweitert ihn nicht. Stationen außerhalb der ursprünglichen Maximalentfernung lassen sich nicht zurückholen. Anzahlen allein garantieren weder Unabhängigkeit noch gute Versuchskontrolle.""",
             },
             "comparison_evidence_joint": {
-                "read": (
-                    "Zusammen können diese Abbildungen belegen, wie breit der "
-                    "gepaarte Unterschied über Stationen auftritt und wie viel "
-                    "Variation die einzelnen Spots zeigen. **Decode Outcomes** "
-                    "zählt Stationen mit "
-                    '<strong class="defined-term">Joint</strong>, '
-                    '<strong class="defined-term">Only Target</strong>, '
-                    '<strong class="defined-term">Both (Async)</strong> oder '
-                    '<strong class="defined-term">Only Reference</strong>. Ein '
-                    '<strong class="defined-term">Joint Spot</strong> ist eine '
-                    "zusammengeführte Beobachtung desselben UTC-Zyklus mit "
-                    "vergleichbarer Evidenz für Target und Referenz. **Station "
-                    "Medians (Δ SNR)** gibt jeder qualifizierenden Station genau "
-                    "einen Median und damit dasselbe Gewicht. **Joint-Spot Δ SNR** "
-                    "gibt jedem Joint Spot einen Wert; Stationen mit vielen Spots "
-                    "wirken hier stärker. Stimmen beide Verteilungen überein, ist "
-                    "das Ergebnis unter Stations- und Spot-Gewichtung ähnlich; "
-                    "eine Abweichung zeigt, wo Evidenzumfang das Bild verändert. "
-                    "Der Median reagiert weniger auf einzelne Extremwerte als das "
-                    "arithmetische Mittel."
-                ),
-                "limits": (
-                    "ΔSNR beschreibt nur die gepaarte Teilmenge; lies es zusammen "
-                    "mit Decode Outcomes. Die Abbildungen belegen für sich weder "
-                    "formale Signifikanz noch die physische Ursache."
-                ),
+                "read": """Diese drei Abbildungen zeigen Zusammensetzung, Stationskonsistenz und Streuung auf Beobachtungsebene des gepaarten Ergebnisses. <strong class="defined-term">Decode Outcomes</strong> zählt Stationen und Spots mit Joint-, Only-Target-, Both-(Async)- oder Only-Reference-Evidenz. Ein <strong class="defined-term">Joint Spot</strong> ist eine zusammengeführte Same-cycle-Beobachtung von Target und Referenz. **Station Medians (Δ SNR)** gibt jeder qualifizierenden Station genau einen medianen ΔSNR-Wert und damit eine gleich große Stimme. **Joint-Spot Δ SNR** gibt jedem Joint Spot einen Wert; Stationen mit mehr Beobachtungen erhalten dadurch mehr Gewicht. Zeigen beide Verteilungen über viele Stationen und Spots dieselbe Richtung und ein ähnliches Zentrum, wird das Ergebnis weniger wahrscheinlich von einer sehr aktiven Station oder wenigen ungewöhnlichen Reports bestimmt. Der Median reagiert weniger auf einzelne Extremwerte als der Mittelwert.""",
+                "limits": """ΔSNR beschreibt nur die gepaarte Teilmenge; lies es zusammen mit Decode Outcomes. Diese beschreibenden Ansichten bestimmen weder die physische Ursache noch beweisen sie die Unabhängigkeit aller Beobachtungen.""",
             },
             "comparison_evidence_scheduled": {
-                "read": (
-                    "Zusammen können diese Abbildungen belegen, wie breit der "
-                    "geplante Unterschied über RX-Stationen auftritt und wie viel "
-                    "Variation die einzelnen Paare zeigen. **Decode Outcomes** "
-                    "trennt vollständige geplante Paare von einseitiger und "
-                    "asynchroner Evidenz. Ein "
-                    '<strong class="defined-term">geplantes Paar</strong> ist die '
-                    "deterministische Target–Referenz-Einheit aus dem "
-                    "konfigurierten UTC-Zeitplan. **Station Medians (Δ SNR)** gibt "
-                    "jeder qualifizierenden RX-Station genau einen medianen "
-                    "Paar-ΔSNR und damit dasselbe Gewicht. **Geplantes Paar Δ SNR** "
-                    "gibt jedem gültigen Paar einen Wert; Stationen mit vielen "
-                    "Paaren wirken hier stärker. Stimmen beide Verteilungen "
-                    "überein, ist das Ergebnis unter Stations- und Paar-Gewichtung "
-                    "ähnlich; eine Abweichung zeigt, wo Evidenzumfang das Bild "
-                    "verändert. Der Median reagiert weniger auf einzelne "
-                    "Extremwerte als das arithmetische Mittel."
-                ),
-                "limits": (
-                    "Paar-ΔSNR schließt unvollständige Paare aus, und zeitliche "
-                    "Änderungen zwischen den Aussendungen bleiben erhalten. Die "
-                    "Abbildungen belegen für sich weder formale Signifikanz noch "
-                    "die physische Ursache."
-                ),
+                "read": """Diese drei Abbildungen zeigen Zusammensetzung, Stationskonsistenz und Streuung auf Paarebene des geplanten Ergebnisses. <strong class="defined-term">Decode Outcomes</strong> ordnet RX-Stationen danach ein, ob sie vollständige Scheduled Pairs, einseitige geplante Evidenz oder asynchrone Evidenz liefern. Ein <strong class="defined-term">Scheduled Pair</strong> ist die Target–Referenz-Einheit, die aus dem konfigurierten UTC-Zeitplan an einer RX-Station gebildet wird. **Station Medians (Δ SNR)** gibt jeder qualifizierenden RX-Station genau einen medianen Paar-ΔSNR-Wert und damit eine gleich große Stimme. **Scheduled-Pair Δ SNR** gibt jedem vollständigen Paar einen Wert; Stationen mit mehr Paaren erhalten dadurch mehr Gewicht. Ähnliche Zentren und Vorzeichen unter beiden Gewichtungen, getragen von vielen Stationen und Paaren, zeigen, dass das Ergebnis nicht von einem Empfänger oder wenigen Paarereignissen dominiert wird. Der Median reagiert weniger auf einzelne Extremwerte als der Mittelwert.""",
+                "limits": """Paar-ΔSNR schließt unvollständige Paare aus, und der zeitversetzte Aufbau behält Änderungen zwischen den Aussendungen bei. Diese Ansichten bestimmen nicht, ob Hardware, Ausbreitung, Störungen oder Umschaltung den Unterschied verursacht haben.""",
             },
             "temporal_evidence_joint": {
-                "read": (
-                    "Der Bereich Zeitliche Evidenz kann belegen, wann das gepaarte "
-                    "Muster im "
-                    "Lauf auftrat und ob sich ein ähnliches Muster nach UTC-Stunde "
-                    "über mehrere Tage wiederholte. Beide Panels verwenden "
-                    "dieselben Joint Spots wie **Joint-Spot Δ SNR**; die Auswahl "
-                    "in "
-                    "Station Insights verändert diese Segmentansicht nicht. "
-                    "**Chronologisch** behält tatsächliche UTC-Daten und -Zeiten "
-                    "bei und zeigt Änderungen, Lücken und kurzzeitige Muster. "
-                    "**UTC-Stunde** legt alle dargestellten Tage auf eine gemeinsame "
-                    "24-Stunden-Uhr. Die Farbe zeigt die "
-                    '<strong class="defined-term">relative Dichte</strong> '
-                    "innerhalb des jeweiligen Panels: Die dichteste Zelle "
-                    "entspricht 100 %, nicht 100 % der gesamten Evidenz. Nutze für "
-                    "die Größe des Unterschieds die dB-Werte und Medianlinien."
-                ),
-                "limits": (
-                    "Die Panels belegen Zeitmuster innerhalb der beibehaltenen "
-                    "Evidenz, nicht deren Ursache; die separat normierten "
-                    "Dichtefarben sind keine absoluten, direkt vergleichbaren "
-                    "Anzahlen."
-                ),
+                "read": """Zeitliche Evidenz ordnet dieselben Joint Spots auf zwei ergänzende Arten an. <strong class="defined-term">Chronologisch</strong> erhält die tatsächliche UTC-Folge, sodass Sprünge, Drift, Lücken und kurzzeitige Ereignisse sichtbar bleiben. <strong class="defined-term">UTC-Stunde</strong> legt alle dargestellten Tage auf eine gemeinsame 24-Stunden-Uhr und zeigt Muster, die sich über mehrere Tage zu ähnlichen Uhrzeiten wiederholen. Die zugehörigen Anzahlen zeigen, wie viel Evidenz in jedes Zeitfenster eingeht; ΔSNR-Dichte und Medianlinien zeigen, wo sich die Werte bündeln. Die Farbe ist <strong class="defined-term">relative Dichte</strong> innerhalb des jeweiligen Panels: Die dichteste Zelle entspricht 100 %, nicht 100 % der gesamten Evidenz. Ein über mehrere Tage wiederkehrendes Muster mit vielen Joint Spots ist überzeugender als ein einzelnes Zeitfenster.""",
+                "limits": """Die Panels zeigen zeitliche Zusammenhänge, nicht deren Ursache. Ihre Dichteskalen werden getrennt normiert; Farben sind daher keine absoluten Anzahlen und nicht direkt zwischen den Panels vergleichbar.""",
             },
             "temporal_evidence_scheduled": {
-                "read": (
-                    "Der Bereich Zeitliche Evidenz kann belegen, wann das geplante "
-                    "Paarmuster "
-                    "auftrat und ob sich ein ähnliches Muster nach UTC-Stunde über "
-                    "mehrere Tage wiederholte. Beide Panels verwenden dieselben "
-                    "geplanten Paare wie **Geplantes Paar Δ SNR**; die Auswahl in "
-                    "Station Insights verändert diese Segmentansicht nicht. "
-                    "**Chronologisch** behält tatsächliche UTC-Daten und geplante "
-                    "Paarzeiten bei. **UTC-Stunde** legt alle dargestellten Tage auf "
-                    "eine gemeinsame 24-Stunden-Uhr. Die Farbe zeigt die "
-                    '<strong class="defined-term">relative Dichte</strong> '
-                    "innerhalb des jeweiligen Panels, keine absolute Paaranzahl. "
-                    "Nutze für die Größe des Unterschieds die dB-Werte und "
-                    "Medianlinien."
-                ),
-                "limits": (
-                    "Die Panels belegen zeitplanbezogene Zeitmuster, trennen aber "
-                    "Hardware, Ausbreitung, Störungen und Umschaltung als Ursachen "
-                    "nicht; die Dichtefarben sind keine absoluten Anzahlen."
-                ),
+                "read": """Zeitliche Evidenz ordnet dieselben Scheduled Pairs auf zwei ergänzende Arten an. <strong class="defined-term">Chronologisch</strong> erhält die tatsächliche UTC-Folge und die geplanten Paarzeiten, sodass Sprünge, Drift, Lücken und Einzelereignisse sichtbar bleiben. <strong class="defined-term">UTC-Stunde</strong> legt alle dargestellten Tage auf eine gemeinsame 24-Stunden-Uhr und zeigt Muster, die sich zu ähnlichen Zeitplanphasen oder Uhrzeiten wiederholen. Die zugehörigen Anzahlen zeigen das Paarvolumen je Zeitfenster; ΔSNR-Dichte und Medianlinien zeigen, wo sich die Paar-ΔSNR-Werte bündeln. Die Farbe ist <strong class="defined-term">relative Dichte</strong> innerhalb des jeweiligen Panels und keine absolute Paaranzahl. Wiederholung über mehrere Tage und viele Empfangsstationen ist stärkere Evidenz als ein einzelnes Zeitplanfenster.""",
+                "limits": """Die Panels zeigen zeitplanbezogene Zusammenhänge, nicht ob Hardware, Ausbreitung, Störungen oder Umschaltung sie verursacht haben. Getrennt normierte Farben sind nicht als absolutes Evidenzvolumen vergleichbar.""",
             },
             "success_evidence": {
-                "read": (
-                    "Diese Abbildungen können Success Rate, Evidenztiefe und den "
-                    "Einfluss evidenzstarker Stationen auf das "
-                    "stationsgleichgewichtete Bild belegen. Die angezeigte "
-                    '<strong class="defined-term">Success Rate</strong> (%) ist '
-                    "`100 × {formula}`. "
-                    "**Station Success Rate by Evidence Count** zeigt jede "
-                    "Station mit mindestens einem Target-Decode als Punkt: "
-                    "Die Höhe ist ihre Rate, die horizontale Position ihre "
-                    "qualifizierende Evidenzanzahl auf einer logarithmischen "
-                    "Basis-2-Skala. Punkte weiter rechts besitzen mehr wiederholte "
-                    "Evidenz. Qualifizierende Stationen ohne Target-Decode fehlen "
-                    "hier, können aber in Station Insights mit "
-                    "`Zero-Target-Stationen zeigen` eingeblendet werden. "
-                    "**Average Station Success Rate** gibt jeder "
-                    "qualifizierenden Station in jeder Zeit- und Entfernungszelle "
-                    "eine gleich große Stimme. "
-                    "**Observation-Level Success Rate** fasst alle "
-                    "qualifizierenden Target- und {counter}-Beobachtungen zusammen; "
-                    "Stationen mit viel Evidenz erhalten dadurch mehr Gewicht. "
-                    "Übereinstimmung stützt ein unter beiden Gewichtungen ähnliches "
-                    "Ergebnis; Abweichung zeigt, wo Stationsmix oder Evidenzumfang "
-                    "zählt. Leere Zellen bedeuten fehlende qualifizierende Evidenz, "
-                    "nicht 0 %."
-                ),
-                "limits": (
-                    "Evidenzanzahl zeigt Tiefe, nicht statistische Sicherheit; die "
-                    "Abbildungen erklären nicht, warum Raten abweichen."
-                ),
+                "read": """Diese Abbildungen zeigen <strong class="defined-term">Success Rate</strong>, die dahinterliegende Evidenztiefe und den Einfluss der Stationsgewichtung. Die angezeigte Rate ist `100 × {formula}`. **Station Success Rate by Evidence Count** zeigt jede Station mit mindestens einer Target-Beobachtung als Punkt: Die Höhe ist ihre Rate, die horizontale Position ihre qualifizierende Evidenzanzahl. Die horizontale Skala ist logarithmisch zur Basis 2; jeder Schritt nach rechts verdoppelt die Evidenz ungefähr. Qualifizierende Zero-Target-Stationen können in Station Insights über `Zero-Target-Stationen zeigen` eingeblendet werden, erscheinen hier aber nicht. **Average Station Success Rate** gibt jeder qualifizierenden Station in jeder Zeit- und Entfernungszelle eine gleich große Stimme. **Observation-Level Success Rate** fasst alle Target- und {counter}-Beobachtungen zusammen; Stationen mit viel Evidenz erhalten dadurch mehr Gewicht. Stimmen beide Heatmaps besonders in Zellen mit breiter und tiefer Evidenz überein, spricht das gegen einen reinen Stationsmix-Effekt. Leere Zellen bedeuten fehlende qualifizierende Evidenz, nicht 0 %.""",
+                "limits": """Evidenzanzahl zeigt Tiefe, garantiert aber weder statistische Unabhängigkeit noch Konfidenz. Die Success Rate bleibt an bestätigte Gelegenheiten gebunden und erklärt nicht, warum sich Raten unterscheiden.""",
             },
             "station_insights_compare_joint": {
-                "read": (
-                    "Station Insights kann belegen, welche {peer_type}-Stationen "
-                    "das gepaarte Ergebnis stützen, wie sich ihre "
-                    "Stationsergebnisse unterscheiden und wo Evidenz konzentriert "
-                    "ist. In dieser Tabelle bezeichnet eine Station die gemeldete "
-                    "Kombination aus Rufzeichen und Locator. Lies "
-                    '<strong class="defined-term">Joint Spots</strong>, '
-                    "einseitige Anzahlen und das mediane Stations-"
-                    '<strong class="defined-term">ΔSNR</strong> zusammen. '
-                    "`Ungepaarte Evidenz einbeziehen` zeigt zusätzlich Stationen "
-                    "mit einseitiger oder asynchroner Evidenz ohne nutzbares "
-                    "gepaartes ΔSNR. Wähle eine oder mehrere Stationen, um ihre "
-                    "Evidenz ausgewählter Stationen zu öffnen. Tabellenfilter "
-                    "verändern "
-                    "nur Anzeige und Auswahl, nicht die abgeschlossene Analyse."
-                ),
-                "limits": (
-                    "Eine Rufzeichen-plus-Locator-Zeile belegt keine eindeutig "
-                    "einzelne physische Station; ohne gepaarte Evidenz lässt sich "
-                    "kein Target–Referenz-Stärkeunterschied bestimmen."
-                ),
+                "read": """Station Insights nennt die {peer_type}-Stationen hinter dem gepaarten Ergebnis. Jede Zeile ist eine im Archiv gemeldete Rufzeichen-plus-Locator-Identität. Lies <strong class="defined-term">Joint Spots</strong> als Evidenztiefe, die einseitigen Anzahlen als Kontext der Decode Outcomes und das mediane Stations-ΔSNR als typischen gepaarten Unterschied dieser Station. Sortieren nach Joint Spots hilft, ein wiederholbares Stationsergebnis von einem Extremwert mit wenig Evidenz zu trennen; der Vergleich vieler Zeilen zeigt, ob das Kartenmuster breit getragen oder auf wenige Stationen konzentriert ist. `Ungepaarte Evidenz einbeziehen` ergänzt Stationen mit einseitiger oder asynchroner Evidenz ohne nutzbares ΔSNR. Wähle Zeilen für die Detailansicht. Tabellenfilter ändern nur Anzeige und Auswahl.""",
+                "limits": """Eine Rufzeichen-plus-Locator-Zeile ist eine Archividentität, kein Beweis für genau eine physische Station. Ohne gepaarte Evidenz lässt sich kein Target–Referenz-SNR-Unterschied berechnen.""",
             },
             "station_insights_compare_scheduled": {
-                "read": (
-                    "Station Insights kann belegen, welche RX-Stationen das "
-                    "geplante Ergebnis stützen, wie sich ihre Stationsergebnisse "
-                    "unterscheiden und wo Evidenz konzentriert ist. In dieser "
-                    "Tabelle bezeichnet eine Station die gemeldete Kombination "
-                    "aus Rufzeichen und Locator. Lies "
-                    '<strong class="defined-term">geplante Paare</strong>, '
-                    "einseitige Anzahlen und das mediane "
-                    '<strong class="defined-term">Paar-ΔSNR</strong> zusammen. '
-                    "`Ungepaarte Evidenz einbeziehen` zeigt zusätzlich Stationen "
-                    "ohne vollständiges Paar. Wähle eine oder mehrere Stationen, "
-                    "um ihre Evidenz ausgewählter Stationen zu öffnen. Tabellenfilter "
-                    "verändern nur Anzeige und Auswahl, nicht die abgeschlossene "
-                    "Analyse."
-                ),
-                "limits": (
-                    "Eine Rufzeichen-plus-Locator-Zeile belegt keine eindeutig "
-                    "einzelne physische Station; ohne vollständiges Paar lässt sich "
-                    "kein Paar-ΔSNR bestimmen."
-                ),
+                "read": """Station Insights nennt die RX-Stationen hinter dem geplanten Ergebnis. Jede Zeile ist eine im Archiv gemeldete Rufzeichen-plus-Locator-Identität. Lies <strong class="defined-term">Scheduled Pairs</strong> als Evidenztiefe, die einseitigen geplanten Anzahlen als Kontext der Decode Outcomes und das mediane Paar-ΔSNR als typischen geplanten Unterschied dieser Station. Sortieren nach Paaranzahl hilft, ein wiederholbares Stationsergebnis von einem Extremwert mit wenigen Paaren zu trennen; der Vergleich vieler Zeilen zeigt, ob das Muster breit getragen oder auf wenige Empfänger konzentriert ist. `Ungepaarte Evidenz einbeziehen` ergänzt Stationen ohne vollständiges Paar. Wähle Zeilen für die Detailansicht. Tabellenfilter ändern nur Anzeige und Auswahl.""",
+                "limits": """Eine Rufzeichen-plus-Locator-Zeile ist eine Archividentität, kein Beweis für genau eine physische Station. Ein unvollständiges Paar besitzt kein Paar-ΔSNR.""",
             },
             "station_insights_success": {
-                "read": (
-                    "Station Insights kann belegen, welche {peer_type}-Stationen "
-                    "zur Success Rate beitragen, welche Evidenztiefe hinter jeder "
-                    "Rate steht und wie sich erfolgreiches Target-SNR zwischen "
-                    "Stationen unterscheidet. In dieser Tabelle bezeichnet eine "
-                    "Station die gemeldete Kombination aus Rufzeichen und Locator. "
-                    "Lies Target, <strong class=\"defined-term\">{counter}</strong>, "
-                    '<strong class="defined-term">Success Rate</strong> und den '
-                    "Median des SNR erfolgreicher Target-Decodes zusammen. "
-                    "`Zero-Target-Stationen zeigen` blendet qualifizierende "
-                    "Stationen ohne Target-Decode ein. "
-                    '<strong class="defined-term">Auf die gemeldete Leistung von '
-                    "1 W normiertes SNR</strong> entfernt den gemeldeten "
-                    "Sendeleistungsterm aus erfolgreichen Target-Decodes; ein "
-                    "weniger negativer Wert ist relativ zum Rauschen stärker. Die "
-                    "Success Rate selbst wird nicht leistungsnormiert. Wähle "
-                    "Stationen aus, um ihre Evidenz zu untersuchen; Tabellenfilter "
-                    "verändern nur Anzeige und Auswahl."
-                ),
-                "limits": (
-                    "Das SNR eines nicht decodierten Signals bleibt unbekannt, und "
-                    "eine Stationszeile kann weder ungenaue Leistungsangaben "
-                    "korrigieren noch eine eindeutig einzelne physische Station "
-                    "belegen."
-                ),
+                "read": """Station Insights nennt die {peer_type}-Stationen hinter der Success Rate und zeigt, wie viel Evidenz jede Zeile trägt. Lies Target, <strong class="defined-term">{counter}</strong>, die Gesamtzahl bestätigter Gelegenheiten und die Success Rate gemeinsam; eine extreme Rate aus vielen Gelegenheiten hat mehr beschreibendes Gewicht als dieselbe Rate aus nur wenigen. `Zero-Target-Stationen zeigen` ergänzt qualifizierende Stationen mit bestätigten Gelegenheiten, aber ohne Target-Decode. Der Median des erfolgreichen <strong class="defined-term">auf gemeldete 1 W normierten SNR</strong> beschreibt nur die gelungenen Target-Decodes; ein weniger negativer Wert ist relativ zum Rauschen stärker. Wähle Zeilen, um Zeitverlauf und zugrunde liegende Evidenz zu prüfen. Tabellenfilter ändern nur Anzeige und Auswahl.""",
+                "limits": """Für ein verpasstes Signal gibt es kein gemeldetes SNR, und eine Normierung kann falsche Leistungsangaben nicht korrigieren. Eine Zeile ist eine Archividentität aus Rufzeichen und Locator, kein Beweis für genau eine physische Station.""",
             },
             "selected_compare_joint": {
-                "read": (
-                    "Die Evidenz ausgewählter Stationen kann belegen, wie sich der "
-                    "gepaarte "
-                    "Unterschied für die "
-                    '<strong class="defined-term">ausgewählten {peer_type}-'
-                    "Stationen</strong> verteilt und über die Zeit verändert. Die "
-                    "Ansicht <strong class=\"defined-term\">poolt</strong> ihre "
-                    "Joint Spots, kombiniert also alle ausgewählten Beobachtungen; "
-                    "eine Station mit mehr Joint Spots trägt mehr Werte bei. "
-                    "**Δ SNR Verteilung** zeigt Zentrum, Streuung und Ausreißer "
-                    "der Paare. Lies die Balkenlänge an `Share (%)` ab und "
-                    "vergleiche numerischen Median und Mittelwert. "
-                    "**Chronologisch** ordnet dieselben Joint Spots in ihrer "
-                    "tatsächlichen UTC-Folge an. **UTC-Stunde** legt die dargestellten "
-                    "Tage auf eine gemeinsame 24-Stunden-Uhr und macht "
-                    "wiederkehrende Zuordnungen sichtbar. Die relative Dichte wird "
-                    "innerhalb des aktiven Zeitpanels normiert."
-                ),
-                "limits": (
-                    "Das ist eine beobachtungsgewichtete Ansicht der ausgewählten "
-                    "Stationen; sie ersetzt nicht das stationsgleichgewichtete "
-                    "Segmentergebnis und belegt nicht die Ursache eines Zeitmusters."
-                ),
+                "read": """Die Evidenz ausgewählter Stationen zoomt vom stationsgleichgewichteten Segmentergebnis in die gewählten {peer_type}-Stationen. Bei mehreren ausgewählten Stationen <strong class="defined-term">poolt</strong> die Ansicht alle Joint Spots; eine Station mit mehr Spots liefert mehr Werte. **Δ SNR Verteilung** zeigt Zentrum, Streuung und Ausreißer der ausgewählten Paare; lies `Share (%)` zusammen mit numerischem Median und Mittelwert. **Chronologisch** ordnet dieselben Beobachtungen in ihrer tatsächlichen UTC-Folge an, während **UTC-Stunde** die dargestellten Tage auf eine gemeinsame 24-Stunden-Uhr legt. Nutze diese Ansicht, um zu prüfen, ob sich das Segmentergebnis an einzelnen Stationen wiederholt und zeitlich stabil bleibt. Wiederholte Übereinstimmung über mehrere ausgewählte Stationen ist stärkere Evidenz als eine isolierte Häufung.""",
+                "limits": """Das ist eine beobachtungsgewichtete Ansicht der ausgewählten Stationen und ersetzt nicht die stationsgleichgewichtete Segmentzusammenfassung. Ein Zeitmuster benennt weiterhin keine physische Ursache.""",
             },
             "selected_compare_scheduled": {
-                "read": (
-                    "Die Evidenz ausgewählter Stationen kann belegen, wie sich "
-                    "Paar-ΔSNR "
-                    "für die <strong class=\"defined-term\">ausgewählten "
-                    "RX-Stationen</strong> verteilt und über die Zeit verändert. "
-                    "Die Ansicht <strong class=\"defined-term\">poolt</strong> ihre "
-                    "geplanten Paare, kombiniert also alle ausgewählten Paare; "
-                    "eine Station mit mehr gültigen Paaren trägt mehr Werte bei. "
-                    "**Δ SNR Verteilung** zeigt Zentrum, Streuung und Ausreißer "
-                    "der Paare. **Chronologisch** ordnet dieselben Paare in ihrer "
-                    "geplanten UTC-Folge an. **UTC-Stunde** legt die dargestellten "
-                    "Tage auf eine gemeinsame 24-Stunden-Uhr und macht "
-                    "wiederkehrende Zuordnungen sichtbar. Nutze numerische "
-                    "dB-Werte, Median und Mittelwert; die relative Dichte wird "
-                    "innerhalb des aktiven Zeitpanels normiert."
-                ),
-                "limits": (
-                    "Das ist eine beobachtungsgewichtete Ansicht der ausgewählten "
-                    "Stationen; sie ersetzt nicht das stationsgleichgewichtete "
-                    "Segmentergebnis und trennt Pfad-, Ausbreitungs-, Schalt- oder "
-                    "Zeitplaneffekte nicht voneinander."
-                ),
+                "read": """Die Evidenz ausgewählter Stationen zoomt vom stationsgleichgewichteten Segmentergebnis in die gewählten RX-Stationen. Bei mehreren ausgewählten Stationen <strong class="defined-term">poolt</strong> die Ansicht alle Scheduled Pairs; eine Station mit mehr vollständigen Paaren liefert mehr Werte. **Δ SNR Verteilung** zeigt Zentrum, Streuung und Ausreißer des Paar-ΔSNR; lies numerischen Median und Mittelwert gemeinsam. **Chronologisch** ordnet dieselben Paare in ihrer geplanten UTC-Folge an, während **UTC-Stunde** die dargestellten Tage auf eine gemeinsame 24-Stunden-Uhr legt. Nutze diese Ansicht, um zu prüfen, ob sich das geplante Ergebnis an einzelnen Empfängern und über die Zeit wiederholt. Übereinstimmung über mehrere Empfänger und viele Paare ist stärker als eine isolierte Häufung.""",
+                "limits": """Das ist eine beobachtungsgewichtete Ansicht und ersetzt nicht die stationsgleichgewichtete Segmentzusammenfassung. Sie kann einen Pfadunterschied nicht von Ausbreitungs-, Schalt- oder Zeitplanphaseneffekten trennen.""",
             },
             "selected_success": {
-                "read": (
-                    "Die Evidenz ausgewählter Stationen kann belegen, wann sich "
-                    "Ergebnisse "
-                    "und Evidenzumfang für die "
-                    '<strong class="defined-term">ausgewählten {peer_type}-'
-                    "Stationen</strong> änderten und wie erfolgreiches Target-SNR "
-                    "verteilt war. Die Ansicht "
-                    '<strong class="defined-term">poolt</strong> ihre Target- und '
-                    '<strong class="defined-term">{counter}</strong>-Evidenz; '
-                    "Stationen mit mehr Beobachtungen wirken stärker. **Station "
-                    "Success Rate + Evidence over Time** verbindet die Success "
-                    "Rate mit den zugehörigen Target- und {counter}-Anzahlen; lies "
-                    "die Rate zusammen mit ihrem Evidenzumfang. Die Farben zeigen, "
-                    "ob der betrachtete Großkreispfad als Nacht, "
-                    "Greyline/gemischt oder Tageslicht klassifiziert wurde. "
-                    "**Target SNR** enthält nur erfolgreiche Target-Decodes, "
-                    "normiert auf die gemeldete Leistung von 1 W; ein weniger "
-                    "negativer Wert ist relativ zum Rauschen stärker."
-                ),
-                "limits": (
-                    "Die Ansicht kann einen Zusammenhang mit der Pfadbeleuchtung "
-                    "zeigen, aber keine Ursache belegen; Target-SNR kennt weder die "
-                    "Stärke fehlender Decodes noch die tatsächlich abgestrahlte "
-                    "Leistung."
-                ),
+                "read": """Die Evidenz ausgewählter Stationen zeigt, wie sich Outcomes, Evidenzvolumen und erfolgreiches Target-SNR für die gewählten {peer_type}-Stationen verändert haben. Bei mehreren ausgewählten Stationen <strong class="defined-term">poolt</strong> die Ansicht deren Target- und {counter}-Beobachtungen; Stationen mit hohem Volumen erhalten mehr Gewicht. **Station Success Rate + Evidence over Time** verbindet die Ratenlinie mit gestapelten Target- und {counter}-Anzahlen; lies eine Rate immer zusammen mit der darunterliegenden Beobachtungszahl. Die Balkenfarben klassifizieren den untersuchten Großkreispfad als Nacht, Greyline/gemischt oder Tageslicht und machen wiederkehrende beleuchtungsbezogene Muster sichtbar. **Target SNR** zeigt nur erfolgreiche Target-Decodes, normiert auf gemeldete 1 W; ein weniger negativer Wert ist relativ zum Rauschen stärker. Muster über mehrere Zeitfenster und Stationen sind informativer als ein einzelner dünn belegter Ausschlag.""",
+                "limits": """Die Ansicht kann einen Zusammenhang mit der Pfadbeleuchtung zeigen, aber nicht beweisen, dass diese die Ursache ist. Target-SNR kennt weder die Stärke verpasster Signale noch die tatsächlich abgestrahlte Leistung.""",
             },
             "drilldown_compare_joint": {
-                "read": (
-                    "Die Drill-Down-Daten liefern den Prüfpfad vom gepaarten "
-                    "Ergebnis "
-                    "zurück zu seiner beitragenden Evidenz. Es zeigt die "
-                    '<strong class="defined-term">verarbeiteten '
-                    "Evidenzzeilen</strong> nach Zuordnung und Filtern von "
-                    "WSPRadar, nicht unveränderte Provider-Zeilen. Same-cycle "
-                    "Compare zeigt für jedes Paar die verwendeten Target- und "
-                    "Referenzwerte sowie sein ΔSNR. Nutze genaue UTC-Zeiten, "
-                    "Stationen und Werte, um Zusammenfassungen abzugleichen und "
-                    "außergewöhnliche Beobachtungen zu untersuchen. Filter "
-                    "verändern nur die angezeigte Tabelle."
-                ),
-                "limits": (
-                    "Die Zeilen belegen, wie WSPRadar die Zusammenfassungen "
-                    "gebildet hat; fehlendes SNR und nicht erfasste Eigenschaften "
-                    "des physischen Aufbaus können sie nicht rekonstruieren."
-                ),
+                "read": """Die Drill-Down-Daten sind der Prüfpfad von den gepaarten Zusammenfassungen zurück zu den beitragenden Beobachtungen. Sie zeigen <strong class="defined-term">verarbeitete Evidenz auf Zeilenebene</strong> nach Zuordnung und Filtern von WSPRadar, einschließlich der Target- und Referenzwerte jedes Same-cycle-Paars und des resultierenden ΔSNR. Nutze genaue UTC-Zeiten, Stationsidentitäten und Werte, um eine Zusammenfassung abzugleichen, einen Sprung im Zeitverlauf zu prüfen oder einen Ausreißer zu verstehen. Die Stärke von WSPRadar bleibt das wiederholte Muster über viele Zeilen; Drill-Down macht es nachvollziehbar, statt es durch eine Einzelbeobachtung zu ersetzen. Tabellenfilter ändern nur die Anzeige.""",
+                "limits": """Das sind verarbeitete Analysezeilen, keine unveränderten Provider-Antworten. Sie können ein fehlendes SNR nicht rekonstruieren, und eine Ausnahmezeile darf nicht verallgemeinert werden.""",
             },
             "drilldown_compare_scheduled": {
-                "read": (
-                    "Die Drill-Down-Daten liefern den Prüfpfad vom geplanten "
-                    "Ergebnis "
-                    "zurück zu seinen beitragenden Paaren. Es zeigt die "
-                    '<strong class="defined-term">verarbeiteten geplanten '
-                    "Paare</strong> mit UTC-Paar, TX-Rolle, Target- und "
-                    "Referenz-Mikromedian sowie Paar-ΔSNR. Damit kannst du prüfen, "
-                    "ob die Paarbildung dem konfigurierten Zeitplan folgt, und die "
-                    "Zusammenfassungen bis zu den einzelnen Paaren nachvollziehen. "
-                    "Filter verändern nur die angezeigte Tabelle."
-                ),
-                "limits": (
-                    "Die Zeilen belegen Paarbildung und berechnete Werte; ob "
-                    "Ausbreitung oder Störungen zwischen beiden Aussendungen "
-                    "konstant blieben, können sie nicht zeigen."
-                ),
+                "read": """Die Drill-Down-Daten sind der Prüfpfad von den geplanten Zusammenfassungen zurück zu den beitragenden Paaren. Sie zeigen <strong class="defined-term">verarbeitete geplante Evidenz</strong>: das geplante UTC-Paar, die TX-Rolle, Target- und Referenz-Mikromediane sowie Paar-ΔSNR. Nutze sie, um zu bestätigen, dass die Paare dem konfigurierten Zeitplan folgen, eine Stations- oder Zeitfensterzusammenfassung abzugleichen und ungewöhnliche Paare zu prüfen. Die breitere Aussage sollte aus dem wiederholten Muster über viele Empfänger und Paare kommen; die Zeilen machen diese Evidenz direkt nachvollziehbar. Tabellenfilter ändern nur die Anzeige.""",
+                "limits": """Die Zeilen bestätigen Paarbildung und berechnete Werte, können aber nicht zeigen, dass Ausbreitung oder Störungen zwischen beiden Aussendungen unverändert blieben.""",
             },
             "drilldown_success": {
-                "read": (
-                    "Die Drill-Down-Daten liefern den Prüfpfad von der Success Rate "
-                    "zurück zu den beitragenden Zyklen. Es zeigt die "
-                    '<strong class="defined-term">verarbeiteten '
-                    "Evidenzzeilen</strong> nach Evidenzregeln und Filtern von "
-                    "WSPRadar. Outcomes unterscheiden Target, "
-                    '<strong class="defined-term">{counter}</strong> und '
-                    '<strong class="defined-term">Target-only</strong>. '
-                    "Target-only bleibt prüfbar, fließt aber nicht in den Nenner "
-                    "der Success Rate ein. Damit kannst du Zähler und Nenner bis "
-                    "zu den beitragenden Stationen und UTC-Zyklen nachvollziehen. "
-                    "Filter verändern nur die angezeigte Tabelle."
-                ),
-                "limits": (
-                    "Die Zeilen belegen, wie die berücksichtigten Zyklen die "
-                    "Success-Zusammenfassungen bilden; nicht bestätigte "
-                    "Aussendungen und die Ursache eines fehlenden Decodes bleiben "
-                    "unbeobachtet."
-                ),
+                "read": """Die Drill-Down-Daten sind der Prüfpfad von der Success Rate zurück zu den beitragenden WSPR-Zyklen. Sie zeigen <strong class="defined-term">verarbeitete Evidenz auf Zeilenebene</strong> nach den Evidenzregeln und Filtern von WSPRadar. Outcomes kennzeichnen Target-, <strong class="defined-term">{counter}</strong>- und <strong class="defined-term">Target-only</strong>-Evidenz; Target-only bleibt prüfbar, fließt aber nicht in den Nenner der Success Rate ein. Nutze UTC-Zeit, Stationsidentität und Outcome, um Zähler und Nenner abzugleichen, ein Zeitmuster zu prüfen oder eine ungewöhnliche Zeile zu verstehen. Die breitere Aussage sollte aus Wiederholung über viele Gelegenheiten kommen, nicht aus einem Zyklus. Tabellenfilter ändern nur die Anzeige.""",
+                "limits": """Die Zeilen zeigen, wie die beibehaltene Evidenz die Zusammenfassungen bildet. Sie können unbeobachtete Aussendungen, das SNR eines verpassten Signals oder die Ursache eines fehlgeschlagenen Decodes nicht offenlegen.""",
             },
             "drilldown_local_median": {
-                "read": (
-                    "Beim lokalen Nachbarschaftsmedian zeigt Drill-Down zusätzlich "
-                    "die lokalen Referenzstationen, aus denen der jeweilige "
-                    "Zyklusmedian gebildet wurde. Damit ist der wechselnde "
-                    "Nachbarschaftsbenchmark direkt nachvollziehbar."
-                ),
-                "limits": (
-                    "Die beitragenden Stationen erklären die dynamische Referenz; "
-                    "sie machen daraus keine feste oder kalibrierte "
-                    "Referenzstation."
-                ),
+                "read": """Beim Local Median Neighborhood listet Drill-Down zusätzlich die lokalen Referenzstationen auf, die zum Median jedes Zyklus beigetragen haben. So lässt sich prüfen, wie die dynamische Nachbarschaftsreferenz gebildet wurde und ob eine Änderung vom Target, von einem wechselnden Peer-Pool oder von beidem stammt.""",
+                "limits": """Die beitragenden Stationen erklären die dynamische Referenz; sie machen daraus keine feste oder kalibrierte Station.""",
             },
             "download": {
-                "read": (
-                    "Mit `Evidenz herunterladen` bewahrst du die abgeschlossene "
-                    "Analyse als "
-                    '<strong class="defined-term">Analyse-'
-                    "Evidenzpaket</strong> für Prüfung, Weitergabe und "
-                    "Reproduzierbarkeit. Es enthält Konfiguration und Metadaten "
-                    "des Laufs, die im geografischen Analyseumfang beibehaltene "
-                    "verarbeitete Evidenz sowie die anwendbaren Tabellen und "
-                    "hochauflösenden Abbildungen für den aktuellen "
-                    "Inspector-Bereich und die ausgewählten Stationen. `Konfig "
-                    "speichern` bewahrt separat wiederverwendbare "
-                    "Analyseeinstellungen ohne die Evidenz dieses Laufs."
-                ),
-                "limits": (
-                    "Das Paket reproduziert den aufgezeichneten WSPRadar-"
-                    "Analysestand, nicht den physischen Versuch oder unveränderte "
-                    "Provider-Antworten; spätere Archivabfragen können bei "
-                    "Änderungen an Daten oder WSPRadar abweichen."
-                ),
+                "read": """Evidenz herunterladen bewahrt den abgeschlossenen Lauf als <strong class="defined-term">Analyse-Evidenzpaket</strong> für Prüfung, Weitergabe und Reproduzierbarkeit. Es enthält Konfiguration und Metadaten des Laufs, die beibehaltene verarbeitete Evidenz sowie die anwendbaren Tabellen und hochauflösenden Abbildungen für den aktuellen Inspector-Bereich und die ausgewählten Stationen. Damit bleiben die großskaligen Zusammenfassungen mit den Einstellungen und Evidenzzeilen verbunden, aus denen sie entstanden sind. `Konfig speichern` ist etwas anderes: Es speichert wiederverwendbare Analyseeinstellungen ohne die Evidenz dieses Laufs.""",
+                "limits": """Das Paket zeichnet den WSPRadar-Analysestand auf, nicht den physischen Versuch oder unveränderte Provider-Antworten. Eine spätere Archivabfrage kann abweichen, wenn sich Upstream-Daten oder WSPRadar ändern.""",
             },
         },
     },
 }
-
 
 # Streamlit sessions created before canonical widget tokens were introduced can
 # survive a deployment rerun with the old display label still stored as state.

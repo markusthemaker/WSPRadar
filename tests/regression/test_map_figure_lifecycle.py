@@ -5,6 +5,7 @@ import time
 
 import numpy as np
 from matplotlib.colors import to_rgba
+from matplotlib.legend import Legend
 from PIL import Image
 import pytest
 
@@ -267,9 +268,12 @@ def test_segment_and_opportunity_figures_render_concurrently_without_pyplot_stat
         "compare_layout": True,
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, -1.0, 0.0, 1.0, 2.0]),
-        "panel_counts": [1, 3, 1, 1],
+        "panel_counts": [],
+        "panel_station_counts": [1, 3, 1, 1],
+        "panel_spot_counts": [2, 10, 3, 1],
+        "panel_series_labels": ["Stations", "Spots"],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
-        "panel_y_label": "Count (Stations)",
+        "panel_y_label": "Share (%)",
     }
     time_ns = np.array(
         [
@@ -329,9 +333,12 @@ def test_high_resolution_export_uses_shared_matplotlib_runtime():
         "compare_layout": True,
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, 0.0, 2.0]),
-        "panel_counts": [1, 3, 1, 1],
+        "panel_counts": [],
+        "panel_station_counts": [1, 3, 1, 1],
+        "panel_spot_counts": [2, 6, 2, 2],
+        "panel_series_labels": ["Stations", "Spots"],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
-        "panel_y_label": "Count (Stations)",
+        "panel_y_label": "Share (%)",
     }
     figure = render_segment_insight_export_figure(recipe)
     try:
@@ -352,9 +359,12 @@ def test_compare_segment_histograms_share_median_legend_and_mean_placement():
         "compare_layout": True,
         "station_values": np.array([6.0, 7.0]),
         "spot_values": np.array([6.0, 8.0]),
-        "panel_counts": [1, 2, 0, 1],
+        "panel_counts": [],
+        "panel_station_counts": [1, 2, 0, 1],
+        "panel_spot_counts": [2, 8, 1, 3],
+        "panel_series_labels": ["Stations", "Spots"],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
-        "panel_y_label": "Count (Stations)",
+        "panel_y_label": "Share (%)",
     }
 
     figure = render_segment_insight_export_figure(recipe)
@@ -401,6 +411,139 @@ def test_compare_segment_histograms_share_median_legend_and_mean_placement():
                 text.get_fontsize()
                 for text in axis.get_legend().get_texts()
             } == {8.0}
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
+def test_compare_outcomes_and_station_histogram_share_station_hatching():
+    """Keep split inside legends and dense station hatching across Compare."""
+    recipe = {
+        "title": "RX Compare",
+        "selected_segment": "Full Range | All Directions",
+        "is_compare": True,
+        "is_sequential": False,
+        "compare_layout": True,
+        "station_values": np.array([-2.0, 0.0, 2.0]),
+        "spot_values": np.array([-3.0, -1.0, 1.0, 3.0]),
+        "panel_counts": [],
+        "panel_station_counts": [1, 2, 0, 1],
+        "panel_spot_counts": [1, 198, 1, 0],
+        "panel_series_labels": ["Stations", "Spots"],
+        "panel_labels": ["Target only", "Joint", "Both (Async)", "Reference only"],
+        "panel_y_label": "Share (%)",
+    }
+
+    figure = render_segment_insight_export_figure(recipe)
+    try:
+        outcome_axis = next(
+            axis for axis in figure.axes if axis.get_title() == "Decode Outcomes"
+        )
+        station_bars = [
+            patch
+            for patch in outcome_axis.patches
+            if patch.get_gid() == "decode-outcome-stations"
+        ]
+        spot_bars = [
+            patch
+            for patch in outcome_axis.patches
+            if patch.get_gid() == "decode-outcome-spots"
+        ]
+
+        assert len(station_bars) == len(spot_bars) == 4
+        for station_bar, spot_bar in zip(station_bars, spot_bars):
+            station_center = station_bar.get_x() + station_bar.get_width() / 2.0
+            spot_center = spot_bar.get_x() + spot_bar.get_width() / 2.0
+            assert station_center < spot_center
+            assert station_bar.get_hatch() == "//////"
+            assert station_bar.get_facecolor()[3] == pytest.approx(0.0)
+            assert spot_bar.get_hatch() is None
+            assert spot_bar.get_facecolor()[:3] == pytest.approx(
+                to_rgba("#36aaf9")[:3]
+            )
+
+        assert [
+            text.get_text()
+            for text in outcome_axis.texts
+            if text.get_gid() == "decode-outcome-percentage"
+        ] == [
+            "25%",
+            "50%",
+            "0%",
+            "25%",
+            "<1%",
+            "99%",
+            "<1%",
+            "0%",
+        ]
+        assert outcome_axis.get_ylabel() == "Share (%)"
+        assert outcome_axis.get_ylim() == pytest.approx((0.0, 120.0))
+        assert max(outcome_axis.get_yticks()) == pytest.approx(100.0)
+        outcome_legends = {
+            artist.get_gid(): artist
+            for artist in outcome_axis.get_children()
+            if isinstance(artist, Legend)
+        }
+        assert [
+            text.get_text()
+            for text in outcome_legends[
+                "decode-outcome-station-legend"
+            ].get_texts()
+        ] == ["Stations"]
+        assert [
+            text.get_text()
+            for text in outcome_legends[
+                "decode-outcome-spot-legend"
+            ].get_texts()
+        ] == ["Spots"]
+        figure.canvas.draw()
+        renderer = figure.canvas.get_renderer()
+        axis_center_x = outcome_axis.get_window_extent(renderer).x0 + (
+            outcome_axis.get_window_extent(renderer).width / 2.0
+        )
+        assert (
+            outcome_legends["decode-outcome-station-legend"]
+            .get_window_extent(renderer)
+            .x1
+            < axis_center_x
+        )
+        assert (
+            outcome_legends["decode-outcome-spot-legend"]
+            .get_window_extent(renderer)
+            .x0
+            > axis_center_x
+        )
+
+        station_axis = next(
+            axis for axis in figure.axes if axis.get_title().startswith("Station Medians")
+        )
+        spot_axis = next(
+            axis for axis in figure.axes if axis.get_title() == "Joint-Spot \u0394 SNR"
+        )
+        station_histogram_bars = [
+            patch
+            for patch in station_axis.patches
+            if patch.get_gid() == "station-median-histogram"
+        ]
+        spot_histogram_bars = [
+            patch
+            for patch in spot_axis.patches
+            if patch.get_gid() == "spot-metric-histogram"
+        ]
+        assert station_histogram_bars
+        assert spot_histogram_bars
+        assert {
+            patch.get_hatch() for patch in station_histogram_bars
+        } == {"//////"}
+        assert {
+            patch.get_facecolor()[3] for patch in station_histogram_bars
+        } == {0.0}
+        assert {
+            patch.get_hatch() for patch in spot_histogram_bars
+        } == {None}
+        for patch in spot_histogram_bars:
+            assert patch.get_facecolor()[:3] == pytest.approx(
+                to_rgba("#36aaf9")[:3]
+            )
     finally:
         dispose_matplotlib_figure(figure)
 
@@ -633,9 +776,12 @@ def test_sequential_segment_recipe_preserves_scheduled_pair_title():
         "compare_layout": True,
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, 0.0, 2.0]),
-        "panel_counts": [1, 3, 1, 1],
+        "panel_counts": [],
+        "panel_station_counts": [1, 3, 1, 1],
+        "panel_spot_counts": [2, 6, 2, 1],
+        "panel_series_labels": ["Stations", "Scheduled pairs"],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
-        "panel_y_label": "Count (Stations)",
+        "panel_y_label": "Share (%)",
     }
 
     evidence_title = "Scheduled-Pair \u0394 SNR"

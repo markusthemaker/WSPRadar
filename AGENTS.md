@@ -295,6 +295,14 @@ checks** below.
 
 - Optimize code for human readability and maintainability, not merely for
   brevity.
+- Keep human-maintained configuration, UI copy, and localization catalogs
+  editor-friendly. In Python text catalogs such as `i18n.py`, keep each prose
+  paragraph on one physical source line and rely on the editor's soft wrapping;
+  represent long prose values with triple-quoted strings (`"""..."""`) instead
+  of manually hard-wrapped adjacent string fragments. Retain physical line
+  breaks only when they are semantically required, such as Markdown paragraph
+  boundaries, lists, tables, or code blocks, and preserve the native formatting
+  requirements of JSON, schemas, and other machine-readable formats.
 - Use descriptive, self-explanatory names for variables, functions, methods,
   classes, constants, modules, and DataFrame columns.
 - Prefer complete words over abbreviations. Domain-standard abbreviations such

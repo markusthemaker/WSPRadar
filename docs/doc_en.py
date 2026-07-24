@@ -682,7 +682,7 @@ Zero-Target stations are omitted from that scatter plot because they would all a
 
 #### 2.5b Inspect a Geographic Segment (Compare Mode)
 
-**Decode Outcomes** show the breadth of Joint, Only Target, Both (Async) and Only Reference stations. This establishes whether the paired Delta SNR describes much of the footprint or a narrower joint subset.
+**Decode Outcomes** compare Joint, Only Target, Both (Async) and Only Reference composition at two levels. The left, hatched bar in each category assigns every `callsign + locator` station identity to one station outcome; the right, solid-blue bar counts processed spot evidence, or scheduled-pair evidence for sequential TX A/B. Each level is normalized against its own total, so the integer percentages compare composition rather than absolute station and spot counts. The total and Joint counts for each level appear in the summary lines above the figure. Read both levels together: station breadth establishes whether the paired Delta SNR describes much of the footprint or a narrower joint subset, while the spot/pair distribution shows where repeated evidence is concentrated. Spot-level Both (Async) includes exclusive observations from identities that also have Joint evidence.
 
 **Station Medians (Delta SNR)** gives each contributing station one value: its median paired Delta SNR. Stations therefore receive equal weight. A distribution concentrated above or below zero shows a consistent Target- or Reference-favoring direction across the available paths. A wide or split distribution shows that the observed difference varies by path.
 

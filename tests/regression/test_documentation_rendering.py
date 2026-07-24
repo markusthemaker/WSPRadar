@@ -332,6 +332,18 @@ def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
     assert rx_explanation < tx_explanation < sequential_explanation
 
 
+def test_bilingual_manuals_explain_dual_level_decode_outcome_bars():
+    """Keep the operator interpretation aligned with the rendered Compare figure."""
+    assert "The left, hatched bar in each category" in DOC_EN
+    assert "the right, solid-blue bar" in DOC_EN
+    assert "Each level is normalized against its own total" in DOC_EN
+    assert "The total and Joint counts for each level appear" in DOC_EN
+    assert "Der linke, schraffierte Balken jeder Kategorie" in DOC_DE
+    assert "der rechte, vollblaue Balken" in DOC_DE
+    assert "Jede Ebene wird gegen ihre eigene Gesamtsumme normiert" in DOC_DE
+    assert "Die Gesamt- und Joint-Anzahlen jeder Ebene stehen" in DOC_DE
+
+
 def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_policy():
     """Meaningful documentation contracts must remain aligned across languages."""
     for manual in (DOC_EN, DOC_DE):

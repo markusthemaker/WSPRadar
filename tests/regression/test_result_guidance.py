@@ -377,10 +377,14 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
             "Only Reference",
         )
     )
+    assert "hatched Stations" in joint_compare_plain
+    assert "solid Spots" in joint_compare_plain
+    assert "Total and Joint counts for both levels appear" in joint_compare_plain
     assert (
         "A Scheduled Pair is the deterministic Target–Reference unit"
         in scheduled_compare_plain
     )
+    assert "solid Scheduled-pairs bars" in scheduled_compare_plain
     assert "time-separated design retains changes" in scheduled_compare_plain
 
 

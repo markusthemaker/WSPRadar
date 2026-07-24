@@ -24,18 +24,24 @@ def test_compare_segment_summary_reports_distribution_median_and_mean():
     station_summary = segment_inspector._compare_metric_distribution_summary(
         [-8.0, -5.0, -4.0, 2.0],
         T["en"]["fmt_results_station_delta_summary"],
+        total_count=75,
+        joint_count=60,
+        joint_label="Joint",
     )
     spot_summary = segment_inspector._compare_metric_distribution_summary(
         [-10.0, -7.0, -6.0, 1.0],
         T["en"]["fmt_results_joint_spot_delta_summary"],
+        total_count=7139,
+        joint_count=5379,
+        joint_label="Joint",
     )
 
     assert segment_inspector._segment_summary_lines(
         station_summary=station_summary,
         spot_summary=spot_summary,
     ) == [
-        "Station-level · Median -4.5 dB · Mean -3.8 dB",
-        "Joint-Spot level · Median -6.5 dB · Mean -5.5 dB",
+        "Stations (n=75; Joint=60) · Median -4.5 dB · Mean -3.8 dB",
+        "Spots (n=7'139; Joint=5'379) · Median -6.5 dB · Mean -5.5 dB",
     ]
 
 
@@ -44,15 +50,27 @@ def test_compare_segment_summary_uses_localized_scheduled_pair_wording():
     summary = segment_inspector._compare_metric_distribution_summary(
         [1.0, 2.0, 6.0],
         T["de"]["fmt_results_scheduled_pair_delta_summary"],
+        total_count=12345,
+        joint_count=6789,
+        joint_label=T["de"]["tbl_col_joint_pairs"],
     )
 
     assert summary == (
-        "Ebene geplanter Paare · Median +2.0 dB · Mittelwert +3.0 dB"
+        "Geplante Paare (n=12'345; Joint-Paare=6'789) · "
+        "Median +2.0 dB · Mittelwert +3.0 dB"
     )
     assert segment_inspector._compare_metric_distribution_summary(
         [],
         T["en"]["fmt_results_joint_spot_delta_summary"],
+        total_count=0,
+        joint_count=0,
+        joint_label="Joint",
     ) is None
+
+
+def test_compare_summary_count_uses_apostrophe_thousands_separator():
+    """Keep compact evidence counts independent of UI-locale separators."""
+    assert segment_inspector._format_summary_count(7139) == "7'139"
 
 
 def test_metric_summary_retains_median_without_stability_interval():
