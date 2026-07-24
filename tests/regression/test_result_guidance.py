@@ -3,6 +3,7 @@
 import ast
 from collections import Counter
 from pathlib import Path
+import re
 from string import Formatter
 
 import pytest
@@ -82,6 +83,11 @@ def _format_fields(template):
     }
 
 
+def _plain_guidance(guidance):
+    """Remove catalog-authored semantic term tags for wording assertions."""
+    return re.sub(r"</?strong(?:\s+[^>]*)?>", "", guidance)
+
+
 def _build_guidance(
     section_id,
     *,
@@ -137,6 +143,37 @@ def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
                 language,
                 section_key,
             )
+            assert len(section_content["limits"]) < len(
+                section_content["read"]
+            ), (language, section_key)
+            if section_key != "drilldown_local_median":
+                assert 'class="defined-term"' in section_content["read"], (
+                    language,
+                    section_key,
+                )
+
+
+def test_result_guidance_uses_practical_station_language():
+    """Keep operator-facing copy concrete while preserving the row definition."""
+    for language in ("en", "de"):
+        complete_catalog = " ".join(
+            text
+            for section in RESULT_GUIDANCE[language]["sections"].values()
+            for text in section.values()
+        ).lower()
+        assert "identit" not in complete_catalog
+        assert "estimator" not in complete_catalog
+        assert "schätzer" not in complete_catalog
+
+    for section_key in (
+        "station_insights_compare_joint",
+        "station_insights_compare_scheduled",
+        "station_insights_success",
+    ):
+        english = RESULT_GUIDANCE["en"]["sections"][section_key]["read"]
+        german = RESULT_GUIDANCE["de"]["sections"][section_key]["read"]
+        assert "callsign plus locator" in english
+        assert "Rufzeichen und Locator" in german
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -221,27 +258,27 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
         (
             COMPARISON_HARDWARE_AB,
             LOCAL_BENCHMARK_MEDIAN,
-            "other controlled path operating within the shared Grid-4",
-            "exact reporting identity",
+            "two controlled paths operating within the shared Grid-4",
+            "exact callsign",
         ),
         (
             COMPARISON_REFERENCE_STATION,
             LOCAL_BENCHMARK_MEDIAN,
-            "selected by its exact callsign and independently configured "
+            "by its exact callsign and independently configured "
             "Reference Grid-4",
             "shared Grid-4",
         ),
         (
             COMPARISON_LOCAL_NEIGHBORHOOD,
             LOCAL_BENCHMARK_MEDIAN,
-            "median of qualifying active local identities within 175 km",
-            "strongest qualifying local identity",
+            "typical qualifying local station within 175 km",
+            "strongest qualifying local station",
         ),
         (
             COMPARISON_LOCAL_NEIGHBORHOOD,
             LOCAL_BENCHMARK_BEST,
-            "strongest qualifying local identity within 175 km",
-            "median of qualifying active local identities",
+            "strongest qualifying local station available within 175 km",
+            "typical qualifying local station",
         ),
     ),
 )
@@ -317,10 +354,12 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
             comparison_mode=COMPARISON_HARDWARE_AB
         ),
     )
+    joint_compare_plain = _plain_guidance(joint_compare)
+    scheduled_compare_plain = _plain_guidance(scheduled_compare)
 
-    assert "remote TX identities" in rx_success
+    assert "qualifying TX station" in rx_success
     assert "Elsewhere" in rx_success
-    assert "remote RX identities" in tx_success
+    assert "qualifying RX station" in tx_success
     assert "Other Signals" in tx_success
     assert "Target-Active Gate" in rx_context
     assert "Target-Active Gate" in tx_context
@@ -328,15 +367,51 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
     assert "confirmed opportunity" in tx_context
     assert "100 × Target / (Target + Elsewhere)" in rx_formula
     assert "100 × Target / (Target + Other Signals)" in tx_formula
-    assert "A **Joint Spot**" in joint_compare
-    assert "Both (Async) means evidence from both sides" in joint_compare
-    assert "A **Scheduled Pair**" in scheduled_compare
-    assert (
-        "Both (Async) describes an identity with evidence from both scheduled "
-        "paths"
-        in scheduled_compare
+    assert "A Joint Spot is a consolidated same-cycle unit" in joint_compare_plain
+    assert all(
+        outcome in joint_compare_plain
+        for outcome in (
+            "Joint",
+            "Only Target",
+            "Both (Async)",
+            "Only Reference",
+        )
     )
-    assert "time-separated transmissions" in scheduled_compare
+    assert (
+        "A Scheduled Pair is the deterministic Target–Reference unit"
+        in scheduled_compare_plain
+    )
+    assert "time-separated design retains changes" in scheduled_compare_plain
+
+
+def test_dynamic_result_terms_are_html_escaped_before_rendering():
+    """Keep unsafe catalog HTML separate from formatted translation values."""
+    translations = {
+        **T["en"],
+        "abs_rx_counter": "<script>alert(1)</script>",
+        "abs_rx_formula_spaced": 'Target / (<img src=x onerror="alert(2)">)',
+    }
+    map_guidance = build_result_guidance(
+        RESULT_GUIDANCE_MAP,
+        language="en",
+        translations=translations,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+    figure_guidance = build_result_guidance(
+        RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+        language="en",
+        translations=translations,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+
+    assert "<script>" not in map_guidance
+    assert "&lt;script&gt;" in map_guidance
+    assert "<img " not in figure_guidance
+    assert "&lt;img " in figure_guidance
 
 
 def test_german_success_guidance_uses_the_exact_zero_target_control_label():
@@ -375,6 +450,66 @@ def test_success_guidance_names_the_rendered_figures_exactly(language):
     assert "Observation-Level Success Rate" in success_figures
     assert "Station Success Rate + Evidence over Time" in selected_figures
     assert "Target SNR" in selected_figures
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "joint_title",
+        "scheduled_title",
+        "selected_title",
+    ),
+    (
+        (
+            "en",
+            "Joint-Spot Δ SNR",
+            "Scheduled-Pair Δ SNR",
+            "Δ SNR Distribution",
+        ),
+        (
+            "de",
+            "Joint-Spot Δ SNR",
+            "Geplantes Paar Δ SNR",
+            "Δ SNR Verteilung",
+        ),
+    ),
+)
+def test_compare_guidance_names_the_rendered_figures_exactly(
+    language,
+    joint_title,
+    scheduled_title,
+    selected_title,
+):
+    """Use the same spacing and localization as the visible Compare figures."""
+    joint_figures = _build_guidance(
+        RESULT_GUIDANCE_COMPARISON_EVIDENCE,
+        language=language,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+    )
+    scheduled_figures = _build_guidance(
+        RESULT_GUIDANCE_COMPARISON_EVIDENCE,
+        language=language,
+        analysis_id="TX_COMP",
+        is_sequential=True,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_HARDWARE_AB
+        ),
+    )
+    selected_figures = _build_guidance(
+        RESULT_GUIDANCE_SELECTED_STATIONS,
+        language=language,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+    )
+
+    assert "Station Medians (Δ SNR)" in joint_figures
+    assert joint_title in joint_figures
+    assert "Station Medians (Δ SNR)" in scheduled_figures
+    assert scheduled_title in scheduled_figures
+    assert selected_title in selected_figures
 
 
 @pytest.mark.parametrize(
@@ -557,6 +692,7 @@ render_result_guidance_popover(
         "type": popover_proto.popover.type,
         "uses_content_width": popover_proto.width_config.use_content,
         "body": application.markdown[0].value,
+        "allows_catalog_html": application.markdown[0].proto.allow_html,
     }
 
 
@@ -571,8 +707,32 @@ def test_result_popover_is_identical_in_guided_and_classic_input_views():
     assert guided["icon"] == ":material/help_outline:"
     assert guided["type"] == "tertiary"
     assert guided["uses_content_width"] is True
+    assert guided["allows_catalog_html"] is True
     assert RESULT_GUIDANCE["en"]["read_label"] in guided["body"]
     assert RESULT_GUIDANCE["en"]["limits_label"] in guided["body"]
+    assert 'class="defined-term"' in guided["body"]
+    assert "result-guidance-body-marker" in guided["body"]
+
+
+def test_result_guidance_popover_css_is_wide_and_responsive():
+    """Keep the help body readable without widening its compact trigger."""
+    css_source = (REPOSITORY_ROOT / "ui" / "css.py").read_text(
+        encoding="utf-8"
+    )
+    scoped_selector = (
+        'div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker)'
+    )
+
+    assert scoped_selector in css_source
+    assert "width: min(66.667vw, 43rem) !important;" in css_source
+    assert "max-width: calc(100vw - 2rem) !important;" in css_source
+    assert "min-width: 0 !important;" in css_source
+    assert "@media (max-width: 768px)" in css_source
+    assert "width: calc(100vw - 2rem) !important;" in css_source
+    assert (
+        f"{scoped_selector}\n"
+        "            .stMarkdown strong.defined-term"
+    ) in css_source
 
 
 def _guidance_call_sections(relative_path):

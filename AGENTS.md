@@ -354,6 +354,16 @@ checks** below.
 - Do not perform unrelated refactoring, renaming, formatting, or cleanup.
 - A bug fix should include a regression test that fails without the fix.
 
+## Git and GitHub Publishing
+
+- Never push directly to `main`, `master`, or another default branch unless the
+  user explicitly authorizes that specific direct push in the current
+  conversation.
+- Do not infer direct-push authorization from a general request to commit,
+  publish, submit, or push, or from any previous exception.
+- Without that explicit authorization, use a separate feature branch and pull
+  request, or stop and ask before publishing.
+
 ## Changelog Policy
 
 - Keep `CHANGELOG_DAILY.md` in reverse chronological order, with the newest

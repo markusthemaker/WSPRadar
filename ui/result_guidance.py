@@ -1,6 +1,7 @@
 """Mode-aware interpretation guidance for the shared result hierarchy."""
 
 from dataclasses import dataclass
+from html import escape
 
 import streamlit as st
 
@@ -26,6 +27,9 @@ RESULT_GUIDANCE_STATION_INSIGHTS = "station_insights"
 RESULT_GUIDANCE_SELECTED_STATIONS = "selected_stations"
 RESULT_GUIDANCE_DRILLDOWN = "drilldown"
 RESULT_GUIDANCE_DOWNLOAD = "download"
+_RESULT_GUIDANCE_BODY_MARKER = (
+    '<span class="result-guidance-body-marker" aria-hidden="true"></span>'
+)
 
 RESULT_GUIDANCE_SECTION_IDS = frozenset(
     {
@@ -233,9 +237,9 @@ def build_result_guidance(
     direction = result_direction(analysis_id)
     opportunity_terms = absolute_terms(translations, direction)
     format_values = {
-        "peer_type": remote_station_type(analysis_id),
-        "counter": opportunity_terms["counter"],
-        "formula": opportunity_terms["formula_spaced"],
+        "peer_type": escape(remote_station_type(analysis_id)),
+        "counter": escape(str(opportunity_terms["counter"])),
+        "formula": escape(str(opportunity_terms["formula_spaced"])),
         "radius": int(
             getattr(analysis_context, "neighborhood_radius_km", 100)
         ),
@@ -295,4 +299,7 @@ def render_result_guidance_popover(
         key=key,
         on_change="ignore",
     ):
-        st.markdown(guidance_markdown)
+        st.markdown(
+            f"{guidance_markdown}{_RESULT_GUIDANCE_BODY_MARKER}",
+            unsafe_allow_html=True,
+        )

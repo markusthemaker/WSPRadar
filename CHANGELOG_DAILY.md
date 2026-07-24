@@ -11,6 +11,10 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   Compare/Success, benchmark type and scheduled TX Hardware A/B; introduces
   result terms and explains how related figures differ; and states what each
   view does and does not establish without interpreting the live values.
+  The responsive popovers use a wider reading panel, highlight introduced
+  terms with the established green vocabulary style, lead with the supported
+  interpretation, and keep evidence boundaries concise and aligned with the
+  station terminology shown in the UI.
 
 ## 2026-07-23
 

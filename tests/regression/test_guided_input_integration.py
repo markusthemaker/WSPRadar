@@ -140,8 +140,8 @@ def _install_shared_streamlit_state(monkeypatch, session_state):
 def test_input_view_selector_uses_concise_wizard_and_panel_labels():
     """Keep both localized selector options concise and visually distinct."""
     expected_labels = {
-        "en": {"guided": "🪄 Guided", "classic": "▤ Classic"},
-        "de": {"guided": "🪄 Geführt", "classic": "▤ Klassisch"},
+        "en": {"guided": "🧭 Guided", "classic": "⚙️ Classic"},
+        "de": {"guided": "🧭 Geführt", "classic": "⚙️ Klassisch"},
     }
 
     for language, labels in expected_labels.items():
@@ -333,17 +333,18 @@ def test_compare_terminology_uses_three_bulleted_definitions():
         bullet_lines = [
             line
             for line in reference_body.splitlines()
-            if line.startswith("- **")
+            if line.startswith("- ")
         ]
 
         assert len(bullet_lines) == 3
-        assert all(
-            bullet_line.startswith(f"- **{term_label}**")
-            for bullet_line, term_label in zip(
-                bullet_lines,
-                term_labels,
-                strict=True,
-            )
+        assert bullet_lines[0].startswith(
+            f'- <strong class="defined-term">{term_labels[0]}</strong>'
+        )
+        assert bullet_lines[1].startswith(
+            f'- <strong class="defined-term">{term_labels[1]}</strong>'
+        )
+        assert bullet_lines[2].startswith(
+            f"- **{term_labels[2]}**"
         )
         assert not any(
             line.startswith(">")
@@ -1252,7 +1253,7 @@ def test_german_review_uses_localized_target_and_complete_tx_schedule(monkeypatc
     )
 
     assert renderer._reference_review_value(GUIDED_INPUTS["de"]) == (
-        "Nacheinander nach festem Zeitplan · Intervall 20 min · "
+        "Nach festem Zeitplan abwechseln · Wiederholintervall 20 min · "
         "Target 04 UTC · Referenz 06 UTC"
     )
     assert (
@@ -1262,7 +1263,7 @@ def test_german_review_uses_localized_target_and_complete_tx_schedule(monkeypatc
     review_markdown = markdown.call_args.args[0]
     assert "DL1ABC bei JO62QM" in review_markdown
     assert " at " not in review_markdown
-    assert "Stationspopulation" in review_markdown
+    assert "Remote Stationsfilter" in review_markdown
 
 
 def test_switching_to_classic_preserves_configuration_context_and_results(

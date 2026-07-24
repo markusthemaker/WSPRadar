@@ -569,9 +569,17 @@ def apply_custom_css():
             width: 100% !important;
         }
         .st-key-documentation_body .stMarkdown strong.defined-term,
-        .st-key-guided_input_flow .stMarkdown strong.defined-term {
+        .st-key-guided_input_flow .stMarkdown strong.defined-term,
+        div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker)
+            .stMarkdown strong.defined-term {
             color: #39ff14 !important;
             font-weight: 700 !important;
+        }
+        div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker) {
+            box-sizing: border-box !important;
+            width: min(66.667vw, 43rem) !important;
+            max-width: calc(100vw - 2rem) !important;
+            min-width: 0 !important;
         }
         .stMarkdown p {
             margin-top: 0.85rem !important;
@@ -662,6 +670,11 @@ def apply_custom_css():
         /* Mobile Responsiveness tweaks */
         @media (max-width: 768px) {
             .block-container { padding-top: 1.5rem !important; } 
+
+            div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker) {
+                width: calc(100vw - 2rem) !important;
+                max-width: calc(100vw - 2rem) !important;
+            }
             
             /* Mobile List Indentation Fix: Less padding saves horizontal space */
             .stMarkdown ol, .stMarkdown ul { padding-left: 1.1rem !important; }
