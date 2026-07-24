@@ -51,6 +51,8 @@ class CompareInspectorViewModel:
 class OpportunityInspectorViewModel:
     confirmed_rows: pd.DataFrame
     evidence_rows: pd.DataFrame
+    confirmed_station_count: int
+    confirmed_opportunity_count: int
     summary_lines: list[str]
     full_station_table: pd.DataFrame
     station_column: str
@@ -343,7 +345,6 @@ def build_opportunity_inspector_view_model(
     evidence_rows: pd.DataFrame,
     *,
     analysis_id: str,
-    selected_segment: str,
     minimum_confirmed: int,
     presentation_context,
 ) -> OpportunityInspectorViewModel:
@@ -377,10 +378,6 @@ def build_opportunity_inspector_view_model(
         else np.nan
     )
     summary_lines = [
-        labels.get(
-            "txt_abs_selected_segment",
-            "Selected Segment: {segment}",
-        ).format(segment=selected_segment),
         labels.get(
             "txt_abs_evidence_summary",
             "Evidence ({pair} >= {threshold} per station): Target {target} | {counter} {counter_count}",
@@ -452,6 +449,8 @@ def build_opportunity_inspector_view_model(
     return OpportunityInspectorViewModel(
         confirmed_rows=confirmed,
         evidence_rows=confirmed_evidence,
+        confirmed_station_count=len(confirmed),
+        confirmed_opportunity_count=hits + misses,
         summary_lines=summary_lines,
         full_station_table=full_station_table,
         station_column=station_column,

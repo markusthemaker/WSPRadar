@@ -41,6 +41,7 @@ from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
 from ui.config_save import render_config_save_control
+from ui.result_hierarchy import utility_header_html
 from ui.result_state import (
     EXPORT_RUN_ID_KEY,
     EXPORT_STATE_KEY,
@@ -950,7 +951,18 @@ def render_download_all_results(t):
     if st.session_state.get(EXPORT_ZIP_SIGNATURE_KEY) != signature:
         _clear_prepared_results()
 
-    st.markdown("<div style='height:1.0rem;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        utility_header_html(
+            t.get("hdr_results_download_evidence", "Download Evidence"),
+            t.get(
+                "sub_results_download_evidence",
+                "Prepare the completed run, active Inspector scope, station "
+                "selection, tables, metadata, and high-resolution figures as "
+                "a reproducibility package.",
+            ),
+        ),
+        unsafe_allow_html=True,
+    )
     export_column, save_column = st.columns(
         [0.65, 0.35],
         gap="large",

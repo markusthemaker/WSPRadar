@@ -133,13 +133,6 @@ def _assert_legend_keys_precede_text(figure, axis):
         )
 
 
-def _patch_data_y_bounds(axis, patch):
-    """Return a patch's vertical bounds after applying its blended transform."""
-    display_vertices = patch.get_transform().transform(patch.get_path().vertices)
-    data_vertices = axis.transData.inverted().transform(display_vertices)
-    return float(np.min(data_vertices[:, 1])), float(np.max(data_vertices[:, 1]))
-
-
 def test_compare_median_focus_scale_uses_absolute_ham_radio_ticks_and_round_trips():
     """Center on the exact median while labelling equal focus anchors in raw dB."""
     metric_values = [-24, -14, -4, 0, 3, 6, 9, 12, 16, 26, 36]
@@ -235,9 +228,10 @@ def test_segment_and_selected_recipes_keep_their_own_evidence_medians():
 
     assert segment_recipe["median_focus"]["median_db"] == pytest.approx(6.0)
     assert selected_recipe["median_focus"]["median_db"] == pytest.approx(2.0)
+    assert "stability_interval" not in selected_recipe
 
 
-def test_selected_station_histogram_marks_exact_median_mean_and_stability_interval():
+def test_selected_station_histogram_marks_exact_median_and_mean_without_interval():
     """Annotate exact evidence statistics rather than histogram-bin centers."""
     metric_values = [0.1, 0.1, 0.1, 2.2, 10.4]
     figure = _render_compare_evidence_figure(metric_values, ["A (AA00)"] * 5)
@@ -253,10 +247,7 @@ def test_selected_station_histogram_marks_exact_median_mean_and_stability_interv
 
         assert len(median_lines) == 1
         assert median_lines[0].get_linestyle() == "--"
-        assert _legend_texts(distribution_axis) == [
-            median_label,
-            "90% Stability",
-        ]
+        assert _legend_texts(distribution_axis) == [median_label]
         _assert_legend_keys_precede_text(figure, distribution_axis)
         mean_annotations = _texts_with_gid(
             distribution_axis,
@@ -269,19 +260,13 @@ def test_selected_station_histogram_marks_exact_median_mean_and_stability_interv
         assert mean_annotations[0].get_fontsize() == pytest.approx(8.0)
         assert mean_annotations[0].get_zorder() == pytest.approx(10.0)
         assert mean_annotations[0].get_bbox_patch() is not None
-
-        stability_artists = [
-            patch
-            for patch in distribution_axis.patches
-            if patch.get_label() == "90% Stability"
-        ]
-        assert len(stability_artists) == 1
-        stability_low, stability_high = _patch_data_y_bounds(
-            distribution_axis,
-            stability_artists[0],
+        assert not any(
+            "Stability" in artist.get_label()
+            for artist in [
+                *distribution_axis.lines,
+                *distribution_axis.patches,
+            ]
         )
-        assert stability_low == pytest.approx(0.1)
-        assert stability_high == pytest.approx(10.4)
 
         arithmetic_mean = float(np.mean(metric_values))
         assert _horizontal_line_at(distribution_axis, arithmetic_mean) == []
@@ -312,27 +297,19 @@ def test_multi_station_histogram_keeps_row_weighted_statistics_with_standard_lab
                 label=median_label,
             )
         ) == 1
-        assert _legend_texts(distribution_axis) == [
-            median_label,
-            "90% Stability",
-        ]
+        assert _legend_texts(distribution_axis) == [median_label]
         assert [
             text.get_text()
             for text in _texts_with_gid(distribution_axis, "compare-metric-mean")
         ] == ["Mean +2.6 dB"]
 
-        stability_artists = [
-            patch
-            for patch in distribution_axis.patches
-            if patch.get_label() == "90% Stability"
-        ]
-        assert len(stability_artists) == 1
-        stability_low, stability_high = _patch_data_y_bounds(
-            distribution_axis,
-            stability_artists[0],
+        assert not any(
+            "Stability" in artist.get_label()
+            for artist in [
+                *distribution_axis.lines,
+                *distribution_axis.patches,
+            ]
         )
-        assert stability_low == pytest.approx(0.1)
-        assert stability_high == pytest.approx(10.4)
 
         station_balanced_median = np.median(
             [10.4, np.median([0.1, 0.1, 0.1, 2.2])]
@@ -357,8 +334,8 @@ def test_multi_station_histogram_keeps_row_weighted_statistics_with_standard_lab
         dispose_matplotlib_figure(figure)
 
 
-def test_zero_width_station_stability_remains_visible_beneath_median_line():
-    """Render a collapsed interval as a thick true-position line, not a fake band."""
+def test_identical_values_render_only_the_exact_median_and_mean_summaries():
+    """Avoid adding a second interval artist when every metric value is identical."""
     figure = _render_compare_evidence_figure(
         [0.8, 0.8, 0.8],
         ["A (AA00)"] * 3,
@@ -366,22 +343,22 @@ def test_zero_width_station_stability_remains_visible_beneath_median_line():
 
     try:
         distribution_axis = figure.axes[0]
-        stability_lines = _horizontal_line_at(
-            distribution_axis,
-            0.8,
-            label="90% Stability",
-        )
         median_lines = _horizontal_line_at(
             distribution_axis,
             0.8,
             label="Median +0.8 dB",
         )
 
-        assert len(stability_lines) == 1
-        assert stability_lines[0].get_linewidth() == pytest.approx(4.0)
-        assert stability_lines[0].get_alpha() == pytest.approx(0.24)
         assert len(median_lines) == 1
         assert median_lines[0].get_linestyle() == "--"
+        assert _legend_texts(distribution_axis) == ["Median +0.8 dB"]
+        assert not any(
+            "Stability" in artist.get_label()
+            for artist in [
+                *distribution_axis.lines,
+                *distribution_axis.patches,
+            ]
+        )
         assert [
             text.get_text()
             for text in _texts_with_gid(distribution_axis, "compare-metric-mean")
@@ -469,10 +446,7 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             assert len(
                 _lines_with_gid(axis, "compare-temporal-zero-line")
             ) == 1
-        assert _legend_texts(distribution_axis) == [
-            "Median +6.0 dB",
-            "90% Stability",
-        ]
+        assert _legend_texts(distribution_axis) == ["Median +6.0 dB"]
         assert _legend_texts(time_axis) == ["Median +6.0 dB", "Bin median"]
         _assert_legend_keys_precede_text(figure, distribution_axis)
         _assert_legend_keys_precede_text(figure, time_axis)

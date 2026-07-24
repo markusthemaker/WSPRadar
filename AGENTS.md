@@ -606,7 +606,7 @@ multi-stage-method ownership rule below:
   worked Compare example. Summarize scientific mechanics only where omission
   would cause a materially wrong reading.
 - **Part I, Chapter 3 — Strengthen and Communicate Your Result:** breadth,
-  sample Stability, experimental repeatability, repetition and controls,
+  internal consistency, experimental repeatability, repetition and controls,
   evidence-matched conclusions, and preservation of the run and its physical
   context.
 - **Part II, Chapter 4 — Controls and Configuration:** exact UI labels,
@@ -620,7 +620,7 @@ multi-stage-method ownership rule below:
 - **Part III, Chapter 7 — Scientific Methods:** data source, decode selection,
   time model, identity, matching, Target-Active Gate, Success classification and
   formulas, power normalization, correction, Delta SNR, paired evidence, Decode
-  Outcomes, aggregation hierarchy, Stability, distributions, inspection-layer
+  Outcomes, aggregation hierarchy, distributions, inspection-layer
   weighting, geography and solar classification.
 - **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:**
   supported inference, interpretation limits, reporting requirements, export
@@ -697,14 +697,16 @@ restructures.
 
 When documentation describes evidence strengthening, distinguish exploratory use from confirmatory repetition. An initial run may identify a possible pattern. Before a confirmatory run, instruct the operator to fix the relevant direction, band, benchmark, filters, thresholds, schedule and primary evaluation scope. Alternative radii, time windows or scopes should be reported as sensitivity analyses rather than selected only because they are favorable.
 
-#### Stability and repeatability
+#### Consistency and repeatability
 
 Do not use `stable` ambiguously. Distinguish:
 
-- **sample Stability:** sensitivity of a displayed statistic to resampling the evidence already present in one run;
+- **internal consistency:** agreement among the station-balanced,
+  observation-level, geographic and temporal evidence views within one run;
 - **experimental repeatability:** persistence of the observed pattern in a new controlled run or operating window.
 
-A narrow Stability interval does not by itself establish future repeatability, independence, calibration or statistical significance.
+Internal consistency within one run does not by itself establish future
+repeatability, independence, calibration or statistical significance.
 
 #### English and German structural parity
 

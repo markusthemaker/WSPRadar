@@ -47,11 +47,13 @@ def _labels(lang="en"):
         return {
             "btn_load_full_documentation": "Vollst\u00e4ndige Dokumentation laden",
             "btn_hide_full_documentation": "Vollst\u00e4ndige Dokumentation ausblenden",
+            "sub_documentation": T["de"]["sub_documentation"],
             "dev_credit": "credit",
         }
     return {
         "btn_load_full_documentation": "Load full documentation",
         "btn_hide_full_documentation": "Hide full documentation",
+        "sub_documentation": T["en"]["sub_documentation"],
         "dev_credit": "credit",
     }
 
@@ -93,6 +95,31 @@ def _assert_documentation_trigger_call(
         "on_navigation": documentation._expand_documentation_from_navigation,
         "on_trigger": documentation._expand_documentation_from_scroll,
     }
+
+
+@pytest.mark.parametrize(
+    ("lang", "title"),
+    (("en", "Documentation"), ("de", "Dokumentation")),
+)
+def test_documentation_uses_green_semantic_heading_and_subtitle(
+    monkeypatch,
+    lang,
+    title,
+):
+    """Keep the manual distinct while aligning it with the result hierarchy."""
+    fake_st = _FakeStreamlit(session_state={"lang": lang})
+    _render_with_fake_streamlit(monkeypatch, fake_st, lang=lang)
+
+    heading_bodies = [
+        body
+        for body, _kwargs in fake_st.markdowns
+        if "documentation-section-title" in body
+    ]
+
+    assert len(heading_bodies) == 1
+    assert f">{title}</h2>" in heading_bodies[0]
+    assert "color: #39ff14" in heading_bodies[0]
+    assert T[lang]["sub_documentation"] in heading_bodies[0]
 
 
 def test_documentation_text_is_process_cached_without_modification():
@@ -317,9 +344,10 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
         )
 
         assert first_use_order == list(range(1, 19))
-        assert manual.index(
-            '<strong class="defined-term">Stability</strong>'
-        ) < manual.index('<a id="sec-4-1"></a>')
+        assert '<strong class="defined-term">Stability</strong>' not in manual
+        assert "90% stability" not in manual.lower()
+        assert "90-%-stability" not in manual.lower()
+        assert "bootstrap" not in manual.lower()
 
         gate_diagnostic = manual.split('<a id="sec-6-5"></a>', 1)[1].split(
             '<a id="sec-6-6"></a>', 1
@@ -328,6 +356,8 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
 
     assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
     assert '<strong class="defined-term">qualifizierende Evidenz</strong>' in DOC_DE
+    assert "`Include Unpaired Evidence`" in DOC_EN
+    assert "`Ungepaarte Evidenz einbeziehen`" in DOC_DE
     assert "where applicable" in DOC_EN
     assert "bei Compare gegebenenfalls" in DOC_DE
     assert "automatically records the application name and version" in DOC_EN
@@ -348,11 +378,13 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "at least two distinct UTC dates" in DOC_EN
     assert "D_{relative} = 100" in DOC_EN
     assert "The selected view is stored in `.config`" in DOC_EN
+    assert "`Time aggregation bin size:` appears under `Temporal Evidence`" in DOC_EN
 
     assert "genau dieselben Evidenzzeilen auf Beobachtungsebene" in DOC_DE
     assert "mindestens zwei verschiedenen UTC-Tagen" in DOC_DE
     assert "D_{relative} = 100" in DOC_DE
     assert "Die gewählte Ansicht wird in `.config` gespeichert" in DOC_DE
+    assert "`Zeitliche Aggregationsbreite:` steht unter `Zeitliche Evidenz`" in DOC_DE
 
     assert "percentage of that panel's maximum cell count" in DOC_EN
     assert "Prozentsatz der maximalen Zellbelegung dieses Panels" in DOC_DE

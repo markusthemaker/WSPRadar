@@ -67,6 +67,13 @@ from ui.matplotlib_renderer import (
     matplotlib_render_span_label,
     render_matplotlib_figure,
 )
+from ui.result_hierarchy import (
+    build_result_context,
+    evidence_level_header_html,
+    remote_station_type,
+    result_context_html,
+    transition_prompt_html,
+)
 from ui.results_export import register_map_export_context
 from ui.presentation_context_adapter import build_presentation_context_from_session_state
 from ui.result_state import (
@@ -923,62 +930,147 @@ def _render_admitted_analysis_run(
             profile_timer.add_memory("map station dataframe", df=enriched_df)
             profile_timer.add_memory("map segment dataframe", df=segs_df)
 
-            try:
-                with (
-                    profile_timer.span(matplotlib_render_span_label("map render")),
-                    matplotlib_profile_collector(profile_timer),
-                ):
-                    render_matplotlib_figure(
-                        fig,
-                        width="stretch",
-                        bbox_inches=None,
-                        timing_collector=profile_timer,
-                        subject="map",
-                    )
-                register_map_export_context(
-                    analysis=analysis,
-                    parquet_path=parquet_path,
-                    start_t=start_t,
-                    end_t=end_t,
-                    max_peer_distance_km=max_peer_distance_km,
-                    base_min_stations=st.session_state.val_min_stations,
-                    lat_0=center_latitude,
-                    lon_0=center_longitude,
-                    analysis_context=analysis_context,
-                    presentation_context=presentation_context,
-                    database_source=selected_source_key,
+            result_context = build_result_context(
+                analysis,
+                analysis_context,
+                start_t,
+                end_t,
+                t,
+            )
+            station_type = remote_station_type(analysis["id"])
+            if analysis["is_compare"]:
+                map_subtitle = t.get(
+                    "sub_results_map_compare",
+                    "Geographic overview of station-balanced ΔSNR and "
+                    "Decode Outcomes.",
                 )
-            finally:
-                with (
-                    profile_timer.span("map figure disposal"),
-                    matplotlib_profile_collector(profile_timer),
+            else:
+                map_subtitle = t.get(
+                    "sub_results_map_success",
+                    "Remote {station_type} stations grouped by distance and "
+                    "direction, showing station-balanced Success Rate.",
+                ).format(station_type=station_type)
+            with st.container(
+                key=f"results_evidence_flow_{analysis['id']}_{run_id}"
+            ):
+                st.markdown(
+                    result_context_html(result_context),
+                    unsafe_allow_html=True,
+                )
+                with st.container(
+                    key=f"results_evidence_spine_{analysis['id']}_{run_id}"
                 ):
-                    dispose_matplotlib_figure(fig)
-                    del fig
-                    del plot_result
-                    gc.collect()
-
-            inspector_container = st.container()
-            skeleton_ph = inspector_container.empty()
-
-            with skeleton_ph.container():
-                wait_left, wait_right = st.columns(2)
-                with wait_left:
-                    st.selectbox(
-                        "Distance",
-                        [loading_label],
-                        key=f"w_dist_{analysis['id']}_{run_id}",
-                        disabled=True,
-                        label_visibility="collapsed",
+                    level_one_container = st.container(
+                        key=(
+                            f"results_evidence_level_1_"
+                            f"{analysis['id']}_{run_id}"
+                        )
                     )
-                with wait_right:
-                    st.selectbox(
-                        "Direction",
-                        [loading_label],
-                        key=f"w_dir_{analysis['id']}_{run_id}",
-                        disabled=True,
-                        label_visibility="collapsed",
+                    level_one_container.markdown(
+                        evidence_level_header_html(
+                            1,
+                            t.get("lbl_results_level_run", "Complete run"),
+                            t.get("hdr_results_map_view", "Map View"),
+                            map_subtitle,
+                        ),
+                        unsafe_allow_html=True,
                     )
+                    with level_one_container:
+                        try:
+                            with (
+                                profile_timer.span(
+                                    matplotlib_render_span_label("map render")
+                                ),
+                                matplotlib_profile_collector(profile_timer),
+                            ):
+                                render_matplotlib_figure(
+                                    fig,
+                                    width="stretch",
+                                    bbox_inches=None,
+                                    timing_collector=profile_timer,
+                                    subject="map",
+                                )
+                            register_map_export_context(
+                                analysis=analysis,
+                                parquet_path=parquet_path,
+                                start_t=start_t,
+                                end_t=end_t,
+                                max_peer_distance_km=max_peer_distance_km,
+                                base_min_stations=st.session_state.val_min_stations,
+                                lat_0=center_latitude,
+                                lon_0=center_longitude,
+                                analysis_context=analysis_context,
+                                presentation_context=presentation_context,
+                                database_source=selected_source_key,
+                            )
+                        finally:
+                            with (
+                                profile_timer.span("map figure disposal"),
+                                matplotlib_profile_collector(profile_timer),
+                            ):
+                                dispose_matplotlib_figure(fig)
+                                del fig
+                                del plot_result
+                                gc.collect()
+
+                    level_one_container.markdown(
+                        transition_prompt_html(
+                            t.get(
+                                "txt_results_transition_scope",
+                                "Select distance and direction to inspect a "
+                                "geographic scope",
+                            )
+                        ),
+                        unsafe_allow_html=True,
+                    )
+
+                    inspector_container = st.container()
+                    skeleton_ph = inspector_container.empty()
+
+                    with skeleton_ph.container():
+                        st.markdown(
+                            evidence_level_header_html(
+                                2,
+                                t.get(
+                                    "lbl_results_level_scope",
+                                    "Geographic scope",
+                                ),
+                                t.get(
+                                    "hdr_results_segment_inspector",
+                                    "Segment Inspector",
+                                ),
+                                t.get(
+                                    "sub_results_segment_inspector",
+                                    "Choose one or more distance ranges and "
+                                    "directions. All evidence below follows "
+                                    "the active scope.",
+                                ),
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        wait_left, wait_right = st.columns(2)
+                        with wait_left:
+                            st.selectbox(
+                                t.get(
+                                    "lbl_results_distance_range",
+                                    "Distance range",
+                                ),
+                                [loading_label],
+                                key=f"w_dist_{analysis['id']}_{run_id}",
+                                disabled=True,
+                                label_visibility="collapsed",
+                            )
+                        with wait_right:
+                            st.selectbox(
+                                t.get(
+                                    "lbl_results_direction",
+                                    "Direction",
+                                ),
+                                [loading_label],
+                                key=f"w_dir_{analysis['id']}_{run_id}",
+                                disabled=True,
+                                label_visibility="collapsed",
+                            )
 
             deferred_render_data.append({
                 "analysis": analysis,

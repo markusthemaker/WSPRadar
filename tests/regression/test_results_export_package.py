@@ -182,12 +182,20 @@ def test_results_footer_always_renders_redundant_save_control(
                 results_export.EXPORT_ZIP_FILENAME_KEY: "results.zip",
             }
         )
-    captured = {"columns": None, "save_calls": [], "downloads": []}
+    captured = {
+        "columns": None,
+        "save_calls": [],
+        "downloads": [],
+        "events": [],
+    }
     fake_streamlit = SimpleNamespace(
         session_state=session_state,
-        markdown=lambda *_args, **_kwargs: None,
+        markdown=lambda body, **_kwargs: captured["events"].append(
+            ("markdown", body)
+        ),
         columns=lambda widths, **kwargs: (
-            captured.update(columns=(widths, kwargs))
+            captured["events"].append(("columns", widths))
+            or captured.update(columns=(widths, kwargs))
             or (_FooterColumn(), _FooterColumn())
         ),
         button=lambda *_args, **_kwargs: False,
@@ -225,6 +233,41 @@ def test_results_footer_always_renders_redundant_save_control(
         }
     ]
     assert bool(captured["downloads"]) is is_prepared
+    heading_events = [
+        (index, body)
+        for index, (kind, body) in enumerate(captured["events"])
+        if kind == "markdown"
+        and "<h3 class='result-utility-title'>Download Evidence</h3>" in body
+    ]
+    assert len(heading_events) == 1
+    columns_index = next(
+        index
+        for index, (kind, _value) in enumerate(captured["events"])
+        if kind == "columns"
+    )
+    assert heading_events[0][0] < columns_index
+
+
+def test_results_footer_omits_heading_without_exportable_results(monkeypatch):
+    """Do not show an orphan Download Evidence section for an empty run."""
+    markdown_calls = []
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(
+            session_state={},
+            markdown=lambda body, **_kwargs: markdown_calls.append(body),
+        ),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: {},
+    )
+
+    results_export.render_download_all_results({})
+
+    assert markdown_calls == []
 
 
 def test_segment_temporal_figure_uses_its_distinct_export_recipe(monkeypatch):

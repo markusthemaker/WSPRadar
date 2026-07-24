@@ -34,7 +34,7 @@ The Reference is part of the scientific question, not merely a display option. A
 
 These designs are not interchangeable. A Buddy or neighborhood result cannot isolate antenna gain because station location, hardware and noise remain part of the comparison. A Hardware A/B result narrows the cause only as far as the experiment actually controls the rest of the chain. No later statistic can remove a variable that the operating design never controlled.
 
-The method builds on established WSPR comparison ideas: same-receiver TX differences under common conditions, conditioned simultaneous RX comparisons, independent activity checks where operating schedules are unknown, and the practical lesson that slow alternation can be confounded by propagation <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integrates and extends that foundation with Target-activity qualification, purpose-built benchmark designs, same-cycle or deterministic schedule matching, reported-power normalization, separate Success, Delta SNR and Decode Outcomes, station-balanced geographic summaries and drill-down to the contributing evidence. Its descriptive <strong class="defined-term">Stability</strong> check describes a displayed median's sensitivity to resampling the evidence available in one run. [Chapter 6](#sec-d) documents this lineage, WSPRadar's additions and their boundaries.
+The method builds on established WSPR comparison ideas: same-receiver TX differences under common conditions, conditioned simultaneous RX comparisons, independent activity checks where operating schedules are unknown, and the practical lesson that slow alternation can be confounded by propagation <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integrates and extends that foundation with Target-activity qualification, purpose-built benchmark designs, same-cycle or deterministic schedule matching, reported-power normalization, separate Success, Delta SNR and Decode Outcomes, station-balanced geographic summaries and drill-down to the contributing evidence. [Chapter 6](#sec-d) documents this lineage, WSPRadar's additions and their boundaries.
 
 The intended conclusion is therefore bounded but operationally useful: **under this band, UTC window, station population and experiment design, how did the Target perform, relative to which Reference, where and when did the difference appear, and how much evidence supports it?** WSPRadar can show an observed relative advantage and its geographic or temporal scope. It does not directly measure isolated gain in dBi, radiation efficiency, take-off angle or receiver sensitivity; those require separate calibrated measurements.
 
@@ -86,7 +86,7 @@ Results open on a map and can be followed through one evidence path:
 
 The map locates the observed pattern; it is the start of the analysis, not the conclusion. The Segment Inspector shows the evidence for a selected distance and direction. Station Insights shows which identities contribute. Drill-Down exposes the observations, same-cycle pairs or scheduled TX A/B pairs behind the summaries.
 
-A strong result is one in which the run definition, station breadth, observation volume, geographic and time pattern, descriptive Stability and underlying rows are mutually consistent and support the same bounded interpretation. Repeating the same design across another suitable window can show whether that interpretation persists.
+A strong result is one in which the run definition, station breadth, observation volume, geographic and time pattern, and underlying rows are mutually consistent and support the same bounded interpretation. Repeating the same design across another suitable window can show whether that interpretation persists.
 
 The aim is a clear operating conclusion: **what differed, where and when, relative to which Reference, by how much, and with how much supporting evidence.**
 
@@ -141,7 +141,7 @@ Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its a
     * [2.7 Verify the underlying evidence](#sec-3-8)
     * [2.8 Worked Compare example](#sec-3-9)
 * [3. Strengthen and Communicate Your Result](#sec-4)
-    * [3.1 Judge breadth, Stability and repeatability](#sec-4-1)
+    * [3.1 Judge breadth, consistency and repeatability](#sec-4-1)
     * [3.2 Strengthen a result through repetition and control](#sec-4-2)
     * [3.3 Write an evidence-matched conclusion](#sec-4-3)
     * [3.4 Preserve the run and its context](#sec-4-4)
@@ -178,7 +178,7 @@ Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its a
     * [7.5 Power normalization, correction and Delta SNR](#sec-7-5)
     * [7.6 Paired evidence and Decode Outcomes](#sec-7-6)
     * [7.7 Aggregation hierarchy](#sec-7-7)
-    * [7.8 Stability, distributions and inspection-layer weighting](#sec-7-8)
+    * [7.8 Distributions and inspection-layer weighting](#sec-7-8)
     * [7.9 Geography and solar classification](#sec-7-9)
 * [8. Evidence-Matched Claims and Reproducibility](#sec-8)
     * [8.1 Claims the evidence supports](#sec-8-1)
@@ -351,7 +351,7 @@ For either method, operate both paths at the same physical test QTH and report l
 
 **What WSPRadar shows**
 
-Simultaneous TX Hardware A/B compares two deliberately synchronized, distinguishable WSPR signals at each remote receiver. Delta SNR is calculated only when that receiver decodes both the Target and Reference in the same UTC cycle. The standard Decode Outcomes also retain Target-only, Reference-only and asynchronous evidence; `Show Non-Joint` controls whether stations without qualifying joint evidence are included in the inspection view. One UTC cycle can therefore be joint at one receiver and one-sided at another.
+Simultaneous TX Hardware A/B compares two deliberately synchronized, distinguishable WSPR signals at each remote receiver. Delta SNR is calculated only when that receiver decodes both the Target and Reference in the same UTC cycle. The standard Decode Outcomes also retain Target-only, Reference-only and asynchronous evidence; `Include Unpaired Evidence` includes stations represented only by exclusive or asynchronous evidence even when they have no qualifying joint evidence. One UTC cycle can therefore be joint at one receiver and one-sided at another.
 
 The Target-Active Gate remains Target-centric: a cycle is eligible only when the Target was decoded somewhere. Within an eligible cycle, a receiver may still contribute one-sided Reference evidence. A cycle in which Reference was decoded but Target was decoded nowhere is excluded rather than counted as a Target loss. [Section 7.3](#sec-7-3) defines this boundary.
 
@@ -704,7 +704,7 @@ Select one or multiple stations to open the selected station evidence view. Belo
 
 #### 2.6b Inspect the Contributing Stations (Compare Mode)
 
-Select one or multiple stations to open the selected station evidence view. `Station Insights` lists the `callsign + locator` identities contributing to the selected segment; Compare rows show joint and exclusive evidence plus station-level median Delta SNR, and `Show Non-Joint` includes identities without qualifying paired evidence. Below the station table, a Delta SNR histogram appears next to either a `Chronological` time plot or the date-folded `UTC-Hour` plot. These plots use the selected joint spots or scheduled pairs; the `UTC-Hour` view requires evidence from at least two distinct UTC dates. If multiple stations are selected, their aggregated evidence is visualized together. The histogram and active time plot use the median of the selected evidence, not the segment median above.
+Select one or multiple stations to open the selected station evidence view. `Station Insights` lists the `callsign + locator` identities contributing to the selected segment; Compare rows show joint and exclusive evidence plus station-level median Delta SNR, and `Include Unpaired Evidence` includes identities represented only by exclusive or asynchronous evidence. Below the station table, a Delta SNR histogram appears next to either a `Chronological` time plot or the date-folded `UTC-Hour` plot. These plots use the selected joint spots or scheduled pairs; the `UTC-Hour` view requires evidence from at least two distinct UTC dates. If multiple stations are selected, their aggregated evidence is visualized together. The histogram and active time plot use the median of the selected evidence, not the segment median above.
 
 <a id="sec-3-8"></a>
 
@@ -745,7 +745,7 @@ A strong WSPRadar result combines a clear experiment, broad evidence and languag
 
 <a id="sec-4-1"></a>
 
-#### 3.1 Judge breadth, Stability and repeatability
+#### 3.1 Judge breadth, consistency and repeatability
 
 Judge the result from the complete evidence picture:
 
@@ -761,9 +761,7 @@ Judge the result from the complete evidence picture:
 
 Evidence is **broader** when several identities and adjacent segments agree. It is **more internally consistent** when station-balanced, observation-level and time views tell a compatible story. It is **better controlled** when the selected playbook's operating requirements were followed and documented.
 
-<strong class="defined-term">90% Stability</strong> is a descriptive bootstrap interval around a median. A narrow interval means the displayed median changes little when the available values are resampled. Use it to describe sensitivity to the observed sample. It is not a confidence interval or statistical significance test, and it does not establish independence or eliminate data bias.
-
-**Sample Stability and experimental repeatability are different.** The Stability interval resamples evidence already present in this run. Repeating the experiment in another suitable window tests whether the observed pattern persists under new operating and propagation conditions.
+**Internal consistency and experimental repeatability are different.** Agreement among the station-balanced, observation-level, geographic and time views describes the evidence within one run. Repeating the experiment in another suitable window tests whether the observed pattern persists under new operating and propagation conditions.
 
 WSPRadar deliberately does not collapse these dimensions into one proof grade. The visible counts, distributions and underlying rows let the operator judge the result in the context of the actual experiment.
 
@@ -861,7 +859,7 @@ WSPRadar separates controls that change the scientific analysis from controls th
 | Control class | What it changes | Configuration and reproducibility |
 |---|---|---|
 | **Scientific controls** | Query population, pairing, classification, normalization, eligibility or aggregation. These include direction, identity, band, time, benchmark, correction, solar filter, geographic analysis scope, exclusion filters and evidence thresholds. | Saved when applicable and recorded in the export package. Changing one clears the completed result so the analysis can be rerun with the new definition. |
-| **View controls** | Which completed evidence is displayed or inspected, without changing the retained analysis population. These include selected Inspector segment, selected stations, non-joint or zero-Target visibility, temporal view and evidence time bin. | Segment Inspector range/direction and the applicable durable Compare/Success result-view choices are saved. Inspector choices can narrow the completed geographic scope but cannot override it. Table filters and other incidental interactions remain transient. |
+| **View controls** | Which completed evidence is displayed or inspected, without changing the retained analysis population. These include selected Inspector segment, selected stations, unpaired-evidence or zero-Target visibility, temporal view and evidence time bin. | Segment Inspector range/direction and the applicable durable Compare/Success result-view choices are saved. Inspector choices can narrow the completed geographic scope but cannot override it. Table filters and other incidental interactions remain transient. |
 | **Transient UI state** | Panel expansion, table and Drill-Down filters, documentation visibility, prepared download bytes and other incidental session interaction state. | Not part of the scientific configuration and normally not serialized. |
 | **Configuration fields preserved for reproducibility** | The applicable scientific branch plus explicitly supported durable view settings. | Stored in the versioned `.config`. Inactive hidden branches are omitted instead of being preserved as dormant values. |
 
@@ -1047,11 +1045,11 @@ These controls work with completed evidence and do not rerun the upstream query 
 
 - Segment range and direction selectors change the inspected scope. Compare and Success selections are saved independently.
 - `Show Zero-Target` restores qualifying Success identities with zero Target confirmations. Its setting is saved for Success.
-- `Show Non-Joint` restores Compare identities represented only by exclusive or asynchronous evidence. Its durable value is saved when Compare applies.
+- `Include Unpaired Evidence` includes Compare identities represented only by exclusive or asynchronous evidence. Its durable value is saved when Compare applies.
 - Station selection changes the selected-station figures and selected Drill-Down. Compare and Success selections are saved independently as exact `callsign + locator` identities. Selecting every station stores an all-stations intent instead of enumerating the current table; with a moving `Last X Hours` window, the reconstructed membership can therefore change with the evidence. A loaded explicit identity absent from the current segment scope remains unselected with a notice rather than being replaced; its saved identity is retained until you make a new table selection, so changing the segment scope can still make it available.
 - The selected-station time-bin control changes only its chronological timeline. The applicable Compare and Success/absolute values are saved.
 - The Selected Compare view group selects `Chronological` or `UTC-Hour`. `UTC-Hour` uses fixed one-hour slots and neither changes nor overwrites the saved chronological bin. The selected view is stored in `.config`.
-- The Segment Compare time-bin buttons change only the left segment-level temporal panel. The control does not change the dates-folded UTC-hour panel, the selected-station timeline, pairing or analysis; its selected bin is stored independently in `.config`.
+- `Time aggregation bin size:` appears under `Temporal Evidence` immediately before the Segment Compare bin choices. The available choices adapt to the run duration, including minute bins for shorter windows and hour bins for longer windows. The control changes only the left segment-level temporal panel; it does not change the date-folded UTC-hour panel, the selected-station timeline, pairing or analysis. Its selected bin is stored independently in `.config`.
 - Empty Success time bins remain blank; they are not converted to zero-rate evidence.
 - `Prepare All Results for Download` exports the current result and inspector selections. Package contents are documented in [the export and reproducibility section](#sec-8-4).
 
@@ -1237,7 +1235,7 @@ WSPRadar integrates those ideas into one operator workflow that includes:
 * Target activity checks, same-cycle or deterministic scheduled-pair comparison, reported-power normalization and optional Reference-side SNR correction;
 * conditional Success, paired Delta SNR and categorical Decode Outcomes as separate evidence questions;
 * maps, Segment Inspector, Station Insights, time/solar views and row-level Drill-Down;
-* evidence thresholds, station-versus-observation diagnostics and descriptive Stability checks;
+* evidence thresholds and station-versus-observation diagnostics;
 * guided demos, versioned configurations, run metadata, processed evidence, tables, figures and practical supplements.
 
 Within the literature and tools reviewed here, the clearest WSPRadar-specific additions are:
@@ -1435,11 +1433,7 @@ With an even local pool, the midpoint of the two central values is used. The poo
 For each cycle and path, Local Best Station uses the strongest qualifying local station as the Reference. Reference correction is applied before best selection. The result is therefore a changing best-peer envelope, not a local average or a fixed Reference.
 
 <a id="sec-7-8"></a>
-#### 7.8 Stability, distributions and inspection-layer weighting
-
-WSPRadar uses a deterministic 500-resample percentile bootstrap with replacement and reports the central 90% interval around the median. Station-level intervals resample station medians. Raw paired intervals resample peer-cycle or scheduled-pair Delta values.
-
-The calculation treats values as exchangeable even though WSPR observations can remain correlated by station, time and geography. It is a descriptive **Stability** interval, not a confidence interval or significance test.
+#### 7.8 Distributions and inspection-layer weighting
 
 Compare Delta SNR histograms use fixed bins within a panel. They normally use 1 dB bins, use 0.5 dB only for a clear half-dB lattice and aggregate broad ranges to 1, 2, 3, 6 or 10 dB so a panel does not exceed 40 bars. A minimum visible span of 3 dB avoids visually magnifying tiny variation.
 
@@ -1457,7 +1451,7 @@ Let `M` denote that scope's exact evidence median. For a broad range, equal visu
 
 Tick labels show the resulting **absolute Delta SNR**, not distance from `M`. For example, `M = +6 dB` produces the broad labels `-24, -14, -4, 0, +3, +6 M, +9, +12, +16, +26, +36 dB`.
 
-The transform does not change scientific values or grouping. Histogram counts and bin edges remain in raw dB, temporal cells remain rounded integer-dB bins, medians and Stability intervals remain raw-dB statistics, and relative-density colors retain the calculation above. Because nonlinear vertical stretching gives equal raw-dB histogram bins unequal displayed heights, read histogram **bar length** against `Share (%)`; displayed bar area is not probability. Success SNR figures remain linear.
+The transform does not change scientific values or grouping. Histogram counts and bin edges remain in raw dB, temporal cells remain rounded integer-dB bins, medians remain raw-dB statistics, and relative-density colors retain the calculation above. Because nonlinear vertical stretching gives equal raw-dB histogram bins unequal displayed heights, read histogram **bar length** against `Share (%)`; displayed bar area is not probability. Success SNR figures remain linear.
 
 The selected-station plots use the observation-level weighting and display rules described in [Section 2.6](#sec-3-7); those view choices do not change map aggregation, opportunity classification or pairing.
 
@@ -1497,7 +1491,7 @@ Use the result type that matches the statement:
 | "Antenna A has 3 dBi more gain." | "Path A produced a +3.0 dB median normalized Delta SNR against B for the paired evidence in this band, window and segment." |
 | "My receiver sensitivity is 72%." | "The Target receiver's Success Rate was 72% among qualifying peer-cycles independently confirmed elsewhere." |
 | "Success should be close to 100%." | "Success is a conditional global network-reach factor; 100% is not the expected baseline." |
-| "A is statistically significantly better." | "The paired median favored A and its descriptive 90% Stability interval was [range]; no significance test was performed." |
+| "A is statistically significantly better." | "The paired median favored A for the reported paired evidence and scope; no significance test was performed." |
 | "The antenna has a lower take-off angle." | "The observed advantage was concentrated in the specified longer-distance segments; radiation angle was not measured." |
 | "A is more efficient because it had more exclusive decodes." | "A produced more exclusive decode evidence under the reported power, schedule and network conditions; efficiency was not isolated." |
 | "The local median is the average local station." | "The Reference was the cycle/path median of one contribution per active local callsign+locator identity." |
@@ -1541,14 +1535,14 @@ For a serious result, preserve the analysis definition, the evidence supporting 
     * **Core Parameters:** RX/TX direction, Target callsign and QTH, band, and relative or absolute UTC time selection;
     * **Comparison Parameters:** Benchmark Design and, as applicable, TX Hardware A/B method, Reference callsign, the Reference Station's independent grid-4, local benchmark method and radius, scheduled TX A/B repeat interval and path phases, and the Reference-side SNR-correction purpose plus signed dB value; Hardware A/B does not serialize a redundant Reference QTH;
     * **Advanced Settings:** solar-state selection, geographic analysis scope, special-callsign and moving-station exclusions, and the applicable evidence thresholds;
-    * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of non-joint or zero-Target evidence.
+    * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of unpaired or zero-Target evidence.
 
   Inactive comparison branches, table and Drill-Down filters and other transient UI state are not stored. When preserving a completed run made with `Last X Hours`, save its resolved absolute UTC window if a later run should address the same period; otherwise the relative selection intentionally advances with time.
 
 * Retain the analysis export package and report the evidence actually used for the conclusion:
     * UTC period, band, direction, Target identity, comparison design and selected geographic and temporal scope;
     * Success Rate with its denominator and weighting level;
-    * for Compare, joint-station and joint-spot or pair counts, station-level median Delta SNR and its 90% Stability interval;
+    * for Compare, joint-station and joint-spot or pair counts and station-level median Delta SNR;
     * relevant Decode Outcomes and `STATIONS` / `SPOTS` distributions;
     * the bounded interpretation and any known evidence limitations.
 
@@ -1814,11 +1808,11 @@ This procedure estimates a stable additive offset between receive chains or Refe
 2. **Characterize the splitter:** account for output imbalance and cable differences; swap outputs in a control run when practical.
 3. **Collect paired evidence:** operate simultaneously across the intended signal levels without changing gain or decoder settings.
 4. **Estimate the offset:** use paired Delta SNR evidence and state whether the estimator is station-balanced or raw-pair.
-5. **Check stability:** inspect by station, time and SNR. One constant is not defensible if offset changes with level, frequency, AGC or time.
+5. **Check consistency:** inspect by station, time and SNR. One constant is not defensible if offset changes with level, frequency, AGC or time.
 6. **Apply the sign:** enter the observed `target - reference` offset with the same sign.
 7. **Validate:** repeat or swap paths and confirm corrected common-input Delta is plausibly near zero.
 
-A narrow Stability interval indicates repeatability of the available sample, not traceable laboratory accuracy. Splitter loss, mismatch, coupling and source instability can remain.
+Consistency across station, time and SNR views supports using one additive offset within the tested setup; it does not establish traceable laboratory accuracy. Splitter loss, mismatch, coupling and source instability can remain.
 
 <a id="sec-license"></a>
 ### License

@@ -383,7 +383,7 @@ def _write_regression_report_markdown(path: Path, report: dict[str, Any]) -> Non
             f"- Mode: {block.get('mode')}",
             f"- Sequential: {block.get('is_sequential')}",
             f"- Segment: {block.get('selected_distance')} / {block.get('selected_direction')}",
-            f"- Show Non-Joint: {block.get('show_non_joint')}",
+            f"- Include Unpaired Evidence: {block.get('show_non_joint')}",
             f"- Evidence bin: {block.get('evidence_time_bin')}",
             f"- Analysis cache: {block.get('analysis_cache_file')}",
             "",

@@ -525,7 +525,6 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         scope_rows,
         evidence_rows,
         analysis_id="RX_ABS",
-        selected_segment="Full Range",
         minimum_confirmed=5,
         presentation_context=_presentation("en"),
     )
@@ -533,7 +532,6 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         scope_rows,
         evidence_rows,
         analysis_id="RX_ABS",
-        selected_segment="Full Range",
         minimum_confirmed=5,
         presentation_context=_presentation("de"),
     )
@@ -541,6 +539,15 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
     pd.testing.assert_frame_equal(english.confirmed_rows, german.confirmed_rows)
     pd.testing.assert_frame_equal(english.evidence_rows, german.evidence_rows)
     assert english.confirmed_rows["peer_sign"].tolist() == ["K1AAA"]
+    assert english.confirmed_station_count == 1
+    assert english.confirmed_opportunity_count == 2
+    assert german.confirmed_station_count == 1
+    assert german.confirmed_opportunity_count == 2
+    assert all(
+        "Selected Segment" not in summary
+        and "Ausgewähltes Segment" not in summary
+        for summary in english.summary_lines + german.summary_lines
+    )
     assert list(english.full_station_table.columns) != list(german.full_station_table.columns)
 
 

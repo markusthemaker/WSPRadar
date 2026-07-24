@@ -7,6 +7,89 @@ from ui import css as ui_css
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_result_hierarchy_uses_green_levels_and_responsive_fine_evidence_spine(
+    monkeypatch,
+):
+    """Keep progressive zoom cues visible on desktop without narrowing mobile."""
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st,
+        "markdown",
+        lambda body, **_kwargs: rendered_styles.append(body),
+    )
+
+    ui_css.apply_custom_css()
+
+    assert len(rendered_styles) == 1
+    stylesheet = rendered_styles[0]
+    assert ".stMarkdown h2.result-context-title" in stylesheet
+    assert ".stMarkdown h3.result-evidence-level-title" in stylesheet
+    assert ".stMarkdown h3.result-utility-title" in stylesheet
+    assert "color: #39ff14 !important" in stylesheet
+    assert ".stMarkdown h4.result-evidence-child-title" in stylesheet
+    assert "color: #9be88c !important" in stylesheet
+
+    spine_selector = 'div[class*="st-key-results_evidence_spine_"]::before'
+    node_selector = (
+        'div[class*="st-key-results_evidence_spine_"] '
+        ".result-evidence-level-header::before"
+    )
+    assert spine_selector in stylesheet
+    assert node_selector in stylesheet
+    assert "linear-gradient(" in stylesheet
+    assert "border-radius: 50%" in stylesheet
+    assert ".result-scope-context.result-scope-context-data" in stylesheet
+    assert "font-size: 0.88rem !important" in stylesheet
+    assert ".result-scope-summary" in stylesheet
+    assert "margin-top: 0.18rem !important" in stylesheet
+
+    supporting_text_selectors = (
+        ".result-evidence-level-subtitle",
+        ".result-evidence-child-subtitle",
+        ".result-scope-context",
+        ".result-evidence-transition",
+        ".result-utility-subtitle",
+    )
+    for selector in supporting_text_selectors:
+        rule_start = stylesheet.index(selector)
+        rule_end = stylesheet.index("}", rule_start)
+        assert "font-size: 0.88rem !important" in stylesheet[
+            rule_start:rule_end
+        ]
+
+    label_selectors = (
+        ".result-context-eyebrow",
+        ".result-evidence-path-label",
+    )
+    for selector in label_selectors:
+        rule_start = stylesheet.index(selector)
+        rule_end = stylesheet.index("}", rule_start)
+        assert "font-size: 0.80rem !important" in stylesheet[
+            rule_start:rule_end
+        ]
+
+    overlay_selector = 'div[class*="st-key-results_evidence_level_"]::before'
+    overlay_rule_start = stylesheet.index(overlay_selector)
+    overlay_rule_end = stylesheet.index("}", overlay_rule_start)
+    overlay_rule = stylesheet[overlay_rule_start:overlay_rule_end]
+    assert "width: 1px;" in overlay_rule
+    assert "--result-evidence-spine-width" not in stylesheet
+
+    mobile_start = stylesheet.index("@media (max-width: 768px)")
+    mobile_styles = stylesheet[mobile_start:]
+    assert (
+        'div[class*="st-key-results_evidence_spine_"] {\n'
+        "                padding-left: 0 !important;"
+    ) in mobile_styles
+    assert spine_selector in mobile_styles
+    assert node_selector in mobile_styles
+    assert (
+        'div[class*="st-key-results_evidence_level_"]::before'
+        in mobile_styles
+    )
+    assert "display: none !important" in mobile_styles
+
+
 def test_guided_workflow_actions_share_key_scoped_green_emphasis(monkeypatch):
     """Emphasize Guided actions while leaving the launcher secondary."""
     app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")

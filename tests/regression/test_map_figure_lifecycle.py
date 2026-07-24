@@ -267,8 +267,6 @@ def test_segment_and_opportunity_figures_render_concurrently_without_pyplot_stat
         "compare_layout": True,
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, -1.0, 0.0, 1.0, 2.0]),
-        "station_interval": (0.0, -0.5, 0.5),
-        "spot_interval": (0.0, -1.0, 1.0),
         "panel_counts": [1, 3, 1, 1],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Count (Stations)",
@@ -331,8 +329,6 @@ def test_high_resolution_export_uses_shared_matplotlib_runtime():
         "compare_layout": True,
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, 0.0, 2.0]),
-        "station_interval": (0.0, -0.5, 0.5),
-        "spot_interval": (0.0, -1.0, 1.0),
         "panel_counts": [1, 3, 1, 1],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Count (Stations)",
@@ -346,8 +342,8 @@ def test_high_resolution_export_uses_shared_matplotlib_runtime():
     assert image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def test_compare_segment_histograms_share_summary_legend_and_mean_placement():
-    """Standardize Compare summaries without mixing Mean into median Stability."""
+def test_compare_segment_histograms_share_median_legend_and_mean_placement():
+    """Standardize Compare median legends and separate Mean annotations."""
     recipe = {
         "title": "RX Compare",
         "selected_segment": "Full Range | All Directions",
@@ -356,8 +352,6 @@ def test_compare_segment_histograms_share_summary_legend_and_mean_placement():
         "compare_layout": True,
         "station_values": np.array([6.0, 7.0]),
         "spot_values": np.array([6.0, 8.0]),
-        "station_interval": (6.5, 6.0, 7.0),
-        "spot_interval": (7.0, 6.0, 8.0),
         "panel_counts": [1, 2, 0, 1],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Count (Stations)",
@@ -378,8 +372,12 @@ def test_compare_segment_histograms_share_summary_legend_and_mean_placement():
             text.get_text() for text in spot_axis.get_legend().get_texts()
         ]
 
-        assert station_labels == ["Median +6.5 dB", "90% Stability"]
-        assert spot_labels == ["Median +7.0 dB", "90% Stability"]
+        assert station_labels == ["Median +6.5 dB"]
+        assert spot_labels == ["Median +7.0 dB"]
+        assert not any(
+            "Stability" in label
+            for label in [*station_labels, *spot_labels]
+        )
         assert {
             text.get_text()
             for text in station_axis.texts
@@ -417,8 +415,6 @@ def test_success_segment_histograms_do_not_adopt_compare_mean_summary():
         "compare_layout": False,
         "station_values": np.array([-12.0, -10.0, -8.0]),
         "spot_values": np.array([-15.0, -12.0, -9.0]),
-        "station_interval": (-10.0, -12.0, -8.0),
-        "spot_interval": (-12.0, -15.0, -9.0),
         "panel_counts": [2, 6],
         "panel_labels": ["Stations", "Spots"],
         "panel_y_label": "Count",
@@ -440,8 +436,9 @@ def test_success_segment_histograms_do_not_adopt_compare_mean_summary():
             legend_labels = [
                 text.get_text() for text in axis.get_legend().get_texts()
             ]
-            assert legend_labels[0] == "90% Stability"
-            assert legend_labels[1].startswith("Median ")
+            assert len(legend_labels) == 1
+            assert legend_labels[0].startswith("Median ")
+            assert not any("Stability" in label for label in legend_labels)
     finally:
         dispose_matplotlib_figure(figure)
 
@@ -636,8 +633,6 @@ def test_sequential_segment_recipe_preserves_scheduled_pair_title():
         "compare_layout": True,
         "station_values": np.array([-1.0, 0.0, 1.0]),
         "spot_values": np.array([-2.0, 0.0, 2.0]),
-        "station_interval": (0.0, -0.5, 0.5),
-        "spot_interval": (0.0, -1.0, 1.0),
         "panel_counts": [1, 3, 1, 1],
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Count (Stations)",

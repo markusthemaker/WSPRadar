@@ -1,5 +1,6 @@
 """On-demand rendering for the long-form scientific documentation section."""
 
+from html import escape
 import re
 
 import streamlit as st
@@ -156,10 +157,19 @@ def _render_documentation_section(t, lang, logo_base64, version):
         vertical_alignment="center",
     )
     with col_doc_title:
+        documentation_subtitle = t.get(
+            "sub_documentation",
+            "Method, interpretation, controls, limitations, and troubleshooting.",
+        )
         st.markdown(
-            f"<h2 style='text-align: left; color: #ffffff; margin: 0; padding: 0; "
+            f"<h2 class='documentation-section-title' "
+            "style='text-align: left; color: #39ff14; margin: 0; padding: 0; "
             "line-height: 1; font-family: \"Rajdhani\", sans-serif; letter-spacing: 1px; "
-            f"white-space: nowrap;'>{doc_title}</h2>",
+            f"white-space: nowrap;'>{escape(doc_title)}</h2>"
+            "<p class='documentation-section-subtitle' "
+            "style='color:#98a3b1; font-family:\"Space Mono\", monospace; "
+            "font-size:0.75rem; line-height:1.45; margin:0.35rem 0 0;'>"
+            f"{escape(documentation_subtitle)}</p>",
             unsafe_allow_html=True,
         )
     with col_doc_download:

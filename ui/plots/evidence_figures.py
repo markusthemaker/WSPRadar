@@ -11,8 +11,7 @@ import matplotlib.dates as mdates
 from config import APP_VERSION
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.solar_path import ILLUMINATION_CLASSES
-from core.stability import (
-    _bootstrap_median_interval,
+from core.evidence_statistics import (
     _expanded_metric_limits,
     _format_metric_signed,
     _metric_histogram_bins,
@@ -22,7 +21,6 @@ from core.stability import (
 EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
 EVIDENCE_SEPARATE_STATION_LIMIT = 5
-STABILITY_LINE_THRESHOLD_DB = 0.1
 SEGMENT_FIGURE_BOTTOM = 0.15
 SEGMENT_FIGURE_FOOTER_Y = 0.055
 EVIDENCE_TIME_AGG_PRESETS = [
@@ -299,7 +297,6 @@ def _default_evidence_labels(is_compare):
             "pooled_median_label": "Median",
             "mean_label": "Mean",
             "pooled_mean_label": "Mean",
-            "stability_label": "90% Stability",
             "median_focus_axis_label": (
                 "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
             ),
@@ -314,7 +311,6 @@ def _default_evidence_labels(is_compare):
         "pooled_median_label": "Pooled median",
         "mean_label": "Arithmetic mean",
         "pooled_mean_label": "Pooled arithmetic mean",
-        "stability_label": "90% Stability",
     }
 
 def _add_horizontal_grid(ax):
@@ -501,53 +497,6 @@ def _apply_compare_median_focus_axis(
         if bin_median_markers is not None:
             legend_handles.append(bin_median_markers)
         _place_metric_legend_top_right(ax, handles=legend_handles)
-
-def _add_stability_band(ax, low, high, *, label="90% Stability"):
-    """Draw and return the true horizontal Stability artist."""
-    if pd.isna(low) or pd.isna(high):
-        return None
-    low = float(low)
-    high = float(high)
-    if high < low:
-        low, high = high, low
-    if high - low <= STABILITY_LINE_THRESHOLD_DB:
-        center = (low + high) / 2.0
-        return ax.axhline(
-            center,
-            color="red",
-            alpha=0.24,
-            linewidth=4.0,
-            zorder=1,
-            label=label,
-        )
-    return ax.axhspan(low, high, color="red", alpha=0.12, zorder=1, label=label)
-
-def _add_vertical_stability_band(ax, low, high, *, label="90% Stability"):
-    """Draw and return the true vertical Stability artist."""
-    if pd.isna(low) or pd.isna(high):
-        return None
-    low = float(low)
-    high = float(high)
-    if high < low:
-        low, high = high, low
-    if high - low <= STABILITY_LINE_THRESHOLD_DB:
-        center = (low + high) / 2.0
-        return ax.axvline(
-            center,
-            color="red",
-            alpha=0.24,
-            linewidth=4.0,
-            zorder=1,
-            label=label,
-        )
-    return ax.axvspan(
-        low,
-        high,
-        color="red",
-        alpha=0.12,
-        zorder=1,
-        label=label,
-    )
 
 def _apply_minimum_metric_yspan(ax, center=None):
     """Keep SNR/Delta-SNR panels from visually magnifying tiny intervals."""
@@ -836,30 +785,19 @@ def _draw_horizontal_metric_histogram(ax, values, color="#36aaf9"):
 def _annotate_selected_compare_distribution(
     ax,
     values,
-    stability_interval,
     labels,
 ):
-    """Annotate the exact pooled evidence median, mean, and median stability."""
+    """Annotate the exact pooled evidence median and arithmetic mean."""
     metric_values = _metric_values(values)
     if len(metric_values) <= 1:
         return
 
     median = float(np.median(metric_values))
     arithmetic_mean = float(np.mean(metric_values))
-    if stability_interval is None:
-        stability_interval = _bootstrap_median_interval(metric_values)
-    _, stability_low, stability_high = stability_interval
 
     median_label = labels.get("median_label", "Median")
     mean_label = labels.get("mean_label", "Mean")
-    stability_label = labels.get("stability_label", "90% Stability")
 
-    stability_artist = _add_stability_band(
-        ax,
-        stability_low,
-        stability_high,
-        label=stability_label,
-    )
     median_line = _add_metric_median_reference(
         ax,
         median,
@@ -872,10 +810,7 @@ def _annotate_selected_compare_distribution(
         arithmetic_mean,
         label=mean_label,
     )
-    legend_handles = [median_line]
-    if stability_artist is not None:
-        legend_handles.append(stability_artist)
-    _place_metric_legend_top_right(ax, handles=legend_handles)
+    _place_metric_legend_top_right(ax, handles=[median_line])
 
 
 def _draw_single_value_distribution(ax, value, labels, color=EVIDENCE_AGG_COLOR):
@@ -1801,7 +1736,6 @@ def _create_selected_station_evidence_figure(
     is_compare,
     is_sequential,
     *,
-    stability_interval=None,
     temporal_view=SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
     folded_title=None,
     folded_x_label=None,
@@ -1891,7 +1825,6 @@ def _create_selected_station_evidence_figure(
             _annotate_selected_compare_distribution(
                 ax_cloud,
                 metric_values,
-                stability_interval,
                 labels,
             )
     if is_compare and median_focus_spec is not None:
@@ -2014,11 +1947,6 @@ def _selected_evidence_export_recipe(
         ),
         "utc_date_count": utc_date_count,
         "selected_identity_count": selected_identity_count,
-        "stability_interval": (
-            _bootstrap_median_interval(metric_values)
-            if is_compare
-            else None
-        ),
         "plot_time_ns": (
             plot_times[valid]
             .dt.tz_convert(None)
@@ -2051,7 +1979,6 @@ def render_selected_evidence_export_figure(recipe):
         recipe.get("time_bin", "3h"),
         bool(recipe.get("is_compare")),
         bool(recipe.get("is_sequential")),
-        stability_interval=recipe.get("stability_interval"),
         temporal_view=recipe.get(
             "temporal_view",
             SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
@@ -2073,8 +2000,6 @@ def _segment_figure_export_recipe(
     compare_layout,
     station_values,
     spot_values,
-    station_interval,
-    spot_interval,
     panel_counts,
     panel_labels,
     panel_y_label,
@@ -2089,8 +2014,6 @@ def _segment_figure_export_recipe(
         "compare_layout": bool(compare_layout),
         "station_values": _metric_values(station_values).astype(np.float64, copy=True),
         "spot_values": _metric_values(spot_values).astype(np.float64, copy=True),
-        "station_interval": tuple(float(value) for value in station_interval),
-        "spot_interval": tuple(float(value) for value in spot_interval),
         "panel_counts": [int(value) for value in panel_counts],
         "panel_labels": [str(value) for value in panel_labels],
         "panel_y_label": str(panel_y_label),
@@ -2113,8 +2036,6 @@ def render_segment_insight_export_figure(recipe):
     compare_layout = bool(recipe.get("compare_layout"))
     station_values = np.asarray(recipe.get("station_values", []), dtype=float)
     spot_values = np.asarray(recipe.get("spot_values", []), dtype=float)
-    station_interval = recipe.get("station_interval", (np.nan, np.nan, np.nan))
-    spot_interval = recipe.get("spot_interval", (np.nan, np.nan, np.nan))
     panel_counts = list(recipe.get("panel_counts", []))
     panel_labels = list(recipe.get("panel_labels", []))
 
@@ -2212,11 +2133,6 @@ def render_segment_insight_export_figure(recipe):
 
     if len(station_values):
         station_median = _draw_vertical_metric_histogram(ax_hist, station_values, color="#36aaf9")
-        station_stability_artist = _add_vertical_stability_band(
-            ax_hist,
-            station_interval[1],
-            station_interval[2],
-        )
         station_median_line = _add_metric_median_reference(
             ax_hist,
             station_median,
@@ -2224,15 +2140,9 @@ def render_segment_insight_export_figure(recipe):
             zorder=4.0 if is_compare else 2.0,
         )
         _apply_minimum_metric_xspan(ax_hist, center=station_median)
-        station_legend_handles = [station_median_line]
-        if station_stability_artist is not None:
-            if is_compare:
-                station_legend_handles.append(station_stability_artist)
-            else:
-                station_legend_handles.insert(0, station_stability_artist)
         _place_metric_legend_top_right(
             ax_hist,
-            handles=station_legend_handles,
+            handles=[station_median_line],
         )
         if is_compare:
             _add_metric_mean_annotation(
@@ -2246,11 +2156,6 @@ def render_segment_insight_export_figure(recipe):
 
     spot_median = _draw_vertical_metric_histogram(ax_spot, spot_values, color="#36aaf9")
     if pd.notna(spot_median):
-        spot_stability_artist = _add_vertical_stability_band(
-            ax_spot,
-            spot_interval[1],
-            spot_interval[2],
-        )
         spot_median_line = _add_metric_median_reference(
             ax_spot,
             spot_median,
@@ -2258,15 +2163,9 @@ def render_segment_insight_export_figure(recipe):
             zorder=4.0 if is_compare else 2.0,
         )
         _apply_minimum_metric_xspan(ax_spot, center=spot_median)
-        spot_legend_handles = [spot_median_line]
-        if spot_stability_artist is not None:
-            if is_compare:
-                spot_legend_handles.append(spot_stability_artist)
-            else:
-                spot_legend_handles.insert(0, spot_stability_artist)
         _place_metric_legend_top_right(
             ax_spot,
-            handles=spot_legend_handles,
+            handles=[spot_median_line],
         )
         if is_compare and len(spot_values):
             _add_metric_mean_annotation(

@@ -287,6 +287,283 @@ def apply_custom_css():
         .st-key-documentation_body .stMarkdown h5 {
             color: #39ff14 !important;
         }
+
+        /*
+         * Result evidence hierarchy
+         *
+         * Keep these rules class-scoped so the semantic result headings can
+         * coexist with the long-form documentation heading styles below.
+         */
+        .result-context-header {
+            width: 100%;
+            margin: 1.1rem 0 1.35rem;
+            padding: 0 0 1rem;
+            border-bottom: 1px solid rgba(57, 255, 20, 0.22);
+        }
+        .stMarkdown .result-context-eyebrow,
+        .result-context-eyebrow {
+            margin: 0 0 0.22rem !important;
+            color: #9aa4b2 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.80rem !important;
+            font-weight: 700 !important;
+            line-height: 1.35 !important;
+            letter-spacing: 0.10em !important;
+            text-transform: uppercase;
+        }
+        .stMarkdown h2.result-context-title,
+        h2.result-context-title {
+            margin: 0 !important;
+            padding: 0 !important;
+            color: #39ff14 !important;
+            border: 0 !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-size: 2.25rem !important;
+            font-weight: 700 !important;
+            line-height: 1.08 !important;
+            letter-spacing: 0.035em !important;
+            overflow-wrap: anywhere;
+        }
+        .stMarkdown .result-context-subtitle,
+        .result-context-subtitle {
+            margin: 0.42rem 0 0 !important;
+            color: #d6dce5 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.94rem !important;
+            line-height: 1.5 !important;
+        }
+        .stMarkdown .result-context-meta,
+        .result-context-meta {
+            margin: 0.4rem 0 0 !important;
+            color: #8f9aa8 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.80rem !important;
+            line-height: 1.5 !important;
+        }
+
+        .result-evidence-path {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            width: 100%;
+            gap: 0.35rem 0.65rem;
+            margin: 0 0 1.65rem;
+            color: #aeb8c5;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.80rem;
+            line-height: 1.55;
+        }
+        .stMarkdown .result-evidence-path-label,
+        .result-evidence-path-label {
+            color: #39ff14 !important;
+            font-size: 0.80rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.10em !important;
+            text-transform: uppercase;
+        }
+
+        /*
+         * Streamlit exposes container keys as st-key-* classes. The keyed
+         * wrapper provides one continuous spine even though levels 02-05 are
+         * independently rerendered by the Segment Inspector fragment.
+         */
+        div[class*="st-key-results_evidence_spine_"] {
+            position: relative;
+            width: 100%;
+            padding-left: 2.35rem !important;
+        }
+        div[class*="st-key-results_evidence_spine_"]::before {
+            content: "";
+            position: absolute;
+            z-index: 0;
+            top: 0.8rem;
+            bottom: 1rem;
+            left: 0.75rem;
+            width: 1px;
+            transform: translateX(-50%);
+            background: linear-gradient(
+                to bottom,
+                rgba(57, 255, 20, 0.42),
+                rgba(57, 255, 20, 0.16)
+            );
+            pointer-events: none;
+        }
+        /*
+         * Each keyed evidence-level container overlays the continuous fallback
+         * with the same fine 1 px line. The shared center line remains at
+         * 0.75rem within the padded spine:
+         * 2.35rem content inset - 1.6rem overlay offset = 0.75rem.
+         */
+        div[class*="st-key-results_evidence_level_"] {
+            position: relative;
+            width: 100%;
+        }
+        div[class*="st-key-results_evidence_level_"]::before {
+            content: "";
+            position: absolute;
+            z-index: 0;
+            top: -0.6rem;
+            bottom: -0.6rem;
+            left: -1.6rem;
+            width: 1px;
+            transform: translateX(-50%);
+            background: rgba(57, 255, 20, 0.38);
+            pointer-events: none;
+        }
+        div[class*="st-key-results_evidence_level_1_"]::before {
+            top: 0.8rem;
+        }
+        div[class*="st-key-results_evidence_spine_"] .result-evidence-level-header {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            margin: 2.35rem 0 1rem;
+            padding: 0;
+            --result-evidence-node-size: 0.66rem;
+        }
+        div[class*="st-key-results_evidence_spine_"] .result-evidence-level-header:first-child {
+            margin-top: 0.35rem;
+        }
+        div[class*="st-key-results_evidence_spine_"] .result-evidence-level-header::before {
+            content: "";
+            position: absolute;
+            top: 1rem;
+            left: -1.6rem;
+            width: var(--result-evidence-node-size);
+            height: var(--result-evidence-node-size);
+            box-sizing: border-box;
+            border: 2px solid #39ff14;
+            border-radius: 50%;
+            background: #050a15;
+            box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.08);
+            transform: translate(-50%, -50%);
+        }
+        div[class*="st-key-results_evidence_level_2_"] .result-evidence-level-header {
+            --result-evidence-node-size: 0.69rem;
+        }
+        div[class*="st-key-results_evidence_level_3_"] .result-evidence-level-header {
+            --result-evidence-node-size: 0.72rem;
+        }
+        div[class*="st-key-results_evidence_level_4_"] .result-evidence-level-header {
+            --result-evidence-node-size: 0.75rem;
+        }
+        div[class*="st-key-results_evidence_level_5_"] .result-evidence-level-header {
+            --result-evidence-node-size: 0.78rem;
+        }
+        .stMarkdown h3.result-evidence-level-title,
+        h3.result-evidence-level-title {
+            margin: 0 !important;
+            padding: 0 !important;
+            color: #39ff14 !important;
+            border: 0 !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-size: 1.85rem !important;
+            font-weight: 700 !important;
+            line-height: 1.12 !important;
+            letter-spacing: 0.035em !important;
+            text-transform: none !important;
+            overflow-wrap: anywhere;
+        }
+        .stMarkdown .result-evidence-level-subtitle,
+        .result-evidence-level-subtitle {
+            margin: 0.38rem 0 0 !important;
+            color: #aab4c1 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.88rem !important;
+            line-height: 1.55 !important;
+        }
+
+        .stMarkdown h4.result-evidence-child-title,
+        h4.result-evidence-child-title {
+            margin: 1.55rem 0 0 !important;
+            padding: 0 !important;
+            color: #9be88c !important;
+            border: 0 !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+            line-height: 1.25 !important;
+            letter-spacing: 0.04em !important;
+            text-transform: none !important;
+        }
+        .stMarkdown .result-evidence-child-subtitle,
+        .result-evidence-child-subtitle {
+            margin: 0.25rem 0 0.75rem !important;
+            color: #98a3b1 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.88rem !important;
+            line-height: 1.5 !important;
+        }
+        .stMarkdown .result-scope-context,
+        .result-scope-context {
+            margin: 0.55rem 0 1rem !important;
+            color: #aab4c1 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.88rem !important;
+            line-height: 1.5 !important;
+        }
+        /*
+         * Active scope and evidence totals use the established supporting-text
+         * face. Tone, rather than another size or synthetic weight, separates
+         * these data-bearing lines from explanatory copy.
+         */
+        .stMarkdown .result-scope-context.result-scope-context-data,
+        .result-scope-context.result-scope-context-data,
+        .result-evidence-level-header .result-scope-context {
+            color: #c8d2de !important;
+            font-size: 0.88rem !important;
+            font-weight: 400 !important;
+            line-height: 1.55 !important;
+        }
+        /* Scope and quantitative evidence share one stable block flow. */
+        .result-scope-summary {
+            margin: 0.65rem 0 1rem !important;
+        }
+        .result-scope-summary
+        .result-scope-context.result-scope-context-data {
+            margin: 0 !important;
+        }
+        .result-scope-summary
+        .result-scope-context.result-scope-context-data
+        + .result-scope-context.result-scope-context-data {
+            margin-top: 0.18rem !important;
+        }
+        .stMarkdown .result-evidence-transition,
+        .result-evidence-transition {
+            margin: 1.1rem 0 0.4rem !important;
+            color: #84c97a !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.88rem !important;
+            line-height: 1.55 !important;
+        }
+
+        .result-utility-header {
+            width: 100%;
+            margin: 2.5rem 0 1rem;
+            padding-top: 1.15rem;
+            border-top: 1px solid rgba(57, 255, 20, 0.22);
+        }
+        .stMarkdown h3.result-utility-title,
+        h3.result-utility-title {
+            margin: 0 !important;
+            padding: 0 !important;
+            color: #39ff14 !important;
+            border: 0 !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-size: 1.85rem !important;
+            font-weight: 700 !important;
+            line-height: 1.15 !important;
+            letter-spacing: 0.035em !important;
+            text-transform: none !important;
+        }
+        .stMarkdown .result-utility-subtitle,
+        .result-utility-subtitle {
+            margin: 0.35rem 0 0 !important;
+            color: #98a3b1 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.88rem !important;
+            line-height: 1.55 !important;
+        }
         .st-key-documentation_body table.documentation-weighted-columns {
             table-layout: fixed !important;
             width: 100% !important;
@@ -389,6 +666,41 @@ def apply_custom_css():
             /* Mobile List Indentation Fix: Less padding saves horizontal space */
             .stMarkdown ol, .stMarkdown ul { padding-left: 1.1rem !important; }
             .stMarkdown li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+
+            /*
+             * Preserve full mobile width. Section headings retain the hierarchy
+             * when the decorative evidence spine is removed.
+             */
+            div[class*="st-key-results_evidence_spine_"] {
+                padding-left: 0 !important;
+            }
+            div[class*="st-key-results_evidence_spine_"]::before,
+            div[class*="st-key-results_evidence_level_"]::before,
+            div[class*="st-key-results_evidence_spine_"] .result-evidence-level-header::before {
+                display: none !important;
+            }
+            .stMarkdown h2.result-context-title,
+            h2.result-context-title {
+                font-size: 1.9rem !important;
+            }
+            .stMarkdown h3.result-evidence-level-title,
+            h3.result-evidence-level-title {
+                font-size: 1.6rem !important;
+            }
+            .result-evidence-path {
+                gap: 0.25rem 0.45rem;
+                margin-bottom: 1.25rem;
+                font-size: 0.80rem;
+            }
+            .result-context-subtitle,
+            .result-context-meta,
+            .result-evidence-level-subtitle,
+            .result-evidence-child-subtitle,
+            .result-scope-context,
+            .result-evidence-transition,
+            .result-utility-subtitle {
+                overflow-wrap: anywhere;
+            }
             
             /* Fix massive vertical gaps when columns with gap="large" stack on mobile */
             div[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; }

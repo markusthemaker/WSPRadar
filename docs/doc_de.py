@@ -37,7 +37,7 @@ Die Referenz ist Teil der wissenschaftlichen Fragestellung und nicht nur eine Da
 
 Diese Designs sind nicht austauschbar. Ein Buddy- oder Nachbarschaftsergebnis kann den Antennengewinn nicht isolieren, weil Stationsstandort, Hardware und Rauschen Teil des Vergleichs bleiben. Ein Hardware-A/B-Ergebnis grenzt die Ursache nur so weit ein, wie der Versuch den übrigen Signalweg tatsächlich kontrolliert. Keine nachträgliche Statistik kann eine Variable herausrechnen, die das Betriebsdesign nie kontrolliert hat.
 
-Die Methode baut auf etablierten WSPR-Vergleichsansätzen auf: TX-Differenzen am selben Empfänger unter gemeinsamen Ausbreitungsbedingungen, simultane RX-Vergleiche unter kontrollierten Bedingungen, unabhängige Aktivitätsprüfungen bei unbekannten Betriebszeiten sowie die praktische Erkenntnis, dass langsames Umschalten durch veränderliche Ausbreitung verfälscht werden kann <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integriert und erweitert diese Grundlage um die Qualifizierung der Target-Aktivität, zweckgebundene Benchmark-Designs, Zuordnung innerhalb desselben Zyklus oder nach deterministischem Zeitplan, Normierung auf die gemeldete Sendeleistung, getrennte Auswertungen für Success, Delta SNR und Decode Outcomes, stationsgleichgewichtete geografische Zusammenfassungen und den Drill-Down bis zur beitragenden Evidenz. Seine deskriptive <strong class="defined-term">Stability</strong>-Prüfung beschreibt die Empfindlichkeit eines angezeigten Medians gegenüber erneutem Ziehen aus der in einem Lauf verfügbaren Evidenz. [Kapitel 6](#sec-d) dokumentiert diese wissenschaftliche Entwicklungslinie, die Ergänzungen durch WSPRadar und ihre Grenzen.
+Die Methode baut auf etablierten WSPR-Vergleichsansätzen auf: TX-Differenzen am selben Empfänger unter gemeinsamen Ausbreitungsbedingungen, simultane RX-Vergleiche unter kontrollierten Bedingungen, unabhängige Aktivitätsprüfungen bei unbekannten Betriebszeiten sowie die praktische Erkenntnis, dass langsames Umschalten durch veränderliche Ausbreitung verfälscht werden kann <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integriert und erweitert diese Grundlage um die Qualifizierung der Target-Aktivität, zweckgebundene Benchmark-Designs, Zuordnung innerhalb desselben Zyklus oder nach deterministischem Zeitplan, Normierung auf die gemeldete Sendeleistung, getrennte Auswertungen für Success, Delta SNR und Decode Outcomes, stationsgleichgewichtete geografische Zusammenfassungen und den Drill-Down bis zur beitragenden Evidenz. [Kapitel 6](#sec-d) dokumentiert diese wissenschaftliche Entwicklungslinie, die Ergänzungen durch WSPRadar und ihre Grenzen.
 
 Die angestrebte Schlussfolgerung ist daher klar begrenzt, aber für den Funkbetrieb nützlich: **Wie hat das Target auf diesem Band, in diesem UTC-Zeitfenster, innerhalb dieser Stationspopulation und unter diesem Versuchsdesign abgeschnitten? Gegenüber welcher Referenz zeigte sich wo und wann welcher Unterschied, und wie viel Evidenz stützt ihn?** WSPRadar kann einen beobachteten relativen Vorteil sowie dessen räumlichen oder zeitlichen Umfang zeigen. Es misst weder isolierten Gewinn in dBi noch Strahlungswirkungsgrad, Abstrahlwinkel oder Empfängerempfindlichkeit direkt; dafür sind separate kalibrierte Messungen erforderlich.
 
@@ -89,7 +89,7 @@ Die Ergebnisse öffnen sich auf einer Karte und lassen sich entlang eines durchg
 
 Die Karte lokalisiert das beobachtete Muster; sie ist der Ausgangspunkt der Analyse, nicht die Schlussfolgerung. Der Segment-Inspektor zeigt die Evidenz für eine gewählte Entfernung und Richtung. Station Insights zeigt, welche Identitäten beitragen. Drill-Down legt die Beobachtungen, Paare desselben Zyklus oder geplanten TX-A/B-Paare hinter den Zusammenfassungen offen.
 
-Ein belastbares Ergebnis liegt vor, wenn Laufdefinition, Breite der Stationsbasis, Beobachtungsumfang, räumliches und zeitliches Muster, deskriptive Stability und die zugrunde liegenden Datenzeilen miteinander vereinbar sind und dieselbe klar begrenzte Interpretation stützen. Die Wiederholung desselben Designs in einem weiteren geeigneten Zeitfenster kann zeigen, ob diese Interpretation Bestand hat.
+Ein belastbares Ergebnis liegt vor, wenn Laufdefinition, Breite der Stationsbasis, Beobachtungsumfang, räumliches und zeitliches Muster sowie die zugrunde liegenden Datenzeilen miteinander vereinbar sind und dieselbe klar begrenzte Interpretation stützen. Die Wiederholung desselben Designs in einem weiteren geeigneten Zeitfenster kann zeigen, ob diese Interpretation Bestand hat.
 
 Das Ziel ist eine klare betriebliche Aussage: **Was unterschied sich wo und wann gegenüber welcher Referenz, um wie viel und mit wie viel stützender Evidenz?**
 
@@ -144,7 +144,7 @@ Nutze [Abschnitt 2.1](#sec-3-2), wenn das aktive Demo-Ergebnis Success ist. Ist 
     * [2.7 Die zugrunde liegende Evidenz prüfen](#sec-3-8)
     * [2.8 Durchgerechnetes Compare-Beispiel](#sec-3-9)
 * [3. Ergebnisse absichern und kommunizieren](#sec-4)
-    * [3.1 Breite, Stability und Wiederholbarkeit beurteilen](#sec-4-1)
+    * [3.1 Breite, Konsistenz und Wiederholbarkeit beurteilen](#sec-4-1)
     * [3.2 Ein Ergebnis durch Wiederholung und Kontrolle absichern](#sec-4-2)
     * [3.3 Eine evidenzgerechte Schlussfolgerung formulieren](#sec-4-3)
     * [3.4 Lauf und Kontext sichern](#sec-4-4)
@@ -181,7 +181,7 @@ Nutze [Abschnitt 2.1](#sec-3-2), wenn das aktive Demo-Ergebnis Success ist. Ist 
     * [7.5 Leistungsnormierung, Korrektur und Delta SNR](#sec-7-5)
     * [7.6 Gepaarte Evidenz und Decode Outcomes](#sec-7-6)
     * [7.7 Aggregationshierarchie](#sec-7-7)
-    * [7.8 Stabilität, Verteilungen und Gewichtung in der Inspektionsansicht](#sec-7-8)
+    * [7.8 Verteilungen und Gewichtung in der Inspektionsansicht](#sec-7-8)
     * [7.9 Geografie und Sonnenstandsklassifikation](#sec-7-9)
 * [8. Evidenzgerechte Aussagen und Reproduzierbarkeit](#sec-8)
     * [8.1 Aussagen, die von der Evidenz gestützt werden](#sec-8-1)
@@ -354,7 +354,7 @@ Betreibe bei beiden Methoden beide Pfade am selben physischen Test-QTH und begre
 
 **Was WSPRadar zeigt**
 
-Beim simultanen TX Hardware A/B-Test werden an jedem entfernten Empfänger zwei bewusst synchronisierte und unterscheidbare WSPR-Signale verglichen. Delta SNR wird nur berechnet, wenn dieser Empfänger Target und Referenz im selben UTC-Zyklus decodiert. Die regulären Decode Outcomes erhalten außerdem Target-only-, Reference-only- und asynchrone Evidenz; `Show Non-Joint` steuert, ob Stationen ohne qualifizierende gemeinsame Evidenz in die Inspektionsansicht einbezogen werden. Derselbe UTC-Zyklus kann daher an einem Empfänger joint und an einem anderen einseitig sein.
+Beim simultanen TX Hardware A/B-Test werden an jedem entfernten Empfänger zwei bewusst synchronisierte und unterscheidbare WSPR-Signale verglichen. Delta SNR wird nur berechnet, wenn dieser Empfänger Target und Referenz im selben UTC-Zyklus decodiert. Die regulären Decode Outcomes erhalten außerdem Target-only-, Reference-only- und asynchrone Evidenz; `Ungepaarte Evidenz einbeziehen` schließt auch Stationen ein, die ausschließlich durch exklusive oder asynchrone Evidenz vertreten sind und keine qualifizierende gemeinsame Evidenz besitzen. Derselbe UTC-Zyklus kann daher an einem Empfänger joint und an einem anderen einseitig sein.
 
 Das Target-Active Gate bleibt Target-zentriert: Ein Zyklus ist nur zulässig, wenn das Target irgendwo decodiert wurde. Innerhalb eines zulässigen Zyklus kann ein Empfänger dennoch einseitige Referenzevidenz beitragen. Ein Zyklus, in dem die Referenz decodiert wurde, das Target jedoch nirgends, wird ausgeschlossen und nicht als Target-Niederlage gewertet. [Abschnitt 7.3](#sec-7-3) definiert diese Grenze.
 
@@ -706,7 +706,7 @@ Wähle eine oder mehrere Stationen aus, um die Evidenzansicht für diese Auswahl
 
 #### 2.6b Die beitragenden Stationen untersuchen (Compare-Modus)
 
-Wähle eine oder mehrere Stationen aus, um die Evidenzansicht für diese Auswahl zu öffnen. `Station Insights` listet die Identitäten `callsign + locator` auf, die zum ausgewählten Segment beitragen. Compare-Zeilen zeigen Joint- und exklusive Evidenz sowie das stationsbezogene mediane Delta SNR; `Show Non-Joint` schließt Identitäten ohne qualifizierende gepaarte Evidenz ein. Unter der Stationstabelle erscheint ein Delta-SNR-Histogramm neben einem der beiden Zeitdiagramme: `Chronologisch` oder dem nach Datum gefalteten Diagramm `UTC-Stunde`. Diese Diagramme verwenden die ausgewählten Joint Spots oder geplanten Paare; die Ansicht `UTC-Stunde` erfordert Evidenz von mindestens zwei verschiedenen UTC-Tagen. Bei Auswahl mehrerer Stationen wird ihre aggregierte Evidenz gemeinsam dargestellt. Das Histogramm und das aktive Zeitdiagramm verwenden den Median der ausgewählten Evidenz, nicht den darüber angezeigten Segmentmedian.
+Wähle eine oder mehrere Stationen aus, um die Evidenzansicht für diese Auswahl zu öffnen. `Station Insights` listet die Identitäten `callsign + locator` auf, die zum ausgewählten Segment beitragen. Compare-Zeilen zeigen Joint- und exklusive Evidenz sowie das stationsbezogene mediane Delta SNR; `Ungepaarte Evidenz einbeziehen` schließt Identitäten ein, die ausschließlich durch exklusive oder asynchrone Evidenz vertreten sind. Unter der Stationstabelle erscheint ein Delta-SNR-Histogramm neben einem der beiden Zeitdiagramme: `Chronologisch` oder dem nach Datum gefalteten Diagramm `UTC-Stunde`. Diese Diagramme verwenden die ausgewählten Joint Spots oder geplanten Paare; die Ansicht `UTC-Stunde` erfordert Evidenz von mindestens zwei verschiedenen UTC-Tagen. Bei Auswahl mehrerer Stationen wird ihre aggregierte Evidenz gemeinsam dargestellt. Das Histogramm und das aktive Zeitdiagramm verwenden den Median der ausgewählten Evidenz, nicht den darüber angezeigten Segmentmedian.
 
 <a id="sec-3-8"></a>
 
@@ -746,7 +746,7 @@ Ein aussagekräftiges WSPRadar-Ergebnis verbindet einen klaren Versuchsaufbau, b
 
 <a id="sec-4-1"></a>
 
-#### 3.1 Breite, Stability und Wiederholbarkeit beurteilen
+#### 3.1 Breite, Konsistenz und Wiederholbarkeit beurteilen
 
 Beurteile das Ergebnis anhand des vollständigen Evidenzbildes:
 
@@ -762,9 +762,7 @@ Beurteile das Ergebnis anhand des vollständigen Evidenzbildes:
 
 Evidenz ist **breiter**, wenn mehrere Identitäten und benachbarte Segmente übereinstimmen. Sie ist **intern konsistenter**, wenn stationsgleichgewichtete Ansichten, Ansichten auf Beobachtungsebene und Zeitansichten dasselbe begrenzte Bild stützen. Sie ist **besser kontrolliert**, wenn die betrieblichen Anforderungen des gewählten Versuchsleitfadens eingehalten und dokumentiert wurden.
 
-<strong class="defined-term">90% Stability</strong> ist ein deskriptives Bootstrap-Intervall um einen Median. Ein schmales Intervall bedeutet, dass sich der angezeigte Median beim wiederholten Ziehen aus den verfügbaren Werten nur wenig ändert. Nutze es, um die Empfindlichkeit gegenüber der beobachteten Stichprobe zu beschreiben. Es ist weder ein Konfidenzintervall noch ein Test auf statistische Signifikanz und weist weder Unabhängigkeit nach noch beseitigt es Datenverzerrungen.
-
-**Stability der Stichprobe und experimentelle Wiederholbarkeit sind verschieden.** Das Stability-Intervall zieht erneut aus der Evidenz, die bereits in diesem Lauf vorhanden ist. Eine Wiederholung des Versuchs in einem weiteren geeigneten Zeitfenster prüft, ob das beobachtete Muster unter neuen Betriebs- und Ausbreitungsbedingungen Bestand hat.
+**Interne Konsistenz und experimentelle Wiederholbarkeit sind verschieden.** Die Übereinstimmung zwischen stationsgleichgewichteten Ansichten, Ansichten auf Beobachtungsebene sowie geografischen und zeitlichen Ansichten beschreibt die Evidenz innerhalb eines Laufs. Eine Wiederholung des Versuchs in einem weiteren geeigneten Zeitfenster prüft, ob das beobachtete Muster unter neuen Betriebs- und Ausbreitungsbedingungen Bestand hat.
 
 WSPRadar verdichtet diese Dimensionen bewusst nicht zu einer einzigen Beweisstufe. Die sichtbaren Anzahlen, Verteilungen und zugrunde liegenden Zeilen erlauben eine Beurteilung im Kontext des tatsächlich durchgeführten Versuchs.
 
@@ -862,7 +860,7 @@ WSPRadar trennt Bedienelemente, welche die wissenschaftliche Analyse verändern,
 | Klasse | Was sie verändert | Konfiguration und Reproduzierbarkeit |
 |---|---|---|
 | **Wissenschaftliche Bedienelemente** | Abfragepopulation, Paarbildung, Klassifikation, Normierung, Qualifizierung oder Aggregation. Dazu gehören Richtung, Identität, Band, Zeit, Benchmark, Korrektur, Sonnenstandsfilter, geografischer Analyseumfang, Ausschlussfilter und Evidenzschwellen. | Werden gespeichert, sofern sie gelten, und im Exportpaket festgehalten. Eine Änderung verwirft das abgeschlossene Ergebnis, damit die Analyse mit der neuen Definition erneut ausgeführt werden kann. |
-| **Ansichtsbedienelemente** | Welche abgeschlossene Evidenz dargestellt oder untersucht wird, ohne die beibehaltene Analysepopulation zu verändern. Dazu gehören ausgewähltes Inspector-Segment, ausgewählte Stationen, Sichtbarkeit von Non-Joint- beziehungsweise Zero-Target-Evidenz, Zeitansicht und Zeit-Bin der Evidenz. | Bereich/Richtung im Segment Inspector und die jeweils anwendbaren dauerhaften Compare-/Success-Ansichten werden gespeichert. Inspector-Auswahlen können den abgeschlossenen geografischen Umfang eingrenzen, ihn aber nicht überschreiben. Tabellenfilter und weitere beiläufige Interaktionen bleiben flüchtig. |
+| **Ansichtsbedienelemente** | Welche abgeschlossene Evidenz dargestellt oder untersucht wird, ohne die beibehaltene Analysepopulation zu verändern. Dazu gehören ausgewähltes Inspector-Segment, ausgewählte Stationen, Sichtbarkeit ungepaarter beziehungsweise Zero-Target-Evidenz, Zeitansicht und Zeit-Bin der Evidenz. | Bereich/Richtung im Segment Inspector und die jeweils anwendbaren dauerhaften Compare-/Success-Ansichten werden gespeichert. Inspector-Auswahlen können den abgeschlossenen geografischen Umfang eingrenzen, ihn aber nicht überschreiben. Tabellenfilter und weitere beiläufige Interaktionen bleiben flüchtig. |
 | **Flüchtiger UI-Zustand** | Auf- und Zuklappen von Bereichen, Tabellen- und Drill-Down-Filter, Sichtbarkeit der Dokumentation, vorbereitete Download-Bytes und weitere beiläufige Interaktionszustände der Sitzung. | Gehört nicht zur wissenschaftlichen Konfiguration und wird normalerweise nicht serialisiert. |
 | **Zur Reproduzierbarkeit gespeicherte Konfigurationsfelder** | Der jeweils anwendbare wissenschaftliche Zweig sowie ausdrücklich unterstützte dauerhafte Ansichtseinstellungen. | Werden in der versionierten `.config` gespeichert. Inaktive ausgeblendete Zweige werden weggelassen, statt als ruhende Werte erhalten zu bleiben. |
 
@@ -1048,11 +1046,11 @@ Diese Bedienelemente wirken auf abgeschlossene Evidenz und führen die vorgelage
 
 - Auswahl von Segmentbereich und Richtung verändert den inspizierten Bereich. Beide Auswahlen werden für Compare und Success getrennt gespeichert.
 - `Zero-Target-Stationen zeigen` stellt qualifizierende Success-Identitäten mit null Target-Bestätigungen wieder dar. Die Einstellung wird für Success gespeichert.
-- `Show Non-Joint` stellt Compare-Identitäten wieder dar, die ausschließlich durch exklusive oder asynchrone Evidenz vertreten sind. Der dauerhafte Wert wird gespeichert, wenn ein Compare-Ergebnis vorhanden ist.
+- `Ungepaarte Evidenz einbeziehen` schließt Compare-Identitäten ein, die ausschließlich durch exklusive oder asynchrone Evidenz vertreten sind. Der dauerhafte Wert wird gespeichert, wenn ein Compare-Ergebnis vorhanden ist.
 - Die Stationsauswahl verändert die Abbildungen der ausgewählten Stationen und den gewählten Drill-Down. Compare- und Success-Auswahl werden getrennt als exakte Identitäten aus `Rufzeichen + Locator` gespeichert. Werden alle Stationen ausgewählt, speichert die Konfiguration diese Absicht, statt jede aktuelle Tabellenzeile einzeln aufzuführen; bei einem gleitenden Fenster `Letzte X Stunden` kann sich die rekonstruierte Stationsmenge daher mit der Evidenz ändern. Fehlt eine explizit gespeicherte Identität im aktuellen Segmentbereich, bleibt sie mit einem Hinweis unausgewählt und wird nicht ersetzt; ihre gespeicherte Identität bleibt bis zu einer neuen Tabellenauswahl erhalten, sodass sie nach Wahl des passenden Segmentbereichs wieder verfügbar werden kann.
 - Das Bedienelement für das Zeit-Bin der ausgewählten Station verändert nur deren chronologische Zeitachse. Die jeweils geltenden Werte für Compare sowie Success/absolut werden gespeichert.
 - Die Ansichtsgruppe der ausgewählten Compare-Ansicht wählt `Chronologisch` oder `UTC-Stunde`. `UTC-Stunde` verwendet feste einstündige Zeitfenster und verändert oder überschreibt das gespeicherte chronologische Bin nicht. Die gewählte Ansicht wird in `.config` gespeichert.
-- Die Zeit-Bin-Schaltflächen für Segment Compare verändern nur das linke Zeitpanel auf Segmentebene. Das nach UTC-Stunden gefaltete Panel, die Zeitachse der ausgewählten Stationen, Paarbildung und Analyse bleiben unverändert; das gewählte Bin wird unabhängig in `.config` gespeichert.
+- `Zeitliche Aggregationsbreite:` steht unter `Zeitliche Evidenz` unmittelbar vor den Segment-Compare-Bin-Optionen. Die verfügbaren Optionen passen sich an die Dauer des Laufs an und umfassen bei kürzeren Fenstern Minuten-Bins, bei längeren Fenstern Stunden-Bins. Das Bedienelement ändert nur das linke Zeitpanel auf Segmentebene; das nach UTC-Stunden gefaltete Panel, die Zeitachse der ausgewählten Stationen, Paarbildung und Analyse bleiben unverändert. Das gewählte Bin wird unabhängig in `.config` gespeichert.
 - Leere Success-Zeit-Bins bleiben leer; sie werden nicht zu Evidenz mit einer Rate von null umgedeutet.
 - `Alle Ergebnisse zum Download vorbereiten` exportiert das aktuelle Ergebnis und die aktuellen Inspektor-Auswahlen. Der Paketinhalt steht im Abschnitt [Export und Reproduzierbarkeit](#sec-8-4).
 
@@ -1238,7 +1236,7 @@ WSPRadar führt diese Ideen in einem Arbeitsablauf für Funkamateure zusammen. D
 * Prüfungen der Target-Aktivität, Vergleiche im selben Zyklus oder anhand deterministischer geplanter Paare, SNR-Normierung anhand der gemeldeten Sendeleistung sowie eine optionale Referenz-SNR-Korrektur;
 * bedingte Success-Evidenz, gepaartes Delta SNR und kategorische Decode Outcomes als getrennte Evidenzfragen;
 * Karten, Segment-Inspektor, Station Insights, Zeit-/Sonnenstandsansichten und Drill-Down bis auf Zeilenebene;
-* Evidenzschwellen, vergleichende Diagnosen auf Stations- und Beobachtungsebene sowie deskriptive Stability-Prüfungen;
+* Evidenzschwellen und vergleichende Diagnosen auf Stations- und Beobachtungsebene;
 * geführte Demos, versionierte Konfigurationen, Laufmetadaten, verarbeitete Evidenz, Tabellen, Abbildungen und praktische Ergänzungen.
 
 Innerhalb der hier geprüften Literatur und Werkzeuge sind die deutlichsten WSPRadar-spezifischen Ergänzungen:
@@ -1436,11 +1434,7 @@ Bei einem lokalen Pool mit gerader Anzahl wird der Mittelwert der beiden mittler
 Für jeden Zyklus und Pfad verwendet Beste lokale Station die stärkste qualifizierende lokale Station als Referenz. Die Referenzkorrektur wird vor der Auswahl der besten Station angewendet. Das Ergebnis ist daher eine wechselnde Hüllkurve des besten Peers und weder ein lokaler Durchschnitt noch eine feste Referenz.
 
 <a id="sec-7-8"></a>
-#### 7.8 Stabilität, Verteilungen und Gewichtung in der Inspektionsansicht
-
-WSPRadar verwendet ein deterministisches Perzentil-Bootstrap mit 500 Stichprobenziehungen mit Zurücklegen und gibt das zentrale 90-%-Intervall um den Median an. Intervalle auf Stationsebene ziehen neue Stichproben aus den Stationsmedianen. Intervalle aus den Rohpaaren ziehen neue Stichproben aus den Delta-Werten der Peer-Zyklen oder geplanten Paare.
-
-Die Berechnung behandelt die Werte als austauschbar, obwohl WSPR-Beobachtungen nach Station, Zeit und Geografie korreliert sein können. Es handelt sich um ein deskriptives **Stability**-Intervall, nicht um ein Konfidenzintervall oder einen Signifikanztest.
+#### 7.8 Verteilungen und Gewichtung in der Inspektionsansicht
 
 Compare-Histogramme des Delta SNR verwenden innerhalb eines Panels feste Klassen. Normalerweise sind die Klassen 1 dB breit; 0,5 dB werden nur bei einem deutlichen Halb-dB-Raster verwendet. Große Wertebereiche werden zu Klassen von 1, 2, 3, 6 oder 10 dB zusammengefasst, damit ein Panel höchstens 40 Balken enthält. Ein sichtbarer Mindestbereich von 3 dB verhindert, dass geringe Streuung optisch überhöht wird.
 
@@ -1458,7 +1452,7 @@ Die weißen verbundenen Marker bleiben eine eigene Statistik: Sie zeigen den Med
 
 Die Skalenbeschriftungen zeigen das resultierende **absolute Delta SNR** und nicht den Abstand von `M`. Beispielsweise ergeben sich für `M = +6 dB` die Beschriftungen der breiten Skala `-24, -14, -4, 0, +3, +6 M, +9, +12, +16, +26, +36 dB`.
 
-Die Transformation verändert weder wissenschaftliche Werte noch Gruppierungen. Anzahlen und Klassengrenzen der Histogramme bleiben in untransformierten dB-Werten, die Zeitzellen bleiben auf ganzzahlige dB gerundete Klassen, Mediane und Stability-Intervalle bleiben Statistiken aus untransformierten dB-Werten, und die Farben der relativen Dichte behalten die oben angegebene Berechnung bei. Weil die nichtlineare vertikale Streckung gleich breiten Roh-dB-Klassen im Histogramm unterschiedliche dargestellte Höhen gibt, ist die **Balkenlänge** auf der Achse `Share (%)` abzulesen; die dargestellte Balkenfläche ist keine Wahrscheinlichkeit. Success-SNR-Diagramme bleiben linear.
+Die Transformation verändert weder wissenschaftliche Werte noch Gruppierungen. Anzahlen und Klassengrenzen der Histogramme bleiben in untransformierten dB-Werten, die Zeitzellen bleiben auf ganzzahlige dB gerundete Klassen, Mediane bleiben Statistiken aus untransformierten dB-Werten, und die Farben der relativen Dichte behalten die oben angegebene Berechnung bei. Weil die nichtlineare vertikale Streckung gleich breiten Roh-dB-Klassen im Histogramm unterschiedliche dargestellte Höhen gibt, ist die **Balkenlänge** auf der Achse `Share (%)` abzulesen; die dargestellte Balkenfläche ist keine Wahrscheinlichkeit. Success-SNR-Diagramme bleiben linear.
 
 Die Diagramme ausgewählter Stationen verwenden die in [Abschnitt 2.6](#sec-3-7) beschriebenen Gewichtungs- und Darstellungsregeln auf Beobachtungsebene; diese Ansichtsoptionen verändern weder Kartenaggregation noch Opportunity-Klassifikation oder Paarbildung.
 
@@ -1498,7 +1492,7 @@ Verwende den Ergebnistyp, der zur Aussage passt:
 | "Antenne A hat 3 dBi mehr Gewinn." | "Pfad A ergab gegenüber B ein medianes normiertes Delta SNR von +3,0 dB für die gepaarte Evidenz in diesem Band, Zeitfenster und Segment." |
 | "Die Empfindlichkeit meines Empfängers beträgt 72 %." | "Die Success Rate des Target-Empfängers betrug 72 % unter qualifizierenden Peer-Zyklen, die andernorts unabhängig bestätigt wurden." |
 | "Success sollte nahe 100 % liegen." | "Success ist ein bedingtes Maß für die Reichweite im globalen Netzwerk; 100 % ist nicht der zu erwartende Ausgangswert." |
-| "A ist statistisch signifikant besser." | "Der gepaarte Median begünstigte A; das deskriptive 90-%-Stability-Intervall betrug [Bereich]. Ein Signifikanztest wurde nicht durchgeführt." |
+| "A ist statistisch signifikant besser." | "Der gepaarte Median begünstigte A für die dokumentierte gepaarte Evidenz und den angegebenen Bereich; ein Signifikanztest wurde nicht durchgeführt." |
 | "Die Antenne hat einen flacheren Abstrahlwinkel." | "Der beobachtete Vorteil konzentrierte sich auf die angegebenen größeren Entfernungssegmente; der Abstrahlwinkel wurde nicht gemessen." |
 | "A ist effizienter, weil es mehr exklusive Decodes hatte." | "A erzeugte unter den dokumentierten Leistungs-, Zeitplan- und Netzwerkbedingungen mehr exklusive Decode-Evidenz; der Wirkungsgrad wurde nicht isoliert." |
 | "Der lokale Median ist der Durchschnitt der lokalen Stationen." | "Die Referenz war der Zyklus-/Pfadmedian aus je einem Beitrag pro aktiver lokaler callsign+locator-Identität." |
@@ -1542,14 +1536,14 @@ Für ein belastbares Ergebnis bewahre die Analysedefinition, die Evidenz hinter 
     * **Kernparameter:** RX-/TX-Richtung, Target-Rufzeichen und QTH, Band sowie relative oder absolute UTC-Zeitauswahl;
     * **Benchmark-Einstellungen:** Benchmark-Design und, soweit zutreffend, TX-Hardware-A/B-Methode, Referenz-Rufzeichen, das unabhängige Grid-4 der Referenzstation, lokale Benchmark-Methode und Radius, Wiederholintervall und Pfadphasen beim geplanten TX-A/B sowie Zweck und dB-Wert der referenzseitigen SNR-Korrektur; Hardware A/B serialisiert kein redundantes Referenz-QTH;
     * **erweiterte Einstellungen:** Auswahl des solaren Zustands, geografischer Analyseumfang, Ausschluss spezieller Rufzeichen und bewegter Stationen sowie die zutreffenden Evidenzschwellen;
-    * **dauerhafte Einstellungen der Ergebnisansicht:** ausgewählte Entfernungs- und Richtungsbereiche, ausgewählte Stationen, Evidenz-Zeitklassen und Zeitansicht sowie die Sichtbarkeit nicht gemeinsamer Evidenz oder von Evidenz ohne Target-Beobachtung.
+    * **dauerhafte Einstellungen der Ergebnisansicht:** ausgewählte Entfernungs- und Richtungsbereiche, ausgewählte Stationen, Evidenz-Zeitklassen und Zeitansicht sowie die Sichtbarkeit ungepaarter Evidenz oder von Evidenz ohne Target-Beobachtung.
 
   Inaktive Vergleichszweige, Tabellen- und Drill-Down-Filter sowie anderer flüchtiger UI-Zustand werden nicht gespeichert. Wird ein abgeschlossener Lauf mit `Letzte X Stunden` aufbewahrt, speichere sein aufgelöstes absolutes UTC-Zeitfenster, wenn ein späterer Lauf denselben Zeitraum untersuchen soll; andernfalls wandert die relative Auswahl absichtlich mit der Zeit weiter.
 
 * Bewahre das Analyse-Exportpaket auf und dokumentiere die Evidenz, auf der die Schlussfolgerung tatsächlich beruht:
     * UTC-Zeitraum, Band, Richtung, Target-Identität, Vergleichsdesign sowie ausgewählter geografischer und zeitlicher Umfang;
     * Success Rate mit ihrem Nenner und ihrer Gewichtungsebene;
-    * bei Compare die Anzahl der Joint-Stationen und Joint-Spots beziehungsweise -Paare, den Median des Delta SNR auf Stationsebene und sein 90-%-Stability-Intervall;
+    * bei Compare die Anzahl der Joint-Stationen und Joint-Spots beziehungsweise -Paare sowie den Median des Delta SNR auf Stationsebene;
     * relevante Decode Outcomes sowie Verteilungen unter `STATIONS` / `SPOTS`;
     * die klar begrenzte Interpretation und alle bekannten Einschränkungen der Evidenz.
 
@@ -1815,11 +1809,11 @@ Dieses Verfahren schätzt einen stabilen additiven Offset zwischen Empfangskette
 2. **Verteiler charakterisieren:** Pegelunterschiede zwischen den Ausgängen und Kabeldifferenzen berücksichtigen; wenn praktikabel, die Ausgänge in einem Kontrolllauf vertauschen.
 3. **Gepaarte Evidenz sammeln:** Beide Ketten gleichzeitig über den vorgesehenen Signalpegelbereich betreiben, ohne Verstärkung oder Decoder-Einstellungen zu verändern.
 4. **Offset schätzen:** Gepaarte Delta-SNR-Evidenz verwenden und angeben, ob der Schätzer stationsgleichgewichtet oder aus den Rohpaaren berechnet ist.
-5. **Stabilität prüfen:** Nach Station, Zeit und SNR untersuchen. Ein konstanter Wert ist nicht vertretbar, wenn sich der Offset mit Pegel, Frequenz, AGC oder Zeit ändert.
+5. **Konsistenz prüfen:** Nach Station, Zeit und SNR untersuchen. Ein konstanter Wert ist nicht vertretbar, wenn sich der Offset mit Pegel, Frequenz, AGC oder Zeit ändert.
 6. **Vorzeichen anwenden:** Den beobachteten Offset `target - reference` mit demselben Vorzeichen eingeben.
 7. **Validieren:** Messung wiederholen oder Pfade tauschen und prüfen, ob das korrigierte Delta des gemeinsamen Eingangssignals plausibel nahe null liegt.
 
-Ein schmales Stability-Intervall zeigt die Wiederholbarkeit der verfügbaren Stichprobe und keine rückführbare Laborgenauigkeit. Verteilerverlust, Fehlanpassung, Kopplung und Instabilität der Quelle können bestehen bleiben.
+Konsistenz über Stations-, Zeit- und SNR-Ansichten stützt die Verwendung eines additiven Offsets innerhalb des geprüften Aufbaus; sie weist keine rückführbare Laborgenauigkeit nach. Verteilerverlust, Fehlanpassung, Kopplung und Instabilität der Quelle können bestehen bleiben.
 
 <a id="sec-license"></a>
 ### Lizenz

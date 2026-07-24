@@ -19,7 +19,6 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
         result_state.EXPORT_ZIP_FILENAME_KEY: "results.zip",
         result_state.EXPORT_ZIP_SIGNATURE_KEY: "signature",
         result_state.INSPECTOR_CACHE_STATE_KEY: object(),
-        result_state.STABILITY_CACHE_STATE_KEY: {"old": "stability"},
         result_state.ACTIVE_RUN_TIME_WINDOW_KEY: {
             "run_id": 42,
             "start_utc": datetime(2026, 7, 16, tzinfo=timezone.utc),
@@ -41,7 +40,6 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
     assert result_state.EXPORT_ZIP_FILENAME_KEY not in session_state
     assert result_state.EXPORT_ZIP_SIGNATURE_KEY not in session_state
     assert result_state.INSPECTOR_CACHE_STATE_KEY not in session_state
-    assert result_state.STABILITY_CACHE_STATE_KEY not in session_state
     assert result_state.ACTIVE_RUN_TIME_WINDOW_KEY not in session_state
     assert result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY not in session_state
     assert session_state["unrelated"] == "preserved"
@@ -78,7 +76,6 @@ def test_clear_rendered_result_state_preserves_run_binding_and_time_window():
         result_state.EXPORT_RUN_ID_KEY: 42,
         result_state.EXPORT_ZIP_BYTES_KEY: b"zip",
         result_state.INSPECTOR_CACHE_STATE_KEY: object(),
-        result_state.STABILITY_CACHE_STATE_KEY: {"old": "stability"},
         result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY: source_binding,
         result_state.ACTIVE_RUN_TIME_WINDOW_KEY: time_window,
     }
@@ -89,7 +86,6 @@ def test_clear_rendered_result_state_preserves_run_binding_and_time_window():
     assert session_state[result_state.EXPORT_RUN_ID_KEY] == 42
     assert result_state.EXPORT_ZIP_BYTES_KEY not in session_state
     assert result_state.INSPECTOR_CACHE_STATE_KEY not in session_state
-    assert result_state.STABILITY_CACHE_STATE_KEY not in session_state
     assert session_state[result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY] is source_binding
     assert session_state[result_state.ACTIVE_RUN_TIME_WINDOW_KEY] is time_window
 

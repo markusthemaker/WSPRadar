@@ -19,7 +19,6 @@ EXPORT_ZIP_BYTES_KEY = "result_export_zip_bytes"
 EXPORT_ZIP_FILENAME_KEY = "result_export_zip_filename"
 EXPORT_ZIP_SIGNATURE_KEY = "result_export_zip_signature"
 INSPECTOR_CACHE_STATE_KEY = "segment_inspector_cache"
-STABILITY_CACHE_STATE_KEY = "segment_stability_cache"
 ACTIVE_RUN_TIME_WINDOW_KEY = "active_run_time_window"
 ACTIVE_RUN_DATABASE_SOURCE_KEY = "active_run_database_source"
 
@@ -45,7 +44,6 @@ def clear_rendered_result_state(session_state: MutableMapping[str, Any]) -> None
     """
     session_state[EXPORT_STATE_KEY] = {}
     session_state[EXPORT_RUN_ID_KEY] = session_state.get("run_id", 0)
-    session_state.pop(STABILITY_CACHE_STATE_KEY, None)
     session_state.pop(INSPECTOR_CACHE_STATE_KEY, None)
     clear_prepared_result_state(session_state)
 

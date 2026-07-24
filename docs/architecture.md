@@ -248,6 +248,16 @@ builds contexts, computes a request fingerprint, acquires admission, asks
 processing, stores session evidence, renders maps and previews, registers export
 recipes, and invokes the Segment Inspector.
 
+`ui/result_hierarchy.py` owns the pure, escaped HTML builders and localized
+scope-copy helpers for the progressive result flow from map overview through
+row-level evidence. `ui/run_controller.py` places the map and deferred Inspector
+inside one keyed presentation container so CSS can draw a responsive evidence
+spine without coupling the hierarchy to scientific data or figure recipes.
+Keyed level containers delimit the five semantic zoom stages, allowing each
+stage to retain its own node and rerender boundary while all stages overlay the
+same fine spine width. The parent retains one continuous fallback line and
+removes the decoration at the mobile breakpoint.
+
 Provider readiness participates in the same FIFO admission decision as the two
 active-analysis slots. Once admitted, the controller prepares every block
 required by the selected active result against one provider before publishing
@@ -369,8 +379,9 @@ starts satisfy `start <= planned_start < end`.
 `core/tx_ab_schedule.py` owns supported repeat-interval and start validation,
 the exact ClickHouse schedule predicate, hourly previews, cyclic separation,
 and stable planned-pair assignment. `core/snr_utils.py` centralizes
-normalized-SNR rounding and CSV formatting. `core/stability.py` performs
-deterministic, optionally chunked bootstrap stability calculations.
+normalized-SNR rounding and CSV formatting. `core/evidence_statistics.py`
+centralizes neutral evidence-metric formatting, histogram-bin selection and
+plot-limit helpers.
 
 `core/opportunity_engine.py` owns opportunity-row normalization,
 classification, aggregation, evidence projections, and map projections. Its
@@ -461,7 +472,7 @@ and up to ten queued exports.
 
 `ui/result_state.py` owns the lightweight result/export session-state keys,
 active-run UTC interval, and reset lifecycle. Configuration callbacks can retire
-session artifacts and clear export, inspector, stability, and resolved-time
+session artifacts and clear export, inspector, and resolved-time
 state without importing Pandas, Matplotlib, the inspector, or export rendering.
 `ui/analysis_submission_state.py` separately owns the UUID-token lifecycle for
 one session's in-flight analysis. Keeping submission state separate from

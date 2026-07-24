@@ -32,7 +32,6 @@ from ui.analysis_submission_state import (
 from ui.result_state import (
     EXPORT_STATE_KEY,
     INSPECTOR_CACHE_STATE_KEY,
-    STABILITY_CACHE_STATE_KEY,
     get_active_run_database_source,
     set_active_run_database_source,
 )
@@ -1251,7 +1250,6 @@ def test_successful_same_run_refresh_clears_stale_export_and_inspector_state(mon
     fake_st.session_state.update({
         EXPORT_STATE_KEY: {"RX_ABS": {"old": "recipe"}},
         INSPECTOR_CACHE_STATE_KEY: object(),
-        STABILITY_CACHE_STATE_KEY: {"old": "model"},
     })
     controller = ProviderDispatchController(
         WSPR_DATABASE_PROVIDERS,
@@ -1276,7 +1274,6 @@ def test_successful_same_run_refresh_clears_stale_export_and_inspector_state(mon
 
     assert fake_st.session_state[EXPORT_STATE_KEY] == {}
     assert INSPECTOR_CACHE_STATE_KEY not in fake_st.session_state
-    assert STABILITY_CACHE_STATE_KEY not in fake_st.session_state
 
 
 def test_failed_attempt_legacy_status_is_not_reported_as_final_method(monkeypatch):
