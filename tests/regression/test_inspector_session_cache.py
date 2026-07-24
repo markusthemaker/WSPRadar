@@ -34,8 +34,8 @@ def test_compare_segment_summary_reports_distribution_median_and_mean():
         station_summary=station_summary,
         spot_summary=spot_summary,
     ) == [
-        "Station-level - Median -4.5 dB - Mean -3.8 dB",
-        "Joint-Spot level - Median -6.5 dB - Mean -5.5 dB",
+        "Station-level · Median -4.5 dB · Mean -3.8 dB",
+        "Joint-Spot level · Median -6.5 dB · Mean -5.5 dB",
     ]
 
 
@@ -47,7 +47,7 @@ def test_compare_segment_summary_uses_localized_scheduled_pair_wording():
     )
 
     assert summary == (
-        "Ebene geplanter Paare - Median +2.0 dB - Mittelwert +3.0 dB"
+        "Ebene geplanter Paare · Median +2.0 dB · Mittelwert +3.0 dB"
     )
     assert segment_inspector._compare_metric_distribution_summary(
         [],

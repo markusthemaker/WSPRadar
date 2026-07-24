@@ -2716,7 +2716,7 @@ def _render_segment_inspector_body(
                         segment_figure_recipe["station_values"],
                         t.get(
                             "fmt_results_station_delta_summary",
-                            "Station-level - Median {median} dB - "
+                            "Station-level · Median {median} dB · "
                             "Mean {mean} dB",
                         ),
                     )
@@ -2726,10 +2726,10 @@ def _render_segment_inspector_body(
                         else "fmt_results_joint_spot_delta_summary"
                     )
                     observation_summary_fallback = (
-                        "Scheduled-Pair level - Median {median} dB - "
+                        "Scheduled-Pair level · Median {median} dB · "
                         "Mean {mean} dB"
                         if is_sequential
-                        else "Joint-Spot level - Median {median} dB - "
+                        else "Joint-Spot level · Median {median} dB · "
                         "Mean {mean} dB"
                     )
                     spot_summary = _compare_metric_distribution_summary(
