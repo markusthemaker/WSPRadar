@@ -70,6 +70,10 @@ def apply_custom_css():
             color: #ffffff !important;
             box-shadow: 0 0 6px rgba(57, 255, 20, 0.18) !important;
         }
+        /* Neutralize the global secondary-button offset in the mixed Classic demo row. */
+        .st-key-run_selected_demo button[kind="secondary"] {
+            margin-top: 0 !important;
+        }
         div.stButton > button[kind="primary"] svg,
         div.stButton > button[kind="secondary"] svg,
         div.stDownloadButton > button[kind="primary"] svg,

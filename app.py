@@ -184,7 +184,11 @@ def render_demo_launcher():
                 ):
                     load_demo_profile_config(selected_demo)
             with col_run_demo:
-                if st.button(t.get("btn_run_demo_selected", "Run selected demo"), width="stretch"):
+                if st.button(
+                    t.get("btn_run_demo_selected", "Run selected demo"),
+                    key="run_selected_demo",
+                    width="stretch",
+                ):
                     run_demo_profile(selected_demo)
 
 
@@ -442,12 +446,15 @@ def render_run_analysis_button(*, is_busy):
         ).removeprefix(":material/").removesuffix(":")
         return run_analysis_button_slot.markdown(
             (
+                '<div class="wspr-analysis-run-busy-wrapper">'
                 '<button class="wspr-analysis-run-busy" type="button" '
                 'disabled aria-disabled="true">'
                 f'<span class="material-symbols-rounded">{escape(icon_name)}</span>'
                 f'<span>{escape(button_label)}</span>'
                 "</button>"
+                "</div>"
                 "<style>"
+                ".wspr-analysis-run-busy-wrapper{width:100%;margin:0;padding:0;}"
                 ".wspr-analysis-run-busy{width:100%;min-height:2.5rem;"
                 "display:flex;align-items:center;justify-content:center;gap:.5rem;"
                 "border:1px solid rgba(250,250,250,.2);border-radius:.5rem;"

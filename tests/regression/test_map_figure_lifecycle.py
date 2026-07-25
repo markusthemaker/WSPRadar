@@ -1,15 +1,23 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from io import BytesIO
 import threading
 import time
 
 import numpy as np
-from matplotlib.colors import to_rgba
+import pandas as pd
+from matplotlib.collections import LineCollection, PatchCollection, QuadMesh
+from matplotlib.colors import BoundaryNorm, ListedColormap, to_rgba
+from matplotlib.figure import Figure
 from matplotlib.legend import Legend
+from matplotlib.transforms import IdentityTransform
 from PIL import Image
 import pytest
 
 from core import map_base, plot_engine
+from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
+from core.map_models import MapData
+from core.presentation_context import PresentationContext
 from i18n import T, absolute_terms
 from ui.matplotlib_renderer import (
     _draw_figure_preview_image,
@@ -59,6 +67,403 @@ def _assert_shared_axis_label(label_artist, expected_text):
     assert label_artist.get_fontsize() == pytest.approx(10.0)
     assert tuple(label_artist.get_fontfamily()) == ("sans-serif",)
     assert label_artist.get_fontweight() == "normal"
+
+
+@pytest.mark.parametrize(
+    ("segment_values", "expected_half_span_db", "expected_tick_step_db"),
+    [
+        ([], 6.0, 1.0),
+        ([np.nan, np.inf, -np.inf], 6.0, 1.0),
+        ([-3.1, 3.1], 6.0, 1.0),
+        ([-6.5, 6.5], 6.0, 1.0),
+        ([np.nextafter(6.5, np.inf)], 6.0, 3.0),
+        ([np.nextafter(-6.5, -np.inf)], 6.0, 3.0),
+        ([7.5], 6.0, 3.0),
+        ([np.nextafter(7.5, np.inf)], 9.0, 3.0),
+        ([12.0], 12.0, 3.0),
+        ([19.5], 18.0, 3.0),
+        ([np.nextafter(19.5, np.inf)], 18.0, 6.0),
+        ([39.0], 36.0, 6.0),
+        ([np.nextafter(39.0, np.inf)], 40.0, 10.0),
+        ([65.0], 60.0, 10.0),
+        ([np.nextafter(65.0, np.inf)], 60.0, 20.0),
+    ],
+)
+def test_compare_map_scale_fits_data_without_fixed_headroom(
+    segment_values,
+    expected_half_span_db,
+    expected_tick_step_db,
+):
+    """Use the finest symmetric layout whose outer half-bin contains the data."""
+    scale = plot_engine._build_compare_map_color_scale(segment_values)
+    expected_outer_boundary_db = (
+        expected_half_span_db + (expected_tick_step_db / 2.0)
+    )
+    finite_segment_values = np.asarray(segment_values, dtype=float)
+    finite_segment_values = finite_segment_values[
+        np.isfinite(finite_segment_values)
+    ]
+
+    assert isinstance(scale.colormap, ListedColormap)
+    assert isinstance(scale.normalization, BoundaryNorm)
+    assert scale.normalization.vmin == pytest.approx(
+        -expected_outer_boundary_db
+    )
+    assert scale.normalization.vmax == pytest.approx(
+        expected_outer_boundary_db
+    )
+    assert scale.colormap.N == len(scale.boundaries_db) - 1
+    assert scale.colormap.N % 2 == 1
+    assert scale.boundaries_db == tuple(
+        -value for value in reversed(scale.boundaries_db)
+    )
+    assert int(scale.normalization(scale.boundaries_db[0])) == 0
+    assert (
+        int(scale.normalization(scale.boundaries_db[-1]))
+        == scale.colormap.N - 1
+    )
+    assert scale.ticks_db[0] == pytest.approx(-expected_half_span_db)
+    assert scale.ticks_db[-1] == pytest.approx(expected_half_span_db)
+    assert np.diff(scale.ticks_db) == pytest.approx(expected_tick_step_db)
+    assert scale.ticks_db == tuple(-value for value in reversed(scale.ticks_db))
+    assert scale.tick_labels[len(scale.tick_labels) // 2] == "0"
+    assert all("S" not in label for label in scale.tick_labels)
+    if finite_segment_values.size:
+        assert np.max(np.abs(finite_segment_values)) <= (
+            scale.boundaries_db[-1]
+        )
+
+
+@pytest.mark.parametrize(
+    (
+        "segment_values",
+        "expected_tick_step_db",
+        "expected_positive_boundaries_db",
+    ),
+    [
+        ([-3.0, 3.0], 1.0, (0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5)),
+        ([7.6], 3.0, (1.5, 4.5, 7.5, 10.5)),
+        ([19.6], 6.0, (3.0, 9.0, 15.0, 21.0)),
+        ([39.1], 10.0, (5.0, 15.0, 25.0, 35.0, 45.0)),
+    ],
+)
+def test_compare_map_scale_uses_equal_width_bins(
+    segment_values,
+    expected_tick_step_db,
+    expected_positive_boundaries_db,
+):
+    """Give every color, including neutral, the active dB-step width."""
+    scale = plot_engine._build_compare_map_color_scale(segment_values)
+    center_boundary_index = len(scale.boundaries_db) // 2
+    bin_midpoints_db = (
+        np.asarray(scale.boundaries_db[:-1])
+        + np.asarray(scale.boundaries_db[1:])
+    ) / 2.0
+
+    assert scale.boundaries_db[center_boundary_index:] == pytest.approx(
+        expected_positive_boundaries_db
+    )
+    assert np.diff(scale.boundaries_db) == pytest.approx(
+        expected_tick_step_db
+    )
+    assert bin_midpoints_db == pytest.approx(scale.ticks_db)
+    neutral_bin_index = scale.colormap.N // 2
+    neutral_half_width_db = expected_tick_step_db / 2.0
+    assert (
+        int(scale.normalization(-neutral_half_width_db))
+        == neutral_bin_index
+    )
+    assert (
+        int(scale.normalization(neutral_half_width_db))
+        == neutral_bin_index
+    )
+    for positive_boundary_db in expected_positive_boundaries_db[:-1]:
+        positive_outward_db = np.nextafter(positive_boundary_db, np.inf)
+        negative_outward_db = np.nextafter(-positive_boundary_db, -np.inf)
+        assert (
+            int(scale.normalization(-positive_boundary_db))
+            + int(scale.normalization(positive_boundary_db))
+            == scale.colormap.N - 1
+        )
+        assert (
+            int(scale.normalization(negative_outward_db))
+            + int(scale.normalization(positive_outward_db))
+            == scale.colormap.N - 1
+        )
+
+
+def test_compare_map_scale_uses_discrete_soft_matte_palette():
+    """Use distinct hue landmarks without reversing Target and Reference."""
+    scale = plot_engine._build_compare_map_color_scale([-3.0, 3.0])
+    middle_color_index = len(plot_engine.COMPARE_MAP_COLORS) // 2
+    neutral_bin_index = scale.colormap.N // 2
+
+    assert isinstance(scale.colormap, ListedColormap)
+    assert plot_engine.COMPARE_MAP_COLORS == (
+        "#6e4c8f",
+        "#6576b8",
+        "#5c9bc7",
+        "#55b9c0",
+        "#8bcb9a",
+        "#c9e5a3",
+        "#f4e58a",
+        "#efb56f",
+        "#df7f68",
+        "#b85d5f",
+        "#7c5341",
+    )
+    assert scale.colormap.N == 13
+    assert scale.colormap(0.0) == pytest.approx(
+        to_rgba(plot_engine.COMPARE_MAP_COLORS[0])
+    )
+    assert scale.colormap(0.5) == pytest.approx(
+        to_rgba(plot_engine.COMPARE_MAP_COLORS[middle_color_index])
+    )
+    assert scale.colormap(1.0) == pytest.approx(
+        to_rgba(plot_engine.COMPARE_MAP_COLORS[-1])
+    )
+    neutral_red, neutral_green, neutral_blue, _ = scale.colormap(0.5)
+    assert neutral_green > neutral_red > neutral_blue
+    assert min(neutral_red, neutral_green, neutral_blue) > 0.60
+    neutral_rgb = np.asarray(
+        (neutral_red, neutral_green, neutral_blue),
+        dtype=float,
+    )
+    white_export_rgb = np.ones(3, dtype=float)
+    composited_neutral_rgb = (
+        plot_engine.COMPARE_MAP_HEATMAP_ALPHA * neutral_rgb
+        + (1.0 - plot_engine.COMPARE_MAP_HEATMAP_ALPHA) * white_export_rgb
+    )
+    assert np.linalg.norm(
+        white_export_rgb - composited_neutral_rgb
+    ) > 0.30
+    negative_red, _, negative_blue, _ = scale.colormap(
+        scale.normalization(-3.0)
+    )
+    positive_red, _, positive_blue, _ = scale.colormap(
+        scale.normalization(3.0)
+    )
+    assert negative_blue > negative_red
+    assert positive_red > positive_blue
+    assert int(scale.normalization(-0.49)) == neutral_bin_index
+    assert int(scale.normalization(0.49)) == neutral_bin_index
+    assert int(scale.normalization(-0.5)) == neutral_bin_index
+    assert int(scale.normalization(0.5)) == neutral_bin_index
+    for delta_snr_db in (0.0, 0.49, 0.5, 1.0, 3.0, 5.0, 6.0):
+        assert (
+            int(scale.normalization(-delta_snr_db))
+            + int(scale.normalization(delta_snr_db))
+            == scale.colormap.N - 1
+        )
+    for positive_boundary_db in scale.boundaries_db[
+        (len(scale.boundaries_db) // 2):-1
+    ]:
+        positive_outward_db = np.nextafter(positive_boundary_db, np.inf)
+        negative_outward_db = np.nextafter(-positive_boundary_db, -np.inf)
+        assert (
+            int(scale.normalization(negative_outward_db))
+            + int(scale.normalization(positive_outward_db))
+            == scale.colormap.N - 1
+        )
+
+
+def test_compare_map_scale_handles_very_large_finite_values():
+    """Keep tick selection bounded for an extreme plausible display value."""
+    scale = plot_engine._build_compare_map_color_scale([1_000_000.0])
+
+    assert scale.normalization.vmax >= 1_000_000.0
+    assert scale.normalization.vmin == -scale.normalization.vmax
+    assert (
+        len(scale.ticks_db)
+        <= plot_engine.COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT
+    )
+
+
+def test_compare_map_renderer_scales_only_from_visible_segments(monkeypatch):
+    """Exclude off-map extremes from the stepped Compare colorbar contract."""
+    def fake_create_base_map_figure(**_kwargs):
+        figure = Figure(figsize=(8, 8), facecolor="black")
+        map_axis = figure.add_axes([0.05, 0.15, 0.75, 0.75])
+        identity_transform = IdentityTransform()
+        return figure, map_axis, identity_transform, identity_transform
+
+    monkeypatch.setattr(
+        plot_engine,
+        "_preview_base_map_cache_enabled",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        plot_engine,
+        "create_base_map_figure",
+        fake_create_base_map_figure,
+    )
+    station_rows = pd.DataFrame(
+        {
+            "peer_lon": [1.0],
+            "peer_lat": [1.0],
+            "spot_count": [2],
+            "count_only_u": [0],
+            "count_only_r": [0],
+            "r_min": [0.0],
+        }
+    )
+    segment_rows = pd.DataFrame(
+        {
+            "r_min": [0.0, 2500.0, 5000.0],
+            "r_max": [2500.0, 5000.0, 10000.0],
+            "az_bucket": [0.0, 1.0, 2.0],
+            "val": [12.0, np.nan, 100.0],
+        }
+    )
+    map_data = MapData(
+        station_rows=station_rows,
+        segment_rows=segment_rows,
+        analysis_id="RX_COMPARE",
+        is_compare=True,
+        is_sequential=False,
+        analysis_kind="compare",
+    )
+    analysis_context = AnalysisContext(
+        callsign="TARGET",
+        qth="JN47",
+        band="20m",
+        comparison_mode=COMPARISON_REFERENCE_STATION,
+        reference_callsign="REFERENCE",
+    )
+    presentation_context = PresentationContext(
+        language="en",
+        labels=T["en"],
+        theme="dark",
+        solar_label="All",
+    )
+
+    rendered_map = plot_engine.render_map_figure(
+        map_data,
+        title="Compare map",
+        start_t=datetime(2026, 7, 1, tzinfo=timezone.utc),
+        end_t=datetime(2026, 7, 2, tzinfo=timezone.utc),
+        max_dist_km=5000,
+        base_min_stations=1,
+        lat_0=0.0,
+        lon_0=0.0,
+        analysis_context=analysis_context,
+        presentation_context=presentation_context,
+    )
+    try:
+        map_axis = rendered_map.figure.axes[0]
+        heatmap = next(
+            collection
+            for collection in map_axis.collections
+            if isinstance(collection, PatchCollection)
+        )
+        colorbar_axis = next(
+            axis
+            for axis in rendered_map.figure.axes
+            if axis.get_ylabel() == T["en"]["cbar_comp"]
+        )
+        expected_boundaries_db = (
+            -13.5,
+            -10.5,
+            -7.5,
+            -4.5,
+            -1.5,
+            1.5,
+            4.5,
+            7.5,
+            10.5,
+            13.5,
+        )
+
+        assert isinstance(heatmap.cmap, ListedColormap)
+        assert isinstance(heatmap.norm, BoundaryNorm)
+        assert heatmap.get_alpha() == pytest.approx(
+            plot_engine.COMPARE_MAP_HEATMAP_ALPHA
+        )
+        assert heatmap.norm.vmin == pytest.approx(-13.5)
+        assert heatmap.norm.vmax == pytest.approx(13.5)
+        assert heatmap.norm.boundaries == pytest.approx(
+            (
+                -13.5,
+                -10.5,
+                -7.5,
+                -4.5,
+                -1.5,
+                np.nextafter(1.5, np.inf),
+                np.nextafter(4.5, np.inf),
+                np.nextafter(7.5, np.inf),
+                np.nextafter(10.5, np.inf),
+                13.5,
+            )
+        )
+        heatmap_values = heatmap.get_array()
+        assert np.ma.isMaskedArray(heatmap_values)
+        assert heatmap_values.compressed() == pytest.approx([12.0])
+        assert np.ma.getmaskarray(heatmap_values).tolist() == [False, True]
+        assert colorbar_axis.get_position().bounds == pytest.approx(
+            plot_engine.COMPARE_MAP_CBAR_BBOX
+        )
+        assert colorbar_axis.get_ylim() == pytest.approx((-13.5, 13.5))
+        assert [tick.get_text() for tick in colorbar_axis.get_yticklabels()] == [
+            "\u221212",
+            "\u22129",
+            "\u22126",
+            "\u22123",
+            "0",
+            "+3",
+            "+6",
+            "+9",
+            "+12",
+        ]
+        colorbar_solid = next(
+            collection
+            for collection in colorbar_axis.collections
+            if isinstance(collection, QuadMesh)
+        )
+        assert colorbar_solid.get_alpha() == pytest.approx(
+            plot_engine.COMPARE_MAP_HEATMAP_ALPHA
+        )
+        assert colorbar_solid.get_array().size == 9
+        assert (
+            colorbar_solid.get_coordinates()[:, 0, 1].tolist()
+            == pytest.approx(expected_boundaries_db)
+        )
+        rendered_boundary_y = colorbar_axis.transData.transform(
+            np.column_stack(
+                (
+                    np.zeros(len(expected_boundaries_db)),
+                    expected_boundaries_db,
+                )
+            )
+        )[:, 1]
+        rendered_height_fractions = np.diff(rendered_boundary_y)
+        rendered_height_fractions /= rendered_height_fractions.sum()
+        expected_height_fractions = np.diff(expected_boundaries_db)
+        expected_height_fractions /= expected_height_fractions.sum()
+        assert rendered_height_fractions == pytest.approx(
+            expected_height_fractions
+        )
+        assert colorbar_solid.get_linewidths() == pytest.approx(0.0)
+        assert len(colorbar_solid.get_edgecolors()) == 0
+        bin_dividers = next(
+            collection
+            for collection in colorbar_axis.collections
+            if (
+                isinstance(collection, LineCollection)
+                and collection.get_gid() == "compare-map-bin-dividers"
+            )
+        )
+        assert bin_dividers.get_alpha() == pytest.approx(
+            plot_engine.COMPARE_MAP_COLORBAR_DIVIDER_ALPHA
+        )
+        assert bin_dividers.get_linewidths() == pytest.approx(
+            plot_engine.COMPARE_MAP_COLORBAR_DIVIDER_LINEWIDTH
+        )
+        assert [
+            float(segment[0][1])
+            for segment in bin_dividers.get_segments()
+        ] == pytest.approx(expected_boundaries_db[1:-1])
+    finally:
+        dispose_matplotlib_figure(rendered_map.figure)
 
 
 def test_map_figure_stays_outside_pyplot_registry_and_disposes_artists():

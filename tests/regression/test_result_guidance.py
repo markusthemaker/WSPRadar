@@ -153,6 +153,32 @@ def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
                 )
 
 
+@pytest.mark.parametrize("section_key", ("map_compare_rx", "map_compare_tx"))
+def test_compare_map_guidance_explains_dynamic_symmetric_db_scale(section_key):
+    """Explain cross-map color comparison without retaining S-unit guidance."""
+    english_limits = RESULT_GUIDANCE["en"]["sections"][section_key]["limits"]
+    german_limits = RESULT_GUIDANCE["de"]["sections"][section_key]["limits"]
+
+    assert "stepped dB color scale is symmetric around 0 dB" in english_limits
+    assert "can expand between runs" in english_limits
+    assert "visible sector range without fixed headroom" in english_limits
+    assert "light yellow-green display-neutral band" in english_limits
+    assert "display-neutral band's width matches the active step" in english_limits
+    assert "at 3 dB it covers -1.5 to +1.5 dB" in english_limits
+    assert "Only 0 dB means equality" in english_limits
+    assert "numerical color-bar values" in english_limits
+    assert "abgestufte dB-Farbskala ist symmetrisch um 0 dB" in german_limits
+    assert "kann sich zwischen Läufen erweitern" in german_limits
+    assert "ohne feste Reserve an den sichtbaren Segmentwertebereich" in german_limits
+    assert "hellen gelbgrünen darstellungsneutralen Band" in german_limits
+    assert "darstellungsneutralen Bands entspricht der aktiven Schrittweite" in german_limits
+    assert "bei 3 dB reicht es von -1,5 bis +1,5 dB" in german_limits
+    assert "Nur 0 dB bedeutet Gleichheit" in german_limits
+    assert "numerischen Werte der Farbskala" in german_limits
+    assert "S-unit" not in english_limits
+    assert "S-Stufe" not in german_limits
+
+
 def test_result_guidance_uses_practical_station_language():
     """Keep operator-facing copy concrete while preserving the row definition."""
     for language in ("en", "de"):

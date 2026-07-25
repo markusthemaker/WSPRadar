@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')  # Use the non-interactive backend required by Streamlit Cloud.
 import matplotlib as mpl
 from contextlib import nullcontext
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from matplotlib.patches import Patch, Wedge
 from matplotlib.collections import PatchCollection
 import os
@@ -21,6 +21,14 @@ from config import (
     COLOR_JOINT,
     COLOR_ONLY_ME,
     COLOR_ONLY_REF,
+    COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT,
+    COMPARE_MAP_CBAR_BBOX,
+    COMPARE_MAP_COLORBAR_DIVIDER_ALPHA,
+    COMPARE_MAP_COLORBAR_DIVIDER_LINEWIDTH,
+    COMPARE_MAP_COLORS,
+    COMPARE_MAP_HEATMAP_ALPHA,
+    COMPARE_MAP_MINIMUM_HALF_SPAN_DB,
+    COMPARE_MAP_TICK_STEPS_DB,
     FONT_CBAR,
     FONT_FOOTER,
     FONT_LEGEND,
@@ -46,7 +54,6 @@ from core.input_validation import normalize_ascii_upper
 from core.math_utils import locator_to_latlon
 
 MIN_LABEL_CUTOFF_PCT = 0.02
-COMPARE_NEUTRAL_COLOR = "#fff2a8"
 BASEMAP_DRAW_PROFILE_ENV = "WSPRADAR_PROFILE_BASEMAP_DRAW"
 BASEMAP_CACHE_ENV = "WSPRADAR_PREVIEW_BASEMAP_CACHE"
 MAP_PROFILE_PREVIEW_DPI = 100
@@ -115,6 +122,181 @@ MAP_THEMES = {
         "footer_abs": "#222222",
     },
 }
+
+
+@dataclass(frozen=True)
+class _CompareMapColorScale:
+    """Describe one stepped, symmetric Compare-map display scale in dB."""
+
+    colormap: mpl.colors.ListedColormap
+    normalization: mpl.colors.BoundaryNorm
+    boundaries_db: tuple[float, ...]
+    ticks_db: tuple[float, ...]
+    tick_labels: tuple[str, ...]
+
+
+def _format_compare_map_tick(value_db):
+    """Format one signed whole-dB Compare-map colorbar tick."""
+    rounded_value = int(round(float(value_db)))
+    if rounded_value > 0:
+        return f"+{rounded_value}"
+    if rounded_value < 0:
+        return f"\u2212{abs(rounded_value)}"
+    return "0"
+
+
+def _compare_map_positive_tick_count(maximum_absolute_db, tick_step_db):
+    """
+    Return the fewest positive ticks that contain the visible Compare values.
+
+    The nominal ticks never narrow below +/-6 dB. Containment includes the
+    natural half-step beyond the outer tick, so exact boundary values do not
+    force an otherwise empty color tier.
+    """
+    minimum_scale_tick_count = int(
+        np.ceil(COMPARE_MAP_MINIMUM_HALF_SPAN_DB / tick_step_db)
+    )
+    data_tick_count = max(
+        0,
+        int(np.ceil((maximum_absolute_db / tick_step_db) - 0.5)),
+    )
+    positive_tick_count = max(
+        1,
+        minimum_scale_tick_count,
+        data_tick_count,
+    )
+    outer_boundary_db = (positive_tick_count + 0.5) * tick_step_db
+    if outer_boundary_db < maximum_absolute_db:
+        positive_tick_count += 1
+    return positive_tick_count
+
+
+def _compare_map_tick_layout(maximum_absolute_db):
+    """Return the finest readable tick layout containing every finite value."""
+    maximum_absolute_db = max(0.0, float(maximum_absolute_db))
+    for tick_step_db in COMPARE_MAP_TICK_STEPS_DB:
+        positive_tick_count = _compare_map_positive_tick_count(
+            maximum_absolute_db,
+            tick_step_db,
+        )
+        if (
+            (2 * positive_tick_count) + 1
+            <= COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT
+        ):
+            return (
+                float(positive_tick_count * tick_step_db),
+                float(tick_step_db),
+            )
+
+    tick_step_db = COMPARE_MAP_TICK_STEPS_DB[-1]
+    while True:
+        positive_tick_count = _compare_map_positive_tick_count(
+            maximum_absolute_db,
+            tick_step_db,
+        )
+        if (
+            (2 * positive_tick_count) + 1
+            <= COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT
+        ):
+            return (
+                float(positive_tick_count * tick_step_db),
+                float(tick_step_db),
+            )
+        tick_step_db *= 2.0
+
+
+def _compare_map_bin_boundaries(half_span_db, tick_step_db):
+    """
+    Return exact equal-width display-bin boundaries centered on neutral.
+
+    Every interval has the active tick-step width, including the neutral color
+    centered on 0 dB. Boundaries sit halfway between nominal tick values, and
+    the outer boundaries extend half a step beyond the last ticks.
+    """
+    if tick_step_db < 1.0:
+        raise ValueError("Compare-map tick spacing must be at least 1 dB.")
+
+    positive_tick_count = int(round(half_span_db / tick_step_db))
+    positive_boundaries_db = tuple(
+        float((boundary_index + 0.5) * tick_step_db)
+        for boundary_index in range(positive_tick_count + 1)
+    )
+    return (
+        *tuple(
+            -boundary_db
+            for boundary_db in reversed(positive_boundaries_db)
+        ),
+        *positive_boundaries_db,
+    )
+
+
+def _build_compare_map_color_scale(segment_values):
+    """
+    Build the presentation-only Compare scale from rendered sector medians.
+
+    The outer half-bin contains every finite sector value without fixed
+    headroom. Nominal ticks remain symmetric around equality and never narrow
+    below -6 to +6 dB. Discrete soft-matte colors run from plum, periwinkle,
+    blue, turquoise and mint through a light yellow-green neutral band to
+    yellow, apricot, coral, brick red and chestnut. Negative Delta SNR favors
+    Reference and positive Delta SNR favors Target.
+    """
+    numeric_values = np.asarray(segment_values, dtype=float).reshape(-1)
+    finite_values = numeric_values[np.isfinite(numeric_values)]
+    maximum_absolute_db = (
+        float(np.max(np.abs(finite_values)))
+        if finite_values.size
+        else 0.0
+    )
+    half_span_db, tick_step_db = _compare_map_tick_layout(
+        maximum_absolute_db
+    )
+    positive_tick_count = int(round(half_span_db / tick_step_db))
+    ticks_db = tuple(
+        float(tick_index * tick_step_db)
+        for tick_index in range(-positive_tick_count, positive_tick_count + 1)
+    )
+    boundaries_db = _compare_map_bin_boundaries(
+        half_span_db,
+        tick_step_db,
+    )
+    # BoundaryNorm assigns exact internal boundaries to the higher-index bin.
+    # Shift only positive internal cut points one ULP outward so exact +x and
+    # -x values receive mirrored colors and both signed half-step cuts remain
+    # in the central display-neutral bin.
+    outer_boundary_db = boundaries_db[-1]
+    normalization_boundaries_db = tuple(
+        (
+            float(np.nextafter(boundary_db, np.inf))
+            if 0.0 < boundary_db < outer_boundary_db
+            else boundary_db
+        )
+        for boundary_db in boundaries_db
+    )
+    source_colormap = mpl.colors.LinearSegmentedColormap.from_list(
+        "wspr_compare_map_source",
+        COMPARE_MAP_COLORS,
+        N=257,
+    )
+    bin_count = len(boundaries_db) - 1
+    colormap = mpl.colors.ListedColormap(
+        source_colormap(np.linspace(0.0, 1.0, bin_count)),
+        name="wspr_compare_map",
+    )
+    normalization = mpl.colors.BoundaryNorm(
+        normalization_boundaries_db,
+        colormap.N,
+        clip=True,
+    )
+    return _CompareMapColorScale(
+        colormap=colormap,
+        normalization=normalization,
+        boundaries_db=boundaries_db,
+        ticks_db=ticks_db,
+        tick_labels=tuple(
+            _format_compare_map_tick(tick_db) for tick_db in ticks_db
+        ),
+    )
 
 
 def _timed_span(timing_collector, label, detail=""):
@@ -367,12 +549,17 @@ def render_map_figure(
                 ref_callsign=analysis_context.reference_callsign.upper()
             )
 
+    visible_segs = segs[segs["r_min"] < max_dist_km].copy()
+
     # Colormaps
     if is_compare:
-        clrs = ['#030b2e', '#0a318f', '#2270c1', '#6eb2e4', COMPARE_NEUTRAL_COLOR, '#fca083', '#f03b20', '#a50f15', '#400005']
-        bnds = [-27, -21, -15, -9, -3, 3, 9, 15, 21, 27]
-        lbls = ['-4S', '-3S', '-2S', '-1S', '±0', '+1S', '+2S', '+3S', '+4S']
-        ticks = [-24, -18, -12, -6, 0, 6, 12, 18, 24]
+        compare_scale = _build_compare_map_color_scale(
+            visible_segs["val"].to_numpy()
+        )
+        cmap = compare_scale.colormap
+        norm = compare_scale.normalization
+        ticks = compare_scale.ticks_db
+        lbls = compare_scale.tick_labels
         cbar_title = t_lang["cbar_comp"]
     elif is_opportunity:
         clrs = list(SUCCESS_RATE_COLORS)
@@ -380,20 +567,20 @@ def render_map_figure(
         lbls = list(SUCCESS_RATE_TICK_LABELS)
         ticks = bnds
         cbar_title = t_lang["cbar_abs"]
+        cmap = mpl.colors.ListedColormap(clrs)
+        norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
     else:
         clrs = ['#190824', '#4662d7', '#36aaf9', '#1ae4b6', '#72fe5e', '#c9ef34', '#faba39', '#f66b19', '#cb2a04', '#590202']
         bnds = np.arange(-48, 18, 6)
         lbls = [f"{b}dB" for b in bnds]
         ticks = bnds
         cbar_title = t_lang["cbar_abs"]
-    
-    cmap = mpl.colors.ListedColormap(clrs)
-    norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
+        cmap = mpl.colors.ListedColormap(clrs)
+        norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
     
     with _timed_span(timing_collector, "wedge creation"):
         # Draw Heatmap Wedges
         patches = []
-        visible_segs = segs[segs["r_min"] < max_dist_km].copy()
         for _, r in visible_segs.iterrows():
             center_az = r['az_bucket'] * AZIMUTH_STEP
             az_min = center_az - (AZIMUTH_STEP / 2.0)
@@ -402,7 +589,7 @@ def render_map_figure(
             theta2 = 90 - az_min
             patches.append(Wedge((0,0), min(r['r_max'], max_dist_km)*1000, theta1, theta2, width=(min(r['r_max'], max_dist_km)-r['r_min'])*1000))
 
-        heatmap_alpha = 0.75
+        heatmap_alpha = COMPARE_MAP_HEATMAP_ALPHA if is_compare else 0.75
         if patches:
             p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
             p.set_array(visible_segs['val'].to_numpy())
@@ -502,19 +689,40 @@ def render_map_figure(
         timing_collector.add("scatter rendering", perf_counter() - scatter_start)
 
     # Colorbar
-    cax = fig.add_axes(CBAR_BBOX)
+    colorbar_bbox = COMPARE_MAP_CBAR_BBOX if is_compare else CBAR_BBOX
+    cax = fig.add_axes(colorbar_bbox)
 
     # The heatmap wedges are semi-transparent over the dark map.
     # The colorbar must use the same dark backing, otherwise alpha blends against
     # the default axes background and the legend colors no longer match the map.
     cax.set_facecolor(theme_cfg["cbar_face"])
 
-    cbar = fig.colorbar(p, cax=cax, ticks=ticks, spacing="uniform")
+    if is_compare:
+        cbar = fig.colorbar(
+            p,
+            cax=cax,
+            ticks=ticks,
+            boundaries=compare_scale.boundaries_db,
+            spacing="proportional",
+            drawedges=True,
+        )
+    else:
+        cbar = fig.colorbar(p, cax=cax, ticks=ticks, spacing="uniform")
     cbar.ax.set_facecolor(theme_cfg["cbar_face"])
 
     if hasattr(cbar, "solids"):
         cbar.solids.set_alpha(heatmap_alpha)
-        cbar.solids.set_edgecolor("face")
+        if is_compare:
+            cbar.solids.set_edgecolor("none")
+            cbar.solids.set_linewidth(0.0)
+        else:
+            cbar.solids.set_edgecolor("face")
+
+    if is_compare and hasattr(cbar, "dividers"):
+        cbar.dividers.set_color(theme_cfg["cbar_text"])
+        cbar.dividers.set_alpha(COMPARE_MAP_COLORBAR_DIVIDER_ALPHA)
+        cbar.dividers.set_linewidth(COMPARE_MAP_COLORBAR_DIVIDER_LINEWIDTH)
+        cbar.dividers.set_gid("compare-map-bin-dividers")
 
     cbar.ax.set_yticklabels(lbls, color=theme_cfg["cbar_text"])
     cbar.ax.tick_params(labelsize=FONT_CBAR)

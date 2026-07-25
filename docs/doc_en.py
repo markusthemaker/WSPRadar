@@ -631,7 +631,7 @@ A <strong class="defined-term">median</strong> is the middle value after sorting
 * Compare segments show the median of qualifying station-level Delta SNR medians. Positive favors Target; negative favors Reference.
 * Success segments show the arithmetic mean of qualifying station Success Rates after giving every qualifying peer one equal vote.
 
-The Compare scale uses the amateur-radio display convention `1 S-unit = 6 dB`. This is a scale annotation, not a claim that every S-meter is calibrated.
+The Compare map uses a symmetric stepped dB color scale: plum-to-mint sectors have negative Delta SNR and favor the Reference, while yellow-to-chestnut sectors have positive Delta SNR and favor the Target. Light yellow-green marks the display-neutral interval centered on `0 dB`, and its width matches the active color step; for example, a `3 dB` scale uses `-1.5 dB` through `+1.5 dB`. Only exactly `0 dB` means equality, so the numerical value remains authoritative even inside the display-neutral color. The scale uses the finest readable step, expands symmetrically only as far as needed to contain the displayed station-balanced segment medians and never narrows below `-6 dB` to `+6 dB`. No fixed headroom is added; the outer half-bin provides the natural margin around the extreme value. Because its limits and step sizes can differ between runs, compare maps by their numerical color-bar values rather than by color alone.
 
 **Station categories**
 
@@ -820,7 +820,7 @@ Match the design name to the quantity being described:
 * **Local Median Neighborhood** compares the Target with the active median-neighborhood definition inside the selected radius.
 * **Local Best Station** compares the Target with a changing best-peer envelope.
 * A directional result describes the observed WSPR paths and participating stations rather than an absolute radiation pattern.
-* The `1 S-unit = 6 dB` annotation describes the map scale rather than calibration of the participating receivers.
+* Compare-map colors use a run-scaled, symmetric dB color bar: blue favors the Reference, red favors the Target and `0 dB` is equality. Use the numerical color-bar values when comparing maps from different runs.
 
 Use terms such as "observed difference," "favored in the selected evidence," "conditional reach" and "complete installed station comparison." Reserve isolated antenna gain, efficiency, receiver sensitivity, causation and statistical significance for experiments that actually measure or test those quantities.
 

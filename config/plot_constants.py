@@ -36,3 +36,36 @@ COLOR_JOINT = "#00ff00"
 COLOR_BOTH_ASYNC = "#ffbe33"
 COLOR_ONLY_ME = "#cc00ff"
 COLOR_ONLY_REF = "#ffffff"
+
+COMPARE_MAP_COLORS = (
+    "#6e4c8f",
+    "#6576b8",
+    "#5c9bc7",
+    "#55b9c0",
+    "#8bcb9a",
+    "#c9e5a3",
+    "#f4e58a",
+    "#efb56f",
+    "#df7f68",
+    "#b85d5f",
+    "#7c5341",
+)
+COMPARE_MAP_CBAR_BBOX = (0.87, 0.20, 0.03, 0.55)
+COMPARE_MAP_HEATMAP_ALPHA = 0.92
+COMPARE_MAP_COLORBAR_DIVIDER_ALPHA = 0.35
+COMPARE_MAP_COLORBAR_DIVIDER_LINEWIDTH = 0.45
+COMPARE_MAP_MINIMUM_HALF_SPAN_DB = 6.0
+COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT = 13
+COMPARE_MAP_TICK_STEPS_DB = (
+    1.0,
+    3.0,
+    6.0,
+    10.0,
+    20.0,
+    30.0,
+    60.0,
+    100.0,
+    200.0,
+    300.0,
+    600.0,
+)

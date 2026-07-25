@@ -630,7 +630,7 @@ Der <strong class="defined-term">Median</strong> ist nach dem Sortieren der mitt
 * Compare-Segmente zeigen den Median der qualifizierenden Stationsmediane des Delta SNR. Positive Werte sprechen für das Target, negative für die Referenz.
 * Success-Segmente zeigen das arithmetische Mittel der qualifizierenden Success Rates, nachdem jeder qualifizierende Peer genau eine gleich große Stimme erhalten hat.
 
-Die Compare-Skala verwendet die im Amateurfunk übliche Anzeigekonvention `1 S-Stufe = 6 dB`. Das ist eine Skalenangabe und keine Behauptung, jedes S-Meter sei kalibriert.
+Die Compare-Karte verwendet eine symmetrische, abgestufte dB-Farbskala: Pflaumen- bis Minttöne kennzeichnen ein negatives Delta SNR und sprechen für die Referenz, Gelb- bis Kastanientöne kennzeichnen ein positives Delta SNR und sprechen für das Target. Helles Gelbgrün markiert das um `0 dB` zentrierte darstellungsneutrale Intervall, dessen Breite der aktiven Farbschrittweite entspricht; eine `3-dB`-Skala verwendet beispielsweise `-1,5 dB` bis einschließlich `+1,5 dB`. Nur genau `0 dB` bedeutet Gleichheit, deshalb bleibt auch innerhalb der darstellungsneutralen Farbe der numerische Wert maßgeblich. Die Skala verwendet die feinste lesbare Schrittweite, erweitert sich symmetrisch nur so weit, dass sie die angezeigten stationsgleichgewichteten Segmentmediane umfasst, und wird nie enger als `-6 dB` bis `+6 dB`. Es wird keine feste Reserve hinzugefügt; das äußere halbe Intervall bildet den natürlichen Rand um den Extremwert. Da ihre Grenzen und Schrittweiten zwischen Läufen variieren können, vergleiche Karten anhand ihrer numerischen Farbskalenwerte und nicht allein anhand der Farbe.
 
 **Stationskategorien**
 
@@ -818,7 +818,7 @@ Verwende den Namen des Designs passend zur beschriebenen Größe:
 * Der **Lokale Nachbarschafts-Median** vergleicht das Target mit der aktiven Median-Nachbarschaftsdefinition innerhalb des gewählten Radius.
 * Die **Beste lokale Station** vergleicht das Target mit einer wechselnden Hüllkurve des stärksten Peers.
 * Ein richtungsabhängiges Ergebnis beschreibt die beobachteten WSPR-Pfade und beteiligten Stationen, nicht ein absolutes Strahlungsdiagramm.
-* Die Angabe `1 S-Stufe = 6 dB` beschreibt die Kartenskala und nicht die Kalibrierung der beteiligten Empfänger.
+* Compare-Karten verwenden eine laufabhängige symmetrische dB-Farbskala: Blau spricht für die Referenz, Rot für das Target und `0 dB` bedeutet Gleichstand. Verwende beim Vergleich von Karten aus verschiedenen Läufen die numerischen Werte der Farbskala.
 
 Verwende Formulierungen wie „beobachteter Unterschied“, „in der ausgewählten Evidenz begünstigt“, „bedingte Erreichbarkeit“ und „Vergleich vollständig aufgebauter Stationen“. Aussagen über isolierten Antennengewinn, Wirkungsgrad, Empfängerempfindlichkeit, Kausalität oder statistische Signifikanz sind Versuchen vorbehalten, die diese Größen tatsächlich messen oder prüfen.
 

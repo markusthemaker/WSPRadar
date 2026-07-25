@@ -420,6 +420,40 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
         assert "figure_segment_temporal_evidence.png" in documentation_text
 
 
+def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
+    """Keep the map label and manual aligned with the signed stepped dB scale."""
+    assert T["en"]["cbar_comp"] == "Station-balanced median \u0394SNR (dB)"
+    assert (
+        T["de"]["cbar_comp"]
+        == "Stationsgleichgewichteter Median des \u0394SNR (dB)"
+    )
+    assert "symmetric stepped dB color scale" in DOC_EN
+    assert "plum-to-mint sectors have negative Delta SNR" in DOC_EN
+    assert "yellow-to-chestnut sectors have positive Delta SNR" in DOC_EN
+    assert "Light yellow-green marks the display-neutral interval" in DOC_EN
+    assert "display-neutral interval centered on `0 dB`" in DOC_EN
+    assert "a `3 dB` scale uses `-1.5 dB` through `+1.5 dB`" in DOC_EN
+    assert "Only exactly `0 dB` means equality" in DOC_EN
+    assert "No fixed headroom is added" in DOC_EN
+    assert "outer half-bin provides the natural margin" in DOC_EN
+    assert "never narrows below `-6 dB` to `+6 dB`" in DOC_EN
+    assert "symmetrische, abgestufte dB-Farbskala" in DOC_DE
+    assert "Pflaumen- bis Minttöne kennzeichnen ein negatives Delta SNR" in DOC_DE
+    assert "Gelb- bis Kastanientöne kennzeichnen ein positives Delta SNR" in DOC_DE
+    assert "Helles Gelbgrün markiert das um `0 dB` zentrierte" in DOC_DE
+    assert "um `0 dB` zentrierte darstellungsneutrale Intervall" in DOC_DE
+    assert "eine `3-dB`-Skala verwendet beispielsweise `-1,5 dB` bis einschließlich `+1,5 dB`" in DOC_DE
+    assert "Nur genau `0 dB` bedeutet Gleichheit" in DOC_DE
+    assert "keine feste Reserve hinzugefügt" in DOC_DE
+    assert "äußere halbe Intervall bildet den natürlichen Rand" in DOC_DE
+    assert "nie enger als `-6 dB` bis `+6 dB`" in DOC_DE
+    for obsolete_text in ("S-unit", "1S=6dB", "S-Stufe"):
+        assert obsolete_text not in DOC_EN
+        assert obsolete_text not in DOC_DE
+        assert obsolete_text not in T["en"]["cbar_comp"]
+        assert obsolete_text not in T["de"]["cbar_comp"]
+
+
 def test_bilingual_manuals_define_saved_inspector_scope_and_all_stations_intent():
     """Saved result-view guidance must cover scope, zero targets, and dynamic all."""
     assert "Compare and Success selections are saved independently" in DOC_EN

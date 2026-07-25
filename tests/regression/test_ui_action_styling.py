@@ -7,6 +7,43 @@ from ui import css as ui_css
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_classic_action_pairs_remove_control_specific_vertical_offsets(
+    monkeypatch,
+):
+    """Align Classic demo and busy Run controls with their paired actions."""
+    app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
+    assert re.search(
+        r'key="run_selected_demo",\s+width="stretch"',
+        app_source,
+    )
+    assert re.search(
+        r"'<div class=\"wspr-analysis-run-busy-wrapper\">'\s+"
+        r"'<button class=\"wspr-analysis-run-busy\"",
+        app_source,
+    )
+    assert (
+        '".wspr-analysis-run-busy-wrapper{width:100%;margin:0;padding:0;}"'
+        in app_source
+    )
+
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st,
+        "markdown",
+        lambda body, **_kwargs: rendered_styles.append(body),
+    )
+
+    ui_css.apply_custom_css()
+
+    assert len(rendered_styles) == 1
+    stylesheet = rendered_styles[0]
+    selector = '.st-key-run_selected_demo button[kind="secondary"]'
+    selector_start = stylesheet.index(selector)
+    rule_open = stylesheet.index("{", selector_start)
+    rule_close = stylesheet.index("}", rule_open)
+    assert "margin-top: 0 !important" in stylesheet[rule_open:rule_close]
+
+
 def test_result_hierarchy_uses_green_levels_and_responsive_fine_evidence_spine(
     monkeypatch,
 ):
