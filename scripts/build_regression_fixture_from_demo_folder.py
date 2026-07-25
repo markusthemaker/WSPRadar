@@ -40,7 +40,7 @@ FIGURE_FILES = [
 BLOCK_FOLDERS = ["compare", "success"]
 LEGACY_BLOCK_FOLDERS = ["absolute"]
 SUPPORTED_BLOCK_FOLDERS = BLOCK_FOLDERS + LEGACY_BLOCK_FOLDERS
-SNR_METRIC_MARKERS = ("snr", "norm@1w", "\u0394", "delta", "micro-med", "bin \u0394")
+SNR_METRIC_MARKERS = ("snr", "norm@", "\u0394", "delta", "micro-med", "bin \u0394")
 
 
 def _is_snr_metric_column(column: str) -> bool:
@@ -101,7 +101,7 @@ def _primary_metric_column(table_name: str, columns: list[str]) -> str | None:
         ]
         if delta_candidates:
             return delta_candidates[-1]
-        norm_candidates = [column for column in columns if "norm@1w" in column.lower()]
+        norm_candidates = [column for column in columns if "norm@" in column.lower()]
         if norm_candidates:
             return norm_candidates[-1]
     return None

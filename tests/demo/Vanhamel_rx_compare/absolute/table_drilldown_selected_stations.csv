@@ -1,4 +1,4 @@
-﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,SNR (Raw),TX Power (dBm),Norm@1W
+﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,SNR (Raw),TX Power (dBm),Norm@30dBm
 01-May-2021 18:24:00,M7AEO,IO82,598,291.2,-27.0,23.0,-20.0
 01-May-2021 18:30:00,M7AEO,IO82,598,291.2,-30.0,23.0,-23.0
 01-May-2021 18:36:00,M7AEO,IO82,598,291.2,-29.0,23.0,-22.0

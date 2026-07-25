@@ -1,4 +1,4 @@
-﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,SNR (Raw),TX Power (dBm),Norm@1W
+﻿Date/Time (UTC),TX Station,Locator,km,Azimuth,SNR (Raw),TX Power (dBm),Norm@30dBm
 01-May-2021 17:24:00,DF2JP,JO31fp,127,42.7,-29.0,30.0,-29.0
 01-May-2021 17:34:00,DF2JP,JO31fp,127,42.7,-23.0,30.0,-23.0
 01-May-2021 17:44:00,DF2JP,JO31fp,127,42.7,-26.0,30.0,-26.0

@@ -92,6 +92,7 @@ def test_periodic_drilldown_keeps_peer_identity_and_pair_delta_separate():
 
     assert info is None
     assert "RX Station" in drilldown.columns
+    assert "Norm@30dBm" in drilldown.columns
     pair_delta_column = T["en"]["tbl_col_pair_delta"]
     deltas_by_station = {
         station: set(rows[pair_delta_column])

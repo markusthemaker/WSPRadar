@@ -1155,7 +1155,7 @@ def test_selected_success_figure_uses_shared_legend_and_axis_label_style():
         )
         _assert_shared_axis_label(
             snr_axis.xaxis.label,
-            "Target normalized SNR (dB @ 1 W)",
+            "Target normalized SNR (dB @ 30 dBm)",
         )
         _assert_shared_axis_label(snr_axis.yaxis.label, "Share (%)")
         all_legend_labels = [

@@ -410,7 +410,7 @@ def build_opportunity_inspector_view_model(
             ).format(pair=terms["pair"])
         )
 
-    snr_column = labels.get("tbl_col_success_snr", "Median Target SNR (dB @ 1W)")
+    snr_column = labels.get("tbl_col_success_snr", "Median Target SNR (dB @ 30 dBm)")
     station_table = confirmed[
         [
             "peer_sign",

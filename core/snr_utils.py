@@ -27,7 +27,7 @@ SNR_VALUE_COLUMNS = {
 
 SNR_NAME_MARKERS = (
     "snr",
-    "norm@1w",
+    "norm@",
     "norm. snr",
     "micro-med",
     "bin \u0394",

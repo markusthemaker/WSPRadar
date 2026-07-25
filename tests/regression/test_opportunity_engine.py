@@ -393,6 +393,7 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
 
     assert full_info == projected_info
     pd.testing.assert_frame_equal(full_table, projected_table)
+    assert "Target SNR (dB @ 30 dBm)" in full_table.columns
 
 
 def test_processed_opportunity_categoricals_survive_parquet_round_trip(tmp_path):

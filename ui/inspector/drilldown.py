@@ -145,7 +145,7 @@ def _build_drilldown_table(
 
     if is_opportunity:
         opportunity_terms = absolute_terms(t, "TX" if analysis_id.startswith("TX") else "RX")
-        target_snr_col = "Target SNR (dB @ 1W)"
+        target_snr_col = "Target SNR (dB @ 30 dBm)"
         station_df["Date/Time (UTC)"] = (
             opportunity_utc_from_time_slot(station_df["time_slot"])
             .dt.strftime("%d-%b-%Y %H:%M:%S")
@@ -194,8 +194,8 @@ def _build_drilldown_table(
     elif not is_compare:
         station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
         drill_df = station_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'snr', 'power', 'stat_val']].copy()
-        drill_df.columns = ['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'SNR (Raw)', 'TX Power (dBm)', 'Norm@1W']
-        for col in ['SNR (Raw)', 'Norm@1W']:
+        drill_df.columns = ['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'SNR (Raw)', 'TX Power (dBm)', 'Norm@30dBm']
+        for col in ['SNR (Raw)', 'Norm@30dBm']:
             drill_df[col] = pd.to_numeric(drill_df[col], errors='coerce').round(1)
     else:
         if is_sequential:
@@ -293,11 +293,11 @@ def _build_drilldown_table(
             drill_df.columns = [
                 'Date/Time (UTC)', pair_display_label,
                 station_col, loc_col, km_col, az_col, 'TX Station',
-                'TX Power (dBm)', 'SNR (Raw)', 'Norm@1W',
+                'TX Power (dBm)', 'SNR (Raw)', 'Norm@30dBm',
                 t.get('tbl_col_micro_a', 'Target Micro-Median'), t.get('tbl_col_micro_b', 'Reference Micro-Median'), pair_delta_label
             ]
 
-            for col in ['Norm@1W', t.get('tbl_col_micro_a', 'Target Micro-Median'), t.get('tbl_col_micro_b', 'Reference Micro-Median'), pair_delta_label]:
+            for col in ['Norm@30dBm', t.get('tbl_col_micro_a', 'Target Micro-Median'), t.get('tbl_col_micro_b', 'Reference Micro-Median'), pair_delta_label]:
                 drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
         else:
             joint_df = station_df.copy() if show_non_joint else station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()

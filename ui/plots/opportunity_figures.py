@@ -700,7 +700,7 @@ def _render_opportunity_selected_figure(recipe):
     ax_snr.set_title("Target SNR", color="white", fontweight="bold", pad=8)
     _set_metric_axis_labels(
         ax_snr,
-        x_label="Target normalized SNR (dB @ 1 W)",
+        x_label="Target normalized SNR (dB @ 30 dBm)",
         y_label="Share (%)",
     )
     return fig

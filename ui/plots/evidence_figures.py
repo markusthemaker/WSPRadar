@@ -305,7 +305,7 @@ def _default_evidence_labels(is_compare):
     return {
         "dist_title": "Normalized SNR Distribution",
         "time_title": "Normalized SNR over Time",
-        "y_label": "Normalized SNR (dB @ 1 W)",
+        "y_label": "Normalized SNR (dB @ 30 dBm)",
         "x_label": "Date/Time (UTC)",
         "aggregate": "Selected Stations",
         "median_label": "Median",
@@ -2261,8 +2261,8 @@ def render_segment_insight_export_figure(recipe):
                     fontsize=10,
                     fontweight="bold",
                 )
-        ax_hist.set_title("Station Medians (SNR @ 1W)", color="white", fontweight="bold", pad=10)
-        ax_spot.set_title("Spot SNR (SNR @ 1W)", color="white", fontweight="bold", pad=10)
+        ax_hist.set_title("Station Medians (SNR @ 30 dBm)", color="white", fontweight="bold", pad=10)
+        ax_spot.set_title("Spot SNR (SNR @ 30 dBm)", color="white", fontweight="bold", pad=10)
 
     fig_hist.suptitle(
         f"\n{recipe.get('title', '')} - {recipe.get('selected_segment', '')}",
@@ -2348,7 +2348,7 @@ def render_segment_insight_export_figure(recipe):
         ax_spot.set_xticks([])
         ax_spot.set_yticks([])
 
-    metric_label = "\u0394 SNR (dB)" if is_compare else "Normalized SNR (dB @ 1 W)"
+    metric_label = "\u0394 SNR (dB)" if is_compare else "Normalized SNR (dB @ 30 dBm)"
     ax_hist.set_xlabel(metric_label, color="white")
     ax_spot.set_xlabel(metric_label, color="white")
     return fig_hist

@@ -303,6 +303,49 @@ checks** below.
   breaks only when they are semantically required, such as Markdown paragraph
   boundaries, lists, tables, or code blocks, and preserve the native formatting
   requirements of JSON, schemas, and other machine-readable formats.
+
+#### Result-Guidance Copy
+
+Treat `RESULT_GUIDANCE` as bilingual, point-of-use interpretation guidance for
+completed results—not as input guidance, generic tooltip copy, marketing, a
+duplicate scientific manual, or an automatic interpretation of live result
+values. The catalog describes established scientific contracts; it must never
+define or select scientific behavior.
+
+- Every item must contain one substantive `read` paragraph and one shorter
+  `limits` paragraph.
+- Begin `read` by naming the visible view and explaining its operator-relevant
+  purpose. As applicable, define the evidence unit, denominator, aggregation or
+  weighting; explain how complementary figures differ; and tell the operator
+  how to assess breadth, depth, consistency and traceability.
+- End the positive explanation with a practical reading heuristic. Lead with
+  what the evidence can show; keep caveats in `limits`.
+- Use `limits` to state the strongest relevant evidence boundary concretely:
+  conditionality, missing observations, selection effects, weighting,
+  calibration, confounding, independence or causal attribution. Avoid generic
+  disclaimers.
+- Use a technically rigorous but practical and inviting voice. Prefer concrete
+  station and evidence language over implementation terminology or unnecessary
+  statistical jargon. Do not pronounce a live result strong, weak, significant
+  or causal.
+- Name visible figures, controls, units and result terms exactly as rendered.
+  Use `<strong class="defined-term">...</strong>` for introduced semantic
+  vocabulary, Markdown bold for named figures, and code spans for literal
+  controls, formulas or displayed values.
+- Include presentation mechanics only when they materially prevent a wrong
+  interpretation; omit self-evident layout, typography and styling narration.
+- Preserve English/German semantic, key and placeholder parity. German should
+  be a natural technical adaptation, not a mechanically literal translation.
+- Write each field as a complete prose fragment that remains grammatical when
+  mode-, benchmark- or drill-down-specific items are concatenated. Keep prose
+  paragraphs as triple-quoted strings on one physical source line.
+- Resolve variants only from semantic result fields, never localized wording or
+  record identity. Escape dynamic substitutions and keep the guidance
+  presentation-only and identical in Guided and Classic views.
+- Test stable meaning, routing, bilingual structure, placeholders, escaping,
+  placement and exact visible UI names. Avoid pinning incidental wording unless
+  that wording is itself a user-interface contract.
+
 - Use descriptive, self-explanatory names for variables, functions, methods,
   classes, constants, modules, and DataFrame columns.
 - Prefer complete words over abbreviations. Domain-standard abbreviations such

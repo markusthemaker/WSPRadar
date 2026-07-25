@@ -221,16 +221,16 @@ T = {
         "opt_analysis_tx": "TX Analysis",
         "msg_select_analysis_direction_hardware": "Select RX or TX Analysis before configuring the direction-specific Hardware A/B parameters.",
         "lbl_comp_mode": "Results view and benchmark design",
-        "lbl_drill_multi": "**Drill-Down Data: {count} Stations Selected** (Normalized @ 1W)",
-        "lbl_drill_single": "**Drill-Down Data: {station}** (Normalized @ 1W)",
+        "lbl_drill_multi": "**Drill-Down Data: {count} Stations Selected** (Normalized @ 30 dBm)",
+        "lbl_drill_single": "**Drill-Down Data: {station}** (Normalized @ 30 dBm)",
         "lbl_end_d": "End Date",
         "lbl_end_t": "End Time (UTC)",
         "lbl_hist_count": "Count (Stations)",
-        "lbl_hist_x_abs": "{station_type} Median of Norm. SNR (dB @ 1W)",
+        "lbl_hist_x_abs": "{station_type} Median of Norm. SNR (dB @ 30 dBm)",
         "lbl_hist_x_comp": "{station_type} Median of \u0394 Norm. SNR (dB)",
         "lbl_hours": "Last X Hours",
         "lbl_insights": "Station Insights",
-        "lbl_insights_sub": " (Normalized @ 1W | Click a row for Forensic Data)",
+        "lbl_insights_sub": " (Normalized @ 30 dBm | Click a row for Forensic Data)",
         "lbl_show_zero_hits": "Show Zero-Target",
         "lbl_max_dist": "Maximum peer distance from Target (km)",
         "lbl_med_seg": "Segment Median: {med:.1f} dB",
@@ -338,7 +338,7 @@ T = {
         "tbl_col_misses": "Counter-Evidence",
         "tbl_col_target_only": "Target-only",
         "tbl_col_rate": "Success Rate (%)",
-        "tbl_col_success_snr": "Median Target SNR (dB @ 1W)",
+        "tbl_col_success_snr": "Median Target SNR (dB @ 30 dBm)",
         "tbl_col_eligible": "Qualified",
         "txt_abs_evidence_summary": "Evidence ({pair} >= {threshold} per station): Target {target} | {counter} {counter_count}",
         "txt_abs_rate_summary": "Success Rate {formula}: Average by Station {station_average:.1f}% | Observation-Level {overall:.1f}%",
@@ -576,16 +576,16 @@ T = {
         "opt_analysis_tx": "TX-Analyse",
         "msg_select_analysis_direction_hardware": "Wähle RX- oder TX-Analyse, bevor du die richtungsspezifischen Hardware-A/B-Parameter konfigurierst.",
         "lbl_comp_mode": "Ergebnisansicht und Benchmark-Design",
-        "lbl_drill_multi": "**Detaildaten: {count} Stationen ausgewählt** (Normiert @ 1W)",
-        "lbl_drill_single": "**Detaildaten: {station}** (Normiert @ 1W)",
+        "lbl_drill_multi": "**Detaildaten: {count} Stationen ausgewählt** (Normiert @ 30 dBm)",
+        "lbl_drill_single": "**Detaildaten: {station}** (Normiert @ 30 dBm)",
         "lbl_end_d": "Enddatum",
         "lbl_end_t": "Endzeit (UTC)",
         "lbl_hist_count": "Anzahl (Stationen)",
-        "lbl_hist_x_abs": "{station_type} Median normiertes SNR (dB @ 1W)",
+        "lbl_hist_x_abs": "{station_type} Median normiertes SNR (dB @ 30 dBm)",
         "lbl_hist_x_comp": "{station_type} Median \u0394 normiertes SNR (dB)",
         "lbl_hours": "Letzte X Stunden",
         "lbl_insights": "Station Insights",
-        "lbl_insights_sub": " (Normiert @ 1W | Klick auf eine Zeile für Detaildaten)",
+        "lbl_insights_sub": " (Normiert @ 30 dBm | Klick auf eine Zeile für Detaildaten)",
         "lbl_show_zero_hits": "Zero-Target-Stationen zeigen",
         "lbl_max_dist": "Maximale Peer-Entfernung vom Target (km)",
         "lbl_med_seg": "Segment-Median: {med:.1f} dB",
@@ -694,7 +694,7 @@ T = {
         "tbl_col_misses": "Counter-Evidence",
         "tbl_col_target_only": "Nur Target",
         "tbl_col_rate": "Success Rate (%)",
-        "tbl_col_success_snr": "Median Target-SNR (dB @ 1W)",
+        "tbl_col_success_snr": "Median Target-SNR (dB @ 30 dBm)",
         "tbl_col_eligible": "Qualifiziert",
         "txt_abs_evidence_summary": "Evidenz ({pair} >= {threshold} pro Station): Target {target} | {counter} {counter_count}",
         "txt_abs_rate_summary": "Erfolgsrate {formula}: Stationsmittel {station_average:.1f}% | Beobachtungsebene {overall:.1f}%",
@@ -745,11 +745,11 @@ RESULT_GUIDANCE = {
                 "limits": """The result compares complete receiving paths. It supports a claim about an antenna, receiver or component only as far as the remaining path differences were controlled.""",
             },
             "context_tx_compare": {
-                "read": """TX Compare shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers. <strong class="defined-term">SNR</strong> is the decoder-reported signal-to-noise ratio in decibels (dB); a less-negative value is stronger relative to noise. WSPRadar first normalizes SNR to the reported power of 1 W, then calculates <strong class="defined-term">Delta SNR (ΔSNR)</strong> as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. Same-cycle evidence is formed when one receiver reports both signals in the same WSPR cycle. Many receivers and repeated pairs reveal geographic and temporal consistency that a single report cannot.""",
+                "read": """TX Compare shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers. <strong class="defined-term">SNR</strong> is the decoder-reported signal-to-noise ratio in decibels (dB); a less-negative value is stronger relative to noise. WSPRadar first normalizes SNR to the reported power of 30 dBm, then calculates <strong class="defined-term">Delta SNR (ΔSNR)</strong> as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. Same-cycle evidence is formed when one receiver reports both signals in the same WSPR cycle. Many receivers and repeated pairs reveal geographic and temporal consistency that a single report cannot.""",
                 "limits": """The result compares complete transmitting paths and relies on the reported power values. Attribution to antenna efficiency, output power or one component requires those other variables to be controlled independently.""",
             },
             "context_tx_compare_scheduled": {
-                "read": """Scheduled TX Compare shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers under the configured switching schedule. <strong class="defined-term">SNR</strong> is normalized to the reported power of 1 W before <strong class="defined-term">Delta SNR (ΔSNR)</strong> is calculated as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. A <strong class="defined-term">Scheduled Pair</strong> combines the planned Target and Reference transmissions for one receiver. Repeated pairs across many receivers show whether the observed difference is consistent across geography and time.""",
+                "read": """Scheduled TX Compare shows how the complete <strong class="defined-term">Target</strong> transmitting path performed relative to the <strong class="defined-term">Reference</strong> at the same remote receivers under the configured switching schedule. <strong class="defined-term">SNR</strong> is normalized to the reported power of 30 dBm before <strong class="defined-term">Delta SNR (ΔSNR)</strong> is calculated as Target minus corrected Reference. Positive values favor the Target; negative values favor the Reference. A <strong class="defined-term">Scheduled Pair</strong> combines the planned Target and Reference transmissions for one receiver. Repeated pairs across many receivers show whether the observed difference is consistent across geography and time.""",
                 "limits": """The two transmissions in a Scheduled Pair are time-separated. Propagation, interference, switching or schedule phase can change between them and may resemble a path difference.""",
             },
             "benchmark_hardware": {
@@ -813,7 +813,7 @@ RESULT_GUIDANCE = {
                 "limits": """A callsign-plus-locator row is an archive identity, not proof of one unique physical station. An incomplete pair has no Pair ΔSNR.""",
             },
             "station_insights_success": {
-                "read": """Station Insights identifies the {peer_type} stations behind Success Rate and shows how much evidence supports each row. Read Target, <strong class="defined-term">{counter}</strong>, total confirmed opportunities and Success Rate together; an extreme rate based on many opportunities carries more descriptive weight than the same rate based on only a few. `Show Zero-Target` adds qualifying stations that had confirmed opportunities but no Target decode. The median successful <strong class="defined-term">SNR normalized to reported 1 W</strong> describes only the Target decodes that succeeded; a less-negative value is stronger relative to noise. Select rows to inspect their time pattern and underlying evidence. Table filters affect only display and selection.""",
+                "read": """Station Insights identifies the {peer_type} stations behind Success Rate and shows how much evidence supports each row. Read Target, <strong class="defined-term">{counter}</strong>, total confirmed opportunities and Success Rate together; an extreme rate based on many opportunities carries more descriptive weight than the same rate based on only a few. `Show Zero-Target` adds qualifying stations that had confirmed opportunities but no Target decode. The median successful <strong class="defined-term">SNR normalized to reported 30 dBm</strong> describes only the Target decodes that succeeded; a less-negative value is stronger relative to noise. Select rows to inspect their time pattern and underlying evidence. Table filters affect only display and selection.""",
                 "limits": """A missed signal has no recorded SNR, and normalization cannot correct an inaccurate reported power. A row is an archive callsign-plus-locator identity, not proof of one unique physical station.""",
             },
             "selected_compare_joint": {
@@ -825,7 +825,7 @@ RESULT_GUIDANCE = {
                 "limits": """This is an observation-weighted view and does not replace the segment's station-balanced summary. It cannot separate a path difference from propagation, switching or schedule-phase effects.""",
             },
             "selected_success": {
-                "read": """Selected Station Evidence shows how outcomes, evidence volume and successful Target SNR changed for the chosen {peer_type} stations. If several stations are selected, the view <strong class="defined-term">pools</strong> their Target and {counter} observations, so high-volume stations contribute more weight. **Station Success Rate + Evidence over Time** combines the rate line with stacked Target and {counter} counts; always read a rate together with the number of observations beneath it. Bar colors classify the sampled great-circle path as night, greyline/mixed or daylight, making recurring illumination-related patterns visible. **Target SNR** shows only successful Target decodes normalized to reported 1 W; a less-negative value is stronger relative to noise. Patterns repeated across several bins and stations are more informative than one sparse spike.""",
+                "read": """Selected Station Evidence shows how outcomes, evidence volume and successful Target SNR changed for the chosen {peer_type} stations. If several stations are selected, the view <strong class="defined-term">pools</strong> their Target and {counter} observations, so high-volume stations contribute more weight. **Station Success Rate + Evidence over Time** combines the rate line with stacked Target and {counter} counts; always read a rate together with the number of observations beneath it. Bar colors classify the sampled great-circle path as night, greyline/mixed or daylight, making recurring illumination-related patterns visible. **Target SNR** shows only successful Target decodes normalized to reported 30 dBm; a less-negative value is stronger relative to noise. Patterns repeated across several bins and stations are more informative than one sparse spike.""",
                 "limits": """The view can show an association with path illumination but not prove that illumination caused it. Target SNR cannot reveal the strength of missed signals or actual radiated power.""",
             },
             "drilldown_compare_joint": {
@@ -869,11 +869,11 @@ RESULT_GUIDANCE = {
                 "limits": """Das Ergebnis vergleicht vollständige Empfangspfade. Eine Aussage über Antenne, Empfänger oder Einzelkomponente ist nur so eng möglich, wie die übrigen Pfadunterschiede im Versuch kontrolliert wurden.""",
             },
             "context_tx_compare": {
-                "read": """TX Compare zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen abschnitt. <strong class="defined-term">SNR</strong> ist das vom Decoder gemeldete Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger negativer Wert ist relativ zum Rauschen stärker. WSPRadar normiert das SNR zunächst auf die gemeldete Leistung von 1 W und berechnet danach <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz. Positive Werte sprechen für das Target, negative für die Referenz. Same-cycle-Evidenz entsteht, wenn eine Empfangsstation beide Signale im selben WSPR-Zyklus meldet. Viele Empfangsstationen und wiederholte Paare zeigen geografische und zeitliche Beständigkeit, die ein einzelner Report nicht liefern kann.""",
+                "read": """TX Compare zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen abschnitt. <strong class="defined-term">SNR</strong> ist das vom Decoder gemeldete Signal-Rausch-Verhältnis in Dezibel (dB); ein weniger negativer Wert ist relativ zum Rauschen stärker. WSPRadar normiert das SNR zunächst auf die gemeldete Leistung von 30 dBm und berechnet danach <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz. Positive Werte sprechen für das Target, negative für die Referenz. Same-cycle-Evidenz entsteht, wenn eine Empfangsstation beide Signale im selben WSPR-Zyklus meldet. Viele Empfangsstationen und wiederholte Paare zeigen geografische und zeitliche Beständigkeit, die ein einzelner Report nicht liefern kann.""",
                 "limits": """Das Ergebnis vergleicht vollständige Sendepfade und stützt sich auf die gemeldeten Leistungswerte. Eine Zuordnung zu Antennenwirkungsgrad, Ausgangsleistung oder Einzelkomponente setzt voraus, dass die übrigen Variablen unabhängig kontrolliert wurden.""",
             },
             "context_tx_compare_scheduled": {
-                "read": """Scheduled TX Compare zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen unter dem konfigurierten Umschaltzeitplan abschnitt. <strong class="defined-term">SNR</strong> wird auf die gemeldete Leistung von 1 W normiert, bevor <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz berechnet wird. Positive Werte sprechen für das Target, negative für die Referenz. Ein <strong class="defined-term">Scheduled Pair</strong> verbindet die geplante Target- und Referenzaussendung für eine Empfangsstation. Wiederholte Paare über viele Empfangsstationen zeigen, ob der beobachtete Unterschied geografisch und zeitlich konsistent ist.""",
+                "read": """Scheduled TX Compare zeigt, wie der vollständige <strong class="defined-term">Target</strong>-Sendepfad relativ zur <strong class="defined-term">Referenz</strong> an denselben entfernten Empfangsstationen unter dem konfigurierten Umschaltzeitplan abschnitt. <strong class="defined-term">SNR</strong> wird auf die gemeldete Leistung von 30 dBm normiert, bevor <strong class="defined-term">Delta SNR (ΔSNR)</strong> als Target minus korrigierte Referenz berechnet wird. Positive Werte sprechen für das Target, negative für die Referenz. Ein <strong class="defined-term">Scheduled Pair</strong> verbindet die geplante Target- und Referenzaussendung für eine Empfangsstation. Wiederholte Paare über viele Empfangsstationen zeigen, ob der beobachtete Unterschied geografisch und zeitlich konsistent ist.""",
                 "limits": """Die beiden Aussendungen eines Scheduled Pair sind zeitlich getrennt. Ausbreitung, Störungen, Umschaltung oder Zeitplanphase können sich dazwischen ändern und wie ein Pfadunterschied wirken.""",
             },
             "benchmark_hardware": {
@@ -937,7 +937,7 @@ RESULT_GUIDANCE = {
                 "limits": """Eine Rufzeichen-plus-Locator-Zeile ist eine Archividentität, kein Beweis für genau eine physische Station. Ein unvollständiges Paar besitzt kein Paar-ΔSNR.""",
             },
             "station_insights_success": {
-                "read": """Station Insights nennt die {peer_type}-Stationen hinter der Success Rate und zeigt, wie viel Evidenz jede Zeile trägt. Lies Target, <strong class="defined-term">{counter}</strong>, die Gesamtzahl bestätigter Gelegenheiten und die Success Rate gemeinsam; eine extreme Rate aus vielen Gelegenheiten hat mehr beschreibendes Gewicht als dieselbe Rate aus nur wenigen. `Zero-Target-Stationen zeigen` ergänzt qualifizierende Stationen mit bestätigten Gelegenheiten, aber ohne Target-Decode. Der Median des erfolgreichen <strong class="defined-term">auf gemeldete 1 W normierten SNR</strong> beschreibt nur die gelungenen Target-Decodes; ein weniger negativer Wert ist relativ zum Rauschen stärker. Wähle Zeilen, um Zeitverlauf und zugrunde liegende Evidenz zu prüfen. Tabellenfilter ändern nur Anzeige und Auswahl.""",
+                "read": """Station Insights nennt die {peer_type}-Stationen hinter der Success Rate und zeigt, wie viel Evidenz jede Zeile trägt. Lies Target, <strong class="defined-term">{counter}</strong>, die Gesamtzahl bestätigter Gelegenheiten und die Success Rate gemeinsam; eine extreme Rate aus vielen Gelegenheiten hat mehr beschreibendes Gewicht als dieselbe Rate aus nur wenigen. `Zero-Target-Stationen zeigen` ergänzt qualifizierende Stationen mit bestätigten Gelegenheiten, aber ohne Target-Decode. Der Median des erfolgreichen <strong class="defined-term">auf gemeldete 30 dBm normierten SNR</strong> beschreibt nur die gelungenen Target-Decodes; ein weniger negativer Wert ist relativ zum Rauschen stärker. Wähle Zeilen, um Zeitverlauf und zugrunde liegende Evidenz zu prüfen. Tabellenfilter ändern nur Anzeige und Auswahl.""",
                 "limits": """Für ein verpasstes Signal gibt es kein gemeldetes SNR, und eine Normierung kann falsche Leistungsangaben nicht korrigieren. Eine Zeile ist eine Archividentität aus Rufzeichen und Locator, kein Beweis für genau eine physische Station.""",
             },
             "selected_compare_joint": {
@@ -949,7 +949,7 @@ RESULT_GUIDANCE = {
                 "limits": """Das ist eine beobachtungsgewichtete Ansicht und ersetzt nicht die stationsgleichgewichtete Segmentzusammenfassung. Sie kann einen Pfadunterschied nicht von Ausbreitungs-, Schalt- oder Zeitplanphaseneffekten trennen.""",
             },
             "selected_success": {
-                "read": """Die Evidenz ausgewählter Stationen zeigt, wie sich Outcomes, Evidenzvolumen und erfolgreiches Target-SNR für die gewählten {peer_type}-Stationen verändert haben. Bei mehreren ausgewählten Stationen <strong class="defined-term">poolt</strong> die Ansicht deren Target- und {counter}-Beobachtungen; Stationen mit hohem Volumen erhalten mehr Gewicht. **Station Success Rate + Evidence over Time** verbindet die Ratenlinie mit gestapelten Target- und {counter}-Anzahlen; lies eine Rate immer zusammen mit der darunterliegenden Beobachtungszahl. Die Balkenfarben klassifizieren den untersuchten Großkreispfad als Nacht, Greyline/gemischt oder Tageslicht und machen wiederkehrende beleuchtungsbezogene Muster sichtbar. **Target SNR** zeigt nur erfolgreiche Target-Decodes, normiert auf gemeldete 1 W; ein weniger negativer Wert ist relativ zum Rauschen stärker. Muster über mehrere Zeitfenster und Stationen sind informativer als ein einzelner dünn belegter Ausschlag.""",
+                "read": """Die Evidenz ausgewählter Stationen zeigt, wie sich Outcomes, Evidenzvolumen und erfolgreiches Target-SNR für die gewählten {peer_type}-Stationen verändert haben. Bei mehreren ausgewählten Stationen <strong class="defined-term">poolt</strong> die Ansicht deren Target- und {counter}-Beobachtungen; Stationen mit hohem Volumen erhalten mehr Gewicht. **Station Success Rate + Evidence over Time** verbindet die Ratenlinie mit gestapelten Target- und {counter}-Anzahlen; lies eine Rate immer zusammen mit der darunterliegenden Beobachtungszahl. Die Balkenfarben klassifizieren den untersuchten Großkreispfad als Nacht, Greyline/gemischt oder Tageslicht und machen wiederkehrende beleuchtungsbezogene Muster sichtbar. **Target SNR** zeigt nur erfolgreiche Target-Decodes, normiert auf gemeldete 30 dBm; ein weniger negativer Wert ist relativ zum Rauschen stärker. Muster über mehrere Zeitfenster und Stationen sind informativer als ein einzelner dünn belegter Ausschlag.""",
                 "limits": """Die Ansicht kann einen Zusammenhang mit der Pfadbeleuchtung zeigen, aber nicht beweisen, dass diese die Ursache ist. Target-SNR kennt weder die Stärke verpasster Signale noch die tatsächlich abgestrahlte Leistung.""",
             },
             "drilldown_compare_joint": {

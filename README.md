@@ -42,7 +42,7 @@ The intended conclusion is therefore bounded but operationally useful: **under t
 
 #### 0.1 WSPR in 2 Minutes
 
-<strong class="defined-term">WSPR</strong> stands for **Weak Signal Propagation Reporter**. Joe Taylor, K1JT, and Bruce Walker, W1BW, described it as a worldwide network of low-power stations exchanging beacon-like transmissions to probe possible propagation paths. A WSPR-2 transmission lasts just under two minutes and occupies about 6 Hz. Its message normally contains a callsign, a four-character Maidenhead locator and reported power in dBm; `30 dBm` is `1 W`. It can be decoded at about `-28 dB` signal-to-noise ratio (SNR) in a 2500 Hz reference bandwidth <a href="#ref-6">[Ref-6]</a> <a href="#ref-8">[Ref-8]</a>. A less negative SNR means a stronger signal relative to noise.
+<strong class="defined-term">WSPR</strong> stands for **Weak Signal Propagation Reporter**. Joe Taylor, K1JT, and Bruce Walker, W1BW, described it as a worldwide network of low-power stations exchanging beacon-like transmissions to probe possible propagation paths. A WSPR-2 transmission lasts just under two minutes and occupies about 6 Hz. Its message normally contains a callsign, a four-character Maidenhead locator and reported power in dBm; `30 dBm` (`1 Watt`) is WSPRadar's normalization reference. It can be decoded at about `-28 dB` signal-to-noise ratio (SNR) in a 2500 Hz reference bandwidth <a href="#ref-6">[Ref-6]</a> <a href="#ref-8">[Ref-8]</a>. A less negative SNR means a stronger signal relative to noise.
 
 When reporting is enabled, a receiver uploads each successful decode as a <strong class="defined-term">spot</strong>. A spot records transmitter and receiver identity, reported location, time, band, power and decoder-reported SNR. WSPRadar uses wspr.live as its primary WSPR data source <a href="#ref-10">[Ref-10]</a>, with WSPRDaemon WD2 and WD1 as fallback sources <a href="#ref-11">[Ref-11]</a>. wspr.live is a public ClickHouse database that stores WSPRnet-reported spots and checks for new reports every few minutes. A daily synchronization fills reports that were missed or uploaded late.
 
@@ -244,7 +244,7 @@ Every run uses one exact band; combining bands would mix different propagation, 
 
 * Keep every non-tested variable as stable as practical.
 * Keep station clocks synchronized.
-* For TX, keep actual and reported power synchronized and stable unless power itself is under test. WSPR is commonly operated at low power; `20-30 dBm` corresponds to approximately `0.1-1 W`.
+* For TX, keep actual and reported power synchronized and stable unless power itself is under test. WSPR is commonly operated at low power; `20-30 dBm` is a common low-power range.
 * For RX, keep gain, filtering, audio routing, decoder settings and upload behavior stable unless one of those is the tested variable.
 * Confirm that each benchmark side operates as intended. The <strong class="defined-term">Target-Active Gate</strong> protects periods without observable Target activity, but it does not prove Reference uptime.
 
@@ -578,7 +578,7 @@ The <strong class="defined-term">Target-Active Gate</strong> remains deliberatel
 
 Each peer rate is calculated first. A Success map segment then gives every qualifying peer identity one equal vote and displays the arithmetic mean of those station rates. This is the <strong class="defined-term">station-balanced</strong> value. Segment Inspector also shows the <strong class="defined-term">observation-level</strong> pooled rate, which gives every qualifying observation equal weight.
 
-Success Rate is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 1 W.
+Success Rate is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 30 dBm.
 
 A displayed `100%` means that the Target succeeded in every qualifying opportunity for the station or selected scope. It does not mean that every possible or scheduled transmission was decoded. Because Success starts from a demanding, globally sourced opportunity population and then applies the configured geographic analysis scope, its practical meaning comes from geography, Stations, Spots, time and repetition rather than proximity to `100%`.
 
@@ -696,7 +696,7 @@ The UI term `Joint Spot` means a consolidated same-cycle comparison unit, not ne
 
 #### 2.6a Inspect the Contributing Stations (Success Mode)
 
-`Station Insights` lists the `callsign + locator` identities contributing to the selected segment. Success rows show Target and Elsewhere or Other Signals evidence, Success Rate, and median successful Target SNR normalized to 1 W. Read each rate together with its Target and counter-evidence counts; use `Show Zero-Target` to restore qualifying stations without Target evidence.
+`Station Insights` lists the `callsign + locator` identities contributing to the selected segment. Success rows show Target and Elsewhere or Other Signals evidence, Success Rate, and median successful Target SNR normalized to 30 dBm. Read each rate together with its Target and counter-evidence counts; use `Show Zero-Target` to restore qualifying stations without Target evidence.
 
 Select one or multiple stations to open the selected station evidence view. Below `Station Insights`, the chronological panel shows Success Rate and Target/counter-evidence over time across night, greyline/mixed and daylight path classes, next to the successful Target-SNR distribution. If multiple stations are selected, their aggregated evidence is visualized together.
 
@@ -1261,14 +1261,14 @@ WSPRadar turns public WSPR decodes into explicit comparison units, then summariz
 
 | Analysis design | Target role | Reference or counter-evidence | Lowest observation/comparison unit | Activity requirement | Timing relationship | Power normalization | Station-level aggregation | Segment-level aggregation | Principal interpretation boundary |
 |---|---|---|---|---|---|---|---|---|---|
-| Success — Target only, RX or TX | Target receiver or transmitter | RX: same transmitter decoded elsewhere; TX: other same-band signal decoded by the peer receiver | one Target-active peer-cycle | observable Target participation | same two-minute cycle | rate: none; successful Target SNR display: reported 1 W | one Success Rate per peer | arithmetic mean of peer rates; pooled rate retained | conditional network reach, not unconditional decode probability |
+| Success — Target only, RX or TX | Target receiver or transmitter | RX: same transmitter decoded elsewhere; TX: other same-band signal decoded by the peer receiver | one Target-active peer-cycle | observable Target participation | same two-minute cycle | rate: none; successful Target SNR display: reported 30 dBm | one Success Rate per peer | arithmetic mean of peer rates; pooled rate retained | conditional network reach, not unconditional decode probability |
 | Hardware A/B Test, RX | Target receiver | simultaneous Reference receiver | one consolidated remote-transmitter peer-cycle | Target-Active Gate | same transmitter and cycle | common TX power cancels; correction applies to Reference | median Delta SNR | median of station medians | controlled local receive paths only to the extent the remaining chains are controlled |
-| Hardware A/B Test, simultaneous TX | Target transmitter | simultaneous Reference transmitter | one consolidated remote-receiver peer-cycle | Target-Active Gate | same receiver and cycle | both sides normalized to reported 1 W; correction applies to Reference | median Delta SNR | median of station medians | two distinguishable complete TX chains; power, frequency response, isolation and coupling remain experimental controls |
-| Hardware A/B Test, sequential TX | Target scheduled starts | Reference scheduled starts | one peer identity in one planned Target/Reference pair | deterministic disjoint schedules; no simultaneous gate | nearest one-to-one starts under one shared Repeat Interval | both sides normalized to reported 1 W; correction applies to Reference | median scheduled-pair Delta SNR | median of station medians | sequential, not simultaneous; timing and switching effects remain |
+| Hardware A/B Test, simultaneous TX | Target transmitter | simultaneous Reference transmitter | one consolidated remote-receiver peer-cycle | Target-Active Gate | same receiver and cycle | both sides normalized to reported 30 dBm; correction applies to Reference | median Delta SNR | median of station medians | two distinguishable complete TX chains; power, frequency response, isolation and coupling remain experimental controls |
+| Hardware A/B Test, sequential TX | Target scheduled starts | Reference scheduled starts | one peer identity in one planned Target/Reference pair | deterministic disjoint schedules; no simultaneous gate | nearest one-to-one starts under one shared Repeat Interval | both sides normalized to reported 30 dBm; correction applies to Reference | median scheduled-pair Delta SNR | median of station medians | sequential, not simultaneous; timing and switching effects remain |
 | Reference Station / Buddy Test, RX | Target receiver | external Reference receiver | one consolidated remote-transmitter peer-cycle | Target-Active Gate; Reference uptime controlled externally | same transmitter and cycle | common TX power cancels; correction applies to the Reference | median Delta SNR | median of station medians | complete installed stations and environments, not isolated receiver sensitivity |
-| Reference Station / Buddy Test, TX | Target transmitter | external Reference transmitter | one consolidated remote-receiver peer-cycle | Target-Active Gate; Reference uptime controlled externally | same receiver and cycle | both sides normalized to reported 1 W; correction applies to the Reference | median Delta SNR | median of station medians | complete installed stations; depends on reported-power accuracy |
-| Local Median Neighborhood | Target RX or TX | cycle/path median of one contribution per active local `callsign + locator` | one Target/local-Reference peer-cycle | Target-Active Gate | same peer path and cycle | TX values normalized to reported 1 W; correction applied before the local median | median Delta SNR | median of station medians | dynamic uncalibrated pool; result depends on radius and active membership |
-| Local Best Station | Target RX or TX | strongest qualifying local station for that cycle/path | one Target/best-Reference peer-cycle | Target-Active Gate | same peer path and cycle | TX values normalized to reported 1 W; correction applied before best selection | median Delta SNR | median of station medians | changing best-peer envelope, not a local average or fixed Reference |
+| Reference Station / Buddy Test, TX | Target transmitter | external Reference transmitter | one consolidated remote-receiver peer-cycle | Target-Active Gate; Reference uptime controlled externally | same receiver and cycle | both sides normalized to reported 30 dBm; correction applies to the Reference | median Delta SNR | median of station medians | complete installed stations; depends on reported-power accuracy |
+| Local Median Neighborhood | Target RX or TX | cycle/path median of one contribution per active local `callsign + locator` | one Target/local-Reference peer-cycle | Target-Active Gate | same peer path and cycle | TX values normalized to reported 30 dBm; correction applied before the local median | median Delta SNR | median of station medians | dynamic uncalibrated pool; result depends on radius and active membership |
+| Local Best Station | Target RX or TX | strongest qualifying local station for that cycle/path | one Target/best-Reference peer-cycle | Target-Active Gate | same peer path and cycle | TX values normalized to reported 30 dBm; correction applied before best selection | median Delta SNR | median of station medians | changing best-peer envelope, not a local average or fixed Reference |
 
 The matrix is an orientation aid. The definitions, formulas and processing rules below are authoritative.
 
@@ -1338,14 +1338,14 @@ $$\text{Success Rate}_{TX} = 100\% \times \frac{\text{Target}}{\text{Target} + \
 
 The eligible peer population is globally sourced after band, time, gate, filters and thresholds. Success Rate is therefore conditional on observable network activity and propagation. It is not an estimate of every attempted transmission or a calibrated receiver detection probability.
 
-The Success Rate classification itself is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 1 W.
+The Success Rate classification itself is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 30 dBm.
 
 <a id="sec-7-5"></a>
 #### 7.5 Power normalization, correction and Delta SNR
 
 Power normalization places successful TX evidence on a common reported-power basis. WSPR SNR is decoder-reported in dB on the WSJT scale, referenced to a 2500 Hz bandwidth. WSPR messages include reported transmit power in dBm. <a href="#ref-8">[Ref-8]</a>
 
-WSPRadar normalizes successful SNR to a reported 1 W / 30 dBm reference:
+WSPRadar normalizes successful SNR to a reported 30 dBm reference:
 
 $$SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30$$
 

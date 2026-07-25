@@ -893,7 +893,7 @@ def _is_snr_display_column(column_name):
     text = str(column_name)
     return (
         "SNR" in text or
-        "Norm@1W" in text or
+        "Norm@" in text or
         "Micro-Med" in text or
         "\u0394" in text or
         "Delta" in text
@@ -1047,7 +1047,7 @@ def _evidence_labels(is_compare, translations):
         return {
             "dist_title": "Normiertes SNR Verteilung",
             "time_title": "Normiertes SNR ueber Zeit",
-            "y_label": "Normiertes SNR (dB @ 1W)",
+            "y_label": "Normiertes SNR (dB @ 30 dBm)",
             "x_label": "Datum/Uhrzeit (UTC)",
             "aggregate": "Selected Stations",
             "median_label": "Median",
@@ -1080,7 +1080,7 @@ def _evidence_labels(is_compare, translations):
     return {
         "dist_title": "Normalized SNR Distribution",
         "time_title": "Normalized SNR over Time",
-        "y_label": "Normalized SNR (dB @ 1 W)",
+        "y_label": "Normalized SNR (dB @ 30 dBm)",
         "x_label": "Date/Time (UTC)",
         "aggregate": "Selected Stations",
         "median_label": "Median",
@@ -1156,9 +1156,9 @@ def _render_drilldown_dataframe(
         analysis_context=analysis_context,
     )
     normalization_note = (
-        "SNR-Werte sind auf 1 W normiert."
+        "SNR-Werte sind auf 30 dBm normiert."
         if st.session_state.get("lang") == "de"
-        else "SNR values are normalized to 1 W."
+        else "SNR values are normalized to 30 dBm."
     )
     filter_note = t.get(
         "txt_results_drilldown_filter_note",
@@ -3169,7 +3169,7 @@ def _render_segment_inspector_body(
         
         with col_ins1:
             # Compact bilingual subtitle.
-            sub_text = " (Norm. @ 1W. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 1W. Click for details)"
+            sub_text = " (Norm. @ 30 dBm. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 30 dBm. Click for details)"
             st.markdown(
                 scope_context_html(sub_text.strip(" ()")),
                 unsafe_allow_html=True,
