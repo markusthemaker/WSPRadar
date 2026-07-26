@@ -98,14 +98,6 @@ def _normalize_text_state(
     if callback:
         callback(*(callback_args or ()), **(callback_kwargs or {}))
 
-def _round_float_state(key, digits=1, callback=None, callback_args=(), callback_kwargs=None):
-    value = st.session_state.get(key)
-    if value is not None:
-        st.session_state[key] = round(float(value), digits)
-    if callback:
-        callback(*(callback_args or ()), **(callback_kwargs or {}))
-
-
 def _normalize_reference_correction_state(
     callback=None,
     callback_args=(),
@@ -263,7 +255,6 @@ def _render_reference_identity(
             ),
             max_chars=15,
             normalize_uppercase=True,
-            disabled=st.session_state.is_demo_mode,
             on_change=on_change,
             args=on_change_args,
         )
@@ -294,7 +285,6 @@ def _render_reference_identity(
                 placeholder=t.get("ph_reference_qth", "e.g. JN37"),
                 max_chars=4,
                 normalize_uppercase=True,
-                disabled=st.session_state.is_demo_mode,
                 on_change=on_change,
                 args=on_change_args,
                 **(
@@ -324,7 +314,12 @@ def _render_reference_identity(
         and reference_callsign
         and reference_callsign == target_callsign
     ):
-        st.error(t.get("err_reference_callsign_same", t["err_self_test"]))
+        st.error(
+            t.get(
+                "err_reference_callsign_same",
+                "Target and Reference callsigns must be different.",
+            )
+        )
 
 
 def _render_tx_ab_method_selector(
@@ -347,7 +342,6 @@ def _render_tx_ab_method_selector(
                 method_content[method]["description"] for method in methods
             ),
             help=help_text,
-            disabled=st.session_state.is_demo_mode,
             width="stretch",
             on_change=on_change,
             args=on_change_args,
@@ -364,7 +358,6 @@ def _render_tx_ab_method_selector(
             f"opt_tx_ab_{method}",
             method.title(),
         ),
-        disabled=st.session_state.is_demo_mode,
         width="stretch",
         on_change=on_change,
         args=on_change_args,
@@ -416,7 +409,6 @@ def _render_tx_ab_schedule(
             TX_AB_REPEAT_INTERVAL_OPTIONS,
             key="val_tx_ab_repeat_interval_minutes",
             format_func=lambda minutes: f"{minutes} min",
-            disabled=st.session_state.is_demo_mode,
             help=t.get("hlp_tx_ab_repeat_interval", ""),
             on_change=handle_tx_ab_repeat_interval_change,
             args=(on_change, on_change_args),
@@ -439,7 +431,6 @@ def _render_tx_ab_schedule(
                 target_options,
                 key="val_tx_ab_target_start_minute",
                 format_func=_format_utc_minute,
-                disabled=st.session_state.is_demo_mode,
                 help=t.get("hlp_tx_ab_start", ""),
                 on_change=handle_tx_ab_target_start_change,
                 args=(on_change, on_change_args),
@@ -449,7 +440,6 @@ def _render_tx_ab_schedule(
                 "⇄",
                 key="swap_tx_ab_schedule_starts",
                 help=t.get("hlp_tx_ab_swap", "Swap Target and Reference starts"),
-                disabled=st.session_state.is_demo_mode,
                 on_click=swap_tx_ab_starts,
                 args=(on_change, on_change_args),
                 width="stretch",
@@ -460,7 +450,6 @@ def _render_tx_ab_schedule(
                 reference_options,
                 key="val_tx_ab_reference_start_minute",
                 format_func=_format_utc_minute,
-                disabled=st.session_state.is_demo_mode,
                 help=t.get("hlp_tx_ab_start", ""),
                 on_change=handle_tx_ab_reference_start_change,
                 args=(on_change, on_change_args),
@@ -510,7 +499,6 @@ def _render_analysis_direction_selector(
         required=True,
         key="val_analysis_direction",
         format_func=lambda direction: t[f"opt_analysis_{direction}"],
-        disabled=st.session_state.is_demo_mode,
         label_visibility="collapsed",
         width="stretch",
         on_change=on_change,
@@ -560,7 +548,6 @@ def render_target_and_window_fields(
             ),
             max_chars=15,
             normalize_uppercase=True,
-            disabled=st.session_state.is_demo_mode,
             on_change=correction_context_on_change,
             args=correction_context_on_change_args,
         )
@@ -575,7 +562,6 @@ def render_target_and_window_fields(
             help=help_overrides.get("qth"),
             max_chars=6,
             normalize_uppercase=True,
-            disabled=st.session_state.is_demo_mode,
             on_change=correction_context_on_change,
             args=correction_context_on_change_args,
         )
@@ -589,7 +575,6 @@ def render_target_and_window_fields(
             list(BAND_MAP.keys()),
             key="val_band",
             help=help_overrides.get("band"),
-            disabled=st.session_state.is_demo_mode,
             on_change=correction_context_on_change,
             args=correction_context_on_change_args,
         )
@@ -601,7 +586,6 @@ def render_target_and_window_fields(
             key="val_time_mode",
             horizontal=True,
             help=help_overrides.get("time"),
-            disabled=st.session_state.is_demo_mode,
             on_change=on_change,
             args=on_change_args,
             format_func=lambda time_mode: t[
@@ -615,7 +599,6 @@ def render_target_and_window_fields(
                 1,
                 168,
                 key="val_hours",
-                disabled=st.session_state.is_demo_mode,
                 on_change=on_change,
                 args=on_change_args,
             )
@@ -631,7 +614,6 @@ def render_target_and_window_fields(
                     key="val_start_d",
                     min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
                     max_value=today_utc,
-                    disabled=st.session_state.is_demo_mode,
                     on_change=on_change,
                     args=on_change_args,
                     format="DD-MM-YYYY",
@@ -654,7 +636,6 @@ def render_target_and_window_fields(
                     key="val_end_d",
                     min_value=min_allowed_end,
                     max_value=max_allowed_end,
-                    disabled=st.session_state.is_demo_mode,
                     on_change=on_change,
                     args=on_change_args,
                     format="DD-MM-YYYY",
@@ -667,7 +648,6 @@ def render_target_and_window_fields(
                 st.time_input(
                     t["lbl_start_t"],
                     key="val_start_t",
-                    disabled=st.session_state.is_demo_mode,
                     on_change=on_change,
                     args=on_change_args,
                 )
@@ -675,7 +655,6 @@ def render_target_and_window_fields(
                 st.time_input(
                     t["lbl_end_t"],
                     key="val_end_t",
-                    disabled=st.session_state.is_demo_mode,
                     on_change=on_change,
                     args=on_change_args,
                 )
@@ -913,16 +892,33 @@ def render_evidence_threshold_fields(
     on_change_args=(),
     use_two_column_layout=False,
 ):
-    """Render active evidence thresholds vertically or in equal-width columns."""
+    """Render active thresholds with result- and direction-specific guidance."""
     if result_type is None:
         result_type = (
             "success" if st.session_state.get("val_comp_mode") == "none" else "compare"
         )
+    analysis_direction = (
+        "tx"
+        if st.session_state.get("val_analysis_direction", "rx") == "tx"
+        else "rx"
+    )
+    if result_type == "success":
+        minimum_opportunities_help = t[
+            f"hlp_min_opportunities_{analysis_direction}"
+        ]
+        minimum_stations_help = t[
+            f"hlp_min_stations_success_{analysis_direction}"
+        ]
+    else:
+        minimum_opportunities_help = None
+        minimum_stations_help = t["hlp_min_stations_compare"]
+
     min_spots_label = t["lbl_min_spots"]
     min_spots_help = t["hlp_min_spots"]
     if (
-        st.session_state.get("val_comp_mode") == "hardware_ab"
-        and st.session_state.get("val_analysis_direction") == "tx"
+        result_type == "compare"
+        and st.session_state.get("val_comp_mode") == "hardware_ab"
+        and analysis_direction == "tx"
         and st.session_state.get("val_tx_ab_method") == "sequential"
     ):
         min_spots_label, min_spots_help = _tx_ab_threshold_label_and_help(t)
@@ -954,14 +950,14 @@ def render_evidence_threshold_fields(
             )
         else:
             st.slider(
-                t.get("lbl_min_opportunities", "Min. Confirmed H+M per Station"),
+                t.get(
+                    "lbl_min_opportunities",
+                    "Minimum confirmed opportunities per station",
+                ),
                 1,
                 100,
                 key="val_min_opportunities",
-                help=t.get(
-                    "hlp_min_opportunities",
-                    "Absolute success-rate views include a station only after this many confirmed H+M observations.",
-                ),
+                help=minimum_opportunities_help,
                 on_change=on_change,
                 args=on_change_args,
             )
@@ -971,7 +967,7 @@ def render_evidence_threshold_fields(
             1,
             10,
             key="val_min_stations",
-            help=t["hlp_min_stations"],
+            help=minimum_stations_help,
             on_change=on_change,
             args=on_change_args,
         )

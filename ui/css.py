@@ -253,8 +253,17 @@ def apply_custom_css():
             background-color: rgba(57, 255, 20, 0.1) !important;
         }
 
-        /* Expander and Text elements */
-        label[data-testid="stWidgetLabel"] p, label[data-testid="stWidgetLabel"] div, div[data-testid="stRadio"] p, label[data-testid="stCheckbox"] p, label[data-testid="stCheckbox"] span { font-family: 'Space Mono', monospace !important; font-size: 14px !important; font-weight: 700 !important; color: #cccccc !important; }
+        /* Native widget labels and text elements. */
+        label[data-testid="stWidgetLabel"] p,
+        label[data-testid="stWidgetLabel"] div,
+        div[data-testid="stRadio"] p,
+        label[data-testid="stCheckbox"] p,
+        label[data-testid="stCheckbox"] span {
+            font-family: 'Space Mono', monospace !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            color: #cccccc !important;
+        }
         summary[data-testid="stExpanderToggle"] p { font-family: 'Space Mono', monospace !important; font-size: 16px !important; font-weight: 700 !important; color: #39ff14 !important; text-transform: uppercase; letter-spacing: 1px; }
         h3.section-title { font-family: 'Rajdhani', sans-serif !important; font-size: 2rem !important; color: #ffffff !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 10px; margin-top: 1.5rem; margin-bottom: 1.5rem; letter-spacing: 1px; }
         .material-symbols-rounded.section-icon {
@@ -528,6 +537,23 @@ def apply_custom_css():
             margin: 0 !important;
         }
         .result-scope-summary
+        .result-scope-context.result-scope-context-data
+        + .result-scope-context.result-scope-context-data {
+            margin-top: 0.18rem !important;
+        }
+        /*
+         * Segment statistics reuse the scope-data text classes while retaining
+         * their compact placement immediately above the evidence figures.
+         */
+        .result-segment-statistics {
+            margin: -0.25rem 0 1rem !important;
+            text-align: left !important;
+        }
+        .result-segment-statistics
+        .result-scope-context.result-scope-context-data {
+            margin: 0 !important;
+        }
+        .result-segment-statistics
         .result-scope-context.result-scope-context-data
         + .result-scope-context.result-scope-context-data {
             margin-top: 0.18rem !important;

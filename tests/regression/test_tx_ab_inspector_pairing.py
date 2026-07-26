@@ -50,7 +50,6 @@ def test_periodic_evidence_pairs_each_receiver_identity_independently():
     evidence = _build_evidence_points(
         station_rows,
         identities,
-        is_compare=True,
         is_sequential=True,
         tx_ab_repeat_interval_minutes=10,
         tx_ab_target_start_minute=0,
@@ -76,7 +75,6 @@ def test_periodic_drilldown_keeps_peer_identity_and_pair_delta_separate():
         "km",
         "az",
         analysis_id="TX_COMP",
-        is_compare=True,
         is_sequential=True,
         show_non_joint=False,
         is_local_median=False,

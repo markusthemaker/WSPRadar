@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from html import escape
+from numbers import Integral
 
 import streamlit as st
 
@@ -13,7 +14,7 @@ from core.analysis_context import (
     LOCAL_BENCHMARK_BEST,
     LOCAL_BENCHMARK_MEDIAN,
 )
-from i18n import RESULT_GUIDANCE, absolute_terms
+from i18n import RESULT_GUIDANCE
 from ui.result_hierarchy import remote_station_type, result_direction
 
 
@@ -101,8 +102,13 @@ def _result_guidance_item_keys(
     is_compare,
     is_sequential,
     analysis_context,
+    selected_station_count=None,
 ):
-    """Resolve generic content keys for one valid result section and mode."""
+    """Resolve content keys from semantic mode and optional selection count.
+
+    Success selected-station guidance requires exactly one station so its
+    one-path language cannot be reused for an invalid combined selection.
+    """
     if section_id == RESULT_GUIDANCE_DOWNLOAD:
         return ["download"]
 
@@ -134,10 +140,14 @@ def _result_guidance_item_keys(
     if section_id == RESULT_GUIDANCE_MAP:
         if is_compare:
             return [f"map_compare_{direction.lower()}"]
-        return ["map_success"]
+        return [f"map_success_{direction.lower()}"]
 
     if section_id == RESULT_GUIDANCE_SEGMENT:
-        return ["segment"]
+        return (
+            ["segment"]
+            if is_compare
+            else [f"segment_success_{direction.lower()}"]
+        )
 
     if section_id == RESULT_GUIDANCE_COMPARISON_EVIDENCE:
         if not is_compare:
@@ -152,9 +162,7 @@ def _result_guidance_item_keys(
 
     if section_id == RESULT_GUIDANCE_TEMPORAL_EVIDENCE:
         if not is_compare:
-            raise ValueError(
-                "Temporal Evidence guidance is unavailable for Success"
-            )
+            return [f"success_temporal_evidence_{direction.lower()}"]
         return [
             "temporal_evidence_scheduled"
             if is_sequential
@@ -166,11 +174,11 @@ def _result_guidance_item_keys(
             raise ValueError(
                 "Success Evidence guidance is unavailable for Compare"
             )
-        return ["success_evidence"]
+        return [f"success_evidence_{direction.lower()}"]
 
     if section_id == RESULT_GUIDANCE_STATION_INSIGHTS:
         if not is_compare:
-            return ["station_insights_success"]
+            return [f"station_insights_success_{direction.lower()}"]
         return [
             "station_insights_compare_scheduled"
             if is_sequential
@@ -179,7 +187,18 @@ def _result_guidance_item_keys(
 
     if section_id == RESULT_GUIDANCE_SELECTED_STATIONS:
         if not is_compare:
-            return ["selected_success"]
+            if (
+                isinstance(selected_station_count, bool)
+                or not isinstance(selected_station_count, Integral)
+                or selected_station_count != 1
+            ):
+                raise ValueError(
+                    "Success selected-station guidance requires exactly one "
+                    "selected station"
+                )
+            return [
+                f"selected_success_{direction.lower()}"
+            ]
         return [
             "selected_compare_scheduled"
             if is_sequential
@@ -188,7 +207,7 @@ def _result_guidance_item_keys(
 
     if section_id == RESULT_GUIDANCE_DRILLDOWN:
         if not is_compare:
-            return ["drilldown_success"]
+            return [f"drilldown_success_{direction.lower()}"]
         item_keys = [
             "drilldown_compare_scheduled"
             if is_sequential
@@ -219,11 +238,14 @@ def build_result_guidance(
     is_compare=False,
     is_sequential=False,
     analysis_context=None,
+    selected_station_count=None,
 ):
     """Build self-contained localized Markdown for one result-help popover.
 
     The resolver uses only semantic mode fields. It never parses localized
-    labels or record identities, and its output is presentation-only.
+    labels or record identities, and its output is presentation-only. Success
+    selected-station guidance requires ``selected_station_count`` so path and
+    combined-selection wording remain unambiguous.
     """
     if section_id not in RESULT_GUIDANCE_SECTION_IDS:
         raise ValueError(f"Unknown result-guidance section: {section_id}")
@@ -235,22 +257,20 @@ def build_result_guidance(
         ) from exc
 
     direction = result_direction(analysis_id)
-    opportunity_terms = absolute_terms(translations, direction)
-    format_values = {
-        "peer_type": escape(remote_station_type(analysis_id)),
-        "counter": escape(str(opportunity_terms["counter"])),
-        "formula": escape(str(opportunity_terms["formula_spaced"])),
-        "radius": int(
-            getattr(analysis_context, "neighborhood_radius_km", 100)
-        ),
-    }
     item_keys = _result_guidance_item_keys(
         section_id,
         direction=direction,
         is_compare=bool(is_compare),
         is_sequential=bool(is_sequential),
         analysis_context=analysis_context,
+        selected_station_count=selected_station_count,
     )
+    format_values = {
+        "peer_type": escape(remote_station_type(analysis_id)),
+        "radius": int(
+            getattr(analysis_context, "neighborhood_radius_km", 100)
+        ),
+    }
     items = [
         _localized_guidance_item(
             guidance_content["sections"],
@@ -278,8 +298,13 @@ def render_result_guidance_popover(
     is_compare=False,
     is_sequential=False,
     analysis_context=None,
+    selected_station_count=None,
 ):
-    """Render one static click-open interpretation popover without a rerun."""
+    """Render one static click-open interpretation popover without a rerun.
+
+    ``selected_station_count`` is required only for Success selected-station
+    guidance; Compare and every other section retain their existing call shape.
+    """
     guidance_markdown = build_result_guidance(
         section_id,
         language=language,
@@ -288,6 +313,7 @@ def render_result_guidance_popover(
         is_compare=is_compare,
         is_sequential=is_sequential,
         analysis_context=analysis_context,
+        selected_station_count=selected_station_count,
     )
     guidance_content = RESULT_GUIDANCE[language]
     with st.popover(

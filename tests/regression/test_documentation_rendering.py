@@ -316,10 +316,21 @@ def test_bilingual_manuals_document_explicit_snr_correction_modes():
         assert "`benchmark_snr_correction_db`" in manual
 
 
-def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
-    """Chapter 2 must avoid repeating run-identity guidance before interpretation."""
+def test_results_chapter_uses_concise_evidence_path_and_consecutive_sections():
+    """Chapter 2 must use the same concise path while retaining its evidence sections."""
     assert "#### 2.1 Confirm the run identity" not in DOC_EN
-    assert "**Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**" in DOC_EN
+    assert (
+        "**Success:** Map → Segment Inspector → Station Insights → Drill-Down."
+    ) in DOC_EN
+    assert (
+        "**Compare:** Map → Segment Inspector → Station Insights → Drill-Down."
+    ) in DOC_EN
+    assert (
+        "**Success:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
+    ) in DOC_DE
+    assert (
+        "**Compare:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
+    ) in DOC_DE
     assert "#### 2.1 Read a Success result" in DOC_EN
     assert "#### 2.2 Read a Compare result" in DOC_EN
     assert "#### 2.8 Worked Compare example" in DOC_EN
@@ -330,6 +341,322 @@ def test_results_chapter_uses_compact_ladder_and_consecutive_sections():
         "* Sequential TX Hardware A/B uses deterministic scheduled pairs"
     )
     assert rx_explanation < tx_explanation < sequential_explanation
+
+
+def test_bilingual_manuals_explain_the_success_evidence_redesign():
+    """Keep exact-distance, temporal-SNR and weighting contracts auditable."""
+    english_contract = (
+        "OPPORTUNITIES",
+        "Station-balanced Success Rate",
+        "Observation-level Success Rate",
+        "The station-group counts describe at-least-once reach",
+        "Its displayed counts do form that rate's numerator and denominator",
+        "TX Stations Heard by Target at Least Once by Distance",
+        "RX Stations Hearing the Target at Least Once by Distance",
+        "RX Success Rate by TX-Station Distance",
+        "TX Success Rate by RX-Station Distance",
+        "Successful Target SNR by TX-Station Distance",
+        "Successful Target SNR by RX-Station Distance",
+        "exact, unrounded calculated distance",
+        "full qualifying station population",
+        "`Show Heard by others only stations`",
+        "`Show Other signals heard only stations`",
+        "Heard by Target without independent confirmation",
+        "Target heard without independent RX-activity confirmation",
+        "retained support data",
+        "does not render a support-count strip",
+        "at least three successful Target SNR observations",
+        "station-date-hour median",
+        "two vertically aligned figures",
+        "RX Success Temporal SNR Evidence: Target {callsign}",
+        "RX Success Temporal Evidence: Target {callsign}",
+        "Evidence over Time ({time_bin} bins)",
+        "Evidence by UTC Hour (1 h bins)",
+        "Average contributing station presences per represented UTC date",
+        "Average confirmed opportunities per represented UTC date",
+        "short **TX Stations** or **RX Stations** y-axis title",
+        "short **Opportunities** y-axis title",
+        "every contributing qualifying station gives one total vote",
+        "right-axis line is the station-balanced Success Rate",
+        "counts every confirmed opportunity once",
+        "right-axis line is the unchanged observation-level Success Rate",
+        "One shared legend below the lower figure title",
+        "All four right axes use one zero-based Success Rate scale",
+        "average number of distinct station-date-hour presences over represented dates",
+        "represented date-hour with no evidence remains in the denominator with zero support",
+        "unchanged folded station-balanced Success Rate",
+        "unchanged observation-level Success Rate",
+        "A **represented UTC date** is a date with at least one confirmed opportunity",
+        "compact ham-style notation",
+        "Successful-SNR censoring remains possible",
+        "station-vote segments can be fractional",
+        "`figure_segment_temporal_snr_deviation.png` contains the chronological/UTC-hour",
+        "`figure_segment_temporal_evidence.png` contains the aligned lower **RX/TX Success Temporal Evidence** figure",
+        "`1 h`, `2 h`, `3 h`, `6 h`, `12 h` or `24 h`",
+        "at least two UTC dates",
+        "Empty or sparse rate bins are missing or thin evidence, not failures",
+        "Grid-4 is not survey-grade positioning",
+    )
+    german_contract = (
+        "GELEGENHEITEN",
+        "stationsgleichgewichtete Success Rate",
+        "Success Rate auf Beobachtungsebene",
+        "Die Anzahlen der Stationsgruppen beschreiben eine Mindestens-einmal-Reichweite",
+        "Ihre angezeigten Anzahlen bilden den Zähler und Nenner dieser Rate",
+        "Vom Target mindestens einmal gehörte TX-Stationen nach Entfernung",
+        "RX-Stationen, die das Target mindestens einmal hörten, nach Entfernung",
+        "RX Success Rate nach Entfernung der TX-Station",
+        "TX Success Rate nach Entfernung der RX-Station",
+        "Erfolgreiches Target-SNR nach Entfernung der TX-Station",
+        "Erfolgreiches Target-SNR nach Entfernung der RX-Station",
+        "exakten, ungerundeten berechneten Entfernung",
+        "vollständigen qualifizierenden Stationspopulation",
+        "`Stationen „Nur von anderen gehört“ anzeigen`",
+        "`Stationen „Nur andere Signale gehört“ anzeigen`",
+        "Vom Target gehört, aber nicht unabhängig bestätigt",
+        "Target gehört, RX-Aktivität nicht unabhängig bestätigt",
+        "beibehaltenen Stützdaten",
+        "keinen Streifen mit Stützzahlen",
+        "mindestens drei erfolgreichen Target-SNR-Beobachtungen",
+        "Stations-Datum-Stunden-Median",
+        "zwei vertikal ausgerichtete Abbildungen",
+        "RX Success — Zeitliche SNR-Evidenz: Target {callsign}",
+        "RX Success — Zeitliche Evidenz: Target {callsign}",
+        "Evidenz im Zeitverlauf ({time_bin}-Bins)",
+        "Evidenz nach UTC-Stunde (1-h-Bins)",
+        "Durchschnittliche Stationspräsenzen pro berücksichtigtem UTC-Tag",
+        "Durchschnittliche bestätigte Gelegenheiten pro berücksichtigtem UTC-Tag",
+        "kurzen y-Achsentitel **TX-Stationen** beziehungsweise **RX-Stationen**",
+        "kurzen y-Achsentitel **Gelegenheiten**",
+        "eine Gesamtstimme ab",
+        "Linie an der rechten Achse zeigt die stationsgleichgewichtete Success Rate",
+        "zählt jede bestätigte Gelegenheit chronologisch einmal",
+        "Linie an der rechten Achse zeigt die unveränderte Success Rate auf Beobachtungsebene",
+        "Eine gemeinsame Legende unter dem Titel der unteren Abbildung",
+        "Alle vier rechten Achsen verwenden eine gemeinsame",
+        "durchschnittliche Zahl verschiedener Stations-Datum-Stunden-Präsenzen über die berücksichtigten Tage",
+        "eine berücksichtigte Datum-Stunde ohne Evidenz bleibt mit null Stützung im Nenner",
+        "unveränderten gefalteten stationsgleichgewichteten Success Rate",
+        "unveränderte Success Rate auf Beobachtungsebene",
+        "Ein **berücksichtigter UTC-Tag** ist ein Tag, an dem",
+        "kompakte Amateurfunk-Schreibweisen",
+        "Zensierung des erfolgreichen SNR bleibt möglich",
+        "Segmente der Stationsstimmen können Bruchteile enthalten",
+        "`figure_segment_temporal_snr_deviation.png` enthält die chronologische",
+        "`figure_segment_temporal_evidence.png` enthält die daran ausgerichtete untere Abbildung **RX/TX Success — Zeitliche Evidenz**",
+        "`1 h`, `2 h`, `3 h`, `6 h`, `12 h` oder `24 h`",
+        "mindestens zwei UTC-Tage",
+        "Leere oder schwach belegte Raten-Bins sind fehlende oder dünne Evidenz",
+        "Grid-4 ist keine vermessungsgenaue Positionierung",
+    )
+
+    for required_text in english_contract:
+        assert required_text in DOC_EN
+    for required_text in german_contract:
+        assert required_text in DOC_DE
+
+    success_section_en = DOC_EN.split(
+        "#### 2.5a Inspect a Geographic Segment (Success Mode)", 1
+    )[1].split("#### 2.5b Inspect a Geographic Segment (Compare Mode)", 1)[0]
+    success_section_de = DOC_DE.split(
+        "#### 2.5a Ein geografisches Segment untersuchen (Success-Modus)", 1
+    )[1].split(
+        "#### 2.5b Ein geografisches Segment untersuchen (Compare-Modus)", 1
+    )[0]
+    for retired_text in (
+        "Station Success Rate by Evidence Count",
+        "Station Success Distribution",
+        "Evidence Depth per Station",
+        "Success by Distance uses the same radial ranges as the map",
+        "Success over time",
+        "**Success Rate over Time/by UTC Hour**",
+        "**Evidence Support over Time/by UTC Hour**",
+        "Station-Balanced Evidence over Time/by UTC Hour",
+        "Confirmed Opportunities over Time/by UTC Hour",
+        "The folded opportunity subtitle therefore reads",
+        "**Average per represented UTC date**",
+        "rather than being repeated as temporal lines",
+        "implicitly rather than as percentage lines",
+        "stacks the raw Target and counter-evidence counts",
+    ):
+        assert retired_text not in success_section_en
+    for retired_text in (
+        "Station Success Rate by Evidence Count",
+        "Verteilung der Stations-Success-Rate",
+        "Evidenztiefe pro Station",
+        "Success nach Entfernung verwendet dieselben radialen Bereiche wie die Karte",
+        "Success im Zeitverlauf",
+        "Gewichtungsabstand",
+        "**Success Rate im Zeitverlauf/nach UTC-Stunde**",
+        "**Evidenzumfang im Zeitverlauf/nach UTC-Stunde**",
+        "Stationsgleichgewichtete Evidenz im Zeitverlauf/nach UTC-Stunde",
+        "Bestätigte Gelegenheiten im Zeitverlauf/nach UTC-Stunde",
+        "Der Untertitel des gefalteten Gelegenheits-Panels lautet",
+        "**Durchschnitt pro berücksichtigtem UTC-Tag**",
+        "statt als Zeitlinien wiederholt zu werden",
+        "implizit statt als Prozentlinien",
+        "stapelt stattdessen die rohen Anzahlen",
+    ):
+        assert retired_text not in success_section_de
+
+
+def test_bilingual_manuals_define_success_selected_singleton_and_exports():
+    """Keep singleton selection, shared temporal science, and artifacts explicit."""
+    english_contract = (
+        "Select exactly one station row to open `Selected Station Evidence`",
+        "Selecting another row replaces the current station",
+        "clearing the row hides the section",
+        "Success saves zero or one exact `callsign + locator` identity",
+        "restoration retains the first valid identity in stored order",
+        "never substitutes a different station",
+        "restores no selection if none remain valid",
+        "actual normalized successful Target SNR",
+        "chronological density receives every retained successful observation",
+        "one median for every represented UTC date and UTC hour",
+        "prevents a date with unusually many successful reports from dominating",
+        "separates station presence from opportunity depth",
+        "total station height is one",
+        "opportunity row stacks every confirmed successful and counter opportunity",
+        "station-balanced and observation-level Success Rate series are numerically identical",
+        "conditional on successful Target decodes or reports",
+        "Counter outcomes have no recorded Target SNR",
+        "successful-decode censoring",
+        "UTC-hour folding requires at least two represented UTC dates",
+        "do not rerun the provider query",
+    )
+    german_contract = (
+        "Wähle genau eine Stationszeile aus, um die `Evidenz der ausgewählten Station` zu öffnen",
+        "Die Auswahl einer anderen Zeile ersetzt die bisherige Station",
+        "das Aufheben der Auswahl blendet den Abschnitt aus",
+        "Success speichert keine oder genau eine exakte Identität",
+        "erste gültige Identität in gespeicherter Reihenfolge",
+        "ersetzt sie nie durch eine andere Station",
+        "stellt keine Auswahl wieder her, wenn keine Identität gültig bleibt",
+        "tatsächlichen normierten erfolgreichen Target-SNR",
+        "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs",
+        "einen Median für jedes berücksichtigte UTC-Datum und jede UTC-Stunde",
+        "verhindert, dass ein Tag mit ungewöhnlich vielen erfolgreichen Reports",
+        "trennt Stationspräsenz von Evidenztiefe",
+        "gesamte Stationshöhe ist damit eins",
+        "stapelt jede bestätigte Gelegenheit mit erfolgreichem beziehungsweise Gegen-Outcome",
+        "stationsgleichgewichtete und die beobachtungsbezogene Success-Rate-Reihe",
+        "durch erfolgreiche Target-Decodes beziehungsweise Target-Reports bedingt",
+        "Gegen-Outcomes besitzen kein aufgezeichnetes Target-SNR",
+        "Zensierung auf erfolgreiche Decodes",
+        "mindestens zwei berücksichtigte UTC-Tage",
+        "starten keine Provider-Abfrage erneut",
+    )
+
+    for required_text in english_contract:
+        assert required_text in DOC_EN
+    for required_text in german_contract:
+        assert required_text in DOC_DE
+
+    selected_success_filenames = (
+        "figure_selected_station_snr_evidence.png",
+        "figure_selected_station_temporal_evidence.png",
+    )
+    obsolete_success_filenames = (
+        "figure_selected_station_chronological.png",
+        "figure_selected_station_utc_hour_profile.png",
+        "figure_selected_station_snr_distribution.png",
+        "figure_selected_station_similar_stations.png",
+    )
+    metadata_fields = (
+        "`selected_station_label`",
+        "`selected_station_context`",
+        "`selected_station_count`",
+        "`selected_station_role`",
+        "`selected_evidence_weighting`",
+        "`selected_evidence_figures`",
+    )
+    for manual in (DOC_EN, DOC_DE):
+        compare_export_listing = manual.split("compare/", 1)[1].split(
+            "success/",
+            1,
+        )[0]
+        success_export_listing = manual.split("success/", 1)[1].split(
+            "```",
+            1,
+        )[0]
+        for filename in selected_success_filenames:
+            assert filename in success_export_listing
+            assert filename in manual
+        for filename in obsolete_success_filenames:
+            assert filename not in success_export_listing
+            assert filename not in manual
+        assert "figure_selected_station_evidence.png" in compare_export_listing
+        assert "figure_selected_station_evidence.png" not in success_export_listing
+        for metadata_field in metadata_fields:
+            assert metadata_field in manual
+
+    success_section_en = DOC_EN.split(
+        "#### 2.6a Inspect the Contributing Stations (Success Mode)", 1
+    )[1].split("#### 2.6b Inspect the Contributing Stations (Compare Mode)", 1)[0]
+    success_section_de = DOC_DE.split(
+        "#### 2.6a Die beitragenden Stationen untersuchen (Success-Modus)", 1
+    )[1].split(
+        "#### 2.6b Die beitragenden Stationen untersuchen (Compare-Modus)", 1
+    )[0]
+    for retired_text in (
+        "Selected Path Summary",
+        "Selected Stations Summary",
+        "SNR Distribution",
+        "Selected Path vs. Similar Stations",
+        "Selected Stations vs. Similar Stations",
+    ):
+        assert retired_text not in success_section_en
+    for retired_text in (
+        "Zusammenfassung des ausgewählten Funkwegs",
+        "Zusammenfassung ausgewählter Stationen",
+        "SNR-Verteilung",
+        "Ausgewählter Funkweg im Vergleich zu ähnlichen Stationen",
+        "Ausgewählte Stationen im Vergleich zu ähnlichen Stationen",
+    ):
+        assert retired_text not in success_section_de
+
+    assert "Select one or multiple stations" in DOC_EN
+    assert "Wähle eine oder mehrere Stationen aus" in DOC_DE
+
+
+def test_bilingual_manuals_explain_simplified_success_map_semantics():
+    """Document the sole quantitative layer, status markers, and missing state."""
+    english_contract = (
+        "sector fill is the only quantitative color layer",
+        "a small solid dark-green marker means `Heard by Target`",
+        "a small solid light-grey marker means `Heard by others only`",
+        "`Target heard` and `Other signals heard only`",
+        "encode neither individual Success Rate nor evidence depth",
+        "dark-green markers are drawn above light-grey markers",
+        "remains unfilled so the neutral base map shows through",
+        "A valid Success sector at `0%` remains on the Success Rate scale",
+        "`Insufficient evidence` is a different state",
+        "upper <strong class=\"defined-term\">OPPORTUNITIES</strong> row",
+        "lower <strong class=\"defined-term\">STATIONS</strong> row",
+        "Exact counts appear inside segments when they fit",
+    )
+    german_contract = (
+        "Die Sektorfüllung ist die einzige quantitative Farbebene",
+        "ein kleiner dunkelgrüner Vollmarker `Vom Target gehört`",
+        "ein kleiner hellgrauer Vollmarker `Nur von anderen gehört`",
+        "`Target gehört` und `Nur andere Signale gehört`",
+        "codieren weder die individuelle Success Rate noch die Evidenztiefe",
+        "werden dunkelgrüne Marker über hellgrauen Markern gezeichnet",
+        "bleibt ungefüllt, sodass die neutrale Basiskarte",
+        "Ein gültiges Success-Segment bei `0%` bleibt Teil der Success-Rate-Skala",
+        "`Unzureichende Evidenz` ist ein anderer Zustand",
+        "obere Zeile <strong class=\"defined-term\">GELEGENHEITEN</strong>",
+        "untere Zeile <strong class=\"defined-term\">STATIONEN</strong>",
+        "Exakte Anzahlen erscheinen in ausreichend breiten Segmenten",
+    )
+
+    for required_text in english_contract:
+        assert required_text in DOC_EN
+    for required_text in german_contract:
+        assert required_text in DOC_DE
+
+    assert "uses the same scale for that station's individual Success Rate" not in DOC_EN
+    assert "dieselbe Skala für die individuelle Success Rate dieser Station" not in DOC_DE
 
 
 def test_bilingual_manuals_explain_dual_level_decode_outcome_bars():
@@ -390,13 +717,19 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "at least two distinct UTC dates" in DOC_EN
     assert "D_{relative} = 100" in DOC_EN
     assert "The selected view is stored in `.config`" in DOC_EN
-    assert "`Time aggregation bin size:` appears under `Temporal Evidence`" in DOC_EN
+    assert (
+        "For Compare, the prompt `↓ Select time aggregation bin size` appears under `Temporal Evidence`"
+        in DOC_EN
+    )
 
     assert "genau dieselben Evidenzzeilen auf Beobachtungsebene" in DOC_DE
     assert "mindestens zwei verschiedenen UTC-Tagen" in DOC_DE
     assert "D_{relative} = 100" in DOC_DE
     assert "Die gewählte Ansicht wird in `.config` gespeichert" in DOC_DE
-    assert "`Zeitliche Aggregationsbreite:` steht unter `Zeitliche Evidenz`" in DOC_DE
+    assert (
+        "Bei Compare steht die Aufforderung `↓ Zeitliche Aggregationsbreite auswählen` unter `Zeitliche Evidenz`"
+        in DOC_DE
+    )
 
     assert "percentage of that panel's maximum cell count" in DOC_EN
     assert "Prozentsatz der maximalen Zellbelegung dieses Panels" in DOC_DE
@@ -413,10 +746,14 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "Histogram counts and bin edges remain in raw dB" in DOC_EN
     assert "Anzahlen und Klassengrenzen der Histogramme bleiben in untransformierten dB-Werten" in DOC_DE
     assert "white connected markers remain a separate statistic" in DOC_EN
-    assert "The selected-station plots use the observation-level weighting" in DOC_EN
+    assert "chronological density receives every retained successful observation" in DOC_EN
     assert "Die weißen verbundenen Marker bleiben eine eigene Statistik" in DOC_DE
-    assert "Gewichtungs- und Darstellungsregeln auf Beobachtungsebene" in DOC_DE
+    assert "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs" in DOC_DE
     for documentation_text in (DOC_EN, DOC_DE):
+        assert (
+            "figure_segment_temporal_snr_deviation.png"
+            in documentation_text
+        )
         assert "figure_segment_temporal_evidence.png" in documentation_text
 
 
@@ -454,16 +791,24 @@ def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
         assert obsolete_text not in T["de"]["cbar_comp"]
 
 
-def test_bilingual_manuals_define_saved_inspector_scope_and_all_stations_intent():
-    """Saved result-view guidance must cover scope, zero targets, and dynamic all."""
+def test_bilingual_manuals_define_saved_inspector_selection_contracts():
+    """Saved result-view guidance must distinguish Success singleton and Compare all."""
     assert "Compare and Success selections are saved independently" in DOC_EN
     assert "Its setting is saved for Success" in DOC_EN
-    assert "stores an all-stations intent instead of enumerating the current table" in DOC_EN
+    assert "Success saves zero or one exact `callsign + locator` identity" in DOC_EN
+    assert "restoration retains the first valid identity in stored order" in DOC_EN
+    assert "never substitutes a different station" in DOC_EN
+    assert "Compare selection remains independent and may contain one or more exact identities" in DOC_EN
+    assert "Selecting every Compare station stores an all-stations intent" in DOC_EN
     assert "with a moving `Last X Hours` window" in DOC_EN
 
     assert "für Compare und Success getrennt gespeichert" in DOC_DE
     assert "Die Einstellung wird für Success gespeichert" in DOC_DE
-    assert "speichert die Konfiguration diese Absicht" in DOC_DE
+    assert "Success speichert keine oder genau eine exakte Identität" in DOC_DE
+    assert "erste gültige Identität in gespeicherter Reihenfolge" in DOC_DE
+    assert "ersetzt sie nie durch eine andere Station" in DOC_DE
+    assert "Die Compare-Auswahl bleibt unabhängig und kann eine oder mehrere exakte Identitäten enthalten" in DOC_DE
+    assert "Werden alle Compare-Stationen ausgewählt, speichert die Konfiguration diese Absicht" in DOC_DE
     assert "bei einem gleitenden Fenster `Letzte X Stunden`" in DOC_DE
 
 

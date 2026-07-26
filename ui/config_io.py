@@ -91,14 +91,6 @@ def canonical_from_translated(state_value, value_map, fallback):
     return _canonical_from_translated(state_value, value_map, fallback)
 
 
-def _translated_from_canonical(canonical, key_map, lang, fallback):
-    """Translate a stable config key back into the current UI language."""
-    translation_key = key_map.get(canonical)
-    if not translation_key:
-        return fallback
-    return T[lang][translation_key]
-
-
 def _default_config():
     today = datetime.now(timezone.utc).date()
     return {
@@ -137,6 +129,7 @@ def _default_config():
         "selected_ranges_absolute": SEGMENT_SELECTION_ALL,
         "selected_directions_absolute": SEGMENT_SELECTION_ALL,
         "segment_evidence_time_bin_compare": "auto",
+        "segment_evidence_time_bin_absolute": "auto",
         "station_evidence_time_bin_compare": "3h",
         "station_evidence_temporal_view_compare": "chronological",
         "selected_stations_compare": None,
@@ -605,6 +598,10 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
                     "val_results_show_zero_target",
                     defaults["show_zero_target"],
                 )
+            ),
+            "segment_evidence_time_bin": (
+                state.get("val_results_segment_time_bin_absolute")
+                or defaults["segment_evidence_time_bin_absolute"]
             ),
             "station_evidence_time_bin": (
                 state.get("val_results_time_bin_absolute")
@@ -1211,6 +1208,7 @@ def normalize_config_settings(raw_settings):
             "selected_ranges",
             "selected_directions",
             "show_zero_target",
+            "segment_evidence_time_bin",
             "station_evidence_time_bin",
             "selected_stations",
         },
@@ -1233,6 +1231,11 @@ def normalize_config_settings(raw_settings):
     normalized["show_zero_target"] = _validate_bool(
         success_results_view["show_zero_target"],
         "results_view.success.show_zero_target",
+    )
+    normalized["segment_evidence_time_bin_absolute"] = _validate_choice(
+        success_results_view["segment_evidence_time_bin"],
+        "results_view.success.segment_evidence_time_bin",
+        SEGMENT_EVIDENCE_TIME_BINS,
     )
     normalized["station_evidence_time_bin_absolute"] = _validate_choice(
         success_results_view["station_evidence_time_bin"],
@@ -1411,6 +1414,10 @@ def apply_config_state_values(config, session_state):
         "segment_evidence_time_bin_compare",
         defaults["segment_evidence_time_bin_compare"],
     )
+    session_state.val_results_segment_time_bin_absolute = config.get(
+        "segment_evidence_time_bin_absolute",
+        defaults["segment_evidence_time_bin_absolute"],
+    )
     session_state.val_results_station_temporal_view_compare = config.get(
         "station_evidence_temporal_view_compare",
         defaults["station_evidence_temporal_view_compare"],
@@ -1431,7 +1438,6 @@ def apply_config_values(config):
     session_state = st.session_state
 
     cancel_analysis_submission(session_state)
-    session_state.is_demo_mode = False
     session_state.active_demo_profile = None
     session_state.show_demo_launcher = False
     session_state.show_config_loader = False

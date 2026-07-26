@@ -6,6 +6,7 @@ from ui.analysis_submission_state import (
     claim_analysis_submission_request,
     finish_analysis_submission,
     get_analysis_submission,
+    handoff_analysis_submission,
     update_analysis_submission,
 )
 
@@ -77,6 +78,30 @@ def test_scientific_replacement_cancels_the_current_submission():
     assert cancel_analysis_submission(session_state)
     assert get_analysis_submission(session_state) is None
     assert claim_analysis_submission_request(session_state) is None
+
+
+def test_presentation_rerender_hands_submission_to_the_next_script():
+    """Let a newer Streamlit script follow work owned by its interrupted predecessor."""
+    session_state = {}
+    older_token = begin_analysis_submission(
+        session_state,
+        request_source="main_button",
+    )
+    assert claim_analysis_submission_request(session_state) is not None
+
+    newer_token = handoff_analysis_submission(
+        session_state,
+        request_source="input_view_change",
+    )
+    request = claim_analysis_submission_request(session_state)
+
+    assert newer_token
+    assert newer_token != older_token
+    assert request is not None
+    assert request.token == newer_token
+    assert request.source == "input_view_change"
+    assert not finish_analysis_submission(session_state, older_token)
+    assert get_analysis_submission(session_state).token == newer_token
 
 
 def test_main_submission_does_not_mutate_demo_identity():

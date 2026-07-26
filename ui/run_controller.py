@@ -914,7 +914,7 @@ def _render_admitted_analysis_run(
                     center_longitude,
                     analysis_context=analysis_context,
                     presentation_context=presentation_context,
-                    analysis_kind=analysis.get("analysis_kind", "comparison"),
+                    analysis_kind=analysis["analysis_kind"],
                     theme="dark",
                     timing_collector=profile_timer,
                 )
@@ -929,11 +929,9 @@ def _render_admitted_analysis_run(
 
             fig = plot_result.figure
             enriched_df = plot_result.map_data.station_rows
-            segs_df = plot_result.map_data.segment_rows
             line1_str = plot_result.footer_text
             run_id = st.session_state.get("run_id", 0)
             profile_timer.add_memory("map station dataframe", df=enriched_df)
-            profile_timer.add_memory("map segment dataframe", df=segs_df)
 
             result_context = build_result_context(
                 analysis,
@@ -1108,7 +1106,6 @@ def _render_admitted_analysis_run(
             deferred_render_data.append({
                 "analysis": analysis,
                 "enriched_df": enriched_df,
-                "segs_df": segs_df,
                 "parquet_path": parquet_path,
                 "line1_str": line1_str,
                 "skeleton_ph": skeleton_ph,
@@ -1132,7 +1129,6 @@ def _render_admitted_analysis_run(
                     data["analysis"]["is_compare"],
                     data["analysis"]["is_sequential"],
                     data["enriched_df"],
-                    data["segs_df"],
                     data["parquet_path"],
                     data["line1_str"],
                     t,
@@ -1141,7 +1137,7 @@ def _render_admitted_analysis_run(
                     presentation_context,
                     analysis_start_t=data["start_t"],
                     analysis_end_t=data["end_t"],
-                    analysis_kind=data["analysis"].get("analysis_kind", "comparison"),
+                    analysis_kind=data["analysis"]["analysis_kind"],
                     show_export_button=(index == len(deferred_render_data) - 1),
                     timing_collector=data["profile_timer"],
                     timing_label=inspector_span,

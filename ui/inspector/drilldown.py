@@ -63,6 +63,52 @@ def _sequential_tx_drilldown_labels(col_u_name, ref_header, *, target_callsign="
         return f"{base_call} ({col_u_name})", f"{base_call} ({ref_header})"
     return col_u_name, ref_header
 
+
+def opportunity_drilldown_display_table(drill_df, translations, analysis_id):
+    """Translate canonical Success drill-down outcomes for visible display.
+
+    The returned frame retains the source index so the caller can map any
+    display-only filtering back to the unchanged canonical export rows.
+    """
+    if drill_df is None or drill_df.empty:
+        return pd.DataFrame() if drill_df is None else drill_df.copy()
+    terms = absolute_terms(
+        translations,
+        "TX" if str(analysis_id).upper().startswith("TX") else "RX",
+    )
+    display_df = drill_df.copy()
+    canonical_success_column = terms["target_column"]
+    canonical_counter_column = terms["counter_column"]
+    success_values = pd.to_numeric(
+        display_df.get(
+            canonical_success_column,
+            pd.Series(0, index=display_df.index),
+        ),
+        errors="coerce",
+    ).fillna(0)
+    counter_values = pd.to_numeric(
+        display_df.get(
+            canonical_counter_column,
+            pd.Series(0, index=display_df.index),
+        ),
+        errors="coerce",
+    ).fillna(0)
+    if "Outcome" in display_df.columns:
+        display_df["Outcome"] = np.select(
+            [success_values > 0, counter_values > 0],
+            [
+                terms["opportunity_success"],
+                terms["opportunity_counter"],
+            ],
+            default=terms["target_only_audit"],
+        )
+    return display_df.rename(
+        columns={
+            canonical_success_column: terms["opportunity_success"],
+            canonical_counter_column: terms["opportunity_counter"],
+        }
+    )
+
 def _load_station_rows_for_drilldown(parquet_path, selected_meta_df, station_col, loc_col, columns=None):
     """Load raw parquet rows for selected callsign+locator identities."""
     if selected_meta_df is None or selected_meta_df.empty:
@@ -103,7 +149,6 @@ def _build_drilldown_table(
     km_col,
     az_col,
     analysis_id,
-    is_compare,
     is_sequential,
     show_non_joint,
     is_local_median,
@@ -191,12 +236,6 @@ def _build_drilldown_table(
             drill_df[target_snr_col],
             errors="coerce",
         ).round(1)
-    elif not is_compare:
-        station_df['Date/Time (UTC)'] = pd.to_datetime(station_df['time']).dt.strftime('%d-%b-%Y %H:%M:%S')
-        drill_df = station_df[['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'snr', 'power', 'stat_val']].copy()
-        drill_df.columns = ['Date/Time (UTC)', station_col, loc_col, km_col, az_col, 'SNR (Raw)', 'TX Power (dBm)', 'Norm@30dBm']
-        for col in ['SNR (Raw)', 'Norm@30dBm']:
-            drill_df[col] = pd.to_numeric(drill_df[col], errors='coerce').round(1)
     else:
         if is_sequential:
             if 'tx_ab_pair_id' not in station_df.columns:

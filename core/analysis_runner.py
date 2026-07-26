@@ -605,7 +605,8 @@ def build_analysis_batches(
                 "id": "TX_ABS",
                 "title": label(
                     "fig_tx_abs",
-                    "TX Success: Target {callsign} vs. Other Signals at Active RX Stations",
+                    "TX Success: {callsign} — Target Heard vs. "
+                    "Other Signals Heard Only",
                 ).format(callsign=callsign),
                 "is_compare": False,
                 "is_sequential": False,
@@ -663,7 +664,8 @@ def build_analysis_batches(
                 "id": "RX_ABS",
                 "title": label(
                     "fig_rx_abs",
-                    "RX Success: Target {callsign} vs. Same Signals Heard Elsewhere",
+                    "RX Success: {callsign} — Heard by Target vs. "
+                    "Heard by Others Only",
                 ).format(callsign=callsign),
                 "is_compare": False,
                 "is_sequential": False,

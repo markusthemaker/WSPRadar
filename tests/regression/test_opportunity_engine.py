@@ -7,6 +7,7 @@ import pytest
 
 from core.opportunity_engine import (
     OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
+    OPPORTUNITY_SEGMENT_VIEW_COLUMNS,
     PROCESSED_OPPORTUNITY_COLUMNS,
     SUCCESS_RATE_BOUNDS,
     SUCCESS_RATE_COLORS,
@@ -22,15 +23,18 @@ from core.opportunity_engine import (
 from core.solar_path import (
     ILLUMINATION_DAYLIGHT,
     ILLUMINATION_NIGHT,
+    _solar_elevation_from_unit_vectors,
     _solar_time_terms,
+    _unit_vector,
     classify_path_illumination,
-    solar_elevation_degrees,
-    solar_elevation_from_terms,
-    solar_elevation_from_sun_vectors,
     sun_unit_vectors_from_terms,
 )
 from i18n import T
-from ui.inspector.drilldown import _build_drilldown_table, _load_station_rows_for_drilldown
+from ui.inspector.drilldown import (
+    _build_drilldown_table,
+    _load_station_rows_for_drilldown,
+    opportunity_drilldown_display_table,
+)
 
 
 def _server_row(slot, call, grid, target_seen, external_seen, target_snr=None):
@@ -42,6 +46,14 @@ def _server_row(slot, call, grid, target_seen, external_seen, target_snr=None):
         "external_seen": external_seen,
         "target_snr": target_snr,
     }
+
+
+def test_success_segment_projection_retains_target_snr():
+    """Keep normalized target SNR available to the Success evidence recipe."""
+    assert "target_snr" in OPPORTUNITY_SEGMENT_VIEW_COLUMNS
+    assert set(OPPORTUNITY_SEGMENT_VIEW_COLUMNS).issubset(
+        PROCESSED_OPPORTUNITY_COLUMNS
+    )
 
 
 def test_rx_opportunity_classification_and_target_exclusion():
@@ -208,21 +220,6 @@ def test_path_illumination_preserves_duplicate_row_results():
     assert str(classified.loc[0, "path_illumination"]) == str(single.loc[0, "path_illumination"])
 
 
-def test_precomputed_solar_terms_match_direct_elevation_helper():
-    times = pd.DatetimeIndex([
-        "2026-03-20 00:00:00Z",
-        "2026-06-21 12:30:00Z",
-        "2026-12-21 23:58:00Z",
-    ])
-    latitudes = np.asarray([0.0, 47.0, -33.9], dtype=float)
-    longitudes = np.asarray([0.0, 8.0, 151.2], dtype=float)
-
-    direct = solar_elevation_degrees(times, latitudes, longitudes)
-    from_terms = solar_elevation_from_terms(_solar_time_terms(times), latitudes, longitudes)
-
-    assert np.allclose(from_terms, direct, rtol=0.0, atol=1e-12)
-
-
 def test_sun_vector_elevation_matches_reference_formula_across_edge_cases():
     times = pd.DatetimeIndex([
         "2026-03-20 00:00:00Z",
@@ -236,11 +233,23 @@ def test_sun_vector_elevation_matches_reference_formula_across_edge_cases():
     longitudes = np.asarray([0.0, 179.9, -179.9, 8.0, -75.0, 151.2], dtype=float)
     solar_terms = _solar_time_terms(times)
 
-    reference = solar_elevation_from_terms(solar_terms, latitudes, longitudes)
-    vectorized = solar_elevation_from_sun_vectors(
+    true_solar_minutes = (
+        solar_terms.minutes_utc
+        + solar_terms.equation_of_time
+        + 4.0 * longitudes
+    ) % 1440.0
+    hour_angle = np.radians(true_solar_minutes / 4.0 - 180.0)
+    latitude_radians = np.radians(latitudes)
+    cos_zenith = (
+        np.sin(latitude_radians) * np.sin(solar_terms.declination)
+        + np.cos(latitude_radians)
+        * np.cos(solar_terms.declination)
+        * np.cos(hour_angle)
+    )
+    reference = 90.0 - np.degrees(np.arccos(np.clip(cos_zenith, -1.0, 1.0)))
+    vectorized = _solar_elevation_from_unit_vectors(
         sun_unit_vectors_from_terms(solar_terms),
-        latitudes,
-        longitudes,
+        _unit_vector(np.radians(latitudes), np.radians(longitudes)),
     )
 
     assert np.allclose(vectorized, reference, rtol=0.0, atol=1e-10)
@@ -367,7 +376,6 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
         False,
         False,
         False,
-        False,
         "DL1MKS",
         "",
         t,
@@ -384,7 +392,6 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
         False,
         False,
         False,
-        False,
         "DL1MKS",
         "",
         t,
@@ -394,6 +401,82 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
     assert full_info == projected_info
     pd.testing.assert_frame_equal(full_table, projected_table)
     assert "Target SNR (dB @ 30 dBm)" in full_table.columns
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "analysis_id",
+        "canonical_counter_column",
+        "success",
+        "counter",
+        "target_only",
+    ),
+    (
+        (
+            "en",
+            "RX_ABS",
+            "Elsewhere (E)",
+            "Heard by Target",
+            "Heard by others only",
+            "Heard by Target without independent confirmation",
+        ),
+        (
+            "en",
+            "TX_ABS",
+            "Other Signals (OS)",
+            "Target heard",
+            "Other signals heard only",
+            "Target heard without independent RX-activity confirmation",
+        ),
+        (
+            "de",
+            "RX_ABS",
+            "Elsewhere (E)",
+            "Vom Target gehört",
+            "Nur von anderen gehört",
+            "Vom Target gehört, aber nicht unabhängig bestätigt",
+        ),
+        (
+            "de",
+            "TX_ABS",
+            "Other Signals (OS)",
+            "Target gehört",
+            "Nur andere Signale gehört",
+            "Target gehört, RX-Aktivität nicht unabhängig bestätigt",
+        ),
+    ),
+)
+def test_success_drilldown_display_translates_outcomes_without_mutating_export_rows(
+    language,
+    analysis_id,
+    canonical_counter_column,
+    success,
+    counter,
+    target_only,
+):
+    """Translate visible outcomes while retaining canonical source/export fields."""
+    canonical = pd.DataFrame(
+        {
+            "Outcome": ["Target", "Counter", "Target-only"],
+            "Target (T)": [1, 0, 0],
+            canonical_counter_column: [0, 1, 0],
+        }
+    )
+    source = canonical.copy(deep=True)
+
+    display = opportunity_drilldown_display_table(
+        canonical,
+        T[language],
+        analysis_id,
+    )
+
+    pd.testing.assert_frame_equal(canonical, source)
+    assert display["Outcome"].tolist() == [success, counter, target_only]
+    assert success in display.columns
+    assert counter in display.columns
+    assert "Target (T)" not in display.columns
+    assert canonical_counter_column not in display.columns
 
 
 def test_processed_opportunity_categoricals_survive_parquet_round_trip(tmp_path):
@@ -506,6 +589,18 @@ def test_success_rate_scale_separates_zero_from_positive_evidence():
     assert SUCCESS_RATE_TICK_LABELS[:3] == ("0%", ">0%", "1%")
     assert len(SUCCESS_RATE_TICK_LABELS) == len(SUCCESS_RATE_BOUNDS)
     assert len(SUCCESS_RATE_COLORS) == len(SUCCESS_RATE_BOUNDS) - 1
+    assert SUCCESS_RATE_COLORS == (
+        "#6e4c8f",
+        "#6576b8",
+        "#5c9bc7",
+        "#55b9c0",
+        "#8bcb9a",
+        "#c9e5a3",
+        "#f4e58a",
+        "#efb56f",
+        "#df7f68",
+        "#b85d5f",
+    )
 
 
 def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():

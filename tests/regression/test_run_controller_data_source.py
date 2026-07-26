@@ -752,7 +752,8 @@ def _render_fake_run(
     return fake_st
 
 
-def test_failed_success_preparation_restarts_whole_bundle_on_wd2(monkeypatch):
+def test_provider_failure_restarts_active_compare_analysis_on_wd2(monkeypatch):
+    """Retry one active Compare analysis and retain its strict-to-legacy audit."""
     fake_st = _FakeStreamlit()
     controller = ProviderDispatchController(
         WSPR_DATABASE_PROVIDERS,
@@ -763,13 +764,13 @@ def test_failed_success_preparation_restarts_whole_bundle_on_wd2(monkeypatch):
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     )
     permit = _AnalysisPermit(initial_lease)
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_COMP", "Compare")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
         attempts.append((provider_lease.source_key, [plan["id"] for plan in plans]))
         if provider_lease.source_key == "wspr_live":
-            raise _provider_failure(provider_lease.source_key, plans[1])
+            raise _provider_failure(provider_lease.source_key, plans[0])
         bundle = _no_data_bundle(provider_lease.source_key, plans)
         bundle.analyses[0].analysis["decode_filter_mode"] = DECODE_FILTER_LEGACY
         bundle.analyses[0].query_fetches = (
@@ -796,8 +797,8 @@ def test_failed_success_preparation_restarts_whole_bundle_on_wd2(monkeypatch):
     _render_fake_run(fake_st, permit, analyses)
 
     assert attempts == [
-        ("wspr_live", ["RX_COMP", "RX_ABS"]),
-        ("wd2", ["RX_COMP", "RX_ABS"]),
+        ("wspr_live", ["RX_COMP"]),
+        ("wd2", ["RX_COMP"]),
     ]
     assert get_active_run_database_source(fake_st.session_state) == "wd2"
     complete_audit = fake_st.placeholders[0].markdowns[-1]
@@ -820,7 +821,9 @@ def test_failed_success_preparation_restarts_whole_bundle_on_wd2(monkeypatch):
     assert selection_event["failed_sources"] == ["wspr_live"]
 
 
-def test_two_provider_failures_restart_whole_bundle_on_wd1(monkeypatch):
+def test_two_provider_failures_restart_active_success_analysis_on_wd1(
+    monkeypatch,
+):
     fake_st = _FakeStreamlit()
     controller = ProviderDispatchController(
         WSPR_DATABASE_PROVIDERS,
@@ -830,22 +833,22 @@ def test_two_provider_failures_restart_whole_bundle_on_wd1(monkeypatch):
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
         attempts.append((provider_lease.source_key, [plan["id"] for plan in plans]))
         if provider_lease.source_key != "wd1":
-            raise _provider_failure(provider_lease.source_key, plans[1])
+            raise _provider_failure(provider_lease.source_key, plans[0])
         return _no_data_bundle(provider_lease.source_key, plans)
 
     _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
     _render_fake_run(fake_st, permit, analyses)
 
     assert attempts == [
-        ("wspr_live", ["RX_COMP", "RX_ABS"]),
-        ("wd2", ["RX_COMP", "RX_ABS"]),
-        ("wd1", ["RX_COMP", "RX_ABS"]),
+        ("wspr_live", ["RX_ABS"]),
+        ("wd2", ["RX_ABS"]),
+        ("wd1", ["RX_ABS"]),
     ]
     assert get_active_run_database_source(fake_st.session_state) == "wd1"
     complete_audit = fake_st.placeholders[0].markdowns[-1]
@@ -874,13 +877,13 @@ def test_skipped_primary_is_not_retried_after_wd2_failure(monkeypatch):
     )
     assert initial_lease.source_key == "wd2"
     permit = _AnalysisPermit(initial_lease)
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
         attempts.append(provider_lease.source_key)
         if provider_lease.source_key == "wd2":
-            raise _provider_failure(provider_lease.source_key, plans[1])
+            raise _provider_failure(provider_lease.source_key, plans[0])
         return _no_data_bundle(provider_lease.source_key, plans)
 
     _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
@@ -910,7 +913,7 @@ def test_initial_nonprimary_selection_is_reported_as_capacity_spillover(monkeypa
     )
     assert initial_lease.source_key == "wd2"
     permit = _AnalysisPermit(initial_lease)
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     performance_events = []
 
     _patch_run_environment(
@@ -960,7 +963,7 @@ def test_demo_cache_affinity_is_reported_in_audit_and_telemetry(monkeypatch):
         prefer_cache_only=True,
     )
     permit = _AnalysisPermit(initial_lease)
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_COMP", "Compare")]
     performance_events = []
 
     def cached_bundle(plans, *, provider_lease, **_kwargs):
@@ -1025,7 +1028,7 @@ def test_disappearing_demo_cache_replans_without_excluding_primary(monkeypatch):
         prefer_cache_only=True,
     )
     permit = _AnalysisPermit(initial_lease)
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_COMP", "Compare")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -1085,12 +1088,12 @@ def test_all_provider_failures_publish_no_source_or_complete_result(monkeypatch)
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
         attempts.append(provider_lease.source_key)
-        raise _provider_failure(provider_lease.source_key, plans[1])
+        raise _provider_failure(provider_lease.source_key, plans[0])
 
     _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
     _render_fake_run(fake_st, permit, analyses)
@@ -1111,7 +1114,7 @@ def test_request_scoped_failure_does_not_switch_database(monkeypatch):
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -1141,7 +1144,7 @@ def test_local_preparation_failure_does_not_switch_or_penalize_database(monkeypa
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     attempts = []
 
     def fake_prepare(_plans, *, provider_lease, **_kwargs):
@@ -1183,7 +1186,7 @@ def test_cache_capacity_change_replans_without_poisoning_provider_health(monkeyp
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -1225,12 +1228,12 @@ def test_committed_rerender_never_changes_its_database_source(monkeypatch):
         {"wspr_live": 1, "wd2": 1, "wd1": 1},
         allowed_sources={"wspr_live"},
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
         attempts.append(provider_lease.source_key)
-        raise _provider_failure(provider_lease.source_key, plans[1])
+        raise _provider_failure(provider_lease.source_key, plans[0])
 
     _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
     _render_fake_run(
@@ -1259,7 +1262,7 @@ def test_successful_same_run_refresh_clears_stale_export_and_inspector_state(mon
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Success")]
 
     _patch_run_environment(
         monkeypatch,
@@ -1286,12 +1289,12 @@ def test_failed_attempt_legacy_status_is_not_reported_as_final_method(monkeypatc
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_COMP", "Compare"), _analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_COMP", "Compare")]
 
     def fake_prepare(plans, *, provider_lease, on_legacy_retry, **_kwargs):
         if provider_lease.source_key == "wspr_live":
             on_legacy_retry(0, len(plans), plans[0])
-            raise _provider_failure(provider_lease.source_key, plans[1])
+            raise _provider_failure(provider_lease.source_key, plans[0])
         return _no_data_bundle(provider_lease.source_key, plans)
 
     _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)

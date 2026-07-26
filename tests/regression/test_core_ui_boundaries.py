@@ -91,6 +91,77 @@ def test_presentation_context_preserves_existing_absolute_terminology():
             assert presentation.absolute_terms(mode) == absolute_terms(T[language], mode)
 
 
+@pytest.mark.parametrize(
+    (
+        "language",
+        "mode",
+        "canonical_counter",
+        "success",
+        "counter",
+        "target_only",
+    ),
+    (
+        (
+            "en",
+            "RX",
+            "Elsewhere",
+            "Heard by Target",
+            "Heard by others only",
+            "Heard by Target without independent confirmation",
+        ),
+        (
+            "en",
+            "TX",
+            "Other Signals",
+            "Target heard",
+            "Other signals heard only",
+            "Target heard without independent RX-activity confirmation",
+        ),
+        (
+            "de",
+            "RX",
+            "Elsewhere",
+            "Vom Target gehört",
+            "Nur von anderen gehört",
+            "Vom Target gehört, aber nicht unabhängig bestätigt",
+        ),
+        (
+            "de",
+            "TX",
+            "Other Signals",
+            "Target gehört",
+            "Nur andere Signale gehört",
+            "Target gehört, RX-Aktivität nicht unabhängig bestätigt",
+        ),
+    ),
+)
+def test_success_presentation_terms_are_directional_without_replacing_canonical_terms(
+    language,
+    mode,
+    canonical_counter,
+    success,
+    counter,
+    target_only,
+):
+    """Keep display vocabulary separate from stable formulas and export fields."""
+    terms = _presentation(language).absolute_terms(mode)
+    mode_key = mode.lower()
+
+    assert terms["target_column"] == T[language][
+        f"abs_{mode_key}_target_column"
+    ]
+    assert terms["counter"] == canonical_counter
+    assert terms["counter_column"] == T[language][
+        f"abs_{mode_key}_counter_column"
+    ]
+    assert canonical_counter in terms["formula"]
+    assert terms["opportunity_success"] == success
+    assert terms["opportunity_counter"] == counter
+    assert terms["station_success"] == success
+    assert terms["station_counter"] == counter
+    assert terms["target_only_audit"] == target_only
+
+
 def test_no_data_warning_prompts_for_primary_run_definition_inputs():
     assert T["en"]["warn_no_data"].endswith(
         "Are the callsign entries, locator, band, date, and UTC time correct?"
@@ -321,22 +392,25 @@ def test_identical_csv_query_caches_are_isolated_by_database_source(monkeypatch)
     assert float(wd2_cached.dataframe.loc[0, "stat_val"]) == pytest.approx(-9.4)
 
 
-def test_map_data_is_pure_and_preserves_legacy_absolute_aggregates():
+def test_map_data_is_pure_for_compare_aggregates():
     source = pd.DataFrame(
         {
             "peer_sign": ["K1AAA", "K1AAA", "K2BBB"],
             "peer_grid": ["FN31", "FN31", "EM12"],
             "peer_lat": [41.0, 41.0, 32.8],
             "peer_lon": [-72.0, -72.0, -96.8],
-            "stat_val": [-10.0, -12.0, -5.0],
+            "has_u": [1, 1, 1],
+            "has_r": [1, 1, 1],
+            "snr_u_norm": [-10.0, -12.0, -5.0],
+            "snr_r_norm": [-13.0, -14.0, -7.0],
         }
     )
     original = source.copy(deep=True)
 
     map_data = build_map_data(
         source,
-        analysis_id="TX_ABS",
-        is_compare=False,
+        analysis_id="TX_COMP",
+        is_compare=True,
         is_sequential=False,
         analysis_kind="comparison",
         center_latitude=47.0,
@@ -357,18 +431,56 @@ def test_map_data_is_pure_and_preserves_legacy_absolute_aggregates():
             map_data.station_rows["peer_sign"] == "K1AAA",
             "stat_val",
         ].iloc[0]
-    ) == -11.0
+    ) == 2.5
     assert not map_data.segment_rows.empty
+
+
+@pytest.mark.parametrize(
+    ("analysis_kind", "is_compare"),
+    [
+        ("comparison", False),
+        ("opportunity", True),
+        ("absolute", False),
+        ("absolute", True),
+    ],
+)
+def test_map_data_rejects_noncanonical_analysis_modes(
+    analysis_kind,
+    is_compare,
+):
+    """Reject the removed third map mode and contradictory mode flags."""
+    with pytest.raises(ValueError, match="Map analysis mode must be Success"):
+        build_map_data(
+            pd.DataFrame({"unused": [1]}),
+            analysis_id="TX_ABS",
+            is_compare=is_compare,
+            is_sequential=False,
+            analysis_kind=analysis_kind,
+            center_latitude=47.0,
+            center_longitude=8.0,
+            min_spots=1,
+            min_opportunities=1,
+            base_min_stations=1,
+            tx_ab_repeat_interval_minutes=10,
+            tx_ab_target_start_minute=0,
+            tx_ab_reference_start_minute=2,
+        )
 
 
 def test_generate_map_plot_returns_explicit_map_figure_contract(monkeypatch):
     source = pd.DataFrame(
         {
+            "time_slot": [1],
             "peer_sign": ["K1AAA"],
             "peer_grid": ["FN31"],
             "peer_lat": [41.0],
             "peer_lon": [-72.0],
-            "stat_val": [-10.0],
+            "target_seen": [1],
+            "target_snr": [-10.0],
+            "opportunity": [1],
+            "hit": [1],
+            "miss": [0],
+            "target_only": [0],
         }
     )
 
@@ -390,6 +502,7 @@ def test_generate_map_plot_returns_explicit_map_figure_contract(monkeypatch):
         8.0,
         analysis_context=_analysis_context(),
         presentation_context=_presentation("en"),
+        analysis_kind="opportunity",
     )
 
     assert isinstance(result, MapFigure)
@@ -416,18 +529,14 @@ def test_compare_view_model_localization_cannot_change_scope_or_evidence():
     english = view_models.build_compare_inspector_view_model(
         scope_rows,
         analysis_id="TX_COMP",
-        is_compare=True,
         is_sequential=False,
-        show_non_joint=True,
         analysis_context=context,
         presentation_context=_presentation("en"),
     )
     german = view_models.build_compare_inspector_view_model(
         scope_rows,
         analysis_id="TX_COMP",
-        is_compare=True,
         is_sequential=False,
-        show_non_joint=True,
         analysis_context=context,
         presentation_context=_presentation("de"),
     )
@@ -460,7 +569,7 @@ def test_hardware_compare_labels_use_fixed_identities_or_scheduled_roles():
     assert sequential[:2] == ("Target", "Reference")
 
 
-def test_cached_all_rows_view_model_derives_identical_joint_only_table():
+def test_compare_view_model_exposes_full_table_and_joint_evidence_identities():
     scope_rows = pd.DataFrame(
         {
             "peer_sign": ["K1AAA", "K2BBB", "K3CCC"],
@@ -475,27 +584,25 @@ def test_cached_all_rows_view_model_derives_identical_joint_only_table():
     )
     kwargs = {
         "analysis_id": "TX_COMP",
-        "is_compare": True,
         "is_sequential": False,
         "analysis_context": _analysis_context(),
         "presentation_context": _presentation("en"),
     }
-    all_rows = view_models.build_compare_inspector_view_model(
-        scope_rows,
-        show_non_joint=True,
-        **kwargs,
-    )
-    joint_only = view_models.build_compare_inspector_view_model(
-        scope_rows,
-        show_non_joint=False,
-        **kwargs,
-    )
-    derived_joint_only = all_rows.station_table[
-        all_rows.station_table[all_rows.joint_column] > 0
+    view_model = view_models.build_compare_inspector_view_model(scope_rows, **kwargs)
+    derived_joint_identities = view_model.station_table.loc[
+        view_model.station_table[view_model.joint_column] > 0,
+        [view_model.station_column, view_model.locator_column],
     ].reset_index(drop=True)
+    derived_joint_identities.columns = ["peer_sign", "peer_grid"]
 
-    pd.testing.assert_frame_equal(derived_joint_only, joint_only.station_table)
-    pd.testing.assert_frame_equal(all_rows.evidence_identities, joint_only.evidence_identities)
+    pd.testing.assert_frame_equal(
+        view_model.station_table,
+        view_model.full_station_table,
+    )
+    pd.testing.assert_frame_equal(
+        view_model.evidence_identities.reset_index(drop=True),
+        derived_joint_identities,
+    )
 
 
 def test_opportunity_view_model_localization_cannot_change_eligibility_or_evidence():
@@ -548,7 +655,107 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         and "Ausgewähltes Segment" not in summary
         for summary in english.summary_lines + german.summary_lines
     )
-    assert list(english.full_station_table.columns) != list(german.full_station_table.columns)
+    assert list(english.full_station_table.columns) == [
+        "TX Station",
+        "Locator",
+        "km",
+        "Azimuth",
+        "Heard by Target",
+        "Heard by others only",
+        "Confirmed opportunities",
+        "Success Rate (%)",
+        "Median successful Target SNR (dB @ 30 dBm)",
+    ]
+    assert list(german.full_station_table.columns) == [
+        "TX-Station",
+        "Locator",
+        "km",
+        "Azimut",
+        "Vom Target gehört",
+        "Nur von anderen gehört",
+        "Bestätigte Gelegenheiten",
+        "Success Rate (%)",
+        "Median des erfolgreichen Target-SNR (dB @ 30 dBm)",
+    ]
+    assert list(english.export_station_table.columns) == [
+        "TX Station",
+        "Locator",
+        "km",
+        "Azimuth",
+        "Target (T)",
+        "Elsewhere (E)",
+        "T/(T+E) (%)",
+        "Median Target SNR (dB @ 30 dBm)",
+    ]
+    assert list(german.export_station_table.columns) == [
+        "TX Station",
+        "Locator",
+        "km",
+        "Azimut",
+        "Target (T)",
+        "Elsewhere (E)",
+        "T/(T+E) (%)",
+        "Median Target-SNR (dB @ 30 dBm)",
+    ]
+    assert english.full_station_table["Confirmed opportunities"].tolist() == [2]
+    assert german.full_station_table["Bestätigte Gelegenheiten"].tolist() == [2]
+    assert english.summary_lines == [
+        "Stations: Heard by Target 1 · Heard by others only 0 · Success Rate 50.0%",
+        "Opportunities: Heard by Target 1 · Heard by others only 1 · Success Rate 50.0%",
+    ]
+    assert german.summary_lines == [
+        "Stationen: Vom Target gehört 1 · Nur von anderen gehört 0 · Success Rate 50.0%",
+        "Gelegenheiten: Vom Target gehört 1 · Nur von anderen gehört 1 · Success Rate 50.0%",
+    ]
+
+
+def test_empty_success_scope_uses_localized_evidence_threshold_message():
+    """Avoid canonical counter vocabulary and NaN metrics when no station qualifies."""
+    scope_rows = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA"],
+            "peer_grid": ["FN31"],
+            "calc_dist": [100.0],
+            "calc_azimuth": [45.0],
+            "eligible": [False],
+            "rate_pct": [float("nan")],
+            "hits": [0],
+            "misses": [0],
+            "successful_snr_median": [float("nan")],
+        }
+    )
+    evidence_rows = pd.DataFrame(
+        {
+            "peer_sign": ["K1AAA"],
+            "peer_grid": ["FN31"],
+            "hit": [0],
+            "miss": [0],
+        }
+    )
+
+    english = view_models.build_opportunity_inspector_view_model(
+        scope_rows,
+        evidence_rows,
+        analysis_id="RX_ABS",
+        minimum_confirmed=5,
+        presentation_context=_presentation("en"),
+    )
+    german = view_models.build_opportunity_inspector_view_model(
+        scope_rows,
+        evidence_rows,
+        analysis_id="RX_ABS",
+        minimum_confirmed=5,
+        presentation_context=_presentation("de"),
+    )
+
+    assert english.summary_lines == [
+        "No station meets the confirmed-opportunity threshold in this scope."
+    ]
+    assert german.summary_lines == [
+        "Keine Station erfüllt in diesem Bereich die Schwelle für bestätigte Gelegenheiten."
+    ]
+    assert english.full_station_table.empty
+    assert english.export_station_table.empty
 
 
 def test_core_and_pure_inspector_modules_have_no_streamlit_dependency():

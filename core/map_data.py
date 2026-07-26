@@ -10,7 +10,26 @@ from core.compare_engine import aggregate_compare_map_data
 from core.geographic_scope import great_circle_distances_km
 from core.map_models import MapData
 from core.opportunity_engine import aggregate_opportunity_peers, aggregate_opportunity_segments
-from core.snr_utils import round_snr_like_columns
+
+
+def validate_map_analysis_mode(*, analysis_kind: str, is_compare: bool) -> bool:
+    """Validate the two supported map modes and return whether this is Success.
+
+    Success maps use ``analysis_kind="opportunity"`` with ``is_compare=False``.
+    Compare maps use ``analysis_kind="comparison"`` with ``is_compare=True``.
+    Any other combination is outside the analysis-batch contract.
+    """
+    normalized_kind = str(analysis_kind)
+    compare_enabled = bool(is_compare)
+    if normalized_kind == "opportunity" and not compare_enabled:
+        return True
+    if normalized_kind == "comparison" and compare_enabled:
+        return False
+    raise ValueError(
+        "Map analysis mode must be Success "
+        "(analysis_kind='opportunity', is_compare=False) or Compare "
+        "(analysis_kind='comparison', is_compare=True)."
+    )
 
 
 def _attach_map_geometry(frame: pd.DataFrame, *, center_latitude: float, center_longitude: float) -> None:
@@ -68,62 +87,6 @@ def _attach_map_geometry(frame: pd.DataFrame, *, center_latitude: float, center_
     )
 
 
-def _aggregate_absolute_map_data(
-    frame: pd.DataFrame,
-    *,
-    min_spots: int,
-    base_min_stations: int,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    station_counts = (
-        frame.groupby(["SegmentID", "peer_sign"])
-        .size()
-        .reset_index(name="spot_count")
-    )
-    valid_stations = station_counts[station_counts["spot_count"] >= int(min_spots)]
-    valid_rows = frame.merge(
-        valid_stations[["SegmentID", "peer_sign"]],
-        on=["SegmentID", "peer_sign"],
-        how="inner",
-    )
-    reporter_medians = (
-        valid_rows.groupby(
-            [
-                "SegmentID",
-                "dist_label",
-                "dir_name",
-                "r_min",
-                "r_max",
-                "az_bucket",
-                "peer_sign",
-                "peer_grid",
-            ]
-        )
-        .agg(
-            stat_val=("stat_val", "median"),
-            spot_count=("stat_val", "count"),
-            peer_lat=("peer_lat", "first"),
-            peer_lon=("peer_lon", "first"),
-            calc_dist=("calc_dist", "first"),
-            calc_azimuth=("calc_azimuth", "first"),
-        )
-        .reset_index()
-    )
-    reporter_medians = round_snr_like_columns(reporter_medians)
-    segments = (
-        reporter_medians.groupby(
-            ["SegmentID", "dist_label", "dir_name", "r_min", "r_max", "az_bucket"]
-        )
-        .agg(
-            val=("stat_val", "median"),
-            cnt=("peer_sign", "nunique"),
-            total_spots=("spot_count", "sum"),
-        )
-        .reset_index()
-    )
-    segments = round_snr_like_columns(segments, columns=["val"])
-    return reporter_medians, segments[segments["cnt"] >= int(base_min_stations)]
-
-
 def build_map_data(
     frame: pd.DataFrame,
     *,
@@ -141,12 +104,15 @@ def build_map_data(
     tx_ab_reference_start_minute: int,
     owns_input: bool = False,
 ) -> MapData | None:
-    """Return language-free station and segment aggregates for one map."""
+    """Return language-free Success or Compare aggregates for one map."""
+    is_opportunity = validate_map_analysis_mode(
+        analysis_kind=analysis_kind,
+        is_compare=is_compare,
+    )
     if frame is None or frame.empty:
         return None
 
     work = frame if owns_input else frame.copy()
-    is_opportunity = analysis_kind == "opportunity"
     if is_opportunity:
         work = aggregate_opportunity_peers(
             work,
@@ -168,12 +134,6 @@ def build_map_data(
             segment_rows = segment_rows[
                 segment_rows["cnt"] >= int(base_min_stations)
             ]
-    elif not is_compare:
-        station_rows, segment_rows = _aggregate_absolute_map_data(
-            work,
-            min_spots=min_spots,
-            base_min_stations=base_min_stations,
-        )
     else:
         station_rows, segment_rows = aggregate_compare_map_data(
             work,

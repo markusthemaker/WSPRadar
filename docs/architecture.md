@@ -100,13 +100,20 @@ controls before loading the validated active branch.
 
 `results_view` has an always-present `success` branch and a conditional
 `compare` branch. Both preserve canonical Segment Inspector range/direction,
-selected-station chronological bins, and station-selection intent. Explicit
-stations are canonical callsign/locator pairs; `all` dynamically selects the
-complete reconstructed table after saved visibility controls and before
-transient table filters. Compare additionally preserves `show_non_joint`, its
-segment temporal bin, and the selected-station `chronological` versus `utc_hour`
-view; Success preserves `show_zero_target`. Table and Drill-Down filters,
-expander state, and other transient controls are deliberately not serialized.
+segment temporal bins, selected-station chronological bins, and
+station-selection intent. Explicit stations are canonical callsign/locator
+pairs. Compare may preserve one or more identities, while `all` dynamically
+selects its complete reconstructed table after saved visibility controls and
+before transient table filters. Success presentation permits zero or one
+identity. When historical Success state contains several identities, restoration
+retains the first valid identity in stored order, discards the rest, never
+substitutes another station, and restores no selection if none remain valid.
+Compare additionally preserves `show_non_joint` and the selected-station
+`chronological` versus `utc_hour` view; Success preserves the canonical
+`show_zero_target` boolean, which the presentation layer exposes through the
+direction-specific counter-only-station controls rather than through that
+internal name. Table and Drill-Down filters, expander state, and other transient
+controls are deliberately not serialized.
 `config/config_codec.py` validates the current document envelope and exact
 schema version, while `ui/config_io.py` validates and applies the semantic
 settings. Version 1 is explicitly pre-production, not a first public production
@@ -270,7 +277,7 @@ it. A no-benchmark run prepares Success only; a run with any benchmark prepares
 Compare only. Strict and legacy compatibility requests remain on that provider.
 A classified provider failure deletes the attempt's unregistered session
 artifacts, releases its reservation, and restarts the complete active-result
-bundle from Map 1 on the next source.
+bundle from its first required request on the next source.
 Valid empty/scientific no-evidence results and local processing failures do not
 selectively switch databases.
 
@@ -382,8 +389,8 @@ both sides. Boundary pairs are admitted only when both planned transmission
 starts satisfy `start <= planned_start < end`.
 
 `core/tx_ab_schedule.py` owns supported repeat-interval and start validation,
-the exact ClickHouse schedule predicate, hourly previews, cyclic separation,
-and stable planned-pair assignment. `core/snr_utils.py` centralizes
+the exact ClickHouse schedule predicate, and stable planned-pair assignment.
+`core/snr_utils.py` centralizes
 normalized-SNR rounding and CSV formatting. `core/evidence_statistics.py`
 centralizes neutral evidence-metric formatting, histogram-bin selection and
 plot-limit helpers.
@@ -433,9 +440,32 @@ features. Rendered static basemaps are stored in the derived-analysis namespace.
 Same-key construction is coordinated and publication uses a unique temporary
 path followed by atomic replacement.
 
+`core/presentation_context.py` keeps canonical Success terms and explicit
+direction-aware presentation terms in one immutable presentation-only bundle.
+Canonical `Target`/`Elsewhere` and `Target`/`Other Signals` names, compact
+formulas, stored fields and compatibility-export headings remain unchanged.
+Interactive labels and figures instead consume RX `Heard by Target` / `Heard by
+others only` or TX `Target heard` / `Other signals heard only`, including
+direction-specific audit-only wording. Neither family can select a scientific
+branch or enter `AnalysisContext`.
+
 `core/plot_engine.py` applies presentation labels and renders a figure from pure
-map aggregates. It does not access Streamlit state. `ui/matplotlib_renderer.py`
-serializes lower-DPI preview PNGs and displays them through Streamlit.
+map aggregates. It does not access Streamlit state. Success sector color retains
+the station-balanced aggregate as the only quantitative color layer. Qualifying
+station markers are split into one vectorized dark-green target-positive group
+and one light-grey mode-specific counter-only group, both at the legacy fixed
+marker size with black edges. RX labels these groups `Heard by Target` and
+`Heard by others only`; TX uses `Target heard` and
+`Other signals heard only`. Dark-green markers render above co-located light-grey
+markers; neither color nor size encodes an individual rate or evidence depth.
+Valid 0% sectors remain on the Success-rate scale, while non-qualifying sectors
+leave the neutral base map visible as insufficient evidence. The localized
+compact footer reuses the Compare-map bar and typography primitives with a
+wider label gutter, placing denominator `OPPORTUNITIES` above qualifying
+`STATIONS` and showing exact counts only in segments wide enough to contain them.
+`ui/matplotlib_renderer.py` serializes lower-DPI preview PNGs and displays them
+through Streamlit; preview and high-resolution export consume the same map
+figure recipe and renderer semantics.
 
 `core/matplotlib_runtime.py` owns a process-wide re-entrant lock because
 Matplotlib has shared mutable state. Rendering is intentionally serialized, and
@@ -447,23 +477,180 @@ being retained in pyplot's global registry.
 `ui/components/segment_inspector.py` remains the Streamlit fragment responsible
 for selections and rendering. Preparation is split into pure modules:
 
-- `ui/inspector/view_models.py` builds compare and opportunity view models and
-  figure recipes;
+- `ui/inspector/view_models.py` builds compare and opportunity data view models;
 - `ui/inspector/evidence_data.py` performs projected Parquet reads;
 - `ui/inspector/drilldown.py` builds selected-station evidence tables;
 - `ui/inspector/session_cache.py` maintains a run-scoped bounded LRU for options,
   segment models, selected models, and PNGs;
-- `ui/plots/` renders evidence figures from pure recipes.
+- `ui/plots/` prepares pure figure recipes and renders evidence figures from
+  them.
 
 Inspector range and direction controls may narrow the retained geographic
 population for exploration, but they cannot widen the completed run or
 re-admit peer rows excluded by Geographic Analysis Scope. A broader scientific
 scope requires a new analysis run.
 
-Opportunity segment reads request only `time_slot`, `peer_sign`, `peer_grid`,
-`hit`, and `miss`. Selected-station reads request only evidence columns required
-by the corresponding table and figure. This keeps the raw opportunity artifact
-out of initial inspector rendering and avoids rereading all Parquet columns.
+`OPPORTUNITY_SEGMENT_VIEW_COLUMNS` limits opportunity segment reads to
+`time_slot`, `peer_sign`, `peer_grid`, `hit`, `miss`, and `target_snr`. Exact
+calculated distance, azimuth and the
+per-station median successful Target SNR remain on the already scoped
+station-level rows, so the redesigned views require no provider query and no
+full Parquet projection. Selected-station reads request only evidence columns
+required by the corresponding table and figure.
+
+The Success scope model computes the station-balanced and pooled-opportunity
+rates and their station and outcome counts without changing admission. The
+scope summary identifies the two weighting contracts explicitly as
+`Station-balanced Success Rate` and `Observation-level Success Rate`. It also
+retains the signed weighting gap—observation-level minus station-balanced, in
+percentage points—and median confirmed opportunities per station so weighting
+and evidence-depth differences remain visible.
+`ui/plots/opportunity_figures.py` then prepares a
+separate exact-distance recipe from the complete qualifying station population.
+One deterministic bin grid, keyed only by the selected distance intervals,
+serves Peer Reach, station-balanced and observation-level Success Rate, and
+station-median successful Target SNR. The recipe retains all support counts for
+traceability but does not render a support-count strip. Widths are
+`125 km` through a selected span of `1,250 km`, `250 km` through `3,000 km`,
+`500 km` through `6,000 km`, and `1,000 km` above that. Edges are anchored to
+integer multiples from `0 km`; exact unrounded distances determine membership,
+the final selected upper boundary is included, and inactive bins retain gaps
+between disjoint selected ranges. Missing evidence remains missing rather than
+becoming 0%.
+
+The separate Success temporal base recipe derives station baselines from the
+complete active-scope UTC window, requiring at least three successful normalized
+Target SNR observations per station. It precomputes all six supported
+chronological profiles and one fixed one-hour UTC-folded profile. Each
+chronological density cell receives at most one station-bin median anomaly per
+station; each folded cell receives one station-date-hour median anomaly.
+Stations below the SNR-baseline threshold remain in both non-SNR evidence
+layers. In each chronological bin, every contributing qualifying station
+supplies one split vote whose successful and counter-outcome fractions sum to
+one; their ratio continues to reproduce the established station-balanced
+Success Rate. The chronological confirmed-opportunity stack counts every
+successful or counter-outcome once, and their ratio continues to reproduce the
+established observation-level Success Rate.
+
+Folded station support is a distinct display contract. For each UTC hour it
+counts every distinct station-date-hour presence once and divides by the
+represented dates whose hour slot overlaps the selected analysis window. The
+total bar height is therefore average contributing-station support per
+represented date at that hour. The folded station-balanced rate remains the
+established pooled equal-station calculation: outcomes are first pooled across
+represented dates within one UTC hour for each station, a rate is calculated
+for that station, and each distinct station then receives one equal vote. The
+green folded station component is average support multiplied by that unchanged
+rate; the grey component is its complement. These components are a
+rate-partitioned support display, not averages of station-date split votes.
+Folded opportunity components instead divide pooled outcome counts directly by
+the same per-hour date denominator, so they are per-date count averages while
+their ratio preserves the unchanged observation-level rate. All SNR
+calculations remain unchanged.
+
+A represented UTC date has at least one confirmed opportunity from a qualifying
+station somewhere in the active scope and selected window; a completely absent
+date is not introduced as an all-zero day. A represented date-hour with no
+evidence contributes zero and remains in the denominator; a date whose hour
+slot lies outside the selected window does not.
+The single folded-date annotation reports the global number of represented
+dates, while first and last boundary hours can use fewer overlapping dates. A
+partially overlapping boundary slot counts as one represented slot rather than
+being exposure-fraction weighted, so its folded mean can be depressed.
+Chronological one-hour support is directly comparable in units only when bin
+edges are anchored to UTC-hour boundaries; wider chronological bins cover
+multiple hours. Target-only audit rows do not enter either Success denominator.
+
+Success temporal presentation consumes that one recipe as two separate figures
+with distinct localized title routing: the upper title identifies **Temporal
+SNR Evidence**, while the lower title identifies **Temporal Evidence**. The
+first figure contains chronological and folded successful-SNR deviation panels
+with their unchanged heatmap, median, baseline and colorbar semantics. The
+second contains two aligned stacked rows for station-balanced evidence and
+confirmed opportunities. Its shared localized column headers identify
+**Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h
+bins)**; y-axis labels identify the station and opportunity rows, and the folded
+y-axis labels retain the same short `TX Stations`/`RX Stations` or
+`Opportunities` wording as the chronological panels. The two folded rows add
+localized subtitles stating average contributing station presences and average
+confirmed opportunities per represented UTC date. Successful outcomes use the
+established green and counter-outcomes use neutral grey. Each of the four panels
+has a secondary Success Rate axis; all four twin axes begin at zero and share
+one capped, rounded ceiling derived from the four unchanged rate series. One
+figure-level legend centered below the lower title identifies both outcome
+stacks and the Success Rate line. The left support axes scale independently and
+share the compact ham-style count formatter. Lower chronological and folded data
+axes align exactly with their corresponding upper SNR plot axes; the lower
+layout reserves the upper colorbar footprint instead of treating that colorbar
+or its annotation as data width. Panel heights and the inter-column gutter
+remain aligned. The upper SNR panels retain their subtitles using the
+established legend typography. Each figure keeps one folded-date annotation
+without repeating it in both panels of a row. Browser preview and high-resolution
+export use the same two recipes and renderers; Success exports add
+`figure_segment_temporal_snr_deviation.png` and retain
+`figure_segment_temporal_evidence.png` for the station/opportunity figure, while
+Compare keeps its existing single temporal export.
+
+Success Selected Station Evidence permits zero or one station. The Success
+Station Insights table uses the component's native replaceable single-row
+selection, while the separate Compare table retains multi-row selection.
+Selecting a different Success row replaces the exact callsign-plus-locator
+identity consumed by both Selected Station Evidence and Drill-Down; clearing the
+row hides the selected section. `ui/components/segment_inspector.py` loads only
+the retained projected rows for that identity and never starts another provider
+query.
+
+The section contains one compact selected-path context, the independent
+selected-station chronological-bin control, and two full-width figures.
+`ui/plots/opportunity_figures.py` parameterizes the shared Success temporal
+recipe and renderers by population mode (`active_scope` or `selected_station`)
+and SNR representation (`station_relative_deviation` or
+`actual_normalized_snr`). Segment Inspector retains active-scope,
+station-relative behavior. Selected Station Evidence filters the same retained
+active-scope evidence to one identity and renders **Selected Station SNR
+Evidence** followed by **Selected Station Temporal Evidence** through the shared
+preview and paper-export paths.
+
+Selected chronological SNR density receives every successful normalized Target
+SNR observation from that one identity, and the overlay is the median in each
+selected time bin. Folded SNR preparation first forms one median per represented
+UTC date-hour and then uses those date-hour medians for density and its cross-date
+median. The two panels share one linear actual-SNR range. This representation
+does not subtract a station baseline, require three reports, render a `0 dB`
+baseline, or synthesize SNR for counter outcomes. Its empty state therefore
+states explicitly that unsuccessful signals have no recorded Target SNR.
+
+The lower shared temporal figure preserves the Segment Inspector's station and
+opportunity rows. In each populated chronological bin, the one station supplies
+one split vote between the direction-specific successful and counter outcomes;
+the opportunity row counts every retained confirmed opportunity. Folded station
+height is average presence per represented UTC date, between zero and one, while
+folded opportunity height is average confirmed opportunities over the same
+represented-date denominator. For one station, station-balanced and
+observation-level Success Rate series are numerically identical, but both rows
+remain because they expose presence and evidence depth respectively. UTC-hour
+folding still requires at least two represented dates; otherwise the shared
+renderer expands the chronological panels and emits the localized unavailable
+message.
+
+The run-scoped segment-cache key includes explicit
+`exact-distance-v1` and `station-median-min3-v1` policy versions, the geographic
+scope and the complete UTC window. Selecting another chronological bin reuses
+the precomputed temporal base recipe and does not rebuild distance aggregates.
+Station Insights filters, sorting, counter-only-station visibility and selected
+rows are downstream presentation state and do not invalidate segment recipes.
+Changing the selected Success identity invalidates only selected-station recipes;
+changing its chronological bin reuses retained evidence and leaves the
+independent Segment Inspector bin and completed provider analysis untouched. The
+visible Station Insights table uses the direction-aware Success outcomes and a
+derived confirmed-opportunity column, while its separately retained export table
+preserves the established compatibility headings. Success Drill-Down likewise
+maps canonical outcome values only in a display copy; filtering is projected
+back to the unchanged canonical rows registered for export. Success and Compare
+temporal-bin choices use independent durable state. Browser preview and
+high-resolution export consume the same exact-distance and temporal recipes and
+renderer semantics.
+
 Periodic hardware A/B projections additionally carry the stable planned-pair
 identifier and timestamps so inspectors and exports replay the same pairing
 used for the map aggregation.
@@ -489,7 +676,25 @@ not rerun the upstream scientific query. It renders paper-theme, high-resolution
 figures and packages configuration, metadata, CSV tables, compact Parquet
 evidence, and PNGs. Comparison artifacts are grouped under `compare/`; Success
 artifacts are grouped under `success/`, with the same names reflected in run
-metadata.
+metadata. Both result families register the active segment evidence and segment
+temporal recipes, so preview and export use the same prepared values and
+renderers.
+
+Success selected evidence is exported under two stable filenames:
+`figure_selected_station_snr_evidence.png` and
+`figure_selected_station_temporal_evidence.png`. They use the same shared
+temporal recipes and renderers as the two browser figures. Compare retains
+`figure_selected_station_evidence.png` and its independent multi-station
+behavior. Success export registration stores the shared selection label and
+context, selection count, direction-aware station role, weighting mode, and
+filename-to-description mapping. `run_metadata.json` publishes these as
+`selected_station_label`, `selected_station_context`,
+`selected_station_count`, `selected_station_role`,
+`selected_evidence_weighting`, and `selected_evidence_figures`, so a Success
+package identifies its one exact selected identity. Compare instead records its
+exact identities in `selected_stations`, its selection count, and its active
+evidence recipe and time-view fields; the optional Success descriptive fields
+remain unset.
 
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
 session state for download. This is a known peak and idle-memory risk, partially
@@ -674,7 +879,8 @@ can therefore be waiting in this mid-run state.
    that source.
 4. Stage processed artifacts without exposing maps, inspectors or export blocks.
 5. On a provider-scoped failure, delete staged attempt artifacts, mark the
-   provider's cooldown/circuit state and restart Map 1 on the next source.
+   provider's cooldown/circuit state and restart the active-result bundle from
+   its first required request on the next source.
 6. If a cache entry disappears after reservation planning, or cached raw rows
    fail the required schema, make no unreserved HTTP request. Remove an invalid
    entry, discard the attempt, recalculate capacity without marking the provider
@@ -916,8 +1122,7 @@ capabilities.
    failover improve availability but cannot guarantee synchronized database
    contents or make every unavailable/incompatible service succeed.
 8. **Regression-fixture gap:** The generated scientific fixture is absent, so one
-   fixture-integrity test is skipped. Historical demo export files use an older
-   schema and do not close this gap.
+   fixture-integrity test is skipped.
 9. **Browser/multi-process coverage:** The regression suite covers pure logic,
    contracts, concurrency primitives, and documentation behavior, but no current
    browser end-to-end or multi-process deployment suite was found.

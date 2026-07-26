@@ -270,33 +270,6 @@ class PerformanceTimer:
             for span in self._spans
         ]
 
-    def memory_rows(self, *, analysis_title: str = "") -> list[dict[str, object]]:
-        """Return Streamlit-friendly memory observation rows."""
-        return [
-            {
-                "analysis": analysis_title,
-                "span": f"{'  ' * sample.depth}{sample.label}",
-                "dataframe_memory": sample.dataframe_bytes,
-                "process_rss": sample.process_rss_bytes,
-                "rows": sample.rows,
-                "columns": sample.columns,
-                "detail": sample.detail,
-            }
-            for sample in self._memory_samples
-        ]
-
-    def counter_rows(self, *, analysis_title: str = "") -> list[dict[str, object]]:
-        """Return cumulative non-total profiler counters."""
-        return [
-            {
-                "analysis": analysis_title,
-                "counter": counter.label,
-                "seconds": round(counter.elapsed_seconds, 3),
-                "count": counter.count,
-            }
-            for counter in self._counters.values()
-        ]
-
     def total_seconds(self) -> float:
         """Return summed duration of top-level spans."""
         return sum(span.elapsed_seconds for span in self._spans if span.depth == 0)

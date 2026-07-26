@@ -14,6 +14,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from scripts import build_regression_fixture_from_demo_folder as fixture_builder
+
 
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures"
 TABLE_FILES = [
@@ -21,12 +23,22 @@ TABLE_FILES = [
     "table_drilldown_selected_stations.csv",
     "table_drilldown_all_stations_current_segment.csv",
 ]
-FIGURE_FILES = [
-    "figure_map_highres.png",
-    "figure_segment_insight.png",
-    "figure_segment_temporal_evidence.png",
-    "figure_selected_station_evidence.png",
-]
+FIGURE_FILES_BY_FOLDER = {
+    "compare": (
+        "figure_map_highres.png",
+        "figure_segment_insight.png",
+        "figure_segment_temporal_evidence.png",
+        "figure_selected_station_evidence.png",
+    ),
+    "success": (
+        "figure_map_highres.png",
+        "figure_segment_insight.png",
+        "figure_segment_temporal_snr_deviation.png",
+        "figure_segment_temporal_evidence.png",
+        "figure_selected_station_snr_evidence.png",
+        "figure_selected_station_temporal_evidence.png",
+    ),
+}
 
 
 def _fixture_dirs():
@@ -39,6 +51,20 @@ def _fixture_dirs():
 
 
 FIXTURES = _fixture_dirs()
+
+
+def test_fixture_builder_uses_current_mode_specific_figure_contracts(tmp_path):
+    """Track current Compare and Success figures without a legacy result folder."""
+    for folder in FIGURE_FILES_BY_FOLDER:
+        (tmp_path / folder).mkdir()
+
+    expected_metrics = fixture_builder._build_expected_metrics(tmp_path)
+
+    assert fixture_builder.BLOCK_FOLDERS == ("compare", "success")
+    assert fixture_builder.FIGURE_FILES_BY_FOLDER == FIGURE_FILES_BY_FOLDER
+    assert set(expected_metrics) == set(FIGURE_FILES_BY_FOLDER)
+    for folder, figure_files in FIGURE_FILES_BY_FOLDER.items():
+        assert set(expected_metrics[folder]["figures"]) == set(figure_files)
 
 
 def _read_json(path: Path):
@@ -200,6 +226,7 @@ def test_demo_fixture_package_integrity(fixture_dir: Path):
     assert expected_block_folders == set(expected_metrics.keys())
 
     for folder, block_metrics in expected_metrics.items():
+        assert folder in FIGURE_FILES_BY_FOLDER
         block_dir = fixture_dir / folder
         assert block_dir.exists() == block_metrics["exists"]
         if not block_metrics["exists"]:
@@ -208,7 +235,9 @@ def test_demo_fixture_package_integrity(fixture_dir: Path):
         for table_name in TABLE_FILES:
             _assert_csv_metrics(block_dir / table_name, block_metrics["tables"][table_name])
 
-        for figure_name in FIGURE_FILES:
+        figure_files = FIGURE_FILES_BY_FOLDER[folder]
+        assert set(block_metrics["figures"]) == set(figure_files)
+        for figure_name in figure_files:
             _assert_figure_metrics(block_dir / figure_name, block_metrics["figures"][figure_name])
 
         for parquet_name, parquet_metrics in block_metrics["analysis_caches"].items():

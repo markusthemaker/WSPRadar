@@ -55,18 +55,3 @@ def is_valid_locator(locator: str) -> bool:
     if not normalized_locator.isascii():
         return False
     return bool(_LOCATOR_RE.fullmatch(normalized_locator.upper()))
-
-
-def is_valid_6char_locator(locator: str) -> bool:
-    """Return whether a locator is an exact six-character Maidenhead locator."""
-    locator = str(locator or "").strip()
-    if not locator.isascii():
-        return False
-    locator = locator.upper()
-    if len(locator) != 6:
-        return False
-    if not ("A" <= locator[0] <= "R" and "A" <= locator[1] <= "R"):
-        return False
-    if not (locator[2].isdigit() and locator[3].isdigit()):
-        return False
-    return "A" <= locator[4] <= "X" and "A" <= locator[5] <= "X"

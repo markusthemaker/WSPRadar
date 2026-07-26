@@ -9,6 +9,7 @@ from ui.inspector.session_cache import (
     SessionInspectorCache,
     estimate_cache_value_bytes,
 )
+from ui.result_hierarchy import transition_prompt_html
 
 
 def _cache(*, max_bytes=64, limits=None, run_id=7):
@@ -73,27 +74,6 @@ def test_compare_summary_count_uses_apostrophe_thousands_separator():
     assert segment_inspector._format_summary_count(7139) == "7'139"
 
 
-def test_metric_summary_retains_median_without_stability_interval():
-    """Keep Success median context after removing inferential intervals."""
-    station_summary = segment_inspector._metric_median_summary(
-        [-12.0, -8.0, -6.0],
-        False,
-        "Station-median",
-    )
-    compare_summary = segment_inspector._metric_median_summary(
-        [-2.0, 1.0],
-        True,
-        "Joint-spot",
-    )
-
-    assert station_summary == "Station-median | median SNR -8.0 dB"
-    assert compare_summary == "Joint-spot | median Δ SNR -0.5 dB"
-    assert "stability" not in station_summary.lower()
-    assert segment_inspector._metric_median_summary([], False, "Spot") is None
-    assert not hasattr(segment_inspector, "STABILITY_CACHE_STATE_KEY")
-    assert not hasattr(segment_inspector, "_cached_segment_stability")
-
-
 def test_folded_utc_hour_panel_title_is_completely_localized():
     """Keep the fixed-bin suffix consistent with each language's manual."""
     assert segment_inspector._folded_utc_hour_panel_title(T["en"]) == (
@@ -112,13 +92,13 @@ def test_selected_temporal_controls_fit_one_horizontal_row():
     assert segment_inspector.SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS == (1, 2)
 
 
-def test_segment_temporal_controls_have_localized_inline_labels():
-    """Name the adaptive segment bins without changing selected-station controls."""
+def test_segment_temporal_controls_have_localized_instruction_prompts():
+    """Invite a segment-bin choice without changing selected-station controls."""
     assert T["en"]["lbl_time_aggregation_bin_size"] == (
-        "Time aggregation bin size:"
+        "Select time aggregation bin size"
     )
     assert T["de"]["lbl_time_aggregation_bin_size"] == (
-        "Zeitliche Aggregationsbreite:"
+        "Zeitliche Aggregationsbreite auswählen"
     )
     assert T["en"]["lbl_include_unpaired_evidence"] == (
         "Include Unpaired Evidence"
@@ -126,7 +106,121 @@ def test_segment_temporal_controls_have_localized_inline_labels():
     assert T["de"]["lbl_include_unpaired_evidence"] == (
         "Ungepaarte Evidenz einbeziehen"
     )
-    assert segment_inspector.SEGMENT_TEMPORAL_CONTROL_COLUMN_WIDTHS == (1.6, 4)
+
+
+def _render_segment_temporal_for_test(monkeypatch, *, is_compare):
+    """Render one temporal bundle while recording compact-recipe dispatches."""
+    render_calls = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(markdown=lambda *_args, **_kwargs: None),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_initialize_time_bin_widget_state",
+        lambda *_args, **_kwargs: "6h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_sync_time_bin_widget_state",
+        lambda *_args, **_kwargs: "6h",
+    )
+
+    def record_render(recipe, **kwargs):
+        render_calls.append((recipe, kwargs))
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        record_render,
+    )
+    result = segment_inspector._render_segment_temporal_evidence(
+        {
+            "base_recipe": {
+                "kind": (
+                    "segment_compare_temporal"
+                    if is_compare
+                    else "opportunity_success_temporal"
+                ),
+                "time_bin": "3h",
+            },
+            "time_bin_options": ("3h", "6h"),
+            "time_bin_default": "3h",
+        },
+        analysis_id="RX_COMP" if is_compare else "RX_ABS",
+        run_id=7,
+        scope_token="all",
+        cache_key=("segment",),
+        t={
+            "hdr_results_temporal_evidence": "Temporal Evidence",
+            "sub_results_temporal_evidence": "Compare subtitle",
+            "sub_results_success_temporal": "Success subtitle",
+            "lbl_time_aggregation_bin_size": "Select time aggregation bin size",
+        },
+        is_compare=is_compare,
+        is_sequential=False,
+        analysis_context=SimpleNamespace(),
+        language="en",
+    )
+    return result, render_calls
+
+
+def test_success_segment_temporal_renders_snr_before_lower_evidence(monkeypatch):
+    """Use separate cache entries and export recipes for the two Success canvases."""
+    result, render_calls = _render_segment_temporal_for_test(
+        monkeypatch,
+        is_compare=False,
+    )
+
+    assert len(render_calls) == 2
+    snr_recipe, snr_call = render_calls[0]
+    evidence_recipe, evidence_call = render_calls[1]
+    assert snr_call["render_figure"] is (
+        segment_inspector.render_segment_temporal_snr_export_figure
+    )
+    assert evidence_call["render_figure"] is (
+        segment_inspector.render_segment_temporal_evidence_export_figure
+    )
+    assert snr_call["cache_key"] != evidence_call["cache_key"]
+    assert snr_recipe["time_bin"] == "6h"
+    assert evidence_recipe["time_bin"] == "6h"
+    assert snr_recipe is not evidence_recipe
+    assert result == {
+        "export_recipe": evidence_recipe,
+        "snr_export_recipe": snr_recipe,
+        "time_bin": "6h",
+    }
+
+
+def test_compare_segment_temporal_keeps_one_combined_figure(monkeypatch):
+    """Do not split or otherwise reroute the established Compare figure."""
+    result, render_calls = _render_segment_temporal_for_test(
+        monkeypatch,
+        is_compare=True,
+    )
+
+    assert len(render_calls) == 1
+    recipe, render_call = render_calls[0]
+    assert render_call["render_figure"] is (
+        segment_inspector.render_segment_temporal_evidence_export_figure
+    )
+    assert recipe["time_bin"] == "6h"
+    assert result == {
+        "export_recipe": recipe,
+        "snr_export_recipe": None,
+        "time_bin": "6h",
+    }
 
 
 def test_station_insights_toggle_has_room_for_single_line_label():
@@ -170,7 +264,6 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     result = segment_inspector._render_selected_station_evidence(
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
-        True,
         False,
         10,
         0,
@@ -307,27 +400,12 @@ def test_time_bin_control_stretches_segmented_options_across_container(monkeypat
     }
 
 
-def test_segment_time_bin_label_renders_immediately_before_selector(monkeypatch):
-    """Keep the localized explanation and adaptive choices on one desktop row."""
+def test_segment_time_bin_prompt_renders_above_full_width_selector(monkeypatch):
+    """Reuse the established transition cue before the adaptive choices."""
     events = []
 
-    class _Column:
-        def __init__(self, name):
-            self.name = name
-
-        def __enter__(self):
-            events.append(("enter", self.name))
-            return self
-
-        def __exit__(self, *_args):
-            events.append(("exit", self.name))
-
-    def columns(widths, **kwargs):
-        events.append(("columns", tuple(widths), kwargs))
-        return _Column("label"), _Column("selector")
-
-    def markdown(body):
-        events.append(("markdown", body))
+    def markdown(body, **kwargs):
+        events.append(("markdown", body, kwargs))
 
     def segmented_control(label, options, **kwargs):
         events.append(("segmented_control", label, tuple(options), kwargs))
@@ -337,13 +415,12 @@ def test_segment_time_bin_label_renders_immediately_before_selector(monkeypatch)
         segment_inspector,
         "st",
         SimpleNamespace(
-            columns=columns,
             markdown=markdown,
             segmented_control=segmented_control,
         ),
     )
 
-    selected = segment_inspector._render_labeled_segment_time_bin_control(
+    selected = segment_inspector._render_prompted_segment_time_bin_control(
         T["en"]["lbl_time_aggregation_bin_size"],
         ["1h", "2h", "3h", "6h", "12h", "24h"],
         "segment_time_widget",
@@ -351,19 +428,13 @@ def test_segment_time_bin_label_renders_immediately_before_selector(monkeypatch)
 
     assert selected == "3h"
     assert events[0] == (
-        "columns",
-        segment_inspector.SEGMENT_TEMPORAL_CONTROL_COLUMN_WIDTHS,
-        {"vertical_alignment": "center"},
+        "markdown",
+        transition_prompt_html("Select time aggregation bin size"),
+        {"unsafe_allow_html": True},
     )
-    assert events[1:4] == [
-        ("enter", "label"),
-        ("markdown", "**Time aggregation bin size:**"),
-        ("exit", "label"),
-    ]
-    assert events[4] == ("enter", "selector")
-    assert events[5][0:3] == (
+    assert events[1][0:3] == (
         "segmented_control",
-        "Time aggregation bin size:",
+        "Select time aggregation bin size",
         ("1h", "2h", "3h", "6h", "12h", "24h"),
     )
 
@@ -676,6 +747,103 @@ def test_station_selection_matches_ordered_identities_and_reports_missing():
     ]
 
 
+def test_success_historical_selection_retains_first_valid_stored_identity():
+    """Normalize ordered legacy state by identity order, not table order."""
+    station_table = pd.DataFrame(
+        {
+            "Station": ["A1AAA", "B2BBB", "C3CCC"],
+            "Locator": ["AA00", "BB11", "CC22"],
+        }
+    )
+    configured_identities = [
+        {"callsign": "MISSING", "locator": "ZZ99"},
+        {"callsign": "c3ccc", "locator": "cc22"},
+        {"callsign": "A1AAA", "locator": "AA00"},
+    ]
+
+    normalized_selection, should_persist = (
+        segment_inspector._success_single_station_selection_state(
+            station_table,
+            "Station",
+            "Locator",
+            configured_identities,
+        )
+    )
+
+    assert normalized_selection == [
+        {"callsign": "C3CCC", "locator": "CC22"}
+    ]
+    assert should_persist
+
+
+def test_success_historical_selection_with_no_valid_identity_becomes_empty():
+    """Do not substitute a table row when no stored identity remains valid."""
+    station_table = pd.DataFrame(
+        {
+            "Station": ["A1AAA", "B2BBB"],
+            "Locator": ["AA00", "BB11"],
+        }
+    )
+
+    normalized_selection, should_persist = (
+        segment_inspector._success_single_station_selection_state(
+            station_table,
+            "Station",
+            "Locator",
+            [{"callsign": "MISSING", "locator": "ZZ99"}],
+        )
+    )
+
+    assert normalized_selection == []
+    assert should_persist
+
+
+def test_success_legacy_all_selection_migrates_to_first_universe_identity():
+    """Give legacy dynamic-all state one deterministic explicit identity."""
+    station_table = pd.DataFrame(
+        {
+            "Station": ["B2BBB", "A1AAA"],
+            "Locator": ["BB11", "AA00"],
+        }
+    )
+
+    normalized_selection, should_persist = (
+        segment_inspector._success_single_station_selection_state(
+            station_table,
+            "Station",
+            "Locator",
+            segment_inspector.STATION_SELECTION_ALL,
+        )
+    )
+
+    assert normalized_selection == [
+        {"callsign": "B2BBB", "locator": "BB11"}
+    ]
+    assert should_persist
+
+
+def test_success_unset_selection_preserves_legacy_first_row_default():
+    """Leave ``None`` unset so the established display default still applies."""
+    station_table = pd.DataFrame(
+        {
+            "Station": ["A1AAA"],
+            "Locator": ["AA00"],
+        }
+    )
+
+    normalized_selection, should_persist = (
+        segment_inspector._success_single_station_selection_state(
+            station_table,
+            "Station",
+            "Locator",
+            None,
+        )
+    )
+
+    assert normalized_selection is None
+    assert not should_persist
+
+
 def test_station_selection_syncs_ordered_identities_including_empty(monkeypatch):
     """Persist exact row identities rather than labels or transient indices."""
     session_state = {}
@@ -721,6 +889,46 @@ def test_station_selection_syncs_ordered_identities_including_empty(monkeypatch)
         ]
         == []
     )
+
+
+def test_success_selection_persists_identity_without_all_compaction(monkeypatch):
+    """Keep an explicit Success identity even when it is the whole universe."""
+    persistent_key = (
+        segment_inspector.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
+    )
+    selection_changed_key = "success_table_selection_changed"
+    session_state = {persistent_key: None}
+    station_table = pd.DataFrame(
+        {
+            "Station": ["A1AAA"],
+            "Locator": ["AA00"],
+        }
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    segment_inspector._mark_station_selection_changed(selection_changed_key)
+    persisted_selection = (
+        segment_inspector._sync_selected_station_state_if_changed(
+            selection_changed_key,
+            persistent_key,
+            station_table,
+            [0],
+            "Station",
+            "Locator",
+            station_table,
+            compact_complete_selection=False,
+        )
+    )
+
+    assert persisted_selection == [
+        {"callsign": "A1AAA", "locator": "AA00"}
+    ]
+    assert session_state[persistent_key] == persisted_selection
+    assert persisted_selection != segment_inspector.STATION_SELECTION_ALL
 
 
 def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
@@ -900,7 +1108,7 @@ def test_session_cache_enforces_namespace_lru_limit():
     assert cache.get("segment", "second") == (None, False)
     assert cache.get("segment", "first") == (b"1", True)
     assert cache.get("segment", "third") == (b"3", True)
-    assert cache.namespace_entry_count("segment") == 2
+    assert cache.entry_count == 2
 
 
 def test_session_cache_enforces_global_byte_limit_by_access_order():
@@ -971,7 +1179,7 @@ def test_cached_recipe_builds_and_disposes_figure_only_once(monkeypatch):
     assert calls == {"build": 1, "render": 1, "display": 1, "dispose": 1}
     cache = session_state[segment_inspector.INSPECTOR_CACHE_STATE_KEY]
     assert cache.run_id == 42
-    assert cache.namespace_entry_count("png") == 1
+    assert cache.entry_count == 1
 
 
 def test_new_run_replaces_the_session_cache(monkeypatch):
@@ -985,3 +1193,629 @@ def test_new_run_replaces_the_session_cache(monkeypatch):
     assert second is not first
     assert second.run_id == 2
     assert second.entry_count == 0
+
+
+def test_success_new_station_builds_after_segment_cache_hit_without_provider_request(
+    monkeypatch,
+):
+    """Replace A with B, then clear, without rebuilding or querying the segment."""
+    from core import data_engine
+
+    class FakeContainer:
+        """Provide the small context/container surface used by the Success inspector."""
+
+        def __init__(self, fake_streamlit):
+            self.fake_streamlit = fake_streamlit
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def markdown(self, *_args, **_kwargs):
+            return None
+
+        def columns(self, widths, **kwargs):
+            self.fake_streamlit.column_calls.append((list(widths), kwargs))
+            return tuple(FakeContainer(self.fake_streamlit) for _ in widths)
+
+        def dataframe(self, *_args, **kwargs):
+            self.fake_streamlit.dataframe_calls.append(dict(kwargs))
+            on_select = kwargs.get("on_select")
+            if callable(on_select):
+                on_select()
+            return SimpleNamespace(
+                selection=SimpleNamespace(
+                    rows=list(self.fake_streamlit.selected_rows)
+                )
+            )
+
+    class FakeStreamlit:
+        """Retain session cache state while exposing controlled table selections."""
+
+        def __init__(self):
+            self.session_state = {}
+            self.selected_rows = [0]
+            self.markdown_calls = []
+            self.column_calls = []
+            self.dataframe_calls = []
+
+        def container(self, **_kwargs):
+            return FakeContainer(self)
+
+        def markdown(self, body, **kwargs):
+            self.markdown_calls.append((body, kwargs))
+            return None
+
+        def toggle(self, *_args, **_kwargs):
+            return False
+
+        def popover(self, *_args, **_kwargs):
+            return FakeContainer(self)
+
+        def multiselect(self, *_args, **_kwargs):
+            return []
+
+    fake_streamlit = FakeStreamlit()
+    fake_streamlit.session_state[
+        segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
+    ] = "2h"
+    monkeypatch.setattr(segment_inspector, "st", fake_streamlit)
+
+    provider_requests = []
+
+    def reject_provider_request(*args, **kwargs):
+        provider_requests.append((args, kwargs))
+        raise AssertionError("Inspector rerenders must not contact a provider.")
+
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        reject_provider_request,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "log_performance_event",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_supports_dataframe_selection_default",
+        lambda: False,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    selected_render_calls = []
+
+    def record_cached_recipe(_recipe, **kwargs):
+        if str(kwargs.get("subject", "")).startswith(
+            "opportunity selected"
+        ):
+            selected_render_calls.append(
+                {"recipe": _recipe, **kwargs}
+            )
+        return None
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        record_cached_recipe,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_segment_temporal_evidence",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_selected_success_context_line",
+        lambda *_args, **_kwargs: "Selected station context",
+    )
+    drilldown_builds = []
+    drilldown_renders = []
+    export_calls = []
+
+    def record_drilldown_build(
+        _parquet_path,
+        selected_meta,
+        selected_station_column,
+        selected_locator_column,
+        *_args,
+        station_rows_df,
+        **_kwargs,
+    ):
+        selected_identities = tuple(
+            selected_meta[
+                [selected_station_column, selected_locator_column]
+            ].itertuples(index=False, name=None)
+        )
+        evidence_identities = tuple(
+            station_rows_df[
+                ["peer_sign", "peer_grid"]
+            ].itertuples(index=False, name=None)
+        )
+        drilldown_builds.append(
+            {
+                "selected_identities": selected_identities,
+                "evidence_identities": evidence_identities,
+            }
+        )
+        return (
+            pd.DataFrame(
+                {
+                    "Selected station": [
+                        selected_identities[0][0]
+                    ]
+                }
+            ),
+            None,
+        )
+
+    def record_drilldown_render(
+        drilldown_table,
+        selected_station_labels,
+        *_args,
+        **_kwargs,
+    ):
+        drilldown_renders.append(
+            {
+                "labels": tuple(selected_station_labels),
+                "stations": tuple(
+                    drilldown_table["Selected station"].astype(str)
+                ),
+            }
+        )
+        return drilldown_table
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_build_drilldown_table",
+        record_drilldown_build,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_drilldown_dataframe",
+        record_drilldown_render,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "register_inspector_export",
+        lambda **kwargs: export_calls.append(kwargs),
+    )
+
+    station_column = "RX Station"
+    locator_column = "Locator"
+    distance_column = "km"
+    azimuth_column = "Azimuth"
+    hit_column = "Heard by Target"
+    station_table = pd.DataFrame(
+        {
+            station_column: [
+                "A1AAA",
+                "B2BBB",
+                "C3CCC",
+                "D4DDD",
+                "E5EEE",
+                "F6FFF",
+            ],
+            locator_column: [
+                "AA00",
+                "BB11",
+                "CC22",
+                "DD33",
+                "EE44",
+                "FF55",
+            ],
+            distance_column: [100.0, 200.0, 300.0, 400.0, 500.0, 600.0],
+            azimuth_column: [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+            hit_column: [1, 1, 1, 1, 1, 1],
+        }
+    )
+    opportunity_view_model = SimpleNamespace(
+        summary_lines=[],
+        confirmed_station_count=6,
+        confirmed_opportunity_count=6,
+        full_station_table=station_table,
+        export_station_table=station_table,
+        station_column=station_column,
+        locator_column=locator_column,
+        distance_column=distance_column,
+        azimuth_column=azimuth_column,
+        hit_column=hit_column,
+        export_station_column=station_column,
+        export_locator_column=locator_column,
+        confirmed_rows=pd.DataFrame(),
+        evidence_rows=pd.DataFrame(),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "build_opportunity_inspector_view_model",
+        lambda *_args, **_kwargs: opportunity_view_model,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_opportunity_segment_recipe",
+        lambda *_args, **_kwargs: {"kind": "segment"},
+    )
+    selected_recipe_builds = []
+
+    def build_temporal_recipe(
+        evidence_title,
+        _selected_segment,
+        peer_rows,
+        temporal_evidence_rows,
+        *_args,
+        snr_title,
+        population_mode,
+        snr_representation,
+        **_kwargs,
+    ):
+        if (
+            population_mode
+            == segment_inspector.SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
+        ):
+            selected_recipe_builds.append(
+                {
+                    "peer_identities": tuple(
+                        peer_rows[
+                            ["peer_sign", "peer_grid"]
+                        ].itertuples(index=False, name=None)
+                    ),
+                    "evidence_identities": tuple(
+                        temporal_evidence_rows[
+                            ["peer_sign", "peer_grid"]
+                        ].itertuples(index=False, name=None)
+                    ),
+                    "population_mode": population_mode,
+                    "snr_representation": snr_representation,
+                }
+            )
+        return {
+            "evidence_title": evidence_title,
+            "snr_title": snr_title,
+            "time_bin_options": ["1h", "2h"],
+            "time_bin_default": "1h",
+            "population_mode": population_mode,
+            "snr_representation": snr_representation,
+        }
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_opportunity_temporal_recipe",
+        build_temporal_recipe,
+    )
+
+    evidence_rows = pd.DataFrame(
+        {
+            "time_slot": [1, 1, 1, 1, 1, 1],
+            "peer_sign": [
+                "A1AAA",
+                "B2BBB",
+                "C3CCC",
+                "D4DDD",
+                "E5EEE",
+                "F6FFF",
+            ],
+            "peer_grid": [
+                "AA00",
+                "BB11",
+                "CC22",
+                "DD33",
+                "EE44",
+                "FF55",
+            ],
+            "hit": [1, 1, 1, 1, 1, 1],
+            "miss": [0, 0, 0, 0, 0, 0],
+            "target_snr": [-10.0, -11.0, -12.0, -13.0, -14.0, -15.0],
+        }
+    )
+    segment_read_count = 0
+
+    def read_segment_rows(*_args, **_kwargs):
+        nonlocal segment_read_count
+        segment_read_count += 1
+        return evidence_rows.copy()
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "read_parquet_artifact",
+        read_segment_rows,
+    )
+
+    selected_station_loads = []
+
+    def load_selected_station_rows(
+        _parquet_path,
+        selected_meta,
+        selected_station_column,
+        selected_locator_column,
+        *,
+        columns,
+    ):
+        del columns
+        selected_pairs = [
+            (str(callsign), str(locator))
+            for callsign, locator in selected_meta[
+                [selected_station_column, selected_locator_column]
+            ].itertuples(index=False, name=None)
+        ]
+        selected_station_loads.append(
+            tuple(callsign for callsign, _locator in selected_pairs)
+        )
+        return pd.DataFrame(
+            {
+                "time_slot": list(range(1, len(selected_pairs) + 1)),
+                "peer_sign": [
+                    callsign for callsign, _locator in selected_pairs
+                ],
+                "peer_grid": [
+                    locator for _callsign, locator in selected_pairs
+                ],
+                "hit": [1] * len(selected_pairs),
+                "miss": [0] * len(selected_pairs),
+                "target_only": [0] * len(selected_pairs),
+                "target_snr": [
+                    -10.0 - row_index
+                    for row_index in range(len(selected_pairs))
+                ],
+                "path_illumination": ["Daylight"] * len(selected_pairs),
+            }
+        )
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_load_station_rows_for_drilldown",
+        load_selected_station_rows,
+    )
+
+    cache_events = []
+    original_cache_get = segment_inspector._inspector_cache_get
+
+    def recording_cache_get(
+        run_id,
+        namespace,
+        key,
+        timing_collector=None,
+        *,
+        item="",
+    ):
+        cached_value, is_cache_hit = original_cache_get(
+            run_id,
+            namespace,
+            key,
+            timing_collector,
+            item=item,
+        )
+        if namespace in {"segment", "selected"}:
+            cache_events.append((namespace, is_cache_hit))
+        return cached_value, is_cache_hit
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_get",
+        recording_cache_get,
+    )
+
+    analysis_start = pd.Timestamp("2026-07-01T00:00:00Z")
+    analysis_end = pd.Timestamp("2026-07-01T02:00:00Z")
+    analysis_context = SimpleNamespace(
+        min_confirmed_opportunities_per_peer=1,
+        callsign="G3ZIL",
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
+    )
+    opportunity_terms = {
+        "mode": "RX",
+        "presentation_subtext": "Heard by Target | Heard by others only",
+        "show_counter": "Show Heard by others only stations",
+    }
+    presentation_context = SimpleNamespace(
+        language="en",
+        theme="dark",
+        absolute_terms=lambda _mode: opportunity_terms,
+    )
+    scope_rows = pd.DataFrame(
+        {
+            "peer_sign": [
+                "A1AAA",
+                "B2BBB",
+                "C3CCC",
+                "D4DDD",
+                "E5EEE",
+                "F6FFF",
+            ],
+            "peer_grid": [
+                "AA00",
+                "BB11",
+                "CC22",
+                "DD33",
+                "EE44",
+                "FF55",
+            ],
+        }
+    )
+    level_two_container = FakeContainer(fake_streamlit)
+    scope_summary_placeholder = FakeContainer(fake_streamlit)
+    render_arguments = {
+        "analysis_id": "RX_ABS",
+        "title": "RX Success",
+        "df_seg": scope_rows,
+        "parquet_path": "unused-session-artifact.parquet",
+        "line1_str": "audit",
+        "t": T["en"],
+        "selected_seg": "Full Range | All Directions",
+        "selected_ranges": ("Full Range",),
+        "selected_directions": ("All Directions",),
+        "distance_scope_intervals": ((0.0, 1000.0),),
+        "range_summary": "Full Range",
+        "direction_summary": "All Directions",
+        "scope_token": "rall_dall",
+        "run_id": 101,
+        "level_two_container": level_two_container,
+        "active_scope_summary": "Full Range | All Directions",
+        "scope_summary_placeholder": scope_summary_placeholder,
+        "analysis_start_t": analysis_start,
+        "analysis_end_t": analysis_end,
+        "show_export_button": False,
+        "analysis_context": analysis_context,
+        "presentation_context": presentation_context,
+    }
+
+    persisted_success_selections = []
+    for selected_rows in ([0], [1], []):
+        fake_streamlit.selected_rows = list(selected_rows)
+        segment_inspector._render_opportunity_scope(**render_arguments)
+        persisted_success_selections.append(
+            [
+                dict(identity)
+                for identity in fake_streamlit.session_state[
+                    segment_inspector.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
+                ]
+            ]
+        )
+
+    assert cache_events == [
+        ("segment", False),
+        ("selected", False),
+        ("segment", True),
+        ("selected", False),
+        ("segment", True),
+    ]
+    assert segment_read_count == 1
+    assert selected_station_loads == [
+        ("A1AAA",),
+        ("B2BBB",),
+    ]
+    assert [
+        recipe_build["peer_identities"]
+        for recipe_build in selected_recipe_builds
+    ] == [
+        (("A1AAA", "AA00"),),
+        (("B2BBB", "BB11"),),
+    ]
+    assert [
+        recipe_build["evidence_identities"]
+        for recipe_build in selected_recipe_builds
+    ] == [
+        (("A1AAA", "AA00"),),
+        (("B2BBB", "BB11"),),
+    ]
+    assert all(
+        recipe_build["population_mode"]
+        == segment_inspector.SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
+        for recipe_build in selected_recipe_builds
+    )
+    assert all(
+        recipe_build["snr_representation"]
+        == segment_inspector.SUCCESS_SNR_REPRESENTATION_ACTUAL
+        for recipe_build in selected_recipe_builds
+    )
+    assert drilldown_builds == [
+        {
+            "selected_identities": (("A1AAA", "AA00"),),
+            "evidence_identities": (("A1AAA", "AA00"),),
+        },
+        {
+            "selected_identities": (("B2BBB", "BB11"),),
+            "evidence_identities": (("B2BBB", "BB11"),),
+        },
+    ]
+    assert drilldown_renders == [
+        {
+            "labels": ("A1AAA (AA00)",),
+            "stations": ("A1AAA",),
+        },
+        {
+            "labels": ("B2BBB (BB11)",),
+            "stations": ("B2BBB",),
+        },
+    ]
+    assert persisted_success_selections == [
+        [{"callsign": "A1AAA", "locator": "AA00"}],
+        [{"callsign": "B2BBB", "locator": "BB11"}],
+        [],
+    ]
+    assert [
+        render_call["render_figure"]
+        for render_call in selected_render_calls
+    ] == [
+        segment_inspector.render_segment_temporal_snr_export_figure,
+        segment_inspector.render_segment_temporal_evidence_export_figure,
+        segment_inspector.render_segment_temporal_snr_export_figure,
+        segment_inspector.render_segment_temporal_evidence_export_figure,
+    ]
+    assert [
+        render_call["recipe"]["time_bin"]
+        for render_call in selected_render_calls
+    ] == ["2h", "2h", "2h", "2h"]
+    assert [
+        dataframe_call["selection_mode"]
+        for dataframe_call in fake_streamlit.dataframe_calls
+    ] == ["single-row", "single-row", "single-row"]
+    assert all(
+        callable(dataframe_call["on_select"])
+        for dataframe_call in fake_streamlit.dataframe_calls
+    )
+    assert (
+        [0.64, 0.36],
+        {"vertical_alignment": "top"},
+    ) not in fake_streamlit.column_calls
+    assert [
+        tuple(export_call["selected_stations"])
+        for export_call in export_calls
+    ] == [
+        ("A1AAA (AA00)",),
+        ("B2BBB (BB11)",),
+        (),
+    ]
+    assert [
+        export_call["selected_station_snr_evidence_figure_recipe"] is not None
+        for export_call in export_calls
+    ] == [True, True, False]
+    assert [
+        export_call[
+            "selected_station_temporal_evidence_figure_recipe"
+        ] is not None
+        for export_call in export_calls
+    ] == [True, True, False]
+    assert all(
+        export_call["selected_evidence_figure_recipe"] is None
+        for export_call in export_calls
+    )
+    assert [
+        tuple(
+            export_call["drilldown_selected_df"][
+                "Selected station"
+            ].astype(str)
+        )
+        if not export_call["drilldown_selected_df"].empty
+        else ()
+        for export_call in export_calls
+    ] == [
+        ("A1AAA",),
+        ("B2BBB",),
+        (),
+    ]
+    assert (
+        fake_streamlit.session_state[
+            segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
+        ]
+        == "2h"
+    )
+    assert (
+        fake_streamlit.session_state[
+            segment_inspector.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
+        ]
+        == []
+    )
+    assert provider_requests == []

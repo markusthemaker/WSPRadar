@@ -406,7 +406,7 @@ def test_analysis_selector_uses_full_width_segments_without_visible_heading(
         config_panel,
         "st",
         SimpleNamespace(
-            session_state=SimpleNamespace(is_demo_mode=False),
+            session_state=SimpleNamespace(),
             segmented_control=segmented_control,
         ),
     )
@@ -436,7 +436,7 @@ def test_tx_ab_method_selector_uses_canonical_required_segments(
         config_panel,
         "st",
         SimpleNamespace(
-            session_state=SimpleNamespace(is_demo_mode=False),
+            session_state=SimpleNamespace(),
             segmented_control=segmented_control,
         ),
     )
@@ -473,7 +473,7 @@ def test_guided_tx_ab_method_selector_uses_captioned_radio_rows(
         config_panel,
         "st",
         SimpleNamespace(
-            session_state=SimpleNamespace(is_demo_mode=False),
+            session_state=SimpleNamespace(),
             radio=radio,
             segmented_control=segmented_control,
         ),
@@ -566,7 +566,6 @@ def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
             "val_qth": "jn37aa",
             "val_ref_callsign": "dl1mks-1",
             "val_ref_qth": "jo62",
-            "is_demo_mode": False,
         }
     )
     monkeypatch.setattr(
@@ -624,7 +623,6 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
             "val_callsign": "DL1MKS-1",
             "val_qth": "JN37",
             "val_time_mode": "last_x",
-            "is_demo_mode": False,
         }
     )
     monkeypatch.setattr(
@@ -667,7 +665,6 @@ def test_reference_station_identity_keeps_reference_grid4_editable(monkeypatch):
             "val_qth": "JN37AA",
             "val_ref_callsign": "DL2XYZ",
             "val_ref_qth": "JO62",
-            "is_demo_mode": False,
         }
     )
     monkeypatch.setattr(
@@ -693,7 +690,7 @@ def test_reference_station_identity_keeps_reference_grid4_editable(monkeypatch):
     reference_qth_parameters = text_input.call_args_list[3].kwargs
     assert reference_qth_parameters["key"] == "val_ref_qth"
     assert reference_qth_parameters["max_chars"] == 4
-    assert reference_qth_parameters["disabled"] is False
+    assert "disabled" not in reference_qth_parameters
     assert session_state.val_ref_qth == "JO62"
     error.assert_not_called()
 
@@ -714,7 +711,6 @@ def test_reference_station_identity_reports_invalid_reference_fields(monkeypatch
             "val_qth": "JN37AA",
             "val_ref_callsign": "ABC",
             "val_ref_qth": "JO62AA",
-            "is_demo_mode": False,
         }
     )
     monkeypatch.setattr(
@@ -780,7 +776,9 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert session_state.val_results_selected_directions_compare == "all"
     assert session_state.val_results_selected_ranges_absolute == "all"
     assert session_state.val_results_selected_directions_absolute == "all"
+    assert session_state.val_results_segment_time_bin_absolute == "auto"
     assert _default_config()["benchmark_mode"] == COMPARISON_NONE
+    assert _default_config()["segment_evidence_time_bin_absolute"] == "auto"
     assert _default_config()["snr_correction_mode"] == "no_offset"
     assert _default_config()["band"] == DEFAULT_BAND
     analysis_context = build_analysis_context_from_session_state({})
@@ -901,6 +899,7 @@ def test_reset_config_returns_to_success_only(monkeypatch):
     assert session_state.val_results_selected_directions_absolute == "all"
     assert session_state.val_results_time_bin_compare is None
     assert session_state.val_results_time_bin_absolute is None
+    assert session_state.val_results_segment_time_bin_absolute == "auto"
 
 
 @pytest.mark.parametrize(
@@ -1106,7 +1105,6 @@ def test_each_benchmark_design_starts_with_zero_snr_correction(monkeypatch, benc
         SimpleNamespace(session_state=session_state),
     )
     monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
-    monkeypatch.setattr(callbacks, "apply_demo_profile", lambda: None)
 
     callbacks.handle_comp_mode_change()
 
@@ -1198,7 +1196,6 @@ def test_hardware_design_does_not_overwrite_retained_buddy_qth(monkeypatch):
         SimpleNamespace(session_state=session_state),
     )
     monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
-    monkeypatch.setattr(callbacks, "apply_demo_profile", lambda: None)
 
     callbacks.handle_comp_mode_change()
     assert session_state.val_ref_qth == "JO62"
@@ -1247,3 +1244,4 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
     assert session_state.val_results_selected_directions_absolute == "all"
     assert session_state.val_results_time_bin_compare == "3h"
     assert session_state.val_results_time_bin_absolute == "3h"
+    assert session_state.val_results_segment_time_bin_absolute == "auto"

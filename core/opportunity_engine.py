@@ -1,5 +1,5 @@
 """
-Opportunity-based Absolute analysis for WSPRadar.
+Opportunity-based Success analysis for WSPRadar.
 
 The server query returns one row per UTC WSPR cycle and remote
 callsign/locator identity. All scientific classification and peer-balanced
@@ -30,7 +30,6 @@ from core.tx_ab_schedule import tx_ab_schedule_sql
 
 
 ABSOLUTE_METHOD_VERSION = "opportunity-v1"
-DEFAULT_MIN_OPPORTUNITIES = 5
 OPPORTUNITY_SLOT_SECONDS = 120
 OPPORTUNITY_OUTCOME_CATEGORIES = ("H", "M", "T", "")
 OPPORTUNITY_QUERY_COLUMNS = (
@@ -69,6 +68,7 @@ OPPORTUNITY_SEGMENT_VIEW_COLUMNS = (
     "peer_grid",
     "hit",
     "miss",
+    "target_snr",
 )
 OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS = (
     "time_slot",
@@ -109,16 +109,16 @@ SUCCESS_RATE_BOUNDS = (
 )
 SUCCESS_RATE_TICK_LABELS = ("0%", ">0%", "1%", "2%", "5%", "10%", "20%", "40%", "60%", "80%", "100%")
 SUCCESS_RATE_COLORS = (
-    "#3b0f70",
-    "#364b9a",
-    "#277f8e",
-    "#1fa187",
-    "#4ac16d",
-    "#a0da39",
-    "#fde725",
-    "#f89540",
-    "#d73027",
-    "#a50026",
+    "#6e4c8f",
+    "#6576b8",
+    "#5c9bc7",
+    "#55b9c0",
+    "#8bcb9a",
+    "#c9e5a3",
+    "#f4e58a",
+    "#efb56f",
+    "#df7f68",
+    "#b85d5f",
 )
 
 
@@ -243,10 +243,10 @@ def build_absolute_opportunity_query(
     if mode not in {"RX", "TX"}:
         raise ValueError("mode must be RX or TX.")
     if not is_valid_callsign(stripped_callsign):
-        raise ValueError("Absolute opportunity analysis requires a valid exact target callsign.")
+        raise ValueError("Success opportunity analysis requires a valid exact target callsign.")
     callsign = normalize_ascii_upper(stripped_callsign)
     if not str(band_value or "").strip():
-        raise ValueError("Absolute opportunity analysis requires one exact operating band.")
+        raise ValueError("Success opportunity analysis requires one exact operating band.")
 
     grid4 = target_grid4(qth)
     start_sql = start_t.strftime("%Y-%m-%d %H:%M:%S")

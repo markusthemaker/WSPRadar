@@ -11,7 +11,8 @@ calculates or displays.
 The same change renames `Show Non-Joint` to `Include Unpaired Evidence` and
 `Ungepaarte Evidenz einbeziehen`, clarifies that the control includes exclusive
 or asynchronous evidence, and names the adaptive Segment Compare control
-`Time aggregation bin size:` / `Zeitliche Aggregationsbreite:`.
+with the prompts `↓ Select time aggregation bin size` /
+`↓ Zeitliche Aggregationsbreite auswählen`.
 
 ## Removed Stability passages
 

@@ -54,8 +54,6 @@ def init_session_state():
         st.session_state.run_mode = None
     if "lang" not in st.session_state: 
         st.session_state.lang = get_browser_language()
-    if "is_demo_mode" not in st.session_state: 
-        st.session_state.is_demo_mode = False
     if "config_panels_expanded" not in st.session_state:
         st.session_state.config_panels_expanded = True
     if "_collapse_config_panels_once" not in st.session_state:
@@ -233,6 +231,8 @@ def init_session_state():
         st.session_state.val_results_time_bin_absolute = None
     if "val_results_segment_time_bin_compare" not in st.session_state:
         st.session_state.val_results_segment_time_bin_compare = "auto"
+    if "val_results_segment_time_bin_absolute" not in st.session_state:
+        st.session_state.val_results_segment_time_bin_absolute = "auto"
     if "val_results_station_temporal_view_compare" not in st.session_state:
         st.session_state.val_results_station_temporal_view_compare = "chronological"
     if "val_results_selected_stations_compare" not in st.session_state:

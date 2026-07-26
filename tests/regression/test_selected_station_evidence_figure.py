@@ -37,9 +37,8 @@ def _render_compare_evidence_figure(metric_values, identity_labels):
     recipe = _selected_evidence_export_recipe(
         plot_df,
         "Selected Station Evidence",
-        _default_evidence_labels(is_compare=True),
+        _default_evidence_labels(),
         "3h",
-        is_compare=True,
         is_sequential=False,
     )
     assert recipe["temporal_view"] == "chronological"
@@ -220,9 +219,8 @@ def test_segment_and_selected_recipes_keep_their_own_evidence_medians():
     selected_recipe = _selected_evidence_export_recipe(
         selected_plot_df,
         "Selected Evidence",
-        _default_evidence_labels(is_compare=True),
+        _default_evidence_labels(),
         "3h",
-        is_compare=True,
         is_sequential=False,
     )
 
@@ -413,9 +411,8 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
     recipe = _selected_evidence_export_recipe(
         plot_df,
         "Selected Evidence",
-        _default_evidence_labels(is_compare=True),
+        _default_evidence_labels(),
         "3h",
-        is_compare=True,
         is_sequential=False,
     )
 
@@ -501,9 +498,8 @@ def test_selected_time_heatmap_uses_panel_max_relative_density():
     recipe = _selected_evidence_export_recipe(
         plot_df,
         "Selected Evidence",
-        _default_evidence_labels(is_compare=True),
+        _default_evidence_labels(),
         "1h",
-        is_compare=True,
         is_sequential=False,
     )
 
@@ -523,51 +519,6 @@ def test_selected_time_heatmap_uses_panel_max_relative_density():
         assert figure.axes[-1].get_ylabel() == (
             "Relative joint-spot density (% of panel maximum)"
         )
-    finally:
-        dispose_matplotlib_figure(figure)
-
-
-def test_non_compare_selected_time_heatmap_preserves_raw_counts():
-    """Avoid changing absolute normalized-SNR heatmaps outside Compare mode."""
-    plot_df = pd.DataFrame(
-        {
-            "identity": ["A (AA00)"] * 3,
-            "plot_time": pd.to_datetime(
-                [
-                    "2026-07-01T00:05:00Z",
-                    "2026-07-01T00:10:00Z",
-                    "2026-07-01T01:05:00Z",
-                ],
-                utc=True,
-            ),
-            "metric": [1.0, 1.0, 2.0],
-        }
-    )
-    recipe = _selected_evidence_export_recipe(
-        plot_df,
-        "Selected Evidence",
-        _default_evidence_labels(is_compare=False),
-        "1h",
-        is_compare=False,
-        is_sequential=False,
-        temporal_view="utc_hour",
-    )
-    assert recipe["temporal_view"] == "chronological"
-
-    figure = render_selected_evidence_export_figure(recipe)
-    try:
-        time_axis = figure.axes[1]
-        count_mesh = next(
-            collection
-            for collection in time_axis.collections
-            if isinstance(collection, QuadMesh)
-        )
-        count_values = np.ma.asarray(count_mesh.get_array()).compressed()
-
-        assert sorted(np.unique(count_values)) == pytest.approx([1.0, 2.0])
-        assert figure.axes[0].get_yscale() == "linear"
-        assert time_axis.get_yscale() == "linear"
-        assert figure.axes[-1].get_ylabel() == "Spot count"
     finally:
         dispose_matplotlib_figure(figure)
 
@@ -592,9 +543,8 @@ def test_selected_compare_can_render_folded_utc_hour_density():
     recipe = _selected_evidence_export_recipe(
         plot_df,
         "Selected Folded Evidence",
-        _default_evidence_labels(is_compare=True),
+        _default_evidence_labels(),
         "3h",
-        is_compare=True,
         is_sequential=False,
         temporal_view="utc_hour",
         folded_title="UTC profile ({utc_date_count} dates)",
@@ -661,9 +611,8 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
     recipe = _selected_evidence_export_recipe(
         plot_df,
         "Selected Folded Evidence",
-        _default_evidence_labels(is_compare=True),
+        _default_evidence_labels(),
         "3h",
-        is_compare=True,
         is_sequential=False,
         temporal_view="utc_hour",
         folded_title="UTC-Profil ({utc_date_count} Tag)",
@@ -720,9 +669,8 @@ def test_selected_compare_temporal_views_share_reference_line_hierarchy(
     recipe = _selected_evidence_export_recipe(
         plot_df,
         "Selected Evidence",
-        _default_evidence_labels(is_compare=True),
+        _default_evidence_labels(),
         "3h",
-        is_compare=True,
         is_sequential=False,
         temporal_view=temporal_view,
     )
@@ -1095,14 +1043,13 @@ def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
             "metric": [1.0, 2.0],
         }
     )
-    labels = _default_evidence_labels(is_compare=True)
+    labels = _default_evidence_labels()
     labels["count_label"] = "Scheduled pair count"
     recipe = _selected_evidence_export_recipe(
         plot_df,
         "Scheduled Evidence",
         labels,
         "5m",
-        is_compare=True,
         is_sequential=True,
     )
 

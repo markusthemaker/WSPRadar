@@ -91,16 +91,3 @@ def test_new_active_run_defaults_to_freeze_but_preserves_user_choice():
         session_state[config_save._TIME_POLICY_WIDGET_KEY]
         == config_save.TIME_POLICY_FREEZE
     )
-
-
-def test_clear_config_save_state_preserves_unrelated_session_values():
-    """Factory reset removes stale prepared downloads and form values only."""
-    session_state = {
-        config_save._PREPARED_BYTES_KEY: b"config",
-        config_save._PROFILE_TITLE_WIDGET_KEY: "Portable RX",
-        "run_id": 42,
-    }
-
-    config_save.clear_config_save_state(session_state)
-
-    assert session_state == {"run_id": 42}

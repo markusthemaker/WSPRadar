@@ -38,7 +38,6 @@ def test_segment_evidence_points_keep_only_qualifying_callsign_locator_identitie
     segment_points = evidence_data._build_segment_evidence_points(
         segment_identities,
         "segment.parquet",
-        is_compare=True,
         is_sequential=False,
     )
 

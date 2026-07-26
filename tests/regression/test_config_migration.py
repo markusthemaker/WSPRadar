@@ -84,6 +84,7 @@ def _valid_settings(
             "selected_ranges": "all",
             "selected_directions": "all",
             "show_zero_target": False,
+            "segment_evidence_time_bin": "auto",
             "station_evidence_time_bin": "3h",
             "selected_stations": None,
         }
@@ -329,6 +330,18 @@ def test_two_hour_station_evidence_bins_round_trip_through_config_validation():
     assert config["station_evidence_time_bin_absolute"] == "2h"
 
 
+def test_success_segment_evidence_bin_rejects_an_unsupported_width():
+    """Apply the shared segment-bin allowlist at the Success config boundary."""
+    settings = _valid_settings(comparison_mode="none")
+    settings["results_view"]["success"]["segment_evidence_time_bin"] = "4h"
+
+    with pytest.raises(
+        ValueError,
+        match=r"results_view\.success\.segment_evidence_time_bin",
+    ):
+        config_io.validate_config_document(_config_document(settings))
+
+
 def test_complete_result_view_state_round_trips_without_transient_row_ids():
     """Persist durable plot choices and ordered station identities per result."""
     settings = _valid_settings()
@@ -337,6 +350,7 @@ def test_complete_result_view_state_round_trips_without_transient_row_ids():
             "selected_ranges": ["[0-2500km]", "[2500-5000km]"],
             "selected_directions": ["N", "NNE"],
             "show_zero_target": True,
+            "segment_evidence_time_bin": "6h",
             "station_evidence_time_bin": "6h",
             "selected_stations": "all",
         },
@@ -362,6 +376,7 @@ def test_complete_result_view_state_round_trips_without_transient_row_ids():
     ]
     assert normalized["selected_directions_absolute"] == ["N", "NNE"]
     assert normalized["show_zero_target"] is True
+    assert normalized["segment_evidence_time_bin_absolute"] == "6h"
     assert normalized["selected_stations_absolute"] == "all"
     assert normalized["selected_ranges_compare"] == ["[5000-10000km]"]
     assert normalized["selected_directions_compare"] == ["WNW", "NW"]
@@ -525,7 +540,11 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
         config_io,
         "st",
         SimpleNamespace(
-            session_state={"lang": "en", "val_analysis_direction": "rx"}
+            session_state={
+                "lang": "en",
+                "val_analysis_direction": "rx",
+                "val_results_segment_time_bin_absolute": "12h",
+            }
         ),
     )
 
@@ -550,6 +569,7 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
             "selected_ranges": "all",
             "selected_directions": "all",
             "show_zero_target": False,
+            "segment_evidence_time_bin": "12h",
             "station_evidence_time_bin": "3h",
             "selected_stations": None,
         }
@@ -743,6 +763,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
         val_results_selected_ranges_absolute=["[0-2500km]"],
         val_results_selected_directions_absolute=["N"],
         val_results_time_bin_compare="24h",
+        val_results_segment_time_bin_absolute="24h",
     )
 
     config_io.apply_config_state_values(normalized, session_state)
@@ -762,6 +783,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
     assert session_state.val_results_selected_directions_absolute == "all"
     assert session_state.val_results_time_bin_compare is None
     assert session_state.val_results_segment_time_bin_compare == "auto"
+    assert session_state.val_results_segment_time_bin_absolute == "auto"
     assert (
         session_state.val_results_station_temporal_view_compare
         == "chronological"

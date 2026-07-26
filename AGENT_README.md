@@ -188,14 +188,18 @@ respectively. Scheduled transmissions are paired by their planned starts; the
 unpublished fixed-bin prototype is not part of the public contract.
 
 `results_view` is divided into `success` and, when applicable, `compare`.
-It preserves each branch's Segment Inspector range/direction, selected-station
-chronological time bin, and station-selection intent. Explicit stations use
-canonical callsign/locator pairs, while `all` dynamically selects the complete
+It preserves each branch's Segment Inspector range/direction, segment temporal
+time bin, selected-station chronological time bin, and station-selection intent.
+Explicit stations use canonical callsign/locator pairs. Success permits zero or
+one selected identity; historical Success selections with several identities
+restore only the first valid identity in stored order, never substitute another
+station, and restore no selection if none remain valid. Compare continues to
+permit one or more identities, while `all` dynamically selects its complete
 reconstructed table under the saved visibility controls. Compare also preserves
-its selected temporal view, segment time bin, and `show_non_joint`; Success
-preserves `show_zero_target`. Table filters, Drill-Down filters, and other
-transient UI state remain outside the config contract. Optional non-core data
-belongs under `extensions` and is preserved across load and re-save.
+its selected temporal view and `show_non_joint`; Success preserves
+`show_zero_target`. Table filters, Drill-Down filters, and other transient UI
+state remain outside the config contract. Optional non-core data belongs under
+`extensions` and is preserved across load and re-save.
 
 `config/config_codec.py` owns document-envelope and current-version validation;
 `ui/config_io.py` owns semantic settings validation, Streamlit-state
@@ -385,9 +389,9 @@ application every six hours and on manual dispatch. Compilation is a syntax
 check, not a substitute for static analysis.
 
 To build a regression fixture from an exported demo folder, inspect and use
-`scripts/build_regression_fixture_from_demo_folder.py`. Do not treat
-`tests/demo/Vanhamel_rx_compare/` as a current regression fixture; it is a
-historical exported analysis package.
+`scripts/build_regression_fixture_from_demo_folder.py`. Folders placed under
+`tests/demo/` are export-intake inputs, not current regression fixtures; only
+generated packages under `tests/regression/fixtures/` are active fixtures.
 
 ## Cache and Operational State
 
@@ -474,8 +478,7 @@ request will rebuild missing query, basemap, or session artifacts.
   survive only when the hosting environment retains `.wspr_cache`.
 - Most dependencies are unpinned and there is no automated vulnerability or
   dependency audit workflow.
-- The committed historical demo export predates the current opportunity schema;
-  the scientific regression fixture is absent, so the fixture-integrity test is
+- The scientific regression fixture is absent, so the fixture-integrity test is
   skipped.
 - Browser-level end-to-end behavior and multi-process deployment behavior are
   not covered by the current pytest suite.

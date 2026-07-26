@@ -23,8 +23,6 @@ from pathlib import Path
 from typing import Any
 
 TOOL_VERSION = "0.2.0"
-DEFAULT_VENDOR_ID = 0x16C0
-DEFAULT_PRODUCT_ID = 0x05DF
 DEFAULT_CONFIG_FILE = "timed-ab-relay-switch.config.json"
 DEFAULT_LOG_FILE = "timed-ab-relay-switch.log"
 REPEAT_INTERVAL_OPTIONS = (4, 6, 10, 12, 20, 30, 60)

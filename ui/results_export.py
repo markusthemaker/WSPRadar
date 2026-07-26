@@ -30,6 +30,7 @@ from core.analysis_admission import AnalysisQueueFull, AnalysisQueueTimeout
 from core.export_admission import EXPORT_ADMISSION_GATE
 from core.fetch_models import DatabaseSource
 from core.matplotlib_runtime import matplotlib_operation_lock
+from core.map_data import validate_map_analysis_mode
 from core.opportunity_engine import OPPORTUNITY_MAP_EXPORT_COLUMNS
 from core.performance_timer import (
     log_performance_event,
@@ -53,7 +54,6 @@ from ui.result_state import (
     EXPORT_ZIP_FILENAME_KEY,
     EXPORT_ZIP_SIGNATURE_KEY,
     clear_prepared_result_state,
-    reset_result_state,
 )
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 
@@ -75,11 +75,6 @@ def _normalized_database_source(source_key) -> str:
 
 def _current_run_id():
     return st.session_state.get("run_id", 0)
-
-
-def reset_result_export_state():
-    """Compatibility wrapper clearing result state for a fresh analysis run."""
-    reset_result_state(st.session_state)
 
 
 def _clear_prepared_results():
@@ -211,21 +206,36 @@ def _restore_figure_style(snapshots):
             continue
 
 
-def figure_to_png_bytes(fig, dpi=300, paper_theme=True):
-    """Render a Matplotlib figure to high-resolution PNG bytes."""
+def figure_to_png_bytes(
+    fig,
+    dpi=300,
+    paper_theme=True,
+    *,
+    preserve_canvas_size=False,
+):
+    """Render a Matplotlib figure to high-resolution PNG bytes.
+
+    ``preserve_canvas_size`` disables tight cropping so paired preview and
+    export figures retain the same physical aspect ratio.
+    """
     with matplotlib_operation_lock():
         snapshots = _style_figure_for_paper(fig) if paper_theme else []
         try:
             buf = io.BytesIO()
-            fig.savefig(
-                buf,
-                format="png",
-                dpi=dpi,
-                facecolor="white" if paper_theme else fig.get_facecolor(),
-                edgecolor="none",
-                bbox_inches="tight",
-                pad_inches=0.15,
-            )
+            save_options = {
+                "format": "png",
+                "dpi": dpi,
+                "facecolor": "white" if paper_theme else fig.get_facecolor(),
+                "edgecolor": "none",
+            }
+            if not preserve_canvas_size:
+                save_options.update(
+                    {
+                        "bbox_inches": "tight",
+                        "pad_inches": 0.15,
+                    }
+                )
+            fig.savefig(buf, **save_options)
             return buf.getvalue()
         finally:
             _restore_figure_style(snapshots)
@@ -257,7 +267,7 @@ def register_map_export_context(
         ),
         "is_compare": bool(analysis["is_compare"]),
         "is_sequential": bool(analysis["is_sequential"]),
-        "analysis_kind": analysis.get("analysis_kind", "comparison"),
+        "analysis_kind": analysis["analysis_kind"],
         "success_method_version": analysis.get("absolute_method_version"),
         "decode_filter_mode": analysis.get("decode_filter_mode"),
         "database_source": _normalized_database_source(database_source),
@@ -294,15 +304,23 @@ def register_inspector_export(
     selected_directions=None,
     segment_figure_recipe=None,
     segment_temporal_evidence_figure_recipe=None,
+    segment_temporal_snr_deviation_figure_recipe=None,
     selected_evidence_figure_recipe=None,
+    selected_station_snr_evidence_figure_recipe=None,
+    selected_station_temporal_evidence_figure_recipe=None,
     station_insights_df=None,
     drilldown_selected_df=None,
     all_drilldown_context=None,
     reference_snr_header=None,
+    selected_station_label=None,
+    selected_station_context_label=None,
+    selected_station_role=None,
+    selected_evidence_figure_descriptions=None,
 ):
     """Register compact current inspector state for lazy high-resolution export."""
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis_id, {"analysis_id": analysis_id})
+    selected_station_count = len(selected_stations or [])
     block.update({
         "selected_segment": selected_segment,
         "selected_distance": selected_distance,
@@ -314,9 +332,32 @@ def register_inspector_export(
         "evidence_time_bin": evidence_time_bin,
         "segment_evidence_time_bin": segment_evidence_time_bin,
         "selected_stations": selected_stations or [],
+        "selected_station_label": selected_station_label,
+        "selected_station_context_label": selected_station_context_label,
+        "selected_station_count": selected_station_count,
+        "selected_station_role": selected_station_role,
+        "selected_evidence_weighting": (
+            "combined observation-weighted"
+            if selected_station_count > 1
+            else "single selected path"
+            if selected_station_count == 1
+            else None
+        ),
+        "selected_evidence_figure_descriptions": dict(
+            selected_evidence_figure_descriptions or {}
+        ),
         "segment_figure_recipe": segment_figure_recipe,
         "segment_temporal_evidence_figure_recipe": segment_temporal_evidence_figure_recipe,
+        "segment_temporal_snr_deviation_figure_recipe": (
+            segment_temporal_snr_deviation_figure_recipe
+        ),
         "selected_evidence_figure_recipe": selected_evidence_figure_recipe,
+        "selected_station_snr_evidence_figure_recipe": (
+            selected_station_snr_evidence_figure_recipe
+        ),
+        "selected_station_temporal_evidence_figure_recipe": (
+            selected_station_temporal_evidence_figure_recipe
+        ),
         "table_station_insights_current_segment.csv": station_insights_df.copy() if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_selected_stations.csv": drilldown_selected_df.copy() if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
         "all_drilldown_context": all_drilldown_context,
@@ -459,6 +500,26 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 "selected_ranges": block.get("selected_ranges", []),
                 "selected_directions": block.get("selected_directions", []),
                 "selected_stations": block.get("selected_stations", []),
+                "selected_station_label": block.get(
+                    "selected_station_label"
+                ),
+                "selected_station_context": block.get(
+                    "selected_station_context_label"
+                ),
+                "selected_station_count": block.get(
+                    "selected_station_count",
+                    len(block.get("selected_stations", [])),
+                ),
+                "selected_station_role": block.get(
+                    "selected_station_role"
+                ),
+                "selected_evidence_weighting": block.get(
+                    "selected_evidence_weighting"
+                ),
+                "selected_evidence_figures": block.get(
+                    "selected_evidence_figure_descriptions",
+                    {},
+                ),
                 "show_non_joint": block.get("show_non_joint"),
                 "show_zero_target": block.get("show_zero_target"),
                 "evidence_time_bin": block.get("evidence_time_bin"),
@@ -498,6 +559,22 @@ def _export_signature(blocks):
             "selected_ranges": block.get("selected_ranges", []),
             "selected_directions": block.get("selected_directions", []),
             "selected_stations": block.get("selected_stations", []),
+            "selected_station_label": block.get("selected_station_label"),
+            "selected_station_context": block.get(
+                "selected_station_context_label"
+            ),
+            "selected_station_count": block.get(
+                "selected_station_count",
+                len(block.get("selected_stations", [])),
+            ),
+            "selected_station_role": block.get("selected_station_role"),
+            "selected_evidence_weighting": block.get(
+                "selected_evidence_weighting"
+            ),
+            "selected_evidence_figures": block.get(
+                "selected_evidence_figure_descriptions",
+                {},
+            ),
             "show_non_joint": block.get("show_non_joint"),
             "show_zero_target": block.get("show_zero_target"),
             "evidence_time_bin": block.get("evidence_time_bin"),
@@ -564,14 +641,18 @@ def _project_existing_columns(columns, available_columns):
 def _map_export_read_columns(block, parquet_path):
     """Return the minimum raw-cache columns needed to reconstruct a map."""
     available_columns = _parquet_schema_columns(parquet_path)
-    analysis_kind = block.get("analysis_kind", "comparison")
-    is_compare = bool(block.get("is_compare"))
-    is_sequential = bool(block.get("is_sequential"))
+    analysis_kind = block["analysis_kind"]
+    is_compare = bool(block["is_compare"])
+    is_sequential = bool(block["is_sequential"])
+    is_opportunity = validate_map_analysis_mode(
+        analysis_kind=analysis_kind,
+        is_compare=is_compare,
+    )
 
-    if analysis_kind == "opportunity":
+    if is_opportunity:
         return _project_existing_columns(OPPORTUNITY_MAP_EXPORT_COLUMNS, available_columns)
 
-    if is_compare and is_sequential:
+    if is_sequential:
         return _project_existing_columns(
             [
                 "time",
@@ -588,31 +669,19 @@ def _map_export_read_columns(block, parquet_path):
             available_columns,
         )
 
-    if is_compare:
-        return _project_existing_columns(
-            [
-                "time_slot",
-                "peer_sign",
-                "peer_grid",
-                "peer_lat",
-                "peer_lon",
-                "snr_u_norm",
-                "snr_r_norm",
-                "has_u",
-                "has_r",
-                "best_ref_sign",
-                "best_ref_dist",
-            ],
-            available_columns,
-        )
-
     return _project_existing_columns(
         [
+            "time_slot",
             "peer_sign",
             "peer_grid",
             "peer_lat",
             "peer_lon",
-            "stat_val",
+            "snr_u_norm",
+            "snr_r_norm",
+            "has_u",
+            "has_r",
+            "best_ref_sign",
+            "best_ref_dist",
         ],
         available_columns,
     )
@@ -647,8 +716,8 @@ def _render_map_png_for_block(block):
     plot_result = generate_map_plot(
         df,
         block.get("title", ""),
-        block.get("is_compare", False),
-        block.get("is_sequential", False),
+        block["is_compare"],
+        block["is_sequential"],
         context["start_t"],
         context["end_t"],
         context["max_peer_distance_km"],
@@ -659,7 +728,7 @@ def _render_map_png_for_block(block):
         analysis_context=analysis_context,
         presentation_context=presentation_context,
         theme="light",
-        analysis_kind=block.get("analysis_kind", "comparison"),
+        analysis_kind=block["analysis_kind"],
     )
     if plot_result is None:
         return None
@@ -675,16 +744,45 @@ def _render_inspector_png_for_block(block, figure_name):
     from ui.plots.evidence_figures import (
         render_segment_insight_export_figure,
         render_segment_temporal_evidence_export_figure,
+        render_segment_temporal_snr_export_figure,
         render_selected_evidence_export_figure,
     )
+    selected_success_figure_names = {
+        "figure_selected_station_snr_evidence.png",
+        "figure_selected_station_temporal_evidence.png",
+    }
+    selected_success_recipes = {
+        "figure_selected_station_snr_evidence.png": block.get(
+            "selected_station_snr_evidence_figure_recipe"
+        ),
+        "figure_selected_station_temporal_evidence.png": block.get(
+            "selected_station_temporal_evidence_figure_recipe"
+        ),
+    }
+    if figure_name in selected_success_figure_names:
+        selected_success_recipe = selected_success_recipes[figure_name]
+        if selected_success_recipe is None:
+            return None
     if figure_name == "figure_segment_insight.png":
         fig = render_segment_insight_export_figure(block.get("segment_figure_recipe"))
     elif figure_name == "figure_segment_temporal_evidence.png":
         fig = render_segment_temporal_evidence_export_figure(
             block.get("segment_temporal_evidence_figure_recipe")
         )
+    elif figure_name == "figure_segment_temporal_snr_deviation.png":
+        fig = render_segment_temporal_snr_export_figure(
+            block.get("segment_temporal_snr_deviation_figure_recipe")
+        )
     elif figure_name == "figure_selected_station_evidence.png":
         fig = render_selected_evidence_export_figure(block.get("selected_evidence_figure_recipe"))
+    elif figure_name == "figure_selected_station_snr_evidence.png":
+        fig = render_segment_temporal_snr_export_figure(
+            selected_success_recipes[figure_name]
+        )
+    elif figure_name == "figure_selected_station_temporal_evidence.png":
+        fig = render_segment_temporal_evidence_export_figure(
+            selected_success_recipes[figure_name]
+        )
     else:
         return None
     if fig is None:
@@ -723,7 +821,6 @@ def _build_all_drilldown_for_block(block):
             context["km_col"],
             context["az_col"],
             context["analysis_id"],
-            context["is_compare"],
             context["is_sequential"],
             context["show_non_joint"],
             context["is_local_median"],
@@ -784,12 +881,27 @@ def build_results_zip():
                 if block.get("is_compare")
                 else 0.0
             )
-            for figure_name in [
+            figure_names = [
                 "figure_map_highres.png",
                 "figure_segment_insight.png",
                 "figure_segment_temporal_evidence.png",
-                "figure_selected_station_evidence.png",
-            ]:
+            ]
+            if folder == SUCCESS_EXPORT_FOLDER:
+                figure_names.insert(
+                    2,
+                    "figure_segment_temporal_snr_deviation.png",
+                )
+                figure_names.extend(
+                    [
+                        "figure_selected_station_snr_evidence.png",
+                        "figure_selected_station_temporal_evidence.png",
+                    ]
+                )
+            else:
+                figure_names.append(
+                    "figure_selected_station_evidence.png"
+                )
+            for figure_name in figure_names:
                 png_bytes = (
                     _render_map_png_for_block(block)
                     if figure_name == "figure_map_highres.png"

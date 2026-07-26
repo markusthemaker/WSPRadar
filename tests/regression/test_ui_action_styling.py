@@ -79,7 +79,17 @@ def test_result_hierarchy_uses_green_levels_and_responsive_fine_evidence_spine(
     assert "font-size: 0.88rem !important" in stylesheet
     assert ".result-scope-summary" in stylesheet
     assert "margin-top: 0.18rem !important" in stylesheet
-
+    statistics_selector = ".result-segment-statistics {"
+    statistics_start = stylesheet.index(statistics_selector)
+    statistics_end = stylesheet.index("}", statistics_start)
+    statistics_rule = stylesheet[statistics_start:statistics_end]
+    assert "margin: -0.25rem 0 1rem !important" in statistics_rule
+    assert "text-align: left !important" in statistics_rule
+    assert (
+        ".result-segment-statistics\n"
+        "        .result-scope-context.result-scope-context-data"
+        in stylesheet
+    )
     supporting_text_selectors = (
         ".result-evidence-level-subtitle",
         ".result-evidence-child-subtitle",
@@ -141,7 +151,6 @@ def test_guided_workflow_actions_share_key_scoped_green_emphasis(monkeypatch):
     assert app_source.count('key="load_selected_demo_configuration"') == 2
     assert 'key="reset_configuration"' in app_source
     assert "nth-child(5)" not in app_source
-    assert ".st-key-reset_configuration button" in app_source
     assert 'class="wspr-analysis-run-busy"' in app_source
 
     rendered_styles = []

@@ -80,11 +80,9 @@ Every run freezes one <strong class="defined-term">Direction</strong>, one exact
 
 Success, Delta SNR and Decode Outcomes answer different questions. WSPRadar keeps them separate so that a single attractive number cannot hide weak opportunity coverage, one-sided decodes or a paired subset that represents only part of the evidence.
 
-Results open on a map and can be followed through one evidence path:
+Results open on a map and then follow the same concise evidence path for Success and Compare: **Map → Segment Inspector → Station Insights → Drill-Down**.
 
-**Run identity -> Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**
-
-The map locates the observed pattern; it is the start of the analysis, not the conclusion. The Segment Inspector shows the evidence for a selected distance and direction. Station Insights shows which identities contribute. Drill-Down exposes the observations, same-cycle pairs or scheduled TX A/B pairs behind the summaries.
+The map locates the observed pattern; it is the start of the analysis, not the conclusion. The Segment Inspector defines the distance-and-direction scope inherited by the evidence sections and Station Insights. Station Insights shows which identities contribute. Selected Station Evidence and Drill-Down expose the station-specific views and the observations, same-cycle pairs or scheduled TX A/B pairs behind the summaries.
 
 A strong result is one in which the run definition, station breadth, observation volume, geographic and time pattern, and underlying rows are mutually consistent and support the same bounded interpretation. Repeating the same design across another suitable window can show whether that interpretation persists.
 
@@ -98,9 +96,7 @@ The quickest way to learn WSPRadar is to run a maintained demo before configurin
 
 For the first pass, leave the scientific controls unchanged. An unchanged loaded profile remains a guided demo. Editing a scientific control changes the experimental question and turns the profile into an ordinary analysis. A demo is a worked example of WSPRadar's method, not evidence about your own station.
 
-When the results open, follow the standard evidence path introduced above:
-
-**Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**
+When the results open, follow the evidence path introduced above. The Success Evidence, Comparison Evidence, Temporal Evidence and Selected Station Evidence sections remain available at their applicable points in that workflow.
 
 Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its active result is Compare, read [Section 2.2](#sec-3-3) before interpreting Delta SNR or Decode Outcomes. Then return to [Section 0.2](#sec-1-2), choose the experiment design that matches your station question, and configure your first station run.
 
@@ -133,7 +129,7 @@ Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its a
     * [2.1 Read a Success result](#sec-3-2)
     * [2.2 Read a Compare result](#sec-3-3)
     * [2.3 Use the map to locate the observed pattern](#sec-3-4)
-    * [2.4 Check Stations and Spots](#sec-3-5)
+    * [2.4 Check map support counts](#sec-3-5)
     * [2.5a Inspect a Geographic Segment (Success Mode)](#sec-3-6a)
     * [2.5b Inspect a Geographic Segment (Compare Mode)](#sec-3-6b)
     * [2.6a Inspect the Contributing Stations (Success Mode)](#sec-3-7a)
@@ -537,13 +533,15 @@ Exact local-pool membership and aggregation rules are in [Sections 7.2](#sec-7-2
 
 Read every run through the same evidence ladder:
 
-**Map -> Stations and Spots -> Segment Inspector -> Station Insights -> Drill-Down**
+* **Success:** Map → Segment Inspector → Station Insights → Drill-Down.
+* **Compare:** Map → Segment Inspector → Station Insights → Drill-Down.
 
 * Confirm the result and run definition.
 * Use the map to locate the observed pattern.
 * Select the relevant distance and direction for further inspection in Segment Inspector.
+* Read the applicable evidence figures for breadth, depth, weighting and time pattern.
 * Inspect station-level evidence in Station Insights.
-* Drill down to observation-level evidence.
+* Inspect selected stations, then drill down to row-level evidence.
 
 The exact formulas, matching rules and processing hierarchy are in [Scientific Methods](#sec-7).
 
@@ -558,12 +556,13 @@ Success is the non-comparative Target result. Think of Success Rate as <strong c
 * **RX Success:** of the remote transmitter-cycles independently confirmed by another receiver, how many did the Target receiver also decode?
 * **TX Success:** of the active remote receiver-cycles confirmed by other same-band decodes, how many also decoded the Target transmitter?
 
-WSPRadar uses four user-facing classifications:
+WSPRadar uses one direction-specific plain-language vocabulary throughout the visible Success result:
 
-* <strong class="defined-term">Target:</strong> the Target succeeded and the required independent confirmation also exists.
-* <strong class="defined-term">Elsewhere:</strong> in RX, another receiver decoded the transmitter but the Target did not.
-* <strong class="defined-term">Other Signals:</strong> in TX, the receiver decoded other same-band signals but did not decode the Target.
-* <strong class="defined-term">Target-only:</strong> the Target was decoded without the independent confirmation required by the denominator. It remains available for audit but does not enter Success Rate.
+* **RX:** <strong class="defined-term">Heard by Target</strong> means that the Target receiver decoded the remote transmitter in a confirmed opportunity; <strong class="defined-term">Heard by others only</strong> means that another eligible receiver decoded it but the Target did not. At station level, the same labels mean that a qualifying remote TX station was heard by the Target at least once or was heard only by other receivers during the run.
+* **TX:** <strong class="defined-term">Target heard</strong> means that the active remote RX station decoded the Target transmitter; <strong class="defined-term">Other signals heard only</strong> means that it decoded another qualifying same-band signal but not the Target. At station level, the same labels mean that a qualifying remote RX station heard the Target at least once or heard only other signals during the run.
+* **Audit-only evidence:** RX displays <strong class="defined-term">Heard by Target without independent confirmation</strong>; TX displays <strong class="defined-term">Target heard without independent RX-activity confirmation</strong>. These rows remain auditable but do not enter Success Rate.
+
+The novice-facing formulas therefore read `Heard by Target / (Heard by Target + Heard by others only)` for RX and `Target heard / (Target heard + Other signals heard only)` for TX. [Section 7.4](#sec-7-4) maps this presentation vocabulary to the canonical scientific and export terms without changing the calculation.
 
 For example, if a remote transmitter was independently confirmed in eight qualifying cycles and the Target receiver decoded it in three, that peer's RX Success Rate is `3 of 8 = 37.5%`. If an active receiver produced ten qualifying cycles and decoded the Target transmitter in four, its TX Success Rate is `4 of 10 = 40%`.
 
@@ -580,7 +579,7 @@ Each peer rate is calculated first. A Success map segment then gives every quali
 
 Success Rate is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 30 dBm.
 
-A displayed `100%` means that the Target succeeded in every qualifying opportunity for the station or selected scope. It does not mean that every possible or scheduled transmission was decoded. Because Success starts from a demanding, globally sourced opportunity population and then applies the configured geographic analysis scope, its practical meaning comes from geography, Stations, Spots, time and repetition rather than proximity to `100%`.
+A displayed `100%` means that the Target succeeded in every qualifying opportunity for the station or selected scope. It does not mean that every possible or scheduled transmission was decoded. Because Success starts from a demanding, globally sourced opportunity population and then applies the configured geographic analysis scope, its practical meaning comes from geography, qualifying stations, confirmed opportunities, time and repetition rather than proximity to `100%`.
 
 <a id="sec-3-3"></a>
 
@@ -630,12 +629,14 @@ A <strong class="defined-term">median</strong> is the middle value after sorting
 
 The Compare map uses a symmetric stepped dB color scale: plum-to-mint sectors have negative Delta SNR and favor the Reference, while yellow-to-chestnut sectors have positive Delta SNR and favor the Target. Light yellow-green marks the display-neutral interval centered on `0 dB`, and its width matches the active color step; for example, a `3 dB` scale uses `-1.5 dB` through `+1.5 dB`. Only exactly `0 dB` means equality, so the numerical value remains authoritative even inside the display-neutral color. The scale uses the finest readable step, expands symmetrically only as far as needed to contain the displayed station-balanced segment medians and never narrows below `-6 dB` to `+6 dB`. No fixed headroom is added; the outer half-bin provides the natural margin around the extreme value. Because its limits and step sizes can differ between runs, compare maps by their numerical color-bar values rather than by color alone.
 
-**Station categories**
+**Station markers, segment status and footer categories**
 
 Read the category label as well as its color:
 
-* Success: Target evidence is shown by `T` markers in green. Qualifying zero-Target peers are shown as `E` for Elsewhere or `OS` for Other Signals in grey.
+* Success: sector fill is the only quantitative color layer and shows the station-balanced Success Rate for the distance-and-direction segment. For RX, a small solid dark-green marker means `Heard by Target` and a small solid light-grey marker means `Heard by others only`. For TX, the corresponding labels are `Target heard` and `Other signals heard only`. All visible station markers use one fixed size and encode neither individual Success Rate nor evidence depth. Where identities share plotted coordinates, dark-green markers are drawn above light-grey markers; one visible location can still represent multiple `callsign + locator` identities.
 * Compare: Joint is green, Both (Async) is yellow-orange, Only Target is purple and Only Reference is white.
+
+A valid Success sector at `0%` remains on the Success Rate scale. `Insufficient evidence` is a different state: the sector does not meet the configured qualifying-evidence requirements and remains unfilled so the neutral base map shows through outside that scale. Insufficient evidence must not be read as measured `0%` Success.
 
 **Distance rings**
 
@@ -645,16 +646,16 @@ Map color locates the observed pattern. The following evidence levels show how b
 
 <a id="sec-3-5"></a>
 
-#### 2.4 Check Stations and Spots
+#### 2.4 Check map support counts
 
-* <strong class="defined-term">STATIONS</strong> describes footprint breadth across distinct qualifying `callsign + locator` identities.
-* <strong class="defined-term">SPOTS</strong> describes qualifying observation volume.
+* On Success maps, the upper <strong class="defined-term">OPPORTUNITIES</strong> row describes denominator depth as `Heard by Target` plus `Heard by others only` for RX or `Target heard` plus `Other signals heard only` for TX. The lower <strong class="defined-term">STATIONS</strong> row uses the same two direction-specific labels to describe footprint breadth across distinct qualifying `callsign + locator` identities.
+* On Compare maps, <strong class="defined-term">SPOTS</strong> or <strong class="defined-term">PAIRS</strong> describes qualifying observation or scheduled-pair volume.
 
-For Compare, both rows are divided into Only Target, Joint, Both (Async) and Only Reference. Station categories assign each identity to one main category. Spot categories count evidence volume, including exclusive observations associated with identities that also have joint evidence.
+For Compare, both rows are divided into Only Target, Joint, Both (Async) and Only Reference. Station categories assign each identity to one main category. Spot or pair categories count evidence volume, including exclusive observations associated with identities that also have joint evidence.
 
-For Success, `SPOTS` divides denominator evidence into Target and Elsewhere for RX, or Target and Other Signals for TX. `STATIONS` divides qualifying identities into peers with at least one Target observation and peers with counter-evidence only. Target-only and ineligible evidence are excluded because they do not enter Success Rate.
+For RX Success, both footer rows use `Heard by Target` and `Heard by others only`; the row heading distinguishes individual confirmed opportunities from qualifying TX-station identities. For TX Success, both rows use `Target heard` and `Other signals heard only`, with the same opportunity-versus-station distinction. Exact counts appear inside segments when they fit; narrow segments follow the compact Compare-footer behavior and omit overlapping count text. Evidence without the independent confirmation required for the denominator and ineligible evidence are excluded because they do not enter Success Rate.
 
-Footer counts follow the retained geographic analysis scope. A large number of Spots from only a few Stations means repeated evidence from a narrow identity base. Many Stations show wider identity and geographic participation.
+Footer counts follow the retained geographic analysis scope. Many confirmed opportunities, spots or pairs from only a few Stations mean repeated evidence from a narrow identity base. Many Stations show wider identity and geographic participation.
 
 Within result grouping, a reported callsign plus its full reported locator is an analysis identity, not proof of one unique physical station. Selected Target and Reference query matching follows the mode-specific rules in [Section 7.2](#sec-7-2). Suffixes, stale locators and locator changes can split or move a physical station in the evidence.
 
@@ -665,15 +666,21 @@ Within result grouping, a reported callsign plus its full reported locator is an
 
 Use `Segment Inspector` to select one or more distance ranges and compass directions. This opens the evidence behind the corresponding map area. Inspector selections can narrow the completed run's geographic analysis scope, but they cannot widen it or restore peer rows excluded by the maximum-distance control.
 
-**Target and counter-evidence.** Target and Elsewhere/Other-Signals counts show the observations entering the selected segment's Success denominator.
+The scope summary separates station breadth from confirmed-opportunity depth. The `Stations` line shows the mode-specific station groups—`Heard by Target` and `Heard by others only` for RX, `Target heard` and `Other signals heard only` for TX—and a `Success Rate`. This is the Station-balanced Success Rate: every qualifying station receives one vote through its own Success Rate. The station-group counts describe at-least-once reach and therefore do not form that rate's arithmetic numerator and denominator. The `Opportunities` line uses the same direction-specific outcome labels and shows the Observation-level Success Rate, for which every confirmed opportunity receives one vote. Its displayed counts do form that rate's numerator and denominator. The two lines can consequently show different Success Rates when evidence volume differs among stations.
 
-**Average by Station** gives every qualifying peer one equal vote and matches the map value. **Observation-Level** pools all qualifying observations. When the two differ, high-volume peers are influencing the pooled result differently from the typical peer.
+After selecting distance ranges and directions, WSPRadar rebuilds every following Success view from the full qualifying station population in that active scope. Station Insights filters, sorting, the direction-specific `Show Heard by others only stations` or `Show Other signals heard only stations` control, and row selections do not alter these segment-level figures.
 
-**Station Success Rate by Evidence Count** plots one station with Target evidence at each point. The vertical position is its Success Rate; the horizontal base-2 log axis is its `Target + counter-evidence` count. Upper-right points combine a high rate with repeated evidence. Left-side points show where relatively little evidence can produce an extreme percentage.
+The left panel asks whether a qualifying radio path succeeded at least once during the selected interval. In RX, **TX Stations Heard by Target at Least Once by Distance** shows the proportion of qualifying transmitters heard by the Target receiver. In TX, **RX Stations Hearing the Target at Least Once by Distance** shows the proportion of qualifying active receivers that heard the Target transmitter. Because one success is sufficient, this reach measure normally increases with a longer measurement interval. It is a breadth measure, not a reliability measure.
 
-Zero-Target stations are omitted from that scatter plot because they would all appear at `0%`. They remain in map counts, temporal evidence and Station Insights when `Show Zero-Target` is enabled.
+The center panel is **RX Success Rate by TX-Station Distance** or **TX Success Rate by RX-Station Distance**. It asks how reliably the Target succeeded among all confirmed opportunities. The station-balanced line gives every station one vote. The observation-level line gives every opportunity one vote. Their difference shows whether high-volume stations behave differently from the wider station population. High at-least-once reach with low Success Rate means many paths opened at least once but were intermittent; low reach with high Success Rate means fewer paths opened, but those paths were comparatively reliable.
 
-**Success over time** shows station-balanced and Observation-Level panels. Similar patterns indicate that evidence volume is not changing the story substantially. Divergence shows where busy peers or intervals affect the pooled rate. Empty cells mean no qualifying evidence, not a measured `0%`.
+The right panel is **Successful Target SNR by TX-Station Distance** for RX or **Successful Target SNR by RX-Station Distance** for TX. It describes only successful Target outcomes. WSPRadar first gives each station one median successful SNR, then summarizes those station medians within the same exact-distance bins using their median and spread. This prevents a frequently reporting station from dominating the distance profile. A missed signal has no Target SNR and cannot appear in this panel. Read this with Success Rate: a rising successful SNR while Success Rate falls can mean that weaker signals disappeared below the decode threshold, leaving only stronger successful survivors.
+
+All three panels use the same deterministic bins of exact, unrounded calculated distance from the Target QTH rather than the map's coarse distance ranges. Empty bins and gaps between disjoint selected ranges remain missing evidence, not measured `0%`. The underlying bin aggregates retain qualifying-station, station-status, confirmed-opportunity, Target, counter-evidence and successful-SNR-station counts for scientific traceability, but the figure does not draw a support-count strip. Calculated distance inherits the precision of the reported Maidenhead locator; Grid-4 is not survey-grade positioning.
+
+**Temporal Evidence** separates the same active geographic scope into two vertically aligned figures. For RX, their main titles are **RX Success Temporal SNR Evidence: Target {callsign}** and **RX Success Temporal Evidence: Target {callsign}**; TX uses the corresponding **TX Success** titles, and both append the active scope. The upper figure keeps **Successful RX SNR Deviation over Time/by UTC Hour** for RX or **Successful TX SNR Deviation over Time/by UTC Hour** for TX. Each contributing TX station in RX, or RX station in TX, is centered on its own run median; the dashed `0 dB` line is therefore that station's typical successful level, and the median line summarizes stations, or stations and dates in the folded view. Each station with at least three successful Target SNR observations uses its median successful SNR over the complete selected UTC window as its baseline. Positive values mean successful signals were stronger than usual for their respective paths; negative values mean they were weaker. Stations below that SNR threshold remain fully included in the lower 2×2 figure. Across that lower figure, the shared column headers are **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h bins)**. The folded station row adds **Average contributing station presences per represented UTC date**, and the folded opportunity row adds **Average confirmed opportunities per represented UTC date**. The station-balanced upper row keeps the short **TX Stations** or **RX Stations** y-axis title in both columns. In each chronological bin, every contributing qualifying station gives one total vote split between `Heard by Target` and `Heard by others only` for RX or `Target heard` and `Other signals heard only` for TX according to that station's own within-bin outcome ratio; the right-axis line is the station-balanced Success Rate. In each folded UTC-hour bin, total station-bar height is the average number of distinct station-date-hour presences over represented dates whose hour overlaps the selected analysis window. A station can count once on each represented date, and a represented date-hour with no evidence remains in the denominator with zero support. The green/grey components are a rate-partitioned support display: they allocate that average support using the unchanged folded station-balanced Success Rate, formed by first pooling each station's outcomes at that UTC hour across represented dates and then giving every distinct station one equal rate vote. The components therefore reproduce the rate line but are neither averages of station-date split votes nor direct counts of successful or counter-only stations per date. The lower row keeps the short **Opportunities** y-axis title in both columns. It counts every confirmed opportunity once chronologically and averages those outcome counts over the same represented dates when folded; the right-axis line is the unchanged observation-level Success Rate. One shared legend below the lower figure title identifies the green successful outcome, grey counter outcome and Success Rate line. All four right axes use one zero-based Success Rate scale with rounded headroom, while the left support axes scale independently. Chronological panels preserve the actual run sequence at the chosen `1 h`, `2 h`, `3 h`, `6 h`, `12 h` or `24 h` aggregation. Chronological `1 h` bars whose bins are anchored to UTC-hour boundaries are directly comparable in units with the folded averages; wider chronological bins are not directly comparable by height. UTC-hour panels use fixed one-hour bins. The single `N UTC dates folded` annotation reports the global number of represented dates, while each hour excludes dates whose slot lies outside the selected window. A represented date-hour inside the window remains in the denominator with zero when it has no evidence. A first or last UTC-hour slot that only partly overlaps the window still counts as one represented slot rather than being weighted by its exposure fraction, so a boundary-hour mean can be depressed. Folding requires at least two UTC dates; otherwise the chronological column expands and the localized unavailable message is shown. Empty or sparse rate bins are missing or thin evidence, not failures.
+
+Read Peer Reach, the exact Segment Inspector rates, both green/grey temporal stacks and their right-axis Success Rate lines, successful SNR and their station/opportunity support together. Agreement across supported distance bins, stations, opportunities and recurring time bins is stronger descriptive evidence than one pooled count or one temporal spike. Successful-SNR censoring remains possible because missed signals have no Target SNR. These views still do not establish independence, calibration, propagation mode or physical cause.
 
 <a id="sec-3-6b"></a>
 
@@ -696,9 +703,9 @@ The UI term `Joint Spot` means a consolidated same-cycle comparison unit, not ne
 
 #### 2.6a Inspect the Contributing Stations (Success Mode)
 
-`Station Insights` lists the `callsign + locator` identities contributing to the selected segment. Success rows show Target and Elsewhere or Other Signals evidence, Success Rate, and median successful Target SNR normalized to 30 dBm. Read each rate together with its Target and counter-evidence counts; use `Show Zero-Target` to restore qualifying stations without Target evidence.
+`Station Insights` lists the `callsign + locator` identities contributing to the selected segment. RX columns identify the `TX Station`, `Locator`, `km` and `Azimuth`, followed by `Heard by Target`, `Heard by others only`, `Confirmed opportunities`, `Success Rate (%)` and `Median successful Target SNR (dB @ 30 dBm)`. TX uses `RX Station`, `Target heard` and `Other signals heard only` with the same remaining columns. Read every rate together with both outcome counts and confirmed-opportunity depth. Use `Show Heard by others only stations` in RX or `Show Other signals heard only stations` in TX to restore qualifying counter-only stations.
 
-Select one or multiple stations to open the selected station evidence view. Below `Station Insights`, the chronological panel shows Success Rate and Target/counter-evidence over time across night, greyline/mixed and daylight path classes, next to the successful Target-SNR distribution. If multiple stations are selected, their aggregated evidence is visualized together.
+Select exactly one station row to open `Selected Station Evidence`. Selecting another row replaces the current station, and clearing the row hides the section; Compare continues to allow one or more selected stations. A compact context line identifies the selected `callsign + locator` path and its complete-run geometry, confirmed-opportunity depth, Success Rate and median successful Target SNR. The established independent time-bin selector is followed by two full-width figures that reuse the Segment Inspector temporal system. **Selected Station SNR Evidence** shows the path's actual normalized successful Target SNR: the chronological density uses every retained successful observation and its bin median, while the folded UTC-hour panel first forms one median per represented date-hour and then summarizes those medians across dates. **Selected Station Temporal Evidence** separates station presence from opportunity depth with the same direction-aware outcomes and Success Rate lines as the segment view. Folded UTC-hour panels require at least two represented UTC dates; otherwise the chronological panels expand and the unavailable-view message is shown. Selection changes use retained evidence and do not rerun the provider query.
 
 <a id="sec-3-7b"></a>
 
@@ -712,7 +719,8 @@ Select one or multiple stations to open the selected station evidence view. `Sta
 
 `Drill-Down` is the row-level audit surface:
 
-* Success exposes target-active peer-cycle classifications, including Target-only.
+* RX Success displays `Heard by Target`, `Heard by others only` and `Heard by Target without independent confirmation`.
+* TX Success displays `Target heard`, `Other signals heard only` and `Target heard without independent RX-activity confirmation`.
 * Same-cycle Compare exposes Target/Reference evidence and Delta SNR from the shared cycle.
 * Local Median Neighborhood expands the local Reference identities behind the cycle median.
 * Sequential TX A/B exposes the planned UTC pair, `Target Micro-Median`, `Reference Micro-Median` and Pair Delta.
@@ -750,11 +758,11 @@ A strong WSPRadar result combines a clear experiment, broad evidence and languag
 Judge the result from the complete evidence picture:
 
 * participating station identities;
-* qualifying spot or scheduled-pair volume;
+* qualifying confirmed-opportunity, spot or scheduled-pair volume;
 * agreement across stations;
 * station-balanced and observation-level summaries;
 * adjacent geographic segments;
-* time and path-illumination views;
+* temporal views;
 * Decode Outcomes;
 * identity and locator quality;
 * experiment control and repetition.
@@ -795,7 +803,7 @@ A minimum operator statement identifies the Target and, for Compare where applic
 A full technical report also states:
 
 * station-balanced and observation-level values where both apply;
-* Stations and Spots or joint-station and joint-spot/pair counts;
+* qualifying-station and confirmed-opportunity counts for Success, or joint-station and joint-spot/pair counts for Compare;
 * Decode Outcomes for Compare;
 * experiment conditions and any Reference correction;
 * filters and evidence thresholds;
@@ -804,7 +812,7 @@ A full technical report also states:
 
 **Success wording**
 
-> For this Target, band, UTC window and selected peer population, the displayed Success Rate describes the fraction of independently confirmed opportunities in which the Target also produced qualifying evidence. The Stations, Spots, geographic scope and time views describe the breadth and repetition supporting that result.
+> For this Target, band, UTC window and selected peer population, the displayed Success Rate describes the fraction of independently confirmed opportunities in which the Target also produced qualifying evidence. Qualifying stations, confirmed opportunities, geographic scope and temporal views describe the breadth, depth and recurrence supporting that result.
 
 **Compare wording**
 
@@ -859,7 +867,7 @@ WSPRadar separates controls that change the scientific analysis from controls th
 | Control class | What it changes | Configuration and reproducibility |
 |---|---|---|
 | **Scientific controls** | Query population, pairing, classification, normalization, eligibility or aggregation. These include direction, identity, band, time, benchmark, correction, solar filter, geographic analysis scope, exclusion filters and evidence thresholds. | Saved when applicable and recorded in the export package. Changing one clears the completed result so the analysis can be rerun with the new definition. |
-| **View controls** | Which completed evidence is displayed or inspected, without changing the retained analysis population. These include selected Inspector segment, selected stations, unpaired-evidence or zero-Target visibility, temporal view and evidence time bin. | Segment Inspector range/direction and the applicable durable Compare/Success result-view choices are saved. Inspector choices can narrow the completed geographic scope but cannot override it. Table filters and other incidental interactions remain transient. |
+| **View controls** | Which completed evidence is displayed or inspected, without changing the retained analysis population. These include selected Inspector segment, selected stations, unpaired-evidence or counter-only Success-station visibility, temporal view and evidence time bin. | Segment Inspector range/direction and the applicable durable Compare/Success result-view choices are saved. Inspector choices can narrow the completed geographic scope but cannot override it. Table filters and other incidental interactions remain transient. |
 | **Transient UI state** | Panel expansion, table and Drill-Down filters, documentation visibility, prepared download bytes and other incidental session interaction state. | Not part of the scientific configuration and normally not serialized. |
 | **Configuration fields preserved for reproducibility** | The applicable scientific branch plus explicitly supported durable view settings. | Stored in the versioned `.config`. Inactive hidden branches are omitted instead of being preserved as dormant values. |
 
@@ -989,7 +997,7 @@ Use this control according to the question:
 - **Choices:** `All 24h`, `Daylight (Elev > +6°)`, `Nighttime (Elev < -6°)`, `Greyline (-6° to +6°)`
 - **Applies to:** all results
 - **Effect:** keeps cycles classified by solar elevation at the Target QTH.
-- **Change this when:** the scientific question is specifically about one local illumination state. This is different from the path-illumination classes shown in Success evidence.
+- **Change this when:** the scientific question is specifically about one local illumination state.
 
 **`Maximum peer distance from Target (km)`**
 
@@ -1024,7 +1032,7 @@ The Compare joint threshold also suppresses exclusive categories whose own count
 - **Default:** `5`
 - **Range:** 1 to 100
 - **Applies to:** Success
-- **Effect:** requires this many Target+Elsewhere RX or Target+Other Signals TX observations before a peer contributes.
+- **Effect:** requires this many `Heard by Target` plus `Heard by others only` RX outcomes, or `Target heard` plus `Other signals heard only` TX outcomes, before a peer contributes.
 - **Change this when:** you want a different evidence floor.
 
 Lowering this threshold increases map coverage, but station rates become more discrete when supported by only one or two qualifying opportunities. Values such as `0%`, `50%` or `100%` can then represent very little evidence. Read the count beside the rate and strengthen a small sample with a longer or repeated run.
@@ -1044,13 +1052,14 @@ Lowering this threshold increases map coverage, but station rates become more di
 These controls work with completed evidence and do not rerun the upstream query unless explicitly stated otherwise.
 
 - Segment range and direction selectors change the inspected scope. Compare and Success selections are saved independently.
-- `Show Zero-Target` restores qualifying Success identities with zero Target confirmations. Its setting is saved for Success.
+- `Show Heard by others only stations` in RX or `Show Other signals heard only stations` in TX restores qualifying counter-only Success identities. Its setting is saved for Success.
 - `Include Unpaired Evidence` includes Compare identities represented only by exclusive or asynchronous evidence. Its durable value is saved when Compare applies.
-- Station selection changes the selected-station figures and selected Drill-Down. Compare and Success selections are saved independently as exact `callsign + locator` identities. Selecting every station stores an all-stations intent instead of enumerating the current table; with a moving `Last X Hours` window, the reconstructed membership can therefore change with the evidence. A loaded explicit identity absent from the current segment scope remains unselected with a notice rather than being replaced; its saved identity is retained until you make a new table selection, so changing the segment scope can still make it available.
-- The selected-station time-bin control changes only its chronological timeline. The applicable Compare and Success/absolute values are saved.
+- Station selection changes the selected-station figures and selected Drill-Down. Success saves zero or one exact `callsign + locator` identity; selecting another row replaces the current identity. When historical Success state contains several identities, restoration retains the first valid identity in stored order, discards the additional identities, never substitutes a different station and restores no selection if none remain valid. Compare selection remains independent and may contain one or more exact identities. Selecting every Compare station stores an all-stations intent instead of enumerating the current table; with a moving `Last X Hours` window, the reconstructed membership can therefore change with the evidence. A loaded explicit Compare identity absent from the current segment scope remains unselected with a notice rather than being replaced; its saved identity is retained until you make a new table selection, so changing the segment scope can still make it available.
+- For every selected Success station, the prompt `↓ Select time aggregation bin size:` changes the chronological panels in **Selected Station SNR Evidence** and **Selected Station Temporal Evidence**. Their folded UTC-hour panels remain fixed at one-hour bins. A supported saved Success bin remains selected when the station identity changes, remains independent from the Segment Inspector temporal bin and never reruns the completed provider analysis. Compare retains its independent selected-station bin.
 - The Selected Compare view group selects `Chronological` or `UTC-Hour`. `UTC-Hour` uses fixed one-hour slots and neither changes nor overwrites the saved chronological bin. The selected view is stored in `.config`.
-- `Time aggregation bin size:` appears under `Temporal Evidence` immediately before the Segment Compare bin choices. The available choices adapt to the run duration, including minute bins for shorter windows and hour bins for longer windows. The control changes only the left segment-level temporal panel; it does not change the date-folded UTC-hour panel, the selected-station timeline, pairing or analysis. Its selected bin is stored independently in `.config`.
-- Empty Success time bins remain blank; they are not converted to zero-rate evidence.
+- For Compare, the prompt `↓ Select time aggregation bin size` appears under `Temporal Evidence` immediately above the segment bin choices. The available choices adapt to the run duration, including minute bins for shorter windows and hour bins for longer windows. The control changes only the left segment-level temporal panel; it does not change the date-folded UTC-hour panel, the selected-station timeline, pairing or analysis. Its selected bin is stored independently in `.config`.
+- For Success, the prompt `↓ Select time aggregation bin size` appears immediately above the `1 h`, `2 h`, `3 h`, `6 h`, `12 h` and `24 h` choices under `Temporal Evidence`. This segment-level control changes only the chronological segment panel. The folded UTC-hour panel remains fixed at one-hour bins, and neither view changes the completed analysis or the independent selected-station timeline.
+- Empty Success time or distance bins remain blank; they are not converted to zero-rate evidence.
 - `Prepare All Results for Download` exports the current result and inspector selections. Package contents are documented in [the export and reproducibility section](#sec-8-4).
 
 <a id="sec-6"></a>
@@ -1093,7 +1102,7 @@ If evidence exists but looks unexpected, continue with these branches:
 
 | Symptom | Next checks |
 |---|---|
-| **Many Target-only Success rows** | Target evidence exists without the independent confirmation required by the denominator. The rows remain auditable but do not enter Success Rate. |
+| **Many Success rows without independent confirmation** | RX labels these rows `Heard by Target without independent confirmation`; TX labels them `Target heard without independent RX-activity confirmation`. They remain auditable but do not enter Success Rate. |
 | **`Only Reference = 0`** | Confirm Target-Active gating, evidence thresholds and selected scope; zero can be correct after those rules. |
 | **Unexpected Hardware A/B Delta SNR sign** | Verify physical A/B mapping, Target/Reference order, schedule phases, correction sign, actual and reported power, and calibration notes. Reconcile one station in Drill-Down. |
 | **Local result changes with radius** | Confirm QTH and radius, then inspect contributing local `callsign + locator` identities. Report useful radius sensitivity instead of selecting only the most favorable run. |
@@ -1330,7 +1339,9 @@ For each Target-active peer-cycle, WSPRadar records Target evidence and independ
 * **RX external evidence:** a different receiver reported the same transmitter identity in the same cycle.
 * **TX external evidence:** the peer receiver reported a non-Target same-band transmitter in the same cycle.
 
-Target requires both Target and external evidence. Elsewhere / Other Signals requires external evidence without Target. Target-only means Target evidence exists without external evidence and is excluded from the denominator.
+The canonical scientific and compatibility terms remain `Target`, `Elsewhere`, `Other Signals` and `Target-only`. Canonical `Target` requires both Target and external evidence. In RX, canonical `Elsewhere` means external evidence without Target; in TX, canonical `Other Signals` means external evidence without Target. Canonical `Target-only` means Target evidence exists without external evidence and is excluded from the denominator.
+
+The visible Success page maps those unchanged categories to direction-aware plain language. RX displays canonical `Target` as `Heard by Target`, canonical `Elsewhere` as `Heard by others only`, and Target-only audit rows as `Heard by Target without independent confirmation`. TX displays canonical `Target` as `Target heard`, canonical `Other Signals` as `Other signals heard only`, and Target-only audit rows as `Target heard without independent RX-activity confirmation`. This mapping is presentation-only: it changes interpretation clarity, not classification, formulas, stored fields or compatibility exports.
 
 $$\text{Success Rate}_{RX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Elsewhere}}$$
 
@@ -1375,7 +1386,7 @@ This separation matters because paired-only Delta SNR analysis has survivorship 
 
 Decode Outcomes are not power-normalized. An exclusive TX observation has no missing-side SNR to reconstruct. Unequal transmit powers can therefore dominate exclusive TX evidence even when joint Delta SNR is normalized.
 
-Compare map `STATIONS` categories assign identities; `SPOTS` categories count evidence volume. Success map bars use the same two levels but align them with the Success denominator. A `Joint Spot` is a consolidated same-cycle comparison unit, not necessarily one untouched database row.
+Compare map `STATIONS` categories assign identities; `SPOTS` categories count evidence volume. Success map bars place `OPPORTUNITIES` above `STATIONS` and use the same direction-specific display labels in both rows. The upper row counts canonical Target and counter-evidence outcomes in the Success denominator; the lower row assigns qualifying RX identities to `Heard by Target` or `Heard by others only` and qualifying TX identities to `Target heard` or `Other signals heard only`. A `Joint Spot` is a consolidated same-cycle comparison unit, not necessarily one untouched database row.
 
 <a id="sec-7-7"></a>
 #### 7.7 Aggregation hierarchy
@@ -1441,7 +1452,17 @@ Compare temporal heatmaps first count evidence in cells formed by UTC-time, or f
 
 $$D_{relative} = 100 \times \frac{n_{cell}}{\max(n_{cell,panel})}$$
 
-The densest occupied cell is therefore `100`, proportional occupied cells lie between `0` and `100`, and empty cells remain blank. This is a percentage of that panel's maximum cell count, not a percentage of all evidence. Values and colors therefore do not provide absolute-count comparability between separately normalized panels. Segment-level and selected-station Compare timelines use this rule; Success timelines retain their documented Success-rate and count semantics.
+The densest occupied cell is therefore `100`, proportional occupied cells lie between `0` and `100`, and empty cells remain blank. This is a percentage of that panel's maximum cell count, not a percentage of all evidence. Values and colors therefore do not provide absolute-count comparability between separately normalized panels. Segment-level and selected-station Compare timelines use this rule. The separate successful-SNR-deviation figure in Success Temporal SNR Evidence uses the same per-panel relative-density normalization. Its companion Temporal Evidence figure instead uses independent left support axes for chronological station votes and opportunity counts or folded per-date average station presence and opportunity counts, green and grey outcome stacks, and a Success Rate line on the right of every panel. The four right axes share one scale within a run; the left axes scale independently.
+
+Success Evidence starts from the full qualifying station population in the active Segment Inspector scope, independently of Station Insights filters, sorting, counter-only-station visibility or selected rows. It groups stations by their exact unrounded calculated distance from the Target QTH, not by the map's coarse distance label. The shared deterministic width is selected from `125`, `250`, `500` or `1,000 km` according to the selected distance span; edges remain anchored at integer multiples from `0 km`, the final selected upper boundary is included, and changing only direction does not change the bins. Disjoint selected ranges retain visible gaps. Distance comes from reported Maidenhead locators, so the displayed numerical grouping inherits their precision; Grid-4 is not survey-grade positioning.
+
+Within each exact-distance bin, Peer Reach is `100 × stations with at least one Target outcome / all qualifying stations`. The RX display label `Heard by Target` and the TX display label `Target heard` both denote this same `hits ≥ 1` condition; `Heard by others only` and `Other signals heard only` denote qualifying stations with `hits = 0`. The station-balanced Success Rate is the arithmetic mean of the stations' individual `Target / (Target + counter-evidence)` rates; the observation-level rate is `sum(Target) / sum(Target + counter-evidence)`. Counter-only stations remain in both denominators. The successful-SNR panel first contributes one median normalized successful Target SNR per station and then reports the median of those station medians. With three or more stations it also reports their interquartile range; with two it shows their range without labelling it as a quartile estimate; with one it shows only the station point. Counter-only stations have no synthetic SNR. The retained support data include qualifying-station, target-positive-station, confirmed-opportunity, Target, counter-evidence and successful-SNR-station counts, although the figure does not render a support-count strip. Unpopulated bins remain missing.
+
+Success Temporal Evidence applies the same active Segment Inspector scope before grouping. A station enters the anomaly layer only when it has at least three successful normalized Target SNR observations in the complete selected UTC window; its baseline is the median of those observations, and each successful observation's anomaly is its SNR minus that baseline. The chronological density receives at most one station-bin median per station and selected time bin. The folded density receives one station-date-hour median per station, UTC date and UTC hour, preventing prolific reporters from dominating either view. A horizontal `0 dB` line marks station baseline and the overlay is the station-balanced median of the contributed station values in each bin.
+
+All qualifying stations, including those omitted only from the SNR-deviation figure, remain in the temporal evidence calculations. In each chronological bin, every contributing qualifying station supplies one split vote: its `Target / (Target + counter-evidence)` ratio is the green component and its complement is the grey component. Summing those components makes total bar height equal the number of contributing stations, while `green / (green + grey)` exactly reproduces the unchanged station-balanced Success Rate line. The chronological Opportunities row instead stacks the raw Target and counter-evidence counts, so total height is confirmed-opportunity volume and the same green share exactly reproduces the unchanged observation-level Success Rate line. The labels remain direction-aware—`Heard by Target` and `Heard by others only` for RX, `Target heard` and `Other signals heard only` for TX—and the station-vote segments can be fractional. At each folded UTC hour, station support counts every distinct station-date-hour presence once and divides that count by the represented dates whose hour slot overlaps the selected analysis window. The total station-bar height is therefore the average number of contributing stations per represented date at that hour; a station can contribute once on each date. The folded station-balanced rate remains a separate pooled equal-station calculation: each station's outcomes at that UTC hour are first pooled across represented dates, its rate is calculated, and every distinct station then receives one equal vote. The folded green component is average station support multiplied by that rate, and the grey component is its complement. Their ratio exactly reproduces the unchanged rate, but the components are a rate-partitioned support display rather than averages of station-date split votes. Folded opportunity components divide the pooled Target and counter-evidence counts by the same per-hour date denominator, so they are direct per-date averages and their ratio preserves the unchanged observation-level rate. A represented date-hour with no evidence contributes zero and remains in the denominator, while a date whose hour slot lies outside the selected window is excluded. The single folded-date annotation reports the global number of represented UTC dates, but first and last boundary hours can use fewer overlapping dates. A partially overlapping boundary-hour slot counts as one represented slot rather than being weighted by its exposure fraction, so its folded mean can be depressed. Chronological `1 h` bars are directly comparable in units only when their bins are anchored to UTC-hour boundaries; wider chronological bins cover multiple hours and are not directly comparable by height. UTC-hour folding remains available only when at least two UTC dates contribute. All four right axes start at zero and share a ceiling chosen from the maximum of the four rate series with about 20% rounded headroom, capped at `100%`. Each left support axis scales independently and uses compact ham-style notation such as `6k4` for `6,400` and `6M8` for `6,800,000`. A bin with no rate evidence remains missing rather than becoming a synthetic `0%`, and changing the chronological display bin does not reclassify opportunities or rerun the analysis.
+
+A **represented UTC date** is a date with at least one confirmed opportunity from a qualifying station somewhere in the active scope and selected window. A date with no such evidence anywhere is treated as absent coverage and is not introduced as an all-zero day.
 
 The four Compare distribution and temporal panels use a presentation-only, median-centered nonlinear Delta SNR scale. The two segment temporal panels share the observation-level median of all paired evidence in the selected segment. The selected-station distribution and its active time panel instead share the pooled median of the currently selected station or stations. Thus each two-panel evidence scope has one center, while absolute labels preserve interpretation between scopes.
 
@@ -1453,7 +1474,13 @@ Tick labels show the resulting **absolute Delta SNR**, not distance from `M`. Fo
 
 The transform does not change scientific values or grouping. Histogram counts and bin edges remain in raw dB, temporal cells remain rounded integer-dB bins, medians remain raw-dB statistics, and relative-density colors retain the calculation above. Because nonlinear vertical stretching gives equal raw-dB histogram bins unequal displayed heights, read histogram **bar length** against `Share (%)`; displayed bar area is not probability. Success SNR figures remain linear.
 
-The selected-station plots use the observation-level weighting and display rules described in [Section 2.6](#sec-3-7); those view choices do not change map aggregation, opportunity classification or pairing.
+Success Selected Station Evidence filters the retained active-scope rows to exactly one selected `callsign + locator` identity. **Selected Station SNR Evidence** reuses the Segment Inspector's chronological and folded layout but changes the SNR representation from station-relative deviation to actual normalized successful Target SNR. The chronological density receives every retained successful observation from that path, and its line is the median within each selected time bin. The folded density first forms one median for every represented UTC date and UTC hour, then uses those date-hour medians as its population and draws their cross-date median. This date-hour reduction prevents a date with unusually many successful reports from dominating the folded profile. Both panels use one linear actual-SNR range and normalize density independently to the maximum occupied cell in that panel.
+
+The SNR figure is conditional on successful Target decodes or reports. Counter outcomes have no recorded Target SNR, no SNR is synthesized for them, and a station with no successful Target SNR receives the explicit unavailable state. Read the SNR figure together with Success Rate because apparently strong successful SNR can coexist with a falling rate when weaker signals are no longer decoded. This successful-decode censoring prevents the SNR-only population from describing missed opportunities.
+
+**Selected Station Temporal Evidence** reuses the complete lower 2×2 Segment Inspector figure for the same one-station population. In a chronological bin with confirmed evidence, the selected station contributes one split station vote: the green component is its successful-opportunity fraction and the grey component is its counter-opportunity fraction, so total station height is one. The opportunity row stacks every confirmed successful and counter opportunity, so its total height is evidence depth. With exactly one station, the station-balanced and observation-level Success Rate series are numerically identical in every populated bin; both remain visible because the station row explains path presence and the opportunity row explains evidence volume.
+
+At each folded UTC hour, the station row shows average selected-station presence per represented UTC date, between zero and one, partitioned by the selected path's folded Success Rate. The opportunity row divides the selected station's successful and counter counts by the same represented-date denominator, retaining an overlapping represented date-hour with no evidence as zero and excluding a date-hour outside the selected window. UTC-hour folding requires at least two represented UTC dates; with fewer dates, only the expanded chronological panels are shown. Changing selection or the display bin recomputes these views from retained evidence without changing opportunity classification, map or Segment Inspector results, Drill-Down rows, pairing, or the completed provider query.
 
 <a id="sec-7-9"></a>
 #### 7.9 Geography and solar classification
@@ -1466,7 +1493,7 @@ This gives internally consistent mapping geometry. It is not survey-grade geodes
 
 Two integrity rules intentionally precede that geographic filter. The Target-Active Gate remains global because out-of-scope evidence can establish that the Target operated without becoming a scoped peer outcome. When `Exclude Moving Stations` is enabled, changing-location callsigns are identified across the otherwise eligible global population before scope is applied, so a narrow radius cannot conceal movement.
 
-`Solar state at Target QTH` uses solar elevation at Target QTH. Normal same-cycle evidence uses its cycle timestamp. Automatic scheduled TX A/B uses the midpoint between the two planned starts, so Target and Reference in one pair cannot be split into different solar classes. Success evidence plots separately classify sampled great-circle path illumination as night, greyline/mixed or daylight. These answer different questions.
+`Solar state at Target QTH` uses solar elevation at Target QTH. Normal same-cycle evidence uses its cycle timestamp. Automatic scheduled TX A/B uses the midpoint between the two planned starts, so Target and Reference in one pair cannot be split into different solar classes. Selected Station Evidence reuses the retained rows and does not introduce a separate path-illumination classification.
 
 <div style="page-break-before: always;"></div>
 
@@ -1535,7 +1562,7 @@ For a serious result, preserve the analysis definition, the evidence supporting 
     * **Core Parameters:** RX/TX direction, Target callsign and QTH, band, and relative or absolute UTC time selection;
     * **Comparison Parameters:** Benchmark Design and, as applicable, TX Hardware A/B method, Reference callsign, the Reference Station's independent grid-4, local benchmark method and radius, scheduled TX A/B repeat interval and path phases, and the Reference-side SNR-correction purpose plus signed dB value; Hardware A/B does not serialize a redundant Reference QTH;
     * **Advanced Settings:** solar-state selection, geographic analysis scope, special-callsign and moving-station exclusions, and the applicable evidence thresholds;
-    * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of unpaired or zero-Target evidence.
+    * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of unpaired evidence or counter-only Success stations.
 
   Inactive comparison branches, table and Drill-Down filters and other transient UI state are not stored. When preserving a completed run made with `Last X Hours`, save its resolved absolute UTC window if a later run should address the same period; otherwise the relative selection intentionally advances with time.
 
@@ -1543,7 +1570,8 @@ For a serious result, preserve the analysis definition, the evidence supporting 
     * UTC period, band, direction, Target identity, comparison design and selected geographic and temporal scope;
     * Success Rate with its denominator and weighting level;
     * for Compare, joint-station and joint-spot or pair counts and station-level median Delta SNR;
-    * relevant Decode Outcomes and `STATIONS` / `SPOTS` distributions;
+    * for Success, the qualifying-station and confirmed-opportunity support behind the displayed weighting and scope;
+    * for Compare, relevant Decode Outcomes and `STATIONS` / `SPOTS` distributions;
     * the bounded interpretation and any known evidence limitations.
 
 * Separately record experimental context that WSPRadar cannot infer or independently verify:
@@ -1577,15 +1605,25 @@ compare/                         # when a benchmark result exists
   table_drilldown_all_stations_current_segment.csv
   analysis_cache.parquet
 success/                         # when a Success result exists
-  ...same figure/table pattern...
+  figure_map_highres.png
+  figure_segment_insight.png
+  figure_segment_temporal_snr_deviation.png
+  figure_segment_temporal_evidence.png
+  figure_selected_station_snr_evidence.png
+  figure_selected_station_temporal_evidence.png
+  table_station_insights_current_segment.csv
+  table_drilldown_selected_stations.csv
+  table_drilldown_all_stations_current_segment.csv
   analysis_cache.parquet
 ```
 
 Figures use a high-resolution light/paper presentation. Files without an applicable recipe or selected evidence can be absent. CSV files reflect current segment and station selections. Parquet files contain processed post-filter evidence, including only peer rows retained by the run's geographic analysis scope, not untouched upstream dumps.
 
-For Compare, `figure_selected_station_evidence.png` reproduces the selected-station temporal view active when the export is prepared. Chronological mode uses the selected Compare time bin; `UTC-Hour` uses fixed one-hour slots and the same selected evidence rows. The mode is stored in the saved `.config` and in `run_metadata.json`.
+For Success, `figure_segment_insight.png` contains the direction-specific at-least-once station-reach panel, **RX/TX Success Rate by TX-/RX-Station Distance**, and **Successful Target SNR by TX-/RX-Station Distance** for the active Inspector scope. `figure_segment_temporal_snr_deviation.png` contains the chronological/UTC-hour **RX/TX Success Temporal SNR Evidence** figure. `figure_segment_temporal_evidence.png` contains the aligned lower **RX/TX Success Temporal Evidence** figure with shared **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h bins)** column headers, short station/opportunity y-axis rows, folded per-represented-date subtitles, direction-specific green/grey outcome stacks, four common-scale Success Rate axes and one shared legend. Its folded subtitles identify average station-date-hour support and average opportunities per UTC date; its chronological stacks remain counts per selected time bin. When fewer than two UTC dates contribute, the chronological panels expand and the folded-view fallback is retained.
 
-The saved configuration records the applicable runnable settings. `run_metadata.json` automatically records the application name and version; export time; language; direction; band; benchmark choice; configured time selection; Reference-side correction mode and numeric value as `benchmark_snr_correction_mode` and `benchmark_snr_correction_db`; filters; thresholds; result blocks and inspector selections.
+The two stable Success selected-station filenames preserve the shared temporal views independently. `figure_selected_station_snr_evidence.png` contains the full-width **Selected Station SNR Evidence** figure with actual normalized successful Target SNR, every successful observation in the chronological density and one median per represented date-hour in the folded density. `figure_selected_station_temporal_evidence.png` contains the full-width **Selected Station Temporal Evidence** figure with station presence, opportunity depth and their equal one-station Success Rate series. Both use the same selected identity, temporal recipes and renderers as their browser previews, and both omit folded UTC-hour panels when fewer than two represented dates contribute. For Compare, the established `figure_selected_station_evidence.png` continues to reproduce the selected-station temporal view active when the export is prepared. Chronological mode uses the selected Compare time bin; `UTC-Hour` uses fixed one-hour slots and the same selected evidence rows. The Compare mode is stored in the saved `.config` and in `run_metadata.json`.
+
+The saved configuration records the applicable runnable settings. `run_metadata.json` automatically records the application name and version; export time; language; direction; band; benchmark choice; configured time selection; Reference-side correction mode and numeric value as `benchmark_snr_correction_mode` and `benchmark_snr_correction_db`; filters; thresholds; result blocks and inspector selections. For selected Success evidence, metadata also populates `selected_station_label`, `selected_station_context`, `selected_station_count`, `selected_station_role`, `selected_evidence_weighting` and the stable filename-to-description mapping `selected_evidence_figures`; it records the one exact selected identity and a count of one. Compare records its exact identities in `selected_stations`, its selection count and the active evidence recipe and time-view fields; the optional descriptive Success fields remain unset. Its browser display retains the established rule: one exact identity, the named identities for two through five selections, or only the direction-aware selected-station count above five.
 
 The package contains the processed evidence used by the completed analysis, not untouched upstream responses or authoritative external operating and calibration records. Retain the ZIP with the external experiment record described in [Section 8.3](#sec-8-3).
 

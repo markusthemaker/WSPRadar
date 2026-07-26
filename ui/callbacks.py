@@ -6,7 +6,6 @@ These functions modify the session state and dictate the application's flow.
 
 import streamlit as st
 import time
-from i18n import T
 from config import (
     DEFAULT_BAND,
     DEMO_PROFILES,
@@ -15,7 +14,6 @@ from config import (
 )
 from ui.documentation_state import collapse_documentation
 from ui.config_io import (
-    MODE_KEYS,
     apply_config_state_values,
     validate_config_document,
 )
@@ -28,6 +26,7 @@ from ui.result_state import reset_result_state
 from ui.analysis_submission_state import (
     begin_analysis_submission,
     cancel_analysis_submission,
+    handoff_analysis_submission,
 )
 
 
@@ -152,34 +151,15 @@ def update_lang():
 
 
 def handle_input_view_change():
-    """Reconstruct Guided presentation state without changing scientific state."""
+    """Switch editors and keep any active scientific request attached."""
+    if st.session_state.get("run_mode"):
+        handoff_analysis_submission(
+            st.session_state,
+            request_source="input_view_change",
+        )
     if st.session_state.get("input_view") == "guided":
         st.session_state.guided_reconstruct_requested = True
         st.session_state.guided_collapse_all = False
-
-def _profile_matches_current_mode(profile, t):
-    """Return True when a demo profile matches the currently selected comparison UI."""
-    try:
-        normalized_config = validate_config_document(_demo_config_document(profile))
-    except ValueError:
-        return False
-
-    benchmark_mode = normalized_config.get("benchmark_mode")
-    if benchmark_mode not in MODE_KEYS or benchmark_mode != st.session_state.val_comp_mode:
-        return False
-
-    selected_direction = st.session_state.get("val_analysis_direction")
-    return (
-        selected_direction is None
-        or normalized_config.get("analysis_direction") == selected_direction
-    )
-
-def _demo_profile_for_current_mode(t):
-    """Return the first configured demo profile matching the currently selected mode."""
-    for profile_key, profile in DEMO_PROFILES.items():
-        if _profile_matches_current_mode(profile, t):
-            return profile_key
-    return None
 
 def _apply_demo_profile_values(profile_key):
     """Apply one explicit runnable demo profile to the normal editable config state."""
@@ -191,23 +171,6 @@ def _apply_demo_profile_values(profile_key):
     st.session_state.guided_last_compare_mode = None
     apply_config_state_values(normalized_config, st.session_state)
 
-def apply_demo_profile(profile_key=None):
-    """
-    Applies the appropriate demo profile based on the selected benchmark design.
-    Injects predefined, validated values for callsigns, locations, and timeframes 
-    to guarantee a working demo query (Guided Sandbox Mode).
-    """
-    t = T[st.session_state.lang]
-    if profile_key is None:
-        if not st.session_state.get("is_demo_mode", False):
-            return
-        profile_key = _demo_profile_for_current_mode(t)
-
-    if profile_key is None:
-        return
-
-    _apply_demo_profile_values(profile_key)
-
 def load_demo_profile_config(profile_key):
     """
     Applies a selected demo profile to the editable config state without
@@ -218,7 +181,6 @@ def load_demo_profile_config(profile_key):
         return
 
     reset_audit()
-    st.session_state.is_demo_mode = False
     st.session_state.show_demo_launcher = False
     st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True
@@ -255,7 +217,6 @@ def run_demo_profile(profile_key):
     # A direct demo launch replaces any queued/running request whose editable
     # state this callback is about to overwrite.
     cancel_analysis_submission(st.session_state)
-    st.session_state.is_demo_mode = False
     st.session_state.active_demo_profile = profile_key
     st.session_state.guided_loaded_demo_profile = profile_key
     st.session_state.guided_demo_metadata_open = False
@@ -290,14 +251,10 @@ def run_demo_profile(profile_key):
 def handle_comp_mode_change():
     """
     Reset active results and correction when the benchmark design changes.
-
-    Normal benchmark designs start with no reference-SNR correction. Guided
-    demo mode can then load an explicit profile correction when one exists.
     """
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_snr_correction_mode = "no_offset"
     reset_audit()
-    apply_demo_profile()
 
 
 def handle_analysis_direction_change():
@@ -333,10 +290,9 @@ def handle_analysis_direction_change():
 def set_reset_config():
     """
     Resets all user inputs and configurations back to their default factory state.
-    Exits demo mode securely and clears any active analysis run.
+    Clears any active analysis run.
     """
     cancel_analysis_submission(st.session_state)
-    st.session_state.is_demo_mode = False
     st.session_state.val_callsign = ""
     st.session_state.val_analysis_direction = None
     st.session_state.val_qth = ""
@@ -371,6 +327,7 @@ def set_reset_config():
     st.session_state.val_results_time_bin_compare = None
     st.session_state.val_results_time_bin_absolute = None
     st.session_state.val_results_segment_time_bin_compare = "auto"
+    st.session_state.val_results_segment_time_bin_absolute = "auto"
     st.session_state.val_results_station_temporal_view_compare = "chronological"
     st.session_state.val_results_selected_stations_compare = None
     st.session_state.val_results_selected_stations_absolute = None
@@ -397,13 +354,3 @@ def set_reset_config():
     for state_key in tuple(st.session_state.keys()):
         if state_key.startswith("config_save_"):
             st.session_state.pop(state_key, None)
-
-def set_demo_config():
-    """
-    Activates the Guided Sandbox demo mode. Locks core UI elements against 
-    unwanted edits and loads the initial demographic profile.
-    """
-    cancel_analysis_submission(st.session_state)
-    st.session_state.is_demo_mode = True
-    st.session_state.run_mode = None
-    apply_demo_profile()

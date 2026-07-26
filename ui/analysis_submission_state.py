@@ -152,6 +152,29 @@ def finish_analysis_submission(
     return True
 
 
+def handoff_analysis_submission(
+    session_state: MutableMapping[str, Any],
+    *,
+    request_source: str = "presentation_rerender",
+) -> str | None:
+    """Transfer an in-flight submission to the next Streamlit script.
+
+    A presentation-only widget change can supersede the script that owns the
+    current token without replacing its scientific request. The replacement
+    token asks the next script to enter the controller, where duplicate
+    admission follows the existing owner/request pair until it completes.
+    """
+    snapshot = get_analysis_submission(session_state)
+    if snapshot is None:
+        return None
+    if not finish_analysis_submission(session_state, snapshot.token):
+        return None
+    return begin_analysis_submission(
+        session_state,
+        request_source=request_source,
+    )
+
+
 def cancel_analysis_submission(
     session_state: MutableMapping[str, Any],
 ) -> bool:

@@ -7,24 +7,10 @@ import pandas as pd
 import pytest
 
 from core.tx_ab_schedule import (
-    TX_AB_REPEAT_INTERVAL_OPTIONS,
     assign_tx_ab_pair_columns,
-    tx_ab_minutes_in_hour,
     tx_ab_schedule_sql,
-    tx_ab_separation_minutes,
-    tx_ab_start_minutes,
     validate_tx_ab_schedule,
 )
-
-
-def test_schedule_constants_and_hour_previews_are_stable():
-    assert TX_AB_REPEAT_INTERVAL_OPTIONS == (4, 6, 10, 12, 20, 30, 60)
-    assert tx_ab_start_minutes(10, 0) == (0, 10, 20, 30, 40, 50)
-    assert tx_ab_start_minutes(20, 20) == (0, 20, 40)
-    assert tx_ab_minutes_in_hour(10, 0, 2) == {
-        "target": (0, 10, 20, 30, 40, 50),
-        "reference": (2, 12, 22, 32, 42, 52),
-    }
 
 
 @pytest.mark.parametrize("repeat_interval_minutes", [4, 6, 10, 12, 20, 30, 60])
@@ -70,13 +56,6 @@ def test_sql_predicate_uses_canonical_phase_and_rejects_identifier_injection():
     )
     with pytest.raises(ValueError, match="SQL identifier"):
         tx_ab_schedule_sql(10, 0, time_column="time) OR 1 = 1")
-
-
-def test_cyclic_separation_reports_the_shortest_distance():
-    assert tx_ab_separation_minutes(10, 0, 2) == 2
-    assert tx_ab_separation_minutes(10, 0, 8) == 2
-    assert tx_ab_separation_minutes(10, 8, 0) == 2
-    assert tx_ab_separation_minutes(4, 0, 2) == 2
 
 
 def test_pair_assignment_filters_schedule_rows_and_preserves_duplicate_decodes():

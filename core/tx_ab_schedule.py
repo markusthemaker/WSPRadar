@@ -59,28 +59,6 @@ def _canonical_start_phase(
     return repeat_interval_minutes, start_minute_utc % repeat_interval_minutes
 
 
-def tx_ab_start_minutes(
-    repeat_interval_minutes: int,
-    start_minute_utc: int,
-) -> tuple[int, ...]:
-    """Return all UTC start minutes in an hour for one periodic transmitter path.
-
-    ``start_minute_utc`` may name any occurrence in the hour. For example,
-    interval 20 with start 20 is the same periodic phase as start 0 and returns
-    ``(0, 20, 40)``.
-    """
-    repeat_interval_minutes, start_phase = _canonical_start_phase(
-        repeat_interval_minutes,
-        start_minute_utc,
-        field_name="start_minute_utc",
-    )
-    return tuple(
-        minute
-        for minute in range(_MINUTES_PER_HOUR)
-        if minute % repeat_interval_minutes == start_phase
-    )
-
-
 def validate_tx_ab_schedule(
     repeat_interval_minutes: int,
     target_start_minute_utc: int,
@@ -130,51 +108,6 @@ def tx_ab_schedule_sql(
     ):
         raise ValueError("time_column must be a plain or dotted SQL identifier")
     return f"toMinute({time_column}) % {repeat_interval_minutes} = {start_phase}"
-
-
-def tx_ab_minutes_in_hour(
-    repeat_interval_minutes: int,
-    target_start_minute_utc: int,
-    reference_start_minute_utc: int,
-) -> dict[str, tuple[int, ...]]:
-    """Return the Target and Reference UTC start-minute previews for one hour."""
-    validate_tx_ab_schedule(
-        repeat_interval_minutes,
-        target_start_minute_utc,
-        reference_start_minute_utc,
-    )
-    return {
-        "target": tx_ab_start_minutes(
-            repeat_interval_minutes,
-            target_start_minute_utc,
-        ),
-        "reference": tx_ab_start_minutes(
-            repeat_interval_minutes,
-            reference_start_minute_utc,
-        ),
-    }
-
-
-def tx_ab_separation_minutes(
-    repeat_interval_minutes: int,
-    target_start_minute_utc: int,
-    reference_start_minute_utc: int,
-) -> int:
-    """Return the shortest cyclic separation between the two periodic starts."""
-    (
-        repeat_interval_minutes,
-        target_start_phase,
-        reference_start_phase,
-    ) = validate_tx_ab_schedule(
-        repeat_interval_minutes,
-        target_start_minute_utc,
-        reference_start_minute_utc,
-    )
-    forward_separation = (
-        reference_start_phase - target_start_phase
-    ) % repeat_interval_minutes
-    backward_separation = repeat_interval_minutes - forward_separation
-    return min(forward_separation, backward_separation)
 
 
 def _reference_offset_minutes(

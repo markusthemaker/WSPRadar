@@ -2,6 +2,77 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-07-26
+
+- Redesigned the Success map: sector color is now the sole quantitative map
+  layer, using a softer ten-interval palette at higher overlay opacity, while
+  fixed-size dark-green and muted light-grey markers distinguish the
+  mode-specific station statuses `Heard by Target` / `Heard by others only`
+  for RX and `Target heard` / `Other signals heard only` for TX without
+  encoding rate or evidence volume. Legacy black edges and
+  Target-above-counter ordering keep co-located evidence readable. Unfilled
+  insufficient-evidence sectors remain distinct from valid `0%` Success, and
+  the restored Compare-aligned two-row footer places denominator
+  `OPPORTUNITIES` above qualifying `STATIONS`. Both rows now use the same
+  direction-specific outcomes—`Heard by Target` / `Heard by others only` for
+  RX and `Target heard` / `Other signals heard only` for TX—and show exact
+  counts where they fit.
+- Redesigned the Success Segment Inspector from the active-scope summary through
+  Drill-Down around one direction-specific plain-language outcome vocabulary.
+  Result headers, summaries, exact-distance and temporal figures, Station
+  Insights, selected-station evidence, row-level audit labels and bilingual
+  point-of-use guidance now use the same RX and TX terms, while canonical
+  Target/Elsewhere and Target/Other-Signals formulas, stored classifications
+  and compatibility exports remain unchanged. Guided use-case descriptions and
+  the evidence-threshold tooltips shared by Guided and Classic Input now use
+  that same direction-specific outcome vocabulary. The exact-distance view
+  replaces the former population-distribution and coarse map-distance
+  diagnostics with Peer Reach, station- and observation-weighted Success Rate,
+  and station-balanced successful Target SNR. Its panels reuse Compare
+  typography and blue, scale percentage axes with capped headroom, and omit the
+  former visible support table while retaining per-bin counts in the evidence
+  recipe.
+  Segment statistics share the active-scope typography and explicitly restore
+  `Station-balanced Success Rate`, `Observation-level Success Rate`, signed
+  weighting gap and median opportunities per station. Temporal Evidence now
+  separates direction-aware station-centered successful-SNR deviation into its
+  own chronological/UTC-hour SNR Evidence figure and places a second 2×2
+  Temporal Evidence figure below it. Green/grey station-support and
+  confirmed-opportunity stacks restore bin-level Success Rate lines on one
+  shared, capped scale. Folded UTC-hour station heights now show average
+  station-date-hour participation per represented UTC date: a qualifying
+  station contributes one presence on every represented date and UTC hour in
+  which it contributes evidence. The unchanged folded Success Rate still gives
+  every distinct station one equal rate vote regardless of date recurrence, so
+  the subtitles and point-of-use guidance distinguish support depth from rate
+  weighting. Folded opportunity stacks continue to show direct per-date count
+  averages. Chronological one-hour bars are comparable when anchored to UTC-hour
+  boundaries; wider bins retain their selected-bin units. Shared column headers
+  and a lower-figure legend, compact ham-style count notation, exact
+  cross-figure data-column alignment that reserves the upper colorbar footprint,
+  and a clearer title hierarchy complete the presentation; both blocks are
+  prepared once per active scope for identical browser and export rendering.
+  Selected Station Evidence now deliberately inspects one Success path at a
+  time. Native single-row Station Insights selection replaces the previous
+  station immediately, while historical multi-station state restores only its
+  first valid stored identity without substituting another station. The compact
+  context and independent time-bin control are followed by two full-width
+  figures that reuse the Segment Inspector temporal recipes and renderers.
+  Selected Station SNR Evidence shows actual normalized successful Target SNR,
+  retaining every successful observation chronologically and reducing first to
+  one median per represented date-hour for folding. Selected Station Temporal
+  Evidence keeps the shared station-presence and opportunity-depth rows; their
+  Success Rate lines are equal for the one selected station, while folded
+  support still requires at least two represented UTC dates. The former path
+  summary dashboard, two-column tabs, standalone SNR distribution,
+  similar-station cohorts and multi-station pooling were removed. Browser and
+  paper-theme exports share the two new stable files
+  `figure_selected_station_snr_evidence.png` and
+  `figure_selected_station_temporal_evidence.png`. The English/German manuals
+  and architecture documentation now explain successful-SNR censoring,
+  date-hour weighting, missing-fold semantics and the unchanged boundary between
+  Segment Inspector, Drill-Down, Compare and upstream scientific results.
+
 ## 2026-07-24
 
 - Added optional bilingual **How to read this** guidance throughout the shared

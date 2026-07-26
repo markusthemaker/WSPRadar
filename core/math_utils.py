@@ -2,15 +2,11 @@
 Mathematische Hilfsfunktionen (Geometrie, Astronomie, Zeit).
 """
 import numpy as np
-import math
 
 from core.input_validation import (
-    is_valid_6char_locator,
-    is_valid_callsign,
     is_valid_locator,
     normalize_ascii_upper,
 )
-from core.time_utils import quantize_time
 
 def locator_to_latlon(grid: str) -> tuple:
     """Convert a validated four- or six-character Maidenhead locator to Lat/Lon."""

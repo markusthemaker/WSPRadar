@@ -32,13 +32,6 @@ def _scoped_form_key(base_key, form_scope=None):
     return f"{base_key}_{normalized_scope}" if normalized_scope else base_key
 
 
-def clear_config_save_state(session_state) -> None:
-    """Clear transient save-form widgets and any prepared config download."""
-    for state_key in tuple(session_state.keys()):
-        if state_key.startswith(CONFIG_SAVE_STATE_PREFIX):
-            session_state.pop(state_key, None)
-
-
 def _localized_profile_text(profile, field, language):
     """Return current-language profile text with English/first-value fallback."""
     localized_values = profile.get(field, {}) if isinstance(profile, dict) else {}

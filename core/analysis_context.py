@@ -81,25 +81,5 @@ class AnalysisContext:
         return cls(**{key: values[key] for key in field_names if key in values})
 
 
-def is_radius_comparison(context):
-    return context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD
-
-
-def is_reference_station_comparison(context):
-    return context.comparison_mode == COMPARISON_REFERENCE_STATION
-
-
-def is_hardware_ab_comparison(context):
-    return context.comparison_mode == COMPARISON_HARDWARE_AB
-
-
-def is_rx_hardware_ab(context):
-    return is_hardware_ab_comparison(context) and context.self_test_mode == SELF_TEST_RX
-
-
-def is_tx_hardware_ab(context):
-    return is_hardware_ab_comparison(context) and context.self_test_mode == SELF_TEST_TX
-
-
 def solar_path_state(solar_state):
     return _SOLAR_PATH_STATE.get(solar_state)

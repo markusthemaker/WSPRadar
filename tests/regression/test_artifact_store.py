@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 import threading
 import time
-from types import SimpleNamespace
 
 import pytest
 import pandas as pd
@@ -18,7 +17,6 @@ from core.artifact_store import (
     SESSION_ARTIFACT_PATHS_KEY,
     cleanup_artifact_namespaces,
     register_session_artifact,
-    release_registered_session_artifacts,
     retire_registered_session_artifacts,
     session_artifact_path,
     touch_registered_session_artifacts,
@@ -323,7 +321,7 @@ def test_no_touch_lease_preserves_demo_query_publication_time(tmp_path):
     assert artifact_path.stat().st_mtime == pytest.approx(published_at, abs=0.01)
 
 
-def test_registered_session_artifacts_are_touched_and_released(tmp_path):
+def test_registered_session_artifacts_are_registered_once_and_touched(tmp_path):
     state = {}
     artifact_path = session_artifact_path(
         tmp_path,
@@ -343,11 +341,6 @@ def test_registered_session_artifacts_are_touched_and_released(tmp_path):
     assert touch_registered_session_artifacts(state) == 1
     assert artifact_path.stat().st_mtime > time.time() - 5.0
     assert lease_path.stat().st_mtime > time.time() - 5.0
-    assert release_registered_session_artifacts(state) == 1
-    assert SESSION_ARTIFACT_PATHS_KEY not in state
-    assert not artifact_path.exists()
-    assert not lease_path.exists()
-    assert artifact_path.parent.is_dir()
 
 
 def test_active_session_lease_prevents_ttl_cleanup(tmp_path):
@@ -419,8 +412,8 @@ def test_old_fragment_access_revives_a_retired_run_lease(tmp_path):
     assert lease_path.stat().st_mtime > time.time() - 5.0
 
 
-def test_result_export_reset_retires_without_deleting_active_parquet(tmp_path, monkeypatch):
-    from ui import results_export
+def test_result_export_reset_retires_without_deleting_active_parquet(tmp_path):
+    from ui import result_state
 
     state = {"run_id": 456}
     artifact_path = session_artifact_path(
@@ -432,9 +425,8 @@ def test_result_export_reset_retires_without_deleting_active_parquet(tmp_path, m
     artifact_path.parent.mkdir(parents=True)
     artifact_path.write_bytes(b"still-readable")
     register_session_artifact(state, artifact_path)
-    monkeypatch.setattr(results_export, "st", SimpleNamespace(session_state=state))
 
-    results_export.reset_result_export_state()
+    result_state.reset_result_state(state)
 
     assert artifact_path.read_bytes() == b"still-readable"
     assert SESSION_ARTIFACT_PATHS_KEY not in state

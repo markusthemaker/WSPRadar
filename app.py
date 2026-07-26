@@ -35,7 +35,6 @@ from core.input_validation import (
 from core.time_utils import quantize_time
 from i18n import GUIDED_INPUTS, T
 from ui.callbacks import (
-    handle_comp_mode_change,
     handle_input_view_change,
     load_demo_profile_config,
     reset_audit,
@@ -279,9 +278,8 @@ with col_b2:
         reset_audit()
 
 with col_b3:
-    reset_label = "Exit Demo & Reset" if st.session_state.is_demo_mode else t["btn_reset"]
     st.button(
-        reset_label,
+        t["btn_reset"],
         icon=":material/restart_alt:",
         key="reset_configuration",
         on_click=set_reset_config,
@@ -293,23 +291,6 @@ if st.session_state.get("show_demo_launcher", False):
 
 if st.session_state.get("show_config_loader", False):
     render_config_loader()
-
-if st.session_state.is_demo_mode:
-    st.markdown("""
-    <style>
-        .st-key-reset_configuration button {
-            border-color: #39ff14 !important;
-            color: #39ff14 !important;
-            text-shadow: 0 0 5px rgba(57, 255, 20, 0.5);
-            box-shadow: 0 0 15px rgba(57, 255, 20, 0.8), inset 0 0 8px rgba(57, 255, 20, 0.3) !important;
-            transition: all 0.3s ease;
-        }
-        .st-key-reset_configuration button:hover {
-            background-color: rgba(57, 255, 20, 0.1) !important;
-            box-shadow: 0 0 25px rgba(57, 255, 20, 1.0), inset 0 0 15px rgba(57, 255, 20, 0.5) !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
 
 render_page_anchor(PARAMETER_SETTINGS_ANCHOR_ID)
 

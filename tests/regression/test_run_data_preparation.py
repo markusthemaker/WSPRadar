@@ -20,31 +20,34 @@ from core.run_data_preparation import (
 )
 
 
-def _analysis_plans():
-    return [
-        {
-            "id": "RX_COMP",
-            "title": "Compare",
-            "analysis_kind": "comparison",
-            "is_sequential": False,
-            "decode_filter_mode": DECODE_FILTER_STRICT,
-            "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
-            "query": "COMPARE STRICT",
-            "legacy_query": "COMPARE LEGACY",
-            "response_format": "csv",
-        },
-        {
-            "id": "RX_ABS",
-            "title": "Success",
-            "analysis_kind": "opportunity",
-            "is_sequential": False,
-            "decode_filter_mode": DECODE_FILTER_STRICT,
-            "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
-            "query": "SUCCESS STRICT",
-            "legacy_query": "SUCCESS LEGACY",
-            "response_format": "parquet",
-        },
-    ]
+def _comparison_plan():
+    """Return one production-shaped Compare analysis plan."""
+    return {
+        "id": "RX_COMP",
+        "title": "Compare",
+        "analysis_kind": "comparison",
+        "is_sequential": False,
+        "decode_filter_mode": DECODE_FILTER_STRICT,
+        "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
+        "query": "COMPARE STRICT",
+        "legacy_query": "COMPARE LEGACY",
+        "response_format": "csv",
+    }
+
+
+def _success_plan():
+    """Return one production-shaped Success analysis plan."""
+    return {
+        "id": "RX_ABS",
+        "title": "Success",
+        "analysis_kind": "opportunity",
+        "is_sequential": False,
+        "decode_filter_mode": DECODE_FILTER_STRICT,
+        "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
+        "query": "SUCCESS STRICT",
+        "legacy_query": "SUCCESS LEGACY",
+        "response_format": "parquet",
+    }
 
 
 def _controller():
@@ -89,27 +92,8 @@ def _comparison_frame(*, has_u=1):
     })
 
 
-def _opportunity_frame(*, target_seen=1, external_seen=1):
-    """Return one production-shaped Success query response row."""
-    return pd.DataFrame({
-        "time_slot": [1],
-        "peer_sign": ["PEER"],
-        "peer_grid": ["JN37"],
-        "target_seen": [target_seen],
-        "external_seen": [external_seen],
-        "target_snr": [-15.0],
-    })
-
-
 def _post_fetch(frame, *_args, **_kwargs):
     return frame, None
-
-
-def _artifact_paths(tmp_path):
-    return {
-        "RX_COMP": tmp_path / "compare.parquet",
-        "RX_ABS": tmp_path / "success.parquet",
-    }
 
 
 @pytest.mark.parametrize(
@@ -130,9 +114,11 @@ def test_fetch_source_delivery_label_separates_origin_from_tier(
     assert fetch_source.delivery_label == expected_label
 
 
-def test_complete_bundle_keeps_strict_legacy_compare_and_success_on_one_source(tmp_path):
+def test_compare_strict_and_legacy_queries_stay_on_one_source(tmp_path):
+    """Keep one Compare analysis on its provider across strict and legacy reads."""
+    plan = _comparison_plan()
     controller = _controller()
-    lease = controller.try_acquire_run({"wspr_live": 4, "wd2": 4, "wd1": 4})
+    lease = controller.try_acquire_run({"wspr_live": 2, "wd2": 2, "wd1": 2})
     requests = []
 
     def fake_fetch(query, *, database_provider, request_permit, **_kwargs):
@@ -140,19 +126,17 @@ def test_complete_bundle_keeps_strict_legacy_compare_and_success_on_one_source(t
         request_permit.consume_request()
         if query == "COMPARE STRICT":
             return _result(database_provider.key, _comparison_frame(has_u=0))
-        if query == "COMPARE LEGACY":
-            return _result(database_provider.key, _comparison_frame(has_u=1))
-        return _result(database_provider.key, _opportunity_frame())
+        return _result(database_provider.key, _comparison_frame(has_u=1))
 
     bundle = prepare_provider_bundle(
-        _analysis_plans(),
+        [plan],
         provider_lease=lease,
         is_demo_run=False,
         analysis_context=object(),
         center_latitude=47.0,
         center_longitude=8.0,
         labels={"warn_no_data": "No data: {title}"},
-        artifact_paths=_artifact_paths(tmp_path),
+        artifact_paths={"RX_COMP": tmp_path / "compare.parquet"},
         fetch_data=fake_fetch,
         post_fetch_filter=_post_fetch,
     )
@@ -163,23 +147,18 @@ def test_complete_bundle_keeps_strict_legacy_compare_and_success_on_one_source(t
     assert requests == [
         ("wspr_live", "COMPARE STRICT"),
         ("wspr_live", "COMPARE LEGACY"),
-        ("wspr_live", "SUCCESS STRICT"),
     ]
     assert bundle.analyses[0].analysis["decode_filter_mode"] == DECODE_FILTER_LEGACY
     assert [
         query_fetch.decode_filter_mode
         for query_fetch in bundle.analyses[0].query_fetches
     ] == [DECODE_FILTER_STRICT, DECODE_FILTER_LEGACY]
-    assert [
-        query_fetch.decode_filter_mode
-        for query_fetch in bundle.analyses[1].query_fetches
-    ] == [DECODE_FILTER_STRICT]
-    assert all(item.artifact_path.is_file() for item in bundle.analyses)
+    assert bundle.analyses[0].artifact_path.is_file()
 
 
 def test_query_fetch_trace_preserves_strict_and_legacy_tiers_and_timings(tmp_path):
     """Keep each executed query's tier and duration instead of only the last."""
-    plans = [_analysis_plans()[0]]
+    plans = [_comparison_plan()]
     controller = _controller()
     lease = controller.try_acquire_run({"wspr_live": 2, "wd2": 2, "wd1": 2})
     clock_values = iter([10.0, 10.125, 20.0, 20.75])
@@ -238,8 +217,9 @@ def test_query_fetch_trace_preserves_strict_and_legacy_tiers_and_timings(tmp_pat
 
 
 def test_operational_strict_failure_never_triggers_legacy_query(tmp_path):
+    plan = _comparison_plan()
     controller = _controller()
-    lease = controller.try_acquire_run({"wspr_live": 4, "wd2": 4, "wd1": 4})
+    lease = controller.try_acquire_run({"wspr_live": 2, "wd2": 2, "wd1": 2})
     requests = []
 
     def fake_fetch(query, *, database_provider, request_permit, **_kwargs):
@@ -253,14 +233,14 @@ def test_operational_strict_failure_never_triggers_legacy_query(tmp_path):
 
     with pytest.raises(ProviderBundleFetchError) as exc_info:
         prepare_provider_bundle(
-            _analysis_plans(),
+            [plan],
             provider_lease=lease,
             is_demo_run=False,
             analysis_context=object(),
             center_latitude=47.0,
             center_longitude=8.0,
             labels={"warn_no_data": "No data: {title}"},
-            artifact_paths=_artifact_paths(tmp_path),
+            artifact_paths={"RX_COMP": tmp_path / "compare.parquet"},
             fetch_data=fake_fetch,
             post_fetch_filter=_post_fetch,
         )
@@ -271,41 +251,8 @@ def test_operational_strict_failure_never_triggers_legacy_query(tmp_path):
     assert list(tmp_path.glob("*.parquet")) == []
 
 
-def test_later_fetch_failure_removes_earlier_unpublished_stage(tmp_path):
-    controller = _controller()
-    lease = controller.try_acquire_run({"wspr_live": 4, "wd2": 4, "wd1": 4})
-
-    def fake_fetch(query, *, database_provider, request_permit, **_kwargs):
-        request_permit.consume_request()
-        if query == "COMPARE STRICT":
-            return _result(database_provider.key, _comparison_frame())
-        return _result(database_provider.key, error=FetchError(
-            code="http_error",
-            message="unavailable",
-            scope=FetchFailureScope.PROVIDER,
-            status_code=503,
-        ))
-
-    with pytest.raises(ProviderBundleFetchError):
-        prepare_provider_bundle(
-            _analysis_plans(),
-            provider_lease=lease,
-            is_demo_run=False,
-            analysis_context=object(),
-            center_latitude=47.0,
-            center_longitude=8.0,
-            labels={"warn_no_data": "No data: {title}"},
-            artifact_paths=_artifact_paths(tmp_path),
-            fetch_data=fake_fetch,
-            post_fetch_filter=_post_fetch,
-        )
-    lease.release()
-
-    assert list(tmp_path.glob("*.parquet")) == []
-
-
 def test_valid_empty_strict_and_legacy_responses_do_not_become_provider_errors(tmp_path):
-    plans = [_analysis_plans()[0]]
+    plans = [_comparison_plan()]
     controller = _controller()
     lease = controller.try_acquire_run({"wspr_live": 2, "wd2": 2, "wd1": 2})
     requests = []
@@ -343,19 +290,19 @@ def test_valid_empty_strict_and_legacy_responses_do_not_become_provider_errors(t
 
 
 @pytest.mark.parametrize(
-    ("plan_index", "delivery_source"),
+    ("plan_factory", "delivery_source"),
     [
-        (0, FetchSource.MEMORY_CACHE),
-        (1, FetchSource.DISK_CACHE),
+        (_comparison_plan, FetchSource.MEMORY_CACHE),
+        (_success_plan, FetchSource.DISK_CACHE),
     ],
 )
 def test_cached_schema_error_invalidates_query_and_replans_capacity(
     tmp_path,
-    plan_index,
+    plan_factory,
     delivery_source,
 ):
     """Discard incompatible cached rows before replanning provider capacity."""
-    plan = _analysis_plans()[plan_index]
+    plan = plan_factory()
     controller = _controller()
     lease = controller.try_acquire_run({"wspr_live": 0, "wd2": 0, "wd1": 0})
     invalidations = []
@@ -408,7 +355,7 @@ def test_cached_schema_error_invalidates_query_and_replans_capacity(
 
 
 def test_nonempty_incompatible_schema_is_provider_scoped(tmp_path):
-    plans = [_analysis_plans()[1]]
+    plans = [_success_plan()]
     controller = _controller()
     lease = controller.try_acquire_run({"wspr_live": 1, "wd2": 1, "wd1": 1})
 
@@ -440,7 +387,7 @@ def test_nonempty_incompatible_schema_is_provider_scoped(tmp_path):
 
 def test_header_only_incompatible_csv_schema_is_provider_scoped(tmp_path):
     """Reject one-line maintenance/error text parsed as an empty CSV frame."""
-    plans = [_analysis_plans()[0]]
+    plans = [_comparison_plan()]
     controller = _controller()
     lease = controller.try_acquire_run({"wspr_live": 1, "wd2": 1, "wd1": 1})
 
@@ -472,7 +419,7 @@ def test_header_only_incompatible_csv_schema_is_provider_scoped(tmp_path):
 
 def test_partial_comparison_schema_is_provider_scoped(tmp_path):
     """Reject marker-only Compare rows before local processing can raise."""
-    plans = [_analysis_plans()[0]]
+    plans = [_comparison_plan()]
     controller = _controller()
     lease = controller.try_acquire_run({"wspr_live": 1, "wd2": 1, "wd1": 1})
 
@@ -502,7 +449,7 @@ def test_partial_comparison_schema_is_provider_scoped(tmp_path):
 def test_partial_sequential_comparison_schema_is_provider_scoped(tmp_path):
     """Reject marker-only sequential Compare rows before local processing."""
     plan = {
-        **_analysis_plans()[0],
+        **_comparison_plan(),
         "id": "TX_COMP",
         "is_sequential": True,
     }
@@ -535,7 +482,7 @@ def test_partial_sequential_comparison_schema_is_provider_scoped(tmp_path):
 def test_local_median_requires_contributor_detail_column(tmp_path):
     """Treat missing Local Median contributor detail as provider incompatibility."""
     plan = {
-        **_analysis_plans()[0],
+        **_comparison_plan(),
         "is_local_median": True,
     }
     controller = _controller()
@@ -566,34 +513,27 @@ def test_local_median_requires_contributor_detail_column(tmp_path):
 
 def test_post_filter_exception_becomes_controlled_local_preparation_error(tmp_path):
     """Keep deterministic local processing failures out of provider failover."""
-    plans = _analysis_plans()
+    plan = _comparison_plan()
     controller = _controller()
-    lease = controller.try_acquire_run({"wspr_live": 2, "wd2": 2, "wd1": 2})
+    lease = controller.try_acquire_run({"wspr_live": 1, "wd2": 1, "wd1": 1})
 
-    def fake_fetch(query, *, database_provider, request_permit, **_kwargs):
+    def fake_fetch(_query, *, database_provider, request_permit, **_kwargs):
         request_permit.consume_request()
-        frame = (
-            _comparison_frame()
-            if query == "COMPARE STRICT"
-            else _opportunity_frame()
-        )
-        return _result(database_provider.key, frame)
+        return _result(database_provider.key, _comparison_frame())
 
-    def failing_post_fetch(frame, analysis, *_args, **_kwargs):
-        if analysis["id"] == "RX_ABS":
-            raise ValueError("invalid local transformation")
-        return frame, None
+    def failing_post_fetch(_frame, _analysis, *_args, **_kwargs):
+        raise ValueError("invalid local transformation")
 
     with pytest.raises(ProviderBundlePreparationError) as exc_info:
         prepare_provider_bundle(
-            plans,
+            [plan],
             provider_lease=lease,
             is_demo_run=False,
             analysis_context=object(),
             center_latitude=47.0,
             center_longitude=8.0,
             labels={"warn_no_data": "No data: {title}"},
-            artifact_paths=_artifact_paths(tmp_path),
+            artifact_paths={"RX_COMP": tmp_path / "compare.parquet"},
             fetch_data=fake_fetch,
             post_fetch_filter=failing_post_fetch,
         )

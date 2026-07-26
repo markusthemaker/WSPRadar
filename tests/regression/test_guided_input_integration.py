@@ -13,6 +13,11 @@ from unittest.mock import Mock
 from i18n import GUIDED_INPUTS, T
 from ui import callbacks, config_io, page_navigation
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
+from ui.analysis_submission_state import (
+    begin_main_analysis_submission,
+    claim_analysis_submission_request,
+    get_analysis_submission,
+)
 from ui.guided_inputs import renderer
 from ui.guided_inputs.state import reconstruct_guided_transients
 
@@ -1340,6 +1345,63 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
     assert session_state.run_mode == "TX"
     assert session_state.result_export_blocks == {"compare": ["retained"]}
     assert build_analysis_context_from_session_state(session_state) == canonical_context
+
+
+def test_selector_change_hands_an_active_analysis_to_the_new_script(monkeypatch):
+    """Keep a presentation-only rerun following the already admitted analysis."""
+    session_state = _canonical_state(
+        input_view="guided",
+        run_mode="RX",
+        guided_reconstruct_requested=False,
+        guided_collapse_all=True,
+        result_export_blocks={"success": ["retained"]},
+    )
+    older_token = begin_main_analysis_submission(session_state)
+    assert claim_analysis_submission_request(session_state) is not None
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    callbacks.handle_input_view_change()
+
+    request = claim_analysis_submission_request(session_state)
+    assert request is not None
+    assert request.token != older_token
+    assert request.source == "input_view_change"
+    assert session_state.guided_reconstruct_requested is True
+    assert session_state.guided_collapse_all is False
+    assert session_state.run_mode == "RX"
+    assert session_state.result_export_blocks == {"success": ["retained"]}
+
+
+def test_guided_classic_action_hands_an_active_analysis_to_the_new_script(
+    monkeypatch,
+):
+    """Cover the programmatic Guided-to-Classic transition during an active run."""
+    session_state = _canonical_state(
+        run_mode="TX",
+        result_export_blocks={"compare": ["retained"]},
+    )
+    older_token = begin_main_analysis_submission(session_state)
+    assert claim_analysis_submission_request(session_state) is not None
+    monkeypatch.setattr(
+        renderer,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    renderer._open_classic_view()
+
+    request = claim_analysis_submission_request(session_state)
+    assert request is not None
+    assert request.token != older_token
+    assert request.source == "input_view_change"
+    assert get_analysis_submission(session_state).token == request.token
+    assert session_state.input_view == "classic"
+    assert session_state.run_mode == "TX"
+    assert session_state.result_export_blocks == {"compare": ["retained"]}
 
 
 def test_view_round_trip_preserves_retained_inactive_compare_design(monkeypatch):

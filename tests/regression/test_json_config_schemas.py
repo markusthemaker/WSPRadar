@@ -80,6 +80,7 @@ def _no_comparison_config():
                     "selected_ranges": "all",
                     "selected_directions": "all",
                     "show_zero_target": False,
+                    "segment_evidence_time_bin": "auto",
                     "station_evidence_time_bin": "3h",
                     "selected_stations": None,
                 },
@@ -120,6 +121,7 @@ def _tx_hardware_ab_config():
             "selected_ranges": ["[0-2500km]"],
             "selected_directions": ["N", "NNE"],
             "show_zero_target": True,
+            "segment_evidence_time_bin": "auto",
             "station_evidence_time_bin": "3h",
             "selected_stations": [
                 {
@@ -357,10 +359,12 @@ def test_profile_description_accepts_newlines_links_and_no_german_translation(
     config_validator.validate(config)
 
 
-def test_formal_schema_accepts_explicit_compare_temporal_choices(config_validator):
-    """Accept durable segment bins and UTC-hour station evidence views."""
+def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validator):
+    """Accept durable Success and Compare segment bins and UTC-hour station views."""
     config = _tx_hardware_ab_config()
+    success_view = config["settings"]["results_view"]["success"]
     compare_view = config["settings"]["results_view"]["compare"]
+    success_view["segment_evidence_time_bin"] = "12h"
     compare_view["segment_evidence_time_bin"] = "6h"
     compare_view["station_evidence_temporal_view"] = "utc_hour"
 
@@ -371,6 +375,12 @@ def test_formal_schema_accepts_explicit_compare_temporal_choices(config_validato
     "mutate",
     [
         lambda config: config["settings"]["results_view"].pop("compare"),
+        lambda config: config["settings"]["results_view"]["success"].pop(
+            "segment_evidence_time_bin"
+        ),
+        lambda config: config["settings"]["results_view"]["success"].update(
+            {"segment_evidence_time_bin": "4h"}
+        ),
         lambda config: config["settings"]["results_view"]["compare"].update(
             {"segment_evidence_time_bin": "4h"}
         ),
@@ -410,6 +420,8 @@ def test_formal_schema_accepts_explicit_compare_temporal_choices(config_validato
     ],
     ids=[
         "missing-compare-branch",
+        "missing-success-segment-bin",
+        "invalid-success-segment-bin",
         "invalid-segment-bin",
         "invalid-temporal-view",
         "empty-segment-ranges",

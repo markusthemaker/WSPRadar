@@ -31,15 +31,23 @@ TABLE_FILES = [
     "table_drilldown_selected_stations.csv",
     "table_drilldown_all_stations_current_segment.csv",
 ]
-FIGURE_FILES = [
-    "figure_map_highres.png",
-    "figure_segment_insight.png",
-    "figure_segment_temporal_evidence.png",
-    "figure_selected_station_evidence.png",
-]
-BLOCK_FOLDERS = ["compare", "success"]
-LEGACY_BLOCK_FOLDERS = ["absolute"]
-SUPPORTED_BLOCK_FOLDERS = BLOCK_FOLDERS + LEGACY_BLOCK_FOLDERS
+FIGURE_FILES_BY_FOLDER = {
+    "compare": (
+        "figure_map_highres.png",
+        "figure_segment_insight.png",
+        "figure_segment_temporal_evidence.png",
+        "figure_selected_station_evidence.png",
+    ),
+    "success": (
+        "figure_map_highres.png",
+        "figure_segment_insight.png",
+        "figure_segment_temporal_snr_deviation.png",
+        "figure_segment_temporal_evidence.png",
+        "figure_selected_station_snr_evidence.png",
+        "figure_selected_station_temporal_evidence.png",
+    ),
+}
+BLOCK_FOLDERS = tuple(FIGURE_FILES_BY_FOLDER)
 SNR_METRIC_MARKERS = ("snr", "norm@", "\u0394", "delta", "micro-med", "bin \u0394")
 
 
@@ -156,8 +164,8 @@ def _safe_remove_fixture(destination: Path, fixture_root: Path) -> None:
 
 
 def _copy_export_tree(export_root: Path, destination: Path) -> None:
-    """Copy current exports and preserve support for archived Absolute packages."""
-    for name in ["config", *SUPPORTED_BLOCK_FOLDERS]:
+    """Copy configuration plus current Compare and Success export folders."""
+    for name in ["config", *BLOCK_FOLDERS]:
         source = export_root / name
         if source.exists():
             shutil.copytree(source, destination / name)
@@ -250,7 +258,11 @@ def _figure_metrics(path: Path) -> dict[str, Any]:
     }
 
 
-def _block_metrics(block_folder: Path) -> dict[str, Any]:
+def _block_metrics(
+    block_folder: Path,
+    figure_files: tuple[str, ...],
+) -> dict[str, Any]:
+    """Collect table, figure, and Parquet metrics for one current result folder."""
     metrics: dict[str, Any] = {
         "exists": block_folder.exists(),
         "tables": {},
@@ -262,7 +274,7 @@ def _block_metrics(block_folder: Path) -> dict[str, Any]:
 
     for table_name in TABLE_FILES:
         metrics["tables"][table_name] = _csv_metrics(block_folder / table_name, table_name)
-    for figure_name in FIGURE_FILES:
+    for figure_name in figure_files:
         metrics["figures"][figure_name] = _figure_metrics(block_folder / figure_name)
     for parquet_path in sorted(block_folder.glob("*.parquet")):
         metrics["analysis_caches"][parquet_path.name] = _parquet_metrics(parquet_path)
@@ -271,9 +283,13 @@ def _block_metrics(block_folder: Path) -> dict[str, Any]:
 
 
 def _build_expected_metrics(destination: Path) -> dict[str, Any]:
+    """Build per-mode metrics using each current export folder's figure contract."""
     return {
-        folder: _block_metrics(destination / folder)
-        for folder in SUPPORTED_BLOCK_FOLDERS
+        folder: _block_metrics(
+            destination / folder,
+            FIGURE_FILES_BY_FOLDER[folder],
+        )
+        for folder in BLOCK_FOLDERS
         if (destination / folder).exists()
     }
 
@@ -302,10 +318,7 @@ def _build_regression_report(
             "mode": "compare" if block.get("is_compare") else "success",
             "is_sequential": block.get("is_sequential"),
             "analysis_kind": block.get("analysis_kind"),
-            "success_method_version": block.get(
-                "success_method_version",
-                block.get("absolute_method_version"),
-            ),
+            "success_method_version": block.get("success_method_version"),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),
@@ -423,7 +436,7 @@ def _build_manifest(
     blocks = []
     for block in run_metadata.get("result_blocks", []):
         folder = block.get("folder")
-        if folder not in SUPPORTED_BLOCK_FOLDERS:
+        if folder not in BLOCK_FOLDERS:
             continue
         blocks.append({
             "analysis_id": block.get("analysis_id"),
@@ -433,10 +446,7 @@ def _build_manifest(
             "is_compare": block.get("is_compare"),
             "is_sequential": block.get("is_sequential"),
             "analysis_kind": block.get("analysis_kind"),
-            "success_method_version": block.get(
-                "success_method_version",
-                block.get("absolute_method_version"),
-            ),
+            "success_method_version": block.get("success_method_version"),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),

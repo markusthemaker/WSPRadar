@@ -1,3 +1,4 @@
+import re
 import threading
 import time
 
@@ -19,24 +20,16 @@ def test_cumulative_counters_do_not_inflate_analysis_total():
     timer.add_counter("matplotlib lock held", 0.20)
 
     assert timer.total_seconds() == pytest.approx(0.25)
-    assert timer.counter_rows() == [
-        {
-            "analysis": "",
-            "counter": "matplotlib lock wait",
-            "seconds": 0.25,
-            "count": 2,
-        },
-        {
-            "analysis": "",
-            "counter": "matplotlib lock held",
-            "seconds": 0.2,
-            "count": 1,
-        },
-    ]
     report = timer.format_report(analysis_title="test")
     assert "cumulative counters (excluded from total)" in report
-    assert "matplotlib lock wait" in report
-    assert "[count=2]" in report
+    assert re.search(
+        r"matplotlib lock wait\s+0\.250s \[count=2\]",
+        report,
+    )
+    assert re.search(
+        r"matplotlib lock held\s+0\.200s \[count=1\]",
+        report,
+    )
 
 
 def test_matplotlib_lock_profiles_wait_and_outermost_hold_once():
@@ -64,11 +57,21 @@ def test_matplotlib_lock_profiles_wait_and_outermost_hold_once():
     release_timer.join(timeout=1.0)
     assert not holder.is_alive()
 
-    counters = {row["counter"]: row for row in timer.counter_rows()}
-    assert counters["matplotlib lock wait"]["seconds"] >= 0.02
-    assert counters["matplotlib lock wait"]["count"] == 1
-    assert counters["matplotlib lock held"]["seconds"] >= 0.004
-    assert counters["matplotlib lock held"]["count"] == 1
+    report = timer.format_report()
+    wait_match = re.search(
+        r"matplotlib lock wait\s+([0-9.]+)s \[count=(\d+)\]",
+        report,
+    )
+    held_match = re.search(
+        r"matplotlib lock held\s+([0-9.]+)s \[count=(\d+)\]",
+        report,
+    )
+    assert wait_match is not None
+    assert held_match is not None
+    assert float(wait_match.group(1)) >= 0.02
+    assert int(wait_match.group(2)) == 1
+    assert float(held_match.group(1)) >= 0.004
+    assert int(held_match.group(2)) == 1
 
 
 def test_process_memory_profiling_returns_sensible_values():

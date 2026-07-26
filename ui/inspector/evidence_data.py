@@ -25,14 +25,14 @@ def _prepare_identity_meta(identity_df):
 def _build_evidence_points(
     station_df,
     identity_df,
-    is_compare,
     is_sequential,
     *,
     tx_ab_repeat_interval_minutes=10,
     tx_ab_target_start_minute=0,
     tx_ab_reference_start_minute=2,
 ):
-    """Build raw evidence points for the selected station+locator distribution and time plots."""
+    """Build Compare Delta-SNR points for selected station identities."""
+
     identity_meta = _prepare_identity_meta(identity_df)
     if identity_meta.empty or station_df.empty:
         return _empty_evidence_df()
@@ -46,14 +46,7 @@ def _build_evidence_points(
     if station_df.empty:
         return _empty_evidence_df()
 
-    if not is_compare:
-        if "time" not in station_df.columns or "stat_val" not in station_df.columns:
-            return _empty_evidence_df()
-
-        evidence_df = station_df[["peer_sign", "peer_grid", "identity", "identity_order", "time", "stat_val"]].copy()
-        evidence_df["plot_time"] = pd.to_datetime(evidence_df["time"], errors="coerce")
-        evidence_df["metric"] = pd.to_numeric(evidence_df["stat_val"], errors="coerce")
-    elif is_sequential:
+    if is_sequential:
         if "tx_ab_pair_id" not in station_df.columns:
             required_schedule_columns = {"time", "is_me"}
             if not required_schedule_columns.issubset(station_df.columns):
@@ -140,14 +133,14 @@ def _build_evidence_points(
 def _build_segment_evidence_points(
     df_seg,
     parquet_path,
-    is_compare,
     is_sequential,
     *,
     tx_ab_repeat_interval_minutes=10,
     tx_ab_target_start_minute=0,
     tx_ab_reference_start_minute=2,
 ):
-    """Build raw segment-level evidence points from parquet using station+locator identity."""
+    """Build Compare segment evidence from projected station-identity rows."""
+
     if df_seg.empty or not {"peer_sign", "peer_grid"}.issubset(df_seg.columns):
         return _empty_evidence_df()
 
@@ -159,9 +152,7 @@ def _build_segment_evidence_points(
         return _empty_evidence_df()
 
     read_columns = ["peer_sign", "peer_grid"]
-    if not is_compare:
-        read_columns += ["time", "stat_val"]
-    elif is_sequential:
+    if is_sequential:
         read_columns += ["tx_ab_pair_id", "is_me", "stat_val"]
     else:
         read_columns += ["time_slot", "has_u", "has_r", "snr_u_norm", "snr_r_norm"]
@@ -187,8 +178,7 @@ def _build_segment_evidence_points(
     return _build_evidence_points(
         segment_raw_df,
         segment_meta,
-        is_compare,
-        is_sequential,
+        is_sequential=is_sequential,
         tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
         tx_ab_target_start_minute=tx_ab_target_start_minute,
         tx_ab_reference_start_minute=tx_ab_reference_start_minute,

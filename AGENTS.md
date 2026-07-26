@@ -108,7 +108,7 @@ Run the complete regression suite:
 python -m pytest tests/regression -q
 ```
 
-Expected result as of 2026-07-11: `116 passed, 1 skipped`. The skip is the
+Expected result as of 2026-07-26: `1228 passed, 1 skipped`. The skip is the
 fixture-integrity test because no generated fixture is committed under
 `tests/regression/fixtures/`. One existing Matplotlib pending-deprecation
 warning is emitted from `ui/plots/evidence_figures.py`.
@@ -128,6 +128,72 @@ git diff --check
 There is no configured Ruff, Flake8, Black, mypy, pre-commit, or equivalent
 lint command. Do not document or require one until its configuration is added.
 The GitHub workflow currently wakes the deployed app; it does not run tests.
+
+### Progress Updates for Broad Tasks
+
+Keep the user informed during broad audits, multi-file implementation, cleanup,
+or verification work that lasts more than a short interaction:
+
+- give an initial scope/status update before substantial tool work, then update
+  at meaningful milestones and at least once every 60 seconds while work is
+  actively continuing;
+- include rough, separately labelled percentages for review/audit,
+  implementation or cleanup, and verification when those phases apply, plus a
+  concrete statement of what remains;
+- treat percentages as honest estimates rather than false precision. Revise
+  them transparently when new coupling or additional scope is discovered;
+- report unexpected failures, stalls, launcher problems, or possible orphaned
+  processes promptly, together with the bounded recovery action being taken;
+- do not hide progress behind a long blocking command. Use supervised processes
+  or bounded chunks so commentary remains available and the user can redirect
+  the work;
+- keep short tasks concise; percentage updates are unnecessary when the work
+  completes within one quick tool round trip.
+
+### Supervising Long-Running Windows Checks
+
+When a Windows verification command may outlive an interactive tool call,
+supervise it explicitly rather than treating missing console output as failure:
+
+- before relaunching a check, perform a read-only inspection for a matching
+  orphaned process and for status or log artifacts from the earlier attempt;
+- place explicit stdout, stderr, and exit-status files in a uniquely named
+  disposable directory whose resolved path has been verified to remain under
+  the workspace, launch the process hidden, and retain its exact PID or process
+  handle;
+- never let a background or detached child inherit the command tool's stdin,
+  PowerShell pipeline, or other live console handles. Close or redirect stdin
+  explicitly (for example to `DEVNULL`), redirect stdout and stderr to files,
+  close unrelated inherited handles where the launcher supports it, and verify
+  that the launching tool call returns promptly;
+- use a launcher that preserves the inherited Windows environment without
+  rebuilding it as a case-sensitive mapping, because environments containing
+  both `Path` and `PATH` can make such launchers fail before the check starts;
+- prefer a bounded foreground wrapper for short startup or health checks. Give
+  it an explicit deadline and terminate the exact child in a `finally` path,
+  escalating from graceful termination to a forced stop only if the bounded
+  wait expires;
+- poll at bounded intervals of no more than 60 seconds and provide progress
+  commentary; distinguish quiet but active work from a hang by considering
+  process state, CPU-time changes, and log size or write-time changes together;
+- if a tool call is interrupted or aborted after a child may have started,
+  inspect the recorded PID and artifacts before doing anything else in the next
+  turn; validate that the PID still belongs to the intended executable, then
+  stop that exact process or process tree before continuing;
+- terminate only after a declared timeout, repeated evidence of a stall, or an
+  explicit user request; first validate that the retained PID still belongs to
+  the intended command, then terminate only that exact process tree—never all
+  Python or test processes by name;
+- inspect stdout, stderr, and the recorded exit status before reporting the
+  result; if abnormal termination left no exit status, report the run as
+  inconclusive rather than failed;
+- clean up only the exact verified disposable artifacts for that run, and only
+  after any needed diagnostic evidence has been captured.
+
+If the available launcher cannot provide reliable PID, log, and exit-status
+supervision, run bounded test modules or focused chunks instead of starting an
+unsupervised background suite. The combined chunks must still cover the
+verification scope required for the change.
 
 ## Verification Scope and Proportionality
 
@@ -304,6 +370,84 @@ checks** below.
   boundaries, lists, tables, or code blocks, and preserve the native formatting
   requirements of JSON, schemas, and other machine-readable formats.
 
+#### Terminology Change Protocol
+
+Treat established user-visible terminology as a cross-surface presentation
+contract. A terminology change is incomplete until every applicable surface has
+been audited, even when only some surfaces require edits.
+
+Before editing:
+
+- Define the old term, the approved replacement, capitalization, singular/plural
+  forms, and any RX/TX, Compare/Success, or English/German variants.
+- State whether the change affects only presentation terminology or also changes
+  scientific meaning, configuration, schemas, exports, or compatibility.
+- Identify canonical internal terms that must remain stable. Do not globally
+  replace internal identifiers, DataFrame columns, classifications, formulas,
+  schema fields, cache keys, or compatibility export headings merely because
+  their visible presentation name changes.
+
+Audit all applicable surfaces:
+
+- `T`, `GUIDED_INPUTS`, `RESULT_GUIDANCE`, and other localization catalogs;
+- Guided and Classic Input labels, captions, help text, validation messages,
+  summaries, and fallback strings;
+- result headers, maps, legends, figure titles, axes, annotations, tables,
+  inspectors, drill-down views, empty states, and download descriptions;
+- direction-, mode-, and benchmark-specific routing through shared renderers;
+- `docs/doc_en.py`, `docs/doc_de.py`, generated `README.md`, architecture
+  documentation, and changelog entries where the terminology is relevant;
+- exported user-facing headings, metadata, recipes, filenames, and
+  reproducibility documentation, while preserving compatibility contracts unless
+  an explicit migration is authorized;
+- regression tests, fixtures, snapshots, screenshots, and demo expectations that
+  encode the visible terminology.
+
+Search for the former term and likely variants before and after the change.
+Classify every remaining occurrence as one of:
+
+1. active user-facing text that must change;
+2. canonical scientific or compatibility terminology that must remain;
+3. obsolete or unreachable presentation text that should be removed;
+4. unrelated prose requiring no change.
+
+Do not treat a repository-wide text replacement as an audit. Follow actual call
+paths, including shared components, localized fallbacks, conditional modes, and
+Guided/Classic reuse, to establish which strings can be rendered.
+
+For bilingual terminology changes:
+
+- preserve English/German key and placeholder parity;
+- use an approved phrase matrix for every semantic and directional variant;
+- verify natural German wording rather than literal word substitution;
+- ensure fallback text cannot expose superseded English or canonical terms in
+  either language.
+
+Tests must cover:
+
+- the exact approved visible terms for every affected language and mode;
+- routing through each distinct active path, including shared renderers;
+- absence of superseded terminology from active presentation paths;
+- preservation of canonical calculations, classifications, schemas, state keys,
+  and compatibility exports;
+- localization key and placeholder parity.
+
+Update end-user documentation only when the change affects workflow,
+interpretation, result meaning, controls, or terminology used to explain those
+concepts. Pure styling or incidental wording changes require a documentation
+audit but not necessarily a documentation edit. When authoritative English
+documentation changes, regenerate `README.md` through the established sync
+script.
+
+The completion report must list:
+
+- surfaces audited and files changed;
+- superseded active phrases removed;
+- intentional canonical or compatibility occurrences retained;
+- routing and fallback behavior verified;
+- tests and documentation-generation checks run;
+- any surface that could not be verified.
+
 #### Result-Guidance Copy
 
 Treat `RESULT_GUIDANCE` as bilingual, point-of-use interpretation guidance for
@@ -314,6 +458,11 @@ define or select scientific behavior.
 
 - Every item must contain one substantive `read` paragraph and one shorter
   `limits` paragraph.
+- Treat roughly 2,000 combined characters as a readability target, not a hard
+  editorial limit. Prefer clear, scientifically complete wording over forced
+  compression; modest overruns are acceptable when an essential distinction
+  needs space. Tests may use a generous ceiling only to catch genuinely
+  excessive popover copy.
 - Begin `read` by naming the visible view and explaining its operator-relevant
   purpose. As applicable, define the evidence unit, denominator, aggregation or
   weighting; explain how complementary figures differ; and tell the operator
@@ -405,6 +554,36 @@ define or select scientific behavior.
 - Do not perform unrelated refactoring, renaming, formatting, or cleanup.
 - A bug fix should include a regression test that fails without the fix.
 
+### Replacement and Dead-Code Cleanup
+
+Treat removal of superseded implementation as part of completing a replacement,
+not as optional follow-up work.
+
+- Trace the old and new call paths before editing. When behavior is replaced or
+  removed, delete every old runtime branch that no active producer, caller,
+  dispatcher, or supported compatibility contract can reach.
+- Remove private helpers, methods, classes, imports, constants, configuration
+  entries, localization keys, compatibility shims, comments, and documentation
+  that exist only for the retired behavior. Do not keep an obsolete
+  implementation merely because a regression test imports or exercises it
+  directly.
+- Delete tests and fixtures that assert only retired behavior. Replace them with
+  coverage of the active contract and retain negative assertions when they
+  prevent obsolete UI, exports, terminology, or schemas from returning.
+- Audit shared and mode-specific paths—including Success, Compare, RX, TX,
+  Guided, Classic, preview, export, and both languages—before declaring code
+  unused. Preserve a compatibility path only when a current supported producer
+  or consumer, persisted contract, or explicit migration requirement still
+  needs it; document that reason in the code or handoff.
+- Search for every removed symbol, key, filename, and distinctive phrase after
+  cleanup. Classify any remaining occurrence as active, compatibility-required,
+  or an intentional negative regression assertion. Unexplained remnants make
+  the replacement incomplete.
+- Run verification proportional to the affected contract after cleanup. The
+  completion report must distinguish deleted dead artifacts from intentionally
+  retained compatibility surfaces and identify anything that could not be
+  proven reachable or unreachable.
+
 ## Git and GitHub Publishing
 
 - Never push directly to `main`, `master`, or another default branch unless the
@@ -432,11 +611,12 @@ define or select scientific behavior.
 - The application is read-only with respect to wspr.live, WSPRDaemon WD2, and
   WSPRDaemon WD1. Do not add upstream mutation or credentials without an
   explicit design review.
-- Every published analysis run must use exactly one database source across
-  Compare, Success, strict and legacy queries. On provider failover, discard the
-  unpublished partial bundle and restart it from Map 1. Database identity must
-  remain separate from cache medium and participate in query-cache identity and
-  run/export provenance.
+- Every published analysis run must use exactly one database source across the
+  selected active result's strict and legacy queries. On provider failover,
+  discard the unpublished partial bundle and restart the active-result bundle
+  from its first required request. Database identity must remain separate from
+  cache medium and participate in query-cache identity and run/export
+  provenance.
 - Analysis and export gates are process-local. Their limits are safety controls,
   not globally distributed quotas. Provider request budgets and circuit state
   are likewise process-local and cannot enforce a shared-egress-IP quota across
@@ -540,6 +720,10 @@ define or select scientific behavior.
     than literal identifiers or per-record runtime branches. Adding a record
     that uses an existing capability requires no runtime-code change.
 12. Any check that could not be run is stated explicitly in the handoff.
+13. Every user-visible terminology change has completed the Terminology Change
+    Protocol, including cross-surface search, bilingual parity, active-route
+    verification, and an explicit distinction between presentation wording and
+    retained canonical or compatibility terminology.
 
 ## Documentation Maintenance
 

@@ -51,6 +51,7 @@ SUCCESS_SECTIONS = (
     RESULT_GUIDANCE_MAP,
     RESULT_GUIDANCE_SEGMENT,
     RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+    RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
     RESULT_GUIDANCE_STATION_INSIGHTS,
     RESULT_GUIDANCE_SELECTED_STATIONS,
     RESULT_GUIDANCE_DRILLDOWN,
@@ -96,6 +97,7 @@ def _build_guidance(
     is_compare=True,
     is_sequential=False,
     analysis_context=None,
+    selected_station_count=None,
 ):
     """Build guidance with the matching localized general translation catalog."""
     return build_result_guidance(
@@ -106,6 +108,7 @@ def _build_guidance(
         is_compare=is_compare,
         is_sequential=is_sequential,
         analysis_context=analysis_context,
+        selected_station_count=selected_station_count,
     )
 
 
@@ -128,11 +131,13 @@ def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
         ), path
         assert _format_fields(english_value) <= {
             "counter",
-            "formula",
-            "peer_type",
-            "radius",
-            "section",
-        }, path
+                "formula",
+                "peer_type",
+                "radius",
+                "section",
+                "station_counter",
+                "station_target",
+            }, path
 
     for language in ("en", "de"):
         assert RESULT_GUIDANCE[language]["sections"]
@@ -151,6 +156,260 @@ def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
                     language,
                     section_key,
                 )
+
+
+def test_directional_success_temporal_guidance_stays_near_readability_target():
+    """Allow modest overruns of the approximate 2,000-character target."""
+    for language in ("en", "de"):
+        for direction in ("rx", "tx"):
+            item = RESULT_GUIDANCE[language]["sections"][
+                f"success_temporal_evidence_{direction}"
+            ]
+            assert len(item["read"]) + len(item["limits"]) <= 2300
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "analysis_id",
+        "direction",
+        "success_outcome",
+        "counter_outcome",
+        "snr_figure_name",
+        "temporal_figure_name",
+        "replacement_wording",
+    ),
+    (
+        (
+            "en",
+            "RX_ABS",
+            "rx",
+            "Heard by Target",
+            "Heard by others only",
+            "Selected Station SNR Evidence",
+            "Selected Station Temporal Evidence",
+            "replaces the current station",
+        ),
+        (
+            "en",
+            "TX_ABS",
+            "tx",
+            "Target heard",
+            "Other signals heard only",
+            "Selected Station SNR Evidence",
+            "Selected Station Temporal Evidence",
+            "replaces the current receiver",
+        ),
+        (
+            "de",
+            "RX_ABS",
+            "rx",
+            "Vom Target gehört",
+            "Nur von anderen gehört",
+            "SNR-Evidenz der ausgewählten Station",
+            "Zeitliche Evidenz der ausgewählten Station",
+            "ersetzt die bisherige Station",
+        ),
+        (
+            "de",
+            "TX_ABS",
+            "tx",
+            "Target gehört",
+            "Nur andere Signale gehört",
+            "SNR-Evidenz der ausgewählten Station",
+            "Zeitliche Evidenz der ausgewählten Station",
+            "ersetzt den bisher ausgewählten Empfänger",
+        ),
+    ),
+)
+def test_success_selected_guidance_routes_one_station(
+    language,
+    analysis_id,
+    direction,
+    success_outcome,
+    counter_outcome,
+    snr_figure_name,
+    temporal_figure_name,
+    replacement_wording,
+):
+    """Route exact direction-specific singleton guidance from semantic state."""
+    guidance = _build_guidance(
+        RESULT_GUIDANCE_SELECTED_STATIONS,
+        language=language,
+        analysis_id=analysis_id,
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+        selected_station_count=1,
+    )
+    expected_key = f"selected_success_{direction}"
+    expected_item = RESULT_GUIDANCE[language]["sections"][expected_key]
+
+    assert expected_item["read"] in guidance
+    assert expected_item["limits"] in guidance
+    assert success_outcome in guidance
+    assert counter_outcome in guidance
+    assert snr_figure_name in guidance
+    assert temporal_figure_name in guidance
+    assert replacement_wording in guidance
+    assert "Selected Path Summary" not in guidance
+    assert "Zusammenfassung des ausgewählten Funkwegs" not in guidance
+    assert "combined observation-weighted selection" not in guidance
+    assert "kombinierte beobachtungsgewichtete Auswahl" not in guidance
+
+
+@pytest.mark.parametrize(
+    "selected_station_count",
+    (None, 0, -1, False, 1.5, "2", 2, 5),
+)
+def test_success_selected_guidance_requires_exactly_one_station(
+    selected_station_count,
+):
+    """Reject any cardinality that violates Success singleton selection."""
+    with pytest.raises(
+        ValueError,
+        match="requires exactly one selected station",
+    ):
+        _build_guidance(
+            RESULT_GUIDANCE_SELECTED_STATIONS,
+            analysis_id="RX_ABS",
+            is_compare=False,
+            analysis_context=AnalysisContext(),
+            selected_station_count=selected_station_count,
+        )
+
+
+def test_compare_selected_guidance_remains_backward_compatible_without_count():
+    """Keep established Compare guidance callable without selection cardinality."""
+    guidance_without_count = _build_guidance(
+        RESULT_GUIDANCE_SELECTED_STATIONS,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+    )
+    guidance_with_count = _build_guidance(
+        RESULT_GUIDANCE_SELECTED_STATIONS,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+        selected_station_count=6,
+    )
+
+    assert guidance_without_count == guidance_with_count
+    assert "chosen TX stations" in guidance_without_count
+    assert not _format_fields(guidance_without_count)
+
+
+def test_success_selected_guidance_stays_near_readability_target():
+    """Keep each selected-station popover within the generous copy ceiling."""
+    for language in ("en", "de"):
+        for direction in ("rx", "tx"):
+            item = RESULT_GUIDANCE[language]["sections"][
+                f"selected_success_{direction}"
+            ]
+            assert len(item["read"]) + len(item["limits"]) <= 2300
+
+
+@pytest.mark.parametrize(
+    ("language", "direction", "directional_terms"),
+    (
+        (
+            "en",
+            "rx",
+            (
+                "qualifying TX station",
+                "Heard by Target",
+                "Heard by others only",
+                "one station contributing on one date at that hour",
+            ),
+        ),
+        (
+            "en",
+            "tx",
+            (
+                "qualifying RX station",
+                "Target heard",
+                "Other signals heard only",
+                "one receiver contributing on one date at that hour",
+            ),
+        ),
+        (
+            "de",
+            "rx",
+            (
+                "qualifizierende TX-Station",
+                "Vom Target gehört",
+                "Nur von anderen gehört",
+                "Eine Stationspräsenz bedeutet, dass eine Station",
+            ),
+        ),
+        (
+            "de",
+            "tx",
+            (
+                "qualifizierende RX-Station",
+                "Target gehört",
+                "Nur andere Signale gehört",
+                "Eine Stationspräsenz bedeutet, dass ein Empfänger",
+            ),
+        ),
+    ),
+)
+def test_success_temporal_guidance_explains_two_figures_rates_and_folded_averages(
+    language,
+    direction,
+    directional_terms,
+):
+    """Pin the two-figure, two-weighting, and folded-average interpretation."""
+    item = RESULT_GUIDANCE[language]["sections"][
+        f"success_temporal_evidence_{direction}"
+    ]
+    combined = f"{item['read']} {item['limits']}"
+
+    for expected_term in directional_terms:
+        assert expected_term in combined
+    if language == "en":
+        for expected_term in (
+            "Temporal Evidence",
+            "station-level support and confirmed-opportunity volume",
+            "split vote",
+            "total height is contributing",
+            "<strong class=\"defined-term\">station presences</strong> per represented UTC date",
+            "every distinct",
+            "one rate vote across all folded dates",
+            "recurring dates increase support but not",
+            "counts every confirmed opportunity once chronologically",
+            "average counts per represented date after UTC-hour folding",
+            "observation-level Success Rate",
+            "With `1h` selected, each folded total is the average",
+            "intentionally different weighting",
+            "bar measures average daily participation",
+            "line weights each distinct",
+        ):
+            assert expected_term in combined
+        assert "station-date split votes" not in combined
+    else:
+        for expected_term in (
+            "Zeitliche Evidenz",
+            "Unterstützung auf Stationsebene",
+            "aufgeteilte Stimme",
+            "gesamte Balkenhöhe zeigt die beitragenden",
+            "<strong class=\"defined-term\">Stationspräsenzen</strong> je berücksichtigtem UTC-Tag",
+            "genau eine Ratenstimme",
+            "Wiederholte Tage erhöhen daher die Evidenzunterstützung",
+            "zählt chronologisch jede bestätigte Gelegenheit einmal",
+            "Durchschnittswerte je berücksichtigtem Tag",
+            "Success Rate auf Beobachtungsebene",
+            "Bei `1h` entspricht jede gefaltete Gesamthöhe dem Mittelwert",
+            "bewusst unterschiedliche Gewichtungen",
+            "durchschnittliche tägliche Beteiligung",
+            "Linie gewichtet jede",
+        ):
+            assert expected_term in combined
+        assert "Stations-Datum-Stunden-Stimmen" not in combined
 
 
 @pytest.mark.parametrize("section_key", ("map_compare_rx", "map_compare_tx"))
@@ -179,6 +438,206 @@ def test_compare_map_guidance_explains_dynamic_symmetric_db_scale(section_key):
     assert "S-Stufe" not in german_limits
 
 
+def test_success_map_guidance_uses_status_markers_and_two_level_support():
+    """Pin direction-specific marker outcomes and the two support levels."""
+    expected_terms = {
+        "en": {
+            "rx": ("RX Success Rate", "Heard by Target", "Heard by others only"),
+            "tx": (
+                "TX Success Rate",
+                "Target was heard",
+                "Other signals were heard only",
+            ),
+        },
+        "de": {
+            "rx": ("RX Success Rate", "Vom Target gehört", "Nur von anderen gehört"),
+            "tx": (
+                "TX Success Rate",
+                "Target gehört",
+                "Nur andere Signale gehört",
+            ),
+        },
+    }
+    for language, directions in expected_terms.items():
+        for direction, terms in directions.items():
+            item = RESULT_GUIDANCE[language]["sections"][
+                f"map_success_{direction}"
+            ]
+            combined = f"{item['read']} {item['limits']}"
+            assert all(term in combined for term in terms)
+            assert "light-grey" in combined if language == "en" else "Hellgraue" in combined
+            assert (
+                ("STATIONS" in combined and "OPPORTUNITIES" in combined)
+                if language == "en"
+                else ("STATIONEN" in combined and "GELEGENHEITEN" in combined)
+            )
+
+
+def test_success_segment_distance_and_temporal_guidance_matches_editorial_contract():
+    """Pin the requested bilingual point-of-use interpretation guidance."""
+    directional_expectations = {
+        "en": {
+            "rx": (
+                "Heard by Target",
+                "TX Stations Heard by Target at Least Once by Distance",
+                "Successful RX SNR Deviation",
+            ),
+            "tx": (
+                "Target was heard",
+                "RX Stations Hearing the Target at Least Once by Distance",
+                "Successful TX SNR Deviation",
+            ),
+        },
+        "de": {
+            "rx": (
+                "Vom Target gehört",
+                "Vom Target mindestens einmal gehörte TX-Stationen nach Entfernung",
+                "Abweichung des erfolgreichen RX-SNR",
+            ),
+            "tx": (
+                "Target gehört",
+                "RX-Stationen, die das Target mindestens einmal hörten, nach Entfernung",
+                "Abweichung des erfolgreichen TX-SNR",
+            ),
+        },
+    }
+    for language, directions in directional_expectations.items():
+        for direction, expected_phrases in directions.items():
+            sections = RESULT_GUIDANCE[language]["sections"]
+            combined = " ".join(
+                sections[f"{prefix}_{direction}"]["read"]
+                for prefix in (
+                    "segment_success",
+                    "success_evidence",
+                    "success_temporal_evidence",
+                )
+            )
+            assert all(phrase in combined for phrase in expected_phrases)
+            assert (
+                "Compare the two Success Rates directly" in combined
+                if language == "en"
+                else "Vergleiche beide Success Rates direkt" in combined
+            )
+
+
+def test_success_map_presentation_labels_are_bilingual_and_status_only():
+    """Keep the compact legend and footer labels aligned across languages."""
+    expected_labels = {
+        "en": {
+            "cbar_abs_rx": "Station-balanced RX Success Rate (%)",
+            "cbar_abs_tx": "Station-balanced TX Success Rate (%)",
+            "map_success_footer_opportunities": "OPPORTUNITIES",
+            "map_success_footer_stations": "STATIONS",
+            "map_success_rx_opportunity_target": "Heard by Target",
+            "map_success_rx_opportunity_counter": "Heard by others only",
+            "map_success_rx_station_target": "Heard by Target",
+            "map_success_rx_station_counter": "Heard by others only",
+            "map_success_tx_opportunity_target": "Target heard",
+            "map_success_tx_opportunity_counter": "Other signals heard only",
+            "map_success_tx_station_target": "Target heard",
+            "map_success_tx_station_counter": "Other signals heard only",
+            "map_success_legend_insufficient": "Insufficient evidence",
+        },
+        "de": {
+            "cbar_abs_rx": "Stationsgleichgewichtete RX Success Rate (%)",
+            "cbar_abs_tx": "Stationsgleichgewichtete TX Success Rate (%)",
+            "map_success_footer_opportunities": "GELEGENHEITEN",
+            "map_success_footer_stations": "STATIONEN",
+            "map_success_rx_opportunity_target": "Vom Target gehört",
+            "map_success_rx_opportunity_counter": "Nur von anderen gehört",
+            "map_success_rx_station_target": "Vom Target gehört",
+            "map_success_rx_station_counter": "Nur von anderen gehört",
+            "map_success_tx_opportunity_target": "Target gehört",
+            "map_success_tx_opportunity_counter": "Nur andere Signale gehört",
+            "map_success_tx_station_target": "Target gehört",
+            "map_success_tx_station_counter": "Nur andere Signale gehört",
+            "map_success_legend_insufficient": "Unzureichende Evidenz",
+        },
+    }
+
+    for language, labels in expected_labels.items():
+        for key, expected_text in labels.items():
+            assert T[language][key] == expected_text
+
+    retired_keys = {
+        "map_success_sector_legend",
+        "map_success_marker_legend",
+        "map_success_footer_station_categories",
+        "map_success_footer_opportunity_categories",
+        "map_footer_stations",
+        "map_footer_confirmed_opportunities",
+        "map_success_target_observed",
+        "map_success_zero_target",
+        "map_success_no_qualifying_segment",
+        "fmt_results_decimal_separator",
+        "leg_abs_hit_one",
+        "leg_abs_hit_mid",
+        "leg_abs_hit_high",
+    }
+    for language in ("en", "de"):
+        assert retired_keys.isdisjoint(T[language])
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "analysis_id",
+        "map_success",
+        "map_counter",
+        "mode_key",
+    ),
+    (
+        ("en", "RX_ABS", "Heard by Target", "Heard by others only", "rx"),
+        (
+            "en",
+            "TX_ABS",
+            "Target was heard",
+            "Other signals were heard only",
+            "tx",
+        ),
+        ("de", "RX_ABS", "Vom Target gehört", "Nur von anderen gehört", "rx"),
+        (
+            "de",
+            "TX_ABS",
+            "Target gehört",
+            "Nur andere Signale gehört",
+            "tx",
+        ),
+    ),
+)
+def test_success_guidance_uses_mode_specific_station_status_labels(
+    language,
+    analysis_id,
+    map_success,
+    map_counter,
+    mode_key,
+):
+    """Resolve direction-aware map outcomes and exact distance-panel names."""
+    map_guidance = _build_guidance(
+        RESULT_GUIDANCE_MAP,
+        language=language,
+        analysis_id=analysis_id,
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+    distance_guidance = _build_guidance(
+        RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+        language=language,
+        analysis_id=analysis_id,
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+
+    assert map_success in map_guidance
+    assert map_counter in map_guidance
+    for key in (
+        f"fig_success_reach_title_{mode_key}",
+        f"fig_success_consistency_title_{mode_key}",
+        f"fig_success_snr_distance_title_{mode_key}",
+    ):
+        assert T[language][key] in distance_guidance
+
+
 def test_result_guidance_uses_practical_station_language():
     """Keep operator-facing copy concrete while preserving the row definition."""
     for language in ("en", "de"):
@@ -187,18 +646,18 @@ def test_result_guidance_uses_practical_station_language():
             for section in RESULT_GUIDANCE[language]["sections"].values()
             for text in section.values()
         ).lower()
-        assert "identit" not in complete_catalog
         assert "estimator" not in complete_catalog
         assert "schätzer" not in complete_catalog
 
     for section_key in (
         "station_insights_compare_joint",
         "station_insights_compare_scheduled",
-        "station_insights_success",
+        "station_insights_success_rx",
+        "station_insights_success_tx",
     ):
         english = RESULT_GUIDANCE["en"]["sections"][section_key]["read"]
         german = RESULT_GUIDANCE["de"]["sections"][section_key]["read"]
-        assert "callsign plus locator" in english
+        assert "callsign plus locator" in english.replace("-", " ")
         assert "Rufzeichen und Locator" in german
 
 
@@ -266,6 +725,14 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
             is_compare=is_compare,
             is_sequential=is_sequential,
             analysis_context=analysis_context,
+            selected_station_count=(
+                1
+                if (
+                    not is_compare
+                    and section_id == RESULT_GUIDANCE_SELECTED_STATIONS
+                )
+                else None
+            ),
         )
 
         assert RESULT_GUIDANCE[language]["read_label"] in guidance
@@ -354,18 +821,6 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
         is_compare=False,
         analysis_context=AnalysisContext(),
     )
-    rx_formula = _build_guidance(
-        RESULT_GUIDANCE_SUCCESS_EVIDENCE,
-        analysis_id="RX_ABS",
-        is_compare=False,
-        analysis_context=AnalysisContext(),
-    )
-    tx_formula = _build_guidance(
-        RESULT_GUIDANCE_SUCCESS_EVIDENCE,
-        analysis_id="TX_ABS",
-        is_compare=False,
-        analysis_context=AnalysisContext(),
-    )
     joint_compare = _build_guidance(
         RESULT_GUIDANCE_COMPARISON_EVIDENCE,
         analysis_context=AnalysisContext(
@@ -384,15 +839,19 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
     scheduled_compare_plain = _plain_guidance(scheduled_compare)
 
     assert "qualifying TX station" in rx_success
-    assert "Elsewhere" in rx_success
+    assert "Heard by Target" in rx_success
+    assert "Heard by others only" in rx_success
+    assert "Elsewhere" not in rx_success
     assert "qualifying RX station" in tx_success
-    assert "Other Signals" in tx_success
-    assert "Target-Active Gate" in rx_context
-    assert "Target-Active Gate" in tx_context
+    assert "Target was heard" in tx_success
+    assert "Other signals were heard only" in tx_success
+    assert "Other Signals" not in tx_success
     assert "confirmed opportunity" in rx_context
     assert "confirmed opportunity" in tx_context
-    assert "100 × Target / (Target + Elsewhere)" in rx_formula
-    assert "100 × Target / (Target + Other Signals)" in tx_formula
+    assert "Heard by Target" in rx_context
+    assert "Heard by others only" in rx_context
+    assert "Target heard" in tx_context
+    assert "Other signals heard only" in tx_context
     assert "A Joint Spot is a consolidated same-cycle unit" in joint_compare_plain
     assert all(
         outcome in joint_compare_plain
@@ -414,12 +873,74 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
     assert "time-separated design retains changes" in scheduled_compare_plain
 
 
-def test_dynamic_result_terms_are_html_escaped_before_rendering():
-    """Keep unsafe catalog HTML separate from formatted translation values."""
+@pytest.mark.parametrize("language", ("en", "de"))
+def test_success_segment_and_temporal_guidance_route_without_changing_compare(language):
+    """Keep the new Success summaries separate from established Compare help."""
+    success_segment = _build_guidance(
+        RESULT_GUIDANCE_SEGMENT,
+        language=language,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+    compare_segment = _build_guidance(
+        RESULT_GUIDANCE_SEGMENT,
+        language=language,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+    )
+    success_temporal = _build_guidance(
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+        language=language,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+    compare_temporal = _build_guidance(
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+        language=language,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+    )
+
+    assert "Success Rate" in success_segment
+    assert (
+        "Heard by Target" in success_segment
+        if language == "en"
+        else "Vom Target gehört" in success_segment
+    )
+    assert (
+        "Compare the two Success Rates directly" in success_segment
+        if language == "en"
+        else "Vergleiche beide Success Rates direkt" in success_segment
+    )
+    assert "Joint Spots" in compare_segment
+    assert (
+        "Successful RX SNR Deviation" in success_temporal
+        if language == "en"
+        else "Abweichung des erfolgreichen RX-SNR" in success_temporal
+    )
+    assert (
+        "Heard by others only" in success_temporal
+        if language == "en"
+        else "Nur von anderen gehört" in success_temporal
+    )
+    assert "Joint Spots" in compare_temporal
+
+
+def test_success_guidance_does_not_interpolate_mutable_ui_labels():
+    """Keep static editorial guidance independent of presentation label values."""
     translations = {
         **T["en"],
         "abs_rx_counter": "<script>alert(1)</script>",
-        "abs_rx_formula_spaced": 'Target / (<img src=x onerror="alert(2)">)',
+        "map_success_rx_station_target": "<img src=x onerror=alert(2)>",
+        "map_success_rx_station_counter": "<iframe src=bad></iframe>",
     }
     map_guidance = build_result_guidance(
         RESULT_GUIDANCE_MAP,
@@ -429,8 +950,8 @@ def test_dynamic_result_terms_are_html_escaped_before_rendering():
         is_compare=False,
         analysis_context=AnalysisContext(),
     )
-    figure_guidance = build_result_guidance(
-        RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+    temporal_guidance = build_result_guidance(
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
         language="en",
         translations=translations,
         analysis_id="RX_ABS",
@@ -438,14 +959,73 @@ def test_dynamic_result_terms_are_html_escaped_before_rendering():
         analysis_context=AnalysisContext(),
     )
 
-    assert "<script>" not in map_guidance
-    assert "&lt;script&gt;" in map_guidance
-    assert "<img " not in figure_guidance
-    assert "&lt;img " in figure_guidance
+    assert map_guidance == _build_guidance(
+        RESULT_GUIDANCE_MAP,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+    assert temporal_guidance == _build_guidance(
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+    for unsafe_fragment in ("<script>", "<img ", "<iframe "):
+        assert unsafe_fragment not in map_guidance
+        assert unsafe_fragment not in temporal_guidance
 
 
-def test_german_success_guidance_uses_the_exact_zero_target_control_label():
-    """Keep interpretation instructions aligned with the rendered German UI."""
+def test_success_guidance_generation_does_not_mutate_analysis_context():
+    """Keep presentation-only guidance outside canonical scientific state."""
+    analysis_context = AnalysisContext(
+        comparison_mode=COMPARISON_NONE,
+        neighborhood_radius_km=175,
+    )
+    original_fields = analysis_context.__dict__.copy()
+
+    for section_id in (
+        RESULT_GUIDANCE_MAP,
+        RESULT_GUIDANCE_SEGMENT,
+        RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+    ):
+        _build_guidance(
+            section_id,
+            analysis_id="RX_ABS",
+            is_compare=False,
+            analysis_context=analysis_context,
+        )
+
+    assert analysis_context.__dict__ == original_fields
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize(
+    "section_id",
+    (
+        RESULT_GUIDANCE_MAP,
+        RESULT_GUIDANCE_SEGMENT,
+        RESULT_GUIDANCE_SUCCESS_EVIDENCE,
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+    ),
+)
+def test_success_guidance_defined_term_markup_is_balanced(language, section_id):
+    """Pass every redesigned semantic term through the established HTML path."""
+    guidance = _build_guidance(
+        section_id,
+        language=language,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+
+    assert guidance.count('<strong class="defined-term">') >= 1
+    assert guidance.count("<strong") == guidance.count("</strong>")
+
+
+def test_german_success_guidance_and_toggle_retire_zero_target_wording():
+    """Use the evidence outcome in guidance and the matching display toggle."""
     guidance = _build_guidance(
         RESULT_GUIDANCE_STATION_INSIGHTS,
         language="de",
@@ -454,7 +1034,12 @@ def test_german_success_guidance_uses_the_exact_zero_target_control_label():
         analysis_context=AnalysisContext(),
     )
 
-    assert f"`{T['de']['lbl_show_zero_hits']}`" in guidance
+    assert "Nur von anderen gehört" in guidance
+    assert "Zero-Target" not in guidance
+    assert (
+        T["de"]["success_rx_show_counter"]
+        == "Stationen „Nur von anderen gehört“ anzeigen"
+    )
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -467,19 +1052,57 @@ def test_success_guidance_names_the_rendered_figures_exactly(language):
         is_compare=False,
         analysis_context=AnalysisContext(),
     )
+    temporal_figures = _build_guidance(
+        RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+        language=language,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
     selected_figures = _build_guidance(
         RESULT_GUIDANCE_SELECTED_STATIONS,
         language=language,
         analysis_id="RX_ABS",
         is_compare=False,
         analysis_context=AnalysisContext(),
+        selected_station_count=1,
     )
 
-    assert "Station Success Rate by Evidence Count" in success_figures
-    assert "Average Station Success Rate" in success_figures
-    assert "Observation-Level Success Rate" in success_figures
-    assert "Station Success Rate + Evidence over Time" in selected_figures
-    assert "Target SNR" in selected_figures
+    for key in (
+        "fig_success_reach_title_rx",
+        "fig_success_consistency_title_rx",
+        "fig_success_snr_distance_title_rx",
+    ):
+        assert T[language][key] in success_figures
+    assert (
+        "Successful RX SNR Deviation" in temporal_figures
+        if language == "en"
+        else "Abweichung des erfolgreichen RX-SNR" in temporal_figures
+    )
+    assert (
+        "station presences" in temporal_figures
+        if language == "en"
+        else "Stationspräsenzen" in temporal_figures
+    )
+    assert (
+        "Heard by Target" in selected_figures
+        if language == "en"
+        else "Vom Target gehört" in selected_figures
+    )
+    assert (
+        "Heard by others only" in selected_figures
+        if language == "en"
+        else "Nur von anderen gehört" in selected_figures
+    )
+    assert "Target" in selected_figures
+    for retired_name in (
+        "Station Success Rate by Evidence Count",
+        "Station Success Distribution",
+        "Evidence Depth per Station",
+        "Average Station Success Rate",
+        "Observation-Level Success Rate",
+    ):
+        assert retired_name not in success_figures
 
 
 @pytest.mark.parametrize(
@@ -548,13 +1171,6 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
         (
             RESULT_GUIDANCE_COMPARISON_EVIDENCE,
             "RX_ABS",
-            False,
-            False,
-            "unavailable for Success",
-        ),
-        (
-            RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
-            "TX_ABS",
             False,
             False,
             "unavailable for Success",
@@ -742,6 +1358,40 @@ def test_result_popover_is_identical_in_guided_and_classic_input_views():
     assert RESULT_GUIDANCE["en"]["limits_label"] in guided["body"]
     assert 'class="defined-term"' in guided["body"]
     assert "result-guidance-body-marker" in guided["body"]
+
+
+def test_success_selected_popover_renders_singleton_guidance():
+    """Render the exact singleton guidance at the Success selection point."""
+    script = """
+from core.analysis_context import AnalysisContext
+from i18n import T
+from ui.result_guidance import (
+    RESULT_GUIDANCE_SELECTED_STATIONS,
+    render_result_guidance_popover,
+)
+
+render_result_guidance_popover(
+    RESULT_GUIDANCE_SELECTED_STATIONS,
+    "Selected Station Evidence",
+    language="en",
+    translations=T["en"],
+    key="result-guidance-selected",
+    analysis_id="RX_ABS",
+    is_compare=False,
+    analysis_context=AnalysisContext(),
+    selected_station_count=1,
+)
+"""
+    application = AppTest.from_string(script, default_timeout=10).run()
+
+    assert not application.exception
+    assert len(application.markdown) == 1
+    guidance_body = application.markdown[0].value
+    assert "Selected Station SNR Evidence" in guidance_body
+    assert "Selected Station Temporal Evidence" in guidance_body
+    assert "actual normalized successful Target SNR" in guidance_body
+    assert "combined observation-weighted selection" not in guidance_body
+    assert "Selected Path Summary" not in guidance_body
 
 
 def test_result_guidance_popover_css_is_wide_and_responsive():

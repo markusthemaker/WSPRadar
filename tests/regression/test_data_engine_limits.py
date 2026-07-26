@@ -344,36 +344,25 @@ def test_demo_compare_disk_cache_informs_strict_and_legacy_request_estimate(
     ) == 1
 
 
-def test_complete_demo_bundle_requires_every_compare_and_success_cache(
+def test_complete_demo_compare_cache_requires_strict_and_legacy_rows(
     tmp_path,
     monkeypatch,
 ):
-    """Recognize cross-map affinity only when one provider needs zero HTTP."""
+    """Recognize provider affinity only when both possible Compare reads are cached."""
     primary, wd2, _wd1 = WSPR_DATABASE_PROVIDERS
-    analyses = [
-        {
-            "analysis_kind": "comparison",
-            "is_sequential": False,
-            "query": "SELECT bundle_compare_strict",
-            "legacy_query": "SELECT bundle_compare_legacy",
-            "response_format": "csv",
-        },
-        {
-            "analysis_kind": "opportunity",
-            "is_sequential": False,
-            "query": "SELECT bundle_success_strict",
-            "legacy_query": "SELECT bundle_success_legacy",
-            "response_format": "parquet",
-        },
-    ]
+    analysis = {
+        "analysis_kind": "comparison",
+        "is_sequential": False,
+        "query": "SELECT bundle_compare_strict",
+        "legacy_query": "SELECT bundle_compare_legacy",
+        "response_format": "csv",
+    }
     monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path))
     monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
 
     cached_frames = {
-        analyses[0]["query"]: pd.DataFrame({"has_u": [0]}),
-        analyses[0]["legacy_query"]: pd.DataFrame({"has_u": [1]}),
-        analyses[1]["query"]: pd.DataFrame({"target_seen": [0]}),
-        analyses[1]["legacy_query"]: pd.DataFrame({"target_seen": [1]}),
+        analysis["query"]: pd.DataFrame({"has_u": [0]}),
+        analysis["legacy_query"]: pd.DataFrame({"has_u": [1]}),
     }
     for query, frame in cached_frames.items():
         cache_path = data_engine._query_cache_path(query, wd2, is_demo=True)
@@ -381,56 +370,45 @@ def test_complete_demo_bundle_requires_every_compare_and_success_cache(
         frame.to_parquet(cache_path, index=False)
 
     assert data_engine.estimate_uncached_requests(
-        analyses,
+        [analysis],
         is_demo=True,
         database_provider=wd2,
     ) == 0
     assert data_engine.estimate_uncached_requests(
-        analyses,
+        [analysis],
         is_demo=True,
         database_provider=primary,
-    ) == 4
+    ) == 2
 
     missing_legacy_path = data_engine._query_cache_path(
-        analyses[1]["legacy_query"],
+        analysis["legacy_query"],
         wd2,
         is_demo=True,
     )
     missing_legacy_path.unlink()
 
     assert data_engine.estimate_uncached_requests(
-        analyses,
+        [analysis],
         is_demo=True,
         database_provider=wd2,
     ) == 1
 
 
-def test_demo_bundle_first_fetch_publishes_and_second_fetch_reuses_all_disk_rows(
+def test_demo_compare_first_fetch_publishes_and_second_fetch_reuses_disk_rows(
     tmp_path,
     monkeypatch,
 ):
-    """Publish strict/legacy Compare and Success rows, then reuse all four from disk."""
+    """Publish strict/legacy Compare rows, then reuse both from the disk cache."""
     provider = WSPR_DATABASE_PROVIDERS[0]
     compare_strict_query = "SELECT demo_bundle_compare_strict FORMAT CSVWithNames"
     compare_legacy_query = "SELECT demo_bundle_compare_legacy FORMAT CSVWithNames"
-    success_strict_query = "SELECT demo_bundle_success_strict FORMAT Parquet"
-    success_legacy_query = "SELECT demo_bundle_success_legacy FORMAT Parquet"
-    analyses = [
-        {
-            "analysis_kind": "comparison",
-            "is_sequential": False,
-            "query": compare_strict_query,
-            "legacy_query": compare_legacy_query,
-            "response_format": "csv",
-        },
-        {
-            "analysis_kind": "opportunity",
-            "is_sequential": False,
-            "query": success_strict_query,
-            "legacy_query": success_legacy_query,
-            "response_format": "parquet",
-        },
-    ]
+    analysis = {
+        "analysis_kind": "comparison",
+        "is_sequential": False,
+        "query": compare_strict_query,
+        "legacy_query": compare_legacy_query,
+        "response_format": "csv",
+    }
     compare_columns = (
         "time_slot,peer_sign,peer_grid,peer_lat,peer_lon,snr_u_norm,"
         "snr_r_norm,has_u,has_r,best_ref_sign,best_ref_dist\n"
@@ -445,22 +423,6 @@ def test_demo_bundle_first_fetch_publishes_and_second_fetch_reuses_all_disk_rows
             + "1,K1AAA,AA00,1.0,2.0,-10,-11,1,1,K2BBB,10.0\n"
         ).encode("utf-8"),
     }
-    for query, target_seen in (
-        (success_strict_query, 0),
-        (success_legacy_query, 1),
-    ):
-        source_path = tmp_path / f"{target_seen}-{data_engine._query_digest(query)}.parquet"
-        pd.DataFrame(
-            {
-                "time_slot": [1],
-                "peer_sign": ["K1AAA"],
-                "peer_grid": ["AA00"],
-                "target_seen": [target_seen],
-                "external_seen": [1],
-                "target_snr": [-10],
-            }
-        ).to_parquet(source_path, index=False)
-        response_payloads[query] = source_path.read_bytes()
 
     requested_queries = []
 
@@ -473,56 +435,52 @@ def test_demo_bundle_first_fetch_publishes_and_second_fetch_reuses_all_disk_rows
     monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
     monkeypatch.setattr(data_engine.http_session, "get", fake_get)
 
-    def fetch_complete_bundle():
-        """Fetch each strict and possible legacy query in execution order."""
-        fetched_results = []
-        for analysis in analyses:
-            for query in (analysis["query"], analysis["legacy_query"]):
-                fetched_results.append(data_engine.fetch_wspr_data(
-                    query,
-                    is_demo=True,
-                    response_format=analysis["response_format"],
-                    database_provider=provider,
-                ))
-        return fetched_results
+    def fetch_compare_queries():
+        """Fetch the strict and possible legacy query in execution order."""
+        return [
+            data_engine.fetch_wspr_data(
+                query,
+                is_demo=True,
+                response_format=analysis["response_format"],
+                database_provider=provider,
+            )
+            for query in (analysis["query"], analysis["legacy_query"])
+        ]
 
     assert data_engine.estimate_uncached_requests(
-        analyses,
+        [analysis],
         is_demo=True,
         database_provider=provider,
-    ) == 4
+    ) == 2
 
-    first_results = fetch_complete_bundle()
+    first_results = fetch_compare_queries()
 
     assert requested_queries == [
         compare_strict_query,
         compare_legacy_query,
-        success_strict_query,
-        success_legacy_query,
     ]
     assert all(result.error is None for result in first_results)
     assert all(result.source == FetchSource.WSPR_LIVE for result in first_results)
-    for analysis in analyses:
-        for query in (analysis["query"], analysis["legacy_query"]):
-            cache_path = data_engine._query_cache_path(
-                query,
-                provider,
-                is_demo=True,
-            )
-            assert cache_path.is_file()
-            assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
+    for query in (analysis["query"], analysis["legacy_query"]):
+        cache_path = data_engine._query_cache_path(
+            query,
+            provider,
+            is_demo=True,
+        )
+        assert cache_path.is_file()
+        assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
 
     data_engine._dataframe_cache.clear()
 
     assert data_engine.estimate_uncached_requests(
-        analyses,
+        [analysis],
         is_demo=True,
         database_provider=provider,
     ) == 0
 
-    second_results = fetch_complete_bundle()
+    second_results = fetch_compare_queries()
 
-    assert len(requested_queries) == 4
+    assert len(requested_queries) == 2
     assert all(result.error is None for result in second_results)
     assert all(result.source == FetchSource.DISK_CACHE for result in second_results)
 

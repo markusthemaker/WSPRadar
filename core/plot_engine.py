@@ -10,6 +10,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from matplotlib.patches import Patch, Wedge
 from matplotlib.collections import PatchCollection
+from matplotlib.lines import Line2D
 import os
 from time import perf_counter
 
@@ -34,6 +35,17 @@ from config import (
     FONT_LEGEND,
     LEG_BBOX,
 )
+from config.plot_constants import (
+    SUCCESS_MAP_COUNTER_ALPHA,
+    SUCCESS_MAP_COUNTER_COLOR,
+    SUCCESS_MAP_FOOTER_BBOX,
+    SUCCESS_MAP_HEATMAP_ALPHA,
+    SUCCESS_MAP_MARKER_EDGE_COLOR,
+    SUCCESS_MAP_MARKER_EDGE_LINEWIDTH_POINTS,
+    SUCCESS_MAP_LEGEND_BBOX,
+    SUCCESS_MAP_MARKER_SIZE_POINTS_SQUARED,
+    SUCCESS_MAP_TARGET_COLOR,
+)
 from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
@@ -46,14 +58,13 @@ from core.opportunity_engine import (
     opportunity_footer_counts,
 )
 from core.compare_engine import compare_footer_counts
-from core.map_data import build_map_data
+from core.map_data import build_map_data, validate_map_analysis_mode
 from core.map_base import create_base_map_figure, create_preview_cached_base_map_figure
 from core.map_models import MapFigure
 from core.matplotlib_runtime import ensure_agg_canvas, synchronized_matplotlib
 from core.input_validation import normalize_ascii_upper
 from core.math_utils import locator_to_latlon
 
-MIN_LABEL_CUTOFF_PCT = 0.02
 BASEMAP_DRAW_PROFILE_ENV = "WSPRADAR_PROFILE_BASEMAP_DRAW"
 BASEMAP_CACHE_ENV = "WSPRADAR_PREVIEW_BASEMAP_CACHE"
 MAP_PROFILE_PREVIEW_DPI = 100
@@ -353,9 +364,13 @@ def _draw_footer_summary_bars(
     colors,
     text_colors,
     theme_config,
+    stations_plural="STATIONS",
     evidence_plural="SPOTS",
+    thousands_separator=None,
+    bar_bbox=None,
+    row_label_fontsize=FONT_LEGEND,
 ):
-    """Draw visible-scope station and spot composition as two stacked bars."""
+    """Draw visible-scope station and evidence composition as two stacked bars."""
     if not (
         len(station_counts)
         == len(spot_counts)
@@ -376,7 +391,11 @@ def _draw_footer_summary_bars(
     ]
 
     summary_axis = fig.add_axes(
-        theme_config.get("bar_bbox", [0.12, 0.035, 0.85, 0.045])
+        (
+            bar_bbox
+            if bar_bbox is not None
+            else theme_config.get("bar_bbox", [0.12, 0.035, 0.85, 0.045])
+        )
     )
     summary_axis.set_facecolor(theme_config["bar_face"])
     for spine in summary_axis.spines.values():
@@ -387,7 +406,7 @@ def _draw_footer_summary_bars(
         length=0,
         pad=10,
         colors=theme_config["bar_tick"],
-        labelsize=FONT_LEGEND,
+        labelsize=row_label_fontsize,
     )
 
     left_positions = [0.0, 0.0]
@@ -400,7 +419,7 @@ def _draw_footer_summary_bars(
         text_colors,
     ):
         rectangles = summary_axis.barh(
-            ["STATIONS", evidence_plural],
+            [stations_plural, evidence_plural],
             [station_pct, spot_pct],
             left=left_positions,
             color=color,
@@ -412,7 +431,14 @@ def _draw_footer_summary_bars(
             summary_axis.text(
                 rectangle.get_x() + rectangle.get_width() / 2,
                 rectangle.get_y() + rectangle.get_height() / 2,
-                str(count),
+                (
+                    str(int(count))
+                    if thousands_separator is None
+                    else f"{int(count):,}".replace(
+                        ",",
+                        str(thousands_separator),
+                    )
+                ),
                 color=text_color,
                 ha="center",
                 va="center",
@@ -422,6 +448,97 @@ def _draw_footer_summary_bars(
         left_positions[1] += spot_pct
 
     return summary_axis
+
+
+def _success_map_presentation_labels(
+    translations,
+    absolute_mode,
+    success_terms,
+):
+    """Return localized map-only footer and legend terms for RX or TX Success."""
+    mode_key = "tx" if str(absolute_mode).upper().startswith("TX") else "rx"
+    key_prefix = f"map_success_{mode_key}"
+    return {
+        "footer_opportunities": translations[
+            "map_success_footer_opportunities"
+        ],
+        "footer_stations": translations["map_success_footer_stations"],
+        "opportunity_target": success_terms.get(
+            "opportunity_success",
+            translations[f"{key_prefix}_opportunity_target"],
+        ),
+        "opportunity_counter": success_terms.get(
+            "opportunity_counter",
+            translations[f"{key_prefix}_opportunity_counter"],
+        ),
+        "station_target": success_terms.get(
+            "station_success",
+            translations[f"{key_prefix}_station_target"],
+        ),
+        "station_counter": success_terms.get(
+            "station_counter",
+            translations[f"{key_prefix}_station_counter"],
+        ),
+        "insufficient": translations["map_success_legend_insufficient"],
+    }
+
+
+def _draw_success_map_legend(
+    ax,
+    *,
+    presentation_labels,
+    theme_config,
+    marker_size_points_squared,
+):
+    """Draw the three-entry Success station-status legend outside the map disk."""
+    legend_marker_size = float(np.sqrt(marker_size_points_squared))
+    target_observed_handle = Line2D(
+        [],
+        [],
+        linestyle="none",
+        marker="o",
+        markersize=legend_marker_size,
+        markerfacecolor=SUCCESS_MAP_TARGET_COLOR,
+        markeredgecolor=SUCCESS_MAP_MARKER_EDGE_COLOR,
+        markeredgewidth=SUCCESS_MAP_MARKER_EDGE_LINEWIDTH_POINTS,
+        label=presentation_labels["station_target"],
+    )
+    counter_only_handle = Line2D(
+        [],
+        [],
+        linestyle="none",
+        marker="o",
+        markersize=legend_marker_size,
+        markerfacecolor=SUCCESS_MAP_COUNTER_COLOR,
+        markeredgecolor=SUCCESS_MAP_MARKER_EDGE_COLOR,
+        markeredgewidth=SUCCESS_MAP_MARKER_EDGE_LINEWIDTH_POINTS,
+        alpha=SUCCESS_MAP_COUNTER_ALPHA,
+        label=presentation_labels["station_counter"],
+    )
+    no_segment_handle = Patch(
+        facecolor=theme_config["no_hm_face"],
+        edgecolor=theme_config["no_hm_edge"],
+        linewidth=0.9,
+        label=presentation_labels["insufficient"],
+    )
+    legend = ax.legend(
+        handles=[
+            target_observed_handle,
+            counter_only_handle,
+            no_segment_handle,
+        ],
+        loc="upper right",
+        bbox_to_anchor=SUCCESS_MAP_LEGEND_BBOX,
+        bbox_transform=ax.figure.transFigure,
+        facecolor=theme_config["legend_face"],
+        edgecolor=theme_config["legend_edge"],
+        labelcolor=theme_config["legend_text"],
+        fontsize=FONT_LEGEND,
+        markerscale=1.6,
+    )
+    legend.set_gid("success-map-legend")
+    legend.set_zorder(15)
+    return legend
 
 
 def _profile_base_only_map_draw(
@@ -477,7 +594,10 @@ def render_map_figure(
     analysis_id = map_data.analysis_id
     is_compare = map_data.is_compare
     is_sequential = map_data.is_sequential
-    is_opportunity = map_data.analysis_kind == "opportunity"
+    is_opportunity = validate_map_analysis_mode(
+        analysis_kind=map_data.analysis_kind,
+        is_compare=is_compare,
+    )
     df_plot = map_data.station_rows
     segs = map_data.segment_rows
 
@@ -528,6 +648,11 @@ def render_map_figure(
     target_call = analysis_context.callsign.upper()
     absolute_mode = "TX" if analysis_id.startswith("TX") else "RX"
     abs_terms = presentation_context.absolute_terms(absolute_mode)
+    success_map_labels = (
+        _success_map_presentation_labels(t_lang, absolute_mode, abs_terms)
+        if is_opportunity
+        else None
+    )
     # Fixed identities use their callsigns. Sequential TX uses path roles
     # because Target and Reference share one transmitter callsign.
     if (
@@ -561,20 +686,12 @@ def render_map_figure(
         ticks = compare_scale.ticks_db
         lbls = compare_scale.tick_labels
         cbar_title = t_lang["cbar_comp"]
-    elif is_opportunity:
+    else:
         clrs = list(SUCCESS_RATE_COLORS)
         bnds = np.asarray(SUCCESS_RATE_BOUNDS, dtype=float)
         lbls = list(SUCCESS_RATE_TICK_LABELS)
         ticks = bnds
-        cbar_title = t_lang["cbar_abs"]
-        cmap = mpl.colors.ListedColormap(clrs)
-        norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
-    else:
-        clrs = ['#190824', '#4662d7', '#36aaf9', '#1ae4b6', '#72fe5e', '#c9ef34', '#faba39', '#f66b19', '#cb2a04', '#590202']
-        bnds = np.arange(-48, 18, 6)
-        lbls = [f"{b}dB" for b in bnds]
-        ticks = bnds
-        cbar_title = t_lang["cbar_abs"]
+        cbar_title = t_lang[f"cbar_abs_{abs_terms['mode'].lower()}"]
         cmap = mpl.colors.ListedColormap(clrs)
         norm = mpl.colors.BoundaryNorm(bnds, cmap.N, clip=True)
     
@@ -589,7 +706,10 @@ def render_map_figure(
             theta2 = 90 - az_min
             patches.append(Wedge((0,0), min(r['r_max'], max_dist_km)*1000, theta1, theta2, width=(min(r['r_max'], max_dist_km)-r['r_min'])*1000))
 
-        heatmap_alpha = COMPARE_MAP_HEATMAP_ALPHA if is_compare else 0.75
+        if is_compare:
+            heatmap_alpha = COMPARE_MAP_HEATMAP_ALPHA
+        else:
+            heatmap_alpha = SUCCESS_MAP_HEATMAP_ALPHA
         if patches:
             p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
             p.set_array(visible_segs['val'].to_numpy())
@@ -597,13 +717,15 @@ def render_map_figure(
         else:
             p = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
             p.set_array([])
+        if is_opportunity:
+            p.set_gid("success-sector-fills")
     
     lbl_both_async = t_lang.get('leg_both_async', 'Both (Async)')
 
     scatter_start = perf_counter()
 
     # Draw Scatter Dots
-    if is_compare and 'count_only_u' in df_plot.columns:
+    if is_compare:
         df_joint = df_plot[df_plot['spot_count'] > 0]
         df_both = df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] > 0) & (df_plot['count_only_r'] > 0)]
         df_only_u = df_plot[(df_plot['spot_count'] == 0) & (df_plot['count_only_u'] > 0) & (df_plot['count_only_r'] == 0)]
@@ -616,74 +738,49 @@ def render_map_figure(
         if not df_only_r.empty: ax.scatter(df_only_r['peer_lon'], df_only_r['peer_lat'], c=theme_cfg["only_ref"], s=8, alpha=1.0, edgecolors=theme_cfg["only_ref_edge"], linewidth=0.35, transform=pc_proj, zorder=8, label=lbl_only_ref)
         leg = ax.legend(loc='lower center', bbox_to_anchor=LEG_BBOX, facecolor=theme_cfg["legend_face"], edgecolor=theme_cfg["legend_edge"], labelcolor=theme_cfg["legend_text"], fontsize=FONT_LEGEND, markerscale=2.0)
         leg.set_zorder(15)
-    elif is_opportunity:
-        eligible = df_plot[df_plot["eligible"] & df_plot["rate_pct"].notna()]
-        hit_stations = eligible[eligible["hits"] > 0]
-        miss_stations = eligible[eligible["hits"] == 0]
-        hit_tiers = [
-            (
-                hit_stations[hit_stations["hits"] == 1],
-                "#9aff85",
-                7,
-                t_lang.get("leg_abs_hit_one", "Target (T) = 1"),
-            ),
-            (
-                hit_stations[hit_stations["hits"].between(2, 5, inclusive="both")],
-                "#39ff14",
-                9,
-                t_lang.get("leg_abs_hit_mid", "Target (T) = 2-5"),
-            ),
-            (
-                hit_stations[hit_stations["hits"] > 5],
-                "#0b6f24",
-                12,
-                t_lang.get("leg_abs_hit_high", "Target (T) > 5"),
-            ),
-        ]
-        for tier_df, tier_color, tier_size, tier_label in hit_tiers:
-            if tier_df.empty:
-                continue
-            ax.scatter(
-                tier_df["peer_lon"], tier_df["peer_lat"],
-                c=tier_color,
-                s=tier_size,
-                alpha=1.0,
-                edgecolors="black",
-                linewidth=0.35, transform=pc_proj, zorder=10,
-                label=tier_label,
-            )
-        if not miss_stations.empty:
-            ax.scatter(
-                miss_stations["peer_lon"], miss_stations["peer_lat"],
-                c="#c7c7c7", s=8, alpha=0.9, edgecolors="black",
-                linewidth=0.35, transform=pc_proj, zorder=9,
-                label=abs_terms["counter_marker"],
-            )
-        handles, labels = ax.get_legend_handles_labels()
-        no_hm_label = abs_terms["no_evidence"]
-        handles.append(
-            Patch(
-                facecolor=theme_cfg.get("no_hm_face", "black"),
-                edgecolor=theme_cfg.get("no_hm_edge", "#777777"),
-                linewidth=0.9,
-                label=no_hm_label,
-            )
-        )
-        labels.append(no_hm_label)
-        leg = ax.legend(
-            handles,
-            labels,
-            loc="lower center",
-            bbox_to_anchor=(LEG_BBOX[0], LEG_BBOX[1] - 0.05),
-            facecolor=theme_cfg["legend_face"],
-            edgecolor=theme_cfg["legend_edge"],
-            labelcolor=theme_cfg["legend_text"],
-            fontsize=FONT_LEGEND,
-            markerscale=1.6,
-        )
-        leg.set_zorder(15)
     else:
-        ax.scatter(df_plot['peer_lon'], df_plot['peer_lat'], c=COLOR_ONLY_ME, s=5, alpha=1.0, edgecolors='black', linewidth=0.35, transform=pc_proj, zorder=10, label=lbl_only_me)
+        eligible = df_plot[
+            (df_plot["r_min"] < float(max_dist_km))
+            & df_plot["eligible"]
+            & df_plot["rate_pct"].notna()
+        ]
+        target_observed_stations = eligible[eligible["hits"] > 0]
+        counter_only_stations = eligible[eligible["hits"] == 0]
+        common_marker_size = SUCCESS_MAP_MARKER_SIZE_POINTS_SQUARED
+        if not counter_only_stations.empty:
+            counter_only_markers = ax.scatter(
+                counter_only_stations["peer_lon"],
+                counter_only_stations["peer_lat"],
+                s=common_marker_size,
+                facecolors=SUCCESS_MAP_COUNTER_COLOR,
+                edgecolors=SUCCESS_MAP_MARKER_EDGE_COLOR,
+                linewidth=SUCCESS_MAP_MARKER_EDGE_LINEWIDTH_POINTS,
+                alpha=SUCCESS_MAP_COUNTER_ALPHA,
+                transform=pc_proj,
+                zorder=9,
+            )
+            counter_only_markers.set_gid("success-counter-only-markers")
+        if not target_observed_stations.empty:
+            target_observed_markers = ax.scatter(
+                target_observed_stations["peer_lon"],
+                target_observed_stations["peer_lat"],
+                s=common_marker_size,
+                facecolors=SUCCESS_MAP_TARGET_COLOR,
+                edgecolors=SUCCESS_MAP_MARKER_EDGE_COLOR,
+                linewidth=SUCCESS_MAP_MARKER_EDGE_LINEWIDTH_POINTS,
+                alpha=1.0,
+                transform=pc_proj,
+                zorder=10,
+            )
+            target_observed_markers.set_gid(
+                "success-target-observed-markers"
+            )
+        _draw_success_map_legend(
+            ax,
+            presentation_labels=success_map_labels,
+            theme_config=theme_cfg,
+            marker_size_points_squared=common_marker_size,
+        )
 
     if timing_collector is not None:
         timing_collector.add("scatter rendering", perf_counter() - scatter_start)
@@ -780,18 +877,13 @@ def render_map_figure(
                     f"Ref: {analysis_context.reference_callsign.upper()}"
                 )
         else: meta_parts.append(f"Ref: {analysis_context.reference_callsign.upper()}")
-    elif is_opportunity:
+    else:
         meta_parts.append(
             f"{abs_terms['pair']}/Station: "
             f">={analysis_context.min_confirmed_opportunities_per_peer}"
         )
         meta_parts.append(f"Stations/Seg: >={base_min_stations}")
         meta_parts.append(f"Segment: average station {abs_terms['formula']}")
-    else:
-        meta_parts.append(
-            f"Spots/Station: \u2265{analysis_context.min_joint_spots_per_station}"
-        )
-        meta_parts.append(f"Stations/Seg: ≥{base_min_stations}")
 
     # Neu: Füge Max distance Peer hinzu
     if is_compare and analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
@@ -806,7 +898,7 @@ def render_map_figure(
     # ==========================================
     # RENDER FOOTER METRICS & PARAMETERS
     # ==========================================
-    if is_compare and 'count_only_u' in df_plot.columns:
+    if is_compare:
         counts = compare_footer_counts(df_plot, max_dist_km=max_dist_km)
         _draw_footer_summary_bars(
             fig,
@@ -835,22 +927,49 @@ def render_map_figure(
         fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer"], ha='center', fontsize=FONT_FOOTER)
         fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
         
-    elif is_opportunity:
+    else:
         counts = opportunity_footer_counts(df_plot, max_dist_km=max_dist_km)
-        _draw_footer_summary_bars(
+        success_footer_axis = _draw_footer_summary_bars(
             fig,
             station_counts=[counts["stat_target"], counts["stat_counter_only"]],
             spot_counts=[counts["spot_target"], counts["spot_counter"]],
             colors=[COLOR_JOINT, theme_cfg["only_ref"]],
             text_colors=["black", "black"],
             theme_config=theme_cfg,
+            stations_plural=success_map_labels["footer_stations"],
+            evidence_plural=success_map_labels["footer_opportunities"],
+            bar_bbox=SUCCESS_MAP_FOOTER_BBOX,
+            row_label_fontsize=FONT_LEGEND,
         )
+        success_footer_axis.set_gid("success-map-footer")
+        success_footer_patch_specs = (
+            (
+                0,
+                "success-footer-stations-target",
+                success_map_labels["station_target"],
+            ),
+            (
+                1,
+                "success-footer-opportunities-target",
+                success_map_labels["opportunity_target"],
+            ),
+            (
+                2,
+                "success-footer-stations-counter",
+                success_map_labels["station_counter"],
+            ),
+            (
+                3,
+                "success-footer-opportunities-counter",
+                success_map_labels["opportunity_counter"],
+            ),
+        )
+        for patch_index, patch_gid, patch_label in success_footer_patch_specs:
+            success_footer_patch = success_footer_axis.patches[patch_index]
+            success_footer_patch.set_gid(patch_gid)
+            success_footer_patch.set_label(patch_label)
         fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer_abs"], ha='center', fontsize=FONT_FOOTER)
         fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
-    else:
-        # Fallback für Absolute Maps
-        fig.text(0.50, 0.035, line1_str, color=theme_cfg["footer_abs"], ha='center', fontsize=FONT_FOOTER)
-        fig.text(0.98, 0.015, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)
 
     return MapFigure(
         figure=fig,
@@ -875,7 +994,7 @@ def generate_map_plot(
     analysis_context,
     presentation_context,
     theme=None,
-    analysis_kind="comparison",
+    analysis_kind,
     timing_collector=None,
 ):
     """Build pure map aggregates, then render them through presentation context."""

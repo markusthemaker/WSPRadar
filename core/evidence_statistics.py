@@ -20,16 +20,6 @@ def _format_metric_signed(value, is_compare):
     return f"{float(value):.1f}"
 
 
-def _format_metric_interval(low, high, is_compare):
-    """Format finite lower and upper metric bounds for compact display."""
-    if pd.isna(low) or pd.isna(high):
-        return "n/a"
-    return (
-        f"{_format_metric_signed(low, is_compare)} .. "
-        f"{_format_metric_signed(high, is_compare)}"
-    )
-
-
 def _metric_values(values):
     """Return finite numeric SNR-like values as a one-dimensional numpy array."""
     numeric_values = (
@@ -148,79 +138,6 @@ def _metric_histogram_bins(values):
         )
     )
     return edges, centers, bin_width
-
-
-def _format_bin_width(bin_width):
-    """Format one histogram bin width with its dB unit."""
-    return f"{float(bin_width):.1f} dB"
-
-
-def _histogram_mode_summary(values):
-    """Return the modal histogram center and its percentage share."""
-    values = _metric_values(values)
-    if len(values) == 0:
-        return np.nan, np.nan
-    edges, centers, _ = _metric_histogram_bins(values)
-    if len(edges) == 0:
-        return np.nan, np.nan
-    counts, _ = np.histogram(values, bins=edges)
-    if counts.sum() == 0:
-        return np.nan, np.nan
-    mode_index = int(np.argmax(counts))
-    return (
-        float(centers[mode_index]),
-        100.0 * float(counts[mode_index]) / float(counts.sum()),
-    )
-
-
-def _zero_bin_share(values):
-    """Return the percentage of values assigned to the histogram bin containing zero."""
-    values = _metric_values(values)
-    if len(values) == 0:
-        return np.nan
-    edges, _, _ = _metric_histogram_bins(values)
-    if len(edges) == 0:
-        return np.nan
-    counts, _ = np.histogram(values, bins=edges)
-    zero_index = np.searchsorted(edges, 0.0, side="right") - 1
-    if zero_index < 0 or zero_index >= len(counts):
-        return 0.0
-    return 100.0 * float(counts[zero_index]) / float(counts.sum())
-
-
-def _metric_distribution_summary(values, is_compare):
-    """Summarize the visible distribution without adding labels to every bar."""
-    values = _metric_values(values)
-    if len(values) == 0:
-        return None
-
-    _, _, bin_width = _metric_histogram_bins(values)
-    mode_value, mode_pct = _histogram_mode_summary(values)
-    if pd.isna(mode_value) or pd.isna(mode_pct):
-        return f"bin {_format_bin_width(bin_width)}"
-
-    if is_compare:
-        zero_pct = _zero_bin_share(values)
-        within_1_pct = (
-            100.0 * float(np.sum(np.abs(values) <= 1.0)) / float(len(values))
-        )
-        tail_3_pct = (
-            100.0 * float(np.sum(np.abs(values) >= 3.0)) / float(len(values))
-        )
-        return (
-            f"bin {_format_bin_width(bin_width)} | "
-            f"mode {_format_metric_signed(mode_value, True)} dB ({mode_pct:.1f}%) | "
-            f"\u0394\u22480 dB {zero_pct:.1f}% | "
-            f"|\u0394|\u22641 dB {within_1_pct:.1f}% | "
-            f"|\u0394|\u22653 dB {tail_3_pct:.1f}%"
-        )
-
-    q05, q95 = np.percentile(values, [5, 95])
-    return (
-        f"bin {_format_bin_width(bin_width)} | "
-        f"mode {_format_metric_signed(mode_value, False)} dB ({mode_pct:.1f}%) | "
-        f"90% range {_format_metric_interval(q05, q95, False)} dB"
-    )
 
 
 def _expanded_metric_limits(

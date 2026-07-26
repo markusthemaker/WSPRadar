@@ -1,4 +1,4 @@
-"""Great-circle path illumination helpers for Absolute success evidence."""
+"""Great-circle path-illumination helpers for processed Success evidence."""
 
 from __future__ import annotations
 
@@ -16,11 +16,6 @@ ILLUMINATION_CLASSES = (
     ILLUMINATION_GREYLINE_MIXED,
     ILLUMINATION_DAYLIGHT,
 )
-ILLUMINATION_DISPLAY_LABELS = {
-    ILLUMINATION_NIGHT: "night",
-    ILLUMINATION_GREYLINE_MIXED: "greyline/mixed",
-    ILLUMINATION_DAYLIGHT: "daylight",
-}
 
 
 @dataclass(frozen=True)
@@ -96,30 +91,6 @@ def _solar_time_terms(times_utc):
     )
 
 
-def solar_elevation_from_terms(solar_time_terms, latitude_degrees, longitude_degrees):
-    """Return approximate solar elevation from precomputed UTC solar terms."""
-    count = len(solar_time_terms.times)
-    if count == 0:
-        return np.asarray([], dtype=float)
-
-    latitude = np.broadcast_to(np.asarray(latitude_degrees, dtype=float), count)
-    longitude = np.broadcast_to(np.asarray(longitude_degrees, dtype=float), count)
-
-    true_solar_minutes = (
-        solar_time_terms.minutes_utc
-        + solar_time_terms.equation_of_time
-        + 4.0 * longitude
-    ) % 1440.0
-    hour_angle = np.radians(true_solar_minutes / 4.0 - 180.0)
-    latitude_radians = np.radians(latitude)
-    cos_zenith = (
-        np.sin(latitude_radians) * np.sin(solar_time_terms.declination)
-        + np.cos(latitude_radians) * np.cos(solar_time_terms.declination) * np.cos(hour_angle)
-    )
-    cos_zenith = np.clip(cos_zenith, -1.0, 1.0)
-    return 90.0 - np.degrees(np.arccos(cos_zenith))
-
-
 def sun_unit_vectors_from_terms(solar_time_terms):
     """Return geocentric sun direction unit vectors for the precomputed UTC terms."""
     count = len(solar_time_terms.times)
@@ -139,27 +110,6 @@ def sun_unit_vectors_from_terms(solar_time_terms):
             np.sin(solar_time_terms.declination),
         ],
         axis=0,
-    )
-
-
-def solar_elevation_from_sun_vectors(sun_vectors, latitude_degrees, longitude_degrees):
-    """Return solar elevation by dotting observer surface vectors with sun vectors."""
-    count = sun_vectors.shape[1]
-    if count == 0:
-        return np.asarray([], dtype=float)
-
-    latitude = np.broadcast_to(np.asarray(latitude_degrees, dtype=float), count)
-    longitude = np.broadcast_to(np.asarray(longitude_degrees, dtype=float), count)
-    surface_vectors = _unit_vector(np.radians(latitude), np.radians(longitude))
-    return _solar_elevation_from_unit_vectors(sun_vectors, surface_vectors)
-
-
-def solar_elevation_degrees(times_utc, latitude_degrees, longitude_degrees):
-    """Return approximate solar elevation in degrees for UTC times and positions."""
-    return solar_elevation_from_terms(
-        _solar_time_terms(times_utc),
-        latitude_degrees,
-        longitude_degrees,
     )
 
 

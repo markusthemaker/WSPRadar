@@ -460,24 +460,6 @@ class ArtifactStore:
                 continue
         return removed
 
-    @staticmethod
-    def prune_empty_directories(root) -> None:
-        """Prune empty directories only during externally quiesced maintenance."""
-        root = Path(root)
-        if not root.exists():
-            return
-        directories = sorted(
-            (path for path in root.rglob("*") if path.is_dir()),
-            key=lambda path: len(path.parts),
-            reverse=True,
-        )
-        for directory in directories:
-            try:
-                directory.rmdir()
-            except OSError:
-                continue
-
-
 ARTIFACT_STORE = ArtifactStore()
 
 
@@ -545,23 +527,6 @@ def touch_registered_session_artifacts(session_state: MutableMapping) -> int:
             retained_paths.append(str(path.resolve()))
     session_state[SESSION_ARTIFACT_PATHS_KEY] = retained_paths
     return len(retained_paths)
-
-
-def release_registered_session_artifacts(session_state: MutableMapping) -> int:
-    """Release artifacts and leases without pruning directories under writers."""
-    paths = list(session_state.pop(SESSION_ARTIFACT_PATHS_KEY, []))
-    run_directories = {
-        directory
-        for path in paths
-        if (directory := _session_run_directory(Path(path))) is not None
-    }
-    removed = sum(1 for path in paths if ARTIFACT_STORE.delete(path))
-    for run_directory in run_directories:
-        try:
-            (run_directory / SESSION_ARTIFACT_LEASE_FILENAME).unlink()
-        except OSError:
-            pass
-    return removed
 
 
 def retire_registered_session_artifacts(session_state: MutableMapping) -> int:

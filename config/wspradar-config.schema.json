@@ -1574,6 +1574,7 @@
         "selected_ranges",
         "selected_directions",
         "show_zero_target",
+        "segment_evidence_time_bin",
         "station_evidence_time_bin",
         "selected_stations"
       ],
@@ -1588,6 +1589,9 @@
           "type": "boolean",
           "description": "Whether Success Station Insights includes qualifying stations with zero Target confirmations.",
           "default": false
+        },
+        "segment_evidence_time_bin": {
+          "$ref": "#/$defs/segmentEvidenceTimeBin"
         },
         "station_evidence_time_bin": {
           "$ref": "#/$defs/evidenceTimeBin"
@@ -1672,7 +1676,7 @@
         "12h",
         "24h"
       ],
-      "description": "Time-bin width for the Compare segment temporal plot. auto retains automatic selection.",
+      "description": "Time-bin width for a segment temporal plot. auto retains automatic selection.",
       "default": "auto",
       "examples": [
         "auto",

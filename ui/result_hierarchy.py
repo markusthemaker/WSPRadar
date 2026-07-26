@@ -163,12 +163,13 @@ def build_result_context(
     elif direction == "RX":
         subtitle = translations.get(
             "sub_results_rx_success",
-            "Target {callsign} · same signals heard elsewhere",
+            "Target {callsign} · signals heard by the Target or by others only",
         ).format(callsign=callsign)
     else:
         subtitle = translations.get(
             "sub_results_tx_success",
-            "Target {callsign} · Other Signals at active RX stations",
+            "Target {callsign} · Target heard or other signals heard only "
+            "at active RX stations",
         ).format(callsign=callsign)
 
     utc_window = (
@@ -190,6 +191,14 @@ def build_result_context(
     )
     if comparison_constraint:
         metadata = f"{metadata} · {comparison_constraint}"
+    evidence_path_key = (
+        "txt_results_evidence_path"
+        if is_compare
+        else "txt_results_evidence_path_success"
+    )
+    evidence_path_fallback = (
+        "Map → Segment Inspector → Station Insights → Drill-Down"
+    )
     return ResultContext(
         title=title,
         subtitle=subtitle,
@@ -199,9 +208,8 @@ def build_result_context(
             "Evidence path",
         ),
         evidence_path=translations.get(
-            "txt_results_evidence_path",
-            "Map → Stations & Spots → Segment Inspector → "
-            "Station Insights → Drill-Down",
+            evidence_path_key,
+            evidence_path_fallback,
         ),
     )
 
@@ -289,6 +297,20 @@ def scope_summary_html(context, evidence_context=""):
         "<p class='result-scope-context result-scope-context-data'>"
         f"{_escaped(context)}</p>"
         f"{evidence_html}</div>"
+    )
+
+
+def segment_statistics_html(summary_lines):
+    """Render escaped Segment Inspector statistics with scope-data typography."""
+    summary_html = "".join(
+        "<p class='result-scope-context result-scope-context-data'>"
+        f"{_escaped(summary_line)}</p>"
+        for summary_line in (summary_lines or ())
+        if summary_line
+    )
+    return (
+        "<div class='result-segment-statistics'>"
+        f"{summary_html}</div>"
     )
 
 
@@ -421,54 +443,101 @@ def _split_station_identity(identity):
     return str(identity), ""
 
 
+def selected_station_label(
+    station_identities,
+    *,
+    analysis_id,
+    translations,
+):
+    """Return the canonical localized label for one selected-station set.
+
+    A single callsign-plus-locator identity is preserved exactly. Selections
+    through the shared identity-list limit include every identity in order;
+    larger selections use only their localized count and direction-aware
+    remote-station role.
+    """
+    identities = tuple(str(identity) for identity in station_identities)
+    if len(identities) == 1:
+        return identities[0]
+
+    selected_count = _localized_integer(len(identities), translations)
+    station_type = remote_station_type(analysis_id)
+    if 1 < len(identities) <= SELECTED_STATION_IDENTITY_LIST_LIMIT:
+        return translations.get(
+            "lbl_results_selected_station_named",
+            "{selected_count} selected {station_type} stations: {stations}",
+        ).format(
+            selected_count=selected_count,
+            station_type=station_type,
+            stations=", ".join(identities),
+        )
+    return translations.get(
+        "lbl_results_selected_station_count",
+        "{selected_count} selected {station_type} stations",
+    ).format(
+        selected_count=selected_count,
+        station_type=station_type,
+    )
+
+
 def selected_station_context(
     station_identities,
     evidence_count,
     *,
     analysis_id,
-    is_compare,
     is_sequential,
     translations,
 ):
-    """Return localized context, naming selections of at most five stations."""
+    """Return localized Compare context, naming selections of at most five stations."""
     identities = [str(identity) for identity in station_identities]
+    selection_label = selected_station_label(
+        identities,
+        analysis_id=analysis_id,
+        translations=translations,
+    )
+    localized_evidence_count = _localized_integer(
+        evidence_count,
+        translations,
+    )
     unit = evidence_unit_label(
         evidence_count,
-        is_compare=is_compare,
+        is_compare=True,
         is_sequential=is_sequential,
         translations=translations,
     )
     if len(identities) == 1:
-        station, locator = _split_station_identity(identities[0])
+        station, locator = _split_station_identity(selection_label)
         return translations.get(
             "sub_results_selected_station_single",
             "{station} ({locator}) · {evidence_count} {evidence_unit}",
         ).format(
             station=station,
             locator=locator,
-            evidence_count=int(evidence_count),
+            evidence_count=localized_evidence_count,
             evidence_unit=unit,
         )
     if 1 < len(identities) <= SELECTED_STATION_IDENTITY_LIST_LIMIT:
         return translations.get(
             "sub_results_selected_station_named",
-            "{selected_count} selected {station_type} stations: {stations} · "
+            "{selection_label} · "
             "combined view · {evidence_count} {evidence_unit}",
         ).format(
-            selected_count=len(identities),
+            selection_label=selection_label,
+            selected_count=_localized_integer(len(identities), translations),
             station_type=remote_station_type(analysis_id),
             stations=", ".join(identities),
-            evidence_count=int(evidence_count),
+            evidence_count=localized_evidence_count,
             evidence_unit=unit,
         )
     return translations.get(
         "sub_results_selected_station_multi",
-        "{selected_count} selected {station_type} stations · combined view · "
+        "{selection_label} · combined view · "
         "{evidence_count} {evidence_unit}",
     ).format(
-        selected_count=len(identities),
+        selection_label=selection_label,
+        selected_count=_localized_integer(len(identities), translations),
         station_type=remote_station_type(analysis_id),
-        evidence_count=int(evidence_count),
+        evidence_count=localized_evidence_count,
         evidence_unit=unit,
     )
 

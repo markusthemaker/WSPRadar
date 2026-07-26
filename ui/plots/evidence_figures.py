@@ -10,7 +10,6 @@ import matplotlib.dates as mdates
 
 from config import APP_VERSION
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
-from core.solar_path import ILLUMINATION_CLASSES
 from core.evidence_statistics import (
     _expanded_metric_limits,
     _format_metric_signed,
@@ -18,12 +17,18 @@ from core.evidence_statistics import (
     _metric_values,
 )
 
-EVIDENCE_COLORS = ["#36aaf9", "#ffbe33", "#72fe5e", "#cc00ff", "#f66b19"]
 EVIDENCE_AGG_COLOR = "#36aaf9"
-EVIDENCE_SEPARATE_STATION_LIMIT = 5
 STATION_EVIDENCE_HATCH = "//////"
 SEGMENT_FIGURE_BOTTOM = 0.15
 SEGMENT_FIGURE_FOOTER_Y = 0.055
+SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES = (13.0, 5.6)
+SEGMENT_TEMPORAL_FIGURE_LEFT = 0.07
+SEGMENT_TEMPORAL_FIGURE_RIGHT = 0.95
+SEGMENT_TEMPORAL_FIGURE_TOP = 0.82
+SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS = (1.95, 1.0)
+SEGMENT_TEMPORAL_COLUMN_SPACE = 0.20
+SEGMENT_TEMPORAL_COLORBAR_PAD = 0.012
+SEGMENT_TEMPORAL_COLORBAR_FRACTION = 0.03
 EVIDENCE_TIME_AGG_PRESETS = [
     (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
     (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
@@ -57,6 +62,10 @@ METRIC_MEDIAN_LINEWIDTH = 1.0
 METRIC_LEGEND_FONTSIZE = 8
 METRIC_ANNOTATION_FONTSIZE = 8
 METRIC_AXIS_LABEL_FONTSIZE = 10
+METRIC_TICK_LABEL_FONTSIZE = 9
+METRIC_PANEL_TITLE_FONTSIZE = 12
+METRIC_FIGURE_TITLE_FONTSIZE = 14
+METRIC_FOOTER_FONTSIZE = 10
 METRIC_FONT_FAMILY = "sans-serif"
 METRIC_FOREGROUND_ZORDER = 10
 COMPARE_MEDIAN_FOCUS_TIGHT_MAX_DEVIATION_DB = 10.0
@@ -285,43 +294,27 @@ def _compare_median_focus_spec_from_recipe(recipe, fallback_values):
             pass
     return _build_compare_median_focus_spec(fallback_values)
 
-def _default_evidence_labels(is_compare):
-    if is_compare:
-        return {
-            "dist_title": "\u0394 SNR Distribution",
-            "time_title": "\u0394 SNR over Time",
-            "y_label": "\u0394 SNR (dB)",
-            "x_label": "Date/Time (UTC)",
-            "aggregate": "Selected Stations",
-            "median_label": "Median",
-            "bin_median_label": "Bin median",
-            "pooled_median_label": "Median",
-            "mean_label": "Mean",
-            "pooled_mean_label": "Mean",
-            "median_focus_axis_label": (
-                "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
-            ),
-        }
+def _default_evidence_labels():
+    """Return the fallback presentation labels for Compare evidence."""
     return {
-        "dist_title": "Normalized SNR Distribution",
-        "time_title": "Normalized SNR over Time",
-        "y_label": "Normalized SNR (dB @ 30 dBm)",
+        "dist_title": "\u0394 SNR Distribution",
+        "time_title": "\u0394 SNR over Time",
+        "y_label": "\u0394 SNR (dB)",
         "x_label": "Date/Time (UTC)",
         "aggregate": "Selected Stations",
         "median_label": "Median",
-        "pooled_median_label": "Pooled median",
-        "mean_label": "Arithmetic mean",
-        "pooled_mean_label": "Pooled arithmetic mean",
+        "bin_median_label": "Bin median",
+        "pooled_median_label": "Median",
+        "mean_label": "Mean",
+        "pooled_mean_label": "Mean",
+        "median_focus_axis_label": (
+            "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
+        ),
     }
 
 def _add_horizontal_grid(ax):
     ax.set_axisbelow(True)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
-
-def _add_foreground_horizontal_grid(ax):
-    ax.set_axisbelow(False)
-    ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA, zorder=3)
-
 
 def _format_absolute_delta_tick(value_db, median_db):
     """Format one absolute Delta-SNR tick and mark the focus median with M."""
@@ -351,14 +344,11 @@ def _add_metric_median_reference(
     *,
     orientation,
     label="Median",
-    signed=True,
     zorder=4.0,
     gid=None,
 ):
     """Draw and return one consistently styled horizontal or vertical median."""
-    line_label = (
-        f"{label} {_format_metric_signed(float(median_db), signed)} dB"
-    )
+    line_label = f"{label} {_format_metric_signed(float(median_db), True)} dB"
     line_kwargs = {
         "color": METRIC_MEDIAN_COLOR,
         "linestyle": METRIC_MEDIAN_LINESTYLE,
@@ -559,6 +549,19 @@ def _place_metric_legend_top_right(ax, *, handles=None):
     )
 
 
+def _set_temporal_panel_title(ax, title, *, y=None, pad=10):
+    """Apply the panel-title typography shared by temporal evidence figures."""
+    title_properties = {
+        "color": "white",
+        "fontweight": "bold",
+        "fontfamily": METRIC_FONT_FAMILY,
+        "pad": pad,
+    }
+    if y is not None:
+        title_properties["y"] = y
+    return ax.set_title(str(title), **title_properties)
+
+
 def _set_metric_axis_labels(
     ax,
     *,
@@ -579,23 +582,12 @@ def _set_metric_axis_labels(
         ax.set_ylabel(y_label, color=y_color, **text_properties)
 
 
-def _set_metric_colorbar_label(colorbar, label, *, color="white"):
-    """Apply the shared evidence typography to one colorbar label."""
-    colorbar.set_label(
-        label,
-        color=color,
-        fontsize=METRIC_AXIS_LABEL_FONTSIZE,
-        fontfamily=METRIC_FONT_FAMILY,
-        fontweight="normal",
-    )
-
-
-def _add_metric_mean_annotation(ax, mean_db, *, label="Mean", signed=True):
+def _add_metric_mean_annotation(ax, mean_db, *, label="Mean"):
     """Place one signed arithmetic-mean summary at the lower-right foreground."""
     mean_annotation = ax.text(
         0.98,
         0.04,
-        f"{label} {_format_metric_signed(mean_db, signed)} dB",
+        f"{label} {_format_metric_signed(mean_db, True)} dB",
         transform=ax.transAxes,
         ha="right",
         va="bottom",
@@ -618,68 +610,6 @@ def _style_evidence_axis(ax):
     _add_horizontal_grid(ax)
     for spine in ax.spines.values():
         spine.set_color("#444444")
-
-def _draw_raincloud(ax, grouped_values, group_labels, colors):
-    positions = np.arange(1, len(grouped_values) + 1)
-    rng = np.random.default_rng(42)
-
-    violin_values = []
-    violin_positions = []
-    violin_colors = []
-    for pos, values, color in zip(positions, grouped_values, colors):
-        if len(values) >= 2:
-            violin_values.append(values)
-            violin_positions.append(pos)
-            violin_colors.append(color)
-
-    if violin_values:
-        violins = ax.violinplot(
-            violin_values,
-            positions=violin_positions,
-            widths=0.62,
-            showmeans=False,
-            showmedians=False,
-            showextrema=False,
-        )
-        for body, pos, color in zip(violins["bodies"], violin_positions, violin_colors):
-            verts = body.get_paths()[0].vertices
-            verts[:, 0] = np.maximum(verts[:, 0], pos)
-            body.set_facecolor(color)
-            body.set_edgecolor(color)
-            body.set_alpha(0.28)
-
-    for pos, values, color in zip(positions, grouped_values, colors):
-        jitter_x = pos - 0.18 + rng.normal(0, 0.045, len(values))
-        ax.scatter(jitter_x, values, s=12, color=color, alpha=0.58, edgecolors="none", zorder=3)
-
-    box = ax.boxplot(
-        grouped_values,
-        positions=positions,
-        widths=0.14,
-        patch_artist=True,
-        showfliers=False,
-        manage_ticks=False,
-    )
-    for patch, color in zip(box["boxes"], colors):
-        patch.set_facecolor(color)
-        patch.set_alpha(0.45)
-        patch.set_edgecolor("#cccccc")
-    for key in ["whiskers", "caps", "medians"]:
-        for artist in box[key]:
-            artist.set_color("#cccccc")
-            artist.set_linewidth(1.0)
-
-    ax.set_xticks(positions)
-    ax.set_xticklabels(group_labels, rotation=20, ha="right", color="white", fontsize=9)
-    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
-
-def _draw_single_vertical_raincloud(ax, values, label, color="#36aaf9"):
-    """Draw one vertical raincloud and return the median of its plotted values."""
-    values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
-    if len(values) == 0:
-        return np.nan
-    _draw_raincloud(ax, [values], [label], [color])
-    return float(np.median(values))
 
 def _draw_vertical_metric_histogram(
     ax,
@@ -722,47 +652,6 @@ def _draw_vertical_metric_histogram(
     ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
     return float(np.median(values))
-
-def _draw_stacked_vertical_metric_histogram(ax, grouped_values, colors):
-    """Draw a percent histogram split by observation classes."""
-    cleaned = {
-        key: _metric_values(values)
-        for key, values in grouped_values.items()
-    }
-    all_values = np.concatenate([values for values in cleaned.values() if len(values)]) if cleaned else np.asarray([])
-    if len(all_values) == 0:
-        return np.nan
-
-    edges, centers, bin_width = _metric_histogram_bins(all_values)
-    total_count = float(len(all_values))
-    bottom = np.zeros(len(centers), dtype=float)
-    for key in ILLUMINATION_CLASSES:
-        values = cleaned.get(key, np.asarray([]))
-        if len(values) == 0:
-            continue
-        counts, _ = np.histogram(values, bins=edges)
-        shares = 100.0 * counts.astype(float) / total_count
-        ax.bar(
-            centers,
-            shares,
-            bottom=bottom,
-            width=bin_width * 0.82,
-            color=colors.get(key, "#36aaf9"),
-            alpha=0.80,
-            edgecolor="#111111",
-            linewidth=0.45,
-            align="center",
-            zorder=2,
-        )
-        bottom += shares
-
-    ax.set_ylabel("Share (%)", color="white")
-    ax.set_ylim(bottom=0.0)
-    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
-    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
-    ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
-    ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
-    return float(np.median(all_values))
 
 def _draw_horizontal_metric_histogram(ax, values, color="#36aaf9"):
     """Draw a histogram with the SNR metric on the vertical axis."""
@@ -841,7 +730,7 @@ def _draw_single_value_distribution(ax, value, labels, color=EVIDENCE_AGG_COLOR)
     ax.text(
         0.5,
         0.58,
-        f"{value:+.1f} dB" if "\u0394" in labels["y_label"] else f"{value:.1f} dB",
+        f"{value:+.1f} dB",
         transform=ax.transAxes,
         color="white",
         ha="center",
@@ -866,7 +755,7 @@ def _draw_single_value_distribution(ax, value, labels, color=EVIDENCE_AGG_COLOR)
     ax.set_ylabel(labels["y_label"], color="white")
     _apply_minimum_metric_yspan(ax, center=value)
 
-def _draw_single_time_point(ax, plot_df, labels, *, is_compare=False):
+def _draw_single_time_point(ax, plot_df, labels):
     """Render one selected evidence timestamp without a heatmap/color scale."""
     work_df = plot_df[["plot_time", "metric"]].copy()
     work_df["plot_time"] = pd.to_datetime(work_df["plot_time"], errors="coerce", utc=True).dt.tz_convert(None)
@@ -888,7 +777,7 @@ def _draw_single_time_point(ax, plot_df, labels, *, is_compare=False):
         zorder=5
     )
     ax.annotate(
-        f"{value:+.1f} dB" if "\u0394" in labels["y_label"] else f"{value:.1f} dB",
+        f"{value:+.1f} dB",
         xy=(x_value, value),
         xytext=(8, 8),
         textcoords="offset points",
@@ -910,117 +799,6 @@ def _draw_single_time_point(ax, plot_df, labels, *, is_compare=False):
     ax.set_xlabel(labels["x_label"], color="white")
     ax.set_ylabel(labels["y_label"], color="white")
     _apply_minimum_metric_yspan(ax, center=value)
-    if not is_compare:
-        _add_foreground_horizontal_grid(ax)
-
-def _draw_horizontal_raincloud(ax, values, color="#36aaf9"):
-    """Draw one horizontal raw-observation raincloud for segment-level evidence."""
-    values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
-    if len(values) == 0:
-        return np.nan
-
-    pos = 1.0
-    rng = np.random.default_rng(42)
-
-    if len(values) >= 2:
-        violins = ax.violinplot(
-            [values],
-            positions=[pos],
-            vert=False,
-            widths=0.65,
-            showmeans=False,
-            showmedians=False,
-            showextrema=False,
-        )
-        for body in violins["bodies"]:
-            verts = body.get_paths()[0].vertices
-            verts[:, 1] = np.maximum(verts[:, 1], pos)
-            body.set_facecolor(color)
-            body.set_edgecolor(color)
-            body.set_alpha(0.28)
-
-    jitter_y = pos - 0.16 + rng.normal(0, 0.04, len(values))
-    ax.scatter(values, jitter_y, s=12, color=color, alpha=0.58, edgecolors="none", zorder=3)
-
-    box = ax.boxplot(
-        [values],
-        positions=[pos],
-        vert=False,
-        widths=0.14,
-        patch_artist=True,
-        showfliers=False,
-        manage_ticks=False,
-    )
-    for patch in box["boxes"]:
-        patch.set_facecolor(color)
-        patch.set_alpha(0.45)
-        patch.set_edgecolor("#cccccc")
-    for key in ["whiskers", "caps", "medians"]:
-        for artist in box[key]:
-            artist.set_color("#cccccc")
-            artist.set_linewidth(1.0)
-
-    ax.set_yticks([])
-    ax.set_ylim(0.55, 1.55)
-    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
-    ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
-    return float(np.median(values))
-
-def _robust_metric_limits(values):
-    """Return robust visible y-limits and hidden-tail percentages using the 1.5 IQR rule."""
-    values = pd.to_numeric(pd.Series(values), errors="coerce").dropna().to_numpy(dtype=float)
-    if len(values) == 0:
-        return None
-
-    q1, q3 = np.percentile(values, [25, 75])
-    iqr = q3 - q1
-    lower = q1 - 1.5 * iqr
-    upper = q3 + 1.5 * iqr
-
-    if not np.isfinite(lower) or not np.isfinite(upper):
-        return None
-    if upper <= lower:
-        center = float(np.median(values))
-        lower = center
-        upper = center
-    else:
-        padding = 0.10 * (upper - lower)
-        lower -= padding
-        upper += padding
-
-    expanded_limits = _expanded_metric_limits(lower, upper, center=float(np.median(values)))
-    if expanded_limits is None:
-        return None
-    lower, upper = expanded_limits
-
-    below_pct = 100.0 * float(np.sum(values < lower)) / len(values)
-    above_pct = 100.0 * float(np.sum(values > upper)) / len(values)
-    return lower, upper, below_pct, above_pct
-
-def _annotate_outlier_range(ax, below_pct, above_pct):
-    """Show how much selected evidence sits outside the visible robust range."""
-    ax.text(
-        0.98,
-        0.96,
-        f"outlier above range: {above_pct:.1f}%",
-        transform=ax.transAxes,
-        color="#cccccc",
-        fontsize=8,
-        ha="right",
-        va="top",
-        zorder=8
-    )
-    ax.text(
-        0.98,
-        0.04,
-        f"outlier below range: {below_pct:.1f}%",
-        transform=ax.transAxes,
-        color="#cccccc",
-        fontsize=8,
-        ha="right",
-        va="bottom",
-        zorder=8
-    )
 
 def _time_agg_minutes(time_agg):
     """Parse a compact minute/hour selector label such as '15m' or '3h' into minutes."""
@@ -1063,7 +841,6 @@ def _relative_density_label(count_label):
     known_bases = {
         "joint spot count": "joint-spot",
         "scheduled pair count": "scheduled-pair",
-        "spot count": "spot",
     }
     normalized_label = " ".join(raw_label.casefold().split())
     evidence_basis = known_bases.get(normalized_label)
@@ -1295,8 +1072,8 @@ def _draw_folded_utc_unavailable_annotation(axis, message):
     return annotation
 
 
-def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequential):
-    """Draw UTC time-bin evidence, using panel-relative density for Compare."""
+def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_sequential):
+    """Draw Compare UTC time-bin evidence as panel-relative density."""
     bin_minutes = _time_agg_minutes(time_agg)
     work_df = _prepare_temporal_metric_rows(plot_df)
 
@@ -1322,23 +1099,12 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
         metric_bins,
     )
     y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
-    if is_compare:
-        mesh = _draw_relative_density_mesh(
-            ax,
-            x_edges,
-            y_edges,
-            count_grid,
-        )
-    else:
-        raw_counts = count_grid.to_numpy(dtype=float)
-        mesh = ax.pcolormesh(
-            x_edges,
-            y_edges,
-            np.ma.masked_where(raw_counts <= 0.0, raw_counts),
-            cmap=EVIDENCE_HEATMAP_CMAP,
-            shading="flat",
-            zorder=1,
-        )
+    mesh = _draw_relative_density_mesh(
+        ax,
+        x_edges,
+        y_edges,
+        count_grid,
+    )
     _draw_temporal_median_overlay(
         ax,
         x_centers,
@@ -1352,27 +1118,21 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
             "Scheduled pair count"
             if is_sequential
             else "Joint spot count"
-            if is_compare
-            else "Spot count"
         )
     colorbar_kwargs = {
         "ax": ax,
         "pad": 0.012,
         "fraction": 0.03,
-    }
-    if is_compare:
-        colorbar_kwargs["ticks"] = np.linspace(
+        "ticks": np.linspace(
             EVIDENCE_DENSITY_MIN,
             EVIDENCE_DENSITY_MAX,
             5,
-        )
+        ),
+    }
     cbar = fig.colorbar(mesh, **colorbar_kwargs)
-    if is_compare:
-        colorbar_label = labels.get("density_label") or _relative_density_label(
-            count_label
-        )
-    else:
-        colorbar_label = count_label
+    colorbar_label = labels.get("density_label") or _relative_density_label(
+        count_label
+    )
     cbar.set_label(colorbar_label, color="white")
     cbar.ax.tick_params(colors="white", labelsize=8)
     cbar.outline.set_edgecolor("#444444")
@@ -1386,8 +1146,6 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_compare, is_sequen
     ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
     ax.set_xlabel(labels["x_label"], color="white")
     ax.set_ylabel(labels["y_label"], color="white")
-    if not is_compare:
-        _add_foreground_horizontal_grid(ax)
 
 
 def _draw_folded_utc_hour_heatmap(
@@ -1564,10 +1322,28 @@ def _segment_temporal_evidence_export_recipe(
 
 
 @synchronized_matplotlib
+def render_segment_temporal_snr_export_figure(recipe):
+    """Render shared Success temporal SNR evidence in its configured representation."""
+    if not recipe or recipe.get("kind") != "opportunity_success_temporal":
+        return None
+    from ui.plots.opportunity_figures import (
+        _render_opportunity_temporal_snr_figure,
+    )
+
+    return _render_opportunity_temporal_snr_figure(recipe)
+
+
+@synchronized_matplotlib
 def render_segment_temporal_evidence_export_figure(recipe):
-    """Render chronological and date-folded segment Compare relative densities."""
+    """Render the registered Compare or Success segment-temporal recipe."""
     if not recipe:
         return None
+    if recipe.get("kind") == "opportunity_success_temporal":
+        from ui.plots.opportunity_figures import (
+            _render_opportunity_temporal_evidence_figure,
+        )
+
+        return _render_opportunity_temporal_evidence_figure(recipe)
     plot_time_ns = np.asarray(recipe.get("plot_time_ns", []), dtype=np.int64)
     metric_values = np.asarray(recipe.get("metric", []), dtype=float)
     if len(plot_time_ns) == 0 or len(plot_time_ns) != len(metric_values):
@@ -1608,15 +1384,22 @@ def render_segment_temporal_evidence_export_figure(recipe):
             _folded_utc_hour_density_components(work_df, metric_bins)
         )
 
-    figure = create_agg_figure(figsize=(13, 5.6), facecolor="black")
-    figure.subplots_adjust(
-        left=0.07,
-        right=0.95,
-        bottom=SEGMENT_FIGURE_BOTTOM,
-        top=0.82,
-        wspace=0.20,
+    figure = create_agg_figure(
+        figsize=SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES,
+        facecolor="black",
     )
-    grid_spec = figure.add_gridspec(1, 2, width_ratios=[1.95, 1])
+    figure.subplots_adjust(
+        left=SEGMENT_TEMPORAL_FIGURE_LEFT,
+        right=SEGMENT_TEMPORAL_FIGURE_RIGHT,
+        bottom=SEGMENT_FIGURE_BOTTOM,
+        top=SEGMENT_TEMPORAL_FIGURE_TOP,
+        wspace=SEGMENT_TEMPORAL_COLUMN_SPACE,
+    )
+    grid_spec = figure.add_gridspec(
+        1,
+        2,
+        width_ratios=SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS,
+    )
     chronological_axis = figure.add_subplot(grid_spec[0, 0])
     folded_axis = figure.add_subplot(grid_spec[0, 1], sharey=chronological_axis)
     for axis in (chronological_axis, folded_axis):
@@ -1667,14 +1450,12 @@ def render_segment_temporal_evidence_export_figure(recipe):
     chronological_axis.xaxis.set_major_locator(date_locator)
     chronological_axis.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
     chronological_axis.set_xlim(chronological_edges[0], chronological_edges[-1])
-    chronological_axis.set_title(
+    _set_temporal_panel_title(
+        chronological_axis,
         recipe.get(
             "chronological_title",
             f"\u0394 SNR over Time ({time_bin} bins)",
         ),
-        color="white",
-        fontweight="bold",
-        pad=10,
     )
     chronological_axis.set_xlabel(
         recipe.get("chronological_x_label", "Date/Time (UTC)"),
@@ -1686,11 +1467,9 @@ def render_segment_temporal_evidence_export_figure(recipe):
     folded_axis.set_xticks(np.arange(0, 25, 3))
     folded_axis.set_xticklabels([f"{hour:02d}" for hour in range(0, 25, 3)])
     default_folded_title = _default_folded_utc_hour_title(utc_date_count)
-    folded_axis.set_title(
+    _set_temporal_panel_title(
+        folded_axis,
         recipe.get("folded_title", default_folded_title),
-        color="white",
-        fontweight="bold",
-        pad=10,
     )
     folded_axis.set_xlabel(
         recipe.get("folded_x_label", "UTC hour"),
@@ -1714,8 +1493,8 @@ def render_segment_temporal_evidence_export_figure(recipe):
     colorbar = figure.colorbar(
         colorbar_mesh,
         ax=[chronological_axis, folded_axis],
-        pad=0.012,
-        fraction=0.03,
+        pad=SEGMENT_TEMPORAL_COLORBAR_PAD,
+        fraction=SEGMENT_TEMPORAL_COLORBAR_FRACTION,
         ticks=np.linspace(EVIDENCE_DENSITY_MIN, EVIDENCE_DENSITY_MAX, 5),
     )
     colorbar.set_label(density_label, color="white")
@@ -1726,7 +1505,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
         recipe.get("title", "Compare Temporal Evidence"),
         color="white",
         fontweight="bold",
-        fontsize=14,
+        fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
         y=0.96,
     )
     figure.text(
@@ -1735,7 +1514,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
         f"WSPRadar.org {APP_VERSION}",
         color="#888888",
         ha="right",
-        fontsize=10,
+        fontsize=METRIC_FOOTER_FONTSIZE,
     )
     return figure
 
@@ -1745,7 +1524,6 @@ def _create_selected_station_evidence_figure(
     evidence_title,
     labels,
     time_agg,
-    is_compare,
     is_sequential,
     *,
     temporal_view=SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
@@ -1756,10 +1534,10 @@ def _create_selected_station_evidence_figure(
     median_focus=None,
     median_focus_axis_label=None,
 ):
-    """Build selected evidence with a chronological or folded Compare time view."""
+    """Build selected Compare evidence with a chronological or folded time view."""
     temporal_view = (
         SELECTED_TEMPORAL_VIEW_UTC_HOUR
-        if is_compare and temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR
+        if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR
         else SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
     )
     labels = dict(labels)
@@ -1767,15 +1545,27 @@ def _create_selected_station_evidence_figure(
         labels["density_label"] = density_label
     evidence_count = len(plot_df)
     metric_values = _metric_values(plot_df["metric"])
-    median_focus_spec = (
-        _compare_median_focus_spec_from_recipe(median_focus, metric_values)
-        if is_compare
-        else None
+    median_focus_spec = _compare_median_focus_spec_from_recipe(
+        median_focus,
+        metric_values,
     )
     fig_ev = create_agg_figure(figsize=(13, 5.6), facecolor="black")
     fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
-    fig_ev.suptitle(f"\n{evidence_title}", color="white", fontweight="bold", fontsize=14, y=0.98)
-    fig_ev.text(0.98, SEGMENT_FIGURE_FOOTER_Y, f"WSPRadar.org {APP_VERSION}", color="#888888", ha="right", fontsize=10)
+    fig_ev.suptitle(
+        f"\n{evidence_title}",
+        color="white",
+        fontweight="bold",
+        fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
+        y=0.98,
+    )
+    fig_ev.text(
+        0.98,
+        SEGMENT_FIGURE_FOOTER_Y,
+        f"WSPRadar.org {APP_VERSION}",
+        color="#888888",
+        ha="right",
+        fontsize=METRIC_FOOTER_FONTSIZE,
+    )
     gs = fig_ev.add_gridspec(1, 3)
     ax_cloud = fig_ev.add_subplot(gs[0, 0])
     ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
@@ -1802,12 +1592,7 @@ def _create_selected_station_evidence_figure(
                 folded_unavailable_text=folded_unavailable_text,
             )
         else:
-            _draw_single_time_point(
-                ax_time,
-                plot_df,
-                labels,
-                is_compare=is_compare,
-            )
+            _draw_single_time_point(ax_time, plot_df, labels)
     else:
         _draw_horizontal_metric_histogram(ax_cloud, metric_values, color=EVIDENCE_AGG_COLOR)
         ax_cloud.set_ylabel(labels["y_label"], color="white")
@@ -1830,16 +1615,14 @@ def _create_selected_station_evidence_figure(
                 plot_df,
                 time_agg,
                 labels,
-                is_compare,
                 is_sequential,
             )
-        if is_compare:
-            _annotate_selected_compare_distribution(
-                ax_cloud,
-                metric_values,
-                labels,
-            )
-    if is_compare and median_focus_spec is not None:
+        _annotate_selected_compare_distribution(
+            ax_cloud,
+            metric_values,
+            labels,
+        )
+    if median_focus_spec is not None:
         resolved_axis_label = (
             median_focus_axis_label
             or labels.get(
@@ -1870,7 +1653,6 @@ def _selected_evidence_export_recipe(
     evidence_title,
     labels,
     time_agg,
-    is_compare,
     is_sequential,
     *,
     temporal_view=SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
@@ -1881,7 +1663,7 @@ def _selected_evidence_export_recipe(
     folded_unavailable_text=None,
     median_focus_axis_label=None,
 ):
-    """Store compact selected evidence and optional folded-view presentation state."""
+    """Store compact Compare evidence and optional folded-view presentation state."""
     plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
     numeric_metrics = pd.to_numeric(plot_df["metric"], errors="coerce")
     valid = plot_times.notna() & numeric_metrics.notna() & np.isfinite(numeric_metrics)
@@ -1894,7 +1676,7 @@ def _selected_evidence_export_recipe(
         )
     temporal_view = (
         SELECTED_TEMPORAL_VIEW_UTC_HOUR
-        if is_compare and temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR
+        if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR
         else SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
     )
     utc_date_count = int(plot_times.loc[valid].dt.normalize().nunique())
@@ -1921,24 +1703,18 @@ def _selected_evidence_export_recipe(
             "Scheduled pair count"
             if is_sequential
             else "Joint spot count"
-            if is_compare
-            else "Spot count"
         )
-    if density_label is None and is_compare:
+    if density_label is None:
         density_label = labels_copy.get("density_label") or _relative_density_label(
             count_label
         )
-    if is_compare:
-        resolved_median_focus = _compare_median_focus_recipe(
-            _build_compare_median_focus_spec(metric_values)
-        )
-    else:
-        resolved_median_focus = None
+    resolved_median_focus = _compare_median_focus_recipe(
+        _build_compare_median_focus_spec(metric_values)
+    )
     return {
         "title": evidence_title,
         "labels": labels_copy,
         "time_bin": time_agg,
-        "is_compare": bool(is_compare),
         "is_sequential": bool(is_sequential),
         "temporal_view": temporal_view,
         "folded_title": str(folded_title),
@@ -1972,9 +1748,6 @@ def render_selected_evidence_export_figure(recipe):
     """Rebuild a selected-station evidence figure only when preparing the results ZIP."""
     if not recipe:
         return None
-    if recipe.get("kind") == "opportunity":
-        from ui.plots.opportunity_figures import _render_opportunity_selected_figure
-        return _render_opportunity_selected_figure(recipe)
     plot_df = pd.DataFrame({
         "plot_time": pd.to_datetime(np.asarray(recipe.get("plot_time_ns", []), dtype=np.int64), unit="ns", utc=True),
         "metric": np.asarray(recipe.get("metric", []), dtype=float),
@@ -1983,13 +1756,12 @@ def render_selected_evidence_export_figure(recipe):
         return None
     labels = recipe.get("labels")
     if not labels:
-        labels = _default_evidence_labels(bool(recipe.get("is_compare")))
+        labels = _default_evidence_labels()
     return _create_selected_station_evidence_figure(
         plot_df,
         recipe.get("title", "Selected Station Evidence"),
         labels,
         recipe.get("time_bin", "3h"),
-        bool(recipe.get("is_compare")),
         bool(recipe.get("is_sequential")),
         temporal_view=recipe.get(
             "temporal_view",
@@ -2007,12 +1779,9 @@ def _segment_figure_export_recipe(
     *,
     title,
     selected_segment,
-    is_compare,
     is_sequential,
-    compare_layout,
     station_values,
     spot_values,
-    panel_counts,
     panel_labels,
     panel_y_label,
     panel_station_counts=None,
@@ -2020,16 +1789,13 @@ def _segment_figure_export_recipe(
     panel_series_labels=None,
     paired_evidence_title=None,
 ):
-    """Store compact numeric inputs needed to rebuild the Segment Insight figure."""
+    """Store compact numeric inputs needed to rebuild Compare segment evidence."""
     return {
         "title": title,
         "selected_segment": selected_segment,
-        "is_compare": bool(is_compare),
         "is_sequential": bool(is_sequential),
-        "compare_layout": bool(compare_layout),
         "station_values": _metric_values(station_values).astype(np.float64, copy=True),
         "spot_values": _metric_values(spot_values).astype(np.float64, copy=True),
-        "panel_counts": [int(value) for value in panel_counts],
         "panel_labels": [str(value) for value in panel_labels],
         "panel_y_label": str(panel_y_label),
         "panel_station_counts": [
@@ -2181,16 +1947,16 @@ def render_segment_insight_export_figure(recipe):
     """Rebuild the Segment Insight figure only when preparing the results ZIP."""
     if not recipe:
         return None
-    if recipe.get("kind") == "opportunity":
+    recipe_kind = recipe.get("kind")
+    if recipe_kind == "opportunity_success_evidence":
         from ui.plots.opportunity_figures import _render_opportunity_segment_figure
         return _render_opportunity_segment_figure(recipe)
+    if recipe_kind is not None:
+        return None
 
-    is_compare = bool(recipe.get("is_compare"))
     is_sequential = bool(recipe.get("is_sequential"))
-    compare_layout = bool(recipe.get("compare_layout"))
     station_values = np.asarray(recipe.get("station_values", []), dtype=float)
     spot_values = np.asarray(recipe.get("spot_values", []), dtype=float)
-    panel_counts = list(recipe.get("panel_counts", []))
     panel_labels = list(recipe.get("panel_labels", []))
     panel_station_counts = list(recipe.get("panel_station_counts", []))
     panel_spot_counts = list(recipe.get("panel_spot_counts", []))
@@ -2213,62 +1979,36 @@ def render_segment_insight_export_figure(recipe):
         spine.set_color("#444444")
     _add_horizontal_grid(ax_panel)
 
-    if compare_layout:
-        _draw_compare_outcome_bars(
-            ax_panel,
-            panel_labels=panel_labels,
-            station_counts=panel_station_counts,
-            spot_counts=panel_spot_counts,
-            series_labels=panel_series_labels,
-        )
-        ax_panel.set_ylabel(
-            recipe.get("panel_y_label", "Share (%)"),
-            color="white",
-        )
-        ax_panel.set_title("Decode Outcomes", color="white", fontweight="bold", pad=10)
-        ax_hist.set_title("Station Medians (\u0394 SNR)", color="white", fontweight="bold", pad=10)
-        ax_spot.set_title(
-            recipe.get("paired_evidence_title")
-            or (
-                "Scheduled-Pair \u0394 SNR"
-                if is_sequential
-                else "Joint-Spot \u0394 SNR"
-            ),
-            color="white",
-            fontweight="bold",
-            pad=10,
-        )
-    else:
-        bars = ax_panel.bar(
-            panel_labels,
-            panel_counts,
-            color=EVIDENCE_AGG_COLOR,
-            alpha=0.8,
-            edgecolor="black",
-        )
-        ax_panel.set_ylabel(recipe.get("panel_y_label", "Count"), color="white")
-        ax_panel.set_title("Segment Activity", color="white", fontweight="bold", pad=10)
-        if panel_counts and max(panel_counts) > 0:
-            for bar in bars:
-                height = bar.get_height()
-                ax_panel.text(
-                    bar.get_x() + bar.get_width() / 2.0,
-                    height + (max(panel_counts) * 0.02),
-                    f"{int(height)}",
-                    ha="center",
-                    va="bottom",
-                    color="white",
-                    fontsize=10,
-                    fontweight="bold",
-                )
-        ax_hist.set_title("Station Medians (SNR @ 30 dBm)", color="white", fontweight="bold", pad=10)
-        ax_spot.set_title("Spot SNR (SNR @ 30 dBm)", color="white", fontweight="bold", pad=10)
+    _draw_compare_outcome_bars(
+        ax_panel,
+        panel_labels=panel_labels,
+        station_counts=panel_station_counts,
+        spot_counts=panel_spot_counts,
+        series_labels=panel_series_labels,
+    )
+    ax_panel.set_ylabel(
+        recipe.get("panel_y_label", "Share (%)"),
+        color="white",
+    )
+    ax_panel.set_title("Decode Outcomes", color="white", fontweight="bold", pad=10)
+    ax_hist.set_title("Station Medians (\u0394 SNR)", color="white", fontweight="bold", pad=10)
+    ax_spot.set_title(
+        recipe.get("paired_evidence_title")
+        or (
+            "Scheduled-Pair \u0394 SNR"
+            if is_sequential
+            else "Joint-Spot \u0394 SNR"
+        ),
+        color="white",
+        fontweight="bold",
+        pad=10,
+    )
 
     fig_hist.suptitle(
         f"\n{recipe.get('title', '')} - {recipe.get('selected_segment', '')}",
         color="white",
         fontweight="bold",
-        fontsize=14,
+        fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
         y=0.98,
     )
     fig_hist.text(
@@ -2277,7 +2017,7 @@ def render_segment_insight_export_figure(recipe):
         f"WSPRadar.org {APP_VERSION}",
         color="#888888",
         ha="right",
-        fontsize=10,
+        fontsize=METRIC_FOOTER_FONTSIZE,
     )
 
     ax_hist.set_facecolor("black")
@@ -2296,25 +2036,24 @@ def render_segment_insight_export_figure(recipe):
             ax_hist,
             station_values,
             color=EVIDENCE_AGG_COLOR,
-            hatch=STATION_EVIDENCE_HATCH if is_compare else None,
+            hatch=STATION_EVIDENCE_HATCH,
             artist_gid="station-median-histogram",
         )
         station_median_line = _add_metric_median_reference(
             ax_hist,
             station_median,
             orientation="vertical",
-            zorder=4.0 if is_compare else 2.0,
+            zorder=4.0,
         )
         _apply_minimum_metric_xspan(ax_hist, center=station_median)
         _place_metric_legend_top_right(
             ax_hist,
             handles=[station_median_line],
         )
-        if is_compare:
-            _add_metric_mean_annotation(
-                ax_hist,
-                float(np.mean(station_values)),
-            )
+        _add_metric_mean_annotation(
+            ax_hist,
+            float(np.mean(station_values)),
+        )
     else:
         ax_hist.text(0.5, 0.5, "No data", color="white", ha="center", va="center", fontsize=12, transform=ax_hist.transAxes)
         ax_hist.set_xticks([])
@@ -2331,14 +2070,14 @@ def render_segment_insight_export_figure(recipe):
             ax_spot,
             spot_median,
             orientation="vertical",
-            zorder=4.0 if is_compare else 2.0,
+            zorder=4.0,
         )
         _apply_minimum_metric_xspan(ax_spot, center=spot_median)
         _place_metric_legend_top_right(
             ax_spot,
             handles=[spot_median_line],
         )
-        if is_compare and len(spot_values):
+        if len(spot_values):
             _add_metric_mean_annotation(
                 ax_spot,
                 float(np.mean(spot_values)),
@@ -2348,7 +2087,6 @@ def render_segment_insight_export_figure(recipe):
         ax_spot.set_xticks([])
         ax_spot.set_yticks([])
 
-    metric_label = "\u0394 SNR (dB)" if is_compare else "Normalized SNR (dB @ 30 dBm)"
-    ax_hist.set_xlabel(metric_label, color="white")
-    ax_spot.set_xlabel(metric_label, color="white")
+    ax_hist.set_xlabel("\u0394 SNR (dB)", color="white")
+    ax_spot.set_xlabel("\u0394 SNR (dB)", color="white")
     return fig_hist

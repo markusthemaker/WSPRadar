@@ -30,7 +30,9 @@ from ui.result_hierarchy import (
     scope_context_html,
     scope_evidence_text,
     scope_summary_html,
+    segment_statistics_html,
     selected_station_context,
+    selected_station_label,
     station_count_label,
     station_scope_text,
     transition_prompt_html,
@@ -56,12 +58,10 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "hdr_results_segment_inspector",
     "hdr_results_comparison_evidence",
     "hdr_results_temporal_evidence",
-    "hdr_results_success_temporal",
+    "hdr_results_success_evidence",
     "hdr_results_selected_station_evidence",
     "hdr_results_drilldown",
     "hdr_results_download_evidence",
-    "hdr_results_reusable_configuration",
-    "sub_results_compare",
     "sub_results_compare_scheduled",
     "sub_results_rx_success",
     "sub_results_tx_success",
@@ -74,6 +74,7 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "fmt_results_joint_spot_delta_summary",
     "fmt_results_scheduled_pair_delta_summary",
     "sub_results_temporal_evidence",
+    "sub_results_success_evidence",
     "sub_results_success_temporal",
     "sub_results_station_insights",
     "sub_results_selected_station_single",
@@ -88,9 +89,11 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "txt_results_reference_benchmark",
     "txt_results_tx_schedule",
     "txt_results_evidence_path",
+    "txt_results_evidence_path_success",
     "txt_results_active_scope",
     "txt_results_evidence_scope",
     "txt_results_selected_no_paired_evidence",
+    "txt_results_success_no_eligible",
     "txt_results_transition_scope",
     "txt_results_transition_stations",
     "txt_results_transition_rows",
@@ -110,6 +113,118 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "unit_station_singular",
     "unit_station_plural",
     "fmt_results_thousands_separator",
+}
+
+EXPECTED_SUCCESS_PRESENTATION_KEYS = {
+    "cbar_abs_rx",
+    "cbar_abs_tx",
+    "fig_rx_abs",
+    "fig_tx_abs",
+    "success_rx_opportunity_success",
+    "success_rx_opportunity_counter",
+    "success_rx_station_success",
+    "success_rx_station_counter",
+    "success_rx_target_only_audit",
+    "success_rx_subtext",
+    "success_rx_show_counter",
+    "success_tx_opportunity_success",
+    "success_tx_opportunity_counter",
+    "success_tx_station_success",
+    "success_tx_station_counter",
+    "success_tx_target_only_audit",
+    "success_tx_subtext",
+    "success_tx_show_counter",
+    "map_success_footer_opportunities",
+    "map_success_footer_stations",
+    "map_success_rx_opportunity_target",
+    "map_success_rx_opportunity_counter",
+    "map_success_rx_station_target",
+    "map_success_rx_station_counter",
+    "map_success_tx_opportunity_target",
+    "map_success_tx_opportunity_counter",
+    "map_success_tx_station_target",
+    "map_success_tx_station_counter",
+    "map_success_legend_insufficient",
+    "fmt_results_success_station_summary",
+    "fmt_results_success_opportunity_summary",
+    "fig_success_temporal_title_rx",
+    "fig_success_temporal_title_tx",
+    "fig_success_temporal_snr_title_rx",
+    "fig_success_temporal_snr_title_tx",
+    "fig_success_reach_title_rx",
+    "fig_success_reach_title_tx",
+    "fig_success_reach_y_rx",
+    "fig_success_reach_y_tx",
+    "fig_success_consistency_title_rx",
+    "fig_success_consistency_title_tx",
+    "fig_success_snr_distance_title_rx",
+    "fig_success_snr_distance_title_tx",
+    "fig_success_distance_x",
+    "fig_success_rate_y",
+    "fig_success_snr_y",
+    "fig_success_confirmed_opportunities",
+    "fig_success_qualifying_stations",
+    "fig_success_successful_snr_stations",
+    "fig_success_station_balanced",
+    "fig_success_observation_level",
+    "fig_success_median",
+    "fig_success_iqr",
+    "fig_success_two_station_range",
+    "fig_success_support",
+    "fig_success_support_title",
+    "fig_success_bin_width",
+    "fig_success_locator_precision_note",
+    "fig_success_snr_chronological_title_rx",
+    "fig_success_snr_chronological_title_tx",
+    "fig_success_snr_chronological_subtitle_rx",
+    "fig_success_snr_chronological_subtitle_tx",
+    "fig_success_snr_utc_hour_title_rx",
+    "fig_success_snr_utc_hour_title_tx",
+    "fig_success_snr_utc_hour_subtitle_rx",
+    "fig_success_snr_utc_hour_subtitle_tx",
+    "fig_success_evidence_chronological_title",
+                "fig_success_evidence_utc_hour_title",
+                "fig_success_station_support_folded_subtitle",
+                "fig_success_opportunities_folded_subtitle",
+                "fig_success_station_votes_y_rx",
+    "fig_success_station_votes_y_tx",
+    "fig_success_station_support_folded_y_rx",
+    "fig_success_station_support_folded_y_tx",
+    "fig_success_opportunities_y",
+    "fig_success_opportunities_folded_y",
+    "fig_success_rate_legend",
+    "fig_success_time_x",
+    "fig_success_utc_hour_x",
+    "fig_success_snr_anomaly_y_rx",
+    "fig_success_snr_anomaly_y_tx",
+    "fig_success_snr_density",
+    "fig_success_station_baseline",
+    "fig_success_bin_median_chronological",
+    "fig_success_bin_median_folded",
+    "fig_success_snr_anomaly_unavailable",
+    "fig_success_temporal_unavailable",
+    "fig_success_utc_dates_folded",
+    "fig_success_selected_station_snr_title_rx",
+    "fig_success_selected_station_snr_title_tx",
+    "fig_success_selected_station_temporal_title_rx",
+    "fig_success_selected_station_temporal_title_tx",
+    "fig_success_selected_snr_chronological_title",
+    "fig_success_selected_snr_chronological_subtitle",
+    "fig_success_selected_snr_utc_hour_title",
+    "fig_success_selected_snr_utc_hour_subtitle",
+    "fig_success_selected_temporal_snr_y",
+    "fig_success_selected_snr_density",
+    "fig_success_selected_bin_median",
+    "fig_success_selected_folded_median",
+    "fig_success_selected_snr_unavailable",
+    "fig_success_selected_station_support_folded_subtitle",
+    "lbl_selected_time_aggregation_bin_size",
+    "fmt_success_selected_context",
+    "tbl_col_success_station_rx",
+    "tbl_col_success_station_tx",
+    "tbl_col_confirmed_opportunities",
+    "tbl_col_success_rate",
+    "tbl_col_success_snr_display",
 }
 
 
@@ -211,7 +326,84 @@ def test_result_context_titles_and_subtitles_cover_every_analysis_family(
     assert context.evidence_path_label == T[language][
         "lbl_results_evidence_path"
     ]
-    assert context.evidence_path == T[language]["txt_results_evidence_path"]
+    evidence_path_key = (
+        "txt_results_evidence_path"
+        if is_compare
+        else "txt_results_evidence_path_success"
+    )
+    expected_evidence_path = (
+        "Map → Segment Inspector → Station Insights → Drill-Down"
+        if language == "en"
+        else "Karte → Segment-Inspektor → Station Insights → Drill-Down"
+    )
+    assert context.evidence_path == T[language][evidence_path_key]
+    assert context.evidence_path == expected_evidence_path
+    assert T[language]["txt_results_evidence_path"] == expected_evidence_path
+    assert (
+        T[language]["txt_results_evidence_path_success"]
+        == expected_evidence_path
+    )
+
+
+def test_success_result_subtitles_and_map_titles_match_directional_contract():
+    """Pin the exact bilingual run context and exported map title vocabulary."""
+    assert T["en"]["sub_results_rx_success"] == (
+        "Target {callsign} · signals heard by the Target or by others only"
+    )
+    assert T["en"]["sub_results_tx_success"] == (
+        "Target {callsign} · Target heard or other signals heard only at active RX stations"
+    )
+    assert T["de"]["sub_results_rx_success"] == (
+        "Target {callsign} · vom Target oder nur von anderen gehört"
+    )
+    assert T["de"]["sub_results_tx_success"] == (
+        "Target {callsign} · Target gehört oder nur andere Signale an aktiven RX-Stationen gehört"
+    )
+    assert T["en"]["sub_results_success_temporal"] == (
+        "Successful signal-strength deviations, station-balanced evidence and "
+        "confirmed opportunities shown chronologically and by UTC hour."
+    )
+    assert T["de"]["sub_results_success_temporal"] == (
+        "Abweichungen erfolgreicher Signalstärken, stationsgleichgewichtete "
+        "Evidenz und bestätigte Gelegenheiten, chronologisch und nach "
+        "UTC-Stunde dargestellt."
+    )
+    assert T["en"]["fig_success_temporal_snr_title_rx"] == (
+        "RX Success Temporal SNR Evidence: Target {callsign}"
+    )
+    assert T["en"]["fig_success_temporal_snr_title_tx"] == (
+        "TX Success Temporal SNR Evidence: Target {callsign}"
+    )
+    assert T["en"]["fig_success_temporal_title_rx"] == (
+        "RX Success Temporal Evidence: Target {callsign}"
+    )
+    assert T["en"]["fig_success_temporal_title_tx"] == (
+        "TX Success Temporal Evidence: Target {callsign}"
+    )
+    assert T["de"]["fig_success_temporal_snr_title_rx"] == (
+        "RX Success — Zeitliche SNR-Evidenz: Target {callsign}"
+    )
+    assert T["de"]["fig_success_temporal_snr_title_tx"] == (
+        "TX Success — Zeitliche SNR-Evidenz: Target {callsign}"
+    )
+    assert T["de"]["fig_success_temporal_title_rx"] == (
+        "RX Success — Zeitliche Evidenz: Target {callsign}"
+    )
+    assert T["de"]["fig_success_temporal_title_tx"] == (
+        "TX Success — Zeitliche Evidenz: Target {callsign}"
+    )
+    assert T["en"]["fig_rx_abs"] == (
+        "RX Success: {callsign} — Heard by Target vs. Heard by Others Only"
+    )
+    assert T["en"]["fig_tx_abs"] == (
+        "TX Success: {callsign} — Target Heard vs. Other Signals Heard Only"
+    )
+    assert T["de"]["fig_rx_abs"] == (
+        "RX Success: {callsign} — Vom Target gehört vs. nur von anderen gehört"
+    )
+    assert T["de"]["fig_tx_abs"] == (
+        "TX Success: {callsign} — Target gehört vs. nur andere Signale gehört"
+    )
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -373,9 +565,7 @@ def test_hardware_compare_metadata_uses_shared_target_grid_and_active_schedule(
     ("analysis_id", "expected_station_type"),
     (
         ("RX_COMP", "TX"),
-        ("RX_ABS", "TX"),
         ("TX_COMP", "RX"),
-        ("TX_ABS", "RX"),
     ),
 )
 def test_scope_copy_preserves_remote_station_role_and_selection_depth(
@@ -423,14 +613,8 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
         identities[:1],
         1,
         analysis_id=analysis_id,
-        is_compare=analysis_id.endswith("_COMP"),
         is_sequential=False,
         translations=translations,
-    )
-    expected_single_unit_key = (
-        "unit_joint_spot_singular"
-        if analysis_id.endswith("_COMP")
-        else "unit_confirmed_opportunity_singular"
     )
     assert selected_single == translations[
         "sub_results_selected_station_single"
@@ -438,30 +622,26 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
         station="G3AAA",
         locator="IO90",
         evidence_count=1,
-        evidence_unit=translations[expected_single_unit_key],
+        evidence_unit=translations["unit_joint_spot_singular"],
     )
 
     selected_multi = selected_station_context(
         identities,
         2,
         analysis_id=analysis_id,
-        is_compare=analysis_id.endswith("_COMP"),
         is_sequential=False,
         translations=translations,
-    )
-    expected_multi_unit_key = (
-        "unit_joint_spot_plural"
-        if analysis_id.endswith("_COMP")
-        else "unit_confirmed_opportunity_plural"
     )
     assert selected_multi == translations[
         "sub_results_selected_station_named"
     ].format(
-        selected_count=2,
-        station_type=expected_station_type,
-        stations=", ".join(identities),
+        selection_label=selected_station_label(
+            identities,
+            analysis_id=analysis_id,
+            translations=translations,
+        ),
         evidence_count=2,
-        evidence_unit=translations[expected_multi_unit_key],
+        evidence_unit=translations["unit_joint_spot_plural"],
     )
 
     assert drilldown_subtitle(
@@ -498,16 +678,17 @@ def test_selected_station_context_lists_at_most_five_station_identities(language
         identities[:5],
         12,
         analysis_id="RX_COMP",
-        is_compare=True,
         is_sequential=False,
         translations=translations,
     )
     assert five_station_context == translations[
         "sub_results_selected_station_named"
     ].format(
-        selected_count=5,
-        station_type="TX",
-        stations=", ".join(identities[:5]),
+        selection_label=selected_station_label(
+            identities[:5],
+            analysis_id="RX_COMP",
+            translations=translations,
+        ),
         evidence_count=12,
         evidence_unit=translations["unit_joint_spot_plural"],
     )
@@ -516,18 +697,44 @@ def test_selected_station_context_lists_at_most_five_station_identities(language
         identities,
         12,
         analysis_id="RX_COMP",
-        is_compare=True,
         is_sequential=False,
         translations=translations,
     )
     assert six_station_context == translations[
         "sub_results_selected_station_multi"
     ].format(
-        selected_count=6,
-        station_type="TX",
+        selection_label=selected_station_label(
+            identities,
+            analysis_id="RX_COMP",
+            translations=translations,
+        ),
         evidence_count=12,
         evidence_unit=translations["unit_joint_spot_plural"],
     )
+
+
+@pytest.mark.parametrize(
+    ("language", "analysis_id", "expected"),
+    (
+        ("en", "RX_COMP", "1,234 selected TX stations"),
+        ("en", "TX_COMP", "1,234 selected RX stations"),
+        ("de", "RX_COMP", "1.234 ausgewählte TX-Stationen"),
+        ("de", "TX_COMP", "1.234 ausgewählte RX-Stationen"),
+    ),
+)
+def test_selected_station_label_localizes_large_selection_count(
+    language,
+    analysis_id,
+    expected,
+):
+    """Localize a count-only label without listing the selected identities."""
+    identities = (f"STATION-{index}" for index in range(1_234))
+
+    assert selected_station_label(
+        identities,
+        analysis_id=analysis_id,
+        translations=T[language],
+    ) == expected
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -649,6 +856,23 @@ def test_result_html_uses_semantic_heading_levels():
     )
 
 
+def test_segment_statistics_use_scope_data_markup_and_escape_each_line():
+    """Reuse scope typography without trusting dynamic statistic-line HTML."""
+    station_line = "Stations <n=2> & Target"
+    observation_line = 'Spots "n=4" <script>'
+    markup = segment_statistics_html(
+        [station_line, observation_line, ""]
+    )
+
+    assert "result-segment-statistics" in markup
+    assert markup.count("result-scope-context-data") == 2
+    assert station_line not in markup
+    assert observation_line not in markup
+    assert "Stations &lt;n=2&gt; &amp; Target" in markup
+    assert "Spots &quot;n=4&quot; &lt;script&gt;" in markup
+    assert markup.index("Stations") < markup.index("Spots")
+
+
 def test_dynamic_result_values_are_escaped_at_the_html_boundary():
     """Treat callsigns, figure titles, scope, and station identities as text."""
     callsign = "<call&sign>"
@@ -701,7 +925,6 @@ def test_dynamic_result_values_are_escaped_at_the_html_boundary():
         [station_identity],
         1,
         analysis_id="RX_COMP",
-        is_compare=True,
         is_sequential=False,
         translations=T["en"],
     )
@@ -731,6 +954,224 @@ def test_result_translation_keys_have_english_german_placeholder_parity():
         assert isinstance(T["en"][key], str)
         assert isinstance(T["de"][key], str)
         assert _format_fields(T["en"][key]) == _format_fields(T["de"][key]), key
+
+
+def test_success_presentation_keys_have_bilingual_placeholder_parity():
+    """Keep every redesigned Success label available to UI and export renderers."""
+    assert EXPECTED_SUCCESS_PRESENTATION_KEYS <= set(T["en"])
+    assert EXPECTED_SUCCESS_PRESENTATION_KEYS <= set(T["de"])
+    for key in sorted(EXPECTED_SUCCESS_PRESENTATION_KEYS):
+        assert isinstance(T["en"][key], str)
+        assert isinstance(T["de"][key], str)
+        assert T["en"][key].strip()
+        assert T["de"][key].strip()
+        assert _format_fields(T["en"][key]) == _format_fields(T["de"][key]), key
+    assert _format_fields(T["en"]["fig_success_utc_dates_folded"]) == {"count"}
+    assert _format_fields(T["de"]["fig_success_utc_dates_folded"]) == {"count"}
+    assert _format_fields(T["en"]["fig_success_bin_width"]) == {"width_km"}
+    assert _format_fields(T["de"]["fig_success_bin_width"]) == {"width_km"}
+    assert _format_fields(
+        T["en"]["fig_success_snr_chronological_subtitle_rx"]
+    ) == {
+        "time_bin"
+    }
+    assert _format_fields(
+        T["de"]["fig_success_snr_chronological_subtitle_rx"]
+    ) == {
+        "time_bin"
+    }
+    selected_title_fields = {"station", "locator"}
+    for language in ("en", "de"):
+        assert _format_fields(
+            T[language]["fig_success_selected_station_snr_title_rx"]
+        ) == selected_title_fields
+        assert _format_fields(
+            T[language]["fig_success_selected_station_temporal_title_tx"]
+        ) == selected_title_fields
+        assert _format_fields(
+            T[language]["fig_success_selected_snr_chronological_subtitle"]
+        ) == {"time_bin"}
+
+
+def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contract():
+    """Pin shared column headers and unit-explicit y axes for the lower figure."""
+    expected = {
+        "en": {
+            "fig_success_evidence_chronological_title": (
+                "Evidence over Time ({time_bin} bins)"
+            ),
+            "fig_success_evidence_utc_hour_title": (
+                "Evidence by UTC Hour (1 h bins)"
+            ),
+            "fig_success_station_support_folded_subtitle": (
+                "Average contributing station presences per represented "
+                "UTC date"
+            ),
+            "fig_success_opportunities_folded_subtitle": (
+                "Average confirmed opportunities per represented UTC date"
+            ),
+            "fig_success_station_votes_y_rx": "TX Stations",
+            "fig_success_station_votes_y_tx": "RX Stations",
+            "fig_success_station_support_folded_y_rx": "TX Stations",
+            "fig_success_station_support_folded_y_tx": "RX Stations",
+            "fig_success_opportunities_y": "Opportunities",
+            "fig_success_opportunities_folded_y": "Opportunities",
+            "fig_success_rate_legend": "Success Rate",
+        },
+        "de": {
+            "fig_success_evidence_chronological_title": (
+                "Evidenz im Zeitverlauf ({time_bin}-Bins)"
+            ),
+            "fig_success_evidence_utc_hour_title": (
+                "Evidenz nach UTC-Stunde (1-h-Bins)"
+            ),
+            "fig_success_station_support_folded_subtitle": (
+                "Durchschnittliche Stationspräsenzen pro "
+                "berücksichtigtem UTC-Tag"
+            ),
+            "fig_success_opportunities_folded_subtitle": (
+                "Durchschnittliche bestätigte Gelegenheiten pro "
+                "berücksichtigtem UTC-Tag"
+            ),
+            "fig_success_station_votes_y_rx": "TX-Stationen",
+            "fig_success_station_votes_y_tx": "RX-Stationen",
+            "fig_success_station_support_folded_y_rx": "TX-Stationen",
+            "fig_success_station_support_folded_y_tx": "RX-Stationen",
+            "fig_success_opportunities_y": "Gelegenheiten",
+            "fig_success_opportunities_folded_y": "Gelegenheiten",
+            "fig_success_rate_legend": "Success Rate",
+        },
+    }
+
+    for language, expected_labels in expected.items():
+        for key, expected_text in expected_labels.items():
+            assert T[language][key] == expected_text
+        assert T[language]["fig_success_snr_chronological_subtitle_rx"] == (
+            "Each TX station centered on its run median · {time_bin} bins"
+            if language == "en"
+            else "Jede TX-Station auf ihren Laufmedian zentriert · "
+            "{time_bin}-Bins"
+        )
+        assert T[language]["fig_success_snr_utc_hour_subtitle_tx"] == (
+            "Each RX station centered on its run median · 1 h bins"
+            if language == "en"
+            else "Jede RX-Station auf ihren Laufmedian zentriert · 1-h-Bins"
+        )
+
+    for language in ("en", "de"):
+        assert _format_fields(
+            T[language]["fig_success_evidence_chronological_title"]
+        ) == {"time_bin"}
+        for key in (
+            "fig_success_evidence_utc_hour_title",
+            "fig_success_station_votes_y_rx",
+            "fig_success_station_votes_y_tx",
+            "fig_success_station_support_folded_y_rx",
+            "fig_success_station_support_folded_y_tx",
+            "fig_success_opportunities_y",
+            "fig_success_opportunities_folded_y",
+            "fig_success_rate_legend",
+        ):
+            assert _format_fields(T[language][key]) == set()
+        for retired_key in (
+            "fig_success_station_evidence_chronological_title",
+            "fig_success_station_evidence_utc_hour_title",
+            "fig_success_station_evidence_subtitle",
+                "fig_success_opportunities_chronological_title",
+                "fig_success_opportunities_utc_hour_title",
+                "fig_success_opportunities_subtitle",
+                "fig_success_station_votes_folded_y_rx",
+            "fig_success_station_votes_folded_y_tx",
+        ):
+            assert retired_key not in T[language]
+
+
+@pytest.mark.parametrize(
+    ("language", "mode_key", "expected_target", "expected_counter"),
+    (
+        ("en", "rx", "Heard by Target", "Heard by others only"),
+        ("en", "tx", "Target heard", "Other signals heard only"),
+        ("de", "rx", "Vom Target gehört", "Nur von anderen gehört"),
+        ("de", "tx", "Target gehört", "Nur andere Signale gehört"),
+    ),
+)
+def test_success_summary_templates_use_directional_outcomes_and_compact_rate_labels(
+    language,
+    mode_key,
+    expected_target,
+    expected_counter,
+):
+    """Keep outcomes directional while the row headings distinguish the rates."""
+    labels = T[language]
+    station_summary = labels["fmt_results_success_station_summary"].format(
+        success_label=labels[f"success_{mode_key}_station_success"],
+        success_station_count="6",
+        counter_label=labels[f"success_{mode_key}_station_counter"],
+        counter_station_count="4",
+        station_balanced_rate=60.0,
+    )
+    opportunity_summary = labels[
+        "fmt_results_success_opportunity_summary"
+    ].format(
+        success_label=labels[f"success_{mode_key}_opportunity_success"],
+        success_count="55",
+        counter_label=labels[f"success_{mode_key}_opportunity_counter"],
+        counter_count="45",
+        observation_level_rate=55.0,
+    )
+
+    station_heading = "Stations" if language == "en" else "Stationen"
+    opportunity_heading = (
+        "Opportunities" if language == "en" else "Gelegenheiten"
+    )
+    assert station_summary == (
+        f"{station_heading}: {expected_target} 6 · {expected_counter} 4 · "
+        "Success Rate 60.0%"
+    )
+    assert opportunity_summary == (
+        f"{opportunity_heading}: {expected_target} 55 · "
+        f"{expected_counter} 45 · Success Rate 55.0%"
+    )
+
+
+@pytest.mark.parametrize(
+    ("language", "mode_key", "expected_title", "expected_axis"),
+    (
+        (
+            "en",
+            "rx",
+            "TX Stations Heard by Target at Least Once by Distance",
+            "Qualifying TX stations heard by Target at least once (%)",
+        ),
+        (
+            "en",
+            "tx",
+            "RX Stations Hearing the Target at Least Once by Distance",
+            "Qualifying RX stations that heard Target at least once (%)",
+        ),
+        (
+            "de",
+            "rx",
+            "Vom Target mindestens einmal gehörte TX-Stationen nach Entfernung",
+            "Qualifizierende TX-Stationen, vom Target mindestens einmal gehört (%)",
+        ),
+        (
+            "de",
+            "tx",
+            "RX-Stationen, die das Target mindestens einmal hörten, nach Entfernung",
+            "Qualifizierende RX-Stationen, die das Target mindestens einmal hörten (%)",
+        ),
+    ),
+)
+def test_success_peer_reach_labels_match_station_status_terms(
+    language,
+    mode_key,
+    expected_title,
+    expected_axis,
+):
+    """Keep reach wording explicit about the at-least-once station rule."""
+    assert T[language][f"fig_success_reach_title_{mode_key}"] == expected_title
+    assert T[language][f"fig_success_reach_y_{mode_key}"] == expected_axis
 
 
 def test_map_and_deferred_inspector_share_one_progressive_flow_container():
@@ -871,8 +1312,10 @@ def test_scope_evidence_precedes_compare_and_success_figure_groups():
     opportunity_body = source[opportunity_start:opportunity_end]
     assert (
         opportunity_body.index("scope_summary_placeholder.markdown(")
-        < opportunity_body.index('"hdr_results_success_temporal"')
+        < opportunity_body.index('"hdr_results_success_evidence"')
     )
+    assert "segment_statistics_html(summary)" in opportunity_body
+    assert "text-align:center" not in opportunity_body
 
     inspector_body = source[opportunity_end:]
     compare_start = inspector_body.index("comparison_subtitle_key =")
@@ -881,6 +1324,8 @@ def test_scope_evidence_precedes_compare_and_success_figure_groups():
         compare_body.index("scope_summary_placeholder.markdown(")
         < compare_body.index('"hdr_results_comparison_evidence"')
     )
+    assert "segment_statistics_html(segment_summary)" in compare_body
+    assert "text-align:center" not in compare_body
     assert inspector_body.count('f"results_evidence_level_3_') == 1
     assert inspector_body.count('f"results_evidence_level_4_') == 1
     assert inspector_body.count('f"results_evidence_level_5_') == 1

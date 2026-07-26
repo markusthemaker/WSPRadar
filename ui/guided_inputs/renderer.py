@@ -9,7 +9,8 @@ import streamlit as st
 
 from config import DEMO_PROFILES
 from config.demo_profiles import prepare_demo_description_markdown
-from i18n import GUIDED_INPUTS, T
+from i18n import GUIDED_INPUTS
+from ui.analysis_submission_state import handoff_analysis_submission
 from ui.callbacks import reset_audit
 from ui.components.config_fields import (
     render_evidence_threshold_fields,
@@ -265,6 +266,11 @@ def _open_demo_node(node_id: str) -> None:
 def _open_classic_view() -> None:
     """Switch editors without touching the shared scientific configuration."""
     st.session_state.input_view = "classic"
+    if st.session_state.get("run_mode"):
+        handoff_analysis_submission(
+            st.session_state,
+            request_source="input_view_change",
+        )
 
 
 def _render_use_case_selector(t, guided_content):

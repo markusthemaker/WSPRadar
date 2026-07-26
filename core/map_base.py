@@ -4,7 +4,7 @@ Neutral Cartopy map scaffolding for WSPRadar map figures.
 This module draws only the shared geographic frame: projection, circular map
 boundary, land/ocean/coastlines, distance rings, azimuth spokes, compass labels,
 and pole markers. Data overlays, legends, colorbars, and footer metrics remain
-in plot_engine because their meaning differs between Compare and Absolute modes.
+in plot_engine because their meaning differs between Compare and Success modes.
 """
 
 from __future__ import annotations

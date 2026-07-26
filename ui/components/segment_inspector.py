@@ -49,7 +49,7 @@ from ui.inspector.evidence_data import (
 from ui.inspector.drilldown import (
     _build_drilldown_table,
     _load_station_rows_for_drilldown,
-    _unique_station_order,
+    opportunity_drilldown_display_table,
 )
 from ui.inspector.view_models import (
     build_compare_inspector_view_model,
@@ -58,24 +58,30 @@ from ui.inspector.view_models import (
     compare_scope_availability,
     filter_inspector_scope,
 )
-from ui.inspector.session_cache import INSPECTOR_CACHE_STATE_KEY, SessionInspectorCache
+from ui.inspector.session_cache import SessionInspectorCache
+from ui.result_state import INSPECTOR_CACHE_STATE_KEY
 from ui.plots.evidence_figures import (
     SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
     SELECTED_TEMPORAL_VIEW_UTC_HOUR,
-    _add_horizontal_grid,
     _segment_figure_export_recipe,
     _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
     _time_agg_options_for_span,
     render_segment_insight_export_figure,
     render_segment_temporal_evidence_export_figure,
+    render_segment_temporal_snr_export_figure,
     render_selected_evidence_export_figure,
 )
 from ui.plots.opportunity_figures import (
+    SUCCESS_DISTANCE_BINNING_VERSION,
+    SUCCESS_SNR_BASELINE_VERSION,
+    SUCCESS_SNR_REPRESENTATION_ACTUAL,
+    SUCCESS_SNR_REPRESENTATION_STATION_RELATIVE,
+    SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
+    SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
     _as_utc_timestamp,
-    _opportunity_selected_recipe,
     _opportunity_segment_recipe,
-    _render_opportunity_selected_figure,
+    _opportunity_temporal_recipe,
     _render_opportunity_segment_figure,
 )
 from ui.result_hierarchy import (
@@ -87,7 +93,9 @@ from ui.result_hierarchy import (
     scope_context_html,
     scope_evidence_text,
     scope_summary_html,
+    segment_statistics_html,
     selected_station_context,
+    selected_station_label,
     station_scope_text,
     transition_prompt_html,
 )
@@ -102,8 +110,8 @@ from ui.result_guidance import (
     render_result_guidance_popover,
 )
 
-INSPECTOR_CACHE_VERSION = 19
-INSPECTOR_PNG_RENDER_VERSION = 15
+INSPECTOR_CACHE_VERSION = 28
+INSPECTOR_PNG_RENDER_VERSION = 22
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
 RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
@@ -121,6 +129,9 @@ RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY = "val_results_time_bin_absolute"
 RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY = (
     "val_results_segment_time_bin_compare"
 )
+RESULTS_SEGMENT_TIME_BIN_ABSOLUTE_STATE_KEY = (
+    "val_results_segment_time_bin_absolute"
+)
 RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY = (
     "val_results_station_temporal_view_compare"
 )
@@ -131,7 +142,6 @@ RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY = (
     "val_results_selected_stations_absolute"
 )
 SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS = (1, 2)
-SEGMENT_TEMPORAL_CONTROL_COLUMN_WIDTHS = (1.6, 4)
 STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (5, 4, 3)
 INSPECTOR_CACHE_NAMESPACE_LIMITS = {
     "options": INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES,
@@ -139,6 +149,19 @@ INSPECTOR_CACHE_NAMESPACE_LIMITS = {
     "selected": INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
     "png": INSPECTOR_CACHE_PNG_MAX_ENTRIES,
 }
+
+
+def _validate_inspector_analysis_mode(*, analysis_kind, is_compare):
+    """Return whether the inspector mode is Success and reject retired modes."""
+    if analysis_kind == "opportunity" and not is_compare:
+        return True
+    if analysis_kind == "comparison" and is_compare:
+        return False
+    raise ValueError(
+        "Segment Inspector mode must be Success "
+        "(analysis_kind='opportunity', is_compare=False) or Compare "
+        "(analysis_kind='comparison', is_compare=True)."
+    )
 
 
 def _time_bin_persistent_state_key(is_compare):
@@ -247,7 +270,7 @@ def _render_stretched_time_bin_control(
     return st.radio(label, options, **radio_kwargs)
 
 
-def _render_labeled_segment_time_bin_control(
+def _render_prompted_segment_time_bin_control(
     label,
     options,
     widget_key,
@@ -255,21 +278,18 @@ def _render_labeled_segment_time_bin_control(
     on_change=None,
     on_change_args=(),
 ):
-    """Render the segment aggregation label immediately before its selector."""
-    label_column, selector_column = st.columns(
-        SEGMENT_TEMPORAL_CONTROL_COLUMN_WIDTHS,
-        vertical_alignment="center",
+    """Render an instruction prompt above a full-width segment-bin selector."""
+    st.markdown(
+        transition_prompt_html(label),
+        unsafe_allow_html=True,
     )
-    with label_column:
-        st.markdown(f"**{label}**")
-    with selector_column:
-        return _render_stretched_time_bin_control(
-            label,
-            options,
-            widget_key,
-            on_change=on_change,
-            on_change_args=on_change_args,
-        )
+    return _render_stretched_time_bin_control(
+        label,
+        options,
+        widget_key,
+        on_change=on_change,
+        on_change_args=on_change_args,
+    )
 
 
 def _segment_temporal_figure_title(title, analysis_id, selected_segment, t):
@@ -293,15 +313,221 @@ def _segment_temporal_figure_title(title, analysis_id, selected_segment, t):
     )
 
 
+def _success_figure_labels(translations, analysis_id):
+    """Return localized labels for the pure Success evidence recipes."""
+    is_tx = str(analysis_id).upper().startswith("TX")
+    mode_suffix = "tx" if is_tx else "rx"
+    return {
+        "reach_title": translations[
+            f"fig_success_reach_title_{mode_suffix}"
+        ],
+        "reach_y": translations[
+            f"fig_success_reach_y_{mode_suffix}"
+        ],
+        "consistency_title": translations[
+            f"fig_success_consistency_title_{mode_suffix}"
+        ],
+        "snr_distance_title": translations[
+            f"fig_success_snr_distance_title_{mode_suffix}"
+        ],
+        "distance_x": translations["fig_success_distance_x"],
+        "rate_y": translations["fig_success_rate_y"],
+        "snr_y": translations["fig_success_snr_y"],
+        "confirmed_opportunities": translations[
+            "fig_success_confirmed_opportunities"
+        ],
+        "qualifying_stations": translations[
+            "fig_success_qualifying_stations"
+        ],
+        "target_stations": translations[
+            f"map_success_{mode_suffix}_station_target"
+        ],
+        "successful_snr_stations": translations[
+            "fig_success_successful_snr_stations"
+        ],
+        "station_balanced": translations["fig_success_station_balanced"],
+        "observation_level": translations[
+            "fig_success_observation_level"
+        ],
+        "target_evidence": translations[
+            f"success_{mode_suffix}_opportunity_success"
+        ],
+        "counter_evidence": translations[
+            f"success_{mode_suffix}_opportunity_counter"
+        ],
+        "median": translations["fig_success_median"],
+        "iqr": translations["fig_success_iqr"],
+        "two_station_range": translations[
+            "fig_success_two_station_range"
+        ],
+        "support": translations["fig_success_support"],
+        "support_title": translations["fig_success_support_title"],
+        "bin_width": translations["fig_success_bin_width"],
+        "locator_precision_note": translations[
+            "fig_success_locator_precision_note"
+        ],
+        "thousands_separator": translations[
+            "fmt_results_thousands_separator"
+        ],
+        "snr_chronological_title": translations[
+            f"fig_success_snr_chronological_title_{mode_suffix}"
+        ],
+        "snr_chronological_subtitle": translations[
+            f"fig_success_snr_chronological_subtitle_{mode_suffix}"
+        ],
+        "snr_utc_hour_title": translations[
+            f"fig_success_snr_utc_hour_title_{mode_suffix}"
+        ],
+        "snr_utc_hour_subtitle": translations[
+            f"fig_success_snr_utc_hour_subtitle_{mode_suffix}"
+        ],
+        "evidence_chronological_title": translations[
+            "fig_success_evidence_chronological_title"
+        ],
+        "evidence_utc_hour_title": translations[
+            "fig_success_evidence_utc_hour_title"
+        ],
+        "station_support_folded_subtitle": translations[
+            "fig_success_station_support_folded_subtitle"
+        ],
+        "opportunity_folded_subtitle": translations[
+            "fig_success_opportunities_folded_subtitle"
+        ],
+        "station_vote_y": translations[
+            f"fig_success_station_votes_y_{mode_suffix}"
+        ],
+        "station_support_folded_y": translations[
+            f"fig_success_station_support_folded_y_{mode_suffix}"
+        ],
+        "opportunity_y": translations[
+            "fig_success_opportunities_y"
+        ],
+        "opportunity_folded_y": translations[
+            "fig_success_opportunities_folded_y"
+        ],
+        "rate_legend": translations["fig_success_rate_legend"],
+        "time_x": translations["fig_success_time_x"],
+        "utc_hour_x": translations["fig_success_utc_hour_x"],
+        "snr_anomaly_y": translations[
+            f"fig_success_snr_anomaly_y_{mode_suffix}"
+        ],
+        "snr_density": translations["fig_success_snr_density"],
+        "station_baseline": translations[
+            "fig_success_station_baseline"
+        ],
+        "bin_median_chronological": translations[
+            "fig_success_bin_median_chronological"
+        ],
+        "bin_median_folded": translations[
+            "fig_success_bin_median_folded"
+        ],
+        "snr_anomaly_unavailable": translations[
+            "fig_success_snr_anomaly_unavailable"
+        ],
+        "temporal_unavailable": translations[
+            "fig_success_temporal_unavailable"
+        ],
+        "utc_dates_folded": translations[
+            "fig_success_utc_dates_folded"
+        ],
+        "selected_snr_chronological_title": translations[
+            "fig_success_selected_snr_chronological_title"
+        ],
+        "selected_snr_chronological_subtitle": translations[
+            "fig_success_selected_snr_chronological_subtitle"
+        ],
+        "selected_snr_utc_hour_title": translations[
+            "fig_success_selected_snr_utc_hour_title"
+        ],
+        "selected_snr_utc_hour_subtitle": translations[
+            "fig_success_selected_snr_utc_hour_subtitle"
+        ],
+        "selected_snr_y": translations[
+            "fig_success_selected_temporal_snr_y"
+        ],
+        "selected_snr_density": translations[
+            "fig_success_selected_snr_density"
+        ],
+        "selected_bin_median_chronological": translations[
+            "fig_success_selected_bin_median"
+        ],
+        "selected_bin_median_folded": translations[
+            "fig_success_selected_folded_median"
+        ],
+        "selected_snr_unavailable": translations[
+            "fig_success_selected_snr_unavailable"
+        ],
+        "selected_station_support_folded_subtitle": translations[
+            "fig_success_selected_station_support_folded_subtitle"
+        ],
+    }
+
+
+def _success_temporal_figure_title(
+    callsign,
+    analysis_id,
+    translations,
+    *,
+    figure_kind,
+):
+    """Build one localized SNR or evidence Success temporal figure title."""
+    mode_suffix = (
+        "tx"
+        if str(analysis_id).upper().startswith("TX")
+        else "rx"
+    )
+    if figure_kind == "snr":
+        title_key = f"fig_success_temporal_snr_title_{mode_suffix}"
+    elif figure_kind == "evidence":
+        title_key = f"fig_success_temporal_title_{mode_suffix}"
+    else:
+        raise ValueError(
+            "Success temporal figure kind must be 'snr' or 'evidence'."
+        )
+    return translations[
+        title_key
+    ].format(
+        callsign=str(callsign).strip().upper(),
+    )
+
+
+def _selected_success_temporal_figure_title(
+    station,
+    locator,
+    analysis_id,
+    translations,
+    *,
+    figure_kind,
+):
+    """Build one localized shared-figure title for a selected Success station."""
+    mode_suffix = (
+        "tx"
+        if str(analysis_id).upper().startswith("TX")
+        else "rx"
+    )
+    if figure_kind == "snr":
+        title_key = (
+            f"fig_success_selected_station_snr_title_{mode_suffix}"
+        )
+    elif figure_kind == "evidence":
+        title_key = (
+            f"fig_success_selected_station_temporal_title_{mode_suffix}"
+        )
+    else:
+        raise ValueError(
+            "Selected Success figure kind must be 'snr' or 'evidence'."
+        )
+    return translations[title_key].format(
+        station=str(station).strip().upper(),
+        locator=str(locator).strip().upper(),
+    )
+
+
 def _folded_utc_hour_panel_title(t):
     """Return the complete localized title for the fixed one-hour folded panel."""
-    base_title = t.get(
-        "fig_segment_utc_hour_delta",
-        "\u0394 SNR by UTC Hour",
-    )
     return t.get(
         "fig_segment_utc_hour_title",
-        f"{base_title} (1 h bins)",
+        "\u0394 SNR by UTC Hour (1 h bins)",
     )
 
 
@@ -450,6 +676,51 @@ def _station_selection_default_rows(
     return selected_rows, missing_identities
 
 
+def _success_single_station_selection_state(
+    station_table,
+    station_column,
+    locator_column,
+    configured_identities,
+):
+    """Resolve saved Success state to zero or one valid station identity.
+
+    Ordered historical selections retain their first identity that still exists
+    in the durable Station Insights universe. No table-order substitute is made
+    when none of the stored identities remains available. Legacy ``"all"``
+    state has no identity order, so it migrates to the universe's first row.
+    ``None`` preserves the established first-row display default.
+    """
+    normalized_identities = _normalize_station_identity_records(
+        configured_identities
+    )
+    if normalized_identities is None:
+        return None, False
+
+    available_identities = _station_identity_records_for_rows(
+        station_table,
+        range(len(station_table)),
+        station_column,
+        locator_column,
+    )
+    if normalized_identities == STATION_SELECTION_ALL:
+        canonical_selection = available_identities[:1]
+    else:
+        available_pairs = {
+            (identity["callsign"], identity["locator"])
+            for identity in available_identities
+        }
+        canonical_selection = next(
+            (
+                [identity]
+                for identity in normalized_identities
+                if (identity["callsign"], identity["locator"])
+                in available_pairs
+            ),
+            [],
+        )
+    return canonical_selection, configured_identities != canonical_selection
+
+
 def _station_identity_records_for_rows(
     station_table,
     selected_rows,
@@ -491,6 +762,8 @@ def _sync_selected_station_state(
     station_column,
     locator_column,
     selection_universe_table=None,
+    *,
+    compact_complete_selection=True,
 ):
     """Persist explicit identities or compact a complete selection to ``all``.
 
@@ -525,7 +798,8 @@ def _sync_selected_station_state(
     }
     persisted_selection = (
         STATION_SELECTION_ALL
-        if universe_identity_pairs
+        if compact_complete_selection
+        and universe_identity_pairs
         and selected_identity_pairs == universe_identity_pairs
         else selected_identities
     )
@@ -546,6 +820,8 @@ def _sync_selected_station_state_if_changed(
     station_column,
     locator_column,
     selection_universe_table=None,
+    *,
+    compact_complete_selection=True,
 ):
     """Persist visible rows only after a user-generated selection event.
 
@@ -563,6 +839,7 @@ def _sync_selected_station_state_if_changed(
         station_column,
         locator_column,
         selection_universe_table,
+        compact_complete_selection=compact_complete_selection,
     )
 
 
@@ -606,6 +883,40 @@ def _selection_requires_zero_hit_rows(
         if pd.isna(hit_count) or hit_count <= 0:
             return True
     return False
+
+
+def _opportunity_export_station_rows(
+    display_station_table,
+    export_station_table,
+    *,
+    display_station_column,
+    display_locator_column,
+    export_station_column,
+    export_locator_column,
+):
+    """Return canonical export rows matching visible Station Insights rows."""
+    if export_station_table is None:
+        return pd.DataFrame()
+    if display_station_table is None or display_station_table.empty:
+        return export_station_table.iloc[0:0].copy()
+    visible_identities = (
+        display_station_table[
+            [display_station_column, display_locator_column]
+        ]
+        .drop_duplicates()
+        .rename(
+            columns={
+                display_station_column: export_station_column,
+                display_locator_column: export_locator_column,
+            }
+        )
+    )
+    return export_station_table.merge(
+        visible_identities,
+        on=[export_station_column, export_locator_column],
+        how="inner",
+        sort=False,
+    )
 
 
 def _warn_missing_station_identities(missing_identities, t):
@@ -854,6 +1165,38 @@ def _canonical_specific_selection(selection, all_option, ordered_options):
     selected = set(selection)
     return tuple(option for option in ordered_options if option in selected)
 
+
+def _success_distance_scope_intervals(
+    inspector_source_df,
+    selected_ranges,
+    *,
+    max_peer_distance_km,
+):
+    """Resolve distance intervals before direction filtering for stable bins."""
+    if not selected_ranges:
+        return ((0.0, float(max_peer_distance_km)),)
+    interval_rows = (
+        inspector_source_df.loc[
+            inspector_source_df["dist_label"].isin(selected_ranges),
+            ["dist_label", "r_min", "r_max"],
+        ]
+        .drop_duplicates(subset=["dist_label"])
+        .sort_values(["r_min", "r_max"], kind="stable")
+    )
+    intervals = tuple(
+        (
+            float(distance_row.r_min),
+            float(distance_row.r_max),
+        )
+        for distance_row in interval_rows.itertuples(index=False)
+    )
+    if len(intervals) != len(selected_ranges):
+        raise ValueError(
+            "Every selected Success distance range requires stable bounds."
+        )
+    return intervals
+
+
 def _selection_summary(selection, all_option, item_kind, lang):
     """Build a compact scope label without losing single-selection detail."""
     if not selection:
@@ -868,10 +1211,6 @@ def _selection_summary(selection, all_option, item_kind, lang):
     return f"{len(selection)} {noun}"
 
 
-
-def _is_median_display_column(column_name):
-    text = str(column_name).lower()
-    return "median" in text or "micro-med" in text
 
 def _format_metric_or_none(value, decimals=0):
     """Format SNR-like display values, preserving None markers."""
@@ -955,6 +1294,87 @@ def _segment_summary_lines(
     ]
 
 
+def _format_localized_integer(count, translations):
+    """Format one evidence count with the active presentation separator."""
+    formatted = f"{int(count):,}"
+    separator = str(
+        translations.get("fmt_results_thousands_separator", ",")
+    )
+    return formatted if separator == "," else formatted.replace(",", separator)
+
+
+def _format_localized_decimal(value, translations, *, decimals=1):
+    """Format one finite display value without changing its stored precision."""
+    numeric_value = float(value)
+    if not np.isfinite(numeric_value):
+        return "—"
+    formatted = f"{numeric_value:.{int(decimals)}f}".replace("-", "−")
+    if translations.get("fmt_results_thousands_separator") == ".":
+        formatted = formatted.replace(".", ",")
+    return formatted
+
+
+def _selected_success_context_line(recipe, translations):
+    """Format the one-line complete-run context for one selected Success path."""
+    summary = dict((recipe or {}).get("selected_station_summary") or {})
+    confirmed_opportunities = int(
+        summary.get("confirmed_opportunities", 0)
+    )
+    opportunity_unit = translations[
+        "unit_confirmed_opportunity_singular"
+        if confirmed_opportunities == 1
+        else "unit_confirmed_opportunity_plural"
+    ]
+    distance_km = summary.get("distance_km", np.nan)
+    distance_text = (
+        _format_localized_integer(round(float(distance_km)), translations)
+        if pd.notna(distance_km) and np.isfinite(float(distance_km))
+        else "—"
+    )
+    azimuth_degrees = summary.get("azimuth_degrees", np.nan)
+    azimuth_text = _format_localized_decimal(
+        azimuth_degrees,
+        translations,
+        decimals=0,
+    )
+    direction = str(summary.get("direction", "")).strip().upper()
+    localized_east = translations.get(
+        "abbr_compass_east",
+        "E",
+    )
+    localized_direction = direction.replace("E", localized_east)
+    successful_snr_median_db = summary.get(
+        "successful_snr_median_db",
+        np.nan,
+    )
+    median_snr_text = (
+        f"{_format_localized_decimal(
+            successful_snr_median_db,
+            translations,
+        )} dB"
+        if pd.notna(successful_snr_median_db)
+        and np.isfinite(float(successful_snr_median_db))
+        else "—"
+    )
+    return translations["fmt_success_selected_context"].format(
+        station=str(summary.get("peer_sign", "")).strip().upper(),
+        locator=str(summary.get("peer_grid", "")).strip().upper(),
+        distance_km=distance_text,
+        azimuth_degrees=azimuth_text,
+        direction=localized_direction,
+        confirmed_opportunities=_format_localized_integer(
+            confirmed_opportunities,
+            translations,
+        ),
+        opportunity_unit=opportunity_unit,
+        success_rate=_format_localized_decimal(
+            summary.get("success_rate_pct", np.nan),
+            translations,
+        ),
+        median_snr=median_snr_text,
+    )
+
+
 def _format_summary_count(count):
     """Format an integer summary count with an apostrophe thousands separator."""
     return f"{int(count):,}".replace(",", "'")
@@ -988,22 +1408,6 @@ def _compare_metric_distribution_summary(
     )
 
 
-def _metric_median_summary(values, is_compare, prefix=""):
-    """Return a compact median summary without inferential interval claims."""
-    numeric_values = pd.to_numeric(
-        pd.Series(values),
-        errors="coerce",
-    ).dropna()
-    if numeric_values.empty:
-        return None
-
-    median = float(numeric_values.median())
-    formatted_median = f"{median:+.1f}" if is_compare else f"{median:.1f}"
-    metric_name = "\u0394 SNR" if is_compare else "SNR"
-    prefix_text = f"{prefix} | " if prefix else ""
-    return f"{prefix_text}median {metric_name} {formatted_median} dB"
-
-
 def _supports_dataframe_selection_default():
     """Return True when the installed Streamlit version can preselect dataframe rows."""
     try:
@@ -1020,73 +1424,49 @@ def _snr_column_config(df):
     return config
 
 
-def _evidence_labels(is_compare, translations):
-    """Return localized UI labels for the selected-station evidence plots."""
+def _evidence_labels(translations):
+    """Return localized Compare labels for selected-station evidence plots."""
     if st.session_state.get("lang") == "de":
-        if is_compare:
-            return {
-                "dist_title": "\u0394 SNR Verteilung",
-                "time_title": "\u0394 SNR ueber Zeit",
-                "y_label": "\u0394 SNR (dB)",
-                "x_label": "Datum/Uhrzeit (UTC)",
-                "aggregate": "Selected Stations",
-                "median_label": "Median",
-                "bin_median_label": translations.get(
-                    "fig_temporal_bin_median",
-                    "Lokaler Median",
-                ),
-                "pooled_median_label": "Median",
-                "mean_label": "Mittelwert",
-                "pooled_mean_label": "Mittelwert",
-                "count_label": "Anzahl Joint Spots",
-                "density_label": "Relative Joint-Spot-Dichte (% des Panelmaximums)",
-                "median_focus_axis_label": (
-                    "\u0394 SNR (dB \u00b7 nichtlinear um Median zentriert)"
-                ),
-            }
         return {
-            "dist_title": "Normiertes SNR Verteilung",
-            "time_title": "Normiertes SNR ueber Zeit",
-            "y_label": "Normiertes SNR (dB @ 30 dBm)",
-            "x_label": "Datum/Uhrzeit (UTC)",
-            "aggregate": "Selected Stations",
-            "median_label": "Median",
-            "pooled_median_label": "Gepoolter Median",
-            "mean_label": "Arithmetisches Mittel",
-            "pooled_mean_label": "Gepooltes arithmetisches Mittel",
-        }
-
-    if is_compare:
-        return {
-            "dist_title": "\u0394 SNR Distribution",
-            "time_title": "\u0394 SNR over Time",
+            "dist_title": "\u0394 SNR Verteilung",
+            "time_title": "\u0394 SNR ueber Zeit",
             "y_label": "\u0394 SNR (dB)",
-            "x_label": "Date/Time (UTC)",
+            "x_label": "Datum/Uhrzeit (UTC)",
             "aggregate": "Selected Stations",
             "median_label": "Median",
             "bin_median_label": translations.get(
                 "fig_temporal_bin_median",
-                "Bin median",
+                "Lokaler Median",
             ),
             "pooled_median_label": "Median",
-            "mean_label": "Mean",
-            "pooled_mean_label": "Mean",
-            "count_label": "Joint spot count",
-            "density_label": "Relative joint-spot density (% of panel maximum)",
+            "mean_label": "Arithmetisches Mittel",
+            "pooled_mean_label": "Mittelwert",
+            "count_label": "Anzahl Joint Spots",
+            "density_label": "Relative Joint-Spot-Dichte (% des Panelmaximums)",
             "median_focus_axis_label": (
-                "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
+                "\u0394 SNR (dB \u00b7 nichtlinear um Median zentriert)"
             ),
         }
+
     return {
-        "dist_title": "Normalized SNR Distribution",
-        "time_title": "Normalized SNR over Time",
-        "y_label": "Normalized SNR (dB @ 30 dBm)",
+        "dist_title": "\u0394 SNR Distribution",
+        "time_title": "\u0394 SNR over Time",
+        "y_label": "\u0394 SNR (dB)",
         "x_label": "Date/Time (UTC)",
         "aggregate": "Selected Stations",
         "median_label": "Median",
-        "pooled_median_label": "Pooled median",
-        "mean_label": "Arithmetic mean",
-        "pooled_mean_label": "Pooled arithmetic mean",
+        "bin_median_label": translations.get(
+            "fig_temporal_bin_median",
+            "Bin median",
+        ),
+        "pooled_median_label": "Median",
+        "mean_label": "Mean",
+        "pooled_mean_label": "Mean",
+        "count_label": "Joint spot count",
+        "density_label": "Relative joint-spot density (% of panel maximum)",
+        "median_focus_axis_label": (
+            "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
+        ),
     }
 
 
@@ -1126,6 +1506,16 @@ def _render_drilldown_dataframe(
     """Render selected drill-down rows with local filters and return the displayed dataframe."""
     if drill_df is None or drill_df.empty:
         return pd.DataFrame()
+    canonical_drill_df = drill_df.copy()
+    display_drill_df = (
+        drill_df.copy()
+        if is_compare
+        else opportunity_drilldown_display_table(
+            drill_df,
+            t,
+            analysis_id,
+        )
+    )
 
     drilldown_title = t.get("hdr_results_drilldown", "Drill-Down Data")
     st.markdown(
@@ -1175,15 +1565,15 @@ def _render_drilldown_dataframe(
             st.markdown("**Filter column(s):**")
             d_filter_cols = st.multiselect(
                 "Select Columns",
-                drill_df.columns,
+                display_drill_df.columns,
                 label_visibility="collapsed",
                 key=f"d_flt_{analysis_id}_{run_id}_{scope_token}"
             )
 
             for col in d_filter_cols:
-                if pd.api.types.is_numeric_dtype(drill_df[col]):
-                    min_val = float(drill_df[col].min())
-                    max_val = float(drill_df[col].max())
+                if pd.api.types.is_numeric_dtype(display_drill_df[col]):
+                    min_val = float(display_drill_df[col].min())
+                    max_val = float(display_drill_df[col].max())
                     if min_val < max_val:
                         step = 1.0 if pd.api.types.is_integer_dtype(drill_df[col]) else 0.1
                         sel_range = st.slider(
@@ -1194,9 +1584,19 @@ def _render_drilldown_dataframe(
                             step=step,
                             key=f"d_sld_{col}_{analysis_id}_{run_id}_{scope_token}"
                         )
-                        drill_df = drill_df[(drill_df[col] >= sel_range[0]) & (drill_df[col] <= sel_range[1])]
+                        display_drill_df = display_drill_df[
+                            display_drill_df[col].between(
+                                sel_range[0],
+                                sel_range[1],
+                            )
+                        ]
                 else:
-                    unique_vals = drill_df[col].astype(str).dropna().unique()
+                    unique_vals = (
+                        display_drill_df[col]
+                        .astype(str)
+                        .dropna()
+                        .unique()
+                    )
                     sel_vals = st.multiselect(
                         f"{col}",
                         unique_vals,
@@ -1204,13 +1604,15 @@ def _render_drilldown_dataframe(
                         key=f"d_ms_{col}_{analysis_id}_{run_id}_{scope_token}"
                     )
                     if sel_vals:
-                        drill_df = drill_df[drill_df[col].astype(str).isin(sel_vals)]
+                        display_drill_df = display_drill_df[
+                            display_drill_df[col].astype(str).isin(sel_vals)
+                        ]
 
     _render_reference_correction_notice(t, is_compare)
     with _timed_span(timing_collector, "drilldown dataframe render"):
-        drill_display_df = _format_snr_display_columns(drill_df)
+        drill_display_df = _format_snr_display_columns(display_drill_df)
         st.dataframe(drill_display_df, width='stretch', hide_index=True)
-    return drill_df.copy()
+    return canonical_drill_df.loc[display_drill_df.index].copy()
 
 
 
@@ -1218,7 +1620,6 @@ def _render_drilldown_dataframe(
 def _render_selected_station_evidence(
     station_df,
     selected_identity_df,
-    is_compare,
     is_sequential,
     tx_ab_repeat_interval_minutes,
     tx_ab_target_start_minute,
@@ -1251,7 +1652,6 @@ def _render_selected_station_evidence(
             evidence_df = _build_evidence_points(
                 station_df,
                 identity_meta,
-                is_compare,
                 is_sequential,
                 tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
                 tx_ab_target_start_minute=tx_ab_target_start_minute,
@@ -1271,7 +1671,6 @@ def _render_selected_station_evidence(
                         identity_labels,
                         0,
                         analysis_id=analysis_id,
-                        is_compare=is_compare,
                         is_sequential=is_sequential,
                         translations=t,
                     ),
@@ -1288,7 +1687,7 @@ def _render_selected_station_evidence(
                     f"{analysis_id}_{run_id}_{scope_token}"
                 ),
                 analysis_id=analysis_id,
-                is_compare=is_compare,
+                is_compare=True,
                 is_sequential=is_sequential,
                 analysis_context=analysis_context,
             )
@@ -1304,7 +1703,7 @@ def _render_selected_station_evidence(
             )
             return None
 
-        labels = _evidence_labels(is_compare, t)
+        labels = _evidence_labels(t)
         if is_sequential:
             labels["count_label"] = t.get(
                 "fig_scheduled_pair_count",
@@ -1319,8 +1718,6 @@ def _render_selected_station_evidence(
         evidence_basis = (
             "scheduled pairs" if is_sequential
             else "joint spots"
-            if is_compare
-            else "spots"
         )
         evidence_title_base = "Ausgewaehlte Stations-Evidenz" if st.session_state.lang == "de" else "Selected Station Evidence"
         if selected_count == 1:
@@ -1337,7 +1734,6 @@ def _render_selected_station_evidence(
             evidence_title,
             labels,
             time_agg_default,
-            is_compare,
             is_sequential,
             folded_title=_folded_utc_hour_panel_title(t),
             folded_date_annotation=folded_date_template,
@@ -1391,7 +1787,6 @@ def _render_selected_station_evidence(
                 identity_labels,
                 evidence_count,
                 analysis_id=analysis_id,
-                is_compare=is_compare,
                 is_sequential=is_sequential,
                 translations=t,
             ),
@@ -1408,7 +1803,7 @@ def _render_selected_station_evidence(
             f"{analysis_id}_{run_id}_{scope_token}"
         ),
         analysis_id=analysis_id,
-        is_compare=is_compare,
+        is_compare=True,
         is_sequential=is_sequential,
         analysis_context=analysis_context,
     )
@@ -1417,9 +1812,9 @@ def _render_selected_station_evidence(
     time_agg_default = selected_bundle["time_agg_default"]
     agg_key = (
         f"evidence_time_agg_{analysis_id}_{run_id}_{scope_token}_"
-        f"{is_compare}_{is_sequential}"
+        f"{is_sequential}"
     )
-    persistent_time_bin_key = _time_bin_persistent_state_key(is_compare)
+    persistent_time_bin_key = _time_bin_persistent_state_key(True)
     _initialize_time_bin_widget_state(
         agg_key,
         persistent_time_bin_key,
@@ -1427,127 +1822,93 @@ def _render_selected_station_evidence(
         time_agg_default,
     )
 
-    temporal_view = SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
-    if is_compare:
-        temporal_view_options = (
-            SELECTED_TEMPORAL_VIEW_UTC_HOUR,
-            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-        )
-        temporal_view_labels = {
-            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL: t.get(
-                "opt_temporal_chronological",
-                "Chronological",
-            ),
-            SELECTED_TEMPORAL_VIEW_UTC_HOUR: t.get(
-                "opt_temporal_utc_hour",
-                "UTC-Hour",
-            ),
-        }
-        temporal_view_key = (
-            f"evidence_temporal_view_{analysis_id}_{run_id}_{scope_token}_"
-            f"{is_sequential}"
-        )
-        temporal_view = _initialize_choice_widget_state(
-            temporal_view_key,
-            RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-            temporal_view_options,
-            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-        )
-        view_control, detail_control = st.columns(
-            SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS,
-            vertical_alignment="center",
-        )
-        with view_control:
-            if hasattr(st, "segmented_control"):
-                temporal_view = st.segmented_control(
-                    t.get("lbl_selected_temporal_view", "Temporal view"),
+    temporal_view_options = (
+        SELECTED_TEMPORAL_VIEW_UTC_HOUR,
+        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+    )
+    temporal_view_labels = {
+        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL: t.get(
+            "opt_temporal_chronological",
+            "Chronological",
+        ),
+        SELECTED_TEMPORAL_VIEW_UTC_HOUR: t.get(
+            "opt_temporal_utc_hour",
+            "UTC-Hour",
+        ),
+    }
+    temporal_view_key = (
+        f"evidence_temporal_view_{analysis_id}_{run_id}_{scope_token}_"
+        f"{is_sequential}"
+    )
+    temporal_view = _initialize_choice_widget_state(
+        temporal_view_key,
+        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
+        temporal_view_options,
+        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+    )
+    view_control, detail_control = st.columns(
+        SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS,
+        vertical_alignment="center",
+    )
+    with view_control:
+        if hasattr(st, "segmented_control"):
+            temporal_view = st.segmented_control(
+                t.get("lbl_selected_temporal_view", "Temporal view"),
+                temporal_view_options,
+                required=True,
+                format_func=temporal_view_labels.__getitem__,
+                key=temporal_view_key,
+                label_visibility="collapsed",
+                width="stretch",
+                on_change=_sync_choice_widget_state,
+                args=(
+                    temporal_view_key,
+                    RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
                     temporal_view_options,
-                    required=True,
-                    format_func=temporal_view_labels.__getitem__,
-                    key=temporal_view_key,
-                    label_visibility="collapsed",
-                    width="stretch",
-                    on_change=_sync_choice_widget_state,
-                    args=(
-                        temporal_view_key,
-                        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-                        temporal_view_options,
-                        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-                    ),
-                )
-            else:
-                temporal_view = st.radio(
-                    t.get("lbl_selected_temporal_view", "Temporal view"),
+                    SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+                ),
+            )
+        else:
+            temporal_view = st.radio(
+                t.get("lbl_selected_temporal_view", "Temporal view"),
+                temporal_view_options,
+                format_func=temporal_view_labels.__getitem__,
+                horizontal=True,
+                key=temporal_view_key,
+                label_visibility="collapsed",
+                on_change=_sync_choice_widget_state,
+                args=(
+                    temporal_view_key,
+                    RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
                     temporal_view_options,
-                    format_func=temporal_view_labels.__getitem__,
-                    horizontal=True,
-                    key=temporal_view_key,
-                    label_visibility="collapsed",
-                    on_change=_sync_choice_widget_state,
-                    args=(
-                        temporal_view_key,
-                        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-                        temporal_view_options,
-                        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-                    ),
-                )
-        temporal_view = _sync_choice_widget_state(
-            temporal_view_key,
-            RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-            temporal_view_options,
-            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-        )
-        with detail_control:
-            if temporal_view == SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL:
-                _render_stretched_time_bin_control(
-                    t.get(
-                        "lbl_chronological_bin_size",
-                        "Chronological bin size",
-                    ),
-                    time_agg_options,
+                    SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+                ),
+            )
+    temporal_view = _sync_choice_widget_state(
+        temporal_view_key,
+        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
+        temporal_view_options,
+        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+    )
+    with detail_control:
+        if temporal_view == SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL:
+            _render_stretched_time_bin_control(
+                t.get(
+                    "lbl_chronological_bin_size",
+                    "Chronological bin size",
+                ),
+                time_agg_options,
+                agg_key,
+                on_change=_sync_time_bin_widget_state,
+                on_change_args=(
                     agg_key,
-                    on_change=_sync_time_bin_widget_state,
-                    on_change_args=(
-                        agg_key,
-                        persistent_time_bin_key,
-                        tuple(time_agg_options),
-                        time_agg_default,
-                    ),
-                )
-    else:
-        control_spacer, time_control, control_margin = st.columns([1, 2, 0.05])
-        with time_control:
-            if hasattr(st, "segmented_control"):
-                st.segmented_control(
-                    "Time aggregation",
-                    time_agg_options,
-                    key=agg_key,
-                    label_visibility="collapsed",
-                    on_change=_sync_time_bin_widget_state,
-                    args=(
-                        agg_key,
-                        persistent_time_bin_key,
-                        tuple(time_agg_options),
-                        time_agg_default,
-                    ),
-                )
-            else:
-                st.radio(
-                    "Time aggregation",
-                    time_agg_options,
-                    horizontal=True,
-                    key=agg_key,
-                    label_visibility="collapsed",
-                    on_change=_sync_time_bin_widget_state,
-                    args=(
-                        agg_key,
-                        persistent_time_bin_key,
-                        tuple(time_agg_options),
-                        time_agg_default,
-                    ),
-                )
+                    persistent_time_bin_key,
+                    tuple(time_agg_options),
+                    time_agg_default,
+                ),
+            )
 
-    if is_compare and temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR:
+    if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR:
         time_agg = "1h"
     else:
         time_agg = _sync_time_bin_widget_state(
@@ -1586,12 +1947,13 @@ def _render_segment_temporal_evidence(
     scope_token,
     cache_key,
     t,
+    is_compare,
     is_sequential,
     analysis_context,
     language,
     timing_collector=None,
 ):
-    """Render one segment-scoped Compare timeline with a saved bin selector."""
+    """Render one segment-scoped Compare or Success temporal evidence view."""
     if not temporal_bundle:
         return None
 
@@ -1603,8 +1965,12 @@ def _render_segment_temporal_evidence(
         evidence_child_header_html(
             temporal_evidence_title,
             t.get(
-                "sub_results_temporal_evidence",
-                "The same paired evidence shown chronologically and by UTC hour.",
+                (
+                    "sub_results_temporal_evidence"
+                    if is_compare
+                    else "sub_results_success_temporal"
+                ),
+                "",
             ),
         ),
         unsafe_allow_html=True,
@@ -1619,32 +1985,37 @@ def _render_segment_temporal_evidence(
             f"{analysis_id}_{run_id}_{scope_token}"
         ),
         analysis_id=analysis_id,
-        is_compare=True,
+        is_compare=is_compare,
         is_sequential=is_sequential,
         analysis_context=analysis_context,
     )
 
     time_bin_options = list(temporal_bundle["time_bin_options"])
     time_bin_default = temporal_bundle["time_bin_default"]
+    persistent_state_key = (
+        RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY
+        if is_compare
+        else RESULTS_SEGMENT_TIME_BIN_ABSOLUTE_STATE_KEY
+    )
     widget_key = f"segment_evidence_time_agg_{analysis_id}_{run_id}_{scope_token}"
     selected_time_bin = _initialize_time_bin_widget_state(
         widget_key,
-        RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        persistent_state_key,
         time_bin_options,
         time_bin_default,
     )
 
-    _render_labeled_segment_time_bin_control(
+    _render_prompted_segment_time_bin_control(
         t.get(
             "lbl_time_aggregation_bin_size",
-            "Time aggregation bin size:",
+            "Select time aggregation bin size",
         ),
         time_bin_options,
         widget_key,
         on_change=_sync_time_bin_widget_state,
         on_change_args=(
             widget_key,
-            RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+            persistent_state_key,
             tuple(time_bin_options),
             time_bin_default,
         ),
@@ -1652,19 +2023,33 @@ def _render_segment_temporal_evidence(
 
     selected_time_bin = _sync_time_bin_widget_state(
         widget_key,
-        RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        persistent_state_key,
         time_bin_options,
         time_bin_default,
     )
     temporal_recipe = dict(temporal_bundle["base_recipe"])
     temporal_recipe["time_bin"] = selected_time_bin
-    temporal_recipe["chronological_title"] = temporal_bundle[
-        "chronological_title_template"
-    ].format(time_bin=selected_time_bin)
+    if "chronological_title_template" in temporal_bundle:
+        temporal_recipe["chronological_title"] = temporal_bundle[
+            "chronological_title_template"
+        ].format(time_bin=selected_time_bin)
+    snr_export_recipe = None
+    if not is_compare:
+        snr_export_recipe = dict(temporal_recipe)
+        _render_cached_recipe(
+            snr_export_recipe,
+            run_id=run_id,
+            cache_key=cache_key
+            + ("segment temporal SNR deviation", selected_time_bin),
+            subject="segment temporal SNR deviation",
+            build_label="segment temporal SNR deviation figure build",
+            render_figure=render_segment_temporal_snr_export_figure,
+            timing_collector=timing_collector,
+        )
     _render_cached_recipe(
         temporal_recipe,
         run_id=run_id,
-        cache_key=cache_key + ("segment temporal", selected_time_bin),
+        cache_key=cache_key + ("segment temporal evidence", selected_time_bin),
         subject="segment temporal evidence",
         build_label="segment temporal evidence figure build",
         render_figure=render_segment_temporal_evidence_export_figure,
@@ -1672,6 +2057,7 @@ def _render_segment_temporal_evidence(
     )
     return {
         "export_recipe": temporal_recipe,
+        "snr_export_recipe": snr_export_recipe,
         "time_bin": selected_time_bin,
     }
 
@@ -1707,6 +2093,7 @@ def _render_opportunity_scope(
     selected_seg,
     selected_ranges,
     selected_directions,
+    distance_scope_intervals,
     range_summary,
     direction_summary,
     scope_token,
@@ -1721,17 +2108,24 @@ def _render_opportunity_scope(
     presentation_context,
     timing_collector=None,
 ):
-    """Render the opportunity-specific Absolute inspector and export state."""
+    """Render the opportunity-specific Success inspector and export state."""
     opportunity_terms = presentation_context.absolute_terms(
         "TX" if analysis_id.startswith("TX") else "RX"
     )
+    success_figure_labels = _success_figure_labels(t, analysis_id)
 
     segment_cache_key = (
         INSPECTOR_CACHE_VERSION,
         "opportunity",
+        SUCCESS_DISTANCE_BINNING_VERSION,
+        SUCCESS_SNR_BASELINE_VERSION,
         analysis_id,
         tuple(selected_ranges),
         tuple(selected_directions),
+        tuple(
+            (float(lower_km), float(upper_km))
+            for lower_km, upper_km in distance_scope_intervals
+        ),
         int(analysis_context.min_confirmed_opportunities_per_peer),
         str(analysis_start_t),
         str(analysis_end_t),
@@ -1798,16 +2192,58 @@ def _render_opportunity_scope(
                 presentation_context=presentation_context,
             )
 
-        segment_recipe = _opportunity_segment_recipe(
-            title,
-            selected_seg,
-            df_seg,
-            rows,
-            analysis_start_t,
-            analysis_end_t,
-            opportunity_terms,
-            minimum_trials=analysis_context.min_confirmed_opportunities_per_peer,
-        )
+        with _timed_span(
+            timing_collector,
+            "opportunity exact-distance evidence prep",
+        ):
+            segment_recipe = _opportunity_segment_recipe(
+                title,
+                selected_seg,
+                opportunity_view_model.confirmed_rows,
+                opportunity_view_model.evidence_rows,
+                analysis_start_t,
+                analysis_end_t,
+                opportunity_terms,
+                minimum_trials=analysis_context.min_confirmed_opportunities_per_peer,
+                figure_labels=success_figure_labels,
+                distance_scope_intervals=distance_scope_intervals,
+            )
+        with _timed_span(
+            timing_collector,
+            "opportunity temporal evidence prep",
+        ):
+            temporal_base_recipe = _opportunity_temporal_recipe(
+                _success_temporal_figure_title(
+                    analysis_context.callsign,
+                    analysis_id,
+                    t,
+                    figure_kind="evidence",
+                ),
+                selected_seg,
+                opportunity_view_model.confirmed_rows,
+                opportunity_view_model.evidence_rows,
+                analysis_start_t,
+                analysis_end_t,
+                opportunity_terms,
+                figure_labels=success_figure_labels,
+                snr_title=_success_temporal_figure_title(
+                    analysis_context.callsign,
+                    analysis_id,
+                    t,
+                    figure_kind="snr",
+                ),
+                population_mode=SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
+                snr_representation=(
+                    SUCCESS_SNR_REPRESENTATION_STATION_RELATIVE
+                ),
+            )
+        temporal_bundle = {
+            "base_recipe": temporal_base_recipe,
+            "time_bin_options": tuple(
+                temporal_base_recipe["time_bin_options"]
+            ),
+            "time_bin_default": temporal_base_recipe["time_bin_default"],
+        }
         opportunity_display_model = {
             "summary_lines": list(opportunity_view_model.summary_lines),
             "confirmed_station_count": int(
@@ -1817,15 +2253,25 @@ def _render_opportunity_scope(
                 opportunity_view_model.confirmed_opportunity_count
             ),
             "full_station_table": opportunity_view_model.full_station_table,
+            "export_station_table": (
+                opportunity_view_model.export_station_table
+            ),
             "station_column": opportunity_view_model.station_column,
             "locator_column": opportunity_view_model.locator_column,
             "distance_column": opportunity_view_model.distance_column,
             "azimuth_column": opportunity_view_model.azimuth_column,
             "hit_column": opportunity_view_model.hit_column,
+            "export_station_column": (
+                opportunity_view_model.export_station_column
+            ),
+            "export_locator_column": (
+                opportunity_view_model.export_locator_column
+            ),
         }
         segment_bundle = {
             "display_model": opportunity_display_model,
             "figure_recipe": segment_recipe,
+            "temporal_bundle": temporal_bundle,
             "analysis_start_t": analysis_start_t,
             "analysis_end_t": analysis_end_t,
         }
@@ -1838,6 +2284,7 @@ def _render_opportunity_scope(
 
     opportunity_display_model = segment_bundle["display_model"]
     segment_recipe = segment_bundle["figure_recipe"]
+    temporal_bundle = segment_bundle["temporal_bundle"]
     analysis_start_t = segment_bundle["analysis_start_t"]
     analysis_end_t = segment_bundle["analysis_end_t"]
 
@@ -1857,19 +2304,17 @@ def _render_opportunity_scope(
         unsafe_allow_html=True,
     )
 
+    segment_temporal_export = None
     with level_two_container:
-        success_evidence_title = t.get(
-            "hdr_results_success_temporal",
-            "Success & Temporal Evidence",
+        st.markdown(
+            segment_statistics_html(summary),
+            unsafe_allow_html=True,
         )
+        success_evidence_title = t["hdr_results_success_evidence"]
         st.markdown(
             evidence_child_header_html(
                 success_evidence_title,
-                t.get(
-                    "sub_results_success_temporal",
-                    "Evidence depth, station-balanced and observation-level "
-                    "Success Rate, and time pattern for the active scope.",
-                ),
+                t["sub_results_success_evidence"],
             ),
             unsafe_allow_html=True,
         )
@@ -1887,11 +2332,6 @@ def _render_opportunity_scope(
             is_sequential=False,
             analysis_context=analysis_context,
         )
-        st.markdown(
-            "<div style='text-align:center; color:white; font-size:0.95rem; "
-            f"margin-top:-0.25rem; margin-bottom:1.0rem;'>{'<br>'.join(summary)}</div>",
-            unsafe_allow_html=True,
-        )
 
         _render_cached_recipe(
             segment_recipe,
@@ -1900,6 +2340,19 @@ def _render_opportunity_scope(
             subject="opportunity segment",
             build_label="opportunity segment figure build",
             render_figure=_render_opportunity_segment_figure,
+            timing_collector=timing_collector,
+        )
+        segment_temporal_export = _render_segment_temporal_evidence(
+            temporal_bundle,
+            analysis_id=analysis_id,
+            run_id=run_id,
+            scope_token=scope_token,
+            cache_key=segment_cache_key,
+            t=t,
+            is_compare=False,
+            is_sequential=False,
+            analysis_context=analysis_context,
+            language=presentation_context.language,
             timing_collector=timing_collector,
         )
 
@@ -1945,9 +2398,9 @@ def _render_opportunity_scope(
             t.get("lbl_results_level_stations", "Contributing stations"),
             station_insights_title,
             t.get(
-                "sub_results_station_insights",
+                "sub_results_station_insights_success",
                 "Contributing {station_type} stations in the active scope. "
-                "Select one or more rows to inspect their evidence.",
+                "Select one row to inspect its evidence.",
             ).format(station_type=station_type),
             station_scope_text(
                 range_summary,
@@ -1980,14 +2433,14 @@ def _render_opportunity_scope(
         vertical_alignment="center",
     )
     with col_title:
-        sub_text = opportunity_terms["subtext"]
+        sub_text = opportunity_terms["presentation_subtext"]
         st.markdown(
             scope_context_html(sub_text.strip(" ()")),
             unsafe_allow_html=True,
         )
     with col_toggle:
         show_zero_hits = st.toggle(
-            t.get("lbl_show_zero_hits", "Show Zero-Target"),
+            opportunity_terms["show_counter"],
             key=zero_hits_key,
             on_change=_sync_boolean_widget_state,
             args=(zero_hits_key, RESULTS_SHOW_ZERO_TARGET_STATE_KEY),
@@ -2001,6 +2454,19 @@ def _render_opportunity_scope(
     if not show_zero_hits:
         disp_df = disp_df[disp_df[hit_col] > 0].reset_index(drop=True)
     selection_universe_df = disp_df.copy()
+    (
+        configured_station_identities,
+        should_persist_single_selection,
+    ) = _success_single_station_selection_state(
+        selection_universe_df,
+        station_col,
+        loc_col,
+        configured_station_identities,
+    )
+    if should_persist_single_selection:
+        st.session_state[
+            RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
+        ] = configured_station_identities
 
     with col_filter:
         with st.popover("Filter", icon=":material/filter_alt:", width="stretch"):
@@ -2032,7 +2498,7 @@ def _render_opportunity_scope(
     dataframe_kwargs = {
         "width": "stretch",
         "hide_index": True,
-        "selection_mode": "multi-row",
+        "selection_mode": "single-row",
         "on_select": partial(
             _mark_station_selection_changed,
             selection_changed_key,
@@ -2062,9 +2528,18 @@ def _render_opportunity_scope(
 
     selected_station_labels = []
     selected_evidence_recipe = None
+    selected_station_snr_evidence_recipe = None
+    selected_station_temporal_evidence_recipe = None
+    selected_station_label_text = None
+    selected_station_context_text = None
+    selected_evidence_figure_descriptions = {}
     selected_time_bin = None
     drilldown_selected_df = pd.DataFrame()
-    selected_rows = [row for row in (table_event.selection.rows or []) if 0 <= row < len(disp_df)]
+    selected_rows = [
+        row
+        for row in (table_event.selection.rows or [])
+        if 0 <= row < len(disp_df)
+    ][:1]
     _sync_selected_station_state_if_changed(
         selection_changed_key,
         RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY,
@@ -2073,6 +2548,7 @@ def _render_opportunity_scope(
         station_col,
         loc_col,
         selection_universe_df,
+        compact_complete_selection=False,
     )
 
     if selected_rows:
@@ -2093,15 +2569,89 @@ def _render_opportunity_scope(
                 columns=OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
             )
 
-        confirmed_opportunity_count = int(
-            pd.to_numeric(
-                selected_station_rows.get("hit", pd.Series(dtype=float)),
-                errors="coerce",
-            ).fillna(0).sum()
-            + pd.to_numeric(
-                selected_station_rows.get("miss", pd.Series(dtype=float)),
-                errors="coerce",
-            ).fillna(0).sum()
+        selection_label = selected_station_label(
+            selected_station_labels,
+            analysis_id=analysis_id,
+            translations=t,
+        )
+        selected_station = str(
+            selected_identity.iloc[0]["peer_sign"]
+        ).strip().upper()
+        selected_locator = str(
+            selected_identity.iloc[0]["peer_grid"]
+        ).strip().upper()
+        selected_peer_rows = df_seg.loc[
+            (df_seg["peer_sign"].astype(str).str.upper() == selected_station)
+            & (
+                df_seg["peer_grid"].astype(str).str.upper()
+                == selected_locator
+            )
+        ].copy()
+        selected_cache_key = (
+            INSPECTOR_CACHE_VERSION,
+            "opportunity",
+            "selected-success-temporal-v1",
+            SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+            SUCCESS_SNR_REPRESENTATION_ACTUAL,
+            analysis_id,
+            scope_token,
+            selected_station,
+            selected_locator,
+            str(analysis_start_t),
+            str(analysis_end_t),
+            presentation_context.language,
+            presentation_context.theme,
+        )
+        selected_base_recipe, selected_cache_hit = _inspector_cache_get(
+            run_id,
+            "selected",
+            selected_cache_key,
+            timing_collector,
+            item="opportunity selected temporal model",
+        )
+        if not selected_cache_hit:
+            with _timed_span(
+                timing_collector,
+                "opportunity selected temporal evidence prep",
+            ):
+                selected_base_recipe = _opportunity_temporal_recipe(
+                    _selected_success_temporal_figure_title(
+                        selected_station,
+                        selected_locator,
+                        analysis_id,
+                        t,
+                        figure_kind="evidence",
+                    ),
+                    selected_seg,
+                    selected_peer_rows,
+                    selected_station_rows,
+                    analysis_start_t,
+                    analysis_end_t,
+                    opportunity_terms,
+                    figure_labels=success_figure_labels,
+                    snr_title=_selected_success_temporal_figure_title(
+                        selected_station,
+                        selected_locator,
+                        analysis_id,
+                        t,
+                        figure_kind="snr",
+                    ),
+                    population_mode=(
+                        SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
+                    ),
+                    snr_representation=SUCCESS_SNR_REPRESENTATION_ACTUAL,
+                )
+            _inspector_cache_put(
+                run_id,
+                "selected",
+                selected_cache_key,
+                selected_base_recipe,
+            )
+
+        selected_station_label_text = selection_label
+        selected_station_context_text = _selected_success_context_line(
+            selected_base_recipe,
+            t,
         )
         level_four_container = st.container(
             key=(
@@ -2116,16 +2666,12 @@ def _render_opportunity_scope(
         level_four_container.markdown(
             evidence_level_header_html(
                 4,
-                t.get("lbl_results_level_selection", "Selected stations"),
-                selected_evidence_heading,
-                selected_station_context(
-                    selected_station_labels,
-                    confirmed_opportunity_count,
-                    analysis_id=analysis_id,
-                    is_compare=False,
-                    is_sequential=False,
-                    translations=t,
+                t.get(
+                    "lbl_results_level_selection_success",
+                    "Selected station",
                 ),
+                selected_evidence_heading,
+                selected_station_context_text,
             ),
             unsafe_allow_html=True,
         )
@@ -2143,14 +2689,11 @@ def _render_opportunity_scope(
                 is_compare=False,
                 is_sequential=False,
                 analysis_context=analysis_context,
+                selected_station_count=1,
             )
 
-        time_options, time_default = _time_agg_options_for_span(pd.DataFrame({
-            "plot_time": [
-                _as_utc_timestamp(analysis_start_t),
-                _as_utc_timestamp(analysis_end_t),
-            ],
-        }))
+        time_options = tuple(selected_base_recipe["time_bin_options"])
+        time_default = selected_base_recipe["time_bin_default"]
         selected_time_key = f"opp_time_agg_{analysis_id}_{run_id}_{scope_token}"
         persistent_time_bin_key = RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
         _initialize_time_bin_widget_state(
@@ -2160,8 +2703,8 @@ def _render_opportunity_scope(
             time_default,
         )
         with level_four_container:
-            _render_stretched_time_bin_control(
-                "Time aggregation",
+            _render_prompted_segment_time_bin_control(
+                t["lbl_selected_time_aggregation_bin_size"],
                 time_options,
                 selected_time_key,
                 on_change=_sync_time_bin_widget_state,
@@ -2178,58 +2721,52 @@ def _render_opportunity_scope(
             time_options,
             time_default,
         )
-        evidence_title = (
-            f"Selected Station Evidence: {selected_station_labels[0]}"
-            if len(selected_station_labels) == 1
-            else f"Selected Station Evidence: {len(selected_station_labels)} stations"
+        selected_station_temporal_evidence_recipe = dict(
+            selected_base_recipe
         )
-        selected_cache_key = (
-            INSPECTOR_CACHE_VERSION,
-            "opportunity",
-            analysis_id,
-            scope_token,
-            tuple(
-                selected_identity[["peer_sign", "peer_grid"]]
-                .astype(str)
-                .itertuples(index=False, name=None)
+        selected_station_temporal_evidence_recipe[
+            "time_bin"
+        ] = selected_time_bin
+        selected_station_snr_evidence_recipe = dict(
+            selected_station_temporal_evidence_recipe
+        )
+        selected_evidence_figure_descriptions = {
+            "figure_selected_station_snr_evidence.png": (
+                selected_base_recipe["snr_title"]
             ),
-            selected_time_bin,
-            str(analysis_start_t),
-            str(analysis_end_t),
-            presentation_context.language,
-            presentation_context.theme,
-        )
-        selected_evidence_recipe, selected_cache_hit = _inspector_cache_get(
-            run_id,
-            "selected",
-            selected_cache_key,
-            timing_collector,
-            item="opportunity selected model",
-        )
-        if not selected_cache_hit:
-            with _timed_span(timing_collector, "opportunity selected evidence prep"):
-                selected_evidence_recipe = _opportunity_selected_recipe(
-                    selected_station_rows,
-                    evidence_title,
-                    selected_time_bin,
-                    analysis_start_t,
-                    analysis_end_t,
-                    opportunity_terms,
-                )
-            _inspector_cache_put(
-                run_id,
-                "selected",
-                selected_cache_key,
-                selected_evidence_recipe,
-            )
+            "figure_selected_station_temporal_evidence.png": (
+                selected_base_recipe["evidence_title"]
+            ),
+        }
         with level_four_container:
             _render_cached_recipe(
-                selected_evidence_recipe,
+                selected_station_snr_evidence_recipe,
                 run_id=run_id,
-                cache_key=selected_cache_key,
-                subject="opportunity selected",
-                build_label="opportunity selected figure build",
-                render_figure=_render_opportunity_selected_figure,
+                cache_key=(
+                    *selected_cache_key,
+                    selected_time_bin,
+                    "snr-evidence",
+                ),
+                subject="opportunity selected SNR evidence",
+                build_label=(
+                    "opportunity selected SNR evidence figure build"
+                ),
+                render_figure=render_segment_temporal_snr_export_figure,
+                timing_collector=timing_collector,
+            )
+            _render_cached_recipe(
+                selected_station_temporal_evidence_recipe,
+                run_id=run_id,
+                cache_key=(
+                    *selected_cache_key,
+                    selected_time_bin,
+                    "temporal-evidence",
+                ),
+                subject="opportunity selected temporal evidence",
+                build_label=(
+                    "opportunity selected temporal evidence figure build"
+                ),
+                render_figure=render_segment_temporal_evidence_export_figure,
                 timing_collector=timing_collector,
             )
         level_four_container.markdown(
@@ -2243,10 +2780,19 @@ def _render_opportunity_scope(
         )
 
         with _timed_span(timing_collector, "drilldown table build"):
+            export_station_col = opportunity_display_model[
+                "export_station_column"
+            ]
+            selected_meta_export_df = selected_meta_df.rename(
+                columns={station_col: export_station_col}
+            )
+            selected_station_rows_export = selected_station_rows.rename(
+                columns={station_col: export_station_col}
+            )
             drill_df, info_msg = _build_drilldown_table(
                 parquet_path,
-                selected_meta_df,
-                station_col,
+                selected_meta_export_df,
+                export_station_col,
                 loc_col,
                 km_col,
                 az_col,
@@ -2254,11 +2800,10 @@ def _render_opportunity_scope(
                 False,
                 False,
                 False,
-                False,
                 analysis_context.callsign.upper(),
                 "",
                 t,
-                station_rows_df=selected_station_rows,
+                station_rows_df=selected_station_rows_export,
                 tx_ab_repeat_interval_minutes=(
                     analysis_context.tx_ab_repeat_interval_minutes
                 ),
@@ -2297,23 +2842,35 @@ def _render_opportunity_scope(
         level_three_container.markdown(
             transition_prompt_html(
                 t.get(
-                    "txt_results_transition_stations",
-                    "Select one or more stations to inspect their evidence",
+                    "txt_results_transition_stations_success",
+                    "↓ Select one station to inspect its evidence",
                 )
             ),
             unsafe_allow_html=True,
         )
 
-    full_meta_df = full_segment_disp_df[[station_col, loc_col, km_col, az_col]].copy()
+    export_station_col = opportunity_display_model["export_station_column"]
+    export_loc_col = opportunity_display_model["export_locator_column"]
+    export_station_table = opportunity_display_model["export_station_table"]
+    full_meta_df = export_station_table[
+        [export_station_col, export_loc_col, km_col, az_col]
+    ].copy()
+    filtered_export_station_table = _opportunity_export_station_rows(
+        disp_df,
+        export_station_table,
+        display_station_column=station_col,
+        display_locator_column=loc_col,
+        export_station_column=export_station_col,
+        export_locator_column=export_loc_col,
+    )
     all_drilldown_context = {
         "station_meta_df": full_meta_df,
-        "station_col": station_col,
-        "loc_col": loc_col,
+        "station_col": export_station_col,
+        "loc_col": export_loc_col,
         "km_col": km_col,
-        "az_col": az_col,
-        "analysis_id": analysis_id,
-        "is_compare": False,
-        "is_sequential": False,
+            "az_col": az_col,
+            "analysis_id": analysis_id,
+            "is_sequential": False,
         "show_non_joint": False,
         "is_local_median": False,
         "col_u_name": analysis_context.callsign.upper(),
@@ -2338,12 +2895,33 @@ def _render_opportunity_scope(
         show_non_joint=False,
         show_zero_target=show_zero_hits,
         evidence_time_bin=selected_time_bin,
+        segment_evidence_time_bin=(
+            segment_temporal_export or {}
+        ).get("time_bin"),
         selected_stations=selected_station_labels,
         segment_figure_recipe=segment_recipe,
+        segment_temporal_evidence_figure_recipe=(
+            segment_temporal_export or {}
+        ).get("export_recipe"),
+        segment_temporal_snr_deviation_figure_recipe=(
+            segment_temporal_export or {}
+        ).get("snr_export_recipe"),
         selected_evidence_figure_recipe=selected_evidence_recipe,
-        station_insights_df=disp_df,
+        selected_station_snr_evidence_figure_recipe=(
+            selected_station_snr_evidence_recipe
+        ),
+        selected_station_temporal_evidence_figure_recipe=(
+            selected_station_temporal_evidence_recipe
+        ),
+        station_insights_df=filtered_export_station_table,
         drilldown_selected_df=drilldown_selected_df,
         all_drilldown_context=all_drilldown_context,
+        selected_station_label=selected_station_label_text,
+        selected_station_context_label=selected_station_context_text,
+        selected_station_role=remote_station_type(analysis_id),
+        selected_evidence_figure_descriptions=(
+            selected_evidence_figure_descriptions
+        ),
     )
     st.markdown(
         f"<div style='font-size:11px; color:#ccc; margin-top:0.75rem; margin-bottom:1rem; font-family:monospace;'>{line1_str}</div>",
@@ -2359,16 +2937,15 @@ def render_segment_inspector(
     is_compare,
     is_sequential,
     enriched_df,
-    segs_df,
     parquet_path,
     line1_str,
     t,
     max_peer_distance_km,
     analysis_context,
     presentation_context,
+    analysis_kind,
     analysis_start_t=None,
     analysis_end_t=None,
-    analysis_kind="comparison",
     show_export_button=False,
     timing_collector=None,
     timing_label=None,
@@ -2382,7 +2959,6 @@ def render_segment_inspector(
             is_compare,
             is_sequential,
             enriched_df,
-            segs_df,
             parquet_path,
             line1_str,
             t,
@@ -2406,16 +2982,15 @@ def _render_segment_inspector_body(
     is_compare,
     is_sequential,
     enriched_df,
-    segs_df,
     parquet_path,
     line1_str,
     t,
     max_peer_distance_km,
     analysis_context,
     presentation_context,
+    analysis_kind,
     analysis_start_t=None,
     analysis_end_t=None,
-    analysis_kind="comparison",
     show_export_button=False,
     timing_collector=None,
 ):
@@ -2424,6 +2999,10 @@ def _render_segment_inspector_body(
     Allows drill-down into specific Azimuth/Distance chunks to show histograms and tabular data.
     Runs as an independent Streamlit fragment to prevent full-page reruns on interaction.
     """
+    is_opportunity = _validate_inspector_analysis_mode(
+        analysis_kind=analysis_kind,
+        is_compare=is_compare,
+    )
     run_id = st.session_state.get("run_id", 0)
     if not ARTIFACT_STORE.touch(parquet_path):
         log_performance_event(
@@ -2437,9 +3016,8 @@ def _render_segment_inspector_body(
             error_type="FileNotFoundError",
         )
     
-    # Extract inspectable distance segments from enriched_df, not only rendered heatmap segments.
-    # segs_df only contains segments with valid joint Delta-SNR heatmap data; enriched_df also
-    # contains non-joint evidence such as only target, only reference, or async-both rows.
+    # Inspect station rows because they also contain non-joint evidence such as
+    # target-only, reference-only, or async-both rows.
     options_cache_key = (
         INSPECTOR_CACHE_VERSION,
         analysis_id,
@@ -2606,6 +3184,15 @@ def _render_segment_inspector_body(
         str(COMPASS.index(value)) for value in selected_directions
     )
     scope_token = f"r{range_token}_d{direction_token}"
+    success_distance_scope_intervals = (
+        _success_distance_scope_intervals(
+            inspector_source_df,
+            selected_ranges,
+            max_peer_distance_km=max_peer_distance_km,
+        )
+        if is_opportunity
+        else ()
+    )
 
     # If inspectable options exist, process the selected Cartesian scope.
     if valid_distances and valid_dirs:
@@ -2640,7 +3227,7 @@ def _render_segment_inspector_body(
                 render_download_all_results(t)
             return
 
-        if analysis_kind == "opportunity":
+        if is_opportunity:
             _render_opportunity_scope(
                 analysis_id=analysis_id,
                 title=title,
@@ -2651,6 +3238,7 @@ def _render_segment_inspector_body(
                 selected_seg=selected_seg,
                 selected_ranges=selected_ranges if selected_ranges else (opt_full,),
                 selected_directions=selected_directions if selected_directions else (opt_all_dir,),
+                distance_scope_intervals=success_distance_scope_intervals,
                 range_summary=range_summary,
                 direction_summary=direction_summary,
                 scope_token=scope_token,
@@ -2667,20 +3255,13 @@ def _render_segment_inspector_body(
             )
             return
             
-        has_joint_rows, has_non_joint_rows = compare_scope_availability(
-            df_seg,
-            is_compare=is_compare,
-        )
+        has_joint_rows, has_non_joint_rows = compare_scope_availability(df_seg)
         toggle_key = f"tgl_{analysis_id}_{run_id}_{scope_token}"
         default_state = has_non_joint_rows and not has_joint_rows
-        show_non_joint = (
-            _initialize_boolean_widget_state(
-                toggle_key,
-                RESULTS_SHOW_NON_JOINT_STATE_KEY,
-                default_state,
-            )
-            if is_compare
-            else False
+        show_non_joint = _initialize_boolean_widget_state(
+            toggle_key,
+            RESULTS_SHOW_NON_JOINT_STATE_KEY,
+            default_state,
         )
 
         segment_cache_key = (
@@ -2689,7 +3270,6 @@ def _render_segment_inspector_body(
             analysis_id,
             tuple(selected_ranges),
             tuple(selected_directions),
-            bool(is_compare),
             bool(is_sequential),
             int(analysis_context.tx_ab_repeat_interval_minutes),
             int(analysis_context.tx_ab_target_start_minute),
@@ -2710,15 +3290,12 @@ def _render_segment_inspector_body(
             compare_view_model = build_compare_inspector_view_model(
                 df_seg,
                 analysis_id=analysis_id,
-                is_compare=is_compare,
                 is_sequential=is_sequential,
-                show_non_joint=True,
                 analysis_context=analysis_context,
                 presentation_context=presentation_context,
             )
             vals = compare_view_model.values
             col_u_name = compare_view_model.target_name
-            yield_ref_header = compare_view_model.yield_reference_header
             evidence_meta_df = compare_view_model.evidence_identities
             has_plot_data = compare_view_model.has_plot_data
             segment_figure_recipe = None
@@ -2737,7 +3314,6 @@ def _render_segment_inspector_body(
                     segment_evidence_df = _build_segment_evidence_points(
                         evidence_meta_df,
                         parquet_path,
-                        is_compare,
                         is_sequential,
                         tx_ab_repeat_interval_minutes=(
                             analysis_context.tx_ab_repeat_interval_minutes
@@ -2756,72 +3332,58 @@ def _render_segment_inspector_body(
                 )
                 segment_station_count = len(vals)
                 segment_evidence_count = len(segment_raw_values)
-                compare_layout = is_compare and "count_only_u" in df_seg.columns
-                if compare_layout:
-                    outcome_counts = compare_footer_counts(
-                        df_seg,
-                        max_dist_km=float("inf"),
-                    )
-                    joint_lbl = (
-                        t.get("tbl_col_joint_pairs", "Joint Pairs")
+                outcome_counts = compare_footer_counts(
+                    df_seg,
+                    max_dist_km=float("inf"),
+                )
+                joint_lbl = (
+                    t.get("tbl_col_joint_pairs", "Joint Pairs")
+                    if is_sequential
+                    else t.get("txt_joint", "Joint")
+                )
+                async_lbl = t.get("leg_both_async", "Both (Async)")
+                segment_panel_station_counts = [
+                    outcome_counts["stat_only_u"],
+                    outcome_counts["stat_joint"],
+                    outcome_counts["stat_both_async"],
+                    outcome_counts["stat_only_r"],
+                ]
+                segment_panel_spot_counts = [
+                    outcome_counts["spot_only_u"],
+                    outcome_counts["spot_joint"],
+                    outcome_counts["spot_both_async"],
+                    outcome_counts["spot_only_r"],
+                ]
+                segment_panel_labels = [
+                    compare_view_model.target_only_label,
+                    joint_lbl,
+                    async_lbl,
+                    compare_view_model.reference_only_label,
+                ]
+                segment_panel_series_labels = [
+                    t.get("lbl_results_stations", "Stations"),
+                    (
+                        t.get(
+                            "lbl_results_scheduled_pairs",
+                            "Scheduled pairs",
+                        )
                         if is_sequential
-                        else t.get("txt_joint", "Joint")
-                    )
-                    async_lbl = t.get("leg_both_async", "Both (Async)")
-                    segment_panel_station_counts = [
-                        outcome_counts["stat_only_u"],
-                        outcome_counts["stat_joint"],
-                        outcome_counts["stat_both_async"],
-                        outcome_counts["stat_only_r"],
-                    ]
-                    segment_panel_spot_counts = [
-                        outcome_counts["spot_only_u"],
-                        outcome_counts["spot_joint"],
-                        outcome_counts["spot_both_async"],
-                        outcome_counts["spot_only_r"],
-                    ]
-                    segment_panel_counts = []
-                    segment_panel_labels = [
-                        compare_view_model.target_only_label,
-                        joint_lbl,
-                        async_lbl,
-                        compare_view_model.reference_only_label,
-                    ]
-                    segment_panel_y_label = "Share (%)"
-                    segment_panel_series_labels = [
-                        t.get("lbl_results_stations", "Stations"),
-                        (
-                            t.get(
-                                "lbl_results_scheduled_pairs",
-                                "Scheduled pairs",
-                            )
-                            if is_sequential
-                            else t.get("lbl_results_spots", "Spots")
-                        ),
-                    ]
-                    segment_station_total_count = sum(segment_panel_station_counts)
-                    segment_station_joint_count = outcome_counts["stat_joint"]
-                    segment_spot_total_count = sum(segment_panel_spot_counts)
-                    segment_spot_joint_count = outcome_counts["spot_joint"]
-                else:
-                    segment_panel_counts = [len(df_seg), int(df_seg["spot_count"].sum())]
-                    segment_panel_labels = ["Stations", "Spots"]
-                    segment_panel_y_label = "Count"
-                    segment_panel_station_counts = []
-                    segment_panel_spot_counts = []
-                    segment_panel_series_labels = []
+                        else t.get("lbl_results_spots", "Spots")
+                    ),
+                ]
+                segment_station_total_count = sum(segment_panel_station_counts)
+                segment_station_joint_count = outcome_counts["stat_joint"]
+                segment_spot_total_count = sum(segment_panel_spot_counts)
+                segment_spot_joint_count = outcome_counts["spot_joint"]
 
                 segment_figure_recipe = _segment_figure_export_recipe(
                     title=title,
                     selected_segment=selected_seg,
-                    is_compare=is_compare,
                     is_sequential=is_sequential,
-                    compare_layout=compare_layout,
                     station_values=vals,
                     spot_values=segment_raw_values,
-                    panel_counts=segment_panel_counts,
                     panel_labels=segment_panel_labels,
-                    panel_y_label=segment_panel_y_label,
+                    panel_y_label="Share (%)",
                     panel_station_counts=segment_panel_station_counts,
                     panel_spot_counts=segment_panel_spot_counts,
                     panel_series_labels=segment_panel_series_labels,
@@ -2834,7 +3396,7 @@ def _render_segment_inspector_body(
                         else None
                     ),
                 )
-                if is_compare and not segment_evidence_df.empty:
+                if not segment_evidence_df.empty:
                     if is_sequential:
                         temporal_count_label = t.get(
                             "fig_scheduled_pair_count",
@@ -2922,51 +3484,39 @@ def _render_segment_inspector_body(
                         "time_bin_default": temporal_time_default,
                         "chronological_title_template": chronological_title_template,
                     }
-                if is_compare:
-                    station_summary = _compare_metric_distribution_summary(
-                        segment_figure_recipe["station_values"],
-                        t.get(
-                            "fmt_results_station_delta_summary",
-                            "Stations{count_context} · Median {median} dB · "
-                            "Mean {mean} dB",
-                        ),
-                        total_count=segment_station_total_count,
-                        joint_count=segment_station_joint_count,
-                        joint_label=joint_lbl,
-                    )
-                    observation_summary_key = (
-                        "fmt_results_scheduled_pair_delta_summary"
-                        if is_sequential
-                        else "fmt_results_joint_spot_delta_summary"
-                    )
-                    observation_summary_fallback = (
-                        "Scheduled pairs{count_context} · Median {median} dB · "
-                        "Mean {mean} dB"
-                        if is_sequential
-                        else "Spots{count_context} · Median {median} dB · "
-                        "Mean {mean} dB"
-                    )
-                    spot_summary = _compare_metric_distribution_summary(
-                        segment_figure_recipe["spot_values"],
-                        t.get(
-                            observation_summary_key,
-                            observation_summary_fallback,
-                        ),
-                        total_count=segment_spot_total_count,
-                        joint_count=segment_spot_joint_count,
-                        joint_label=joint_lbl,
-                    )
-                else:
-                    station_summary = _metric_median_summary(
-                        vals,
-                        False,
-                        "Station-median",
-                    )
-                    spot_summary = _metric_median_summary(
-                        segment_raw_values,
-                        False,
-                        "Spot",
-                    )
+                station_summary = _compare_metric_distribution_summary(
+                    segment_figure_recipe["station_values"],
+                    t.get(
+                        "fmt_results_station_delta_summary",
+                        "Stations{count_context} · Median {median} dB · "
+                        "Mean {mean} dB",
+                    ),
+                    total_count=segment_station_total_count,
+                    joint_count=segment_station_joint_count,
+                    joint_label=joint_lbl,
+                )
+                observation_summary_key = (
+                    "fmt_results_scheduled_pair_delta_summary"
+                    if is_sequential
+                    else "fmt_results_joint_spot_delta_summary"
+                )
+                observation_summary_fallback = (
+                    "Scheduled pairs{count_context} · Median {median} dB · "
+                    "Mean {mean} dB"
+                    if is_sequential
+                    else "Spots{count_context} · Median {median} dB · "
+                    "Mean {mean} dB"
+                )
+                spot_summary = _compare_metric_distribution_summary(
+                    segment_figure_recipe["spot_values"],
+                    t.get(
+                        observation_summary_key,
+                        observation_summary_fallback,
+                    ),
+                    total_count=segment_spot_total_count,
+                    joint_count=segment_spot_joint_count,
+                    joint_label=joint_lbl,
+                )
                 segment_summary = _segment_summary_lines(
                     station_summary=station_summary,
                     spot_summary=spot_summary,
@@ -3001,7 +3551,7 @@ def _render_segment_inspector_body(
         col_joint_name = compare_view_model.joint_column
 
         disp_df = compare_view_model.station_table.copy()
-        if is_compare and not show_non_joint and col_joint_name in disp_df.columns:
+        if not show_non_joint and col_joint_name in disp_df.columns:
             disp_df = disp_df[disp_df[col_joint_name] > 0].reset_index(drop=True)
         sorted_disp_df = disp_df.copy()
         full_segment_disp_df = compare_view_model.full_station_table
@@ -3025,7 +3575,7 @@ def _render_segment_inspector_body(
                     segment_station_count,
                     segment_evidence_count,
                     analysis_id=analysis_id,
-                    is_compare=is_compare,
+                    is_compare=True,
                     is_sequential=is_sequential,
                     translations=t,
                 ),
@@ -3067,10 +3617,7 @@ def _render_segment_inspector_body(
             if has_plot_data:
                 if segment_summary:
                     st.markdown(
-                        "<div style='text-align:center; color:white; "
-                        "font-size:0.95rem; margin-top:-0.25rem; "
-                        "margin-bottom:1.0rem;'>"
-                        f"{'<br>'.join(segment_summary)}</div>",
+                        segment_statistics_html(segment_summary),
                         unsafe_allow_html=True,
                     )
                 st.markdown(
@@ -3093,6 +3640,7 @@ def _render_segment_inspector_body(
                     scope_token=scope_token,
                     cache_key=segment_cache_key,
                     t=t,
+                    is_compare=True,
                     is_sequential=is_sequential,
                     analysis_context=analysis_context,
                     language=presentation_context.language,
@@ -3176,22 +3724,21 @@ def _render_segment_inspector_body(
             )
             
         with col_ins2:
-            if is_compare:
-                # Default to showing non-joint rows only when the selected segment has no joint
-                # evidence but does contain target-only, reference-only, or async-both evidence.
-                st.toggle(
-                    t.get(
-                        "lbl_include_unpaired_evidence",
-                        "Include Unpaired Evidence",
-                    ),
-                    key=toggle_key,
-                    on_change=_sync_boolean_widget_state,
-                    args=(toggle_key, RESULTS_SHOW_NON_JOINT_STATE_KEY),
-                )
-                show_non_joint = _sync_boolean_widget_state(
-                    toggle_key,
-                    RESULTS_SHOW_NON_JOINT_STATE_KEY,
-                )
+            # Default to showing unpaired rows when the segment contains no joint
+            # evidence but does contain target-only, reference-only, or async-both evidence.
+            st.toggle(
+                t.get(
+                    "lbl_include_unpaired_evidence",
+                    "Include Unpaired Evidence",
+                ),
+                key=toggle_key,
+                on_change=_sync_boolean_widget_state,
+                args=(toggle_key, RESULTS_SHOW_NON_JOINT_STATE_KEY),
+            )
+            show_non_joint = _sync_boolean_widget_state(
+                toggle_key,
+                RESULTS_SHOW_NON_JOINT_STATE_KEY,
+            )
 
         # --- DYNAMIC EXCEL-STYLE FILTER ---
         # sorted_disp_df is ready, so render the filter button in column 3.
@@ -3218,12 +3765,12 @@ def _render_segment_inspector_body(
         # --- END FILTER ---
 
         with level_three_container:
-            _render_reference_correction_notice(t, is_compare)
+            _render_reference_correction_notice(t, True)
 
         # Die Tabelle rendert nun den gefilterten Zustand
         tbl_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"
         selected_stations_state_key = _selected_stations_persistent_state_key(
-            is_compare
+            True
         )
         configured_station_identities = st.session_state.get(
             selected_stations_state_key
@@ -3268,9 +3815,8 @@ def _render_segment_inspector_body(
             "km_col": t['tbl_col_km'],
             "az_col": t['tbl_col_az'],
             "analysis_id": analysis_id,
-            "is_compare": bool(is_compare),
             "is_sequential": bool(is_sequential),
-            "show_non_joint": bool(is_compare),
+            "show_non_joint": True,
             "is_local_median": bool(is_local_median),
             "col_u_name": col_u_name,
             "ref_header": ref_header,
@@ -3335,7 +3881,6 @@ def _render_segment_inspector_body(
                     selected_evidence_export = _render_selected_station_evidence(
                         station_df,
                         selected_identity_df,
-                        is_compare,
                         is_sequential,
                         analysis_context.tx_ab_repeat_interval_minutes,
                         analysis_context.tx_ab_target_start_minute,
@@ -3354,7 +3899,6 @@ def _render_segment_inspector_body(
                                 .astype(str)
                                 .itertuples(index=False, name=None)
                             ),
-                            bool(is_compare),
                             bool(is_sequential),
                             int(analysis_context.tx_ab_repeat_interval_minutes),
                             int(analysis_context.tx_ab_target_start_minute),
@@ -3384,7 +3928,6 @@ def _render_segment_inspector_body(
                         t['tbl_col_km'],
                         t['tbl_col_az'],
                         analysis_id,
-                        is_compare,
                         is_sequential,
                         show_non_joint,
                         is_local_median,
@@ -3424,7 +3967,7 @@ def _render_segment_inspector_body(
                             run_id,
                             scope_token,
                             t,
-                            is_compare,
+                            True,
                             is_sequential,
                             analysis_context,
                             presentation_context.language,
@@ -3468,11 +4011,14 @@ def _render_segment_inspector_body(
             segment_temporal_evidence_figure_recipe=(
                 segment_temporal_export or {}
             ).get("export_recipe"),
+            segment_temporal_snr_deviation_figure_recipe=(
+                segment_temporal_export or {}
+            ).get("snr_export_recipe"),
             selected_evidence_figure_recipe=(selected_evidence_export or {}).get("export_recipe"),
             station_insights_df=sorted_disp_df,
             drilldown_selected_df=drilldown_selected_df,
             all_drilldown_context=all_drilldown_context,
-            reference_snr_header=f'{ref_header} SNR (dB)' if is_compare else None,
+            reference_snr_header=f'{ref_header} SNR (dB)',
         )
 
         if show_export_button:

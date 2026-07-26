@@ -9,9 +9,6 @@ from sys import getsizeof
 import numpy as np
 import pandas as pd
 
-from ui.result_state import INSPECTOR_CACHE_STATE_KEY
-
-
 def estimate_cache_value_bytes(value, _seen=None) -> int:
     """Estimate retained bytes for supported compact inspector cache values."""
     if _seen is None:
@@ -70,9 +67,6 @@ class SessionInspectorCache:
     @property
     def entry_count(self) -> int:
         return sum(len(entries) for entries in self._entries.values())
-
-    def namespace_entry_count(self, namespace: str) -> int:
-        return len(self._entries.get(namespace, ()))
 
     def get(self, namespace: str, key):
         entries = self._entries.get(namespace)
