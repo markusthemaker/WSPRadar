@@ -23,7 +23,11 @@ from config import (
     INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
     INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
     SEGMENT_SELECTION_ALL,
-    STATION_SELECTION_ALL,
+)
+from core.input_validation import (
+    is_valid_callsign,
+    is_valid_locator,
+    normalize_ascii_upper,
 )
 from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
@@ -33,6 +37,10 @@ from ui.matplotlib_renderer import (
     render_matplotlib_image_bytes,
 )
 from ui.results_export import register_inspector_export, render_download_all_results
+from ui.url_state import (
+    URL_QUERY_SYNCHRONIZER_FRAGMENT_KEY,
+    render_current_url_synchronizer,
+)
 from core.opportunity_engine import (
     OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
     OPPORTUNITY_SEGMENT_VIEW_COLUMNS,
@@ -578,41 +586,47 @@ def _station_identity_record(callsign, locator):
     return {"callsign": callsign_text, "locator": locator_text}
 
 
-def _normalize_station_identity_records(configured_identities):
-    """Normalize and ordered-deduplicate saved ``callsign``/``locator`` pairs.
+def _validate_single_station_identity_records(configured_identities):
+    """Validate durable state as automatic, empty, or one station identity.
 
-    ``None`` is preserved because it means that no explicit selection exists and
-    the historical first-row default should apply. ``"all"`` preserves the
-    dynamic all-stations intent. Invalid records are ignored; an explicit empty
-    sequence remains an explicit empty selection.
+    ``None`` means that no explicit selection exists and retains the normal
+    first-row table default. An empty list records deliberate deselection.
+    Every other accepted value is a one-item list containing an exact,
+    normalized ``callsign``/``locator`` record.
     """
     if configured_identities is None:
         return None
-    if configured_identities == STATION_SELECTION_ALL:
-        return STATION_SELECTION_ALL
-    if not isinstance(configured_identities, (list, tuple)):
+    if not isinstance(configured_identities, list):
+        raise ValueError(
+            "Selected-station state must be null or a list containing at most "
+            "one identity."
+        )
+    if len(configured_identities) > 1:
+        raise ValueError(
+            "Selected-station state must contain at most one identity."
+        )
+    if not configured_identities:
         return []
 
-    normalized_records = []
-    seen_identities = set()
-    for configured_identity in configured_identities:
-        if not isinstance(configured_identity, Mapping):
-            continue
-        identity_record = _station_identity_record(
-            configured_identity.get("callsign"),
-            configured_identity.get("locator"),
+    configured_identity = configured_identities[0]
+    if not isinstance(configured_identity, Mapping):
+        raise ValueError("Selected-station identity must be an object.")
+    if set(configured_identity) != {"callsign", "locator"}:
+        raise ValueError(
+            "Selected-station identity must contain only callsign and locator."
         )
-        if identity_record is None:
-            continue
-        identity_pair = (
-            identity_record["callsign"],
-            identity_record["locator"],
-        )
-        if identity_pair in seen_identities:
-            continue
-        seen_identities.add(identity_pair)
-        normalized_records.append(identity_record)
-    return normalized_records
+    callsign = configured_identity["callsign"]
+    locator = configured_identity["locator"]
+    if not isinstance(callsign, str) or not is_valid_callsign(callsign):
+        raise ValueError("Selected-station callsign is invalid.")
+    if not isinstance(locator, str) or not is_valid_locator(locator):
+        raise ValueError("Selected-station locator is invalid.")
+    return [
+        {
+            "callsign": normalize_ascii_upper(callsign),
+            "locator": normalize_ascii_upper(locator),
+        }
+    ]
 
 
 def _station_selection_default_rows(
@@ -623,18 +637,17 @@ def _station_selection_default_rows(
 ):
     """Resolve saved station identities to current display-row positions.
 
-    The returned row positions follow the configured identity order. Missing
-    identities are reported separately and never cause a substitute row to be
-    selected. A ``None`` configuration retains the legacy first-row default,
-    whereas an empty list resolves to no selected rows.
+    A missing explicit identity is reported separately and never causes a
+    substitute row to be selected. A ``None`` configuration retains the normal
+    first-row default, whereas an empty list resolves to no selected rows.
     """
-    normalized_identities = _normalize_station_identity_records(
+    normalized_identities = _validate_single_station_identity_records(
         configured_identities
     )
     if normalized_identities is None:
         return ([0] if not station_table.empty else []), []
-    if normalized_identities == STATION_SELECTION_ALL:
-        return list(range(len(station_table))), []
+    if not normalized_identities:
+        return [], []
 
     available_rows = {}
     for row_position, (callsign, locator) in enumerate(
@@ -652,64 +665,15 @@ def _station_selection_default_rows(
         )
         available_rows.setdefault(identity_pair, row_position)
 
-    selected_rows = []
-    missing_identities = []
-    for identity_record in normalized_identities:
-        identity_pair = (
-            identity_record["callsign"],
-            identity_record["locator"],
-        )
-        row_position = available_rows.get(identity_pair)
-        if row_position is None:
-            missing_identities.append(identity_record)
-        else:
-            selected_rows.append(row_position)
-    return selected_rows, missing_identities
-
-
-def _success_single_station_selection_state(
-    station_table,
-    station_column,
-    locator_column,
-    configured_identities,
-):
-    """Resolve saved Success state to zero or one valid station identity.
-
-    Ordered historical selections retain their first identity that still exists
-    in the durable Station Insights universe. No table-order substitute is made
-    when none of the stored identities remains available. Legacy ``"all"``
-    state has no identity order, so it migrates to the universe's first row.
-    ``None`` preserves the established first-row display default.
-    """
-    normalized_identities = _normalize_station_identity_records(
-        configured_identities
+    identity_record = normalized_identities[0]
+    identity_pair = (
+        identity_record["callsign"],
+        identity_record["locator"],
     )
-    if normalized_identities is None:
-        return None, False
-
-    available_identities = _station_identity_records_for_rows(
-        station_table,
-        range(len(station_table)),
-        station_column,
-        locator_column,
-    )
-    if normalized_identities == STATION_SELECTION_ALL:
-        canonical_selection = available_identities[:1]
-    else:
-        available_pairs = {
-            (identity["callsign"], identity["locator"])
-            for identity in available_identities
-        }
-        canonical_selection = next(
-            (
-                [identity]
-                for identity in normalized_identities
-                if (identity["callsign"], identity["locator"])
-                in available_pairs
-            ),
-            [],
-        )
-    return canonical_selection, configured_identities != canonical_selection
+    row_position = available_rows.get(identity_pair)
+    if row_position is None:
+        return [], [identity_record]
+    return [row_position], []
 
 
 def _station_identity_records_for_rows(
@@ -718,32 +682,28 @@ def _station_identity_records_for_rows(
     station_column,
     locator_column,
 ):
-    """Return ordered, deduplicated station records for valid selected rows."""
+    """Return the station identity for zero or one valid selected row."""
     valid_rows = [
         row_position
         for row_position in selected_rows
         if isinstance(row_position, Integral)
         and 0 <= row_position < len(station_table)
     ]
-    selected_records = []
-    seen_identities = set()
-    for row_position in valid_rows:
-        row = station_table.iloc[row_position]
-        identity_record = _station_identity_record(
-            row[station_column],
-            row[locator_column],
+    if len(valid_rows) > 1:
+        raise ValueError("Station selection must contain at most one row.")
+    if not valid_rows:
+        return []
+
+    row = station_table.iloc[valid_rows[0]]
+    identity_record = _station_identity_record(
+        row[station_column],
+        row[locator_column],
+    )
+    if identity_record is None:
+        raise ValueError(
+            "Selected station row must contain a callsign and locator."
         )
-        if identity_record is None:
-            continue
-        identity_pair = (
-            identity_record["callsign"],
-            identity_record["locator"],
-        )
-        if identity_pair in seen_identities:
-            continue
-        seen_identities.add(identity_pair)
-        selected_records.append(identity_record)
-    return selected_records
+    return _validate_single_station_identity_records([identity_record])
 
 
 def _sync_selected_station_state(
@@ -752,50 +712,16 @@ def _sync_selected_station_state(
     selected_rows,
     station_column,
     locator_column,
-    selection_universe_table=None,
-    *,
-    compact_complete_selection=True,
 ):
-    """Persist explicit identities or compact a complete selection to ``all``.
-
-    ``selection_universe_table`` must represent the table after durable
-    visibility controls but before transient table filters. This prevents a
-    filtered subset from being broadened when ``all`` is restored later.
-    """
+    """Persist an explicit empty or single-station selection."""
     selected_identities = _station_identity_records_for_rows(
         station_table,
         selected_rows,
         station_column,
         locator_column,
     )
-    selection_universe_table = (
-        station_table
-        if selection_universe_table is None
-        else selection_universe_table
-    )
-    universe_identities = _station_identity_records_for_rows(
-        selection_universe_table,
-        range(len(selection_universe_table)),
-        station_column,
-        locator_column,
-    )
-    selected_identity_pairs = {
-        (identity["callsign"], identity["locator"])
-        for identity in selected_identities
-    }
-    universe_identity_pairs = {
-        (identity["callsign"], identity["locator"])
-        for identity in universe_identities
-    }
-    persisted_selection = (
-        STATION_SELECTION_ALL
-        if compact_complete_selection
-        and universe_identity_pairs
-        and selected_identity_pairs == universe_identity_pairs
-        else selected_identities
-    )
-    st.session_state[persistent_key] = persisted_selection
-    return persisted_selection
+    st.session_state[persistent_key] = selected_identities
+    return selected_identities
 
 
 def _mark_station_selection_changed(selection_changed_key):
@@ -810,9 +736,6 @@ def _sync_selected_station_state_if_changed(
     selected_rows,
     station_column,
     locator_column,
-    selection_universe_table=None,
-    *,
-    compact_complete_selection=True,
 ):
     """Persist visible rows only after a user-generated selection event.
 
@@ -829,8 +752,6 @@ def _sync_selected_station_state_if_changed(
         selected_rows,
         station_column,
         locator_column,
-        selection_universe_table,
-        compact_complete_selection=compact_complete_selection,
     )
 
 
@@ -842,18 +763,16 @@ def _selection_requires_zero_hit_rows(
     configured_identities,
 ):
     """Return whether a saved Success selection includes a hidden zero-hit row."""
-    normalized_identities = _normalize_station_identity_records(
+    normalized_identities = _validate_single_station_identity_records(
         configured_identities
     )
-    if (
-        not normalized_identities
-        or normalized_identities == STATION_SELECTION_ALL
-    ):
+    if not normalized_identities:
         return False
-    selected_pairs = {
-        (identity["callsign"], identity["locator"])
-        for identity in normalized_identities
-    }
+    selected_identity = normalized_identities[0]
+    selected_pair = (
+        selected_identity["callsign"],
+        selected_identity["locator"],
+    )
     hit_counts = pd.to_numeric(station_table[hit_column], errors="coerce")
     for row_position, (callsign, locator) in enumerate(
         station_table[[station_column, locator_column]].itertuples(
@@ -868,7 +787,7 @@ def _selection_requires_zero_hit_rows(
             identity_record["callsign"],
             identity_record["locator"],
         )
-        if identity_pair not in selected_pairs:
+        if identity_pair != selected_pair:
             continue
         hit_count = hit_counts.iloc[row_position]
         if pd.isna(hit_count) or hit_count <= 0:
@@ -1620,10 +1539,14 @@ def _render_selected_station_evidence(
     language,
     timing_collector=None,
 ):
-    """Render selected evidence with a saved Compare temporal-view selector."""
+    """Render evidence for exactly one selected Compare station."""
     identity_meta = _prepare_identity_meta(selected_identity_df)
     if identity_meta.empty:
         return None
+    if len(identity_meta) > 1:
+        raise ValueError(
+            "Selected Station Evidence requires exactly one station identity."
+        )
     identity_labels = identity_meta["identity"].tolist()
 
     selected_bundle, selected_cache_hit = _inspector_cache_get(
@@ -1675,6 +1598,7 @@ def _render_selected_station_evidence(
                 is_compare=True,
                 is_sequential=is_sequential,
                 analysis_context=analysis_context,
+                selected_station_count=1,
             )
             st.markdown(
                 scope_context_html(
@@ -1767,6 +1691,7 @@ def _render_selected_station_evidence(
         is_compare=True,
         is_sequential=is_sequential,
         analysis_context=analysis_context,
+        selected_station_count=1,
     )
 
     time_agg_options = list(selected_bundle["time_agg_options"])
@@ -2329,7 +2254,6 @@ def _render_opportunity_scope(
     disp_df = full_segment_disp_df.copy()
     if not show_zero_hits:
         disp_df = disp_df[disp_df[hit_col] > 0].reset_index(drop=True)
-    selection_universe_df = disp_df.copy()
 
     level_three_container = st.container(
         key=(
@@ -2398,20 +2322,6 @@ def _render_opportunity_scope(
     disp_df = full_segment_disp_df.copy()
     if not show_zero_hits:
         disp_df = disp_df[disp_df[hit_col] > 0].reset_index(drop=True)
-    selection_universe_df = disp_df.copy()
-    (
-        configured_station_identities,
-        should_persist_single_selection,
-    ) = _success_single_station_selection_state(
-        selection_universe_df,
-        station_col,
-        loc_col,
-        configured_station_identities,
-    )
-    if should_persist_single_selection:
-        st.session_state[
-            RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
-        ] = configured_station_identities
 
     with col_filter:
         with st.popover(
@@ -2496,8 +2406,6 @@ def _render_opportunity_scope(
         selected_rows,
         station_col,
         loc_col,
-        selection_universe_df,
-        compact_complete_selection=False,
     )
 
     if selected_rows:
@@ -2913,6 +2821,13 @@ def render_segment_inspector(
         )
     if timing_collector is not None:
         timing_collector.log_report(analysis_title=title)
+    render_current_url_synchronizer(
+        st.session_state,
+        key=(
+            f"{URL_QUERY_SYNCHRONIZER_FRAGMENT_KEY}_"
+            f"{analysis_id}_{st.session_state.get('run_id', 'current')}"
+        ),
+    )
     return result
 
 
@@ -3556,7 +3471,6 @@ def _render_segment_inspector_body(
                     unsafe_allow_html=True,
                 )
 
-        selection_universe_df = sorted_disp_df.copy()
         level_three_container = st.container(
             key=(
                 f"results_evidence_level_3_"
@@ -3674,7 +3588,7 @@ def _render_segment_inspector_body(
         dataframe_kwargs = {
             "width": "stretch",
             "hide_index": True,
-            "selection_mode": "multi-row",
+            "selection_mode": "single-row",
             "on_select": partial(
                 _mark_station_selection_changed,
                 selection_changed_key,
@@ -3732,9 +3646,13 @@ def _render_segment_inspector_body(
         # Render Raw Drill-Down Data (if user clicks a row)
         # ----------------------------------------------------
         # Streamlit selection remains user-driven after saved identities establish
-        # the first render; a deliberate deselect-all is persisted as an empty list.
+        # the first render; deliberate deselection is persisted as an empty list.
         raw_sel_rows = tbl_event.selection.rows or []
-        sel_rows = [row for row in raw_sel_rows if 0 <= row < len(sorted_disp_df)]
+        sel_rows = [
+            row
+            for row in raw_sel_rows
+            if 0 <= row < len(sorted_disp_df)
+        ][:1]
         _sync_selected_station_state_if_changed(
             selection_changed_key,
             selected_stations_state_key,
@@ -3742,7 +3660,6 @@ def _render_segment_inspector_body(
             sel_rows,
             station_col,
             t['tbl_col_loc'],
-            selection_universe_df,
         )
         if sel_rows:
             loc_col = t['tbl_col_loc']
@@ -3753,6 +3670,12 @@ def _render_segment_inspector_body(
             selected_identity_df = selected_meta_df[[station_col, loc_col]].copy()
             selected_identity_df.columns = ["peer_sign", "peer_grid"]
             selected_identity_df = selected_identity_df.drop_duplicates()
+            selected_station = str(
+                selected_identity_df.iloc[0]["peer_sign"]
+            ).strip().upper()
+            selected_locator = str(
+                selected_identity_df.iloc[0]["peer_grid"]
+            ).strip().upper()
             selected_station_labels = (
                 selected_identity_df["peer_sign"].astype(str) +
                 " (" + selected_identity_df["peer_grid"].astype(str) + ")"
@@ -3789,11 +3712,8 @@ def _render_segment_inspector_body(
                             "comparison",
                             analysis_id,
                             scope_token,
-                            tuple(
-                                selected_identity_df[["peer_sign", "peer_grid"]]
-                                .astype(str)
-                                .itertuples(index=False, name=None)
-                            ),
+                            selected_station,
+                            selected_locator,
                             bool(is_sequential),
                             int(analysis_context.tx_ab_repeat_interval_minutes),
                             int(analysis_context.tx_ab_target_start_minute),

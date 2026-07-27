@@ -93,27 +93,26 @@ and localized title/description, one canonical `settings` object, and an
 optional `extensions` object for non-core namespaced data. `settings` is grouped into
 `core_parameters`, `comparison_parameters`, `advanced_parameters`, and
 `results_view`, matching the durable UI sections. The selected analysis
-direction is a core parameter. Conditional branches are active-only: the
-document contains every setting applicable to the selected time and comparison
-modes and omits inactive hidden fields. Applying a document resets inactive
-controls before loading the validated active branch.
+direction is a core parameter. `time_selection` contains exactly the canonical
+absolute `start_utc` and `end_utc` query boundaries. Comparison branches are
+active-only: the document contains every setting applicable to the selected
+comparison mode and omits inactive hidden fields. Applying a document resets
+inactive comparison controls before loading the validated active branch.
 
 `results_view` has an always-present `success` branch and a conditional
 `compare` branch. Both preserve canonical Segment Inspector range/direction,
 segment temporal bins, selected-station chronological bins, and
 station-selection intent. Explicit stations are canonical callsign/locator
-pairs. Compare may preserve one or more identities, while `all` dynamically
-selects its complete reconstructed table after saved visibility controls and
-before transient table filters. Success presentation permits zero or one
-identity. When historical Success state contains several identities, restoration
-retains the first valid identity in stored order, discards the rest, never
-substitutes another station, and restores no selection if none remain valid.
-Compare additionally preserves `show_non_joint` and the selected-station
-`chronological` versus `utc_hour` view; Success preserves the canonical
-`show_zero_target` boolean, which the presentation layer exposes through the
-direction-specific counter-only-station controls rather than through that
-internal name. Table and Drill-Down filters, expander state, and other transient
-controls are deliberately not serialized.
+pairs. Both branches permit `null`, an empty list, or one identity. `null`
+retains the normal initial table behavior, while an empty list records
+deliberate deselection; `"all"`, duplicates, malformed identities, and
+multiple identities are rejected without migration. Compare additionally
+preserves `show_non_joint` and the selected-station `chronological` versus
+`utc_hour` view; Success preserves the canonical `show_zero_target` boolean,
+which the presentation layer exposes through the direction-specific
+counter-only-station controls rather than through that internal name. Table and
+Drill-Down filters, expander state, and other transient controls are
+deliberately not serialized.
 `config/config_codec.py` validates the current document envelope and exact
 schema version, while `ui/config_io.py` validates and applies the semantic
 settings. Version 1 is explicitly pre-production, not a first public production
@@ -172,11 +171,9 @@ links without enabling raw HTML.
 `ui/config_save.py` renders the interactive save workflow as a Streamlit
 fragment. It collects the profile title, optional description and stable ID,
 then prepares bytes from the current durable inspector state without rerunning
-the scientific analysis. For a `last_x` selection it explicitly chooses between
-retaining the relative duration and converting the active run's resolved UTC
-interval to `custom`. `ui/result_state.py` keeps that quantized interval keyed
-by `run_id`, so full-page rerenders cannot move the bounds of an already active
-run; result reset or config load clears it.
+the scientific analysis. The serialized `time_selection` always carries the
+same quantized absolute UTC boundaries held by the canonical editor state and
+used by the query.
 
 ### Input Editors
 
@@ -196,6 +193,14 @@ composition surface for Target/window, Reference, scope, station-population,
 offset, and evidence-threshold controls; its established implementations remain
 in `ui/components/config_panel.py` so both editors retain the same widget keys,
 normalization, and callbacks.
+
+The four canonical time fields hold absolute UTC start/end dates and times.
+`ui/time_window.py` initializes them once per session as the 24 hours ending at
+the current 15-minute UTC boundary. Editing either endpoint floors it to that
+same quantum and writes the effective value back before callbacks, config
+serialization, URL synchronization, Guided summaries, or analysis execution
+read the state. Reset resolves a fresh absolute default; ordinary reruns do not
+advance it.
 
 `config/guided_input_flow.json` declares the ordered question graph from use
 case through review. `ui/guided_inputs/flow_loader.py` performs bounded strict
@@ -419,11 +424,12 @@ additional full-frame copy.
 locator validation. Core Target QTH accepts four or six characters; the
 Reference Station comparison field requires exactly one grid-4, while Hardware
 A/B derives its grid-4 from Target QTH rather than accepting Reference locator
-state. `core/time_utils.py` contains dependency-free query-time
-quantization. Keeping these idle-shell helpers separate prevents NumPy-backed
-geometry from loading before an analysis is requested. `core/math_utils.py`
-retains compatibility exports while owning Maidenhead conversion, geometry, and
-solar helpers for the scientific path.
+state. `core/time_utils.py` contains dependency-free UTC-minute parsing and
+formatting, default-window resolution, query-time quantization, and effective
+interval validation. Keeping these idle-shell helpers separate prevents
+NumPy-backed geometry from loading before an analysis is requested.
+`core/math_utils.py` retains compatibility exports while owning Maidenhead
+conversion, geometry, and solar helpers for the scientific path.
 
 ### Map Pipeline
 
@@ -591,14 +597,15 @@ export use the same two recipes and renderers; Success exports add
 `figure_segment_temporal_evidence.png` for the station/opportunity figure, while
 Compare keeps its existing single temporal export.
 
-Success Selected Station Evidence permits zero or one station. The Success
-Station Insights table uses the component's native replaceable single-row
-selection, while the separate Compare table retains multi-row selection.
-Selecting a different Success row replaces the exact callsign-plus-locator
-identity consumed by both Selected Station Evidence and Drill-Down; clearing the
-row hides the selected section. `ui/components/segment_inspector.py` loads only
-the retained projected rows for that identity and never starts another provider
-query.
+Selected Station Evidence permits zero or one station in both Performance and
+Compare. Both Station Insights tables use the component's native replaceable
+single-row selection. Selecting a different row replaces the exact
+callsign-plus-locator identity consumed by both Selected Station Evidence and
+Drill-Down; clearing the row hides the selected section.
+`ui/components/segment_inspector.py` validates the durable boundary, loads only
+the retained projected rows for that identity, and never starts another
+provider query. The complete Station Insights population and the segment-level
+statistics, Comparison Evidence, and temporal evidence remain unchanged.
 
 The section contains one compact selected-path context, the independent
 selected-station chronological-bin control, and two full-width figures.
@@ -663,9 +670,9 @@ from `core/export_admission.py`. The configured policy allows one active export
 and up to ten queued exports.
 
 `ui/result_state.py` owns the lightweight result/export session-state keys,
-active-run UTC interval, and reset lifecycle. Configuration callbacks can retire
-session artifacts and clear export, inspector, and resolved-time
-state without importing Pandas, Matplotlib, the inspector, or export rendering.
+active-run database provenance, and reset lifecycle. Configuration callbacks
+can retire session artifacts and clear export, inspector, and provenance state
+without importing Pandas, Matplotlib, the inspector, or export rendering.
 `ui/analysis_submission_state.py` separately owns the UUID-token lifecycle for
 one session's in-flight analysis. Keeping submission state separate from
 `run_mode` is required because `run_mode` remains set while completed results
@@ -684,21 +691,50 @@ Success selected evidence is exported under two stable filenames:
 `figure_selected_station_snr_evidence.png` and
 `figure_selected_station_temporal_evidence.png`. They use the same shared
 temporal recipes and renderers as the two browser figures. Compare retains
-`figure_selected_station_evidence.png` and its independent multi-station
-behavior. Success export registration stores the shared selection label and
-context, selection count, direction-aware station role, weighting mode, and
+`figure_selected_station_evidence.png` for its independent one-station
+presentation. Success export registration stores the shared selection label
+and context, selection count, direction-aware station role, weighting mode, and
 filename-to-description mapping. `run_metadata.json` publishes these as
 `selected_station_label`, `selected_station_context`,
 `selected_station_count`, `selected_station_role`,
 `selected_evidence_weighting`, and `selected_evidence_figures`, so a Success
-package identifies its one exact selected identity. Compare instead records its
-exact identities in `selected_stations`, its selection count, and its active
-evidence recipe and time-view fields; the optional Success descriptive fields
-remain unset.
+package identifies its one exact selected identity. Compare records its
+zero-or-one exact identity in the compatibility field `selected_stations`, its
+selection count, and its active evidence recipe and time-view fields; the
+optional Success descriptive fields remain unset.
 
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
 session state for download. This is a known peak and idle-memory risk, partially
 contained by single-export admission.
+
+### Public URL State and Sharing
+
+`ui/url_state.py` is the version-1 adapter between human-readable WSPRadar query
+parameters and the existing saved-configuration model. Parsing creates an
+independent settings object and passes it through
+`ui/config_io.normalize_config_settings`; only a completely valid object is
+applied through the normal configuration lifecycle. Initial hydration runs
+once after factory defaults and before widgets. A valid `run=1` request enters
+the existing token-aware submission and admission path exactly once; invalid
+input cannot partially update scientific state.
+
+Serialization takes the inverse route through canonical config construction.
+It uses stable URL-v1 defaults, deterministic parameter and selection ordering,
+canonical numbers and identities, and standard query encoding. The active
+result branch supplies the unprefixed result-view parameters. `run=1` remains
+only while the completed result still belongs to the encoded scientific
+configuration; scientific callbacks clear it, while result-view interactions
+retain it.
+
+`ui/url_synchronizer.py` mounts a lightweight Components V2 adapter after the
+full page and inside the Segment Inspector fragment. It atomically replaces
+only WSPRadar-owned keys with `history.replaceState`, preserving unrelated
+query keys, the current pathname, and the real fragment. It receives validated
+key/value data and owns no navigation listeners. `ui/share_analysis.py` is a
+separate data-only Components V2 boundary for copy, native share, and encoded
+direct-share targets. `ui/results_export.py` builds the shared URL from
+canonical state and `APP_URL`, includes only owned parameters plus `run=1`, and
+targets `#wspradar-results-inspection`.
 
 ### Page Navigation
 
@@ -720,6 +756,11 @@ or Forward scrolls the anchor owned by the corresponding controller without
 adding another history entry. Application navigation also cancels any
 unresolved manual-navigation request so a later documentation fragment rerun
 cannot reclaim the viewport.
+For a replay URL, `app.py` retains the incoming results fragment through the
+scientific reruns and asks this controller to scroll once only after the normal
+analysis path has completed. The results anchor is mounted before the status
+slot and first result content. Query synchronization never changes fragments or
+duplicates the navigation controller's listeners.
 
 ### Documentation Pipeline
 

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://wspradar.org/schemas/v1/wspradar-config.schema.json",
   "title": "WSPRadar configuration document",
-  "description": "Version 1 of the portable WSPRadar run-and-view configuration contract. Optional profile metadata lets the same ordinary document serve as a personal saved configuration or an installed demo. Conditional objects contain only fields active for the selected time and comparison modes; inactive UI state is not serialized.",
+  "description": "Version 1 of the portable WSPRadar run-and-view configuration contract. Optional profile metadata lets the same ordinary document serve as a personal saved configuration or an installed demo. The time window is stored as absolute UTC boundaries; conditional comparison objects contain only fields active for the selected mode, and inactive UI state is not serialized.",
   "type": "object",
   "required": [
     "format",
@@ -59,8 +59,8 @@
           "qth": "JN37",
           "band": "20m",
           "time_selection": {
-            "mode": "last_x",
-            "hours": 24
+            "start_utc": "2026-07-20T00:00Z",
+            "end_utc": "2026-07-21T00:00Z"
           }
         },
         "comparison_parameters": {
@@ -426,87 +426,29 @@
       ]
     },
     "timeSelection": {
-      "description": "Exactly one active time-selection branch. last_x stores only hours; custom stores only absolute UTC boundaries.",
-      "oneOf": [
-        {
-          "$ref": "#/$defs/lastXTimeSelection"
-        },
-        {
-          "$ref": "#/$defs/customTimeSelection"
-        }
-      ]
-    },
-    "lastXTimeSelection": {
+      "description": "The exact half-open UTC analysis interval after 15-minute quantization.",
       "type": "object",
       "required": [
-        "mode",
-        "hours"
+        "start_utc",
+        "end_utc"
       ],
       "properties": {
-        "mode": {
-          "const": "last_x",
-          "description": "Use a rolling interval ending when the analysis is started."
+        "start_utc": {
+          "$ref": "#/$defs/utcMinuteTimestamp"
         },
-        "hours": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 168,
-          "description": "Length of the rolling interval in hours.",
-          "default": 24,
-          "examples": [
-            24,
-            168
-          ]
+        "end_utc": {
+          "$ref": "#/$defs/utcMinuteTimestamp"
         }
       },
       "additionalProperties": false
     },
-    "customTimeSelection": {
-      "type": "object",
-      "required": [
-        "mode",
-        "start_date",
-        "end_date",
-        "start_time_utc",
-        "end_time_utc"
-      ],
-      "properties": {
-        "mode": {
-          "const": "custom",
-          "description": "Use explicit UTC start and end boundaries."
-        },
-        "start_date": {
-          "type": "string",
-          "format": "date",
-          "description": "Inclusive UTC start calendar date in YYYY-MM-DD form.",
-          "examples": [
-            "2022-06-01"
-          ]
-        },
-        "end_date": {
-          "type": "string",
-          "format": "date",
-          "description": "UTC end calendar date in YYYY-MM-DD form.",
-          "examples": [
-            "2022-06-10"
-          ]
-        },
-        "start_time_utc": {
-          "$ref": "#/$defs/utcMinute"
-        },
-        "end_time_utc": {
-          "$ref": "#/$defs/utcMinute"
-        }
-      },
-      "additionalProperties": false
-    },
-    "utcMinute": {
+    "utcMinuteTimestamp": {
       "type": "string",
-      "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$",
-      "description": "UTC wall-clock time at one-minute precision in HH:MM form.",
+      "pattern": "^\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])T(?:[01]\\d|2[0-3]):[0-5]\\dZ$",
+      "description": "Absolute UTC timestamp at minute precision in canonical YYYY-MM-DDTHH:MMZ form.",
       "examples": [
-        "06:30",
-        "23:45"
+        "2026-07-20T00:00Z",
+        "2026-07-21T00:00Z"
       ]
     },
     "comparisonParameters": {
@@ -1752,17 +1694,15 @@
       ]
     },
     "selectedStations": {
-      "description": "Station-selection intent. null requests automatic selection; all selects every station in the reconstructed table; an array records the explicit ordered selection, including an empty selection.",
+      "description": "Single-station selection intent. null requests the normal initial table selection; an empty array records deliberate deselection; a one-item array records the explicit identity.",
       "default": null,
       "oneOf": [
         {
           "type": "null"
         },
         {
-          "const": "all"
-        },
-        {
           "type": "array",
+          "maxItems": 1,
           "items": {
             "$ref": "#/$defs/selectedStation"
           },

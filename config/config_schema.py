@@ -1,10 +1,11 @@
 """Canonical version-1 WSPRadar configuration document constants.
 
 The serialized settings hierarchy mirrors the four durable areas of the UI.
-Conditional objects contain only the fields applicable to the selected time
-and comparison modes; inactive widget state is deliberately not part of the
-configuration contract. Optional profile metadata makes the same document
-usable as either a personal saved configuration or a built-in demo.
+The time window is always stored as absolute UTC boundaries. Conditional
+comparison objects contain only fields applicable to the selected mode;
+inactive widget state is deliberately not part of the configuration contract.
+Optional profile metadata makes the same document usable as either a personal
+saved configuration or a built-in demo.
 """
 
 
@@ -37,7 +38,6 @@ EVIDENCE_TIME_BINS = frozenset(
 SEGMENT_EVIDENCE_TIME_BINS = EVIDENCE_TIME_BINS | {"auto"}
 STATION_EVIDENCE_TEMPORAL_VIEWS = frozenset({"chronological", "utc_hour"})
 SEGMENT_SELECTION_ALL = "all"
-STATION_SELECTION_ALL = "all"
 SEGMENT_RANGE_OPTIONS = (
     "[0-2500km]",
     "[2500-5000km]",

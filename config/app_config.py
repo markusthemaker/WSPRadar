@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 APP_VERSION = "v0.99d"
 LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
-APP_URL = "https://wspradar.streamlit.app"
+APP_URL = "https://wspradar.org/"
 
 
 @dataclass(frozen=True)

@@ -50,6 +50,13 @@ class _FooterColumn:
         return False
 
 
+class _FooterPopover(_FooterColumn):
+    """Minimal open-state popover used by footer rendering tests."""
+
+    def __init__(self, is_open=False):
+        self.open = bool(is_open)
+
+
 def test_selected_temporal_view_is_recorded_and_changes_export_signature(monkeypatch):
     """Prevent Chronological 1 h and folded 1 h exports from sharing a stale ZIP."""
     monkeypatch.setattr(
@@ -152,6 +159,38 @@ def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
     assert metadata["benchmark_snr_correction_db"] == 0.0
 
 
+def test_run_metadata_records_only_the_canonical_absolute_time_window(monkeypatch):
+    """Keep result metadata endpoints identical to the embedded config."""
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+    time_selection = {
+        "start_utc": "2026-07-01T00:00Z",
+        "end_utc": "2026-07-02T00:00Z",
+    }
+
+    metadata = results_export._build_run_metadata(
+        {
+            "RX_ABS": {
+                "analysis_id": "RX_ABS",
+                "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+                "database_source": "wspr_live",
+            }
+        },
+        {
+            "settings": {
+                "core_parameters": {
+                    "time_selection": time_selection,
+                },
+            }
+        },
+    )
+
+    assert metadata["time_window"] == time_selection
+
+
 def test_run_metadata_rejects_mixed_database_sources(monkeypatch):
     monkeypatch.setattr(
         results_export,
@@ -212,6 +251,7 @@ def test_results_footer_always_renders_redundant_save_control(
     captured = {
         "columns": None,
         "save_calls": [],
+        "share_popovers": [],
         "downloads": [],
         "events": [],
     }
@@ -223,7 +263,11 @@ def test_results_footer_always_renders_redundant_save_control(
         columns=lambda widths, **kwargs: (
             captured["events"].append(("columns", widths))
             or captured.update(columns=(widths, kwargs))
-            or (_FooterColumn(), _FooterColumn())
+            or (_FooterColumn(), _FooterColumn(), _FooterColumn())
+        ),
+        popover=lambda *args, **kwargs: (
+            captured["share_popovers"].append((args, kwargs))
+            or _FooterPopover()
         ),
         button=lambda *_args, **_kwargs: False,
         download_button=lambda label, **kwargs: captured["downloads"].append(
@@ -250,7 +294,7 @@ def test_results_footer_always_renders_redundant_save_control(
     results_export.render_download_all_results(T["en"])
 
     assert captured["columns"] == (
-        [0.65, 0.35],
+        [0.5, 0.25, 0.25],
         {"gap": "large", "vertical_alignment": "center"},
     )
     assert captured["save_calls"] == [
@@ -260,6 +304,18 @@ def test_results_footer_always_renders_redundant_save_control(
         }
     ]
     assert bool(captured["downloads"]) is is_prepared
+    assert captured["share_popovers"] == [
+        (
+            (T["en"]["btn_share_analysis"],),
+            {
+                "icon": ":material/share:",
+                "type": "primary",
+                "width": "stretch",
+                "key": "share_analysis_results_trigger",
+                "on_change": "rerun",
+            },
+        )
+    ]
     heading_events = [
         (index, body)
         for index, (kind, body) in enumerate(captured["events"])
@@ -273,6 +329,96 @@ def test_results_footer_always_renders_redundant_save_control(
         if kind == "columns"
     )
     assert heading_events[0][0] < columns_index
+
+
+def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
+    monkeypatch,
+):
+    """Build Share Analysis content only for an open completed-result popover."""
+    session_state = {
+        "run_id": 42,
+        "val_callsign": "dl1mks",
+        "val_analysis_direction": "rx",
+        "val_comp_mode": "hardware_ab",
+        "val_band": "20m",
+    }
+    browser_calls = []
+    build_calls = []
+    fake_streamlit = SimpleNamespace(
+        session_state=session_state,
+        markdown=lambda *_args, **_kwargs: None,
+        columns=lambda *_args, **_kwargs: (
+            _FooterColumn(),
+            _FooterColumn(),
+            _FooterColumn(),
+        ),
+        button=lambda *_args, **_kwargs: False,
+        download_button=lambda *_args, **_kwargs: None,
+        popover=lambda *_args, **_kwargs: _FooterPopover(is_open=True),
+    )
+    monkeypatch.setattr(results_export, "st", fake_streamlit)
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: {
+            "RX_COMPARE": {
+                "mode_folder": results_export.COMPARE_EXPORT_FOLDER
+            }
+        },
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_export_signature",
+        lambda _blocks: "share-signature",
+    )
+    monkeypatch.setattr(
+        results_export,
+        "render_config_save_control",
+        lambda **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "build_share_url",
+        lambda state: (
+            build_calls.append(state)
+            or "https://wspradar.org/?v=1&run=1#wspradar-results-inspection"
+        ),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "render_share_analysis_browser",
+        lambda **kwargs: browser_calls.append(kwargs),
+    )
+
+    results_export.render_download_all_results(T["en"])
+
+    assert build_calls == [session_state]
+    assert browser_calls == [
+        {
+            "share_url": (
+                "https://wspradar.org/?v=1&run=1"
+                "#wspradar-results-inspection"
+            ),
+            "title": (
+                "WSPRadar analysis: DL1MKS RX Hardware A/B on 20m"
+            ),
+            "message": T["en"]["share_analysis_message"],
+            "labels": {
+                "url_field": T["en"]["share_url_field"],
+                "copy_link": T["en"]["share_copy_link"],
+                "copied": T["en"]["share_copied"],
+                "manual_copy": T["en"]["share_manual_copy"],
+                "native_share": T["en"]["share_native"],
+                "native_share_failed": T["en"]["share_native_failed"],
+                "email": T["en"]["share_email"],
+                "whatsapp": T["en"]["share_whatsapp"],
+                "x": T["en"]["share_x"],
+                "facebook": T["en"]["share_facebook"],
+                "linkedin": T["en"]["share_linkedin"],
+            },
+            "key": "share_analysis_browser_42",
+        }
+    ]
 
 
 def test_results_footer_omits_heading_without_exportable_results(monkeypatch):
@@ -434,16 +580,6 @@ def test_register_inspector_export_keeps_all_success_temporal_recipes_independen
     [
         ("en", ["K1AAA (FN31)"], "Single selected path"),
         ("de", ["K1AAA (FN31)"], "Ein ausgewählter Funkweg"),
-        (
-            "en",
-            ["K1AAA (FN31)", "K2BBB (FN32)"],
-            "Combined observation-weighted evidence",
-        ),
-        (
-            "de",
-            ["K1AAA (FN31)", "K2BBB (FN32)"],
-            "Kombinierte beobachtungsgewichtete Evidenz",
-        ),
         ("en", [], None),
     ],
 )
@@ -476,6 +612,40 @@ def test_register_inspector_export_localizes_selected_evidence_weighting(
     assert block["selected_stations"] == selected_stations
     assert block["selected_station_count"] == len(selected_stations)
     assert block["selected_evidence_weighting"] == expected_weighting
+
+
+@pytest.mark.parametrize(
+    "selected_stations",
+    [
+        ["K1AAA (FN31)", "K2BBB (FN32)"],
+        "K1AAA (FN31)",
+    ],
+)
+def test_register_inspector_export_rejects_invalid_station_cardinality_atomically(
+    monkeypatch,
+    selected_stations,
+):
+    """Reject multi-station or malformed metadata before export-state access."""
+    ensure_state_calls = []
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: ensure_state_calls.append(True) or {},
+    )
+
+    with pytest.raises(ValueError):
+        results_export.register_inspector_export(
+            analysis_id="RX_COMPARE",
+            selected_segment="Full Range | All Directions",
+            selected_distance="Full Range",
+            selected_direction="All Directions",
+            show_non_joint=False,
+            evidence_time_bin="3h",
+            selected_stations=selected_stations,
+            translations=T["en"],
+        )
+
+    assert ensure_state_calls == []
 
 
 @pytest.mark.parametrize(
@@ -697,7 +867,10 @@ def test_success_results_zip_records_selected_figures_and_context(
                 "analysis_direction": "rx",
                 "callsign": "TARGET",
                 "band": "20m",
-                "time_selection": {"mode": "last_x", "hours": 24},
+                "time_selection": {
+                    "start_utc": "2026-07-01T00:00Z",
+                    "end_utc": "2026-07-02T00:00Z",
+                },
             },
             "comparison_parameters": {"mode": "none"},
             "advanced_parameters": {},
@@ -867,7 +1040,10 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
                 "analysis_direction": "rx",
                 "callsign": "TARGET",
                 "band": "20m",
-                "time_selection": {"mode": "last_x", "hours": 24},
+                "time_selection": {
+                    "start_utc": "2026-07-01T00:00Z",
+                    "end_utc": "2026-07-02T00:00Z",
+                },
             },
             "comparison_parameters": {"mode": "hardware_ab"},
             "advanced_parameters": {},
@@ -993,7 +1169,10 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
                 "analysis_direction": "rx",
                 "callsign": "TARGET",
                 "band": "20m",
-                "time_selection": {"mode": "last_x", "hours": 24},
+                "time_selection": {
+                    "start_utc": "2026-07-01T00:00Z",
+                    "end_utc": "2026-07-02T00:00Z",
+                },
             },
             "comparison_parameters": {"mode": "none"},
             "advanced_parameters": {"max_peer_distance_km": 10000},

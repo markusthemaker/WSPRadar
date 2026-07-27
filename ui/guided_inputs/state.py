@@ -3,20 +3,19 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime, time as dt_time, timedelta
 from numbers import Integral
 from typing import Any, Mapping, MutableMapping
 
 from config import (
     BAND_MAP,
     MAP_SCOPE_OPTIONS,
-    MAX_DAYS_HISTORY,
     MAX_DYNAMIC_RADIUS_KM,
     SNR_CORRECTION_MODES,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from core.input_validation import is_valid_callsign, is_valid_grid4, is_valid_locator
 from ui.config_io import _default_config
+from ui.time_window import utc_window_from_state
 
 
 GUIDED_USE_CASES = frozenset(
@@ -51,7 +50,6 @@ def guided_facts(state: Mapping[str, Any]) -> dict[str, Any]:
         "callsign": state.get("val_callsign"),
         "qth": state.get("val_qth"),
         "band": state.get("val_band"),
-        "time_mode": state.get("val_time_mode"),
         "benchmark_mode": state.get("val_comp_mode"),
         "local_benchmark": state.get("val_local_benchmark"),
         "tx_ab_method": state.get("val_tx_ab_method"),
@@ -60,28 +58,17 @@ def guided_facts(state: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _valid_custom_window(state: Mapping[str, Any]) -> bool:
-    """Return whether custom UTC date/time fields form one allowed interval."""
-    start_date = state.get("val_start_d")
-    end_date = state.get("val_end_d")
-    start_time = state.get("val_start_t")
-    end_time = state.get("val_end_t")
-    if not all(
-        (
-            hasattr(start_date, "year"),
-            hasattr(end_date, "year"),
-            isinstance(start_time, dt_time),
-            isinstance(end_time, dt_time),
-        )
-    ):
+def _valid_utc_window(state: Mapping[str, Any]) -> bool:
+    """Return whether the absolute fields form one permitted effective window."""
+    try:
+        utc_window_from_state(state)
+    except (TypeError, ValueError):
         return False
-    start_utc = datetime.combine(start_date, start_time)
-    end_utc = datetime.combine(end_date, end_time)
-    return start_utc < end_utc <= start_utc + timedelta(days=MAX_DAYS_HISTORY)
+    return True
 
 
 def _target_and_window_complete(state: Mapping[str, Any]) -> bool:
-    """Validate the Target identity, band and active time-selection branch."""
+    """Validate the Target identity, band and absolute UTC interval."""
     if state.get("val_analysis_direction") not in {"rx", "tx"}:
         return False
     if not is_valid_callsign(state.get("val_callsign", "")):
@@ -90,13 +77,7 @@ def _target_and_window_complete(state: Mapping[str, Any]) -> bool:
         return False
     if state.get("val_band") not in BAND_MAP:
         return False
-    time_mode = state.get("val_time_mode")
-    if time_mode == "last_x":
-        hours = state.get("val_hours")
-        return isinstance(hours, int) and not isinstance(hours, bool) and 1 <= hours <= 168
-    if time_mode == "custom":
-        return _valid_custom_window(state)
-    return False
+    return _valid_utc_window(state)
 
 
 def _reference_design_complete(state: Mapping[str, Any]) -> bool:

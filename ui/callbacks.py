@@ -23,6 +23,10 @@ from ui.page_navigation import (
     request_page_navigation,
 )
 from ui.result_state import reset_result_state
+from ui.time_window import (
+    quantize_utc_window_state,
+    set_default_utc_window_state,
+)
 from ui.analysis_submission_state import (
     begin_analysis_submission,
     cancel_analysis_submission,
@@ -49,6 +53,13 @@ def reset_audit():
     reset_result_state(st.session_state)
     if had_current_result:
         st.session_state.configuration_changed_since_run = True
+
+
+def handle_time_window_change(after_change=None, after_change_args=()):
+    """Canonicalize edited UTC endpoints before running the owning callback."""
+    quantize_utc_window_state(st.session_state)
+    if after_change is not None:
+        after_change(*after_change_args)
 
 
 def handle_reference_correction_context_change():
@@ -287,7 +298,7 @@ def handle_analysis_direction_change():
         st.session_state.val_snr_correction_mode = "no_offset"
     reset_audit()
 
-def set_reset_config():
+def set_reset_config(*, reset_time_window=True):
     """
     Resets all user inputs and configurations back to their default factory state.
     Clears any active analysis run.
@@ -297,8 +308,8 @@ def set_reset_config():
     st.session_state.val_analysis_direction = None
     st.session_state.val_qth = ""
     st.session_state.val_band = DEFAULT_BAND
-    st.session_state.val_time_mode = "last_x"
-    st.session_state.val_hours = 24
+    if reset_time_window:
+        set_default_utc_window_state(st.session_state)
     st.session_state.val_solar = "all"
     st.session_state.val_comp_mode = "none"
     st.session_state.val_ref_stations = 10

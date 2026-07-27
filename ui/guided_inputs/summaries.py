@@ -10,11 +10,8 @@ from ui.config_io import SOLAR_KEYS
 
 
 def _window_summary(state: Mapping[str, Any], guided_content) -> str:
-    """Format the active UTC window entirely from Guided localization templates."""
+    """Format the absolute UTC window from Guided localization templates."""
     summaries = guided_content["summaries"]
-    if state.get("val_time_mode") == "last_x":
-        hours = int(state.get("val_hours", 24))
-        return summaries["window_last_x"].format(hours=hours)
     start_date = state.get("val_start_d")
     end_date = state.get("val_end_d")
     start_time = state.get("val_start_t")
@@ -23,7 +20,7 @@ def _window_summary(state: Mapping[str, Any], guided_content) -> str:
         return summaries["window_incomplete"]
     start_utc = datetime.combine(start_date, start_time)
     end_utc = datetime.combine(end_date, end_time)
-    return summaries["window_custom"].format(
+    return summaries["window_utc"].format(
         start=f"{start_utc:%Y-%m-%d %H:%M}",
         end=f"{end_utc:%Y-%m-%d %H:%M}",
     )
@@ -41,7 +38,7 @@ def use_case_summary(state, guided_content, step_number, language):
 
 
 def target_and_window_summary(state, guided_content, step_number, language):
-    """Summarize Target identity, band and active time branch."""
+    """Summarize Target identity, band and absolute UTC window."""
     return guided_content["summaries"]["target_and_window"].format(
         step=step_number,
         callsign=str(state.get("val_callsign", "")).upper(),

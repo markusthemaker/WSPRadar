@@ -56,6 +56,8 @@ export default function(component) {
         '__wspradarRequestedDocumentationAnchor';
     const processedRequestTokenProperty =
         '__wspradarProcessedApplicationNavigationToken';
+    const processedInitialAnchorProperty =
+        '__wspradarProcessedInitialApplicationAnchor';
     const documentationSelector = '.st-key-documentation_body';
 
     function anchorIdFromHash(hash) {
@@ -236,6 +238,7 @@ export default function(component) {
         }
 
         window[processedRequestTokenProperty] = requestToken;
+        window[processedInitialAnchorProperty] = anchorId;
         clearPendingDocumentationNavigation();
         replaceCurrentFragment(anchorId);
         if (data?.shouldScrollRequest) {
@@ -260,7 +263,11 @@ export default function(component) {
     const didHandleRequest = handleRequestedNavigation();
     if (!didHandleRequest) {
         const initialAnchorId = anchorIdFromHash(window.location.hash);
-        if (allowedApplicationAnchors.has(initialAnchorId)) {
+        if (
+            allowedApplicationAnchors.has(initialAnchorId)
+            && window[processedInitialAnchorProperty] !== initialAnchorId
+        ) {
+            window[processedInitialAnchorProperty] = initialAnchorId;
             scrollWhenApplicationAnchorMounts(initialAnchorId);
         } else if (!initialAnchorId) {
             scheduleVisibleApplicationAnchorSynchronization();

@@ -13,7 +13,7 @@ import math
 import re
 import unicodedata
 from copy import deepcopy
-from datetime import datetime, timedelta, timezone, time as dt_time
+from datetime import datetime, timedelta, timezone
 
 import streamlit as st
 
@@ -31,7 +31,6 @@ from config.config_schema import (
     SEGMENT_RANGE_OPTIONS,
     SEGMENT_SELECTION_ALL,
     SNR_CORRECTION_MODES,
-    STATION_SELECTION_ALL,
     STATION_EVIDENCE_TEMPORAL_VIEWS,
     TX_AB_METHODS,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
@@ -45,12 +44,22 @@ from core.input_validation import (
     is_valid_locator,
     normalize_ascii_upper,
 )
+from core.time_utils import (
+    format_utc_minute,
+    normalize_utc_window,
+    parse_utc_minute,
+    resolve_default_utc_window,
+)
 from ui.analysis_submission_state import cancel_analysis_submission
 from ui.result_state import reset_result_state
+from ui.time_window import (
+    ABSOLUTE_TIME_WINDOW_INITIALIZED_KEY,
+    MINIMUM_ANALYSIS_UTC,
+    utc_window_from_state,
+)
 
 
 MAX_CONFIG_BYTES = 200_000
-MIN_CONFIG_DATE = datetime(2008, 1, 1, tzinfo=timezone.utc).date()
 MODE_KEYS = {
     "none": "opt_comp_none",
     "hardware_ab": "opt_comp_self",
@@ -93,16 +102,13 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "core_parameters",
         "created_utc",
         "description",
-        "end_date",
-        "end_time_utc",
+        "end_utc",
         "exclude_moving_stations",
         "exclude_special_callsigns",
         "exported_utc",
         "extensions",
         "format",
-        "frozen_time_window",
         "generator",
-        "hours",
         "id",
         "language",
         "local_benchmark",
@@ -132,8 +138,7 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "snr_correction_db",
         "snr_correction_mode",
         "solar_state",
-        "start_date",
-        "start_time_utc",
+        "start_utc",
         "station_evidence_temporal_view",
         "station_evidence_time_bin",
         "success",
@@ -203,18 +208,14 @@ def canonical_from_translated(state_value, value_map, fallback):
 
 
 def _default_config():
-    today = datetime.now(timezone.utc).date()
+    start_utc, end_utc = resolve_default_utc_window()
     return {
         "analysis_direction": None,
         "callsign": "",
         "qth": "",
         "band": DEFAULT_BAND,
-        "time_mode": "last_x",
-        "hours": 24,
-        "start_date": (today - timedelta(days=1)).isoformat(),
-        "end_date": today.isoformat(),
-        "start_time": "00:00",
-        "end_time": "23:59",
+        "start_utc": start_utc,
+        "end_utc": end_utc,
         "benchmark_mode": "none",
         "local_benchmark": "local_median",
         "reference_callsign": "",
@@ -247,24 +248,6 @@ def _default_config():
         "station_evidence_time_bin_absolute": "3h",
         "selected_stations_absolute": None,
     }
-
-
-def _parse_date(value, field):
-    try:
-        parsed = datetime.strptime(str(value), "%Y-%m-%d").date()
-    except (TypeError, ValueError):
-        raise ValueError(f"{field} must use YYYY-MM-DD format.")
-    today = datetime.now(timezone.utc).date()
-    if parsed < MIN_CONFIG_DATE or parsed > today:
-        raise ValueError(f"{field} must be between {MIN_CONFIG_DATE.isoformat()} and {today.isoformat()}.")
-    return parsed
-
-
-def _parse_time(value, field):
-    try:
-        return datetime.strptime(str(value), "%H:%M").time()
-    except (TypeError, ValueError):
-        raise ValueError(f"{field} must use HH:MM format.")
 
 
 def _validate_bool(value, field):
@@ -378,15 +361,11 @@ def _validate_grid4(value, field, allow_empty=True):
 
 
 def _validate_selected_stations(value, field):
-    """Normalize automatic, all-station, or explicit station-selection intent."""
+    """Normalize automatic, empty, or one explicit station-selection identity."""
     if value is None:
         return None
-    if value == STATION_SELECTION_ALL:
-        return STATION_SELECTION_ALL
     if not isinstance(value, list):
-        raise ValueError(
-            f"{field} must be null, {STATION_SELECTION_ALL!r}, or a JSON array."
-        )
+        raise ValueError(f"{field} must be null or a JSON array.")
 
     normalized_stations = []
     seen_station_identities = set()
@@ -417,6 +396,8 @@ def _validate_selected_stations(value, field):
         normalized_stations.append(
             {"callsign": callsign, "locator": locator}
         )
+    if len(normalized_stations) > 1:
+        raise ValueError(f"{field} must contain at most one station identity.")
     return normalized_stations
 
 
@@ -459,52 +440,7 @@ def _limit_segment_selection_to_analysis_scope(
     return selection
 
 
-def _date_state_to_iso(value):
-    """Serialize one Streamlit date value as an ISO calendar date."""
-    if hasattr(value, "isoformat"):
-        return value.isoformat()
-    return str(value)
-
-
-def _time_state_to_hhmm(value):
-    """Serialize one Streamlit time value as a UTC ``HH:MM`` string."""
-    if hasattr(value, "strftime"):
-        return value.strftime("%H:%M")
-    return str(value)
-
-
-def _time_selection_from_frozen_window(frozen_time_window):
-    """Return a custom UTC selection for one resolved, aware analysis interval."""
-    if frozen_time_window is None:
-        return None
-    if (
-        not isinstance(frozen_time_window, (tuple, list))
-        or len(frozen_time_window) != 2
-    ):
-        raise ValueError("frozen_time_window must contain a UTC start and end.")
-    start_utc, end_utc = frozen_time_window
-    if not isinstance(start_utc, datetime) or not isinstance(end_utc, datetime):
-        raise ValueError("The frozen UTC start and end must be datetimes.")
-    if start_utc.tzinfo is None or end_utc.tzinfo is None:
-        raise ValueError("The frozen UTC start and end must be timezone-aware.")
-    start_utc = start_utc.astimezone(timezone.utc)
-    end_utc = end_utc.astimezone(timezone.utc)
-    if end_utc <= start_utc:
-        raise ValueError("The frozen UTC end must be after its start.")
-    if end_utc - start_utc > timedelta(days=MAX_DAYS_HISTORY):
-        raise ValueError(
-            f"The frozen UTC range must not exceed {MAX_DAYS_HISTORY} days."
-        )
-    return {
-        "mode": "custom",
-        "start_date": start_utc.date().isoformat(),
-        "end_date": end_utc.date().isoformat(),
-        "start_time_utc": start_utc.strftime("%H:%M"),
-        "end_time_utc": end_utc.strftime("%H:%M"),
-    }
-
-
-def _settings_from_session_state(state, lang, *, frozen_time_window=None):
+def _settings_from_session_state(state, lang):
     """Build grouped version-1 settings from applicable Streamlit controls."""
     defaults = _default_config()
     analysis_direction = _validate_choice(
@@ -512,43 +448,32 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
         "analysis_direction",
         ANALYSIS_DIRECTIONS,
     )
-    time_mode_value = state.get("val_time_mode", "last_x")
-    if time_mode_value in {"last_x", "custom"}:
-        time_mode = time_mode_value
-    else:
-        time_mode = (
-            "last_x" if time_mode_value == T[lang]["opt_last_x"] else "custom"
-        )
-    frozen_time_selection = _time_selection_from_frozen_window(frozen_time_window)
-    if frozen_time_selection is not None:
-        time_selection = frozen_time_selection
-    elif time_mode == "last_x":
-        time_selection = {
-            "mode": "last_x",
-            "hours": int(state.get("val_hours", defaults["hours"])),
-        }
-    else:
-        time_selection = {
-            "mode": "custom",
-            "start_date": _date_state_to_iso(
-                state.get(
-                    "val_start_d",
-                    datetime.fromisoformat(defaults["start_date"]).date(),
-                )
+    default_start_utc = defaults["start_utc"]
+    default_end_utc = defaults["end_utc"]
+    start_utc, end_utc = utc_window_from_state(
+        {
+            "val_start_d": state.get(
+                "val_start_d",
+                default_start_utc.date(),
             ),
-            "end_date": _date_state_to_iso(
-                state.get(
-                    "val_end_d",
-                    datetime.fromisoformat(defaults["end_date"]).date(),
-                )
+            "val_start_t": state.get(
+                "val_start_t",
+                default_start_utc.time().replace(tzinfo=None),
             ),
-            "start_time_utc": _time_state_to_hhmm(
-                state.get("val_start_t", dt_time(0, 0))
+            "val_end_d": state.get(
+                "val_end_d",
+                default_end_utc.date(),
             ),
-            "end_time_utc": _time_state_to_hhmm(
-                state.get("val_end_t", dt_time(23, 59))
+            "val_end_t": state.get(
+                "val_end_t",
+                default_end_utc.time().replace(tzinfo=None),
             ),
         }
+    )
+    time_selection = {
+        "start_utc": format_utc_minute(start_utc),
+        "end_utc": format_utc_minute(end_utc),
+    }
 
     benchmark_mode = _canonical_from_translated(
         state.get("val_comp_mode", "none"),
@@ -795,6 +720,14 @@ def _settings_from_session_state(state, lang, *, frozen_time_window=None):
     }
 
 
+def build_config_settings_from_state(state, language=None):
+    """Return validated canonical grouped settings from one state mapping."""
+    language = language or state.get("lang", "en")
+    settings = _settings_from_session_state(state, language)
+    normalize_config_settings(settings)
+    return settings
+
+
 def derive_config_profile_id(title):
     """Derive a deterministic, schema-safe profile ID from one display title."""
     normalized_title = str(title or "").strip()
@@ -900,15 +833,9 @@ def _config_save_components(
     title,
     description="",
     profile_id=None,
-    frozen_time_window=None,
 ):
     """Build and validate the durable settings, profile, and extensions blocks."""
-    settings = _settings_from_session_state(
-        state,
-        language,
-        frozen_time_window=frozen_time_window,
-    )
-    normalize_config_settings(settings)
+    settings = build_config_settings_from_state(state, language)
     if title is None:
         loaded_profile = state.get("val_config_profile")
         profile = deepcopy(loaded_profile) if isinstance(loaded_profile, dict) else None
@@ -932,7 +859,6 @@ def build_config_state_signature(
     description="",
     profile_id=None,
     language=None,
-    frozen_time_window=None,
     state=None,
 ):
     """Return a stable digest for the current save inputs and durable UI state."""
@@ -944,7 +870,6 @@ def build_config_state_signature(
         title=title,
         description=description,
         profile_id=profile_id,
-        frozen_time_window=frozen_time_window,
     )
     signature_payload = {
         "settings": settings,
@@ -967,18 +892,16 @@ def build_config_payload(
     description="",
     profile_id=None,
     language=None,
-    frozen_time_window=None,
     state=None,
     exported_utc=None,
 ):
     """Return one ordinary v1 config document and a suitable filename.
 
-    ``frozen_time_window`` converts a Last-X selection into the supplied
-    resolved UTC interval. Loaded profile localizations and extensions survive
-    re-saving; writer provenance is regenerated for this download. Interactive
-    saves supply ``title`` and therefore always carry profile metadata. A
-    noninteractive analysis export may omit it; an already loaded profile is
-    still retained when available.
+    Loaded profile localizations and extensions survive re-saving; writer
+    provenance is regenerated for this download. Interactive saves supply
+    ``title`` and therefore always carry profile metadata. A noninteractive
+    analysis export may omit it; an already loaded profile is still retained
+    when available.
     """
     state = st.session_state if state is None else state
     language = language or state.get("lang", "en")
@@ -988,7 +911,6 @@ def build_config_payload(
         title=title,
         description=description,
         profile_id=profile_id,
-        frozen_time_window=frozen_time_window,
     )
     exported_utc = exported_utc or datetime.now(timezone.utc)
     if exported_utc.tzinfo is None:
@@ -1061,64 +983,25 @@ def normalize_config_settings(raw_settings):
     }
 
     time_selection = core["time_selection"]
-    if not isinstance(time_selection, dict):
-        raise ValueError("settings.core_parameters.time_selection must be a JSON object.")
-    time_mode = _validate_choice(
-        time_selection.get("mode"),
-        "time_selection.mode",
-        {"last_x", "custom"},
+    _validate_object_fields(
+        time_selection,
+        "settings.core_parameters.time_selection",
+        {"start_utc", "end_utc"},
     )
-    normalized["time_mode"] = time_mode
-    if time_mode == "last_x":
-        _validate_object_fields(
-            time_selection,
-            "settings.core_parameters.time_selection",
-            {"mode", "hours"},
-        )
-        normalized["hours"] = _validate_int(
-            time_selection["hours"], "hours", 1, 168
-        )
-    else:
-        _validate_object_fields(
-            time_selection,
-            "settings.core_parameters.time_selection",
-            {
-                "mode",
-                "start_date",
-                "end_date",
-                "start_time_utc",
-                "end_time_utc",
-            },
-        )
-        normalized["start_date"] = _parse_date(
-            time_selection["start_date"], "start_date"
-        )
-        normalized["end_date"] = _parse_date(
-            time_selection["end_date"], "end_date"
-        )
-        normalized["start_time"] = _parse_time(
-            time_selection["start_time_utc"], "start_time_utc"
-        )
-        normalized["end_time"] = _parse_time(
-            time_selection["end_time_utc"], "end_time_utc"
-        )
-        if normalized["end_date"] < normalized["start_date"]:
-            raise ValueError("end_date must not be before start_date.")
-        start_datetime = datetime.combine(
-            normalized["start_date"], normalized["start_time"]
-        )
-        end_datetime = datetime.combine(
-            normalized["end_date"], normalized["end_time"]
-        )
-        if end_datetime <= start_datetime:
-            raise ValueError(
-                "The configured end date/time must be after the start date/time."
-            )
-        if end_datetime - start_datetime > timedelta(days=MAX_DAYS_HISTORY):
-            raise ValueError(
-                f"The configured date/time range must not exceed "
-                f"{MAX_DAYS_HISTORY} days."
-            )
+    configured_start_utc = parse_utc_minute(
+        time_selection["start_utc"],
+        field="start_utc",
+    )
+    configured_end_utc = parse_utc_minute(
+        time_selection["end_utc"],
+        field="end_utc",
+    )
+    normalized["start_utc"], normalized["end_utc"] = normalize_utc_window(
+        configured_start_utc,
+        configured_end_utc,
+        max_duration=timedelta(days=MAX_DAYS_HISTORY),
+        minimum_start_utc=MINIMUM_ANALYSIS_UTC,
+    )
 
     comparison = settings["comparison_parameters"]
     if not isinstance(comparison, dict):
@@ -1440,133 +1323,152 @@ def validate_config_upload(raw_bytes):
 def apply_config_state_values(config, session_state):
     """Apply active values, loaded metadata, and canonical inactive defaults."""
     defaults = _default_config()
+    session_state.update(
+        {
+            "val_analysis_direction": config["analysis_direction"],
+            "val_callsign": config["callsign"],
+            "val_qth": config["qth"],
+            "val_band": config["band"],
+            "val_start_d": config["start_utc"].date(),
+            "val_start_t": config["start_utc"].time().replace(tzinfo=None),
+            "val_end_d": config["end_utc"].date(),
+            "val_end_t": config["end_utc"].time().replace(tzinfo=None),
+            ABSOLUTE_TIME_WINDOW_INITIALIZED_KEY: True,
+            "val_comp_mode": config["benchmark_mode"],
+            "val_local_benchmark": config.get(
+                "local_benchmark",
+                defaults["local_benchmark"],
+            ),
+            "val_ref_callsign": config.get(
+                "reference_callsign",
+                defaults["reference_callsign"],
+            ),
+            "val_ref_qth": config.get(
+                "reference_qth",
+                defaults["reference_qth"],
+            ),
+            "val_ref_radius_km": config.get(
+                "neighborhood_radius_km",
+                defaults["neighborhood_radius_km"],
+            ),
+            "val_benchmark_offset_db": config.get(
+                "benchmark_snr_correction_db",
+                defaults["benchmark_snr_correction_db"],
+            ),
+            "val_snr_correction_mode": config.get(
+                "snr_correction_mode",
+                defaults["snr_correction_mode"],
+            ),
+            "val_tx_ab_method": config.get(
+                "tx_ab_method",
+                defaults["tx_ab_method"],
+            ),
+            "val_tx_ab_repeat_interval_minutes": config.get(
+                "tx_ab_repeat_interval_minutes",
+                defaults["tx_ab_repeat_interval_minutes"],
+            ),
+            "val_tx_ab_target_start_minute": config.get(
+                "tx_ab_target_start_minute",
+                defaults["tx_ab_target_start_minute"],
+            ),
+            "val_tx_ab_reference_start_minute": config.get(
+                "tx_ab_reference_start_minute",
+                defaults["tx_ab_reference_start_minute"],
+            ),
+            "val_solar": config["solar_state"],
+            "val_max_peer_distance_km": config["max_peer_distance_km"],
+            "val_exclude_special_callsigns": config[
+                "exclude_special_callsigns"
+            ],
+            "val_filter_moving": config["exclude_moving_stations"],
+            "val_min_spots": config.get(
+                "min_joint_spots_per_station",
+                defaults["min_joint_spots_per_station"],
+            ),
+            "val_min_opportunities": config[
+                "min_confirmed_opportunities_per_peer"
+            ],
+            "val_min_stations": config[
+                "min_joint_stations_per_map_segment"
+            ],
+            "val_results_show_non_joint": config.get("show_non_joint"),
+            "val_results_show_zero_target": config["show_zero_target"],
+            "val_results_selected_ranges_compare": deepcopy(
+                config.get(
+                    "selected_ranges_compare",
+                    defaults["selected_ranges_compare"],
+                )
+            ),
+            "val_results_selected_directions_compare": deepcopy(
+                config.get(
+                    "selected_directions_compare",
+                    defaults["selected_directions_compare"],
+                )
+            ),
+            "val_results_selected_ranges_absolute": deepcopy(
+                config["selected_ranges_absolute"]
+            ),
+            "val_results_selected_directions_absolute": deepcopy(
+                config["selected_directions_absolute"]
+            ),
+            "val_results_time_bin_compare": config.get(
+                "station_evidence_time_bin_compare"
+            ),
+            "val_results_time_bin_absolute": config[
+                "station_evidence_time_bin_absolute"
+            ],
+            "val_results_segment_time_bin_compare": config.get(
+                "segment_evidence_time_bin_compare",
+                defaults["segment_evidence_time_bin_compare"],
+            ),
+            "val_results_segment_time_bin_absolute": config.get(
+                "segment_evidence_time_bin_absolute",
+                defaults["segment_evidence_time_bin_absolute"],
+            ),
+            "val_results_station_temporal_view_compare": config.get(
+                "station_evidence_temporal_view_compare",
+                defaults["station_evidence_temporal_view_compare"],
+            ),
+            "val_results_selected_stations_compare": deepcopy(
+                config.get("selected_stations_compare")
+            ),
+            "val_results_selected_stations_absolute": deepcopy(
+                config.get("selected_stations_absolute")
+            ),
+            "val_config_profile": deepcopy(config.get("profile")),
+            "loaded_config_profile": deepcopy(config.get("profile")),
+            "val_config_extensions": deepcopy(config.get("extensions", {})),
+        }
+    )
 
-    session_state.val_analysis_direction = config["analysis_direction"]
-    session_state.val_callsign = config["callsign"]
-    session_state.val_qth = config["qth"]
-    session_state.val_band = config["band"]
-    session_state.val_time_mode = config["time_mode"]
-    session_state.val_hours = config.get("hours", defaults["hours"])
-    session_state.val_start_d = config.get(
-        "start_date", datetime.fromisoformat(defaults["start_date"]).date()
-    )
-    session_state.val_end_d = config.get(
-        "end_date", datetime.fromisoformat(defaults["end_date"]).date()
-    )
-    session_state.val_start_t = config.get("start_time", dt_time(0, 0))
-    session_state.val_end_t = config.get("end_time", dt_time(23, 59))
-    session_state.val_comp_mode = config["benchmark_mode"]
-    session_state.val_local_benchmark = config.get(
-        "local_benchmark", defaults["local_benchmark"]
-    )
-    session_state.val_ref_callsign = config.get(
-        "reference_callsign", defaults["reference_callsign"]
-    )
-    session_state.val_ref_qth = config.get(
-        "reference_qth", defaults["reference_qth"]
-    )
-    session_state.val_ref_radius_km = config.get(
-        "neighborhood_radius_km", defaults["neighborhood_radius_km"]
-    )
-    session_state.val_benchmark_offset_db = config.get(
-        "benchmark_snr_correction_db", defaults["benchmark_snr_correction_db"]
-    )
-    session_state.val_snr_correction_mode = config.get(
-        "snr_correction_mode", defaults["snr_correction_mode"]
-    )
-    session_state.val_tx_ab_method = config.get(
-        "tx_ab_method", defaults["tx_ab_method"]
-    )
-    session_state.val_tx_ab_repeat_interval_minutes = config.get(
-        "tx_ab_repeat_interval_minutes",
-        defaults["tx_ab_repeat_interval_minutes"],
-    )
-    session_state.val_tx_ab_target_start_minute = config.get(
-        "tx_ab_target_start_minute",
-        defaults["tx_ab_target_start_minute"],
-    )
-    session_state.val_tx_ab_reference_start_minute = config.get(
-        "tx_ab_reference_start_minute",
-        defaults["tx_ab_reference_start_minute"],
-    )
-    session_state.val_solar = config["solar_state"]
-    session_state.val_max_peer_distance_km = config["max_peer_distance_km"]
-    session_state.val_exclude_special_callsigns = config["exclude_special_callsigns"]
-    session_state.val_filter_moving = config["exclude_moving_stations"]
-    session_state.val_min_spots = config.get(
-        "min_joint_spots_per_station", defaults["min_joint_spots_per_station"]
-    )
-    session_state.val_min_opportunities = config["min_confirmed_opportunities_per_peer"]
-    session_state.val_min_stations = config["min_joint_stations_per_map_segment"]
-    session_state.val_results_show_non_joint = config.get("show_non_joint")
-    session_state.val_results_show_zero_target = config["show_zero_target"]
-    session_state.val_results_selected_ranges_compare = deepcopy(
-        config.get("selected_ranges_compare", defaults["selected_ranges_compare"])
-    )
-    session_state.val_results_selected_directions_compare = deepcopy(
-        config.get(
-            "selected_directions_compare",
-            defaults["selected_directions_compare"],
-        )
-    )
-    session_state.val_results_selected_ranges_absolute = deepcopy(
-        config["selected_ranges_absolute"]
-    )
-    session_state.val_results_selected_directions_absolute = deepcopy(
-        config["selected_directions_absolute"]
-    )
-    session_state.val_results_time_bin_compare = config.get(
-        "station_evidence_time_bin_compare"
-    )
-    session_state.val_results_time_bin_absolute = config[
-        "station_evidence_time_bin_absolute"
-    ]
-    session_state.val_results_segment_time_bin_compare = config.get(
-        "segment_evidence_time_bin_compare",
-        defaults["segment_evidence_time_bin_compare"],
-    )
-    session_state.val_results_segment_time_bin_absolute = config.get(
-        "segment_evidence_time_bin_absolute",
-        defaults["segment_evidence_time_bin_absolute"],
-    )
-    session_state.val_results_station_temporal_view_compare = config.get(
-        "station_evidence_temporal_view_compare",
-        defaults["station_evidence_temporal_view_compare"],
-    )
-    session_state.val_results_selected_stations_compare = deepcopy(
-        config.get("selected_stations_compare")
-    )
-    session_state.val_results_selected_stations_absolute = deepcopy(
-        config.get("selected_stations_absolute")
-    )
-    session_state.val_config_profile = deepcopy(config.get("profile"))
-    session_state.loaded_config_profile = deepcopy(config.get("profile"))
-    session_state.val_config_extensions = deepcopy(config.get("extensions", {}))
 
-
-def apply_config_values(config):
-    """Apply validated settings and reset the editable UI lifecycle."""
-    session_state = st.session_state
-
+def apply_config_values_to_state(config, session_state):
+    """Atomically apply validated config values to one mutable state mapping."""
     cancel_analysis_submission(session_state)
-    session_state.active_demo_profile = None
-    session_state.show_demo_launcher = False
-    session_state.show_config_loader = False
-    session_state.config_panels_expanded = True
-    session_state._collapse_config_panels_once = False
-    session_state.run_mode = None
-    session_state.guided_loaded_demo_profile = None
-    session_state.guided_demo_metadata_open = False
-    session_state.guided_last_compare_mode = None
-    session_state.guided_reconstruct_requested = True
-    session_state.guided_collapse_all = False
-    session_state.configuration_changed_since_run = False
+    session_state["active_demo_profile"] = None
+    session_state["show_demo_launcher"] = False
+    session_state["show_config_loader"] = False
+    session_state["config_panels_expanded"] = True
+    session_state["_collapse_config_panels_once"] = False
+    session_state["run_mode"] = None
+    session_state["guided_loaded_demo_profile"] = None
+    session_state["guided_demo_metadata_open"] = False
+    session_state["guided_last_compare_mode"] = None
+    session_state["guided_reconstruct_requested"] = True
+    session_state["guided_collapse_all"] = False
+    session_state["configuration_changed_since_run"] = False
     reset_result_state(session_state)
     for state_key in tuple(session_state.keys()):
         if state_key.startswith("config_save_"):
             session_state.pop(state_key, None)
     apply_config_state_values(config, session_state)
+    session_state[ABSOLUTE_TIME_WINDOW_INITIALIZED_KEY] = True
 
     for key in list(session_state.keys()):
         if key.startswith("img_buf_"):
             del session_state[key]
+
+
+def apply_config_values(config):
+    """Apply validated settings to Streamlit through the mapping lifecycle."""
+    apply_config_values_to_state(config, st.session_state)

@@ -104,10 +104,10 @@ def _result_guidance_item_keys(
     analysis_context,
     selected_station_count=None,
 ):
-    """Resolve content keys from semantic mode and optional selection count.
+    """Resolve content keys from semantic mode and selection cardinality.
 
-    Success selected-station guidance requires exactly one station so its
-    one-path language cannot be reused for an invalid combined selection.
+    Selected-station guidance requires exactly one station in both result
+    branches so its one-path language cannot mask an invalid selection.
     """
     if section_id == RESULT_GUIDANCE_DOWNLOAD:
         return ["download"]
@@ -186,16 +186,15 @@ def _result_guidance_item_keys(
         ]
 
     if section_id == RESULT_GUIDANCE_SELECTED_STATIONS:
+        if (
+            isinstance(selected_station_count, bool)
+            or not isinstance(selected_station_count, Integral)
+            or selected_station_count != 1
+        ):
+            raise ValueError(
+                "Selected-station guidance requires exactly one selected station"
+            )
         if not is_compare:
-            if (
-                isinstance(selected_station_count, bool)
-                or not isinstance(selected_station_count, Integral)
-                or selected_station_count != 1
-            ):
-                raise ValueError(
-                    "Success selected-station guidance requires exactly one "
-                    "selected station"
-                )
             return [
                 f"selected_success_{direction.lower()}"
             ]
@@ -243,9 +242,9 @@ def build_result_guidance(
     """Build self-contained localized Markdown for one result-help popover.
 
     The resolver uses only semantic mode fields. It never parses localized
-    labels or record identities, and its output is presentation-only. Success
-    selected-station guidance requires ``selected_station_count`` so path and
-    combined-selection wording remain unambiguous.
+    labels or record identities, and its output is presentation-only.
+    Selected-station guidance requires ``selected_station_count`` so its
+    one-path wording remains unambiguous.
     """
     if section_id not in RESULT_GUIDANCE_SECTION_IDS:
         raise ValueError(f"Unknown result-guidance section: {section_id}")
@@ -302,8 +301,8 @@ def render_result_guidance_popover(
 ):
     """Render one static click-open interpretation popover without a rerun.
 
-    ``selected_station_count`` is required only for Success selected-station
-    guidance; Compare and every other section retain their existing call shape.
+    ``selected_station_count`` is required for selected-station guidance in
+    both result branches; every other section retains its existing call shape.
     """
     guidance_markdown = build_result_guidance(
         section_id,

@@ -4,7 +4,6 @@
 import base64
 import time
 from contextlib import nullcontext
-from datetime import datetime, timedelta, timezone
 from html import escape
 
 import streamlit as st
@@ -21,7 +20,7 @@ st.set_page_config(
 
 # Everything imported below this point belongs to the lightweight landing shell.
 # Scientific analysis imports remain inside the active-run branch near the end.
-from config import APP_URL, APP_VERSION, BAND_MAP, DEMO_PROFILES, LOGO_URL, MAX_DAYS_HISTORY
+from config import APP_URL, APP_VERSION, BAND_MAP, DEMO_PROFILES, LOGO_URL
 from config.demo_profiles import (
     prepare_demo_description_markdown,
     resolve_demo_profile_text,
@@ -32,7 +31,7 @@ from core.input_validation import (
     is_valid_locator,
     normalize_ascii_upper,
 )
-from core.time_utils import quantize_time
+from core.time_utils import UtcWindowValidationError
 from i18n import GUIDED_INPUTS, T
 from ui.callbacks import (
     handle_input_view_change,
@@ -75,12 +74,17 @@ from ui.analysis_submission_state import (
     finish_analysis_submission,
     get_analysis_submission,
 )
-from ui.result_state import (
-    get_active_run_time_window,
-    reset_result_state,
-    set_active_run_time_window,
-)
+from ui.result_state import reset_result_state
 from ui.state_manager import init_session_state
+from ui.time_window import utc_window_from_state
+from ui.url_state import (
+    URL_QUERY_SYNCHRONIZER_PAGE_KEY,
+    collect_query_values,
+    consume_url_hydration_error,
+    consume_url_replay_navigation,
+    hydrate_initial_url_state,
+    render_current_url_synchronizer,
+)
 
 
 def get_base64_of_bin_file(bin_file):
@@ -95,16 +99,26 @@ def get_base64_of_bin_file(bin_file):
 init_session_state()
 
 if not st.session_state.get("_initial_config_loaded", False):
-    set_reset_config()
+    set_reset_config(reset_time_window=False)
     st.session_state._initial_config_loaded = True
+
+hydrate_initial_url_state(
+    st.session_state,
+    collect_query_values(st.query_params),
+)
 
 t = T[st.session_state.lang]
 apply_custom_css()
 
 render_page_anchor(PAGE_TOP_ANCHOR_ID)
-render_page_navigation_controller(
-    consume_page_navigation_request(st.session_state)
-)
+url_hydration_error = consume_url_hydration_error(st.session_state)
+if url_hydration_error is not None:
+    url_error_key = (
+        "err_url_unsupported_version"
+        if url_hydration_error.get("code") == "unsupported_version"
+        else "err_url_invalid"
+    )
+    st.error(t[url_error_key])
 
 st.markdown(f"""
     <meta property="og:title" content="WSPRadar.org | Antenna Benchmarking" />
@@ -326,40 +340,20 @@ run_status_slot = st.empty()
 callsign = normalize_ascii_upper(st.session_state.val_callsign)
 qth_locator = normalize_ascii_upper(st.session_state.val_qth)
 band = st.session_state.val_band
-time_mode = st.session_state.val_time_mode
-hours = st.session_state.val_hours
-start_d = st.session_state.val_start_d
-end_d = st.session_state.val_end_d
-start_t_input = st.session_state.val_start_t
-end_t_input = st.session_state.val_end_t
 comp_mode = st.session_state.val_comp_mode
 
 band_value = BAND_MAP.get(band, "")
 band_filter = f"AND band = '{band_value}'"
 
-if time_mode == "last_x":
-    end_t_base = datetime.now(timezone.utc)
-    start_t_base = end_t_base - timedelta(hours=hours)
-else:
-    start_t_base = datetime.combine(start_d, start_t_input).replace(tzinfo=timezone.utc)
-    end_t_base = datetime.combine(end_d, end_t_input).replace(tzinfo=timezone.utc)
-
-if (end_t_base - start_t_base).total_seconds() > MAX_DAYS_HISTORY * 24 * 3600:
-    start_t_base = end_t_base - timedelta(days=MAX_DAYS_HISTORY)
-candidate_start_t = quantize_time(start_t_base)
-candidate_end_t = quantize_time(end_t_base)
-active_run_time_window = get_active_run_time_window(st.session_state)
-if st.session_state.get("run_mode") and active_run_time_window is not None:
-    start_t, end_t = active_run_time_window
-else:
-    start_t, end_t = candidate_start_t, candidate_end_t
-    if st.session_state.get("run_mode"):
-        set_active_run_time_window(
-            st.session_state,
-            run_id=st.session_state.get("run_id"),
-            start_utc=start_t,
-            end_utc=end_t,
-        )
+try:
+    candidate_start_t, candidate_end_t = utc_window_from_state(
+        st.session_state
+    )
+    time_window_validation_error = None
+except UtcWindowValidationError as error:
+    candidate_start_t = candidate_end_t = None
+    time_window_validation_error = error
+start_t, end_t = candidate_start_t, candidate_end_t
 
 
 def collapse_config_panels():
@@ -486,12 +480,12 @@ if should_render_actions:
 else:
     run_analysis_button_slot = st.empty()
 
-is_main_button_submission = bool(
+is_new_analysis_submission = bool(
     submission_request is not None
-    and submission_request.source == "main_button"
+    and submission_request.source in {"main_button", "url_replay"}
 )
 submission_initialization_failed = False
-if is_main_button_submission:
+if is_new_analysis_submission:
     requires_reference_identity = (
         comp_mode == "reference_station"
         or (
@@ -508,6 +502,16 @@ if is_main_button_submission:
         submission_initialization_failed = True
     elif not is_valid_locator(qth_locator):
         st.error(t["err_qth_format"])
+        st.session_state.run_mode = None
+        submission_initialization_failed = True
+    elif time_window_validation_error is not None:
+        time_error_key = {
+            "before_minimum": "err_time_before_minimum",
+            "order": "err_time_order",
+            "duration": "err_time_duration",
+            "future": "err_time_future",
+        }.get(time_window_validation_error.reason, "err_time_invalid")
+        st.error(t[time_error_key])
         st.session_state.run_mode = None
         submission_initialization_failed = True
     elif requires_reference_identity:
@@ -546,12 +550,6 @@ if is_main_button_submission:
         st.session_state.configuration_changed_since_run = False
         collapse_documentation(st.session_state)
         reset_result_state(st.session_state)
-        set_active_run_time_window(
-            st.session_state,
-            run_id=st.session_state.run_id,
-            start_utc=candidate_start_t,
-            end_utc=candidate_end_t,
-        )
         start_t, end_t = candidate_start_t, candidate_end_t
         for key in list(st.session_state.keys()):
             if key.startswith("img_buf_"):
@@ -631,6 +629,20 @@ elif submission_snapshot is not None:
     # by clearing ``run_mode``; do not strand a disabled Run action if an older
     # Streamlit script was interrupted before its own ``finally`` block ran.
     finish_current_analysis_submission()
+
+if consume_url_replay_navigation(st.session_state):
+    request_page_navigation(
+        st.session_state,
+        RESULTS_INSPECTION_ANCHOR_ID,
+        should_scroll=True,
+    )
+render_page_navigation_controller(
+    consume_page_navigation_request(st.session_state)
+)
+render_current_url_synchronizer(
+    st.session_state,
+    key=URL_QUERY_SYNCHRONIZER_PAGE_KEY,
+)
 
 # Load the small documentation preview only after the operational interface.
 from ui.documentation import render_documentation_section

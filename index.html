@@ -7,19 +7,21 @@
     <link rel="dns-prefetch" href="https://wspradar.streamlit.app">
     
     <script type="text/javascript">
-        window.location.replace("https://wspradar.streamlit.app");
+        const destination = new URL("https://wspradar.streamlit.app/");
+        destination.search = window.location.search;
+        destination.hash = window.location.hash;
+        window.location.replace(destination.toString());
     </script>
-    <meta http-equiv="refresh" content="0; url=https://wspradar.streamlit.app">
 
     <title>WSPRadar | Audit Dashboard</title>
     
-    <link rel="canonical" href="https://wspradar.streamlit.app">
+    <link rel="canonical" href="https://wspradar.org/">
     <meta name="theme-color" content="#050a15">
 
     <meta property="og:title" content="WSPRadar | Antenna Benchmarking" />
     <meta property="og:description" content="HAM RADIO STATION & ANTENNA BENCHMARKING" />
     <meta property="og:image" content="https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png" />
-    <meta property="og:url" content="https://wspradar.streamlit.app" />
+    <meta property="og:url" content="https://wspradar.org/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="WSPRadar" />

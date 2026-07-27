@@ -2,6 +2,7 @@
 
 import ast
 from copy import deepcopy
+from datetime import date, time
 import json
 import os
 from pathlib import Path
@@ -110,8 +111,10 @@ def _canonical_state(**overrides):
             "val_callsign": "DL1ABC",
             "val_qth": "JO62QM",
             "val_band": "40m",
-            "val_time_mode": "last_x",
-            "val_hours": 24,
+            "val_start_d": date(2026, 7, 1),
+            "val_start_t": time(0, 0),
+            "val_end_d": date(2026, 7, 2),
+            "val_end_t": time(0, 0),
             "val_comp_mode": "none",
             "val_local_benchmark": "local_median",
             "val_ref_callsign": "",
@@ -1458,6 +1461,15 @@ def test_loading_success_config_clears_previous_transient_compare_design(
 
 def _run_application_with_state(initial_state):
     """Execute one isolated application session with explicit initial state."""
+    serializable_initial_state = dict(initial_state)
+    for time_state_key in (
+        "val_start_d",
+        "val_start_t",
+        "val_end_d",
+        "val_end_t",
+        "_absolute_time_window_initialized",
+    ):
+        serializable_initial_state.pop(time_state_key, None)
     environment = os.environ.copy()
     existing_python_path = environment.get("PYTHONPATH")
     environment["PYTHONPATH"] = os.pathsep.join(
@@ -1471,7 +1483,7 @@ def _run_application_with_state(initial_state):
             "-c",
             APPLICATION_PROBE,
             str(REPOSITORY_ROOT),
-            json.dumps(initial_state),
+            json.dumps(serializable_initial_state),
         ],
         cwd=REPOSITORY_ROOT,
         env=environment,

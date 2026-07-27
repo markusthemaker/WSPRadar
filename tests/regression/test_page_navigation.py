@@ -171,12 +171,39 @@ def test_explicit_application_navigation_cancels_manual_restore_and_is_optional(
     assert "window[pendingDocumentationAnchorProperty] = null" in javascript
     assert "window[requestedDocumentationAnchorProperty] = null" in javascript
     assert "window[processedRequestTokenProperty] === requestToken" in javascript
+    assert (
+        "window[processedInitialAnchorProperty] = anchorId"
+        in javascript
+    )
     assert "replaceCurrentFragment(anchorId);" in javascript
     assert "if (data?.shouldScrollRequest)" in javascript
     assert "scrollWhenApplicationAnchorMounts(anchorId)" in javascript
     assert "scrollIntoView({" in javascript
     assert "window.addEventListener('hashchange', handleHistoryNavigation)" in javascript
     assert "window.addEventListener('popstate', handleHistoryNavigation)" in javascript
+
+
+def test_initial_application_fragment_scrolls_only_once_per_browser_page():
+    """Do not repeat an automatic anchor landing on every Streamlit rerun."""
+    javascript = page_navigation._PAGE_NAVIGATION_CONTROLLER_JS
+
+    assert (
+        "processedInitialAnchorProperty =\n"
+        "        '__wspradarProcessedInitialApplicationAnchor'"
+        in javascript
+    )
+    assert (
+        "window[processedInitialAnchorProperty] !== initialAnchorId"
+        in javascript
+    )
+    assert (
+        "window[processedInitialAnchorProperty] = initialAnchorId"
+        in javascript
+    )
+    assert (
+        "window.addEventListener('hashchange', handleHistoryNavigation)"
+        in javascript
+    )
 
 
 def test_runtime_anchors_bound_the_top_settings_and_results_regions():
@@ -196,6 +223,7 @@ def test_runtime_anchors_bound_the_top_settings_and_results_regions():
         app_source.index(top_call)
         < app_source.index(parameters_call)
         < app_source.index(results_call)
+        < app_source.index("run_status_slot = st.empty()")
         < app_source.index("render_documentation_section(")
     )
     assert "RESULTS_INSPECTION_ANCHOR_ID,\n        should_scroll=False" in app_source

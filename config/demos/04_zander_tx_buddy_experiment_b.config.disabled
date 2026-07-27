@@ -19,11 +19,8 @@
       "qth": "JO89",
       "band": "40m",
       "time_selection": {
-        "mode": "custom",
-        "start_date": "2022-06-01",
-        "end_date": "2022-06-10",
-        "start_time_utc": "06:30",
-        "end_time_utc": "23:45"
+        "start_utc": "2022-06-01T06:30Z",
+        "end_utc": "2022-06-10T23:45Z"
       }
     },
     "comparison_parameters": {

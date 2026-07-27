@@ -42,6 +42,7 @@ from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
 from ui.config_io import CONFIG_APP_NAME, build_config_payload
 from ui.config_save import render_config_save_control
+from ui.share_analysis import render_share_analysis_browser
 from ui.result_guidance import (
     RESULT_GUIDANCE_DOWNLOAD,
     render_result_guidance_popover,
@@ -56,6 +57,7 @@ from ui.result_state import (
     clear_prepared_result_state,
 )
 from ui.matplotlib_renderer import dispose_matplotlib_figure
+from ui.url_state import build_share_url
 
 
 COMPARE_EXPORT_FOLDER = "compare"
@@ -318,10 +320,28 @@ def register_inspector_export(
     selected_station_role=None,
     selected_evidence_figure_descriptions=None,
 ):
-    """Register localized Inspector state for lazy high-resolution export."""
+    """Register localized Inspector state for lazy high-resolution export.
+
+    Selected-station artifacts are defined for zero or one station. Validate
+    that boundary before obtaining or mutating the pending export block so an
+    invalid caller cannot leave partially updated export state.
+    """
+    if selected_stations is None:
+        selected_stations = []
+    elif not isinstance(selected_stations, (list, tuple)):
+        raise ValueError(
+            "Selected-station export metadata must be a list or tuple."
+        )
+    else:
+        selected_stations = list(selected_stations)
+    if len(selected_stations) > 1:
+        raise ValueError(
+            "Selected-station exports support at most one station."
+        )
+
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis_id, {"analysis_id": analysis_id})
-    selected_station_count = len(selected_stations or [])
+    selected_station_count = len(selected_stations)
     block.update({
         "selected_segment": selected_segment,
         "selected_distance": selected_distance,
@@ -332,7 +352,7 @@ def register_inspector_export(
         "show_zero_target": bool(show_zero_target),
         "evidence_time_bin": evidence_time_bin,
         "segment_evidence_time_bin": segment_evidence_time_bin,
-        "selected_stations": selected_stations or [],
+        "selected_stations": selected_stations,
         "selected_station_label": selected_station_label,
         "selected_station_context_label": selected_station_context_label,
         "selected_station_count": selected_station_count,
@@ -365,8 +385,10 @@ def register_inspector_export(
 
 def _selected_evidence_weighting_label(selected_station_count, translations):
     """Return localized human-readable weighting metadata for a selection."""
-    if selected_station_count > 1:
-        return translations["export_weighting_combined_observation"]
+    if selected_station_count not in (0, 1):
+        raise ValueError(
+            "Selected-station evidence weighting requires zero or one station."
+        )
     if selected_station_count == 1:
         return translations["export_weighting_single_selected_path"]
     return None
@@ -492,12 +514,8 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         "reference_or_benchmark_mode": comparison_parameters.get("mode"),
         "band": core_parameters.get("band"),
         "time_window": {
-            "time_mode": time_selection.get("mode"),
-            "hours": time_selection.get("hours"),
-            "start_date": time_selection.get("start_date"),
-            "start_time": time_selection.get("start_time_utc"),
-            "end_date": time_selection.get("end_date"),
-            "end_time": time_selection.get("end_time_utc"),
+            "start_utc": time_selection.get("start_utc"),
+            "end_utc": time_selection.get("end_utc"),
         },
         "benchmark_snr_correction_mode": comparison_parameters.get(
             "snr_correction_mode"
@@ -1070,8 +1088,41 @@ def _prepare_results_zip_with_admission(t):
         )
 
 
+def _share_analysis_content(translations):
+    """Build localized browser-share copy from validated canonical state."""
+    comparison_mode = st.session_state.get("val_comp_mode", "none")
+    mode_label_key = {
+        "none": "share_mode_performance",
+        "hardware_ab": "share_mode_hardware_ab",
+        "reference_station": "share_mode_reference_station",
+        "local_neighborhood": "share_mode_local_neighborhood",
+    }[comparison_mode]
+    title = translations["share_analysis_title"].format(
+        callsign=str(st.session_state.get("val_callsign", "")).strip().upper(),
+        direction=str(
+            st.session_state.get("val_analysis_direction", "")
+        ).strip().upper(),
+        mode=translations[mode_label_key],
+        band=st.session_state.get("val_band", ""),
+    )
+    labels = {
+        "url_field": translations["share_url_field"],
+        "copy_link": translations["share_copy_link"],
+        "copied": translations["share_copied"],
+        "manual_copy": translations["share_manual_copy"],
+        "native_share": translations["share_native"],
+        "native_share_failed": translations["share_native_failed"],
+        "email": translations["share_email"],
+        "whatsapp": translations["share_whatsapp"],
+        "x": translations["share_x"],
+        "facebook": translations["share_facebook"],
+        "linkedin": translations["share_linkedin"],
+    }
+    return title, translations["share_analysis_message"], labels
+
+
 def render_download_all_results(t):
-    """Render adjacent result-export and redundant config-save controls."""
+    """Render adjacent result-export, config-save, and sharing controls."""
     blocks = _ensure_current_export_state()
     exportable_blocks = {
         key: block for key, block in blocks.items()
@@ -1098,8 +1149,8 @@ def render_download_all_results(t):
         translations=t,
         key=f"results_guidance_download_{_current_run_id()}",
     )
-    export_column, save_column = st.columns(
-        [0.65, 0.35],
+    export_column, save_column, share_column = st.columns(
+        [0.5, 0.25, 0.25],
         gap="large",
         vertical_alignment="center",
     )
@@ -1141,3 +1192,24 @@ def render_download_all_results(t):
             popover_key="config_save_results_trigger",
             form_scope="results",
         )
+    with share_column:
+        share_popover = st.popover(
+            t["btn_share_analysis"],
+            icon=":material/share:",
+            type="primary",
+            width="stretch",
+            key="share_analysis_results_trigger",
+            on_change="rerun",
+        )
+        if share_popover.open:
+            with share_popover:
+                share_title, share_message, share_labels = (
+                    _share_analysis_content(t)
+                )
+                render_share_analysis_browser(
+                    share_url=build_share_url(st.session_state),
+                    title=share_title,
+                    message=share_message,
+                    labels=share_labels,
+                    key=f"share_analysis_browser_{_current_run_id()}",
+                )

@@ -86,8 +86,6 @@ def _complete_state(**overrides):
         "val_callsign": "DL1MKS",
         "val_qth": "JN37AA",
         "val_band": "20m",
-        "val_time_mode": "last_x",
-        "val_hours": 24,
         "val_start_d": date(2026, 7, 1),
         "val_end_d": date(2026, 7, 2),
         "val_start_t": time(0, 0),
@@ -279,21 +277,17 @@ def test_every_flow_content_key_resolves_to_bilingual_title_and_body():
 
 
 def test_guided_window_summaries_are_bilingual_and_locale_independent():
-    """Keep every relative/custom window phrase inside Guided localization."""
-    relative_state = {"val_time_mode": "last_x", "val_hours": 24}
-    custom_state = {
-        "val_time_mode": "custom",
+    """Keep the absolute UTC window phrase inside Guided localization."""
+    absolute_state = {
         "val_start_d": date(2026, 5, 1),
-        "val_start_t": time(17, 24),
+        "val_start_t": time(17, 15),
         "val_end_d": date(2026, 5, 15),
-        "val_end_t": time(7, 12),
+        "val_end_t": time(7, 0),
     }
 
-    assert _window_summary(relative_state, GUIDED_INPUTS["en"]) == "last 24 h"
-    assert _window_summary(relative_state, GUIDED_INPUTS["de"]) == "letzte 24 h"
-    expected_custom = "2026-05-01 17:24–2026-05-15 07:12 UTC"
-    assert _window_summary(custom_state, GUIDED_INPUTS["en"]) == expected_custom
-    assert _window_summary(custom_state, GUIDED_INPUTS["de"]) == expected_custom
+    expected_window = "2026-05-01 17:15–2026-05-15 07:00 UTC"
+    assert _window_summary(absolute_state, GUIDED_INPUTS["en"]) == expected_window
+    assert _window_summary(absolute_state, GUIDED_INPUTS["de"]) == expected_window
 
 
 @pytest.mark.parametrize(
@@ -632,7 +626,7 @@ def test_complete_hardware_state_satisfies_every_node_rule():
         ("use_case", {"guided_use_case": None}),
         ("target_and_window", {"val_callsign": "NOT-A-CALL"}),
         ("target_and_window", {"val_qth": "ZZ99"}),
-        ("target_and_window", {"val_hours": True}),
+        ("target_and_window", {"val_end_t": True}),
         ("reference_design", {"val_ref_callsign": "DL1MKS"}),
         ("offset_calibration", {"val_snr_correction_mode": "no_offset", "val_benchmark_offset_db": 1.0}),
         ("offset_calibration", {"val_snr_correction_mode": "established_offset", "val_benchmark_offset_db": float("nan")}),
@@ -643,7 +637,7 @@ def test_complete_hardware_state_satisfies_every_node_rule():
         "missing-use-case",
         "bad-callsign",
         "bad-qth",
-        "boolean-hours",
+        "invalid-end-time",
         "same-reference",
         "nonzero-no-offset",
         "nonfinite-offset",
@@ -661,18 +655,24 @@ def test_completion_rules_reject_incomplete_or_semantically_invalid_state(
     assert not is_guided_node_complete(node_id, state)
 
 
-def test_completion_rules_cover_reference_and_time_subbranches():
-    """Validate custom time, fixed Reference, local, and scheduled TX branches."""
-    custom_state = _complete_state(
-        val_time_mode="custom",
+def test_completion_rules_cover_absolute_time_and_reference_subbranches():
+    """Validate absolute time, fixed Reference, local, and scheduled TX branches."""
+    absolute_state = _complete_state(
         val_start_d=date(2026, 7, 1),
         val_start_t=time(12, 0),
         val_end_d=date(2026, 7, 2),
         val_end_t=time(12, 0),
     )
-    assert is_guided_node_complete("target_and_window", custom_state)
-    custom_state["val_end_d"] = custom_state["val_start_d"] + timedelta(days=32)
-    assert not is_guided_node_complete("target_and_window", custom_state)
+    assert is_guided_node_complete("target_and_window", absolute_state)
+    absolute_state["val_end_d"] = absolute_state["val_start_d"] + timedelta(
+        days=32
+    )
+    assert not is_guided_node_complete("target_and_window", absolute_state)
+    future_state = _complete_state(
+        val_start_d=date(2099, 1, 1),
+        val_end_d=date(2099, 1, 2),
+    )
+    assert not is_guided_node_complete("target_and_window", future_state)
 
     reference_state = _complete_state(
         val_comp_mode="reference_station",

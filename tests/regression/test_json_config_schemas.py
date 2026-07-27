@@ -33,7 +33,7 @@ def config_validator(config_schema):
 
 
 def _no_comparison_config():
-    """Return a representative rolling-window config with no comparison."""
+    """Return a representative absolute-window config with no comparison."""
     return {
         "format": "wspradar.config",
         "schema_version": 1,
@@ -60,8 +60,8 @@ def _no_comparison_config():
                 "qth": "JN37",
                 "band": "20m",
                 "time_selection": {
-                    "mode": "last_x",
-                    "hours": 24,
+                    "start_utc": "2026-07-13T06:30Z",
+                    "end_utc": "2026-07-14T06:30Z",
                 },
             },
             "comparison_parameters": {
@@ -100,11 +100,8 @@ def _tx_hardware_ab_config():
     settings = config["settings"]
     settings["core_parameters"]["analysis_direction"] = "tx"
     settings["core_parameters"]["time_selection"] = {
-        "mode": "custom",
-        "start_date": "2026-07-13",
-        "end_date": "2026-07-14",
-        "start_time_utc": "06:30",
-        "end_time_utc": "23:45",
+        "start_utc": "2026-07-13T06:30Z",
+        "end_utc": "2026-07-14T23:45Z",
     }
     settings["comparison_parameters"] = {
         "mode": "hardware_ab",
@@ -289,8 +286,111 @@ def test_representative_saved_configs_match_formal_schema(
     config_validator,
     configuration_factory,
 ):
-    """Accept rolling/no-comparison and custom/TX-hardware saved documents."""
+    """Accept representative absolute-window saved documents."""
     config_validator.validate(configuration_factory())
+
+
+def test_formal_schema_exposes_only_absolute_utc_time_fields(config_schema):
+    """Keep v1 time selection restricted to the two canonical UTC endpoints."""
+    time_selection = config_schema["$defs"]["timeSelection"]
+
+    assert time_selection["required"] == ["start_utc", "end_utc"]
+    assert set(time_selection["properties"]) == {"start_utc", "end_utc"}
+    assert time_selection["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "legacy_time_selection",
+    [
+        {
+            "mode": "last_x",
+            "hours": 24,
+        },
+        {
+            "mode": "custom",
+            "start_date": "2026-07-13",
+            "end_date": "2026-07-14",
+            "start_time_utc": "06:30",
+            "end_time_utc": "23:45",
+        },
+        {
+            "start_date": "2026-07-13",
+            "end_date": "2026-07-14",
+            "start_time_utc": "06:30",
+            "end_time_utc": "23:45",
+        },
+    ],
+    ids=[
+        "last-x",
+        "mode-selected-custom",
+        "split-date-and-time",
+    ],
+)
+def test_formal_schema_rejects_legacy_time_selection_shapes(
+    config_validator,
+    legacy_time_selection,
+):
+    """Reject retired relative and split-field time contracts without migration."""
+    config = _no_comparison_config()
+    config["settings"]["core_parameters"]["time_selection"] = legacy_time_selection
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+@pytest.mark.parametrize("missing_field", ["start_utc", "end_utc"])
+def test_formal_schema_requires_both_absolute_utc_endpoints(
+    config_validator,
+    missing_field,
+):
+    """Reject an absolute interval when either half-open endpoint is absent."""
+    config = _no_comparison_config()
+    del config["settings"]["core_parameters"]["time_selection"][missing_field]
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+def test_formal_schema_rejects_extra_time_selection_fields(config_validator):
+    """Reject hybrid documents that mix canonical endpoints with retired fields."""
+    config = _no_comparison_config()
+    config["settings"]["core_parameters"]["time_selection"]["mode"] = "custom"
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+@pytest.mark.parametrize(
+    "invalid_timestamp",
+    [
+        "2026-07-13T06:30:00Z",
+        "2026-07-13T06:30+00:00",
+        "2026-07-13 06:30Z",
+        "2026-07-13T06:30z",
+        "2026-13-13T06:30Z",
+        "2026-07-13T24:00Z",
+    ],
+    ids=[
+        "seconds",
+        "numeric-offset",
+        "space-separator",
+        "lowercase-z",
+        "invalid-month",
+        "invalid-hour",
+    ],
+)
+def test_formal_schema_rejects_noncanonical_absolute_utc_timestamps(
+    config_validator,
+    invalid_timestamp,
+):
+    """Require canonical minute-precision ``YYYY-MM-DDTHH:MMZ`` timestamps."""
+    config = _no_comparison_config()
+    config["settings"]["core_parameters"]["time_selection"][
+        "start_utc"
+    ] = invalid_timestamp
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
 
 
 @pytest.mark.parametrize(
@@ -364,18 +464,20 @@ def test_formal_schema_accepts_two_hour_station_evidence_bins(config_validator):
     config_validator.validate(config)
 
 
-def test_formal_schema_accepts_null_all_and_explicit_empty_station_selections(
+def test_formal_schema_accepts_null_empty_and_single_station_selections(
     config_validator,
 ):
-    """Distinguish automatic, all-station, and explicit-empty intent."""
+    """Distinguish automatic, deselected, and one explicit station identity."""
     config = _tx_hardware_ab_config()
     results_view = config["settings"]["results_view"]
     results_view["success"]["selected_stations"] = None
-    results_view["compare"]["selected_stations"] = "all"
+    results_view["compare"]["selected_stations"] = []
 
     config_validator.validate(config)
 
-    results_view["compare"]["selected_stations"] = []
+    results_view["compare"]["selected_stations"] = [
+        {"callsign": "M7AEO", "locator": "IO82"}
+    ]
     config_validator.validate(config)
 
 
@@ -441,6 +543,9 @@ def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validato
             {"selected_stations": "visible"}
         ),
         lambda config: config["settings"]["results_view"]["compare"].update(
+            {"selected_stations": "all"}
+        ),
+        lambda config: config["settings"]["results_view"]["compare"].update(
             {
                 "selected_stations": [
                     {"callsign": "m7aeo", "locator": "IO82"},
@@ -452,6 +557,14 @@ def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validato
                 "selected_stations": [
                     {"callsign": "M7AEO", "locator": "IO82"},
                     {"callsign": "M7AEO", "locator": "IO82"},
+                ]
+            }
+        ),
+        lambda config: config["settings"]["results_view"]["compare"].update(
+            {
+                "selected_stations": [
+                    {"callsign": "M7AEO", "locator": "IO82"},
+                    {"callsign": "F4WBN", "locator": "JN18"},
                 ]
             }
         ),
@@ -469,8 +582,10 @@ def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validato
         "invalid-segment-direction",
         "invalid-show-zero-target",
         "invalid-station-sentinel",
+        "retired-all-station-sentinel",
         "malformed-station-identity",
         "duplicate-station-identity",
+        "multiple-station-identities",
         "legacy-flat-result-field",
     ],
 )
@@ -521,9 +636,6 @@ def test_v1_profile_rejects_invalid_identity_or_localized_text(
 @pytest.mark.parametrize(
     "mutate",
     [
-        lambda config: config["settings"]["core_parameters"]["time_selection"].update(
-            {"start_date": "2026-07-14"}
-        ),
         lambda config: config["settings"]["comparison_parameters"].update(
             {"reference_callsign": "SK0WE"}
         ),
@@ -546,7 +658,7 @@ def test_v1_profile_rejects_invalid_identity_or_localized_text(
     ],
 )
 def test_inactive_fields_are_rejected(config_validator, mutate):
-    """Forbid hidden time, comparison, advanced, and result-view values."""
+    """Forbid hidden comparison, advanced, and result-view values."""
     config = _no_comparison_config()
     mutate(config)
     with pytest.raises(ValidationError):

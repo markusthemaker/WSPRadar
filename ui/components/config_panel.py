@@ -11,7 +11,6 @@ from string import punctuation
 import streamlit as st
 
 from config import (
-    MAX_DAYS_HISTORY,
     BAND_MAP,
     MAX_DYNAMIC_RADIUS_KM,
     MAP_SCOPE_OPTIONS,
@@ -28,6 +27,7 @@ from core.input_validation import (
 from ui.callbacks import (
     reset_audit, handle_analysis_direction_change, handle_comp_mode_change,
     handle_reference_correction_context_change,
+    handle_time_window_change,
     handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
     handle_tx_ab_target_start_change, swap_tx_ab_starts,
 )
@@ -555,84 +555,55 @@ def render_target_and_window_fields(
         )
 
     with core_right:
-        st.radio(
-            t["lbl_time_mode"],
-            ["last_x", "custom"],
-            key="val_time_mode",
-            horizontal=True,
+        st.markdown(
+            f"**{t['lbl_time_window']}**",
             help=help_overrides.get("time"),
-            on_change=on_change,
-            args=on_change_args,
-            format_func=lambda time_mode: t[
-                "opt_last_x" if time_mode == "last_x" else "opt_custom"
-            ],
         )
+        today_utc = datetime.now(timezone.utc).date()
 
-        if st.session_state.val_time_mode == "last_x":
-            st.slider(
-                t["lbl_hours"],
-                1,
-                168,
-                key="val_hours",
-                on_change=on_change,
-                args=on_change_args,
+        date_start, date_end = st.columns(
+            2, gap="large", vertical_alignment="bottom"
+        )
+        with date_start:
+            st.date_input(
+                t["lbl_start_d"],
+                key="val_start_d",
+                min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
+                max_value=today_utc,
+                on_change=handle_time_window_change,
+                args=(on_change, on_change_args),
+                format="DD-MM-YYYY",
             )
-        else:
-            today_utc = datetime.now(timezone.utc).date()
-
-            date_start, date_end = st.columns(
-                2, gap="large", vertical_alignment="bottom"
+        with date_end:
+            st.date_input(
+                t["lbl_end_d"],
+                key="val_end_d",
+                min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
+                max_value=today_utc,
+                on_change=handle_time_window_change,
+                args=(on_change, on_change_args),
+                format="DD-MM-YYYY",
             )
-            with date_start:
-                st.date_input(
-                    t["lbl_start_d"],
-                    key="val_start_d",
-                    min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
-                    max_value=today_utc,
-                    on_change=on_change,
-                    args=on_change_args,
-                    format="DD-MM-YYYY",
-                )
-            max_allowed_end = min(
-                st.session_state.val_start_d + timedelta(days=MAX_DAYS_HISTORY),
-                today_utc,
+
+        time_start, time_end = st.columns(
+            2, gap="large", vertical_alignment="bottom"
+        )
+        with time_start:
+            st.time_input(
+                t["lbl_start_t"],
+                key="val_start_t",
+                step=timedelta(minutes=15),
+                on_change=handle_time_window_change,
+                args=(on_change, on_change_args),
             )
-            min_allowed_end = st.session_state.val_start_d
-
-            # Defensive check inside the render loop.
-            if st.session_state.val_end_d > max_allowed_end:
-                st.session_state.val_end_d = max_allowed_end
-            elif st.session_state.val_end_d < min_allowed_end:
-                st.session_state.val_end_d = min_allowed_end
-
-            with date_end:
-                st.date_input(
-                    t["lbl_end_d"],
-                    key="val_end_d",
-                    min_value=min_allowed_end,
-                    max_value=max_allowed_end,
-                    on_change=on_change,
-                    args=on_change_args,
-                    format="DD-MM-YYYY",
-                )
-
-            time_start, time_end = st.columns(
-                2, gap="large", vertical_alignment="bottom"
+        with time_end:
+            st.time_input(
+                t["lbl_end_t"],
+                key="val_end_t",
+                step=timedelta(minutes=15),
+                on_change=handle_time_window_change,
+                args=(on_change, on_change_args),
             )
-            with time_start:
-                st.time_input(
-                    t["lbl_start_t"],
-                    key="val_start_t",
-                    on_change=on_change,
-                    args=on_change_args,
-                )
-            with time_end:
-                st.time_input(
-                    t["lbl_end_t"],
-                    key="val_end_t",
-                    on_change=on_change,
-                    args=on_change_args,
-                )
 
 
 def render_core_expander(t):

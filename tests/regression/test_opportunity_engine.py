@@ -413,43 +413,43 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
     ("language", "expected_messages"),
     (
         (
-            "en",
-            {
-                "no_selection": "No stations selected.",
-                "no_spots": "No spots available.",
-                "no_pairs": "No scheduled pairs available.",
-                "no_joint_pairs": (
-                    "No joint scheduled pairs available for the selected "
-                    "station(s)."
-                ),
-                "no_joint_spots": (
-                    "No joint spots available for the selected station(s)."
-                ),
-                "no_reference_details": (
-                    "No reference station details available for the selected "
-                    "station(s)."
-                ),
-            },
-        ),
-        (
-            "de",
-            {
-                "no_selection": "Keine Stationen ausgewählt.",
-                "no_spots": "Keine Spots verfügbar.",
-                "no_pairs": "Keine geplanten Paare verfügbar.",
-                "no_joint_pairs": (
-                    "Für die ausgewählte(n) Station(en) sind keine gemeinsamen "
-                    "geplanten Paare verfügbar."
-                ),
-                "no_joint_spots": (
-                    "Für die ausgewählte(n) Station(en) sind keine Joint Spots "
-                    "verfügbar."
-                ),
-                "no_reference_details": (
-                    "Für die ausgewählte(n) Station(en) sind keine Details zu "
-                    "Referenzstationen verfügbar."
-                ),
-            },
+                "en",
+                {
+                    "no_selection": "No station selected.",
+                    "no_spots": "No spots available.",
+                    "no_pairs": "No scheduled pairs available.",
+                    "no_joint_pairs": (
+                        "No joint scheduled pairs are available for the selected "
+                        "station."
+                    ),
+                    "no_joint_spots": (
+                        "No joint spots are available for the selected station."
+                    ),
+                    "no_reference_details": (
+                        "No reference-station details are available for the "
+                        "selected station."
+                    ),
+                },
+            ),
+            (
+                "de",
+                {
+                    "no_selection": "Keine Station ausgewählt.",
+                    "no_spots": "Keine Spots verfügbar.",
+                    "no_pairs": "Keine geplanten Paare verfügbar.",
+                    "no_joint_pairs": (
+                        "Für die ausgewählte Station sind keine gemeinsamen "
+                        "geplanten Paare verfügbar."
+                    ),
+                    "no_joint_spots": (
+                        "Für die ausgewählte Station sind keine Joint Spots "
+                        "verfügbar."
+                    ),
+                    "no_reference_details": (
+                        "Für die ausgewählte Station sind keine Details zur "
+                        "Referenzstation verfügbar."
+                    ),
+                },
         ),
     ),
 )

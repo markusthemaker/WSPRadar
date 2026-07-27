@@ -1,3 +1,4 @@
+from datetime import date, datetime, time, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -173,8 +174,11 @@ def test_classic_headings_and_target_labels_are_task_oriented(
         (
             "en",
             {
-                "lbl_time_mode": "UTC measurement window",
-                "lbl_hours": "Last X Hours",
+                "lbl_time_window": "UTC measurement window",
+                "lbl_start_d": "Start Date (UTC)",
+                "lbl_start_t": "Start Time (UTC)",
+                "lbl_end_d": "End Date (UTC)",
+                "lbl_end_t": "End Time (UTC)",
                 "lbl_benchmark_offset_db": "Reference-side SNR correction (dB)",
                 "lbl_reference_callsign": "Reference callsign",
                 "lbl_reference_grid4": "Reference Grid-4",
@@ -189,8 +193,11 @@ def test_classic_headings_and_target_labels_are_task_oriented(
         (
             "de",
             {
-                "lbl_time_mode": "UTC-Messzeitraum",
-                "lbl_hours": "Letzte X Stunden",
+                "lbl_time_window": "UTC-Messzeitraum",
+                "lbl_start_d": "Startdatum (UTC)",
+                "lbl_start_t": "Startzeit (UTC)",
+                "lbl_end_d": "Enddatum (UTC)",
+                "lbl_end_t": "Endzeit (UTC)",
                 "lbl_benchmark_offset_db": "Referenzseitige SNR-Korrektur (dB)",
                 "lbl_reference_callsign": "Referenz-Rufzeichen",
                 "lbl_reference_grid4": "Referenz-Grid-4",
@@ -622,7 +629,10 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
             "val_analysis_direction": "rx",
             "val_callsign": "DL1MKS-1",
             "val_qth": "JN37",
-            "val_time_mode": "last_x",
+            "val_start_d": date(2026, 7, 1),
+            "val_start_t": time(0, 0),
+            "val_end_d": date(2026, 7, 2),
+            "val_end_t": time(0, 0),
         }
     )
     monkeypatch.setattr(
@@ -632,9 +642,10 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
             session_state=session_state,
             columns=Mock(return_value=(_NullContext(), _NullContext())),
             error=Mock(),
+            markdown=Mock(),
             selectbox=Mock(),
-            radio=Mock(),
-            slider=Mock(),
+            date_input=Mock(),
+            time_input=Mock(),
         ),
     )
     monkeypatch.setattr(config_panel, "text_input_no_autocomplete", text_input)
@@ -777,6 +788,18 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert session_state.val_results_selected_ranges_absolute == "all"
     assert session_state.val_results_selected_directions_absolute == "all"
     assert session_state.val_results_segment_time_bin_absolute == "auto"
+    default_start_utc = datetime.combine(
+        session_state.val_start_d,
+        session_state.val_start_t,
+        tzinfo=timezone.utc,
+    )
+    default_end_utc = datetime.combine(
+        session_state.val_end_d,
+        session_state.val_end_t,
+        tzinfo=timezone.utc,
+    )
+    assert default_end_utc - default_start_utc == timedelta(hours=24)
+    assert default_end_utc.minute in {0, 15, 30, 45}
     assert _default_config()["benchmark_mode"] == COMPARISON_NONE
     assert _default_config()["segment_evidence_time_bin_absolute"] == "auto"
     assert _default_config()["snr_correction_mode"] == "no_offset"
@@ -900,6 +923,18 @@ def test_reset_config_returns_to_success_only(monkeypatch):
     assert session_state.val_results_time_bin_compare is None
     assert session_state.val_results_time_bin_absolute is None
     assert session_state.val_results_segment_time_bin_absolute == "auto"
+    reset_start_utc = datetime.combine(
+        session_state.val_start_d,
+        session_state.val_start_t,
+        tzinfo=timezone.utc,
+    )
+    reset_end_utc = datetime.combine(
+        session_state.val_end_d,
+        session_state.val_end_t,
+        tzinfo=timezone.utc,
+    )
+    assert reset_end_utc - reset_start_utc == timedelta(hours=24)
+    assert reset_end_utc.minute in {0, 15, 30, 45}
 
 
 @pytest.mark.parametrize(
@@ -1245,3 +1280,7 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
     assert session_state.val_results_time_bin_compare == "3h"
     assert session_state.val_results_time_bin_absolute == "3h"
     assert session_state.val_results_segment_time_bin_absolute == "auto"
+    assert session_state.val_start_d == date(2010, 12, 18)
+    assert session_state.val_start_t == time(0, 0)
+    assert session_state.val_end_d == date(2010, 12, 21)
+    assert session_state.val_end_t == time(0, 0)

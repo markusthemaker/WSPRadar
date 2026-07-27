@@ -5,7 +5,6 @@ to ensure a consistent default state across user sessions and reruns.
 """
 
 import streamlit as st
-from datetime import datetime, timedelta, timezone, time as dt_time
 from config import (
     BAND_MAP,
     DEFAULT_BAND,
@@ -14,6 +13,7 @@ from config import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
+from ui.time_window import initialize_utc_window_state
 
 
 def _canonicalize_localized_state(value, canonical_to_translation_key, fallback):
@@ -107,21 +107,7 @@ def init_session_state():
         st.session_state.val_band = DEFAULT_BAND
         
     # --- Default Time Settings ---
-    st.session_state.val_time_mode = _canonicalize_localized_state(
-        st.session_state.get("val_time_mode"),
-        {"last_x": "opt_last_x", "custom": "opt_custom"},
-        "last_x",
-    )
-    if "val_hours" not in st.session_state: 
-        st.session_state.val_hours = 24
-    if "val_start_d" not in st.session_state: 
-        st.session_state.val_start_d = datetime.now(timezone.utc).date() - timedelta(days=1)
-    if "val_start_t" not in st.session_state: 
-        st.session_state.val_start_t = dt_time(0, 0)
-    if "val_end_d" not in st.session_state: 
-        st.session_state.val_end_d = datetime.now(timezone.utc).date()
-    if "val_end_t" not in st.session_state: 
-        st.session_state.val_end_t = dt_time(23, 59)
+    initialize_utc_window_state(st.session_state)
         
     # --- Default Benchmark Design ---
     st.session_state.val_comp_mode = _canonicalize_localized_state(
@@ -256,8 +242,6 @@ def init_session_state():
         "val_callsign",
         "val_qth",
         "val_band",
-        "val_time_mode",
-        "val_hours",
         "val_start_d",
         "val_start_t",
         "val_end_d",

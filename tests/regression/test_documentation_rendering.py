@@ -506,10 +506,9 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "Select exactly one station row to open `Selected Station Evidence`",
         "Selecting another row replaces the current station",
         "clearing the row hides the section",
-        "Performance saves zero or one exact `callsign + locator` identity",
-        "restoration retains the first valid identity in stored order",
-        "never substitutes a different station",
-        "restores no selection if none remain valid",
+        "Performance and Compare each save no more than one exact `callsign + locator` identity",
+        "selecting another row replaces the current identity",
+        "clearing the row saves an explicit deselection",
         "actual normalized successful Target SNR",
         "chronological density receives every retained successful observation",
         "one median for every represented UTC date and UTC hour",
@@ -528,10 +527,9 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "Wähle genau eine Stationszeile aus, um die `Evidenz der ausgewählten Station` zu öffnen",
         "Die Auswahl einer anderen Zeile ersetzt die bisherige Station",
         "das Aufheben der Auswahl blendet den Abschnitt aus",
-        "Performance speichert keine oder genau eine exakte Identität",
-        "erste gültige Identität in gespeicherter Reihenfolge",
-        "ersetzt sie nie durch eine andere Station",
-        "stellt keine Auswahl wieder her, wenn keine Identität gültig bleibt",
+        "Performance und Compare speichern jeweils höchstens eine exakte Identität",
+        "die Auswahl einer anderen Zeile ersetzt die aktuelle Identität",
+        "das Aufheben der Auswahl speichert eine ausdrückliche Abwahl",
         "tatsächlichen normierten erfolgreichen Target-SNR",
         "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs",
         "einen Median für jedes berücksichtigte UTC-Datum und jede UTC-Stunde",
@@ -618,8 +616,8 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
     ):
         assert retired_text not in performance_section_de
 
-    assert "Select one or multiple stations" in DOC_EN
-    assert "Wähle eine oder mehrere Stationen aus" in DOC_DE
+    assert "Select one station to open the selected station evidence view" in DOC_EN
+    assert "Wähle eine Station aus, um ihre Evidenzansicht zu öffnen" in DOC_DE
 
 
 def test_bilingual_manuals_explain_simplified_performance_map_semantics():
@@ -801,30 +799,70 @@ def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
 
 
 def test_bilingual_manuals_define_saved_inspector_selection_contracts():
-    """Saved result-view guidance must distinguish Performance singleton and Compare all."""
+    """Saved result-view guidance must enforce one focused station in both paths."""
     assert "Compare and Performance selections are saved independently" in DOC_EN
     assert "Its setting is saved for Performance" in DOC_EN
     assert (
-        "Performance saves zero or one exact `callsign + locator` identity"
+        "Performance and Compare each save no more than one exact "
+        "`callsign + locator` identity"
         in DOC_EN
     )
-    assert "restoration retains the first valid identity in stored order" in DOC_EN
-    assert "never substitutes a different station" in DOC_EN
-    assert "Compare selection remains independent and may contain one or more exact identities" in DOC_EN
-    assert "Selecting every Compare station stores an all-stations intent" in DOC_EN
-    assert "with a moving `Last X Hours` window" in DOC_EN
+    assert "selecting another row replaces the current identity" in DOC_EN
+    assert "clearing the row saves an explicit deselection" in DOC_EN
+    assert (
+        'Configurations containing `"all"`, duplicate identities or multiple '
+        "selected identities are rejected"
+        in DOC_EN
+    )
 
     assert "für Compare und Performance getrennt gespeichert" in DOC_DE
     assert "Die Einstellung wird für Performance gespeichert" in DOC_DE
     assert (
-        "Performance speichert keine oder genau eine exakte Identität"
+        "Performance und Compare speichern jeweils höchstens eine exakte "
+        "Identität aus `Rufzeichen + Locator`"
         in DOC_DE
     )
-    assert "erste gültige Identität in gespeicherter Reihenfolge" in DOC_DE
-    assert "ersetzt sie nie durch eine andere Station" in DOC_DE
-    assert "Die Compare-Auswahl bleibt unabhängig und kann eine oder mehrere exakte Identitäten enthalten" in DOC_DE
-    assert "Werden alle Compare-Stationen ausgewählt, speichert die Konfiguration diese Absicht" in DOC_DE
-    assert "bei einem gleitenden Fenster `Letzte X Stunden`" in DOC_DE
+    assert "die Auswahl einer anderen Zeile ersetzt die aktuelle Identität" in DOC_DE
+    assert "das Aufheben der Auswahl speichert eine ausdrückliche Abwahl" in DOC_DE
+    assert (
+        'Konfigurationen mit `"all"`, doppelten Identitäten oder mehreren '
+        "ausgewählten Identitäten werden abgelehnt"
+        in DOC_DE
+    )
+    for retired_phrase in (
+        "one or multiple stations",
+        "one or more exact identities",
+        "all-stations intent",
+        "eine oder mehrere Stationen",
+        "eine oder mehrere exakte Identitäten",
+    ):
+        assert retired_phrase not in DOC_EN
+        assert retired_phrase not in DOC_DE
+
+
+def test_bilingual_manuals_document_only_absolute_utc_analysis_windows():
+    """Describe fixed quantized boundaries without the retired rolling mode."""
+    assert (
+        "absolute 24-hour window ending at the current 15-minute UTC boundary"
+        in DOC_EN
+    )
+    assert "exact absolute UTC start and end boundaries" in DOC_EN
+    assert (
+        "absolutes 24-Stunden-Fenster bis zur aktuellen "
+        "15-Minuten-UTC-Grenze"
+        in DOC_DE
+    )
+    assert "exakten absoluten UTC-Start- und Endgrenzen" in DOC_DE
+    for retired_phrase in (
+        "Last X Hours",
+        "Last-X",
+        "Custom Date/Time",
+        "Letzte X Stunden",
+        "Letzte-X",
+        "Datum/Uhrzeit manuell",
+    ):
+        assert retired_phrase not in DOC_EN
+        assert retired_phrase not in DOC_DE
 
 
 def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch):

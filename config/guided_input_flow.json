@@ -41,8 +41,7 @@
         "analysis_direction",
         "callsign",
         "qth",
-        "band",
-        "time_mode"
+        "band"
       ],
       "transitions": [
         {

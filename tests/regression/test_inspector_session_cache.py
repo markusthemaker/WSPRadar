@@ -124,7 +124,7 @@ def test_segment_temporal_controls_have_localized_instruction_prompts():
             "de",
             "3 Bereiche",
             "5 Richtungen",
-            "Evidenz ausgewählter Stationen: K1AAA (FN31) · 2 Joint Spots",
+            "Evidenz der ausgewählten Station: K1AAA (FN31) · 2 Joint Spots",
         ),
     ),
 )
@@ -419,7 +419,7 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     assert result is None
     assert "04 · SELECTED STATIONS" not in rendered_markup
     assert (
-        "aria-label='04 · Selected stations: Selected Station Evidence'"
+        "aria-label='04 · Selected station: Selected Station Evidence'"
         in rendered_markup
     )
     assert "Selected Station Evidence" in rendered_markup
@@ -826,8 +826,8 @@ def test_saved_inspector_range_beyond_ten_thousand_km_falls_back_to_all(
     assert session_state[persistent_key] == "all"
 
 
-def test_station_selection_defaults_distinguish_legacy_none_from_explicit_empty():
-    """Retain first-row compatibility without replacing an intentional deselection."""
+def test_station_selection_defaults_distinguish_unset_from_explicit_empty():
+    """Retain the first-row default without replacing an intentional deselection."""
     station_table = pd.DataFrame(
         {
             "Station": ["A1AAA", "B2BBB"],
@@ -847,75 +847,64 @@ def test_station_selection_defaults_distinguish_legacy_none_from_explicit_empty(
         "Locator",
         [],
     ) == ([], [])
-    assert segment_inspector._station_selection_default_rows(
-        station_table,
-        "Station",
-        "Locator",
-        "all",
-    ) == ([0, 1], [])
 
 
-def test_station_selection_matches_ordered_identities_and_reports_missing():
-    """Match stable identity pairs, deduplicate them, and never choose substitutes."""
+def test_station_selection_matches_one_identity_and_reports_missing():
+    """Match one normalized identity and never choose a substitute."""
     station_table = pd.DataFrame(
         {
             "Station": ["A1AAA", "B2BBB", "C3CCC"],
             "Locator": ["AA00", "BB11", "cc22aa"],
         }
     )
-    configured_identities = [
-        {"callsign": "c3ccc", "locator": "CC22AA"},
-        {"callsign": "A1AAA", "locator": "AA00"},
-        {"callsign": "C3CCC", "locator": "CC22AA"},
-        {"callsign": "MISSING", "locator": "ZZ99"},
-    ]
 
     selected_rows, missing_identities = (
         segment_inspector._station_selection_default_rows(
             station_table,
             "Station",
             "Locator",
-            configured_identities,
+            [{"callsign": "c3ccc", "locator": "cc22aa"}],
         )
     )
+    assert selected_rows == [2]
+    assert missing_identities == []
 
-    assert selected_rows == [2, 0]
-    assert missing_identities == [
-        {"callsign": "MISSING", "locator": "ZZ99"}
-    ]
-
-
-def test_success_historical_selection_retains_first_valid_stored_identity():
-    """Normalize ordered legacy state by identity order, not table order."""
-    station_table = pd.DataFrame(
-        {
-            "Station": ["A1AAA", "B2BBB", "C3CCC"],
-            "Locator": ["AA00", "BB11", "CC22"],
-        }
-    )
-    configured_identities = [
-        {"callsign": "MISSING", "locator": "ZZ99"},
-        {"callsign": "c3ccc", "locator": "cc22"},
-        {"callsign": "A1AAA", "locator": "AA00"},
-    ]
-
-    normalized_selection, should_persist = (
-        segment_inspector._success_single_station_selection_state(
+    selected_rows, missing_identities = (
+        segment_inspector._station_selection_default_rows(
             station_table,
             "Station",
             "Locator",
-            configured_identities,
+            [{"callsign": "D4DDD", "locator": "DD33"}],
         )
     )
-
-    assert normalized_selection == [
-        {"callsign": "C3CCC", "locator": "CC22"}
+    assert selected_rows == []
+    assert missing_identities == [
+        {"callsign": "D4DDD", "locator": "DD33"}
     ]
-    assert should_persist
 
 
-def test_success_historical_selection_with_no_valid_identity_becomes_empty():
-    """Do not substitute a table row when no stored identity remains valid."""
+@pytest.mark.parametrize(
+    "configured_identities",
+    [
+        "all",
+        ({"callsign": "A1AAA", "locator": "AA00"},),
+        [
+            {"callsign": "A1AAA", "locator": "AA00"},
+            {"callsign": "B2BBB", "locator": "BB11"},
+        ],
+        [
+            {"callsign": "A1AAA", "locator": "AA00"},
+            {"callsign": "a1aaa", "locator": "aa00"},
+        ],
+        [{"callsign": "MISSING", "locator": "AA00"}],
+        [{"callsign": "A1AAA", "locator": "ZZ99"}],
+        [{"callsign": "A1AAA", "locator": "AA00", "extra": True}],
+    ],
+)
+def test_station_selection_rejects_noncanonical_or_multiple_state(
+    configured_identities,
+):
+    """Reject legacy, multiple, duplicate, and malformed durable state."""
     station_table = pd.DataFrame(
         {
             "Station": ["A1AAA", "B2BBB"],
@@ -923,72 +912,23 @@ def test_success_historical_selection_with_no_valid_identity_becomes_empty():
         }
     )
 
-    normalized_selection, should_persist = (
-        segment_inspector._success_single_station_selection_state(
+    with pytest.raises(ValueError):
+        segment_inspector._station_selection_default_rows(
             station_table,
             "Station",
             "Locator",
-            [{"callsign": "MISSING", "locator": "ZZ99"}],
+            configured_identities,
         )
-    )
-
-    assert normalized_selection == []
-    assert should_persist
 
 
-def test_success_legacy_all_selection_migrates_to_first_universe_identity():
-    """Give legacy dynamic-all state one deterministic explicit identity."""
-    station_table = pd.DataFrame(
-        {
-            "Station": ["B2BBB", "A1AAA"],
-            "Locator": ["BB11", "AA00"],
-        }
-    )
-
-    normalized_selection, should_persist = (
-        segment_inspector._success_single_station_selection_state(
-            station_table,
-            "Station",
-            "Locator",
-            segment_inspector.STATION_SELECTION_ALL,
-        )
-    )
-
-    assert normalized_selection == [
-        {"callsign": "B2BBB", "locator": "BB11"}
-    ]
-    assert should_persist
-
-
-def test_success_unset_selection_preserves_legacy_first_row_default():
-    """Leave ``None`` unset so the established display default still applies."""
-    station_table = pd.DataFrame(
-        {
-            "Station": ["A1AAA"],
-            "Locator": ["AA00"],
-        }
-    )
-
-    normalized_selection, should_persist = (
-        segment_inspector._success_single_station_selection_state(
-            station_table,
-            "Station",
-            "Locator",
-            None,
-        )
-    )
-
-    assert normalized_selection is None
-    assert not should_persist
-
-
-def test_station_selection_syncs_ordered_identities_including_empty(monkeypatch):
-    """Persist exact row identities rather than labels or transient indices."""
+def test_station_selection_sync_replaces_then_clears_identity(monkeypatch):
+    """Persist A, replace it with B, then preserve explicit deselection."""
+    persistent_key = segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     session_state = {}
     station_table = pd.DataFrame(
         {
-            "Station": ["A1AAA", "B2BBB", "A1AAA"],
-            "Locator": ["AA00", "BB11", "AA00"],
+            "Station": ["A1AAA", "B2BBB"],
+            "Locator": ["AA00", "BB11"],
         }
     )
     monkeypatch.setattr(
@@ -996,50 +936,46 @@ def test_station_selection_syncs_ordered_identities_including_empty(monkeypatch)
         "st",
         SimpleNamespace(session_state=session_state),
     )
-    selection_universe_table = pd.DataFrame(
-        {
-            "Station": ["A1AAA", "B2BBB", "C3CCC"],
-            "Locator": ["AA00", "BB11", "CC22"],
-        }
-    )
 
     assert segment_inspector._sync_selected_station_state(
-        segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY,
+        persistent_key,
         station_table,
-        [1, 2, 0, 99],
+        [0],
         "Station",
         "Locator",
-        selection_universe_table,
     ) == [
-        {"callsign": "B2BBB", "locator": "BB11"},
-        {"callsign": "A1AAA", "locator": "AA00"},
+        {"callsign": "A1AAA", "locator": "AA00"}
     ]
     assert segment_inspector._sync_selected_station_state(
-        segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY,
+        persistent_key,
+        station_table,
+        [1],
+        "Station",
+        "Locator",
+    ) == [
+        {"callsign": "B2BBB", "locator": "BB11"},
+    ]
+    assert segment_inspector._sync_selected_station_state(
+        persistent_key,
         station_table,
         [],
         "Station",
         "Locator",
     ) == []
     assert (
-        session_state[
-            segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
-        ]
+        session_state[persistent_key]
         == []
     )
 
 
-def test_success_selection_persists_identity_without_all_compaction(monkeypatch):
-    """Keep an explicit Success identity even when it is the whole universe."""
-    persistent_key = (
-        segment_inspector.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
-    )
-    selection_changed_key = "success_table_selection_changed"
-    session_state = {persistent_key: None}
+def test_station_selection_writer_rejects_multiple_rows_atomically(monkeypatch):
+    """Reject multiple rows without overwriting the prior identity."""
+    previous_selection = [{"callsign": "A1AAA", "locator": "AA00"}]
+    session_state = {"selected": previous_selection}
     station_table = pd.DataFrame(
         {
-            "Station": ["A1AAA"],
-            "Locator": ["AA00"],
+            "Station": ["A1AAA", "B2BBB"],
+            "Locator": ["AA00", "BB11"],
         }
     )
     monkeypatch.setattr(
@@ -1048,29 +984,40 @@ def test_success_selection_persists_identity_without_all_compaction(monkeypatch)
         SimpleNamespace(session_state=session_state),
     )
 
-    segment_inspector._mark_station_selection_changed(selection_changed_key)
-    persisted_selection = (
+    segment_inspector._mark_station_selection_changed(
+        "table_selection_changed"
+    )
+    with pytest.raises(ValueError, match="at most one row"):
         segment_inspector._sync_selected_station_state_if_changed(
-            selection_changed_key,
-            persistent_key,
+            "table_selection_changed",
+            "selected",
             station_table,
+            [0, 1],
+            "Station",
+            "Locator",
+        )
+    assert session_state["selected"] is previous_selection
+
+    malformed_station_table = pd.DataFrame(
+        {"Station": ["MISSING"], "Locator": ["AA00"]}
+    )
+    segment_inspector._mark_station_selection_changed(
+        "table_selection_changed"
+    )
+    with pytest.raises(ValueError, match="callsign"):
+        segment_inspector._sync_selected_station_state_if_changed(
+            "table_selection_changed",
+            "selected",
+            malformed_station_table,
             [0],
             "Station",
             "Locator",
-            station_table,
-            compact_complete_selection=False,
         )
-    )
-
-    assert persisted_selection == [
-        {"callsign": "A1AAA", "locator": "AA00"}
-    ]
-    assert session_state[persistent_key] == persisted_selection
-    assert persisted_selection != segment_inspector.STATION_SELECTION_ALL
+    assert session_state["selected"] is previous_selection
 
 
 def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
-    """Keep loaded identities through default or missing-row table renders."""
+    """Keep loaded state until an event replaces or clears the identity."""
     station_table = pd.DataFrame(
         {
             "Station": ["M7AEO", "F4WBN"],
@@ -1079,7 +1026,6 @@ def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
     )
     configured_identities = [
         {"callsign": "M7AEO", "locator": "IO82"},
-        {"callsign": "MISSING", "locator": "JO00"},
     ]
     session_state = {"selected": configured_identities}
     monkeypatch.setattr(
@@ -1103,50 +1049,26 @@ def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
         "table_selection_changed",
         "selected",
         station_table,
+        [1],
+        "Station",
+        "Locator",
+    ) == [
+        {"callsign": "F4WBN", "locator": "JN18"},
+    ]
+    assert session_state["selected"] == [
+        {"callsign": "F4WBN", "locator": "JN18"},
+    ]
+
+    segment_inspector._mark_station_selection_changed("table_selection_changed")
+    assert segment_inspector._sync_selected_station_state_if_changed(
+        "table_selection_changed",
+        "selected",
+        station_table,
         [],
         "Station",
         "Locator",
     ) == []
     assert session_state["selected"] == []
-
-
-def test_complete_station_selection_compacts_only_against_unfiltered_universe(
-    monkeypatch,
-):
-    """Use ``all`` only when every pre-filter station identity is selected."""
-    session_state = {}
-    full_station_table = pd.DataFrame(
-        {
-            "Station": ["A1AAA", "B2BBB", "C3CCC"],
-            "Locator": ["AA00", "BB11", "CC22"],
-        }
-    )
-    filtered_station_table = full_station_table.iloc[:2].reset_index(drop=True)
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
-
-    assert segment_inspector._sync_selected_station_state(
-        "selected",
-        full_station_table,
-        [0, 1, 2],
-        "Station",
-        "Locator",
-        full_station_table,
-    ) == "all"
-    assert segment_inspector._sync_selected_station_state(
-        "selected",
-        filtered_station_table,
-        [0, 1],
-        "Station",
-        "Locator",
-        full_station_table,
-    ) == [
-        {"callsign": "A1AAA", "locator": "AA00"},
-        {"callsign": "B2BBB", "locator": "BB11"},
-    ]
 
 
 def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
@@ -1178,15 +1100,58 @@ def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
         "Station",
         "Locator",
         "Target Hits",
-        [{"callsign": "MISSING", "locator": "ZZ99"}],
+        [{"callsign": "D4DDD", "locator": "DD33"}],
     )
-    assert not segment_inspector._selection_requires_zero_hit_rows(
-        station_table,
-        "Station",
-        "Locator",
-        "Target Hits",
-        "all",
+
+
+def test_compare_station_insights_uses_single_row_selection():
+    """Keep Compare Station Insights on Streamlit's replacement semantics."""
+    function_source = inspect.getsource(
+        segment_inspector._render_segment_inspector_body
     )
+
+    assert '"selection_mode": "single-row"' in function_source
+    assert '"selection_mode": "multi-row"' not in function_source
+
+
+def test_inspector_fragment_synchronizes_durable_url_state_in_place():
+    """Keep result-control URL updates inside the Inspector fragment rerun."""
+    function_source = inspect.getsource(
+        segment_inspector.render_segment_inspector
+    )
+
+    assert "render_current_url_synchronizer(" in function_source
+    assert "URL_QUERY_SYNCHRONIZER_FRAGMENT_KEY" in function_source
+    assert "@st.fragment" in inspect.getsource(
+        segment_inspector.render_segment_inspector
+    )
+
+
+def test_selected_station_evidence_rejects_multiple_identities():
+    """Reject accidental multi-station fan-in before cache or figure work."""
+    selected_identity_df = pd.DataFrame(
+        {
+            "peer_sign": ["A1AAA", "B2BBB"],
+            "peer_grid": ["AA00", "BB11"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="exactly one station identity"):
+        segment_inspector._render_selected_station_evidence(
+            pd.DataFrame(),
+            selected_identity_df,
+            False,
+            10,
+            0,
+            2,
+            t=T["en"],
+            analysis_id="RX_COMPARE",
+            run_id=7,
+            scope_token="all",
+            cache_key=("selected",),
+            analysis_context=SimpleNamespace(),
+            language="en",
+        )
 
 
 def test_show_non_joint_toggle_round_trips_through_canonical_state(monkeypatch):

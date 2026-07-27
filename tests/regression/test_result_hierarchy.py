@@ -78,10 +78,7 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "sub_results_success_temporal",
     "sub_results_station_insights",
     "sub_results_selected_station_single",
-    "sub_results_selected_station_named",
-    "sub_results_selected_station_multi",
     "sub_results_drilldown_single",
-    "sub_results_drilldown_multi",
     "sub_results_download_evidence",
     "txt_results_metadata",
     "txt_results_reference_grid4",
@@ -574,11 +571,11 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
     analysis_id,
     expected_station_type,
 ):
-    """Accumulate geographic, station, selection, and row scope without ambiguity."""
+    """Accumulate geographic, station, single-selection, and row scope."""
     translations = T[language]
     distance = "500–1,000 km"
     direction = "NE + E"
-    identities = ["G3AAA (IO90)", "G4BBB (JO01)"]
+    station_identity = "G3AAA (IO90)"
 
     assert remote_station_type(analysis_id) == expected_station_type
     assert active_scope_text(distance, direction, translations) == translations[
@@ -610,14 +607,20 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
             station_count=station_count,
         )
 
-    selected_single = selected_station_context(
-        identities[:1],
+    assert selected_station_label(
+        [station_identity],
+        analysis_id=analysis_id,
+        translations=translations,
+    ) == station_identity
+
+    selected_station = selected_station_context(
+        [station_identity],
         1,
         analysis_id=analysis_id,
         is_sequential=False,
         translations=translations,
     )
-    assert selected_single == translations[
+    assert selected_station == translations[
         "sub_results_selected_station_single"
     ].format(
         station="G3AAA",
@@ -626,116 +629,60 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
         evidence_unit=translations["unit_joint_spot_singular"],
     )
 
-    selected_multi = selected_station_context(
-        identities,
-        2,
-        analysis_id=analysis_id,
-        is_sequential=False,
-        translations=translations,
-    )
-    assert selected_multi == translations[
-        "sub_results_selected_station_named"
-    ].format(
-        selection_label=selected_station_label(
-            identities,
-            analysis_id=analysis_id,
-            translations=translations,
-        ),
-        evidence_count=2,
-        evidence_unit=translations["unit_joint_spot_plural"],
-    )
-
     assert drilldown_subtitle(
-        identities[:1],
+        [station_identity],
         analysis_id,
         translations,
     ) == translations["sub_results_drilldown_single"].format(
-        station=identities[0]
-    )
-    assert drilldown_subtitle(
-        identities,
-        analysis_id,
-        translations,
-    ) == translations["sub_results_drilldown_multi"].format(
-        count=2,
-        station_type=expected_station_type,
-    )
-
-
-@pytest.mark.parametrize("language", ("en", "de"))
-def test_selected_station_context_lists_at_most_five_station_identities(language):
-    """List exact station identities through five, then use the count summary."""
-    translations = T[language]
-    identities = [
-        "G1AAA (IO91)",
-        "G2BBB (IO92)",
-        "G3CCC (IO93)",
-        "G4DDD (IO94)",
-        "G5EEE (IO95)",
-        "G6FFF (IO96)",
-    ]
-
-    five_station_context = selected_station_context(
-        identities[:5],
-        12,
-        analysis_id="RX_COMP",
-        is_sequential=False,
-        translations=translations,
-    )
-    assert five_station_context == translations[
-        "sub_results_selected_station_named"
-    ].format(
-        selection_label=selected_station_label(
-            identities[:5],
-            analysis_id="RX_COMP",
-            translations=translations,
-        ),
-        evidence_count=12,
-        evidence_unit=translations["unit_joint_spot_plural"],
-    )
-
-    six_station_context = selected_station_context(
-        identities,
-        12,
-        analysis_id="RX_COMP",
-        is_sequential=False,
-        translations=translations,
-    )
-    assert six_station_context == translations[
-        "sub_results_selected_station_multi"
-    ].format(
-        selection_label=selected_station_label(
-            identities,
-            analysis_id="RX_COMP",
-            translations=translations,
-        ),
-        evidence_count=12,
-        evidence_unit=translations["unit_joint_spot_plural"],
+        station=station_identity
     )
 
 
 @pytest.mark.parametrize(
-    ("language", "analysis_id", "expected"),
+    "station_identities",
     (
-        ("en", "RX_COMP", "1,234 selected TX stations"),
-        ("en", "TX_COMP", "1,234 selected RX stations"),
-        ("de", "RX_COMP", "1.234 ausgewählte TX-Stationen"),
-        ("de", "TX_COMP", "1.234 ausgewählte RX-Stationen"),
+        pytest.param((), id="zero-identities"),
+        pytest.param(
+            ("G1AAA (IO91)", "G2BBB (IO92)"),
+            id="multiple-identities",
+        ),
     ),
 )
-def test_selected_station_label_localizes_large_selection_count(
-    language,
-    analysis_id,
-    expected,
+def test_selected_station_helpers_require_exactly_one_identity(
+    station_identities,
 ):
-    """Localize a count-only label without listing the selected identities."""
-    identities = (f"STATION-{index}" for index in range(1_234))
+    """Reject absent and combined station selections at every hierarchy level."""
+    with pytest.raises(
+        ValueError,
+        match=r"Selected-station labels require exactly one identity\.",
+    ):
+        selected_station_label(
+            station_identities,
+            analysis_id="RX_COMP",
+            translations=T["en"],
+        )
 
-    assert selected_station_label(
-        identities,
-        analysis_id=analysis_id,
-        translations=T[language],
-    ) == expected
+    with pytest.raises(
+        ValueError,
+        match=r"Selected-station context requires exactly one identity\.",
+    ):
+        selected_station_context(
+            station_identities,
+            12,
+            analysis_id="RX_COMP",
+            is_sequential=False,
+            translations=T["en"],
+        )
+
+    with pytest.raises(
+        ValueError,
+        match=r"Drill-Down context requires exactly one station\.",
+    ):
+        drilldown_subtitle(
+            station_identities,
+            "RX_COMP",
+            T["en"],
+        )
 
 
 @pytest.mark.parametrize("language", ("en", "de"))

@@ -157,11 +157,12 @@ identified by `format: "wspradar.config"`. Its optional `profile` object carries
 a stable ID plus localized title and description, while its `settings`
 object mirrors the durable UI sections: `core_parameters`,
 `comparison_parameters`, `advanced_parameters`, and `results_view`. Every
-applicable setting is explicit, but fields belonging to an inactive time or
+applicable setting is explicit. The time selection always contains exact
+absolute `start_utc` and `end_utc` boundaries; fields belonging to an inactive
 comparison branch are omitted rather than copied from hidden widget state.
-Loading first resets inactive controls to application defaults and then applies
-the validated active branch, so a file cannot inherit stale values from the
-preceding session.
+Loading first resets inactive comparison controls to application defaults and
+then applies the validated active branch, so a file cannot inherit stale values
+from the preceding session.
 
 The current runnable configuration schema is version 1 and remains explicitly
 pre-production. It is not the first public production contract and may be
@@ -190,16 +191,15 @@ unpublished fixed-bin prototype is not part of the public contract.
 `results_view` is divided into `success` and, when applicable, `compare`.
 It preserves each branch's Segment Inspector range/direction, segment temporal
 time bin, selected-station chronological time bin, and station-selection intent.
-Explicit stations use canonical callsign/locator pairs. Success permits zero or
-one selected identity; historical Success selections with several identities
-restore only the first valid identity in stored order, never substitute another
-station, and restore no selection if none remain valid. Compare continues to
-permit one or more identities, while `all` dynamically selects its complete
-reconstructed table under the saved visibility controls. Compare also preserves
-its selected temporal view and `show_non_joint`; Success preserves
-`show_zero_target`. Table filters, Drill-Down filters, and other transient UI
-state remain outside the config contract. Optional non-core data belongs under
-`extensions` and is preserved across load and re-save.
+Explicit stations use canonical callsign/locator pairs. Both branches accept
+`null`, an empty list, or one identity; `"all"`, duplicates, malformed
+identities, and multiple identities are rejected without migration. `null`
+retains the normal initial table behavior, while an empty list records
+deliberate deselection. Compare also preserves its selected temporal view and
+`show_non_joint`; Success preserves `show_zero_target`. Table filters,
+Drill-Down filters, and other transient UI state remain outside the config
+contract. Optional non-core data belongs under `extensions` and is preserved
+across load and re-save.
 
 `config/config_codec.py` owns document-envelope and current-version validation;
 `ui/config_io.py` owns semantic settings validation, Streamlit-state
@@ -323,12 +323,17 @@ Useful files when tracing behavior:
 - `ui/guided_inputs/`: validated flow loading/evaluation, transient Guided
   state, summaries, and Streamlit accordion composition.
 - `ui/config_io.py` and `ui/config_save.py`: shared versioned-config semantics,
-  fragment-scoped profile/save controls, and relative-versus-frozen Last-X
+  fragment-scoped profile/save controls, and canonical absolute UTC-window
   writing.
+- `ui/time_window.py`: once-per-session absolute UTC defaults, widget-state
+  quantization, and effective-window validation.
+- `ui/url_state.py`, `ui/url_synchronizer.py`, and `ui/share_analysis.py`:
+  versioned public-URL adaptation through canonical config validation,
+  fragment-safe browser synchronization, and data-only sharing controls.
 - `ui/results_export.py`: lazy export recipe execution and ZIP construction.
 - `ui/analysis_submission_state.py`: lightweight, token-aware in-flight analysis
   ownership used to guard Streamlit reruns before admission.
-- `ui/result_state.py`: lightweight result/export reset and active-run time-window
+- `ui/result_state.py`: lightweight result/export reset and database-provenance
   lifecycle used by idle configuration callbacks.
 - `ui/page_navigation.py`: stable application-region anchors, coarse scroll
   tracking, and one-shot browser navigation requests above the manual boundary.

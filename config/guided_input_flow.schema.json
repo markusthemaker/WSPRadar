@@ -53,7 +53,6 @@
         "callsign",
         "qth",
         "band",
-        "time_mode",
         "benchmark_mode",
         "local_benchmark",
         "tx_ab_method",

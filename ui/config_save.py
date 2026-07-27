@@ -13,7 +13,6 @@ from ui.config_io import (
     format_config_validation_error,
     log_config_validation_error,
 )
-from ui.result_state import get_active_run_time_window
 
 
 CONFIG_SAVE_STATE_PREFIX = "config_save_"
@@ -21,15 +20,9 @@ _PROFILE_ID_WIDGET_KEY = f"{CONFIG_SAVE_STATE_PREFIX}profile_id"
 _PROFILE_TITLE_WIDGET_KEY = f"{CONFIG_SAVE_STATE_PREFIX}profile_title"
 _PROFILE_DESCRIPTION_WIDGET_KEY = f"{CONFIG_SAVE_STATE_PREFIX}profile_description"
 _PROFILE_SOURCE_TOKEN_KEY = f"{CONFIG_SAVE_STATE_PREFIX}profile_source_token"
-_TIME_POLICY_WIDGET_KEY = f"{CONFIG_SAVE_STATE_PREFIX}time_policy"
-_TIME_POLICY_RUN_ID_KEY = f"{CONFIG_SAVE_STATE_PREFIX}time_policy_run_id"
 _PREPARED_BYTES_KEY = f"{CONFIG_SAVE_STATE_PREFIX}prepared_bytes"
 _PREPARED_FILENAME_KEY = f"{CONFIG_SAVE_STATE_PREFIX}prepared_filename"
 _PREPARED_SIGNATURE_KEY = f"{CONFIG_SAVE_STATE_PREFIX}prepared_signature"
-
-TIME_POLICY_FREEZE = "freeze"
-TIME_POLICY_RELATIVE = "relative"
-
 
 def _scoped_form_key(base_key, form_scope=None):
     """Return a unique widget key for one placement of the shared save form."""
@@ -88,39 +81,13 @@ def _sync_profile_widget_defaults(session_state, language, form_scope=None):
     )
 
 
-def _initialize_time_policy(
-    session_state,
-    active_run_time_window,
-    form_scope=None,
-):
-    """Default a newly resolved Last-X run to freezing its exact UTC interval."""
-    time_policy_widget_key = _scoped_form_key(
-        _TIME_POLICY_WIDGET_KEY,
-        form_scope,
-    )
-    time_policy_run_id_key = _scoped_form_key(
-        _TIME_POLICY_RUN_ID_KEY,
-        form_scope,
-    )
-    active_run_id = (
-        session_state.get("run_id") if active_run_time_window is not None else None
-    )
-    if active_run_id is not None:
-        if session_state.get(time_policy_run_id_key) != active_run_id:
-            session_state[time_policy_widget_key] = TIME_POLICY_FREEZE
-            session_state[time_policy_run_id_key] = active_run_id
-    else:
-        session_state[time_policy_widget_key] = TIME_POLICY_RELATIVE
-        session_state[time_policy_run_id_key] = None
-
-
 @st.fragment
 def render_config_save_control(
     *,
     popover_key="config_save_top_trigger",
     form_scope=None,
 ):
-    """Render metadata, Last-X policy, preparation, and download in one fragment.
+    """Render metadata, preparation, and download in one fragment.
 
     Preparing within this fragment reads inspector state at click time, including
     selections changed by the independent Segment Inspector fragment.
@@ -139,10 +106,6 @@ def render_config_save_control(
         form_scope,
     )
     profile_id_widget_key = _scoped_form_key(_PROFILE_ID_WIDGET_KEY, form_scope)
-    time_policy_widget_key = _scoped_form_key(
-        _TIME_POLICY_WIDGET_KEY,
-        form_scope,
-    )
 
     save_popover = st.popover(
         translations["btn_save_config"],
@@ -175,48 +138,7 @@ def render_config_save_control(
             help=translations["hlp_config_profile_id"],
         )
 
-        is_last_x = session_state.get("val_time_mode") == "last_x"
-        active_run_time_window = None
-        time_policy = TIME_POLICY_RELATIVE
-        if is_last_x:
-            if session_state.get("run_mode"):
-                active_run_time_window = get_active_run_time_window(session_state)
-            _initialize_time_policy(
-                session_state,
-                active_run_time_window,
-                form_scope,
-            )
-            time_policy_labels = {
-                TIME_POLICY_FREEZE: translations["opt_config_time_freeze"],
-                TIME_POLICY_RELATIVE: translations["opt_config_time_relative"],
-            }
-            time_policy = st.radio(
-                translations["lbl_config_time_policy"],
-                (TIME_POLICY_FREEZE, TIME_POLICY_RELATIVE),
-                key=time_policy_widget_key,
-                format_func=time_policy_labels.__getitem__,
-            )
-            if active_run_time_window is not None:
-                start_utc, end_utc = active_run_time_window
-                st.caption(
-                    translations["txt_config_resolved_window"].format(
-                        start=start_utc.strftime("%Y-%m-%d %H:%M UTC"),
-                        end=end_utc.strftime("%Y-%m-%d %H:%M UTC"),
-                    )
-                )
-            elif time_policy == TIME_POLICY_FREEZE:
-                st.warning(translations["warn_config_freeze_unavailable"])
-
-        frozen_time_window = (
-            active_run_time_window
-            if is_last_x and time_policy == TIME_POLICY_FREEZE
-            else None
-        )
-        can_prepare = bool(title.strip()) and not (
-            is_last_x
-            and time_policy == TIME_POLICY_FREEZE
-            and active_run_time_window is None
-        )
+        can_prepare = bool(title.strip())
         prepare_clicked = st.button(
             translations["btn_prepare_config"],
             icon=":material/download:",
@@ -232,7 +154,6 @@ def render_config_save_control(
                     description=description,
                     profile_id=profile_id,
                     language=language,
-                    frozen_time_window=frozen_time_window,
                     state=session_state,
                 )
                 prepared_signature = build_config_state_signature(
@@ -240,7 +161,6 @@ def render_config_save_control(
                     description=description,
                     profile_id=profile_id,
                     language=language,
-                    frozen_time_window=frozen_time_window,
                     state=session_state,
                 )
                 prepared_document = json.loads(config_bytes.decode("utf-8"))
@@ -259,7 +179,6 @@ def render_config_save_control(
                 description=description,
                 profile_id=profile_id,
                 language=language,
-                frozen_time_window=frozen_time_window,
                 state=session_state,
             )
         except ValueError:

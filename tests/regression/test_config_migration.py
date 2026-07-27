@@ -2,7 +2,7 @@
 
 import json
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import date, datetime, time as dt_time, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -21,20 +21,13 @@ def _valid_settings(
     *,
     analysis_direction="rx",
     comparison_mode="reference_station",
-    time_mode="custom",
     tx_ab_method="simultaneous",
 ):
     """Return one valid grouped settings object for the requested active branches."""
-    if time_mode == "last_x":
-        time_selection = {"mode": "last_x", "hours": 24}
-    else:
-        time_selection = {
-            "mode": "custom",
-            "start_date": "2026-05-27",
-            "end_date": "2026-05-28",
-            "start_time_utc": "00:00",
-            "end_time_utc": "00:00",
-        }
+    time_selection = {
+        "start_utc": "2026-05-27T00:00Z",
+        "end_utc": "2026-05-28T00:00Z",
+    }
 
     comparison_parameters = {"mode": comparison_mode}
     if comparison_mode != "none":
@@ -140,7 +133,18 @@ def test_current_config_document_validates_complete_settings():
     assert warnings == []
     assert config["callsign"] == "DL1MKS"
     assert config["qth"] == "JN37"
-    assert config["start_date"].isoformat() == "2026-05-27"
+    assert config["start_utc"] == datetime(
+        2026,
+        5,
+        27,
+        tzinfo=timezone.utc,
+    )
+    assert config["end_utc"] == datetime(
+        2026,
+        5,
+        28,
+        tzinfo=timezone.utc,
+    )
     assert config["snr_correction_mode"] == "no_offset"
 
 
@@ -444,8 +448,8 @@ def test_success_segment_evidence_bin_rejects_an_unsupported_width():
         config_io.validate_config_document(_config_document(settings))
 
 
-def test_complete_result_view_state_round_trips_without_transient_row_ids():
-    """Persist durable plot choices and ordered station identities per result."""
+def test_complete_result_view_state_round_trips_with_single_station_intent():
+    """Persist durable plot choices and zero-or-one identity per result."""
     settings = _valid_settings()
     settings["results_view"] = {
         "success": {
@@ -454,7 +458,7 @@ def test_complete_result_view_state_round_trips_without_transient_row_ids():
             "show_zero_target": True,
             "segment_evidence_time_bin": "6h",
             "station_evidence_time_bin": "6h",
-            "selected_stations": "all",
+            "selected_stations": [],
         },
         "compare": {
             "selected_ranges": ["[5000-10000km]"],
@@ -465,7 +469,6 @@ def test_complete_result_view_state_round_trips_without_transient_row_ids():
             "station_evidence_temporal_view": "utc_hour",
             "selected_stations": [
                 {"callsign": "F4WBN", "locator": "JN18"},
-                {"callsign": "G0IDE", "locator": "IO83"},
             ],
         },
     }
@@ -479,7 +482,7 @@ def test_complete_result_view_state_round_trips_without_transient_row_ids():
     assert normalized["selected_directions_absolute"] == ["N", "NNE"]
     assert normalized["show_zero_target"] is True
     assert normalized["segment_evidence_time_bin_absolute"] == "6h"
-    assert normalized["selected_stations_absolute"] == "all"
+    assert normalized["selected_stations_absolute"] == []
     assert normalized["selected_ranges_compare"] == ["[5000-10000km]"]
     assert normalized["selected_directions_compare"] == ["WNW", "NW"]
     assert normalized["segment_evidence_time_bin_compare"] == "12h"
@@ -487,8 +490,30 @@ def test_complete_result_view_state_round_trips_without_transient_row_ids():
     assert normalized["station_evidence_temporal_view_compare"] == "utc_hour"
     assert normalized["selected_stations_compare"] == [
         {"callsign": "F4WBN", "locator": "JN18"},
-        {"callsign": "G0IDE", "locator": "IO83"},
     ]
+
+
+@pytest.mark.parametrize(
+    "selected_stations",
+    [
+        "all",
+        [
+            {"callsign": "F4WBN", "locator": "JN18"},
+            {"callsign": "G0IDE", "locator": "IO83"},
+        ],
+    ],
+)
+def test_selected_station_validation_rejects_legacy_or_multiple_state(
+    selected_stations,
+):
+    """Reject retired all-station intent and any multi-station selection."""
+    settings = _valid_settings()
+    settings["results_view"]["compare"]["selected_stations"] = (
+        selected_stations
+    )
+
+    with pytest.raises(ValueError):
+        config_io.validate_config_document(_config_document(settings))
 
 
 def test_saved_inspector_range_outside_analysis_scope_falls_back_to_all():
@@ -587,13 +612,25 @@ def test_initial_tx_ab_contract_rejects_prototype_fields(
         config_io.validate_config_document(_config_document(settings))
 
 
-@pytest.mark.parametrize("invalid_hours", ["24", 24.5, True])
-def test_integer_settings_require_json_integers(invalid_hours):
-    """Reject coercion or truncation that would hide a malformed config file."""
-    settings = _valid_settings(time_mode="last_x")
-    settings["core_parameters"]["time_selection"]["hours"] = invalid_hours
+@pytest.mark.parametrize(
+    ("field", "invalid_timestamp"),
+    [
+        ("start_utc", "2026-05-27"),
+        ("start_utc", "2026-05-27T00:00:00Z"),
+        ("start_utc", "2026-05-27T00:00+00:00"),
+        ("end_utc", "2026-05-28T24:00Z"),
+        ("end_utc", True),
+    ],
+)
+def test_absolute_time_settings_require_canonical_utc_minutes(
+    field,
+    invalid_timestamp,
+):
+    """Reject noncanonical or non-string UTC boundary representations."""
+    settings = _valid_settings()
+    settings["core_parameters"]["time_selection"][field] = invalid_timestamp
 
-    with pytest.raises(ValueError, match="hours must be an integer"):
+    with pytest.raises(ValueError, match=field):
         config_io.validate_config_document(_config_document(settings))
 
 
@@ -645,6 +682,10 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
             session_state={
                 "lang": "en",
                 "val_analysis_direction": "rx",
+                "val_start_d": date(2026, 5, 27),
+                "val_start_t": dt_time(0, 0),
+                "val_end_d": date(2026, 5, 28),
+                "val_end_t": dt_time(0, 0),
                 "val_results_segment_time_bin_absolute": "12h",
             }
         ),
@@ -659,8 +700,8 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
     assert config["analysis_direction"] == "rx"
     assert config["band"] == "20m"
     assert payload["settings"]["core_parameters"]["time_selection"] == {
-        "mode": "last_x",
-        "hours": 24,
+        "start_utc": "2026-05-27T00:00Z",
+        "end_utc": "2026-05-28T00:00Z",
     }
     assert payload["settings"]["comparison_parameters"] == {"mode": "none"}
     assert "min_joint_spots_per_station" not in payload["settings"][
@@ -801,97 +842,86 @@ def test_noninteractive_export_writer_allows_a_profileless_config():
     ] == "rx"
 
 
-def test_last_x_writer_can_freeze_the_resolved_utc_analysis_window():
-    """Offer exact replay without changing the normal relative Last-X option."""
+def test_config_writer_serializes_the_effective_quantized_utc_window():
+    """Persist the same effective absolute boundaries used by analysis."""
     session_state = {
         "lang": "en",
         "val_analysis_direction": "tx",
-        "val_time_mode": "Last X Hours",
-        "val_hours": 24,
+        "val_start_d": date(2026, 7, 16),
+        "val_start_t": dt_time(10, 17),
+        "val_end_d": date(2026, 7, 17),
+        "val_end_t": dt_time(10, 44),
     }
-    frozen_window = (
-        datetime(2026, 7, 16, 10, 15, tzinfo=timezone.utc),
-        datetime(2026, 7, 17, 10, 15, tzinfo=timezone.utc),
-    )
 
-    frozen_bytes, _ = config_io.build_config_payload(
-        title="Frozen TX",
-        frozen_time_window=frozen_window,
-        state=session_state,
-    )
-    relative_bytes, _ = config_io.build_config_payload(
-        title="Relative TX",
+    config_bytes, _ = config_io.build_config_payload(
+        title="Absolute TX",
         state=session_state,
     )
 
-    assert json.loads(frozen_bytes)["settings"]["core_parameters"][
+    assert json.loads(config_bytes)["settings"]["core_parameters"][
         "time_selection"
     ] == {
-        "mode": "custom",
-        "start_date": "2026-07-16",
-        "end_date": "2026-07-17",
-        "start_time_utc": "10:15",
-        "end_time_utc": "10:15",
+        "start_utc": "2026-07-16T10:15Z",
+        "end_utc": "2026-07-17T10:30Z",
     }
-    assert json.loads(relative_bytes)["settings"]["core_parameters"][
-        "time_selection"
-    ] == {"mode": "last_x", "hours": 24}
 
 
 def test_loading_active_only_config_resets_inactive_widget_state():
     """Prevent hidden values from the preceding session leaking into later modes."""
     normalized = config_io.validate_config_document(
-        _config_document(
-            _valid_settings(comparison_mode="none", time_mode="last_x")
-        )
+        _config_document(_valid_settings(comparison_mode="none"))
     )
-    session_state = SimpleNamespace(
-        lang="en",
-        val_start_d="stale-date",
-        val_end_d="stale-date",
-        val_start_t="stale-time",
-        val_end_t="stale-time",
-        val_ref_callsign="STALE",
-        val_ref_qth="AA00",
-        val_ref_radius_km=250,
-        val_snr_correction_mode="established_offset",
-        val_benchmark_offset_db=1.2,
-        val_tx_ab_method="sequential",
-        val_min_spots=50,
-        val_results_show_non_joint=True,
-        val_results_show_zero_target=True,
-        val_results_selected_ranges_compare=["[5000-10000km]"],
-        val_results_selected_directions_compare=["NW"],
-        val_results_selected_ranges_absolute=["[0-2500km]"],
-        val_results_selected_directions_absolute=["N"],
-        val_results_time_bin_compare="24h",
-        val_results_segment_time_bin_absolute="24h",
-    )
+    session_state = {
+        "lang": "en",
+        "val_start_d": "stale-date",
+        "val_end_d": "stale-date",
+        "val_start_t": "stale-time",
+        "val_end_t": "stale-time",
+        "val_ref_callsign": "STALE",
+        "val_ref_qth": "AA00",
+        "val_ref_radius_km": 250,
+        "val_snr_correction_mode": "established_offset",
+        "val_benchmark_offset_db": 1.2,
+        "val_tx_ab_method": "sequential",
+        "val_min_spots": 50,
+        "val_results_show_non_joint": True,
+        "val_results_show_zero_target": True,
+        "val_results_selected_ranges_compare": ["[5000-10000km]"],
+        "val_results_selected_directions_compare": ["NW"],
+        "val_results_selected_ranges_absolute": ["[0-2500km]"],
+        "val_results_selected_directions_absolute": ["N"],
+        "val_results_time_bin_compare": "24h",
+        "val_results_segment_time_bin_absolute": "24h",
+    }
 
     config_io.apply_config_state_values(normalized, session_state)
 
-    assert session_state.val_ref_callsign == ""
-    assert session_state.val_ref_qth == ""
-    assert session_state.val_ref_radius_km == 100
-    assert session_state.val_snr_correction_mode == "no_offset"
-    assert session_state.val_benchmark_offset_db == 0.0
-    assert session_state.val_tx_ab_method == "simultaneous"
-    assert session_state.val_min_spots == 1
-    assert session_state.val_results_show_non_joint is None
-    assert session_state.val_results_show_zero_target is False
-    assert session_state.val_results_selected_ranges_compare == "all"
-    assert session_state.val_results_selected_directions_compare == "all"
-    assert session_state.val_results_selected_ranges_absolute == "all"
-    assert session_state.val_results_selected_directions_absolute == "all"
-    assert session_state.val_results_time_bin_compare is None
-    assert session_state.val_results_segment_time_bin_compare == "auto"
-    assert session_state.val_results_segment_time_bin_absolute == "auto"
+    assert session_state["val_start_d"] == date(2026, 5, 27)
+    assert session_state["val_start_t"] == dt_time(0, 0)
+    assert session_state["val_end_d"] == date(2026, 5, 28)
+    assert session_state["val_end_t"] == dt_time(0, 0)
+    assert session_state["val_ref_callsign"] == ""
+    assert session_state["val_ref_qth"] == ""
+    assert session_state["val_ref_radius_km"] == 100
+    assert session_state["val_snr_correction_mode"] == "no_offset"
+    assert session_state["val_benchmark_offset_db"] == 0.0
+    assert session_state["val_tx_ab_method"] == "simultaneous"
+    assert session_state["val_min_spots"] == 1
+    assert session_state["val_results_show_non_joint"] is None
+    assert session_state["val_results_show_zero_target"] is False
+    assert session_state["val_results_selected_ranges_compare"] == "all"
+    assert session_state["val_results_selected_directions_compare"] == "all"
+    assert session_state["val_results_selected_ranges_absolute"] == "all"
+    assert session_state["val_results_selected_directions_absolute"] == "all"
+    assert session_state["val_results_time_bin_compare"] is None
+    assert session_state["val_results_segment_time_bin_compare"] == "auto"
+    assert session_state["val_results_segment_time_bin_absolute"] == "auto"
     assert (
-        session_state.val_results_station_temporal_view_compare
+        session_state["val_results_station_temporal_view_compare"]
         == "chronological"
     )
-    assert session_state.val_results_selected_stations_compare is None
-    assert session_state.val_results_selected_stations_absolute is None
+    assert session_state["val_results_selected_stations_compare"] is None
+    assert session_state["val_results_selected_stations_absolute"] is None
 
 
 @pytest.mark.parametrize(
@@ -1040,12 +1070,71 @@ def test_tx_hardware_writer_omits_inactive_method_fields(
     config_io.normalize_config_settings(settings)
 
 
-def test_time_modes_reject_fields_from_the_inactive_branch():
-    """Serialize either relative hours or an absolute UTC range, never both."""
-    settings = _valid_settings(time_mode="last_x")
-    settings["core_parameters"]["time_selection"]["start_date"] = "2026-05-27"
+@pytest.mark.parametrize(
+    "legacy_time_selection",
+    [
+        {"mode": "last_x", "hours": 24},
+        {
+            "mode": "custom",
+            "start_date": "2026-05-27",
+            "end_date": "2026-05-28",
+            "start_time_utc": "00:00",
+            "end_time_utc": "00:00",
+        },
+    ],
+)
+def test_legacy_time_selection_shapes_are_rejected(legacy_time_selection):
+    """Reject retired time modes without a compatibility or migration path."""
+    settings = _valid_settings()
+    settings["core_parameters"]["time_selection"] = legacy_time_selection
 
-    with pytest.raises(ValueError, match=r"Unknown .*time_selection field.*start_date"):
+    with pytest.raises(ValueError, match=r"time_selection"):
+        config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize(
+    ("start_utc", "end_utc", "expected_error"),
+    [
+        (
+            "2026-05-27T00:00Z",
+            "2026-05-27T00:00Z",
+            "end_utc must be after start_utc",
+        ),
+        (
+            "2026-05-28T00:00Z",
+            "2026-05-27T00:00Z",
+            "end_utc must be after start_utc",
+        ),
+        (
+            "2026-04-01T00:00Z",
+            "2026-05-03T00:00Z",
+            "maximum duration",
+        ),
+        (
+            "2007-12-31T23:45Z",
+            "2008-01-01T00:15Z",
+            "supported analysis history",
+        ),
+        (
+            "2099-01-01T00:00Z",
+            "2099-01-02T00:00Z",
+            "current quantized UTC boundary",
+        ),
+    ],
+)
+def test_absolute_time_selection_rejects_invalid_effective_windows(
+    start_utc,
+    end_utc,
+    expected_error,
+):
+    """Enforce ordering, history, duration, and future bounds centrally."""
+    settings = _valid_settings()
+    settings["core_parameters"]["time_selection"] = {
+        "start_utc": start_utc,
+        "end_utc": end_utc,
+    }
+
+    with pytest.raises(ValueError, match=expected_error):
         config_io.validate_config_document(_config_document(settings))
 
 

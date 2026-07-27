@@ -278,29 +278,37 @@ def test_success_selected_guidance_requires_exactly_one_station(
         )
 
 
-def test_compare_selected_guidance_remains_backward_compatible_without_count():
-    """Keep established Compare guidance callable without selection cardinality."""
-    guidance_without_count = _build_guidance(
+def test_compare_selected_guidance_requires_one_station_and_uses_one_path_copy():
+    """Enforce and describe the same singleton boundary for Compare."""
+    guidance = _build_guidance(
         RESULT_GUIDANCE_SELECTED_STATIONS,
         analysis_id="RX_COMP",
         is_compare=True,
         analysis_context=AnalysisContext(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
-    )
-    guidance_with_count = _build_guidance(
-        RESULT_GUIDANCE_SELECTED_STATIONS,
-        analysis_id="RX_COMP",
-        is_compare=True,
-        analysis_context=AnalysisContext(
-            comparison_mode=COMPARISON_REFERENCE_STATION
-        ),
-        selected_station_count=6,
+        selected_station_count=1,
     )
 
-    assert guidance_without_count == guidance_with_count
-    assert "chosen TX stations" in guidance_without_count
-    assert not _format_fields(guidance_without_count)
+    assert "one chosen TX station" in guidance
+    assert "one specific radio path" in guidance
+    assert "chosen TX stations" not in guidance
+    assert not _format_fields(guidance)
+
+    for selected_station_count in (None, 0, 2, 6):
+        with pytest.raises(
+            ValueError,
+            match="requires exactly one selected station",
+        ):
+            _build_guidance(
+                RESULT_GUIDANCE_SELECTED_STATIONS,
+                analysis_id="RX_COMP",
+                is_compare=True,
+                analysis_context=AnalysisContext(
+                    comparison_mode=COMPARISON_REFERENCE_STATION
+                ),
+                selected_station_count=selected_station_count,
+            )
 
 
 def test_success_selected_guidance_stays_near_readability_target():
@@ -727,10 +735,7 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
             analysis_context=analysis_context,
             selected_station_count=(
                 1
-                if (
-                    not is_compare
-                    and section_id == RESULT_GUIDANCE_SELECTED_STATIONS
-                )
+                if section_id == RESULT_GUIDANCE_SELECTED_STATIONS
                 else None
             ),
         )
@@ -826,6 +831,7 @@ def test_mode_specific_terms_and_compare_pairing_are_resolved_semantically():
         analysis_context=AnalysisContext(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
+        selected_station_count=1,
     )
     scheduled_compare = _build_guidance(
         RESULT_GUIDANCE_COMPARISON_EVIDENCE,
@@ -1160,6 +1166,7 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
         analysis_context=AnalysisContext(
             comparison_mode=COMPARISON_REFERENCE_STATION
         ),
+        selected_station_count=1,
     )
 
     assert "Station Medians (Δ SNR)" in joint_figures

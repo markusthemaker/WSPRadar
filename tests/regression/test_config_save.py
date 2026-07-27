@@ -1,7 +1,5 @@
 """Focused regression coverage for fragment-scoped config-save state."""
 
-from datetime import datetime, timezone
-
 from ui import config_save
 
 
@@ -60,34 +58,3 @@ def test_results_save_form_uses_distinct_widget_keys_with_shared_profile_data():
     assert results_title_key != config_save._PROFILE_TITLE_WIDGET_KEY
     assert session_state[results_title_key] == "Portable RX"
     assert config_save._PROFILE_TITLE_WIDGET_KEY not in session_state
-
-
-def test_new_active_run_defaults_to_freeze_but_preserves_user_choice():
-    """Default each newly resolved run once without fighting later radio input."""
-    resolved_window = (
-        datetime(2026, 7, 16, tzinfo=timezone.utc),
-        datetime(2026, 7, 17, tzinfo=timezone.utc),
-    )
-    session_state = {"run_id": 42}
-
-    config_save._initialize_time_policy(session_state, resolved_window)
-    assert (
-        session_state[config_save._TIME_POLICY_WIDGET_KEY]
-        == config_save.TIME_POLICY_FREEZE
-    )
-
-    session_state[config_save._TIME_POLICY_WIDGET_KEY] = (
-        config_save.TIME_POLICY_RELATIVE
-    )
-    config_save._initialize_time_policy(session_state, resolved_window)
-    assert (
-        session_state[config_save._TIME_POLICY_WIDGET_KEY]
-        == config_save.TIME_POLICY_RELATIVE
-    )
-
-    session_state["run_id"] = 43
-    config_save._initialize_time_policy(session_state, resolved_window)
-    assert (
-        session_state[config_save._TIME_POLICY_WIDGET_KEY]
-        == config_save.TIME_POLICY_FREEZE
-    )
