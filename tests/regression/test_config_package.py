@@ -47,6 +47,7 @@ from i18n import GUIDED_INPUTS
 
 EXPECTED_DEMO_FILENAMES = [
     "000_griffiths_squibb_fig3.config",
+    "000b_griffiths_squibb_performance.config",
     "001_griffiths_squibb_fig6.config",
     "01_vanhamel_rx_calibration.config",
     "02_vanhamel_rx_ab.config",
@@ -59,6 +60,7 @@ EXPECTED_DEMO_FILENAMES = [
 ]
 EXPECTED_DEMO_PROFILE_IDS = [
     "griffiths_squibb_fig3",
+    "griffiths_squibb_performance",
     "griffiths_squibb_fig6",
     "vanhamel_rx_calibration",
     "vanhamel_rx_buddy",
@@ -71,6 +73,7 @@ EXPECTED_DEMO_PROFILE_IDS = [
 ]
 EXPECTED_DEMO_SNR_CORRECTION_MODES = {
     "griffiths_squibb_fig3": "no_offset",
+    "griffiths_squibb_performance": None,
     "griffiths_squibb_fig6": "no_offset",
     "vanhamel_rx_calibration": "establish_offset",
     "vanhamel_rx_buddy": "established_offset",
@@ -260,7 +263,7 @@ def test_demo_configs_follow_filename_order_and_keep_canonical_settings():
 
 
 def test_demo_correction_modes_are_explicit_configuration():
-    """Keep every demo's correction meaning in its standalone config document."""
+    """Keep Compare correction policy explicit and Performance policy inapplicable."""
     actual_modes = {
         profile_id: profile["configuration"]["settings"]["comparison_parameters"].get(
             "snr_correction_mode"
@@ -299,6 +302,30 @@ def test_runtime_python_does_not_branch_on_literal_demo_profile_ids():
             )
 
     assert violations == {}
+
+
+def test_config_ui_boundaries_localize_validation_without_rendering_raw_errors():
+    """Keep technical validator prose out of load/save UI messages."""
+    app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
+    config_save_source = (
+        REPOSITORY_ROOT / "ui" / "config_save.py"
+    ).read_text(encoding="utf-8")
+
+    assert "log_config_validation_error(exc, operation=\"load\")" in app_source
+    assert "format_config_validation_error(exc, t)" in app_source
+    assert "err_config_load" not in app_source
+    assert ".format(error=exc)" not in app_source
+
+    assert (
+        "log_config_validation_error(exc, operation=\"save\")"
+        in config_save_source
+    )
+    assert (
+        "format_config_validation_error(exc, translations)"
+        in config_save_source
+    )
+    assert "err_config_save" not in config_save_source
+    assert ".format(error=exc)" not in config_save_source
 
 
 def test_demo_filenames_are_opaque_ordering_keys(tmp_path):

@@ -299,15 +299,9 @@ def _segment_temporal_figure_title(title, analysis_id, selected_segment, t):
     if not separator:
         comparison_title = original_title
     if str(analysis_id).upper().startswith("TX"):
-        temporal_prefix = t.get(
-            "fig_tx_comp_temporal_prefix",
-            "TX Compare Temporal",
-        )
+        temporal_prefix = t["fig_tx_comp_temporal_prefix"]
     else:
-        temporal_prefix = t.get(
-            "fig_rx_comp_temporal_prefix",
-            "RX Compare Temporal",
-        )
+        temporal_prefix = t["fig_rx_comp_temporal_prefix"]
     return (
         f"{temporal_prefix}: {comparison_title.strip()} - {selected_segment}"
     )
@@ -525,10 +519,7 @@ def _selected_success_temporal_figure_title(
 
 def _folded_utc_hour_panel_title(t):
     """Return the complete localized title for the fixed one-hour folded panel."""
-    return t.get(
-        "fig_segment_utc_hour_title",
-        "\u0394 SNR by UTC Hour (1 h bins)",
-    )
+    return t["fig_segment_utc_hour_title"]
 
 
 def _sync_time_bin_widget_state(widget_key, persistent_key, options, fallback):
@@ -927,12 +918,7 @@ def _warn_missing_station_identities(missing_identities, t):
         f"{identity['callsign']} ({identity['locator']})"
         for identity in missing_identities
     )
-    warning_template = t.get(
-        "warn_saved_station_unavailable",
-        "Saved station selection could not be fully restored because these "
-        "stations are not available in the current Station Insights table: "
-        "{stations}. No substitute was selected.",
-    )
+    warning_template = t["warn_saved_station_unavailable"]
     st.warning(
         warning_template.format(stations=missing_labels),
         icon=":material/warning:",
@@ -1197,18 +1183,19 @@ def _success_distance_scope_intervals(
     return intervals
 
 
-def _selection_summary(selection, all_option, item_kind, lang):
+def _selection_summary(selection, all_option, item_kind, translations):
     """Build a compact scope label without losing single-selection detail."""
     if not selection:
         return all_option
     limit = 2 if item_kind == "range" else 4
     if len(selection) <= limit:
         return ", ".join(selection)
-    if lang == "de":
-        noun = "Bereiche" if item_kind == "range" else "Richtungen"
-    else:
-        noun = "ranges" if item_kind == "range" else "directions"
-    return f"{len(selection)} {noun}"
+    template_key = (
+        "fmt_results_selected_range_count"
+        if item_kind == "range"
+        else "fmt_results_selected_direction_count"
+    )
+    return translations[template_key].format(count=len(selection))
 
 
 
@@ -1254,10 +1241,7 @@ def _reference_correction_note(t, is_compare):
     benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
     if abs(benchmark_offset_db) < 0.05:
         return None
-    offset_note = t.get(
-        "txt_benchmark_offset_note",
-        "Ref SNR Corr: {offset:+.1f} dB"
-    )
+    offset_note = t["txt_benchmark_offset_note"]
     return offset_note.format(offset=benchmark_offset_db)
 
 def _render_reference_correction_notice(t, is_compare):
@@ -1297,9 +1281,7 @@ def _segment_summary_lines(
 def _format_localized_integer(count, translations):
     """Format one evidence count with the active presentation separator."""
     formatted = f"{int(count):,}"
-    separator = str(
-        translations.get("fmt_results_thousands_separator", ",")
-    )
+    separator = str(translations["fmt_results_thousands_separator"])
     return formatted if separator == "," else formatted.replace(",", separator)
 
 
@@ -1309,7 +1291,7 @@ def _format_localized_decimal(value, translations, *, decimals=1):
     if not np.isfinite(numeric_value):
         return "—"
     formatted = f"{numeric_value:.{int(decimals)}f}".replace("-", "−")
-    if translations.get("fmt_results_thousands_separator") == ".":
+    if translations["fmt_results_thousands_separator"] == ".":
         formatted = formatted.replace(".", ",")
     return formatted
 
@@ -1338,10 +1320,7 @@ def _selected_success_context_line(recipe, translations):
         decimals=0,
     )
     direction = str(summary.get("direction", "")).strip().upper()
-    localized_east = translations.get(
-        "abbr_compass_east",
-        "E",
-    )
+    localized_east = translations["abbr_compass_east"]
     localized_direction = direction.replace("E", localized_east)
     successful_snr_median_db = summary.get(
         "successful_snr_median_db",
@@ -1426,47 +1405,32 @@ def _snr_column_config(df):
 
 def _evidence_labels(translations):
     """Return localized Compare labels for selected-station evidence plots."""
-    if st.session_state.get("lang") == "de":
-        return {
-            "dist_title": "\u0394 SNR Verteilung",
-            "time_title": "\u0394 SNR ueber Zeit",
-            "y_label": "\u0394 SNR (dB)",
-            "x_label": "Datum/Uhrzeit (UTC)",
-            "aggregate": "Selected Stations",
-            "median_label": "Median",
-            "bin_median_label": translations.get(
-                "fig_temporal_bin_median",
-                "Lokaler Median",
-            ),
-            "pooled_median_label": "Median",
-            "mean_label": "Arithmetisches Mittel",
-            "pooled_mean_label": "Mittelwert",
-            "count_label": "Anzahl Joint Spots",
-            "density_label": "Relative Joint-Spot-Dichte (% des Panelmaximums)",
-            "median_focus_axis_label": (
-                "\u0394 SNR (dB \u00b7 nichtlinear um Median zentriert)"
-            ),
-        }
-
+    chronological_title = translations["fig_segment_chronological_delta"]
     return {
-        "dist_title": "\u0394 SNR Distribution",
-        "time_title": "\u0394 SNR over Time",
-        "y_label": "\u0394 SNR (dB)",
-        "x_label": "Date/Time (UTC)",
-        "aggregate": "Selected Stations",
-        "median_label": "Median",
-        "bin_median_label": translations.get(
-            "fig_temporal_bin_median",
-            "Bin median",
+        "dist_title": translations["fig_compare_delta_distribution"],
+        "time_title": chronological_title,
+        "time_title_template": translations[
+            "fmt_temporal_title_with_bins"
+        ].format(
+            title=chronological_title,
+            time_bin="{time_bin}",
         ),
-        "pooled_median_label": "Median",
-        "mean_label": "Mean",
-        "pooled_mean_label": "Mean",
-        "count_label": "Joint spot count",
-        "density_label": "Relative joint-spot density (% of panel maximum)",
-        "median_focus_axis_label": (
-            "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
-        ),
+        "y_label": translations["tbl_col_delta_snr"],
+        "x_label": translations["fig_segment_chronological_x"],
+        "share_axis_label": translations["fig_share_percent_axis"],
+        "median_label": translations["fig_median_label"],
+        "bin_median_label": translations["fig_temporal_bin_median"],
+        "mean_label": translations["fig_mean_label"],
+        "empty_text": translations["fig_selected_evidence_empty"],
+        "single_evidence_point": translations[
+            "fig_single_evidence_point"
+        ],
+        "single_point_title": translations["fig_single_point_title"],
+        "count_label": translations["fig_joint_spot_count"],
+        "density_label": translations["fig_relative_joint_spot_density"],
+        "median_focus_axis_label": translations[
+            "fig_compare_median_focus_axis"
+        ],
     }
 
 
@@ -1517,11 +1481,11 @@ def _render_drilldown_dataframe(
         )
     )
 
-    drilldown_title = t.get("hdr_results_drilldown", "Drill-Down Data")
+    drilldown_title = t["hdr_results_drilldown"]
     st.markdown(
         evidence_level_header_html(
             5,
-            t.get("lbl_results_level_rows", "Row-level evidence"),
+            t["lbl_results_level_rows"],
             drilldown_title,
             drilldown_subtitle(
                 selected_station_labels,
@@ -1545,15 +1509,8 @@ def _render_drilldown_dataframe(
         is_sequential=is_sequential,
         analysis_context=analysis_context,
     )
-    normalization_note = (
-        "SNR-Werte sind auf 30 dBm normiert."
-        if st.session_state.get("lang") == "de"
-        else "SNR values are normalized to 30 dBm."
-    )
-    filter_note = t.get(
-        "txt_results_drilldown_filter_note",
-        "Filters change only the displayed table, not the completed analysis.",
-    )
+    normalization_note = t["txt_snr_values_normalized_30dbm"]
+    filter_note = t["txt_results_drilldown_filter_note"]
     st.markdown(
         scope_context_html(f"{filter_note} · {normalization_note}"),
         unsafe_allow_html=True,
@@ -1561,10 +1518,14 @@ def _render_drilldown_dataframe(
 
     _filter_spacer, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
     with col_d2:
-        with st.popover("Filter", icon=":material/filter_alt:", width="stretch"):
-            st.markdown("**Filter column(s):**")
+        with st.popover(
+            t["lbl_filter"],
+            icon=":material/filter_alt:",
+            width="stretch",
+        ):
+            st.markdown(f"**{t['lbl_filter_columns']}**")
             d_filter_cols = st.multiselect(
-                "Select Columns",
+                t["lbl_select_columns"],
                 display_drill_df.columns,
                 label_visibility="collapsed",
                 key=f"d_flt_{analysis_id}_{run_id}_{scope_token}"
@@ -1617,6 +1578,31 @@ def _render_drilldown_dataframe(
 
 
 
+def _selected_evidence_figure_title(
+    station_identities,
+    evidence_count,
+    *,
+    analysis_id,
+    is_sequential,
+    translations,
+):
+    """Build a localized selected-station figure title from semantic evidence."""
+    heading = translations["hdr_results_selected_station_evidence"]
+    selection_context = selected_station_context(
+        station_identities,
+        evidence_count,
+        analysis_id=analysis_id,
+        is_sequential=is_sequential,
+        translations=translations,
+    )
+    return translations[
+        "fmt_results_selected_station_evidence_title"
+    ].format(
+        heading=heading,
+        selection_context=selection_context,
+    )
+
+
 def _render_selected_station_evidence(
     station_df,
     selected_identity_df,
@@ -1658,14 +1644,13 @@ def _render_selected_station_evidence(
                 tx_ab_reference_start_minute=tx_ab_reference_start_minute,
             )
         if evidence_df.empty:
-            selected_evidence_heading = t.get(
-                "hdr_results_selected_station_evidence",
-                "Selected Station Evidence",
-            )
+            selected_evidence_heading = t[
+                "hdr_results_selected_station_evidence"
+            ]
             st.markdown(
                 evidence_level_header_html(
                     4,
-                    t.get("lbl_results_level_selection", "Selected stations"),
+                    t["lbl_results_level_selection"],
                     selected_evidence_heading,
                     selected_station_context(
                         identity_labels,
@@ -1693,11 +1678,7 @@ def _render_selected_station_evidence(
             )
             st.markdown(
                 scope_context_html(
-                    t.get(
-                        "txt_results_selected_no_paired_evidence",
-                        "No paired evidence is available for this selection; "
-                        "retained unpaired rows can still be audited below.",
-                    )
+                    t["txt_results_selected_no_paired_evidence"]
                 ),
                 unsafe_allow_html=True,
             )
@@ -1705,30 +1686,23 @@ def _render_selected_station_evidence(
 
         labels = _evidence_labels(t)
         if is_sequential:
-            labels["count_label"] = t.get(
-                "fig_scheduled_pair_count",
-                "Scheduled pair count",
-            )
-            labels["density_label"] = t.get(
-                "fig_relative_scheduled_pair_density",
-                "Relative scheduled-pair density (% of panel maximum)",
-            )
-        selected_count = len(identity_labels)
+            labels["count_label"] = t["fig_scheduled_pair_count"]
+            labels["density_label"] = t[
+                "fig_relative_scheduled_pair_density"
+            ]
         evidence_count = len(evidence_df)
-        evidence_basis = (
-            "scheduled pairs" if is_sequential
-            else "joint spots"
+        evidence_title = _selected_evidence_figure_title(
+            identity_labels,
+            evidence_count,
+            analysis_id=analysis_id,
+            is_sequential=is_sequential,
+            translations=t,
         )
-        evidence_title_base = "Ausgewaehlte Stations-Evidenz" if st.session_state.lang == "de" else "Selected Station Evidence"
-        if selected_count == 1:
-            evidence_title = f"{evidence_title_base}: {identity_labels[0]} | {evidence_count} {evidence_basis}"
-        else:
-            evidence_title = f"{evidence_title_base}: {selected_count} stations | {evidence_count} {evidence_basis}"
         time_agg_options, time_agg_default = _time_agg_options_for_span(evidence_df)
-        folded_date_template = t.get(
-            "fig_segment_dates_folded",
-            "{count} UTC dates folded",
-        ).replace("{count}", "{utc_date_count}")
+        folded_date_template = t["fig_segment_dates_folded"].replace(
+            "{count}",
+            "{utc_date_count}",
+        )
         base_recipe = _selected_evidence_export_recipe(
             evidence_df,
             evidence_title,
@@ -1737,25 +1711,15 @@ def _render_selected_station_evidence(
             is_sequential,
             folded_title=_folded_utc_hour_panel_title(t),
             folded_date_annotation=folded_date_template,
-            folded_x_label=t.get(
-                "fig_segment_utc_hour_x",
-                "UTC hour",
-            ),
-            density_label=labels.get("density_label"),
-            folded_unavailable_text=t.get(
-                "fig_segment_folded_unavailable",
-                "UTC-hour pattern unavailable - requires joint evidence from at least 2 UTC dates.",
-            ),
-            median_focus_axis_label=t.get(
-                "fig_compare_median_focus_axis",
-                "\u0394 SNR (dB \u00b7 median-centered nonlinear)",
-            ),
+            folded_x_label=t["fig_segment_utc_hour_x"],
+            density_label=labels["density_label"],
+            folded_unavailable_text=t["fig_segment_folded_unavailable"],
+            median_focus_axis_label=t["fig_compare_median_focus_axis"],
         )
         if base_recipe["utc_date_count"] < 2:
-            insufficient_date_label = t.get(
-                "fig_segment_dates_insufficient",
-                "{count} UTC dates available; folding unavailable",
-            ).format(count=base_recipe["utc_date_count"])
+            insufficient_date_label = t[
+                "fig_segment_dates_insufficient"
+            ].format(count=base_recipe["utc_date_count"])
             base_recipe["folded_date_annotation"] = insufficient_date_label
         selected_bundle = {
             "base_recipe": base_recipe,
@@ -1774,14 +1738,11 @@ def _render_selected_station_evidence(
 
     identity_labels = list(selected_bundle["identity_labels"])
     evidence_count = int(selected_bundle["evidence_count"])
-    selected_evidence_heading = t.get(
-        "hdr_results_selected_station_evidence",
-        "Selected Station Evidence",
-    )
+    selected_evidence_heading = t["hdr_results_selected_station_evidence"]
     st.markdown(
         evidence_level_header_html(
             4,
-            t.get("lbl_results_level_selection", "Selected stations"),
+            t["lbl_results_level_selection"],
             selected_evidence_heading,
             selected_station_context(
                 identity_labels,
@@ -1827,14 +1788,10 @@ def _render_selected_station_evidence(
         SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
     )
     temporal_view_labels = {
-        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL: t.get(
-            "opt_temporal_chronological",
-            "Chronological",
-        ),
-        SELECTED_TEMPORAL_VIEW_UTC_HOUR: t.get(
-            "opt_temporal_utc_hour",
-            "UTC-Hour",
-        ),
+        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL: t[
+            "opt_temporal_chronological"
+        ],
+        SELECTED_TEMPORAL_VIEW_UTC_HOUR: t["opt_temporal_utc_hour"],
     }
     temporal_view_key = (
         f"evidence_temporal_view_{analysis_id}_{run_id}_{scope_token}_"
@@ -1853,7 +1810,7 @@ def _render_selected_station_evidence(
     with view_control:
         if hasattr(st, "segmented_control"):
             temporal_view = st.segmented_control(
-                t.get("lbl_selected_temporal_view", "Temporal view"),
+                t["lbl_selected_temporal_view"],
                 temporal_view_options,
                 required=True,
                 format_func=temporal_view_labels.__getitem__,
@@ -1870,7 +1827,7 @@ def _render_selected_station_evidence(
             )
         else:
             temporal_view = st.radio(
-                t.get("lbl_selected_temporal_view", "Temporal view"),
+                t["lbl_selected_temporal_view"],
                 temporal_view_options,
                 format_func=temporal_view_labels.__getitem__,
                 horizontal=True,
@@ -1893,10 +1850,7 @@ def _render_selected_station_evidence(
     with detail_control:
         if temporal_view == SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL:
             _render_stretched_time_bin_control(
-                t.get(
-                    "lbl_chronological_bin_size",
-                    "Chronological bin size",
-                ),
+                t["lbl_chronological_bin_size"],
                 time_agg_options,
                 agg_key,
                 on_change=_sync_time_bin_widget_state,
@@ -1957,21 +1911,17 @@ def _render_segment_temporal_evidence(
     if not temporal_bundle:
         return None
 
-    temporal_evidence_title = t.get(
-        "hdr_results_temporal_evidence",
-        "Temporal Evidence",
-    )
+    temporal_evidence_title = t["hdr_results_temporal_evidence"]
     st.markdown(
         evidence_child_header_html(
             temporal_evidence_title,
-            t.get(
+            t[
                 (
                     "sub_results_temporal_evidence"
                     if is_compare
                     else "sub_results_success_temporal"
-                ),
-                "",
-            ),
+                )
+            ],
         ),
         unsafe_allow_html=True,
     )
@@ -2006,10 +1956,7 @@ def _render_segment_temporal_evidence(
     )
 
     _render_prompted_segment_time_bin_control(
-        t.get(
-            "lbl_time_aggregation_bin_size",
-            "Select time aggregation bin size",
-        ),
+        t["lbl_time_aggregation_bin_size"],
         time_bin_options,
         widget_key,
         on_change=_sync_time_bin_widget_state,
@@ -2158,7 +2105,7 @@ def _render_opportunity_scope(
                 run_id=run_id,
                 stage="opportunity segment read",
             )
-            st.warning("Cache file expired. Please Run Analysis again.")
+            st.warning(t["warn_analysis_cache_expired"])
             return
         except (KeyError, ValueError) as exc:
             _log_artifact_read_failure(
@@ -2168,7 +2115,7 @@ def _render_opportunity_scope(
                 run_id=run_id,
                 stage="opportunity segment read",
             )
-            st.error("Analysis evidence could not be read because its schema is invalid.")
+            st.error(t["err_analysis_evidence_schema_invalid"])
             return
         with _timed_span(timing_collector, "opportunity segment prep"):
             rows["peer_sign"] = rows["peer_sign"].astype(str)
@@ -2391,17 +2338,15 @@ def _render_opportunity_scope(
         )
     )
     station_type = remote_station_type(analysis_id)
-    station_insights_title = t.get("lbl_insights", "Station Insights")
+    station_insights_title = t["lbl_insights"]
     level_three_container.markdown(
         evidence_level_header_html(
             3,
-            t.get("lbl_results_level_stations", "Contributing stations"),
+            t["lbl_results_level_stations"],
             station_insights_title,
-            t.get(
-                "sub_results_station_insights_success",
-                "Contributing {station_type} stations in the active scope. "
-                "Select one row to inspect its evidence.",
-            ).format(station_type=station_type),
+            t["sub_results_station_insights_success"].format(
+                station_type=station_type
+            ),
             station_scope_text(
                 range_summary,
                 direction_summary,
@@ -2469,9 +2414,13 @@ def _render_opportunity_scope(
         ] = configured_station_identities
 
     with col_filter:
-        with st.popover("Filter", icon=":material/filter_alt:", width="stretch"):
+        with st.popover(
+            t["lbl_filter"],
+            icon=":material/filter_alt:",
+            width="stretch",
+        ):
             filter_cols = st.multiselect(
-                "Select Columns",
+                t["lbl_select_columns"],
                 disp_df.columns,
                 label_visibility="collapsed",
                 key=f"opp_filter_cols_{analysis_id}_{run_id}_{scope_token}",
@@ -2659,17 +2608,13 @@ def _render_opportunity_scope(
                 f"{analysis_id}_{run_id}_{scope_token}"
             )
         )
-        selected_evidence_heading = t.get(
-            "hdr_results_selected_station_evidence",
-            "Selected Station Evidence",
-        )
+        selected_evidence_heading = t[
+            "hdr_results_selected_station_evidence"
+        ]
         level_four_container.markdown(
             evidence_level_header_html(
                 4,
-                t.get(
-                    "lbl_results_level_selection_success",
-                    "Selected station",
-                ),
+                t["lbl_results_level_selection_success"],
                 selected_evidence_heading,
                 selected_station_context_text,
             ),
@@ -2771,10 +2716,7 @@ def _render_opportunity_scope(
             )
         level_four_container.markdown(
             transition_prompt_html(
-                t.get(
-                    "txt_results_transition_rows",
-                    "Review the underlying evidence rows",
-                )
+                t["txt_results_transition_rows"]
             ),
             unsafe_allow_html=True,
         )
@@ -2841,10 +2783,7 @@ def _render_opportunity_scope(
     else:
         level_three_container.markdown(
             transition_prompt_html(
-                t.get(
-                    "txt_results_transition_stations_success",
-                    "↓ Select one station to inspect its evidence",
-                )
+                t["txt_results_transition_stations_success"]
             ),
             unsafe_allow_html=True,
         )
@@ -2886,6 +2825,7 @@ def _render_opportunity_scope(
         "lang": st.session_state.get("lang", "en"),
     }
     register_inspector_export(
+        translations=t,
         analysis_id=analysis_id,
         selected_segment=selected_seg,
         selected_distance=range_summary,
@@ -3046,20 +2986,13 @@ def _render_segment_inspector_body(
     level_two_container = st.container(
         key=f"results_evidence_level_2_{analysis_id}_{run_id}"
     )
-    segment_inspector_title = t.get(
-        "hdr_results_segment_inspector",
-        "Segment Inspector",
-    )
+    segment_inspector_title = t["hdr_results_segment_inspector"]
     level_two_container.markdown(
         evidence_level_header_html(
             2,
-            t.get("lbl_results_level_scope", "Geographic scope"),
+            t["lbl_results_level_scope"],
             segment_inspector_title,
-            t.get(
-                "sub_results_segment_inspector",
-                "Choose one or more distance ranges and directions. "
-                "All evidence below follows the active scope.",
-            ),
+            t["sub_results_segment_inspector"],
         ),
         unsafe_allow_html=True,
     )
@@ -3076,10 +3009,10 @@ def _render_segment_inspector_body(
             analysis_context=analysis_context,
         )
 
-    lbl_dist = t.get("lbl_results_distance_range", "Distance range")
-    lbl_dir = t.get("lbl_results_direction", "Direction")
-    opt_full = t.get("opt_full_range", "Full Range")
-    opt_all_dir = t.get("opt_all_dirs", "All Directions")
+    lbl_dist = t["lbl_results_distance_range"]
+    lbl_dir = t["lbl_results_direction"]
+    opt_full = t["opt_full_range"]
+    opt_all_dir = t["opt_all_dirs"]
 
     valid_dirs = options_view_model.valid_directions
     range_persistent_key, direction_persistent_key = (
@@ -3157,13 +3090,13 @@ def _render_segment_inspector_body(
         selected_ranges,
         opt_full,
         "range",
-        st.session_state.lang,
+        t,
     )
     direction_summary = _selection_summary(
         selected_directions,
         opt_all_dir,
         "direction",
-        st.session_state.lang,
+        t,
     )
     selected_seg = f"{range_summary} | {direction_summary}"
     active_scope_summary = active_scope_text(
@@ -3204,13 +3137,12 @@ def _render_segment_inspector_body(
             )
 
         if df_seg.empty:
-            empty_scope_message = (
-                "Keine Stationen im ausgewaehlten Bereich."
-                if st.session_state.lang == "de"
-                else "No stations in the selected scope."
+            st.info(
+                t["msg_results_no_stations_in_scope"],
+                icon=":material/info:",
             )
-            st.info(empty_scope_message, icon=":material/info:")
             register_inspector_export(
+                translations=t,
                 analysis_id=analysis_id,
                 selected_segment=selected_seg,
                 selected_distance=range_summary,
@@ -3307,7 +3239,7 @@ def _render_segment_inspector_body(
             segment_station_joint_count = None
             segment_spot_total_count = None
             segment_spot_joint_count = None
-            joint_lbl = t.get("txt_joint", "Joint")
+            joint_lbl = t["txt_joint"]
 
             if has_plot_data:
                 with _timed_span(timing_collector, "segment evidence points build"):
@@ -3337,11 +3269,11 @@ def _render_segment_inspector_body(
                     max_dist_km=float("inf"),
                 )
                 joint_lbl = (
-                    t.get("tbl_col_joint_pairs", "Joint Pairs")
+                    t["tbl_col_joint_pairs"]
                     if is_sequential
-                    else t.get("txt_joint", "Joint")
+                    else t["txt_joint"]
                 )
-                async_lbl = t.get("leg_both_async", "Both (Async)")
+                async_lbl = t["leg_both_async"]
                 segment_panel_station_counts = [
                     outcome_counts["stat_only_u"],
                     outcome_counts["stat_joint"],
@@ -3361,14 +3293,11 @@ def _render_segment_inspector_body(
                     compare_view_model.reference_only_label,
                 ]
                 segment_panel_series_labels = [
-                    t.get("lbl_results_stations", "Stations"),
+                    t["lbl_results_stations"],
                     (
-                        t.get(
-                            "lbl_results_scheduled_pairs",
-                            "Scheduled pairs",
-                        )
+                        t["lbl_results_scheduled_pairs"]
                         if is_sequential
-                        else t.get("lbl_results_spots", "Spots")
+                        else t["lbl_results_spots"]
                     ),
                 ]
                 segment_station_total_count = sum(segment_panel_station_counts)
@@ -3383,53 +3312,51 @@ def _render_segment_inspector_body(
                     station_values=vals,
                     spot_values=segment_raw_values,
                     panel_labels=segment_panel_labels,
-                    panel_y_label="Share (%)",
+                    panel_y_label=t["fig_share_percent_axis"],
+                    decode_outcomes_title=t["fig_decode_outcomes"],
+                    station_medians_title=t[
+                        "fig_station_medians_delta"
+                    ],
+                    metric_axis_label=t["tbl_col_delta_snr"],
+                    median_label=t["fig_median_label"],
+                    mean_label=t["fig_mean_label"],
+                    no_data_label=t["fig_no_data"],
                     panel_station_counts=segment_panel_station_counts,
                     panel_spot_counts=segment_panel_spot_counts,
                     panel_series_labels=segment_panel_series_labels,
                     paired_evidence_title=(
-                        t.get(
-                            "fig_scheduled_pair_delta",
-                            "Scheduled-Pair \u0394 SNR",
-                        )
+                        t["fig_scheduled_pair_delta"]
                         if is_sequential
-                        else None
+                        else t["fig_joint_spot_delta"]
                     ),
                 )
                 if not segment_evidence_df.empty:
                     if is_sequential:
-                        temporal_count_label = t.get(
-                            "fig_scheduled_pair_count",
-                            "Scheduled pair count",
-                        )
-                        temporal_density_label = t.get(
-                            "fig_relative_scheduled_pair_density",
-                            "Relative scheduled-pair density (% of panel maximum)",
-                        )
+                        temporal_count_label = t["fig_scheduled_pair_count"]
+                        temporal_density_label = t[
+                            "fig_relative_scheduled_pair_density"
+                        ]
                     else:
-                        temporal_count_label = t.get(
-                            "fig_joint_spot_count",
-                            "Joint spot count",
-                        )
-                        temporal_density_label = t.get(
-                            "fig_relative_joint_spot_density",
-                            "Relative joint-spot density (% of panel maximum)",
-                        )
+                        temporal_count_label = t["fig_joint_spot_count"]
+                        temporal_density_label = t[
+                            "fig_relative_joint_spot_density"
+                        ]
 
                     temporal_time_options, temporal_time_default = (
                         _time_agg_options_for_span(segment_evidence_df)
                     )
-                    chronological_title_label = t.get(
-                        "fig_segment_chronological_delta",
-                        "\u0394 SNR over Time",
+                    chronological_title_label = t[
+                        "fig_segment_chronological_delta"
+                    ]
+                    chronological_title_template = t[
+                        "fmt_temporal_title_with_bins"
+                    ].format(
+                        title=chronological_title_label,
+                        time_bin="{time_bin}",
                     )
-                    chronological_title_template = (
-                        f"{chronological_title_label} ({{time_bin}} bins)"
-                    )
-                    folded_date_template = t.get(
-                        "fig_segment_dates_folded",
-                        "{count} UTC dates folded",
-                    ).replace("{count}", "{utc_date_count}")
+                    folded_date_template = t[
+                        "fig_segment_dates_folded"
+                    ].replace("{count}", "{utc_date_count}")
                     temporal_figure_title = _segment_temporal_figure_title(
                         title,
                         analysis_id,
@@ -3442,39 +3369,27 @@ def _render_segment_inspector_body(
                         temporal_time_default,
                         temporal_count_label,
                         chronological_title=chronological_title_template,
-                        chronological_x_label=t.get(
-                            "fig_segment_chronological_x",
-                            "Date/Time (UTC)",
-                        ),
+                        chronological_x_label=t[
+                            "fig_segment_chronological_x"
+                        ],
+                        metric_axis_label=t["tbl_col_delta_snr"],
                         folded_title=_folded_utc_hour_panel_title(t),
                         folded_date_annotation=folded_date_template,
-                        folded_x_label=t.get(
-                            "fig_segment_utc_hour_x",
-                            "UTC hour",
-                        ),
+                        folded_x_label=t["fig_segment_utc_hour_x"],
                         density_label=temporal_density_label,
-                        folded_unavailable_text=t.get(
-                            "fig_segment_folded_unavailable",
-                            "UTC-hour pattern unavailable - requires joint evidence from at least 2 UTC dates.",
-                        ),
-                        median_focus_axis_label=t.get(
-                            "fig_compare_median_focus_axis",
-                            "\u0394 SNR (dB \u00b7 median-centered nonlinear)",
-                        ),
-                        median_label=t.get(
-                            "fig_median_label",
-                            "Median",
-                        ),
-                        bin_median_label=t.get(
-                            "fig_temporal_bin_median",
-                            "Bin median",
-                        ),
+                        folded_unavailable_text=t[
+                            "fig_segment_folded_unavailable"
+                        ],
+                        median_focus_axis_label=t[
+                            "fig_compare_median_focus_axis"
+                        ],
+                        median_label=t["fig_median_label"],
+                        bin_median_label=t["fig_temporal_bin_median"],
                     )
                     if temporal_base_recipe["utc_date_count"] < 2:
-                        insufficient_date_label = t.get(
-                            "fig_segment_dates_insufficient",
-                            "{count} UTC dates available; folding unavailable",
-                        ).format(count=temporal_base_recipe["utc_date_count"])
+                        insufficient_date_label = t[
+                            "fig_segment_dates_insufficient"
+                        ].format(count=temporal_base_recipe["utc_date_count"])
                         temporal_base_recipe[
                             "folded_date_annotation"
                         ] = insufficient_date_label
@@ -3486,11 +3401,7 @@ def _render_segment_inspector_body(
                     }
                 station_summary = _compare_metric_distribution_summary(
                     segment_figure_recipe["station_values"],
-                    t.get(
-                        "fmt_results_station_delta_summary",
-                        "Stations{count_context} · Median {median} dB · "
-                        "Mean {mean} dB",
-                    ),
+                    t["fmt_results_station_delta_summary"],
                     total_count=segment_station_total_count,
                     joint_count=segment_station_joint_count,
                     joint_label=joint_lbl,
@@ -3500,19 +3411,9 @@ def _render_segment_inspector_body(
                     if is_sequential
                     else "fmt_results_joint_spot_delta_summary"
                 )
-                observation_summary_fallback = (
-                    "Scheduled pairs{count_context} · Median {median} dB · "
-                    "Mean {mean} dB"
-                    if is_sequential
-                    else "Spots{count_context} · Median {median} dB · "
-                    "Mean {mean} dB"
-                )
                 spot_summary = _compare_metric_distribution_summary(
                     segment_figure_recipe["spot_values"],
-                    t.get(
-                        observation_summary_key,
-                        observation_summary_fallback,
-                    ),
+                    t[observation_summary_key],
                     total_count=segment_spot_total_count,
                     joint_count=segment_spot_joint_count,
                     joint_label=joint_lbl,
@@ -3584,18 +3485,13 @@ def _render_segment_inspector_body(
         )
 
         with level_two_container:
-            comparison_evidence_title = t.get(
-                "hdr_results_comparison_evidence",
-                "Comparison Evidence",
-            )
+            comparison_evidence_title = t[
+                "hdr_results_comparison_evidence"
+            ]
             st.markdown(
                 evidence_child_header_html(
                     comparison_evidence_title,
-                    t.get(
-                        comparison_subtitle_key,
-                        "Decode Outcomes, station medians, and paired ΔSNR "
-                        "for the active scope.",
-                    ),
+                    t[comparison_subtitle_key],
                 ),
                 unsafe_allow_html=True,
             )
@@ -3648,10 +3544,7 @@ def _render_segment_inspector_body(
                 )
             else:
                 no_joint_message = (
-                    t.get(
-                        "lbl_no_joint_pairs",
-                        "No joint scheduled pairs are available in this segment.",
-                    )
+                    t["lbl_no_joint_pairs"]
                     if is_sequential
                     else t["lbl_no_joint"]
                 )
@@ -3671,17 +3564,15 @@ def _render_segment_inspector_body(
             )
         )
         station_type = remote_station_type(analysis_id)
-        station_insights_title = t.get("lbl_insights", "Station Insights")
+        station_insights_title = t["lbl_insights"]
         level_three_container.markdown(
             evidence_level_header_html(
                 3,
-                t.get("lbl_results_level_stations", "Contributing stations"),
+                t["lbl_results_level_stations"],
                 station_insights_title,
-                t.get(
-                    "sub_results_station_insights",
-                    "Contributing {station_type} stations in the active scope. "
-                    "Select one or more rows to inspect their evidence.",
-                ).format(station_type=station_type),
+                t["sub_results_station_insights"].format(
+                    station_type=station_type
+                ),
                 station_scope_text(
                     range_summary,
                     direction_summary,
@@ -3716,8 +3607,7 @@ def _render_segment_inspector_body(
         )
         
         with col_ins1:
-            # Compact bilingual subtitle.
-            sub_text = " (Norm. @ 30 dBm. Details per Klick)" if st.session_state.lang == "de" else " (Norm. @ 30 dBm. Click for details)"
+            sub_text = t["txt_station_insights_normalized_30dbm"]
             st.markdown(
                 scope_context_html(sub_text.strip(" ()")),
                 unsafe_allow_html=True,
@@ -3727,10 +3617,7 @@ def _render_segment_inspector_body(
             # Default to showing unpaired rows when the segment contains no joint
             # evidence but does contain target-only, reference-only, or async-both evidence.
             st.toggle(
-                t.get(
-                    "lbl_include_unpaired_evidence",
-                    "Include Unpaired Evidence",
-                ),
+                t["lbl_include_unpaired_evidence"],
                 key=toggle_key,
                 on_change=_sync_boolean_widget_state,
                 args=(toggle_key, RESULTS_SHOW_NON_JOINT_STATE_KEY),
@@ -3744,9 +3631,17 @@ def _render_segment_inspector_body(
         # sorted_disp_df is ready, so render the filter button in column 3.
         with col_ins3:
             # Subtle native Material Design filter button.
-            with st.popover("Filter", icon=":material/filter_alt:", width="stretch"):
-                st.markdown("**Filter column(s):**")
-                filter_cols = st.multiselect("Select Columns", sorted_disp_df.columns, label_visibility="collapsed")
+            with st.popover(
+                t["lbl_filter"],
+                icon=":material/filter_alt:",
+                width="stretch",
+            ):
+                st.markdown(f"**{t['lbl_filter_columns']}**")
+                filter_cols = st.multiselect(
+                    t["lbl_select_columns"],
+                    sorted_disp_df.columns,
+                    label_visibility="collapsed",
+                )
                 
                 for col in filter_cols:
                     if pd.api.types.is_numeric_dtype(sorted_disp_df[col]):
@@ -3912,10 +3807,7 @@ def _render_segment_inspector_body(
                     )
                 level_four_container.markdown(
                     transition_prompt_html(
-                        t.get(
-                            "txt_results_transition_rows",
-                            "Review the underlying evidence rows",
-                        )
+                        t["txt_results_transition_rows"]
                     ),
                     unsafe_allow_html=True,
                 )
@@ -3983,20 +3875,18 @@ def _render_segment_inspector_body(
                     stage="selected station rows load",
                 )
                 level_four_container.warning(
-                    "Cache file expired. Please Run Analysis again."
+                    t["warn_analysis_cache_expired"]
                 )
         else:
             level_three_container.markdown(
                 transition_prompt_html(
-                    t.get(
-                        "txt_results_transition_stations",
-                        "Select one or more stations to inspect their evidence",
-                    )
+                    t["txt_results_transition_stations"]
                 ),
                 unsafe_allow_html=True,
             )
 
         register_inspector_export(
+            translations=t,
             analysis_id=analysis_id,
             selected_segment=selected_seg,
             selected_distance=range_summary,

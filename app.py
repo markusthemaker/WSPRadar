@@ -58,7 +58,12 @@ from ui.page_navigation import (
     render_page_navigation_controller,
     request_page_navigation,
 )
-from ui.config_io import apply_config_values, validate_config_upload
+from ui.config_io import (
+    apply_config_values,
+    format_config_validation_error,
+    log_config_validation_error,
+    validate_config_upload,
+)
 from ui.config_save import render_config_save_control
 from ui.css import apply_custom_css
 from ui.documentation_state import collapse_documentation
@@ -192,24 +197,25 @@ def render_demo_launcher():
 
 
 def render_config_loader():
-    with st.expander(t.get("btn_load_config", "Load Config"), expanded=True):
+    with st.expander(t["btn_load_config"], expanded=True):
         uploaded_config = st.file_uploader(
-            t.get("lbl_config_file", "Select WSPRadar .config file"),
+            t["lbl_config_file"],
             type=["config", "json"],
             accept_multiple_files=False,
             key="uploaded_config_file",
         )
         if uploaded_config is not None:
-            if st.button(t.get("btn_apply_config", "Load selected config"), icon=":material/file_upload:", width="stretch"):
+            if st.button(t["btn_apply_config"], icon=":material/file_upload:", width="stretch"):
                 try:
                     config_values, config_warnings = validate_config_upload(uploaded_config.getvalue())
                     apply_config_values(config_values)
-                    st.success(t.get("msg_config_loaded", "Config loaded. Existing results were cleared."))
+                    st.success(t["msg_config_loaded"])
                     for warning in config_warnings:
                         st.warning(warning)
                     st.rerun()
                 except ValueError as exc:
-                    st.error(t.get("err_config_load", "Config could not be loaded: {error}").format(error=exc))
+                    log_config_validation_error(exc, operation="load")
+                    st.error(format_config_validation_error(exc, t))
 
 
 logo_base64 = get_base64_of_bin_file("img/WSPRadar.png")

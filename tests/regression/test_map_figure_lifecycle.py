@@ -83,6 +83,82 @@ _SUCCESS_OUTCOME_LABELS = {
 }
 
 
+def _localized_compare_segment_recipe(recipe, language="en"):
+    """Attach complete localized presentation state to a Compare recipe."""
+    translations = T[language]
+    is_sequential = bool(recipe.get("is_sequential"))
+    return {
+        **recipe,
+        "panel_y_label": translations["fig_share_percent_axis"],
+        "decode_outcomes_title": translations["fig_decode_outcomes"],
+        "station_medians_title": translations[
+            "fig_station_medians_delta"
+        ],
+        "paired_evidence_title": translations[
+            (
+                "fig_scheduled_pair_delta"
+                if is_sequential
+                else "fig_joint_spot_delta"
+            )
+        ],
+        "metric_axis_label": translations["tbl_col_delta_snr"],
+        "median_label": translations["fig_median_label"],
+        "mean_label": translations["fig_mean_label"],
+        "no_data_label": translations["fig_no_data"],
+    }
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_compare_segment_renderer_uses_localized_recipe_labels(language):
+    """Render every Compare panel label from explicit EN/DE recipe state."""
+    translations = T[language]
+    recipe = _localized_compare_segment_recipe(
+        {
+            "title": "Localized Compare",
+            "selected_segment": "Full Range | All Directions",
+            "is_sequential": False,
+            "station_values": np.array([], dtype=float),
+            "spot_values": np.array([], dtype=float),
+            "panel_station_counts": [1, 2, 0, 1],
+            "panel_spot_counts": [1, 4, 0, 1],
+            "panel_series_labels": [
+                translations["lbl_results_stations"],
+                translations["lbl_results_spots"],
+            ],
+            "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
+        },
+        language,
+    )
+
+    figure = render_segment_insight_export_figure(recipe)
+    try:
+        outcome_axis, station_axis, spot_axis = figure.axes
+        assert outcome_axis.get_title() == translations[
+            "fig_decode_outcomes"
+        ]
+        assert outcome_axis.get_ylabel() == translations[
+            "fig_share_percent_axis"
+        ]
+        assert station_axis.get_title() == translations[
+            "fig_station_medians_delta"
+        ]
+        assert spot_axis.get_title() == translations[
+            "fig_joint_spot_delta"
+        ]
+        assert station_axis.get_xlabel() == translations[
+            "tbl_col_delta_snr"
+        ]
+        assert spot_axis.get_xlabel() == translations[
+            "tbl_col_delta_snr"
+        ]
+        for axis in (station_axis, spot_axis):
+            assert {text.get_text() for text in axis.texts} == {
+                translations["fig_no_data"]
+            }
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
 def _success_segment_figure_recipe_for_test(title):
     """Build one complete localized Success evidence recipe for renderer tests."""
     peer_rows = pd.DataFrame(
@@ -348,7 +424,7 @@ def test_map_renderer_rejects_removed_legacy_absolute_mode():
         language="en",
         labels=T["en"],
         theme="dark",
-        solar_label="All",
+        solar_label=T["en"]["opt_solar_all"].split()[0],
     )
 
     with pytest.raises(ValueError, match="Map analysis mode must be Success"):
@@ -421,7 +497,7 @@ def test_compare_map_renderer_scales_only_from_visible_segments(monkeypatch):
         language="en",
         labels=T["en"],
         theme="dark",
-        solar_label="All",
+        solar_label=T["en"]["opt_solar_all"].split()[0],
     )
 
     rendered_map = plot_engine.render_map_figure(
@@ -640,12 +716,12 @@ def test_success_map_renderer_uses_sector_rate_and_status_only_markers(
         language=language,
         labels=labels,
         theme=theme,
-        solar_label="All",
+        solar_label=T[language]["opt_solar_all"].split()[0],
     )
 
     rendered_map = plot_engine.render_map_figure(
         map_data,
-        title="Success map",
+        title="Performance map",
         start_t=datetime(2026, 7, 1, tzinfo=timezone.utc),
         end_t=datetime(2026, 7, 2, tzinfo=timezone.utc),
         max_dist_km=5000,
@@ -749,12 +825,9 @@ def test_success_map_renderer_uses_sector_rate_and_status_only_markers(
             == labels[f"cbar_abs_{absolute_mode.lower()}"]
         )
         expected_colorbar_label = (
-            f"Station-balanced {absolute_mode} Success Rate (%)"
+            f"Station-balanced {absolute_mode} Decode Rate (%)"
             if language == "en"
-            else (
-                f"Stationsgleichgewichtete {absolute_mode} "
-                "Success Rate (%)"
-            )
+            else f"Stationsgleichgewichtete {absolute_mode}-Dekodierrate (%)"
         )
         assert colorbar_axis.get_ylabel() == expected_colorbar_label
         colorbar_solid = next(
@@ -1098,6 +1171,7 @@ def test_segment_and_opportunity_figures_render_concurrently_without_pyplot_stat
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Share (%)",
     }
+    segment_recipe = _localized_compare_segment_recipe(segment_recipe)
     opportunity_recipe = _success_segment_figure_recipe_for_test(
         "Concurrent Opportunity Insight"
     )
@@ -1140,6 +1214,7 @@ def test_high_resolution_export_uses_shared_matplotlib_runtime():
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Share (%)",
     }
+    recipe = _localized_compare_segment_recipe(recipe)
     figure = render_segment_insight_export_figure(recipe)
     try:
         image_bytes = figure_to_png_bytes(figure, dpi=80, paper_theme=True)
@@ -1163,6 +1238,7 @@ def test_compare_segment_histograms_share_median_legend_and_mean_placement():
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Share (%)",
     }
+    recipe = _localized_compare_segment_recipe(recipe)
 
     figure = render_segment_insight_export_figure(recipe)
     try:
@@ -1226,6 +1302,7 @@ def test_compare_outcomes_and_station_histogram_share_station_hatching():
         "panel_labels": ["Target only", "Joint", "Both (Async)", "Reference only"],
         "panel_y_label": "Share (%)",
     }
+    recipe = _localized_compare_segment_recipe(recipe)
 
     figure = render_segment_insight_export_figure(recipe)
     try:
@@ -1344,7 +1421,7 @@ def test_compare_outcomes_and_station_histogram_share_station_hatching():
 
 def test_success_segment_figure_uses_shared_legend_and_axis_label_style():
     """Apply shared styling to the exact-distance Success evidence panels."""
-    recipe = _success_segment_figure_recipe_for_test("RX Success")
+    recipe = _success_segment_figure_recipe_for_test("RX Performance")
     labels = _success_figure_labels(T["en"], "RX_ABS")
 
     figure = render_segment_insight_export_figure(recipe)
@@ -1454,7 +1531,8 @@ def test_success_segment_layout_matches_compare_panel_size_and_title_clearance()
         ],
         "panel_y_label": "Share (%)",
     }
-    success_recipe = _success_segment_figure_recipe_for_test("RX Success")
+    compare_recipe = _localized_compare_segment_recipe(compare_recipe)
+    success_recipe = _success_segment_figure_recipe_for_test("RX Performance")
     compare_figure = render_segment_insight_export_figure(compare_recipe)
     success_figure = _render_opportunity_segment_figure(success_recipe)
     try:
@@ -1517,6 +1595,7 @@ def test_sequential_segment_recipe_preserves_scheduled_pair_title():
         "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
         "panel_y_label": "Share (%)",
     }
+    base_recipe = _localized_compare_segment_recipe(base_recipe)
 
     evidence_title = "Scheduled-Pair \u0394 SNR"
     figure = render_segment_insight_export_figure(

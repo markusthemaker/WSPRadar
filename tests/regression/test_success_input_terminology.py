@@ -1,3 +1,5 @@
+import ast
+import inspect
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -255,8 +257,8 @@ def test_sequential_tx_compare_preserves_scheduled_pair_help(monkeypatch, langua
     assert station_call.kwargs["help"] == T[language]["hlp_min_stations_compare"]
 
 
-def test_success_opportunity_fallback_label_does_not_expose_h_plus_m(monkeypatch):
-    """Keep the active fallback in presentation language if a label is absent."""
+def test_success_opportunity_label_is_a_required_catalog_contract(monkeypatch):
+    """Reject an incomplete catalog instead of rendering an English fallback."""
     labels_without_optional_label = dict(T["en"])
     labels_without_optional_label.pop("lbl_min_opportunities")
     sliders = Mock()
@@ -269,11 +271,12 @@ def test_success_opportunity_fallback_label_does_not_expose_h_plus_m(monkeypatch
         ),
     )
 
-    config_panel.render_evidence_threshold_fields(labels_without_optional_label)
+    with pytest.raises(KeyError, match="lbl_min_opportunities"):
+        config_panel.render_evidence_threshold_fields(
+            labels_without_optional_label
+        )
 
-    fallback_label = sliders.call_args_list[0].args[0]
-    assert fallback_label == "Minimum confirmed opportunities per station"
-    assert "H+M" not in fallback_label
+    sliders.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -372,3 +375,40 @@ def test_success_input_help_keys_preserve_complete_bilingual_structure():
     for key in SUCCESS_HELP_KEYS:
         assert T["en"][key].strip()
         assert T["de"][key].strip()
+
+
+def test_shared_config_panel_requires_bilingual_catalog_strings_without_fallbacks():
+    """Keep Guided/Classic shared widgets free of displayable literal fallbacks."""
+    syntax_tree = ast.parse(inspect.getsource(config_panel))
+    translation_get_calls = [
+        node.lineno
+        for node in ast.walk(syntax_tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "t"
+        and node.func.attr == "get"
+    ]
+    literal_translation_keys = {
+        node.slice.value
+        for node in ast.walk(syntax_tree)
+        if isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "t"
+        and isinstance(node.slice, ast.Constant)
+        and isinstance(node.slice.value, str)
+    }
+    literal_translation_keys.update(
+        {
+            "lbl_callsign_rx",
+            "lbl_callsign_tx",
+            "opt_tx_ab_simultaneous",
+            "opt_tx_ab_sequential",
+        }
+    )
+
+    assert translation_get_calls == []
+    assert {
+        language: sorted(literal_translation_keys - set(T[language]))
+        for language in ("en", "de")
+    } == {"en": [], "de": []}

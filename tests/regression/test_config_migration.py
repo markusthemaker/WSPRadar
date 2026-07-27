@@ -145,6 +145,108 @@ def test_current_config_document_validates_complete_settings():
 
 
 @pytest.mark.parametrize(
+    ("language", "expected_message"),
+    [
+        (
+            "en",
+            "Invalid configuration at "
+            "results_view.success.segment_evidence_time_bin.",
+        ),
+        (
+            "de",
+            "Ungültige Konfiguration bei "
+            "results_view.success.segment_evidence_time_bin.",
+        ),
+    ],
+)
+def test_config_validation_ui_message_localizes_only_the_canonical_field_path(
+    language,
+    expected_message,
+):
+    """Keep canonical diagnostics while suppressing English validator prose."""
+    settings = _valid_settings(comparison_mode="none")
+    settings["results_view"]["success"]["segment_evidence_time_bin"] = "4h"
+    with pytest.raises(ValueError) as validation_error:
+        config_io.validate_config_document(_config_document(settings))
+
+    rendered_message = config_io.format_config_validation_error(
+        validation_error.value,
+        T[language],
+    )
+
+    assert rendered_message == expected_message
+    assert "must be one of" not in rendered_message
+    assert "4h" not in rendered_message
+
+
+@pytest.mark.parametrize(
+    ("technical_detail", "expected_path"),
+    [
+        (
+            "Unknown settings.results_view field(s): future_result.",
+            "settings.results_view",
+        ),
+        (
+            "results_view.success.selected_stations[3].callsign "
+            "is not a valid callsign.",
+            "results_view.success.selected_stations[3].callsign",
+        ),
+        (
+            "profile.title.fr must be a non-empty string.",
+            "profile.title",
+        ),
+    ],
+)
+def test_config_validation_field_path_exposes_only_safe_canonical_detail(
+    technical_detail,
+    expected_path,
+):
+    """Never expose unknown fields or dynamic language tags as UI detail."""
+    rendered_message = config_io.format_config_validation_error(
+        ValueError(technical_detail),
+        T["en"],
+    )
+
+    assert rendered_message == f"Invalid configuration at {expected_path}."
+    assert "future_result" not in rendered_message
+    assert "must be" not in rendered_message
+
+
+def test_config_validation_ui_message_is_generic_without_a_canonical_path():
+    """Hide parser prose and uploaded values when no safe field path exists."""
+    technical_detail = (
+        "The uploaded config file contains invalid JSON at line 2, "
+        "column 4: Expecting property name."
+    )
+
+    rendered_message = config_io.format_config_validation_error(
+        ValueError(technical_detail),
+        T["de"],
+    )
+
+    assert rendered_message == "Die Konfiguration ist ungültig."
+    assert "uploaded config" not in rendered_message
+    assert "Expecting property name" not in rendered_message
+
+
+def test_config_validation_retains_complete_technical_detail_in_internal_log(caplog):
+    """Keep actionable validator detail outside the localized user message."""
+    technical_detail = (
+        "results_view.success.selected_ranges contains duplicate value "
+        "'[0-2500km]'."
+    )
+
+    with caplog.at_level("WARNING", logger="wspradar.config"):
+        config_io.log_config_validation_error(
+            ValueError(technical_detail),
+            operation="load",
+        )
+
+    assert "Configuration load validation failed" in caplog.text
+    assert technical_detail in caplog.text
+
+
+@pytest.mark.parametrize(
     ("snr_correction_mode", "snr_correction_db"),
     [
         ("no_offset", 0.0),

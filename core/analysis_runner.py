@@ -356,8 +356,10 @@ def build_analysis_batches(
     """
     labels = presentation_context.labels if presentation_context is not None else {}
 
-    def label(key, default):
-        return str(labels.get(key, default))
+    def label(key):
+        if key not in labels:
+            raise KeyError(f"Missing required presentation label: {key}")
+        return str(labels[key])
 
     stripped_callsign = str(analysis_context.callsign or "").strip()
 
@@ -517,15 +519,13 @@ def build_analysis_batches(
         rx_peer_sql = f"rx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
         
         if is_local_median:
-            comp_title = label(
-                "comp_title_local_median",
-                "Local Median Neighborhood (<= {radius} km)",
-            ).format(radius=ref_radius_km)
+            comp_title = label("comp_title_local_median").format(
+                radius=ref_radius_km
+            )
         else:
-            comp_title = label(
-                "comp_title_local_best",
-                "Local Best Station (<= {radius} km)",
-            ).format(radius=ref_radius_km)
+            comp_title = label("comp_title_local_best").format(
+                radius=ref_radius_km
+            )
         display_callsign = callsign
     else:
         # Every fixed Reference identity is constrained by its exact callsign
@@ -548,10 +548,7 @@ def build_analysis_batches(
         )
             
         display_callsign = callsign
-        comp_title = label(
-            "comp_title_ref",
-            "{callsign} (Reference)",
-        ).format(callsign=ref_callsign)
+        comp_title = label("comp_title_ref").format(callsign=ref_callsign)
 
     # Assemble Analysis Batches
     analyses = []
@@ -587,10 +584,10 @@ def build_analysis_batches(
             )
             analyses.append(with_decode_fallback({
                 "id": "TX_COMP",
-                "title": label(
-                    "fig_tx_comp",
-                    "TX Compare: {callsign} (Target) vs. {comp_title}",
-                ).format(callsign=display_callsign, comp_title=comp_title),
+                "title": label("fig_tx_comp").format(
+                    callsign=display_callsign,
+                    comp_title=comp_title,
+                ),
                 "is_compare": True,
                 "is_sequential": is_sequential,
                 "is_local_median": station_weighted_reference_median,
@@ -603,11 +600,7 @@ def build_analysis_batches(
         if comp_mode == COMPARISON_NONE:
             analyses.append(with_decode_fallback({
                 "id": "TX_ABS",
-                "title": label(
-                    "fig_tx_abs",
-                    "TX Success: {callsign} — Target Heard vs. "
-                    "Other Signals Heard Only",
-                ).format(callsign=callsign),
+                "title": label("fig_tx_abs").format(callsign=callsign),
                 "is_compare": False,
                 "is_sequential": False,
                 "analysis_kind": "opportunity",
@@ -646,10 +639,10 @@ def build_analysis_batches(
             )
             analyses.append(with_decode_fallback({
                 "id": "RX_COMP",
-                "title": label(
-                    "fig_rx_comp",
-                    "RX Compare: {callsign} (Target) vs. {comp_title}",
-                ).format(callsign=display_callsign, comp_title=comp_title),
+                "title": label("fig_rx_comp").format(
+                    callsign=display_callsign,
+                    comp_title=comp_title,
+                ),
                 "is_compare": True,
                 "is_sequential": is_sequential,
                 "is_local_median": station_weighted_reference_median,
@@ -662,11 +655,7 @@ def build_analysis_batches(
         if comp_mode == COMPARISON_NONE:
             analyses.append(with_decode_fallback({
                 "id": "RX_ABS",
-                "title": label(
-                    "fig_rx_abs",
-                    "RX Success: {callsign} — Heard by Target vs. "
-                    "Heard by Others Only",
-                ).format(callsign=callsign),
+                "title": label("fig_rx_abs").format(callsign=callsign),
                 "is_compare": False,
                 "is_sequential": False,
                 "analysis_kind": "opportunity",

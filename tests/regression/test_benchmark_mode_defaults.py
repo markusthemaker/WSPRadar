@@ -55,7 +55,7 @@ def test_benchmark_design_options_put_success_only_before_comparisons():
         (
             "en",
             (
-                "Success — Target only",
+                "Performance — no Reference",
                 "Compare — Hardware A/B",
                 "Compare — Known Reference Station",
                 "Compare — local neighborhood benchmark",
@@ -64,7 +64,7 @@ def test_benchmark_design_options_put_success_only_before_comparisons():
         (
             "de",
             (
-                "Success — nur Target",
+                "Performance — keine Referenz",
                 "Compare — Hardware A/B",
                 "Compare — bekannte Referenzstation",
                 "Compare — lokaler Nachbarschaftsvergleich",
@@ -77,7 +77,7 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
     language,
     expected_labels,
 ):
-    """Keep canonical state behind compact Target-only/Compare labels."""
+    """Keep canonical state behind localized Performance/Compare labels."""
     benchmark_selector = Mock()
     session_state = _SessionState(
         {

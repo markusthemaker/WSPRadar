@@ -7,7 +7,12 @@ import json
 import streamlit as st
 
 from i18n import T
-from ui.config_io import build_config_payload, build_config_state_signature
+from ui.config_io import (
+    build_config_payload,
+    build_config_state_signature,
+    format_config_validation_error,
+    log_config_validation_error,
+)
 from ui.result_state import get_active_run_time_window
 
 
@@ -140,7 +145,7 @@ def render_config_save_control(
     )
 
     save_popover = st.popover(
-        translations.get("btn_save_config", "Save Config"),
+        translations["btn_save_config"],
         icon=":material/save:",
         type="primary",
         width="stretch",
@@ -154,29 +159,20 @@ def render_config_save_control(
     with save_popover:
         _sync_profile_widget_defaults(session_state, language, form_scope)
         st.caption(
-            translations.get(
-                "txt_config_profile_intro",
-                "Add reusable profile details, then prepare the config download.",
-            )
+            translations["txt_config_profile_intro"]
         )
         title = st.text_input(
-            translations.get("lbl_config_profile_title", "Title"),
+            translations["lbl_config_profile_title"],
             key=profile_title_widget_key,
         )
         description = st.text_area(
-            translations.get(
-                "lbl_config_profile_description",
-                "Description (optional)",
-            ),
+            translations["lbl_config_profile_description"],
             key=profile_description_widget_key,
         )
         profile_id = st.text_input(
-            translations.get("lbl_config_profile_id", "Profile ID (optional)"),
+            translations["lbl_config_profile_id"],
             key=profile_id_widget_key,
-            help=translations.get(
-                "hlp_config_profile_id",
-                "Leave blank to derive a stable ID from the title.",
-            ),
+            help=translations["hlp_config_profile_id"],
         )
 
         is_last_x = session_state.get("val_time_mode") == "last_x"
@@ -191,20 +187,11 @@ def render_config_save_control(
                 form_scope,
             )
             time_policy_labels = {
-                TIME_POLICY_FREEZE: translations.get(
-                    "opt_config_time_freeze",
-                    "Freeze the resolved UTC range",
-                ),
-                TIME_POLICY_RELATIVE: translations.get(
-                    "opt_config_time_relative",
-                    "Keep Last-X relative",
-                ),
+                TIME_POLICY_FREEZE: translations["opt_config_time_freeze"],
+                TIME_POLICY_RELATIVE: translations["opt_config_time_relative"],
             }
             time_policy = st.radio(
-                translations.get(
-                    "lbl_config_time_policy",
-                    "How should this Last-X time selection be saved?",
-                ),
+                translations["lbl_config_time_policy"],
                 (TIME_POLICY_FREEZE, TIME_POLICY_RELATIVE),
                 key=time_policy_widget_key,
                 format_func=time_policy_labels.__getitem__,
@@ -212,21 +199,13 @@ def render_config_save_control(
             if active_run_time_window is not None:
                 start_utc, end_utc = active_run_time_window
                 st.caption(
-                    translations.get(
-                        "txt_config_resolved_window",
-                        "Resolved run: {start} to {end}",
-                    ).format(
+                    translations["txt_config_resolved_window"].format(
                         start=start_utc.strftime("%Y-%m-%d %H:%M UTC"),
                         end=end_utc.strftime("%Y-%m-%d %H:%M UTC"),
                     )
                 )
             elif time_policy == TIME_POLICY_FREEZE:
-                st.warning(
-                    translations.get(
-                        "warn_config_freeze_unavailable",
-                        "Run the analysis first to freeze its resolved UTC range.",
-                    )
-                )
+                st.warning(translations["warn_config_freeze_unavailable"])
 
         frozen_time_window = (
             active_run_time_window
@@ -239,7 +218,7 @@ def render_config_save_control(
             and active_run_time_window is None
         )
         prepare_clicked = st.button(
-            translations.get("btn_prepare_config", "Prepare Config"),
+            translations["btn_prepare_config"],
             icon=":material/download:",
             type="primary",
             width="stretch",
@@ -269,19 +248,10 @@ def render_config_save_control(
                 session_state[_PREPARED_BYTES_KEY] = config_bytes
                 session_state[_PREPARED_FILENAME_KEY] = config_filename
                 session_state[_PREPARED_SIGNATURE_KEY] = prepared_signature
-                st.success(
-                    translations.get(
-                        "msg_config_prepared",
-                        "Config prepared. Download it below.",
-                    )
-                )
+                st.success(translations["msg_config_prepared"])
             except ValueError as exc:
-                st.error(
-                    translations.get(
-                        "err_config_save",
-                        "Config could not be prepared: {error}",
-                    ).format(error=exc)
-                )
+                log_config_validation_error(exc, operation="save")
+                st.error(format_config_validation_error(exc, translations))
 
         try:
             current_signature = build_config_state_signature(
@@ -301,7 +271,7 @@ def render_config_save_control(
             and session_state.get(_PREPARED_BYTES_KEY)
         ):
             st.download_button(
-                translations.get("btn_download_config", "Download Config"),
+                translations["btn_download_config"],
                 data=session_state[_PREPARED_BYTES_KEY],
                 file_name=session_state[_PREPARED_FILENAME_KEY],
                 mime="application/json",

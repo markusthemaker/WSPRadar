@@ -217,6 +217,47 @@ def test_formal_config_schema_identity_is_version_1(config_schema):
     ]
 
 
+def test_formal_schema_describes_performance_without_renaming_success_state(
+    config_schema,
+):
+    """Keep visible Performance prose separate from canonical saved-state keys."""
+    definitions = config_schema["$defs"]
+    no_comparison = definitions["noComparison"]
+    no_comparison_results = definitions["resultsViewNoComparison"]
+    comparison_results = definitions["resultsViewWithComparison"]
+    success_results = definitions["successResultsView"]
+
+    assert no_comparison["properties"]["mode"]["const"] == "none"
+    assert "visible Performance" in (
+        no_comparison["properties"]["mode"]["description"]
+    )
+
+    assert no_comparison_results["required"] == ["success"]
+    assert set(no_comparison_results["properties"]) == {"success"}
+    assert no_comparison_results["properties"]["success"]["$ref"] == (
+        "#/$defs/successResultsView"
+    )
+    assert "visible Performance" in no_comparison_results["description"]
+    assert "canonical success key" in no_comparison_results["description"]
+
+    assert comparison_results["required"] == ["success", "compare"]
+    assert set(comparison_results["properties"]) == {"success", "compare"}
+    assert comparison_results["properties"]["success"]["$ref"] == (
+        "#/$defs/successResultsView"
+    )
+    assert "canonical success view" in comparison_results["description"]
+
+    assert "visible Performance" in success_results["description"]
+    assert "canonical success identifier" in success_results["description"]
+    assert success_results["properties"]["show_zero_target"]["default"] is False
+    assert "visible Performance Station Insights" in (
+        success_results["properties"]["show_zero_target"]["description"]
+    )
+    assert "canonical success view state" in (
+        success_results["properties"]["show_zero_target"]["description"]
+    )
+
+
 def test_every_demo_is_an_ordinary_config_matching_the_formal_schema(
     config_validator,
 ):

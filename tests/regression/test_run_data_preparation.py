@@ -39,7 +39,7 @@ def _success_plan():
     """Return one production-shaped Success analysis plan."""
     return {
         "id": "RX_ABS",
-        "title": "Success",
+        "title": "Performance",
         "analysis_kind": "opportunity",
         "is_sequential": False,
         "decode_filter_mode": DECODE_FILTER_STRICT,

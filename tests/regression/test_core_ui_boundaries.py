@@ -70,7 +70,7 @@ def _presentation(language):
         language=language,
         labels=T[language],
         theme="dark",
-        solar_label="All" if language == "en" else "Alle",
+        solar_label=T[language]["opt_solar_all"].split()[0],
     )
 
 
@@ -663,7 +663,7 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         "Heard by Target",
         "Heard by others only",
         "Confirmed opportunities",
-        "Success Rate (%)",
+        "Decode Rate (%)",
         "Median successful Target SNR (dB @ 30 dBm)",
     ]
     assert list(german.full_station_table.columns) == [
@@ -674,7 +674,7 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         "Vom Target gehört",
         "Nur von anderen gehört",
         "Bestätigte Gelegenheiten",
-        "Success Rate (%)",
+        "Dekodierrate (%)",
         "Median des erfolgreichen Target-SNR (dB @ 30 dBm)",
     ]
     assert list(english.export_station_table.columns) == [
@@ -700,12 +700,16 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
     assert english.full_station_table["Confirmed opportunities"].tolist() == [2]
     assert german.full_station_table["Bestätigte Gelegenheiten"].tolist() == [2]
     assert english.summary_lines == [
-        "Stations: Heard by Target 1 · Heard by others only 0 · Success Rate 50.0%",
-        "Opportunities: Heard by Target 1 · Heard by others only 1 · Success Rate 50.0%",
+        "Stations: Heard by Target 1 · Heard by others only 0 · "
+        "Station-balanced Decode Rate 50.0%",
+        "Opportunities: Heard by Target 1 · Heard by others only 1 · "
+        "Opportunity-level Decode Rate 50.0%",
     ]
     assert german.summary_lines == [
-        "Stationen: Vom Target gehört 1 · Nur von anderen gehört 0 · Success Rate 50.0%",
-        "Gelegenheiten: Vom Target gehört 1 · Nur von anderen gehört 1 · Success Rate 50.0%",
+        "Stationen: Vom Target gehört 1 · Nur von anderen gehört 0 · "
+        "Stationsgleichgewichtete Dekodierrate 50.0%",
+        "Gelegenheiten: Vom Target gehört 1 · Nur von anderen gehört 1 · "
+        "Dekodierrate auf Gelegenheitsebene 50.0%",
     ]
 
 

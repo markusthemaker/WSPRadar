@@ -159,8 +159,8 @@ def test_input_view_selector_uses_concise_wizard_and_panel_labels():
 def test_guided_definitions_reuse_documentation_defined_term_markup():
     """Highlight introduced domain terms without recoloring ordinary emphasis."""
     expected_terms = {
-        "en": ("Target", "Success", "Compare", "SNR", "ΔSNR"),
-        "de": ("Target", "Success", "Compare", "Referenz", "ΔSNR"),
+        "en": ("Target", "Performance", "Compare", "SNR", "ΔSNR"),
+        "de": ("Target", "Performance", "Compare", "Referenz", "ΔSNR"),
     }
 
     for language, terms in expected_terms.items():

@@ -10,7 +10,7 @@ def build_presentation_context_from_session_state(session_state, *, theme="dark"
     language = session_state.get("lang", "en")
     labels = T.get(language, T["en"])
     solar_state = str(session_state.get("val_solar", "all"))
-    solar_value = labels.get(SOLAR_KEYS.get(solar_state, "opt_solar_all"), "All")
+    solar_value = labels[SOLAR_KEYS.get(solar_state, "opt_solar_all")]
     return PresentationContext(
         language=language,
         labels=labels,

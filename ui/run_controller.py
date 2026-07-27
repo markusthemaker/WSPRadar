@@ -317,22 +317,12 @@ def render_analysis_run(
     )
 
     if not is_valid_callsign(callsign):
-        st.error(
-            t.get(
-                "err_callsign_format",
-                "Enter a plausible 3-15 character callsign/reporting identifier.",
-            )
-        )
+        st.error(t["err_callsign_format"])
         st.session_state.run_mode = None
         return
 
     if not is_valid_locator(qth_locator):
-        st.error(
-            t.get(
-                "err_qth_format",
-                "Enter a valid 4- or 6-character Maidenhead locator.",
-            )
-        )
+        st.error(t["err_qth_format"])
         st.session_state.run_mode = None
         return
 
@@ -357,7 +347,12 @@ def render_analysis_run(
             warn=st.warning,
         )
     except AnalysisConfigError as exc:
-        st.error(str(exc))
+        log_performance_event(
+            "analysis_configuration_failure",
+            failure_type=type(exc).__name__,
+            technical_error=str(exc),
+        )
+        st.error(t["err_analysis_configuration_invalid"])
         st.session_state.run_mode = None
         return
 
@@ -624,7 +619,7 @@ def _render_admitted_analysis_run(
     status_body.markdown("  \n".join(status_log))
 
     deferred_render_data = []
-    loading_label = "⏳ Lade..." if st.session_state.lang == "de" else "⏳ Loading..."
+    loading_label = t["msg_loading"]
     provider_lease = admission_permit.capacity_lease
     if not isinstance(provider_lease, ProviderRunLease):
         status_box.update(label="Database capacity error", state="error", expanded=True)
@@ -771,15 +766,17 @@ def _render_admitted_analysis_run(
                 source=provider.key,
                 failure_scope=FetchFailureScope.LOCAL.value,
                 failure_type=type(exc).__name__,
+                technical_error=str(exc),
             )
-            status_log.append(f"- Local analysis preparation failed: {exc}")
+            localized_preparation_error = t["err_analysis_processing_failed"]
+            status_log.append(f"- {localized_preparation_error}")
             status_body.markdown("  \n".join(status_log))
             status_box.update(
-                label="Analysis preparation failed",
+                label=localized_preparation_error,
                 state="error",
                 expanded=True,
             )
-            st.error(str(exc))
+            st.error(localized_preparation_error)
             st.session_state.run_mode = None
             return "failed"
         else:
@@ -942,17 +939,11 @@ def _render_admitted_analysis_run(
             )
             station_type = remote_station_type(analysis["id"])
             if analysis["is_compare"]:
-                map_subtitle = t.get(
-                    "sub_results_map_compare",
-                    "Geographic overview of station-balanced ΔSNR and "
-                    "Decode Outcomes.",
-                )
+                map_subtitle = t["sub_results_map_compare"]
             else:
-                map_subtitle = t.get(
-                    "sub_results_map_success",
-                    "Remote {station_type} stations grouped by distance and "
-                    "direction, showing station-balanced Success Rate.",
-                ).format(station_type=station_type)
+                map_subtitle = t["sub_results_map_success"].format(
+                    station_type=station_type
+                )
             with st.container(
                 key=f"results_evidence_flow_{analysis['id']}_{run_id}"
             ):
@@ -986,8 +977,8 @@ def _render_admitted_analysis_run(
                     level_one_container.markdown(
                         evidence_level_header_html(
                             1,
-                            t.get("lbl_results_level_run", "Complete run"),
-                            t.get("hdr_results_map_view", "Map View"),
+                            t["lbl_results_level_run"],
+                            t["hdr_results_map_view"],
                             map_subtitle,
                         ),
                         unsafe_allow_html=True,
@@ -995,7 +986,7 @@ def _render_admitted_analysis_run(
                     with level_one_container:
                         render_result_guidance_popover(
                             RESULT_GUIDANCE_MAP,
-                            t.get("hdr_results_map_view", "Map View"),
+                            t["hdr_results_map_view"],
                             language=presentation_context.language,
                             translations=t,
                             key=(
@@ -1046,11 +1037,7 @@ def _render_admitted_analysis_run(
 
                     level_one_container.markdown(
                         transition_prompt_html(
-                            t.get(
-                                "txt_results_transition_scope",
-                                "Select distance and direction to inspect a "
-                                "geographic scope",
-                            )
+                            t["txt_results_transition_scope"]
                         ),
                         unsafe_allow_html=True,
                     )
@@ -1062,30 +1049,16 @@ def _render_admitted_analysis_run(
                         st.markdown(
                             evidence_level_header_html(
                                 2,
-                                t.get(
-                                    "lbl_results_level_scope",
-                                    "Geographic scope",
-                                ),
-                                t.get(
-                                    "hdr_results_segment_inspector",
-                                    "Segment Inspector",
-                                ),
-                                t.get(
-                                    "sub_results_segment_inspector",
-                                    "Choose one or more distance ranges and "
-                                    "directions. All evidence below follows "
-                                    "the active scope.",
-                                ),
+                                t["lbl_results_level_scope"],
+                                t["hdr_results_segment_inspector"],
+                                t["sub_results_segment_inspector"],
                             ),
                             unsafe_allow_html=True,
                         )
                         wait_left, wait_right = st.columns(2)
                         with wait_left:
                             st.selectbox(
-                                t.get(
-                                    "lbl_results_distance_range",
-                                    "Distance range",
-                                ),
+                                t["lbl_results_distance_range"],
                                 [loading_label],
                                 key=f"w_dist_{analysis['id']}_{run_id}",
                                 disabled=True,
@@ -1093,10 +1066,7 @@ def _render_admitted_analysis_run(
                             )
                         with wait_right:
                             st.selectbox(
-                                t.get(
-                                    "lbl_results_direction",
-                                    "Direction",
-                                ),
+                                t["lbl_results_direction"],
                                 [loading_label],
                                 key=f"w_dir_{analysis['id']}_{run_id}",
                                 disabled=True,

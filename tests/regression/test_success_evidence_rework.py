@@ -192,7 +192,7 @@ def _temporal_evidence_rows() -> pd.DataFrame:
     add("B", "2026-07-10T00:30:00Z", hit=1, target_snr=0.0)
     add("B", "2026-07-10T01:10:00Z", hit=1, target_snr=20.0)
 
-    # C has only two successful SNR observations. It remains in Success Rate
+    # C has only two successful SNR observations. It remains in Decode Rate
     # and support but is excluded only from the station-centered SNR layers.
     add("C", "2026-07-10T00:40:00Z", hit=1, target_snr=-5.0)
     add("C", "2026-07-11T00:40:00Z", hit=1, target_snr=5.0)
@@ -319,7 +319,7 @@ def _presentation(language: str = "en") -> PresentationContext:
         language=language,
         labels=T[language],
         theme="dark",
-        solar_label="All" if language == "en" else "Alle",
+        solar_label=T[language]["opt_solar_all"].split()[0],
     )
 
 
@@ -407,7 +407,7 @@ def _selected_actual_snr_recipe_for_test(
     selected_peer["calc_azimuth"] = 91.0
     selected_peer["dir_name"] = "E"
     return _opportunity_temporal_recipe(
-        "RX Success Selected Station Temporal Evidence: SEL (SE00)",
+        "RX Performance Selected Station Temporal Evidence: SEL (SE00)",
         "",
         pd.DataFrame([selected_peer]),
         selected_rows,
@@ -415,7 +415,7 @@ def _selected_actual_snr_recipe_for_test(
         pd.Timestamp("2026-07-12T00:00:00Z"),
         _presentation().absolute_terms("RX"),
         figure_labels=_figure_labels(),
-        snr_title="RX Success Selected Station SNR Evidence: SEL (SE00)",
+        snr_title="RX Performance Selected Station SNR Evidence: SEL (SE00)",
         population_mode=SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
         snr_representation=SUCCESS_SNR_REPRESENTATION_ACTUAL,
     )
@@ -427,7 +427,7 @@ def _station_vote_recipe_for_test(
 ) -> dict[str, object]:
     """Build a two-hour recipe for exact station-vote contract assertions."""
     return _opportunity_temporal_recipe(
-        "RX Success Temporal Evidence",
+        "RX Performance Temporal Evidence",
         "Full Range | All Directions",
         peer_rows,
         evidence_rows,
@@ -457,22 +457,44 @@ def _compare_temporal_recipe_for_test() -> dict[str, object]:
         compare_rows,
         "RX Compare Temporal Evidence",
         "1h",
-        "Joint spot count",
+        T["en"]["fig_joint_spot_count"],
+        chronological_title=T["en"][
+            "fmt_temporal_title_with_bins"
+        ].format(
+            title=T["en"]["fig_segment_chronological_delta"],
+            time_bin="{time_bin}",
+        ),
+        chronological_x_label=T["en"]["fig_segment_chronological_x"],
+        metric_axis_label=T["en"]["tbl_col_delta_snr"],
+        folded_title=T["en"]["fig_segment_utc_hour_title"],
+        folded_x_label=T["en"]["fig_segment_utc_hour_x"],
+        folded_date_annotation=T["en"][
+            "fig_segment_dates_folded"
+        ].replace("{count}", "{utc_date_count}"),
+        density_label=T["en"]["fig_relative_joint_spot_density"],
+        folded_unavailable_text=T["en"][
+            "fig_segment_folded_unavailable"
+        ],
+        median_focus_axis_label=T["en"][
+            "fig_compare_median_focus_axis"
+        ],
+        median_label=T["en"]["fig_median_label"],
+        bin_median_label=T["en"]["fig_temporal_bin_median"],
     )
 
 
 _SUCCESS_COMMON_FIGURE_LABELS = {
     "en": {
         "distance_x": "Distance from Target QTH (km)",
-        "rate_y": "Success Rate (%)",
+        "rate_y": "Decode Rate (%)",
         "snr_y": (
             "Station-median successful Target SNR (dB @ 30 dBm)"
         ),
         "confirmed_opportunities": "Confirmed opportunities",
         "qualifying_stations": "Qualifying stations",
         "successful_snr_stations": "Stations with successful SNR",
-        "station_balanced": "Station-balanced",
-        "observation_level": "Observation-level",
+        "station_balanced": "Station-balanced Decode Rate",
+        "observation_level": "Opportunity-level Decode Rate",
         "median": "Median",
         "iqr": "IQR",
         "two_station_range": "Range (2 stations)",
@@ -488,7 +510,7 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         ),
         "opportunity_y": "Opportunities",
         "opportunity_folded_y": "Opportunities",
-        "rate_legend": "Success Rate",
+        "rate_legend": "Decode Rate",
         "time_x": "Date/Time (UTC)",
         "utc_hour_x": "UTC hour",
         "snr_density": (
@@ -510,15 +532,15 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
     },
     "de": {
         "distance_x": "Entfernung vom Target-QTH (km)",
-        "rate_y": "Success Rate (%)",
+        "rate_y": "Dekodierrate (%)",
         "snr_y": (
             "Stationsmedian des erfolgreichen Target-SNR (dB @ 30 dBm)"
         ),
         "confirmed_opportunities": "Bestätigte Gelegenheiten",
         "qualifying_stations": "Qualifizierende Stationen",
         "successful_snr_stations": "Stationen mit erfolgreichem SNR",
-        "station_balanced": "Stationsgleichgewichtet",
-        "observation_level": "Beobachtungsebene",
+        "station_balanced": "Stationsgleichgewichtete Dekodierrate",
+        "observation_level": "Dekodierrate auf Gelegenheitsebene",
         "median": "Median",
         "iqr": "IQR",
         "two_station_range": "Spanne (2 Stationen)",
@@ -538,7 +560,7 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         ),
         "opportunity_y": "Gelegenheiten",
         "opportunity_folded_y": "Gelegenheiten",
-        "rate_legend": "Success Rate",
+        "rate_legend": "Dekodierrate",
         "time_x": "Datum/Uhrzeit (UTC)",
         "utc_hour_x": "UTC-Stunde",
         "snr_density": (
@@ -569,7 +591,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "reach_y": (
             "Qualifying TX stations heard by Target at least once (%)"
         ),
-        "consistency_title": "RX Success Rate by TX-Station Distance",
+        "consistency_title": "RX Decode Rate by TX-Station Distance",
         "snr_distance_title": (
             "Successful Target SNR by TX-Station Distance"
         ),
@@ -593,9 +615,9 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         ),
         "station_vote_y": "TX Stations",
         "station_support_folded_y": "TX Stations",
-        "evidence_title": "RX Success Temporal Evidence: Target {callsign}",
+        "evidence_title": "RX Performance Temporal Evidence: Target {callsign}",
         "snr_title": (
-            "RX Success Temporal SNR Evidence: Target {callsign}"
+            "RX Performance Temporal SNR Evidence: Target {callsign}"
         ),
     },
     ("en", "TX_ABS"): {
@@ -605,7 +627,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "reach_y": (
             "Qualifying RX stations that heard Target at least once (%)"
         ),
-        "consistency_title": "TX Success Rate by RX-Station Distance",
+        "consistency_title": "TX Decode Rate by RX-Station Distance",
         "snr_distance_title": (
             "Successful Target SNR by RX-Station Distance"
         ),
@@ -629,9 +651,9 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         ),
         "station_vote_y": "RX Stations",
         "station_support_folded_y": "RX Stations",
-        "evidence_title": "TX Success Temporal Evidence: Target {callsign}",
+        "evidence_title": "TX Performance Temporal Evidence: Target {callsign}",
         "snr_title": (
-            "TX Success Temporal SNR Evidence: Target {callsign}"
+            "TX Performance Temporal SNR Evidence: Target {callsign}"
         ),
     },
     ("de", "RX_ABS"): {
@@ -644,7 +666,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
             "einmal gehört (%)"
         ),
         "consistency_title": (
-            "RX Success Rate nach Entfernung der TX-Station"
+            "RX Dekodierrate nach Entfernung der TX-Station"
         ),
         "snr_distance_title": (
             "Erfolgreiches Target-SNR nach Entfernung der TX-Station"
@@ -670,10 +692,10 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "station_vote_y": "TX-Stationen",
         "station_support_folded_y": "TX-Stationen",
         "evidence_title": (
-            "RX Success — Zeitliche Evidenz: Target {callsign}"
+            "RX Performance — Zeitliche Evidenz: Target {callsign}"
         ),
         "snr_title": (
-            "RX Success — Zeitliche SNR-Evidenz: Target {callsign}"
+            "RX Performance — Zeitliche SNR-Evidenz: Target {callsign}"
         ),
     },
     ("de", "TX_ABS"): {
@@ -686,7 +708,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
             "einmal hörten (%)"
         ),
         "consistency_title": (
-            "TX Success Rate nach Entfernung der RX-Station"
+            "TX Dekodierrate nach Entfernung der RX-Station"
         ),
         "snr_distance_title": (
             "Erfolgreiches Target-SNR nach Entfernung der RX-Station"
@@ -712,10 +734,10 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "station_vote_y": "RX-Stationen",
         "station_support_folded_y": "RX-Stationen",
         "evidence_title": (
-            "TX Success — Zeitliche Evidenz: Target {callsign}"
+            "TX Performance — Zeitliche Evidenz: Target {callsign}"
         ),
         "snr_title": (
-            "TX Success — Zeitliche SNR-Evidenz: Target {callsign}"
+            "TX Performance — Zeitliche SNR-Evidenz: Target {callsign}"
         ),
     },
 }
@@ -859,7 +881,7 @@ def test_success_distance_grid_depends_on_intervals_not_direction_population():
     rx_terms = _presentation().absolute_terms("RX")
 
     north = _opportunity_segment_recipe(
-        "RX Success Evidence",
+        "RX Performance Evidence",
         "North",
         north_peers,
         pd.DataFrame(),
@@ -870,7 +892,7 @@ def test_success_distance_grid_depends_on_intervals_not_direction_population():
         distance_scope_intervals=intervals,
     )
     south = _opportunity_segment_recipe(
-        "RX Success Evidence",
+        "RX Performance Evidence",
         "South",
         south_peers,
         pd.DataFrame(),
@@ -1073,14 +1095,24 @@ def test_success_summary_retains_metrics_and_displays_compact_directional_terms(
     opportunity_heading = (
         "Opportunities" if language == "en" else "Gelegenheiten"
     )
+    station_rate_label = (
+        "Station-balanced Decode Rate"
+        if language == "en"
+        else "Stationsgleichgewichtete Dekodierrate"
+    )
+    opportunity_rate_label = (
+        "Opportunity-level Decode Rate"
+        if language == "en"
+        else "Dekodierrate auf Gelegenheitsebene"
+    )
     assert summary.summary_lines == [
         (
             f"{station_heading}: {outcomes['target_evidence']} 3 · "
-            f"{outcomes['counter_evidence']} 1 · Success Rate 43.8%"
+            f"{outcomes['counter_evidence']} 1 · {station_rate_label} 43.8%"
         ),
         (
             f"{opportunity_heading}: {outcomes['target_evidence']} 6 · "
-            f"{outcomes['counter_evidence']} 9 · Success Rate 40.0%"
+            f"{outcomes['counter_evidence']} 9 · {opportunity_rate_label} 40.0%"
         ),
     ]
     for line in summary.summary_lines:
@@ -1438,7 +1470,7 @@ def _assert_folded_station_support_equivalence(
 def test_success_temporal_recipe_balances_station_bin_and_station_date_hour():
     """Preserve raw rates/counts and add folded per-date display stacks."""
     recipe = _opportunity_temporal_recipe(
-        "RX Success Temporal Evidence",
+        "RX Performance Temporal Evidence",
         "Full Range | All Directions",
         _temporal_peer_rows(),
         _temporal_evidence_rows(),
@@ -1949,7 +1981,7 @@ def test_success_folded_recurring_station_support_stays_one_per_utc_date():
         ]
     )
     recipe = _opportunity_temporal_recipe(
-        "RX Success Temporal Evidence",
+        "RX Performance Temporal Evidence",
         "Recurring station",
         peer_rows,
         evidence_rows,
@@ -2021,7 +2053,7 @@ def test_success_folded_rate_gives_one_vote_per_distinct_station_not_presence():
         "peer_grid",
     ] = "SI00"
     recipe = _opportunity_temporal_recipe(
-        "RX Success Temporal Evidence",
+        "RX Performance Temporal Evidence",
         "Distinct-station rate",
         peer_rows,
         evidence_rows,
@@ -2079,7 +2111,7 @@ def test_success_folded_support_uses_the_unchanged_pooled_station_rate():
         }
     )
     recipe = _opportunity_temporal_recipe(
-        "RX Success Temporal Evidence",
+        "RX Performance Temporal Evidence",
         "Pooled station rate",
         peer_rows,
         pd.DataFrame.from_records(records),
@@ -2144,7 +2176,7 @@ def test_success_folded_display_denominator_clips_partial_utc_dates():
         ]
     )
     recipe = _opportunity_temporal_recipe(
-        "RX Success Temporal Evidence",
+        "RX Performance Temporal Evidence",
         "Partial UTC window",
         peer_rows,
         evidence_rows,
@@ -2304,7 +2336,7 @@ def test_success_distance_renderer_has_localized_compare_aligned_panels(
         ]
     )
     recipe = _opportunity_segment_recipe(
-        f"{analysis_id} Success Evidence",
+        f"{analysis_id} Performance Evidence",
         "Disjoint Range | All Directions",
         peers,
         pd.DataFrame(),
@@ -3235,18 +3267,18 @@ def test_success_temporal_lower_data_columns_match_upper_snr_axes():
         (
             "en",
             "RX_ABS",
-            "RX Success Selected Station SNR Evidence: OK1FCX (JN79)",
-            "RX Success Selected Station Temporal Evidence: OK1FCX (JN79)",
-            "OK1FCX (JN79) · 1,173 km · 91° E · 13,019 confirmed opportunities · Success Rate 47.6% · Median successful Target SNR −15.0 dB",
+            "RX Performance Selected Station SNR Evidence: OK1FCX (JN79)",
+            "RX Performance Selected Station Temporal Evidence: OK1FCX (JN79)",
+            "OK1FCX (JN79) · 1,173 km · 91° E · 13,019 confirmed opportunities · Decode Rate 47.6% · Median successful Target SNR −15.0 dB",
             "Contributing TX stations in the active scope. Select one row to inspect its evidence.",
             "↓ Select one station to inspect its evidence",
         ),
         (
             "de",
             "TX_ABS",
-            "TX Success — SNR-Evidenz der ausgewählten Station: OK1FCX (JN79)",
-            "TX Success — Zeitliche Evidenz der ausgewählten Station: OK1FCX (JN79)",
-            "OK1FCX (JN79) · 1.173 km · 91° O · 13.019 bestätigte Gelegenheiten · Success Rate 47,6% · Median des erfolgreichen Target-SNR −15,0 dB",
+            "TX Performance — SNR-Evidenz der ausgewählten Station: OK1FCX (JN79)",
+            "TX Performance — Zeitliche Evidenz der ausgewählten Station: OK1FCX (JN79)",
+            "OK1FCX (JN79) · 1.173 km · 91° O · 13.019 bestätigte Gelegenheiten · Dekodierrate 47,6% · Median des erfolgreichen Target-SNR −15,0 dB",
             "Beitragende RX-Stationen im aktiven Bereich. Wähle eine Zeile, um ihre Evidenz zu untersuchen.",
             "↓ Wähle eine Station, um ihre Evidenz zu untersuchen",
         ),

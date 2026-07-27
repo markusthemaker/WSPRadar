@@ -360,49 +360,50 @@ def test_success_result_subtitles_and_map_titles_match_directional_contract():
         "Target {callsign} · Target gehört oder nur andere Signale an aktiven RX-Stationen gehört"
     )
     assert T["en"]["sub_results_success_temporal"] == (
-        "Successful signal-strength deviations, station-balanced evidence and "
-        "confirmed opportunities shown chronologically and by UTC hour."
+        "Successful signal-strength deviations, station support, "
+        "confirmed-opportunity volume and both Decode Rate weightings shown "
+        "chronologically and by UTC hour."
     )
     assert T["de"]["sub_results_success_temporal"] == (
-        "Abweichungen erfolgreicher Signalstärken, stationsgleichgewichtete "
-        "Evidenz und bestätigte Gelegenheiten, chronologisch und nach "
-        "UTC-Stunde dargestellt."
+        "Abweichungen erfolgreicher Signalstärken, Stationsstützung, Volumen "
+        "bestätigter Gelegenheiten und beide Gewichtungen der Dekodierrate, "
+        "chronologisch und nach UTC-Stunde dargestellt."
     )
     assert T["en"]["fig_success_temporal_snr_title_rx"] == (
-        "RX Success Temporal SNR Evidence: Target {callsign}"
+        "RX Performance Temporal SNR Evidence: Target {callsign}"
     )
     assert T["en"]["fig_success_temporal_snr_title_tx"] == (
-        "TX Success Temporal SNR Evidence: Target {callsign}"
+        "TX Performance Temporal SNR Evidence: Target {callsign}"
     )
     assert T["en"]["fig_success_temporal_title_rx"] == (
-        "RX Success Temporal Evidence: Target {callsign}"
+        "RX Performance Temporal Evidence: Target {callsign}"
     )
     assert T["en"]["fig_success_temporal_title_tx"] == (
-        "TX Success Temporal Evidence: Target {callsign}"
+        "TX Performance Temporal Evidence: Target {callsign}"
     )
     assert T["de"]["fig_success_temporal_snr_title_rx"] == (
-        "RX Success — Zeitliche SNR-Evidenz: Target {callsign}"
+        "RX Performance — Zeitliche SNR-Evidenz: Target {callsign}"
     )
     assert T["de"]["fig_success_temporal_snr_title_tx"] == (
-        "TX Success — Zeitliche SNR-Evidenz: Target {callsign}"
+        "TX Performance — Zeitliche SNR-Evidenz: Target {callsign}"
     )
     assert T["de"]["fig_success_temporal_title_rx"] == (
-        "RX Success — Zeitliche Evidenz: Target {callsign}"
+        "RX Performance — Zeitliche Evidenz: Target {callsign}"
     )
     assert T["de"]["fig_success_temporal_title_tx"] == (
-        "TX Success — Zeitliche Evidenz: Target {callsign}"
+        "TX Performance — Zeitliche Evidenz: Target {callsign}"
     )
     assert T["en"]["fig_rx_abs"] == (
-        "RX Success: {callsign} — Heard by Target vs. Heard by Others Only"
+        "RX Performance: {callsign} — Heard by Target vs. Heard by Others Only"
     )
     assert T["en"]["fig_tx_abs"] == (
-        "TX Success: {callsign} — Target Heard vs. Other Signals Heard Only"
+        "TX Performance: {callsign} — Target Heard vs. Other Signals Heard Only"
     )
     assert T["de"]["fig_rx_abs"] == (
-        "RX Success: {callsign} — Vom Target gehört vs. nur von anderen gehört"
+        "RX Performance: {callsign} — Vom Target gehört vs. nur von anderen gehört"
     )
     assert T["de"]["fig_tx_abs"] == (
-        "TX Success: {callsign} — Target gehört vs. nur andere Signale gehört"
+        "TX Performance: {callsign} — Target gehört vs. nur andere Signale gehört"
     )
 
 
@@ -1016,7 +1017,7 @@ def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contra
             "fig_success_station_support_folded_y_tx": "RX Stations",
             "fig_success_opportunities_y": "Opportunities",
             "fig_success_opportunities_folded_y": "Opportunities",
-            "fig_success_rate_legend": "Success Rate",
+            "fig_success_rate_legend": "Decode Rate",
         },
         "de": {
             "fig_success_evidence_chronological_title": (
@@ -1039,7 +1040,7 @@ def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contra
             "fig_success_station_support_folded_y_tx": "RX-Stationen",
             "fig_success_opportunities_y": "Gelegenheiten",
             "fig_success_opportunities_folded_y": "Gelegenheiten",
-            "fig_success_rate_legend": "Success Rate",
+            "fig_success_rate_legend": "Dekodierrate",
         },
     }
 
@@ -1124,13 +1125,23 @@ def test_success_summary_templates_use_directional_outcomes_and_compact_rate_lab
     opportunity_heading = (
         "Opportunities" if language == "en" else "Gelegenheiten"
     )
+    station_rate_label = (
+        "Station-balanced Decode Rate"
+        if language == "en"
+        else "Stationsgleichgewichtete Dekodierrate"
+    )
+    opportunity_rate_label = (
+        "Opportunity-level Decode Rate"
+        if language == "en"
+        else "Dekodierrate auf Gelegenheitsebene"
+    )
     assert station_summary == (
         f"{station_heading}: {expected_target} 6 · {expected_counter} 4 · "
-        "Success Rate 60.0%"
+        f"{station_rate_label} 60.0%"
     )
     assert opportunity_summary == (
         f"{opportunity_heading}: {expected_target} 55 · "
-        f"{expected_counter} 45 · Success Rate 55.0%"
+        f"{expected_counter} 45 · {opportunity_rate_label} 55.0%"
     )
 
 

@@ -11,6 +11,7 @@ import pytest
 
 from core import plot_engine
 from core.analysis_context import AnalysisContext
+from i18n import T
 from ui import results_export
 from ui.plots import evidence_figures
 
@@ -246,7 +247,7 @@ def test_results_footer_always_renders_redundant_save_control(
         lambda **kwargs: captured["save_calls"].append(kwargs),
     )
 
-    results_export.render_download_all_results({})
+    results_export.render_download_all_results(T["en"])
 
     assert captured["columns"] == (
         [0.65, 0.35],
@@ -291,7 +292,7 @@ def test_results_footer_omits_heading_without_exportable_results(monkeypatch):
         lambda: {},
     )
 
-    results_export.render_download_all_results({})
+    results_export.render_download_all_results(T["en"])
 
     assert markdown_calls == []
 
@@ -402,6 +403,7 @@ def test_register_inspector_export_keeps_all_success_temporal_recipes_independen
         show_non_joint=False,
         evidence_time_bin="3h",
         selected_stations=["OK1FCX (JN79)"],
+        translations=T["en"],
         segment_temporal_evidence_figure_recipe=evidence_recipe,
         segment_temporal_snr_deviation_figure_recipe=snr_recipe,
         selected_station_snr_evidence_figure_recipe=selected_snr_recipe,
@@ -425,6 +427,97 @@ def test_register_inspector_export_keeps_all_success_temporal_recipes_independen
     )
     assert block["selected_evidence_figure_recipe"] is None
     assert selected_snr_recipe is not selected_evidence_recipe
+
+
+@pytest.mark.parametrize(
+    ("language", "selected_stations", "expected_weighting"),
+    [
+        ("en", ["K1AAA (FN31)"], "Single selected path"),
+        ("de", ["K1AAA (FN31)"], "Ein ausgewählter Funkweg"),
+        (
+            "en",
+            ["K1AAA (FN31)", "K2BBB (FN32)"],
+            "Combined observation-weighted evidence",
+        ),
+        (
+            "de",
+            ["K1AAA (FN31)", "K2BBB (FN32)"],
+            "Kombinierte beobachtungsgewichtete Evidenz",
+        ),
+        ("en", [], None),
+    ],
+)
+def test_register_inspector_export_localizes_selected_evidence_weighting(
+    monkeypatch,
+    language,
+    selected_stations,
+    expected_weighting,
+):
+    """Localize descriptive weighting without changing selected identities."""
+    blocks = {}
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: blocks,
+    )
+
+    results_export.register_inspector_export(
+        analysis_id="RX_COMPARE",
+        selected_segment="Full Range | All Directions",
+        selected_distance="Full Range",
+        selected_direction="All Directions",
+        show_non_joint=False,
+        evidence_time_bin="3h",
+        selected_stations=selected_stations,
+        translations=T[language],
+    )
+
+    block = blocks["RX_COMPARE"]
+    assert block["selected_stations"] == selected_stations
+    assert block["selected_station_count"] == len(selected_stations)
+    assert block["selected_evidence_weighting"] == expected_weighting
+
+
+@pytest.mark.parametrize(
+    ("language", "expected_suffix"),
+    [
+        ("en", " (Reference correction +1.3 dB)"),
+        ("de", " (Referenzkorrektur +1.3 dB)"),
+    ],
+)
+def test_reference_correction_csv_suffix_is_localized_without_mutating_source_headers(
+    language,
+    expected_suffix,
+):
+    """Localize the optional CSV annotation while retaining source field identity."""
+    source_frame = pd.DataFrame(
+        {
+            "Reference SNR (dB)": [-10.04],
+            "Target SNR (dB)": [-12.34],
+        }
+    )
+    source_columns = list(source_frame.columns)
+
+    localized_csv = results_export._dataframe_to_csv_bytes(
+        source_frame,
+        T[language],
+        correction_db=1.34,
+        reference_snr_header="Reference SNR (dB)",
+    ).decode("utf-8-sig")
+    uncorrected_csv = results_export._dataframe_to_csv_bytes(
+        source_frame,
+        T[language],
+        correction_db=0.0,
+        reference_snr_header="Reference SNR (dB)",
+    ).decode("utf-8-sig")
+
+    assert localized_csv.splitlines()[0] == (
+        f"Reference SNR (dB){expected_suffix},Target SNR (dB)"
+    )
+    assert uncorrected_csv.splitlines()[0] == (
+        "Reference SNR (dB),Target SNR (dB)"
+    )
+    assert list(source_frame.columns) == source_columns
 
 
 @pytest.mark.parametrize(
@@ -614,7 +707,7 @@ def test_success_results_zip_records_selected_figures_and_context(
     selected_label = "OK1FCX (JN79)"
     selected_context = (
         "OK1FCX (JN79) · 1,173 km · 91° E · "
-        "13,019 confirmed opportunities · Success Rate 47.6% · "
+        "13,019 confirmed opportunities · Decode Rate 47.6% · "
         "Median successful Target SNR −15.0 dB"
     )
     figure_descriptions = {
@@ -655,6 +748,7 @@ def test_success_results_zip_records_selected_figures_and_context(
         show_non_joint=False,
         evidence_time_bin="6h",
         selected_stations=selected_identities,
+        translations=T["en"],
         selected_station_snr_evidence_figure_recipe=selected_snr_recipe,
         selected_station_temporal_evidence_figure_recipe=(
             selected_temporal_recipe
@@ -667,7 +761,7 @@ def test_success_results_zip_records_selected_figures_and_context(
     success_block = state[results_export.EXPORT_STATE_KEY]["RX_ABS"]
     success_block.update(
         {
-            "title": "RX Success",
+            "title": "RX Performance",
             "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
             "database_source": "wspr_live",
             "is_compare": False,
@@ -700,7 +794,7 @@ def test_success_results_zip_records_selected_figures_and_context(
         render_inspector_figure,
     )
 
-    zip_bytes, zip_filename = results_export.build_results_zip()
+    zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
 
     export_root = zip_filename.removesuffix(".zip")
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
@@ -751,7 +845,7 @@ def test_success_results_zip_records_selected_figures_and_context(
     assert success_metadata["selected_station_count"] == 1
     assert success_metadata["selected_station_role"] == "TX"
     assert success_metadata["selected_evidence_weighting"] == (
-        "single selected path"
+        "Single selected path"
     )
     assert success_metadata["selected_evidence_figures"] == figure_descriptions
 
@@ -806,6 +900,7 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
         show_non_joint=False,
         evidence_time_bin="6h",
         selected_stations=selected_identities,
+        translations=T["en"],
         selected_evidence_figure_recipe=selected_recipe,
     )
     compare_block = state[results_export.EXPORT_STATE_KEY]["RX_COMPARE"]
@@ -834,7 +929,7 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
         render_inspector_figure,
     )
 
-    zip_bytes, zip_filename = results_export.build_results_zip()
+    zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
 
     export_root = zip_filename.removesuffix(".zip")
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
@@ -875,7 +970,7 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
     assert compare_metadata["selected_stations"] == selected_identities
     assert compare_metadata["selected_station_count"] == 1
     assert compare_metadata["selected_evidence_weighting"] == (
-        "single selected path"
+        "Single selected path"
     )
 
 
@@ -921,7 +1016,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
     results_export.register_map_export_context(
         analysis={
             "id": "RX_ABS",
-            "title": "RX Success",
+            "title": "RX Performance",
             "is_compare": False,
             "is_sequential": False,
             "analysis_kind": "opportunity",
@@ -961,7 +1056,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         render_success_inspector_figure,
     )
 
-    zip_bytes, zip_filename = results_export.build_results_zip()
+    zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
 
     export_root = zip_filename.removesuffix(".zip")
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
@@ -1063,7 +1158,7 @@ def test_success_map_export_reuses_projected_shared_map_renderer(monkeypatch):
     )
     block = {
         "analysis_id": "RX_ABS",
-        "title": "RX Success",
+        "title": "RX Performance",
         "is_compare": False,
         "is_sequential": False,
         "analysis_kind": "opportunity",
@@ -1096,7 +1191,7 @@ def test_success_map_export_reuses_projected_shared_map_renderer(monkeypatch):
     assert len(render_calls) == 1
     positional, keyword = render_calls[0]
     assert positional[0].equals(source_frame)
-    assert positional[1:4] == ("RX Success", False, False)
+    assert positional[1:4] == ("RX Performance", False, False)
     assert positional[7] == "RX_ABS"
     assert keyword["analysis_kind"] == "opportunity"
     assert keyword["theme"] == "light"

@@ -383,7 +383,7 @@ def test_success_temporal_guidance_explains_two_figures_rates_and_folded_average
             "recurring dates increase support but not",
             "counts every confirmed opportunity once chronologically",
             "average counts per represented date after UTC-hour folding",
-            "observation-level Success Rate",
+            "Opportunity-level Decode Rate",
             "With `1h` selected, each folded total is the average",
             "intentionally different weighting",
             "bar measures average daily participation",
@@ -402,7 +402,7 @@ def test_success_temporal_guidance_explains_two_figures_rates_and_folded_average
             "Wiederholte Tage erhöhen daher die Evidenzunterstützung",
             "zählt chronologisch jede bestätigte Gelegenheit einmal",
             "Durchschnittswerte je berücksichtigtem Tag",
-            "Success Rate auf Beobachtungsebene",
+            "Dekodierrate auf Gelegenheitsebene",
             "Bei `1h` entspricht jede gefaltete Gesamthöhe dem Mittelwert",
             "bewusst unterschiedliche Gewichtungen",
             "durchschnittliche tägliche Beteiligung",
@@ -442,17 +442,17 @@ def test_success_map_guidance_uses_status_markers_and_two_level_support():
     """Pin direction-specific marker outcomes and the two support levels."""
     expected_terms = {
         "en": {
-            "rx": ("RX Success Rate", "Heard by Target", "Heard by others only"),
+            "rx": ("RX Decode Rate", "Heard by Target", "Heard by others only"),
             "tx": (
-                "TX Success Rate",
+                "TX Decode Rate",
                 "Target was heard",
                 "Other signals were heard only",
             ),
         },
         "de": {
-            "rx": ("RX Success Rate", "Vom Target gehört", "Nur von anderen gehört"),
+            "rx": ("RX-Dekodierrate", "Vom Target gehört", "Nur von anderen gehört"),
             "tx": (
-                "TX Success Rate",
+                "TX-Dekodierrate",
                 "Target gehört",
                 "Nur andere Signale gehört",
             ),
@@ -514,9 +514,9 @@ def test_success_segment_distance_and_temporal_guidance_matches_editorial_contra
             )
             assert all(phrase in combined for phrase in expected_phrases)
             assert (
-                "Compare the two Success Rates directly" in combined
+                "Compare the two Decode Rates directly" in combined
                 if language == "en"
-                else "Vergleiche beide Success Rates direkt" in combined
+                else "Vergleiche beide Dekodierraten direkt" in combined
             )
 
 
@@ -524,8 +524,8 @@ def test_success_map_presentation_labels_are_bilingual_and_status_only():
     """Keep the compact legend and footer labels aligned across languages."""
     expected_labels = {
         "en": {
-            "cbar_abs_rx": "Station-balanced RX Success Rate (%)",
-            "cbar_abs_tx": "Station-balanced TX Success Rate (%)",
+            "cbar_abs_rx": "Station-balanced RX Decode Rate (%)",
+            "cbar_abs_tx": "Station-balanced TX Decode Rate (%)",
             "map_success_footer_opportunities": "OPPORTUNITIES",
             "map_success_footer_stations": "STATIONS",
             "map_success_rx_opportunity_target": "Heard by Target",
@@ -539,8 +539,8 @@ def test_success_map_presentation_labels_are_bilingual_and_status_only():
             "map_success_legend_insufficient": "Insufficient evidence",
         },
         "de": {
-            "cbar_abs_rx": "Stationsgleichgewichtete RX Success Rate (%)",
-            "cbar_abs_tx": "Stationsgleichgewichtete TX Success Rate (%)",
+            "cbar_abs_rx": "Stationsgleichgewichtete RX-Dekodierrate (%)",
+            "cbar_abs_tx": "Stationsgleichgewichtete TX-Dekodierrate (%)",
             "map_success_footer_opportunities": "GELEGENHEITEN",
             "map_success_footer_stations": "STATIONEN",
             "map_success_rx_opportunity_target": "Vom Target gehört",
@@ -909,16 +909,20 @@ def test_success_segment_and_temporal_guidance_route_without_changing_compare(la
         ),
     )
 
-    assert "Success Rate" in success_segment
+    assert (
+        "Decode Rate" in success_segment
+        if language == "en"
+        else "Dekodierrate" in success_segment
+    )
     assert (
         "Heard by Target" in success_segment
         if language == "en"
         else "Vom Target gehört" in success_segment
     )
     assert (
-        "Compare the two Success Rates directly" in success_segment
+        "Compare the two Decode Rates directly" in success_segment
         if language == "en"
-        else "Vergleiche beide Success Rates direkt" in success_segment
+        else "Vergleiche beide Dekodierraten direkt" in success_segment
     )
     assert "Joint Spots" in compare_segment
     assert (

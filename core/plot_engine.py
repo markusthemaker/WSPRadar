@@ -455,7 +455,7 @@ def _success_map_presentation_labels(
     absolute_mode,
     success_terms,
 ):
-    """Return localized map-only footer and legend terms for RX or TX Success."""
+    """Return localized map-only footer and legend terms for RX or TX Performance."""
     mode_key = "tx" if str(absolute_mode).upper().startswith("TX") else "rx"
     key_prefix = f"map_success_{mode_key}"
     return {
@@ -660,10 +660,10 @@ def render_map_figure(
         and is_sequential
     ):
         lbl_only_me = t_lang['leg_only_me'].format(
-            callsign=t_lang.get('txt_target', 'Target')
+            callsign=t_lang['txt_target']
         )
         lbl_only_ref = t_lang['leg_only_ref'].format(
-            ref_callsign=t_lang.get('txt_reference', 'Reference')
+            ref_callsign=t_lang['txt_reference']
         )
     else:
         lbl_only_me = t_lang['leg_only_me'].format(callsign=target_call)
@@ -720,7 +720,7 @@ def render_map_figure(
         if is_opportunity:
             p.set_gid("success-sector-fills")
     
-    lbl_both_async = t_lang.get('leg_both_async', 'Both (Async)')
+    lbl_both_async = t_lang['leg_both_async']
 
     scatter_start = perf_counter()
 
@@ -828,62 +828,85 @@ def render_map_figure(
 
     
     # Meta Footer
-    lbl_time = "Zeitraum" if presentation_context.language == "de" else "Time"
     t_time = f"{start_t.strftime('%d-%b-%Y')} - {end_t.strftime('%d-%b-%Y')}"
     t_band = analysis_context.band
     t_solar = presentation_context.solar_label
 
-    meta_parts = [f"{lbl_time}: {t_time}", f"Band: {t_band}", f"Solar: {t_solar}"]
+    meta_parts = [
+        t_lang["map_footer_time"].format(value=t_time),
+        t_lang["map_footer_band"].format(value=t_band),
+        t_lang["map_footer_solar"].format(value=t_solar),
+    ]
     
     if is_compare:
         if is_sequential:
-            meta_parts.append("Sync: Sequential A/B")
+            meta_parts.append(t_lang["map_footer_sync_sequential_ab"])
             meta_parts.append(
-                f"Joint Pairs/Station: "
-                f">={analysis_context.min_joint_spots_per_station}"
+                t_lang["map_footer_joint_pairs_per_station"].format(
+                    threshold=analysis_context.min_joint_spots_per_station
+                )
             )
             meta_parts.append(
-                "Schedule: "
-                f"{analysis_context.tx_ab_repeat_interval_minutes} min / "
-                f"T {analysis_context.tx_ab_target_start_minute:02d} / "
-                f"R {analysis_context.tx_ab_reference_start_minute:02d} UTC"
+                t_lang["map_footer_schedule"].format(
+                    interval=analysis_context.tx_ab_repeat_interval_minutes,
+                    target_start=analysis_context.tx_ab_target_start_minute,
+                    reference_start=analysis_context.tx_ab_reference_start_minute,
+                )
             )
-            meta_parts.append(f"Joint Stations/Seg: >={base_min_stations}")
+            meta_parts.append(
+                t_lang["map_footer_joint_stations_per_segment"].format(
+                    threshold=base_min_stations
+                )
+            )
         else:
             meta_parts.append(
-                f"Joint Spots/Station: \u2265{analysis_context.min_joint_spots_per_station}"
+                t_lang["map_footer_joint_spots_per_station"].format(
+                    threshold=analysis_context.min_joint_spots_per_station
+                )
             )
-            meta_parts.append(f"Joint Stations/Seg: >={base_min_stations}")
+            meta_parts.append(
+                t_lang["map_footer_joint_stations_per_segment"].format(
+                    threshold=base_min_stations
+                )
+            )
             
         benchmark_offset_db = round(float(analysis_context.reference_snr_correction_db), 1)
         if abs(benchmark_offset_db) >= 0.05:
-            offset_label = t_lang.get("txt_benchmark_offset_note", "Ref SNR Corr: {offset:+.1f} dB")
+            offset_label = t_lang["txt_benchmark_offset_note"]
             meta_parts.append(offset_label.format(offset=benchmark_offset_db))
 
         if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
             local_mode = (
-                t_lang.get('opt_local_median', 'Local Median Neighborhood')
+                t_lang['opt_local_median']
                 if analysis_context.local_benchmark == LOCAL_BENCHMARK_MEDIAN
-                else t_lang.get('opt_local_best', 'Local Best Station')
+                else t_lang['opt_local_best']
             )
             ref_radius = analysis_context.neighborhood_radius_km
-            meta_parts.append(f"Ref: {local_mode} (≤{ref_radius} km)")
+            reference_value = f"{local_mode} (≤{ref_radius} km)"
         elif analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:
             if is_sequential:
-                reference_role = t_lang.get('txt_reference', 'Reference')
-                meta_parts.append(f"Ref: {reference_role}")
+                reference_value = t_lang['txt_reference']
             else:
-                meta_parts.append(
-                    f"Ref: {analysis_context.reference_callsign.upper()}"
-                )
-        else: meta_parts.append(f"Ref: {analysis_context.reference_callsign.upper()}")
+                reference_value = analysis_context.reference_callsign.upper()
+        else:
+            reference_value = analysis_context.reference_callsign.upper()
+        meta_parts.append(
+            t_lang["map_footer_reference"].format(reference=reference_value)
+        )
     else:
         meta_parts.append(
-            f"{abs_terms['pair']}/Station: "
-            f">={analysis_context.min_confirmed_opportunities_per_peer}"
+            t_lang[
+                "map_performance_footer_confirmed_opportunities_per_station"
+            ].format(
+                threshold=analysis_context.min_confirmed_opportunities_per_peer
+            )
         )
-        meta_parts.append(f"Stations/Seg: >={base_min_stations}")
-        meta_parts.append(f"Segment: average station {abs_terms['formula']}")
+        meta_parts.append(
+            t_lang["map_performance_footer_stations_per_segment"].format(
+                threshold=base_min_stations
+            )
+        )
+        meta_parts.append(t_lang["map_performance_footer_segment_metric"])
 
     # Neu: Füge Max distance Peer hinzu
     if is_compare and analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
@@ -892,7 +915,11 @@ def render_map_figure(
             valid_dists = df_plot[df_plot['best_ref_dist'] > 0]['best_ref_dist']
             if not valid_dists.empty:
                 max_peer_dist = int(valid_dists.max() / 1000)
-                meta_parts.append(f"Max reference distance: {max_peer_dist} km")
+                meta_parts.append(
+                    t_lang["map_footer_max_reference_distance"].format(
+                        distance_km=max_peer_dist
+                    )
+                )
 
     line1_str = " | ".join(meta_parts)
     # ==========================================
@@ -922,7 +949,12 @@ def render_map_figure(
             ],
             text_colors=["white", "black", "black", "black"],
             theme_config=theme_cfg,
-            evidence_plural="PAIRS" if is_sequential else "SPOTS",
+            stations_plural=t_lang["map_success_footer_stations"],
+            evidence_plural=(
+                t_lang["map_compare_footer_pairs"]
+                if is_sequential
+                else t_lang["map_compare_footer_spots"]
+            ),
         )
         fig.text(0.50, 0.025, line1_str, color=theme_cfg["footer"], ha='center', fontsize=FONT_FOOTER)
         fig.text(0.98, 0.008, f"WSPRadar.org {APP_VERSION}", color=theme_cfg["footer"], ha='right', fontsize=FONT_FOOTER)

@@ -247,14 +247,14 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
     assert "### 1. Experiment Playbooks" in DOC_EN
     assert '<strong class="defined-term">Target</strong>' in DOC_EN
     assert '<strong class="defined-term">Reference</strong>' in DOC_EN
-    assert '<strong class="defined-term">Success</strong>' in DOC_EN
+    assert '<strong class="defined-term">Performance</strong>' in DOC_EN
 
 
-def test_english_playbooks_define_success_evidence_and_tx_ab_timing():
-    """Operator playbooks must retain the clarified Success and TX A/B guidance."""
+def test_english_playbooks_define_performance_evidence_and_tx_ab_timing():
+    """Operator playbooks must retain the clarified Performance and TX A/B guidance."""
     assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
     assert (
-        "independently confirmed WSPR-network opportunities represented in the selected evidence"
+        "independently confirmed WSPR opportunities represented in the selected evidence"
         in DOC_EN
     )
     assert "actual recurrence and UTC phase" in DOC_EN
@@ -320,18 +320,18 @@ def test_results_chapter_uses_concise_evidence_path_and_consecutive_sections():
     """Chapter 2 must use the same concise path while retaining its evidence sections."""
     assert "#### 2.1 Confirm the run identity" not in DOC_EN
     assert (
-        "**Success:** Map → Segment Inspector → Station Insights → Drill-Down."
+        "**Performance:** Map → Segment Inspector → Station Insights → Drill-Down."
     ) in DOC_EN
     assert (
         "**Compare:** Map → Segment Inspector → Station Insights → Drill-Down."
     ) in DOC_EN
     assert (
-        "**Success:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
+        "**Performance:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
     ) in DOC_DE
     assert (
         "**Compare:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
     ) in DOC_DE
-    assert "#### 2.1 Read a Success result" in DOC_EN
+    assert "#### 2.1 Read a Performance result" in DOC_EN
     assert "#### 2.2 Read a Compare result" in DOC_EN
     assert "#### 2.8 Worked Compare example" in DOC_EN
 
@@ -343,18 +343,18 @@ def test_results_chapter_uses_concise_evidence_path_and_consecutive_sections():
     assert rx_explanation < tx_explanation < sequential_explanation
 
 
-def test_bilingual_manuals_explain_the_success_evidence_redesign():
+def test_bilingual_manuals_explain_the_performance_evidence_redesign():
     """Keep exact-distance, temporal-SNR and weighting contracts auditable."""
     english_contract = (
         "OPPORTUNITIES",
-        "Station-balanced Success Rate",
-        "Observation-level Success Rate",
+        "Station-balanced Decode Rate",
+        "Opportunity-level Decode Rate",
         "The station-group counts describe at-least-once reach",
         "Its displayed counts do form that rate's numerator and denominator",
         "TX Stations Heard by Target at Least Once by Distance",
         "RX Stations Hearing the Target at Least Once by Distance",
-        "RX Success Rate by TX-Station Distance",
-        "TX Success Rate by RX-Station Distance",
+        "RX Decode Rate by TX-Station Distance",
+        "TX Decode Rate by RX-Station Distance",
         "Successful Target SNR by TX-Station Distance",
         "Successful Target SNR by RX-Station Distance",
         "exact, unrounded calculated distance",
@@ -368,8 +368,8 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
         "at least three successful Target SNR observations",
         "station-date-hour median",
         "two vertically aligned figures",
-        "RX Success Temporal SNR Evidence: Target {callsign}",
-        "RX Success Temporal Evidence: Target {callsign}",
+        "RX Performance Temporal SNR Evidence: Target {callsign}",
+        "RX Performance Temporal Evidence: Target {callsign}",
         "Evidence over Time ({time_bin} bins)",
         "Evidence by UTC Hour (1 h bins)",
         "Average contributing station presences per represented UTC date",
@@ -377,21 +377,21 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
         "short **TX Stations** or **RX Stations** y-axis title",
         "short **Opportunities** y-axis title",
         "every contributing qualifying station gives one total vote",
-        "right-axis line is the station-balanced Success Rate",
+        "right-axis line is the Station-balanced Decode Rate",
         "counts every confirmed opportunity once",
-        "right-axis line is the unchanged observation-level Success Rate",
+        "right-axis line is the unchanged Opportunity-level Decode Rate",
         "One shared legend below the lower figure title",
-        "All four right axes use one zero-based Success Rate scale",
+        "All four right axes use one zero-based Decode Rate scale",
         "average number of distinct station-date-hour presences over represented dates",
         "represented date-hour with no evidence remains in the denominator with zero support",
-        "unchanged folded station-balanced Success Rate",
-        "unchanged observation-level Success Rate",
+        "unchanged folded Station-balanced Decode Rate",
+        "unchanged Opportunity-level Decode Rate",
         "A **represented UTC date** is a date with at least one confirmed opportunity",
         "compact ham-style notation",
         "Successful-SNR censoring remains possible",
         "station-vote segments can be fractional",
         "`figure_segment_temporal_snr_deviation.png` contains the chronological/UTC-hour",
-        "`figure_segment_temporal_evidence.png` contains the aligned lower **RX/TX Success Temporal Evidence** figure",
+        "`figure_segment_temporal_evidence.png` contains the aligned lower **RX/TX Performance Temporal Evidence** figure",
         "`1 h`, `2 h`, `3 h`, `6 h`, `12 h` or `24 h`",
         "at least two UTC dates",
         "Empty or sparse rate bins are missing or thin evidence, not failures",
@@ -399,14 +399,14 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
     )
     german_contract = (
         "GELEGENHEITEN",
-        "stationsgleichgewichtete Success Rate",
-        "Success Rate auf Beobachtungsebene",
+        "stationsgleichgewichtete Dekodierrate",
+        "Dekodierrate auf Gelegenheitsebene",
         "Die Anzahlen der Stationsgruppen beschreiben eine Mindestens-einmal-Reichweite",
         "Ihre angezeigten Anzahlen bilden den Zähler und Nenner dieser Rate",
         "Vom Target mindestens einmal gehörte TX-Stationen nach Entfernung",
         "RX-Stationen, die das Target mindestens einmal hörten, nach Entfernung",
-        "RX Success Rate nach Entfernung der TX-Station",
-        "TX Success Rate nach Entfernung der RX-Station",
+        "RX Dekodierrate nach Entfernung der TX-Station",
+        "TX Dekodierrate nach Entfernung der RX-Station",
         "Erfolgreiches Target-SNR nach Entfernung der TX-Station",
         "Erfolgreiches Target-SNR nach Entfernung der RX-Station",
         "exakten, ungerundeten berechneten Entfernung",
@@ -420,8 +420,8 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
         "mindestens drei erfolgreichen Target-SNR-Beobachtungen",
         "Stations-Datum-Stunden-Median",
         "zwei vertikal ausgerichtete Abbildungen",
-        "RX Success — Zeitliche SNR-Evidenz: Target {callsign}",
-        "RX Success — Zeitliche Evidenz: Target {callsign}",
+        "RX Performance — Zeitliche SNR-Evidenz: Target {callsign}",
+        "RX Performance — Zeitliche Evidenz: Target {callsign}",
         "Evidenz im Zeitverlauf ({time_bin}-Bins)",
         "Evidenz nach UTC-Stunde (1-h-Bins)",
         "Durchschnittliche Stationspräsenzen pro berücksichtigtem UTC-Tag",
@@ -429,21 +429,21 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
         "kurzen y-Achsentitel **TX-Stationen** beziehungsweise **RX-Stationen**",
         "kurzen y-Achsentitel **Gelegenheiten**",
         "eine Gesamtstimme ab",
-        "Linie an der rechten Achse zeigt die stationsgleichgewichtete Success Rate",
+        "Linie an der rechten Achse zeigt die stationsgleichgewichtete Dekodierrate",
         "zählt jede bestätigte Gelegenheit chronologisch einmal",
-        "Linie an der rechten Achse zeigt die unveränderte Success Rate auf Beobachtungsebene",
+        "Linie an der rechten Achse zeigt die unveränderte Dekodierrate auf Gelegenheitsebene",
         "Eine gemeinsame Legende unter dem Titel der unteren Abbildung",
         "Alle vier rechten Achsen verwenden eine gemeinsame",
         "durchschnittliche Zahl verschiedener Stations-Datum-Stunden-Präsenzen über die berücksichtigten Tage",
         "eine berücksichtigte Datum-Stunde ohne Evidenz bleibt mit null Stützung im Nenner",
-        "unveränderten gefalteten stationsgleichgewichteten Success Rate",
-        "unveränderte Success Rate auf Beobachtungsebene",
+        "unveränderten gefalteten stationsgleichgewichteten Dekodierrate",
+        "unveränderte Dekodierrate auf Gelegenheitsebene",
         "Ein **berücksichtigter UTC-Tag** ist ein Tag, an dem",
         "kompakte Amateurfunk-Schreibweisen",
         "Zensierung des erfolgreichen SNR bleibt möglich",
         "Segmente der Stationsstimmen können Bruchteile enthalten",
         "`figure_segment_temporal_snr_deviation.png` enthält die chronologische",
-        "`figure_segment_temporal_evidence.png` enthält die daran ausgerichtete untere Abbildung **RX/TX Success — Zeitliche Evidenz**",
+        "`figure_segment_temporal_evidence.png` enthält die daran ausgerichtete untere Abbildung **RX/TX Performance — Zeitliche Evidenz**",
         "`1 h`, `2 h`, `3 h`, `6 h`, `12 h` oder `24 h`",
         "mindestens zwei UTC-Tage",
         "Leere oder schwach belegte Raten-Bins sind fehlende oder dünne Evidenz",
@@ -455,11 +455,11 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
     for required_text in german_contract:
         assert required_text in DOC_DE
 
-    success_section_en = DOC_EN.split(
-        "#### 2.5a Inspect a Geographic Segment (Success Mode)", 1
+    performance_section_en = DOC_EN.split(
+        "#### 2.5a Inspect a Geographic Segment (Performance Mode)", 1
     )[1].split("#### 2.5b Inspect a Geographic Segment (Compare Mode)", 1)[0]
-    success_section_de = DOC_DE.split(
-        "#### 2.5a Ein geografisches Segment untersuchen (Success-Modus)", 1
+    performance_section_de = DOC_DE.split(
+        "#### 2.5a Ein geografisches Segment untersuchen (Performance-Modus)", 1
     )[1].split(
         "#### 2.5b Ein geografisches Segment untersuchen (Compare-Modus)", 1
     )[0]
@@ -479,7 +479,7 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
         "implicitly rather than as percentage lines",
         "stacks the raw Target and counter-evidence counts",
     ):
-        assert retired_text not in success_section_en
+        assert retired_text not in performance_section_en
     for retired_text in (
         "Station Success Rate by Evidence Count",
         "Verteilung der Stations-Success-Rate",
@@ -497,16 +497,16 @@ def test_bilingual_manuals_explain_the_success_evidence_redesign():
         "implizit statt als Prozentlinien",
         "stapelt stattdessen die rohen Anzahlen",
     ):
-        assert retired_text not in success_section_de
+        assert retired_text not in performance_section_de
 
 
-def test_bilingual_manuals_define_success_selected_singleton_and_exports():
+def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
     """Keep singleton selection, shared temporal science, and artifacts explicit."""
     english_contract = (
         "Select exactly one station row to open `Selected Station Evidence`",
         "Selecting another row replaces the current station",
         "clearing the row hides the section",
-        "Success saves zero or one exact `callsign + locator` identity",
+        "Performance saves zero or one exact `callsign + locator` identity",
         "restoration retains the first valid identity in stored order",
         "never substitutes a different station",
         "restores no selection if none remain valid",
@@ -517,7 +517,7 @@ def test_bilingual_manuals_define_success_selected_singleton_and_exports():
         "separates station presence from opportunity depth",
         "total station height is one",
         "opportunity row stacks every confirmed successful and counter opportunity",
-        "station-balanced and observation-level Success Rate series are numerically identical",
+        "Station-balanced Decode Rate and the Opportunity-level Decode Rate are numerically identical",
         "conditional on successful Target decodes or reports",
         "Counter outcomes have no recorded Target SNR",
         "successful-decode censoring",
@@ -528,7 +528,7 @@ def test_bilingual_manuals_define_success_selected_singleton_and_exports():
         "Wähle genau eine Stationszeile aus, um die `Evidenz der ausgewählten Station` zu öffnen",
         "Die Auswahl einer anderen Zeile ersetzt die bisherige Station",
         "das Aufheben der Auswahl blendet den Abschnitt aus",
-        "Success speichert keine oder genau eine exakte Identität",
+        "Performance speichert keine oder genau eine exakte Identität",
         "erste gültige Identität in gespeicherter Reihenfolge",
         "ersetzt sie nie durch eine andere Station",
         "stellt keine Auswahl wieder her, wenn keine Identität gültig bleibt",
@@ -539,7 +539,7 @@ def test_bilingual_manuals_define_success_selected_singleton_and_exports():
         "trennt Stationspräsenz von Evidenztiefe",
         "gesamte Stationshöhe ist damit eins",
         "stapelt jede bestätigte Gelegenheit mit erfolgreichem beziehungsweise Gegen-Outcome",
-        "stationsgleichgewichtete und die beobachtungsbezogene Success-Rate-Reihe",
+        "stationsgleichgewichtete Dekodierrate und die Dekodierrate auf Gelegenheitsebene",
         "durch erfolgreiche Target-Decodes beziehungsweise Target-Reports bedingt",
         "Gegen-Outcomes besitzen kein aufgezeichnetes Target-SNR",
         "Zensierung auf erfolgreiche Decodes",
@@ -552,11 +552,11 @@ def test_bilingual_manuals_define_success_selected_singleton_and_exports():
     for required_text in german_contract:
         assert required_text in DOC_DE
 
-    selected_success_filenames = (
+    selected_performance_filenames = (
         "figure_selected_station_snr_evidence.png",
         "figure_selected_station_temporal_evidence.png",
     )
-    obsolete_success_filenames = (
+    obsolete_performance_filenames = (
         "figure_selected_station_chronological.png",
         "figure_selected_station_utc_hour_profile.png",
         "figure_selected_station_snr_distribution.png",
@@ -575,26 +575,29 @@ def test_bilingual_manuals_define_success_selected_singleton_and_exports():
             "success/",
             1,
         )[0]
-        success_export_listing = manual.split("success/", 1)[1].split(
+        performance_export_listing = manual.split("success/", 1)[1].split(
             "```",
             1,
         )[0]
-        for filename in selected_success_filenames:
-            assert filename in success_export_listing
+        for filename in selected_performance_filenames:
+            assert filename in performance_export_listing
             assert filename in manual
-        for filename in obsolete_success_filenames:
-            assert filename not in success_export_listing
+        for filename in obsolete_performance_filenames:
+            assert filename not in performance_export_listing
             assert filename not in manual
         assert "figure_selected_station_evidence.png" in compare_export_listing
-        assert "figure_selected_station_evidence.png" not in success_export_listing
+        assert (
+            "figure_selected_station_evidence.png"
+            not in performance_export_listing
+        )
         for metadata_field in metadata_fields:
             assert metadata_field in manual
 
-    success_section_en = DOC_EN.split(
-        "#### 2.6a Inspect the Contributing Stations (Success Mode)", 1
+    performance_section_en = DOC_EN.split(
+        "#### 2.6a Inspect the Contributing Stations (Performance Mode)", 1
     )[1].split("#### 2.6b Inspect the Contributing Stations (Compare Mode)", 1)[0]
-    success_section_de = DOC_DE.split(
-        "#### 2.6a Die beitragenden Stationen untersuchen (Success-Modus)", 1
+    performance_section_de = DOC_DE.split(
+        "#### 2.6a Die beitragenden Stationen untersuchen (Performance-Modus)", 1
     )[1].split(
         "#### 2.6b Die beitragenden Stationen untersuchen (Compare-Modus)", 1
     )[0]
@@ -605,7 +608,7 @@ def test_bilingual_manuals_define_success_selected_singleton_and_exports():
         "Selected Path vs. Similar Stations",
         "Selected Stations vs. Similar Stations",
     ):
-        assert retired_text not in success_section_en
+        assert retired_text not in performance_section_en
     for retired_text in (
         "Zusammenfassung des ausgewählten Funkwegs",
         "Zusammenfassung ausgewählter Stationen",
@@ -613,23 +616,23 @@ def test_bilingual_manuals_define_success_selected_singleton_and_exports():
         "Ausgewählter Funkweg im Vergleich zu ähnlichen Stationen",
         "Ausgewählte Stationen im Vergleich zu ähnlichen Stationen",
     ):
-        assert retired_text not in success_section_de
+        assert retired_text not in performance_section_de
 
     assert "Select one or multiple stations" in DOC_EN
     assert "Wähle eine oder mehrere Stationen aus" in DOC_DE
 
 
-def test_bilingual_manuals_explain_simplified_success_map_semantics():
+def test_bilingual_manuals_explain_simplified_performance_map_semantics():
     """Document the sole quantitative layer, status markers, and missing state."""
     english_contract = (
         "sector fill is the only quantitative color layer",
         "a small solid dark-green marker means `Heard by Target`",
         "a small solid light-grey marker means `Heard by others only`",
         "`Target heard` and `Other signals heard only`",
-        "encode neither individual Success Rate nor evidence depth",
+        "encode neither individual Decode Rate nor evidence depth",
         "dark-green markers are drawn above light-grey markers",
         "remains unfilled so the neutral base map shows through",
-        "A valid Success sector at `0%` remains on the Success Rate scale",
+        "A valid Performance sector at `0%` remains on the Decode Rate scale",
         "`Insufficient evidence` is a different state",
         "upper <strong class=\"defined-term\">OPPORTUNITIES</strong> row",
         "lower <strong class=\"defined-term\">STATIONS</strong> row",
@@ -640,10 +643,10 @@ def test_bilingual_manuals_explain_simplified_success_map_semantics():
         "ein kleiner dunkelgrüner Vollmarker `Vom Target gehört`",
         "ein kleiner hellgrauer Vollmarker `Nur von anderen gehört`",
         "`Target gehört` und `Nur andere Signale gehört`",
-        "codieren weder die individuelle Success Rate noch die Evidenztiefe",
+        "codieren weder die individuelle Dekodierrate noch die Evidenztiefe",
         "werden dunkelgrüne Marker über hellgrauen Markern gezeichnet",
         "bleibt ungefüllt, sodass die neutrale Basiskarte",
-        "Ein gültiges Success-Segment bei `0%` bleibt Teil der Success-Rate-Skala",
+        "Ein gültiges Performance-Segment bei `0%` bleibt Teil der Dekodierratenskala",
         "`Unzureichende Evidenz` ist ein anderer Zustand",
         "obere Zeile <strong class=\"defined-term\">GELEGENHEITEN</strong>",
         "untere Zeile <strong class=\"defined-term\">STATIONEN</strong>",
@@ -655,8 +658,14 @@ def test_bilingual_manuals_explain_simplified_success_map_semantics():
     for required_text in german_contract:
         assert required_text in DOC_DE
 
-    assert "uses the same scale for that station's individual Success Rate" not in DOC_EN
-    assert "dieselbe Skala für die individuelle Success Rate dieser Station" not in DOC_DE
+    assert (
+        "uses the same scale for that station's individual Decode Rate"
+        not in DOC_EN
+    )
+    assert (
+        "dieselbe Skala für die individuelle Dekodierrate dieser Station"
+        not in DOC_DE
+    )
 
 
 def test_bilingual_manuals_explain_dual_level_decode_outcome_bars():
@@ -792,19 +801,25 @@ def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
 
 
 def test_bilingual_manuals_define_saved_inspector_selection_contracts():
-    """Saved result-view guidance must distinguish Success singleton and Compare all."""
-    assert "Compare and Success selections are saved independently" in DOC_EN
-    assert "Its setting is saved for Success" in DOC_EN
-    assert "Success saves zero or one exact `callsign + locator` identity" in DOC_EN
+    """Saved result-view guidance must distinguish Performance singleton and Compare all."""
+    assert "Compare and Performance selections are saved independently" in DOC_EN
+    assert "Its setting is saved for Performance" in DOC_EN
+    assert (
+        "Performance saves zero or one exact `callsign + locator` identity"
+        in DOC_EN
+    )
     assert "restoration retains the first valid identity in stored order" in DOC_EN
     assert "never substitutes a different station" in DOC_EN
     assert "Compare selection remains independent and may contain one or more exact identities" in DOC_EN
     assert "Selecting every Compare station stores an all-stations intent" in DOC_EN
     assert "with a moving `Last X Hours` window" in DOC_EN
 
-    assert "für Compare und Success getrennt gespeichert" in DOC_DE
-    assert "Die Einstellung wird für Success gespeichert" in DOC_DE
-    assert "Success speichert keine oder genau eine exakte Identität" in DOC_DE
+    assert "für Compare und Performance getrennt gespeichert" in DOC_DE
+    assert "Die Einstellung wird für Performance gespeichert" in DOC_DE
+    assert (
+        "Performance speichert keine oder genau eine exakte Identität"
+        in DOC_DE
+    )
     assert "erste gültige Identität in gespeicherter Reihenfolge" in DOC_DE
     assert "ersetzt sie nie durch eine andere Station" in DOC_DE
     assert "Die Compare-Auswahl bleibt unabhängig und kann eine oder mehrere exakte Identitäten enthalten" in DOC_DE

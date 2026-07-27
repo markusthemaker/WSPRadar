@@ -1,10 +1,13 @@
+import ast
+import inspect
 from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 
 from i18n import T
 from ui.components import segment_inspector
-from ui.inspector import view_models
+from ui.inspector import drilldown, view_models
 from ui.inspector.session_cache import (
     SessionInspectorCache,
     estimate_cache_value_bytes,
@@ -108,6 +111,141 @@ def test_segment_temporal_controls_have_localized_instruction_prompts():
     )
 
 
+@pytest.mark.parametrize(
+    ("language", "range_summary", "direction_summary", "figure_title"),
+    (
+        (
+            "en",
+            "3 ranges",
+            "5 directions",
+            "Selected Station Evidence: K1AAA (FN31) · 2 joint spots",
+        ),
+        (
+            "de",
+            "3 Bereiche",
+            "5 Richtungen",
+            "Evidenz ausgewählter Stationen: K1AAA (FN31) · 2 Joint Spots",
+        ),
+    ),
+)
+def test_segment_inspector_labels_use_the_bilingual_catalog(
+    language,
+    range_summary,
+    direction_summary,
+    figure_title,
+):
+    """Resolve scope, figure, and plot labels without renderer language branches."""
+    translations = T[language]
+
+    assert segment_inspector._selection_summary(
+        ("A", "B", "C"),
+        translations["opt_full_range"],
+        "range",
+        translations,
+    ) == range_summary
+    assert segment_inspector._selection_summary(
+        ("N", "NE", "E", "SE", "S"),
+        translations["opt_all_dirs"],
+        "direction",
+        translations,
+    ) == direction_summary
+    assert segment_inspector._selected_evidence_figure_title(
+        ("K1AAA (FN31)",),
+        2,
+        analysis_id="RX_COMP",
+        is_sequential=False,
+        translations=translations,
+    ) == figure_title
+
+    labels = segment_inspector._evidence_labels(translations)
+    assert labels["dist_title"] == translations[
+        "fig_compare_delta_distribution"
+    ]
+    assert labels["time_title"] == translations[
+        "fig_segment_chronological_delta"
+    ]
+    assert labels["mean_label"] == translations["fig_mean_label"]
+    assert {
+        "aggregate",
+        "pooled_median_label",
+        "pooled_mean_label",
+    }.isdisjoint(labels)
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+def test_missing_station_warning_uses_the_active_translation(
+    monkeypatch,
+    language,
+):
+    """Render saved-selection warnings from the supplied translation mapping."""
+    warnings = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(
+            warning=lambda message, **kwargs: warnings.append(
+                (message, kwargs)
+            )
+        ),
+    )
+
+    segment_inspector._warn_missing_station_identities(
+        [{"callsign": "K1AAA", "locator": "FN31"}],
+        T[language],
+    )
+
+    assert warnings == [
+        (
+            T[language]["warn_saved_station_unavailable"].format(
+                stations="K1AAA (FN31)"
+            ),
+            {"icon": ":material/warning:"},
+        )
+    ]
+
+
+def test_targeted_inspector_renderers_have_no_language_wording_branches():
+    """Keep localized wording in catalog lookups and plumb it into exports."""
+    module_sources = (
+        inspect.getsource(segment_inspector),
+        inspect.getsource(drilldown),
+    )
+    for module_source in module_sources:
+        module_tree = ast.parse(module_source)
+        language_conditions = [
+            node
+            for node in ast.walk(module_tree)
+            if isinstance(node, (ast.If, ast.IfExp))
+            and "lang" in ast.dump(node.test).lower()
+            and "Constant(value='de')" in ast.dump(node.test)
+        ]
+        translation_fallbacks = [
+            node
+            for node in ast.walk(module_tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "get"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id in {"t", "translations"}
+        ]
+        assert language_conditions == []
+        assert translation_fallbacks == []
+
+    segment_tree = ast.parse(module_sources[0])
+    export_calls = [
+        node
+        for node in ast.walk(segment_tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "register_inspector_export"
+    ]
+    assert len(export_calls) == 3
+    assert all(
+        any(keyword.arg == "translations" for keyword in call.keywords)
+        for call in export_calls
+    )
+
+
 def _render_segment_temporal_for_test(monkeypatch, *, is_compare):
     """Render one temporal bundle while recording compact-recipe dispatches."""
     render_calls = []
@@ -165,7 +303,7 @@ def _render_segment_temporal_for_test(monkeypatch, *, is_compare):
         t={
             "hdr_results_temporal_evidence": "Temporal Evidence",
             "sub_results_temporal_evidence": "Compare subtitle",
-            "sub_results_success_temporal": "Success subtitle",
+            "sub_results_success_temporal": "Performance subtitle",
             "lbl_time_aggregation_bin_size": "Select time aggregation bin size",
         },
         is_compare=is_compare,
@@ -1648,7 +1786,7 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     scope_summary_placeholder = FakeContainer(fake_streamlit)
     render_arguments = {
         "analysis_id": "RX_ABS",
-        "title": "RX Success",
+        "title": "RX Performance",
         "df_seg": scope_rows,
         "parquet_path": "unused-session-artifact.parquet",
         "line1_str": "audit",

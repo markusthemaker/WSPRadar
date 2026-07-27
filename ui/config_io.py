@@ -8,6 +8,7 @@ defaults.
 
 import hashlib
 import json
+import logging
 import math
 import re
 import unicodedata
@@ -70,6 +71,116 @@ SOLAR_KEYS = {
 MODE_VALUES = {value: key for key, value in MODE_KEYS.items()}
 LOCAL_BENCHMARK_VALUES = {value: key for key, value in LOCAL_BENCHMARK_KEYS.items()}
 SOLAR_VALUES = {value: key for key, value in SOLAR_KEYS.items()}
+
+
+_CONFIG_VALIDATION_LOGGER = logging.getLogger("wspradar.config")
+_CONFIG_FIELD_TOKEN_RE = re.compile(
+    r"(?<![A-Za-z0-9_])"
+    r"[A-Za-z_][A-Za-z0-9_]*(?:\[\d+\])?"
+    r"(?:\.[A-Za-z_][A-Za-z0-9_]*(?:\[\d+\])?)*"
+)
+# This is a display-safety vocabulary, not a second input schema. Validation
+# remains exclusively with the canonical codec and semantic validators below.
+_CONFIG_FIELD_SEGMENTS = frozenset(
+    {
+        "advanced_parameters",
+        "analysis_direction",
+        "application",
+        "band",
+        "callsign",
+        "compare",
+        "comparison_parameters",
+        "core_parameters",
+        "created_utc",
+        "description",
+        "end_date",
+        "end_time_utc",
+        "exclude_moving_stations",
+        "exclude_special_callsigns",
+        "exported_utc",
+        "extensions",
+        "format",
+        "frozen_time_window",
+        "generator",
+        "hours",
+        "id",
+        "language",
+        "local_benchmark",
+        "locator",
+        "max_peer_distance_km",
+        "metadata",
+        "min_confirmed_opportunities_per_peer",
+        "min_joint_spots_per_station",
+        "min_joint_stations_per_map_segment",
+        "mode",
+        "neighborhood_radius_km",
+        "profile",
+        "qth",
+        "reference_callsign",
+        "reference_qth",
+        "reference_start_minute",
+        "repeat_interval_minutes",
+        "results_view",
+        "schema_version",
+        "segment_evidence_time_bin",
+        "selected_directions",
+        "selected_ranges",
+        "selected_stations",
+        "settings",
+        "show_non_joint",
+        "show_zero_target",
+        "snr_correction_db",
+        "snr_correction_mode",
+        "solar_state",
+        "start_date",
+        "start_time_utc",
+        "station_evidence_temporal_view",
+        "station_evidence_time_bin",
+        "success",
+        "target_start_minute",
+        "time_selection",
+        "title",
+        "tx_ab_method",
+        "version",
+    }
+)
+
+
+def _config_validation_field_path(error):
+    """Extract the longest safe canonical field path from a validation error."""
+    for match in _CONFIG_FIELD_TOKEN_RE.finditer(str(error)):
+        path_parts = match.group(0).split(".")
+        while path_parts:
+            field_segments = [
+                path_part.split("[", 1)[0] for path_part in path_parts
+            ]
+            if all(
+                field_segment in _CONFIG_FIELD_SEGMENTS
+                for field_segment in field_segments
+            ):
+                return ".".join(path_parts)
+            path_parts.pop()
+    return None
+
+
+def format_config_validation_error(error, translations):
+    """Return localized safe UI copy without exposing technical exception prose."""
+    field_path = _config_validation_field_path(error)
+    if field_path:
+        return translations["err_config_validation_field"].format(
+            field_path=field_path
+        )
+    return translations["err_config_validation_generic"]
+
+
+def log_config_validation_error(error, *, operation):
+    """Record complete validation detail internally for diagnosis."""
+    _CONFIG_VALIDATION_LOGGER.warning(
+        "Configuration %s validation failed: %s",
+        operation,
+        error,
+    )
+
 
 def _canonical_from_translated(state_value, value_map, fallback):
     """Return a stable token, accepting display text from pre-migration sessions."""

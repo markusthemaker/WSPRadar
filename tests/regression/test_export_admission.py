@@ -1,5 +1,6 @@
 from core.analysis_admission import AdmissionSnapshot, AnalysisQueueFull
 from core.export_admission import EXPORT_ADMISSION_GATE
+from i18n import T
 from ui import results_export
 
 
@@ -136,14 +137,15 @@ def test_export_preparation_waits_for_admission_and_releases_permit(monkeypatch)
     monkeypatch.setattr(results_export, "st", fake_st)
     monkeypatch.setattr(results_export, "EXPORT_ADMISSION_GATE", gate)
 
-    def build_zip():
+    def build_zip(translations):
+        assert translations is T["en"]
         assert permit.entered is True
         assert permit.released is False
         return b"prepared-zip", "results.zip"
 
     monkeypatch.setattr(results_export, "build_results_zip", build_zip)
 
-    result = results_export._prepare_results_zip_with_admission({})
+    result = results_export._prepare_results_zip_with_admission(T["en"])
 
     assert result == (b"prepared-zip", "results.zip")
     assert permit.touched is True
@@ -170,10 +172,12 @@ def test_full_export_queue_does_not_start_zip_construction(monkeypatch):
     monkeypatch.setattr(
         results_export,
         "build_results_zip",
-        lambda: (_ for _ in ()).throw(AssertionError("ZIP build must not start")),
+        lambda _translations: (_ for _ in ()).throw(
+            AssertionError("ZIP build must not start")
+        ),
     )
 
-    result = results_export._prepare_results_zip_with_admission({})
+    result = results_export._prepare_results_zip_with_admission(T["en"])
 
     assert result == (None, None)
     assert fake_st.warnings == [

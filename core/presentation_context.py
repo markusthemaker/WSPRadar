@@ -10,16 +10,16 @@ from typing import Mapping
 class PresentationContext:
     """Localized labels and theme choices that must not affect scientific branches."""
 
+    solar_label: str
     language: str = "en"
     labels: Mapping[str, str] = field(default_factory=dict)
     theme: str = "dark"
-    solar_label: str = "All"
 
     def label(self, key: str, default: str = "") -> str:
         return str(self.labels.get(key, default))
 
     def absolute_terms(self, mode: str) -> dict[str, str]:
-        """Return canonical and presentation-only terms for Success views.
+        """Return canonical compatibility terms and localized Performance labels.
 
         Canonical counter names and formulas remain available for compatibility
         exports and scientific documentation. The explicit opportunity/station
@@ -29,19 +29,6 @@ class PresentationContext:
         mode_key = "tx" if str(mode).upper().startswith("TX") else "rx"
         default_counter = "Other Signals" if mode_key == "tx" else "Elsewhere"
         default_short = "OS" if mode_key == "tx" else "E"
-        default_success = (
-            "Target heard" if mode_key == "tx" else "Heard by Target"
-        )
-        default_presentation_counter = (
-            "Other signals heard only"
-            if mode_key == "tx"
-            else "Heard by others only"
-        )
-        default_target_only_audit = (
-            "Target heard without independent RX-activity confirmation"
-            if mode_key == "tx"
-            else "Heard by Target without independent confirmation"
-        )
         counter = self.label(f"abs_{mode_key}_counter", default_counter)
         counter_short = self.label(f"abs_{mode_key}_counter_short", default_short)
         pair = self.label(f"abs_{mode_key}_pair", f"Target+{counter}")
@@ -57,36 +44,26 @@ class PresentationContext:
             "counter": counter,
             "counter_short": counter_short,
             "counter_column": counter_column,
-            "opportunity_success": self.label(
-                f"success_{mode_key}_opportunity_success",
-                default_success,
+            "opportunity_success": str(
+                self.labels[f"success_{mode_key}_opportunity_success"]
             ),
-            "opportunity_counter": self.label(
-                f"success_{mode_key}_opportunity_counter",
-                default_presentation_counter,
+            "opportunity_counter": str(
+                self.labels[f"success_{mode_key}_opportunity_counter"]
             ),
-            "station_success": self.label(
-                f"success_{mode_key}_station_success",
-                default_success,
+            "station_success": str(
+                self.labels[f"success_{mode_key}_station_success"]
             ),
-            "station_counter": self.label(
-                f"success_{mode_key}_station_counter",
-                default_presentation_counter,
+            "station_counter": str(
+                self.labels[f"success_{mode_key}_station_counter"]
             ),
-            "target_only_audit": self.label(
-                f"success_{mode_key}_target_only_audit",
-                default_target_only_audit,
+            "target_only_audit": str(
+                self.labels[f"success_{mode_key}_target_only_audit"]
             ),
-            "presentation_subtext": self.label(
-                f"success_{mode_key}_subtext",
-                (
-                    f"{default_success} | {default_presentation_counter} | "
-                    "Click a row for evidence"
-                ),
+            "presentation_subtext": str(
+                self.labels[f"success_{mode_key}_subtext"]
             ),
-            "show_counter": self.label(
-                f"success_{mode_key}_show_counter",
-                f"Show {default_presentation_counter}",
+            "show_counter": str(
+                self.labels[f"success_{mode_key}_show_counter"]
             ),
             "pair": pair,
             "formula": formula,

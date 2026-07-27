@@ -13,12 +13,154 @@ from ui.plots.evidence_figures import (
     _compare_median_focus_forward,
     _compare_median_focus_inverse,
     _compare_median_focus_spec_from_recipe,
-    _default_evidence_labels,
     _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
     render_segment_temporal_evidence_export_figure,
     render_selected_evidence_export_figure,
 )
+
+
+def _localized_evidence_labels(language="en"):
+    """Return complete localized presentation state for selected evidence."""
+    translations = T[language]
+    chronological_title = translations["fig_segment_chronological_delta"]
+    return {
+        "dist_title": translations["fig_compare_delta_distribution"],
+        "time_title": chronological_title,
+        "time_title_template": translations[
+            "fmt_temporal_title_with_bins"
+        ].format(
+            title=chronological_title,
+            time_bin="{time_bin}",
+        ),
+        "y_label": translations["tbl_col_delta_snr"],
+        "x_label": translations["fig_segment_chronological_x"],
+        "share_axis_label": translations["fig_share_percent_axis"],
+        "median_label": translations["fig_median_label"],
+        "bin_median_label": translations["fig_temporal_bin_median"],
+        "mean_label": translations["fig_mean_label"],
+        "empty_text": translations["fig_selected_evidence_empty"],
+        "single_evidence_point": translations[
+            "fig_single_evidence_point"
+        ],
+        "single_point_title": translations["fig_single_point_title"],
+        "count_label": translations["fig_joint_spot_count"],
+        "density_label": translations["fig_relative_joint_spot_density"],
+        "median_focus_axis_label": translations[
+            "fig_compare_median_focus_axis"
+        ],
+    }
+
+
+def _localized_selected_evidence_recipe(
+    plot_df,
+    evidence_title,
+    time_agg,
+    *,
+    language="en",
+    is_sequential=False,
+    labels=None,
+    **overrides,
+):
+    """Build a selected-evidence recipe with explicit localized labels."""
+    translations = T[language]
+    localized_labels = (
+        _localized_evidence_labels(language)
+        if labels is None
+        else dict(labels)
+    )
+    if is_sequential:
+        localized_labels["count_label"] = translations[
+            "fig_scheduled_pair_count"
+        ]
+        localized_labels["density_label"] = translations[
+            "fig_relative_scheduled_pair_density"
+        ]
+    presentation = {
+        "folded_title": translations["fig_segment_utc_hour_title"],
+        "folded_x_label": translations["fig_segment_utc_hour_x"],
+        "folded_date_annotation": translations[
+            "fig_segment_dates_folded"
+        ].replace("{count}", "{utc_date_count}"),
+        "density_label": localized_labels["density_label"],
+        "folded_unavailable_text": translations[
+            "fig_segment_folded_unavailable"
+        ],
+        "median_focus_axis_label": translations[
+            "fig_compare_median_focus_axis"
+        ],
+    }
+    presentation.update(overrides)
+    return _selected_evidence_export_recipe(
+        plot_df,
+        evidence_title,
+        localized_labels,
+        time_agg,
+        is_sequential,
+        **presentation,
+    )
+
+
+def _localized_segment_temporal_recipe(
+    plot_df,
+    title,
+    time_bin,
+    count_label=None,
+    *,
+    language="en",
+    is_sequential=False,
+    **overrides,
+):
+    """Build a segment-temporal recipe with explicit localized labels."""
+    translations = T[language]
+    resolved_count_label = count_label or translations[
+        (
+            "fig_scheduled_pair_count"
+            if is_sequential
+            else "fig_joint_spot_count"
+        )
+    ]
+    chronological_title = translations["fig_segment_chronological_delta"]
+    presentation = {
+        "chronological_title": translations[
+            "fmt_temporal_title_with_bins"
+        ].format(
+            title=chronological_title,
+            time_bin="{time_bin}",
+        ),
+        "chronological_x_label": translations[
+            "fig_segment_chronological_x"
+        ],
+        "metric_axis_label": translations["tbl_col_delta_snr"],
+        "folded_title": translations["fig_segment_utc_hour_title"],
+        "folded_x_label": translations["fig_segment_utc_hour_x"],
+        "folded_date_annotation": translations[
+            "fig_segment_dates_folded"
+        ].replace("{count}", "{utc_date_count}"),
+        "density_label": translations[
+            (
+                "fig_relative_scheduled_pair_density"
+                if is_sequential
+                else "fig_relative_joint_spot_density"
+            )
+        ],
+        "folded_unavailable_text": translations[
+            "fig_segment_folded_unavailable"
+        ],
+        "median_focus_axis_label": translations[
+            "fig_compare_median_focus_axis"
+        ],
+        "median_label": translations["fig_median_label"],
+        "bin_median_label": translations["fig_temporal_bin_median"],
+    }
+    presentation.update(overrides)
+    return _segment_temporal_evidence_export_recipe(
+        plot_df,
+        title,
+        time_bin,
+        resolved_count_label,
+        **presentation,
+    )
 
 
 def _render_compare_evidence_figure(metric_values, identity_labels):
@@ -34,15 +176,58 @@ def _render_compare_evidence_figure(metric_values, identity_labels):
             "metric": metric_values,
         }
     )
-    recipe = _selected_evidence_export_recipe(
+    recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Selected Station Evidence",
-        _default_evidence_labels(),
         "3h",
         is_sequential=False,
     )
     assert recipe["temporal_view"] == "chronological"
     return render_selected_evidence_export_figure(recipe)
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_selected_single_evidence_uses_localized_recipe_labels(language):
+    """Render one selected evidence point without English fallback wording."""
+    translations = T[language]
+    plot_df = pd.DataFrame(
+        {
+            "identity": ["A (AA00)"],
+            "plot_time": pd.to_datetime(
+                ["2026-07-01T00:05:00Z"],
+                utc=True,
+            ),
+            "metric": [1.5],
+        }
+    )
+    recipe = _localized_selected_evidence_recipe(
+        plot_df,
+        "Localized Selected Evidence",
+        "3h",
+        language=language,
+    )
+
+    figure = render_selected_evidence_export_figure(recipe)
+    try:
+        distribution_axis, temporal_axis = figure.axes
+        assert distribution_axis.get_title() == translations[
+            "fig_compare_delta_distribution"
+        ]
+        assert translations["fig_single_evidence_point"] in {
+            text.get_text() for text in distribution_axis.texts
+        }
+        expected_temporal_title = translations[
+            "fig_single_point_title"
+        ].format(title=translations["fig_segment_chronological_delta"])
+        assert temporal_axis.get_title() == expected_temporal_title
+        assert temporal_axis.get_xlabel() == translations[
+            "fig_segment_chronological_x"
+        ]
+        assert temporal_axis.get_ylabel() == translations[
+            "fig_compare_median_focus_axis"
+        ]
+    finally:
+        dispose_matplotlib_figure(figure)
 
 
 def _legend_texts(axis):
@@ -210,16 +395,15 @@ def test_segment_and_selected_recipes_keep_their_own_evidence_medians():
         }
     )
 
-    segment_recipe = _segment_temporal_evidence_export_recipe(
+    segment_recipe = _localized_segment_temporal_recipe(
         segment_plot_df,
         "Segment Evidence",
         "3h",
         "Joint spot count",
     )
-    selected_recipe = _selected_evidence_export_recipe(
+    selected_recipe = _localized_selected_evidence_recipe(
         selected_plot_df,
         "Selected Evidence",
-        _default_evidence_labels(),
         "3h",
         is_sequential=False,
     )
@@ -408,10 +592,9 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             "metric": metric_values,
         }
     )
-    recipe = _selected_evidence_export_recipe(
+    recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Selected Evidence",
-        _default_evidence_labels(),
         "3h",
         is_sequential=False,
     )
@@ -495,10 +678,9 @@ def test_selected_time_heatmap_uses_panel_max_relative_density():
             "metric": [1.0, 1.0, 2.0],
         }
     )
-    recipe = _selected_evidence_export_recipe(
+    recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Selected Evidence",
-        _default_evidence_labels(),
         "1h",
         is_sequential=False,
     )
@@ -540,10 +722,9 @@ def test_selected_compare_can_render_folded_utc_hour_density():
             "metric": [0.0, 0.0, 1.0, 0.0],
         }
     )
-    recipe = _selected_evidence_export_recipe(
+    recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Selected Folded Evidence",
-        _default_evidence_labels(),
         "3h",
         is_sequential=False,
         temporal_view="utc_hour",
@@ -608,10 +789,9 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
         "UTC-Stundenmuster nicht verf\u00fcgbar - erfordert gemeinsame Evidenz "
         "aus mindestens 2 UTC-Tagen."
     )
-    recipe = _selected_evidence_export_recipe(
+    recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Selected Folded Evidence",
-        _default_evidence_labels(),
         "3h",
         is_sequential=False,
         temporal_view="utc_hour",
@@ -666,10 +846,9 @@ def test_selected_compare_temporal_views_share_reference_line_hierarchy(
             "metric": [-12.0, -6.0, 6.0, 12.0],
         }
     )
-    recipe = _selected_evidence_export_recipe(
+    recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Selected Evidence",
-        _default_evidence_labels(),
         "3h",
         is_sequential=False,
         temporal_view=temporal_view,
@@ -777,7 +956,7 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
             "metric": [0.0, 0.0, 1.0, 0.0],
         }
     )
-    recipe = _segment_temporal_evidence_export_recipe(
+    recipe = _localized_segment_temporal_recipe(
         plot_df,
         "RX Compare Temporal: G3ZIL (Target) vs. G4HZX (Reference)",
         "3h",
@@ -908,7 +1087,7 @@ def test_segment_temporal_fractional_ticks_remain_inside_the_canvas():
             "metric": [-0.2, 2.8, 2.8, 5.8],
         }
     )
-    recipe = _segment_temporal_evidence_export_recipe(
+    recipe = _localized_segment_temporal_recipe(
         plot_df,
         "Fractional Compare Temporal Evidence",
         "3h",
@@ -940,13 +1119,14 @@ def test_segment_temporal_recipe_accepts_localized_labels():
             "metric": [1.0, 2.0],
         }
     )
-    recipe = _segment_temporal_evidence_export_recipe(
+    recipe = _localized_segment_temporal_recipe(
         plot_df,
         "Zeitliche Segment-Evidenz",
         "3h",
         "Anzahl gemeinsamer Spots",
         chronological_title="Zeitverlauf ({time_bin})",
         chronological_x_label="Datum/Zeit (UTC)",
+        metric_axis_label=T["de"]["tbl_col_delta_snr"],
         folded_title="UTC-Stunde ({utc_date_count} UTC-Tage; 1h-Bins)",
         folded_x_label="UTC-Stunde",
         folded_date_annotation="{utc_date_count} UTC-Tage gefaltet",
@@ -994,7 +1174,7 @@ def test_segment_temporal_figure_keeps_folded_placeholder_for_one_utc_date():
         "UTC-hour pattern unavailable - requires joint evidence from at least "
         "2 UTC dates."
     )
-    recipe = _segment_temporal_evidence_export_recipe(
+    recipe = _localized_segment_temporal_recipe(
         plot_df,
         "Short Segment Evidence",
         "3h",
@@ -1043,14 +1223,17 @@ def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
             "metric": [1.0, 2.0],
         }
     )
-    labels = _default_evidence_labels()
-    labels["count_label"] = "Scheduled pair count"
-    recipe = _selected_evidence_export_recipe(
+    labels = _localized_evidence_labels()
+    labels["count_label"] = T["en"]["fig_scheduled_pair_count"]
+    labels["density_label"] = T["en"][
+        "fig_relative_scheduled_pair_density"
+    ]
+    recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Scheduled Evidence",
-        labels,
         "5m",
         is_sequential=True,
+        labels=labels,
     )
 
     figure = render_selected_evidence_export_figure(recipe)

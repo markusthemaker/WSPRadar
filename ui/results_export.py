@@ -298,6 +298,7 @@ def register_inspector_export(
     show_non_joint,
     evidence_time_bin,
     selected_stations,
+    translations,
     show_zero_target=False,
     segment_evidence_time_bin=None,
     selected_ranges=None,
@@ -317,7 +318,7 @@ def register_inspector_export(
     selected_station_role=None,
     selected_evidence_figure_descriptions=None,
 ):
-    """Register compact current inspector state for lazy high-resolution export."""
+    """Register localized Inspector state for lazy high-resolution export."""
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis_id, {"analysis_id": analysis_id})
     selected_station_count = len(selected_stations or [])
@@ -336,12 +337,9 @@ def register_inspector_export(
         "selected_station_context_label": selected_station_context_label,
         "selected_station_count": selected_station_count,
         "selected_station_role": selected_station_role,
-        "selected_evidence_weighting": (
-            "combined observation-weighted"
-            if selected_station_count > 1
-            else "single selected path"
-            if selected_station_count == 1
-            else None
+        "selected_evidence_weighting": _selected_evidence_weighting_label(
+            selected_station_count,
+            translations,
         ),
         "selected_evidence_figure_descriptions": dict(
             selected_evidence_figure_descriptions or {}
@@ -365,6 +363,15 @@ def register_inspector_export(
     })
 
 
+def _selected_evidence_weighting_label(selected_station_count, translations):
+    """Return localized human-readable weighting metadata for a selection."""
+    if selected_station_count > 1:
+        return translations["export_weighting_combined_observation"]
+    if selected_station_count == 1:
+        return translations["export_weighting_single_selected_path"]
+    return None
+
+
 def _should_annotate_reference_correction(column_name, reference_snr_header=None):
     text = str(column_name).strip().casefold()
     reference_text = str(reference_snr_header).strip().casefold() if reference_snr_header else ""
@@ -382,11 +389,19 @@ def _should_annotate_reference_correction(column_name, reference_snr_header=None
     )
 
 
-def _annotate_reference_correction_headers(df, correction_db, reference_snr_header=None):
+def _annotate_reference_correction_headers(
+    df,
+    correction_db,
+    translations,
+    reference_snr_header=None,
+):
+    """Return a display copy whose affected headers state the applied correction."""
     if not isinstance(df, pd.DataFrame) or df.empty or abs(float(correction_db or 0.0)) < 0.05:
         return df
 
-    suffix = f" (ref corr {float(correction_db):+.1f} dB)"
+    suffix = translations["fmt_export_reference_correction_suffix"].format(
+        value=float(correction_db)
+    )
     renamed = {}
     for col in df.columns:
         if _should_annotate_reference_correction(col, reference_snr_header):
@@ -394,10 +409,21 @@ def _annotate_reference_correction_headers(df, correction_db, reference_snr_head
     return df.rename(columns=renamed) if renamed else df
 
 
-def _dataframe_to_csv_bytes(df, correction_db=0.0, reference_snr_header=None):
+def _dataframe_to_csv_bytes(
+    df,
+    translations,
+    correction_db=0.0,
+    reference_snr_header=None,
+):
+    """Serialize a CSV with localized human-readable correction annotations."""
     if not isinstance(df, pd.DataFrame):
         df = pd.DataFrame()
-    export_df = _annotate_reference_correction_headers(df, correction_db, reference_snr_header)
+    export_df = _annotate_reference_correction_headers(
+        df,
+        correction_db,
+        translations,
+        reference_snr_header,
+    )
     return format_snr_like_columns_for_csv(export_df).to_csv(index=False).encode("utf-8-sig")
 
 
@@ -707,11 +733,16 @@ def _render_map_png_for_block(block):
     from core.plot_engine import generate_map_plot
     analysis_context = AnalysisContext.from_dict(context["analysis_context"])
     presentation_values = context["presentation_context"]
+    presentation_language = presentation_values["language"]
+    presentation_labels = T[presentation_language]
     presentation_context = PresentationContext(
-        language=presentation_values["language"],
-        labels=T.get(presentation_values["language"], T["en"]),
+        language=presentation_language,
+        labels=presentation_labels,
         theme=presentation_values.get("theme", "dark"),
-        solar_label=presentation_values.get("solar_label", "All"),
+        solar_label=presentation_values.get(
+            "solar_label",
+            presentation_labels["opt_solar_all"],
+        ),
     )
     plot_result = generate_map_plot(
         df,
@@ -847,8 +878,8 @@ def _build_all_drilldown_for_block(block):
         return pd.DataFrame()
 
 
-def build_results_zip():
-    """Build the all-results ZIP payload from registered current result blocks."""
+def build_results_zip(translations):
+    """Build a results ZIP with localized human-readable presentation metadata."""
     blocks = _ensure_current_export_state()
     exportable_blocks = {
         key: block for key, block in blocks.items()
@@ -925,6 +956,7 @@ def build_results_zip():
                     f"{root}/{folder}/{table_name}",
                     _dataframe_to_csv_bytes(
                         table_df,
+                        translations,
                         correction_db=correction_db,
                         reference_snr_header=block.get("reference_snr_header"),
                     )
@@ -961,14 +993,8 @@ def _prepare_results_zip_with_admission(t):
             queue_profile["maximum_position"],
             snapshot.position,
         )
-        label = t.get(
-            "msg_export_queue_wait",
-            "Another export is being prepared. You are position {position} in the export queue.",
-        ).format(position=snapshot.position)
-        detail = t.get(
-            "msg_export_queue_detail",
-            "{active}/{maximum} export preparation active; {queued} waiting.",
-        ).format(
+        label = t["msg_export_queue_wait"].format(position=snapshot.position)
+        detail = t["msg_export_queue_detail"].format(
             active=snapshot.active,
             maximum=snapshot.max_active,
             queued=snapshot.queued,
@@ -1004,18 +1030,12 @@ def _prepare_results_zip_with_admission(t):
         permit = EXPORT_ADMISSION_GATE.acquire(owner=owner, on_wait=show_waiting)
     except AnalysisQueueFull:
         log_admission("queue_full")
-        st.warning(t.get(
-            "warn_export_queue_full",
-            "High demand right now. The export queue is full. Please try again shortly.",
-        ))
+        st.warning(t["warn_export_queue_full"])
         return None, None
     except AnalysisQueueTimeout:
         log_admission("queue_timeout")
         queue_slot.empty()
-        st.warning(t.get(
-            "warn_export_queue_timeout",
-            "Export capacity did not become available in time. Please try again shortly.",
-        ))
+        st.warning(t["warn_export_queue_timeout"])
         return None, None
 
     log_admission("admitted")
@@ -1027,11 +1047,8 @@ def _prepare_results_zip_with_admission(t):
     try:
         with permit:
             permit.touch()
-            with st.spinner(t.get(
-                "msg_preparing_all_results",
-                "Preparing high-resolution result package...",
-            )):
-                result = build_results_zip()
+            with st.spinner(t["msg_preparing_all_results"]):
+                result = build_results_zip(t)
         if not result[0]:
             export_outcome = "empty"
         return result
@@ -1069,19 +1086,14 @@ def render_download_all_results(t):
 
     st.markdown(
         utility_header_html(
-            t.get("hdr_results_download_evidence", "Download Evidence"),
-            t.get(
-                "sub_results_download_evidence",
-                "Prepare the completed run, active Inspector scope, station "
-                "selection, tables, metadata, and high-resolution figures as "
-                "a reproducibility package.",
-            ),
+            t["hdr_results_download_evidence"],
+            t["sub_results_download_evidence"],
         ),
         unsafe_allow_html=True,
     )
     render_result_guidance_popover(
         RESULT_GUIDANCE_DOWNLOAD,
-        t.get("hdr_results_download_evidence", "Download Evidence"),
+        t["hdr_results_download_evidence"],
         language=st.session_state.get("lang", "en"),
         translations=t,
         key=f"results_guidance_download_{_current_run_id()}",
@@ -1096,7 +1108,7 @@ def render_download_all_results(t):
         prepared_filename = st.session_state.get(EXPORT_ZIP_FILENAME_KEY)
         if prepared_bytes and prepared_filename:
             st.download_button(
-                t.get("btn_download_prepared_results", "Download Prepared Results"),
+                t["btn_download_prepared_results"],
                 data=prepared_bytes,
                 file_name=prepared_filename,
                 mime="application/zip",
@@ -1105,7 +1117,7 @@ def render_download_all_results(t):
                 width="stretch",
             )
         elif st.button(
-            t.get("btn_prepare_all_results", "Prepare All Results for Download"),
+            t["btn_prepare_all_results"],
             icon=":material/archive:",
             type="secondary",
             width="stretch",
@@ -1116,10 +1128,7 @@ def render_download_all_results(t):
                 st.session_state[EXPORT_ZIP_FILENAME_KEY] = filename
                 st.session_state[EXPORT_ZIP_SIGNATURE_KEY] = signature
                 st.download_button(
-                    t.get(
-                        "btn_download_prepared_results",
-                        "Download Prepared Results",
-                    ),
+                    t["btn_download_prepared_results"],
                     data=zip_bytes,
                     file_name=filename,
                     mime="application/zip",

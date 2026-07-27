@@ -30,6 +30,7 @@ from core.solar_path import (
     sun_unit_vectors_from_terms,
 )
 from i18n import T
+from ui.inspector import drilldown as drilldown_module
 from ui.inspector.drilldown import (
     _build_drilldown_table,
     _load_station_rows_for_drilldown,
@@ -401,6 +402,159 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
     assert full_info == projected_info
     pd.testing.assert_frame_equal(full_table, projected_table)
     assert "Target SNR (dB @ 30 dBm)" in full_table.columns
+    assert set(full_table["Outcome"]) == {
+        "T - Target",
+        "E - Elsewhere",
+        "Target-only",
+    }
+
+
+@pytest.mark.parametrize(
+    ("language", "expected_messages"),
+    (
+        (
+            "en",
+            {
+                "no_selection": "No stations selected.",
+                "no_spots": "No spots available.",
+                "no_pairs": "No scheduled pairs available.",
+                "no_joint_pairs": (
+                    "No joint scheduled pairs available for the selected "
+                    "station(s)."
+                ),
+                "no_joint_spots": (
+                    "No joint spots available for the selected station(s)."
+                ),
+                "no_reference_details": (
+                    "No reference station details available for the selected "
+                    "station(s)."
+                ),
+            },
+        ),
+        (
+            "de",
+            {
+                "no_selection": "Keine Stationen ausgewählt.",
+                "no_spots": "Keine Spots verfügbar.",
+                "no_pairs": "Keine geplanten Paare verfügbar.",
+                "no_joint_pairs": (
+                    "Für die ausgewählte(n) Station(en) sind keine gemeinsamen "
+                    "geplanten Paare verfügbar."
+                ),
+                "no_joint_spots": (
+                    "Für die ausgewählte(n) Station(en) sind keine Joint Spots "
+                    "verfügbar."
+                ),
+                "no_reference_details": (
+                    "Für die ausgewählte(n) Station(en) sind keine Details zu "
+                    "Referenzstationen verfügbar."
+                ),
+            },
+        ),
+    ),
+)
+def test_drilldown_empty_states_use_localized_catalog_messages(
+    monkeypatch,
+    language,
+    expected_messages,
+):
+    """Return localized UI notices without changing drill-down selection rules."""
+    translations = T[language]
+    station_col = translations["tbl_col_tx"]
+    loc_col = translations["tbl_col_loc"]
+    km_col = translations["tbl_col_km"]
+    az_col = translations["tbl_col_az"]
+    selected_meta_df = pd.DataFrame(
+        {
+            station_col: ["K1AAA"],
+            loc_col: ["FN31"],
+            km_col: [100],
+            az_col: [42.0],
+        }
+    )
+
+    def build(
+        station_rows_df,
+        *,
+        selected=selected_meta_df,
+        is_sequential=False,
+        show_non_joint=False,
+        is_local_median=False,
+    ):
+        return _build_drilldown_table(
+            "unused.parquet",
+            selected,
+            station_col,
+            loc_col,
+            km_col,
+            az_col,
+            "RX_COMP",
+            is_sequential,
+            show_non_joint,
+            is_local_median,
+            "TARGET",
+            "REFERENCE",
+            translations,
+            station_rows_df=station_rows_df,
+        )
+
+    messages = {}
+    _, messages["no_selection"] = build(
+        pd.DataFrame(),
+        selected=selected_meta_df.iloc[0:0],
+    )
+    _, messages["no_spots"] = build(pd.DataFrame())
+
+    monkeypatch.setattr(
+        drilldown_module,
+        "assign_tx_ab_pair_columns",
+        lambda *_args, **_kwargs: pd.DataFrame(),
+    )
+    _, messages["no_pairs"] = build(
+        pd.DataFrame({"unpaired": [True]}),
+        is_sequential=True,
+    )
+
+    _, messages["no_joint_pairs"] = build(
+        pd.DataFrame(
+            {
+                "time": ["2026-01-01T00:00:00Z"],
+                "peer_sign": ["K1AAA"],
+                "peer_grid": ["FN31"],
+                "tx_ab_pair_id": [1],
+                "is_me": [1],
+                "stat_val": [-10.0],
+            }
+        ),
+        is_sequential=True,
+    )
+    _, messages["no_joint_spots"] = build(
+        pd.DataFrame(
+            {
+                "time_slot": [1],
+                "has_u": [1],
+                "has_r": [0],
+                "snr_u_norm": [-10.0],
+                "snr_r_norm": [np.nan],
+            }
+        ),
+    )
+    _, messages["no_reference_details"] = build(
+        pd.DataFrame(
+            {
+                "time_slot": [1],
+                "has_u": [0],
+                "has_r": [1],
+                "snr_u_norm": [np.nan],
+                "snr_r_norm": [-10.0],
+                "ref_detail_rows": [None],
+            }
+        ),
+        show_non_joint=True,
+        is_local_median=True,
+    )
+
+    assert messages == expected_messages
 
 
 @pytest.mark.parametrize(

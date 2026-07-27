@@ -16,6 +16,7 @@ from core.analysis_context import (
     TX_AB_METHOD_SIMULTANEOUS,
 )
 from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
+from core.presentation_context import PresentationContext
 from i18n import T
 
 
@@ -48,6 +49,10 @@ def _build_analyses(context):
         47.0,
         8.0,
         "AND band = '14'",
+        presentation_context=PresentationContext(
+            labels=T["en"],
+            solar_label=T["en"]["opt_solar_all"].split()[0],
+        ),
     )
 
 
@@ -152,6 +157,10 @@ def test_added_live_wspr_bands_build_numeric_opportunity_predicates():
             47.0,
             8.0,
             f"AND band = '{band_value}'",
+            presentation_context=PresentationContext(
+                labels=T["en"],
+                solar_label=T["en"]["opt_solar_all"].split()[0],
+            ),
         )
 
         assert len(analyses) == 1

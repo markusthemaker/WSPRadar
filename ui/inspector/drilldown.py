@@ -163,7 +163,7 @@ def _build_drilldown_table(
 ):
     """Build the drill-down dataframe for selected or all current segment identities."""
     if selected_meta_df is None or selected_meta_df.empty:
-        return pd.DataFrame(), "No stations selected."
+        return pd.DataFrame(), t["msg_drilldown_no_stations_selected"]
 
     selected_meta_df = selected_meta_df[[station_col, loc_col, km_col, az_col]].copy()
     selected_meta_df[station_col] = selected_meta_df[station_col].astype(str)
@@ -178,7 +178,7 @@ def _build_drilldown_table(
     info_msg = None
 
     if station_df.empty:
-        return pd.DataFrame(), "No spots available."
+        return pd.DataFrame(), t["msg_drilldown_no_spots"]
 
     is_opportunity = {
         "hit",
@@ -246,18 +246,15 @@ def _build_drilldown_table(
                     reference_start_minute_utc=tx_ab_reference_start_minute,
                 )
             if station_df.empty:
-                return pd.DataFrame(), "No scheduled pairs available."
+                return pd.DataFrame(), t["msg_drilldown_no_scheduled_pairs"]
             station_df['dt_time'] = pd.to_datetime(
                 station_df['time'],
                 utc=True,
             )
             pair_keys = ['peer_sign', 'peer_grid', 'tx_ab_pair_id']
             pair_display_column = 'scheduled_pair_str'
-            pair_display_label = t.get(
-                'tbl_col_pair',
-                'Scheduled Pair (UTC)',
-            )
-            pair_delta_label = t.get('tbl_col_pair_delta', 'Pair \u0394')
+            pair_display_label = t['tbl_col_pair']
+            pair_delta_label = t['tbl_col_pair_delta']
 
             df_t = station_df[station_df['is_me'] == 1]
             df_r = station_df[station_df['is_me'] == 0]
@@ -285,7 +282,10 @@ def _build_drilldown_table(
             if not show_non_joint:
                 station_df = station_df[station_df['micro_med_a'].notna() & station_df['micro_med_b'].notna()]
                 if station_df.empty:
-                    return pd.DataFrame(), "No joint scheduled pairs available for the selected station(s)."
+                    return (
+                        pd.DataFrame(),
+                        t["msg_drilldown_no_joint_scheduled_pairs"],
+                    )
 
             station_df['micro_med_b'] = np.where(station_df['is_me'] == 1, np.nan, station_df['micro_med_b'])
             station_df['micro_med_a'] = np.where(station_df['is_me'] == 0, np.nan, station_df['micro_med_a'])
@@ -333,15 +333,27 @@ def _build_drilldown_table(
                 'Date/Time (UTC)', pair_display_label,
                 station_col, loc_col, km_col, az_col, 'TX Station',
                 'TX Power (dBm)', 'SNR (Raw)', 'Norm@30dBm',
-                t.get('tbl_col_micro_a', 'Target Micro-Median'), t.get('tbl_col_micro_b', 'Reference Micro-Median'), pair_delta_label
+                t['tbl_col_micro_a'], t['tbl_col_micro_b'], pair_delta_label
             ]
 
-            for col in ['Norm@30dBm', t.get('tbl_col_micro_a', 'Target Micro-Median'), t.get('tbl_col_micro_b', 'Reference Micro-Median'), pair_delta_label]:
+            for col in [
+                'Norm@30dBm',
+                t['tbl_col_micro_a'],
+                t['tbl_col_micro_b'],
+                pair_delta_label,
+            ]:
                 drill_df[col] = drill_df[col].map(lambda x: f"{x:+.1f}" if pd.notna(x) else "")
         else:
             joint_df = station_df.copy() if show_non_joint else station_df[(station_df['has_u'] > 0) & (station_df['has_r'] > 0)].copy()
             if joint_df.empty:
-                return pd.DataFrame(), "No spots available." if show_non_joint else "No joint spots available for the selected station(s)."
+                return (
+                    pd.DataFrame(),
+                    (
+                        t["msg_drilldown_no_spots"]
+                        if show_non_joint
+                        else t["msg_drilldown_no_joint_spots"]
+                    ),
+                )
 
             joint_df['Date/Time (UTC)'] = pd.to_datetime(joint_df['time_slot'] * 120, unit='s').dt.strftime('%d-%b-%Y %H:%M:%S')
             joint_df.loc[joint_df['has_u'] == 0, 'snr_u_norm'] = np.nan
@@ -349,7 +361,7 @@ def _build_drilldown_table(
 
             col_u = f'{col_u_name} SNR (dB)'
             col_r = f'{ref_header} SNR (dB)'
-            col_delta_lbl = t.get('tbl_col_delta_snr', '\u0394 SNR (dB)')
+            col_delta_lbl = t['tbl_col_delta_snr']
             station_type = 'RX Station' if analysis_id.startswith("TX") else 'TX Station'
 
             if is_local_median and 'ref_detail_rows' in joint_df.columns:
@@ -378,11 +390,11 @@ def _build_drilldown_table(
                                 loc_col: row[loc_col],
                                 km_col: row[km_col],
                                 az_col: row[az_col],
-                                t.get('tbl_col_ref_station', 'Ref Station'): ref["ref_sign"],
+                                t['tbl_col_ref_station']: ref["ref_sign"],
                                 loc_col + ' (Ref)': ref["ref_grid"],
                                 'Ref km': ref_dist_km,
-                                t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): ref_snr,
-                                t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): round(cycle_ref_median, 1) if pd.notna(cycle_ref_median) else np.nan,
+                                t['tbl_col_ref_snr']: ref_snr,
+                                t['tbl_col_cycle_ref_median']: round(cycle_ref_median, 1) if pd.notna(cycle_ref_median) else np.nan,
                                 col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
                                 col_delta_lbl: delta_snr
                             })
@@ -393,11 +405,11 @@ def _build_drilldown_table(
                             loc_col: row[loc_col],
                             km_col: row[km_col],
                             az_col: row[az_col],
-                            t.get('tbl_col_ref_station', 'Ref Station'): np.nan,
+                            t['tbl_col_ref_station']: np.nan,
                             loc_col + ' (Ref)': np.nan,
                             'Ref km': np.nan,
-                            t.get('tbl_col_ref_snr', 'Ref SNR (dB)'): np.nan,
-                            t.get('tbl_col_cycle_ref_median', 'Cycle Ref Median SNR (dB)'): np.nan,
+                            t['tbl_col_ref_snr']: np.nan,
+                            t['tbl_col_cycle_ref_median']: np.nan,
                             col_u: round(own_snr, 1) if pd.notna(own_snr) else np.nan,
                             col_delta_lbl: np.nan
                         })
@@ -405,7 +417,9 @@ def _build_drilldown_table(
                 if expanded_rows:
                     drill_df = pd.DataFrame(expanded_rows).sort_values('Date/Time (UTC)', ascending=False)
                 else:
-                    info_msg = "No reference station details available for the selected station(s)."
+                    info_msg = t[
+                        "msg_drilldown_no_reference_station_details"
+                    ]
             elif 'best_ref_sign' in joint_df.columns:
                 joint_df[col_delta_lbl] = np.where((joint_df['has_u'] > 0) & (joint_df['has_r'] > 0), (joint_df['snr_u_norm'] - joint_df['snr_r_norm']).round(1), np.nan)
                 joint_df['snr_u_norm'] = pd.to_numeric(joint_df['snr_u_norm'], errors='coerce').round(1)

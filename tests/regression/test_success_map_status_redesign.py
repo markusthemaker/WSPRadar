@@ -59,7 +59,7 @@ def _presentation_context(*, language="en", theme="dark"):
         language=language,
         labels=T[language],
         theme=theme,
-        solar_label="All",
+        solar_label=T[language]["opt_solar_all"].split()[0],
     )
 
 
@@ -116,17 +116,21 @@ def _render_map(
     language="en",
     theme="dark",
     maximum_distance_km=5000,
+    minimum_opportunities=1,
+    minimum_stations=1,
 ):
     return plot_engine.render_map_figure(
         map_data,
-        title="Success map",
+        title="Performance map",
         start_t=datetime(2026, 7, 1, tzinfo=timezone.utc),
         end_t=datetime(2026, 7, 2, tzinfo=timezone.utc),
         max_dist_km=maximum_distance_km,
-        base_min_stations=1,
+        base_min_stations=minimum_stations,
         lat_0=0.0,
         lon_0=0.0,
-        analysis_context=_analysis_context(),
+        analysis_context=_analysis_context(
+            minimum_opportunities=minimum_opportunities
+        ),
         presentation_context=_presentation_context(
             language=language,
             theme=theme,
@@ -179,7 +183,7 @@ def test_preview_and_export_theme_paths_preserve_success_science_and_categories(
     analysis_context = _analysis_context(minimum_opportunities=2)
     dark_result = plot_engine.generate_map_plot(
         _raw_opportunity_rows_for_invariance(),
-        "RX Success",
+        "RX Performance",
         False,
         False,
         datetime(2026, 7, 1, tzinfo=timezone.utc),
@@ -196,7 +200,7 @@ def test_preview_and_export_theme_paths_preserve_success_science_and_categories(
     )
     light_result = plot_engine.generate_map_plot(
         _raw_opportunity_rows_for_invariance(),
-        "RX Success",
+        "RX Performance",
         False,
         False,
         datetime(2026, 7, 1, tzinfo=timezone.utc),
@@ -678,12 +682,30 @@ def test_compact_footer_omits_counts_that_cannot_fit_narrow_segments():
         ("TX_ABS", "TX"),
     ],
 )
-@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize(
+    ("language", "expected_footer"),
+    [
+        (
+            "en",
+            "Time: 01-Jul-2026 - 02-Jul-2026 | Band: 20m | "
+            "Solar: All | Confirmed opportunities/station: ≥7 | "
+            "Stations/segment: ≥3 | Segment: Station-balanced Decode Rate",
+        ),
+        (
+            "de",
+            "Zeitraum: 01-Jul-2026 - 02-Jul-2026 | Band: 20m | "
+            "Sonnenstand: Ganze | Bestätigte Gelegenheiten/Station: ≥7 | "
+            "Stationen/Segment: ≥3 | "
+            "Segment: Stationsgleichgewichtete Dekodierrate",
+        ),
+    ],
+)
 def test_success_legend_colorbar_and_footer_are_mode_aware_and_localized(
     map_canvas_without_cartopy,
     analysis_id,
     absolute_mode,
     language,
+    expected_footer,
 ):
     """Expose exact map-only terms and reconcile compact count-only footer rows."""
     labels = T[language]
@@ -707,9 +729,17 @@ def test_success_legend_colorbar_and_footer_are_mode_aware_and_localized(
     rendered = _render_map(
         map_data,
         language=language,
+        minimum_opportunities=7,
+        minimum_stations=3,
     )
     try:
         FigureCanvasAgg(rendered.figure).draw()
+        assert rendered.footer_text == expected_footer
+        assert "Elsewhere" not in rendered.footer_text
+        assert "Other Signals" not in rendered.footer_text
+        assert "Target+" not in rendered.footer_text
+        assert "Target/(" not in rendered.footer_text
+        assert ">=" not in rendered.footer_text
         mode_key = absolute_mode.lower()
         legend = _artist_with_gid(rendered.figure, SUCCESS_LEGEND_GID, Legend)
         assert [text.get_text() for text in legend.get_texts()] == [

@@ -33,13 +33,15 @@ Used this way, WSPR becomes more valuable to the wider amateur community as well
 
 WSPRadar evaluates one <strong class="defined-term">Target</strong> under one explicit experiment design. The Target can be a complete installed station or one controlled hardware path. It can be evaluated on its own or against a meaningful <strong class="defined-term">Reference</strong>. Depending on the question, the Reference can be a second controlled path at the same station, one known external station, the active local WSPR neighborhood or its strongest active member.
 
-The Reference is part of the scientific question, not merely a display option. A <strong class="defined-term">Hardware A/B Test</strong> can narrow the comparison to two local antennas, feedlines, receivers or complete receive chains when the remaining variables are held stable. A <strong class="defined-term">Reference Station / Buddy Test</strong> compares two complete stations, including their QTHs, equipment, terrain and noise environments. A Local Neighborhood Benchmark asks how the Target compares with a changing population of active nearby WSPR stations. With no benchmark, WSPRadar asks where the Target produced <strong class="defined-term">qualifying evidence</strong>—evidence retained after the run's eligibility rules—among independently confirmed opportunities.
+The Reference is part of the scientific question, not merely a display option. A <strong class="defined-term">Hardware A/B Test</strong> can narrow the comparison to two local antennas, feedlines, receivers or complete receive chains when the remaining variables are held stable. A <strong class="defined-term">Reference Station / Buddy Test</strong> compares two complete stations, including their QTHs, equipment, terrain and noise environments. A Local Neighborhood Benchmark asks how the Target compares with a changing population of active nearby WSPR stations. <strong class="defined-term">Performance</strong> evaluates the Target itself from independently confirmed opportunities. <strong class="defined-term">Compare</strong> evaluates the Target relative to a Reference using matched evidence. In Performance, <strong class="defined-term">qualifying evidence</strong> is the Target and independent-activity evidence retained after the run's eligibility rules.
+
+Performance describes the observed conditional behavior of the complete Target station within independently confirmed WSPR opportunities. It is not an absolute measurement of receiver sensitivity, radiated power, antenna gain or antenna efficiency.
 
 These designs are not interchangeable. A Buddy or neighborhood result cannot isolate antenna gain because station location, hardware and noise remain part of the comparison. A Hardware A/B result narrows the cause only as far as the experiment actually controls the rest of the chain. No later statistic can remove a variable that the operating design never controlled.
 
-The method builds on established WSPR comparison ideas: same-receiver TX differences under common conditions, conditioned simultaneous RX comparisons, independent activity checks where operating schedules are unknown, and the practical lesson that slow alternation can be confounded by propagation <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integrates and extends that foundation with Target-activity qualification, purpose-built benchmark designs, same-cycle or deterministic schedule matching, reported-power normalization, separate Success, Delta SNR and Decode Outcomes, station-balanced geographic summaries and drill-down to the contributing evidence. [Chapter 6](#sec-d) documents this lineage, WSPRadar's additions and their boundaries.
+The method builds on established WSPR comparison ideas: same-receiver TX differences under common conditions, conditioned simultaneous RX comparisons, independent activity checks where operating schedules are unknown, and the practical lesson that slow alternation can be confounded by propagation <a href="#ref-1">[Ref-1]</a> <a href="#ref-2">[Ref-2]</a> <a href="#ref-9">[Ref-9]</a> <a href="#ref-3">[Ref-3]</a>. WSPRadar integrates and extends that foundation with Target-activity qualification, purpose-built benchmark designs, same-cycle or deterministic schedule matching, reported-power normalization, separate Performance evidence, paired Delta SNR and Decode Outcomes, station-balanced geographic summaries and drill-down to the contributing evidence. [Chapter 6](#sec-d) documents this lineage, WSPRadar's additions and their boundaries.
 
-The intended conclusion is therefore bounded but operationally useful: **under this band, UTC window, station population and experiment design, how did the Target perform, relative to which Reference, where and when did the difference appear, and how much evidence supports it?** WSPRadar can show an observed relative advantage and its geographic or temporal scope. It does not directly measure isolated gain in dBi, radiation efficiency, take-off angle or receiver sensitivity; those require separate calibrated measurements.
+The intended conclusion is therefore bounded but operationally useful: **under this band, UTC window, station population and experiment design, what conditional behavior did the Target show; when a Reference was selected, where and when did the relative difference appear; and how much evidence supports the result?** WSPRadar can show the Target's observed conditional behavior or an observed relative advantage and its geographic or temporal scope. It does not directly measure isolated gain in dBi, radiation efficiency, take-off angle, receiver sensitivity or radiated power; those require separate calibrated measurements.
 
 <a id="sec-1-1"></a>
 
@@ -59,8 +61,8 @@ Start with the operating question, not with a map or metric. The question determ
 
 | Your question | Choose |
 |---|---|
-| Where is my transmitter decoded among receivers independently shown to be active? | TX Analysis with `Success — Target only` |
-| Which signals independently confirmed elsewhere does my receiver also decode? | RX Analysis with `Success — Target only` |
+| Where is my transmitter decoded among receivers independently shown to be active? | TX Analysis with `Performance — no Reference` |
+| Which signals independently confirmed elsewhere does my receiver also decode? | RX Analysis with `Performance — no Reference` |
 | Did controlled local antenna, feedline or hardware path A differ from path B? | Hardware A/B Test |
 | How does my complete station compare with one known station? | Reference Station / Buddy Test |
 | Am I broadly typical for nearby active WSPR stations? | Local Neighborhood Benchmark with Local Median Neighborhood |
@@ -78,12 +80,12 @@ Choose the narrowest design that matches the intended claim. A hardware-cause qu
 
 Every run freezes one <strong class="defined-term">Direction</strong>, one exact band, one Target identity and one resolved UTC window. Its <strong class="defined-term">Benchmark Design</strong> selects exactly one active result type. A run produces an evidence package for that defined question, not a universal score for the station.
 
-* <strong class="defined-term">Success</strong> is the non-comparative Target result. Its conditional Success Rate shows how often the Target produced qualifying evidence among independently confirmed opportunities.
-* <strong class="defined-term">Compare</strong> is the result when a benchmark is selected. It reports paired **Delta SNR** and **Decode Outcomes**. Delta SNR is Target-side SNR minus Reference-side SNR after any configured Reference correction. Positive values favor the Target; negative values favor the Reference. Decode Outcomes retain both paired evidence and cases where only one side was decoded.
+* <strong class="defined-term">Performance</strong> evaluates the Target itself from independently confirmed opportunities. It reports Decode Rate, at-least-once reach, successful Target SNR and temporal behavior without introducing a Reference.
+* <strong class="defined-term">Compare</strong> evaluates the Target relative to a Reference using matched evidence. It reports paired **Delta SNR** and **Decode Outcomes**. Delta SNR is Target-side SNR minus Reference-side SNR after any configured Reference correction. Positive values favor the Target; negative values favor the Reference. Decode Outcomes retain both paired evidence and cases where only one side was decoded.
 
-Success, Delta SNR and Decode Outcomes answer different questions. WSPRadar keeps them separate so that a single attractive number cannot hide weak opportunity coverage, one-sided decodes or a paired subset that represents only part of the evidence.
+Performance and Compare answer different questions. WSPRadar keeps them separate so that a single attractive number cannot hide weak opportunity coverage, one-sided decodes or a paired subset that represents only part of the evidence.
 
-Results open on a map and then follow the same concise evidence path for Success and Compare: **Map → Segment Inspector → Station Insights → Drill-Down**.
+Results open on a map and then follow the same concise evidence path for Performance and Compare: **Map → Segment Inspector → Station Insights → Drill-Down**.
 
 The map locates the observed pattern; it is the start of the analysis, not the conclusion. The Segment Inspector defines the distance-and-direction scope inherited by the evidence sections and Station Insights. Station Insights shows which identities contribute. Selected Station Evidence and Drill-Down expose the station-specific views and the observations, same-cycle pairs or scheduled TX A/B pairs behind the summaries.
 
@@ -99,9 +101,9 @@ The quickest way to learn WSPRadar is to run a maintained demo before configurin
 
 For the first pass, leave the scientific controls unchanged. An unchanged loaded profile remains a guided demo. Editing a scientific control changes the experimental question and turns the profile into an ordinary analysis. A demo is a worked example of WSPRadar's method, not evidence about your own station.
 
-When the results open, follow the evidence path introduced above. The Success Evidence, Comparison Evidence, Temporal Evidence and Selected Station Evidence sections remain available at their applicable points in that workflow.
+When the results open, follow the evidence path introduced above. The Performance Evidence, Comparison Evidence, Temporal Evidence and Selected Station Evidence sections remain available at their applicable points in that workflow.
 
-Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its active result is Compare, read [Section 2.2](#sec-3-3) before interpreting Delta SNR or Decode Outcomes. Then return to [Section 0.2](#sec-1-2), choose the experiment design that matches your station question, and configure your first station run.
+Use [Section 2.1](#sec-3-2) when the demo's active result is Performance. When its active result is Compare, read [Section 2.2](#sec-3-3) before interpreting Delta SNR or Decode Outcomes. Then return to [Section 0.2](#sec-1-2), choose the experiment design that matches your station question, and configure your first station run.
 
 <a id="documentation-toc"></a>
 
@@ -120,7 +122,7 @@ Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its a
 
 * [1. Experiment Playbooks](#sec-2)
     * [1.1 A strong foundation for every experiment](#sec-2-1)
-    * [1.2 Success only: explore Target reach](#sec-2-2)
+    * [1.2 Performance only: evaluate the Target](#sec-2-2)
     * [1.3 RX Hardware A/B: compare simultaneous receive paths](#sec-2-3)
     * [1.4 TX Hardware A/B: choose simultaneous or sequential transmit paths](#sec-2-4)
         * [1.4.1 Simultaneous TX playbook](#sec-2-4-simultaneous)
@@ -129,13 +131,13 @@ Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its a
     * [1.6 Local Median Neighborhood](#sec-2-6)
     * [1.7 Local Best Station](#sec-2-7)
 * [2. Read Your Results](#sec-3)
-    * [2.1 Read a Success result](#sec-3-2)
+    * [2.1 Read a Performance result](#sec-3-2)
     * [2.2 Read a Compare result](#sec-3-3)
     * [2.3 Use the map to locate the observed pattern](#sec-3-4)
     * [2.4 Check map support counts](#sec-3-5)
-    * [2.5a Inspect a Geographic Segment (Success Mode)](#sec-3-6a)
+    * [2.5a Inspect a Geographic Segment (Performance Mode)](#sec-3-6a)
     * [2.5b Inspect a Geographic Segment (Compare Mode)](#sec-3-6b)
-    * [2.6a Inspect the Contributing Stations (Success Mode)](#sec-3-7a)
+    * [2.6a Inspect the Contributing Stations (Performance Mode)](#sec-3-7a)
     * [2.6b Inspect the Contributing Stations (Compare Mode)](#sec-3-7b)
     * [2.7 Verify the underlying evidence](#sec-3-8)
     * [2.8 Worked Compare example](#sec-3-9)
@@ -173,7 +175,7 @@ Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its a
     * [7.1 Data source, decode selection and time model](#sec-7-1)
     * [7.2 Identity and matching rules](#sec-7-2)
     * [7.3 Target-Active Gate](#sec-7-3)
-    * [7.4 Success classification and formulas](#sec-7-4)
+    * [7.4 Performance classification and formulas](#sec-7-4)
     * [7.5 Power normalization, correction and Delta SNR](#sec-7-5)
     * [7.6 Paired evidence and Decode Outcomes](#sec-7-6)
     * [7.7 Aggregation hierarchy](#sec-7-7)
@@ -211,7 +213,7 @@ Use [Section 2.1](#sec-3-2) when the demo's active result is Success. When its a
 
 This part takes you from an operating question to a well-supported result. Use Chapter 1 to choose and operate the experiment, Chapter 2 to inspect the evidence, and Chapter 3 to strengthen, report and preserve the conclusion. Exact controls, processing methods and reproducibility details are collected in Parts II and III.
 
-In this guide, the **experiment** is the physical on-air operation and station configuration. A **run** or **analysis** is WSPRadar's configured processing of the resulting observations. A **result** is the Success or Compare evidence produced by that run.
+In this guide, the **experiment** is the physical on-air operation and station configuration. A **run** or **analysis** is WSPRadar's configured processing of the resulting observations. A **result** is the Performance or Compare evidence produced by that run.
 
 ---
 
@@ -233,7 +235,7 @@ A clear question and a stable physical setup make the result easier to interpret
 * State whether this is an exploratory run or a confirmatory repetition of an earlier pattern.
 * Choose TX or RX Analysis, one exact band and the Benchmark Design.
 * Enter callsigns exactly as uploaded. Prefer standard callsign forms; when the archive identity actually uses a suffix, retain it exactly, including `/P`, `/1`, `/QRP` or a terminal hyphen form such as `-1`.
-* Verify the Target QTH. Success and Compare identify the Target using the exact callsign together with the configured QTH's first four locator characters.
+* Verify the Target QTH. Performance and Compare identify the Target using the exact callsign together with the configured QTH's first four locator characters.
 * Select a UTC window in which the Target was actually operating. Use a window long enough to cover the propagation states named in the intended conclusion; multi-day runs are preferable when the conclusion spans complete daily cycles.
 * Record the antennas, feedlines, tuner, transmitter or receiver, decoder, software version, power, schedule and intentional changes.
 
@@ -251,7 +253,7 @@ For an exploratory run, use the evidence ladder in [Chapter 2](#sec-3) to identi
 
 <a id="sec-2-2"></a>
 
-#### 1.2 Success only: explore Target reach
+#### 1.2 Performance only: evaluate the Target
 
 **Question answered**
 
@@ -261,22 +263,22 @@ Where, when and how consistently does the Target produce qualifying evidence amo
 
 For this playbook, <strong class="defined-term">qualifying evidence</strong> is the Target and independent activity evidence retained after the run's identity, band, time, Target-activity, filter and threshold rules.
 
-* **RX Success** compares Target receiver decodes with independently confirmed remote transmitter-cycles.
-* **TX Success** compares Target transmitter decodes with remote receiver-cycles shown to contain other same-band activity.
+* **RX Performance** compares Target receiver decodes with independently confirmed remote transmitter-cycles.
+* **TX Performance** compares Target transmitter decodes with remote receiver-cycles shown to contain other same-band activity.
 
-There is no Reference station or Reference path. Success Rate describes conditional reach; successful Target SNR is a separate signal-strength summary. [Section 2.1](#sec-3-2) explains the operator classifications and weighting, and [Section 7.4](#sec-7-4) defines the exact denominator.
+There is no Reference station or Reference path. Performance evaluates the Target itself from independently confirmed opportunities. Decode Rate describes the observed conditional behavior within those opportunities, while successful Target SNR is a separate signal-strength summary conditional on actual Target decodes or reports. [Section 2.1](#sec-3-2) explains the operator classifications and weighting, and [Section 7.4](#sec-7-4) defines the exact denominator.
 
 **Set up the analysis**
 
-Choose `RX Analysis` or `TX Analysis`, enter the exact Target callsign and QTH, choose one band and an active UTC window, then select `Success — Target only`.
+Choose `RX Analysis` or `TX Analysis`, enter the exact Target callsign and QTH, choose one band and an active UTC window, then select `Performance — no Reference`.
 
 **Strengthen the evidence**
 
-Use an operating window with observable Target activity and enough independent WSPR activity. Check geographic scope, Stations, Spots and time views. If only a few peers survive, extend the observation window or narrow the geographic or temporal scope of the conclusion. Change filters or thresholds only for a stated experimental reason and report the changed configuration as a separate run.
+Use an operating window with observable Target activity and enough independent WSPR activity. Check geographic scope, stations, confirmed opportunities and time views. If only a few peers survive, extend the observation window or narrow the geographic or temporal scope of the conclusion. Change filters or thresholds only for a stated experimental reason and report the changed configuration as a separate run.
 
 **Evidence-matched conclusion**
 
-> For this Target, band, UTC window and selected peer population, the displayed Success Rate summarizes how often the Target also produced qualifying evidence among the independently confirmed WSPR-network opportunities represented in the selected evidence, calculated per peer and then balanced across qualifying peers.
+> For this Target, band, UTC window and selected peer population, the displayed Station-balanced Decode Rate summarizes how often the Target also produced qualifying evidence among the independently confirmed WSPR opportunities represented in the selected evidence. WSPRadar calculates one Decode Rate per qualifying peer and then gives every peer one equal vote.
 
 In everyday station terms: among the worldwide WSPR activity that this run could independently verify and fairly test, the result shows how consistently your station also produced the expected TX or RX evidence. The successful-decode SNR view separately shows the signal strengths of the Target evidence that was actually decoded.
 
@@ -307,7 +309,7 @@ Hardware A/B has no independent Reference-QTH setting and does not store one in 
 
 Keep clocks, antenna routing, gain, audio paths, decoder settings and uploads controlled. Components intended to be common must be physically common; measure or document unavoidable differences between the two chains.
 
-The run produces one RX Hardware Compare result. To answer the separate non-comparative Target question, run a second configuration with `Success — Target only`.
+The run produces one RX Hardware Compare result. To answer the separate non-comparative Target question, run a second configuration with `Performance — no Reference`.
 
 **Strengthen the evidence**
 
@@ -342,7 +344,7 @@ The WSPR-cycle definition and Joint-pair processing are specified in [Sections 7
 
 Choose from the hardware actually available and the claim you need to support. Simultaneous operation is not automatically superior if the two transmitter chains cannot be calibrated or isolated. Sequential operation is not simultaneous, even with adjacent WSPR frames.
 
-For either method, operate both paths at the same physical test QTH and report locators within the configured Target grid-4. Hardware A/B derives both displayed grid-4 values from Target QTH rather than accepting an independent Reference location. Report actual transmitter power and document everything that is not common. The Hardware A/B run produces Compare only; use a separate `Success — Target only` configuration when the non-comparative Target question is also relevant.
+For either method, operate both paths at the same physical test QTH and report locators within the configured Target grid-4. Hardware A/B derives both displayed grid-4 values from Target QTH rather than accepting an independent Reference location. Report actual transmitter power and document everything that is not common. The Hardware A/B run produces Compare only; use a separate `Performance — no Reference` configuration when the non-comparative Target question is also relevant.
 
 <a id="sec-2-4-simultaneous"></a>
 
@@ -407,7 +409,7 @@ A dedicated Sequential TX calibration run can characterize the offset between tw
 
 Verify the physical schedule-to-path mapping without RF before starting. A reversed mapping labels the paths backwards and reverses the practical interpretation of the Delta SNR sign.
 
-The run produces one sequential TX Hardware Compare result. It does not issue the separate Success query; use a distinct `Success — Target only` run for non-comparative Target evidence.
+The run produces one sequential TX Hardware Compare result. It does not run a separate Performance analysis; use a distinct `Performance — no Reference` run for non-comparative Target evidence.
 
 **Strengthen the evidence**
 
@@ -446,7 +448,7 @@ Select `Compare — Known Reference Station`. The identity controls show `Target
 
 Both stations need overlapping operation on the same band. Verify Reference uptime independently. Apply a Reference SNR correction only when its calibration basis is defensible.
 
-The run produces one TX or RX Compare result against the buddy. A non-comparative Target Success result requires a separate `Success — Target only` run.
+The run produces one TX or RX Compare result against the buddy. A non-comparative Performance result for the Target requires a separate `Performance — no Reference` run.
 
 **Strengthen the evidence**
 
@@ -482,7 +484,7 @@ Select `Compare — local neighborhood benchmark`, choose a radius from 10 to 25
 
 Verify the Target callsign and QTH: exact callsign plus grid-4 selects Target spots, the exact callsign excludes the Target from the local pool, and the QTH defines the radius origin. Choose the primary radius from local geography and expected station density before interpreting the result; it should have a clear local meaning and enough active identities.
 
-The run produces one Local Compare result. A non-comparative Target Success result requires a separate `Success — Target only` run.
+The run produces one Local Compare result. A non-comparative Performance result for the Target requires a separate `Performance — no Reference` run.
 
 **Strengthen the evidence**
 
@@ -514,7 +516,7 @@ Select `Compare — local neighborhood benchmark`, choose a radius from 10 to 25
 
 Verify the Target callsign and QTH: exact callsign plus grid-4 selects Target spots, the exact callsign excludes the Target from the local pool, and the QTH defines the radius origin. Choose the primary radius from local geography and expected station density before interpreting the result; it must retain a meaningful and adequately populated local pool.
 
-The run produces one Local Compare result. A non-comparative Target Success result requires a separate `Success — Target only` run.
+The run produces one Local Compare result. A non-comparative Performance result for the Target requires a separate `Performance — no Reference` run.
 
 **Strengthen the evidence**
 
@@ -536,7 +538,7 @@ Exact local-pool membership and aggregation rules are in [Sections 7.2](#sec-7-2
 
 Read every run through the same evidence ladder:
 
-* **Success:** Map → Segment Inspector → Station Insights → Drill-Down.
+* **Performance:** Map → Segment Inspector → Station Insights → Drill-Down.
 * **Compare:** Map → Segment Inspector → Station Insights → Drill-Down.
 
 * Confirm the result and run definition.
@@ -552,22 +554,24 @@ The exact formulas, matching rules and processing hierarchy are in [Scientific M
 
 <a id="sec-3-2"></a>
 
-#### 2.1 Read a Success result
+#### 2.1 Read a Performance result
 
-Success is the non-comparative Target result. Think of Success Rate as <strong class="defined-term">conditional reach</strong> among independently confirmed opportunities:
+Performance is the non-comparative Target result. It evaluates the Target itself from independently confirmed opportunities. The <strong class="defined-term">Decode Rate</strong> is the fraction of those qualifying opportunities in which the Target also produced the required evidence:
 
-* **RX Success:** of the remote transmitter-cycles independently confirmed by another receiver, how many did the Target receiver also decode?
-* **TX Success:** of the active remote receiver-cycles confirmed by other same-band decodes, how many also decoded the Target transmitter?
+* **RX Performance:** of the remote transmitter-cycles independently confirmed by another receiver, how many did the Target receiver also decode?
+* **TX Performance:** of the active remote receiver-cycles confirmed by other same-band decodes, how many also decoded the Target transmitter?
 
-WSPRadar uses one direction-specific plain-language vocabulary throughout the visible Success result:
+Performance describes the observed conditional behavior of the complete Target station within the retained opportunities. It is not an absolute measurement of receiver sensitivity, radiated power, antenna gain or antenna efficiency.
+
+WSPRadar uses one direction-specific plain-language vocabulary throughout the visible Performance result:
 
 * **RX:** <strong class="defined-term">Heard by Target</strong> means that the Target receiver decoded the remote transmitter in a confirmed opportunity; <strong class="defined-term">Heard by others only</strong> means that another eligible receiver decoded it but the Target did not. At station level, the same labels mean that a qualifying remote TX station was heard by the Target at least once or was heard only by other receivers during the run.
 * **TX:** <strong class="defined-term">Target heard</strong> means that the active remote RX station decoded the Target transmitter; <strong class="defined-term">Other signals heard only</strong> means that it decoded another qualifying same-band signal but not the Target. At station level, the same labels mean that a qualifying remote RX station heard the Target at least once or heard only other signals during the run.
-* **Audit-only evidence:** RX displays <strong class="defined-term">Heard by Target without independent confirmation</strong>; TX displays <strong class="defined-term">Target heard without independent RX-activity confirmation</strong>. These rows remain auditable but do not enter Success Rate.
+* **Audit-only evidence:** RX displays <strong class="defined-term">Heard by Target without independent confirmation</strong>; TX displays <strong class="defined-term">Target heard without independent RX-activity confirmation</strong>. These rows remain auditable but do not enter Decode Rate.
 
 The novice-facing formulas therefore read `Heard by Target / (Heard by Target + Heard by others only)` for RX and `Target heard / (Target heard + Other signals heard only)` for TX. [Section 7.4](#sec-7-4) maps this presentation vocabulary to the canonical scientific and export terms without changing the calculation.
 
-For example, if a remote transmitter was independently confirmed in eight qualifying cycles and the Target receiver decoded it in three, that peer's RX Success Rate is `3 of 8 = 37.5%`. If an active receiver produced ten qualifying cycles and decoded the Target transmitter in four, its TX Success Rate is `4 of 10 = 40%`.
+For example, if a remote transmitter was independently confirmed in eight qualifying cycles and the Target receiver decoded it in three, that peer's RX Decode Rate is `3 of 8 = 37.5%`. If an active receiver produced ten qualifying cycles and decoded the Target transmitter in four, its TX Decode Rate is `4 of 10 = 40%`.
 
 The raw candidate population is globally sourced:
 
@@ -578,11 +582,11 @@ Only peers surviving the selected time, band, filters, geographic analysis scope
 
 The <strong class="defined-term">Target-Active Gate</strong> remains deliberately global. Evidence from outside the geographic analysis scope may establish that the Target was operating in a cycle, but that out-of-scope peer does not enter scoped outcomes, rates, counts or exported evidence. This preserves the activity check without allowing remote peers to change the selected geographic result.
 
-Each peer rate is calculated first. A Success map segment then gives every qualifying peer identity one equal vote and displays the arithmetic mean of those station rates. This is the <strong class="defined-term">station-balanced</strong> value. Segment Inspector also shows the <strong class="defined-term">observation-level</strong> pooled rate, which gives every qualifying observation equal weight.
+Each peer Decode Rate is calculated first. A Performance map segment then gives every qualifying peer identity one equal vote and displays the arithmetic mean of those station rates. This is the <strong class="defined-term">Station-balanced Decode Rate</strong>. Segment Inspector also shows the <strong class="defined-term">Opportunity-level Decode Rate</strong>, which gives every qualifying confirmed opportunity equal weight.
 
-Success Rate is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 30 dBm.
+Decode Rate is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 30 dBm.
 
-A displayed `100%` means that the Target succeeded in every qualifying opportunity for the station or selected scope. It does not mean that every possible or scheduled transmission was decoded. Because Success starts from a demanding, globally sourced opportunity population and then applies the configured geographic analysis scope, its practical meaning comes from geography, qualifying stations, confirmed opportunities, time and repetition rather than proximity to `100%`.
+A displayed `100%` means that the Target succeeded in every qualifying opportunity for the station or selected scope. It does not mean that every possible or scheduled transmission was decoded. Because Performance starts from a demanding, globally sourced opportunity population and then applies the configured geographic analysis scope, its practical meaning comes from geography, qualifying stations, confirmed opportunities, time and repetition rather than proximity to `100%`.
 
 <a id="sec-3-3"></a>
 
@@ -628,7 +632,7 @@ The map is the geographic overview. Use its colors, category labels and markers 
 A <strong class="defined-term">median</strong> is the middle value after sorting, or the midpoint of the two central values when the count is even. It is less strongly moved by one unusually high or low value than the arithmetic mean.
 
 * Compare segments show the median of qualifying station-level Delta SNR medians. Positive favors Target; negative favors Reference.
-* Success segments show the arithmetic mean of qualifying station Success Rates after giving every qualifying peer one equal vote.
+* Performance segments show the arithmetic mean of qualifying station Decode Rates after giving every qualifying peer one equal vote.
 
 The Compare map uses a symmetric stepped dB color scale: plum-to-mint sectors have negative Delta SNR and favor the Reference, while yellow-to-chestnut sectors have positive Delta SNR and favor the Target. Light yellow-green marks the display-neutral interval centered on `0 dB`, and its width matches the active color step; for example, a `3 dB` scale uses `-1.5 dB` through `+1.5 dB`. Only exactly `0 dB` means equality, so the numerical value remains authoritative even inside the display-neutral color. The scale uses the finest readable step, expands symmetrically only as far as needed to contain the displayed station-balanced segment medians and never narrows below `-6 dB` to `+6 dB`. No fixed headroom is added; the outer half-bin provides the natural margin around the extreme value. Because its limits and step sizes can differ between runs, compare maps by their numerical color-bar values rather than by color alone.
 
@@ -636,10 +640,10 @@ The Compare map uses a symmetric stepped dB color scale: plum-to-mint sectors ha
 
 Read the category label as well as its color:
 
-* Success: sector fill is the only quantitative color layer and shows the station-balanced Success Rate for the distance-and-direction segment. For RX, a small solid dark-green marker means `Heard by Target` and a small solid light-grey marker means `Heard by others only`. For TX, the corresponding labels are `Target heard` and `Other signals heard only`. All visible station markers use one fixed size and encode neither individual Success Rate nor evidence depth. Where identities share plotted coordinates, dark-green markers are drawn above light-grey markers; one visible location can still represent multiple `callsign + locator` identities.
+* Performance: sector fill is the only quantitative color layer and shows the Station-balanced Decode Rate for the distance-and-direction segment. For RX, a small solid dark-green marker means `Heard by Target` and a small solid light-grey marker means `Heard by others only`. For TX, the corresponding labels are `Target heard` and `Other signals heard only`. All visible station markers use one fixed size and encode neither individual Decode Rate nor evidence depth. Where identities share plotted coordinates, dark-green markers are drawn above light-grey markers; one visible location can still represent multiple `callsign + locator` identities.
 * Compare: Joint is green, Both (Async) is yellow-orange, Only Target is purple and Only Reference is white.
 
-A valid Success sector at `0%` remains on the Success Rate scale. `Insufficient evidence` is a different state: the sector does not meet the configured qualifying-evidence requirements and remains unfilled so the neutral base map shows through outside that scale. Insufficient evidence must not be read as measured `0%` Success.
+A valid Performance sector at `0%` remains on the Decode Rate scale. `Insufficient evidence` is a different state: the sector does not meet the configured qualifying-evidence requirements and remains unfilled so the neutral base map shows through outside that scale. Insufficient evidence must not be read as measured `0%` Performance.
 
 **Distance rings**
 
@@ -651,12 +655,12 @@ Map color locates the observed pattern. The following evidence levels show how b
 
 #### 2.4 Check map support counts
 
-* On Success maps, the upper <strong class="defined-term">OPPORTUNITIES</strong> row describes denominator depth as `Heard by Target` plus `Heard by others only` for RX or `Target heard` plus `Other signals heard only` for TX. The lower <strong class="defined-term">STATIONS</strong> row uses the same two direction-specific labels to describe footprint breadth across distinct qualifying `callsign + locator` identities.
+* On Performance maps, the upper <strong class="defined-term">OPPORTUNITIES</strong> row describes denominator depth as `Heard by Target` plus `Heard by others only` for RX or `Target heard` plus `Other signals heard only` for TX. The lower <strong class="defined-term">STATIONS</strong> row uses the same two direction-specific labels to describe footprint breadth across distinct qualifying `callsign + locator` identities.
 * On Compare maps, <strong class="defined-term">SPOTS</strong> or <strong class="defined-term">PAIRS</strong> describes qualifying observation or scheduled-pair volume.
 
 For Compare, both rows are divided into Only Target, Joint, Both (Async) and Only Reference. Station categories assign each identity to one main category. Spot or pair categories count evidence volume, including exclusive observations associated with identities that also have joint evidence.
 
-For RX Success, both footer rows use `Heard by Target` and `Heard by others only`; the row heading distinguishes individual confirmed opportunities from qualifying TX-station identities. For TX Success, both rows use `Target heard` and `Other signals heard only`, with the same opportunity-versus-station distinction. Exact counts appear inside segments when they fit; narrow segments follow the compact Compare-footer behavior and omit overlapping count text. Evidence without the independent confirmation required for the denominator and ineligible evidence are excluded because they do not enter Success Rate.
+For RX Performance, both footer rows use `Heard by Target` and `Heard by others only`; the row heading distinguishes individual confirmed opportunities from qualifying TX-station identities. For TX Performance, both rows use `Target heard` and `Other signals heard only`, with the same opportunity-versus-station distinction. Exact counts appear inside segments when they fit; narrow segments follow the compact Compare-footer behavior and omit overlapping count text. Evidence without the independent confirmation required for the denominator and ineligible evidence are excluded because they do not enter Decode Rate.
 
 Footer counts follow the retained geographic analysis scope. Many confirmed opportunities, spots or pairs from only a few Stations mean repeated evidence from a narrow identity base. Many Stations show wider identity and geographic participation.
 
@@ -665,25 +669,25 @@ Within result grouping, a reported callsign plus its full reported locator is an
 <a id="sec-3-6"></a>
 <a id="sec-3-6a"></a>
 
-#### 2.5a Inspect a Geographic Segment (Success Mode)
+#### 2.5a Inspect a Geographic Segment (Performance Mode)
 
 Use `Segment Inspector` to select one or more distance ranges and compass directions. This opens the evidence behind the corresponding map area. Inspector selections can narrow the completed run's geographic analysis scope, but they cannot widen it or restore peer rows excluded by the maximum-distance control.
 
-The scope summary separates station breadth from confirmed-opportunity depth. The `Stations` line shows the mode-specific station groups—`Heard by Target` and `Heard by others only` for RX, `Target heard` and `Other signals heard only` for TX—and a `Success Rate`. This is the Station-balanced Success Rate: every qualifying station receives one vote through its own Success Rate. The station-group counts describe at-least-once reach and therefore do not form that rate's arithmetic numerator and denominator. The `Opportunities` line uses the same direction-specific outcome labels and shows the Observation-level Success Rate, for which every confirmed opportunity receives one vote. Its displayed counts do form that rate's numerator and denominator. The two lines can consequently show different Success Rates when evidence volume differs among stations.
+The scope summary separates station breadth from confirmed-opportunity depth. The `Stations` line shows the mode-specific station groups—`Heard by Target` and `Heard by others only` for RX, `Target heard` and `Other signals heard only` for TX—and a `Decode Rate`. This is the Station-balanced Decode Rate: every qualifying station receives one vote through its own Decode Rate. The station-group counts describe at-least-once reach and therefore do not form that rate's arithmetic numerator and denominator. The `Opportunities` line uses the same direction-specific outcome labels and shows the Opportunity-level Decode Rate, for which every confirmed opportunity receives one vote. Its displayed counts do form that rate's numerator and denominator. The two lines can consequently show different Decode Rates when evidence volume differs among stations.
 
-After selecting distance ranges and directions, WSPRadar rebuilds every following Success view from the full qualifying station population in that active scope. Station Insights filters, sorting, the direction-specific `Show Heard by others only stations` or `Show Other signals heard only stations` control, and row selections do not alter these segment-level figures.
+After selecting distance ranges and directions, WSPRadar rebuilds every following Performance view from the full qualifying station population in that active scope. Station Insights filters, sorting, the direction-specific `Show Heard by others only stations` or `Show Other signals heard only stations` control, and row selections do not alter these segment-level figures.
 
 The left panel asks whether a qualifying radio path succeeded at least once during the selected interval. In RX, **TX Stations Heard by Target at Least Once by Distance** shows the proportion of qualifying transmitters heard by the Target receiver. In TX, **RX Stations Hearing the Target at Least Once by Distance** shows the proportion of qualifying active receivers that heard the Target transmitter. Because one success is sufficient, this reach measure normally increases with a longer measurement interval. It is a breadth measure, not a reliability measure.
 
-The center panel is **RX Success Rate by TX-Station Distance** or **TX Success Rate by RX-Station Distance**. It asks how reliably the Target succeeded among all confirmed opportunities. The station-balanced line gives every station one vote. The observation-level line gives every opportunity one vote. Their difference shows whether high-volume stations behave differently from the wider station population. High at-least-once reach with low Success Rate means many paths opened at least once but were intermittent; low reach with high Success Rate means fewer paths opened, but those paths were comparatively reliable.
+The center panel is **RX Decode Rate by TX-Station Distance** or **TX Decode Rate by RX-Station Distance**. It asks how reliably the Target succeeded among all confirmed opportunities. The Station-balanced Decode Rate line gives every station one vote. The Opportunity-level Decode Rate line gives every confirmed opportunity one vote. Their difference shows whether high-volume stations behave differently from the wider station population. High at-least-once reach with low Decode Rate means many paths opened at least once but were intermittent; low reach with high Decode Rate means fewer paths opened, but those paths were comparatively reliable.
 
-The right panel is **Successful Target SNR by TX-Station Distance** for RX or **Successful Target SNR by RX-Station Distance** for TX. It describes only successful Target outcomes. WSPRadar first gives each station one median successful SNR, then summarizes those station medians within the same exact-distance bins using their median and spread. This prevents a frequently reporting station from dominating the distance profile. A missed signal has no Target SNR and cannot appear in this panel. Read this with Success Rate: a rising successful SNR while Success Rate falls can mean that weaker signals disappeared below the decode threshold, leaving only stronger successful survivors.
+The right panel is **Successful Target SNR by TX-Station Distance** for RX or **Successful Target SNR by RX-Station Distance** for TX. It describes only successful Target outcomes. WSPRadar first gives each station one median successful SNR, then summarizes those station medians within the same exact-distance bins using their median and spread. This prevents a frequently reporting station from dominating the distance profile. A missed signal has no Target SNR and cannot appear in this panel. Read this with Decode Rate: a rising successful SNR while Decode Rate falls can mean that weaker signals disappeared below the decode threshold, leaving only stronger successful survivors.
 
 All three panels use the same deterministic bins of exact, unrounded calculated distance from the Target QTH rather than the map's coarse distance ranges. Empty bins and gaps between disjoint selected ranges remain missing evidence, not measured `0%`. The underlying bin aggregates retain qualifying-station, station-status, confirmed-opportunity, Target, counter-evidence and successful-SNR-station counts for scientific traceability, but the figure does not draw a support-count strip. Calculated distance inherits the precision of the reported Maidenhead locator; Grid-4 is not survey-grade positioning.
 
-**Temporal Evidence** separates the same active geographic scope into two vertically aligned figures. For RX, their main titles are **RX Success Temporal SNR Evidence: Target {callsign}** and **RX Success Temporal Evidence: Target {callsign}**; TX uses the corresponding **TX Success** titles, and both append the active scope. The upper figure keeps **Successful RX SNR Deviation over Time/by UTC Hour** for RX or **Successful TX SNR Deviation over Time/by UTC Hour** for TX. Each contributing TX station in RX, or RX station in TX, is centered on its own run median; the dashed `0 dB` line is therefore that station's typical successful level, and the median line summarizes stations, or stations and dates in the folded view. Each station with at least three successful Target SNR observations uses its median successful SNR over the complete selected UTC window as its baseline. Positive values mean successful signals were stronger than usual for their respective paths; negative values mean they were weaker. Stations below that SNR threshold remain fully included in the lower 2×2 figure. Across that lower figure, the shared column headers are **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h bins)**. The folded station row adds **Average contributing station presences per represented UTC date**, and the folded opportunity row adds **Average confirmed opportunities per represented UTC date**. The station-balanced upper row keeps the short **TX Stations** or **RX Stations** y-axis title in both columns. In each chronological bin, every contributing qualifying station gives one total vote split between `Heard by Target` and `Heard by others only` for RX or `Target heard` and `Other signals heard only` for TX according to that station's own within-bin outcome ratio; the right-axis line is the station-balanced Success Rate. In each folded UTC-hour bin, total station-bar height is the average number of distinct station-date-hour presences over represented dates whose hour overlaps the selected analysis window. A station can count once on each represented date, and a represented date-hour with no evidence remains in the denominator with zero support. The green/grey components are a rate-partitioned support display: they allocate that average support using the unchanged folded station-balanced Success Rate, formed by first pooling each station's outcomes at that UTC hour across represented dates and then giving every distinct station one equal rate vote. The components therefore reproduce the rate line but are neither averages of station-date split votes nor direct counts of successful or counter-only stations per date. The lower row keeps the short **Opportunities** y-axis title in both columns. It counts every confirmed opportunity once chronologically and averages those outcome counts over the same represented dates when folded; the right-axis line is the unchanged observation-level Success Rate. One shared legend below the lower figure title identifies the green successful outcome, grey counter outcome and Success Rate line. All four right axes use one zero-based Success Rate scale with rounded headroom, while the left support axes scale independently. Chronological panels preserve the actual run sequence at the chosen `1 h`, `2 h`, `3 h`, `6 h`, `12 h` or `24 h` aggregation. Chronological `1 h` bars whose bins are anchored to UTC-hour boundaries are directly comparable in units with the folded averages; wider chronological bins are not directly comparable by height. UTC-hour panels use fixed one-hour bins. The single `N UTC dates folded` annotation reports the global number of represented dates, while each hour excludes dates whose slot lies outside the selected window. A represented date-hour inside the window remains in the denominator with zero when it has no evidence. A first or last UTC-hour slot that only partly overlaps the window still counts as one represented slot rather than being weighted by its exposure fraction, so a boundary-hour mean can be depressed. Folding requires at least two UTC dates; otherwise the chronological column expands and the localized unavailable message is shown. Empty or sparse rate bins are missing or thin evidence, not failures.
+**Temporal Evidence** separates the same active geographic scope into two vertically aligned figures. For RX, their main titles are **RX Performance Temporal SNR Evidence: Target {callsign}** and **RX Performance Temporal Evidence: Target {callsign}**; TX uses the corresponding **TX Performance** titles, and both append the active scope. The upper figure keeps **Successful RX SNR Deviation over Time/by UTC Hour** for RX or **Successful TX SNR Deviation over Time/by UTC Hour** for TX. Each contributing TX station in RX, or RX station in TX, is centered on its own run median; the dashed `0 dB` line is therefore that station's typical successful level, and the median line summarizes stations, or stations and dates in the folded view. Each station with at least three successful Target SNR observations uses its median successful SNR over the complete selected UTC window as its baseline. Positive values mean successful signals were stronger than usual for their respective paths; negative values mean they were weaker. Stations below that SNR threshold remain fully included in the lower 2×2 figure. Across that lower figure, the shared column headers are **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h bins)**. The folded station row adds **Average contributing station presences per represented UTC date**, and the folded opportunity row adds **Average confirmed opportunities per represented UTC date**. The station-balanced upper row keeps the short **TX Stations** or **RX Stations** y-axis title in both columns. In each chronological bin, every contributing qualifying station gives one total vote split between `Heard by Target` and `Heard by others only` for RX or `Target heard` and `Other signals heard only` for TX according to that station's own within-bin outcome ratio; the right-axis line is the Station-balanced Decode Rate. In each folded UTC-hour bin, total station-bar height is the average number of distinct station-date-hour presences over represented dates whose hour overlaps the selected analysis window. A station can count once on each represented date, and a represented date-hour with no evidence remains in the denominator with zero support. The green/grey components are a rate-partitioned support display: they allocate that average support using the unchanged folded Station-balanced Decode Rate, formed by first pooling each station's outcomes at that UTC hour across represented dates and then giving every distinct station one equal rate vote. The components therefore reproduce the rate line but are neither averages of station-date split votes nor direct counts of successful or counter-only stations per date. The lower row keeps the short **Opportunities** y-axis title in both columns. It counts every confirmed opportunity once chronologically and averages those outcome counts over the same represented dates when folded; the right-axis line is the unchanged Opportunity-level Decode Rate. One shared legend below the lower figure title identifies the green successful outcome, grey counter outcome and Decode Rate line. All four right axes use one zero-based Decode Rate scale with rounded headroom, while the left support axes scale independently. Chronological panels preserve the actual run sequence at the chosen `1 h`, `2 h`, `3 h`, `6 h`, `12 h` or `24 h` aggregation. Chronological `1 h` bars whose bins are anchored to UTC-hour boundaries are directly comparable in units with the folded averages; wider chronological bins are not directly comparable by height. UTC-hour panels use fixed one-hour bins. The single `N UTC dates folded` annotation reports the global number of represented dates, while each hour excludes dates whose slot lies outside the selected window. A represented date-hour inside the window remains in the denominator with zero when it has no evidence. A first or last UTC-hour slot that only partly overlaps the window still counts as one represented slot rather than being weighted by its exposure fraction, so a boundary-hour mean can be depressed. Folding requires at least two UTC dates; otherwise the chronological column expands and the localized unavailable message is shown. Empty or sparse rate bins are missing or thin evidence, not failures.
 
-Read Peer Reach, the exact Segment Inspector rates, both green/grey temporal stacks and their right-axis Success Rate lines, successful SNR and their station/opportunity support together. Agreement across supported distance bins, stations, opportunities and recurring time bins is stronger descriptive evidence than one pooled count or one temporal spike. Successful-SNR censoring remains possible because missed signals have no Target SNR. These views still do not establish independence, calibration, propagation mode or physical cause.
+Read Peer Reach, the exact Segment Inspector rates, both green/grey temporal stacks and their right-axis Decode Rate lines, successful SNR and their station/opportunity support together. Agreement across supported distance bins, stations, opportunities and recurring time bins is stronger descriptive evidence than one pooled count or one temporal spike. Successful-SNR censoring remains possible because missed signals have no Target SNR. These views still do not establish independence, calibration, propagation mode or physical cause.
 
 <a id="sec-3-6b"></a>
 
@@ -704,11 +708,11 @@ The UI term `Joint Spot` means a consolidated same-cycle comparison unit, not ne
 <a id="sec-3-7"></a>
 <a id="sec-3-7a"></a>
 
-#### 2.6a Inspect the Contributing Stations (Success Mode)
+#### 2.6a Inspect the Contributing Stations (Performance Mode)
 
-`Station Insights` lists the `callsign + locator` identities contributing to the selected segment. RX columns identify the `TX Station`, `Locator`, `km` and `Azimuth`, followed by `Heard by Target`, `Heard by others only`, `Confirmed opportunities`, `Success Rate (%)` and `Median successful Target SNR (dB @ 30 dBm)`. TX uses `RX Station`, `Target heard` and `Other signals heard only` with the same remaining columns. Read every rate together with both outcome counts and confirmed-opportunity depth. Use `Show Heard by others only stations` in RX or `Show Other signals heard only stations` in TX to restore qualifying counter-only stations.
+`Station Insights` lists the `callsign + locator` identities contributing to the selected segment. RX columns identify the `TX Station`, `Locator`, `km` and `Azimuth`, followed by `Heard by Target`, `Heard by others only`, `Confirmed opportunities`, `Decode Rate (%)` and `Median successful Target SNR (dB @ 30 dBm)`. TX uses `RX Station`, `Target heard` and `Other signals heard only` with the same remaining columns. Read every rate together with both outcome counts and confirmed-opportunity depth. Use `Show Heard by others only stations` in RX or `Show Other signals heard only stations` in TX to restore qualifying counter-only stations.
 
-Select exactly one station row to open `Selected Station Evidence`. Selecting another row replaces the current station, and clearing the row hides the section; Compare continues to allow one or more selected stations. A compact context line identifies the selected `callsign + locator` path and its complete-run geometry, confirmed-opportunity depth, Success Rate and median successful Target SNR. The established independent time-bin selector is followed by two full-width figures that reuse the Segment Inspector temporal system. **Selected Station SNR Evidence** shows the path's actual normalized successful Target SNR: the chronological density uses every retained successful observation and its bin median, while the folded UTC-hour panel first forms one median per represented date-hour and then summarizes those medians across dates. **Selected Station Temporal Evidence** separates station presence from opportunity depth with the same direction-aware outcomes and Success Rate lines as the segment view. Folded UTC-hour panels require at least two represented UTC dates; otherwise the chronological panels expand and the unavailable-view message is shown. Selection changes use retained evidence and do not rerun the provider query.
+Select exactly one station row to open `Selected Station Evidence`. Selecting another row replaces the current station, and clearing the row hides the section; Compare continues to allow one or more selected stations. A compact context line identifies the selected `callsign + locator` path and its complete-run geometry, confirmed-opportunity depth, Decode Rate and median successful Target SNR. The established independent time-bin selector is followed by two full-width figures that reuse the Segment Inspector temporal system. **Selected Station SNR Evidence** shows the path's actual normalized successful Target SNR: the chronological density uses every retained successful observation and its bin median, while the folded UTC-hour panel first forms one median per represented date-hour and then summarizes those medians across dates. **Selected Station Temporal Evidence** separates station presence from opportunity depth with the same direction-aware outcomes and Decode Rate lines as the segment view. Folded UTC-hour panels require at least two represented UTC dates; otherwise the chronological panels expand and the unavailable-view message is shown. Selection changes use retained evidence and do not rerun the provider query.
 
 <a id="sec-3-7b"></a>
 
@@ -722,8 +726,8 @@ Select one or multiple stations to open the selected station evidence view. `Sta
 
 `Drill-Down` is the row-level audit surface:
 
-* RX Success displays `Heard by Target`, `Heard by others only` and `Heard by Target without independent confirmation`.
-* TX Success displays `Target heard`, `Other signals heard only` and `Target heard without independent RX-activity confirmation`.
+* RX Performance displays `Heard by Target`, `Heard by others only` and `Heard by Target without independent confirmation`.
+* TX Performance displays `Target heard`, `Other signals heard only` and `Target heard without independent RX-activity confirmation`.
 * Same-cycle Compare exposes Target/Reference evidence and Delta SNR from the shared cycle.
 * Local Median Neighborhood expands the local Reference identities behind the cycle median.
 * Sequential TX A/B exposes the planned UTC pair, `Target Micro-Median`, `Reference Micro-Median` and Pair Delta.
@@ -805,17 +809,17 @@ A minimum operator statement identifies the Target and, for Compare where applic
 
 A full technical report also states:
 
-* station-balanced and observation-level values where both apply;
-* qualifying-station and confirmed-opportunity counts for Success, or joint-station and joint-spot/pair counts for Compare;
+* the applicable weighting levels: Station-balanced and Opportunity-level Decode Rate for Performance, or station-level and observation-level Delta SNR for Compare;
+* qualifying-station and confirmed-opportunity counts for Performance, or joint-station and joint-spot/pair counts for Compare;
 * Decode Outcomes for Compare;
 * experiment conditions and any Reference correction;
 * filters and evidence thresholds;
 * whether the pattern repeated across time, stations or runs;
 * any alternative radius or scope used as a sensitivity analysis.
 
-**Success wording**
+**Performance wording**
 
-> For this Target, band, UTC window and selected peer population, the displayed Success Rate describes the fraction of independently confirmed opportunities in which the Target also produced qualifying evidence. Qualifying stations, confirmed opportunities, geographic scope and temporal views describe the breadth, depth and recurrence supporting that result.
+> For this Target, band, UTC window and selected peer population, the displayed Decode Rate describes the fraction of independently confirmed opportunities in which the Target also produced qualifying evidence. State whether the reported value is the Station-balanced Decode Rate or the Opportunity-level Decode Rate. Qualifying stations, confirmed opportunities, geographic scope and temporal views describe the breadth, depth and recurrence supporting that result.
 
 **Compare wording**
 
@@ -870,9 +874,9 @@ WSPRadar separates controls that change the scientific analysis from controls th
 | Control class | What it changes | Configuration and reproducibility |
 |---|---|---|
 | **Scientific controls** | Query population, pairing, classification, normalization, eligibility or aggregation. These include direction, identity, band, time, benchmark, correction, solar filter, geographic analysis scope, exclusion filters and evidence thresholds. | Saved when applicable and recorded in the export package. Changing one clears the completed result so the analysis can be rerun with the new definition. |
-| **View controls** | Which completed evidence is displayed or inspected, without changing the retained analysis population. These include selected Inspector segment, selected stations, unpaired-evidence or counter-only Success-station visibility, temporal view and evidence time bin. | Segment Inspector range/direction and the applicable durable Compare/Success result-view choices are saved. Inspector choices can narrow the completed geographic scope but cannot override it. Table filters and other incidental interactions remain transient. |
+| **View controls** | Which completed evidence is displayed or inspected, without changing the retained analysis population. These include selected Inspector segment, selected stations, unpaired-evidence visibility or visibility of counter-only stations in Performance, temporal view and evidence time bin. | Segment Inspector range/direction and the applicable durable Compare/Performance result-view choices are saved. Inspector choices can narrow the completed geographic scope but cannot override it. Table filters and other incidental interactions remain transient. |
 | **Transient UI state** | Panel expansion, table and Drill-Down filters, documentation visibility, prepared download bytes and other incidental session interaction state. | Not part of the scientific configuration and normally not serialized. |
-| **Configuration fields preserved for reproducibility** | The applicable scientific branch plus explicitly supported durable view settings. | Stored in the versioned `.config`. Inactive hidden branches are omitted instead of being preserved as dormant values. |
+| **Configuration fields preserved for reproducibility** | The applicable scientific input branch plus explicitly supported durable view settings. | Stored in the versioned `.config`. Inactive scientific input branches are omitted. Durable result-view preferences may retain their canonical mode-specific blocks, including `results_view.success` for the visible Performance view, without activating or producing that result. |
 
 Exact formulas and processing rules remain in [Scientific Methods](#sec-7).
 
@@ -886,11 +890,11 @@ Exact formulas and processing rules remain in [Scientific Methods](#sec-7).
 
 **`Load Config`** strictly validates and loads a versioned JSON `.config` file. Invalid identities, dates, choices, ranges, duplicate fields and unsupported schema versions are rejected.
 
-The pre-production contract remains schema version 1. Reference Station requires `Reference callsign` plus its independent four-character `Reference Grid-4`. RX and simultaneous TX Hardware A/B require the distinct `Reference callsign` but derive their shared grid-4 from Target QTH and therefore store no redundant `reference_qth`; TX Hardware A/B also requires its method-specific fields. Every comparison configuration records both the correction purpose and its numeric value: `no_offset` and `establish_offset` require `0.0 dB`, while `established_offset` records a documented signed correction and may explicitly record an established `0.0 dB`. Success-only configurations omit both fields. Earlier unpublished v1 prototypes are not migrated; an applicable comparison file without the explicit correction purpose is rejected rather than guessed from an ambiguous numeric zero. Resave or recreate it with the current controls.
+The pre-production contract remains schema version 1. Reference Station requires `Reference callsign` plus its independent four-character `Reference Grid-4`. RX and simultaneous TX Hardware A/B require the distinct `Reference callsign` but derive their shared grid-4 from Target QTH and therefore store no redundant `reference_qth`; TX Hardware A/B also requires its method-specific fields. Every comparison configuration records both the correction purpose and its numeric value: `no_offset` and `establish_offset` require `0.0 dB`, while `established_offset` records a documented signed correction and may explicitly record an established `0.0 dB`. Performance-only configurations omit both fields. Earlier unpublished v1 prototypes are not migrated; an applicable comparison file without the explicit correction purpose is rejected rather than guessed from an ambiguous numeric zero. Resave or recreate it with the current controls.
 
-**`Save Config`** opens a compact profile form. Enter a title and optional description; an optional stable ID can be supplied or generated automatically. The resulting `<profile-id>.config` stores every applicable input and durable Compare/Success result-view choice. When the configured time mode is `Last X Hours`, saving also asks whether to retain that moving relative window or replace it with the active run's resolved absolute UTC start/end window. Choose the absolute form when a later run should address the same dates. A saved configuration does not contain result rows, external experiment notes or transient table filters.
+**`Save Config`** opens a compact profile form. Enter a title and optional description; an optional stable ID can be supplied or generated automatically. The resulting `<profile-id>.config` stores every applicable input and supported durable result-view preference. A Compare configuration may retain both the canonical `results_view.compare` block and the canonical `results_view.success` block used for the visible Performance view; this does not create a second result or activate an inactive scientific branch. When the configured time mode is `Last X Hours`, saving also asks whether to retain that moving relative window or replace it with the active run's resolved absolute UTC start/end window. Choose the absolute form when a later run should address the same dates. A saved configuration does not contain result rows, external experiment notes or transient table filters.
 
-**`Run RX Analysis` / `Run TX Analysis`** is one direction-aware button. It runs exactly the active result selected in `Results view and benchmark design`: Success when `Success — Target only` is selected, or Compare when a benchmark is selected. Once submitted, the button is disabled while that session's unchanged analysis is queued or running. Changing a scientific control creates a different request, clears the old result and shows that the configuration must be run again. During a capacity wait, the status reports only your analysis's current queue position; it does not show unrelated users' queue totals.
+**`Run RX Analysis` / `Run TX Analysis`** is one direction-aware button. It runs exactly the active result selected in `Results view and benchmark design`: Performance when `Performance — no Reference` is selected, or Compare when a benchmark is selected. Once submitted, the button is disabled while that session's unchanged analysis is queued or running. Changing a scientific control creates a different request, clears the old result and shows that the configuration must be run again. During a capacity wait, the status reports only your analysis's current queue position; it does not show unrelated users' queue totals.
 
 **`Prepare All Results for Download`** builds the current analysis export package on demand.
 
@@ -916,20 +920,20 @@ These controls define the Target, operating direction, band and evidence window.
 
 Use the callsign exactly as uploaded. Prefer standard callsign forms and enter a hyphenated reporting identifier only when that is the exact archive identity you need to query. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1`, `DL1MKS/QRP` and `DL1MKS-1` are separate identities; WSPRadar neither treats `/` and `-` as aliases nor applies hidden prefix matching.
 
-A Maidenhead locator is a compact grid-square location code. Four characters identify a broad area; six characters identify a smaller area inside it. WSPRadar uses the configured QTH as the map center and local-radius origin. Success and Compare match Target spots using its first four locator characters; grid-6 is not part of this selector.
+A Maidenhead locator is a compact grid-square location code. Four characters identify a broad area; six characters identify a smaller area inside it. WSPRadar uses the configured QTH as the map center and local-radius origin. Performance and Compare match Target spots using its first four locator characters; grid-6 is not part of this selector.
 
 <a id="sec-5-3"></a>
 
 #### 4.3 Results-view and benchmark controls
 
-**`Results view and benchmark design`** has the factory default `Success — Target only`. The current choices are:
+**`Results view and benchmark design`** has the factory default `Performance — no Reference`. The current choices are:
 
-- `Success — Target only`
+- `Performance — no Reference`
 - `Compare — Hardware A/B`
 - `Compare — Known Reference Station`
 - `Compare — local neighborhood benchmark`
 
-The choices are mutually exclusive result types. No benchmark produces Success only; every benchmark choice produces Compare only and does not render, inspect or export a separate Success result.
+The choices are mutually exclusive result types. No benchmark produces Performance only; every benchmark choice produces Compare only and does not render, inspect or export a separate Performance result.
 
 | UI label | Default and range | When it appears and what it controls |
 |---|---|---|
@@ -951,7 +955,7 @@ Hardware A/B Test follows the selected **RX Analysis / TX Analysis** option. RX 
 
 For TX Hardware A/B, `Repeat Interval` is each physical path's actual recurrence. It is not necessarily the `Frame` label shown by a transmitter that alternates one output between two paths. Check the preview against observed on-air starts and the physical switch mapping. Device-specific examples are in [Appendix B](#sec-b); exact pair construction is in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7).
 
-Switching direction or benchmark mode hides the inapplicable branch. The current browser session may retain inactive values so Guided/Classic switching does not erase work, but saved configurations serialize only the active branch. A branch change clears values whose scientific meaning is no longer valid, such as a correction or identity being reinterpreted under another design. A saved Success-only configuration therefore contains no dormant comparison parameters.
+Switching direction or benchmark mode hides the inapplicable branch. The current browser session may retain inactive values so Guided/Classic switching does not erase work, but saved configurations serialize only the active branch. A branch change clears values whose scientific meaning is no longer valid, such as a correction or identity being reinterpreted under another design. A saved Performance-only configuration therefore contains no dormant comparison parameters.
 
 ##### Reference-side SNR correction sign
 
@@ -984,7 +988,7 @@ These controls let you shape the peer population, illumination period and minimu
 Use this control according to the question:
 
 - In RX Compare, beacon-like or telemetry-style transmitters can provide valuable weak same-cycle signals seen by both receivers.
-- In RX Success, retain them when beacon reception is part of the question; exclude them when the intended population is ordinary amateur-station activity.
+- In RX Performance, retain them when beacon reception is part of the question; exclude them when the intended population is ordinary amateur-station activity.
 - In TX analysis, the filter applies to receiver-side peer identities. Use it when those identities are distorting the intended receiver population.
 
 **`Exclude Moving Stations`**
@@ -1006,7 +1010,7 @@ Use this control according to the question:
 
 - **Default:** `22000`
 - **Choices:** `2500`, `5000`, `10000`, `15000`, `20000`, `22000`
-- **Applies to:** all Success and Compare results
+- **Applies to:** all Performance and Compare results
 - **Effect:** retains mapped-peer rows only when their distance from Target QTH is strictly less than the selected maximum; all other peer rows are excluded from scientific calculations, processed analysis artifacts and exports. The map, footer totals and Segment Inspector all use the same retained population; Inspector selections can narrow it but cannot restore excluded rows.
 - **Global activity exception:** the Target-Active Gate may still use evidence outside this geographic scope solely to establish that the Target was operating. Those out-of-scope peers do not enter scoped outcomes, statistics, counts or exports.
 - **Processing and integrity:** the filter is applied after retrieval, so provider queries and their raw query cache remain global and reusable. Moving-station integrity is evaluated globally before this distance filter.
@@ -1034,7 +1038,7 @@ The Compare joint threshold also suppresses exclusive categories whose own count
 
 - **Default:** `5`
 - **Range:** 1 to 100
-- **Applies to:** Success
+- **Applies to:** Performance
 - **Effect:** requires this many `Heard by Target` plus `Heard by others only` RX outcomes, or `Target heard` plus `Other signals heard only` TX outcomes, before a peer contributes.
 - **Change this when:** you want a different evidence floor.
 
@@ -1054,15 +1058,15 @@ Lowering this threshold increases map coverage, but station rates become more di
 
 These controls work with completed evidence and do not rerun the upstream query unless explicitly stated otherwise.
 
-- Segment range and direction selectors change the inspected scope. Compare and Success selections are saved independently.
-- `Show Heard by others only stations` in RX or `Show Other signals heard only stations` in TX restores qualifying counter-only Success identities. Its setting is saved for Success.
+- Segment range and direction selectors change the inspected scope. Compare and Performance selections are saved independently; the portable schema retains the canonical key `results_view.success` for the visible Performance view.
+- `Show Heard by others only stations` in RX or `Show Other signals heard only stations` in TX restores qualifying counter-only Performance identities. Its setting is saved for Performance.
 - `Include Unpaired Evidence` includes Compare identities represented only by exclusive or asynchronous evidence. Its durable value is saved when Compare applies.
-- Station selection changes the selected-station figures and selected Drill-Down. Success saves zero or one exact `callsign + locator` identity; selecting another row replaces the current identity. When historical Success state contains several identities, restoration retains the first valid identity in stored order, discards the additional identities, never substitutes a different station and restores no selection if none remain valid. Compare selection remains independent and may contain one or more exact identities. Selecting every Compare station stores an all-stations intent instead of enumerating the current table; with a moving `Last X Hours` window, the reconstructed membership can therefore change with the evidence. A loaded explicit Compare identity absent from the current segment scope remains unselected with a notice rather than being replaced; its saved identity is retained until you make a new table selection, so changing the segment scope can still make it available.
-- For every selected Success station, the prompt `↓ Select time aggregation bin size:` changes the chronological panels in **Selected Station SNR Evidence** and **Selected Station Temporal Evidence**. Their folded UTC-hour panels remain fixed at one-hour bins. A supported saved Success bin remains selected when the station identity changes, remains independent from the Segment Inspector temporal bin and never reruns the completed provider analysis. Compare retains its independent selected-station bin.
+- Station selection changes the selected-station figures and selected Drill-Down. Performance saves zero or one exact `callsign + locator` identity; selecting another row replaces the current identity. When historical Performance state contains several identities, restoration retains the first valid identity in stored order, discards the additional identities, never substitutes a different station and restores no selection if none remain valid. Compare selection remains independent and may contain one or more exact identities. Selecting every Compare station stores an all-stations intent instead of enumerating the current table; with a moving `Last X Hours` window, the reconstructed membership can therefore change with the evidence. A loaded explicit Compare identity absent from the current segment scope remains unselected with a notice rather than being replaced; its saved identity is retained until you make a new table selection, so changing the segment scope can still make it available.
+- For every station selected in Performance, the prompt `↓ Select time aggregation bin size:` changes the chronological panels in **Selected Station SNR Evidence** and **Selected Station Temporal Evidence**. Their folded UTC-hour panels remain fixed at one-hour bins. A supported saved Performance time bin remains selected when the station identity changes, remains independent from the Segment Inspector temporal bin and never reruns the completed provider analysis. Compare retains its independent selected-station bin.
 - The Selected Compare view group selects `Chronological` or `UTC-Hour`. `UTC-Hour` uses fixed one-hour slots and neither changes nor overwrites the saved chronological bin. The selected view is stored in `.config`.
 - For Compare, the prompt `↓ Select time aggregation bin size` appears under `Temporal Evidence` immediately above the segment bin choices. The available choices adapt to the run duration, including minute bins for shorter windows and hour bins for longer windows. The control changes only the left segment-level temporal panel; it does not change the date-folded UTC-hour panel, the selected-station timeline, pairing or analysis. Its selected bin is stored independently in `.config`.
-- For Success, the prompt `↓ Select time aggregation bin size` appears immediately above the `1 h`, `2 h`, `3 h`, `6 h`, `12 h` and `24 h` choices under `Temporal Evidence`. This segment-level control changes only the chronological segment panel. The folded UTC-hour panel remains fixed at one-hour bins, and neither view changes the completed analysis or the independent selected-station timeline.
-- Empty Success time or distance bins remain blank; they are not converted to zero-rate evidence.
+- For Performance, the prompt `↓ Select time aggregation bin size` appears immediately above the `1 h`, `2 h`, `3 h`, `6 h`, `12 h` and `24 h` choices under `Temporal Evidence`. This segment-level control changes only the chronological segment panel. The folded UTC-hour panel remains fixed at one-hour bins, and neither view changes the completed analysis or the independent selected-station timeline.
+- Empty Performance time or distance bins remain blank; they are not converted to zero-rate evidence.
 - `Prepare All Results for Download` exports the current result and inspector selections. Package contents are documented in [the export and reproducibility section](#sec-8-4).
 
 <a id="sec-6"></a>
@@ -1097,7 +1101,7 @@ After the shared checks in Section 5.1, follow the branch that matches the resul
 |---|---|
 | **No result or no Target evidence** | Inspect the reported strict `code = 1` or historical-fallback status and current upstream availability. |
 | **Compare has no Delta SNR** | Confirm shared remote peers in overlapping cycles or scheduled pairs, then clocks, TX A/B schedule-to-path mapping, switching schedule, joint threshold, filters and scope. |
-| **Success has very few peers** | Confirm independent network activity, then `Minimum confirmed opportunities per station`, exclusion and solar filters, timeframe and `Maximum peer distance from Target (km)`. A longer window can add evidence without changing the intended population. |
+| **Performance has very few peers** | Confirm independent network activity, then `Minimum confirmed opportunities per station`, exclusion and solar filters, timeframe and `Maximum peer distance from Target (km)`. A longer window can add evidence without changing the intended population. |
 
 <div style="page-break-before: always;"></div>
 
@@ -1105,7 +1109,7 @@ If evidence exists but looks unexpected, continue with these branches:
 
 | Symptom | Next checks |
 |---|---|
-| **Many Success rows without independent confirmation** | RX labels these rows `Heard by Target without independent confirmation`; TX labels them `Target heard without independent RX-activity confirmation`. They remain auditable but do not enter Success Rate. |
+| **Many Performance rows without independent confirmation** | RX labels these rows `Heard by Target without independent confirmation`; TX labels them `Target heard without independent RX-activity confirmation`. They remain auditable but do not enter Decode Rate. |
 | **`Only Reference = 0`** | Confirm Target-Active gating, evidence thresholds and selected scope; zero can be correct after those rules. |
 | **Unexpected Hardware A/B Delta SNR sign** | Verify physical A/B mapping, Target/Reference order, schedule phases, correction sign, actual and reported power, and calibration notes. Reconcile one station in Drill-Down. |
 | **Local result changes with radius** | Confirm QTH and radius, then inspect contributing local `callsign + locator` identities. Report useful radius sensitivity instead of selecting only the most favorable run. |
@@ -1118,7 +1122,7 @@ An upstream-data issue changes what the selected source supplies. An experiment-
 
 #### 5.3 Callsign and locator checks
 
-Success and every Compare mode match Target spots by exact callsign plus the configured QTH's first four locator characters. A Target reporting `JN37` while configured as `JN38` matches neither result.
+Performance and every Compare mode match Target spots by exact callsign plus the configured QTH's first four locator characters. A Target reporting `JN37` while configured as `JN38` matches neither result.
 
 Every Reference Station is matched by exact callsign plus its independently configured, exactly four-character Reference Grid-4. RX and simultaneous TX Hardware A/B instead derive both disabled grid-4 displays from the first four Target-QTH characters and carry no independent Reference-QTH setting; sequential TX Hardware A/B uses the shared exact Target callsign and Target grid-4 on both scheduled sides. Local candidates remain selected geographically.
 
@@ -1132,7 +1136,7 @@ Peer identities use exact callsign plus the full reported locator string. Bad, s
 
 WSPRadar first requests rows using `code = 1` for WSPR-2 evidence. If the strict query returns no Target-side evidence, it retries without that predicate for historical compatibility and reports the fallback in run status.
 
-The fallback broadens selection and can differ between Compare and Success. WSPRadar applies it automatically; run status shows which query path was used for diagnosis.
+The fallback broadens selection and can differ between Compare and Performance. WSPRadar applies it automatically; run status shows which query path was used for diagnosis.
 
 <a id="sec-6-5"></a>
 
@@ -1195,7 +1199,7 @@ The public WSPR archive is therefore unusually powerful, but it remains a succes
 <a id="sec-d-lo"></a>
 Lo et al. used 7 MHz WSPR observations to study greyline propagation and explicitly warned: "There is no official recording of the operating schedules for WSPR equipment." They checked whether a transmitter was heard anywhere, or whether a receiver heard anything from anywhere, before interpreting missing links as propagation behavior. They also stressed callsign/location consistency and the use of multiple sites. <a href="#ref-9">[Ref-9]</a>
 
-That activity principle is direct prior art for WSPRadar's Target-Active Gate: silence should not become radio counter-evidence until operation is observable. Lo et al. do not, however, define WSPRadar's exact asymmetric gate, Success denominator or Decode Outcomes. Those remain WSPRadar design choices for a different estimand.
+That activity principle is direct prior art for WSPRadar's Target-Active Gate: silence should not become radio counter-evidence until operation is observable. Lo et al. do not, however, define WSPRadar's exact asymmetric gate, Performance denominator or Decode Outcomes. Those remain WSPRadar design choices for a different estimand.
 
 <a id="sec-d-3"></a>
 #### 6.3 Antenna and station-comparison lineage
@@ -1243,16 +1247,16 @@ WSPRadar inherits important ideas rather than claiming to have invented WSPR com
 
 WSPRadar integrates those ideas into one operator workflow that includes:
 
-* TX and RX analysis with the `Success — Target only`, Hardware A/B Test, Reference Station / Buddy Test and Local Neighborhood Benchmark designs;
+* TX and RX analysis with the `Performance — no Reference`, Hardware A/B Test, Reference Station / Buddy Test and Local Neighborhood Benchmark designs;
 * Target activity checks, same-cycle or deterministic scheduled-pair comparison, reported-power normalization and optional Reference-side SNR correction;
-* conditional Success, paired Delta SNR and categorical Decode Outcomes as separate evidence questions;
+* conditional Performance evidence, paired Delta SNR and categorical Decode Outcomes as separate evidence questions;
 * maps, Segment Inspector, Station Insights, time/solar views and row-level Drill-Down;
 * evidence thresholds and station-versus-observation diagnostics;
 * guided demos, versioned configurations, run metadata, processed evidence, tables, figures and practical supplements.
 
 Within the literature and tools reviewed here, the clearest WSPRadar-specific additions are:
 
-* the conditional Success opportunity model and its explicit counter-evidence denominator;
+* the conditional Performance opportunity model and its explicit counter-evidence denominator for Decode Rate;
 * the explicit separation of paired Delta SNR from `Joint`, `Only Target`, `Only Reference` and `Both Async` Decode Outcomes;
 * dynamic Local Median Neighborhood and Local Best Station benchmark construction;
 * hierarchical, station-balanced geographic aggregation, including one contribution per local station before a Local Median Neighborhood is formed;
@@ -1273,7 +1277,7 @@ WSPRadar turns public WSPR decodes into explicit comparison units, then summariz
 
 | Analysis design | Target role | Reference or counter-evidence | Lowest observation/comparison unit | Activity requirement | Timing relationship | Power normalization | Station-level aggregation | Segment-level aggregation | Principal interpretation boundary |
 |---|---|---|---|---|---|---|---|---|---|
-| Success — Target only, RX or TX | Target receiver or transmitter | RX: same transmitter decoded elsewhere; TX: other same-band signal decoded by the peer receiver | one Target-active peer-cycle | observable Target participation | same two-minute cycle | rate: none; successful Target SNR display: reported 30 dBm | one Success Rate per peer | arithmetic mean of peer rates; pooled rate retained | conditional network reach, not unconditional decode probability |
+| Performance — no Reference, RX or TX | Target receiver or transmitter | RX: same transmitter decoded elsewhere; TX: other same-band signal decoded by the peer receiver | one Target-active peer-cycle | observable Target participation | same two-minute cycle | rate: none; successful Target SNR display: reported 30 dBm | one Decode Rate per peer | Station-balanced Decode Rate; Opportunity-level Decode Rate retained | observed conditional behavior of the complete Target station, not unconditional decode probability or a calibrated hardware measurement |
 | Hardware A/B Test, RX | Target receiver | simultaneous Reference receiver | one consolidated remote-transmitter peer-cycle | Target-Active Gate | same transmitter and cycle | common TX power cancels; correction applies to Reference | median Delta SNR | median of station medians | controlled local receive paths only to the extent the remaining chains are controlled |
 | Hardware A/B Test, simultaneous TX | Target transmitter | simultaneous Reference transmitter | one consolidated remote-receiver peer-cycle | Target-Active Gate | same receiver and cycle | both sides normalized to reported 30 dBm; correction applies to Reference | median Delta SNR | median of station medians | two distinguishable complete TX chains; power, frequency response, isolation and coupling remain experimental controls |
 | Hardware A/B Test, sequential TX | Target scheduled starts | Reference scheduled starts | one peer identity in one planned Target/Reference pair | deterministic disjoint schedules; no simultaneous gate | nearest one-to-one starts under one shared Repeat Interval | both sides normalized to reported 30 dBm; correction applies to Reference | median scheduled-pair Delta SNR | median of station medians | sequential, not simultaneous; timing and switching effects remain |
@@ -1289,7 +1293,7 @@ The matrix is an orientation aid. The definitions, formulas and processing rules
 
 WSPRadar reads the public `wspr.rx` table through the selected read-only ClickHouse HTTP interface. Spots are observational records from independently operated transmitters, receivers, software and networks. They are not a randomized or calibrated sample of possible paths. Decode selection, historical fallback and upstream-data behavior are documented once in [Sections 5.4-5.6](#sec-6-4).
 
-The selected UTC endpoints are resolved when the run starts, then both are quantized down to 15-minute boundaries for query reuse. WSPRadar applies the resulting time window consistently to Success and Compare.
+The selected UTC endpoints are resolved when the run starts, then both are quantized down to 15-minute boundaries for query reuse. WSPRadar applies the resulting time window consistently to Performance and Compare.
 
 A **WSPR cycle** is the two-minute interval aligned to an even UTC minute. WSPRadar derives simultaneous cycles from spot timestamps. Sequential TX A/B instead retains timestamps, admits only each path's configured modulo schedule, and attaches the planned Target and Reference starts of its nearest one-to-one pair. A scheduled pair is eligible only when both planned starts fall within the analysis window.
 
@@ -1300,15 +1304,15 @@ WSPRadar retains the reported identity as part of the evidence. Callsign variant
 
 | Analysis | Target matching | Peer / Reference identity | Lowest result unit |
 |---|---|---|---|
-| RX Success | exact RX callsign plus Target QTH grid-4 | TX callsign + reported TX locator | one Target-active peer-cycle |
-| TX Success | exact TX callsign plus Target QTH grid-4 | RX callsign + reported RX locator | one Target-active peer-cycle |
+| RX Performance | exact RX callsign plus Target QTH grid-4 | TX callsign + reported TX locator | one Target-active peer-cycle |
+| TX Performance | exact TX callsign plus Target QTH grid-4 | RX callsign + reported RX locator | one Target-active peer-cycle |
 | Buddy Compare | exact Target callsign plus Target QTH grid-4 | exact Reference callsign plus independent Reference Grid-4; remote callsign + reported locator | one consolidated peer-cycle |
 | RX Hardware A/B | exact Target callsign plus Target QTH grid-4 | exact Reference callsign plus the same derived Target grid-4; remote TX callsign + reported locator | one consolidated peer-cycle |
 | Simultaneous TX Hardware A/B | exact Target callsign plus Target QTH grid-4 | exact Reference callsign plus the same derived Target grid-4; RX callsign + reported locator | one consolidated peer-cycle |
 | Sequential TX Hardware A/B | exact shared Target callsign plus Target QTH grid-4, split by configured UTC schedule | same callsign and grid-4 on the Reference schedule; RX callsign + reported locator | one planned Target/Reference pair |
 | Local Compare | exact Target callsign plus Target QTH grid-4 | local callsign + reported locator inside the radius; remote peer as above | one Target/local-Reference peer-cycle |
 
-Success and all Compare modes use exact Target callsign plus the first four characters of configured Target QTH. A six-character Target QTH remains meaningful outside archive selection because its full value anchors maps, local-radius geometry, azimuth/distance and solar calculations. Reference Station uses an independent exact Reference callsign plus exactly four-character Reference Grid-4. Hardware A/B derives the shared grid-4 from Target QTH and stores no separate Reference QTH. Thus grid-6 is not a query selector: `JN37AA` and `JN37XX` both select `JN37`, while `JN38` does not. Shared Hardware A/B grid-4 matching cannot establish physical co-location.
+Performance and all Compare modes use exact Target callsign plus the first four characters of configured Target QTH. A six-character Target QTH remains meaningful outside archive selection because its full value anchors maps, local-radius geometry, azimuth/distance and solar calculations. Reference Station uses an independent exact Reference callsign plus exactly four-character Reference Grid-4. Hardware A/B derives the shared grid-4 from Target QTH and stores no separate Reference QTH. Thus grid-6 is not a query selector: `JN37AA` and `JN37XX` both select `JN37`, while `JN38` does not. Shared Hardware A/B grid-4 matching cannot establish physical co-location.
 
 Peer identities use exact callsign plus the full reported locator string. Bad, stale or changing locators can split one physical station, move it into the wrong segment or trigger the moving-station filter.
 
@@ -1319,23 +1323,23 @@ The local pool excludes the Target by exact callsign. A base callsign and a suff
 <a id="sec-7-3"></a>
 #### 7.3 Target-Active Gate
 
-The Target-Active Gate anchors Success and simultaneous Compare to cycles in which Target participation is observable:
+The Target-Active Gate anchors Performance and simultaneous Compare to cycles in which Target participation is observable:
 
 * **TX:** at least one qualifying Target transmission spot exists somewhere in the cycle.
 * **RX:** at least one qualifying decode uploaded by the Target receiver exists in the cycle.
 
 The gate protects known Target downtime from becoming automatic failure. For example, Reference spots from hours when the Target station is shut down are not counted as defeats.
 
-The asymmetry is deliberate: in the absence of authoritative operating schedules, WSPRadar defines Success and simultaneous Compare around the designated Target and admits only cycles with observable Target participation. In Compare, Reference uptime is not a second gate and must therefore be controlled by the experimenter.
+The asymmetry is deliberate: in the absence of authoritative operating schedules, WSPRadar defines Performance and simultaneous Compare around the designated Target and admits only cycles with observable Target participation. In Compare, Reference uptime is not a second gate and must therefore be controlled by the experimenter.
 
-Because every Joint observation already demonstrates Target participation, the gate's asymmetry affects only one-sided or asynchronous Decode Outcomes and the counter-evidence denominator of Success Rate; the gate itself does not alter Joint-only Delta SNR summaries.
+Because every Joint observation already demonstrates Target participation, the gate's asymmetry affects only one-sided or asynchronous Decode Outcomes and the counter-evidence denominator of the Decode Rate; the gate itself does not alter Joint-only Delta SNR summaries.
 
 Swapping Target and Reference can therefore change eligible cycles and Decode Outcomes. Sequential TX A/B uses deterministic schedule assignment and planned pairs rather than this simultaneous gate. Its role-independent half-interval tie rule preserves the same physical pairs when Target and Reference are swapped.
 
 <a id="sec-7-4"></a>
-#### 7.4 Success classification and formulas
+#### 7.4 Performance classification and formulas
 
-Success measures the Target's conditional reach among opportunities that have independent evidence of network activity.
+Performance evaluates the Target itself from opportunities that have independent evidence of network activity. Its Decode Rate describes the Target's observed conditional behavior within that qualifying population.
 
 For each Target-active peer-cycle, WSPRadar records Target evidence and independent external evidence:
 
@@ -1344,15 +1348,15 @@ For each Target-active peer-cycle, WSPRadar records Target evidence and independ
 
 The canonical scientific and compatibility terms remain `Target`, `Elsewhere`, `Other Signals` and `Target-only`. Canonical `Target` requires both Target and external evidence. In RX, canonical `Elsewhere` means external evidence without Target; in TX, canonical `Other Signals` means external evidence without Target. Canonical `Target-only` means Target evidence exists without external evidence and is excluded from the denominator.
 
-The visible Success page maps those unchanged categories to direction-aware plain language. RX displays canonical `Target` as `Heard by Target`, canonical `Elsewhere` as `Heard by others only`, and Target-only audit rows as `Heard by Target without independent confirmation`. TX displays canonical `Target` as `Target heard`, canonical `Other Signals` as `Other signals heard only`, and Target-only audit rows as `Target heard without independent RX-activity confirmation`. This mapping is presentation-only: it changes interpretation clarity, not classification, formulas, stored fields or compatibility exports.
+The visible Performance page maps those unchanged categories to direction-aware plain language. RX displays canonical `Target` as `Heard by Target`, canonical `Elsewhere` as `Heard by others only`, and Target-only audit rows as `Heard by Target without independent confirmation`. TX displays canonical `Target` as `Target heard`, canonical `Other Signals` as `Other signals heard only`, and Target-only audit rows as `Target heard without independent RX-activity confirmation`. This mapping is presentation-only: it changes interpretation clarity, not classification, formulas, stored fields or compatibility exports.
 
-$$\text{Success Rate}_{RX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Elsewhere}}$$
+$$\text{Decode Rate}_{RX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Elsewhere}}$$
 
-$$\text{Success Rate}_{TX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Other Signals}}$$
+$$\text{Decode Rate}_{TX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Other Signals}}$$
 
-The eligible peer population is globally sourced after band, time, gate, filters and thresholds. Success Rate is therefore conditional on observable network activity and propagation. It is not an estimate of every attempted transmission or a calibrated receiver detection probability.
+The eligible peer population is globally sourced after band, time, gate, filters and thresholds. Decode Rate is therefore conditional on observable network activity and propagation. It is not an estimate of every attempted transmission or a calibrated receiver detection probability.
 
-The Success Rate classification itself is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 30 dBm.
+Decode Rate itself is not power-normalized. The successful Target SNR displayed beside it is normalized to reported 30 dBm.
 
 <a id="sec-7-5"></a>
 #### 7.5 Power normalization, correction and Delta SNR
@@ -1389,7 +1393,7 @@ This separation matters because paired-only Delta SNR analysis has survivorship 
 
 Decode Outcomes are not power-normalized. An exclusive TX observation has no missing-side SNR to reconstruct. Unequal transmit powers can therefore dominate exclusive TX evidence even when joint Delta SNR is normalized.
 
-Compare map `STATIONS` categories assign identities; `SPOTS` categories count evidence volume. Success map bars place `OPPORTUNITIES` above `STATIONS` and use the same direction-specific display labels in both rows. The upper row counts canonical Target and counter-evidence outcomes in the Success denominator; the lower row assigns qualifying RX identities to `Heard by Target` or `Heard by others only` and qualifying TX identities to `Target heard` or `Other signals heard only`. A `Joint Spot` is a consolidated same-cycle comparison unit, not necessarily one untouched database row.
+Compare map `STATIONS` categories assign identities; `SPOTS` categories count evidence volume. Performance map bars place `OPPORTUNITIES` above `STATIONS` and use the same direction-specific display labels in both rows. The upper row counts canonical Target and counter-evidence outcomes in the Decode Rate denominator; the lower row assigns qualifying RX identities to `Heard by Target` or `Heard by others only` and qualifying TX identities to `Target heard` or `Other signals heard only`. A `Joint Spot` is a consolidated same-cycle comparison unit, not necessarily one untouched database row.
 
 <a id="sec-7-7"></a>
 #### 7.7 Aggregation hierarchy
@@ -1398,16 +1402,16 @@ WSPRadar calculates a peer-level value before the geographic segment value. This
 
 Medians reduce sensitivity to isolated extreme values, duplicate-like bursts and quantized SNR outliers. They do not remove systematic calibration error, propagation bias or correlation across time and stations.
 
-**Success**
+**Performance**
 
 1. Classify each Target-active peer-cycle.
 2. Sum Target, counter-evidence and Target-only by peer `callsign + locator`.
 3. Require the configured Target+counter threshold.
-4. Calculate one Success Rate per qualifying peer.
+4. Calculate one Decode Rate per qualifying peer.
 5. Calculate the segment arithmetic mean of peer rates.
-6. Retain the pooled observation-level rate as a diagnostic.
+6. Retain the pooled Opportunity-level Decode Rate as a diagnostic.
 
-The station-balanced value and pooled observation-level value answer different questions. The first describes the typical qualifying identity with equal peer weights; the second gives every qualifying observation equal weight.
+The Station-balanced Decode Rate and Opportunity-level Decode Rate answer different questions. The first describes the typical qualifying identity with equal peer weights; the second gives every qualifying confirmed opportunity equal weight.
 
 **Simultaneous Compare**
 
@@ -1455,15 +1459,15 @@ Compare temporal heatmaps first count evidence in cells formed by UTC-time, or f
 
 $$D_{relative} = 100 \times \frac{n_{cell}}{\max(n_{cell,panel})}$$
 
-The densest occupied cell is therefore `100`, proportional occupied cells lie between `0` and `100`, and empty cells remain blank. This is a percentage of that panel's maximum cell count, not a percentage of all evidence. Values and colors therefore do not provide absolute-count comparability between separately normalized panels. Segment-level and selected-station Compare timelines use this rule. The separate successful-SNR-deviation figure in Success Temporal SNR Evidence uses the same per-panel relative-density normalization. Its companion Temporal Evidence figure instead uses independent left support axes for chronological station votes and opportunity counts or folded per-date average station presence and opportunity counts, green and grey outcome stacks, and a Success Rate line on the right of every panel. The four right axes share one scale within a run; the left axes scale independently.
+The densest occupied cell is therefore `100`, proportional occupied cells lie between `0` and `100`, and empty cells remain blank. This is a percentage of that panel's maximum cell count, not a percentage of all evidence. Values and colors therefore do not provide absolute-count comparability between separately normalized panels. Segment-level and selected-station Compare timelines use this rule. The separate successful-SNR-deviation figure in Performance Temporal SNR Evidence uses the same per-panel relative-density normalization. Its companion Temporal Evidence figure instead uses independent left support axes for chronological station votes and opportunity counts or folded per-date average station presence and opportunity counts, green and grey outcome stacks, and a Decode Rate line on the right of every panel. The four right axes share one scale within a run; the left axes scale independently.
 
-Success Evidence starts from the full qualifying station population in the active Segment Inspector scope, independently of Station Insights filters, sorting, counter-only-station visibility or selected rows. It groups stations by their exact unrounded calculated distance from the Target QTH, not by the map's coarse distance label. The shared deterministic width is selected from `125`, `250`, `500` or `1,000 km` according to the selected distance span; edges remain anchored at integer multiples from `0 km`, the final selected upper boundary is included, and changing only direction does not change the bins. Disjoint selected ranges retain visible gaps. Distance comes from reported Maidenhead locators, so the displayed numerical grouping inherits their precision; Grid-4 is not survey-grade positioning.
+Performance Evidence starts from the full qualifying station population in the active Segment Inspector scope, independently of Station Insights filters, sorting, counter-only-station visibility or selected rows. It groups stations by their exact unrounded calculated distance from the Target QTH, not by the map's coarse distance label. The shared deterministic width is selected from `125`, `250`, `500` or `1,000 km` according to the selected distance span; edges remain anchored at integer multiples from `0 km`, the final selected upper boundary is included, and changing only direction does not change the bins. Disjoint selected ranges retain visible gaps. Distance comes from reported Maidenhead locators, so the displayed numerical grouping inherits their precision; Grid-4 is not survey-grade positioning.
 
-Within each exact-distance bin, Peer Reach is `100 × stations with at least one Target outcome / all qualifying stations`. The RX display label `Heard by Target` and the TX display label `Target heard` both denote this same `hits ≥ 1` condition; `Heard by others only` and `Other signals heard only` denote qualifying stations with `hits = 0`. The station-balanced Success Rate is the arithmetic mean of the stations' individual `Target / (Target + counter-evidence)` rates; the observation-level rate is `sum(Target) / sum(Target + counter-evidence)`. Counter-only stations remain in both denominators. The successful-SNR panel first contributes one median normalized successful Target SNR per station and then reports the median of those station medians. With three or more stations it also reports their interquartile range; with two it shows their range without labelling it as a quartile estimate; with one it shows only the station point. Counter-only stations have no synthetic SNR. The retained support data include qualifying-station, target-positive-station, confirmed-opportunity, Target, counter-evidence and successful-SNR-station counts, although the figure does not render a support-count strip. Unpopulated bins remain missing.
+Within each exact-distance bin, Peer Reach is `100 × stations with at least one Target outcome / all qualifying stations`. The RX display label `Heard by Target` and the TX display label `Target heard` both denote this same `hits ≥ 1` condition; `Heard by others only` and `Other signals heard only` denote qualifying stations with `hits = 0`. The Station-balanced Decode Rate is the arithmetic mean of the stations' individual `Target / (Target + counter-evidence)` rates; the Opportunity-level Decode Rate is `sum(Target) / sum(Target + counter-evidence)`. Counter-only stations remain in both denominators. The successful-SNR panel first contributes one median normalized successful Target SNR per station and then reports the median of those station medians. With three or more stations it also reports their interquartile range; with two it shows their range without labelling it as a quartile estimate; with one it shows only the station point. Counter-only stations have no synthetic SNR. The retained support data include qualifying-station, target-positive-station, confirmed-opportunity, Target, counter-evidence and successful-SNR-station counts, although the figure does not render a support-count strip. Unpopulated bins remain missing.
 
-Success Temporal Evidence applies the same active Segment Inspector scope before grouping. A station enters the anomaly layer only when it has at least three successful normalized Target SNR observations in the complete selected UTC window; its baseline is the median of those observations, and each successful observation's anomaly is its SNR minus that baseline. The chronological density receives at most one station-bin median per station and selected time bin. The folded density receives one station-date-hour median per station, UTC date and UTC hour, preventing prolific reporters from dominating either view. A horizontal `0 dB` line marks station baseline and the overlay is the station-balanced median of the contributed station values in each bin.
+Performance Temporal Evidence applies the same active Segment Inspector scope before grouping. A station enters the anomaly layer only when it has at least three successful normalized Target SNR observations in the complete selected UTC window; its baseline is the median of those observations, and each successful observation's anomaly is its SNR minus that baseline. The chronological density receives at most one station-bin median per station and selected time bin. The folded density receives one station-date-hour median per station, UTC date and UTC hour, preventing prolific reporters from dominating either view. A horizontal `0 dB` line marks station baseline and the overlay is the station-balanced median of the contributed station values in each bin.
 
-All qualifying stations, including those omitted only from the SNR-deviation figure, remain in the temporal evidence calculations. In each chronological bin, every contributing qualifying station supplies one split vote: its `Target / (Target + counter-evidence)` ratio is the green component and its complement is the grey component. Summing those components makes total bar height equal the number of contributing stations, while `green / (green + grey)` exactly reproduces the unchanged station-balanced Success Rate line. The chronological Opportunities row instead stacks the raw Target and counter-evidence counts, so total height is confirmed-opportunity volume and the same green share exactly reproduces the unchanged observation-level Success Rate line. The labels remain direction-aware—`Heard by Target` and `Heard by others only` for RX, `Target heard` and `Other signals heard only` for TX—and the station-vote segments can be fractional. At each folded UTC hour, station support counts every distinct station-date-hour presence once and divides that count by the represented dates whose hour slot overlaps the selected analysis window. The total station-bar height is therefore the average number of contributing stations per represented date at that hour; a station can contribute once on each date. The folded station-balanced rate remains a separate pooled equal-station calculation: each station's outcomes at that UTC hour are first pooled across represented dates, its rate is calculated, and every distinct station then receives one equal vote. The folded green component is average station support multiplied by that rate, and the grey component is its complement. Their ratio exactly reproduces the unchanged rate, but the components are a rate-partitioned support display rather than averages of station-date split votes. Folded opportunity components divide the pooled Target and counter-evidence counts by the same per-hour date denominator, so they are direct per-date averages and their ratio preserves the unchanged observation-level rate. A represented date-hour with no evidence contributes zero and remains in the denominator, while a date whose hour slot lies outside the selected window is excluded. The single folded-date annotation reports the global number of represented UTC dates, but first and last boundary hours can use fewer overlapping dates. A partially overlapping boundary-hour slot counts as one represented slot rather than being weighted by its exposure fraction, so its folded mean can be depressed. Chronological `1 h` bars are directly comparable in units only when their bins are anchored to UTC-hour boundaries; wider chronological bins cover multiple hours and are not directly comparable by height. UTC-hour folding remains available only when at least two UTC dates contribute. All four right axes start at zero and share a ceiling chosen from the maximum of the four rate series with about 20% rounded headroom, capped at `100%`. Each left support axis scales independently and uses compact ham-style notation such as `6k4` for `6,400` and `6M8` for `6,800,000`. A bin with no rate evidence remains missing rather than becoming a synthetic `0%`, and changing the chronological display bin does not reclassify opportunities or rerun the analysis.
+All qualifying stations, including those omitted only from the SNR-deviation figure, remain in the temporal evidence calculations. In each chronological bin, every contributing qualifying station supplies one split vote: its `Target / (Target + counter-evidence)` ratio is the green component and its complement is the grey component. Summing those components makes total bar height equal the number of contributing stations, while `green / (green + grey)` exactly reproduces the unchanged Station-balanced Decode Rate line. The chronological Opportunities row instead stacks the raw Target and counter-evidence counts, so total height is confirmed-opportunity volume and the same green share exactly reproduces the unchanged Opportunity-level Decode Rate line. The labels remain direction-aware—`Heard by Target` and `Heard by others only` for RX, `Target heard` and `Other signals heard only` for TX—and the station-vote segments can be fractional. At each folded UTC hour, station support counts every distinct station-date-hour presence once and divides that count by the represented dates whose hour slot overlaps the selected analysis window. The total station-bar height is therefore the average number of contributing stations per represented date at that hour; a station can contribute once on each date. The folded station-balanced rate remains a separate pooled equal-station calculation: each station's outcomes at that UTC hour are first pooled across represented dates, its rate is calculated, and every distinct station then receives one equal vote. The folded green component is average station support multiplied by that rate, and the grey component is its complement. Their ratio exactly reproduces the unchanged rate, but the components are a rate-partitioned support display rather than averages of station-date split votes. Folded opportunity components divide the pooled Target and counter-evidence counts by the same per-hour date denominator, so they are direct per-date averages and their ratio preserves the unchanged Opportunity-level Decode Rate. A represented date-hour with no evidence contributes zero and remains in the denominator, while a date whose hour slot lies outside the selected window is excluded. The single folded-date annotation reports the global number of represented UTC dates, but first and last boundary hours can use fewer overlapping dates. A partially overlapping boundary-hour slot counts as one represented slot rather than being weighted by its exposure fraction, so its folded mean can be depressed. Chronological `1 h` bars are directly comparable in units only when their bins are anchored to UTC-hour boundaries; wider chronological bins cover multiple hours and are not directly comparable by height. UTC-hour folding remains available only when at least two UTC dates contribute. All four right axes start at zero and share a ceiling chosen from the maximum of the four rate series with about 20% rounded headroom, capped at `100%`. Each left support axis scales independently and uses compact ham-style notation such as `6k4` for `6,400` and `6M8` for `6,800,000`. A bin with no rate evidence remains missing rather than becoming a synthetic `0%`, and changing the chronological display bin does not reclassify opportunities or rerun the analysis.
 
 A **represented UTC date** is a date with at least one confirmed opportunity from a qualifying station somewhere in the active scope and selected window. A date with no such evidence anywhere is treated as absent coverage and is not introduced as an all-zero day.
 
@@ -1475,15 +1479,15 @@ Let `M` denote that scope's exact evidence median. For a broad range, equal visu
 
 Tick labels show the resulting **absolute Delta SNR**, not distance from `M`. For example, `M = +6 dB` produces the broad labels `-24, -14, -4, 0, +3, +6 M, +9, +12, +16, +26, +36 dB`.
 
-The transform does not change scientific values or grouping. Histogram counts and bin edges remain in raw dB, temporal cells remain rounded integer-dB bins, medians remain raw-dB statistics, and relative-density colors retain the calculation above. Because nonlinear vertical stretching gives equal raw-dB histogram bins unequal displayed heights, read histogram **bar length** against `Share (%)`; displayed bar area is not probability. Success SNR figures remain linear.
+The transform does not change scientific values or grouping. Histogram counts and bin edges remain in raw dB, temporal cells remain rounded integer-dB bins, medians remain raw-dB statistics, and relative-density colors retain the calculation above. Because nonlinear vertical stretching gives equal raw-dB histogram bins unequal displayed heights, read histogram **bar length** against `Share (%)`; displayed bar area is not probability. Performance SNR figures remain linear.
 
-Success Selected Station Evidence filters the retained active-scope rows to exactly one selected `callsign + locator` identity. **Selected Station SNR Evidence** reuses the Segment Inspector's chronological and folded layout but changes the SNR representation from station-relative deviation to actual normalized successful Target SNR. The chronological density receives every retained successful observation from that path, and its line is the median within each selected time bin. The folded density first forms one median for every represented UTC date and UTC hour, then uses those date-hour medians as its population and draws their cross-date median. This date-hour reduction prevents a date with unusually many successful reports from dominating the folded profile. Both panels use one linear actual-SNR range and normalize density independently to the maximum occupied cell in that panel.
+Selected Station Evidence in Performance filters the retained active-scope rows to exactly one selected `callsign + locator` identity. **Selected Station SNR Evidence** reuses the Segment Inspector's chronological and folded layout but changes the SNR representation from station-relative deviation to actual normalized successful Target SNR. The chronological density receives every retained successful observation from that path, and its line is the median within each selected time bin. The folded density first forms one median for every represented UTC date and UTC hour, then uses those date-hour medians as its population and draws their cross-date median. This date-hour reduction prevents a date with unusually many successful reports from dominating the folded profile. Both panels use one linear actual-SNR range and normalize density independently to the maximum occupied cell in that panel.
 
-The SNR figure is conditional on successful Target decodes or reports. Counter outcomes have no recorded Target SNR, no SNR is synthesized for them, and a station with no successful Target SNR receives the explicit unavailable state. Read the SNR figure together with Success Rate because apparently strong successful SNR can coexist with a falling rate when weaker signals are no longer decoded. This successful-decode censoring prevents the SNR-only population from describing missed opportunities.
+The SNR figure is conditional on successful Target decodes or reports. Counter outcomes have no recorded Target SNR, no SNR is synthesized for them, and a station with no successful Target SNR receives the explicit unavailable state. Read the SNR figure together with Decode Rate because apparently strong successful SNR can coexist with a falling rate when weaker signals are no longer decoded. This successful-decode censoring prevents the SNR-only population from describing missed opportunities.
 
-**Selected Station Temporal Evidence** reuses the complete lower 2×2 Segment Inspector figure for the same one-station population. In a chronological bin with confirmed evidence, the selected station contributes one split station vote: the green component is its successful-opportunity fraction and the grey component is its counter-opportunity fraction, so total station height is one. The opportunity row stacks every confirmed successful and counter opportunity, so its total height is evidence depth. With exactly one station, the station-balanced and observation-level Success Rate series are numerically identical in every populated bin; both remain visible because the station row explains path presence and the opportunity row explains evidence volume.
+**Selected Station Temporal Evidence** reuses the complete lower 2×2 Segment Inspector figure for the same one-station population. In a chronological bin with confirmed evidence, the selected station contributes one split station vote: the green component is its successful-opportunity fraction and the grey component is its counter-opportunity fraction, so total station height is one. The opportunity row stacks every confirmed successful and counter opportunity, so its total height is evidence depth. With exactly one station, the Station-balanced Decode Rate and the Opportunity-level Decode Rate are numerically identical in every populated bin; both series remain visible because the station row explains path presence and the opportunity row explains evidence volume.
 
-At each folded UTC hour, the station row shows average selected-station presence per represented UTC date, between zero and one, partitioned by the selected path's folded Success Rate. The opportunity row divides the selected station's successful and counter counts by the same represented-date denominator, retaining an overlapping represented date-hour with no evidence as zero and excluding a date-hour outside the selected window. UTC-hour folding requires at least two represented UTC dates; with fewer dates, only the expanded chronological panels are shown. Changing selection or the display bin recomputes these views from retained evidence without changing opportunity classification, map or Segment Inspector results, Drill-Down rows, pairing, or the completed provider query.
+At each folded UTC hour, the station row shows average selected-station presence per represented UTC date, between zero and one, partitioned by the selected path's folded Decode Rate. The opportunity row divides the selected station's successful and counter counts by the same represented-date denominator, retaining an overlapping represented date-hour with no evidence as zero and excluding a date-hour outside the selected window. UTC-hour folding requires at least two represented UTC dates; with fewer dates, only the expanded chronological panels are shown. Changing selection or the display bin recomputes these views from retained evidence without changing opportunity classification, map or Segment Inspector results, Drill-Down rows, pairing, or the completed provider query.
 
 <a id="sec-7-9"></a>
 #### 7.9 Geography and solar classification
@@ -1503,14 +1507,14 @@ Two integrity rules intentionally precede that geographic filter. The Target-Act
 <a id="sec-8"></a>
 ### 8. Evidence-Matched Claims and Reproducibility
 
-WSPRadar supports precise statements about conditional reach, paired differences, one-sided evidence and where those observed patterns appeared. Strong reporting describes the evidence actually produced, preserves the run definition and keeps laboratory quantities separate from network observables.
+WSPRadar supports precise statements about observed conditional Target behavior, at-least-once reach, paired differences, one-sided evidence and where those patterns appeared. Strong reporting describes the evidence actually produced, preserves the run definition and keeps laboratory quantities separate from network observables.
 
 <a id="sec-8-1"></a>
 #### 8.1 Claims the evidence supports
 
 Use the result type that matches the statement:
 
-* **Success** supports a statement about conditional Target reach among independently confirmed opportunities. Use the receiver-sensitivity and expected-100% rows below together with the denominator in [Section 7.4](#sec-7-4).
+* **Performance** supports a statement about the Target's observed conditional behavior within independently confirmed opportunities. Its separate at-least-once panel supports a statement about reach during the selected interval. Use the receiver-sensitivity and expected-100% rows below together with the denominator in [Section 7.4](#sec-7-4).
 * **Compare Delta SNR** supports a statement about paired Target-minus-Reference evidence. Use the gain and significance rows together with [Sections 7.5](#sec-7-5) and [7.6](#sec-7-6).
 * **Decode Outcomes** support a statement about joint and one-sided evidence. Use the exclusive-decode row and report the paired subset separately.
 * **Distance-dependent patterns** support a statement about the observed distance segments. Use the take-off-angle row because distance is observed while radiation angle is not.
@@ -1519,8 +1523,8 @@ Use the result type that matches the statement:
 | Avoid | Evidence-matched wording |
 |---|---|
 | "Antenna A has 3 dBi more gain." | "Path A produced a +3.0 dB median normalized Delta SNR against B for the paired evidence in this band, window and segment." |
-| "My receiver sensitivity is 72%." | "The Target receiver's Success Rate was 72% among qualifying peer-cycles independently confirmed elsewhere." |
-| "Success should be close to 100%." | "Success is a conditional global network-reach factor; 100% is not the expected baseline." |
+| "My receiver sensitivity is 72%." | "The Target receiver's Decode Rate was 72% among qualifying peer-cycles independently confirmed elsewhere." |
+| "Performance should be close to 100%." | "Decode Rate is conditional on the run's independently confirmed opportunities; 100% is not the expected baseline." |
 | "A is statistically significantly better." | "The paired median favored A for the reported paired evidence and scope; no significance test was performed." |
 | "The antenna has a lower take-off angle." | "The observed advantage was concentrated in the specified longer-distance segments; radiation angle was not measured." |
 | "A is more efficient because it had more exclusive decodes." | "A produced more exclusive decode evidence under the reported power, schedule and network conditions; efficiency was not isolated." |
@@ -1543,7 +1547,7 @@ The evidence must also be interpreted with these properties of the data and desi
 
 * crowd-sourced callsigns, locators, powers and spots can be wrong;
 * the archive contains successful decodes rather than complete attempt/failure logs;
-* Success Rate is conditional on globally sourced observable opportunities;
+* Decode Rate is conditional on globally sourced observable opportunities;
 * a TX cycle decoded nowhere is indistinguishable from no transmission without an external log;
 * Target-active gating is asymmetric;
 * simultaneous TX A/B retains two-chain power, frequency-response, isolation and coupling differences;
@@ -1565,15 +1569,15 @@ For a serious result, preserve the analysis definition, the evidence supporting 
     * **Core Parameters:** RX/TX direction, Target callsign and QTH, band, and relative or absolute UTC time selection;
     * **Comparison Parameters:** Benchmark Design and, as applicable, TX Hardware A/B method, Reference callsign, the Reference Station's independent grid-4, local benchmark method and radius, scheduled TX A/B repeat interval and path phases, and the Reference-side SNR-correction purpose plus signed dB value; Hardware A/B does not serialize a redundant Reference QTH;
     * **Advanced Settings:** solar-state selection, geographic analysis scope, special-callsign and moving-station exclusions, and the applicable evidence thresholds;
-    * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of unpaired evidence or counter-only Success stations.
+    * **durable result-view settings:** selected ranges and directions, selected stations, evidence time bins and temporal view, and visibility of unpaired evidence or counter-only stations in Performance.
 
   Inactive comparison branches, table and Drill-Down filters and other transient UI state are not stored. When preserving a completed run made with `Last X Hours`, save its resolved absolute UTC window if a later run should address the same period; otherwise the relative selection intentionally advances with time.
 
 * Retain the analysis export package and report the evidence actually used for the conclusion:
     * UTC period, band, direction, Target identity, comparison design and selected geographic and temporal scope;
-    * Success Rate with its denominator and weighting level;
+    * Decode Rate with its denominator and weighting level;
     * for Compare, joint-station and joint-spot or pair counts and station-level median Delta SNR;
-    * for Success, the qualifying-station and confirmed-opportunity support behind the displayed weighting and scope;
+    * for Performance, the qualifying-station and confirmed-opportunity support behind the displayed weighting and scope;
     * for Compare, relevant Decode Outcomes and `STATIONS` / `SPOTS` distributions;
     * the bounded interpretation and any known evidence limitations.
 
@@ -1607,7 +1611,7 @@ compare/                         # when a benchmark result exists
   table_drilldown_selected_stations.csv
   table_drilldown_all_stations_current_segment.csv
   analysis_cache.parquet
-success/                         # when a Success result exists
+success/                         # canonical compatibility folder for a Performance result
   figure_map_highres.png
   figure_segment_insight.png
   figure_segment_temporal_snr_deviation.png
@@ -1622,11 +1626,11 @@ success/                         # when a Success result exists
 
 Figures use a high-resolution light/paper presentation. Files without an applicable recipe or selected evidence can be absent. CSV files reflect current segment and station selections. Parquet files contain processed post-filter evidence, including only peer rows retained by the run's geographic analysis scope, not untouched upstream dumps.
 
-For Success, `figure_segment_insight.png` contains the direction-specific at-least-once station-reach panel, **RX/TX Success Rate by TX-/RX-Station Distance**, and **Successful Target SNR by TX-/RX-Station Distance** for the active Inspector scope. `figure_segment_temporal_snr_deviation.png` contains the chronological/UTC-hour **RX/TX Success Temporal SNR Evidence** figure. `figure_segment_temporal_evidence.png` contains the aligned lower **RX/TX Success Temporal Evidence** figure with shared **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h bins)** column headers, short station/opportunity y-axis rows, folded per-represented-date subtitles, direction-specific green/grey outcome stacks, four common-scale Success Rate axes and one shared legend. Its folded subtitles identify average station-date-hour support and average opportunities per UTC date; its chronological stacks remain counts per selected time bin. When fewer than two UTC dates contribute, the chronological panels expand and the folded-view fallback is retained.
+For Performance, `figure_segment_insight.png` contains the direction-specific at-least-once station-reach panel, **RX/TX Decode Rate by TX-/RX-Station Distance**, and **Successful Target SNR by TX-/RX-Station Distance** for the active Inspector scope. `figure_segment_temporal_snr_deviation.png` contains the chronological/UTC-hour **RX/TX Performance Temporal SNR Evidence** figure. `figure_segment_temporal_evidence.png` contains the aligned lower **RX/TX Performance Temporal Evidence** figure with shared **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h bins)** column headers, short station/opportunity y-axis rows, folded per-represented-date subtitles, direction-specific green/grey outcome stacks, four common-scale Decode Rate axes and one shared legend. Its folded subtitles identify average station-date-hour support and average opportunities per UTC date; its chronological stacks remain counts per selected time bin. When fewer than two UTC dates contribute, the chronological panels expand and the folded-view fallback is retained.
 
-The two stable Success selected-station filenames preserve the shared temporal views independently. `figure_selected_station_snr_evidence.png` contains the full-width **Selected Station SNR Evidence** figure with actual normalized successful Target SNR, every successful observation in the chronological density and one median per represented date-hour in the folded density. `figure_selected_station_temporal_evidence.png` contains the full-width **Selected Station Temporal Evidence** figure with station presence, opportunity depth and their equal one-station Success Rate series. Both use the same selected identity, temporal recipes and renderers as their browser previews, and both omit folded UTC-hour panels when fewer than two represented dates contribute. For Compare, the established `figure_selected_station_evidence.png` continues to reproduce the selected-station temporal view active when the export is prepared. Chronological mode uses the selected Compare time bin; `UTC-Hour` uses fixed one-hour slots and the same selected evidence rows. The Compare mode is stored in the saved `.config` and in `run_metadata.json`.
+The two stable filenames for a station selected in Performance preserve the shared temporal views independently. `figure_selected_station_snr_evidence.png` contains the full-width **Selected Station SNR Evidence** figure with actual normalized successful Target SNR, every successful observation in the chronological density and one median per represented date-hour in the folded density. `figure_selected_station_temporal_evidence.png` contains the full-width **Selected Station Temporal Evidence** figure with station presence, opportunity depth and their equal one-station Decode Rate series. Both use the same selected identity, temporal recipes and renderers as their browser previews, and both omit folded UTC-hour panels when fewer than two represented dates contribute. For Compare, the established `figure_selected_station_evidence.png` continues to reproduce the selected-station temporal view active when the export is prepared. Chronological mode uses the selected Compare time bin; `UTC-Hour` uses fixed one-hour slots and the same selected evidence rows. The Compare mode is stored in the saved `.config` and in `run_metadata.json`.
 
-The saved configuration records the applicable runnable settings. `run_metadata.json` automatically records the application name and version; export time; language; direction; band; benchmark choice; configured time selection; Reference-side correction mode and numeric value as `benchmark_snr_correction_mode` and `benchmark_snr_correction_db`; filters; thresholds; result blocks and inspector selections. For selected Success evidence, metadata also populates `selected_station_label`, `selected_station_context`, `selected_station_count`, `selected_station_role`, `selected_evidence_weighting` and the stable filename-to-description mapping `selected_evidence_figures`; it records the one exact selected identity and a count of one. Compare records its exact identities in `selected_stations`, its selection count and the active evidence recipe and time-view fields; the optional descriptive Success fields remain unset. Its browser display retains the established rule: one exact identity, the named identities for two through five selections, or only the direction-aware selected-station count above five.
+The saved configuration records the applicable runnable settings. `run_metadata.json` automatically records the application name and version; export time; language; direction; band; benchmark choice; configured time selection; Reference-side correction mode and numeric value as `benchmark_snr_correction_mode` and `benchmark_snr_correction_db`; filters; thresholds; result blocks and inspector selections. For selected Performance evidence, metadata also populates `selected_station_label`, `selected_station_context`, `selected_station_count`, `selected_station_role`, `selected_evidence_weighting` and the stable filename-to-description mapping `selected_evidence_figures`; it records the one exact selected identity and a count of one. Compare records its exact identities in `selected_stations`, its selection count and the active evidence recipe and time-view fields; the optional descriptive Performance fields remain unset. Its browser display retains the established rule: one exact identity, the named identities for two through five selections, or only the direction-aware selected-station count above five.
 
 The package contains the processed evidence used by the completed analysis, not untouched upstream responses or authoritative external operating and calibration records. Retain the ZIP with the external experiment record described in [Section 8.3](#sec-8-3).
 

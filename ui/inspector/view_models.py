@@ -79,7 +79,7 @@ class OpportunityInspectorViewModel:
 def _localized_integer(count: int, labels) -> str:
     """Format an integer with the presentation catalog's thousands separator."""
     formatted = f"{int(count):,}"
-    separator = str(labels.get("fmt_results_thousands_separator", ","))
+    separator = str(labels["fmt_results_thousands_separator"])
     return formatted if separator == "," else formatted.replace(",", separator)
 
 
@@ -143,8 +143,8 @@ def _compare_labels(analysis_context, labels, *, is_sequential):
         analysis_context.comparison_mode == COMPARISON_HARDWARE_AB
         and is_sequential
     ):
-        target_name = labels.get("txt_target", "Target")
-        reference_header = labels.get("txt_reference", "Reference")
+        target_name = labels["txt_target"]
+        reference_header = labels["txt_reference"]
         target_only_label = labels["leg_only_me"].format(callsign=target_name)
         reference_only_label = labels["leg_only_ref"].format(
             ref_callsign=reference_header
@@ -187,12 +187,12 @@ def build_compare_inspector_view_model(
         and analysis_context.local_benchmark == LOCAL_BENCHMARK_MEDIAN
     )
     yield_reference_header = (
-        labels.get("lbl_neighborhood", "Neighborhood")
+        labels["lbl_neighborhood"]
         if is_local_median
         else reference_header
     )
     if is_local_median:
-        reference_header = labels.get("opt_local_median", "Local Median Neighborhood")
+        reference_header = labels["opt_local_median"]
 
     remote_label = (
         labels["txt_rx_stations"]
@@ -223,7 +223,7 @@ def build_compare_inspector_view_model(
     azimuth_column = labels["tbl_col_az"]
 
     if is_sequential:
-        joint_column = labels.get("tbl_col_joint_pairs", "Joint Pairs")
+        joint_column = labels["tbl_col_joint_pairs"]
         source_columns = [
             "peer_sign",
             "peer_grid",
@@ -376,10 +376,7 @@ def build_opportunity_inspector_view_model(
     )
     if confirmed.empty:
         summary_lines = [
-            labels.get(
-                "txt_results_success_no_eligible",
-                "No station meets the confirmed-opportunity threshold in this scope.",
-            )
+            labels["txt_results_success_no_eligible"]
         ]
     else:
         summary_lines = [
@@ -405,22 +402,10 @@ def build_opportunity_inspector_view_model(
             ),
         ]
 
-    snr_column = labels.get(
-        "tbl_col_success_snr_display",
-        "Median successful Target SNR (dB @ 30 dBm)",
-    )
-    export_snr_column = labels.get(
-        "tbl_col_success_snr",
-        "Median Target SNR (dB @ 30 dBm)",
-    )
-    confirmed_opportunities_column = labels.get(
-        "tbl_col_confirmed_opportunities",
-        "Confirmed opportunities",
-    )
-    rate_column = labels.get(
-        "tbl_col_success_rate",
-        "Success Rate (%)",
-    )
+    snr_column = labels["tbl_col_success_snr_display"]
+    export_snr_column = labels["tbl_col_success_snr"]
+    confirmed_opportunities_column = labels["tbl_col_confirmed_opportunities"]
+    rate_column = labels["tbl_col_success_rate"]
     display_station_table = confirmed[
         [
             "peer_sign",

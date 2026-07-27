@@ -73,7 +73,7 @@ def render_metadata_expander(t):
     if not title and not description:
         return
 
-    with st.expander(t.get("exp_metadata", "🏷️ Metadata"), expanded=True):
+    with st.expander(t["exp_metadata"], expanded=True):
         if title:
             st.markdown(_prepare_loaded_profile_title_markdown(title))
         if description:
@@ -199,11 +199,8 @@ def _comparison_column_widths(t, comparison_mode, analysis_direction):
 def _tx_ab_threshold_label_and_help(t):
     """Return evidence-threshold wording for scheduled TX A/B pairs."""
     return (
-        t.get("cfg_min_joint_pairs", "Min. Joint Pairs"),
-        t.get(
-            "hlp_min_joint_pairs",
-            "Sequential TX A/B requires joint scheduled pairs.",
-        ),
+        t["cfg_min_joint_pairs"],
+        t["hlp_min_joint_pairs"],
     )
 
 
@@ -234,24 +231,18 @@ def _render_reference_identity(
     )
     with target_callsign_column:
         text_input_no_autocomplete(
-            t.get("lbl_target_callsign", "Target Callsign"),
+            t["lbl_target_callsign"],
             value=target_callsign,
             disabled=True,
         )
     with reference_callsign_column:
         text_input_no_autocomplete(
-            t.get("lbl_reference_callsign", "Reference Callsign"),
+            t["lbl_reference_callsign"],
             key="val_ref_callsign",
-            placeholder=t.get(
-                "ph_reference_callsign",
-                "e.g. DL1MKS/P or DL1MKS-1",
-            ),
+            placeholder=t["ph_reference_callsign"],
             help=help_overrides.get(
                 "reference_callsign",
-                t.get(
-                    "hlp_callsign_entry",
-                    "Use the exact WSPR archive identifier; standard callsign forms are recommended.",
-                ),
+                t["hlp_callsign_entry"],
             ),
             max_chars=15,
             normalize_uppercase=True,
@@ -263,9 +254,9 @@ def _render_reference_identity(
     with target_qth_column:
         text_input_no_autocomplete(
             (
-                t.get("lbl_target_grid4", "Target Grid-4")
+                t["lbl_target_grid4"]
                 if derives_hardware_grid4
-                else t.get("lbl_target_qth", "Target QTH")
+                else t["lbl_target_qth"]
             ),
             value=hardware_grid4 if derives_hardware_grid4 else target_qth,
             disabled=True,
@@ -273,16 +264,16 @@ def _render_reference_identity(
     with reference_qth_column:
         if derives_hardware_grid4:
             text_input_no_autocomplete(
-                t.get("lbl_reference_grid4", "Reference Grid-4"),
+                t["lbl_reference_grid4"],
                 value=hardware_grid4,
                 disabled=True,
             )
         else:
             reference_qth_help = help_overrides.get("reference_qth")
             text_input_no_autocomplete(
-                t.get("lbl_reference_grid4", "Reference Grid-4"),
+                t["lbl_reference_grid4"],
                 key="val_ref_qth",
-                placeholder=t.get("ph_reference_qth", "e.g. JN37"),
+                placeholder=t["ph_reference_qth"],
                 max_chars=4,
                 normalize_uppercase=True,
                 on_change=on_change,
@@ -314,12 +305,7 @@ def _render_reference_identity(
         and reference_callsign
         and reference_callsign == target_callsign
     ):
-        st.error(
-            t.get(
-                "err_reference_callsign_same",
-                "Target and Reference callsigns must be different.",
-            )
-        )
+        st.error(t["err_reference_callsign_same"])
 
 
 def _render_tx_ab_method_selector(
@@ -334,7 +320,7 @@ def _render_tx_ab_method_selector(
     methods = ("simultaneous", "sequential")
     if method_content is not None:
         st.radio(
-            t.get("lbl_tx_ab_method", "TX A/B Method"),
+            t["lbl_tx_ab_method"],
             methods,
             key="val_tx_ab_method",
             format_func=lambda method: method_content[method]["label"],
@@ -349,15 +335,12 @@ def _render_tx_ab_method_selector(
         return
 
     st.segmented_control(
-        t.get("lbl_tx_ab_method", "TX A/B Method"),
+        t["lbl_tx_ab_method"],
         methods,
         selection_mode="single",
         required=True,
         key="val_tx_ab_method",
-        format_func=lambda method: t.get(
-            f"opt_tx_ab_{method}",
-            method.title(),
-        ),
+        format_func=lambda method: t[f"opt_tx_ab_{method}"],
         width="stretch",
         on_change=on_change,
         args=on_change_args,
@@ -403,22 +386,17 @@ def _render_tx_ab_schedule(
     )
 
     with st.container(border=True):
-        st.markdown(f"**{t.get('lbl_tx_ab_schedule', 'TX A/B Schedule')}**")
+        st.markdown(f"**{t['lbl_tx_ab_schedule']}**")
         st.selectbox(
-            t.get("lbl_tx_ab_repeat_interval", "Repeat Interval"),
+            t["lbl_tx_ab_repeat_interval"],
             TX_AB_REPEAT_INTERVAL_OPTIONS,
             key="val_tx_ab_repeat_interval_minutes",
             format_func=lambda minutes: f"{minutes} min",
-            help=t.get("hlp_tx_ab_repeat_interval", ""),
+            help=t["hlp_tx_ab_repeat_interval"],
             on_change=handle_tx_ab_repeat_interval_change,
             args=(on_change, on_change_args),
         )
-        st.caption(
-            t.get(
-                "txt_tx_ab_shared_interval",
-                "Shared by Target and Reference paths",
-            )
-        )
+        st.caption(t["txt_tx_ab_shared_interval"])
 
         target_column, swap_column, reference_column = st.columns(
             [0.46, 0.08, 0.46],
@@ -427,11 +405,11 @@ def _render_tx_ab_schedule(
         )
         with target_column:
             st.selectbox(
-                t.get("lbl_tx_ab_target_start", "Target Start"),
+                t["lbl_tx_ab_target_start"],
                 target_options,
                 key="val_tx_ab_target_start_minute",
                 format_func=_format_utc_minute,
-                help=t.get("hlp_tx_ab_start", ""),
+                help=t["hlp_tx_ab_start"],
                 on_change=handle_tx_ab_target_start_change,
                 args=(on_change, on_change_args),
             )
@@ -439,18 +417,18 @@ def _render_tx_ab_schedule(
             st.button(
                 "⇄",
                 key="swap_tx_ab_schedule_starts",
-                help=t.get("hlp_tx_ab_swap", "Swap Target and Reference starts"),
+                help=t["hlp_tx_ab_swap"],
                 on_click=swap_tx_ab_starts,
                 args=(on_change, on_change_args),
                 width="stretch",
             )
         with reference_column:
             st.selectbox(
-                t.get("lbl_tx_ab_reference_start", "Reference Start"),
+                t["lbl_tx_ab_reference_start"],
                 reference_options,
                 key="val_tx_ab_reference_start_minute",
                 format_func=_format_utc_minute,
-                help=t.get("hlp_tx_ab_start", ""),
+                help=t["hlp_tx_ab_start"],
                 on_change=handle_tx_ab_reference_start_change,
                 args=(on_change, on_change_args),
             )
@@ -467,23 +445,19 @@ def _render_tx_ab_schedule(
             f"{minute:02d}" for minute in reference_minutes
         )
         st.markdown(
-            f"**{t.get('txt_target', 'Target')}:** `{target_preview}`  \n"
-            f"**{t.get('txt_reference', 'Reference')}:** `{reference_preview}`"
+            f"**{t['txt_target']}:** `{target_preview}`  \n"
+            f"**{t['txt_reference']}:** `{reference_preview}`"
         )
         transmissions_per_hour = 60 // repeat_interval
         st.success(
-            t.get(
-                "txt_tx_ab_schedule_valid",
-                "Disjoint schedules · {separation} min separation · "
-                "{transmissions} transmissions/hour/path",
-            ).format(
+            t["txt_tx_ab_schedule_valid"].format(
                 separation=separation_minutes,
                 transmissions=transmissions_per_hour,
             ),
             icon=":material/check_circle:",
         )
         if repeat_interval in {4, 6}:
-            st.warning(t.get("warn_tx_ab_high_duty", ""), icon=":material/warning:")
+            st.warning(t["warn_tx_ab_high_duty"], icon=":material/warning:")
 
 def _render_analysis_direction_selector(
     t,
@@ -535,16 +509,17 @@ def render_target_and_window_fields(
     core_left, core_right = st.columns([0.5, 0.5], gap="large")
     with core_left:
         direction = st.session_state.get("val_analysis_direction")
-        callsign_label = t.get(f"lbl_callsign_{direction}", t["lbl_callsign"])
+        callsign_label = (
+            t[f"lbl_callsign_{direction}"]
+            if direction in {"rx", "tx"}
+            else t["lbl_callsign"]
+        )
         text_input_no_autocomplete(
             callsign_label,
             key="val_callsign",
             help=help_overrides.get(
                 "callsign",
-                t.get(
-                    "hlp_callsign_entry",
-                    "Use the exact WSPR archive identifier; standard callsign forms are recommended.",
-                ),
+                t["hlp_callsign_entry"],
             ),
             max_chars=15,
             normalize_uppercase=True,
@@ -829,16 +804,16 @@ def render_station_population_fields(
 ):
     """Render shared identity-population exclusions."""
     st.toggle(
-        t.get("lbl_exclude_special", "Exclude Special Callsigns Q, 0, 1"),
+        t["lbl_exclude_special"],
         key="val_exclude_special_callsigns",
-        help=t.get("tt_exclude_special", "Filter out balloon telemetry."),
+        help=t["tt_exclude_special"],
         on_change=on_change,
         args=on_change_args,
     )
     st.toggle(
-        t.get("lbl_filter_moving", "Exclude Moving Stations"),
+        t["lbl_filter_moving"],
         key="val_filter_moving",
-        help=t.get("tt_filter_moving", ""),
+        help=t["tt_filter_moving"],
         on_change=on_change,
         args=on_change_args,
     )
@@ -950,10 +925,7 @@ def render_evidence_threshold_fields(
             )
         else:
             st.slider(
-                t.get(
-                    "lbl_min_opportunities",
-                    "Minimum confirmed opportunities per station",
-                ),
+                t["lbl_min_opportunities"],
                 1,
                 100,
                 key="val_min_opportunities",

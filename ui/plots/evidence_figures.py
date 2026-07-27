@@ -45,9 +45,6 @@ EVIDENCE_DENSITY_MAX = 100.0
 TEMPORAL_MEDIAN_LINK_MIN_COUNT = 3
 SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL = "chronological"
 SELECTED_TEMPORAL_VIEW_UTC_HOUR = "utc_hour"
-FOLDED_UTC_UNAVAILABLE_TEXT = (
-    "UTC-hour pattern unavailable - requires joint evidence from at least 2 UTC dates."
-)
 FOLDED_UTC_UNAVAILABLE_WRAP_WIDTH = 34
 FOLDED_UTC_UNAVAILABLE_DETAIL_WRAP_WIDTH = 30
 GRID_COLOR = "#777777"
@@ -294,24 +291,6 @@ def _compare_median_focus_spec_from_recipe(recipe, fallback_values):
             pass
     return _build_compare_median_focus_spec(fallback_values)
 
-def _default_evidence_labels():
-    """Return the fallback presentation labels for Compare evidence."""
-    return {
-        "dist_title": "\u0394 SNR Distribution",
-        "time_title": "\u0394 SNR over Time",
-        "y_label": "\u0394 SNR (dB)",
-        "x_label": "Date/Time (UTC)",
-        "aggregate": "Selected Stations",
-        "median_label": "Median",
-        "bin_median_label": "Bin median",
-        "pooled_median_label": "Median",
-        "mean_label": "Mean",
-        "pooled_mean_label": "Mean",
-        "median_focus_axis_label": (
-            "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
-        ),
-    }
-
 def _add_horizontal_grid(ax):
     ax.set_axisbelow(True)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
@@ -343,7 +322,7 @@ def _add_metric_median_reference(
     median_db,
     *,
     orientation,
-    label="Median",
+    label,
     zorder=4.0,
     gid=None,
 ):
@@ -417,8 +396,8 @@ def _apply_compare_median_focus_axis(
     ax,
     spec,
     *,
-    axis_label="\u0394 SNR (dB \u00b7 median-centered nonlinear)",
-    median_label="Median",
+    axis_label,
+    median_label,
     show_median_legend=True,
     draw_median_reference=True,
 ):
@@ -582,7 +561,7 @@ def _set_metric_axis_labels(
         ax.set_ylabel(y_label, color=y_color, **text_properties)
 
 
-def _add_metric_mean_annotation(ax, mean_db, *, label="Mean"):
+def _add_metric_mean_annotation(ax, mean_db, *, label):
     """Place one signed arithmetic-mean summary at the lower-right foreground."""
     mean_annotation = ax.text(
         0.98,
@@ -616,6 +595,7 @@ def _draw_vertical_metric_histogram(
     values,
     color="#36aaf9",
     *,
+    share_axis_label,
     hatch=None,
     artist_gid=None,
 ):
@@ -645,7 +625,7 @@ def _draw_vertical_metric_histogram(
     if artist_gid:
         for rectangle in rectangles:
             rectangle.set_gid(artist_gid)
-    ax.set_ylabel("Share (%)", color="white")
+    ax.set_ylabel(share_axis_label, color="white")
     ax.set_ylim(bottom=0.0)
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
@@ -653,7 +633,13 @@ def _draw_vertical_metric_histogram(
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
     return float(np.median(values))
 
-def _draw_horizontal_metric_histogram(ax, values, color="#36aaf9"):
+def _draw_horizontal_metric_histogram(
+    ax,
+    values,
+    color="#36aaf9",
+    *,
+    share_axis_label,
+):
     """Draw a histogram with the SNR metric on the vertical axis."""
     values = _metric_values(values)
     if len(values) == 0:
@@ -675,7 +661,7 @@ def _draw_horizontal_metric_histogram(ax, values, color="#36aaf9"):
         linewidth=0.7,
         zorder=2
     )
-    ax.set_xlabel("Share (%)", color="white")
+    ax.set_xlabel(share_axis_label, color="white")
     ax.set_xlim(left=0.0)
     ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
@@ -696,8 +682,8 @@ def _annotate_selected_compare_distribution(
     median = float(np.median(metric_values))
     arithmetic_mean = float(np.mean(metric_values))
 
-    median_label = labels.get("median_label", "Median")
-    mean_label = labels.get("mean_label", "Mean")
+    median_label = labels["median_label"]
+    mean_label = labels["mean_label"]
 
     median_line = _add_metric_median_reference(
         ax,
@@ -741,7 +727,7 @@ def _draw_single_value_distribution(ax, value, labels, color=EVIDENCE_AGG_COLOR)
     ax.text(
         0.5,
         0.42,
-        "single evidence point",
+        labels["single_evidence_point"],
         transform=ax.transAxes,
         color="#cccccc",
         ha="center",
@@ -795,7 +781,12 @@ def _draw_single_time_point(ax, plot_df, labels):
     ax.set_yticklabels([f"{value:.1f}"], color="white")
     ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=6))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
-    ax.set_title(f"{labels['time_title']} (single point)", color="white", fontweight="bold", pad=10)
+    ax.set_title(
+        labels["single_point_title"].format(title=labels["time_title"]),
+        color="white",
+        fontweight="bold",
+        pad=10,
+    )
     ax.set_xlabel(labels["x_label"], color="white")
     ax.set_ylabel(labels["y_label"], color="white")
     _apply_minimum_metric_yspan(ax, center=value)
@@ -830,26 +821,6 @@ def _time_agg_options_for_span(plot_df):
             return options, default
 
     return EVIDENCE_TIME_AGG_PRESETS[-1][1], EVIDENCE_TIME_AGG_PRESETS[-1][2]
-
-
-def _relative_density_label(count_label):
-    """Describe panel-relative density using the supplied evidence-count basis."""
-    raw_label = str(count_label or "Evidence count").strip()
-    if "% of panel maximum" in raw_label.casefold():
-        return raw_label
-
-    known_bases = {
-        "joint spot count": "joint-spot",
-        "scheduled pair count": "scheduled-pair",
-    }
-    normalized_label = " ".join(raw_label.casefold().split())
-    evidence_basis = known_bases.get(normalized_label)
-    if evidence_basis is None:
-        evidence_basis = raw_label
-        if normalized_label.endswith(" count"):
-            evidence_basis = raw_label[:-6].strip()
-        evidence_basis = evidence_basis.casefold() or "evidence"
-    return f"Relative {evidence_basis} density (% of panel maximum)"
 
 
 def _prepare_temporal_metric_rows(plot_df):
@@ -918,7 +889,7 @@ def _draw_temporal_median_overlay(
     x_centers,
     median_df,
     *,
-    label="Bin median",
+    label,
 ):
     """Mark each nonempty-bin median for the legend and link supported neighbors."""
     medians = median_df["median"].to_numpy(dtype=float)
@@ -1009,25 +980,9 @@ def _folded_utc_hour_density_components(work_df, metric_bins):
     return count_grid, median_df, x_edges, x_centers
 
 
-def _default_folded_utc_hour_title(utc_date_count=None):
-    """Return the compact English title for a fixed one-hour UTC fold."""
-    return "\u0394 SNR by UTC Hour (1 h bins)"
-
-
-def _default_folded_utc_date_annotation(utc_date_count):
-    """Describe the UTC-date depth separately from the folded panel title."""
-    utc_date_count = int(utc_date_count)
-    if utc_date_count >= 2:
-        return f"{utc_date_count} UTC dates folded"
-    date_noun = "date" if utc_date_count == 1 else "dates"
-    return f"{utc_date_count} UTC {date_noun} available; folding unavailable"
-
-
 def _draw_folded_utc_unavailable_annotation(axis, message):
     """Draw an opaque, compact notice when a UTC-hour fold is unsupported."""
-    normalized_message = " ".join(
-        str(message or FOLDED_UTC_UNAVAILABLE_TEXT).split()
-    )
+    normalized_message = " ".join(str(message).split())
     if " - " in normalized_message:
         headline, detail = normalized_message.split(" - ", maxsplit=1)
         detail = detail[:1].upper() + detail[1:]
@@ -1072,20 +1027,25 @@ def _draw_folded_utc_unavailable_annotation(axis, message):
     return annotation
 
 
-def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_sequential):
+def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels):
     """Draw Compare UTC time-bin evidence as panel-relative density."""
     bin_minutes = _time_agg_minutes(time_agg)
     work_df = _prepare_temporal_metric_rows(plot_df)
 
     if work_df.empty:
         ax.text(
-            0.5, 0.5, "No selected evidence available.",
+            0.5, 0.5, labels["empty_text"],
             transform=ax.transAxes,
             color="#cccccc",
             ha="center",
             va="center"
         )
-        ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
+        ax.set_title(
+            labels["time_title_template"].format(time_bin=time_agg),
+            color="white",
+            fontweight="bold",
+            pad=10,
+        )
         ax.set_xlabel(labels["x_label"], color="white")
         ax.set_ylabel(labels["y_label"], color="white")
         return
@@ -1109,16 +1069,9 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_sequential):
         ax,
         x_centers,
         median_df,
-        label=labels.get("bin_median_label", "Bin median"),
+        label=labels["bin_median_label"],
     )
 
-    count_label = labels.get("count_label")
-    if not count_label:
-        count_label = (
-            "Scheduled pair count"
-            if is_sequential
-            else "Joint spot count"
-        )
     colorbar_kwargs = {
         "ax": ax,
         "pad": 0.012,
@@ -1130,10 +1083,7 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_sequential):
         ),
     }
     cbar = fig.colorbar(mesh, **colorbar_kwargs)
-    colorbar_label = labels.get("density_label") or _relative_density_label(
-        count_label
-    )
-    cbar.set_label(colorbar_label, color="white")
+    cbar.set_label(labels["density_label"], color="white")
     cbar.ax.tick_params(colors="white", labelsize=8)
     cbar.outline.set_edgecolor("#444444")
 
@@ -1143,7 +1093,12 @@ def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels, is_sequential):
     ax.set_xlim(x_edges[0], x_edges[-1])
     ax.set_ylim(metric_min - 0.5, metric_max + 0.5)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=7, integer=True))
-    ax.set_title(f"{labels['time_title']} ({time_agg} bins)", color="white", fontweight="bold", pad=10)
+    ax.set_title(
+        labels["time_title_template"].format(time_bin=time_agg),
+        color="white",
+        fontweight="bold",
+        pad=10,
+    )
     ax.set_xlabel(labels["x_label"], color="white")
     ax.set_ylabel(labels["y_label"], color="white")
 
@@ -1153,20 +1108,18 @@ def _draw_folded_utc_hour_heatmap(
     ax,
     plot_df,
     labels,
-    is_sequential,
     *,
-    folded_title=None,
-    folded_x_label=None,
-    density_label=None,
-    folded_unavailable_text=None,
+    folded_title,
+    folded_x_label,
+    density_label,
+    folded_unavailable_text,
 ):
     """Draw selected Compare evidence in 24 fixed UTC-hour density slots."""
     work_df = _prepare_temporal_metric_rows(plot_df)
     utc_date_count = _temporal_utc_date_count(work_df)
-    resolved_folded_title = (
-        str(folded_title).replace("{utc_date_count}", str(utc_date_count))
-        if folded_title is not None
-        else _default_folded_utc_hour_title(utc_date_count)
+    resolved_folded_title = str(folded_title).replace(
+        "{utc_date_count}",
+        str(utc_date_count),
     )
     ax.set_xlim(0.0, 24.0)
     ax.set_xticks(np.arange(0, 25, 3))
@@ -1177,14 +1130,14 @@ def _draw_folded_utc_hour_heatmap(
         fontweight="bold",
         pad=10,
     )
-    ax.set_xlabel(folded_x_label or "UTC hour", color="white")
+    ax.set_xlabel(folded_x_label, color="white")
     ax.set_ylabel(labels["y_label"], color="white")
 
     if work_df.empty:
         ax.text(
             0.5,
             0.5,
-            "No selected evidence available.",
+            labels["empty_text"],
             transform=ax.transAxes,
             color="#cccccc",
             ha="center",
@@ -1200,8 +1153,7 @@ def _draw_folded_utc_hour_heatmap(
     if utc_date_count < 2:
         _draw_folded_utc_unavailable_annotation(
             ax,
-            folded_unavailable_text
-            or FOLDED_UTC_UNAVAILABLE_TEXT,
+            folded_unavailable_text,
         )
         return None
 
@@ -1215,15 +1167,9 @@ def _draw_folded_utc_hour_heatmap(
         ax,
         x_centers,
         median_df,
-        label=labels.get("bin_median_label", "Bin median"),
+        label=labels["bin_median_label"],
     )
 
-    count_label = labels.get("count_label")
-    if not count_label:
-        count_label = "Scheduled pair count" if is_sequential else "Joint spot count"
-    resolved_density_label = density_label or labels.get("density_label")
-    if not resolved_density_label:
-        resolved_density_label = _relative_density_label(count_label)
     colorbar = fig.colorbar(
         mesh,
         ax=ax,
@@ -1231,7 +1177,7 @@ def _draw_folded_utc_hour_heatmap(
         fraction=0.03,
         ticks=np.linspace(EVIDENCE_DENSITY_MIN, EVIDENCE_DENSITY_MAX, 5),
     )
-    colorbar.set_label(resolved_density_label, color="white")
+    colorbar.set_label(density_label, color="white")
     colorbar.ax.tick_params(colors="white", labelsize=8)
     colorbar.outline.set_edgecolor("#444444")
     return mesh
@@ -1243,46 +1189,34 @@ def _segment_temporal_evidence_export_recipe(
     time_bin,
     count_label,
     *,
-    chronological_title=None,
-    chronological_x_label=None,
-    folded_title=None,
-    folded_x_label=None,
-    folded_date_annotation=None,
-    density_label=None,
-    folded_unavailable_text=None,
-    median_focus_axis_label=None,
-    median_label=None,
-    bin_median_label=None,
+    chronological_title,
+    chronological_x_label,
+    metric_axis_label,
+    folded_title,
+    folded_x_label,
+    folded_date_annotation,
+    density_label,
+    folded_unavailable_text,
+    median_focus_axis_label,
+    median_label,
+    bin_median_label,
 ):
-    """Return compact arrays and optional localized labels for segment time evidence."""
+    """Return compact arrays and localized labels for segment time evidence."""
     work_df = _prepare_temporal_metric_rows(plot_df)
     time_bin = str(time_bin)
     utc_date_count = _temporal_utc_date_count(work_df)
-    if chronological_title is None:
-        chronological_title = f"\u0394 SNR over Time ({time_bin} bins)"
-    else:
-        chronological_title = str(chronological_title).replace(
-            "{time_bin}",
-            time_bin,
-        )
-    if folded_title is None:
-        folded_title = _default_folded_utc_hour_title(utc_date_count)
-    else:
-        folded_title = str(folded_title).replace(
-            "{utc_date_count}",
-            str(utc_date_count),
-        )
-    if folded_date_annotation is None:
-        folded_date_annotation = _default_folded_utc_date_annotation(
-            utc_date_count
-        )
-    else:
-        folded_date_annotation = str(folded_date_annotation).replace(
-            "{utc_date_count}",
-            str(utc_date_count),
-        )
-    if density_label is None:
-        density_label = _relative_density_label(count_label)
+    chronological_title = str(chronological_title).replace(
+        "{time_bin}",
+        time_bin,
+    )
+    folded_title = str(folded_title).replace(
+        "{utc_date_count}",
+        str(utc_date_count),
+    )
+    folded_date_annotation = str(folded_date_annotation).replace(
+        "{utc_date_count}",
+        str(utc_date_count),
+    )
     median_focus = _compare_median_focus_recipe(
         _build_compare_median_focus_spec(work_df["metric"])
     )
@@ -1293,24 +1227,17 @@ def _segment_temporal_evidence_export_recipe(
         "time_bin": time_bin,
         "count_label": str(count_label),
         "chronological_title": str(chronological_title),
-        "chronological_x_label": str(
-            chronological_x_label or "Date/Time (UTC)"
-        ),
+        "chronological_x_label": str(chronological_x_label),
+        "metric_axis_label": str(metric_axis_label),
         "folded_title": str(folded_title),
-        "folded_x_label": str(folded_x_label or "UTC hour"),
+        "folded_x_label": str(folded_x_label),
         "folded_date_annotation": str(folded_date_annotation),
         "density_label": str(density_label),
-        "folded_unavailable_text": str(
-            folded_unavailable_text
-            or FOLDED_UTC_UNAVAILABLE_TEXT
-        ),
+        "folded_unavailable_text": str(folded_unavailable_text),
         "median_focus": median_focus,
-        "median_focus_axis_label": str(
-            median_focus_axis_label
-            or "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
-        ),
-        "median_label": str(median_label or "Median"),
-        "bin_median_label": str(bin_median_label or "Bin median"),
+        "median_focus_axis_label": str(median_focus_axis_label),
+        "median_label": str(median_label),
+        "bin_median_label": str(bin_median_label),
         "utc_date_count": utc_date_count,
         "plot_time_ns": (
             work_df["plot_time"]
@@ -1363,7 +1290,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
         work_df["metric"],
     )
 
-    time_bin = str(recipe.get("time_bin", "3h"))
+    time_bin = str(recipe["time_bin"])
     utc_date_count = _temporal_utc_date_count(work_df)
     is_folded_available = utc_date_count >= 2
     bin_minutes = _time_agg_minutes(time_bin)
@@ -1420,7 +1347,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
         chronological_axis,
         chronological_centers,
         chronological_medians,
-        label=recipe.get("bin_median_label", "Bin median"),
+        label=recipe["bin_median_label"],
     )
     folded_mesh = None
     if is_folded_available:
@@ -1435,15 +1362,12 @@ def render_segment_temporal_evidence_export_figure(recipe):
             folded_axis,
             folded_centers,
             folded_medians,
-            label=recipe.get("bin_median_label", "Bin median"),
+            label=recipe["bin_median_label"],
         )
     else:
         _draw_folded_utc_unavailable_annotation(
             folded_axis,
-            recipe.get(
-                "folded_unavailable_text",
-                FOLDED_UTC_UNAVAILABLE_TEXT,
-            ),
+            recipe["folded_unavailable_text"],
         )
 
     date_locator = mdates.AutoDateLocator(minticks=4, maxticks=8)
@@ -1452,43 +1376,33 @@ def render_segment_temporal_evidence_export_figure(recipe):
     chronological_axis.set_xlim(chronological_edges[0], chronological_edges[-1])
     _set_temporal_panel_title(
         chronological_axis,
-        recipe.get(
-            "chronological_title",
-            f"\u0394 SNR over Time ({time_bin} bins)",
-        ),
+        recipe["chronological_title"],
     )
     chronological_axis.set_xlabel(
-        recipe.get("chronological_x_label", "Date/Time (UTC)"),
+        recipe["chronological_x_label"],
         color="white",
     )
-    chronological_axis.set_ylabel("\u0394 SNR (dB)", color="white")
+    chronological_axis.set_ylabel(recipe["metric_axis_label"], color="white")
 
     folded_axis.set_xlim(0.0, 24.0)
     folded_axis.set_xticks(np.arange(0, 25, 3))
     folded_axis.set_xticklabels([f"{hour:02d}" for hour in range(0, 25, 3)])
-    default_folded_title = _default_folded_utc_hour_title(utc_date_count)
     _set_temporal_panel_title(
         folded_axis,
-        recipe.get("folded_title", default_folded_title),
+        recipe["folded_title"],
     )
     folded_axis.set_xlabel(
-        recipe.get("folded_x_label", "UTC hour"),
+        recipe["folded_x_label"],
         color="white",
     )
     for axis in (chronological_axis, folded_axis):
         _apply_compare_median_focus_axis(
             axis,
             median_focus_spec,
-            axis_label=recipe.get(
-                "median_focus_axis_label",
-                "\u0394 SNR (dB \u00b7 median-centered nonlinear)",
-            ),
-            median_label=recipe.get("median_label", "Median"),
+            axis_label=recipe["median_focus_axis_label"],
+            median_label=recipe["median_label"],
         )
 
-    density_label = recipe.get("density_label") or _relative_density_label(
-        recipe.get("count_label", "Joint spot count")
-    )
     colorbar_mesh = folded_mesh if folded_mesh is not None else chronological_mesh
     colorbar = figure.colorbar(
         colorbar_mesh,
@@ -1497,12 +1411,12 @@ def render_segment_temporal_evidence_export_figure(recipe):
         fraction=SEGMENT_TEMPORAL_COLORBAR_FRACTION,
         ticks=np.linspace(EVIDENCE_DENSITY_MIN, EVIDENCE_DENSITY_MAX, 5),
     )
-    colorbar.set_label(density_label, color="white")
+    colorbar.set_label(recipe["density_label"], color="white")
     colorbar.ax.tick_params(colors="white", labelsize=8)
     colorbar.outline.set_edgecolor("#444444")
 
     figure.suptitle(
-        recipe.get("title", "Compare Temporal Evidence"),
+        recipe["title"],
         color="white",
         fontweight="bold",
         fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
@@ -1524,25 +1438,23 @@ def _create_selected_station_evidence_figure(
     evidence_title,
     labels,
     time_agg,
-    is_sequential,
     *,
     temporal_view=SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-    folded_title=None,
-    folded_x_label=None,
-    density_label=None,
-    folded_unavailable_text=None,
+    folded_title,
+    folded_x_label,
+    density_label,
+    folded_unavailable_text,
     median_focus=None,
-    median_focus_axis_label=None,
+    median_focus_axis_label,
 ):
-    """Build selected Compare evidence with a chronological or folded time view."""
+    """Build selected Compare evidence from complete localized presentation state."""
     temporal_view = (
         SELECTED_TEMPORAL_VIEW_UTC_HOUR
         if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR
         else SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
     )
     labels = dict(labels)
-    if density_label:
-        labels["density_label"] = density_label
+    labels["density_label"] = density_label
     evidence_count = len(plot_df)
     metric_values = _metric_values(plot_df["metric"])
     median_focus_spec = _compare_median_focus_spec_from_recipe(
@@ -1585,7 +1497,6 @@ def _create_selected_station_evidence_figure(
                 ax_time,
                 plot_df,
                 labels,
-                is_sequential,
                 folded_title=folded_title,
                 folded_x_label=folded_x_label,
                 density_label=density_label,
@@ -1594,7 +1505,12 @@ def _create_selected_station_evidence_figure(
         else:
             _draw_single_time_point(ax_time, plot_df, labels)
     else:
-        _draw_horizontal_metric_histogram(ax_cloud, metric_values, color=EVIDENCE_AGG_COLOR)
+        _draw_horizontal_metric_histogram(
+            ax_cloud,
+            metric_values,
+            color=EVIDENCE_AGG_COLOR,
+            share_axis_label=labels["share_axis_label"],
+        )
         ax_cloud.set_ylabel(labels["y_label"], color="white")
         if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR:
             _draw_folded_utc_hour_heatmap(
@@ -1602,7 +1518,6 @@ def _create_selected_station_evidence_figure(
                 ax_time,
                 plot_df,
                 labels,
-                is_sequential,
                 folded_title=folded_title,
                 folded_x_label=folded_x_label,
                 density_label=density_label,
@@ -1615,7 +1530,6 @@ def _create_selected_station_evidence_figure(
                 plot_df,
                 time_agg,
                 labels,
-                is_sequential,
             )
         _annotate_selected_compare_distribution(
             ax_cloud,
@@ -1623,26 +1537,19 @@ def _create_selected_station_evidence_figure(
             labels,
         )
     if median_focus_spec is not None:
-        resolved_axis_label = (
-            median_focus_axis_label
-            or labels.get(
-                "median_focus_axis_label",
-                "\u0394 SNR (dB \u00b7 median-centered nonlinear)",
-            )
-        )
         _apply_compare_median_focus_axis(
             ax_cloud,
             median_focus_spec,
-            axis_label=resolved_axis_label,
-            median_label=labels.get("median_label", "Median"),
+            axis_label=median_focus_axis_label,
+            median_label=labels["median_label"],
             show_median_legend=False,
             draw_median_reference=False,
         )
         _apply_compare_median_focus_axis(
             ax_time,
             median_focus_spec,
-            axis_label=resolved_axis_label,
-            median_label=labels.get("median_label", "Median"),
+            axis_label=median_focus_axis_label,
+            median_label=labels["median_label"],
             show_median_legend=True,
         )
     ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
@@ -1656,14 +1563,14 @@ def _selected_evidence_export_recipe(
     is_sequential,
     *,
     temporal_view=SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-    folded_title=None,
-    folded_x_label=None,
-    folded_date_annotation=None,
-    density_label=None,
-    folded_unavailable_text=None,
-    median_focus_axis_label=None,
+    folded_title,
+    folded_x_label,
+    folded_date_annotation,
+    density_label,
+    folded_unavailable_text,
+    median_focus_axis_label,
 ):
-    """Store compact Compare evidence and optional folded-view presentation state."""
+    """Store compact Compare evidence and complete localized presentation state."""
     plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
     numeric_metrics = pd.to_numeric(plot_df["metric"], errors="coerce")
     valid = plot_times.notna() & numeric_metrics.notna() & np.isfinite(numeric_metrics)
@@ -1680,34 +1587,16 @@ def _selected_evidence_export_recipe(
         else SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
     )
     utc_date_count = int(plot_times.loc[valid].dt.normalize().nunique())
-    if folded_title is None:
-        folded_title = _default_folded_utc_hour_title(utc_date_count)
-    else:
-        folded_title = str(folded_title).replace(
-            "{utc_date_count}",
-            str(utc_date_count),
-        )
-    if folded_date_annotation is None:
-        folded_date_annotation = _default_folded_utc_date_annotation(
-            utc_date_count
-        )
-    else:
-        folded_date_annotation = str(folded_date_annotation).replace(
-            "{utc_date_count}",
-            str(utc_date_count),
-        )
+    folded_title = str(folded_title).replace(
+        "{utc_date_count}",
+        str(utc_date_count),
+    )
+    folded_date_annotation = str(folded_date_annotation).replace(
+        "{utc_date_count}",
+        str(utc_date_count),
+    )
     labels_copy = dict(labels)
-    count_label = labels_copy.get("count_label")
-    if not count_label:
-        count_label = (
-            "Scheduled pair count"
-            if is_sequential
-            else "Joint spot count"
-        )
-    if density_label is None:
-        density_label = labels_copy.get("density_label") or _relative_density_label(
-            count_label
-        )
+    labels_copy["density_label"] = str(density_label)
     resolved_median_focus = _compare_median_focus_recipe(
         _build_compare_median_focus_spec(metric_values)
     )
@@ -1718,21 +1607,12 @@ def _selected_evidence_export_recipe(
         "is_sequential": bool(is_sequential),
         "temporal_view": temporal_view,
         "folded_title": str(folded_title),
-        "folded_x_label": str(folded_x_label or "UTC hour"),
+        "folded_x_label": str(folded_x_label),
         "folded_date_annotation": str(folded_date_annotation),
-        "density_label": str(density_label) if density_label else None,
-        "folded_unavailable_text": str(
-            folded_unavailable_text
-            or FOLDED_UTC_UNAVAILABLE_TEXT
-        ),
+        "density_label": str(density_label),
+        "folded_unavailable_text": str(folded_unavailable_text),
         "median_focus": resolved_median_focus,
-        "median_focus_axis_label": str(
-            median_focus_axis_label
-            or labels_copy.get(
-                "median_focus_axis_label",
-                "\u0394 SNR (dB \u00b7 median-centered nonlinear)",
-            )
-        ),
+        "median_focus_axis_label": str(median_focus_axis_label),
         "utc_date_count": utc_date_count,
         "selected_identity_count": selected_identity_count,
         "plot_time_ns": (
@@ -1754,25 +1634,22 @@ def render_selected_evidence_export_figure(recipe):
     })
     if plot_df.empty:
         return None
-    labels = recipe.get("labels")
-    if not labels:
-        labels = _default_evidence_labels()
+    labels = recipe["labels"]
     return _create_selected_station_evidence_figure(
         plot_df,
-        recipe.get("title", "Selected Station Evidence"),
+        recipe["title"],
         labels,
-        recipe.get("time_bin", "3h"),
-        bool(recipe.get("is_sequential")),
+        recipe["time_bin"],
         temporal_view=recipe.get(
             "temporal_view",
             SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
         ),
-        folded_title=recipe.get("folded_title"),
-        folded_x_label=recipe.get("folded_x_label"),
-        density_label=recipe.get("density_label"),
-        folded_unavailable_text=recipe.get("folded_unavailable_text"),
+        folded_title=recipe["folded_title"],
+        folded_x_label=recipe["folded_x_label"],
+        density_label=recipe["density_label"],
+        folded_unavailable_text=recipe["folded_unavailable_text"],
         median_focus=recipe.get("median_focus"),
-        median_focus_axis_label=recipe.get("median_focus_axis_label"),
+        median_focus_axis_label=recipe["median_focus_axis_label"],
     )
 
 def _segment_figure_export_recipe(
@@ -1784,12 +1661,18 @@ def _segment_figure_export_recipe(
     spot_values,
     panel_labels,
     panel_y_label,
+    decode_outcomes_title,
+    station_medians_title,
+    paired_evidence_title,
+    metric_axis_label,
+    median_label,
+    mean_label,
+    no_data_label,
     panel_station_counts=None,
     panel_spot_counts=None,
     panel_series_labels=None,
-    paired_evidence_title=None,
 ):
-    """Store compact numeric inputs needed to rebuild Compare segment evidence."""
+    """Store numeric inputs and localized labels for Compare segment evidence."""
     return {
         "title": title,
         "selected_segment": selected_segment,
@@ -1798,6 +1681,13 @@ def _segment_figure_export_recipe(
         "spot_values": _metric_values(spot_values).astype(np.float64, copy=True),
         "panel_labels": [str(value) for value in panel_labels],
         "panel_y_label": str(panel_y_label),
+        "decode_outcomes_title": str(decode_outcomes_title),
+        "station_medians_title": str(station_medians_title),
+        "paired_evidence_title": str(paired_evidence_title),
+        "metric_axis_label": str(metric_axis_label),
+        "median_label": str(median_label),
+        "mean_label": str(mean_label),
+        "no_data_label": str(no_data_label),
         "panel_station_counts": [
             int(value)
             for value in (
@@ -1816,9 +1706,6 @@ def _segment_figure_export_recipe(
                 [] if panel_series_labels is None else panel_series_labels
             )
         ],
-        "paired_evidence_title": (
-            str(paired_evidence_title) if paired_evidence_title else None
-        ),
     }
 
 
@@ -1954,7 +1841,6 @@ def render_segment_insight_export_figure(recipe):
     if recipe_kind is not None:
         return None
 
-    is_sequential = bool(recipe.get("is_sequential"))
     station_values = np.asarray(recipe.get("station_values", []), dtype=float)
     spot_values = np.asarray(recipe.get("spot_values", []), dtype=float)
     panel_labels = list(recipe.get("panel_labels", []))
@@ -1987,25 +1873,30 @@ def render_segment_insight_export_figure(recipe):
         series_labels=panel_series_labels,
     )
     ax_panel.set_ylabel(
-        recipe.get("panel_y_label", "Share (%)"),
+        recipe["panel_y_label"],
         color="white",
     )
-    ax_panel.set_title("Decode Outcomes", color="white", fontweight="bold", pad=10)
-    ax_hist.set_title("Station Medians (\u0394 SNR)", color="white", fontweight="bold", pad=10)
+    ax_panel.set_title(
+        recipe["decode_outcomes_title"],
+        color="white",
+        fontweight="bold",
+        pad=10,
+    )
+    ax_hist.set_title(
+        recipe["station_medians_title"],
+        color="white",
+        fontweight="bold",
+        pad=10,
+    )
     ax_spot.set_title(
-        recipe.get("paired_evidence_title")
-        or (
-            "Scheduled-Pair \u0394 SNR"
-            if is_sequential
-            else "Joint-Spot \u0394 SNR"
-        ),
+        recipe["paired_evidence_title"],
         color="white",
         fontweight="bold",
         pad=10,
     )
 
     fig_hist.suptitle(
-        f"\n{recipe.get('title', '')} - {recipe.get('selected_segment', '')}",
+        f"\n{recipe['title']} - {recipe['selected_segment']}",
         color="white",
         fontweight="bold",
         fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
@@ -2036,6 +1927,7 @@ def render_segment_insight_export_figure(recipe):
             ax_hist,
             station_values,
             color=EVIDENCE_AGG_COLOR,
+            share_axis_label=recipe["panel_y_label"],
             hatch=STATION_EVIDENCE_HATCH,
             artist_gid="station-median-histogram",
         )
@@ -2043,6 +1935,7 @@ def render_segment_insight_export_figure(recipe):
             ax_hist,
             station_median,
             orientation="vertical",
+            label=recipe["median_label"],
             zorder=4.0,
         )
         _apply_minimum_metric_xspan(ax_hist, center=station_median)
@@ -2053,9 +1946,19 @@ def render_segment_insight_export_figure(recipe):
         _add_metric_mean_annotation(
             ax_hist,
             float(np.mean(station_values)),
+            label=recipe["mean_label"],
         )
     else:
-        ax_hist.text(0.5, 0.5, "No data", color="white", ha="center", va="center", fontsize=12, transform=ax_hist.transAxes)
+        ax_hist.text(
+            0.5,
+            0.5,
+            recipe["no_data_label"],
+            color="white",
+            ha="center",
+            va="center",
+            fontsize=12,
+            transform=ax_hist.transAxes,
+        )
         ax_hist.set_xticks([])
         ax_hist.set_yticks([])
 
@@ -2063,6 +1966,7 @@ def render_segment_insight_export_figure(recipe):
         ax_spot,
         spot_values,
         color=EVIDENCE_AGG_COLOR,
+        share_axis_label=recipe["panel_y_label"],
         artist_gid="spot-metric-histogram",
     )
     if pd.notna(spot_median):
@@ -2070,6 +1974,7 @@ def render_segment_insight_export_figure(recipe):
             ax_spot,
             spot_median,
             orientation="vertical",
+            label=recipe["median_label"],
             zorder=4.0,
         )
         _apply_minimum_metric_xspan(ax_spot, center=spot_median)
@@ -2081,12 +1986,22 @@ def render_segment_insight_export_figure(recipe):
             _add_metric_mean_annotation(
                 ax_spot,
                 float(np.mean(spot_values)),
+                label=recipe["mean_label"],
             )
     else:
-        ax_spot.text(0.5, 0.5, "No data", color="white", ha="center", va="center", fontsize=12, transform=ax_spot.transAxes)
+        ax_spot.text(
+            0.5,
+            0.5,
+            recipe["no_data_label"],
+            color="white",
+            ha="center",
+            va="center",
+            fontsize=12,
+            transform=ax_spot.transAxes,
+        )
         ax_spot.set_xticks([])
         ax_spot.set_yticks([])
 
-    ax_hist.set_xlabel("\u0394 SNR (dB)", color="white")
-    ax_spot.set_xlabel("\u0394 SNR (dB)", color="white")
+    ax_hist.set_xlabel(recipe["metric_axis_label"], color="white")
+    ax_spot.set_xlabel(recipe["metric_axis_label"], color="white")
     return fig_hist

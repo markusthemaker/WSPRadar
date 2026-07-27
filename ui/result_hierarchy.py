@@ -51,7 +51,7 @@ def remote_station_type(analysis_id):
 
 def _localized_integer(count, translations):
     """Format one non-negative presentation count with localized grouping."""
-    separator = translations.get("fmt_results_thousands_separator", ",")
+    separator = translations["fmt_results_thousands_separator"]
     return f"{int(count):,}".replace(",", str(separator))
 
 
@@ -67,10 +67,9 @@ def comparison_constraint_text(analysis, analysis_context, translations):
         ).strip().upper()[:4]
         if not reference_grid4:
             return ""
-        return translations.get(
-            "txt_results_reference_grid4",
-            "Reference Grid-4 {grid4}",
-        ).format(grid4=reference_grid4)
+        return translations["txt_results_reference_grid4"].format(
+            grid4=reference_grid4
+        )
 
     if comparison_mode == COMPARISON_HARDWARE_AB:
         shared_grid4 = str(
@@ -78,16 +77,11 @@ def comparison_constraint_text(analysis, analysis_context, translations):
         ).strip().upper()[:4]
         if not shared_grid4:
             return ""
-        constraint = translations.get(
-            "txt_results_shared_grid4",
-            "Shared Grid-4 {grid4}",
-        ).format(grid4=shared_grid4)
+        constraint = translations["txt_results_shared_grid4"].format(
+            grid4=shared_grid4
+        )
         if analysis.get("is_sequential"):
-            schedule = translations.get(
-                "txt_results_tx_schedule",
-                "TX schedule {interval} min · Target :{target_phase} · "
-                "Reference :{reference_phase} UTC",
-            ).format(
+            schedule = translations["txt_results_tx_schedule"].format(
                 interval=int(
                     getattr(
                         analysis_context,
@@ -111,23 +105,14 @@ def comparison_constraint_text(analysis, analysis_context, translations):
             if is_local_best
             else "comp_title_local_median"
         )
-        benchmark_fallback = (
-            "Local Best Station (≤{radius} km)"
-            if is_local_best
-            else "Local Median Neighborhood (≤{radius} km)"
-        )
-        benchmark = translations.get(
-            benchmark_key,
-            benchmark_fallback,
-        ).format(
+        benchmark = translations[benchmark_key].format(
             radius=int(
                 getattr(analysis_context, "neighborhood_radius_km", 100)
             )
         )
-        return translations.get(
-            "txt_results_reference_benchmark",
-            "Reference benchmark {benchmark}",
-        ).format(benchmark=benchmark)
+        return translations["txt_results_reference_benchmark"].format(
+            benchmark=benchmark
+        )
 
     return ""
 
@@ -143,43 +128,31 @@ def build_result_context(
     direction = result_direction(analysis.get("id", ""))
     is_compare = bool(analysis.get("is_compare"))
     title_key = "hdr_results_compare" if is_compare else "hdr_results_success"
-    title = translations.get(
-        title_key,
-        "{direction} Compare Results"
-        if is_compare
-        else "{direction} Success Results",
-    ).format(direction=direction)
+    title = translations[title_key].format(direction=direction)
 
     callsign = str(getattr(analysis_context, "callsign", "")).upper()
     if is_compare and analysis.get("is_sequential"):
-        subtitle = translations.get(
-            "sub_results_compare_scheduled",
-            "{callsign} · Target schedule vs. Reference schedule",
-        ).format(callsign=callsign)
+        subtitle = translations["sub_results_compare_scheduled"].format(
+            callsign=callsign
+        )
     elif is_compare:
         figure_title = str(analysis.get("title", ""))
         _prefix, separator, title_context = figure_title.partition(": ")
         subtitle = title_context if separator else figure_title
     elif direction == "RX":
-        subtitle = translations.get(
-            "sub_results_rx_success",
-            "Target {callsign} · signals heard by the Target or by others only",
-        ).format(callsign=callsign)
+        subtitle = translations["sub_results_rx_success"].format(
+            callsign=callsign
+        )
     else:
-        subtitle = translations.get(
-            "sub_results_tx_success",
-            "Target {callsign} · Target heard or other signals heard only "
-            "at active RX stations",
-        ).format(callsign=callsign)
+        subtitle = translations["sub_results_tx_success"].format(
+            callsign=callsign
+        )
 
     utc_window = (
         f"{_format_utc_timestamp(start_utc)} – "
         f"{_format_utc_timestamp(end_utc)} UTC"
     )
-    metadata = translations.get(
-        "txt_results_metadata",
-        "{band} · {utc_window} · Target QTH {qth}",
-    ).format(
+    metadata = translations["txt_results_metadata"].format(
         band=getattr(analysis_context, "band", ""),
         utc_window=utc_window,
         qth=str(getattr(analysis_context, "qth", "")).upper(),
@@ -196,21 +169,12 @@ def build_result_context(
         if is_compare
         else "txt_results_evidence_path_success"
     )
-    evidence_path_fallback = (
-        "Map → Segment Inspector → Station Insights → Drill-Down"
-    )
     return ResultContext(
         title=title,
         subtitle=subtitle,
         metadata=metadata,
-        evidence_path_label=translations.get(
-            "lbl_results_evidence_path",
-            "Evidence path",
-        ),
-        evidence_path=translations.get(
-            evidence_path_key,
-            evidence_path_fallback,
-        ),
+        evidence_path_label=translations["lbl_results_evidence_path"],
+        evidence_path=translations[evidence_path_key],
     )
 
 
@@ -342,18 +306,12 @@ def evidence_unit_label(count, *, is_compare, is_sequential, translations):
     """Return the localized singular or plural evidence unit for one count."""
     if not is_compare:
         unit = "confirmed_opportunity"
-        fallbacks = ("confirmed opportunity", "confirmed opportunities")
     elif is_sequential:
         unit = "scheduled_pair"
-        fallbacks = ("scheduled pair", "scheduled pairs")
     else:
         unit = "joint_spot"
-        fallbacks = ("joint spot", "joint spots")
     plurality = "singular" if int(count) == 1 else "plural"
-    label = translations.get(
-        f"unit_{unit}_{plurality}",
-        fallbacks[0] if plurality == "singular" else fallbacks[1],
-    )
+    label = translations[f"unit_{unit}_{plurality}"]
     return str(label)
 
 
@@ -364,12 +322,7 @@ def station_count_label(count, station_type, translations):
         if int(count) == 1
         else "unit_station_plural"
     )
-    fallback = (
-        "{count} {station_type} station"
-        if int(count) == 1
-        else "{count} {station_type} stations"
-    )
-    return translations.get(key, fallback).format(
+    return translations[key].format(
         count=_localized_integer(count, translations),
         station_type=station_type,
     )
@@ -385,11 +338,7 @@ def scope_evidence_text(
     translations,
 ):
     """Return localized evidence depth for the active geographic scope."""
-    return translations.get(
-        "txt_results_evidence_scope",
-        "Evidence in scope · {station_count} · "
-        "{evidence_count} {evidence_unit}",
-    ).format(
+    return translations["txt_results_evidence_scope"].format(
         station_count=station_count_label(
             station_count,
             remote_station_type(analysis_id),
@@ -407,10 +356,10 @@ def scope_evidence_text(
 
 def active_scope_text(range_summary, direction_summary, translations):
     """Return the inherited geographic scope used by downstream evidence."""
-    return translations.get(
-        "txt_results_active_scope",
-        "Active scope · {distance} · {direction}",
-    ).format(distance=range_summary, direction=direction_summary)
+    return translations["txt_results_active_scope"].format(
+        distance=range_summary,
+        direction=direction_summary,
+    )
 
 
 def station_scope_text(
@@ -421,10 +370,7 @@ def station_scope_text(
     translations,
 ):
     """Return active scope plus the number and role of contributing stations."""
-    return translations.get(
-        "txt_results_station_scope",
-        "Active scope · {distance} · {direction} · {station_count}",
-    ).format(
+    return translations["txt_results_station_scope"].format(
         distance=range_summary,
         direction=direction_summary,
         station_count=station_count_label(
@@ -463,18 +409,12 @@ def selected_station_label(
     selected_count = _localized_integer(len(identities), translations)
     station_type = remote_station_type(analysis_id)
     if 1 < len(identities) <= SELECTED_STATION_IDENTITY_LIST_LIMIT:
-        return translations.get(
-            "lbl_results_selected_station_named",
-            "{selected_count} selected {station_type} stations: {stations}",
-        ).format(
+        return translations["lbl_results_selected_station_named"].format(
             selected_count=selected_count,
             station_type=station_type,
             stations=", ".join(identities),
         )
-    return translations.get(
-        "lbl_results_selected_station_count",
-        "{selected_count} selected {station_type} stations",
-    ).format(
+    return translations["lbl_results_selected_station_count"].format(
         selected_count=selected_count,
         station_type=station_type,
     )
@@ -507,21 +447,14 @@ def selected_station_context(
     )
     if len(identities) == 1:
         station, locator = _split_station_identity(selection_label)
-        return translations.get(
-            "sub_results_selected_station_single",
-            "{station} ({locator}) · {evidence_count} {evidence_unit}",
-        ).format(
+        return translations["sub_results_selected_station_single"].format(
             station=station,
             locator=locator,
             evidence_count=localized_evidence_count,
             evidence_unit=unit,
         )
     if 1 < len(identities) <= SELECTED_STATION_IDENTITY_LIST_LIMIT:
-        return translations.get(
-            "sub_results_selected_station_named",
-            "{selection_label} · "
-            "combined view · {evidence_count} {evidence_unit}",
-        ).format(
+        return translations["sub_results_selected_station_named"].format(
             selection_label=selection_label,
             selected_count=_localized_integer(len(identities), translations),
             station_type=remote_station_type(analysis_id),
@@ -529,11 +462,7 @@ def selected_station_context(
             evidence_count=localized_evidence_count,
             evidence_unit=unit,
         )
-    return translations.get(
-        "sub_results_selected_station_multi",
-        "{selection_label} · combined view · "
-        "{evidence_count} {evidence_unit}",
-    ).format(
+    return translations["sub_results_selected_station_multi"].format(
         selection_label=selection_label,
         selected_count=_localized_integer(len(identities), translations),
         station_type=remote_station_type(analysis_id),
@@ -546,15 +475,10 @@ def drilldown_subtitle(station_identities, analysis_id, translations):
     """Return localized row-level scope for selected station identities."""
     identities = [str(identity) for identity in station_identities]
     if len(identities) == 1:
-        return translations.get(
-            "sub_results_drilldown_single",
-            "Row-level evidence for {station} within the active scope.",
-        ).format(station=identities[0])
-    return translations.get(
-        "sub_results_drilldown_multi",
-        "Row-level evidence for {count} selected {station_type} stations "
-        "within the active scope.",
-    ).format(
+        return translations["sub_results_drilldown_single"].format(
+            station=identities[0]
+        )
+    return translations["sub_results_drilldown_multi"].format(
         count=len(identities),
         station_type=remote_station_type(analysis_id),
     )

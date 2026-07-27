@@ -5,6 +5,7 @@ import re
 from docs import pdf_generator
 from docs.doc_de import DOC_DE
 from docs.doc_en import DOC_EN
+from i18n import T
 
 
 class _Context:
@@ -44,14 +45,73 @@ def _ready_key(lang="en", version="v0.95"):
 
 
 def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
-    for manual in (DOC_EN, DOC_DE):
-        rendered = pdf_generator._replace_pdf_math(manual)
+    localized_manuals = (
+        ("en", DOC_EN),
+        ("de", DOC_DE),
+    )
+    for language, manual in localized_manuals:
+        translations = T[language]
+        decode_rate_label = translations["pdf_metric_decode_rate"]
+        rendered = pdf_generator._replace_pdf_math(manual, translations)
 
         assert "$$" not in rendered
         assert "&Delta;" not in rendered
-        assert "Delta SNR =" in rendered
+        assert (
+            f"{decode_rate_label}<sub>RX</sub> = 100% &times; "
+            "Target / (Target + Elsewhere)"
+        ) in rendered
+        assert (
+            f"{decode_rate_label}<sub>TX</sub> = 100% &times; "
+            "Target / (Target + Other Signals)"
+        ) in rendered
+        assert "Success Rate<sub>" not in rendered
+        assert f"{translations['pdf_formula_delta_snr']} =" in rendered
+        assert (
+            "SNR<sub>reference</sub> + "
+            f"{translations['pdf_formula_correction']}"
+        ) in rendered
         assert "D<sub>relativ" in rendered
-        assert "f<sub>RF</sub> approx. f<sub>dial</sub>" in rendered
+        assert (
+            "f<sub>RF</sub> "
+            f"{translations['pdf_formula_approx']} f<sub>dial</sub>"
+        ) in rendered
+
+
+def test_generated_pdf_footer_uses_localized_page_label(monkeypatch):
+    """Use the catalog page label rather than branching on the PDF language."""
+    from PIL import Image
+    from xhtml2pdf import pisa
+
+    rendered_templates = []
+
+    class _PdfStatus:
+        err = False
+
+    def capture_pdf_template(source, dest):
+        rendered_templates.append(source.read())
+        dest.write(b"pdf")
+        return _PdfStatus()
+
+    monkeypatch.setattr(pdf_generator, "get_docs", lambda _lang: "Manual")
+    monkeypatch.setattr(pisa, "CreatePDF", capture_pdf_template)
+
+    logo_buffer = io.BytesIO()
+    Image.new("RGBA", (1, 1), (255, 255, 255, 255)).save(
+        logo_buffer,
+        format="PNG",
+    )
+    logo_b64 = base64.b64encode(logo_buffer.getvalue()).decode("ascii")
+
+    for language in ("en", "de"):
+        assert pdf_generator._generate_pdf_doc(
+            language,
+            logo_b64,
+            "test",
+        ) == b"pdf"
+        assert (
+            f"WSPRadar test - {T[language]['pdf_page_label']} <pdf:pagenumber>"
+            in rendered_templates[-1]
+        )
 
 
 def test_pdf_markdown_extensions_preserve_fenced_code_blocks():
@@ -69,7 +129,8 @@ def test_pdf_markdown_extensions_preserve_fenced_code_blocks():
 def test_pdf_preprocessing_makes_fenced_code_layout_explicit():
     """xhtml2pdf must receive explicit breaks and indentation in code blocks."""
     rendered = pdf_generator._render_pdf_html(
-        "```text\nconfig/\n  run_metadata.json\n```"
+        "```text\nconfig/\n  run_metadata.json\n```",
+        T["en"],
     )
 
     assert (
@@ -80,7 +141,7 @@ def test_pdf_preprocessing_makes_fenced_code_layout_explicit():
 
 def test_pdf_preprocessing_preserves_defined_term_markup():
     """First-definition emphasis must survive Markdown-to-PDF preprocessing."""
-    rendered = pdf_generator._render_pdf_html(DOC_EN)
+    rendered = pdf_generator._render_pdf_html(DOC_EN, T["en"])
 
     assert '<strong class="defined-term">Target</strong>' in rendered
     assert '<strong class="defined-term">Reference</strong>' in rendered
@@ -93,7 +154,8 @@ def test_pdf_preprocessing_preserves_numbering_and_nested_map_bullets():
         "    * read color as an overview\n"
         "    * check Stations and Spots\n"
         "    * select a segment\n"
-        "2. Verify the underlying rows.\n"
+        "2. Verify the underlying rows.\n",
+        T["en"],
     )
     numbered_markers = re.findall(
         r'class="pdf-list-marker">(\d+\.)</td>',
@@ -107,7 +169,7 @@ def test_pdf_preprocessing_preserves_numbering_and_nested_map_bullets():
 
 
 def test_pdf_html_adds_named_destinations_without_removing_web_ids():
-    rendered = pdf_generator._render_pdf_html(DOC_EN)
+    rendered = pdf_generator._render_pdf_html(DOC_EN, T["en"])
 
     for anchor in ("sec-1", "sec-1-3", "sec-1-4", "sec-2", "sec-7", "sec-ref"):
         assert f'<a id="{anchor}" name="{anchor}"></a>' in rendered
@@ -116,11 +178,11 @@ def test_pdf_html_adds_named_destinations_without_removing_web_ids():
 def test_pdf_preprocessing_isolates_only_each_chapter_seven_method_matrix():
     """Only the localized 10-column orientation matrices use landscape pages."""
     localized_manuals = (
-        (DOC_EN, "Lowest observation/<br/>comparison unit"),
-        (DOC_DE, "Beobachtungs-/<br/>Vergleichseinheit"),
+        (DOC_EN, T["en"], "Lowest observation/<br/>comparison unit"),
+        (DOC_DE, T["de"], "Beobachtungs-/<br/>Vergleichseinheit"),
     )
-    for manual, wrapped_header in localized_manuals:
-        rendered = pdf_generator._render_pdf_html(manual)
+    for manual, translations, wrapped_header in localized_manuals:
+        rendered = pdf_generator._render_pdf_html(manual, translations)
         chapter_intro = rendered.split('name="sec-7"', 1)[1].split(
             'name="sec-7-1"', 1
         )[0]
@@ -245,9 +307,16 @@ def test_documentation_pdf_is_not_generated_during_initial_render(monkeypatch):
         lambda *_args: (_ for _ in ()).throw(AssertionError("PDF generation must be lazy")),
     )
 
-    pdf_generator.render_documentation_pdf_control({}, "en", "logo", "v0.95")
+    pdf_generator.render_documentation_pdf_control(
+        T["en"],
+        "en",
+        "logo",
+        "v0.95",
+    )
 
-    assert [label for label, _kwargs in fake_st.buttons] == ["Prepare PDF"]
+    assert [label for label, _kwargs in fake_st.buttons] == [
+        T["en"]["btn_prepare_documentation_pdf"]
+    ]
     assert fake_st.downloads == []
     assert fake_st.spinners == []
 
@@ -262,12 +331,17 @@ def test_first_pdf_request_prepares_and_exposes_download(monkeypatch):
         lambda *args: generated.append(args) or b"pdf-bytes",
     )
 
-    pdf_generator.render_documentation_pdf_control({}, "en", "logo", "v0.95")
+    pdf_generator.render_documentation_pdf_control(
+        T["en"],
+        "en",
+        "logo",
+        "v0.95",
+    )
 
     assert generated == [("en", "logo", "v0.95")]
     assert fake_st.session_state[_ready_key()] is True
-    assert fake_st.spinners == ["Preparing documentation PDF..."]
-    assert fake_st.downloads[0][0] == "Download PDF"
+    assert fake_st.spinners == [T["en"]["msg_preparing_documentation_pdf"]]
+    assert fake_st.downloads[0][0] == T["en"]["btn_download_documentation_pdf"]
     assert fake_st.downloads[0][1]["data"] == b"pdf-bytes"
 
 
@@ -281,7 +355,12 @@ def test_prepared_session_reuses_process_cached_generator(monkeypatch):
         lambda *args: generated.append(args) or b"cached-pdf",
     )
 
-    pdf_generator.render_documentation_pdf_control({}, "en", "logo", "v0.95")
+    pdf_generator.render_documentation_pdf_control(
+        T["en"],
+        "en",
+        "logo",
+        "v0.95",
+    )
 
     assert fake_st.buttons == []
     assert generated == [("en", "logo", "v0.95")]
@@ -293,8 +372,18 @@ def test_failed_pdf_generation_clears_ready_state(monkeypatch):
     monkeypatch.setattr(pdf_generator, "st", fake_st)
     monkeypatch.setattr(pdf_generator, "generate_pdf_doc", lambda *_args: None)
 
-    pdf_generator.render_documentation_pdf_control({}, "de", "logo", "v0.95")
+    pdf_generator.render_documentation_pdf_control(
+        T["de"],
+        "de",
+        "logo",
+        "v0.95",
+    )
 
     assert _ready_key(lang="de") not in fake_st.session_state
     assert fake_st.downloads == []
     assert fake_st.buttons[-1][1]["disabled"] is True
+    assert fake_st.buttons[-1][0] == T["de"]["btn_download_documentation_pdf"]
+    assert (
+        fake_st.buttons[-1][1]["help"]
+        == T["de"]["help_documentation_pdf_unavailable"]
+    )

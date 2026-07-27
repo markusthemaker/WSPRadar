@@ -537,7 +537,7 @@
       "properties": {
         "mode": {
           "const": "none",
-          "description": "Analyze success without a benchmark. No comparison sub-settings are active."
+          "description": "Analyze visible Performance without a Reference. The canonical mode value remains none, and no comparison sub-settings are active."
         }
       },
       "additionalProperties": false
@@ -1539,7 +1539,7 @@
     },
     "resultsViewNoComparison": {
       "type": "object",
-      "description": "Durable Success-result view state active when comparison mode is none.",
+      "description": "Durable visible Performance result-view state active when comparison mode is none; the canonical success key is retained for compatibility.",
       "required": [
         "success"
       ],
@@ -1552,7 +1552,7 @@
     },
     "resultsViewWithComparison": {
       "type": "object",
-      "description": "Durable Compare and Success result-view state active for comparison analyses.",
+      "description": "Durable Compare result-view state active for comparison analyses; the canonical success view remains serialized for compatibility without creating a separate visible Performance result.",
       "required": [
         "success",
         "compare"
@@ -1569,7 +1569,7 @@
     },
     "successResultsView": {
       "type": "object",
-      "description": "Success station-insight state.",
+      "description": "Station-insight state for visible Performance, stored under the canonical success identifier for compatibility.",
       "required": [
         "selected_ranges",
         "selected_directions",
@@ -1587,7 +1587,7 @@
         },
         "show_zero_target": {
           "type": "boolean",
-          "description": "Whether Success Station Insights includes qualifying stations with zero Target confirmations.",
+          "description": "Whether visible Performance Station Insights includes qualifying stations with zero Target confirmations; this remains part of the canonical success view state.",
           "default": false
         },
         "segment_evidence_time_bin": {

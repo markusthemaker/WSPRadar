@@ -19,6 +19,8 @@ from core.geographic_scope import (
 )
 from core.map_data import _attach_map_geometry
 from core.math_utils import locator_to_latlon
+from core.presentation_context import PresentationContext
+from i18n import T
 
 
 LABELS = {"warn_no_data": "No data for {title}."}
@@ -112,6 +114,10 @@ def test_geographic_scope_does_not_change_global_provider_queries():
             47.0,
             8.0,
             "AND band = '14'",
+            presentation_context=PresentationContext(
+                labels=T["en"],
+                solar_label=T["en"]["opt_solar_all"].split()[0],
+            ),
         )
         return [
             (analysis["query"], analysis.get("legacy_query"))
@@ -258,7 +264,7 @@ def test_opportunity_rows_are_scoped_before_the_processed_result_is_returned():
         "analysis_kind": "opportunity",
         "is_compare": False,
         "is_sequential": False,
-        "title": "Success scope",
+        "title": "Performance scope",
     }
 
     filtered, warning = apply_post_fetch_filters(

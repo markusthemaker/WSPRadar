@@ -33,15 +33,28 @@ def _formula(html):
     return f'<p class="formula"><b>{html}</b></p>'
 
 
-def _replace_pdf_math(md_text):
-    """Replace LaTeX-like Markdown formulas with xhtml2pdf-safe HTML."""
+def _replace_pdf_math(md_text, translations):
+    """Replace localized manual formulas with xhtml2pdf-safe HTML."""
+    decode_rate_source_label = translations["pdf_metric_decode_rate"]
+    decode_rate_label = escape(decode_rate_source_label)
+    correction_label = escape(translations["pdf_formula_correction"])
+    delta_snr_label = escape(translations["pdf_formula_delta_snr"])
+    approximation_label = escape(translations["pdf_formula_approx"])
+    decode_rate_rx_formula = (
+        rf"\text{{{decode_rate_source_label}}}_{{RX}} = 100\% \times "
+        r"\frac{\text{Target}}{\text{Target} + \text{Elsewhere}}"
+    )
+    decode_rate_tx_formula = (
+        rf"\text{{{decode_rate_source_label}}}_{{TX}} = 100\% \times "
+        r"\frac{\text{Target}}{\text{Target} + \text{Other Signals}}"
+    )
     block_replacements = {
-        r"\text{Success Rate}_{RX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Elsewhere}}": _formula(
-            "Success Rate<sub>RX</sub> = 100% &times; "
+        decode_rate_rx_formula: _formula(
+            f"{decode_rate_label}<sub>RX</sub> = 100% &times; "
             "Target / (Target + Elsewhere)"
         ),
-        r"\text{Success Rate}_{TX} = 100\% \times \frac{\text{Target}}{\text{Target} + \text{Other Signals}}": _formula(
-            "Success Rate<sub>TX</sub> = 100% &times; "
+        decode_rate_tx_formula: _formula(
+            f"{decode_rate_label}<sub>TX</sub> = 100% &times; "
             "Target / (Target + Other Signals)"
         ),
         r"SNR_{norm} = SNR_{measured} - P_{TX(dBm)} + 30": _formula(
@@ -50,26 +63,26 @@ def _replace_pdf_math(md_text):
         ),
         r"SNR_{reference,corrected} = SNR_{reference} + Correction": _formula(
             "SNR<sub>reference,corrected</sub> = "
-            "SNR<sub>reference</sub> + Correction"
+            f"SNR<sub>reference</sub> + {correction_label}"
         ),
         r"\Delta SNR = SNR_{target} - SNR_{reference,corrected}": _formula(
-            "Delta SNR = SNR<sub>target</sub> - "
+            f"{delta_snr_label} = SNR<sub>target</sub> - "
             "SNR<sub>reference,corrected</sub>"
         ),
         r"\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,reference}": _formula(
-            "Delta SNR<sub>TX</sub> = SNR<sub>norm,target</sub> - "
+            f"{delta_snr_label}<sub>TX</sub> = SNR<sub>norm,target</sub> - "
             "SNR<sub>norm,reference</sub>"
         ),
         r"\Delta SNR_{RX} = SNR_{target} - SNR_{reference}": _formula(
-            "Delta SNR<sub>RX</sub> = SNR<sub>target</sub> - "
+            f"{delta_snr_label}<sub>RX</sub> = SNR<sub>target</sub> - "
             "SNR<sub>reference</sub>"
         ),
         r"\Delta SNR_{TX} = SNR_{norm,target} - SNR_{norm,benchmark}": _formula(
-            "Delta SNR<sub>TX</sub> = SNR<sub>norm,target</sub> - "
+            f"{delta_snr_label}<sub>TX</sub> = SNR<sub>norm,target</sub> - "
             "SNR<sub>norm,benchmark</sub>"
         ),
         r"\Delta SNR_{RX} = SNR_{measured,target} - SNR_{measured,benchmark}": _formula(
-            "Delta SNR<sub>RX</sub> = SNR<sub>measured,target</sub> - "
+            f"{delta_snr_label}<sub>RX</sub> = SNR<sub>measured,target</sub> - "
             "SNR<sub>measured,benchmark</sub>"
         ),
         r"D_{relative} = 100 \times \frac{n_{cell}}{\max(n_{cell,panel})}": _formula(
@@ -81,11 +94,11 @@ def _replace_pdf_math(md_text):
             "n<sub>Zelle</sub> / max(n<sub>Zelle,Panel</sub>)"
         ),
         r"f_{RF} \approx f_{dial} + f_{TX\ audio}": _formula(
-            "f<sub>RF</sub> approx. f<sub>dial</sub> + "
+            f"f<sub>RF</sub> {approximation_label} f<sub>dial</sub> + "
             "f<sub>TX audio</sub>"
         ),
         r"f_{HF} \approx f_{Dial} + f_{TX\ Audio}": _formula(
-            "f<sub>RF</sub> approx. f<sub>dial</sub> + "
+            f"f<sub>RF</sub> {approximation_label} f<sub>dial</sub> + "
             "f<sub>TX audio</sub>"
         ),
     }
@@ -95,8 +108,7 @@ def _replace_pdf_math(md_text):
         md_text = md_text.replace(f"${latex}$", html)
 
     inline_replacements = {
-        r"$\Delta$ SNR": "Delta SNR",
-        r"$\Delta$": "Delta",
+        r"$\Delta$ SNR": delta_snr_label,
         r"$2^\circ \times 1^\circ$": "2&deg; &times; 1&deg;",
         r"$150 \times 111$": "150 &times; 111",
         r"$5' \times 2.5'$": "5&apos; &times; 2.5&apos;",
@@ -345,13 +357,13 @@ def _mark_method_matrix_for_pdf(html_content):
     )
 
 
-def _render_pdf_html(md_text, markdown_module=None):
+def _render_pdf_html(md_text, translations, markdown_module=None):
     """Run the complete Markdown-to-HTML preprocessing used by PDF generation."""
     if markdown_module is None:
         import markdown as markdown_module
 
     md_text = md_text.replace("---", "", 1)
-    md_text = _replace_pdf_math(md_text)
+    md_text = _replace_pdf_math(md_text, translations)
     html_content = markdown_module.markdown(
         md_text,
         extensions=PDF_MARKDOWN_EXTENSIONS,
@@ -383,10 +395,11 @@ def _generate_pdf_doc(lang, logo_b64, version):
     except Exception:
         pdf_logo_src = f"data:image/png;base64,{logo_b64}"
 
-    html_content = _render_pdf_html(get_docs(lang), markdown)
+    translations = T[lang]
+    html_content = _render_pdf_html(get_docs(lang), translations, markdown)
 
-    dev_credit_pdf = T[lang]["dev_credit"].replace("#39ff14", "#0a318f")
-    page_label = "Seite" if lang == "de" else "Page"
+    dev_credit_pdf = translations["dev_credit"].replace("#39ff14", "#0a318f")
+    page_label = translations["pdf_page_label"]
 
     template = f"""
     <html>
@@ -570,7 +583,7 @@ def render_documentation_pdf_control(t, lang, logo_b64, version):
     requested = bool(st.session_state.get(ready_key, False))
     if not requested:
         requested = st.button(
-            t.get("btn_prepare_documentation_pdf", "Prepare PDF"),
+            t["btn_prepare_documentation_pdf"],
             icon=":material/picture_as_pdf:",
             key=f"prepare_documentation_pdf_{lang}_{version}",
             width="stretch",
@@ -579,28 +592,22 @@ def render_documentation_pdf_control(t, lang, logo_b64, version):
             return
         st.session_state[ready_key] = True
 
-    with st.spinner(t.get(
-        "msg_preparing_documentation_pdf",
-        "Preparing documentation PDF...",
-    )):
+    with st.spinner(t["msg_preparing_documentation_pdf"]):
         pdf_bytes = generate_pdf_doc(lang, logo_b64, version)
 
     if not pdf_bytes:
         st.session_state.pop(ready_key, None)
         st.button(
-            t.get("btn_download_documentation_pdf", "Download PDF"),
+            t["btn_download_documentation_pdf"],
             icon=":material/picture_as_pdf:",
             disabled=True,
-            help=t.get(
-                "help_documentation_pdf_unavailable",
-                "PDF export requires the documentation PDF dependencies.",
-            ),
+            help=t["help_documentation_pdf_unavailable"],
             width="stretch",
         )
         return
 
     st.download_button(
-        label=t.get("btn_download_documentation_pdf", "Download PDF"),
+        label=t["btn_download_documentation_pdf"],
         icon=":material/download:",
         data=pdf_bytes,
         file_name=f"WSPRadar_Doc_{lang.upper()}.pdf",

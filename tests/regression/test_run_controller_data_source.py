@@ -1,6 +1,8 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from config import DEMO_PROFILES, WSPR_DATABASE_PROVIDERS
 from core.analysis_admission import (
     AdmissionSnapshot,
@@ -8,7 +10,11 @@ from core.analysis_admission import (
     AnalysisQueueFull,
     AnalysisQueueTimeout,
 )
-from core.analysis_runner import DECODE_FILTER_LEGACY, DECODE_FILTER_STRICT
+from core.analysis_runner import (
+    DECODE_FILTER_LEGACY,
+    DECODE_FILTER_STRICT,
+    AnalysisConfigError,
+)
 from core.fetch_models import (
     DatabaseSource,
     FetchError,
@@ -24,6 +30,7 @@ from core.run_data_preparation import (
     ProviderBundleFetchError,
     ProviderBundlePreparationError,
 )
+from i18n import T
 from ui import run_controller
 from ui.analysis_submission_state import (
     begin_analysis_submission,
@@ -312,6 +319,74 @@ def _render_admission_presentation(fake_st, run_status_slot, *, translations=Non
         end_t=SimpleNamespace(isoformat=lambda: "end"),
         generate_map_plot=lambda *_args, **_kwargs: None,
     )
+
+
+@pytest.mark.parametrize(
+    ("language", "expected_message"),
+    [
+        (
+            "en",
+            "The analysis configuration is invalid. "
+            "Check the inputs and try again.",
+        ),
+        (
+            "de",
+            "Die Analysekonfiguration ist ungültig. "
+            "Prüfe die Eingaben und versuche es erneut.",
+        ),
+    ],
+)
+def test_analysis_configuration_errors_are_localized_at_the_ui_boundary(
+    monkeypatch,
+    language,
+    expected_message,
+):
+    """Keep canonical core diagnostics out of the bilingual presentation."""
+    fake_st = _FakeStreamlit()
+    run_status_slot = _RunStatusSlot()
+    gate = SimpleNamespace(
+        acquire=lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Invalid configuration must fail before admission")
+        ),
+        counts=lambda: (0, 0),
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_batches",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AnalysisConfigError(
+                "Success opportunity analysis requires canonical internal data."
+            )
+        ),
+    )
+    performance_events = []
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda event, **values: performance_events.append((event, values)),
+    )
+
+    _render_admission_presentation(
+        fake_st,
+        run_status_slot,
+        translations=T[language],
+    )
+
+    assert fake_st.errors == [expected_message]
+    assert "Success opportunity" not in " ".join(fake_st.errors)
+    assert performance_events == [
+        (
+            "analysis_configuration_failure",
+            {
+                "failure_type": "AnalysisConfigError",
+                "technical_error": (
+                    "Success opportunity analysis requires canonical "
+                    "internal data."
+                ),
+            },
+        )
+    ]
 
 
 def test_waiting_status_shows_only_the_sessions_own_queue_position(monkeypatch):
@@ -722,10 +797,17 @@ def _render_fake_run(
     is_demo_run=False,
     active_demo_key=None,
     request_counts_by_provider=None,
+    language="en",
 ):
     """Execute the admitted transactional path without map rendering."""
     fake_st.analysis_run_outcome = run_controller._render_admitted_analysis_run(
-        t={"warn_no_data": "No data: {title}"},
+        t={
+            "warn_no_data": "No data: {title}",
+            "msg_loading": T[language]["msg_loading"],
+            "err_analysis_processing_failed": T[language][
+                "err_analysis_processing_failed"
+            ],
+        },
         run_status_slot=_RunStatusSlot(),
         start_t="start",
         end_t="end",
@@ -833,7 +915,7 @@ def test_two_provider_failures_restart_active_success_analysis_on_wd1(
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -877,7 +959,7 @@ def test_skipped_primary_is_not_retried_after_wd2_failure(monkeypatch):
     )
     assert initial_lease.source_key == "wd2"
     permit = _AnalysisPermit(initial_lease)
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -913,7 +995,7 @@ def test_initial_nonprimary_selection_is_reported_as_capacity_spillover(monkeypa
     )
     assert initial_lease.source_key == "wd2"
     permit = _AnalysisPermit(initial_lease)
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     performance_events = []
 
     _patch_run_environment(
@@ -1088,7 +1170,7 @@ def test_all_provider_failures_publish_no_source_or_complete_result(monkeypatch)
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -1114,7 +1196,7 @@ def test_request_scoped_failure_does_not_switch_database(monkeypatch):
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -1133,7 +1215,26 @@ def test_request_scoped_failure_does_not_switch_database(monkeypatch):
     assert fake_st.errors
 
 
-def test_local_preparation_failure_does_not_switch_or_penalize_database(monkeypatch):
+@pytest.mark.parametrize(
+    ("language", "expected_message"),
+    [
+        (
+            "en",
+            "Analysis evidence could not be prepared. "
+            "Please run the analysis again.",
+        ),
+        (
+            "de",
+            "Die Analyse-Evidenz konnte nicht vorbereitet werden. "
+            "Bitte führe die Analyse erneut aus.",
+        ),
+    ],
+)
+def test_local_preparation_failure_does_not_switch_or_penalize_database(
+    monkeypatch,
+    language,
+    expected_message,
+):
     """A local transform failure stops the run without provider failover."""
     fake_st = _FakeStreamlit()
     controller = ProviderDispatchController(
@@ -1144,7 +1245,7 @@ def test_local_preparation_failure_does_not_switch_or_penalize_database(monkeypa
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     attempts = []
 
     def fake_prepare(_plans, *, provider_lease, **_kwargs):
@@ -1158,12 +1259,19 @@ def test_local_preparation_failure_does_not_switch_or_penalize_database(monkeypa
         "log_performance_event",
         lambda event, **values: performance_events.append((event, values)),
     )
-    _render_fake_run(fake_st, permit, analyses)
+    _render_fake_run(fake_st, permit, analyses, language=language)
 
     assert attempts == ["wspr_live"]
     assert controller.snapshot("wspr_live").consecutive_failures == 0
     assert get_active_run_database_source(fake_st.session_state) is None
-    assert fake_st.statuses[0].label == "Analysis preparation failed"
+    assert fake_st.statuses[0].label == expected_message
+    assert fake_st.errors == [expected_message]
+    visible_status_text = " ".join(
+        placeholder_text
+        for placeholder in fake_st.placeholders
+        for placeholder_text in placeholder.markdowns
+    )
+    assert "invalid local transformation" not in visible_status_text
     assert fake_st.session_state.run_mode is None
     assert fake_st.analysis_run_outcome == "failed"
     assert performance_events == [(
@@ -1172,6 +1280,7 @@ def test_local_preparation_failure_does_not_switch_or_penalize_database(monkeypa
             "source": "wspr_live",
             "failure_scope": "local",
             "failure_type": "ProviderBundlePreparationError",
+            "technical_error": "invalid local transformation",
         },
     )]
 
@@ -1186,7 +1295,7 @@ def test_cache_capacity_change_replans_without_poisoning_provider_health(monkeyp
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -1228,7 +1337,7 @@ def test_committed_rerender_never_changes_its_database_source(monkeypatch):
         {"wspr_live": 1, "wd2": 1, "wd1": 1},
         allowed_sources={"wspr_live"},
     ))
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
     attempts = []
 
     def fake_prepare(plans, *, provider_lease, **_kwargs):
@@ -1262,7 +1371,7 @@ def test_successful_same_run_refresh_clears_stale_export_and_inspector_state(mon
     permit = _AnalysisPermit(controller.try_acquire_run(
         {"wspr_live": 1, "wd2": 1, "wd1": 1}
     ))
-    analyses = [_analysis("RX_ABS", "Success")]
+    analyses = [_analysis("RX_ABS", "Performance")]
 
     _patch_run_environment(
         monkeypatch,
