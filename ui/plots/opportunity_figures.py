@@ -82,6 +82,10 @@ SUCCESS_TEMPORAL_RATE_CEILINGS = (
 )
 SUCCESS_TEMPORAL_EVIDENCE_FIGURE_TOP = 0.76
 SUCCESS_TEMPORAL_EVIDENCE_ROW_SPACE = 0.24
+SUCCESS_TEMPORAL_FOLDED_COLUMN_X_SHIFT = 0.025
+SUCCESS_TEMPORAL_REFERENCE_FIGURE_WIDTH_PX = 1300.0
+SUCCESS_TEMPORAL_FOLDED_COLUMN_LEFT_EXPANSION_PX = 28.0
+
 
 def _opportunity_time_bin(rows, analysis_start_t=None, analysis_end_t=None):
     """Choose a readable fixed UTC bin for opportunity-rate evidence."""
@@ -2714,6 +2718,50 @@ def _reserve_success_temporal_colorbar_footprint(figure, axes):
     reserved_colorbar.ax.remove()
 
 
+def _translate_success_temporal_folded_column(*folded_axes):
+    """Move the complete lower UTC-hour column into the colorbar footprint.
+
+    The figure-relative translation preserves each panel's width and height.
+    Titles, ticks, labels, annotations, and the subsequently created twin axes
+    inherit the translated axis transforms.
+    """
+    for axis in folded_axes:
+        position = axis.get_position()
+        axis.set_position(
+            [
+                position.x0 + SUCCESS_TEMPORAL_FOLDED_COLUMN_X_SHIFT,
+                position.y0,
+                position.width,
+                position.height,
+            ],
+            which="both",
+        )
+
+
+def _expand_success_temporal_folded_column_left(*folded_axes):
+    """Widen both folded evidence panels equally toward their left side.
+
+    Their shared right edge remains fixed while both left axes and their labels
+    move 20 pixels left on the 1,300-pixel reference canvas. The subsequently
+    created Decode Rate twin axes inherit the widened bounds.
+    """
+    left_expansion = (
+        SUCCESS_TEMPORAL_FOLDED_COLUMN_LEFT_EXPANSION_PX
+        / SUCCESS_TEMPORAL_REFERENCE_FIGURE_WIDTH_PX
+    )
+    for axis in folded_axes:
+        position = axis.get_position()
+        axis.set_position(
+            [
+                position.x0 - left_expansion,
+                position.y0,
+                position.width + left_expansion,
+                position.height,
+            ],
+            which="both",
+        )
+
+
 def _place_success_temporal_evidence_column_header(
     figure,
     axis,
@@ -2960,6 +3008,15 @@ def _render_opportunity_temporal_evidence_figure(recipe):
             if axis is not None
         ),
     )
+    if folding_available:
+        _translate_success_temporal_folded_column(
+            folded_station_axis,
+            folded_opportunity_axis,
+        )
+        _expand_success_temporal_folded_column_left(
+            folded_station_axis,
+            folded_opportunity_axis,
+        )
     _place_success_temporal_evidence_column_header(
         figure,
         chronological_station_axis,

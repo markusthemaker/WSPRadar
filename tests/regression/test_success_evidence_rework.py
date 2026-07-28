@@ -19,6 +19,7 @@ from ui.components.segment_inspector import (
 )
 from ui.inspector.view_models import build_opportunity_inspector_view_model
 from ui.matplotlib_renderer import dispose_matplotlib_figure
+from ui.result_hierarchy import evidence_level_header_html
 from ui.plots.evidence_figures import (
     _segment_temporal_evidence_export_recipe,
     render_segment_temporal_evidence_export_figure,
@@ -1088,6 +1089,37 @@ def test_success_summary_retains_metrics_and_displays_compact_directional_terms(
     assert summary.weighting_gap_percentage_points == pytest.approx(-3.75)
     assert summary.median_opportunities_per_station == pytest.approx(4.0)
     assert len(summary.summary_lines) == 2
+    mode_key = "tx" if analysis_id.startswith("TX") else "rx"
+    expected_counter_column = (
+        ("Other signals heard" if language == "en" else "Andere Signale gehört")
+        if mode_key == "tx"
+        else T[language]["success_rx_station_counter"]
+    )
+    expected_snr_column = (
+        "Median SNR @ 30 dBm"
+        if language == "en"
+        else "Median-SNR @ 30 dBm"
+    )
+    assert list(summary.full_station_table.columns) == [
+        T[language][f"tbl_col_success_station_{mode_key}"],
+        T[language]["tbl_col_loc"],
+        T[language]["tbl_col_km"],
+        T[language]["tbl_col_az"],
+        T[language][f"success_{mode_key}_station_success"],
+        expected_counter_column,
+        T[language]["tbl_col_success_rate"],
+        expected_snr_column,
+    ]
+    assert summary.miss_column == expected_counter_column
+    assert summary.snr_column == expected_snr_column
+    canonical_counter_column = T[language][
+        f"abs_{mode_key}_counter_column"
+    ]
+    assert canonical_counter_column in summary.export_station_table.columns
+    assert (
+        T[language]["tbl_col_success_snr"]
+        in summary.export_station_table.columns
+    )
     outcomes = _SUCCESS_DIRECTION_FIGURE_LABELS[
         (language, analysis_id)
     ]
@@ -1128,7 +1160,6 @@ def test_visible_success_station_filter_maps_back_to_canonical_export_rows():
             "Locator": ["B000"],
             "Vom Target gehört": [1],
             "Nur von anderen gehört": [1],
-            "Bestätigte Gelegenheiten": [2],
         }
     )
     canonical = pd.DataFrame(
@@ -3140,9 +3171,23 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
             dispose_matplotlib_figure(evidence_figure)
 
 
-def test_success_temporal_lower_data_columns_match_upper_snr_axes():
-    """Align lower data axes exactly while excluding the upper colorbar gutter."""
-    success_recipe = _temporal_recipe_for_test()
+@pytest.mark.parametrize(
+    "success_recipe_factory",
+    [
+        pytest.param(_temporal_recipe_for_test, id="active-scope"),
+        pytest.param(
+            _selected_actual_snr_recipe_for_test,
+            id="selected-station",
+        ),
+    ],
+)
+def test_success_temporal_lower_folded_column_uses_upper_colorbar_footprint(
+    success_recipe_factory,
+):
+    """Widen both folded panels 20 px left with one fixed right edge."""
+    reference_figure_width_px = 1300.0
+    folded_column_left_expansion_px = 28.0
+    success_recipe = success_recipe_factory()
     snr_figure = render_segment_temporal_snr_export_figure(success_recipe)
     evidence_figure = render_segment_temporal_evidence_export_figure(
         success_recipe
@@ -3150,6 +3195,9 @@ def test_success_temporal_lower_data_columns_match_upper_snr_axes():
     try:
         snr_figure.canvas.draw()
         evidence_figure.canvas.draw()
+        assert evidence_figure.bbox.width == pytest.approx(
+            reference_figure_width_px
+        )
         snr_chronological = next(
             axis
             for axis in snr_figure.axes
@@ -3217,12 +3265,27 @@ def test_success_temporal_lower_data_columns_match_upper_snr_axes():
                 snr_chronological.get_position().x1
             )
         for lower_axis in (station_folded, opportunity_folded):
-            assert lower_axis.get_position().x0 == pytest.approx(
-                snr_folded.get_position().x0
+            assert (
+                (
+                    lower_axis.get_position().width
+                    - snr_folded.get_position().width
+                )
+                * reference_figure_width_px
+                == pytest.approx(
+                    folded_column_left_expansion_px,
+                    abs=0.1,
+                )
             )
             assert lower_axis.get_position().x1 == pytest.approx(
-                snr_folded.get_position().x1
+                snr_colorbar.get_position().x1,
+                abs=1e-4,
             )
+        assert station_folded.get_position().x0 == pytest.approx(
+            opportunity_folded.get_position().x0
+        )
+        assert station_folded.get_position().width == pytest.approx(
+            opportunity_folded.get_position().width
+        )
         assert snr_folded.get_position().x1 < snr_colorbar.get_position().x0
         assert (
             station_folded.get_position().x0
@@ -3236,6 +3299,23 @@ def test_success_temporal_lower_data_columns_match_upper_snr_axes():
         ):
             assert rate_axis.get_position().bounds == pytest.approx(
                 count_axis.get_position().bounds
+            )
+
+        snr_colorbar_label_bounds = (
+            snr_colorbar.yaxis.label.get_window_extent(
+                snr_figure.canvas.get_renderer()
+            )
+        )
+        for rate_axis in (station_folded_rate, opportunity_folded_rate):
+            rate_label_bounds = rate_axis.yaxis.label.get_window_extent(
+                evidence_figure.canvas.get_renderer()
+            )
+            assert (
+                abs(
+                    rate_label_bounds.x1
+                    - snr_colorbar_label_bounds.x1
+                )
+                <= 5.0
             )
 
         panel_heights = [
@@ -3269,18 +3349,18 @@ def test_success_temporal_lower_data_columns_match_upper_snr_axes():
             "RX_ABS",
             "RX Performance Selected Station SNR Evidence: OK1FCX (JN79)",
             "RX Performance Selected Station Temporal Evidence: OK1FCX (JN79)",
-            "OK1FCX (JN79) · 1,173 km · 91° E · 13,019 confirmed opportunities · Decode Rate 47.6% · Median successful Target SNR −15.0 dB",
+            "OK1FCX (JN79) · 1,173 km · 91° E\n13,019 confirmed opportunities · Decode Rate 47.6% · Median Target SNR −15.0 dB",
             "Contributing TX stations in the active scope. Select one row to inspect its evidence.",
-            "↓ Select one station to inspect its evidence",
+            "↑ Select one station to inspect its evidence",
         ),
         (
             "de",
             "TX_ABS",
             "TX Performance — SNR-Evidenz der ausgewählten Station: OK1FCX (JN79)",
             "TX Performance — Zeitliche Evidenz der ausgewählten Station: OK1FCX (JN79)",
-            "OK1FCX (JN79) · 1.173 km · 91° O · 13.019 bestätigte Gelegenheiten · Dekodierrate 47,6% · Median des erfolgreichen Target-SNR −15,0 dB",
+            "OK1FCX (JN79) · 1.173 km · 91° O\n13.019 bestätigte Gelegenheiten · Dekodierrate 47,6% · Median Target-SNR −15,0 dB",
             "Beitragende RX-Stationen im aktiven Bereich. Wähle eine Zeile, um ihre Evidenz zu untersuchen.",
-            "↓ Wähle eine Station, um ihre Evidenz zu untersuchen",
+            "↑ Wähle eine Station, um ihre Evidenz zu untersuchen",
         ),
     ),
 )
@@ -3323,10 +3403,19 @@ def test_selected_success_titles_context_and_singleton_copy_are_exact(
         translations,
         figure_kind="evidence",
     ) == expected_temporal_title
-    assert _selected_success_context_line(
+    selected_context = _selected_success_context_line(
         recipe,
         translations,
-    ) == expected_context
+    )
+    assert selected_context == expected_context
+    context_markup = evidence_level_header_html(
+        4,
+        translations["lbl_results_level_selection_success"],
+        translations["hdr_results_selected_station_evidence"],
+        selected_context,
+    )
+    assert context_markup.count("<br>") == 1
+    assert expected_context.replace("\n", "<br>") in context_markup
     assert translations["sub_results_station_insights_success"].format(
         station_type=station_type
     ) == expected_station_instruction
@@ -3380,4 +3469,4 @@ def test_selected_success_context_uses_em_dash_when_snr_is_unavailable():
         T["en"],
     )
 
-    assert context.endswith("Median successful Target SNR —")
+    assert context.endswith("Median Target SNR —")

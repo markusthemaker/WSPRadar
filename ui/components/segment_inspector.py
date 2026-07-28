@@ -151,6 +151,14 @@ RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY = (
 )
 SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS = (1, 2)
 STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (5, 4, 3)
+SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (9, 2)
+COMPACT_DATAFRAME_VISIBLE_BODY_ROWS = 5
+COMPACT_DATAFRAME_ROW_HEIGHT_PX = 35
+COMPACT_DATAFRAME_HEIGHT_PX = (
+    (COMPACT_DATAFRAME_VISIBLE_BODY_ROWS + 1)
+    * COMPACT_DATAFRAME_ROW_HEIGHT_PX
+    + 2
+)
 INSPECTOR_CACHE_NAMESPACE_LIMITS = {
     "options": INSPECTOR_CACHE_OPTIONS_MAX_ENTRIES,
     "segment": INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
@@ -1313,6 +1321,17 @@ def _supports_dataframe_selection_default():
     except (TypeError, ValueError):
         return False
 
+
+def _render_compact_dataframe(container, dataframe, **kwargs):
+    """Render a scrollable table with five visible body rows plus its header."""
+    return container.dataframe(
+        dataframe,
+        height=COMPACT_DATAFRAME_HEIGHT_PX,
+        row_height=COMPACT_DATAFRAME_ROW_HEIGHT_PX,
+        **kwargs,
+    )
+
+
 def _snr_column_config(df):
     """Keep numeric SNR columns right-aligned while controlling displayed precision."""
     config = {}
@@ -1491,7 +1510,19 @@ def _render_drilldown_dataframe(
     _render_reference_correction_notice(t, is_compare)
     with _timed_span(timing_collector, "drilldown dataframe render"):
         drill_display_df = _format_snr_display_columns(display_drill_df)
-        st.dataframe(drill_display_df, width='stretch', hide_index=True)
+        if is_compare:
+            st.dataframe(
+                drill_display_df,
+                width="stretch",
+                hide_index=True,
+            )
+        else:
+            _render_compact_dataframe(
+                st,
+                drill_display_df,
+                width="stretch",
+                hide_index=True,
+            )
     return canonical_drill_df.loc[display_drill_df.index].copy()
 
 
@@ -2297,16 +2328,10 @@ def _render_opportunity_scope(
             analysis_context=analysis_context,
         )
 
-    col_title, col_toggle, col_filter = level_three_container.columns(
-        [0.56, 0.26, 0.18],
+    col_toggle, col_filter = level_three_container.columns(
+        SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS,
         vertical_alignment="center",
     )
-    with col_title:
-        sub_text = opportunity_terms["presentation_subtext"]
-        st.markdown(
-            scope_context_html(sub_text.strip(" ()")),
-            unsafe_allow_html=True,
-        )
     with col_toggle:
         show_zero_hits = st.toggle(
             opportunity_terms["show_counter"],
@@ -2380,7 +2405,8 @@ def _render_opportunity_scope(
             "selection": {"rows": selection_default_rows}
         }
     with _timed_span(timing_collector, "opportunity station table render"):
-        table_event = level_three_container.dataframe(
+        table_event = _render_compact_dataframe(
+            level_three_container,
             disp_df,
             **dataframe_kwargs,
         )

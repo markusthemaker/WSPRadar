@@ -404,7 +404,11 @@ def build_opportunity_inspector_view_model(
 
     snr_column = labels["tbl_col_success_snr_display"]
     export_snr_column = labels["tbl_col_success_snr"]
-    confirmed_opportunities_column = labels["tbl_col_confirmed_opportunities"]
+    station_counter_column = (
+        labels["tbl_col_success_counter_display_tx"]
+        if mode_key == "tx"
+        else terms["station_counter"]
+    )
     rate_column = labels["tbl_col_success_rate"]
     display_station_table = confirmed[
         [
@@ -418,13 +422,6 @@ def build_opportunity_inspector_view_model(
             "successful_snr_median",
         ]
     ].copy()
-    display_station_table[confirmed_opportunities_column] = (
-        pd.to_numeric(display_station_table["hits"], errors="coerce").fillna(0)
-        + pd.to_numeric(
-            display_station_table["misses"],
-            errors="coerce",
-        ).fillna(0)
-    )
     display_station_table = display_station_table[
         [
             "peer_sign",
@@ -433,7 +430,6 @@ def build_opportunity_inspector_view_model(
             "calc_azimuth",
             "hits",
             "misses",
-            confirmed_opportunities_column,
             "rate_pct",
             "successful_snr_median",
         ]
@@ -444,8 +440,7 @@ def build_opportunity_inspector_view_model(
         distance_column,
         azimuth_column,
         terms["station_success"],
-        terms["station_counter"],
-        confirmed_opportunities_column,
+        station_counter_column,
         rate_column,
         snr_column,
     ]
@@ -455,14 +450,6 @@ def build_opportunity_inspector_view_model(
     display_station_table[azimuth_column] = display_station_table[
         azimuth_column
     ].round(1)
-    display_station_table[confirmed_opportunities_column] = (
-        pd.to_numeric(
-            display_station_table[confirmed_opportunities_column],
-            errors="coerce",
-        )
-        .round(0)
-        .astype("Int64")
-    )
     display_station_table[rate_column] = pd.to_numeric(
         display_station_table[rate_column], errors="coerce"
     ).round(1)
@@ -470,7 +457,7 @@ def build_opportunity_inspector_view_model(
         display_station_table[snr_column], errors="coerce"
     ).round(1)
     full_station_table = display_station_table.sort_values(
-        [terms["station_success"], terms["station_counter"], rate_column],
+        [terms["station_success"], station_counter_column, rate_column],
         ascending=[False, False, False],
         na_position="last",
     ).reset_index(drop=True)
@@ -541,7 +528,7 @@ def build_opportunity_inspector_view_model(
         distance_column=distance_column,
         azimuth_column=azimuth_column,
         hit_column=terms["station_success"],
-        miss_column=terms["station_counter"],
+        miss_column=station_counter_column,
         rate_column=rate_column,
         snr_column=snr_column,
         export_station_column=export_station_column,

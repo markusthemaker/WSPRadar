@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass
 
-APP_VERSION = "v0.99d"
+APP_VERSION = "v0.99e"
 LOGO_URL = "https://raw.githubusercontent.com/markusthemaker/WSPRadar/main/img/WSPRadar-2x1.png"
 APP_URL = "https://wspradar.org/"
 

@@ -580,7 +580,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
             "TX_ABS",
             "Other Signals (OS)",
             "Target heard",
-            "Other signals heard only",
+            "Other signals heard",
             "Target heard without independent RX-activity confirmation",
         ),
         (
@@ -596,7 +596,7 @@ def test_drilldown_empty_states_use_localized_catalog_messages(
             "TX_ABS",
             "Other Signals (OS)",
             "Target gehört",
-            "Nur andere Signale gehört",
+            "Andere Signale gehört",
             "Target gehört, RX-Aktivität nicht unabhängig bestätigt",
         ),
     ),
@@ -609,7 +609,7 @@ def test_success_drilldown_display_translates_outcomes_without_mutating_export_r
     counter,
     target_only,
 ):
-    """Translate visible outcomes while retaining canonical source/export fields."""
+    """Hide the display Outcome while retaining canonical source/export fields."""
     canonical = pd.DataFrame(
         {
             "Outcome": ["Target", "Counter", "Target-only"],
@@ -626,9 +626,10 @@ def test_success_drilldown_display_translates_outcomes_without_mutating_export_r
     )
 
     pd.testing.assert_frame_equal(canonical, source)
-    assert display["Outcome"].tolist() == [success, counter, target_only]
+    assert "Outcome" not in display.columns
     assert success in display.columns
     assert counter in display.columns
+    assert target_only not in display.to_string()
     assert "Target (T)" not in display.columns
     assert canonical_counter_column not in display.columns
 
@@ -744,11 +745,11 @@ def test_success_rate_scale_separates_zero_from_positive_evidence():
     assert len(SUCCESS_RATE_TICK_LABELS) == len(SUCCESS_RATE_BOUNDS)
     assert len(SUCCESS_RATE_COLORS) == len(SUCCESS_RATE_BOUNDS) - 1
     assert SUCCESS_RATE_COLORS == (
-        "#6e4c8f",
-        "#6576b8",
-        "#5c9bc7",
-        "#55b9c0",
-        "#8bcb9a",
+        "#081A3A",
+        "#0D2B5B",
+        "#16457E",
+        "#2A6AA3",
+        "#49A9C5",
         "#c9e5a3",
         "#f4e58a",
         "#efb56f",

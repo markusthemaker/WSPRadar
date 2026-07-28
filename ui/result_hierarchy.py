@@ -28,6 +28,12 @@ def _escaped(value):
     return escape(str(value), quote=True)
 
 
+def _escaped_with_line_breaks(value):
+    """Escape dynamic text and preserve its explicit line boundaries safely."""
+    normalized = str(value).replace("\r\n", "\n").replace("\r", "\n")
+    return _escaped(normalized).replace("\n", "<br>")
+
+
 def _format_utc_timestamp(value):
     """Format one datetime-like value as a compact minute-resolution timestamp."""
     if isinstance(value, datetime) or hasattr(value, "strftime"):
@@ -202,12 +208,14 @@ def evidence_level_header_html(
     """Render one numbered zoom level as semantic, escaped HTML."""
     normalized_level = int(level_number)
     subtitle_html = (
-        f"<p class='result-evidence-level-subtitle'>{_escaped(subtitle)}</p>"
+        "<p class='result-evidence-level-subtitle'>"
+        f"{_escaped_with_line_breaks(subtitle)}</p>"
         if subtitle
         else ""
     )
     context_html = (
-        f"<p class='result-scope-context'>{_escaped(context)}</p>"
+        "<p class='result-scope-context'>"
+        f"{_escaped_with_line_breaks(context)}</p>"
         if context
         else ""
     )
@@ -277,10 +285,14 @@ def segment_statistics_html(summary_lines):
 
 def transition_prompt_html(prompt):
     """Render one muted cue that points to the next evidence level."""
-    prompt_text = str(prompt).lstrip("↓ ").strip()
+    prompt_text = str(prompt).strip()
+    arrow = "↓"
+    if prompt_text.startswith(("↑", "↓")):
+        arrow = prompt_text[0]
+        prompt_text = prompt_text[1:].strip()
     return (
         "<p class='result-evidence-transition' aria-hidden='true'>"
-        f"<span>↓</span> {_escaped(prompt_text)}</p>"
+        f"<span>{arrow}</span> {_escaped(prompt_text)}</p>"
     )
 
 

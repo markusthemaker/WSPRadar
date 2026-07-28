@@ -662,9 +662,8 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         "Azimuth",
         "Heard by Target",
         "Heard by others only",
-        "Confirmed opportunities",
         "Decode Rate (%)",
-        "Median successful Target SNR (dB @ 30 dBm)",
+        "Median SNR @ 30 dBm",
     ]
     assert list(german.full_station_table.columns) == [
         "TX-Station",
@@ -673,9 +672,8 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         "Azimut",
         "Vom Target gehört",
         "Nur von anderen gehört",
-        "Bestätigte Gelegenheiten",
         "Dekodierrate (%)",
-        "Median des erfolgreichen Target-SNR (dB @ 30 dBm)",
+        "Median-SNR @ 30 dBm",
     ]
     assert list(english.export_station_table.columns) == [
         "TX Station",
@@ -697,8 +695,12 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         "T/(T+E) (%)",
         "Median Target-SNR (dB @ 30 dBm)",
     ]
-    assert english.full_station_table["Confirmed opportunities"].tolist() == [2]
-    assert german.full_station_table["Bestätigte Gelegenheiten"].tolist() == [2]
+    assert (
+        english.confirmed_rows["hits"] + english.confirmed_rows["misses"]
+    ).tolist() == [2]
+    assert (
+        german.confirmed_rows["hits"] + german.confirmed_rows["misses"]
+    ).tolist() == [2]
     assert english.summary_lines == [
         "Stations: Heard by Target 1 · Heard by others only 0 · "
         "Station-balanced Decode Rate 50.0%",

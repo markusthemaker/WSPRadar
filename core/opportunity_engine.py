@@ -109,11 +109,11 @@ SUCCESS_RATE_BOUNDS = (
 )
 SUCCESS_RATE_TICK_LABELS = ("0%", ">0%", "1%", "2%", "5%", "10%", "20%", "40%", "60%", "80%", "100%")
 SUCCESS_RATE_COLORS = (
-    "#6e4c8f",
-    "#6576b8",
-    "#5c9bc7",
-    "#55b9c0",
-    "#8bcb9a",
+    "#081A3A",
+    "#0D2B5B",
+    "#16457E",
+    "#2A6AA3",
+    "#49A9C5",
     "#c9e5a3",
     "#f4e58a",
     "#efb56f",

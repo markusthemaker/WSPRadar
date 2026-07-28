@@ -879,9 +879,9 @@ def test_success_results_zip_records_selected_figures_and_context(
     selected_identities = ["OK1FCX (JN79)"]
     selected_label = "OK1FCX (JN79)"
     selected_context = (
-        "OK1FCX (JN79) · 1,173 km · 91° E · "
+        "OK1FCX (JN79) · 1,173 km · 91° E\n"
         "13,019 confirmed opportunities · Decode Rate 47.6% · "
-        "Median successful Target SNR −15.0 dB"
+        "Median Target SNR −15.0 dB"
     )
     figure_descriptions = {
         figure_name: f"{figure_name}: {selected_label}"

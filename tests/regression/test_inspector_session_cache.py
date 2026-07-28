@@ -577,6 +577,91 @@ def test_segment_time_bin_prompt_renders_above_full_width_selector(monkeypatch):
     )
 
 
+def test_performance_drilldown_uses_five_row_viewport_without_changing_compare(
+    monkeypatch,
+):
+    """Compact only the Performance audit table and retain its scrolling viewport."""
+    assert segment_inspector.COMPACT_DATAFRAME_VISIBLE_BODY_ROWS == 5
+
+    class FakeStreamlit:
+        """Record the dataframe options used by the drill-down renderer."""
+
+        def __init__(self):
+            self.session_state = {}
+            self.dataframe_calls = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def markdown(self, *_args, **_kwargs):
+            return None
+
+        def columns(self, widths, **_kwargs):
+            return tuple(self for _width in widths)
+
+        def popover(self, *_args, **_kwargs):
+            return self
+
+        def multiselect(self, *_args, **_kwargs):
+            return []
+
+        def dataframe(self, *_args, **kwargs):
+            self.dataframe_calls.append(dict(kwargs))
+            return None
+
+    fake_streamlit = FakeStreamlit()
+    monkeypatch.setattr(segment_inspector, "st", fake_streamlit)
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    drilldown_rows = pd.DataFrame(
+        {
+            "Date/Time (UTC)": ["01-Jul-2026 00:00:00"],
+            "Outcome": ["Target"],
+            "Target (T)": [1],
+            "Elsewhere (E)": [0],
+        }
+    )
+    common_arguments = (
+        drilldown_rows,
+        ["K1AAA (FN31)"],
+        "RX_ABS",
+        71,
+        "rall_dall",
+        T["en"],
+    )
+
+    segment_inspector._render_drilldown_dataframe(
+        *common_arguments,
+        False,
+        False,
+        SimpleNamespace(),
+        "en",
+    )
+    segment_inspector._render_drilldown_dataframe(
+        *common_arguments,
+        True,
+        False,
+        SimpleNamespace(),
+        "en",
+    )
+
+    performance_call, compare_call = fake_streamlit.dataframe_calls
+    assert performance_call["height"] == (
+        segment_inspector.COMPACT_DATAFRAME_HEIGHT_PX
+    )
+    assert performance_call["row_height"] == (
+        segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
+    )
+    assert "height" not in compare_call
+    assert "row_height" not in compare_call
+
+
 def test_time_bin_widget_uses_valid_canonical_value_and_syncs_interaction(monkeypatch):
     session_state = {
         segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "6h",
@@ -1719,8 +1804,7 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     )
     opportunity_terms = {
         "mode": "RX",
-        "presentation_subtext": "Heard by Target | Heard by others only",
-        "show_counter": "Show Heard by others only stations",
+        "show_counter": "Heard only by other stations.",
     }
     presentation_context = SimpleNamespace(
         language="en",
@@ -1868,6 +1952,30 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     assert all(
         callable(dataframe_call["on_select"])
         for dataframe_call in fake_streamlit.dataframe_calls
+    )
+    assert all(
+        dataframe_call["height"]
+        == segment_inspector.COMPACT_DATAFRAME_HEIGHT_PX
+        for dataframe_call in fake_streamlit.dataframe_calls
+    )
+    assert all(
+        dataframe_call["row_height"]
+        == segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
+        for dataframe_call in fake_streamlit.dataframe_calls
+    )
+    assert (
+        list(
+            segment_inspector.SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS
+        ),
+        {"vertical_alignment": "center"},
+    ) in fake_streamlit.column_calls
+    assert (
+        segment_inspector.SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS
+        == (9, 2)
+    )
+    assert all(
+        "Heard by Target | Heard by others only" not in markdown_body
+        for markdown_body, _kwargs in fake_streamlit.markdown_calls
     )
     assert (
         [0.64, 0.36],

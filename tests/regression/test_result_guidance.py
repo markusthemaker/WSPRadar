@@ -1048,8 +1048,75 @@ def test_german_success_guidance_and_toggle_retire_zero_target_wording():
     assert "Zero-Target" not in guidance
     assert (
         T["de"]["success_rx_show_counter"]
-        == "Stationen „Nur von anderen gehört“ anzeigen"
+        == "Nur von anderen Stationen gehört."
     )
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "analysis_id",
+        "station_counter",
+        "snr_header",
+        "retired_counter",
+        "retired_snr_header",
+        "retired_opportunity_label",
+    ),
+    (
+        (
+            "en",
+            "TX_ABS",
+            "Other signals heard",
+            "Median SNR @ 30 dBm",
+            "Other signals heard only",
+            "Median successful Target SNR",
+            "confirmed opportunities",
+        ),
+        (
+            "de",
+            "TX_ABS",
+            "Andere Signale gehört",
+            "Median-SNR @ 30 dBm",
+            "Nur andere Signale gehört",
+            "Median des erfolgreichen Target-SNR",
+            "bestätigte Gelegenheiten",
+        ),
+    ),
+)
+def test_performance_table_guidance_names_only_active_display_columns(
+    language,
+    analysis_id,
+    station_counter,
+    snr_header,
+    retired_counter,
+    retired_snr_header,
+    retired_opportunity_label,
+):
+    """Keep Station Insights and Drill-Down guidance aligned with visible tables."""
+    station_guidance = _build_guidance(
+        RESULT_GUIDANCE_STATION_INSIGHTS,
+        language=language,
+        analysis_id=analysis_id,
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+    drilldown_guidance = _build_guidance(
+        RESULT_GUIDANCE_DRILLDOWN,
+        language=language,
+        analysis_id=analysis_id,
+        is_compare=False,
+        analysis_context=AnalysisContext(),
+    )
+
+    assert station_counter in station_guidance
+    assert station_counter in drilldown_guidance
+    assert snr_header in station_guidance
+    assert retired_counter not in station_guidance
+    assert retired_counter not in drilldown_guidance
+    assert retired_snr_header not in station_guidance
+    assert retired_opportunity_label not in station_guidance
+    assert "Outcomes identify" not in drilldown_guidance
+    assert "Outcomes unterscheiden" not in drilldown_guidance
 
 
 @pytest.mark.parametrize("language", ("en", "de"))

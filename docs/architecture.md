@@ -585,14 +585,20 @@ has a secondary Success Rate axis; all four twin axes begin at zero and share
 one capped, rounded ceiling derived from the four unchanged rate series. One
 figure-level legend centered below the lower title identifies both outcome
 stacks and the Success Rate line. The left support axes scale independently and
-share the compact ham-style count formatter. Lower chronological and folded data
-axes align exactly with their corresponding upper SNR plot axes; the lower
-layout reserves the upper colorbar footprint instead of treating that colorbar
-or its annotation as data width. Panel heights and the inter-column gutter
-remain aligned. The upper SNR panels retain their subtitles using the
-established legend typography. Each figure keeps one folded-date annotation
-without repeating it in both panels of a row. Browser preview and high-resolution
-export use the same two recipes and renderers; Success exports add
+share the compact ham-style count formatter. Lower chronological data axes
+align exactly with the upper chronological SNR axis. The two lower folded
+panels preserve the upper folded panel's width but translate right together
+with their titles, axes, twin rate axes, labels and annotations so their
+rightmost labeling aligns with the upper colorbar label. The lower layout
+reserves and then uses that upper colorbar footprint without adding a lower
+colorbar. Both folded evidence panels expand 20 px toward the left on the
+1,300 px reference canvas while retaining their shared right edge; the two
+chronological panels retain their established bounds. Panel heights remain
+aligned. The upper SNR panels retain their
+subtitles using the established legend typography. Each figure keeps one
+folded-date annotation without repeating it in both panels of a row. Browser
+preview and high-resolution export use the same two recipes and renderers;
+Success exports add
 `figure_segment_temporal_snr_deviation.png` and retain
 `figure_segment_temporal_evidence.png` for the station/opportunity figure, while
 Compare keeps its existing single temporal export.
@@ -649,14 +655,20 @@ rows are downstream presentation state and do not invalidate segment recipes.
 Changing the selected Success identity invalidates only selected-station recipes;
 changing its chronological bin reuses retained evidence and leaves the
 independent Segment Inspector bin and completed provider analysis untouched. The
-visible Station Insights table uses the direction-aware Success outcomes and a
-derived confirmed-opportunity column, while its separately retained export table
-preserves the established compatibility headings. Success Drill-Down likewise
-maps canonical outcome values only in a display copy; filtering is projected
-back to the unchanged canonical rows registered for export. Success and Compare
-temporal-bin choices use independent durable state. Browser preview and
-high-resolution export consume the same exact-distance and temporal recipes and
-renderer semantics.
+visible Performance Station Insights table uses the direction-aware Success
+outcomes, places the counter-only visibility toggle above its left edge, and
+uses a fixed five-body-row scrolling viewport. It omits the redundant derived
+confirmed-opportunity total, shortens the visible successful-SNR heading, and
+uses `Other signals heard` for the TX counter column; its separately retained
+export table preserves the established compatibility headings and canonical
+outcome fields. Performance Drill-Down uses the same five-body-row viewport,
+omits the display-only `Outcome` column, and applies the same shortened TX
+counter heading. Filtering is still projected back to unchanged canonical rows
+registered for export, including their `Outcome` values. Compare tables retain
+their existing automatic viewport and headings. Success and Compare temporal-bin
+choices use independent durable state. Browser preview and high-resolution
+export consume the same exact-distance and temporal recipes and renderer
+semantics.
 
 Periodic hardware A/B projections additionally carry the stable planned-pair
 identifier and timestamps so inspectors and exports replay the same pairing

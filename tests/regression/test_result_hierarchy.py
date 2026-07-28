@@ -122,14 +122,12 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "success_rx_station_success",
     "success_rx_station_counter",
     "success_rx_target_only_audit",
-    "success_rx_subtext",
     "success_rx_show_counter",
     "success_tx_opportunity_success",
     "success_tx_opportunity_counter",
     "success_tx_station_success",
     "success_tx_station_counter",
     "success_tx_target_only_audit",
-    "success_tx_subtext",
     "success_tx_show_counter",
     "map_success_footer_opportunities",
     "map_success_footer_stations",
@@ -219,8 +217,8 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "fmt_success_selected_context",
     "tbl_col_success_station_rx",
     "tbl_col_success_station_tx",
-    "tbl_col_confirmed_opportunities",
     "tbl_col_success_rate",
+    "tbl_col_success_counter_display_tx",
     "tbl_col_success_snr_display",
 }
 
@@ -356,14 +354,22 @@ def test_success_result_subtitles_and_map_titles_match_directional_contract():
     assert T["de"]["sub_results_tx_success"] == (
         "Target {callsign} · Target gehört oder nur andere Signale an aktiven RX-Stationen gehört"
     )
+    assert T["en"]["sub_results_success_evidence"] == (
+        "Decode Rate and successful-signal strength by calculated distance "
+        "for the active scope."
+    )
+    assert T["de"]["sub_results_success_evidence"] == (
+        "Dekodierrate und Stärke erfolgreicher Signale nach berechneter "
+        "Entfernung im aktiven Bereich."
+    )
     assert T["en"]["sub_results_success_temporal"] == (
         "Successful signal-strength deviations, station support, "
-        "confirmed-opportunity volume and both Decode Rate weightings shown "
+        "confirmed-opportunity volume and Decode Rate weightings shown "
         "chronologically and by UTC hour."
     )
     assert T["de"]["sub_results_success_temporal"] == (
         "Abweichungen erfolgreicher Signalstärken, Stationsstützung, Volumen "
-        "bestätigter Gelegenheiten und beide Gewichtungen der Dekodierrate, "
+        "bestätigter Gelegenheiten und Gewichtungen der Dekodierrate, "
         "chronologisch und nach UTC-Stunde dargestellt."
     )
     assert T["en"]["fig_success_temporal_snr_title_rx"] == (
@@ -889,6 +895,23 @@ def test_dynamic_result_values_are_escaped_at_the_html_boundary():
     prompt_markup = transition_prompt_html("↓ Review <underlying & rows>")
     assert "<underlying & rows>" not in prompt_markup
     assert "&lt;underlying &amp; rows&gt;" in prompt_markup
+    assert "<span>↓</span>" in prompt_markup
+
+    upward_prompt_markup = transition_prompt_html(
+        "↑ Select <one & station>"
+    )
+    assert "<span>↑</span>" in upward_prompt_markup
+    assert "&lt;one &amp; station&gt;" in upward_prompt_markup
+
+    line_break_markup = evidence_level_header_html(
+        4,
+        "Selection",
+        "Selected Station Evidence",
+        "PATH <unsafe>\n13 opportunities & rate",
+    )
+    assert "PATH &lt;unsafe&gt;<br>13 opportunities &amp; rate" in (
+        line_break_markup
+    )
 
 
 def test_result_translation_keys_have_english_german_placeholder_parity():
@@ -939,6 +962,31 @@ def test_success_presentation_keys_have_bilingual_placeholder_parity():
         assert _format_fields(
             T[language]["fig_success_selected_snr_chronological_subtitle"]
         ) == {"time_bin"}
+
+
+def test_performance_station_table_copy_is_exact_and_retires_helper_fields():
+    """Pin the compact bilingual table copy without changing outcome semantics."""
+    expected = {
+        "en": {
+            "success_rx_show_counter": "Heard only by other stations.",
+            "success_tx_show_counter": "Only other signals heard.",
+            "tbl_col_success_counter_display_tx": "Other signals heard",
+            "tbl_col_success_snr_display": "Median SNR @ 30 dBm",
+        },
+        "de": {
+            "success_rx_show_counter": "Nur von anderen Stationen gehört.",
+            "success_tx_show_counter": "Nur andere Signale gehört.",
+            "tbl_col_success_counter_display_tx": "Andere Signale gehört",
+            "tbl_col_success_snr_display": "Median-SNR @ 30 dBm",
+        },
+    }
+
+    for language, expected_labels in expected.items():
+        for key, expected_label in expected_labels.items():
+            assert T[language][key] == expected_label
+        assert "success_rx_subtext" not in T[language]
+        assert "success_tx_subtext" not in T[language]
+        assert "tbl_col_confirmed_opportunities" not in T[language]
 
 
 def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contract():

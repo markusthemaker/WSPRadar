@@ -65,7 +65,7 @@ def _sequential_tx_drilldown_labels(col_u_name, ref_header, *, target_callsign="
 
 
 def opportunity_drilldown_display_table(drill_df, translations, analysis_id):
-    """Translate canonical Success drill-down outcomes for visible display.
+    """Prepare direction-aware Success drill-down columns for visible display.
 
     The returned frame retains the source index so the caller can map any
     display-only filtering back to the unchanged canonical export rows.
@@ -77,35 +77,19 @@ def opportunity_drilldown_display_table(drill_df, translations, analysis_id):
         "TX" if str(analysis_id).upper().startswith("TX") else "RX",
     )
     display_df = drill_df.copy()
+    is_tx = str(analysis_id).upper().startswith("TX")
     canonical_success_column = terms["target_column"]
     canonical_counter_column = terms["counter_column"]
-    success_values = pd.to_numeric(
-        display_df.get(
-            canonical_success_column,
-            pd.Series(0, index=display_df.index),
-        ),
-        errors="coerce",
-    ).fillna(0)
-    counter_values = pd.to_numeric(
-        display_df.get(
-            canonical_counter_column,
-            pd.Series(0, index=display_df.index),
-        ),
-        errors="coerce",
-    ).fillna(0)
-    if "Outcome" in display_df.columns:
-        display_df["Outcome"] = np.select(
-            [success_values > 0, counter_values > 0],
-            [
-                terms["opportunity_success"],
-                terms["opportunity_counter"],
-            ],
-            default=terms["target_only_audit"],
-        )
+    counter_display_column = (
+        translations["tbl_col_success_counter_display_tx"]
+        if is_tx
+        else terms["opportunity_counter"]
+    )
+    display_df = display_df.drop(columns=["Outcome"], errors="ignore")
     return display_df.rename(
         columns={
             canonical_success_column: terms["opportunity_success"],
-            canonical_counter_column: terms["opportunity_counter"],
+            canonical_counter_column: counter_display_column,
         }
     )
 

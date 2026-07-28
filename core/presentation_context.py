@@ -59,9 +59,6 @@ class PresentationContext:
             "target_only_audit": str(
                 self.labels[f"success_{mode_key}_target_only_audit"]
             ),
-            "presentation_subtext": str(
-                self.labels[f"success_{mode_key}_subtext"]
-            ),
             "show_counter": str(
                 self.labels[f"success_{mode_key}_show_counter"]
             ),

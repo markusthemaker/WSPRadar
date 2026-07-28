@@ -777,6 +777,22 @@ def test_success_map_renderer_uses_sector_rate_and_status_only_markers(
         assert tuple(sector_fills.cmap.colors) == tuple(
             plot_engine.SUCCESS_RATE_COLORS
         )
+        for rate_pct, expected_color in (
+            (0.0, "#081A3A"),
+            (0.1, "#0D2B5B"),
+            (0.9, "#0D2B5B"),
+            (1.0, "#16457E"),
+            (1.9, "#16457E"),
+            (2.0, "#2A6AA3"),
+            (4.9, "#2A6AA3"),
+            (5.0, "#49A9C5"),
+            (9.9, "#49A9C5"),
+            (10.0, "#c9e5a3"),
+        ):
+            color_index = sector_fills.norm(rate_pct)
+            assert sector_fills.cmap(color_index) == pytest.approx(
+                to_rgba(expected_color)
+            )
         assert sector_fills.get_alpha() == pytest.approx(
             plot_engine.SUCCESS_MAP_HEATMAP_ALPHA
         )
