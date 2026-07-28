@@ -195,8 +195,8 @@ Explicit stations use canonical callsign/locator pairs. Both branches accept
 `null`, an empty list, or one identity; `"all"`, duplicates, malformed
 identities, and multiple identities are rejected without migration. `null`
 retains the normal initial table behavior, while an empty list records
-deliberate deselection. Compare also preserves its selected temporal view and
-`show_non_joint`; Success preserves `show_zero_target`. Table filters,
+deliberate deselection. Compare additionally preserves `show_non_joint`;
+Success preserves `show_zero_target`. Table filters,
 Drill-Down filters, and other transient UI state remain outside the config
 contract. Optional non-core data belongs under `extensions` and is preserved
 across load and re-save.

@@ -69,11 +69,10 @@ from ui.inspector.view_models import (
 from ui.inspector.session_cache import SessionInspectorCache
 from ui.result_state import INSPECTOR_CACHE_STATE_KEY
 from ui.plots.evidence_figures import (
-    SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-    SELECTED_TEMPORAL_VIEW_UTC_HOUR,
     _segment_figure_export_recipe,
     _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
+    _format_temporal_time_bin_label,
     _time_agg_options_for_span,
     render_segment_insight_export_figure,
     render_segment_temporal_evidence_export_figure,
@@ -87,6 +86,7 @@ from ui.plots.opportunity_figures import (
     SUCCESS_SNR_REPRESENTATION_STATION_RELATIVE,
     SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
     SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+    SUCCESS_TEMPORAL_TIME_BINS,
     _as_utc_timestamp,
     _opportunity_segment_recipe,
     _opportunity_temporal_recipe,
@@ -118,8 +118,8 @@ from ui.result_guidance import (
     render_result_guidance_popover,
 )
 
-INSPECTOR_CACHE_VERSION = 28
-INSPECTOR_PNG_RENDER_VERSION = 22
+INSPECTOR_CACHE_VERSION = 29
+INSPECTOR_PNG_RENDER_VERSION = 23
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
 RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
@@ -140,16 +140,12 @@ RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY = (
 RESULTS_SEGMENT_TIME_BIN_ABSOLUTE_STATE_KEY = (
     "val_results_segment_time_bin_absolute"
 )
-RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY = (
-    "val_results_station_temporal_view_compare"
-)
 RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = (
     "val_results_selected_stations_compare"
 )
 RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY = (
     "val_results_selected_stations_absolute"
 )
-SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS = (1, 2)
 STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (5, 4, 3)
 SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (9, 2)
 COMPACT_DATAFRAME_VISIBLE_BODY_ROWS = 5
@@ -233,26 +229,6 @@ def _initialize_time_bin_widget_state(widget_key, persistent_key, options, fallb
     st.session_state[persistent_key] = selected_time_bin
     st.session_state[widget_key] = selected_time_bin
     return selected_time_bin
-
-
-def _initialize_choice_widget_state(
-    widget_key,
-    persistent_key,
-    options,
-    fallback,
-):
-    """Initialize a bounded widget choice from canonical saved-config state."""
-    available_options = tuple(options)
-    if not available_options:
-        raise ValueError("At least one display option is required.")
-    selected_option = st.session_state.get(persistent_key)
-    if selected_option not in available_options:
-        selected_option = (
-            fallback if fallback in available_options else available_options[0]
-        )
-    st.session_state[persistent_key] = selected_option
-    st.session_state[widget_key] = selected_option
-    return selected_option
 
 
 def _render_stretched_time_bin_control(
@@ -547,20 +523,6 @@ def _sync_time_bin_widget_state(widget_key, persistent_key, options, fallback):
     )
     st.session_state[persistent_key] = selected_time_bin
     return selected_time_bin
-
-
-def _sync_choice_widget_state(widget_key, persistent_key, options, fallback):
-    """Copy one bounded widget choice into canonical saved-config state."""
-    available_options = tuple(options)
-    if not available_options:
-        raise ValueError("At least one display option is required.")
-    selected_option = st.session_state.get(widget_key)
-    if selected_option not in available_options:
-        selected_option = (
-            fallback if fallback in available_options else available_options[0]
-        )
-    st.session_state[persistent_key] = selected_option
-    return selected_option
 
 
 def _initialize_boolean_widget_state(widget_key, persistent_key, fallback):
@@ -1341,35 +1303,7 @@ def _snr_column_config(df):
     return config
 
 
-def _evidence_labels(translations):
-    """Return localized Compare labels for selected-station evidence plots."""
-    chronological_title = translations["fig_segment_chronological_delta"]
-    return {
-        "dist_title": translations["fig_compare_delta_distribution"],
-        "time_title": chronological_title,
-        "time_title_template": translations[
-            "fmt_temporal_title_with_bins"
-        ].format(
-            title=chronological_title,
-            time_bin="{time_bin}",
-        ),
-        "y_label": translations["tbl_col_delta_snr"],
-        "x_label": translations["fig_segment_chronological_x"],
-        "share_axis_label": translations["fig_share_percent_axis"],
-        "median_label": translations["fig_median_label"],
-        "bin_median_label": translations["fig_temporal_bin_median"],
-        "mean_label": translations["fig_mean_label"],
-        "empty_text": translations["fig_selected_evidence_empty"],
-        "single_evidence_point": translations[
-            "fig_single_evidence_point"
-        ],
-        "single_point_title": translations["fig_single_point_title"],
-        "count_label": translations["fig_joint_spot_count"],
-        "density_label": translations["fig_relative_joint_spot_density"],
-        "median_focus_axis_label": translations[
-            "fig_compare_median_focus_axis"
-        ],
-    }
+
 
 
 
@@ -1510,19 +1444,12 @@ def _render_drilldown_dataframe(
     _render_reference_correction_notice(t, is_compare)
     with _timed_span(timing_collector, "drilldown dataframe render"):
         drill_display_df = _format_snr_display_columns(display_drill_df)
-        if is_compare:
-            st.dataframe(
-                drill_display_df,
-                width="stretch",
-                hide_index=True,
-            )
-        else:
-            _render_compact_dataframe(
-                st,
-                drill_display_df,
-                width="stretch",
-                hide_index=True,
-            )
+        _render_compact_dataframe(
+            st,
+            drill_display_df,
+            width="stretch",
+            hide_index=True,
+        )
     return canonical_drill_df.loc[display_drill_df.index].copy()
 
 
@@ -1639,12 +1566,12 @@ def _render_selected_station_evidence(
             )
             return None
 
-        labels = _evidence_labels(t)
         if is_sequential:
-            labels["count_label"] = t["fig_scheduled_pair_count"]
-            labels["density_label"] = t[
-                "fig_relative_scheduled_pair_density"
-            ]
+            count_label = t["fig_scheduled_pair_count"]
+            density_label = t["fig_relative_scheduled_pair_density"]
+        else:
+            count_label = t["fig_joint_spot_count"]
+            density_label = t["fig_relative_joint_spot_density"]
         evidence_count = len(evidence_df)
         evidence_title = _selected_evidence_figure_title(
             identity_labels,
@@ -1653,7 +1580,8 @@ def _render_selected_station_evidence(
             is_sequential=is_sequential,
             translations=t,
         )
-        time_agg_options, time_agg_default = _time_agg_options_for_span(evidence_df)
+        time_agg_options = tuple(SUCCESS_TEMPORAL_TIME_BINS)
+        time_agg_default = "3h"
         folded_date_template = t["fig_segment_dates_folded"].replace(
             "{count}",
             "{utc_date_count}",
@@ -1661,15 +1589,28 @@ def _render_selected_station_evidence(
         base_recipe = _selected_evidence_export_recipe(
             evidence_df,
             evidence_title,
-            labels,
             time_agg_default,
             is_sequential,
-            folded_title=_folded_utc_hour_panel_title(t),
+            count_label=count_label,
+            chronological_title=t[
+                "fig_selected_compare_chronological_title"
+            ],
+            chronological_subtitle=t[
+                "fig_selected_compare_chronological_subtitle"
+            ],
+            chronological_x_label=t["fig_segment_chronological_x"],
+            metric_axis_label=t["tbl_col_delta_snr"],
+            folded_title=t["fig_selected_compare_folded_title"],
+            folded_subtitle=t[
+                "fig_selected_compare_folded_subtitle"
+            ],
             folded_date_annotation=folded_date_template,
             folded_x_label=t["fig_segment_utc_hour_x"],
-            density_label=labels["density_label"],
+            density_label=density_label,
             folded_unavailable_text=t["fig_segment_folded_unavailable"],
             median_focus_axis_label=t["fig_compare_median_focus_axis"],
+            median_label=t["fig_median_label"],
+            bin_median_label=t["fig_temporal_bin_median"],
         )
         if base_recipe["utc_date_count"] < 2:
             insufficient_date_label = t[
@@ -1739,103 +1680,35 @@ def _render_selected_station_evidence(
         time_agg_default,
     )
 
-    temporal_view_options = (
-        SELECTED_TEMPORAL_VIEW_UTC_HOUR,
-        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-    )
-    temporal_view_labels = {
-        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL: t[
-            "opt_temporal_chronological"
-        ],
-        SELECTED_TEMPORAL_VIEW_UTC_HOUR: t["opt_temporal_utc_hour"],
-    }
-    temporal_view_key = (
-        f"evidence_temporal_view_{analysis_id}_{run_id}_{scope_token}_"
-        f"{is_sequential}"
-    )
-    temporal_view = _initialize_choice_widget_state(
-        temporal_view_key,
-        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-        temporal_view_options,
-        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-    )
-    view_control, detail_control = st.columns(
-        SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS,
-        vertical_alignment="center",
-    )
-    with view_control:
-        if hasattr(st, "segmented_control"):
-            temporal_view = st.segmented_control(
-                t["lbl_selected_temporal_view"],
-                temporal_view_options,
-                required=True,
-                format_func=temporal_view_labels.__getitem__,
-                key=temporal_view_key,
-                label_visibility="collapsed",
-                width="stretch",
-                on_change=_sync_choice_widget_state,
-                args=(
-                    temporal_view_key,
-                    RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-                    temporal_view_options,
-                    SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-                ),
-            )
-        else:
-            temporal_view = st.radio(
-                t["lbl_selected_temporal_view"],
-                temporal_view_options,
-                format_func=temporal_view_labels.__getitem__,
-                horizontal=True,
-                key=temporal_view_key,
-                label_visibility="collapsed",
-                on_change=_sync_choice_widget_state,
-                args=(
-                    temporal_view_key,
-                    RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-                    temporal_view_options,
-                    SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-                ),
-            )
-    temporal_view = _sync_choice_widget_state(
-        temporal_view_key,
-        RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-        temporal_view_options,
-        SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-    )
-    with detail_control:
-        if temporal_view == SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL:
-            _render_stretched_time_bin_control(
-                t["lbl_chronological_bin_size"],
-                time_agg_options,
-                agg_key,
-                on_change=_sync_time_bin_widget_state,
-                on_change_args=(
-                    agg_key,
-                    persistent_time_bin_key,
-                    tuple(time_agg_options),
-                    time_agg_default,
-                ),
-            )
-
-    if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR:
-        time_agg = "1h"
-    else:
-        time_agg = _sync_time_bin_widget_state(
+    _render_prompted_segment_time_bin_control(
+        t["lbl_selected_time_aggregation_bin_size"],
+        time_agg_options,
+        agg_key,
+        on_change=_sync_time_bin_widget_state,
+        on_change_args=(
             agg_key,
             persistent_time_bin_key,
-            time_agg_options,
+            tuple(time_agg_options),
             time_agg_default,
-        )
+        ),
+    )
+    time_agg = _sync_time_bin_widget_state(
+        agg_key,
+        persistent_time_bin_key,
+        time_agg_options,
+        time_agg_default,
+    )
 
     evidence_title = selected_bundle["title"]
     selected_recipe = dict(selected_bundle["base_recipe"])
     selected_recipe["time_bin"] = time_agg
-    selected_recipe["temporal_view"] = temporal_view
+    selected_recipe["chronological_subtitle"] = t[
+        "fig_selected_compare_chronological_subtitle"
+    ].format(time_bin=_format_temporal_time_bin_label(time_agg))
     _render_cached_recipe(
         selected_recipe,
         run_id=run_id,
-        cache_key=cache_key + (time_agg, temporal_view),
+        cache_key=cache_key + (time_agg, "dual-temporal"),
         subject="selected evidence",
         build_label="selected evidence figure build",
         render_figure=render_selected_evidence_export_figure,
@@ -1844,7 +1717,6 @@ def _render_selected_station_evidence(
     return {
         "export_recipe": selected_recipe,
         "time_bin": time_agg,
-        "temporal_view": temporal_view,
         "title": evidence_title,
     }
 
@@ -3637,7 +3509,8 @@ def _render_segment_inspector_body(
                 "selection": {"rows": selection_default_rows}
             }
         with _timed_span(timing_collector, "station insights table render"):
-            tbl_event = level_three_container.dataframe(
+            tbl_event = _render_compact_dataframe(
+                level_three_container,
                 sorted_disp_df,
                 **dataframe_kwargs,
             )

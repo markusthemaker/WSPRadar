@@ -11,6 +11,8 @@ from config import (
     CONFIG_DOCUMENT_FORMAT,
     CONFIG_SCHEMA_VERSION,
     DEMO_PROFILES,
+    STATION_EVIDENCE_TIME_BIN_OPTIONS,
+    STATION_EVIDENCE_TIME_BINS,
     prepare_config_document,
 )
 from i18n import T
@@ -90,7 +92,6 @@ def _valid_settings(
                 "show_non_joint": False,
                 "segment_evidence_time_bin": "auto",
                 "station_evidence_time_bin": "3h",
-                "station_evidence_temporal_view": "chronological",
                 "selected_stations": None,
             }
 
@@ -436,6 +437,21 @@ def test_two_hour_station_evidence_bins_round_trip_through_config_validation():
     assert config["station_evidence_time_bin_absolute"] == "2h"
 
 
+def test_station_evidence_bin_order_and_validation_set_have_exact_parity():
+    """Keep saved validation aligned with the one shared six-option selector."""
+    assert STATION_EVIDENCE_TIME_BIN_OPTIONS == (
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h",
+    )
+    assert STATION_EVIDENCE_TIME_BINS == frozenset(
+        STATION_EVIDENCE_TIME_BIN_OPTIONS
+    )
+
+
 def test_success_segment_evidence_bin_rejects_an_unsupported_width():
     """Apply the shared segment-bin allowlist at the Success config boundary."""
     settings = _valid_settings(comparison_mode="none")
@@ -444,6 +460,36 @@ def test_success_segment_evidence_bin_rejects_an_unsupported_width():
     with pytest.raises(
         ValueError,
         match=r"results_view\.success\.segment_evidence_time_bin",
+    ):
+        config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize("result_mode", ("success", "compare"))
+def test_station_evidence_bin_rejects_segment_only_minute_widths(result_mode):
+    """Reserve minute-scale bins for segment evidence in both result modes."""
+    settings = _valid_settings()
+    settings["results_view"][result_mode]["station_evidence_time_bin"] = "30m"
+
+    with pytest.raises(
+        ValueError,
+        match=rf"results_view\.{result_mode}\.station_evidence_time_bin",
+    ):
+        config_io.validate_config_document(_config_document(settings))
+
+
+def test_obsolete_selected_compare_temporal_view_field_is_strictly_rejected():
+    """Reject the retired saved toggle instead of silently preserving dead state."""
+    settings = _valid_settings()
+    settings["results_view"]["compare"][
+        "station_evidence_temporal_view"
+    ] = "chronological"
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"Unknown settings\.results_view\.compare field.*"
+            r"station_evidence_temporal_view"
+        ),
     ):
         config_io.validate_config_document(_config_document(settings))
 
@@ -466,7 +512,6 @@ def test_complete_result_view_state_round_trips_with_single_station_intent():
             "show_non_joint": True,
             "segment_evidence_time_bin": "12h",
             "station_evidence_time_bin": "2h",
-            "station_evidence_temporal_view": "utc_hour",
             "selected_stations": [
                 {"callsign": "F4WBN", "locator": "JN18"},
             ],
@@ -487,7 +532,7 @@ def test_complete_result_view_state_round_trips_with_single_station_intent():
     assert normalized["selected_directions_compare"] == ["WNW", "NW"]
     assert normalized["segment_evidence_time_bin_compare"] == "12h"
     assert normalized["station_evidence_time_bin_compare"] == "2h"
-    assert normalized["station_evidence_temporal_view_compare"] == "utc_hour"
+    assert "station_evidence_temporal_view_compare" not in normalized
     assert normalized["selected_stations_compare"] == [
         {"callsign": "F4WBN", "locator": "JN18"},
     ]
@@ -916,10 +961,7 @@ def test_loading_active_only_config_resets_inactive_widget_state():
     assert session_state["val_results_time_bin_compare"] is None
     assert session_state["val_results_segment_time_bin_compare"] == "auto"
     assert session_state["val_results_segment_time_bin_absolute"] == "auto"
-    assert (
-        session_state["val_results_station_temporal_view_compare"]
-        == "chronological"
-    )
+    assert "val_results_station_temporal_view_compare" not in session_state
     assert session_state["val_results_selected_stations_compare"] is None
     assert session_state["val_results_selected_stations_absolute"] is None
 
@@ -1156,7 +1198,6 @@ def test_success_only_rejects_hidden_comparison_view_fields():
         "show_non_joint": False,
         "segment_evidence_time_bin": "auto",
         "station_evidence_time_bin": "3h",
-        "station_evidence_temporal_view": "chronological",
         "selected_stations": None,
     }
     with pytest.raises(

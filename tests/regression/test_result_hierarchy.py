@@ -213,6 +213,10 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "fig_success_selected_folded_median",
     "fig_success_selected_snr_unavailable",
     "fig_success_selected_station_support_folded_subtitle",
+    "fig_selected_compare_chronological_title",
+    "fig_selected_compare_chronological_subtitle",
+    "fig_selected_compare_folded_title",
+    "fig_selected_compare_folded_subtitle",
     "lbl_selected_time_aggregation_bin_size",
     "fmt_success_selected_context",
     "tbl_col_success_station_rx",
@@ -962,6 +966,12 @@ def test_success_presentation_keys_have_bilingual_placeholder_parity():
         assert _format_fields(
             T[language]["fig_success_selected_snr_chronological_subtitle"]
         ) == {"time_bin"}
+        assert _format_fields(
+            T[language]["fig_selected_compare_chronological_subtitle"]
+        ) == {"time_bin"}
+        assert not _format_fields(
+            T[language]["fig_selected_compare_folded_subtitle"]
+        )
 
 
 def test_performance_station_table_copy_is_exact_and_retires_helper_fields():

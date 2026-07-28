@@ -1187,20 +1187,23 @@ def test_success_guidance_names_the_rendered_figures_exactly(language):
         "language",
         "joint_title",
         "scheduled_title",
-        "selected_title",
+        "selected_chronological_title",
+        "selected_folded_title",
     ),
     (
         (
             "en",
             "Joint-Spot Δ SNR",
             "Scheduled-Pair Δ SNR",
-            "Δ SNR Distribution",
+            "Δ SNR over Time",
+            "Δ SNR by UTC Hour",
         ),
         (
             "de",
             "Joint-Spot Δ SNR",
             "Geplantes Paar Δ SNR",
-            "Δ SNR Verteilung",
+            "Δ SNR im Zeitverlauf",
+            "Δ SNR nach UTC-Stunde",
         ),
     ),
 )
@@ -1208,7 +1211,8 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
     language,
     joint_title,
     scheduled_title,
-    selected_title,
+    selected_chronological_title,
+    selected_folded_title,
 ):
     """Use the same spacing and localization as the visible Compare figures."""
     joint_figures = _build_guidance(
@@ -1240,7 +1244,14 @@ def test_compare_guidance_names_the_rendered_figures_exactly(
     assert joint_title in joint_figures
     assert "Station Medians (Δ SNR)" in scheduled_figures
     assert scheduled_title in scheduled_figures
-    assert selected_title in selected_figures
+    assert selected_chronological_title in selected_figures
+    assert selected_folded_title in selected_figures
+    retired_selected_title = (
+        "Δ SNR Distribution"
+        if language == "en"
+        else "Δ SNR Verteilung"
+    )
+    assert retired_selected_title not in selected_figures
 
 
 @pytest.mark.parametrize(

@@ -339,7 +339,6 @@ def set_reset_config(*, reset_time_window=True):
     st.session_state.val_results_time_bin_absolute = None
     st.session_state.val_results_segment_time_bin_compare = "auto"
     st.session_state.val_results_segment_time_bin_absolute = "auto"
-    st.session_state.val_results_station_temporal_view_compare = "chronological"
     st.session_state.val_results_selected_stations_compare = None
     st.session_state.val_results_selected_stations_absolute = None
     st.session_state.val_config_profile = None

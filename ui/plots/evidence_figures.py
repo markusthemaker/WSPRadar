@@ -43,8 +43,6 @@ EVIDENCE_HEATMAP_CMAP.set_bad((0, 0, 0, 0))
 EVIDENCE_DENSITY_MIN = 0.0
 EVIDENCE_DENSITY_MAX = 100.0
 TEMPORAL_MEDIAN_LINK_MIN_COUNT = 3
-SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL = "chronological"
-SELECTED_TEMPORAL_VIEW_UTC_HOUR = "utc_hour"
 FOLDED_UTC_UNAVAILABLE_WRAP_WIDTH = 34
 FOLDED_UTC_UNAVAILABLE_DETAIL_WRAP_WIDTH = 30
 GRID_COLOR = "#777777"
@@ -541,6 +539,62 @@ def _set_temporal_panel_title(ax, title, *, y=None, pad=10):
     return ax.set_title(str(title), **title_properties)
 
 
+def _format_temporal_time_bin_label(time_bin):
+    """Format a compact hourly time-bin token for temporal panel copy."""
+    compact_label = str(time_bin).strip()
+    if compact_label.endswith("h") and compact_label[:-1].isdigit():
+        return f"{compact_label[:-1]} h"
+    return compact_label
+
+
+def _place_temporal_panel_subtitle(
+    axis,
+    subtitle,
+    *,
+    gid="temporal-panel-subtitle",
+    y=1.01,
+):
+    """Place one localized subtitle using the shared temporal typography."""
+    subtitle_artist = axis.text(
+        0.5,
+        float(y),
+        str(subtitle),
+        transform=axis.transAxes,
+        color="white",
+        fontsize=METRIC_LEGEND_FONTSIZE,
+        fontweight="normal",
+        fontfamily=METRIC_FONT_FAMILY,
+        ha="center",
+        va="bottom",
+        wrap=True,
+    )
+    subtitle_artist.set_gid(gid)
+    return subtitle_artist
+
+
+def _set_temporal_panel_title_with_subtitle(
+    axis,
+    title,
+    subtitle,
+    *,
+    subtitle_gid="temporal-panel-subtitle",
+):
+    """Apply the title/subtitle hierarchy shared by temporal metric panels."""
+    title_artist = _set_temporal_panel_title(
+        axis,
+        title,
+        y=1.06,
+        pad=0,
+    )
+    title_artist.set_wrap(True)
+    _place_temporal_panel_subtitle(
+        axis,
+        subtitle,
+        gid=subtitle_gid,
+    )
+    return title_artist
+
+
 def _set_metric_axis_labels(
     ax,
     *,
@@ -632,164 +686,6 @@ def _draw_vertical_metric_histogram(
     ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
     return float(np.median(values))
-
-def _draw_horizontal_metric_histogram(
-    ax,
-    values,
-    color="#36aaf9",
-    *,
-    share_axis_label,
-):
-    """Draw a histogram with the SNR metric on the vertical axis."""
-    values = _metric_values(values)
-    if len(values) == 0:
-        return np.nan
-
-    edges, centers, bin_width = _metric_histogram_bins(values)
-    counts, _ = np.histogram(values, bins=edges)
-    if counts.sum() == 0:
-        return np.nan
-
-    shares = 100.0 * counts.astype(float) / float(counts.sum())
-    ax.barh(
-        centers,
-        shares,
-        height=bin_width * 0.82,
-        color=color,
-        alpha=0.70,
-        edgecolor="#67c4ff",
-        linewidth=0.7,
-        zorder=2
-    )
-    ax.set_xlabel(share_axis_label, color="white")
-    ax.set_xlim(left=0.0)
-    ax.xaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
-    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=6))
-    ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
-    return float(np.median(values))
-
-
-def _annotate_selected_compare_distribution(
-    ax,
-    values,
-    labels,
-):
-    """Annotate the exact pooled evidence median and arithmetic mean."""
-    metric_values = _metric_values(values)
-    if len(metric_values) <= 1:
-        return
-
-    median = float(np.median(metric_values))
-    arithmetic_mean = float(np.mean(metric_values))
-
-    median_label = labels["median_label"]
-    mean_label = labels["mean_label"]
-
-    median_line = _add_metric_median_reference(
-        ax,
-        median,
-        orientation="horizontal",
-        label=median_label,
-        zorder=4,
-    )
-    _add_metric_mean_annotation(
-        ax,
-        arithmetic_mean,
-        label=mean_label,
-    )
-    _place_metric_legend_top_right(ax, handles=[median_line])
-
-
-def _draw_single_value_distribution(ax, value, labels, color=EVIDENCE_AGG_COLOR):
-    """Render one selected evidence point without implying distribution width."""
-    value = float(value)
-    ax.axhline(value, color=color, linewidth=2.0, alpha=0.95, zorder=3)
-    ax.scatter(
-        [0.5],
-        [value],
-        s=42,
-        color=color,
-        edgecolors="#c8f4ff",
-        linewidths=0.7,
-        zorder=4
-    )
-    ax.text(
-        0.5,
-        0.58,
-        f"{value:+.1f} dB",
-        transform=ax.transAxes,
-        color="white",
-        ha="center",
-        va="bottom",
-        fontsize=11,
-        fontweight="bold"
-    )
-    ax.text(
-        0.5,
-        0.42,
-        labels["single_evidence_point"],
-        transform=ax.transAxes,
-        color="#cccccc",
-        ha="center",
-        va="top",
-        fontsize=9
-    )
-    ax.set_xlim(0.0, 1.0)
-    ax.set_xticks([])
-    ax.set_yticks([value])
-    ax.set_yticklabels([f"{value:.1f}"], color="white")
-    ax.set_ylabel(labels["y_label"], color="white")
-    _apply_minimum_metric_yspan(ax, center=value)
-
-def _draw_single_time_point(ax, plot_df, labels):
-    """Render one selected evidence timestamp without a heatmap/color scale."""
-    work_df = plot_df[["plot_time", "metric"]].copy()
-    work_df["plot_time"] = pd.to_datetime(work_df["plot_time"], errors="coerce", utc=True).dt.tz_convert(None)
-    work_df["metric"] = pd.to_numeric(work_df["metric"], errors="coerce")
-    work_df = work_df.dropna(subset=["plot_time", "metric"])
-    if work_df.empty:
-        return
-
-    timestamp = work_df["plot_time"].iloc[0]
-    value = float(work_df["metric"].iloc[0])
-    x_value = mdates.date2num(timestamp.to_pydatetime())
-    ax.scatter(
-        [x_value],
-        [value],
-        s=42,
-        color="#c8f4ff",
-        edgecolors="#00384d",
-        linewidths=0.7,
-        zorder=5
-    )
-    ax.annotate(
-        f"{value:+.1f} dB",
-        xy=(x_value, value),
-        xytext=(8, 8),
-        textcoords="offset points",
-        color="white",
-        fontsize=9,
-        ha="left",
-        va="bottom"
-    )
-    half_window = pd.Timedelta(minutes=90)
-    ax.set_xlim(
-        mdates.date2num((timestamp - half_window).to_pydatetime()),
-        mdates.date2num((timestamp + half_window).to_pydatetime())
-    )
-    ax.set_yticks([value])
-    ax.set_yticklabels([f"{value:.1f}"], color="white")
-    ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=3, maxticks=6))
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
-    ax.set_title(
-        labels["single_point_title"].format(title=labels["time_title"]),
-        color="white",
-        fontweight="bold",
-        pad=10,
-    )
-    ax.set_xlabel(labels["x_label"], color="white")
-    ax.set_ylabel(labels["y_label"], color="white")
-    _apply_minimum_metric_yspan(ax, center=value)
 
 def _time_agg_minutes(time_agg):
     """Parse a compact minute/hour selector label such as '15m' or '3h' into minutes."""
@@ -1027,162 +923,6 @@ def _draw_folded_utc_unavailable_annotation(axis, message):
     return annotation
 
 
-def _draw_time_heatmap(fig, ax, plot_df, time_agg, labels):
-    """Draw Compare UTC time-bin evidence as panel-relative density."""
-    bin_minutes = _time_agg_minutes(time_agg)
-    work_df = _prepare_temporal_metric_rows(plot_df)
-
-    if work_df.empty:
-        ax.text(
-            0.5, 0.5, labels["empty_text"],
-            transform=ax.transAxes,
-            color="#cccccc",
-            ha="center",
-            va="center"
-        )
-        ax.set_title(
-            labels["time_title_template"].format(time_bin=time_agg),
-            color="white",
-            fontweight="bold",
-            pad=10,
-        )
-        ax.set_xlabel(labels["x_label"], color="white")
-        ax.set_ylabel(labels["y_label"], color="white")
-        return
-
-    metric_min = int(work_df["metric_bin"].min())
-    metric_max = int(work_df["metric_bin"].max())
-    metric_bins = np.arange(metric_min, metric_max + 1)
-    count_grid, median_df, x_edges, x_centers = _chronological_density_components(
-        work_df,
-        bin_minutes,
-        metric_bins,
-    )
-    y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
-    mesh = _draw_relative_density_mesh(
-        ax,
-        x_edges,
-        y_edges,
-        count_grid,
-    )
-    _draw_temporal_median_overlay(
-        ax,
-        x_centers,
-        median_df,
-        label=labels["bin_median_label"],
-    )
-
-    colorbar_kwargs = {
-        "ax": ax,
-        "pad": 0.012,
-        "fraction": 0.03,
-        "ticks": np.linspace(
-            EVIDENCE_DENSITY_MIN,
-            EVIDENCE_DENSITY_MAX,
-            5,
-        ),
-    }
-    cbar = fig.colorbar(mesh, **colorbar_kwargs)
-    cbar.set_label(labels["density_label"], color="white")
-    cbar.ax.tick_params(colors="white", labelsize=8)
-    cbar.outline.set_edgecolor("#444444")
-
-    locator = mdates.AutoDateLocator(minticks=4, maxticks=10)
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
-    ax.set_xlim(x_edges[0], x_edges[-1])
-    ax.set_ylim(metric_min - 0.5, metric_max + 0.5)
-    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=7, integer=True))
-    ax.set_title(
-        labels["time_title_template"].format(time_bin=time_agg),
-        color="white",
-        fontweight="bold",
-        pad=10,
-    )
-    ax.set_xlabel(labels["x_label"], color="white")
-    ax.set_ylabel(labels["y_label"], color="white")
-
-
-def _draw_folded_utc_hour_heatmap(
-    fig,
-    ax,
-    plot_df,
-    labels,
-    *,
-    folded_title,
-    folded_x_label,
-    density_label,
-    folded_unavailable_text,
-):
-    """Draw selected Compare evidence in 24 fixed UTC-hour density slots."""
-    work_df = _prepare_temporal_metric_rows(plot_df)
-    utc_date_count = _temporal_utc_date_count(work_df)
-    resolved_folded_title = str(folded_title).replace(
-        "{utc_date_count}",
-        str(utc_date_count),
-    )
-    ax.set_xlim(0.0, 24.0)
-    ax.set_xticks(np.arange(0, 25, 3))
-    ax.set_xticklabels([f"{hour:02d}" for hour in range(0, 25, 3)])
-    ax.set_title(
-        resolved_folded_title,
-        color="white",
-        fontweight="bold",
-        pad=10,
-    )
-    ax.set_xlabel(folded_x_label, color="white")
-    ax.set_ylabel(labels["y_label"], color="white")
-
-    if work_df.empty:
-        ax.text(
-            0.5,
-            0.5,
-            labels["empty_text"],
-            transform=ax.transAxes,
-            color="#cccccc",
-            ha="center",
-            va="center",
-        )
-        return None
-
-    metric_min = int(work_df["metric_bin"].min())
-    metric_max = int(work_df["metric_bin"].max())
-    ax.set_ylim(metric_min - 0.5, metric_max + 0.5)
-    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=7, integer=True))
-
-    if utc_date_count < 2:
-        _draw_folded_utc_unavailable_annotation(
-            ax,
-            folded_unavailable_text,
-        )
-        return None
-
-    metric_bins = np.arange(metric_min, metric_max + 1)
-    y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
-    count_grid, median_df, x_edges, x_centers = (
-        _folded_utc_hour_density_components(work_df, metric_bins)
-    )
-    mesh = _draw_relative_density_mesh(ax, x_edges, y_edges, count_grid)
-    _draw_temporal_median_overlay(
-        ax,
-        x_centers,
-        median_df,
-        label=labels["bin_median_label"],
-    )
-
-    colorbar = fig.colorbar(
-        mesh,
-        ax=ax,
-        pad=0.012,
-        fraction=0.03,
-        ticks=np.linspace(EVIDENCE_DENSITY_MIN, EVIDENCE_DENSITY_MAX, 5),
-    )
-    colorbar.set_label(density_label, color="white")
-    colorbar.ax.tick_params(colors="white", labelsize=8)
-    colorbar.outline.set_edgecolor("#444444")
-    return mesh
-
-
 def _segment_temporal_evidence_export_recipe(
     plot_df,
     title,
@@ -1200,8 +940,13 @@ def _segment_temporal_evidence_export_recipe(
     median_focus_axis_label,
     median_label,
     bin_median_label,
+    chronological_subtitle=None,
+    folded_subtitle=None,
+    omit_folded_when_unavailable=False,
+    show_folded_date_annotation=False,
+    kind="segment_compare_temporal",
 ):
-    """Return compact arrays and localized labels for segment time evidence."""
+    """Return compact arrays and localized labels for Compare temporal evidence."""
     work_df = _prepare_temporal_metric_rows(plot_df)
     time_bin = str(time_bin)
     utc_date_count = _temporal_utc_date_count(work_df)
@@ -1217,23 +962,47 @@ def _segment_temporal_evidence_export_recipe(
         "{utc_date_count}",
         str(utc_date_count),
     )
+    resolved_chronological_subtitle = (
+        str(chronological_subtitle).replace(
+            "{time_bin}",
+            _format_temporal_time_bin_label(time_bin),
+        )
+        if chronological_subtitle is not None
+        else None
+    )
+    resolved_folded_subtitle = (
+        str(folded_subtitle).replace(
+            "{utc_date_count}",
+            str(utc_date_count),
+        )
+        if folded_subtitle is not None
+        else None
+    )
     median_focus = _compare_median_focus_recipe(
         _build_compare_median_focus_spec(work_df["metric"])
     )
     return {
-        "kind": "segment_compare_temporal",
+        "kind": str(kind),
         "schema_version": 1,
         "title": str(title),
         "time_bin": time_bin,
         "count_label": str(count_label),
         "chronological_title": str(chronological_title),
+        "chronological_subtitle": resolved_chronological_subtitle,
         "chronological_x_label": str(chronological_x_label),
         "metric_axis_label": str(metric_axis_label),
         "folded_title": str(folded_title),
+        "folded_subtitle": resolved_folded_subtitle,
         "folded_x_label": str(folded_x_label),
         "folded_date_annotation": str(folded_date_annotation),
         "density_label": str(density_label),
         "folded_unavailable_text": str(folded_unavailable_text),
+        "omit_folded_when_unavailable": bool(
+            omit_folded_when_unavailable
+        ),
+        "show_folded_date_annotation": bool(
+            show_folded_date_annotation
+        ),
         "median_focus": median_focus,
         "median_focus_axis_label": str(median_focus_axis_label),
         "median_label": str(median_label),
@@ -1262,7 +1031,7 @@ def render_segment_temporal_snr_export_figure(recipe):
 
 @synchronized_matplotlib
 def render_segment_temporal_evidence_export_figure(recipe):
-    """Render the registered Compare or Success segment-temporal recipe."""
+    """Render a registered Compare temporal or Success evidence recipe."""
     if not recipe:
         return None
     if recipe.get("kind") == "opportunity_success_temporal":
@@ -1293,6 +1062,10 @@ def render_segment_temporal_evidence_export_figure(recipe):
     time_bin = str(recipe["time_bin"])
     utc_date_count = _temporal_utc_date_count(work_df)
     is_folded_available = utc_date_count >= 2
+    show_folded_axis = (
+        is_folded_available
+        or not bool(recipe.get("omit_folded_when_unavailable", False))
+    )
     bin_minutes = _time_agg_minutes(time_bin)
     metric_min = int(work_df["metric_bin"].min())
     metric_max = int(work_df["metric_bin"].max())
@@ -1322,15 +1095,22 @@ def render_segment_temporal_evidence_export_figure(recipe):
         top=SEGMENT_TEMPORAL_FIGURE_TOP,
         wspace=SEGMENT_TEMPORAL_COLUMN_SPACE,
     )
-    grid_spec = figure.add_gridspec(
-        1,
-        2,
-        width_ratios=SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS,
-    )
+    grid_spec_kwargs = {"nrows": 1, "ncols": 2 if show_folded_axis else 1}
+    if show_folded_axis:
+        grid_spec_kwargs["width_ratios"] = SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS
+    grid_spec = figure.add_gridspec(**grid_spec_kwargs)
     chronological_axis = figure.add_subplot(grid_spec[0, 0])
-    folded_axis = figure.add_subplot(grid_spec[0, 1], sharey=chronological_axis)
+    chronological_axis.set_gid("compare-temporal-chronological-axis")
+    folded_axis = None
+    if show_folded_axis:
+        folded_axis = figure.add_subplot(
+            grid_spec[0, 1],
+            sharey=chronological_axis,
+        )
+        folded_axis.set_gid("compare-temporal-folded-axis")
     for axis in (chronological_axis, folded_axis):
-        _style_evidence_axis(axis)
+        if axis is not None:
+            _style_evidence_axis(axis)
 
     density_norm = mpl.colors.Normalize(
         vmin=EVIDENCE_DENSITY_MIN,
@@ -1350,7 +1130,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
         label=recipe["bin_median_label"],
     )
     folded_mesh = None
-    if is_folded_available:
+    if is_folded_available and folded_axis is not None:
         folded_mesh = _draw_relative_density_mesh(
             folded_axis,
             folded_edges,
@@ -1364,53 +1144,108 @@ def render_segment_temporal_evidence_export_figure(recipe):
             folded_medians,
             label=recipe["bin_median_label"],
         )
-    else:
+    elif folded_axis is not None:
         _draw_folded_utc_unavailable_annotation(
             folded_axis,
             recipe["folded_unavailable_text"],
+        )
+    else:
+        chronological_axis.text(
+            0.98,
+            0.05,
+            recipe["folded_unavailable_text"],
+            transform=chronological_axis.transAxes,
+            color="#cccccc",
+            fontsize=METRIC_TICK_LABEL_FONTSIZE,
+            ha="right",
+            va="bottom",
+            bbox={
+                "facecolor": "none",
+                "edgecolor": "#444444",
+                "alpha": 1.0,
+                "pad": 4,
+            },
         )
 
     date_locator = mdates.AutoDateLocator(minticks=4, maxticks=8)
     chronological_axis.xaxis.set_major_locator(date_locator)
     chronological_axis.xaxis.set_major_formatter(mdates.DateFormatter("%d-%b\n%H:%M"))
     chronological_axis.set_xlim(chronological_edges[0], chronological_edges[-1])
-    _set_temporal_panel_title(
-        chronological_axis,
-        recipe["chronological_title"],
-    )
-    chronological_axis.set_xlabel(
-        recipe["chronological_x_label"],
-        color="white",
-    )
-    chronological_axis.set_ylabel(recipe["metric_axis_label"], color="white")
-
-    folded_axis.set_xlim(0.0, 24.0)
-    folded_axis.set_xticks(np.arange(0, 25, 3))
-    folded_axis.set_xticklabels([f"{hour:02d}" for hour in range(0, 25, 3)])
-    _set_temporal_panel_title(
-        folded_axis,
-        recipe["folded_title"],
-    )
-    folded_axis.set_xlabel(
-        recipe["folded_x_label"],
-        color="white",
-    )
-    for axis in (chronological_axis, folded_axis):
-        _apply_compare_median_focus_axis(
-            axis,
-            median_focus_spec,
-            axis_label=recipe["median_focus_axis_label"],
-            median_label=recipe["median_label"],
+    if recipe.get("chronological_subtitle") is None:
+        _set_temporal_panel_title(
+            chronological_axis,
+            recipe["chronological_title"],
         )
+    else:
+        _set_temporal_panel_title_with_subtitle(
+            chronological_axis,
+            recipe["chronological_title"],
+            recipe["chronological_subtitle"],
+            subtitle_gid="compare-temporal-chronological-subtitle",
+        )
+    _set_metric_axis_labels(
+        chronological_axis,
+        x_label=recipe["chronological_x_label"],
+        y_label=recipe["metric_axis_label"],
+    )
+
+    if folded_axis is not None:
+        folded_axis.set_xlim(0.0, 24.0)
+        folded_axis.set_xticks(np.arange(0.5, 24.0, 3.0))
+        folded_axis.set_xticklabels(
+            [f"{hour:02d}" for hour in range(0, 24, 3)]
+        )
+        if recipe.get("folded_subtitle") is None:
+            _set_temporal_panel_title(
+                folded_axis,
+                recipe["folded_title"],
+            )
+        else:
+            _set_temporal_panel_title_with_subtitle(
+                folded_axis,
+                recipe["folded_title"],
+                recipe["folded_subtitle"],
+                subtitle_gid="compare-temporal-folded-subtitle",
+            )
+        _set_metric_axis_labels(
+            folded_axis,
+            x_label=recipe["folded_x_label"],
+        )
+        if (
+            is_folded_available
+            and recipe.get("show_folded_date_annotation", False)
+        ):
+            folded_axis.text(
+                0.02,
+                0.04,
+                recipe["folded_date_annotation"],
+                transform=folded_axis.transAxes,
+                color="#cccccc",
+                fontsize=8,
+                ha="left",
+                va="bottom",
+            )
+    for axis in (chronological_axis, folded_axis):
+        if axis is not None:
+            _apply_compare_median_focus_axis(
+                axis,
+                median_focus_spec,
+                axis_label=recipe["median_focus_axis_label"],
+                median_label=recipe["median_label"],
+            )
 
     colorbar_mesh = folded_mesh if folded_mesh is not None else chronological_mesh
+    colorbar_axes = [chronological_axis]
+    if folded_axis is not None:
+        colorbar_axes.append(folded_axis)
     colorbar = figure.colorbar(
         colorbar_mesh,
-        ax=[chronological_axis, folded_axis],
+        ax=colorbar_axes,
         pad=SEGMENT_TEMPORAL_COLORBAR_PAD,
         fraction=SEGMENT_TEMPORAL_COLORBAR_FRACTION,
         ticks=np.linspace(EVIDENCE_DENSITY_MIN, EVIDENCE_DENSITY_MAX, 5),
     )
+    colorbar.ax.set_gid("compare-temporal-colorbar-axis")
     colorbar.set_label(recipe["density_label"], color="white")
     colorbar.ax.tick_params(colors="white", labelsize=8)
     colorbar.outline.set_edgecolor("#444444")
@@ -1432,225 +1267,68 @@ def render_segment_temporal_evidence_export_figure(recipe):
     )
     return figure
 
-@synchronized_matplotlib
-def _create_selected_station_evidence_figure(
-    plot_df,
-    evidence_title,
-    labels,
-    time_agg,
-    *,
-    temporal_view=SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-    folded_title,
-    folded_x_label,
-    density_label,
-    folded_unavailable_text,
-    median_focus=None,
-    median_focus_axis_label,
-):
-    """Build selected Compare evidence from complete localized presentation state."""
-    temporal_view = (
-        SELECTED_TEMPORAL_VIEW_UTC_HOUR
-        if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR
-        else SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
-    )
-    labels = dict(labels)
-    labels["density_label"] = density_label
-    evidence_count = len(plot_df)
-    metric_values = _metric_values(plot_df["metric"])
-    median_focus_spec = _compare_median_focus_spec_from_recipe(
-        median_focus,
-        metric_values,
-    )
-    fig_ev = create_agg_figure(figsize=(13, 5.6), facecolor="black")
-    fig_ev.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
-    fig_ev.suptitle(
-        f"\n{evidence_title}",
-        color="white",
-        fontweight="bold",
-        fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
-        y=0.98,
-    )
-    fig_ev.text(
-        0.98,
-        SEGMENT_FIGURE_FOOTER_Y,
-        f"WSPRadar.org {APP_VERSION}",
-        color="#888888",
-        ha="right",
-        fontsize=METRIC_FOOTER_FONTSIZE,
-    )
-    gs = fig_ev.add_gridspec(1, 3)
-    ax_cloud = fig_ev.add_subplot(gs[0, 0])
-    ax_time = fig_ev.add_subplot(gs[0, 1:], sharey=ax_cloud)
-    ax_cloud.set_box_aspect(1)
-
-    _style_evidence_axis(ax_cloud)
-    _style_evidence_axis(ax_time)
-
-    ax_cloud.set_title(labels["dist_title"], color="white", fontweight="bold", pad=10)
-    if evidence_count == 1:
-        single_value = pd.to_numeric(plot_df["metric"], errors="coerce").dropna()
-        if not single_value.empty:
-            _draw_single_value_distribution(ax_cloud, single_value.iloc[0], labels, color=EVIDENCE_AGG_COLOR)
-        if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR:
-            _draw_folded_utc_hour_heatmap(
-                fig_ev,
-                ax_time,
-                plot_df,
-                labels,
-                folded_title=folded_title,
-                folded_x_label=folded_x_label,
-                density_label=density_label,
-                folded_unavailable_text=folded_unavailable_text,
-            )
-        else:
-            _draw_single_time_point(ax_time, plot_df, labels)
-    else:
-        _draw_horizontal_metric_histogram(
-            ax_cloud,
-            metric_values,
-            color=EVIDENCE_AGG_COLOR,
-            share_axis_label=labels["share_axis_label"],
-        )
-        ax_cloud.set_ylabel(labels["y_label"], color="white")
-        if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR:
-            _draw_folded_utc_hour_heatmap(
-                fig_ev,
-                ax_time,
-                plot_df,
-                labels,
-                folded_title=folded_title,
-                folded_x_label=folded_x_label,
-                density_label=density_label,
-                folded_unavailable_text=folded_unavailable_text,
-            )
-        else:
-            _draw_time_heatmap(
-                fig_ev,
-                ax_time,
-                plot_df,
-                time_agg,
-                labels,
-            )
-        _annotate_selected_compare_distribution(
-            ax_cloud,
-            metric_values,
-            labels,
-        )
-    if median_focus_spec is not None:
-        _apply_compare_median_focus_axis(
-            ax_cloud,
-            median_focus_spec,
-            axis_label=median_focus_axis_label,
-            median_label=labels["median_label"],
-            show_median_legend=False,
-            draw_median_reference=False,
-        )
-        _apply_compare_median_focus_axis(
-            ax_time,
-            median_focus_spec,
-            axis_label=median_focus_axis_label,
-            median_label=labels["median_label"],
-            show_median_legend=True,
-        )
-    ax_time.tick_params(axis="x", labelrotation=0, labelsize=9)
-    return fig_ev
-
 def _selected_evidence_export_recipe(
     plot_df,
     evidence_title,
-    labels,
     time_agg,
     is_sequential,
     *,
-    temporal_view=SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
+    count_label,
+    chronological_title,
+    chronological_subtitle,
+    chronological_x_label,
+    metric_axis_label,
     folded_title,
+    folded_subtitle,
     folded_x_label,
     folded_date_annotation,
     density_label,
     folded_unavailable_text,
     median_focus_axis_label,
+    median_label,
+    bin_median_label,
 ):
-    """Store compact Compare evidence and complete localized presentation state."""
+    """Return the shared dual-panel recipe for one selected Compare station."""
     plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
     numeric_metrics = pd.to_numeric(plot_df["metric"], errors="coerce")
     valid = plot_times.notna() & numeric_metrics.notna() & np.isfinite(numeric_metrics)
-    metric_values = numeric_metrics.loc[valid].to_numpy(dtype=np.float64, copy=True)
     selected_identity_count = 1
     if "identity" in plot_df.columns:
         selected_identity_count = max(
             1,
             int(plot_df.loc[valid, "identity"].dropna().nunique()),
         )
-    temporal_view = (
-        SELECTED_TEMPORAL_VIEW_UTC_HOUR
-        if temporal_view == SELECTED_TEMPORAL_VIEW_UTC_HOUR
-        else SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL
+    recipe = _segment_temporal_evidence_export_recipe(
+        plot_df.loc[valid, ["plot_time", "metric"]],
+        evidence_title,
+        time_agg,
+        count_label,
+        chronological_title=chronological_title,
+        chronological_subtitle=chronological_subtitle,
+        chronological_x_label=chronological_x_label,
+        metric_axis_label=metric_axis_label,
+        folded_title=folded_title,
+        folded_subtitle=folded_subtitle,
+        folded_x_label=folded_x_label,
+        folded_date_annotation=folded_date_annotation,
+        density_label=density_label,
+        folded_unavailable_text=folded_unavailable_text,
+        median_focus_axis_label=median_focus_axis_label,
+        median_label=median_label,
+        bin_median_label=bin_median_label,
+        omit_folded_when_unavailable=True,
+        show_folded_date_annotation=True,
+        kind="selected_compare_temporal",
     )
-    utc_date_count = int(plot_times.loc[valid].dt.normalize().nunique())
-    folded_title = str(folded_title).replace(
-        "{utc_date_count}",
-        str(utc_date_count),
-    )
-    folded_date_annotation = str(folded_date_annotation).replace(
-        "{utc_date_count}",
-        str(utc_date_count),
-    )
-    labels_copy = dict(labels)
-    labels_copy["density_label"] = str(density_label)
-    resolved_median_focus = _compare_median_focus_recipe(
-        _build_compare_median_focus_spec(metric_values)
-    )
-    return {
-        "title": evidence_title,
-        "labels": labels_copy,
-        "time_bin": time_agg,
-        "is_sequential": bool(is_sequential),
-        "temporal_view": temporal_view,
-        "folded_title": str(folded_title),
-        "folded_x_label": str(folded_x_label),
-        "folded_date_annotation": str(folded_date_annotation),
-        "density_label": str(density_label),
-        "folded_unavailable_text": str(folded_unavailable_text),
-        "median_focus": resolved_median_focus,
-        "median_focus_axis_label": str(median_focus_axis_label),
-        "utc_date_count": utc_date_count,
-        "selected_identity_count": selected_identity_count,
-        "plot_time_ns": (
-            plot_times[valid]
-            .dt.tz_convert(None)
-            .to_numpy(dtype="datetime64[ns]")
-            .astype(np.int64, copy=True)
-        ),
-        "metric": metric_values,
-    }
+    recipe["is_sequential"] = bool(is_sequential)
+    recipe["selected_identity_count"] = selected_identity_count
+    return recipe
 
 def render_selected_evidence_export_figure(recipe):
-    """Rebuild a selected-station evidence figure only when preparing the results ZIP."""
-    if not recipe:
+    """Render selected Compare evidence through the shared temporal renderer."""
+    if not recipe or recipe.get("kind") != "selected_compare_temporal":
         return None
-    plot_df = pd.DataFrame({
-        "plot_time": pd.to_datetime(np.asarray(recipe.get("plot_time_ns", []), dtype=np.int64), unit="ns", utc=True),
-        "metric": np.asarray(recipe.get("metric", []), dtype=float),
-    })
-    if plot_df.empty:
-        return None
-    labels = recipe["labels"]
-    return _create_selected_station_evidence_figure(
-        plot_df,
-        recipe["title"],
-        labels,
-        recipe["time_bin"],
-        temporal_view=recipe.get(
-            "temporal_view",
-            SELECTED_TEMPORAL_VIEW_CHRONOLOGICAL,
-        ),
-        folded_title=recipe["folded_title"],
-        folded_x_label=recipe["folded_x_label"],
-        density_label=recipe["density_label"],
-        folded_unavailable_text=recipe["folded_unavailable_text"],
-        median_focus=recipe.get("median_focus"),
-        median_focus_axis_label=recipe["median_focus_axis_label"],
-    )
+    return render_segment_temporal_evidence_export_figure(recipe)
 
 def _segment_figure_export_recipe(
     *,

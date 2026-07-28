@@ -219,8 +219,6 @@ def init_session_state():
         st.session_state.val_results_segment_time_bin_compare = "auto"
     if "val_results_segment_time_bin_absolute" not in st.session_state:
         st.session_state.val_results_segment_time_bin_absolute = "auto"
-    if "val_results_station_temporal_view_compare" not in st.session_state:
-        st.session_state.val_results_station_temporal_view_compare = "chronological"
     if "val_results_selected_stations_compare" not in st.session_state:
         st.session_state.val_results_selected_stations_compare = None
     if "val_results_selected_stations_absolute" not in st.session_state:

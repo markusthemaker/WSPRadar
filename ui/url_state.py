@@ -85,7 +85,6 @@ URL_V1_DEFAULTS = {
     "directions": SEGMENT_SELECTION_ALL,
     "segment_bin": "auto",
     "station_bin": "3h",
-    "temporal_view": "chronological",
     "selected_stations": None,
     "show_zero": False,
     "show_unpaired": False,
@@ -122,16 +121,23 @@ URL_V1_PARAMETER_ORDER = (
     "directions",
     "segment_bin",
     "station_bin",
-    "temporal_view",
     "selected_station",
     "show_zero",
     "show_unpaired",
+)
+URL_V1_COMPATIBILITY_NOOP_PARAMETERS = (
+    "temporal_view",
 )
 URL_V1_RETIRED_PARAMETERS = (
     "hours",
     "anchor",
 )
-URL_V1_OWNED_QUERY_KEYS = URL_V1_PARAMETER_ORDER + URL_V1_RETIRED_PARAMETERS
+URL_V1_OWNED_QUERY_KEYS = (
+    URL_V1_PARAMETER_ORDER
+    + URL_V1_COMPATIBILITY_NOOP_PARAMETERS
+    + URL_V1_RETIRED_PARAMETERS
+)
+URL_V1_LEGACY_TEMPORAL_VIEWS = frozenset({"chronological", "utc_hour"})
 
 URL_HYDRATION_SIGNATURE_KEY = "_url_v1_initial_hydration_signature"
 URL_HYDRATION_ERROR_KEY = "_url_v1_initial_hydration_error"
@@ -473,7 +479,6 @@ def _default_compare_results_view() -> dict[str, Any]:
         "show_non_joint": URL_V1_DEFAULTS["show_unpaired"],
         "segment_evidence_time_bin": URL_V1_DEFAULTS["segment_bin"],
         "station_evidence_time_bin": URL_V1_DEFAULTS["station_bin"],
-        "station_evidence_temporal_view": URL_V1_DEFAULTS["temporal_view"],
         "selected_stations": URL_V1_DEFAULTS["selected_stations"],
     }
 
@@ -541,6 +546,15 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
             "URL parameters are not applicable to the selected analysis: "
             + ", ".join(inapplicable_parameters),
         )
+    legacy_temporal_view = parameters.get("temporal_view")
+    if (
+        legacy_temporal_view is not None
+        and legacy_temporal_view not in URL_V1_LEGACY_TEMPORAL_VIEWS
+    ):
+        raise UrlStateError(
+            "invalid",
+            "temporal_view must be chronological or utc_hour.",
+        )
 
     try:
         start_utc = parse_utc_minute(
@@ -580,10 +594,6 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
         active_results_view["show_non_joint"] = _parse_boolean_flag(
             parameters,
             "show_unpaired",
-        )
-        active_results_view["station_evidence_temporal_view"] = parameters.get(
-            "temporal_view",
-            URL_V1_DEFAULTS["temporal_view"],
         )
     active_results_view.update(
         {
@@ -920,13 +930,6 @@ def build_query_from_settings(
         active_results["station_evidence_time_bin"],
         URL_V1_DEFAULTS["station_bin"],
     )
-    if public_mode != "performance":
-        _append_nondefault(
-            entries,
-            "temporal_view",
-            active_results["station_evidence_temporal_view"],
-            URL_V1_DEFAULTS["temporal_view"],
-        )
     selected_station = _serialize_selected_station(
         active_results["selected_stations"]
     )

@@ -44,7 +44,6 @@ def _default_compare_results():
         "show_non_joint": False,
         "segment_evidence_time_bin": "auto",
         "station_evidence_time_bin": "3h",
-        "station_evidence_temporal_view": "chronological",
         "selected_stations": None,
     }
 
@@ -247,8 +246,7 @@ def test_nondefault_fields_use_global_deterministic_parameter_order():
             ],
             "selected_directions": ["NW", "N", "NNW"],
             "segment_evidence_time_bin": "1h",
-            "station_evidence_time_bin": "30m",
-            "station_evidence_temporal_view": "utc_hour",
+            "station_evidence_time_bin": "2h",
             "selected_stations": [{"callsign": "K1ABC", "locator": "FN42"}],
             "show_non_joint": True,
         }
@@ -341,7 +339,7 @@ def test_performance_url_maps_only_the_active_result_branch():
             ],
             "selected_directions": ["SSW", "E"],
             "segment_evidence_time_bin": "2h",
-            "station_evidence_time_bin": "15m",
+            "station_evidence_time_bin": "2h",
             "selected_stations": [{"callsign": "K1ABC", "locator": "FN42"}],
             "show_zero_target": True,
         }
@@ -356,7 +354,7 @@ def test_performance_url_maps_only_the_active_result_branch():
     assert entry_map["ranges"] == "2500-5000,10000-15000"
     assert entry_map["directions"] == "E,SSW"
     assert entry_map["segment_bin"] == "2h"
-    assert entry_map["station_bin"] == "15m"
+    assert entry_map["station_bin"] == "2h"
     assert entry_map["selected_station"] == "K1ABC@FN42"
     assert entry_map["show_zero"] == "1"
     assert "show_unpaired" not in entry_map
@@ -385,7 +383,6 @@ def test_compare_url_maps_only_the_active_result_branch():
             "selected_directions": ["NE"],
             "segment_evidence_time_bin": "6h",
             "station_evidence_time_bin": "1h",
-            "station_evidence_temporal_view": "utc_hour",
             "selected_stations": [{"callsign": "K1ABC", "locator": "FN42"}],
             "show_non_joint": True,
         }
@@ -401,7 +398,7 @@ def test_compare_url_maps_only_the_active_result_branch():
     assert entry_map["directions"] == "NE"
     assert entry_map["segment_bin"] == "6h"
     assert entry_map["station_bin"] == "1h"
-    assert entry_map["temporal_view"] == "utc_hour"
+    assert "temporal_view" not in entry_map
     assert entry_map["selected_station"] == "K1ABC@FN42"
     assert entry_map["show_unpaired"] == "1"
     assert "show_zero" not in entry_map
@@ -410,6 +407,47 @@ def test_compare_url_maps_only_the_active_result_branch():
     ]
     assert normalized["selected_stations_absolute"] is None
     assert normalized["show_zero_target"] is False
+
+
+@pytest.mark.parametrize("legacy_temporal_view", ("chronological", "utc_hour"))
+def test_compare_accepts_valid_legacy_temporal_view_as_a_noop(
+    legacy_temporal_view,
+):
+    """Load old Compare links without restoring or re-emitting retired state."""
+    settings = _settings_for_mode("hardware_rx")
+    canonical_entries = dict(
+        url_state.build_query_from_settings(settings, include_run=False)
+    )
+    legacy_entries = dict(canonical_entries)
+    legacy_entries["temporal_view"] = legacy_temporal_view
+
+    normalized = url_state.build_config_from_url(
+        url_state.parse_url_query(legacy_entries)
+    )
+    canonical_normalized = url_state.build_config_from_url(
+        url_state.parse_url_query(canonical_entries)
+    )
+
+    assert "station_evidence_temporal_view_compare" not in normalized
+    assert normalized == canonical_normalized
+    assert "temporal_view" not in canonical_entries
+
+
+def test_compare_rejects_an_unknown_legacy_temporal_view():
+    """Validate retired URL values before discarding the compatibility no-op."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("hardware_rx"),
+            include_run=False,
+        )
+    )
+    entries["temporal_view"] = "local_hour"
+
+    with pytest.raises(
+        url_state.UrlStateError,
+        match="temporal_view must be chronological or utc_hour",
+    ):
+        url_state.build_config_from_url(url_state.parse_url_query(entries))
 
 
 @pytest.mark.parametrize(

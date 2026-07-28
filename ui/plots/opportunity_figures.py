@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.dates as mdates
 
-from config import APP_VERSION
+from config import APP_VERSION, STATION_EVIDENCE_TIME_BIN_OPTIONS
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.opportunity_engine import (
     opportunity_utc_from_time_slot,
@@ -32,13 +32,16 @@ from ui.plots.evidence_figures import (
     SEGMENT_TEMPORAL_FIGURE_RIGHT,
     SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES,
     SEGMENT_TEMPORAL_FIGURE_TOP,
+    _format_temporal_time_bin_label,
     _place_metric_legend,
+    _place_temporal_panel_subtitle,
     _set_metric_axis_labels,
     _set_temporal_panel_title,
+    _set_temporal_panel_title_with_subtitle,
     _style_evidence_axis,
     _time_agg_minutes,
 )
-SUCCESS_TEMPORAL_TIME_BINS = ("1h", "2h", "3h", "6h", "12h", "24h")
+SUCCESS_TEMPORAL_TIME_BINS = STATION_EVIDENCE_TIME_BIN_OPTIONS
 SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE = "active_scope"
 SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION = "selected_station"
 SUCCESS_TEMPORAL_POPULATION_MODES = frozenset(
@@ -2323,43 +2326,6 @@ def _success_temporal_rate_axis_max(*rate_series):
     return 100.0
 
 
-def _place_success_temporal_panel_subtitle(
-    axis,
-    subtitle,
-    *,
-    gid="success-temporal-panel-subtitle",
-    y=1.01,
-):
-    """Place one localized Success temporal subtitle above its data axis."""
-    subtitle_artist = axis.text(
-        0.5,
-        float(y),
-        str(subtitle),
-        transform=axis.transAxes,
-        color="white",
-        fontsize=METRIC_LEGEND_FONTSIZE,
-        fontweight="normal",
-        fontfamily=METRIC_FONT_FAMILY,
-        ha="center",
-        va="bottom",
-        wrap=True,
-    )
-    subtitle_artist.set_gid(gid)
-    return subtitle_artist
-
-
-def _set_success_temporal_panel_title(axis, title, subtitle):
-    """Apply the Success temporal title/subtitle typography hierarchy."""
-    title_artist = _set_temporal_panel_title(
-        axis,
-        title,
-        y=1.06,
-        pad=0,
-    )
-    title_artist.set_wrap(True)
-    return _place_success_temporal_panel_subtitle(axis, subtitle)
-
-
 def _draw_success_rate_overlay(
     count_axis,
     x_values,
@@ -2533,10 +2499,11 @@ def _draw_success_snr_density_panel(
         axis.yaxis.set_major_locator(
             mpl.ticker.MaxNLocator(nbins=7, integer=True)
         )
-    _set_success_temporal_panel_title(
+    _set_temporal_panel_title_with_subtitle(
         axis,
         title,
         subtitle,
+        subtitle_gid="success-temporal-panel-subtitle",
     )
     _set_metric_axis_labels(
         axis,
@@ -2622,7 +2589,7 @@ def _success_temporal_render_context(recipe):
         "population_mode": population_mode,
         "snr_representation": snr_representation,
         "selected_time_bin": selected_time_bin,
-        "display_time_bin": selected_time_bin.replace("h", " h"),
+        "display_time_bin": _format_temporal_time_bin_label(selected_time_bin),
         "chronological": chronological,
         "folded": dict(recipe.get("folded_profile") or {}),
         "utc_date_count": utc_date_count,
@@ -3032,13 +2999,13 @@ def _render_opportunity_temporal_evidence_figure(recipe):
             labels["evidence_utc_hour_title"],
             gid="success-temporal-evidence-folded-column-header",
         )
-        _place_success_temporal_panel_subtitle(
+        _place_temporal_panel_subtitle(
             folded_station_axis,
             labels["station_support_folded_subtitle"],
             gid="success-temporal-station-folded-subtitle",
             y=1.0,
         )
-        _place_success_temporal_panel_subtitle(
+        _place_temporal_panel_subtitle(
             folded_opportunity_axis,
             labels["opportunity_folded_subtitle"],
             gid="success-temporal-opportunity-folded-subtitle",

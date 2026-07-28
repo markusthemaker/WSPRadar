@@ -57,8 +57,8 @@ class _FooterPopover(_FooterColumn):
         self.open = bool(is_open)
 
 
-def test_selected_temporal_view_is_recorded_and_changes_export_signature(monkeypatch):
-    """Prevent Chronological 1 h and folded 1 h exports from sharing a stale ZIP."""
+def test_selected_compare_bin_is_recorded_without_retired_view_metadata(monkeypatch):
+    """Fingerprint the shared dual-panel bin without exporting dead toggle state."""
     monkeypatch.setattr(
         results_export,
         "st",
@@ -70,35 +70,35 @@ def test_selected_temporal_view_is_recorded_and_changes_export_signature(monkeyp
         "database_source": "wspr_live",
         "evidence_time_bin": "1h",
         "selected_evidence_figure_recipe": {
-            "temporal_view": "chronological",
+            "kind": "selected_compare_temporal",
         },
     }
-    chronological_blocks = {"RX_COMPARE": block}
-    folded_blocks = {
+    one_hour_blocks = {"RX_COMPARE": block}
+    six_hour_blocks = {
         "RX_COMPARE": {
             **block,
-            "selected_evidence_figure_recipe": {
-                "temporal_view": "utc_hour",
-            },
+            "evidence_time_bin": "6h",
         }
     }
 
-    chronological_metadata = results_export._build_run_metadata(
-        chronological_blocks,
+    one_hour_metadata = results_export._build_run_metadata(
+        one_hour_blocks,
         {"settings": {}},
     )
-    folded_metadata = results_export._build_run_metadata(
-        folded_blocks,
+    six_hour_metadata = results_export._build_run_metadata(
+        six_hour_blocks,
         {"settings": {}},
     )
 
-    assert chronological_metadata["result_blocks"][0][
-        "selected_evidence_time_view"
-    ] == "chronological"
-    assert folded_metadata["result_blocks"][0][
-        "selected_evidence_time_view"
-    ] == "utc_hour"
-    assert chronological_metadata["export_signature"] != folded_metadata[
+    assert one_hour_metadata["result_blocks"][0]["evidence_time_bin"] == "1h"
+    assert six_hour_metadata["result_blocks"][0]["evidence_time_bin"] == "6h"
+    assert "selected_evidence_time_view" not in (
+        one_hour_metadata["result_blocks"][0]
+    )
+    assert "selected_evidence_time_view" not in (
+        six_hour_metadata["result_blocks"][0]
+    )
+    assert one_hour_metadata["export_signature"] != six_hour_metadata[
         "export_signature"
     ]
 
@@ -1051,8 +1051,7 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
     }
     selected_identities = ["OK1FCX (JN79)"]
     selected_recipe = {
-        "kind": "selected",
-        "temporal_view": "chronological",
+        "kind": "selected_compare_temporal",
     }
 
     monkeypatch.setattr(

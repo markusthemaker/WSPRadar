@@ -133,7 +133,6 @@ def _tx_hardware_ab_config():
             "show_non_joint": False,
             "segment_evidence_time_bin": "auto",
             "station_evidence_time_bin": "3h",
-            "station_evidence_temporal_view": "chronological",
             "selected_stations": [
                 {
                     "callsign": "M7AEO",
@@ -503,15 +502,42 @@ def test_profile_description_accepts_newlines_links_and_no_german_translation(
 
 
 def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validator):
-    """Accept durable Success and Compare segment bins and UTC-hour station views."""
+    """Accept durable Success and Compare segment-bin choices."""
     config = _tx_hardware_ab_config()
     success_view = config["settings"]["results_view"]["success"]
     compare_view = config["settings"]["results_view"]["compare"]
     success_view["segment_evidence_time_bin"] = "12h"
     compare_view["segment_evidence_time_bin"] = "6h"
-    compare_view["station_evidence_temporal_view"] = "utc_hour"
 
     config_validator.validate(config)
+
+
+@pytest.mark.parametrize("result_mode", ("success", "compare"))
+def test_formal_schema_rejects_segment_only_minute_station_bins(
+    config_validator,
+    result_mode,
+):
+    """Keep selected-station bins aligned with the shared six-option control."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["results_view"][result_mode][
+        "station_evidence_time_bin"
+    ] = "30m"
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
+def test_formal_schema_rejects_obsolete_selected_compare_temporal_view(
+    config_validator,
+):
+    """Reject the retired view toggle as an unknown saved-config property."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["results_view"]["compare"][
+        "station_evidence_temporal_view"
+    ] = "chronological"
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
 
 
 @pytest.mark.parametrize(
@@ -526,9 +552,6 @@ def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validato
         ),
         lambda config: config["settings"]["results_view"]["compare"].update(
             {"segment_evidence_time_bin": "4h"}
-        ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
-            {"station_evidence_temporal_view": "local_hour"}
         ),
         lambda config: config["settings"]["results_view"]["compare"].update(
             {"selected_ranges": []}
@@ -577,7 +600,6 @@ def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validato
         "missing-success-segment-bin",
         "invalid-success-segment-bin",
         "invalid-segment-bin",
-        "invalid-temporal-view",
         "empty-segment-ranges",
         "invalid-segment-direction",
         "invalid-show-zero-target",
@@ -650,7 +672,6 @@ def test_v1_profile_rejects_invalid_identity_or_localized_text(
                     "show_non_joint": False,
                     "segment_evidence_time_bin": "auto",
                     "station_evidence_time_bin": "3h",
-                    "station_evidence_temporal_view": "chronological",
                     "selected_stations": None,
                 }
             }

@@ -77,22 +77,88 @@ def test_compare_summary_count_uses_apostrophe_thousands_separator():
     assert segment_inspector._format_summary_count(7139) == "7'139"
 
 
-def test_folded_utc_hour_panel_title_is_completely_localized():
-    """Keep the fixed-bin suffix consistent with each language's manual."""
-    assert segment_inspector._folded_utc_hour_panel_title(T["en"]) == (
-        "\u0394 SNR by UTC Hour (1 h bins)"
+@pytest.mark.parametrize(
+    (
+        "language",
+        "chronological_title",
+        "chronological_subtitle",
+        "folded_title",
+        "folded_subtitle",
+        "folded_unavailable",
+    ),
+    (
+        (
+            "en",
+            "\u0394 SNR over Time",
+            "Selected station \u00b7 6 h bins",
+            "\u0394 SNR by UTC Hour",
+            "Selected station \u00b7 1 h bins",
+            (
+                "UTC-hour pattern unavailable - requires paired evidence from "
+                "at least 2 UTC dates."
+            ),
+        ),
+        (
+            "de",
+            "\u0394 SNR im Zeitverlauf",
+            "Ausgew\u00e4hlte Station \u00b7 6 h-Bins",
+            "\u0394 SNR nach UTC-Stunde",
+            "Ausgew\u00e4hlte Station \u00b7 1-h-Bins",
+            (
+                "UTC-Stundenmuster nicht verf\u00fcgbar - erfordert gepaarte "
+                "Evidenz aus mindestens 2 UTC-Tagen."
+            ),
+        ),
+    ),
+)
+def test_selected_compare_temporal_panel_copy_is_completely_localized(
+    language,
+    chronological_title,
+    chronological_subtitle,
+    folded_title,
+    folded_subtitle,
+    folded_unavailable,
+):
+    """Keep both simultaneous Compare panel titles and subtitles localized."""
+    translations = T[language]
+
+    assert (
+        translations["fig_selected_compare_chronological_title"]
+        == chronological_title
     )
-    assert segment_inspector._folded_utc_hour_panel_title(T["de"]) == (
-        "\u0394 SNR nach UTC-Stunde (1-h-Bins)"
-    )
+    assert translations[
+        "fig_selected_compare_chronological_subtitle"
+    ].format(
+        time_bin=segment_inspector._format_temporal_time_bin_label("6h")
+    ) == chronological_subtitle
+    assert translations["fig_selected_compare_folded_title"] == folded_title
+    assert translations["fig_selected_compare_folded_subtitle"] == folded_subtitle
+    assert translations["fig_segment_folded_unavailable"] == folded_unavailable
 
 
-def test_selected_temporal_controls_fit_one_horizontal_row():
-    """Keep short mode labels beside a bin group with twice the available width."""
-    assert T["en"]["opt_temporal_utc_hour"] == "UTC-Hour"
-    assert T["en"]["opt_temporal_chronological"] == "Chronological"
-    assert T["de"]["opt_temporal_utc_hour"] == "UTC-Stunde"
-    assert segment_inspector.SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS == (1, 2)
+def test_selected_compare_reuses_performance_time_bin_control_without_view_toggle():
+    """Expose the six shared station bins through one full-width selector."""
+    function_source = inspect.getsource(
+        segment_inspector._render_selected_station_evidence
+    )
+
+    assert tuple(segment_inspector.SUCCESS_TEMPORAL_TIME_BINS) == (
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h",
+    )
+    assert segment_inspector._format_temporal_time_bin_label("6h") == "6 h"
+    assert "time_agg_options = tuple(SUCCESS_TEMPORAL_TIME_BINS)" in function_source
+    assert "_render_prompted_segment_time_bin_control(" in function_source
+    assert 't["lbl_selected_time_aggregation_bin_size"]' in function_source
+    assert "temporal_view" not in function_source
+    assert not hasattr(
+        segment_inspector,
+        "SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS",
+    )
 
 
 def test_segment_temporal_controls_have_localized_instruction_prompts():
@@ -157,19 +223,10 @@ def test_segment_inspector_labels_use_the_bilingual_catalog(
         translations=translations,
     ) == figure_title
 
-    labels = segment_inspector._evidence_labels(translations)
-    assert labels["dist_title"] == translations[
-        "fig_compare_delta_distribution"
-    ]
-    assert labels["time_title"] == translations[
-        "fig_segment_chronological_delta"
-    ]
-    assert labels["mean_label"] == translations["fig_mean_label"]
-    assert {
-        "aggregate",
-        "pooled_median_label",
-        "pooled_mean_label",
-    }.isdisjoint(labels)
+    assert translations["fig_selected_compare_chronological_title"]
+    assert translations["fig_selected_compare_chronological_subtitle"]
+    assert translations["fig_selected_compare_folded_title"]
+    assert translations["fig_selected_compare_folded_subtitle"]
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -577,10 +634,10 @@ def test_segment_time_bin_prompt_renders_above_full_width_selector(monkeypatch):
     )
 
 
-def test_performance_drilldown_uses_five_row_viewport_without_changing_compare(
+def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
     monkeypatch,
 ):
-    """Compact only the Performance audit table and retain its scrolling viewport."""
+    """Keep both result modes compact while retaining every scrollable row."""
     assert segment_inspector.COMPACT_DATAFRAME_VISIBLE_BODY_ROWS == 5
 
     class FakeStreamlit:
@@ -658,8 +715,12 @@ def test_performance_drilldown_uses_five_row_viewport_without_changing_compare(
     assert performance_call["row_height"] == (
         segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
     )
-    assert "height" not in compare_call
-    assert "row_height" not in compare_call
+    assert compare_call["height"] == (
+        segment_inspector.COMPACT_DATAFRAME_HEIGHT_PX
+    )
+    assert compare_call["row_height"] == (
+        segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
+    )
 
 
 def test_time_bin_widget_uses_valid_canonical_value_and_syncs_interaction(monkeypatch):
@@ -757,48 +818,22 @@ def test_segment_time_bin_resolves_auto_and_does_not_change_station_bin(
     assert session_state[segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "6h"
 
 
-def test_selected_temporal_view_round_trips_and_preserves_chronological_bin(
-    monkeypatch,
-):
-    """Persist the view independently from the saved chronological bin size."""
-    session_state = {
-        segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "6h",
-        segment_inspector.RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY: (
-            "utc_hour"
-        ),
-        "temporal_view_widget": "chronological",
-    }
-    monkeypatch.setattr(
+def test_selected_compare_persists_only_the_selected_chronological_bin():
+    """Keep one selected-bin preference now that both temporal panels coexist."""
+    function_source = inspect.getsource(
+        segment_inspector._render_selected_station_evidence
+    )
+
+    assert "persistent_time_bin_key = _time_bin_persistent_state_key(True)" in (
+        function_source
+    )
+    assert 'selected_recipe["time_bin"] = time_agg' in function_source
+    assert '"dual-temporal"' in function_source
+    assert "temporal_view" not in function_source
+    assert not hasattr(
         segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
+        "RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY",
     )
-
-    selected = segment_inspector._initialize_choice_widget_state(
-        "temporal_view_widget",
-        segment_inspector.RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-        ("chronological", "utc_hour"),
-        "chronological",
-    )
-
-    assert selected == "utc_hour"
-    assert session_state["temporal_view_widget"] == "utc_hour"
-    assert session_state[segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "6h"
-
-    session_state["temporal_view_widget"] = "chronological"
-    assert segment_inspector._sync_choice_widget_state(
-        "temporal_view_widget",
-        segment_inspector.RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY,
-        ("chronological", "utc_hour"),
-        "chronological",
-    ) == "chronological"
-    assert (
-        session_state[
-            segment_inspector.RESULTS_STATION_TEMPORAL_VIEW_COMPARE_STATE_KEY
-        ]
-        == "chronological"
-    )
-    assert session_state[segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "6h"
 
 
 def test_segment_scope_initializes_from_saved_state_and_syncs_user_changes(
@@ -1189,14 +1224,15 @@ def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
     )
 
 
-def test_compare_station_insights_uses_single_row_selection():
-    """Keep Compare Station Insights on Streamlit's replacement semantics."""
+def test_compare_station_insights_uses_single_row_selection_and_compact_viewport():
+    """Keep Compare selection semantics with the shared five-row viewport."""
     function_source = inspect.getsource(
         segment_inspector._render_segment_inspector_body
     )
 
     assert '"selection_mode": "single-row"' in function_source
     assert '"selection_mode": "multi-row"' not in function_source
+    assert "tbl_event = _render_compact_dataframe(" in function_source
 
 
 def test_inspector_fragment_synchronizes_durable_url_state_in_place():

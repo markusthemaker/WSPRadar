@@ -719,11 +719,15 @@ def test_end_user_manuals_omit_internal_interval_boundary_convention():
 
 
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():
-    """Keep the new Compare temporal view scientifically and operationally explicit."""
+    """Keep Compare temporal evidence scientifically and operationally explicit."""
     assert "exactly the same observation-level evidence rows" in DOC_EN
     assert "at least two distinct UTC dates" in DOC_EN
     assert "D_{relative} = 100" in DOC_EN
-    assert "The selected view is stored in `.config`" in DOC_EN
+    assert (
+        "The right **Δ SNR by UTC Hour** panel remains visible at fixed "
+        "one-hour bins"
+    ) in DOC_EN
+    assert "there is no separate selected temporal-view preference" in DOC_EN
     assert (
         "For Compare, the prompt `↓ Select time aggregation bin size` appears under `Temporal Evidence`"
         in DOC_EN
@@ -732,7 +736,14 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "genau dieselben Evidenzzeilen auf Beobachtungsebene" in DOC_DE
     assert "mindestens zwei verschiedenen UTC-Tagen" in DOC_DE
     assert "D_{relative} = 100" in DOC_DE
-    assert "Die gewählte Ansicht wird in `.config` gespeichert" in DOC_DE
+    assert (
+        "Das rechte Panel **Δ SNR nach UTC-Stunde** bleibt mit festen "
+        "einstündigen Bins sichtbar"
+    ) in DOC_DE
+    assert (
+        "eine getrennte Zeitansichtspräferenz für die ausgewählte Station gibt "
+        "es nicht mehr"
+    ) in DOC_DE
     assert (
         "Bei Compare steht die Aufforderung `↓ Zeitliche Aggregationsbreite auswählen` unter `Zeitliche Evidenz`"
         in DOC_DE
@@ -750,8 +761,11 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` and `M +/- 30 dB" in DOC_EN
     assert "M +/- 1`, `M +/- 3`, `M +/- 6` und `M +/- 10 dB" in DOC_DE
     assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` und `M +/- 30 dB" in DOC_DE
-    assert "Histogram counts and bin edges remain in raw dB" in DOC_EN
-    assert "Anzahlen und Klassengrenzen der Histogramme bleiben in untransformierten dB-Werten" in DOC_DE
+    assert "Segment-histogram counts and bin edges remain in raw dB" in DOC_EN
+    assert (
+        "Anzahlen und Klassengrenzen der Segment-Histogramme bleiben in "
+        "untransformierten dB-Werten"
+    ) in DOC_DE
     assert "white connected markers remain a separate statistic" in DOC_EN
     assert "chronological density receives every retained successful observation" in DOC_EN
     assert "Die weißen verbundenen Marker bleiben eine eigene Statistik" in DOC_DE

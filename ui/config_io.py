@@ -25,13 +25,12 @@ from config.config_schema import (
     CONFIG_DOCUMENT_FORMAT,
     CONFIG_KEYS,
     CONFIG_SCHEMA_VERSION,
-    EVIDENCE_TIME_BINS,
     SEGMENT_DIRECTION_OPTIONS,
     SEGMENT_EVIDENCE_TIME_BINS,
     SEGMENT_RANGE_OPTIONS,
     SEGMENT_SELECTION_ALL,
     SNR_CORRECTION_MODES,
-    STATION_EVIDENCE_TEMPORAL_VIEWS,
+    STATION_EVIDENCE_TIME_BINS,
     TX_AB_METHODS,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
@@ -139,7 +138,6 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "snr_correction_mode",
         "solar_state",
         "start_utc",
-        "station_evidence_temporal_view",
         "station_evidence_time_bin",
         "success",
         "target_start_minute",
@@ -243,7 +241,6 @@ def _default_config():
         "segment_evidence_time_bin_compare": "auto",
         "segment_evidence_time_bin_absolute": "auto",
         "station_evidence_time_bin_compare": "3h",
-        "station_evidence_temporal_view_compare": "chronological",
         "selected_stations_compare": None,
         "station_evidence_time_bin_absolute": "3h",
         "selected_stations_absolute": None,
@@ -688,10 +685,6 @@ def _settings_from_session_state(state, lang):
                 "station_evidence_time_bin": (
                     state.get("val_results_time_bin_compare")
                     or defaults["station_evidence_time_bin_compare"]
-                ),
-                "station_evidence_temporal_view": (
-                    state.get("val_results_station_temporal_view_compare")
-                    or defaults["station_evidence_temporal_view_compare"]
                 ),
                 "selected_stations": _validate_selected_stations(
                     state.get(
@@ -1234,7 +1227,7 @@ def normalize_config_settings(raw_settings):
     normalized["station_evidence_time_bin_absolute"] = _validate_choice(
         success_results_view["station_evidence_time_bin"],
         "results_view.success.station_evidence_time_bin",
-        EVIDENCE_TIME_BINS,
+        STATION_EVIDENCE_TIME_BINS,
     )
     normalized["selected_stations_absolute"] = _validate_selected_stations(
         success_results_view["selected_stations"],
@@ -1250,7 +1243,6 @@ def normalize_config_settings(raw_settings):
                 "show_non_joint",
                 "segment_evidence_time_bin",
                 "station_evidence_time_bin",
-                "station_evidence_temporal_view",
                 "selected_stations",
             },
         )
@@ -1281,12 +1273,7 @@ def normalize_config_settings(raw_settings):
         normalized["station_evidence_time_bin_compare"] = _validate_choice(
             compare_results_view["station_evidence_time_bin"],
             "results_view.compare.station_evidence_time_bin",
-            EVIDENCE_TIME_BINS,
-        )
-        normalized["station_evidence_temporal_view_compare"] = _validate_choice(
-            compare_results_view["station_evidence_temporal_view"],
-            "results_view.compare.station_evidence_temporal_view",
-            STATION_EVIDENCE_TEMPORAL_VIEWS,
+            STATION_EVIDENCE_TIME_BINS,
         )
         normalized["selected_stations_compare"] = _validate_selected_stations(
             compare_results_view["selected_stations"],
@@ -1424,10 +1411,6 @@ def apply_config_state_values(config, session_state):
             "val_results_segment_time_bin_absolute": config.get(
                 "segment_evidence_time_bin_absolute",
                 defaults["segment_evidence_time_bin_absolute"],
-            ),
-            "val_results_station_temporal_view_compare": config.get(
-                "station_evidence_temporal_view_compare",
-                defaults["station_evidence_temporal_view_compare"],
             ),
             "val_results_selected_stations_compare": deepcopy(
                 config.get("selected_stations_compare")

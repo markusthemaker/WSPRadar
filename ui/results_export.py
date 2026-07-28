@@ -457,17 +457,6 @@ def _json_default(value):
     return str(value)
 
 
-def _selected_evidence_temporal_view(block):
-    """Return the stable selected-evidence view token recorded by its recipe."""
-    recipe = block.get("selected_evidence_figure_recipe")
-    if not isinstance(recipe, dict):
-        return None
-    temporal_view = recipe.get("temporal_view")
-    if temporal_view not in {"chronological", "utc_hour"}:
-        return None
-    return temporal_view
-
-
 def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
     settings = config_payload.get("settings", {})
     core_parameters = settings.get("core_parameters", {})
@@ -567,9 +556,6 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 "show_non_joint": block.get("show_non_joint"),
                 "show_zero_target": block.get("show_zero_target"),
                 "evidence_time_bin": block.get("evidence_time_bin"),
-                "selected_evidence_time_view": (
-                    _selected_evidence_temporal_view(block)
-                ),
                 "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
                 "is_compare": block.get("is_compare"),
                 "is_sequential": block.get("is_sequential"),
@@ -622,9 +608,6 @@ def _export_signature(blocks):
             "show_non_joint": block.get("show_non_joint"),
             "show_zero_target": block.get("show_zero_target"),
             "evidence_time_bin": block.get("evidence_time_bin"),
-            "selected_evidence_time_view": (
-                _selected_evidence_temporal_view(block)
-            ),
             "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
             "map_context": block.get("map_context"),
             "station_table_shape": _table_signature_value(block.get("table_station_insights_current_segment.csv")),

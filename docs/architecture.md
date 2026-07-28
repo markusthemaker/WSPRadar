@@ -107,8 +107,7 @@ pairs. Both branches permit `null`, an empty list, or one identity. `null`
 retains the normal initial table behavior, while an empty list records
 deliberate deselection; `"all"`, duplicates, malformed identities, and
 multiple identities are rejected without migration. Compare additionally
-preserves `show_non_joint` and the selected-station `chronological` versus
-`utc_hour` view; Success preserves the canonical `show_zero_target` boolean,
+preserves `show_non_joint`; Success preserves the canonical `show_zero_target` boolean,
 which the presentation layer exposes through the direction-specific
 counter-only-station controls rather than through that internal name. Table and
 Drill-Down filters, expander state, and other transient controls are
@@ -613,8 +612,8 @@ the retained projected rows for that identity, and never starts another
 provider query. The complete Station Insights population and the segment-level
 statistics, Comparison Evidence, and temporal evidence remain unchanged.
 
-The section contains one compact selected-path context, the independent
-selected-station chronological-bin control, and two full-width figures.
+For Performance, the section contains one compact selected-path context, the
+independent selected-station chronological-bin control, and two full-width figures.
 `ui/plots/opportunity_figures.py` parameterizes the shared Success temporal
 recipe and renderers by population mode (`active_scope` or `selected_station`)
 and SNR representation (`station_relative_deviation` or
@@ -646,6 +645,21 @@ folding still requires at least two represented dates; otherwise the shared
 renderer expands the chronological panels and emits the localized unavailable
 message.
 
+For Compare, the compact selected-path context is followed by the same prompted,
+full-width chronological-bin control used in Performance and one two-panel
+figure built through the shared temporal layout primitives. The left **Δ SNR
+over Time** panel preserves the selected station's actual UTC sequence at the
+chosen aggregation bin. The right **Δ SNR by UTC Hour** panel simultaneously
+folds those same observation-level Joint Spots or Scheduled Pairs from all
+represented dates into fixed one-hour UTC slots. Folding remains row-weighted:
+it pools qualifying evidence by UTC hour without first reducing or equally
+weighting represented dates. Both panels use independent panel-relative density
+normalization, one shared colorbar and the selected path's presentation-only,
+median-centered nonlinear Delta SNR scale with absolute dB tick labels. No
+selected-station histogram or temporal-view selector remains. When fewer than
+two UTC dates contribute, the folded panel is omitted, the chronological panel
+expands and the localized unavailable notice is retained.
+
 The run-scoped segment-cache key includes explicit
 `exact-distance-v1` and `station-median-min3-v1` policy versions, the geographic
 scope and the complete UTC window. Selecting another chronological bin reuses
@@ -664,11 +678,12 @@ export table preserves the established compatibility headings and canonical
 outcome fields. Performance Drill-Down uses the same five-body-row viewport,
 omits the display-only `Outcome` column, and applies the same shortened TX
 counter heading. Filtering is still projected back to unchanged canonical rows
-registered for export, including their `Outcome` values. Compare tables retain
-their existing automatic viewport and headings. Success and Compare temporal-bin
-choices use independent durable state. Browser preview and high-resolution
-export consume the same exact-distance and temporal recipes and renderer
-semantics.
+registered for export, including their `Outcome` values. Compare Station
+Insights and Drill-Down use the same five-body-row scrolling viewport while
+retaining their established columns and headings. Success and Compare
+temporal-bin choices use independent durable state. Browser preview and
+high-resolution export consume the same exact-distance and temporal recipes and
+renderer semantics.
 
 Periodic hardware A/B projections additionally carry the stable planned-pair
 identifier and timestamps so inspectors and exports replay the same pairing
@@ -703,7 +718,7 @@ Success selected evidence is exported under two stable filenames:
 `figure_selected_station_snr_evidence.png` and
 `figure_selected_station_temporal_evidence.png`. They use the same shared
 temporal recipes and renderers as the two browser figures. Compare retains
-`figure_selected_station_evidence.png` for its independent one-station
+`figure_selected_station_evidence.png` for its one-station, two-panel Delta SNR
 presentation. Success export registration stores the shared selection label
 and context, selection count, direction-aware station role, weighting mode, and
 filename-to-description mapping. `run_metadata.json` publishes these as
@@ -712,8 +727,9 @@ filename-to-description mapping. `run_metadata.json` publishes these as
 `selected_evidence_weighting`, and `selected_evidence_figures`, so a Success
 package identifies its one exact selected identity. Compare records its
 zero-or-one exact identity in the compatibility field `selected_stations`, its
-selection count, and its active evidence recipe and time-view fields; the
-optional Success descriptive fields remain unset.
+selection count, selected chronological evidence bin and dual-panel evidence
+recipe; there is no selected active-view choice because the export contains both
+time panels. The optional Success descriptive fields remain unset.
 
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
 session state for download. This is a known peak and idle-memory risk, partially

@@ -32,11 +32,21 @@ COMPARISON_MODES = frozenset(
 SNR_CORRECTION_MODES = frozenset(
     {"no_offset", "established_offset", "establish_offset"}
 )
-EVIDENCE_TIME_BINS = frozenset(
-    {"5m", "15m", "30m", "1h", "2h", "3h", "6h", "12h", "24h"}
+STATION_EVIDENCE_TIME_BIN_OPTIONS = (
+    "1h",
+    "2h",
+    "3h",
+    "6h",
+    "12h",
+    "24h",
 )
-SEGMENT_EVIDENCE_TIME_BINS = EVIDENCE_TIME_BINS | {"auto"}
-STATION_EVIDENCE_TEMPORAL_VIEWS = frozenset({"chronological", "utc_hour"})
+STATION_EVIDENCE_TIME_BINS = frozenset(STATION_EVIDENCE_TIME_BIN_OPTIONS)
+SEGMENT_EVIDENCE_TIME_BINS = STATION_EVIDENCE_TIME_BINS | {
+    "auto",
+    "5m",
+    "15m",
+    "30m",
+}
 SEGMENT_SELECTION_ALL = "all"
 SEGMENT_RANGE_OPTIONS = (
     "[0-2500km]",

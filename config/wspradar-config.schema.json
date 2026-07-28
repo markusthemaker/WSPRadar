@@ -1536,7 +1536,7 @@
           "$ref": "#/$defs/segmentEvidenceTimeBin"
         },
         "station_evidence_time_bin": {
-          "$ref": "#/$defs/evidenceTimeBin"
+          "$ref": "#/$defs/stationEvidenceTimeBin"
         },
         "selected_stations": {
           "$ref": "#/$defs/selectedStations"
@@ -1553,7 +1553,6 @@
         "show_non_joint",
         "segment_evidence_time_bin",
         "station_evidence_time_bin",
-        "station_evidence_temporal_view",
         "selected_stations"
       ],
       "properties": {
@@ -1572,10 +1571,7 @@
           "$ref": "#/$defs/segmentEvidenceTimeBin"
         },
         "station_evidence_time_bin": {
-          "$ref": "#/$defs/evidenceTimeBin"
-        },
-        "station_evidence_temporal_view": {
-          "$ref": "#/$defs/stationEvidenceTemporalView"
+          "$ref": "#/$defs/stationEvidenceTimeBin"
         },
         "selected_stations": {
           "$ref": "#/$defs/selectedStations"
@@ -1583,12 +1579,9 @@
       },
       "additionalProperties": false
     },
-    "evidenceTimeBin": {
+    "stationEvidenceTimeBin": {
       "type": "string",
       "enum": [
-        "5m",
-        "15m",
-        "30m",
         "1h",
         "2h",
         "3h",
@@ -1599,7 +1592,7 @@
       "description": "Time-bin width for station-evidence plots.",
       "default": "3h",
       "examples": [
-        "5m",
+        "1h",
         "3h",
         "24h"
       ]
@@ -1625,15 +1618,6 @@
         "3h",
         "24h"
       ]
-    },
-    "stationEvidenceTemporalView": {
-      "type": "string",
-      "enum": [
-        "chronological",
-        "utc_hour"
-      ],
-      "description": "Whether the Compare station temporal plot uses chronological time or folds observations into UTC-hour bins.",
-      "default": "chronological"
     },
     "selectedSegmentRanges": {
       "description": "Selected Segment Inspector distance ranges. all selects every currently available range; an array records one or more canonical range labels.",

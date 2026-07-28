@@ -13,43 +13,12 @@ from ui.plots.evidence_figures import (
     _compare_median_focus_forward,
     _compare_median_focus_inverse,
     _compare_median_focus_spec_from_recipe,
+    _format_temporal_time_bin_label,
     _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
     render_segment_temporal_evidence_export_figure,
     render_selected_evidence_export_figure,
 )
-
-
-def _localized_evidence_labels(language="en"):
-    """Return complete localized presentation state for selected evidence."""
-    translations = T[language]
-    chronological_title = translations["fig_segment_chronological_delta"]
-    return {
-        "dist_title": translations["fig_compare_delta_distribution"],
-        "time_title": chronological_title,
-        "time_title_template": translations[
-            "fmt_temporal_title_with_bins"
-        ].format(
-            title=chronological_title,
-            time_bin="{time_bin}",
-        ),
-        "y_label": translations["tbl_col_delta_snr"],
-        "x_label": translations["fig_segment_chronological_x"],
-        "share_axis_label": translations["fig_share_percent_axis"],
-        "median_label": translations["fig_median_label"],
-        "bin_median_label": translations["fig_temporal_bin_median"],
-        "mean_label": translations["fig_mean_label"],
-        "empty_text": translations["fig_selected_evidence_empty"],
-        "single_evidence_point": translations[
-            "fig_single_evidence_point"
-        ],
-        "single_point_title": translations["fig_single_point_title"],
-        "count_label": translations["fig_joint_spot_count"],
-        "density_label": translations["fig_relative_joint_spot_density"],
-        "median_focus_axis_label": translations[
-            "fig_compare_median_focus_axis"
-        ],
-    }
 
 
 def _localized_selected_evidence_recipe(
@@ -59,42 +28,58 @@ def _localized_selected_evidence_recipe(
     *,
     language="en",
     is_sequential=False,
-    labels=None,
     **overrides,
 ):
-    """Build a selected-evidence recipe with explicit localized labels."""
+    """Build one localized dual-panel selected-Compare recipe."""
     translations = T[language]
-    localized_labels = (
-        _localized_evidence_labels(language)
-        if labels is None
-        else dict(labels)
-    )
-    if is_sequential:
-        localized_labels["count_label"] = translations[
-            "fig_scheduled_pair_count"
-        ]
-        localized_labels["density_label"] = translations[
-            "fig_relative_scheduled_pair_density"
-        ]
     presentation = {
-        "folded_title": translations["fig_segment_utc_hour_title"],
+        "count_label": translations[
+            (
+                "fig_scheduled_pair_count"
+                if is_sequential
+                else "fig_joint_spot_count"
+            )
+        ],
+        "chronological_title": translations[
+            "fig_selected_compare_chronological_title"
+        ],
+        "chronological_subtitle": translations[
+            "fig_selected_compare_chronological_subtitle"
+        ],
+        "chronological_x_label": translations[
+            "fig_segment_chronological_x"
+        ],
+        "metric_axis_label": translations["tbl_col_delta_snr"],
+        "folded_title": translations[
+            "fig_selected_compare_folded_title"
+        ],
+        "folded_subtitle": translations[
+            "fig_selected_compare_folded_subtitle"
+        ],
         "folded_x_label": translations["fig_segment_utc_hour_x"],
         "folded_date_annotation": translations[
             "fig_segment_dates_folded"
         ].replace("{count}", "{utc_date_count}"),
-        "density_label": localized_labels["density_label"],
+        "density_label": translations[
+            (
+                "fig_relative_scheduled_pair_density"
+                if is_sequential
+                else "fig_relative_joint_spot_density"
+            )
+        ],
         "folded_unavailable_text": translations[
             "fig_segment_folded_unavailable"
         ],
         "median_focus_axis_label": translations[
             "fig_compare_median_focus_axis"
         ],
+        "median_label": translations["fig_median_label"],
+        "bin_median_label": translations["fig_temporal_bin_median"],
     }
     presentation.update(overrides)
     return _selected_evidence_export_recipe(
         plot_df,
         evidence_title,
-        localized_labels,
         time_agg,
         is_sequential,
         **presentation,
@@ -171,7 +156,7 @@ def _render_compare_evidence_figure(metric_values, identity_labels):
             "plot_time": pd.date_range(
                 "2026-07-01T00:00:00Z",
                 periods=len(metric_values),
-                freq="2h",
+                freq="12h",
             ),
             "metric": metric_values,
         }
@@ -182,13 +167,14 @@ def _render_compare_evidence_figure(metric_values, identity_labels):
         "3h",
         is_sequential=False,
     )
-    assert recipe["temporal_view"] == "chronological"
+    assert recipe["kind"] == "selected_compare_temporal"
+    assert "temporal_view" not in recipe
     return render_selected_evidence_export_figure(recipe)
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
 def test_selected_single_evidence_uses_localized_recipe_labels(language):
-    """Render one selected evidence point without English fallback wording."""
+    """Render sparse selected evidence through the localized temporal layout."""
     translations = T[language]
     plot_df = pd.DataFrame(
         {
@@ -209,23 +195,42 @@ def test_selected_single_evidence_uses_localized_recipe_labels(language):
 
     figure = render_selected_evidence_export_figure(recipe)
     try:
-        distribution_axis, temporal_axis = figure.axes
-        assert distribution_axis.get_title() == translations[
-            "fig_compare_delta_distribution"
+        chronological_axis, colorbar_axis = figure.axes
+        assert chronological_axis.get_gid() == (
+            "compare-temporal-chronological-axis"
+        )
+        assert chronological_axis.get_title() == translations[
+            "fig_selected_compare_chronological_title"
         ]
-        assert translations["fig_single_evidence_point"] in {
-            text.get_text() for text in distribution_axis.texts
-        }
-        expected_temporal_title = translations[
-            "fig_single_point_title"
-        ].format(title=translations["fig_segment_chronological_delta"])
-        assert temporal_axis.get_title() == expected_temporal_title
-        assert temporal_axis.get_xlabel() == translations[
+        assert [
+            text.get_text()
+            for text in _texts_with_gid(
+                chronological_axis,
+                "compare-temporal-chronological-subtitle",
+            )
+        ] == [
+            translations[
+                "fig_selected_compare_chronological_subtitle"
+            ].format(time_bin=_format_temporal_time_bin_label("3h"))
+        ]
+        assert chronological_axis.get_xlabel() == translations[
             "fig_segment_chronological_x"
         ]
-        assert temporal_axis.get_ylabel() == translations[
+        assert chronological_axis.get_ylabel() == translations[
             "fig_compare_median_focus_axis"
         ]
+        assert colorbar_axis.get_gid() == "compare-temporal-colorbar-axis"
+        assert colorbar_axis.get_ylabel() == translations[
+            "fig_relative_joint_spot_density"
+        ]
+        assert translations["fig_segment_folded_unavailable"] in {
+            text.get_text() for text in chronological_axis.texts
+        }
+        assert not any(
+            "Distribution" in axis.get_title()
+            or "Verteilung" in axis.get_title()
+            for axis in figure.axes
+        )
     finally:
         dispose_matplotlib_figure(figure)
 
@@ -235,20 +240,6 @@ def _legend_texts(axis):
     legend = axis.get_legend()
     assert legend is not None
     return [text_artist.get_text() for text_artist in legend.get_texts()]
-
-
-def _horizontal_line_at(axis, y_value, *, label=None):
-    """Return horizontal lines at an exact data value and optional label."""
-    matching_lines = []
-    for line_artist in axis.lines:
-        line_y_values = np.asarray(line_artist.get_ydata(), dtype=float)
-        if (
-            (label is None or line_artist.get_label() == label)
-            and line_y_values.size > 0
-            and np.allclose(line_y_values, y_value)
-        ):
-            matching_lines.append(line_artist)
-    return matching_lines
 
 
 def _lines_with_gid(axis, gid):
@@ -413,169 +404,52 @@ def test_segment_and_selected_recipes_keep_their_own_evidence_medians():
     assert "stability_interval" not in selected_recipe
 
 
-def test_selected_station_histogram_marks_exact_median_and_mean_without_interval():
-    """Annotate exact evidence statistics rather than histogram-bin centers."""
-    metric_values = [0.1, 0.1, 0.1, 2.2, 10.4]
-    figure = _render_compare_evidence_figure(metric_values, ["A (AA00)"] * 5)
-
-    try:
-        distribution_axis = figure.axes[0]
-        median_label = "Median +0.1 dB"
-        median_lines = _horizontal_line_at(
-            distribution_axis,
-            0.1,
-            label=median_label,
-        )
-
-        assert len(median_lines) == 1
-        assert median_lines[0].get_linestyle() == "--"
-        assert _legend_texts(distribution_axis) == [median_label]
-        _assert_legend_keys_precede_text(figure, distribution_axis)
-        mean_annotations = _texts_with_gid(
-            distribution_axis,
-            "compare-metric-mean",
-        )
-        assert [text.get_text() for text in mean_annotations] == ["Mean +2.6 dB"]
-        assert mean_annotations[0].get_position() == pytest.approx((0.98, 0.04))
-        assert mean_annotations[0].get_ha() == "right"
-        assert mean_annotations[0].get_va() == "bottom"
-        assert mean_annotations[0].get_fontsize() == pytest.approx(8.0)
-        assert mean_annotations[0].get_zorder() == pytest.approx(10.0)
-        assert mean_annotations[0].get_bbox_patch() is not None
-        assert not any(
-            "Stability" in artist.get_label()
-            for artist in [
-                *distribution_axis.lines,
-                *distribution_axis.patches,
-            ]
-        )
-
-        arithmetic_mean = float(np.mean(metric_values))
-        assert _horizontal_line_at(distribution_axis, arithmetic_mean) == []
-    finally:
-        dispose_matplotlib_figure(figure)
-
-
-def test_multi_station_histogram_keeps_row_weighted_statistics_with_standard_labels():
-    """Keep pooled calculations while using the standard compact visible wording."""
-    metric_values = [10.4, 0.1, 0.1, 0.1, 2.2]
-    identity_labels = [
-        "A (AA00)",
-        "B (BB00)",
-        "B (BB00)",
-        "B (BB00)",
-        "B (BB00)",
-    ]
-    figure = _render_compare_evidence_figure(metric_values, identity_labels)
-
-    try:
-        distribution_axis, time_axis = figure.axes[:2]
-        median_label = "Median +0.1 dB"
-
-        assert len(
-            _horizontal_line_at(
-                distribution_axis,
-                0.1,
-                label=median_label,
-            )
-        ) == 1
-        assert _legend_texts(distribution_axis) == [median_label]
-        assert [
-            text.get_text()
-            for text in _texts_with_gid(distribution_axis, "compare-metric-mean")
-        ] == ["Mean +2.6 dB"]
-
-        assert not any(
-            "Stability" in artist.get_label()
-            for artist in [
-                *distribution_axis.lines,
-                *distribution_axis.patches,
-            ]
-        )
-
-        station_balanced_median = np.median(
-            [10.4, np.median([0.1, 0.1, 0.1, 2.2])]
-        )
-        assert station_balanced_median == pytest.approx(5.25)
-        assert not any(
-            np.allclose(np.asarray(line.get_ydata(), dtype=float), station_balanced_median)
-            for line in distribution_axis.lines
-            if len(np.asarray(line.get_ydata())) > 0
-        )
-        for axis in (distribution_axis, time_axis):
-            assert "+0.1 M" in _formatted_y_ticks(axis)
-        assert _legend_texts(time_axis) == ["Median +0.1 dB", "Bin median"]
-        assert not any(
-            "Pooled" in text
-            for text in [
-                *_legend_texts(distribution_axis),
-                *[artist.get_text() for artist in distribution_axis.texts],
-            ]
-        )
-    finally:
-        dispose_matplotlib_figure(figure)
-
-
-def test_identical_values_render_only_the_exact_median_and_mean_summaries():
-    """Avoid adding a second interval artist when every metric value is identical."""
-    figure = _render_compare_evidence_figure(
-        [0.8, 0.8, 0.8],
-        ["A (AA00)"] * 3,
+def test_selected_compare_recipe_retires_histogram_and_temporal_view_state():
+    """Store one dual-panel temporal recipe without retired distribution state."""
+    plot_df = pd.DataFrame(
+        {
+            "identity": ["A (AA00)"] * 4,
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:05:00Z",
+                    "2026-07-01T03:05:00Z",
+                    "2026-07-02T00:05:00Z",
+                    "2026-07-02T03:05:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [-2.0, 1.0, 2.0, 3.0],
+        }
     )
 
-    try:
-        distribution_axis = figure.axes[0]
-        median_lines = _horizontal_line_at(
-            distribution_axis,
-            0.8,
-            label="Median +0.8 dB",
-        )
+    recipe = _localized_selected_evidence_recipe(
+        plot_df,
+        "Selected Station Evidence",
+        "6h",
+    )
 
-        assert len(median_lines) == 1
-        assert median_lines[0].get_linestyle() == "--"
-        assert _legend_texts(distribution_axis) == ["Median +0.8 dB"]
-        assert not any(
-            "Stability" in artist.get_label()
-            for artist in [
-                *distribution_axis.lines,
-                *distribution_axis.patches,
-            ]
-        )
-        assert [
-            text.get_text()
-            for text in _texts_with_gid(distribution_axis, "compare-metric-mean")
-        ] == ["Mean +0.8 dB"]
-    finally:
-        dispose_matplotlib_figure(figure)
-
-
-def test_single_evidence_point_does_not_repeat_degenerate_summary_annotations():
-    """Keep the distribution compact while retaining the temporal median key."""
-    figure = _render_compare_evidence_figure([3.2], ["A (AA00)"])
-
-    try:
-        distribution_axis, time_axis = figure.axes[:2]
-        visible_text = [text.get_text() for text in distribution_axis.texts]
-        artist_labels = [
-            artist.get_label()
-            for artist in [*distribution_axis.lines, *distribution_axis.patches]
-        ]
-
-        assert set(visible_text) == {
-            "+3.2 dB",
-            "single evidence point",
-            "0 dB",
-        }
-        assert distribution_axis.get_legend() is None
-        assert not any(
-            summary_term in text
-            for text in [*visible_text, *artist_labels]
-            for summary_term in ("Median", "Mean", "mean", "Stability", "Pooled")
-        )
-        assert _legend_texts(time_axis) == ["Median +3.2 dB"]
-        _assert_legend_keys_precede_text(figure, time_axis)
-    finally:
-        dispose_matplotlib_figure(figure)
+    assert recipe["kind"] == "selected_compare_temporal"
+    assert recipe["time_bin"] == "6h"
+    assert recipe["chronological_title"] == "\u0394 SNR over Time"
+    assert recipe["chronological_subtitle"] == (
+        "Selected station \u00b7 6 h bins"
+    )
+    assert recipe["folded_title"] == "\u0394 SNR by UTC Hour"
+    assert recipe["folded_subtitle"] == "Selected station \u00b7 1 h bins"
+    assert recipe["omit_folded_when_unavailable"] is True
+    assert recipe["show_folded_date_annotation"] is True
+    assert recipe["selected_identity_count"] == 1
+    assert len(recipe["plot_time_ns"]) == len(plot_df)
+    np.testing.assert_allclose(recipe["metric"], plot_df["metric"])
+    for retired_field in (
+        "temporal_view",
+        "labels",
+        "distribution",
+        "histogram",
+        "mean_label",
+        "share_axis_label",
+    ):
+        assert retired_field not in recipe
 
 
 def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks():
@@ -587,7 +461,7 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             "plot_time": pd.date_range(
                 "2026-07-01T00:00:00Z",
                 periods=len(metric_values),
-                freq="2h",
+                freq="12h",
             ),
             "metric": metric_values,
         }
@@ -602,7 +476,7 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
     assert recipe["median_focus"]["median_db"] == pytest.approx(6.0)
     figure = render_selected_evidence_export_figure(recipe)
     try:
-        distribution_axis, time_axis = figure.axes[:2]
+        chronological_axis, folded_axis, colorbar_axis = figure.axes
         expected_tick_labels = [
             "−24",
             "−14",
@@ -617,7 +491,7 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             "+36",
         ]
 
-        for axis in (distribution_axis, time_axis):
+        for axis in (chronological_axis, folded_axis):
             assert axis.get_yscale() == "function"
             assert _formatted_y_ticks(axis) == expected_tick_labels
             assert axis.get_ylabel() == (
@@ -626,13 +500,18 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             assert len(
                 _lines_with_gid(axis, "compare-temporal-zero-line")
             ) == 1
-        assert _legend_texts(distribution_axis) == ["Median +6.0 dB"]
-        assert _legend_texts(time_axis) == ["Median +6.0 dB", "Bin median"]
-        _assert_legend_keys_precede_text(figure, distribution_axis)
-        _assert_legend_keys_precede_text(figure, time_axis)
-        assert not _texts_with_gid(distribution_axis, "compare-median-focus-note")
-        assert not _texts_with_gid(time_axis, "compare-median-focus-note")
-        assert distribution_axis.get_ylim() == pytest.approx(time_axis.get_ylim())
+            assert _legend_texts(axis) == ["Median +6.0 dB", "Bin median"]
+            _assert_legend_keys_precede_text(figure, axis)
+            assert not _texts_with_gid(axis, "compare-median-focus-note")
+            assert not axis.patches
+        assert chronological_axis.get_ylim() == pytest.approx(
+            folded_axis.get_ylim()
+        )
+        assert colorbar_axis.get_gid() == "compare-temporal-colorbar-axis"
+        assert all(
+            "Distribution" not in axis.get_title()
+            for axis in (chronological_axis, folded_axis)
+        )
     finally:
         dispose_matplotlib_figure(figure)
 
@@ -645,8 +524,8 @@ def test_selected_compare_marks_absolute_zero_between_noninteger_focus_ticks():
     )
 
     try:
-        distribution_axis, time_axis = figure.axes[:2]
-        for axis in (distribution_axis, time_axis):
+        chronological_axis, folded_axis = figure.axes[:2]
+        for axis in (chronological_axis, folded_axis):
             assert "+5.5 M" in _formatted_y_ticks(axis)
             assert "0" not in _formatted_y_ticks(axis)
             assert len(
@@ -687,10 +566,10 @@ def test_selected_time_heatmap_uses_panel_max_relative_density():
 
     figure = render_selected_evidence_export_figure(recipe)
     try:
-        time_axis = figure.axes[1]
+        chronological_axis = figure.axes[0]
         density_mesh = next(
             collection
-            for collection in time_axis.collections
+            for collection in chronological_axis.collections
             if isinstance(collection, QuadMesh)
         )
         density_values = np.ma.asarray(density_mesh.get_array()).compressed()
@@ -701,12 +580,19 @@ def test_selected_time_heatmap_uses_panel_max_relative_density():
         assert figure.axes[-1].get_ylabel() == (
             "Relative joint-spot density (% of panel maximum)"
         )
+        assert chronological_axis.get_gid() == (
+            "compare-temporal-chronological-axis"
+        )
+        assert all(
+            "Distribution" not in axis.get_title()
+            for axis in figure.axes
+        )
     finally:
         dispose_matplotlib_figure(figure)
 
 
 def test_selected_compare_can_render_folded_utc_hour_density():
-    """Keep the selected histogram while folding valid evidence over 24 UTC slots."""
+    """Render chronology and raw-row UTC-hour density in one shared layout."""
     plot_df = pd.DataFrame(
         {
             "identity": ["A (AA00)"] * 4,
@@ -727,30 +613,50 @@ def test_selected_compare_can_render_folded_utc_hour_density():
         "Selected Folded Evidence",
         "3h",
         is_sequential=False,
-        temporal_view="utc_hour",
-        folded_title="UTC profile ({utc_date_count} dates)",
+        folded_title="UTC profile",
+        folded_subtitle="Selected station \u00b7 1 h bins",
         folded_x_label="UTC clock hour",
         density_label="Relative selected density",
     )
 
-    assert recipe["temporal_view"] == "utc_hour"
     assert recipe["utc_date_count"] == 2
-    assert recipe["folded_title"] == "UTC profile (2 dates)"
+    assert recipe["folded_title"] == "UTC profile"
     assert isinstance(recipe["plot_time_ns"], np.ndarray)
     assert isinstance(recipe["metric"], np.ndarray)
 
     figure = render_selected_evidence_export_figure(recipe)
     try:
+        assert tuple(figure.get_size_inches()) == pytest.approx((13.0, 5.6))
+        assert figure.subplotpars.left == pytest.approx(0.07)
+        assert figure.subplotpars.right == pytest.approx(0.95)
+        assert figure.subplotpars.bottom == pytest.approx(0.15)
+        assert figure.subplotpars.top == pytest.approx(0.82)
+        assert figure.subplotpars.wspace == pytest.approx(0.20)
         assert len(figure.axes) == 3
-        histogram_axis, folded_axis, colorbar_axis = figure.axes
+        chronological_axis, folded_axis, colorbar_axis = figure.axes
+        chronological_mesh = next(
+            collection
+            for collection in chronological_axis.collections
+            if isinstance(collection, QuadMesh)
+        )
         folded_mesh = next(
             collection
             for collection in folded_axis.collections
             if isinstance(collection, QuadMesh)
         )
+        chronological_density = np.ma.asarray(
+            chronological_mesh.get_array()
+        ).compressed()
         folded_density = np.ma.asarray(folded_mesh.get_array()).compressed()
 
-        assert histogram_axis.patches
+        assert not chronological_axis.patches
+        assert not folded_axis.patches
+        assert sorted(np.unique(chronological_density)) == pytest.approx(
+            [50.0, 100.0]
+        )
+        # Every selected Joint Spot remains one folded observation. The two
+        # duplicate rows in the first UTC-hour cell are not reduced to one
+        # date-hour median as they are in Performance selected-SNR evidence.
         assert sorted(np.unique(folded_density)) == pytest.approx(
             [100.0 / 3.0, 100.0]
         )
@@ -758,19 +664,131 @@ def test_selected_compare_can_render_folded_utc_hour_density():
         assert folded_mesh.norm.vmax == pytest.approx(100.0)
         assert folded_mesh.get_coordinates().shape[1] == 25
         assert folded_axis.get_xlim() == pytest.approx((0.0, 24.0))
-        assert folded_axis.get_title() == "UTC profile (2 dates)"
+        assert folded_axis.get_title() == "UTC profile"
         assert folded_axis.get_xlabel() == "UTC clock hour"
-        assert not _texts_with_gid(folded_axis, "folded-utc-date-annotation")
-        assert "2 UTC dates folded" not in {
+        assert "2 UTC dates folded" in {
             text.get_text() for text in folded_axis.texts
         }
         assert colorbar_axis.get_ylabel() == "Relative selected density"
+        assert colorbar_axis.get_gid() == "compare-temporal-colorbar-axis"
+        assert chronological_axis.get_gid() == (
+            "compare-temporal-chronological-axis"
+        )
+        assert folded_axis.get_gid() == "compare-temporal-folded-axis"
+        assert (
+            chronological_axis.get_position().width
+            / folded_axis.get_position().width
+        ) == pytest.approx(1.95)
+        assert chronological_axis.get_ylim() == pytest.approx(
+            folded_axis.get_ylim()
+        )
     finally:
         dispose_matplotlib_figure(figure)
 
 
+def test_selected_compare_bin_changes_chronology_but_not_fixed_utc_hour_fold():
+    """Apply the selected bin only on the left while keeping 24 one-hour slots."""
+    plot_df = pd.DataFrame(
+        {
+            "identity": ["A (AA00)"] * 8,
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:05:00Z",
+                    "2026-07-01T01:05:00Z",
+                    "2026-07-01T06:05:00Z",
+                    "2026-07-01T07:05:00Z",
+                    "2026-07-02T00:05:00Z",
+                    "2026-07-02T01:05:00Z",
+                    "2026-07-02T06:05:00Z",
+                    "2026-07-02T07:05:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [-2.0, -1.0, 1.0, 2.0, -1.0, 0.0, 2.0, 3.0],
+        }
+    )
+    one_hour_recipe = _localized_selected_evidence_recipe(
+        plot_df,
+        "Selected Evidence",
+        "1h",
+    )
+    six_hour_recipe = _localized_selected_evidence_recipe(
+        plot_df,
+        "Selected Evidence",
+        "6h",
+    )
+    one_hour_figure = render_selected_evidence_export_figure(
+        one_hour_recipe
+    )
+    six_hour_figure = render_selected_evidence_export_figure(
+        six_hour_recipe
+    )
+    try:
+        one_hour_chronological, one_hour_folded = one_hour_figure.axes[:2]
+        six_hour_chronological, six_hour_folded = six_hour_figure.axes[:2]
+        one_hour_chronological_mesh = next(
+            collection
+            for collection in one_hour_chronological.collections
+            if isinstance(collection, QuadMesh)
+        )
+        six_hour_chronological_mesh = next(
+            collection
+            for collection in six_hour_chronological.collections
+            if isinstance(collection, QuadMesh)
+        )
+        one_hour_folded_mesh = next(
+            collection
+            for collection in one_hour_folded.collections
+            if isinstance(collection, QuadMesh)
+        )
+        six_hour_folded_mesh = next(
+            collection
+            for collection in six_hour_folded.collections
+            if isinstance(collection, QuadMesh)
+        )
+
+        assert (
+            one_hour_chronological_mesh.get_coordinates().shape[1]
+            > six_hour_chronological_mesh.get_coordinates().shape[1]
+        )
+        np.testing.assert_allclose(
+            np.ma.filled(one_hour_folded_mesh.get_array(), np.nan),
+            np.ma.filled(six_hour_folded_mesh.get_array(), np.nan),
+            equal_nan=True,
+        )
+        assert one_hour_folded_mesh.get_coordinates().shape[1] == 25
+        assert six_hour_folded_mesh.get_coordinates().shape[1] == 25
+        assert one_hour_folded.get_xlim() == pytest.approx((0.0, 24.0))
+        assert six_hour_folded.get_xlim() == pytest.approx((0.0, 24.0))
+        assert [
+            text.get_text()
+            for text in _texts_with_gid(
+                one_hour_chronological,
+                "compare-temporal-chronological-subtitle",
+            )
+        ] == ["Selected station \u00b7 1 h bins"]
+        assert [
+            text.get_text()
+            for text in _texts_with_gid(
+                six_hour_chronological,
+                "compare-temporal-chronological-subtitle",
+            )
+        ] == ["Selected station \u00b7 6 h bins"]
+        for folded_axis in (one_hour_folded, six_hour_folded):
+            assert [
+                text.get_text()
+                for text in _texts_with_gid(
+                    folded_axis,
+                    "compare-temporal-folded-subtitle",
+                )
+            ] == ["Selected station \u00b7 1 h bins"]
+    finally:
+        dispose_matplotlib_figure(one_hour_figure)
+        dispose_matplotlib_figure(six_hour_figure)
+
+
 def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
-    """Avoid implying a daily selected-station pattern from one UTC date."""
+    """Expand chronology and omit the folded panel below two UTC dates."""
     plot_df = pd.DataFrame(
         {
             "identity": ["A (AA00)"] * 3,
@@ -785,17 +803,14 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
             "metric": [0.0, 1.0, 2.0],
         }
     )
-    placeholder = (
-        "UTC-Stundenmuster nicht verf\u00fcgbar - erfordert gemeinsame Evidenz "
-        "aus mindestens 2 UTC-Tagen."
-    )
+    placeholder = T["de"]["fig_segment_folded_unavailable"]
     recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Selected Folded Evidence",
         "3h",
         is_sequential=False,
-        temporal_view="utc_hour",
-        folded_title="UTC-Profil ({utc_date_count} Tag)",
+        folded_title="UTC-Profil",
+        folded_subtitle="Ausgew\u00e4hlte Station \u00b7 1-h-Bins",
         folded_x_label="UTC-Stunde",
         folded_unavailable_text=placeholder,
     )
@@ -803,34 +818,46 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
     figure = render_selected_evidence_export_figure(recipe)
     try:
         assert len(figure.axes) == 2
-        histogram_axis, folded_axis = figure.axes
+        chronological_axis, colorbar_axis = figure.axes
 
-        assert histogram_axis.patches
-        assert not any(
+        assert any(
             isinstance(collection, QuadMesh)
-            for collection in folded_axis.collections
+            for collection in chronological_axis.collections
         )
-        _assert_folded_unavailable_annotation(
-            figure,
-            folded_axis,
-            placeholder,
+        assert chronological_axis.get_gid() == (
+            "compare-temporal-chronological-axis"
         )
-        assert folded_axis.get_title() == "UTC-Profil (1 Tag)"
-        assert folded_axis.get_xlabel() == "UTC-Stunde"
-        assert _legend_texts(folded_axis) == ["Median +1.0 dB"]
-        assert not _texts_with_gid(folded_axis, "folded-utc-date-annotation")
-        assert "1 UTC date available; folding unavailable" not in {
-            text.get_text() for text in folded_axis.texts
+        assert all(
+            axis.get_gid() != "compare-temporal-folded-axis"
+            for axis in figure.axes
+        )
+        assert chronological_axis.get_position().width > 0.75
+        assert placeholder in {
+            text.get_text() for text in chronological_axis.texts
         }
+        assert chronological_axis.get_title() == (
+            T["en"]["fig_selected_compare_chronological_title"]
+        )
+        assert colorbar_axis.get_gid() == "compare-temporal-colorbar-axis"
+        assert colorbar_axis.get_ylabel() == (
+            "Relative joint-spot density (% of panel maximum)"
+        )
     finally:
         dispose_matplotlib_figure(figure)
 
 
-@pytest.mark.parametrize("temporal_view", ["chronological", "utc_hour"])
-def test_selected_compare_temporal_views_share_reference_line_hierarchy(
-    temporal_view,
+@pytest.mark.parametrize(
+    ("axis_index", "axis_gid"),
+    (
+        (0, "compare-temporal-chronological-axis"),
+        (1, "compare-temporal-folded-axis"),
+    ),
+)
+def test_selected_compare_dual_panels_share_reference_line_hierarchy(
+    axis_index,
+    axis_gid,
 ):
-    """Keep guides above density but beneath temporal median markers."""
+    """Keep both simultaneous panels' guides beneath temporal median markers."""
     plot_df = pd.DataFrame(
         {
             "identity": ["A (AA00)"] * 4,
@@ -851,12 +878,12 @@ def test_selected_compare_temporal_views_share_reference_line_hierarchy(
         "Selected Evidence",
         "3h",
         is_sequential=False,
-        temporal_view=temporal_view,
     )
 
     figure = render_selected_evidence_export_figure(recipe)
     try:
-        temporal_axis = figure.axes[1]
+        temporal_axis = figure.axes[axis_index]
+        assert temporal_axis.get_gid() == axis_gid
         focus_guides = _lines_with_gid(
             temporal_axis,
             "compare-median-focus-guide",
@@ -1170,10 +1197,7 @@ def test_segment_temporal_figure_keeps_folded_placeholder_for_one_utc_date():
             "metric": [0.0, 1.0, 2.0],
         }
     )
-    placeholder = (
-        "UTC-hour pattern unavailable - requires joint evidence from at least "
-        "2 UTC dates."
-    )
+    placeholder = T["en"]["fig_segment_folded_unavailable"]
     recipe = _localized_segment_temporal_recipe(
         plot_df,
         "Short Segment Evidence",
@@ -1223,17 +1247,11 @@ def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
             "metric": [1.0, 2.0],
         }
     )
-    labels = _localized_evidence_labels()
-    labels["count_label"] = T["en"]["fig_scheduled_pair_count"]
-    labels["density_label"] = T["en"][
-        "fig_relative_scheduled_pair_density"
-    ]
     recipe = _localized_selected_evidence_recipe(
         plot_df,
         "Scheduled Evidence",
-        "5m",
+        "1h",
         is_sequential=True,
-        labels=labels,
     )
 
     figure = render_selected_evidence_export_figure(recipe)
@@ -1241,5 +1259,16 @@ def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
         assert "Relative scheduled-pair density (% of panel maximum)" in {
             axis.get_ylabel() for axis in figure.axes
         }
+        chronological_axis = figure.axes[0]
+        assert T["en"]["fig_segment_folded_unavailable"] in {
+            text.get_text() for text in chronological_axis.texts
+        }
+        assert "requires paired evidence" in T["en"][
+            "fig_segment_folded_unavailable"
+        ]
+        assert all(
+            axis.get_gid() != "compare-temporal-folded-axis"
+            for axis in figure.axes
+        )
     finally:
         dispose_matplotlib_figure(figure)
