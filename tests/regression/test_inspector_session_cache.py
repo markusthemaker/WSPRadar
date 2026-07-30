@@ -81,18 +81,14 @@ def test_compare_summary_count_uses_apostrophe_thousands_separator():
     (
         "language",
         "chronological_title",
-        "chronological_subtitle",
         "folded_title",
-        "folded_subtitle",
         "folded_unavailable",
     ),
     (
         (
             "en",
             "\u0394 SNR over Time",
-            "Selected station \u00b7 6 h bins",
             "\u0394 SNR by UTC Hour",
-            "Selected station \u00b7 1 h bins",
             (
                 "UTC-hour pattern unavailable - requires paired evidence from "
                 "at least 2 UTC dates."
@@ -101,9 +97,7 @@ def test_compare_summary_count_uses_apostrophe_thousands_separator():
         (
             "de",
             "\u0394 SNR im Zeitverlauf",
-            "Ausgew\u00e4hlte Station \u00b7 6 h-Bins",
             "\u0394 SNR nach UTC-Stunde",
-            "Ausgew\u00e4hlte Station \u00b7 1-h-Bins",
             (
                 "UTC-Stundenmuster nicht verf\u00fcgbar - erfordert gepaarte "
                 "Evidenz aus mindestens 2 UTC-Tagen."
@@ -111,29 +105,28 @@ def test_compare_summary_count_uses_apostrophe_thousands_separator():
         ),
     ),
 )
-def test_selected_compare_temporal_panel_copy_is_completely_localized(
+def test_selected_compare_temporal_panel_titles_are_localized_and_captions_retired(
     language,
     chronological_title,
-    chronological_subtitle,
     folded_title,
-    folded_subtitle,
     folded_unavailable,
 ):
-    """Keep both simultaneous Compare panel titles and subtitles localized."""
+    """Keep selected Compare titles localized without redundant captions."""
     translations = T[language]
 
     assert (
         translations["fig_selected_compare_chronological_title"]
         == chronological_title
     )
-    assert translations[
-        "fig_selected_compare_chronological_subtitle"
-    ].format(
-        time_bin=segment_inspector._format_temporal_time_bin_label("6h")
-    ) == chronological_subtitle
     assert translations["fig_selected_compare_folded_title"] == folded_title
-    assert translations["fig_selected_compare_folded_subtitle"] == folded_subtitle
     assert translations["fig_segment_folded_unavailable"] == folded_unavailable
+    assert {
+        "fig_selected_compare_chronological_subtitle",
+        "fig_selected_compare_folded_subtitle",
+        "fig_selected_compare_coverage_chronological_subtitle",
+        "fig_selected_compare_coverage_folded_subtitle",
+        "fig_selected_compare_coverage_summary",
+    }.isdisjoint(translations)
 
 
 def test_selected_compare_reuses_performance_time_bin_control_without_view_toggle():
@@ -150,7 +143,6 @@ def test_selected_compare_reuses_performance_time_bin_control_without_view_toggl
         "12h",
         "24h",
     )
-    assert segment_inspector._format_temporal_time_bin_label("6h") == "6 h"
     assert "time_agg_options = tuple(SUCCESS_TEMPORAL_TIME_BINS)" in function_source
     assert "_render_prompted_segment_time_bin_control(" in function_source
     assert 't["lbl_selected_time_aggregation_bin_size"]' in function_source
@@ -224,9 +216,7 @@ def test_segment_inspector_labels_use_the_bilingual_catalog(
     ) == figure_title
 
     assert translations["fig_selected_compare_chronological_title"]
-    assert translations["fig_selected_compare_chronological_subtitle"]
     assert translations["fig_selected_compare_folded_title"]
-    assert translations["fig_selected_compare_folded_subtitle"]
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -303,7 +293,12 @@ def test_targeted_inspector_renderers_have_no_language_wording_branches():
     )
 
 
-def _render_segment_temporal_for_test(monkeypatch, *, is_compare):
+def _render_segment_temporal_for_test(
+    monkeypatch,
+    *,
+    is_compare,
+    include_compare_coverage=False,
+):
     """Render one temporal bundle while recording compact-recipe dispatches."""
     render_calls = []
     monkeypatch.setattr(
@@ -340,8 +335,7 @@ def _render_segment_temporal_for_test(monkeypatch, *, is_compare):
         "_render_cached_recipe",
         record_render,
     )
-    result = segment_inspector._render_segment_temporal_evidence(
-        {
+    temporal_bundle = {
             "base_recipe": {
                 "kind": (
                     "segment_compare_temporal"
@@ -352,7 +346,14 @@ def _render_segment_temporal_for_test(monkeypatch, *, is_compare):
             },
             "time_bin_options": ("3h", "6h"),
             "time_bin_default": "3h",
-        },
+        }
+    if include_compare_coverage:
+        temporal_bundle["coverage_recipe"] = {
+            "kind": "compare_temporal_evidence_coverage",
+            "time_bin": "3h",
+        }
+    result = segment_inspector._render_segment_temporal_evidence(
+        temporal_bundle,
         analysis_id="RX_COMP" if is_compare else "RX_ABS",
         run_id=7,
         scope_token="all",
@@ -418,6 +419,208 @@ def test_compare_segment_temporal_keeps_one_combined_figure(monkeypatch):
     }
 
 
+def test_compare_segment_time_bin_drives_absolute_and_coverage_figures(
+    monkeypatch,
+):
+    """Dispatch absolute Delta SNR and coverage with one shared bin."""
+    result, render_calls = _render_segment_temporal_for_test(
+        monkeypatch,
+        is_compare=True,
+        include_compare_coverage=True,
+    )
+
+    assert [
+        call["render_figure"]
+        for _recipe, call in render_calls
+    ] == [
+        segment_inspector.render_segment_temporal_evidence_export_figure,
+        segment_inspector.render_compare_temporal_coverage_export_figure,
+    ]
+    assert [recipe["time_bin"] for recipe, _call in render_calls] == [
+        "6h",
+        "6h",
+    ]
+    assert result["export_recipe"] is render_calls[0][0]
+    assert result["coverage_export_recipe"] is render_calls[1][0]
+    assert "delta_change_export_recipe" not in result
+
+
+def test_compare_display_bin_changes_use_retained_recipes_without_provider_request(
+    monkeypatch,
+):
+    """Keep both Compare controls inside retained-evidence fragment work."""
+    from core import data_engine
+
+    provider_requests = []
+
+    def reject_provider_request(*args, **kwargs):
+        provider_requests.append((args, kwargs))
+        raise AssertionError("Compare display controls must not query a provider.")
+
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        reject_provider_request,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(
+            session_state={"lang": "en"},
+            markdown=lambda *_args, **_kwargs: None,
+        ),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    active_bin = {"value": "1h"}
+    monkeypatch.setattr(
+        segment_inspector,
+        "_initialize_time_bin_widget_state",
+        lambda *_args, **_kwargs: active_bin["value"],
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_sync_time_bin_widget_state",
+        lambda *_args, **_kwargs: active_bin["value"],
+    )
+    render_calls = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        lambda recipe, **kwargs: render_calls.append(
+            (
+                kwargs["subject"],
+                recipe["time_bin"],
+                kwargs["cache_key"],
+            )
+        ),
+    )
+
+    segment_bundle = {
+        "base_recipe": {"kind": "segment_compare_temporal"},
+        "coverage_recipe": {
+            "kind": "compare_temporal_evidence_coverage"
+        },
+        "time_bin_options": ("1h", "6h"),
+        "time_bin_default": "1h",
+    }
+    for selected_bin in ("1h", "6h"):
+        active_bin["value"] = selected_bin
+        segment_inspector._render_segment_temporal_evidence(
+            segment_bundle,
+            analysis_id="RX_COMPARE",
+            run_id=17,
+            scope_token="all",
+            cache_key=("segment",),
+            t=T["en"],
+            is_compare=True,
+            is_sequential=False,
+            analysis_context=SimpleNamespace(),
+            language="en",
+        )
+
+    selected_bundle = {
+        "base_recipe": {"kind": "selected_compare_temporal"},
+        "coverage_recipe": {
+            "kind": "selected_path_evidence_coverage"
+        },
+        "time_agg_options": ("1h", "6h"),
+        "time_agg_default": "1h",
+        "title": "Selected Station Evidence",
+        "identity_labels": ("G3AAA (IO90)",),
+        "evidence_count": 3,
+        "comparison_unit_count": 4,
+    }
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_get",
+        lambda *_args, **_kwargs: (selected_bundle, True),
+    )
+
+    def reject_unit_rebuild(*_args, **_kwargs):
+        raise AssertionError(
+            "A display-bin change must not rebuild retained comparison units."
+        )
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_build_compare_unit_rows",
+        reject_unit_rebuild,
+    )
+    selected_identity = pd.DataFrame(
+        {"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}
+    )
+    for selected_bin in ("1h", "6h"):
+        active_bin["value"] = selected_bin
+        segment_inspector._render_selected_station_evidence(
+            pd.DataFrame(),
+            selected_identity,
+            False,
+            10,
+            0,
+            2,
+            t=T["en"],
+            analysis_id="RX_COMPARE",
+            run_id=17,
+            scope_token="all",
+            cache_key=("selected",),
+            analysis_context=SimpleNamespace(),
+            language="en",
+        )
+
+    assert render_calls == [
+        (
+            "segment temporal evidence",
+            "1h",
+            ("segment", "segment temporal evidence", "1h"),
+        ),
+        (
+            "segment temporal coverage",
+            "1h",
+            ("segment", "segment temporal coverage", "1h"),
+        ),
+        (
+            "segment temporal evidence",
+            "6h",
+            ("segment", "segment temporal evidence", "6h"),
+        ),
+        (
+            "segment temporal coverage",
+            "6h",
+            ("segment", "segment temporal coverage", "6h"),
+        ),
+        (
+            "selected evidence",
+            "1h",
+            ("selected", "1h", "dual-temporal"),
+        ),
+        (
+            "selected path evidence coverage",
+            "1h",
+            ("selected", "1h", "selected coverage"),
+        ),
+        (
+            "selected evidence",
+            "6h",
+            ("selected", "6h", "dual-temporal"),
+        ),
+        (
+            "selected path evidence coverage",
+            "6h",
+            ("selected", "6h", "selected coverage"),
+        ),
+    ]
+    assert provider_requests == []
+
+
 def test_station_insights_toggle_has_room_for_single_line_label():
     """Keep the unpaired-evidence toggle left of a full-width filter control."""
     title_width, toggle_width, filter_width = (
@@ -426,6 +629,21 @@ def test_station_insights_toggle_has_room_for_single_line_label():
 
     assert (title_width, toggle_width, filter_width) == (5, 4, 3)
     assert toggle_width > filter_width
+
+
+def test_station_insights_has_no_retired_path_consistency_plot():
+    """Keep the table as the sole station-selection surface."""
+    function_source = inspect.getsource(
+        segment_inspector._render_segment_inspector_body
+    )
+
+    assert "tbl_event = _render_compact_dataframe(" in function_source
+    assert "_sync_selected_station_state_if_changed(" in function_source
+    assert "path_consistency" not in function_source
+    assert (
+        "render_compare_path_consistency_export_figure"
+        not in function_source
+    )
 
 
 def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
@@ -447,7 +665,7 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     )
     monkeypatch.setattr(
         segment_inspector,
-        "_build_evidence_points",
+        "_build_compare_unit_rows",
         lambda *_args, **_kwargs: pd.DataFrame(),
     )
     monkeypatch.setattr(
@@ -489,6 +707,113 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     )
 
 
+def test_one_sided_selected_path_renders_coverage_without_absolute_delta(
+    monkeypatch,
+):
+    """Keep directional selected-path evidence when no Joint unit exists."""
+    markdown_calls = []
+    render_calls = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(
+            session_state={"lang": "en"},
+            markdown=lambda body, **_kwargs: markdown_calls.append(body),
+        ),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_get",
+        lambda *_args, **_kwargs: (None, False),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_put",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_initialize_time_bin_widget_state",
+        lambda *_args, **_kwargs: "1h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_sync_time_bin_widget_state",
+        lambda *_args, **_kwargs: "1h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        lambda recipe, **kwargs: render_calls.append((recipe, kwargs)),
+    )
+    time_slot = int(
+        pd.Timestamp("2026-07-01T00:00Z").timestamp() // 120
+    )
+
+    result = segment_inspector._render_selected_station_evidence(
+        pd.DataFrame(
+            {
+                "peer_sign": ["G3AAA"],
+                "peer_grid": ["IO90"],
+                "time_slot": [time_slot],
+                "has_u": [1],
+                "has_r": [0],
+                "snr_u_norm": [-10.0],
+                "snr_r_norm": [float("nan")],
+            }
+        ),
+        pd.DataFrame(
+            {"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}
+        ),
+        False,
+        10,
+        0,
+        2,
+        t=T["en"],
+        analysis_id="RX_COMPARE",
+        run_id=7,
+        scope_token="all",
+        cache_key=("selected",),
+        analysis_context=SimpleNamespace(),
+        language="en",
+        thresholded_station_rows=pd.DataFrame(
+            {
+                "peer_sign": ["G3AAA"],
+                "peer_grid": ["IO90"],
+                "spot_count": [0],
+                "count_only_u": [1],
+                "count_only_r": [0],
+            }
+        ),
+        analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
+        analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
+        target_only_label="Only Target",
+        reference_only_label="Only Reference",
+    )
+
+    assert result["export_recipe"] is None
+    assert result["coverage_export_recipe"]["time_bin"] == "1h"
+    assert result["comparison_unit_count"] == 1
+    assert len(render_calls) == 1
+    assert render_calls[0][1]["render_figure"] is (
+        segment_inspector.render_selected_compare_coverage_export_figure
+    )
+    assert (
+        T["en"]["txt_results_selected_no_paired_evidence"]
+        in "".join(markdown_calls)
+    )
+
+
 def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
     """Keep the compact temporal title scoped without repeating an outer heading."""
     labels = {
@@ -511,6 +836,392 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
         "Full Range | All Directions",
         labels,
     ).startswith("TX Compare Temporal:")
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "analysis_id",
+        "is_sequential",
+        "expected_labels",
+    ),
+    (
+        pytest.param(
+            "en",
+            "RX_COMPARE",
+            False,
+            {
+                "station_vote_y": "TX Stations",
+                "station_folded_y": (
+                    "Avg. TX Stations\n/ Represented\nUTC Date"
+                ),
+                "unit_y": "Transmitter-Cycles",
+                "unit_folded_y": (
+                    "Avg. Transmitter-\nCycles / Represented\nUTC Date"
+                ),
+                "selected_title_unit": "Retained WSPR Cycles",
+                "selected_unit_y": "WSPR Cycles",
+                "selected_unit_folded_y": (
+                    "Avg. WSPR Cycles\n/ Represented UTC Date"
+                ),
+                "selected_chronological_title": (
+                    "Retained WSPR Cycles over Time (6 h bins)"
+                ),
+                "selected_utc_hour_title": (
+                    "Retained WSPR Cycles by UTC Hour (1 h bins)"
+                ),
+            },
+            id="en-rx-simultaneous",
+        ),
+        pytest.param(
+            "en",
+            "TX_COMPARE",
+            False,
+            {
+                "station_vote_y": "RX Stations",
+                "station_folded_y": (
+                    "Avg. RX Stations\n/ Represented\nUTC Date"
+                ),
+                "unit_y": "Receiver-Cycles",
+                "unit_folded_y": (
+                    "Avg. Receiver-Cycles\n/ Represented\nUTC Date"
+                ),
+                "selected_title_unit": "Retained WSPR Cycles",
+                "selected_unit_y": "WSPR Cycles",
+                "selected_unit_folded_y": (
+                    "Avg. WSPR Cycles\n/ Represented UTC Date"
+                ),
+                "selected_chronological_title": (
+                    "Retained WSPR Cycles over Time (6 h bins)"
+                ),
+                "selected_utc_hour_title": (
+                    "Retained WSPR Cycles by UTC Hour (1 h bins)"
+                ),
+            },
+            id="en-tx-simultaneous",
+        ),
+        pytest.param(
+            "en",
+            "TX_COMPARE",
+            True,
+            {
+                "station_vote_y": "RX Stations",
+                "station_folded_y": (
+                    "Avg. RX Stations\n/ Represented\nUTC Date"
+                ),
+                "unit_y": "Scheduled A/B Pairs",
+                "unit_folded_y": (
+                    "Avg. Scheduled A/B\nPairs / Represented\nUTC Date"
+                ),
+                "selected_title_unit": "Scheduled A/B Pairs",
+                "selected_unit_y": "Scheduled A/B Pairs",
+                "selected_unit_folded_y": (
+                    "Avg. Scheduled A/B\nPairs / Represented\nUTC Date"
+                ),
+                "selected_chronological_title": (
+                    "Scheduled A/B Pairs over Time (6 h bins)"
+                ),
+                "selected_utc_hour_title": (
+                    "Scheduled A/B Pairs by UTC Hour (1 h bins)"
+                ),
+            },
+            id="en-tx-scheduled",
+        ),
+        pytest.param(
+            "de",
+            "RX_COMPARE",
+            False,
+            {
+                "station_vote_y": "TX-Stationen",
+                "station_folded_y": (
+                    "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "unit_y": "Senderzyklen",
+                "unit_folded_y": (
+                    "Ø Senderzyklen je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "selected_title_unit": "Berücksichtigte WSPR-Zyklen",
+                "selected_unit_y": "WSPR-Zyklen",
+                "selected_unit_folded_y": (
+                    "Ø WSPR-Zyklen je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "selected_chronological_title": (
+                    "Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)"
+                ),
+                "selected_utc_hour_title": (
+                    "Berücksichtigte WSPR-Zyklen\n"
+                    "nach UTC-Stunde (1-h-Bins)"
+                ),
+            },
+            id="de-rx-simultaneous",
+        ),
+        pytest.param(
+            "de",
+            "TX_COMPARE",
+            False,
+            {
+                "station_vote_y": "RX-Stationen",
+                "station_folded_y": (
+                    "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "unit_y": "Empfängerzyklen",
+                "unit_folded_y": (
+                    "Ø Empfängerzyklen je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "selected_title_unit": "Berücksichtigte WSPR-Zyklen",
+                "selected_unit_y": "WSPR-Zyklen",
+                "selected_unit_folded_y": (
+                    "Ø WSPR-Zyklen je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "selected_chronological_title": (
+                    "Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)"
+                ),
+                "selected_utc_hour_title": (
+                    "Berücksichtigte WSPR-Zyklen\n"
+                    "nach UTC-Stunde (1-h-Bins)"
+                ),
+            },
+            id="de-tx-simultaneous",
+        ),
+        pytest.param(
+            "de",
+            "TX_COMPARE",
+            True,
+            {
+                "station_vote_y": "RX-Stationen",
+                "station_folded_y": (
+                    "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "unit_y": "Geplante A/B-Paare",
+                "unit_folded_y": (
+                    "Ø geplante A/B-Paare je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "selected_title_unit": "Geplante A/B-Paare",
+                "selected_unit_y": "Geplante A/B-Paare",
+                "selected_unit_folded_y": (
+                    "Ø geplante A/B-Paare je\nberücksichtigtem\nUTC-Tag"
+                ),
+                "selected_chronological_title": (
+                    "Geplante A/B-Paare im Zeitverlauf (6 h-Bins)"
+                ),
+                "selected_utc_hour_title": (
+                    "Geplante A/B-Paare\nnach UTC-Stunde (1-h-Bins)"
+                ),
+            },
+            id="de-tx-scheduled",
+        ),
+    ),
+)
+def test_compare_coverage_labels_route_all_compare_design_families(
+    language,
+    analysis_id,
+    is_sequential,
+    expected_labels,
+):
+    """Route bilingual RX, TX, and scheduled units into every visible axis."""
+    target_label = "Target-only sentinel"
+    reference_label = "Reference-only sentinel"
+    labels = segment_inspector._compare_coverage_figure_labels(
+        T[language],
+        analysis_id,
+        is_sequential=is_sequential,
+        target_only_label=target_label,
+        joint_label="Joint",
+        reference_only_label=reference_label,
+    )
+
+    assert labels["target_only"] == target_label
+    assert labels["reference_only"] == reference_label
+    routed_labels = {
+        key: labels[key]
+        for key in (
+            "station_vote_y",
+            "station_folded_y",
+            "unit_y",
+            "unit_folded_y",
+            "selected_title_unit",
+            "selected_unit_y",
+            "selected_unit_folded_y",
+        )
+    }
+    assert routed_labels == {
+        key: expected_labels[key]
+        for key in routed_labels
+    }
+    assert labels["selected_chronological_title"].format(
+        unit=labels["selected_title_unit"],
+        time_bin="6 h",
+    ) == expected_labels["selected_chronological_title"]
+    assert labels["selected_utc_hour_title"].format(
+        unit=labels["selected_title_unit"],
+    ) == expected_labels["selected_utc_hour_title"]
+
+
+def test_compare_coverage_preserves_local_benchmark_outcome_label():
+    """Pass a configured local benchmark name through the generic TX route."""
+    labels = segment_inspector._compare_coverage_figure_labels(
+        T["en"],
+        "TX_COMPARE",
+        is_sequential=False,
+        target_only_label="Only G3ZIL",
+        joint_label="Joint",
+        reference_only_label="Only Local Benchmark",
+    )
+
+    assert labels["target_only"] == "Only G3ZIL"
+    assert labels["reference_only"] == "Only Local Benchmark"
+    assert labels["station_vote_y"] == "RX Stations"
+    assert labels["unit_y"] == "Receiver-Cycles"
+
+
+@pytest.mark.parametrize(
+    ("language", "target_label", "reference_label"),
+    (
+        ("en", "Only Target", "Only Reference"),
+        ("de", "Nur Target", "Nur Referenz"),
+    ),
+)
+def test_compare_coverage_uses_semantic_outcome_names_in_both_languages(
+    language,
+    target_label,
+    reference_label,
+):
+    """Name T/J/R categories by meaning rather than record identity."""
+    translations = T[language]
+    labels = segment_inspector._compare_coverage_figure_labels(
+        translations,
+        "RX_COMPARE",
+        is_sequential=False,
+        target_only_label=translations["leg_only_me"].format(
+            callsign=translations["txt_target"]
+        ),
+        joint_label=translations["txt_joint"],
+        reference_only_label=translations["leg_only_ref"].format(
+            ref_callsign=translations["txt_reference"]
+        ),
+    )
+
+    assert labels["target_only"] == target_label
+    assert labels["reference_only"] == reference_label
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "expected_axis_label",
+        "expected_station_legend",
+        "expected_outcome_legend",
+        "expected_selected_legend",
+    ),
+    (
+        (
+            "en",
+            "Joint Evidence (%)",
+            "Station-balanced Joint Evidence Share",
+            "Outcome-level Joint Evidence Share",
+            "Joint Evidence Share",
+        ),
+        (
+            "de",
+            "Joint-Evidenz (%)",
+            "Stationsgleichgewichteter Joint-Evidenzanteil",
+            "Joint-Evidenzanteil auf Outcome-Ebene",
+            "Joint-Evidenzanteil",
+        ),
+    ),
+)
+def test_compare_coverage_share_labels_separate_axes_from_legends(
+    language,
+    expected_axis_label,
+    expected_station_legend,
+    expected_outcome_legend,
+    expected_selected_legend,
+):
+    """Keep compact axis units distinct from descriptive share legends."""
+    labels = segment_inspector._compare_coverage_figure_labels(
+        T[language],
+        "RX_COMPARE",
+        is_sequential=False,
+        target_only_label="Only Target",
+        joint_label="Joint",
+        reference_only_label="Only Reference",
+    )
+
+    assert labels["joint_share_y"] == expected_axis_label
+    assert labels["station_joint_share"] == expected_station_legend
+    assert labels["outcome_joint_share"] == expected_outcome_legend
+    assert labels["selected_joint_share"] == expected_selected_legend
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "expected_simultaneous_note",
+        "expected_scheduled_note",
+    ),
+    (
+        (
+            "en",
+            (
+                "WSPR cycles without evidence that the Target was operating "
+                "are left out, so possible Target downtime is not counted as "
+                "a loss.\nOnly Target and Only Reference are therefore not "
+                "symmetric. Joint Evidence Share shows pair coverage within "
+                "those same cycles."
+            ),
+            (
+                "Scheduled-pair evidence · Joint Evidence Share measures "
+                "completed-pair coverage"
+            ),
+        ),
+        (
+            "de",
+            (
+                "WSPR-Zyklen ohne Evidenz für den Betrieb des Targets bleiben "
+                "unberücksichtigt, damit mögliche Ausfallzeiten des Targets "
+                "nicht als Misserfolg zählen.\nOnly Target und Only Reference "
+                "sind daher nicht symmetrisch. Der Joint-Evidenzanteil zeigt "
+                "die Paarabdeckung innerhalb dieser Zyklen."
+            ),
+            (
+                "Evidenz aus geplanten Paaren · Der Joint-Evidenzanteil misst "
+                "die Abdeckung vollständiger Paare"
+            ),
+        ),
+    ),
+)
+def test_compare_coverage_gate_notes_are_exact_and_route_by_design(
+    language,
+    expected_simultaneous_note,
+    expected_scheduled_note,
+):
+    """Pin bilingual Target-activity copy while retaining scheduled routing."""
+    translations = T[language]
+    for analysis_id in ("RX_COMPARE", "TX_COMPARE"):
+        simultaneous_labels = (
+            segment_inspector._compare_coverage_figure_labels(
+                translations,
+                analysis_id,
+                is_sequential=False,
+                target_only_label="Only Target",
+                joint_label="Joint",
+                reference_only_label="Only Reference",
+            )
+        )
+        assert (
+            simultaneous_labels["gate_note"]
+            == expected_simultaneous_note
+        )
+
+    scheduled_labels = segment_inspector._compare_coverage_figure_labels(
+        translations,
+        "TX_COMPARE",
+        is_sequential=True,
+        target_only_label="Only Target",
+        joint_label="Joint",
+        reference_only_label="Only Reference",
+    )
+    assert scheduled_labels["gate_note"] == expected_scheduled_note
 
 
 def test_long_range_evidence_bins_include_one_and_two_hour_choices():
@@ -556,6 +1267,55 @@ def test_evidence_bins_keep_minute_scale_choices_through_24_hours():
     assert six_hour_default == "15m"
     assert day_options == ["15m", "30m", "1h", "3h", "6h"]
     assert day_default == "30m"
+
+
+def test_compare_shared_bin_policy_preserves_paired_absolute_time_span():
+    """Do not let distant one-sided units alter the established absolute bin."""
+    start = pd.Timestamp("2026-07-01T00:00:00Z")
+    paired_evidence = pd.DataFrame(
+        {"plot_time": [start, start + pd.Timedelta(hours=6)]}
+    )
+    comparison_units = pd.DataFrame(
+        {
+            "evidence_utc": [
+                start,
+                start + pd.Timedelta(hours=6),
+                start + pd.Timedelta(days=31),
+            ]
+        }
+    )
+
+    paired_time_source = segment_inspector._compare_temporal_time_source(
+        paired_evidence,
+        comparison_units,
+    )
+    paired_options, paired_default = (
+        segment_inspector._time_agg_options_for_span(
+            paired_time_source
+        )
+    )
+
+    assert paired_time_source["plot_time"].tolist() == (
+        paired_evidence["plot_time"].tolist()
+    )
+    assert paired_options == ["5m", "15m", "30m", "1h", "3h"]
+    assert paired_default == "15m"
+
+    coverage_only_source = segment_inspector._compare_temporal_time_source(
+        paired_evidence.iloc[0:0],
+        comparison_units,
+    )
+    coverage_options, coverage_default = (
+        segment_inspector._time_agg_options_for_span(
+            coverage_only_source
+        )
+    )
+
+    assert coverage_only_source["plot_time"].tolist() == (
+        comparison_units["evidence_utc"].tolist()
+    )
+    assert coverage_options == ["1h", "2h", "3h", "6h", "12h", "24h"]
+    assert coverage_default == "6h"
 
 
 def test_time_bin_control_stretches_segmented_options_across_container(monkeypatch):
@@ -819,7 +1579,7 @@ def test_segment_time_bin_resolves_auto_and_does_not_change_station_bin(
 
 
 def test_selected_compare_persists_only_the_selected_chronological_bin():
-    """Keep one selected-bin preference now that both temporal panels coexist."""
+    """Drive absolute and coverage recipes from one selected-path bin."""
     function_source = inspect.getsource(
         segment_inspector._render_selected_station_evidence
     )
@@ -828,7 +1588,12 @@ def test_selected_compare_persists_only_the_selected_chronological_bin():
         function_source
     )
     assert 'selected_recipe["time_bin"] = time_agg' in function_source
+    assert (
+        'selected_coverage_recipe["time_bin"] = time_agg'
+        in function_source
+    )
     assert '"dual-temporal"' in function_source
+    assert '"selected coverage"' in function_source
     assert "temporal_view" not in function_source
     assert not hasattr(
         segment_inspector,

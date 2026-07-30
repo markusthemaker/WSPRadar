@@ -214,9 +214,7 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "fig_success_selected_snr_unavailable",
     "fig_success_selected_station_support_folded_subtitle",
     "fig_selected_compare_chronological_title",
-    "fig_selected_compare_chronological_subtitle",
     "fig_selected_compare_folded_title",
-    "fig_selected_compare_folded_subtitle",
     "lbl_selected_time_aggregation_bin_size",
     "fmt_success_selected_context",
     "tbl_col_success_station_rx",
@@ -224,6 +222,43 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "tbl_col_success_rate",
     "tbl_col_success_counter_display_tx",
     "tbl_col_success_snr_display",
+}
+
+EXPECTED_COMPARE_COVERAGE_PRESENTATION_KEYS = {
+    "fig_compare_coverage_title_rx",
+    "fig_compare_coverage_title_tx",
+    "fig_compare_coverage_chronological_title",
+    "fig_compare_coverage_utc_hour_title",
+    "fig_compare_coverage_station_y_rx",
+    "fig_compare_coverage_station_y_tx",
+    "fig_compare_coverage_station_folded_y_rx",
+    "fig_compare_coverage_station_folded_y_tx",
+    "fig_compare_coverage_unit_y_rx",
+    "fig_compare_coverage_unit_y_tx",
+    "fig_compare_coverage_unit_y_scheduled",
+    "fig_compare_coverage_unit_folded_y_rx",
+    "fig_compare_coverage_unit_folded_y_tx",
+    "fig_compare_coverage_unit_folded_y_scheduled",
+    "fig_compare_joint_share_station",
+    "fig_compare_joint_share_outcome",
+    "fig_compare_joint_share_y",
+    "fig_compare_coverage_gate_simultaneous",
+    "fig_compare_coverage_gate_scheduled",
+    "fig_selected_compare_coverage_title_rx",
+    "fig_selected_compare_coverage_title_tx",
+    "fig_selected_compare_coverage_chronological_title",
+    "fig_selected_compare_coverage_utc_hour_title",
+    "fig_selected_compare_coverage_unit_simultaneous",
+    "fig_selected_compare_coverage_unit_scheduled",
+    "fig_selected_compare_coverage_unit_y_simultaneous",
+    "fig_selected_compare_coverage_unit_folded_y_simultaneous",
+    "fig_selected_compare_joint_share",
+    "fig_selected_compare_coverage_unavailable",
+}
+
+RETIRED_COMPARE_FOLDED_SUBTITLE_KEYS = {
+    "fig_compare_coverage_station_folded_subtitle",
+    "fig_compare_coverage_units_folded_subtitle",
 }
 
 
@@ -956,6 +991,13 @@ def test_success_presentation_keys_have_bilingual_placeholder_parity():
         "time_bin"
     }
     selected_title_fields = {"station", "locator"}
+    retired_selected_compare_caption_keys = {
+        "fig_selected_compare_chronological_subtitle",
+        "fig_selected_compare_folded_subtitle",
+        "fig_selected_compare_coverage_chronological_subtitle",
+        "fig_selected_compare_coverage_folded_subtitle",
+        "fig_selected_compare_coverage_summary",
+    }
     for language in ("en", "de"):
         assert _format_fields(
             T[language]["fig_success_selected_station_snr_title_rx"]
@@ -966,12 +1008,135 @@ def test_success_presentation_keys_have_bilingual_placeholder_parity():
         assert _format_fields(
             T[language]["fig_success_selected_snr_chronological_subtitle"]
         ) == {"time_bin"}
+        assert retired_selected_compare_caption_keys.isdisjoint(T[language])
+
+
+def test_compare_coverage_keys_have_bilingual_placeholder_parity():
+    """Keep the compact Compare axes and selected-path titles interchangeable."""
+    for language in ("en", "de"):
+        translations = T[language]
+        assert EXPECTED_COMPARE_COVERAGE_PRESENTATION_KEYS <= set(translations)
+        assert RETIRED_COMPARE_FOLDED_SUBTITLE_KEYS.isdisjoint(translations)
+        for key in sorted(EXPECTED_COMPARE_COVERAGE_PRESENTATION_KEYS):
+            assert isinstance(translations[key], str)
+            assert translations[key].strip()
+            assert _format_fields(T["en"][key]) == _format_fields(
+                T["de"][key]
+            ), key
+
         assert _format_fields(
-            T[language]["fig_selected_compare_chronological_subtitle"]
+            translations["fig_compare_coverage_chronological_title"]
         ) == {"time_bin"}
-        assert not _format_fields(
-            T[language]["fig_selected_compare_folded_subtitle"]
+        assert _format_fields(
+            translations["fig_compare_coverage_utc_hour_title"]
+        ) == set()
+        for title_key in (
+            "fig_selected_compare_coverage_title_rx",
+            "fig_selected_compare_coverage_title_tx",
+        ):
+            assert _format_fields(translations[title_key]) == {
+                "station",
+                "locator",
+            }
+        assert _format_fields(
+            translations[
+                "fig_selected_compare_coverage_chronological_title"
+            ]
+        ) == {"unit", "time_bin"}
+        assert _format_fields(
+            translations["fig_selected_compare_coverage_utc_hour_title"]
+        ) == {"unit"}
+
+
+def test_compare_coverage_folded_axes_and_selected_units_are_exact():
+    """Pin averaging denominators on axes and retire Comparison Units copy."""
+    expected = {
+        "en": {
+            "fig_compare_coverage_station_folded_y_rx": (
+                "Avg. TX Stations\n/ Represented\nUTC Date"
+            ),
+            "fig_compare_coverage_station_folded_y_tx": (
+                "Avg. RX Stations\n/ Represented\nUTC Date"
+            ),
+            "fig_compare_coverage_unit_folded_y_rx": (
+                "Avg. Transmitter-\nCycles / Represented\nUTC Date"
+            ),
+            "fig_compare_coverage_unit_folded_y_tx": (
+                "Avg. Receiver-Cycles\n/ Represented\nUTC Date"
+            ),
+            "fig_compare_coverage_unit_folded_y_scheduled": (
+                "Avg. Scheduled A/B\nPairs / Represented\nUTC Date"
+            ),
+            "fig_selected_compare_coverage_chronological_title": (
+                "{unit} over Time ({time_bin} bins)"
+            ),
+            "fig_selected_compare_coverage_utc_hour_title": (
+                "{unit} by UTC Hour (1 h bins)"
+            ),
+            "fig_selected_compare_coverage_unit_simultaneous": (
+                "Retained WSPR Cycles"
+            ),
+            "fig_selected_compare_coverage_unit_scheduled": (
+                "Scheduled A/B Pairs"
+            ),
+            "fig_selected_compare_coverage_unit_y_simultaneous": (
+                "WSPR Cycles"
+            ),
+            "fig_selected_compare_coverage_unit_folded_y_simultaneous": (
+                "Avg. WSPR Cycles\n/ Represented UTC Date"
+            ),
+        },
+        "de": {
+            "fig_compare_coverage_station_folded_y_rx": (
+                "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
+            ),
+            "fig_compare_coverage_station_folded_y_tx": (
+                "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
+            ),
+            "fig_compare_coverage_unit_folded_y_rx": (
+                "Ø Senderzyklen je\nberücksichtigtem\nUTC-Tag"
+            ),
+            "fig_compare_coverage_unit_folded_y_tx": (
+                "Ø Empfängerzyklen je\nberücksichtigtem\nUTC-Tag"
+            ),
+            "fig_compare_coverage_unit_folded_y_scheduled": (
+                "Ø geplante A/B-Paare je\nberücksichtigtem\nUTC-Tag"
+            ),
+            "fig_selected_compare_coverage_chronological_title": (
+                "{unit} im Zeitverlauf ({time_bin}-Bins)"
+            ),
+            "fig_selected_compare_coverage_utc_hour_title": (
+                "{unit}\nnach UTC-Stunde (1-h-Bins)"
+            ),
+            "fig_selected_compare_coverage_unit_simultaneous": (
+                "Berücksichtigte WSPR-Zyklen"
+            ),
+            "fig_selected_compare_coverage_unit_scheduled": (
+                "Geplante A/B-Paare"
+            ),
+            "fig_selected_compare_coverage_unit_y_simultaneous": (
+                "WSPR-Zyklen"
+            ),
+            "fig_selected_compare_coverage_unit_folded_y_simultaneous": (
+                "Ø WSPR-Zyklen je\nberücksichtigtem\nUTC-Tag"
+            ),
+        },
+    }
+
+    for language, expected_labels in expected.items():
+        for key, expected_label in expected_labels.items():
+            assert T[language][key] == expected_label
+        selected_copy = " ".join(
+            T[language][key]
+            for key in (
+                "fig_selected_compare_coverage_chronological_title",
+                "fig_selected_compare_coverage_utc_hour_title",
+                "fig_selected_compare_coverage_unit_simultaneous",
+                "fig_selected_compare_coverage_unit_scheduled",
+            )
         )
+        assert "Comparison Units" not in selected_copy
+        assert "Vergleichseinheiten" not in selected_copy
 
 
 def test_performance_station_table_copy_is_exact_and_retires_helper_fields():

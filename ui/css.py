@@ -605,6 +605,23 @@ def apply_custom_css():
             color: #39ff14 !important;
             font-weight: 700 !important;
         }
+        /*
+         * Long-form prose needs proportional glyph metrics. The application-wide
+         * monospace theme makes punctuation such as em dashes look joined to the
+         * surrounding words, especially in dense documentation and help copy.
+         * Controls, headings, and inline code retain their established fonts.
+         */
+        .st-key-documentation_body .stMarkdown p,
+        .st-key-documentation_body .stMarkdown li,
+        .st-key-documentation_body .stMarkdown th,
+        .st-key-documentation_body .stMarkdown td,
+        .st-key-documentation_body .stMarkdown blockquote,
+        div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker)
+            .stMarkdown p,
+        div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker)
+            .stMarkdown li {
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
         div[data-testid="stPopoverBody"]:has(.result-guidance-body-marker) {
             box-sizing: border-box !important;
             width: min(66.667vw, 43rem) !important;

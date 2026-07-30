@@ -379,7 +379,7 @@ been audited, even when only some surfaces require edits.
 Before editing:
 
 - Define the old term, the approved replacement, capitalization, singular/plural
-  forms, and any RX/TX, Compare/Success, or English/German variants.
+  forms, and any RX/TX, Compare/Performance, or English/German variants.
 - State whether the change affects only presentation terminology or also changes
   scientific meaning, configuration, schemas, exports, or compatibility.
 - Identify canonical internal terms that must remain stable. Do not globally
@@ -477,6 +477,16 @@ define or select scientific behavior.
   station and evidence language over implementation terminology or unnecessary
   statistical jargon. Do not pronounce a live result strong, weak, significant
   or causal.
+
+- Reserve **experimental repeatability** for a result reproduced in a separate
+  suitably controlled run. Describe dispersion or agreement inside one completed
+  run as **within-run consistency**, **within-path consistency**, or
+  **station-to-station agreement**.
+- Name every displayed ratio by its actual denominator and scientific meaning.
+  In Target-active-conditioned Compare, Only Target and Only Reference remain
+  directional evidence rather than symmetric wins or losses. Joint Evidence Share
+  is a pairability or coverage metric; never describe it as a Target score, win
+  rate, or symmetric Target-versus-Reference success rate.
 - Name visible figures, controls, units and result terms exactly as rendered.
   Use `<strong class="defined-term">...</strong>` for introduced semantic
   vocabulary, Markdown bold for named figures, and code spans for literal
@@ -501,8 +511,10 @@ define or select scientific behavior.
   as `WSPR`, `TX`, `RX`, `SNR`, `UTC`, `SQL`, `UI`, and `DB` are acceptable when
   their meaning is unambiguous.
 - Use established WSPRadar terminology consistently. Do not introduce synonyms
-  for existing concepts such as Target, Reference, Elsewhere, Other Signals,
-  Joint, Opportunity, Success Rate, Decode Outcomes, or Target-Active Gate.
+  for visible concepts such as Target, Reference, Joint, Opportunity, Decode Rate,
+  Decode Outcomes or Target-Active Gate. Canonical internal or compatibility terms
+  such as `success`, Elsewhere and Other Signals may remain where their contract
+  requires them; do not expose them as replacement UI terminology.
 - Function and method names should describe the action performed, normally using
   a verb phrase such as `build_analysis_batches`, `prepare_opportunity_rows`, or
   `validate_config_upload`.
@@ -570,7 +582,7 @@ not as optional follow-up work.
 - Delete tests and fixtures that assert only retired behavior. Replace them with
   coverage of the active contract and retain negative assertions when they
   prevent obsolete UI, exports, terminology, or schemas from returning.
-- Audit shared and mode-specific paths—including Success, Compare, RX, TX,
+- Audit shared and mode-specific paths—including visible Performance and Compare paths, canonical `success` compatibility paths, RX, TX,
   Guided, Classic, preview, export, and both languages—before declaring code
   unused. Preserve a compatibility path only when a current supported producer
   or consumer, persisted contract, or explicit migration requirement still
@@ -757,7 +769,7 @@ for future end-user documentation work:
   WSPR background needed to understand it. Explain genuine strengths without
   unsupported `first`, `only`, calibrated-measurement, or causation claims.
 - Build understanding progressively. Introduce terms such as Target, Reference,
-  peer, Success Rate, Decode Outcomes, and Delta SNR in plain operator language
+  peer, Decode Rate, Decode Outcomes, and Delta SNR in plain operator language
   before relying on them. Do not front-load a dense glossary.
 - Preserve the manual's authoritative order: Part 0 Preface; Part I Operator
   Guide with Experiment Playbooks, Read Your Results, and Strengthen and
@@ -846,7 +858,7 @@ multi-stage-method ownership rule below:
   design's principal interpretation boundary. Do not reproduce complete control
   ranges, exact algorithms or device-specific procedures.
 - **Part I, Chapter 2 — Read Your Results:** how to interpret the completed
-  result, including Success and Compare results, the map, Stations and Spots,
+  result, including Performance and Compare results, the map, Stations and Spots,
   geographic segments, contributing stations, underlying evidence and the
   worked Compare example. Summarize scientific mechanics only where omission
   would cause a materially wrong reading.
@@ -863,7 +875,7 @@ multi-stage-method ownership rule below:
 - **Part III, Chapter 6 — Literature, Prior Art and Positioning:** scientific
   lineage, prior art, source-specific boundaries and bounded novelty claims.
 - **Part III, Chapter 7 — Scientific Methods:** data source, decode selection,
-  time model, identity, matching, Target-Active Gate, Success classification and
+  time model, identity, matching, Target-Active Gate, Performance classification and
   formulas, power normalization, correction, Delta SNR, paired evidence, Decode
   Outcomes, aggregation hierarchy, distributions, inspection-layer
   weighting, geography and solar classification.

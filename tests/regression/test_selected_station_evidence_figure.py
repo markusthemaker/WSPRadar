@@ -13,7 +13,6 @@ from ui.plots.evidence_figures import (
     _compare_median_focus_forward,
     _compare_median_focus_inverse,
     _compare_median_focus_spec_from_recipe,
-    _format_temporal_time_bin_label,
     _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
     render_segment_temporal_evidence_export_figure,
@@ -43,18 +42,12 @@ def _localized_selected_evidence_recipe(
         "chronological_title": translations[
             "fig_selected_compare_chronological_title"
         ],
-        "chronological_subtitle": translations[
-            "fig_selected_compare_chronological_subtitle"
-        ],
         "chronological_x_label": translations[
             "fig_segment_chronological_x"
         ],
         "metric_axis_label": translations["tbl_col_delta_snr"],
         "folded_title": translations[
             "fig_selected_compare_folded_title"
-        ],
-        "folded_subtitle": translations[
-            "fig_selected_compare_folded_subtitle"
         ],
         "folded_x_label": translations["fig_segment_utc_hour_x"],
         "folded_date_annotation": translations[
@@ -202,17 +195,7 @@ def test_selected_single_evidence_uses_localized_recipe_labels(language):
         assert chronological_axis.get_title() == translations[
             "fig_selected_compare_chronological_title"
         ]
-        assert [
-            text.get_text()
-            for text in _texts_with_gid(
-                chronological_axis,
-                "compare-temporal-chronological-subtitle",
-            )
-        ] == [
-            translations[
-                "fig_selected_compare_chronological_subtitle"
-            ].format(time_bin=_format_temporal_time_bin_label("3h"))
-        ]
+        _assert_no_selected_compare_subtitles(figure)
         assert chronological_axis.get_xlabel() == translations[
             "fig_segment_chronological_x"
         ]
@@ -256,6 +239,20 @@ def _formatted_y_ticks(axis):
 def _texts_with_gid(axis, gid):
     """Return axis text artists tagged as one visual-summary class."""
     return [text_artist for text_artist in axis.texts if text_artist.get_gid() == gid]
+
+
+def _assert_no_selected_compare_subtitles(figure):
+    """Keep selected Compare panels free of redundant subtitle artists."""
+    subtitle_gids = {
+        "compare-temporal-chronological-subtitle",
+        "compare-temporal-folded-subtitle",
+    }
+    assert not [
+        text_artist
+        for axis in figure.axes
+        for text_artist in axis.texts
+        if text_artist.get_gid() in subtitle_gids
+    ]
 
 
 def _assert_folded_unavailable_annotation(figure, axis, source_text):
@@ -431,11 +428,9 @@ def test_selected_compare_recipe_retires_histogram_and_temporal_view_state():
     assert recipe["kind"] == "selected_compare_temporal"
     assert recipe["time_bin"] == "6h"
     assert recipe["chronological_title"] == "\u0394 SNR over Time"
-    assert recipe["chronological_subtitle"] == (
-        "Selected station \u00b7 6 h bins"
-    )
+    assert recipe["chronological_subtitle"] is None
     assert recipe["folded_title"] == "\u0394 SNR by UTC Hour"
-    assert recipe["folded_subtitle"] == "Selected station \u00b7 1 h bins"
+    assert recipe["folded_subtitle"] is None
     assert recipe["omit_folded_when_unavailable"] is True
     assert recipe["show_folded_date_annotation"] is True
     assert recipe["selected_identity_count"] == 1
@@ -614,7 +609,6 @@ def test_selected_compare_can_render_folded_utc_hour_density():
         "3h",
         is_sequential=False,
         folded_title="UTC profile",
-        folded_subtitle="Selected station \u00b7 1 h bins",
         folded_x_label="UTC clock hour",
         density_label="Relative selected density",
     )
@@ -675,6 +669,7 @@ def test_selected_compare_can_render_folded_utc_hour_density():
             "compare-temporal-chronological-axis"
         )
         assert folded_axis.get_gid() == "compare-temporal-folded-axis"
+        _assert_no_selected_compare_subtitles(figure)
         assert (
             chronological_axis.get_position().width
             / folded_axis.get_position().width
@@ -760,28 +755,8 @@ def test_selected_compare_bin_changes_chronology_but_not_fixed_utc_hour_fold():
         assert six_hour_folded_mesh.get_coordinates().shape[1] == 25
         assert one_hour_folded.get_xlim() == pytest.approx((0.0, 24.0))
         assert six_hour_folded.get_xlim() == pytest.approx((0.0, 24.0))
-        assert [
-            text.get_text()
-            for text in _texts_with_gid(
-                one_hour_chronological,
-                "compare-temporal-chronological-subtitle",
-            )
-        ] == ["Selected station \u00b7 1 h bins"]
-        assert [
-            text.get_text()
-            for text in _texts_with_gid(
-                six_hour_chronological,
-                "compare-temporal-chronological-subtitle",
-            )
-        ] == ["Selected station \u00b7 6 h bins"]
-        for folded_axis in (one_hour_folded, six_hour_folded):
-            assert [
-                text.get_text()
-                for text in _texts_with_gid(
-                    folded_axis,
-                    "compare-temporal-folded-subtitle",
-                )
-            ] == ["Selected station \u00b7 1 h bins"]
+        _assert_no_selected_compare_subtitles(one_hour_figure)
+        _assert_no_selected_compare_subtitles(six_hour_figure)
     finally:
         dispose_matplotlib_figure(one_hour_figure)
         dispose_matplotlib_figure(six_hour_figure)
@@ -810,7 +785,6 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
         "3h",
         is_sequential=False,
         folded_title="UTC-Profil",
-        folded_subtitle="Ausgew\u00e4hlte Station \u00b7 1-h-Bins",
         folded_x_label="UTC-Stunde",
         folded_unavailable_text=placeholder,
     )
@@ -838,6 +812,7 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
         assert chronological_axis.get_title() == (
             T["en"]["fig_selected_compare_chronological_title"]
         )
+        _assert_no_selected_compare_subtitles(figure)
         assert colorbar_axis.get_gid() == "compare-temporal-colorbar-axis"
         assert colorbar_axis.get_ylabel() == (
             "Relative joint-spot density (% of panel maximum)"

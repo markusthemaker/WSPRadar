@@ -93,6 +93,16 @@ def _replace_pdf_math(md_text, translations):
             "D<sub>relativ</sub> = 100 &times; "
             "n<sub>Zelle</sub> / max(n<sub>Zelle,Panel</sub>)"
         ),
+        (
+            r"v_{T,s,b}=\frac{T_{s,b}}{N_{s,b}},\qquad "
+            r"v_{J,s,b}=\frac{J_{s,b}}{N_{s,b}},\qquad "
+            r"v_{R,s,b}=\frac{R_{s,b}}{N_{s,b}}"
+        ): _formula(
+            "v<sub>T,s,b</sub> = T<sub>s,b</sub> / N<sub>s,b</sub>, "
+            "&nbsp;&nbsp;v<sub>J,s,b</sub> = J<sub>s,b</sub> / "
+            "N<sub>s,b</sub>, &nbsp;&nbsp;v<sub>R,s,b</sub> = "
+            "R<sub>s,b</sub> / N<sub>s,b</sub>"
+        ),
         r"f_{RF} \approx f_{dial} + f_{TX\ audio}": _formula(
             f"f<sub>RF</sub> {approximation_label} f<sub>dial</sub> + "
             "f<sub>TX audio</sub>"
@@ -108,6 +118,30 @@ def _replace_pdf_math(md_text, translations):
         md_text = md_text.replace(f"${latex}$", html)
 
     inline_replacements = {
+        (
+            r"\(100\times\operatorname{mean}_s"
+            r"(J_{s,b}/N_{s,b})\)"
+        ): (
+            "100 &times; mean<sub>s</sub>("
+            "J<sub>s,b</sub> / N<sub>s,b</sub>)"
+        ),
+        (
+            r"\(100\times\sum_sJ_{s,b}/\sum_sN_{s,b}\)"
+        ): (
+            "100 &times; sum<sub>s</sub> J<sub>s,b</sub> / "
+            "sum<sub>s</sub> N<sub>s,b</sub>"
+        ),
+        (
+            r"\(N_{s,b}=T_{s,b}+J_{s,b}+R_{s,b}\)"
+        ): (
+            "N<sub>s,b</sub> = T<sub>s,b</sub> + "
+            "J<sub>s,b</sub> + R<sub>s,b</sub>"
+        ),
+        r"\(T_{s,b}\)": "T<sub>s,b</sub>",
+        r"\(J_{s,b}\)": "J<sub>s,b</sub>",
+        r"\(R_{s,b}\)": "R<sub>s,b</sub>",
+        r"\(s\)": "s",
+        r"\(b\)": "b",
         r"$\Delta$ SNR": delta_snr_label,
         r"$2^\circ \times 1^\circ$": "2&deg; &times; 1&deg;",
         r"$150 \times 111$": "150 &times; 111",

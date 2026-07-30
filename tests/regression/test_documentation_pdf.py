@@ -1,4 +1,5 @@
 import base64
+from html import unescape
 import io
 import re
 
@@ -70,6 +71,42 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             "SNR<sub>reference</sub> + "
             f"{translations['pdf_formula_correction']}"
         ) in rendered
+        assert (
+            "v<sub>T,s,b</sub> = T<sub>s,b</sub> / N<sub>s,b</sub>"
+            in rendered
+        )
+        assert (
+            "v<sub>J,s,b</sub> = J<sub>s,b</sub> / N<sub>s,b</sub>"
+            in rendered
+        )
+        assert (
+            "v<sub>R,s,b</sub> = R<sub>s,b</sub> / N<sub>s,b</sub>"
+            in rendered
+        )
+        assert (
+            "N<sub>s,b</sub> = T<sub>s,b</sub> + "
+            "J<sub>s,b</sub> + R<sub>s,b</sub>"
+            in rendered
+        )
+        assert (
+            "100 &times; mean<sub>s</sub>("
+            "J<sub>s,b</sub> / N<sub>s,b</sub>)"
+            in rendered
+        )
+        assert (
+            "100 &times; sum<sub>s</sub> J<sub>s,b</sub> / "
+            "sum<sub>s</sub> N<sub>s,b</sub>"
+            in rendered
+        )
+        for unsupported_latex in (
+            r"\(",
+            r"\)",
+            r"\operatorname",
+            r"\sum",
+        ):
+            assert unsupported_latex not in rendered
+        assert "C<sub>s,b</sub>" not in rendered
+        assert "B<sub>s</sub>" not in rendered
         assert "D<sub>relativ" in rendered
         assert (
             "f<sub>RF</sub> "
@@ -145,6 +182,50 @@ def test_pdf_preprocessing_preserves_defined_term_markup():
 
     assert '<strong class="defined-term">Target</strong>' in rendered
     assert '<strong class="defined-term">Reference</strong>' in rendered
+
+
+def test_pdf_preprocessing_keeps_em_dashes_separated_from_words():
+    """Preserve readable punctuation spacing in both localized PDF manuals."""
+    for language, manual in (("en", DOC_EN), ("de", DOC_DE)):
+        rendered = pdf_generator._render_pdf_html(manual, T[language])
+        visible_text = unescape(re.sub(r"<[^>]+>", "", rendered))
+
+        assert " — " in visible_text
+        assert re.search(r"(?<!\s)—|—(?!\s)", visible_text) is None
+
+
+def test_generated_pdf_preserves_spaced_em_dashes_in_prose_and_ui_labels(
+    monkeypatch,
+):
+    """Prove that both proportional and monospace PDF fonts retain the glyph."""
+    from PIL import Image
+    from pypdf import PdfReader
+
+    compact_manual = (
+        "Plain prose — remains separated.\n\n"
+        "`Performance — no Reference`"
+    )
+    monkeypatch.setattr(
+        pdf_generator,
+        "get_docs",
+        lambda _language: compact_manual,
+    )
+    logo_buffer = io.BytesIO()
+    Image.new("RGBA", (1, 1), (255, 255, 255, 255)).save(
+        logo_buffer,
+        format="PNG",
+    )
+    logo_b64 = base64.b64encode(logo_buffer.getvalue()).decode("ascii")
+
+    pdf_bytes = pdf_generator._generate_pdf_doc("en", logo_b64, "test")
+
+    assert pdf_bytes is not None
+    extracted_text = "\n".join(
+        page.extract_text() or ""
+        for page in PdfReader(io.BytesIO(pdf_bytes)).pages
+    )
+    assert "Plain prose — remains separated." in extracted_text
+    assert "Performance — no Reference" in extracted_text
 
 
 def test_pdf_preprocessing_preserves_numbering_and_nested_map_bullets():

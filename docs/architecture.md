@@ -483,7 +483,8 @@ being retained in pyplot's global registry.
 for selections and rendering. Preparation is split into pure modules:
 
 - `ui/inspector/view_models.py` builds compare and opportunity data view models;
-- `ui/inspector/evidence_data.py` performs projected Parquet reads;
+- `ui/inspector/evidence_data.py` performs projected Parquet reads and prepares
+  the canonical retained Compare comparison-unit frame;
 - `ui/inspector/drilldown.py` builds selected-station evidence tables;
 - `ui/inspector/session_cache.py` maintains a run-scoped bounded LRU for options,
   segment models, selected models, and PNGs;
@@ -507,8 +508,8 @@ The Success scope model computes the station-balanced and pooled-opportunity
 rates and their station and outcome counts without changing admission. The
 scope summary identifies the two weighting contracts explicitly as
 `Station-balanced Success Rate` and `Observation-level Success Rate`. It also
-retains the signed weighting gap—observation-level minus station-balanced, in
-percentage points—and median confirmed opportunities per station so weighting
+retains the signed weighting gap — observation-level minus station-balanced, in
+percentage points — and median confirmed opportunities per station so weighting
 and evidence-depth differences remain visible.
 `ui/plots/opportunity_figures.py` then prepares a
 separate exact-distance recipe from the complete qualifying station population.
@@ -566,6 +567,29 @@ Chronological one-hour support is directly comparable in units only when bin
 edges are anchored to UTC-hour boundaries; wider chronological bins cover
 multiple hours. Target-only audit rows do not enter either Success denominator.
 
+Compare temporal preparation uses one canonical retained-unit frame after the
+completed run's gates, geographic scope and station-level category thresholds.
+Each simultaneous row is one transmitter-cycle for RX Compare or one
+receiver-cycle for TX Compare. Sequential TX rows are reduced to one Scheduled
+A/B Pair per receiver and planned pair ID after per-side micro-medians; the
+planned Target timestamp is its temporal coordinate. Each unit is classified
+as Only Target, Joint or Only Reference. The simultaneous Target-Active Gate
+remains asymmetric: Only Reference is retained when the Target was active
+globally in that cycle but that path decoded only the Reference.
+
+The existing absolute temporal Delta SNR recipe is an unchanged Joint-only
+projection of this frame.
+
+Compare Temporal Evidence Coverage keeps all three retained outcomes. In every
+chronological bin, one contributing station supplies one total vote partitioned
+by that station's Only Target, Joint and Only Reference fractions. The upper
+ratio is therefore the station-balanced mean of each station's Joint fraction.
+The lower row counts actual retained comparison units and its ratio is
+`Joint / (Only Target + Joint + Only Reference)`. Both ratios are Joint
+Evidence Share: pairability coverage for Delta SNR, not a Target score or win
+rate. Folded support and counts use the same represented-UTC-date and
+zero-support treatment as the Performance temporal base.
+
 Success temporal presentation consumes that one recipe as two separate figures
 with distinct localized title routing: the upper title identifies **Temporal
 SNR Evidence**, while the lower title identifies **Temporal Evidence**. The
@@ -600,7 +624,10 @@ preview and high-resolution export use the same two recipes and renderers;
 Success exports add
 `figure_segment_temporal_snr_deviation.png` and retain
 `figure_segment_temporal_evidence.png` for the station/opportunity figure, while
-Compare keeps its existing single temporal export.
+Compare retains `figure_segment_temporal_evidence.png` for absolute Delta SNR
+and adds `figure_segment_temporal_coverage.png`. One Compare segment time-bin
+control sets both chronological profiles; every folded profile remains fixed
+at one hour.
 
 Selected Station Evidence permits zero or one station in both Performance and
 Compare. Both Station Insights tables use the component's native replaceable
@@ -659,6 +686,15 @@ median-centered nonlinear Delta SNR scale with absolute dB tick labels. No
 selected-station histogram or temporal-view selector remains. When fewer than
 two UTC dates contribute, the folded panel is omitted, the chronological panel
 expands and the localized unavailable notice is retained.
+
+Directly below that unchanged absolute figure, Selected Path Evidence Coverage
+uses the same selected-station chronological-bin control and the same retained
+comparison units. It renders one chronological and one fixed one-hour folded
+row split into Only Target, Joint and Only Reference units with outcome-level
+Joint Evidence Share. A second station-support row is deliberately absent:
+with exactly one selected path it would duplicate the same ratio. A one-sided
+selected path can therefore show coverage even when no absolute Delta SNR
+figure is available.
 
 The run-scoped segment-cache key includes explicit
 `exact-distance-v1` and `station-median-min3-v1` policy versions, the geographic
@@ -719,8 +755,11 @@ Success selected evidence is exported under two stable filenames:
 `figure_selected_station_temporal_evidence.png`. They use the same shared
 temporal recipes and renderers as the two browser figures. Compare retains
 `figure_selected_station_evidence.png` for its one-station, two-panel Delta SNR
-presentation. Success export registration stores the shared selection label
-and context, selection count, direction-aware station role, weighting mode, and
+presentation and adds `figure_selected_station_coverage.png` for the one-row
+coverage view. Compare segment exports also include
+`figure_segment_temporal_coverage.png`. Success export registration stores the
+shared selection label and context, selection count, direction-aware station
+role, weighting mode, and
 filename-to-description mapping. `run_metadata.json` publishes these as
 `selected_station_label`, `selected_station_context`,
 `selected_station_count`, `selected_station_role`,
@@ -728,8 +767,13 @@ filename-to-description mapping. `run_metadata.json` publishes these as
 package identifies its one exact selected identity. Compare records its
 zero-or-one exact identity in the compatibility field `selected_stations`, its
 selection count, selected chronological evidence bin and dual-panel evidence
-recipe; there is no selected active-view choice because the export contains both
-time panels. The optional Success descriptive fields remain unset.
+recipe; there is no selected active-view choice because each export contains
+both time panels. Compare metadata publishes the stable
+`compare_evidence_figures` filename-to-description map for the complementary
+evidence figures, and the export signature fingerprints their recipe kind,
+schema, time bin and title through `compare_evidence_recipes` without
+serializing scientific arrays. The optional Success descriptive fields remain
+unset.
 
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
 session state for download. This is a known peak and idle-memory risk, partially

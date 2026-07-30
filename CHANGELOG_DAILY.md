@@ -14,8 +14,8 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   insufficient-evidence sectors remain distinct from valid `0%` Success, and
   the restored Compare-aligned two-row footer places denominator
   `OPPORTUNITIES` above qualifying `STATIONS`. Both rows now use the same
-  direction-specific outcomes—`Heard by Target` / `Heard by others only` for
-  RX and `Target heard` / `Other signals heard only` for TX—and show exact
+  direction-specific outcomes — `Heard by Target` / `Heard by others only` for
+  RX and `Target heard` / `Other signals heard only` for TX — and show exact
   counts where they fit.
 - Redesigned the Success Segment Inspector from the active-scope summary through
   Drill-Down around one direction-specific plain-language outcome vocabulary.

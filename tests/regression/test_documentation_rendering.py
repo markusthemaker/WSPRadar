@@ -132,6 +132,14 @@ def test_documentation_text_is_process_cached_without_modification():
 
 
 @pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_manual_em_dashes_are_separated_from_surrounding_words(
+    documentation_text,
+):
+    """Keep long-form em dashes legible in web and PDF typography."""
+    assert re.search(r"(?<!\s)—|—(?!\s)", documentation_text) is None
+
+
+@pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
 def test_documentation_anchor_extraction_is_ordered_and_complete(documentation_text):
     """Pass every explicit manual anchor to the browser navigation controller."""
     anchor_ids = documentation._documentation_anchor_ids(documentation_text)
@@ -554,6 +562,16 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "figure_selected_station_snr_evidence.png",
         "figure_selected_station_temporal_evidence.png",
     )
+    compare_evidence_filenames = (
+        "figure_segment_temporal_evidence.png",
+        "figure_segment_temporal_coverage.png",
+        "figure_selected_station_evidence.png",
+        "figure_selected_station_coverage.png",
+    )
+    retired_compare_evidence_filenames = (
+        "figure_segment_temporal_delta_change.png",
+        "figure_path_agreement_consistency.png",
+    )
     obsolete_performance_filenames = (
         "figure_selected_station_chronological.png",
         "figure_selected_station_utc_hour_profile.png",
@@ -567,6 +585,8 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "`selected_station_role`",
         "`selected_evidence_weighting`",
         "`selected_evidence_figures`",
+        "`compare_evidence_figures`",
+        "`compare_evidence_recipes`",
     )
     for manual in (DOC_EN, DOC_DE):
         compare_export_listing = manual.split("compare/", 1)[1].split(
@@ -583,6 +603,12 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         for filename in obsolete_performance_filenames:
             assert filename not in performance_export_listing
             assert filename not in manual
+        for filename in compare_evidence_filenames:
+            assert filename in compare_export_listing
+            assert filename in manual
+        for filename in retired_compare_evidence_filenames:
+            assert filename not in compare_export_listing
+            assert filename not in manual
         assert "figure_selected_station_evidence.png" in compare_export_listing
         assert (
             "figure_selected_station_evidence.png"
@@ -590,6 +616,55 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         )
         for metadata_field in metadata_fields:
             assert metadata_field in manual
+
+
+def test_bilingual_manuals_define_compare_evidence_science_and_limits():
+    """Keep retained Compare coverage explicit and retired views absent."""
+    english_contract = (
+        "Compare Temporal Evidence Coverage",
+        "Selected Path Evidence Coverage",
+        "Retained WSPR Cycles over Time",
+        "Retained WSPR Cycles by UTC Hour",
+        "Scheduled A/B Pairs over Time",
+        "Scheduled A/B Pairs by UTC Hour",
+        "averages per represented UTC date",
+        "one retained unit on the selected path is one WSPR cycle",
+        r"\(100\times\operatorname{mean}_s(J_{s,b}/N_{s,b})\)",
+        r"\(100\times\sum_sJ_{s,b}/\sum_sN_{s,b}\)",
+        "It is not a Target win rate",
+    )
+    german_contract = (
+        "Zeitliche Compare-Evidenzabdeckung",
+        "Evidenzabdeckung des ausgewählten Funkwegs",
+        "Berücksichtigte WSPR-Zyklen im Zeitverlauf",
+        "Berücksichtigte WSPR-Zyklen nach UTC-Stunde",
+        "Geplante A/B-Paare im Zeitverlauf",
+        "Geplante A/B-Paare nach UTC-Stunde",
+        "Mittelwerte je berücksichtigtem UTC-Tag",
+        "eine beibehaltene Einheit auf dem ausgewählten Funkweg ein WSPR-Zyklus",
+        r"\(100\times\operatorname{mean}_s(J_{s,b}/N_{s,b})\)",
+        r"\(100\times\sum_sJ_{s,b}/\sum_sN_{s,b}\)",
+        "er ist keine Target-Siegquote",
+    )
+    retired_english_contract = (
+        "Station-normalized Delta SNR change",
+        "Path Agreement and Within-Path Consistency",
+        "at least three finite paired Delta SNR observations",
+    )
+    retired_german_contract = (
+        "stationsnormierte Delta-SNR-Änderung",
+        "Übereinstimmung und Konsistenz der Funkwege",
+        "mindestens drei endlichen gepaarten Delta-SNR-Beobachtungen",
+    )
+
+    for required_text in english_contract:
+        assert required_text in DOC_EN
+    for required_text in german_contract:
+        assert required_text in DOC_DE
+    for retired_text in retired_english_contract:
+        assert retired_text not in DOC_EN
+    for retired_text in retired_german_contract:
+        assert retired_text not in DOC_DE
 
     performance_section_en = DOC_EN.split(
         "#### 2.6a Inspect the Contributing Stations (Performance Mode)", 1
@@ -755,8 +830,15 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "Die Skalenbeschriftungen zeigen das resultierende **absolute Delta SNR**" in DOC_DE
     assert "The two segment temporal panels share the observation-level median" in DOC_EN
     assert "Die beiden Zeitpanels des Segments teilen sich den Median" in DOC_DE
-    assert "not the segment median above" in DOC_EN
-    assert "nicht den darüber angezeigten Segmentmedian" in DOC_DE
+    assert (
+        "both share the selected path's median-centered nonlinear Delta SNR axis"
+        in DOC_EN
+    )
+    assert (
+        "beide verwenden jedoch dieselbe medianzentrierte, nichtlineare "
+        "Delta-SNR-Achse des ausgewählten Funkwegs"
+        in DOC_DE
+    )
     assert "M +/- 1`, `M +/- 3`, `M +/- 6` and `M +/- 10 dB" in DOC_EN
     assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` and `M +/- 30 dB" in DOC_EN
     assert "M +/- 1`, `M +/- 3`, `M +/- 6` und `M +/- 10 dB" in DOC_DE
@@ -901,6 +983,8 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
     assert "table-layout: fixed !important" in stylesheet
     assert ".st-key-documentation_body .stMarkdown strong.defined-term" in stylesheet
     assert ".st-key-guided_input_flow .stMarkdown strong.defined-term" in stylesheet
+    assert ".st-key-documentation_body .stMarkdown p" in stylesheet
+    assert "font-family: Arial, Helvetica, sans-serif !important;" in stylesheet
     assert ".st-key-documentation_body a[id]:not(.header-anchor)" in stylesheet
     assert "scroll-margin-top: 5rem" in stylesheet
     assert "strong:first-child:not(.defined-term)" in stylesheet

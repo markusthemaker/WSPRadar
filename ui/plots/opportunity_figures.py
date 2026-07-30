@@ -2601,8 +2601,15 @@ def _success_temporal_render_context(recipe):
     }
 
 
-def _create_success_temporal_figure(recipe, *, title_key, figure_top):
-    """Create one Success temporal canvas with its routed title and footer."""
+def _create_success_temporal_figure(
+    recipe,
+    *,
+    title_key,
+    figure_top,
+    figure_bottom=SEGMENT_FIGURE_BOTTOM,
+    footer_y=SEGMENT_FIGURE_FOOTER_Y,
+):
+    """Create one temporal canvas with caller-selected plot and footer bounds."""
     figure = create_agg_figure(
         figsize=SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES,
         facecolor="black",
@@ -2610,7 +2617,7 @@ def _create_success_temporal_figure(recipe, *, title_key, figure_top):
     figure.subplots_adjust(
         left=SEGMENT_TEMPORAL_FIGURE_LEFT,
         right=SEGMENT_TEMPORAL_FIGURE_RIGHT,
-        bottom=SEGMENT_FIGURE_BOTTOM,
+        bottom=float(figure_bottom),
         top=float(figure_top),
         wspace=SEGMENT_TEMPORAL_COLUMN_SPACE,
     )
@@ -2631,14 +2638,15 @@ def _create_success_temporal_figure(recipe, *, title_key, figure_top):
         fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
         y=0.96,
     )
-    figure.text(
+    version_footer = figure.text(
         0.98,
-        SEGMENT_FIGURE_FOOTER_Y,
+        float(footer_y),
         f"WSPRadar.org {APP_VERSION}",
         color="#888888",
         ha="right",
         fontsize=METRIC_FOOTER_FONTSIZE,
     )
+    version_footer.set_gid("wspradar-version-footer")
     return figure
 
 

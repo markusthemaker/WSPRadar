@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext
 import io
+import inspect
 import json
 from types import SimpleNamespace
 import zipfile
@@ -13,7 +14,7 @@ from core import plot_engine
 from core.analysis_context import AnalysisContext
 from i18n import T
 from ui import results_export
-from ui.plots import evidence_figures
+from ui.plots import compare_evidence_figures, evidence_figures
 
 
 SUCCESS_SELECTED_FIGURE_EXPORTS = (
@@ -37,6 +38,34 @@ OBSOLETE_SUCCESS_SELECTED_FIGURE_NAMES = (
     "figure_selected_station_utc_hour_profile.png",
     "figure_selected_station_snr_distribution.png",
     "figure_selected_station_similar_stations.png",
+)
+COMPARE_COVERAGE_EXPORT_CASES = (
+    (
+        "figure_segment_temporal_coverage.png",
+        "render_compare_temporal_coverage_export_figure",
+        "segment_temporal_coverage_figure_recipe",
+        "evidence_title",
+        "Compare Temporal Evidence Coverage",
+    ),
+    (
+        "figure_selected_station_coverage.png",
+        "render_selected_compare_coverage_export_figure",
+        "selected_station_coverage_figure_recipe",
+        "evidence_title",
+        "Selected Path Evidence Coverage",
+    ),
+)
+RETIRED_COMPARE_FIGURE_EXPORTS = (
+    (
+        "figure_segment_temporal_delta_change.png",
+        "segment_temporal_delta_change_figure_recipe",
+        "render_compare_delta_change_export_figure",
+    ),
+    (
+        "figure_path_agreement_consistency.png",
+        "path_agreement_consistency_figure_recipe",
+        "render_compare_path_consistency_export_figure",
+    ),
 )
 
 
@@ -522,6 +551,212 @@ def test_success_temporal_snr_figure_uses_its_separate_export_recipe(
     assert disposed_figures == [fake_figure]
 
 
+@pytest.mark.parametrize(
+    (
+        "figure_name",
+        "renderer_name",
+        "recipe_key",
+        "title_key",
+        "figure_title",
+    ),
+    COMPARE_COVERAGE_EXPORT_CASES,
+)
+def test_compare_coverage_figure_uses_its_registered_preview_recipe(
+    monkeypatch,
+    figure_name,
+    renderer_name,
+    recipe_key,
+    title_key,
+    figure_title,
+):
+    """Render each Compare export from the exact registered preview recipe."""
+    recipe_kind = (
+        compare_evidence_figures.COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+        if recipe_key == "selected_station_coverage_figure_recipe"
+        else compare_evidence_figures.COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+    )
+    recipe = {
+        "kind": recipe_kind,
+        "schema_version": 1,
+        "time_bin": "6h",
+        title_key: figure_title,
+    }
+    fake_figure = object()
+    disposed_figures = []
+    renderer_calls = []
+
+    def render_coverage_recipe(received_recipe):
+        renderer_calls.append(received_recipe)
+        return fake_figure
+
+    monkeypatch.setattr(
+        compare_evidence_figures,
+        renderer_name,
+        render_coverage_recipe,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "figure_to_png_bytes",
+        lambda figure, *, paper_theme: b"compare-coverage-png"
+        if figure is fake_figure and paper_theme
+        else b"",
+    )
+    monkeypatch.setattr(
+        results_export,
+        "dispose_matplotlib_figure",
+        disposed_figures.append,
+    )
+
+    rendered = results_export._render_inspector_png_for_block(
+        {recipe_key: recipe},
+        figure_name,
+    )
+
+    assert rendered == b"compare-coverage-png"
+    assert renderer_calls == [recipe]
+    assert renderer_calls[0] is recipe
+    assert disposed_figures == [fake_figure]
+
+
+@pytest.mark.parametrize(
+    "figure_name",
+    [
+        export_case[0]
+        for export_case in COMPARE_COVERAGE_EXPORT_CASES
+    ],
+)
+def test_compare_coverage_export_omits_an_absent_recipe(
+    figure_name,
+):
+    """Omit an inapplicable Compare figure instead of creating an empty file."""
+    assert (
+        results_export._render_inspector_png_for_block({}, figure_name)
+        is None
+    )
+
+
+def test_retired_compare_figures_have_no_export_recipe_or_renderer_path():
+    """Keep removed delta-change and path-consistency artifacts unreachable."""
+    export_definitions = {
+        (figure_name, recipe_key)
+        for figure_name, recipe_key, _title_keys in (
+            results_export.COMPARE_EVIDENCE_FIGURE_EXPORTS
+        )
+    }
+    renderer_source = inspect.getsource(
+        results_export._render_inspector_png_for_block
+    )
+    registration_parameters = inspect.signature(
+        results_export.register_inspector_export
+    ).parameters
+
+    for figure_name, recipe_key, renderer_name in (
+        RETIRED_COMPARE_FIGURE_EXPORTS
+    ):
+        assert (figure_name, recipe_key) not in export_definitions
+        assert recipe_key not in registration_parameters
+        assert renderer_name not in renderer_source
+        assert (
+            results_export._render_inspector_png_for_block(
+                {recipe_key: {"kind": "retired"}},
+                figure_name,
+            )
+            is None
+        )
+
+
+def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
+    monkeypatch,
+):
+    """Store both coverage recipes and fingerprint their stable identities."""
+    blocks = {}
+    recipes = {
+        recipe_key: {
+            "kind": (
+                compare_evidence_figures.COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+                if recipe_key
+                == "selected_station_coverage_figure_recipe"
+                else compare_evidence_figures.COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+            ),
+            "schema_version": 1,
+            "time_bin": "6h",
+            title_key: figure_title,
+        }
+        for (
+            _figure_name,
+            _renderer_name,
+            recipe_key,
+            title_key,
+            figure_title,
+        ) in COMPARE_COVERAGE_EXPORT_CASES
+    }
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: blocks,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+
+    results_export.register_inspector_export(
+        analysis_id="RX_COMPARE",
+        selected_segment="Full Range | All Directions",
+        selected_distance="Full Range",
+        selected_direction="All Directions",
+        show_non_joint=False,
+        evidence_time_bin="6h",
+        segment_evidence_time_bin="6h",
+        selected_stations=["OK1FCX (JN79)"],
+        translations=T["en"],
+        **recipes,
+    )
+
+    block = blocks["RX_COMPARE"]
+    block.update(
+        {
+            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        }
+    )
+    for recipe_key, recipe in recipes.items():
+        assert block[recipe_key] is recipe
+
+    metadata = results_export._build_run_metadata(
+        blocks,
+        {"settings": {}},
+    )
+    expected_descriptions = {
+        figure_name: figure_title
+        for (
+            figure_name,
+            _renderer_name,
+            _recipe_key,
+            _title_key,
+            figure_title,
+        ) in COMPARE_COVERAGE_EXPORT_CASES
+    }
+    assert metadata["result_blocks"][0]["compare_evidence_figures"] == (
+        expected_descriptions
+    )
+    signature = json.loads(metadata["export_signature"])
+    assert [
+        recipe["filename"]
+        for recipe in signature[0]["compare_evidence_recipes"]
+    ] == list(expected_descriptions)
+    without_selected_coverage = {
+        "RX_COMPARE": {
+            **block,
+            "selected_station_coverage_figure_recipe": None,
+        }
+    }
+    assert results_export._export_signature(blocks) != (
+        results_export._export_signature(without_selected_coverage)
+    )
+
+
 def test_register_inspector_export_keeps_all_success_temporal_recipes_independent(
     monkeypatch,
 ):
@@ -688,6 +923,76 @@ def test_reference_correction_csv_suffix_is_localized_without_mutating_source_he
         "Reference SNR (dB),Target SNR (dB)"
     )
     assert list(source_frame.columns) == source_columns
+
+
+def test_run_metadata_zip_preserves_literal_utf8_and_json_round_trip(
+    monkeypatch,
+):
+    """Keep localized scientific metadata readable without losing JSON fidelity."""
+    run_id = 73
+    metadata_title = "RX Performance — ΔSNR evidence"
+    state = {
+        "run_id": run_id,
+        results_export.EXPORT_RUN_ID_KEY: run_id,
+        results_export.EXPORT_STATE_KEY: {
+            "RX_ABS": {
+                "analysis_id": "RX_ABS",
+                "title": metadata_title,
+                "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+                "database_source": "wspr_live",
+                "is_compare": False,
+                "is_sequential": False,
+                "analysis_kind": "opportunity",
+            }
+        },
+        "lang": "en",
+    }
+    config_payload = {
+        "format": "wspradar.config",
+        "schema_version": 1,
+        "settings": {},
+    }
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state=state),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "build_config_payload",
+        lambda: (
+            json.dumps(config_payload).encode("utf-8"),
+            "wspradar.config",
+        ),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_render_map_png_for_block",
+        lambda _block: None,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_render_inspector_png_for_block",
+        lambda _block, _figure_name: None,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_build_all_drilldown_for_block",
+        lambda _block: pd.DataFrame(),
+    )
+
+    zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
+
+    export_root = zip_filename.removesuffix(".zip")
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        raw_metadata = archive.read(
+            f"{export_root}/config/run_metadata.json"
+        )
+
+    decoded_metadata = raw_metadata.decode("utf-8")
+    assert f'"title": "{metadata_title}"' in decoded_metadata
+    parsed_metadata = json.loads(decoded_metadata)
+    assert parsed_metadata["result_blocks"][0]["title"] == metadata_title
 
 
 @pytest.mark.parametrize(
@@ -1023,8 +1328,10 @@ def test_success_results_zip_records_selected_figures_and_context(
     assert success_metadata["selected_evidence_figures"] == figure_descriptions
 
 
-def test_compare_results_zip_records_selected_station_figure(monkeypatch):
-    """Package the established Compare selected-station figure independently."""
+def test_compare_results_zip_records_coverage_figures_in_stable_order(
+    monkeypatch,
+):
+    """Package active Compare figures under stable names in presentation order."""
     run_id = 72
     state = {
         "run_id": run_id,
@@ -1053,6 +1360,26 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
     selected_recipe = {
         "kind": "selected_compare_temporal",
     }
+    coverage_recipes = {
+        recipe_key: {
+            "kind": (
+                compare_evidence_figures.COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+                if recipe_key
+                == "selected_station_coverage_figure_recipe"
+                else compare_evidence_figures.COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+            ),
+            "schema_version": 1,
+            "time_bin": "6h",
+            title_key: figure_title,
+        }
+        for (
+            _figure_name,
+            _renderer_name,
+            recipe_key,
+            title_key,
+            figure_title,
+        ) in COMPARE_COVERAGE_EXPORT_CASES
+    }
 
     monkeypatch.setattr(
         results_export,
@@ -1077,6 +1404,7 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
         selected_stations=selected_identities,
         translations=T["en"],
         selected_evidence_figure_recipe=selected_recipe,
+        **coverage_recipes,
     )
     compare_block = state[results_export.EXPORT_STATE_KEY]["RX_COMPARE"]
     compare_block.update(
@@ -1091,11 +1419,18 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
     )
 
     rendered_figure_names = []
+    packaged_compare_figures = {
+        "figure_selected_station_evidence.png",
+        *(
+            export_case[0]
+            for export_case in COMPARE_COVERAGE_EXPORT_CASES
+        ),
+    }
 
     def render_inspector_figure(block, figure_name):
         rendered_figure_names.append((block["analysis_id"], figure_name))
-        if figure_name == "figure_selected_station_evidence.png":
-            return b"RX_COMPARE:figure_selected_station_evidence.png"
+        if figure_name in packaged_compare_figures:
+            return f"RX_COMPARE:{figure_name}".encode("utf-8")
         return None
 
     monkeypatch.setattr(
@@ -1113,17 +1448,21 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
             archive.read(f"{export_root}/config/run_metadata.json")
         )
 
-    selected_figure_names = [
+    compare_figure_names = [
         figure_name
         for analysis_id, figure_name in rendered_figure_names
         if analysis_id == "RX_COMPARE"
-        and figure_name.startswith("figure_selected_station_")
     ]
-    assert selected_figure_names == ["figure_selected_station_evidence.png"]
-    assert (
-        f"{export_root}/compare/figure_selected_station_evidence.png"
-        in package_paths
-    )
+    expected_compare_figure_names = [
+        "figure_segment_insight.png",
+        "figure_segment_temporal_evidence.png",
+        "figure_segment_temporal_coverage.png",
+        "figure_selected_station_evidence.png",
+        "figure_selected_station_coverage.png",
+    ]
+    assert compare_figure_names == expected_compare_figure_names
+    for figure_name in packaged_compare_figures:
+        assert f"{export_root}/compare/{figure_name}" in package_paths
     for (
         success_figure_name,
         _renderer_name,
@@ -1137,6 +1476,14 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
             f"{export_root}/compare/{obsolete_figure_name}"
             not in package_paths
         )
+    for retired_figure_name, _recipe_key, _renderer_name in (
+        RETIRED_COMPARE_FIGURE_EXPORTS
+    ):
+        assert retired_figure_name not in compare_figure_names
+        assert (
+            f"{export_root}/compare/{retired_figure_name}"
+            not in package_paths
+        )
     assert metadata["blocks_present"] == {"compare": True, "success": False}
     assert len(metadata["result_blocks"]) == 1
     compare_metadata = metadata["result_blocks"][0]
@@ -1147,6 +1494,16 @@ def test_compare_results_zip_records_selected_station_figure(monkeypatch):
     assert compare_metadata["selected_evidence_weighting"] == (
         "Single selected path"
     )
+    assert compare_metadata["compare_evidence_figures"] == {
+        figure_name: figure_title
+        for (
+            figure_name,
+            _renderer_name,
+            _recipe_key,
+            _title_key,
+            figure_title,
+        ) in COMPARE_COVERAGE_EXPORT_CASES
+    }
 
 
 def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):

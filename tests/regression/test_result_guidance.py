@@ -18,7 +18,7 @@ from core.analysis_context import (
     LOCAL_BENCHMARK_BEST,
     LOCAL_BENCHMARK_MEDIAN,
 )
-from i18n import RESULT_GUIDANCE, T
+from i18n import GUIDED_INPUTS, RESULT_GUIDANCE, T
 from ui.result_guidance import (
     RESULT_GUIDANCE_COMPARISON_EVIDENCE,
     RESULT_GUIDANCE_CONTEXT,
@@ -156,6 +156,263 @@ def test_result_guidance_catalog_has_recursive_bilingual_placeholder_parity():
                     language,
                     section_key,
                 )
+
+
+@pytest.mark.parametrize(
+    ("catalog_name", "catalog"),
+    (
+        ("translations", T),
+        ("result_guidance", RESULT_GUIDANCE),
+        ("guided_inputs", GUIDED_INPUTS),
+    ),
+)
+def test_user_visible_catalogs_separate_em_dashes_from_words(
+    catalog_name,
+    catalog,
+):
+    """Prevent the global monospace theme from turning prose dashes into joins."""
+    for path, catalog_value in _flatten_catalog(catalog).items():
+        if not isinstance(catalog_value, str):
+            continue
+        assert re.search(r"(?<!\s)—|—(?!\s)", catalog_value) is None, (
+            catalog_name,
+            path,
+        )
+
+
+def test_retired_compare_view_localization_and_guidance_are_absent():
+    """Do not retain copy for removed Compare figures or dead aliases."""
+    retired_guidance_names = {
+        "en": (
+            "ΔSNR Change from Station Baseline",
+            "Path Agreement and Within-Path Consistency",
+        ),
+        "de": (
+            "ΔSNR-Änderung gegenüber der Stationsbasislinie",
+            "Übereinstimmung und Konsistenz der Funkwege",
+        ),
+    }
+
+    for language in ("en", "de"):
+        assert not any(
+            key.startswith("fig_compare_delta_change_")
+            for key in T[language]
+        )
+        assert not any(
+            key.startswith("fig_compare_path_consistency_")
+            for key in T[language]
+        )
+        assert "fig_compare_coverage_unavailable" not in T[language]
+        assert (
+            "fig_selected_compare_coverage_utc_hour_subtitle"
+            not in T[language]
+        )
+        complete_guidance = " ".join(
+            text
+            for section in RESULT_GUIDANCE[language]["sections"].values()
+            for text in section.values()
+        )
+        for retired_name in retired_guidance_names[language]:
+            assert retired_name not in complete_guidance
+
+
+@pytest.mark.parametrize(
+    "section_key",
+    (
+        "temporal_evidence_joint",
+        "temporal_evidence_scheduled",
+        "selected_compare_joint",
+        "selected_compare_scheduled",
+    ),
+)
+def test_compare_temporal_and_selected_guidance_uses_full_readability_budget(
+    section_key,
+):
+    """Keep detailed Compare help within the agreed catalog-copy budget."""
+    for language in ("en", "de"):
+        item = RESULT_GUIDANCE[language]["sections"][section_key]
+        copy_count = len(item["read"]) + len(item["limits"])
+        assert 1200 <= copy_count <= 1500, (
+            language,
+            section_key,
+            copy_count,
+        )
+
+
+def test_selected_compare_guidance_names_the_rendered_coverage_units():
+    """Keep selected-path help aligned with simultaneous and scheduled plots."""
+    expected_copy = {
+        "en": {
+            "selected_compare_joint": (
+                "Retained WSPR Cycles",
+                "per represented UTC date",
+            ),
+            "selected_compare_scheduled": (
+                "Scheduled A/B Pairs",
+                "per represented UTC date",
+            ),
+        },
+        "de": {
+            "selected_compare_joint": (
+                "Berücksichtigte WSPR-Zyklen",
+                "je berücksichtigtem UTC-Tag",
+            ),
+            "selected_compare_scheduled": (
+                "Geplante A/B-Paare",
+                "je berücksichtigtem UTC-Tag",
+            ),
+        },
+    }
+
+    for language, section_contracts in expected_copy.items():
+        sections = RESULT_GUIDANCE[language]["sections"]
+        for section_key, required_phrases in section_contracts.items():
+            combined = " ".join(sections[section_key].values())
+            for required_phrase in required_phrases:
+                assert required_phrase in combined
+
+
+def test_joint_temporal_guidance_explains_the_figures_and_target_favored_gate():
+    """Make simultaneous temporal evidence interpretable without the manual."""
+    english_temporal = RESULT_GUIDANCE["en"]["sections"][
+        "temporal_evidence_joint"
+    ]
+    english_selected = RESULT_GUIDANCE["en"]["sections"][
+        "selected_compare_joint"
+    ]
+    german_temporal = RESULT_GUIDANCE["de"]["sections"][
+        "temporal_evidence_joint"
+    ]
+    german_selected = RESULT_GUIDANCE["de"]["sections"][
+        "selected_compare_joint"
+    ]
+
+    english_temporal_text = " ".join(english_temporal.values())
+    english_selected_text = " ".join(english_selected.values())
+    german_temporal_text = " ".join(german_temporal.values())
+    german_selected_text = " ".join(german_selected.values())
+
+    for expected in (
+        "not |ΔSNR|",
+        "median of all Joint Spots",
+        "per-panel relative Joint-Spot density",
+        "nonlinear axis",
+        "one split vote",
+        "blue line",
+        "amber line",
+        "A gap between lines shows volume weighting",
+        "Target activity",
+        "no equivalent gate",
+        "favor Target",
+        "gate does not alter Joint ΔSNR",
+        "every Joint Spot contains both sides",
+    ):
+        assert expected in english_temporal_text
+
+    for expected in (
+        "one chosen {peer_type} station",
+        "one specific radio path",
+        "only Joint units supply ΔSNR",
+        "RX: Target decoded a qualifying signal",
+        "TX: Target was decoded somewhere",
+        "Reference has no equivalent gate",
+        "One-sided counts favor Target",
+        "Swapping roles can change coverage",
+        "paired values reverse sign",
+        "gate cannot alter Joint evidence",
+    ):
+        assert expected in english_selected_text
+
+    for expected in (
+        "nicht |ΔSNR|",
+        "Median aller Joint Spots",
+        "relative Joint-Spot-Dichte je Panel",
+        "Achsabstände sind nichtlinear",
+        "aufgeteilte Stimme",
+        "blaue Linie",
+        "gelbe Linie",
+        "Target-Aktivität",
+        "kein gleichwertiges Aktivitäts-Gate",
+        "Target-begünstigt",
+        "Gate verändert Joint-ΔSNR nicht",
+        "jeder Joint Spot beide Seiten enthält",
+    ):
+        assert expected in german_temporal_text
+
+    for expected in (
+        "eine gewählte {peer_type}-Station",
+        "nur Joint liefert ΔSNR",
+        "RX: Target decodierte ein qualifizierendes Signal",
+        "TX: Target wurde irgendwo gehört",
+        "Kein Referenz-Gate",
+        "Target-begünstigt",
+        "Rollentausch kann einseitige Abdeckung ändern",
+        "gepaarte Werte wechseln Vorzeichen",
+        "Gate ändert Joint-Evidenz nicht",
+    ):
+        assert expected in german_selected_text
+
+
+@pytest.mark.parametrize(
+    ("language", "over_time", "by_hour", "retired_over_time"),
+    (
+        (
+            "en",
+            "Δ SNR over Time",
+            "Δ SNR by UTC Hour",
+            "Pair Δ SNR over Time",
+        ),
+        (
+            "de",
+            "Δ SNR im Zeitverlauf",
+            "Δ SNR nach UTC-Stunde",
+            "Paar-ΔSNR im Zeitverlauf",
+        ),
+    ),
+)
+def test_scheduled_temporal_guidance_matches_rendered_titles_and_pair_limits(
+    language,
+    over_time,
+    by_hour,
+    retired_over_time,
+):
+    """Explain scheduled evidence without inventing different panel titles."""
+    sections = RESULT_GUIDANCE[language]["sections"]
+    for section_key in (
+        "temporal_evidence_scheduled",
+        "selected_compare_scheduled",
+    ):
+        combined = " ".join(sections[section_key].values())
+        assert over_time in combined
+        assert by_hour in combined
+        assert retired_over_time not in combined
+
+    combined = " ".join(
+        sections[section_key][field]
+        for section_key in (
+            "temporal_evidence_scheduled",
+            "selected_compare_scheduled",
+        )
+        for field in ("read", "limits")
+    )
+    if language == "en":
+        for expected in (
+            "configured planned pairs",
+            "not the simultaneous Target-Active Gate",
+            "Pair ΔSNR exists only when both scheduled sides were decoded",
+            "missing-side SNR",
+            "time-separated",
+        ):
+            assert expected in combined
+    else:
+        for expected in (
+            "konfigurierte geplante Paare",
+            "statt des Target-Active Gate des simultanen Modus",
+            "Paar-ΔSNR existiert nur, wenn beide geplanten Seiten decodiert wurden",
+            "SNR der fehlenden Seite",
+            "zeitlich getrennt",
+        ):
+            assert expected in combined
 
 
 def test_directional_success_temporal_guidance_stays_near_readability_target():
@@ -657,16 +914,31 @@ def test_result_guidance_uses_practical_station_language():
         assert "estimator" not in complete_catalog
         assert "schätzer" not in complete_catalog
 
-    for section_key in (
-        "station_insights_compare_joint",
-        "station_insights_compare_scheduled",
-        "station_insights_success_rx",
-        "station_insights_success_tx",
+    expected_identity_copy = {
+        "station_insights_compare_joint": (
+            "`callsign + locator`",
+            "`Rufzeichen + Locator`",
+        ),
+        "station_insights_compare_scheduled": (
+            "`callsign + locator`",
+            "`Rufzeichen + Locator`",
+        ),
+        "station_insights_success_rx": (
+            "callsign plus locator",
+            "Rufzeichen und Locator",
+        ),
+        "station_insights_success_tx": (
+            "callsign plus locator",
+            "Rufzeichen und Locator",
+        ),
+    }
+    for section_key, (english_identity, german_identity) in (
+        expected_identity_copy.items()
     ):
         english = RESULT_GUIDANCE["en"]["sections"][section_key]["read"]
         german = RESULT_GUIDANCE["de"]["sections"][section_key]["read"]
-        assert "callsign plus locator" in english.replace("-", " ")
-        assert "Rufzeichen und Locator" in german
+        assert english_identity in english.replace("-", " ")
+        assert german_identity in german
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -1502,6 +1774,11 @@ def test_result_guidance_popover_css_is_wide_and_responsive():
         f"{scoped_selector}\n"
         "            .stMarkdown strong.defined-term"
     ) in css_source
+    assert (
+        f"{scoped_selector}\n"
+        "            .stMarkdown p"
+    ) in css_source
+    assert "font-family: Arial, Helvetica, sans-serif !important;" in css_source
 
 
 def _guidance_call_sections(relative_path):
@@ -1541,7 +1818,7 @@ def test_every_rendered_result_heading_has_its_expected_guidance_placement():
             "RESULT_GUIDANCE_TEMPORAL_EVIDENCE": 1,
             "RESULT_GUIDANCE_SUCCESS_EVIDENCE": 1,
             "RESULT_GUIDANCE_STATION_INSIGHTS": 2,
-            "RESULT_GUIDANCE_SELECTED_STATIONS": 3,
+            "RESULT_GUIDANCE_SELECTED_STATIONS": 2,
             "RESULT_GUIDANCE_DRILLDOWN": 1,
         }
     )

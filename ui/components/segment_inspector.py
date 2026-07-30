@@ -50,9 +50,11 @@ from core.artifact_store import ARTIFACT_STORE, read_parquet_artifact
 from core.compare_engine import compare_footer_counts
 from core.performance_timer import log_performance_event
 from ui.inspector.evidence_data import (
-    _build_evidence_points,
-    _build_segment_evidence_points,
+    _build_compare_unit_rows,
+    _build_segment_compare_units,
+    _compare_joint_evidence_points,
     _prepare_identity_meta,
+    _retain_thresholded_compare_outcomes,
 )
 from ui.inspector.drilldown import (
     _build_drilldown_table,
@@ -72,7 +74,6 @@ from ui.plots.evidence_figures import (
     _segment_figure_export_recipe,
     _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
-    _format_temporal_time_bin_label,
     _time_agg_options_for_span,
     render_segment_insight_export_figure,
     render_segment_temporal_evidence_export_figure,
@@ -91,6 +92,11 @@ from ui.plots.opportunity_figures import (
     _opportunity_segment_recipe,
     _opportunity_temporal_recipe,
     _render_opportunity_segment_figure,
+)
+from ui.plots.compare_evidence_figures import (
+    _compare_coverage_recipe,
+    render_compare_temporal_coverage_export_figure,
+    render_selected_compare_coverage_export_figure,
 )
 from ui.result_hierarchy import (
     active_scope_text,
@@ -118,8 +124,8 @@ from ui.result_guidance import (
     render_result_guidance_popover,
 )
 
-INSPECTOR_CACHE_VERSION = 29
-INSPECTOR_PNG_RENDER_VERSION = 23
+INSPECTOR_CACHE_VERSION = 35
+INSPECTOR_PNG_RENDER_VERSION = 29
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
 RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
@@ -447,6 +453,148 @@ def _success_figure_labels(translations, analysis_id):
             "fig_success_selected_station_support_folded_subtitle"
         ],
     }
+
+
+def _compare_coverage_figure_labels(
+    translations,
+    analysis_id,
+    *,
+    is_sequential,
+    target_only_label,
+    joint_label,
+    reference_only_label,
+):
+    """Return semantic labels for Compare evidence-coverage recipes."""
+    if (
+        target_only_label is None
+        or joint_label is None
+        or reference_only_label is None
+    ):
+        raise ValueError(
+            "Compare temporal outcome labels must be localized strings."
+        )
+    mode_suffix = (
+        "tx"
+        if str(analysis_id).upper().startswith("TX")
+        else "rx"
+    )
+    if is_sequential:
+        unit_y = translations["fig_compare_coverage_unit_y_scheduled"]
+        unit_folded_y = translations[
+            "fig_compare_coverage_unit_folded_y_scheduled"
+        ]
+        selected_title_unit = translations[
+            "fig_selected_compare_coverage_unit_scheduled"
+        ]
+        selected_unit_y = unit_y
+        selected_unit_folded_y = unit_folded_y
+        gate_note = translations[
+            "fig_compare_coverage_gate_scheduled"
+        ]
+    else:
+        unit_y = translations[
+            f"fig_compare_coverage_unit_y_{mode_suffix}"
+        ]
+        unit_folded_y = translations[
+            f"fig_compare_coverage_unit_folded_y_{mode_suffix}"
+        ]
+        selected_title_unit = translations[
+            "fig_selected_compare_coverage_unit_simultaneous"
+        ]
+        selected_unit_y = translations[
+            "fig_selected_compare_coverage_unit_y_simultaneous"
+        ]
+        selected_unit_folded_y = translations[
+            "fig_selected_compare_coverage_unit_folded_y_simultaneous"
+        ]
+        gate_note = translations[
+            "fig_compare_coverage_gate_simultaneous"
+        ]
+    return {
+        "utc_dates_folded": translations["fig_segment_dates_folded"],
+        "time_x": translations["fig_segment_chronological_x"],
+        "utc_hour_x": translations["fig_segment_utc_hour_x"],
+        "evidence_chronological_title": translations[
+            "fig_compare_coverage_chronological_title"
+        ],
+        "evidence_utc_hour_title": translations[
+            "fig_compare_coverage_utc_hour_title"
+        ],
+        "station_vote_y": translations[
+            f"fig_compare_coverage_station_y_{mode_suffix}"
+        ],
+        "station_folded_y": translations[
+            f"fig_compare_coverage_station_folded_y_{mode_suffix}"
+        ],
+        "unit_y": unit_y,
+        "unit_folded_y": unit_folded_y,
+        "joint_share_y": translations["fig_compare_joint_share_y"],
+        "station_joint_share": translations[
+            "fig_compare_joint_share_station"
+        ],
+        "outcome_joint_share": translations[
+            "fig_compare_joint_share_outcome"
+        ],
+        "target_only": str(target_only_label),
+        "joint": str(joint_label),
+        "reference_only": str(reference_only_label),
+        "gate_note": gate_note,
+        "selected_chronological_title": translations[
+            "fig_selected_compare_coverage_chronological_title"
+        ],
+        "selected_utc_hour_title": translations[
+            "fig_selected_compare_coverage_utc_hour_title"
+        ],
+        "selected_title_unit": selected_title_unit,
+        "selected_unit_y": selected_unit_y,
+        "selected_unit_folded_y": selected_unit_folded_y,
+        "selected_joint_share": translations[
+            "fig_selected_compare_joint_share"
+        ],
+    }
+
+
+def _compare_temporal_coverage_title(
+    translations,
+    analysis_id,
+    callsign,
+):
+    """Build the localized Compare Temporal Evidence Coverage title."""
+    mode_suffix = (
+        "tx"
+        if str(analysis_id).upper().startswith("TX")
+        else "rx"
+    )
+    return translations[f"fig_compare_coverage_title_{mode_suffix}"].format(
+        callsign=str(callsign).strip().upper(),
+    )
+
+
+def _compare_temporal_time_source(
+    paired_evidence_rows,
+    comparison_units,
+):
+    """Choose adaptive-bin timestamps without changing the absolute view.
+
+    The established absolute Delta-SNR figure owns the segment control policy
+    whenever paired evidence exists. Coverage-only scopes fall back to all
+    retained comparison units so their shared control remains available.
+    """
+    if (
+        isinstance(paired_evidence_rows, pd.DataFrame)
+        and not paired_evidence_rows.empty
+        and "plot_time" in paired_evidence_rows.columns
+    ):
+        return paired_evidence_rows[["plot_time"]].copy()
+    if (
+        isinstance(comparison_units, pd.DataFrame)
+        and not comparison_units.empty
+        and "evidence_utc" in comparison_units.columns
+    ):
+        return comparison_units[["evidence_utc"]].rename(
+            columns={"evidence_utc": "plot_time"}
+        )
+    return pd.DataFrame(columns=["plot_time"])
 
 
 def _success_temporal_figure_title(
@@ -1495,9 +1643,14 @@ def _render_selected_station_evidence(
     cache_key,
     analysis_context,
     language,
+    thresholded_station_rows=None,
+    analysis_start_t=None,
+    analysis_end_t=None,
+    target_only_label=None,
+    reference_only_label=None,
     timing_collector=None,
 ):
-    """Render evidence for exactly one selected Compare station."""
+    """Render absolute Delta-SNR and coverage for one selected Compare path."""
     identity_meta = _prepare_identity_meta(selected_identity_df)
     if identity_meta.empty:
         return None
@@ -1515,56 +1668,26 @@ def _render_selected_station_evidence(
         item="selected evidence model",
     )
     if not selected_cache_hit:
-        with _timed_span(timing_collector, "selected evidence points build"):
-            evidence_df = _build_evidence_points(
+        with _timed_span(
+            timing_collector,
+            "selected comparison units build",
+        ):
+            comparison_units = _build_compare_unit_rows(
                 station_df,
                 identity_meta,
                 is_sequential,
+                paired_identity_df=identity_meta,
                 tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
                 tx_ab_target_start_minute=tx_ab_target_start_minute,
                 tx_ab_reference_start_minute=tx_ab_reference_start_minute,
             )
-        if evidence_df.empty:
-            selected_evidence_heading = t[
-                "hdr_results_selected_station_evidence"
-            ]
-            st.markdown(
-                evidence_level_header_html(
-                    4,
-                    t["lbl_results_level_selection"],
-                    selected_evidence_heading,
-                    selected_station_context(
-                        identity_labels,
-                        0,
-                        analysis_id=analysis_id,
-                        is_sequential=is_sequential,
-                        translations=t,
-                    ),
-                ),
-                unsafe_allow_html=True,
+            comparison_units = _retain_thresholded_compare_outcomes(
+                comparison_units,
+                thresholded_station_rows,
             )
-            render_result_guidance_popover(
-                RESULT_GUIDANCE_SELECTED_STATIONS,
-                selected_evidence_heading,
-                language=language,
-                translations=t,
-                key=(
-                    f"results_guidance_selected_stations_"
-                    f"{analysis_id}_{run_id}_{scope_token}"
-                ),
-                analysis_id=analysis_id,
-                is_compare=True,
-                is_sequential=is_sequential,
-                analysis_context=analysis_context,
-                selected_station_count=1,
+            evidence_df = _compare_joint_evidence_points(
+                comparison_units,
             )
-            st.markdown(
-                scope_context_html(
-                    t["txt_results_selected_no_paired_evidence"]
-                ),
-                unsafe_allow_html=True,
-            )
-            return None
 
         if is_sequential:
             count_label = t["fig_scheduled_pair_count"]
@@ -1582,48 +1705,93 @@ def _render_selected_station_evidence(
         )
         time_agg_options = tuple(SUCCESS_TEMPORAL_TIME_BINS)
         time_agg_default = "3h"
-        folded_date_template = t["fig_segment_dates_folded"].replace(
-            "{count}",
-            "{utc_date_count}",
-        )
-        base_recipe = _selected_evidence_export_recipe(
-            evidence_df,
-            evidence_title,
-            time_agg_default,
-            is_sequential,
-            count_label=count_label,
-            chronological_title=t[
-                "fig_selected_compare_chronological_title"
-            ],
-            chronological_subtitle=t[
-                "fig_selected_compare_chronological_subtitle"
-            ],
-            chronological_x_label=t["fig_segment_chronological_x"],
-            metric_axis_label=t["tbl_col_delta_snr"],
-            folded_title=t["fig_selected_compare_folded_title"],
-            folded_subtitle=t[
-                "fig_selected_compare_folded_subtitle"
-            ],
-            folded_date_annotation=folded_date_template,
-            folded_x_label=t["fig_segment_utc_hour_x"],
-            density_label=density_label,
-            folded_unavailable_text=t["fig_segment_folded_unavailable"],
-            median_focus_axis_label=t["fig_compare_median_focus_axis"],
-            median_label=t["fig_median_label"],
-            bin_median_label=t["fig_temporal_bin_median"],
-        )
-        if base_recipe["utc_date_count"] < 2:
-            insufficient_date_label = t[
-                "fig_segment_dates_insufficient"
-            ].format(count=base_recipe["utc_date_count"])
-            base_recipe["folded_date_annotation"] = insufficient_date_label
+        base_recipe = None
+        if not evidence_df.empty:
+            folded_date_template = t[
+                "fig_segment_dates_folded"
+            ].replace(
+                "{count}",
+                "{utc_date_count}",
+            )
+            base_recipe = _selected_evidence_export_recipe(
+                evidence_df,
+                evidence_title,
+                time_agg_default,
+                is_sequential,
+                count_label=count_label,
+                chronological_title=t[
+                    "fig_selected_compare_chronological_title"
+                ],
+                chronological_x_label=t[
+                    "fig_segment_chronological_x"
+                ],
+                metric_axis_label=t["tbl_col_delta_snr"],
+                folded_title=t[
+                    "fig_selected_compare_folded_title"
+                ],
+                folded_date_annotation=folded_date_template,
+                folded_x_label=t["fig_segment_utc_hour_x"],
+                density_label=density_label,
+                folded_unavailable_text=t[
+                    "fig_segment_folded_unavailable"
+                ],
+                median_focus_axis_label=t[
+                    "fig_compare_median_focus_axis"
+                ],
+                median_label=t["fig_median_label"],
+                bin_median_label=t["fig_temporal_bin_median"],
+            )
+            if base_recipe["utc_date_count"] < 2:
+                insufficient_date_label = t[
+                    "fig_segment_dates_insufficient"
+                ].format(count=base_recipe["utc_date_count"])
+                base_recipe[
+                    "folded_date_annotation"
+                ] = insufficient_date_label
+
+        selected_coverage_recipe = None
+        if not comparison_units.empty:
+            selected_identity = identity_meta.iloc[0]
+            mode_suffix = (
+                "tx"
+                if analysis_id.startswith("TX")
+                else "rx"
+            )
+            selected_coverage_title = t[
+                f"fig_selected_compare_coverage_title_{mode_suffix}"
+            ].format(
+                station=str(selected_identity["peer_sign"]),
+                locator=str(selected_identity["peer_grid"]),
+            )
+            selected_coverage_recipe = _compare_coverage_recipe(
+                comparison_units,
+                coverage_title=selected_coverage_title,
+                selected_segment=identity_labels[0],
+                analysis_start_t=analysis_start_t,
+                analysis_end_t=analysis_end_t,
+                time_bin_options=time_agg_options,
+                time_bin_default=time_agg_default,
+                figure_labels=_compare_coverage_figure_labels(
+                    t,
+                    analysis_id,
+                    is_sequential=is_sequential,
+                    target_only_label=target_only_label,
+                    joint_label=t["txt_joint"],
+                    reference_only_label=reference_only_label,
+                ),
+                population_mode=(
+                    SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
+                ),
+            )
         selected_bundle = {
             "base_recipe": base_recipe,
+            "coverage_recipe": selected_coverage_recipe,
             "time_agg_options": tuple(time_agg_options),
             "time_agg_default": time_agg_default,
             "title": evidence_title,
             "identity_labels": tuple(identity_labels),
             "evidence_count": int(evidence_count),
+            "comparison_unit_count": int(len(comparison_units)),
         }
         _inspector_cache_put(
             run_id,
@@ -1634,6 +1802,9 @@ def _render_selected_station_evidence(
 
     identity_labels = list(selected_bundle["identity_labels"])
     evidence_count = int(selected_bundle["evidence_count"])
+    comparison_unit_count = int(
+        selected_bundle.get("comparison_unit_count", 0)
+    )
     selected_evidence_heading = t["hdr_results_selected_station_evidence"]
     st.markdown(
         evidence_level_header_html(
@@ -1665,6 +1836,23 @@ def _render_selected_station_evidence(
         analysis_context=analysis_context,
         selected_station_count=1,
     )
+    if selected_bundle.get("base_recipe") is None:
+        st.markdown(
+            scope_context_html(
+                t["txt_results_selected_no_paired_evidence"]
+            ),
+            unsafe_allow_html=True,
+        )
+    if selected_bundle.get("coverage_recipe") is None:
+        st.markdown(
+            scope_context_html(
+                t[
+                    "fig_selected_compare_coverage_unavailable"
+                ]
+            ),
+            unsafe_allow_html=True,
+        )
+        return None
 
     time_agg_options = list(selected_bundle["time_agg_options"])
     time_agg_default = selected_bundle["time_agg_default"]
@@ -1700,24 +1888,39 @@ def _render_selected_station_evidence(
     )
 
     evidence_title = selected_bundle["title"]
-    selected_recipe = dict(selected_bundle["base_recipe"])
-    selected_recipe["time_bin"] = time_agg
-    selected_recipe["chronological_subtitle"] = t[
-        "fig_selected_compare_chronological_subtitle"
-    ].format(time_bin=_format_temporal_time_bin_label(time_agg))
+    selected_recipe = None
+    if selected_bundle.get("base_recipe") is not None:
+        selected_recipe = dict(selected_bundle["base_recipe"])
+        selected_recipe["time_bin"] = time_agg
+        _render_cached_recipe(
+            selected_recipe,
+            run_id=run_id,
+            cache_key=cache_key + (time_agg, "dual-temporal"),
+            subject="selected evidence",
+            build_label="selected evidence figure build",
+            render_figure=render_selected_evidence_export_figure,
+            timing_collector=timing_collector,
+        )
+
+    selected_coverage_recipe = dict(
+        selected_bundle["coverage_recipe"]
+    )
+    selected_coverage_recipe["time_bin"] = time_agg
     _render_cached_recipe(
-        selected_recipe,
+        selected_coverage_recipe,
         run_id=run_id,
-        cache_key=cache_key + (time_agg, "dual-temporal"),
-        subject="selected evidence",
-        build_label="selected evidence figure build",
-        render_figure=render_selected_evidence_export_figure,
+        cache_key=cache_key + (time_agg, "selected coverage"),
+        subject="selected path evidence coverage",
+        build_label="selected path evidence coverage figure build",
+        render_figure=render_selected_compare_coverage_export_figure,
         timing_collector=timing_collector,
     )
     return {
         "export_recipe": selected_recipe,
+        "coverage_export_recipe": selected_coverage_recipe,
         "time_bin": time_agg,
         "title": evidence_title,
+        "comparison_unit_count": comparison_unit_count,
     }
 
 
@@ -1802,13 +2005,20 @@ def _render_segment_temporal_evidence(
         time_bin_options,
         time_bin_default,
     )
-    temporal_recipe = dict(temporal_bundle["base_recipe"])
-    temporal_recipe["time_bin"] = selected_time_bin
-    if "chronological_title_template" in temporal_bundle:
-        temporal_recipe["chronological_title"] = temporal_bundle[
-            "chronological_title_template"
-        ].format(time_bin=selected_time_bin)
+    temporal_base_recipe = temporal_bundle.get("base_recipe")
+    temporal_recipe = (
+        dict(temporal_base_recipe)
+        if temporal_base_recipe is not None
+        else None
+    )
+    if temporal_recipe is not None:
+        temporal_recipe["time_bin"] = selected_time_bin
+        if "chronological_title_template" in temporal_bundle:
+            temporal_recipe["chronological_title"] = temporal_bundle[
+                "chronological_title_template"
+            ].format(time_bin=selected_time_bin)
     snr_export_recipe = None
+    coverage_export_recipe = None
     if not is_compare:
         snr_export_recipe = dict(temporal_recipe)
         _render_cached_recipe(
@@ -1821,20 +2031,41 @@ def _render_segment_temporal_evidence(
             render_figure=render_segment_temporal_snr_export_figure,
             timing_collector=timing_collector,
         )
-    _render_cached_recipe(
-        temporal_recipe,
-        run_id=run_id,
-        cache_key=cache_key + ("segment temporal evidence", selected_time_bin),
-        subject="segment temporal evidence",
-        build_label="segment temporal evidence figure build",
-        render_figure=render_segment_temporal_evidence_export_figure,
-        timing_collector=timing_collector,
-    )
-    return {
+    if temporal_recipe is not None:
+        _render_cached_recipe(
+            temporal_recipe,
+            run_id=run_id,
+            cache_key=cache_key
+            + ("segment temporal evidence", selected_time_bin),
+            subject="segment temporal evidence",
+            build_label="segment temporal evidence figure build",
+            render_figure=render_segment_temporal_evidence_export_figure,
+            timing_collector=timing_collector,
+        )
+    coverage_base_recipe = temporal_bundle.get("coverage_recipe")
+    if is_compare and coverage_base_recipe:
+        coverage_export_recipe = dict(coverage_base_recipe)
+        coverage_export_recipe["time_bin"] = selected_time_bin
+        _render_cached_recipe(
+            coverage_export_recipe,
+            run_id=run_id,
+            cache_key=cache_key
+            + ("segment temporal coverage", selected_time_bin),
+            subject="segment temporal coverage",
+            build_label="segment temporal coverage figure build",
+            render_figure=render_compare_temporal_coverage_export_figure,
+            timing_collector=timing_collector,
+        )
+    temporal_result = {
         "export_recipe": temporal_recipe,
         "snr_export_recipe": snr_export_recipe,
         "time_bin": selected_time_bin,
     }
+    if coverage_export_recipe is not None:
+        temporal_result[
+            "coverage_export_recipe"
+        ] = coverage_export_recipe
+    return temporal_result
 
 
 
@@ -3055,8 +3286,12 @@ def _render_segment_inspector_body(
             joint_lbl = t["txt_joint"]
 
             if has_plot_data:
-                with _timed_span(timing_collector, "segment evidence points build"):
-                    segment_evidence_df = _build_segment_evidence_points(
+                with _timed_span(
+                    timing_collector,
+                    "segment comparison units build",
+                ):
+                    segment_comparison_units = _build_segment_compare_units(
+                        df_seg,
                         evidence_meta_df,
                         parquet_path,
                         is_sequential,
@@ -3069,6 +3304,10 @@ def _render_segment_inspector_body(
                         tx_ab_reference_start_minute=(
                             analysis_context.tx_ab_reference_start_minute
                         ),
+                    )
+                    segment_evidence_df = _compare_joint_evidence_points(
+                        segment_comparison_units,
+                        require_paired_eligible=True,
                     )
                 segment_raw_values = (
                     segment_evidence_df["metric"]
@@ -3143,20 +3382,13 @@ def _render_segment_inspector_body(
                         else t["fig_joint_spot_delta"]
                     ),
                 )
-                if not segment_evidence_df.empty:
-                    if is_sequential:
-                        temporal_count_label = t["fig_scheduled_pair_count"]
-                        temporal_density_label = t[
-                            "fig_relative_scheduled_pair_density"
-                        ]
-                    else:
-                        temporal_count_label = t["fig_joint_spot_count"]
-                        temporal_density_label = t[
-                            "fig_relative_joint_spot_density"
-                        ]
-
+                if not segment_comparison_units.empty:
+                    temporal_time_source = _compare_temporal_time_source(
+                        segment_evidence_df,
+                        segment_comparison_units,
+                    )
                     temporal_time_options, temporal_time_default = (
-                        _time_agg_options_for_span(segment_evidence_df)
+                        _time_agg_options_for_span(temporal_time_source)
                     )
                     chronological_title_label = t[
                         "fig_segment_chronological_delta"
@@ -3176,38 +3408,100 @@ def _render_segment_inspector_body(
                         selected_seg,
                         t,
                     )
-                    temporal_base_recipe = _segment_temporal_evidence_export_recipe(
-                        segment_evidence_df,
-                        temporal_figure_title,
-                        temporal_time_default,
-                        temporal_count_label,
-                        chronological_title=chronological_title_template,
-                        chronological_x_label=t[
-                            "fig_segment_chronological_x"
-                        ],
-                        metric_axis_label=t["tbl_col_delta_snr"],
-                        folded_title=_folded_utc_hour_panel_title(t),
-                        folded_date_annotation=folded_date_template,
-                        folded_x_label=t["fig_segment_utc_hour_x"],
-                        density_label=temporal_density_label,
-                        folded_unavailable_text=t[
-                            "fig_segment_folded_unavailable"
-                        ],
-                        median_focus_axis_label=t[
-                            "fig_compare_median_focus_axis"
-                        ],
-                        median_label=t["fig_median_label"],
-                        bin_median_label=t["fig_temporal_bin_median"],
+                    temporal_base_recipe = None
+                    if not segment_evidence_df.empty:
+                        if is_sequential:
+                            temporal_count_label = t[
+                                "fig_scheduled_pair_count"
+                            ]
+                            temporal_density_label = t[
+                                "fig_relative_scheduled_pair_density"
+                            ]
+                        else:
+                            temporal_count_label = t[
+                                "fig_joint_spot_count"
+                            ]
+                            temporal_density_label = t[
+                                "fig_relative_joint_spot_density"
+                            ]
+                        temporal_base_recipe = (
+                            _segment_temporal_evidence_export_recipe(
+                                segment_evidence_df,
+                                temporal_figure_title,
+                                temporal_time_default,
+                                temporal_count_label,
+                                chronological_title=(
+                                    chronological_title_template
+                                ),
+                                chronological_x_label=t[
+                                    "fig_segment_chronological_x"
+                                ],
+                                metric_axis_label=t["tbl_col_delta_snr"],
+                                folded_title=(
+                                    _folded_utc_hour_panel_title(t)
+                                ),
+                                folded_date_annotation=folded_date_template,
+                                folded_x_label=t[
+                                    "fig_segment_utc_hour_x"
+                                ],
+                                density_label=temporal_density_label,
+                                folded_unavailable_text=t[
+                                    "fig_segment_folded_unavailable"
+                                ],
+                                median_focus_axis_label=t[
+                                    "fig_compare_median_focus_axis"
+                                ],
+                                median_label=t["fig_median_label"],
+                                bin_median_label=t[
+                                    "fig_temporal_bin_median"
+                                ],
+                            )
+                        )
+                        if temporal_base_recipe["utc_date_count"] < 2:
+                            insufficient_date_label = t[
+                                "fig_segment_dates_insufficient"
+                            ].format(
+                                count=temporal_base_recipe["utc_date_count"]
+                            )
+                            temporal_base_recipe[
+                                "folded_date_annotation"
+                            ] = insufficient_date_label
+
+                    compare_figure_labels = (
+                        _compare_coverage_figure_labels(
+                            t,
+                            analysis_id,
+                            is_sequential=is_sequential,
+                            target_only_label=t[
+                                "leg_only_me"
+                            ].format(
+                                callsign=t["txt_target"]
+                            ),
+                            joint_label=t["txt_joint"],
+                            reference_only_label=t[
+                                "leg_only_ref"
+                            ].format(
+                                ref_callsign=t["txt_reference"]
+                            ),
+                        )
                     )
-                    if temporal_base_recipe["utc_date_count"] < 2:
-                        insufficient_date_label = t[
-                            "fig_segment_dates_insufficient"
-                        ].format(count=temporal_base_recipe["utc_date_count"])
-                        temporal_base_recipe[
-                            "folded_date_annotation"
-                        ] = insufficient_date_label
+                    compare_coverage_recipe = _compare_coverage_recipe(
+                        segment_comparison_units,
+                        coverage_title=_compare_temporal_coverage_title(
+                            t,
+                            analysis_id,
+                            analysis_context.callsign,
+                        ),
+                        selected_segment=selected_seg,
+                        analysis_start_t=analysis_start_t,
+                        analysis_end_t=analysis_end_t,
+                        time_bin_options=temporal_time_options,
+                        time_bin_default=temporal_time_default,
+                        figure_labels=compare_figure_labels,
+                    )
                     segment_temporal_bundle = {
                         "base_recipe": temporal_base_recipe,
+                        "coverage_recipe": compare_coverage_recipe,
                         "time_bin_options": tuple(temporal_time_options),
                         "time_bin_default": temporal_time_default,
                         "chronological_title_template": chronological_title_template,
@@ -3410,7 +3704,6 @@ def _render_segment_inspector_body(
                 is_sequential=is_sequential,
                 analysis_context=analysis_context,
             )
-
         # --- 1. Define layout columns ---
         # Give localized toggle labels enough room while preserving the filter width.
         col_ins1, col_ins2, col_ins3 = level_three_container.columns(
@@ -3579,6 +3872,16 @@ def _render_segment_inspector_body(
                 selected_identity_df["peer_sign"].astype(str) +
                 " (" + selected_identity_df["peer_grid"].astype(str) + ")"
             ).tolist()
+            selected_thresholded_rows = df_seg[
+                df_seg["peer_sign"].astype(str).str.strip().str.upper().eq(
+                    selected_station
+                )
+                & df_seg[
+                    "peer_grid"
+                ].astype(str).str.strip().str.upper().eq(
+                    selected_locator
+                )
+            ].copy()
             level_four_container = st.container(
                 key=(
                     f"results_evidence_level_4_"
@@ -3621,6 +3924,21 @@ def _render_segment_inspector_body(
                             presentation_context.theme,
                         ),
                         analysis_context=analysis_context,
+                        thresholded_station_rows=(
+                            selected_thresholded_rows
+                        ),
+                        analysis_start_t=analysis_start_t,
+                        analysis_end_t=analysis_end_t,
+                        target_only_label=(
+                            t["leg_only_me"].format(
+                                callsign=t["txt_target"]
+                            )
+                        ),
+                        reference_only_label=(
+                            t["leg_only_ref"].format(
+                                ref_callsign=t["txt_reference"]
+                            )
+                        ),
                         language=presentation_context.language,
                         timing_collector=timing_collector,
                     )
@@ -3723,7 +4041,13 @@ def _render_segment_inspector_body(
             segment_temporal_snr_deviation_figure_recipe=(
                 segment_temporal_export or {}
             ).get("snr_export_recipe"),
+            segment_temporal_coverage_figure_recipe=(
+                segment_temporal_export or {}
+            ).get("coverage_export_recipe"),
             selected_evidence_figure_recipe=(selected_evidence_export or {}).get("export_recipe"),
+            selected_station_coverage_figure_recipe=(
+                selected_evidence_export or {}
+            ).get("coverage_export_recipe"),
             station_insights_df=sorted_disp_df,
             drilldown_selected_df=drilldown_selected_df,
             all_drilldown_context=all_drilldown_context,

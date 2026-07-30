@@ -1275,11 +1275,9 @@ def _selected_evidence_export_recipe(
     *,
     count_label,
     chronological_title,
-    chronological_subtitle,
     chronological_x_label,
     metric_axis_label,
     folded_title,
-    folded_subtitle,
     folded_x_label,
     folded_date_annotation,
     density_label,
@@ -1288,7 +1286,7 @@ def _selected_evidence_export_recipe(
     median_label,
     bin_median_label,
 ):
-    """Return the shared dual-panel recipe for one selected Compare station."""
+    """Return one selected Compare path recipe without redundant subtitles."""
     plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
     numeric_metrics = pd.to_numeric(plot_df["metric"], errors="coerce")
     valid = plot_times.notna() & numeric_metrics.notna() & np.isfinite(numeric_metrics)
@@ -1304,11 +1302,11 @@ def _selected_evidence_export_recipe(
         time_agg,
         count_label,
         chronological_title=chronological_title,
-        chronological_subtitle=chronological_subtitle,
+        chronological_subtitle=None,
         chronological_x_label=chronological_x_label,
         metric_axis_label=metric_axis_label,
         folded_title=folded_title,
-        folded_subtitle=folded_subtitle,
+        folded_subtitle=None,
         folded_x_label=folded_x_label,
         folded_date_annotation=folded_date_annotation,
         density_label=density_label,

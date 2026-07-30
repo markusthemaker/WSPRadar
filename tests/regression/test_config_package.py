@@ -1,5 +1,6 @@
 import ast
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -107,6 +108,22 @@ def test_config_package_exports_core_constants_and_demo_profiles():
         "establish_offset",
     }
     assert "vanhamel_rx_calibration" in DEMO_PROFILES
+
+
+def test_demo_presentation_text_separates_em_dashes_from_words():
+    """Keep installed profile titles and descriptions legible in the UI."""
+    for profile_id, profile in DEMO_PROFILES.items():
+        profile_metadata = profile["configuration"]["profile"]
+        for field_name in ("title", "description"):
+            for language, localized_text in profile_metadata.get(
+                field_name,
+                {},
+            ).items():
+                assert re.search(r"(?<!\s)—|—(?!\s)", localized_text) is None, (
+                    profile_id,
+                    field_name,
+                    language,
+                )
 
 
 def test_snr_correction_mode_owners_remain_in_enum_parity():

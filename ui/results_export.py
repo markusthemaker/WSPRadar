@@ -63,6 +63,18 @@ from ui.url_state import build_share_url
 COMPARE_EXPORT_FOLDER = "compare"
 SUCCESS_EXPORT_FOLDER = "success"
 EXPORTABLE_RESULT_FOLDERS = frozenset({COMPARE_EXPORT_FOLDER, SUCCESS_EXPORT_FOLDER})
+COMPARE_EVIDENCE_FIGURE_EXPORTS = (
+    (
+        "figure_segment_temporal_coverage.png",
+        "segment_temporal_coverage_figure_recipe",
+        ("evidence_title",),
+    ),
+    (
+        "figure_selected_station_coverage.png",
+        "selected_station_coverage_figure_recipe",
+        ("evidence_title",),
+    ),
+)
 
 
 def _normalized_database_source(source_key) -> str:
@@ -308,9 +320,11 @@ def register_inspector_export(
     segment_figure_recipe=None,
     segment_temporal_evidence_figure_recipe=None,
     segment_temporal_snr_deviation_figure_recipe=None,
+    segment_temporal_coverage_figure_recipe=None,
     selected_evidence_figure_recipe=None,
     selected_station_snr_evidence_figure_recipe=None,
     selected_station_temporal_evidence_figure_recipe=None,
+    selected_station_coverage_figure_recipe=None,
     station_insights_df=None,
     drilldown_selected_df=None,
     all_drilldown_context=None,
@@ -369,12 +383,18 @@ def register_inspector_export(
         "segment_temporal_snr_deviation_figure_recipe": (
             segment_temporal_snr_deviation_figure_recipe
         ),
+        "segment_temporal_coverage_figure_recipe": (
+            segment_temporal_coverage_figure_recipe
+        ),
         "selected_evidence_figure_recipe": selected_evidence_figure_recipe,
         "selected_station_snr_evidence_figure_recipe": (
             selected_station_snr_evidence_figure_recipe
         ),
         "selected_station_temporal_evidence_figure_recipe": (
             selected_station_temporal_evidence_figure_recipe
+        ),
+        "selected_station_coverage_figure_recipe": (
+            selected_station_coverage_figure_recipe
         ),
         "table_station_insights_current_segment.csv": station_insights_df.copy() if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
         "table_drilldown_selected_stations.csv": drilldown_selected_df.copy() if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
@@ -392,6 +412,65 @@ def _selected_evidence_weighting_label(selected_station_count, translations):
     if selected_station_count == 1:
         return translations["export_weighting_single_selected_path"]
     return None
+
+
+def _compare_evidence_figure_descriptions(block):
+    """Map registered Compare coverage filenames to localized recipe titles."""
+    descriptions = {}
+    for figure_name, recipe_key, title_keys in COMPARE_EVIDENCE_FIGURE_EXPORTS:
+        recipe = block.get(recipe_key)
+        if not isinstance(recipe, dict):
+            continue
+        for title_key in title_keys:
+            title_value = recipe.get(title_key)
+            if title_value is None:
+                continue
+            description = str(title_value).strip()
+            if description:
+                descriptions[figure_name] = description
+                break
+    return descriptions
+
+
+def _compare_evidence_recipe_signature(block):
+    """Fingerprint compact Compare recipes without serializing plot arrays."""
+    recipe_signatures = []
+    for figure_name, recipe_key, title_keys in COMPARE_EVIDENCE_FIGURE_EXPORTS:
+        recipe = block.get(recipe_key)
+        if recipe is None:
+            continue
+        description = None
+        if isinstance(recipe, dict):
+            for title_key in title_keys:
+                title_value = recipe.get(title_key)
+                if title_value is None:
+                    continue
+                normalized_title = str(title_value).strip()
+                if normalized_title:
+                    description = normalized_title
+                    break
+        recipe_signatures.append(
+            {
+                "filename": figure_name,
+                "kind": (
+                    recipe.get("kind")
+                    if isinstance(recipe, dict)
+                    else type(recipe).__name__
+                ),
+                "schema_version": (
+                    recipe.get("schema_version")
+                    if isinstance(recipe, dict)
+                    else None
+                ),
+                "time_bin": (
+                    recipe.get("time_bin")
+                    if isinstance(recipe, dict)
+                    else None
+                ),
+                "description": description,
+            }
+        )
+    return recipe_signatures
 
 
 def _should_annotate_reference_correction(column_name, reference_snr_header=None):
@@ -553,6 +632,9 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                     "selected_evidence_figure_descriptions",
                     {},
                 ),
+                "compare_evidence_figures": (
+                    _compare_evidence_figure_descriptions(block)
+                ),
                 "show_non_joint": block.get("show_non_joint"),
                 "show_zero_target": block.get("show_zero_target"),
                 "evidence_time_bin": block.get("evidence_time_bin"),
@@ -604,6 +686,9 @@ def _export_signature(blocks):
             "selected_evidence_figures": block.get(
                 "selected_evidence_figure_descriptions",
                 {},
+            ),
+            "compare_evidence_recipes": (
+                _compare_evidence_recipe_signature(block)
             ),
             "show_non_joint": block.get("show_non_joint"),
             "show_zero_target": block.get("show_zero_target"),
@@ -791,11 +876,36 @@ def _render_inspector_png_for_block(block, figure_name):
             "selected_station_temporal_evidence_figure_recipe"
         ),
     }
+    compare_coverage_recipe_keys = {
+        figure_name: recipe_key
+        for figure_name, recipe_key, _title_keys in (
+            COMPARE_EVIDENCE_FIGURE_EXPORTS
+        )
+    }
     if figure_name in selected_success_figure_names:
         selected_success_recipe = selected_success_recipes[figure_name]
         if selected_success_recipe is None:
             return None
-    if figure_name == "figure_segment_insight.png":
+    if figure_name in compare_coverage_recipe_keys:
+        coverage_recipe = block.get(
+            compare_coverage_recipe_keys[figure_name]
+        )
+        if coverage_recipe is None:
+            return None
+        from ui.plots.compare_evidence_figures import (
+            render_compare_temporal_coverage_export_figure,
+            render_selected_compare_coverage_export_figure,
+        )
+        compare_coverage_renderers = {
+            "figure_segment_temporal_coverage.png": (
+                render_compare_temporal_coverage_export_figure
+            ),
+            "figure_selected_station_coverage.png": (
+                render_selected_compare_coverage_export_figure
+            ),
+        }
+        fig = compare_coverage_renderers[figure_name](coverage_recipe)
+    elif figure_name == "figure_segment_insight.png":
         fig = render_segment_insight_export_figure(block.get("segment_figure_recipe"))
     elif figure_name == "figure_segment_temporal_evidence.png":
         fig = render_segment_temporal_evidence_export_figure(
@@ -901,7 +1011,12 @@ def build_results_zip(translations):
         zf.writestr(f"{root}/config/wspradar_config.config", config_bytes)
         zf.writestr(
             f"{root}/config/run_metadata.json",
-            json.dumps(metadata, indent=2, default=_json_default).encode("utf-8"),
+            json.dumps(
+                metadata,
+                indent=2,
+                ensure_ascii=False,
+                default=_json_default,
+            ).encode("utf-8"),
         )
 
         for block_key, block in exportable_blocks.items():
@@ -930,8 +1045,12 @@ def build_results_zip(translations):
                     ]
                 )
             else:
-                figure_names.append(
-                    "figure_selected_station_evidence.png"
+                figure_names.extend(
+                    [
+                        "figure_segment_temporal_coverage.png",
+                        "figure_selected_station_evidence.png",
+                        "figure_selected_station_coverage.png",
+                    ]
                 )
             for figure_name in figure_names:
                 png_bytes = (
