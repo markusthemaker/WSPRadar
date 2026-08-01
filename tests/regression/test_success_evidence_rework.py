@@ -21,6 +21,7 @@ from ui.inspector.view_models import build_opportunity_inspector_view_model
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 from ui.result_hierarchy import evidence_level_header_html
 from ui.plots.evidence_figures import (
+    TEMPORAL_IQR_MIN_COUNT,
     _segment_temporal_evidence_export_recipe,
     render_segment_temporal_evidence_export_figure,
     render_segment_temporal_snr_export_figure,
@@ -370,8 +371,10 @@ def _temporal_recipe_for_test(
 
 def _selected_actual_snr_recipe_for_test(
     rows: pd.DataFrame | None = None,
+    *,
+    analysis_id: str = "RX_ABS",
 ) -> dict[str, object]:
-    """Build a schema-7 temporal recipe for one exact selected station."""
+    """Build a schema-8 temporal recipe for one exact selected station."""
     selected_rows = (
         _selected_actual_snr_evidence_rows()
         if rows is None
@@ -407,16 +410,21 @@ def _selected_actual_snr_recipe_for_test(
     )
     selected_peer["calc_azimuth"] = 91.0
     selected_peer["dir_name"] = "E"
+    absolute_mode = "TX" if analysis_id.startswith("TX") else "RX"
     return _opportunity_temporal_recipe(
-        "RX Performance Selected Station Temporal Evidence: SEL (SE00)",
+        f"{absolute_mode} Performance Selected Station Temporal Evidence: "
+        "SEL (SE00)",
         "",
         pd.DataFrame([selected_peer]),
         selected_rows,
         pd.Timestamp("2026-07-10T00:00:00Z"),
         pd.Timestamp("2026-07-12T00:00:00Z"),
-        _presentation().absolute_terms("RX"),
-        figure_labels=_figure_labels(),
-        snr_title="RX Performance Selected Station SNR Evidence: SEL (SE00)",
+        _presentation().absolute_terms(absolute_mode),
+        figure_labels=_figure_labels(analysis_id=analysis_id),
+        snr_title=(
+            f"{absolute_mode} Performance Selected Station SNR Evidence: "
+            "SEL (SE00)"
+        ),
         population_mode=SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
         snr_representation=SUCCESS_SNR_REPRESENTATION_ACTUAL,
     )
@@ -481,6 +489,7 @@ def _compare_temporal_recipe_for_test() -> dict[str, object]:
         ],
         median_label=T["en"]["fig_median_label"],
         bin_median_label=T["en"]["fig_temporal_bin_median"],
+        bin_iqr_label=T["en"]["fig_temporal_bin_iqr"],
     )
 
 
@@ -498,19 +507,16 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         "observation_level": "Opportunity-level Decode Rate",
         "median": "Median",
         "iqr": "IQR",
+        "bin_iqr": "Bin Q1–Q3 (middle 50%)",
         "two_station_range": "Range (2 stations)",
         "evidence_chronological_title": (
             "Evidence over Time ({time_bin} bins)"
         ),
         "evidence_utc_hour_title": "Evidence by UTC Hour (1 h bins)",
-        "station_support_folded_subtitle": (
-            "Average contributing station presences per represented UTC date"
-        ),
-        "opportunity_folded_subtitle": (
-            "Average confirmed opportunities per represented UTC date"
-        ),
         "opportunity_y": "Opportunities",
-        "opportunity_folded_y": "Opportunities",
+        "opportunity_folded_y": (
+            "Avg. Opportunities\n/ Represented\nUTC Date"
+        ),
         "rate_legend": "Decode Rate",
         "time_x": "Date/Time (UTC)",
         "utc_hour_x": "UTC hour",
@@ -544,6 +550,7 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         "observation_level": "Dekodierrate auf Gelegenheitsebene",
         "median": "Median",
         "iqr": "IQR",
+        "bin_iqr": "Q1–Q3 je Bin (mittlere 50 %)",
         "two_station_range": "Spanne (2 Stationen)",
         "evidence_chronological_title": (
             "Evidenz im Zeitverlauf ({time_bin}-Bins)"
@@ -551,16 +558,10 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         "evidence_utc_hour_title": (
             "Evidenz nach UTC-Stunde (1-h-Bins)"
         ),
-        "station_support_folded_subtitle": (
-            "Durchschnittliche Stationspräsenzen pro "
-            "berücksichtigtem UTC-Tag"
-        ),
-        "opportunity_folded_subtitle": (
-            "Durchschnittliche bestätigte Gelegenheiten pro "
-            "berücksichtigtem UTC-Tag"
-        ),
         "opportunity_y": "Gelegenheiten",
-        "opportunity_folded_y": "Gelegenheiten",
+        "opportunity_folded_y": (
+            "Ø Gelegenheiten je\nberücksichtigtem\nUTC-Tag"
+        ),
         "rate_legend": "Dekodierrate",
         "time_x": "Datum/Uhrzeit (UTC)",
         "utc_hour_x": "UTC-Stunde",
@@ -602,20 +603,16 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "snr_chronological_title": (
             "Successful RX SNR Deviation over Time"
         ),
-        "snr_chronological_subtitle": (
-            "Each TX station centered on its run median · {time_bin} bins"
-        ),
         "snr_utc_hour_title": (
             "Successful RX SNR Deviation by UTC Hour"
-        ),
-        "snr_utc_hour_subtitle": (
-            "Each TX station centered on its run median · 1 h bins"
         ),
         "snr_anomaly_y": (
             "Deviation from each TX station’s run median (dB)"
         ),
         "station_vote_y": "TX Stations",
-        "station_support_folded_y": "TX Stations",
+        "station_support_folded_y": (
+            "Avg. TX Stations\n/ Represented\nUTC Date"
+        ),
         "evidence_title": "RX Performance Temporal Evidence: Target {callsign}",
         "snr_title": (
             "RX Performance Temporal SNR Evidence: Target {callsign}"
@@ -638,20 +635,16 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "snr_chronological_title": (
             "Successful TX SNR Deviation over Time"
         ),
-        "snr_chronological_subtitle": (
-            "Each RX station centered on its run median · {time_bin} bins"
-        ),
         "snr_utc_hour_title": (
             "Successful TX SNR Deviation by UTC Hour"
-        ),
-        "snr_utc_hour_subtitle": (
-            "Each RX station centered on its run median · 1 h bins"
         ),
         "snr_anomaly_y": (
             "Deviation from each RX station’s run median (dB)"
         ),
         "station_vote_y": "RX Stations",
-        "station_support_folded_y": "RX Stations",
+        "station_support_folded_y": (
+            "Avg. RX Stations\n/ Represented\nUTC Date"
+        ),
         "evidence_title": "TX Performance Temporal Evidence: Target {callsign}",
         "snr_title": (
             "TX Performance Temporal SNR Evidence: Target {callsign}"
@@ -678,20 +671,16 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "snr_chronological_title": (
             "Abweichung des erfolgreichen RX-SNR im Zeitverlauf"
         ),
-        "snr_chronological_subtitle": (
-            "Jede TX-Station auf ihren Laufmedian zentriert · {time_bin}-Bins"
-        ),
         "snr_utc_hour_title": (
             "Abweichung des erfolgreichen RX-SNR nach UTC-Stunde"
-        ),
-        "snr_utc_hour_subtitle": (
-            "Jede TX-Station auf ihren Laufmedian zentriert · 1-h-Bins"
         ),
         "snr_anomaly_y": (
             "Abweichung vom Laufmedian jeder TX-Station (dB)"
         ),
         "station_vote_y": "TX-Stationen",
-        "station_support_folded_y": "TX-Stationen",
+        "station_support_folded_y": (
+            "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
+        ),
         "evidence_title": (
             "RX Performance — Zeitliche Evidenz: Target {callsign}"
         ),
@@ -720,20 +709,16 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
         "snr_chronological_title": (
             "Abweichung des erfolgreichen TX-SNR im Zeitverlauf"
         ),
-        "snr_chronological_subtitle": (
-            "Jede RX-Station auf ihren Laufmedian zentriert · {time_bin}-Bins"
-        ),
         "snr_utc_hour_title": (
             "Abweichung des erfolgreichen TX-SNR nach UTC-Stunde"
-        ),
-        "snr_utc_hour_subtitle": (
-            "Jede RX-Station auf ihren Laufmedian zentriert · 1-h-Bins"
         ),
         "snr_anomaly_y": (
             "Abweichung vom Laufmedian jeder RX-Station (dB)"
         ),
         "station_vote_y": "RX-Stationen",
-        "station_support_folded_y": "RX-Stationen",
+        "station_support_folded_y": (
+            "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
+        ),
         "evidence_title": (
             "TX Performance — Zeitliche Evidenz: Target {callsign}"
         ),
@@ -759,17 +744,6 @@ def _axis_by_gid(figure, gid: str):
     matching_axes = [axis for axis in figure.axes if axis.get_gid() == gid]
     assert len(matching_axes) == 1
     return matching_axes[0]
-
-
-def _panel_subtitle(axis):
-    """Return the unique Success temporal subtitle artist below one title."""
-    matching_artists = [
-        text
-        for text in axis.texts
-        if text.get_gid() == "success-temporal-panel-subtitle"
-    ]
-    assert len(matching_artists) == 1
-    return matching_artists[0]
 
 
 def _figure_text_by_gid(figure, gid: str):
@@ -1511,7 +1485,8 @@ def test_success_temporal_recipe_balances_station_bin_and_station_date_hour():
         figure_labels=_figure_labels(),
     )
 
-    assert recipe["schema_version"] == 7
+    assert recipe["schema_version"] == 8
+    assert recipe["snr_iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT == 5
     assert (
         recipe["population_mode"]
         == SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE
@@ -1554,6 +1529,8 @@ def test_success_temporal_recipe_balances_station_bin_and_station_date_hour():
     # successful reports apiece; C remains in rate/support but not SNR.
     assert chronological["snr_station_value_counts"][0] == 2
     assert chronological["snr_station_balanced_median_db"][0] == -10.0
+    assert chronological["snr_station_balanced_q1_db"][0] == -10.0
+    assert chronological["snr_station_balanced_q3_db"][0] == -10.0
     assert chronological["station_counts"][0] == 3
     assert chronological["target_counts"][0] == 5
     assert chronological["counter_counts"][0] == 0
@@ -1572,6 +1549,8 @@ def test_success_temporal_recipe_balances_station_bin_and_station_date_hour():
     # UTC hour 00 receives A/date-10, A/date-11 and B/date-10: three values.
     assert folded["snr_station_value_counts"][0] == 3
     assert folded["snr_station_balanced_median_db"][0] == -10.0
+    assert folded["snr_station_balanced_q1_db"][0] == -10.0
+    assert folded["snr_station_balanced_q3_db"][0] == 0.0
     assert folded["station_counts"][0] == 3
     assert folded["utc_date_counts"][0] == 2
     np.testing.assert_array_equal(
@@ -1689,7 +1668,8 @@ def test_selected_success_actual_snr_uses_raw_rows_and_date_hour_medians():
     """Keep raw chronology but give each represented date one folded SNR value."""
     recipe = _selected_actual_snr_recipe_for_test()
 
-    assert recipe["schema_version"] == 7
+    assert recipe["schema_version"] == 8
+    assert recipe["snr_iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT == 5
     assert (
         recipe["population_mode"]
         == SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
@@ -1722,6 +1702,10 @@ def test_selected_success_actual_snr_uses_raw_rows_and_date_hour_medians():
     assert chronological["snr_value_counts"][24] == 1
     assert chronological["snr_median_db"][0] == pytest.approx(-30.0)
     assert chronological["snr_median_db"][24] == pytest.approx(10.0)
+    assert chronological["snr_q1_db"][0] == pytest.approx(-30.0)
+    assert chronological["snr_q3_db"][0] == pytest.approx(-15.0)
+    assert chronological["snr_q1_db"][24] == pytest.approx(10.0)
+    assert chronological["snr_q3_db"][24] == pytest.approx(10.0)
 
     def density_value(profile, snr_db: float, x_index: int) -> float:
         """Return one actual-SNR density cell selected by its explicit edges."""
@@ -1740,6 +1724,8 @@ def test_selected_success_actual_snr_uses_raw_rows_and_date_hour_medians():
     # population median of -30 dB.
     assert folded["snr_value_counts"][0] == 2
     assert folded["snr_median_db"][0] == pytest.approx(-10.0)
+    assert folded["snr_q1_db"][0] == pytest.approx(-20.0)
+    assert folded["snr_q3_db"][0] == pytest.approx(0.0)
     assert density_value(folded, -30.0, 0) == pytest.approx(100.0)
     assert density_value(folded, 10.0, 0) == pytest.approx(100.0)
     assert np.isnan(density_value(folded, 0.0, 0))
@@ -1803,11 +1789,11 @@ def test_selected_success_actual_snr_uses_raw_rows_and_date_hour_medians():
 
 
 def test_selected_success_actual_snr_renderer_reuses_axes_without_baseline():
-    """Reuse active temporal geometry while omitting anomaly-only SNR artists."""
+    """Reuse active geometry while omitting anomaly-only and subtitle artists."""
     selected_recipe = _selected_actual_snr_recipe_for_test()
-    selected_recipe["time_bin"] = "1h"
+    selected_recipe["time_bin"] = "6h"
     active_recipe = _temporal_recipe_for_test()
-    active_recipe["time_bin"] = "1h"
+    active_recipe["time_bin"] = "6h"
     selected_figure = render_segment_temporal_snr_export_figure(
         selected_recipe
     )
@@ -1857,6 +1843,11 @@ def test_selected_success_actual_snr_renderer_reuses_axes_without_baseline():
         assert selected_figure._suptitle.get_text() == selected_recipe[
             "snr_title"
         ]
+        for axis in (selected_chronological, selected_folded):
+            assert not any(
+                text.get_gid() == "success-temporal-panel-subtitle"
+                for text in axis.texts
+            )
 
         selected_gids = _artist_gids(selected_figure)
         assert "success-temporal-snr-density" in selected_gids
@@ -1885,6 +1876,172 @@ def test_selected_success_actual_snr_renderer_reuses_axes_without_baseline():
             dispose_matplotlib_figure(selected_figure)
         if active_figure is not None:
             dispose_matplotlib_figure(active_figure)
+
+
+@pytest.mark.parametrize(
+    ("population_mode", "analysis_id"),
+    [
+        pytest.param(
+            SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
+            "RX_ABS",
+            id="active-scope-rx",
+        ),
+        pytest.param(
+            SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
+            "TX_ABS",
+            id="active-scope-tx",
+        ),
+        pytest.param(
+            SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+            "RX_ABS",
+            id="selected-station-rx",
+        ),
+        pytest.param(
+            SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+            "TX_ABS",
+            id="selected-station-tx",
+        ),
+    ],
+)
+def test_success_temporal_iqr_renderer_applies_threshold_gaps_and_legend(
+    population_mode,
+    analysis_id,
+):
+    """Use one TX/RX-neutral renderer for supported active and selected IQRs."""
+    if population_mode == SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION:
+        recipe = _selected_actual_snr_recipe_for_test(
+            analysis_id=analysis_id,
+        )
+        q1_key = "snr_q1_db"
+        q3_key = "snr_q3_db"
+        count_key = "snr_value_counts"
+        edge_key = "snr_value_edges_db"
+    else:
+        recipe = _temporal_recipe_for_test(analysis_id=analysis_id)
+        q1_key = "snr_station_balanced_q1_db"
+        q3_key = "snr_station_balanced_q3_db"
+        count_key = "snr_station_value_counts"
+        edge_key = "snr_anomaly_edges_db"
+    recipe["time_bin"] = "1h"
+
+    injected_counts = np.asarray([5, 5, 4, 5, 0, 5, 5], dtype=np.int64)
+    injected_q1 = np.asarray([-12, -10, -8, -6, -4, -2, 0], dtype=float)
+    injected_q3 = np.asarray([-8, -6, -4, -2, 0, 2, 4], dtype=float)
+    for profile in (
+        recipe["chronological_profiles"]["1h"],
+        recipe["folded_profile"],
+    ):
+        profile_counts = np.zeros_like(
+            np.asarray(profile[count_key], dtype=np.int64)
+        )
+        profile_q1 = np.full(len(profile_counts), np.nan, dtype=float)
+        profile_q3 = np.full(len(profile_counts), np.nan, dtype=float)
+        profile_counts[: len(injected_counts)] = injected_counts
+        profile_q1[: len(injected_q1)] = injected_q1
+        profile_q3[: len(injected_q3)] = injected_q3
+        profile[count_key] = profile_counts
+        profile[q1_key] = profile_q1
+        profile[q3_key] = profile_q3
+
+    figure = render_segment_temporal_snr_export_figure(recipe)
+    try:
+        assert figure is not None
+        figure.canvas.draw()
+        for axis_gid, profile in (
+            (
+                "success-temporal-snr-chronological-axis",
+                recipe["chronological_profiles"]["1h"],
+            ),
+            (
+                "success-temporal-snr-folded-axis",
+                recipe["folded_profile"],
+            ),
+        ):
+            axis = _axis_by_gid(figure, axis_gid)
+            q1_lines = [
+                line
+                for line in axis.lines
+                if line.get_gid() == "temporal-bin-iqr-q1"
+            ]
+            q3_lines = [
+                line
+                for line in axis.lines
+                if line.get_gid() == "temporal-bin-iqr-q3"
+            ]
+            median_lines = [
+                line
+                for line in axis.lines
+                if line.get_gid() == "success-temporal-snr-bin-median"
+            ]
+            assert len(q1_lines) == len(q3_lines) == len(median_lines) == 1
+            q1_line = q1_lines[0]
+            q3_line = q3_lines[0]
+            median_line = median_lines[0]
+            np.testing.assert_array_equal(
+                np.flatnonzero(np.isfinite(q1_line.get_ydata())),
+                [0, 1, 3, 5, 6],
+            )
+            np.testing.assert_array_equal(
+                np.flatnonzero(np.isfinite(q3_line.get_ydata())),
+                [0, 1, 3, 5, 6],
+            )
+            assert q1_line.get_marker() == q3_line.get_marker() == "_"
+            assert np.isnan(q1_line.get_ydata()[2])
+            assert np.isfinite(q1_line.get_ydata()[3])
+            assert np.isnan(q1_line.get_ydata()[4])
+            assert q1_line.get_zorder() < median_line.get_zorder()
+            assert q3_line.get_zorder() < median_line.get_zorder()
+            assert axis.get_ylim() == pytest.approx(
+                (
+                    profile[edge_key][0],
+                    profile[edge_key][-1],
+                )
+            )
+
+            expected_legend_labels = []
+            if (
+                recipe["snr_representation"]
+                == SUCCESS_SNR_REPRESENTATION_STATION_RELATIVE
+            ):
+                expected_legend_labels.append(
+                    recipe["labels"]["station_baseline"]
+                )
+            expected_legend_labels.extend(
+                [
+                    (
+                        recipe["labels"]["bin_median_chronological"]
+                        if axis_gid.endswith("chronological-axis")
+                        else recipe["labels"]["bin_median_folded"]
+                    ),
+                    recipe["labels"]["bin_iqr"],
+                ]
+            )
+            assert [
+                text.get_text() for text in axis.get_legend().get_texts()
+            ] == expected_legend_labels
+    finally:
+        if figure is not None:
+            dispose_matplotlib_figure(figure)
+
+
+@pytest.mark.parametrize(
+    ("recipe_field", "invalid_value", "message"),
+    [
+        ("schema_version", 7, "recipe schema"),
+        ("snr_iqr_min_count", 4, "SNR IQR threshold"),
+    ],
+)
+def test_success_temporal_renderer_rejects_stale_iqr_recipe_contract(
+    recipe_field,
+    invalid_value,
+    message,
+):
+    """Reject recipes that cannot prove the schema-8 five-value IQR policy."""
+    recipe = _temporal_recipe_for_test()
+    recipe[recipe_field] = invalid_value
+
+    with pytest.raises(ValueError, match=message):
+        render_segment_temporal_snr_export_figure(recipe)
 
 
 @pytest.mark.parametrize(
@@ -2566,32 +2723,18 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
         ):
             assert axis.get_title() == ""
         for axis in (
+            chronological_snr,
+            folded_snr,
             chronological_station,
             chronological_opportunity,
+            folded_station,
+            folded_opportunity,
         ):
             assert not any(
-                str(text.get_gid()).endswith("-folded-subtitle")
+                text.get_gid() == "success-temporal-panel-subtitle"
+                or str(text.get_gid()).endswith("-folded-subtitle")
                 for text in axis.texts
             )
-        folded_station_subtitle = next(
-            text
-            for text in folded_station.texts
-            if text.get_gid() == "success-temporal-station-folded-subtitle"
-        )
-        folded_opportunity_subtitle = next(
-            text
-            for text in folded_opportunity.texts
-            if (
-                text.get_gid()
-                == "success-temporal-opportunity-folded-subtitle"
-            )
-        )
-        assert folded_station_subtitle.get_text() == labels[
-            "station_support_folded_subtitle"
-        ]
-        assert folded_opportunity_subtitle.get_text() == labels[
-            "opportunity_folded_subtitle"
-        ]
         assert chronological_header.get_text() == labels[
             "evidence_chronological_title"
         ].format(time_bin="1 h")
@@ -2615,28 +2758,11 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
             )
             / 2.0
         )
-        expected_subtitles = {
-            chronological_snr: labels[
-                "snr_chronological_subtitle"
-            ].format(time_bin="1 h"),
-            folded_snr: labels["snr_utc_hour_subtitle"],
-        }
         compare_title_by_success_axis = {
             chronological_snr: compare_chronological.title,
             folded_snr: compare_folded.title,
         }
-        snr_renderer = snr_figure.canvas.get_renderer()
-        suptitle_bounds = snr_figure._suptitle.get_window_extent(snr_renderer)
-        for axis, expected_subtitle in expected_subtitles.items():
-            subtitle = _panel_subtitle(axis)
-            legend_text = axis.get_legend().get_texts()[0]
-            compare_title = compare_title_by_success_axis[axis]
-            assert subtitle.get_text() == expected_subtitle
-            assert subtitle.get_fontsize() < axis.title.get_fontsize()
-            assert subtitle.get_fontsize() == legend_text.get_fontsize()
-            assert subtitle.get_fontweight() == legend_text.get_fontweight()
-            assert subtitle.get_fontfamily() == legend_text.get_fontfamily()
-            assert subtitle.get_fontstyle() == legend_text.get_fontstyle()
+        for axis, compare_title in compare_title_by_success_axis.items():
             assert axis.title.get_fontsize() == compare_title.get_fontsize()
             assert axis.title.get_fontweight() == compare_title.get_fontweight()
             assert axis.title.get_color() == compare_title.get_color()
@@ -2645,13 +2771,6 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
                 axis.title.get_fontsize()
                 < snr_figure._suptitle.get_fontsize()
             )
-            title_bounds = axis.title.get_window_extent(snr_renderer)
-            subtitle_bounds = subtitle.get_window_extent(snr_renderer)
-            figure_to_title_gap = suptitle_bounds.y0 - title_bounds.y1
-            title_to_subtitle_gap = (
-                title_bounds.y0 - subtitle_bounds.y1
-            )
-            assert figure_to_title_gap > title_to_subtitle_gap >= 0.0
 
         for header, compare_title in (
             (chronological_header, compare_chronological.title),
@@ -2735,11 +2854,15 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
         assert chronological_snr.get_ylabel() == labels["snr_anomaly_y"]
         assert folded_snr.get_ylabel() == labels["snr_anomaly_y"]
         assert chronological_station.get_ylabel() == labels["station_vote_y"]
-        assert folded_station.get_ylabel() == labels["station_vote_y"]
-        assert labels["station_support_folded_y"] == labels["station_vote_y"]
+        assert folded_station.get_ylabel() == labels[
+            "station_support_folded_y"
+        ]
+        assert labels["station_support_folded_y"] != labels["station_vote_y"]
         assert chronological_opportunity.get_ylabel() == labels["opportunity_y"]
-        assert folded_opportunity.get_ylabel() == labels["opportunity_y"]
-        assert labels["opportunity_folded_y"] == labels["opportunity_y"]
+        assert folded_opportunity.get_ylabel() == labels[
+            "opportunity_folded_y"
+        ]
+        assert labels["opportunity_folded_y"] != labels["opportunity_y"]
         assert chronological_station.get_xlabel() == ""
         assert folded_station.get_xlabel() == ""
         assert chronological_opportunity.get_xlabel() == labels["time_x"]
@@ -2803,12 +2926,6 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
             axis.get_window_extent(evidence_renderer)
             for axis in (chronological_station, folded_station)
         ]
-        folded_station_subtitle_bounds = (
-            folded_station_subtitle.get_window_extent(evidence_renderer)
-        )
-        folded_opportunity_subtitle_bounds = (
-            folded_opportunity_subtitle.get_window_extent(evidence_renderer)
-        )
         assert evidence_suptitle_bounds.y0 > evidence_legend_bounds.y1
         assert evidence_legend_bounds.y0 > max(
             bounds.y1 for bounds in header_bounds
@@ -2817,16 +2934,8 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
             bounds.y1 for bounds in top_axis_bounds
         )
         assert (
-            folded_header.get_window_extent(evidence_renderer).y0
-            > folded_station_subtitle_bounds.y1
-            >= folded_station.get_window_extent(evidence_renderer).y1
-        )
-        assert folded_opportunity_subtitle_bounds.y0 == pytest.approx(
-            folded_opportunity.get_window_extent(evidence_renderer).y1
-        )
-        assert (
             folded_station.get_window_extent(evidence_renderer).y0
-            > folded_opportunity_subtitle_bounds.y1
+            > folded_opportunity.get_window_extent(evidence_renderer).y1
         )
         assert labels["utc_dates_folded"].format(count=2) in {
             text.get_text() for text in folded_snr.texts
@@ -3112,9 +3221,10 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
                 text.get_gid() == "success-temporal-panel-subtitle"
                 for text in axis.texts
             )
-        assert _panel_subtitle(chronological_snr).get_text() == labels[
-            "snr_chronological_subtitle"
-        ].format(time_bin="1 h")
+        assert not any(
+            text.get_gid() == "success-temporal-panel-subtitle"
+            for text in chronological_snr.texts
+        )
         assert chronological_header.get_text() == labels[
             "evidence_chronological_title"
         ].format(time_bin="1 h")
@@ -3253,6 +3363,17 @@ def test_success_temporal_lower_folded_column_uses_upper_colorbar_footprint(
             evidence_figure,
             "success-temporal-observation-level-folded-rate-axis",
         )
+        for folded_axis in (station_folded, opportunity_folded):
+            assert not any(
+                str(text.get_gid()).endswith("-folded-subtitle")
+                for text in folded_axis.texts
+            )
+        assert station_folded.get_ylabel() == success_recipe["labels"][
+            "station_support_folded_y"
+        ]
+        assert opportunity_folded.get_ylabel() == success_recipe["labels"][
+            "opportunity_folded_y"
+        ]
 
         for lower_axis in (
             station_chronological,
@@ -3437,9 +3558,7 @@ def test_selected_success_actual_snr_labels_retire_anomaly_wording(language):
         str(labels[key])
         for key in (
             "selected_snr_chronological_title",
-            "selected_snr_chronological_subtitle",
             "selected_snr_utc_hour_title",
-            "selected_snr_utc_hour_subtitle",
             "selected_snr_y",
             "selected_snr_density",
             "selected_snr_unavailable",

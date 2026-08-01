@@ -216,9 +216,11 @@ fields; neither owns a separate scientific configuration. The selected
 `input_view` and Guided navigation choices are transient session UI state and
 are not added to the version-1 saved-config contract. Correction mode is durable
 operator/configuration provenance rather than navigation state: both editors
-preserve it, Guided renders its choice from the canonical mode, and Classic
-numeric edits generically select `established_offset` when a nonzero value is
-entered. Only the numeric correction enters `AnalysisContext` and scientific
+preserve it, Guided renders its choice from the canonical mode, and the shared
+Classic/Guided correction text field accepts point-decimal input, normalizes it
+into the canonical numeric value, and generically selects `established_offset`
+when a nonzero value is entered. Only the numeric correction enters
+`AnalysisContext` and scientific
 request identity. Guided reconstructs its question branch from canonical values
 after loading a personal configuration or demo. Its order and conditions come
 from the schema-validated

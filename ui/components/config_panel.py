@@ -6,6 +6,8 @@ Separating this from app.py keeps the main orchestrator file clean and focused.
 
 from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
+import math
+import re
 from string import punctuation
 
 import streamlit as st
@@ -36,6 +38,16 @@ from ui.callbacks import (
 _PROFILE_TITLE_MARKDOWN_ESCAPES = str.maketrans(
     {character: f"\\{character}" for character in punctuation}
 )
+_REFERENCE_CORRECTION_TEXT_KEY = "_val_benchmark_offset_db_text"
+_REFERENCE_CORRECTION_SYNCED_VALUE_KEY = (
+    "_val_benchmark_offset_db_text_synced_value"
+)
+_REFERENCE_CORRECTION_ERROR_KEY = "_val_benchmark_offset_db_text_error"
+_REFERENCE_CORRECTION_DECIMAL_PATTERN = re.compile(
+    r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$"
+)
+_REFERENCE_CORRECTION_MIN_DB = -99.9
+_REFERENCE_CORRECTION_MAX_DB = 99.9
 
 
 def _resolve_loaded_profile_text(profile, field, language):
@@ -103,11 +115,50 @@ def _normalize_reference_correction_state(
     callback_args=(),
     callback_kwargs=None,
 ):
-    """Normalize the correction value and preserve its explicit semantic mode."""
-    correction_db = round(
-        float(st.session_state.get("val_benchmark_offset_db", 0.0)),
-        1,
-    )
+    """Parse decimal-point text and preserve the correction's semantic mode."""
+    correction_text = st.session_state.get(_REFERENCE_CORRECTION_TEXT_KEY)
+    if correction_text is None:
+        correction_db = round(
+            float(st.session_state.get("val_benchmark_offset_db", 0.0)),
+            1,
+        )
+    else:
+        normalized_text = str(correction_text).strip()
+        if not normalized_text:
+            correction_db = 0.0
+        elif _REFERENCE_CORRECTION_DECIMAL_PATTERN.fullmatch(normalized_text):
+            correction_db = round(float(normalized_text), 1)
+            if (
+                not math.isfinite(correction_db)
+                or correction_db < _REFERENCE_CORRECTION_MIN_DB
+                or correction_db > _REFERENCE_CORRECTION_MAX_DB
+            ):
+                correction_db = None
+        else:
+            correction_db = None
+
+        if correction_db is None:
+            retained_correction_db = round(
+                float(st.session_state.get("val_benchmark_offset_db", 0.0)),
+                1,
+            )
+            st.session_state[_REFERENCE_CORRECTION_TEXT_KEY] = (
+                ""
+                if retained_correction_db == 0.0
+                else f"{retained_correction_db:.1f}"
+            )
+            st.session_state[_REFERENCE_CORRECTION_SYNCED_VALUE_KEY] = (
+                retained_correction_db
+            )
+            st.session_state[_REFERENCE_CORRECTION_ERROR_KEY] = True
+            return
+
+        st.session_state[_REFERENCE_CORRECTION_TEXT_KEY] = (
+            "" if correction_db == 0.0 else f"{correction_db:.1f}"
+        )
+        st.session_state[_REFERENCE_CORRECTION_SYNCED_VALUE_KEY] = correction_db
+        st.session_state.pop(_REFERENCE_CORRECTION_ERROR_KEY, None)
+
     st.session_state.val_benchmark_offset_db = correction_db
     correction_mode = st.session_state.get("val_snr_correction_mode")
     if correction_db != 0.0:
@@ -627,13 +678,28 @@ def render_reference_correction_field(
     help_text=None,
 ):
     """Render the shared Reference-side SNR correction field."""
-    st.number_input(
+    correction_db = round(
+        float(st.session_state.get("val_benchmark_offset_db", 0.0)),
+        1,
+    )
+    synced_correction_db = st.session_state.get(
+        _REFERENCE_CORRECTION_SYNCED_VALUE_KEY
+    )
+    if (
+        _REFERENCE_CORRECTION_TEXT_KEY not in st.session_state
+        or synced_correction_db != correction_db
+    ):
+        st.session_state[_REFERENCE_CORRECTION_TEXT_KEY] = (
+            "" if correction_db == 0.0 else f"{correction_db:.1f}"
+        )
+        st.session_state[_REFERENCE_CORRECTION_SYNCED_VALUE_KEY] = correction_db
+        st.session_state.pop(_REFERENCE_CORRECTION_ERROR_KEY, None)
+
+    st.text_input(
         t["lbl_benchmark_offset_db"],
-        min_value=-99.9,
-        max_value=99.9,
-        step=0.1,
-        format="%.1f",
-        key="val_benchmark_offset_db",
+        key=_REFERENCE_CORRECTION_TEXT_KEY,
+        placeholder="0.0",
+        autocomplete="off",
         help=help_text or t["hlp_benchmark_offset_db"],
         on_change=_normalize_reference_correction_state,
         args=(
@@ -642,6 +708,8 @@ def render_reference_correction_field(
             {},
         ),
     )
+    if st.session_state.pop(_REFERENCE_CORRECTION_ERROR_KEY, False):
+        st.error(t["err_benchmark_offset_db"])
 
 
 def render_reference_design_fields(

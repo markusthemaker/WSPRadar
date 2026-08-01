@@ -158,6 +158,25 @@ def test_show_zero_target_is_recorded_and_changes_export_signature(monkeypatch):
     ) != results_export._export_signature({"RX_ABS": shown_block})
 
 
+def test_temporal_snr_render_version_changes_export_signature(monkeypatch):
+    """Invalidate prepared ZIPs when temporal SNR rendering changes on reload."""
+    blocks = {
+        "RX_ABS": {
+            "analysis_id": "RX_ABS",
+            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        }
+    }
+
+    monkeypatch.setattr(results_export, "TEMPORAL_SNR_EXPORT_RENDER_VERSION", 2)
+    version_two_signature = results_export._export_signature(blocks)
+    version_two_payload = json.loads(version_two_signature)
+    monkeypatch.setattr(results_export, "TEMPORAL_SNR_EXPORT_RENDER_VERSION", 3)
+
+    assert version_two_payload[0]["temporal_snr_export_render_version"] == 2
+    assert version_two_signature != results_export._export_signature(blocks)
+
+
 def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
     """Preserve operator correction provenance beside its scientific value."""
     monkeypatch.setattr(

@@ -11,6 +11,8 @@ from core.analysis_context import (
     COMPARISON_REFERENCE_STATION,
     LOCAL_BENCHMARK_BEST,
 )
+from ui.reference_correction import configured_snr_correction_notice
+
 
 @dataclass(frozen=True)
 class ResultContext:
@@ -21,6 +23,7 @@ class ResultContext:
     metadata: str
     evidence_path_label: str
     evidence_path: str
+    configured_snr_correction: str = ""
 
 
 def _escaped(value):
@@ -172,23 +175,37 @@ def build_result_context(
         if is_compare
         else "txt_results_evidence_path_success"
     )
+    correction_notice = configured_snr_correction_notice(
+        analysis_context,
+        translations,
+        is_compare=is_compare,
+        is_sequential=bool(analysis.get("is_sequential")),
+    )
     return ResultContext(
         title=title,
         subtitle=subtitle,
         metadata=metadata,
         evidence_path_label=translations["lbl_results_evidence_path"],
         evidence_path=translations[evidence_path_key],
+        configured_snr_correction=correction_notice,
     )
 
 
 def result_context_html(context):
     """Render one completed run context as semantic, escaped HTML."""
+    correction_html = (
+        "<p class='result-context-meta result-context-correction'>"
+        f"{_escaped(context.configured_snr_correction)}</p>"
+        if context.configured_snr_correction
+        else ""
+    )
     return (
         "<section class='result-context-header' aria-label='"
         f"{_escaped(context.title)}'>"
         f"<h2 class='result-context-title'>{_escaped(context.title)}</h2>"
         f"<p class='result-context-subtitle'>{_escaped(context.subtitle)}</p>"
         f"<p class='result-context-meta'>{_escaped(context.metadata)}</p>"
+        f"{correction_html}"
         "<p class='result-evidence-path'>"
         f"<span class='result-evidence-path-label'>"
         f"{_escaped(context.evidence_path_label)}</span>"

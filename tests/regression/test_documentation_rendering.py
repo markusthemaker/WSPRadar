@@ -380,10 +380,10 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "RX Performance Temporal Evidence: Target {callsign}",
         "Evidence over Time ({time_bin} bins)",
         "Evidence by UTC Hour (1 h bins)",
-        "Average contributing station presences per represented UTC date",
-        "Average confirmed opportunities per represented UTC date",
-        "short **TX Stations** or **RX Stations** y-axis title",
-        "short **Opportunities** y-axis title",
+        "folded station row uses the denominator-explicit **Avg. TX Stations / Represented UTC Date**",
+        "folded row uses the denominator-explicit **Avg. Opportunities / Represented UTC Date**",
+        "chronological station-balanced upper row keeps the short **TX Stations** or **RX Stations** y-axis title",
+        "chronological lower row keeps the short **Opportunities** y-axis title",
         "every contributing qualifying station gives one total vote",
         "right-axis line is the Station-balanced Decode Rate",
         "counts every confirmed opportunity once",
@@ -432,10 +432,10 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "RX Performance — Zeitliche Evidenz: Target {callsign}",
         "Evidenz im Zeitverlauf ({time_bin}-Bins)",
         "Evidenz nach UTC-Stunde (1-h-Bins)",
-        "Durchschnittliche Stationspräsenzen pro berücksichtigtem UTC-Tag",
-        "Durchschnittliche bestätigte Gelegenheiten pro berücksichtigtem UTC-Tag",
-        "kurzen y-Achsentitel **TX-Stationen** beziehungsweise **RX-Stationen**",
-        "kurzen y-Achsentitel **Gelegenheiten**",
+        "gefaltete Stationszeile mit **Ø TX-Stationen je berücksichtigtem UTC-Tag**",
+        "gefaltete Zeile mit **Ø Gelegenheiten je berücksichtigtem UTC-Tag**",
+        "chronologische stationsgleichgewichtete obere Zeile behält den kurzen y-Achsentitel **TX-Stationen** beziehungsweise **RX-Stationen**",
+        "chronologische untere Zeile behält den kurzen y-Achsentitel **Gelegenheiten**",
         "eine Gesamtstimme ab",
         "Linie an der rechten Achse zeigt die stationsgleichgewichtete Dekodierrate",
         "zählt jede bestätigte Gelegenheit chronologisch einmal",
@@ -483,6 +483,8 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "Confirmed Opportunities over Time/by UTC Hour",
         "The folded opportunity subtitle therefore reads",
         "**Average per represented UTC date**",
+        "Average contributing station presences per represented UTC date",
+        "Average confirmed opportunities per represented UTC date",
         "rather than being repeated as temporal lines",
         "implicitly rather than as percentage lines",
         "stacks the raw Target and counter-evidence counts",
@@ -501,6 +503,8 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "Bestätigte Gelegenheiten im Zeitverlauf/nach UTC-Stunde",
         "Der Untertitel des gefalteten Gelegenheits-Panels lautet",
         "**Durchschnitt pro berücksichtigtem UTC-Tag**",
+        "Durchschnittliche Stationspräsenzen pro berücksichtigtem UTC-Tag",
+        "Durchschnittliche bestätigte Gelegenheiten pro berücksichtigtem UTC-Tag",
         "statt als Zeitlinien wiederholt zu werden",
         "implizit statt als Prozentlinien",
         "stapelt stattdessen die rohen Anzahlen",
@@ -860,6 +864,47 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
         assert "figure_segment_temporal_evidence.png" in documentation_text
 
 
+def test_bilingual_manuals_define_temporal_iqr_science_and_axis_contract():
+    """Pin raw quartiles, all four SNR populations, support, and full ranges."""
+    english_contract = (
+        "same raw Joint-Spot or complete-Scheduled-Pair values before integer heatmap binning",
+        "medians and quartiles remain raw-dB statistics",
+        "chronological density receives at most one station-bin median per station and selected time bin",
+        "folded density receives one station-date-hour median per station, UTC date and UTC hour",
+        "chronological density receives every retained successful observation from that path",
+        "folded density first forms one median for every represented UTC date and UTC hour",
+        "Q1 and Q3 are computed from those same unrounded contributed values",
+        "drawn as fine rails only where at least five values contribute",
+        "each rail pair requires at least five Joint Spots or complete Scheduled Pairs in its bin",
+        "Its Q1–Q3 rails use those same unrounded observations and require at least five in the bin",
+        "from five represented-date values onward",
+        "The linear y-axis continues to include the complete finite SNR envelope; the quartiles do not set or clip its limits",
+        "do not alter the full finite evidence envelope used by the axis",
+        "one linear actual-SNR range covering the complete finite population",
+    )
+    german_contract = (
+        "dieselben rohen Werte der Joint Spots beziehungsweise vollständigen Scheduled Pairs vor der Rundung",
+        "Mediane und Quartile bleiben Statistiken aus untransformierten dB-Werten",
+        "je Station und gewähltem Zeit-Bin höchstens ein Stations-Bin-Median",
+        "je Station, UTC-Datum und UTC-Stunde ein Stations-Datum-Stunden-Median",
+        "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs",
+        "bildet zunächst einen Median für jedes berücksichtigte UTC-Datum und jede UTC-Stunde",
+        "Q1 und Q3 werden aus denselben ungerundeten beitragenden Werten berechnet",
+        "nur bei mindestens fünf Werten als feine Linien gezeichnet",
+        "jedes Linienpaar erfordert mindestens fünf Joint Spots beziehungsweise vollständige Scheduled Pairs im Bin",
+        "verwenden dieselben ungerundeten Beobachtungen und erfordern mindestens fünf Werte im Bin",
+        "ab fünf berücksichtigten Tageswerten Q1–Q3-Linien",
+        "Die lineare y-Achse umfasst weiterhin die vollständige endliche SNR-Spanne; die Quartile bestimmen oder beschneiden ihre Grenzen nicht",
+        "sie verändern nicht die vollständige endliche Evidenzspanne der Achse",
+        "einen gemeinsamen linearen Wertebereich des tatsächlichen SNR, der die vollständige endliche Population umfasst",
+    )
+
+    for required_text in english_contract:
+        assert required_text in DOC_EN
+    for required_text in german_contract:
+        assert required_text in DOC_DE
+
+
 def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
     """Keep the map label and manual aligned with the signed stepped dB scale."""
     assert T["en"]["cbar_comp"] == "Station-balanced median \u0394SNR (dB)"
@@ -868,25 +913,39 @@ def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
         == "Stationsgleichgewichteter Median des \u0394SNR (dB)"
     )
     assert "symmetric stepped dB color scale" in DOC_EN
-    assert "plum-to-mint sectors have negative Delta SNR" in DOC_EN
-    assert "yellow-to-chestnut sectors have positive Delta SNR" in DOC_EN
+    assert "deep-navy-to-teal sectors have negative Delta SNR" in DOC_EN
+    assert "ochre-to-chestnut sectors have positive Delta SNR" in DOC_EN
     assert "Light yellow-green marks the display-neutral interval" in DOC_EN
     assert "display-neutral interval centered on `0 dB`" in DOC_EN
-    assert "a `3 dB` scale uses `-1.5 dB` through `+1.5 dB`" in DOC_EN
+    assert "active whole-dB color step" in DOC_EN
+    assert "rather than a claim of sub-dB measurement resolution" in DOC_EN
     assert "Only exactly `0 dB` means equality" in DOC_EN
-    assert "No fixed headroom is added" in DOC_EN
-    assert "outer half-bin provides the natural margin" in DOC_EN
+    assert "`max(1, ceil(A / 6)) dB`" in DOC_EN
+    assert "outer labelled tick is the smallest multiple" in DOC_EN
+    assert "at most 13 color classes" in DOC_EN
+    assert "color-bin boundaries extend a further half-step" in DOC_EN
     assert "never narrows below `-6 dB` to `+6 dB`" in DOC_EN
     assert "symmetrische, abgestufte dB-Farbskala" in DOC_DE
-    assert "Pflaumen- bis Minttöne kennzeichnen ein negatives Delta SNR" in DOC_DE
-    assert "Gelb- bis Kastanientöne kennzeichnen ein positives Delta SNR" in DOC_DE
+    assert "Dunkelblau- bis Petroltöne kennzeichnen ein negatives Delta SNR" in DOC_DE
+    assert "Ocker- bis Kastanientöne kennzeichnen ein positives Delta SNR" in DOC_DE
     assert "Helles Gelbgrün markiert das um `0 dB` zentrierte" in DOC_DE
     assert "um `0 dB` zentrierte darstellungsneutrale Intervall" in DOC_DE
-    assert "eine `3-dB`-Skala verwendet beispielsweise `-1,5 dB` bis einschließlich `+1,5 dB`" in DOC_DE
+    assert "aktiven ganzzahligen dB-Farbschrittweite" in DOC_DE
+    assert "keine Aussage über eine Messauflösung unterhalb von `1 dB`" in DOC_DE
     assert "Nur genau `0 dB` bedeutet Gleichheit" in DOC_DE
-    assert "keine feste Reserve hinzugefügt" in DOC_DE
-    assert "äußere halbe Intervall bildet den natürlichen Rand" in DOC_DE
+    assert "`max(1, ceil(A / 6)) dB`" in DOC_DE
+    assert "äußerste beschriftete Skalenwert ist das kleinste Vielfache" in DOC_DE
+    assert "höchstens 13 Farbklassen" in DOC_DE
+    assert "Grenzen der Farbintervalle reichen einen weiteren halben Schritt" in DOC_DE
     assert "nie enger als `-6 dB` bis `+6 dB`" in DOC_DE
+    for obsolete_scale_text in (
+        "No fixed headroom is added",
+        "outer half-bin provides the natural margin",
+        "keine feste Reserve hinzugefügt",
+        "äußere halbe Intervall bildet den natürlichen Rand",
+    ):
+        assert obsolete_scale_text not in DOC_EN
+        assert obsolete_scale_text not in DOC_DE
     for obsolete_text in ("S-unit", "1S=6dB", "S-Stufe"):
         assert obsolete_text not in DOC_EN
         assert obsolete_text not in DOC_DE

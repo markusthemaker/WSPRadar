@@ -63,6 +63,7 @@ from ui.url_state import build_share_url
 COMPARE_EXPORT_FOLDER = "compare"
 SUCCESS_EXPORT_FOLDER = "success"
 EXPORTABLE_RESULT_FOLDERS = frozenset({COMPARE_EXPORT_FOLDER, SUCCESS_EXPORT_FOLDER})
+TEMPORAL_SNR_EXPORT_RENDER_VERSION = 3
 COMPARE_EVIDENCE_FIGURE_EXPORTS = (
     (
         "figure_segment_temporal_coverage.png",
@@ -656,11 +657,14 @@ def _table_signature_value(df):
 
 
 def _export_signature(blocks):
-    """Return a compact fingerprint for the currently registered export state."""
+    """Return a compact fingerprint for registered state and render contracts."""
     payload = []
     for key, block in sorted(blocks.items()):
         payload.append({
             "key": key,
+            "temporal_snr_export_render_version": (
+                TEMPORAL_SNR_EXPORT_RENDER_VERSION
+            ),
             "analysis_id": block.get("analysis_id"),
             "title": block.get("title"),
             "mode_folder": block.get("mode_folder"),

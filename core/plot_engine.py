@@ -29,7 +29,6 @@ from config import (
     COMPARE_MAP_COLORS,
     COMPARE_MAP_HEATMAP_ALPHA,
     COMPARE_MAP_MINIMUM_HALF_SPAN_DB,
-    COMPARE_MAP_TICK_STEPS_DB,
     FONT_CBAR,
     FONT_FOOTER,
     FONT_LEGEND,
@@ -156,64 +155,35 @@ def _format_compare_map_tick(value_db):
     return "0"
 
 
-def _compare_map_positive_tick_count(maximum_absolute_db, tick_step_db):
-    """
-    Return the fewest positive ticks that contain the visible Compare values.
-
-    The nominal ticks never narrow below +/-6 dB. Containment includes the
-    natural half-step beyond the outer tick, so exact boundary values do not
-    force an otherwise empty color tier.
-    """
-    minimum_scale_tick_count = int(
-        np.ceil(COMPARE_MAP_MINIMUM_HALF_SPAN_DB / tick_step_db)
+def _compare_map_tick_layout(maximum_absolute_db):
+    """Return the finest whole-dB layout whose labelled ticks contain the data."""
+    maximum_absolute_db = max(0.0, float(maximum_absolute_db))
+    required_half_span_db = max(
+        COMPARE_MAP_MINIMUM_HALF_SPAN_DB,
+        maximum_absolute_db,
     )
-    data_tick_count = max(
-        0,
-        int(np.ceil((maximum_absolute_db / tick_step_db) - 0.5)),
+    maximum_positive_tick_count = max(
+        1,
+        (COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT - 1) // 2,
+    )
+    tick_step_db = float(
+        max(
+            1,
+            int(
+                np.ceil(
+                    required_half_span_db / maximum_positive_tick_count
+                )
+            ),
+        )
     )
     positive_tick_count = max(
         1,
-        minimum_scale_tick_count,
-        data_tick_count,
+        int(np.ceil(required_half_span_db / tick_step_db)),
     )
-    outer_boundary_db = (positive_tick_count + 0.5) * tick_step_db
-    if outer_boundary_db < maximum_absolute_db:
-        positive_tick_count += 1
-    return positive_tick_count
-
-
-def _compare_map_tick_layout(maximum_absolute_db):
-    """Return the finest readable tick layout containing every finite value."""
-    maximum_absolute_db = max(0.0, float(maximum_absolute_db))
-    for tick_step_db in COMPARE_MAP_TICK_STEPS_DB:
-        positive_tick_count = _compare_map_positive_tick_count(
-            maximum_absolute_db,
-            tick_step_db,
-        )
-        if (
-            (2 * positive_tick_count) + 1
-            <= COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT
-        ):
-            return (
-                float(positive_tick_count * tick_step_db),
-                float(tick_step_db),
-            )
-
-    tick_step_db = COMPARE_MAP_TICK_STEPS_DB[-1]
-    while True:
-        positive_tick_count = _compare_map_positive_tick_count(
-            maximum_absolute_db,
-            tick_step_db,
-        )
-        if (
-            (2 * positive_tick_count) + 1
-            <= COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT
-        ):
-            return (
-                float(positive_tick_count * tick_step_db),
-                float(tick_step_db),
-            )
-        tick_step_db *= 2.0
+    return (
+        float(positive_tick_count * tick_step_db),
+        tick_step_db,
+    )
 
 
 def _compare_map_bin_boundaries(half_span_db, tick_step_db):
@@ -245,11 +215,12 @@ def _build_compare_map_color_scale(segment_values):
     """
     Build the presentation-only Compare scale from rendered sector medians.
 
-    The outer half-bin contains every finite sector value without fixed
-    headroom. Nominal ticks remain symmetric around equality and never narrow
-    below -6 to +6 dB. Discrete soft-matte colors run from plum, periwinkle,
-    blue, turquoise and mint through a light yellow-green neutral band to
-    yellow, apricot, coral, brick red and chestnut. Negative Delta SNR favors
+    The outer labelled ticks contain every finite sector value. Whole-dB steps
+    retain as many equal-width color classes as the configured tick limit
+    permits, while the nominal range remains symmetric around equality and
+    never narrows below -6 to +6 dB. Discrete soft-matte colors run from deep
+    navy through blue and teal to a light yellow-green neutral band, then
+    through ochre, orange, brick red and chestnut. Negative Delta SNR favors
     Reference and positive Delta SNR favors Target.
     """
     numeric_values = np.asarray(segment_values, dtype=float).reshape(-1)

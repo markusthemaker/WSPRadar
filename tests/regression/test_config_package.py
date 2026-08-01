@@ -61,7 +61,7 @@ EXPECTED_DEMO_FILENAMES = [
 ]
 EXPECTED_DEMO_PROFILE_IDS = [
     "griffiths_squibb_fig3",
-    "griffiths_squibb_performance",
+    "griffiths_squibb_rx_performance",
     "griffiths_squibb_fig6",
     "vanhamel_rx_calibration",
     "vanhamel_rx_buddy",
@@ -74,7 +74,7 @@ EXPECTED_DEMO_PROFILE_IDS = [
 ]
 EXPECTED_DEMO_SNR_CORRECTION_MODES = {
     "griffiths_squibb_fig3": "no_offset",
-    "griffiths_squibb_performance": None,
+    "griffiths_squibb_rx_performance": None,
     "griffiths_squibb_fig6": "no_offset",
     "vanhamel_rx_calibration": "establish_offset",
     "vanhamel_rx_buddy": "established_offset",

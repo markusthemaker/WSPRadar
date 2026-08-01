@@ -48,16 +48,16 @@ SUCCESS_MAP_LEGEND_BBOX = (0.985, 0.90)
 SUCCESS_MAP_FOOTER_BBOX = (0.14, 0.047, 0.83, 0.045)
 
 COMPARE_MAP_COLORS = (
-    "#6e4c8f",
-    "#6576b8",
-    "#5c9bc7",
-    "#55b9c0",
-    "#8bcb9a",
+    "#081a3a",
+    "#143f6a",
+    "#236a8f",
+    "#4697a8",
+    "#83c0ac",
     "#c9e5a3",
-    "#f4e58a",
-    "#efb56f",
-    "#df7f68",
-    "#b85d5f",
+    "#e9c46a",
+    "#e39a57",
+    "#d27350",
+    "#b15246",
     "#7c5341",
 )
 COMPARE_MAP_CBAR_BBOX = (0.87, 0.20, 0.03, 0.55)
@@ -66,16 +66,3 @@ COMPARE_MAP_COLORBAR_DIVIDER_ALPHA = 0.35
 COMPARE_MAP_COLORBAR_DIVIDER_LINEWIDTH = 0.45
 COMPARE_MAP_MINIMUM_HALF_SPAN_DB = 6.0
 COMPARE_MAP_ADAPTIVE_MAXIMUM_TICK_COUNT = 13
-COMPARE_MAP_TICK_STEPS_DB = (
-    1.0,
-    3.0,
-    6.0,
-    10.0,
-    20.0,
-    30.0,
-    60.0,
-    100.0,
-    200.0,
-    300.0,
-    600.0,
-)

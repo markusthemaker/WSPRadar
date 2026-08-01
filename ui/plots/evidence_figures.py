@@ -20,8 +20,14 @@ from core.evidence_statistics import (
 EVIDENCE_AGG_COLOR = "#36aaf9"
 STATION_EVIDENCE_HATCH = "//////"
 SEGMENT_FIGURE_BOTTOM = 0.15
+SEGMENT_FIGURE_BASE_HEIGHT_INCHES = 5.6
 SEGMENT_FIGURE_FOOTER_Y = 0.055
-SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES = (13.0, 5.6)
+SEGMENT_INSIGHT_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES = 0.2
+SEGMENT_TEMPORAL_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES = 0.3
+SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES = (
+    13.0,
+    SEGMENT_FIGURE_BASE_HEIGHT_INCHES,
+)
 SEGMENT_TEMPORAL_FIGURE_LEFT = 0.07
 SEGMENT_TEMPORAL_FIGURE_RIGHT = 0.95
 SEGMENT_TEMPORAL_FIGURE_TOP = 0.82
@@ -43,6 +49,7 @@ EVIDENCE_HEATMAP_CMAP.set_bad((0, 0, 0, 0))
 EVIDENCE_DENSITY_MIN = 0.0
 EVIDENCE_DENSITY_MAX = 100.0
 TEMPORAL_MEDIAN_LINK_MIN_COUNT = 3
+TEMPORAL_IQR_MIN_COUNT = 5
 FOLDED_UTC_UNAVAILABLE_WRAP_WIDTH = 34
 FOLDED_UTC_UNAVAILABLE_DETAIL_WRAP_WIDTH = 30
 GRID_COLOR = "#777777"
@@ -51,6 +58,8 @@ GRID_ALPHA = 0.35
 TEMPORAL_GUIDE_COLOR = "#d0d0d0"
 TEMPORAL_ZERO_LINE_COLOR = "#f4f1e8"
 TEMPORAL_ZERO_UNDERSTROKE_COLOR = "#050505"
+TEMPORAL_IQR_COLOR = "#f4f7f8"
+TEMPORAL_IQR_UNDERSTROKE_COLOR = "#050505"
 METRIC_MEDIAN_COLOR = "red"
 METRIC_MEDIAN_LINESTYLE = "dashed"
 METRIC_MEDIAN_LINEWIDTH = 1.0
@@ -464,6 +473,16 @@ def _apply_compare_median_focus_axis(
         )
         if bin_median_markers is not None:
             legend_handles.append(bin_median_markers)
+        bin_iqr_handle = next(
+            (
+                line
+                for line in ax.lines
+                if line.get_gid() == "temporal-bin-iqr-q3"
+            ),
+            None,
+        )
+        if bin_iqr_handle is not None:
+            legend_handles.append(bin_iqr_handle)
         _place_metric_legend_top_right(ax, handles=legend_handles)
 
 def _apply_minimum_metric_yspan(ax, center=None):
@@ -523,6 +542,56 @@ def _place_metric_legend_top_right(ax, *, handles=None):
         loc="upper right",
         borderaxespad=0.0,
         gid="compare-metric-summary-legend",
+    )
+
+
+def _add_reference_snr_correction_footer(figure, notice):
+    """Place a configured Reference-SNR correction on the shared footer row."""
+    if not notice:
+        return None
+    annotation = figure.text(
+        0.02,
+        _figure_footer_y(figure),
+        str(notice),
+        color="#cfcfcf",
+        fontsize=METRIC_LEGEND_FONTSIZE,
+        fontfamily=METRIC_FONT_FAMILY,
+        fontweight="normal",
+        ha="left",
+        va="bottom",
+    )
+    annotation.set_gid("reference-snr-correction-notice")
+    return annotation
+
+
+def _figure_height_for_reference_correction(
+    notice,
+    *,
+    added_height_inches,
+):
+    """Add only the canvas height one figure family needs for its footer."""
+    return SEGMENT_FIGURE_BASE_HEIGHT_INCHES + (
+        float(added_height_inches) if notice else 0.0
+    )
+
+
+def _shift_figure_y_above_added_footer(base_y, figure_height_inches):
+    """Translate an original canvas y-position above the added footer strip."""
+    added_height_inches = (
+        float(figure_height_inches) - SEGMENT_FIGURE_BASE_HEIGHT_INCHES
+    )
+    return (
+        float(base_y) * SEGMENT_FIGURE_BASE_HEIGHT_INCHES
+        + added_height_inches
+    ) / float(figure_height_inches)
+
+
+def _figure_footer_y(figure):
+    """Keep the footer baseline at its established physical distance from bottom."""
+    return (
+        SEGMENT_FIGURE_FOOTER_Y
+        * SEGMENT_FIGURE_BASE_HEIGHT_INCHES
+        / float(figure.get_figheight())
     )
 
 
@@ -823,8 +892,122 @@ def _draw_temporal_median_overlay(
     return median_markers
 
 
+def _draw_temporal_iqr_overlay(
+    ax,
+    x_centers,
+    q1_values,
+    q3_values,
+    counts,
+    *,
+    label,
+):
+    """
+    Draw supported temporal Q1/Q3 rails and return their single legend handle.
+
+    A bin contributes only when at least ``TEMPORAL_IQR_MIN_COUNT`` raw values
+    produced both finite quartiles. NaN gaps prevent connectors across
+    unsupported bins, while short horizontal markers keep an isolated
+    supported bin visible.
+    """
+    x_values = np.asarray(x_centers, dtype=float)
+    q1_values = np.asarray(q1_values, dtype=float)
+    q3_values = np.asarray(q3_values, dtype=float)
+    count_values = np.asarray(counts, dtype=float)
+    if not (
+        x_values.shape
+        == q1_values.shape
+        == q3_values.shape
+        == count_values.shape
+    ):
+        raise ValueError("Temporal IQR coordinates and statistics must align")
+
+    supported_bins = (
+        np.isfinite(x_values)
+        & np.isfinite(q1_values)
+        & np.isfinite(q3_values)
+        & np.isfinite(count_values)
+        & (count_values >= TEMPORAL_IQR_MIN_COUNT)
+    )
+    if not supported_bins.any():
+        return None
+
+    supported_q1 = np.where(supported_bins, q1_values, np.nan)
+    supported_q3 = np.where(supported_bins, q3_values, np.nan)
+    common_style = {
+        "marker": "_",
+        "markersize": 4.5,
+        "solid_capstyle": "round",
+    }
+    for quartile_name, quartile_values in (
+        ("q1", supported_q1),
+        ("q3", supported_q3),
+    ):
+        understroke, = ax.plot(
+            x_values,
+            quartile_values,
+            color=TEMPORAL_IQR_UNDERSTROKE_COLOR,
+            linewidth=1.75,
+            markeredgewidth=1.75,
+            alpha=0.82,
+            zorder=3.05,
+            **common_style,
+        )
+        understroke.set_gid(f"temporal-bin-iqr-{quartile_name}-understroke")
+
+    q1_line, = ax.plot(
+        x_values,
+        supported_q1,
+        color=TEMPORAL_IQR_COLOR,
+        linewidth=0.68,
+        markeredgewidth=0.8,
+        alpha=0.94,
+        zorder=3.1,
+        **common_style,
+    )
+    q1_line.set_gid("temporal-bin-iqr-q1")
+    q3_line, = ax.plot(
+        x_values,
+        supported_q3,
+        color=TEMPORAL_IQR_COLOR,
+        linewidth=0.68,
+        markeredgewidth=0.8,
+        alpha=0.94,
+        label=label,
+        zorder=3.1,
+        **common_style,
+    )
+    q3_line.set_gid("temporal-bin-iqr-q3")
+    return q3_line
+
+
+def _temporal_metric_summary(grouped_metrics, complete_bins):
+    """Return raw-value median, count, and quartiles reindexed to all bins."""
+    return (
+        grouped_metrics
+        .agg(
+            median="median",
+            count="count",
+            q1=lambda values: values.quantile(0.25),
+            q3=lambda values: values.quantile(0.75),
+        )
+        .reindex(complete_bins)
+    )
+
+
+def _recipe_uses_authoritative_temporal_iqr(recipe):
+    """Accept temporal-IQR recipe metadata only at the authoritative threshold."""
+    try:
+        recipe_min_count = float(recipe.get("iqr_min_count"))
+    except (TypeError, ValueError):
+        return False
+    return (
+        np.isfinite(recipe_min_count)
+        and recipe_min_count == TEMPORAL_IQR_MIN_COUNT
+    )
+
+
 def _chronological_density_components(work_df, bin_minutes, metric_bins):
-    """Build chronological UTC count and median grids using existing floor alignment."""
+    """Build chronological UTC density and raw metric summaries by time bin."""
     bin_delta = pd.to_timedelta(bin_minutes, unit="min")
     bin_freq = f"{bin_minutes}min"
     chronological_rows = work_df.copy()
@@ -841,20 +1024,18 @@ def _chronological_density_components(work_df, bin_minutes, metric_bins):
         .unstack(fill_value=0)
         .reindex(index=metric_bins, columns=time_bins, fill_value=0)
     )
-    median_df = (
-        chronological_rows
-        .groupby("time_bin", dropna=False)["metric"]
-        .agg(["median", "count"])
-        .reindex(time_bins)
+    summary_df = _temporal_metric_summary(
+        chronological_rows.groupby("time_bin", dropna=False)["metric"],
+        time_bins,
     )
     time_edges = time_bins.append(pd.DatetimeIndex([time_bins[-1] + bin_delta]))
     x_edges = mdates.date2num(time_edges.to_pydatetime())
     x_centers = mdates.date2num((time_bins + (bin_delta / 2)).to_pydatetime())
-    return count_grid, median_df, x_edges, x_centers
+    return count_grid, summary_df, x_edges, x_centers
 
 
 def _folded_utc_hour_density_components(work_df, metric_bins):
-    """Build a fixed 24-column UTC-hour count grid and exact hourly medians."""
+    """Build fixed UTC-hour density and pooled raw metric summaries."""
     folded_rows = work_df.copy()
     folded_rows["utc_hour"] = folded_rows["plot_time"].dt.hour
     utc_hours = pd.Index(range(24), name="utc_hour")
@@ -865,15 +1046,13 @@ def _folded_utc_hour_density_components(work_df, metric_bins):
         .unstack(fill_value=0)
         .reindex(index=metric_bins, columns=utc_hours, fill_value=0)
     )
-    median_df = (
-        folded_rows
-        .groupby("utc_hour", dropna=False)["metric"]
-        .agg(["median", "count"])
-        .reindex(utc_hours)
+    summary_df = _temporal_metric_summary(
+        folded_rows.groupby("utc_hour", dropna=False)["metric"],
+        utc_hours,
     )
     x_edges = np.arange(25, dtype=float)
     x_centers = np.arange(24, dtype=float) + 0.5
-    return count_grid, median_df, x_edges, x_centers
+    return count_grid, summary_df, x_edges, x_centers
 
 
 def _draw_folded_utc_unavailable_annotation(axis, message):
@@ -940,11 +1119,13 @@ def _segment_temporal_evidence_export_recipe(
     median_focus_axis_label,
     median_label,
     bin_median_label,
+    bin_iqr_label,
     chronological_subtitle=None,
     folded_subtitle=None,
     omit_folded_when_unavailable=False,
     show_folded_date_annotation=False,
     kind="segment_compare_temporal",
+    reference_snr_correction_notice="",
 ):
     """Return compact arrays and localized labels for Compare temporal evidence."""
     work_df = _prepare_temporal_metric_rows(plot_df)
@@ -983,7 +1164,7 @@ def _segment_temporal_evidence_export_recipe(
     )
     return {
         "kind": str(kind),
-        "schema_version": 1,
+        "schema_version": 2,
         "title": str(title),
         "time_bin": time_bin,
         "count_label": str(count_label),
@@ -1007,6 +1188,11 @@ def _segment_temporal_evidence_export_recipe(
         "median_focus_axis_label": str(median_focus_axis_label),
         "median_label": str(median_label),
         "bin_median_label": str(bin_median_label),
+        "bin_iqr_label": str(bin_iqr_label),
+        "iqr_min_count": TEMPORAL_IQR_MIN_COUNT,
+        "reference_snr_correction_notice": str(
+            reference_snr_correction_notice or ""
+        ),
         "utc_date_count": utc_date_count,
         "plot_time_ns": (
             work_df["plot_time"]
@@ -1058,6 +1244,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
         recipe.get("median_focus"),
         work_df["metric"],
     )
+    should_draw_iqr = _recipe_uses_authoritative_temporal_iqr(recipe)
 
     time_bin = str(recipe["time_bin"])
     utc_date_count = _temporal_utc_date_count(work_df)
@@ -1084,15 +1271,31 @@ def render_segment_temporal_evidence_export_figure(recipe):
             _folded_utc_hour_density_components(work_df, metric_bins)
         )
 
+    correction_notice = recipe.get("reference_snr_correction_notice", "")
+    figure_height_inches = _figure_height_for_reference_correction(
+        correction_notice,
+        added_height_inches=(
+            SEGMENT_TEMPORAL_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES
+        ),
+    )
     figure = create_agg_figure(
-        figsize=SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES,
+        figsize=(
+            SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES[0],
+            figure_height_inches,
+        ),
         facecolor="black",
     )
     figure.subplots_adjust(
         left=SEGMENT_TEMPORAL_FIGURE_LEFT,
         right=SEGMENT_TEMPORAL_FIGURE_RIGHT,
-        bottom=SEGMENT_FIGURE_BOTTOM,
-        top=SEGMENT_TEMPORAL_FIGURE_TOP,
+        bottom=_shift_figure_y_above_added_footer(
+            SEGMENT_FIGURE_BOTTOM,
+            figure_height_inches,
+        ),
+        top=_shift_figure_y_above_added_footer(
+            SEGMENT_TEMPORAL_FIGURE_TOP,
+            figure_height_inches,
+        ),
         wspace=SEGMENT_TEMPORAL_COLUMN_SPACE,
     )
     grid_spec_kwargs = {"nrows": 1, "ncols": 2 if show_folded_axis else 1}
@@ -1129,6 +1332,15 @@ def render_segment_temporal_evidence_export_figure(recipe):
         chronological_medians,
         label=recipe["bin_median_label"],
     )
+    if should_draw_iqr:
+        _draw_temporal_iqr_overlay(
+            chronological_axis,
+            chronological_centers,
+            chronological_medians["q1"],
+            chronological_medians["q3"],
+            chronological_medians["count"],
+            label=recipe["bin_iqr_label"],
+        )
     folded_mesh = None
     if is_folded_available and folded_axis is not None:
         folded_mesh = _draw_relative_density_mesh(
@@ -1144,6 +1356,15 @@ def render_segment_temporal_evidence_export_figure(recipe):
             folded_medians,
             label=recipe["bin_median_label"],
         )
+        if should_draw_iqr:
+            _draw_temporal_iqr_overlay(
+                folded_axis,
+                folded_centers,
+                folded_medians["q1"],
+                folded_medians["q3"],
+                folded_medians["count"],
+                label=recipe["bin_iqr_label"],
+            )
     elif folded_axis is not None:
         _draw_folded_utc_unavailable_annotation(
             folded_axis,
@@ -1255,11 +1476,18 @@ def render_segment_temporal_evidence_export_figure(recipe):
         color="white",
         fontweight="bold",
         fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
-        y=0.96,
+        y=_shift_figure_y_above_added_footer(
+            0.96,
+            figure_height_inches,
+        ),
+    )
+    _add_reference_snr_correction_footer(
+        figure,
+        correction_notice,
     )
     figure.text(
         0.98,
-        SEGMENT_FIGURE_FOOTER_Y,
+        _figure_footer_y(figure),
         f"WSPRadar.org {APP_VERSION}",
         color="#888888",
         ha="right",
@@ -1285,6 +1513,8 @@ def _selected_evidence_export_recipe(
     median_focus_axis_label,
     median_label,
     bin_median_label,
+    bin_iqr_label,
+    reference_snr_correction_notice="",
 ):
     """Return one selected Compare path recipe without redundant subtitles."""
     plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
@@ -1314,9 +1544,11 @@ def _selected_evidence_export_recipe(
         median_focus_axis_label=median_focus_axis_label,
         median_label=median_label,
         bin_median_label=bin_median_label,
+        bin_iqr_label=bin_iqr_label,
         omit_folded_when_unavailable=True,
         show_folded_date_annotation=True,
         kind="selected_compare_temporal",
+        reference_snr_correction_notice=reference_snr_correction_notice,
     )
     recipe["is_sequential"] = bool(is_sequential)
     recipe["selected_identity_count"] = selected_identity_count
@@ -1347,6 +1579,7 @@ def _segment_figure_export_recipe(
     panel_station_counts=None,
     panel_spot_counts=None,
     panel_series_labels=None,
+    reference_snr_correction_notice="",
 ):
     """Store numeric inputs and localized labels for Compare segment evidence."""
     return {
@@ -1364,6 +1597,9 @@ def _segment_figure_export_recipe(
         "median_label": str(median_label),
         "mean_label": str(mean_label),
         "no_data_label": str(no_data_label),
+        "reference_snr_correction_notice": str(
+            reference_snr_correction_notice or ""
+        ),
         "panel_station_counts": [
             int(value)
             for value in (
@@ -1524,8 +1760,30 @@ def render_segment_insight_export_figure(recipe):
     panel_spot_counts = list(recipe.get("panel_spot_counts", []))
     panel_series_labels = list(recipe.get("panel_series_labels", []))
 
-    fig_hist = create_agg_figure(figsize=(13, 5.6), facecolor="black")
-    fig_hist.subplots_adjust(left=0.05, right=0.98, bottom=SEGMENT_FIGURE_BOTTOM, top=0.80, wspace=0.24)
+    correction_notice = recipe.get("reference_snr_correction_notice", "")
+    figure_height_inches = _figure_height_for_reference_correction(
+        correction_notice,
+        added_height_inches=(
+            SEGMENT_INSIGHT_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES
+        ),
+    )
+    fig_hist = create_agg_figure(
+        figsize=(13, figure_height_inches),
+        facecolor="black",
+    )
+    fig_hist.subplots_adjust(
+        left=0.05,
+        right=0.98,
+        bottom=_shift_figure_y_above_added_footer(
+            SEGMENT_FIGURE_BOTTOM,
+            figure_height_inches,
+        ),
+        top=_shift_figure_y_above_added_footer(
+            0.80,
+            figure_height_inches,
+        ),
+        wspace=0.24,
+    )
     gs = fig_hist.add_gridspec(1, 3)
     ax_panel = fig_hist.add_subplot(gs[0, 0])
     ax_hist = fig_hist.add_subplot(gs[0, 1])
@@ -1576,11 +1834,18 @@ def render_segment_insight_export_figure(recipe):
         color="white",
         fontweight="bold",
         fontsize=METRIC_FIGURE_TITLE_FONTSIZE,
-        y=0.98,
+        y=_shift_figure_y_above_added_footer(
+            0.98,
+            figure_height_inches,
+        ),
+    )
+    _add_reference_snr_correction_footer(
+        fig_hist,
+        correction_notice,
     )
     fig_hist.text(
         0.98,
-        SEGMENT_FIGURE_FOOTER_Y,
+        _figure_footer_y(fig_hist),
         f"WSPRadar.org {APP_VERSION}",
         color="#888888",
         ha="right",

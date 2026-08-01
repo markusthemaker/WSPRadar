@@ -1057,6 +1057,7 @@ def test_segment_coverage_recipe_accepts_minimal_units_and_renders(language):
     assert recipe["kind"] == COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
     assert recipe["schema_version"] == 1
     assert not any(key.startswith("snr_") for key in recipe)
+    assert "reference_snr_correction_notice" not in recipe
     assert "absolute_mode" not in recipe
     assert "is_sequential" not in recipe
     assert "selected_station_summary" not in recipe
@@ -1101,6 +1102,7 @@ def test_segment_coverage_recipe_accepts_minimal_units_and_renders(language):
             )
             if artist.get_gid()
         }
+        assert "reference-snr-correction-notice" not in rendered_text_gids
         assert {
             "compare-temporal-station-folded-subtitle",
             "compare-temporal-unit-folded-subtitle",
@@ -1221,6 +1223,8 @@ def test_selected_coverage_shortens_plot_area_without_resizing_canvas():
         end="2026-07-03T00:00Z",
         population_mode=SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
     )
+    assert "reference_snr_correction_notice" not in segment_recipe
+    assert "reference_snr_correction_notice" not in selected_recipe
 
     segment_figure = render_compare_temporal_coverage_export_figure(
         segment_recipe
@@ -1229,6 +1233,11 @@ def test_selected_coverage_shortens_plot_area_without_resizing_canvas():
         selected_recipe
     )
     try:
+        assert not any(
+            artist.get_gid() == "reference-snr-correction-notice"
+            for figure in (segment_figure, selected_figure)
+            for artist in figure.texts
+        )
         assert tuple(segment_figure.get_size_inches()) == pytest.approx(
             (13.0, 5.6)
         )

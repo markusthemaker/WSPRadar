@@ -746,14 +746,14 @@ def test_success_rate_scale_separates_zero_from_positive_evidence():
     assert len(SUCCESS_RATE_COLORS) == len(SUCCESS_RATE_BOUNDS) - 1
     assert SUCCESS_RATE_COLORS == (
         "#081A3A",
-        "#0D2B5B",
-        "#16457E",
-        "#2A6AA3",
-        "#49A9C5",
+        "#143F6A",
+        "#236A8F",
+        "#4697A8",
+        "#83C0AC",
         "#c9e5a3",
-        "#f4e58a",
-        "#efb56f",
-        "#df7f68",
+        "#e9c167",
+        "#e19456",
+        "#d27a54",
         "#b85d5f",
     )
 

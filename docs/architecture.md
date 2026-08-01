@@ -183,8 +183,9 @@ transient presentation state outside `AnalysisContext` and the version-1 saved
 configuration. Correction mode is different: it is durable operator provenance
 stored in the configuration, held in the canonical
 `val_snr_correction_mode` field, and preserved when editors switch. Guided
-renders the three-way choice directly from this field. Classic keeps its
-numeric editor; entering a nonzero value generically selects
+renders the three-way choice directly from this field. Classic keeps the shared
+point-decimal correction text field; accepted input is normalized into the
+canonical numeric value, and entering a nonzero value generically selects
 `established_offset`, while an explicit established `0.0 dB` remains
 distinguishable from `no_offset`. Switching editors therefore does not
 translate, copy, or reset the scientific values. `ui/components/config_fields.py` is the shared
@@ -530,6 +531,11 @@ Target SNR observations per station. It precomputes all six supported
 chronological profiles and one fixed one-hour UTC-folded profile. Each
 chronological density cell receives at most one station-bin median anomaly per
 station; each folded cell receives one station-date-hour median anomaly.
+The bin median and Q1/Q3 rails use those same unrounded contributed values;
+quartile rails require at least five values, break at unsupported bins, and do
+not suppress sparse medians. They describe within-bin spread rather than
+uncertainty and do not alter the full finite SNR envelope used for the linear
+y-axis.
 Stations below the SNR-baseline threshold remain in both non-SNR evidence
 layers. In each chronological bin, every contributing qualifying station
 supplies one split vote whose successful and counter-outcome fractions sum to
@@ -551,8 +557,8 @@ rate; the grey component is its complement. These components are a
 rate-partitioned support display, not averages of station-date split votes.
 Folded opportunity components instead divide pooled outcome counts directly by
 the same per-hour date denominator, so they are per-date count averages while
-their ratio preserves the unchanged observation-level rate. All SNR
-calculations remain unchanged.
+their ratio preserves the unchanged observation-level rate. All non-SNR
+support and Success-rate calculations remain unchanged.
 
 A represented UTC date has at least one confirmed opportunity from a qualifying
 station somewhere in the active scope and selected window; a completely absent
@@ -577,8 +583,13 @@ as Only Target, Joint or Only Reference. The simultaneous Target-Active Gate
 remains asymmetric: Only Reference is retained when the Target was active
 globally in that cycle but that path decoded only the Reference.
 
-The existing absolute temporal Delta SNR recipe is an unchanged Joint-only
-projection of this frame.
+The absolute temporal Delta SNR recipe remains a Joint-only projection of this
+frame. Its chronological and pooled UTC-hour bin medians retain their raw
+observation-level populations. Q1 and Q3 use those same unrounded Joint Spot or
+complete Scheduled Pair values before integer heatmap binning and the
+median-centered nonlinear display transform. The fine rails require at least
+five values, break at unsupported bins without suppressing sparse medians, and
+do not alter the complete finite evidence envelope used by the axis.
 
 Compare Temporal Evidence Coverage keeps all three retained outcomes. In every
 chronological bin, one contributing station supplies one total vote partitioned
@@ -594,15 +605,16 @@ Success temporal presentation consumes that one recipe as two separate figures
 with distinct localized title routing: the upper title identifies **Temporal
 SNR Evidence**, while the lower title identifies **Temporal Evidence**. The
 first figure contains chronological and folded successful-SNR deviation panels
-with their unchanged heatmap, median, baseline and colorbar semantics. The
-second contains two aligned stacked rows for station-balanced evidence and
+with their established heatmap, median, baseline and colorbar semantics plus
+Q1/Q3 rails for bins with at least five contributed station-bin medians or
+station-date-hour medians. The rails are descriptive middle-50% spread rather
+than confidence intervals and remain below the median in the visual hierarchy.
+The second contains two aligned stacked rows for station-balanced evidence and
 confirmed opportunities. Its shared localized column headers identify
 **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h
 bins)**; y-axis labels identify the station and opportunity rows, and the folded
-y-axis labels retain the same short `TX Stations`/`RX Stations` or
-`Opportunities` wording as the chronological panels. The two folded rows add
-localized subtitles stating average contributing station presences and average
-confirmed opportunities per represented UTC date. Successful outcomes use the
+y-axis labels state average station support or average confirmed opportunities
+per represented UTC date. Successful outcomes use the
 established green and counter-outcomes use neutral grey. Each of the four panels
 has a secondary Success Rate axis; all four twin axes begin at zero and share
 one capped, rounded ceiling derived from the four unchanged rate series. One
@@ -617,8 +629,7 @@ reserves and then uses that upper colorbar footprint without adding a lower
 colorbar. Both folded evidence panels expand 20 px toward the left on the
 1,300 px reference canvas while retaining their shared right edge; the two
 chronological panels retain their established bounds. Panel heights remain
-aligned. The upper SNR panels retain their
-subtitles using the established legend typography. Each figure keeps one
+aligned. Each figure keeps one
 folded-date annotation without repeating it in both panels of a row. Browser
 preview and high-resolution export use the same two recipes and renderers;
 Success exports add
@@ -654,8 +665,11 @@ Selected chronological SNR density receives every successful normalized Target
 SNR observation from that one identity, and the overlay is the median in each
 selected time bin. Folded SNR preparation first forms one median per represented
 UTC date-hour and then uses those date-hour medians for density and its cross-date
-median. The two panels share one linear actual-SNR range. This representation
-does not subtract a station baseline, require three reports, render a `0 dB`
+median. Chronological Q1/Q3 uses the same raw successful observations, while
+folded Q1/Q3 uses the same date-hour-median population; each rail pair requires
+at least five values and neither changes the complete finite linear actual-SNR
+range shared by the panels. This representation does not subtract a station
+baseline, require three reports, render a `0 dB`
 baseline, or synthesize SNR for counter outcomes. Its empty state therefore
 states explicitly that unsuccessful signals have no recorded Target SNR.
 
@@ -683,11 +697,15 @@ it pools qualifying evidence by UTC hour without first reducing or equally
 weighting represented dates. Both panels use independent panel-relative density
 normalization, one shared colorbar and the selected path's presentation-only,
 median-centered nonlinear Delta SNR scale with absolute dB tick labels. No
+date-first reduction is introduced for quartiles: Q1/Q3 uses the same raw
+Joint-Spot or complete-Scheduled-Pair population as each bin median and appears
+only from five contributed values onward. Unsupported bins break the rails
+without hiding their medians, and the rails do not change axis limits. No
 selected-station histogram or temporal-view selector remains. When fewer than
 two UTC dates contribute, the folded panel is omitted, the chronological panel
 expands and the localized unavailable notice is retained.
 
-Directly below that unchanged absolute figure, Selected Path Evidence Coverage
+Directly below that absolute figure, Selected Path Evidence Coverage
 uses the same selected-station chronological-bin control and the same retained
 comparison units. It renders one chronological and one fixed one-hour folded
 row split into Only Target, Joint and Only Reference units with outcome-level
@@ -705,7 +723,12 @@ rows are downstream presentation state and do not invalidate segment recipes.
 Changing the selected Success identity invalidates only selected-station recipes;
 changing its chronological bin reuses retained evidence and leaves the
 independent Segment Inspector bin and completed provider analysis untouched. The
-visible Performance Station Insights table uses the direction-aware Success
+inspector model and PNG render versions invalidate temporal recipes and images
+from before the IQR and title-only presentation contracts. The prepared-export
+signature separately includes a temporal-SNR render
+version so a hot reload cannot reuse a ZIP rendered under the previous visual
+contract. The visible Performance Station Insights table uses the
+direction-aware Success
 outcomes, places the counter-only visibility toggle above its left edge, and
 uses a fixed five-body-row scrolling viewport. It omits the redundant derived
 confirmed-opportunity total, shortens the visible successful-SNR heading, and

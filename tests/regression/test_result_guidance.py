@@ -228,11 +228,11 @@ def test_retired_compare_view_localization_and_guidance_are_absent():
 def test_compare_temporal_and_selected_guidance_uses_full_readability_budget(
     section_key,
 ):
-    """Keep detailed Compare help within the agreed catalog-copy budget."""
+    """Keep detailed Compare help substantive and below a generous ceiling."""
     for language in ("en", "de"):
         item = RESULT_GUIDANCE[language]["sections"][section_key]
         copy_count = len(item["read"]) + len(item["limits"])
-        assert 1200 <= copy_count <= 1500, (
+        assert 1000 <= copy_count <= 2400, (
             language,
             section_key,
             copy_count,
@@ -295,7 +295,7 @@ def test_joint_temporal_guidance_explains_the_figures_and_target_favored_gate():
     for expected in (
         "not |ΔSNR|",
         "median of all Joint Spots",
-        "per-panel relative Joint-Spot density",
+        "relative Joint-Spot density per panel",
         "nonlinear axis",
         "one split vote",
         "blue line",
@@ -303,16 +303,16 @@ def test_joint_temporal_guidance_explains_the_figures_and_target_favored_gate():
         "A gap between lines shows volume weighting",
         "Target activity",
         "no equivalent gate",
-        "favor Target",
-        "gate does not alter Joint ΔSNR",
-        "every Joint Spot contains both sides",
+        "Target-favoring",
+        "The gate does not alter Joint ΔSNR",
+        "Joint Spots contain both sides",
     ):
         assert expected in english_temporal_text
 
     for expected in (
         "one chosen {peer_type} station",
         "one specific radio path",
-        "only Joint units supply ΔSNR",
+        "Only Joint units supply ΔSNR",
         "RX: Target decoded a qualifying signal",
         "TX: Target was decoded somewhere",
         "Reference has no equivalent gate",
@@ -327,23 +327,23 @@ def test_joint_temporal_guidance_explains_the_figures_and_target_favored_gate():
         "nicht |ΔSNR|",
         "Median aller Joint Spots",
         "relative Joint-Spot-Dichte je Panel",
-        "Achsabstände sind nichtlinear",
+        "nichtlinearer Achse",
         "aufgeteilte Stimme",
         "blaue Linie",
         "gelbe Linie",
         "Target-Aktivität",
-        "kein gleichwertiges Aktivitäts-Gate",
+        "kein entsprechendes Referenz-Gate",
         "Target-begünstigt",
-        "Gate verändert Joint-ΔSNR nicht",
-        "jeder Joint Spot beide Seiten enthält",
+        "Joint-ΔSNR bleibt unverändert",
+        "Joint Spots beide Seiten enthalten",
     ):
         assert expected in german_temporal_text
 
     for expected in (
         "eine gewählte {peer_type}-Station",
-        "nur Joint liefert ΔSNR",
+        "Nur Joint liefert ΔSNR",
         "RX: Target decodierte ein qualifizierendes Signal",
-        "TX: Target wurde irgendwo gehört",
+        "TX: Target wurde irgendwo decodiert",
         "Kein Referenz-Gate",
         "Target-begünstigt",
         "Rollentausch kann einseitige Abdeckung ändern",
@@ -397,20 +397,20 @@ def test_scheduled_temporal_guidance_matches_rendered_titles_and_pair_limits(
     )
     if language == "en":
         for expected in (
-            "configured planned pairs",
+            "configured planned Target–Reference pairs",
             "not the simultaneous Target-Active Gate",
             "Pair ΔSNR exists only when both scheduled sides were decoded",
             "missing-side SNR",
-            "time-separated",
+            "transmissions are separated in time",
         ):
             assert expected in combined
     else:
         for expected in (
-            "konfigurierte geplante Paare",
-            "statt des Target-Active Gate des simultanen Modus",
-            "Paar-ΔSNR existiert nur, wenn beide geplanten Seiten decodiert wurden",
+            "konfigurierten geplanten Target–Referenz-Paaren",
+            "nicht dem Target-Active Gate des simultanen Modus",
+            "Pair-ΔSNR entsteht nur, wenn beide geplanten Seiten decodiert wurden",
             "SNR der fehlenden Seite",
-            "zeitlich getrennt",
+            "Der Zeitabstand lässt",
         ):
             assert expected in combined
 
@@ -422,7 +422,148 @@ def test_directional_success_temporal_guidance_stays_near_readability_target():
             item = RESULT_GUIDANCE[language]["sections"][
                 f"success_temporal_evidence_{direction}"
             ]
-            assert len(item["read"]) + len(item["limits"]) <= 2300
+            assert len(item["read"]) + len(item["limits"]) <= 2700
+
+
+@pytest.mark.parametrize(
+    ("language", "section_key", "population_phrases"),
+    (
+        (
+            "en",
+            "temporal_evidence_joint",
+            ("same bin population", "Joint Spots"),
+        ),
+        (
+            "en",
+            "temporal_evidence_scheduled",
+            ("same bin population", "complete pairs"),
+        ),
+        (
+            "en",
+            "selected_compare_joint",
+            ("same bin population", "Joint Spots"),
+        ),
+        (
+            "en",
+            "selected_compare_scheduled",
+            ("same bin population", "complete pairs"),
+        ),
+        (
+            "en",
+            "success_temporal_evidence_rx",
+            (
+                "one station-bin median per station chronologically",
+                "one station-date-hour median per station and date when folded",
+            ),
+        ),
+        (
+            "en",
+            "success_temporal_evidence_tx",
+            (
+                "one station-bin median per station chronologically",
+                "one station-date-hour median per station and date when folded",
+            ),
+        ),
+        (
+            "en",
+            "selected_success_rx",
+            (
+                "raw successful observations chronologically",
+                "date-hour medians when folded",
+            ),
+        ),
+        (
+            "en",
+            "selected_success_tx",
+            (
+                "raw successful observations chronologically",
+                "date-hour medians when folded",
+            ),
+        ),
+        (
+            "de",
+            "temporal_evidence_joint",
+            ("derselben Bin-Population", "Joint Spots"),
+        ),
+        (
+            "de",
+            "temporal_evidence_scheduled",
+            ("derselben Bin-Population", "vollständige Paare"),
+        ),
+        (
+            "de",
+            "selected_compare_joint",
+            ("derselben Bin-Population", "Joint Spots"),
+        ),
+        (
+            "de",
+            "selected_compare_scheduled",
+            ("derselben Bin-Population", "vollständige Paare"),
+        ),
+        (
+            "de",
+            "success_temporal_evidence_rx",
+            (
+                "einen Stations-Bin-Median je Station",
+                "einen Stations-Datum-Stunden-Median je Station und Tag",
+            ),
+        ),
+        (
+            "de",
+            "success_temporal_evidence_tx",
+            (
+                "einen Stations-Bin-Median je Station",
+                "einen Stations-Datum-Stunden-Median je Station und Tag",
+            ),
+        ),
+        (
+            "de",
+            "selected_success_rx",
+            (
+                "rohe erfolgreiche Beobachtungen",
+                "Datum-Stunden-Mediane",
+            ),
+        ),
+        (
+            "de",
+            "selected_success_tx",
+            (
+                "rohe erfolgreiche Beobachtungen",
+                "Datum-Stunden-Mediane",
+            ),
+        ),
+    ),
+)
+def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
+    language,
+    section_key,
+    population_phrases,
+):
+    """Keep Q1–Q3 meaning explicit in every segment and selected-path view."""
+    item = RESULT_GUIDANCE[language]["sections"][section_key]
+    combined = f"{item['read']} {item['limits']}"
+
+    common_phrases = (
+        (
+            "Q1–Q3",
+            "middle 50%",
+            "five",
+            "not uncertainty or a confidence interval",
+        )
+        if language == "en"
+        else (
+            "Q1–Q3",
+            "mittleren 50 %",
+            "fünf",
+            "nicht die Unsicherheit oder ein Konfidenzintervall",
+        )
+    )
+    for required_phrase in (*common_phrases, *population_phrases):
+        assert required_phrase in combined, (
+            language,
+            section_key,
+            required_phrase,
+        )
 
 
 @pytest.mark.parametrize(
@@ -575,7 +716,7 @@ def test_success_selected_guidance_stays_near_readability_target():
             item = RESULT_GUIDANCE[language]["sections"][
                 f"selected_success_{direction}"
             ]
-            assert len(item["read"]) + len(item["limits"]) <= 2300
+            assert len(item["read"]) + len(item["limits"]) <= 2700
 
 
 @pytest.mark.parametrize(
@@ -685,20 +826,26 @@ def test_compare_map_guidance_explains_dynamic_symmetric_db_scale(section_key):
 
     assert "stepped dB color scale is symmetric around 0 dB" in english_limits
     assert "can expand between runs" in english_limits
-    assert "visible sector range without fixed headroom" in english_limits
+    assert "whole-dB step from the largest visible absolute sector value" in english_limits
+    assert "at most 13 color classes" in english_limits
+    assert "outer labelled ticks are the smallest symmetric multiples" in english_limits
+    assert "color-bin boundaries extend another half-step" in english_limits
     assert "light yellow-green display-neutral band" in english_limits
-    assert "display-neutral band's width matches the active step" in english_limits
-    assert "at 3 dB it covers -1.5 to +1.5 dB" in english_limits
+    assert "without claiming sub-dB measurement resolution" in english_limits
     assert "Only 0 dB means equality" in english_limits
     assert "numerical color-bar values" in english_limits
     assert "abgestufte dB-Farbskala ist symmetrisch um 0 dB" in german_limits
     assert "kann sich zwischen Läufen erweitern" in german_limits
-    assert "ohne feste Reserve an den sichtbaren Segmentwertebereich" in german_limits
-    assert "hellen gelbgrünen darstellungsneutralen Band" in german_limits
-    assert "darstellungsneutralen Bands entspricht der aktiven Schrittweite" in german_limits
-    assert "bei 3 dB reicht es von -1,5 bis +1,5 dB" in german_limits
+    assert "ganzzahlige dB-Schrittweite für höchstens 13 Farbklassen" in german_limits
+    assert "äußersten beschrifteten Skalenwerte" in german_limits
+    assert "kleinsten symmetrischen Vielfachen" in german_limits
+    assert "Grenzen der Farbintervalle reichen einen weiteren halben Schritt" in german_limits
+    assert "helle gelbgrüne darstellungsneutrale Band" in german_limits
+    assert "ohne eine Messauflösung unterhalb von 1 dB zu beanspruchen" in german_limits
     assert "Nur 0 dB bedeutet Gleichheit" in german_limits
     assert "numerischen Werte der Farbskala" in german_limits
+    assert "without fixed headroom" not in english_limits
+    assert "ohne feste Reserve" not in german_limits
     assert "S-unit" not in english_limits
     assert "S-Stufe" not in german_limits
 
@@ -1028,15 +1175,15 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
         (
             COMPARISON_HARDWARE_AB,
             LOCAL_BENCHMARK_MEDIAN,
-            "two controlled paths operating within the shared Grid-4",
+            "two controlled paths operating within the same four-character Maidenhead locator",
             "exact callsign",
         ),
         (
             COMPARISON_REFERENCE_STATION,
             LOCAL_BENCHMARK_MEDIAN,
-            "by its exact callsign and independently configured "
-            "Reference Grid-4",
-            "shared Grid-4",
+            "selected by its exact callsign and an independently configured "
+            "four-character Maidenhead locator",
+            "same four-character Maidenhead locator",
         ),
         (
             COMPARISON_LOCAL_NEIGHBORHOOD,

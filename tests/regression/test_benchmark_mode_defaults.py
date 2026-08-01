@@ -181,7 +181,7 @@ def test_classic_headings_and_target_labels_are_task_oriented(
                 "lbl_end_t": "End Time (UTC)",
                 "lbl_benchmark_offset_db": "Reference-side SNR correction (dB)",
                 "lbl_reference_callsign": "Reference callsign",
-                "lbl_reference_grid4": "Reference Grid-4",
+                "lbl_reference_grid4": "Reference Locator",
                 "lbl_solar": "Solar state at Target QTH",
                 "lbl_max_dist": "Maximum peer distance from Target (km)",
                 "lbl_min_spots": "Minimum joint evidence per station",
@@ -200,7 +200,7 @@ def test_classic_headings_and_target_labels_are_task_oriented(
                 "lbl_end_t": "Endzeit (UTC)",
                 "lbl_benchmark_offset_db": "Referenzseitige SNR-Korrektur (dB)",
                 "lbl_reference_callsign": "Referenz-Rufzeichen",
-                "lbl_reference_grid4": "Referenz-Grid-4",
+                "lbl_reference_grid4": "Referenz-Locator",
                 "lbl_solar": "Sonnenstand am Target-QTH",
                 "lbl_max_dist": "Maximale Peer-Entfernung vom Target (km)",
                 "lbl_min_spots": "Minimale Joint-Evidenz pro Station",
@@ -594,8 +594,8 @@ def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
     assert [call.args[0] for call in text_input.call_args_list] == [
         "Target callsign",
         "Reference callsign",
-        "Target Grid-4",
-        "Reference Grid-4",
+        "Target Locator",
+        "Reference Locator",
     ]
     assert text_input.call_args_list[0].kwargs == {
         "value": "DL1MKS",
@@ -1192,6 +1192,103 @@ def test_classic_nonzero_correction_edit_sets_established_mode(monkeypatch):
     assert session_state.val_benchmark_offset_db == 1.2
     assert session_state.val_snr_correction_mode == "established_offset"
     callback.assert_called_once_with()
+
+
+def test_reference_correction_renders_as_blank_text_with_decimal_point_placeholder(
+    monkeypatch,
+):
+    """Render a text-only decimal field without number-input steppers."""
+    text_input = Mock()
+    number_input = Mock()
+    session_state = _SessionState({"val_benchmark_offset_db": 0.0})
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            text_input=text_input,
+            number_input=number_input,
+            error=Mock(),
+        ),
+    )
+
+    config_panel.render_reference_correction_field(T["en"])
+
+    number_input.assert_not_called()
+    text_input.assert_called_once()
+    assert session_state[config_panel._REFERENCE_CORRECTION_TEXT_KEY] == ""
+    assert text_input.call_args.kwargs["placeholder"] == "0.0"
+    assert text_input.call_args.kwargs["autocomplete"] == "off"
+
+
+@pytest.mark.parametrize(
+    ("correction_text", "expected_correction_db", "expected_text"),
+    [
+        ("1.24", 1.2, "1.2"),
+        ("-1.25", -1.2, "-1.2"),
+        ("+0.04", 0.0, ""),
+        ("", 0.0, ""),
+    ],
+)
+def test_reference_correction_text_accepts_decimal_points_and_blank_zero(
+    monkeypatch,
+    correction_text,
+    expected_correction_db,
+    expected_text,
+):
+    """Convert accepted point-decimal text into the canonical float state."""
+    callback = Mock()
+    session_state = _SessionState(
+        {
+            "val_comp_mode": "hardware_ab",
+            "val_snr_correction_mode": "no_offset",
+            "val_benchmark_offset_db": 0.0,
+            config_panel._REFERENCE_CORRECTION_TEXT_KEY: correction_text,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    config_panel._normalize_reference_correction_state(callback)
+
+    assert session_state.val_benchmark_offset_db == expected_correction_db
+    assert (
+        session_state[config_panel._REFERENCE_CORRECTION_TEXT_KEY]
+        == expected_text
+    )
+    callback.assert_called_once_with()
+
+
+@pytest.mark.parametrize("correction_text", ["1,2", "100.0", "nan", "1e1"])
+def test_reference_correction_text_rejects_non_point_or_out_of_range_values(
+    monkeypatch,
+    correction_text,
+):
+    """Reject ambiguous or unsafe text without changing scientific state."""
+    callback = Mock()
+    session_state = _SessionState(
+        {
+            "val_comp_mode": "hardware_ab",
+            "val_snr_correction_mode": "established_offset",
+            "val_benchmark_offset_db": 1.2,
+            config_panel._REFERENCE_CORRECTION_TEXT_KEY: correction_text,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    config_panel._normalize_reference_correction_state(callback)
+
+    assert session_state.val_benchmark_offset_db == 1.2
+    assert session_state[config_panel._REFERENCE_CORRECTION_TEXT_KEY] == "1.2"
+    assert session_state[config_panel._REFERENCE_CORRECTION_ERROR_KEY] is True
+    callback.assert_not_called()
 
 
 def test_classic_zero_correction_preserves_explicit_established_mode(monkeypatch):

@@ -77,6 +77,90 @@ def test_compare_summary_count_uses_apostrophe_thousands_separator():
     assert segment_inspector._format_summary_count(7139) == "7'139"
 
 
+def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
+    monkeypatch,
+):
+    """Label Compare tables from frozen run context without exposing raw HTML."""
+    rendered_markup = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(
+            markdown=lambda markup, **kwargs: rendered_markup.append(
+                (markup, kwargs)
+            )
+        ),
+    )
+    analysis_context = SimpleNamespace(
+        comparison_mode="hardware_ab",
+        reference_callsign="<REF>",
+        reference_snr_correction_db=1.2,
+    )
+
+    segment_inspector._render_reference_correction_notice(
+        T["en"],
+        is_compare=True,
+        is_sequential=False,
+        analysis_context=analysis_context,
+    )
+
+    assert len(rendered_markup) == 1
+    assert (
+        "Configured SNR correction: +1.2 dB applied to "
+        "Reference (&lt;REF&gt;)"
+    ) in rendered_markup[0][0]
+    assert rendered_markup[0][1] == {"unsafe_allow_html": True}
+
+    analysis_context.reference_snr_correction_db = 0.0
+    segment_inspector._render_reference_correction_notice(
+        T["en"],
+        is_compare=True,
+        is_sequential=False,
+        analysis_context=analysis_context,
+    )
+    assert len(rendered_markup) == 1
+
+
+def test_compare_correction_notice_precedes_statistics_and_enters_snr_recipes():
+    """Keep correction provenance above summaries and in Delta-SNR figures only."""
+    body_source = inspect.getsource(
+        segment_inspector._render_segment_inspector_body
+    )
+    comparison_heading_index = body_source.index(
+        '"hdr_results_comparison_evidence"'
+    )
+    notice_index = body_source.index(
+        "_render_reference_correction_notice(",
+        comparison_heading_index,
+    )
+    statistics_index = body_source.index(
+        "segment_statistics_html(segment_summary)",
+        notice_index,
+    )
+
+    assert comparison_heading_index < notice_index < statistics_index
+    assert (
+        "_segment_figure_export_recipe("
+        in body_source
+    )
+    assert (
+        "_segment_temporal_evidence_export_recipe("
+        in body_source
+    )
+    assert body_source.count(
+        "reference_snr_correction_notice=("
+    ) == 2
+
+    selected_source = inspect.getsource(
+        segment_inspector._render_selected_station_evidence
+    )
+    assert "reference_snr_correction_notice=(" in selected_source
+    assert (
+        "_compare_coverage_recipe("
+        in selected_source
+    )
+
+
 @pytest.mark.parametrize(
     (
         "language",

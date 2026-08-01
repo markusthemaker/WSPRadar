@@ -38,6 +38,7 @@ from ui.result_hierarchy import (
     transition_prompt_html,
     utility_header_html,
 )
+from ui.reference_correction import configured_snr_correction_notice
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
@@ -85,6 +86,10 @@ EXPECTED_RESULT_TRANSLATION_KEYS = {
     "txt_results_shared_grid4",
     "txt_results_reference_benchmark",
     "txt_results_tx_schedule",
+    "txt_results_configured_snr_correction",
+    "txt_results_snr_correction_reference_identity",
+    "txt_results_snr_correction_reference_schedule",
+    "txt_results_snr_correction_reference_benchmark",
     "txt_results_evidence_path",
     "txt_results_evidence_path_success",
     "txt_results_active_scope",
@@ -171,17 +176,11 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "fig_success_locator_precision_note",
     "fig_success_snr_chronological_title_rx",
     "fig_success_snr_chronological_title_tx",
-    "fig_success_snr_chronological_subtitle_rx",
-    "fig_success_snr_chronological_subtitle_tx",
     "fig_success_snr_utc_hour_title_rx",
     "fig_success_snr_utc_hour_title_tx",
-    "fig_success_snr_utc_hour_subtitle_rx",
-    "fig_success_snr_utc_hour_subtitle_tx",
     "fig_success_evidence_chronological_title",
-                "fig_success_evidence_utc_hour_title",
-                "fig_success_station_support_folded_subtitle",
-                "fig_success_opportunities_folded_subtitle",
-                "fig_success_station_votes_y_rx",
+    "fig_success_evidence_utc_hour_title",
+    "fig_success_station_votes_y_rx",
     "fig_success_station_votes_y_tx",
     "fig_success_station_support_folded_y_rx",
     "fig_success_station_support_folded_y_tx",
@@ -196,6 +195,7 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "fig_success_station_baseline",
     "fig_success_bin_median_chronological",
     "fig_success_bin_median_folded",
+    "fig_temporal_bin_iqr",
     "fig_success_snr_anomaly_unavailable",
     "fig_success_temporal_unavailable",
     "fig_success_utc_dates_folded",
@@ -204,15 +204,12 @@ EXPECTED_SUCCESS_PRESENTATION_KEYS = {
     "fig_success_selected_station_temporal_title_rx",
     "fig_success_selected_station_temporal_title_tx",
     "fig_success_selected_snr_chronological_title",
-    "fig_success_selected_snr_chronological_subtitle",
     "fig_success_selected_snr_utc_hour_title",
-    "fig_success_selected_snr_utc_hour_subtitle",
     "fig_success_selected_temporal_snr_y",
     "fig_success_selected_snr_density",
     "fig_success_selected_bin_median",
     "fig_success_selected_folded_median",
     "fig_success_selected_snr_unavailable",
-    "fig_success_selected_station_support_folded_subtitle",
     "fig_selected_compare_chronological_title",
     "fig_selected_compare_folded_title",
     "lbl_selected_time_aggregation_bin_size",
@@ -259,6 +256,18 @@ EXPECTED_COMPARE_COVERAGE_PRESENTATION_KEYS = {
 RETIRED_COMPARE_FOLDED_SUBTITLE_KEYS = {
     "fig_compare_coverage_station_folded_subtitle",
     "fig_compare_coverage_units_folded_subtitle",
+}
+
+RETIRED_SUCCESS_SUBTITLE_KEYS = {
+    "fig_success_snr_chronological_subtitle_rx",
+    "fig_success_snr_chronological_subtitle_tx",
+    "fig_success_snr_utc_hour_subtitle_rx",
+    "fig_success_snr_utc_hour_subtitle_tx",
+    "fig_success_station_support_folded_subtitle",
+    "fig_success_opportunities_folded_subtitle",
+    "fig_success_selected_snr_chronological_subtitle",
+    "fig_success_selected_snr_utc_hour_subtitle",
+    "fig_success_selected_station_support_folded_subtitle",
 }
 
 
@@ -476,6 +485,148 @@ def test_scheduled_compare_uses_dynamic_callsign_and_schedule_subtitle(
     assert context.subtitle == T[language][
         "sub_results_compare_scheduled"
     ].format(callsign="G3ZIL")
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "comparison_mode",
+        "is_sequential",
+        "correction_db",
+        "expected_notice",
+    ),
+    (
+        (
+            "en",
+            COMPARISON_REFERENCE_STATION,
+            False,
+            1.24,
+            "Configured SNR correction: +1.2 dB applied to Reference (ON4AWM1)",
+        ),
+        (
+            "de",
+            COMPARISON_REFERENCE_STATION,
+            False,
+            1.24,
+            "Konfigurierte SNR-Korrektur: +1,2 dB auf die Referenz (ON4AWM1) angewendet",
+        ),
+        (
+            "en",
+            COMPARISON_HARDWARE_AB,
+            True,
+            -1.24,
+            "Configured SNR correction: -1.2 dB applied to Reference schedule",
+        ),
+        (
+            "de",
+            COMPARISON_HARDWARE_AB,
+            True,
+            -1.24,
+            "Konfigurierte SNR-Korrektur: -1,2 dB auf den Referenz-Zeitplan angewendet",
+        ),
+        (
+            "en",
+            COMPARISON_LOCAL_NEIGHBORHOOD,
+            False,
+            1.2,
+            "Configured SNR correction: +1.2 dB applied to Reference benchmark",
+        ),
+        (
+            "de",
+            COMPARISON_LOCAL_NEIGHBORHOOD,
+            False,
+            1.2,
+            "Konfigurierte SNR-Korrektur: +1,2 dB auf den Referenz-Benchmark angewendet",
+        ),
+    ),
+)
+def test_configured_snr_correction_notice_names_the_corrected_reference_side(
+    language,
+    comparison_mode,
+    is_sequential,
+    correction_db,
+    expected_notice,
+):
+    """Name fixed, scheduled, and benchmark Reference recipients explicitly."""
+    notice = configured_snr_correction_notice(
+        SimpleNamespace(
+            comparison_mode=comparison_mode,
+            reference_callsign="on4awm1",
+            reference_snr_correction_db=correction_db,
+        ),
+        T[language],
+        is_compare=True,
+        is_sequential=is_sequential,
+    )
+
+    assert notice == expected_notice
+
+
+@pytest.mark.parametrize("correction_db", (0.0, 0.04, -0.04))
+def test_configured_snr_correction_notice_omits_display_zero_values(
+    correction_db,
+):
+    """Do not announce corrections that round to the displayed zero value."""
+    assert configured_snr_correction_notice(
+        SimpleNamespace(
+            comparison_mode=COMPARISON_REFERENCE_STATION,
+            reference_callsign="ON4AWM1",
+            reference_snr_correction_db=correction_db,
+        ),
+        T["en"],
+        is_compare=True,
+    ) == ""
+
+
+def test_configured_snr_correction_notice_is_compare_only():
+    """Keep configured correction provenance out of Success result families."""
+    assert configured_snr_correction_notice(
+        SimpleNamespace(
+            comparison_mode=COMPARISON_REFERENCE_STATION,
+            reference_callsign="ON4AWM1",
+            reference_snr_correction_db=1.2,
+        ),
+        T["en"],
+        is_compare=False,
+    ) == ""
+
+
+def test_compare_header_places_escaped_correction_below_run_metadata():
+    """Render completed correction provenance before the Evidence path line."""
+    context = build_result_context(
+        {
+            "id": "RX_COMP",
+            "is_compare": True,
+            "is_sequential": False,
+            "title": "RX Compare: Target vs. Reference",
+        },
+        SimpleNamespace(
+            callsign="target",
+            band="160m",
+            qth="JO20OT",
+            comparison_mode=COMPARISON_REFERENCE_STATION,
+            reference_callsign="<reference&>",
+            reference_qth="JO20",
+            reference_snr_correction_db=1.2,
+        ),
+        datetime(2021, 5, 1, 17, 15),
+        datetime(2021, 5, 15, 7, 0),
+        T["en"],
+    )
+    markup = result_context_html(context)
+
+    assert context.configured_snr_correction == (
+        "Configured SNR correction: +1.2 dB applied to "
+        "Reference (<REFERENCE&>)"
+    )
+    assert "Reference (<REFERENCE&>)" not in markup
+    assert "Reference (&lt;REFERENCE&amp;&gt;)" in markup
+    assert "result-context-correction" in markup
+    assert (
+        markup.index("result-context-meta")
+        < markup.index("result-context-correction")
+        < markup.index("result-evidence-path")
+    )
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -980,16 +1131,6 @@ def test_success_presentation_keys_have_bilingual_placeholder_parity():
     assert _format_fields(T["de"]["fig_success_utc_dates_folded"]) == {"count"}
     assert _format_fields(T["en"]["fig_success_bin_width"]) == {"width_km"}
     assert _format_fields(T["de"]["fig_success_bin_width"]) == {"width_km"}
-    assert _format_fields(
-        T["en"]["fig_success_snr_chronological_subtitle_rx"]
-    ) == {
-        "time_bin"
-    }
-    assert _format_fields(
-        T["de"]["fig_success_snr_chronological_subtitle_rx"]
-    ) == {
-        "time_bin"
-    }
     selected_title_fields = {"station", "locator"}
     retired_selected_compare_caption_keys = {
         "fig_selected_compare_chronological_subtitle",
@@ -1005,9 +1146,7 @@ def test_success_presentation_keys_have_bilingual_placeholder_parity():
         assert _format_fields(
             T[language]["fig_success_selected_station_temporal_title_tx"]
         ) == selected_title_fields
-        assert _format_fields(
-            T[language]["fig_success_selected_snr_chronological_subtitle"]
-        ) == {"time_bin"}
+        assert RETIRED_SUCCESS_SUBTITLE_KEYS.isdisjoint(T[language])
         assert retired_selected_compare_caption_keys.isdisjoint(T[language])
 
 
@@ -1165,7 +1304,7 @@ def test_performance_station_table_copy_is_exact_and_retires_helper_fields():
 
 
 def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contract():
-    """Pin shared column headers and unit-explicit y axes for the lower figure."""
+    """Pin subtitle-free shared headers and unit-explicit lower-figure axes."""
     expected = {
         "en": {
             "fig_success_evidence_chronological_title": (
@@ -1174,19 +1313,18 @@ def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contra
             "fig_success_evidence_utc_hour_title": (
                 "Evidence by UTC Hour (1 h bins)"
             ),
-            "fig_success_station_support_folded_subtitle": (
-                "Average contributing station presences per represented "
-                "UTC date"
-            ),
-            "fig_success_opportunities_folded_subtitle": (
-                "Average confirmed opportunities per represented UTC date"
-            ),
             "fig_success_station_votes_y_rx": "TX Stations",
             "fig_success_station_votes_y_tx": "RX Stations",
-            "fig_success_station_support_folded_y_rx": "TX Stations",
-            "fig_success_station_support_folded_y_tx": "RX Stations",
+            "fig_success_station_support_folded_y_rx": (
+                "Avg. TX Stations\n/ Represented\nUTC Date"
+            ),
+            "fig_success_station_support_folded_y_tx": (
+                "Avg. RX Stations\n/ Represented\nUTC Date"
+            ),
             "fig_success_opportunities_y": "Opportunities",
-            "fig_success_opportunities_folded_y": "Opportunities",
+            "fig_success_opportunities_folded_y": (
+                "Avg. Opportunities\n/ Represented\nUTC Date"
+            ),
             "fig_success_rate_legend": "Decode Rate",
         },
         "de": {
@@ -1196,20 +1334,18 @@ def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contra
             "fig_success_evidence_utc_hour_title": (
                 "Evidenz nach UTC-Stunde (1-h-Bins)"
             ),
-            "fig_success_station_support_folded_subtitle": (
-                "Durchschnittliche Stationspräsenzen pro "
-                "berücksichtigtem UTC-Tag"
-            ),
-            "fig_success_opportunities_folded_subtitle": (
-                "Durchschnittliche bestätigte Gelegenheiten pro "
-                "berücksichtigtem UTC-Tag"
-            ),
             "fig_success_station_votes_y_rx": "TX-Stationen",
             "fig_success_station_votes_y_tx": "RX-Stationen",
-            "fig_success_station_support_folded_y_rx": "TX-Stationen",
-            "fig_success_station_support_folded_y_tx": "RX-Stationen",
+            "fig_success_station_support_folded_y_rx": (
+                "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
+            ),
+            "fig_success_station_support_folded_y_tx": (
+                "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
+            ),
             "fig_success_opportunities_y": "Gelegenheiten",
-            "fig_success_opportunities_folded_y": "Gelegenheiten",
+            "fig_success_opportunities_folded_y": (
+                "Ø Gelegenheiten je\nberücksichtigtem\nUTC-Tag"
+            ),
             "fig_success_rate_legend": "Dekodierrate",
         },
     }
@@ -1217,17 +1353,7 @@ def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contra
     for language, expected_labels in expected.items():
         for key, expected_text in expected_labels.items():
             assert T[language][key] == expected_text
-        assert T[language]["fig_success_snr_chronological_subtitle_rx"] == (
-            "Each TX station centered on its run median · {time_bin} bins"
-            if language == "en"
-            else "Jede TX-Station auf ihren Laufmedian zentriert · "
-            "{time_bin}-Bins"
-        )
-        assert T[language]["fig_success_snr_utc_hour_subtitle_tx"] == (
-            "Each RX station centered on its run median · 1 h bins"
-            if language == "en"
-            else "Jede RX-Station auf ihren Laufmedian zentriert · 1-h-Bins"
-        )
+        assert RETIRED_SUCCESS_SUBTITLE_KEYS.isdisjoint(T[language])
 
     for language in ("en", "de"):
         assert _format_fields(

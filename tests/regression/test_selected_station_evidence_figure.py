@@ -9,12 +9,25 @@ import pytest
 from i18n import T
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 from ui.plots.evidence_figures import (
+    METRIC_FONT_FAMILY,
+    METRIC_LEGEND_FONTSIZE,
+    SEGMENT_FIGURE_BASE_HEIGHT_INCHES,
+    SEGMENT_FIGURE_BOTTOM,
+    SEGMENT_FIGURE_FOOTER_Y,
+    SEGMENT_INSIGHT_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES,
+    SEGMENT_TEMPORAL_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES,
+    SEGMENT_TEMPORAL_FIGURE_TOP,
+    TEMPORAL_IQR_COLOR,
+    TEMPORAL_IQR_MIN_COUNT,
+    TEMPORAL_IQR_UNDERSTROKE_COLOR,
     _build_compare_median_focus_spec,
     _compare_median_focus_forward,
     _compare_median_focus_inverse,
     _compare_median_focus_spec_from_recipe,
+    _segment_figure_export_recipe,
     _segment_temporal_evidence_export_recipe,
     _selected_evidence_export_recipe,
+    render_segment_insight_export_figure,
     render_segment_temporal_evidence_export_figure,
     render_selected_evidence_export_figure,
 )
@@ -68,6 +81,7 @@ def _localized_selected_evidence_recipe(
         ],
         "median_label": translations["fig_median_label"],
         "bin_median_label": translations["fig_temporal_bin_median"],
+        "bin_iqr_label": translations["fig_temporal_bin_iqr"],
     }
     presentation.update(overrides)
     return _selected_evidence_export_recipe(
@@ -130,6 +144,7 @@ def _localized_segment_temporal_recipe(
         ],
         "median_label": translations["fig_median_label"],
         "bin_median_label": translations["fig_temporal_bin_median"],
+        "bin_iqr_label": translations["fig_temporal_bin_iqr"],
     }
     presentation.update(overrides)
     return _segment_temporal_evidence_export_recipe(
@@ -139,6 +154,258 @@ def _localized_segment_temporal_recipe(
         resolved_count_label,
         **presentation,
     )
+
+
+def _correction_footer_test_rows():
+    """Return compact two-date Joint evidence for correction-footer tests."""
+    return pd.DataFrame(
+        {
+            "identity": ["A (AA00)", "A (AA00)", "A (AA00)"],
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:05:00Z",
+                    "2026-07-01T06:05:00Z",
+                    "2026-07-02T00:05:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [-1.0, 0.5, 2.0],
+        }
+    )
+
+
+def _correction_footer_segment_recipe(notice=""):
+    """Build one complete Compare segment recipe for footer assertions."""
+    return _segment_figure_export_recipe(
+        title="RX Compare",
+        selected_segment="Full Range | All Directions",
+        is_sequential=False,
+        station_values=[-1.0, 1.0],
+        spot_values=[-2.0, 0.0, 2.0],
+        panel_labels=["Only Target", "Joint", "Both (Async)", "Only Reference"],
+        panel_y_label="Share (%)",
+        decode_outcomes_title="Decode Outcomes",
+        station_medians_title="Station Medians Delta SNR",
+        paired_evidence_title="Joint-Spot Delta SNR",
+        metric_axis_label="Delta SNR (dB)",
+        median_label="Median",
+        mean_label="Mean",
+        no_data_label="No data",
+        panel_station_counts=[1, 2, 0, 1],
+        panel_spot_counts=[2, 6, 0, 2],
+        panel_series_labels=["Stations", "Spots"],
+        reference_snr_correction_notice=notice,
+    )
+
+
+def _render_correction_footer_figure(figure_kind, notice):
+    """Render one Compare Delta-SNR figure through the requested recipe path."""
+    if figure_kind == "segment":
+        recipe = _correction_footer_segment_recipe(notice)
+        return render_segment_insight_export_figure(recipe), recipe
+    if figure_kind == "segment_temporal":
+        recipe = _localized_segment_temporal_recipe(
+            _correction_footer_test_rows(),
+            "RX Compare Temporal Evidence",
+            "3h",
+            reference_snr_correction_notice=notice,
+        )
+        return render_segment_temporal_evidence_export_figure(recipe), recipe
+    if figure_kind == "selected":
+        recipe = _localized_selected_evidence_recipe(
+            _correction_footer_test_rows(),
+            "Selected Station Evidence",
+            "3h",
+            reference_snr_correction_notice=notice,
+        )
+        return render_selected_evidence_export_figure(recipe), recipe
+    raise AssertionError(f"Unsupported figure kind: {figure_kind}")
+
+
+@pytest.mark.parametrize(
+    "figure_kind",
+    ["segment", "segment_temporal", "selected"],
+)
+def test_compare_delta_snr_recipes_propagate_and_render_correction_footer(
+    figure_kind,
+):
+    """Keep a configured correction in each Delta-SNR recipe and footer."""
+    notice = "Configured SNR correction: +1.2 dB applied to Reference (ON4AWM1)"
+    figure, recipe = _render_correction_footer_figure(figure_kind, notice)
+    try:
+        assert recipe["reference_snr_correction_notice"] == notice
+        correction_notices = [
+            artist
+            for artist in figure.texts
+            if artist.get_gid() == "reference-snr-correction-notice"
+        ]
+        assert len(correction_notices) == 1
+        correction_notice = correction_notices[0]
+        assert correction_notice.get_text() == notice
+        assert correction_notice.get_position() == pytest.approx(
+            (
+                0.02,
+                SEGMENT_FIGURE_FOOTER_Y
+                * SEGMENT_FIGURE_BASE_HEIGHT_INCHES
+                / figure.get_figheight(),
+            )
+        )
+        assert correction_notice.get_ha() == "left"
+        assert correction_notice.get_va() == "bottom"
+        assert correction_notice.get_fontsize() == pytest.approx(
+            METRIC_LEGEND_FONTSIZE
+        )
+        assert tuple(correction_notice.get_fontfamily()) == (
+            METRIC_FONT_FAMILY,
+        )
+        assert correction_notice.get_fontweight() == "normal"
+        figure.canvas.draw()
+        renderer = figure.canvas.get_renderer()
+        correction_bounds = correction_notice.get_window_extent(renderer)
+        version_notices = [
+            artist
+            for artist in figure.texts
+            if artist.get_text().startswith("WSPRadar.org ")
+        ]
+        assert len(version_notices) == 1
+        version_bounds = version_notices[0].get_window_extent(renderer)
+        assert figure.bbox.contains(correction_bounds.x0, correction_bounds.y0)
+        assert figure.bbox.contains(correction_bounds.x1, correction_bounds.y1)
+        assert correction_bounds.x1 < version_bounds.x0
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
+@pytest.mark.parametrize(
+    "figure_kind",
+    ["segment", "segment_temporal", "selected"],
+)
+def test_compare_delta_snr_footer_adds_canvas_without_shrinking_plot(
+    figure_kind,
+):
+    """Reserve a separate footer strip while preserving the original plot area."""
+    notice = "Configured SNR correction: +1.2 dB applied to Reference (ON4AWM1)"
+    corrected_figure, _recipe = _render_correction_footer_figure(
+        figure_kind,
+        notice,
+    )
+    baseline_figure, _baseline_recipe = _render_correction_footer_figure(
+        figure_kind,
+        "",
+    )
+    try:
+        expected_added_height_inches = (
+            SEGMENT_INSIGHT_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES
+            if figure_kind == "segment"
+            else SEGMENT_TEMPORAL_CORRECTION_FOOTER_ADDED_HEIGHT_INCHES
+        )
+        assert baseline_figure.get_figheight() == pytest.approx(
+            SEGMENT_FIGURE_BASE_HEIGHT_INCHES
+        )
+        assert corrected_figure.get_figheight() == pytest.approx(
+            SEGMENT_FIGURE_BASE_HEIGHT_INCHES
+            + expected_added_height_inches
+        )
+        assert corrected_figure.get_figwidth() == pytest.approx(
+            baseline_figure.get_figwidth()
+        )
+
+        baseline_figure.canvas.draw()
+        corrected_figure.canvas.draw()
+        assert len(corrected_figure.axes) == len(baseline_figure.axes)
+        added_height_pixels = (
+            expected_added_height_inches * corrected_figure.dpi
+        )
+        for corrected_axis, baseline_axis in zip(
+            corrected_figure.axes,
+            baseline_figure.axes,
+        ):
+            corrected_bounds = corrected_axis.get_window_extent()
+            baseline_bounds = baseline_axis.get_window_extent()
+            assert corrected_bounds.x0 == pytest.approx(baseline_bounds.x0)
+            assert corrected_bounds.width == pytest.approx(
+                baseline_bounds.width
+            )
+            assert corrected_bounds.height == pytest.approx(
+                baseline_bounds.height
+            )
+            assert corrected_bounds.y0 == pytest.approx(
+                baseline_bounds.y0 + added_height_pixels
+            )
+
+        corrected_renderer = corrected_figure.canvas.get_renderer()
+        correction_notice = next(
+            artist
+            for artist in corrected_figure.texts
+            if artist.get_gid() == "reference-snr-correction-notice"
+        )
+        correction_bounds = correction_notice.get_window_extent(
+            corrected_renderer
+        )
+        version_notice = next(
+            artist
+            for artist in corrected_figure.texts
+            if artist.get_text().startswith("WSPRadar.org ")
+        )
+        version_bounds = version_notice.get_window_extent(corrected_renderer)
+        assert correction_bounds.y0 >= 0.0
+        assert correction_bounds.y1 <= corrected_figure.bbox.y1
+        assert version_bounds.y0 >= 0.0
+        assert version_bounds.y1 <= corrected_figure.bbox.y1
+        assert correction_bounds.x1 < version_bounds.x0
+        plot_content_bottom = min(
+            axis.get_tightbbox(corrected_renderer).y0
+            for axis in corrected_figure.axes
+        )
+        assert max(correction_bounds.y1, version_bounds.y1) + 4.0 <= (
+            plot_content_bottom
+        )
+    finally:
+        dispose_matplotlib_figure(corrected_figure)
+        dispose_matplotlib_figure(baseline_figure)
+
+
+@pytest.mark.parametrize(
+    "figure_kind",
+    ["segment", "segment_temporal", "selected"],
+)
+def test_compare_delta_snr_figures_omit_empty_correction_footer(figure_kind):
+    """Do not reserve a correction artist when the completed run has no notice."""
+    figure, recipe = _render_correction_footer_figure(figure_kind, "")
+    try:
+        assert recipe["reference_snr_correction_notice"] == ""
+        assert figure.get_figheight() == pytest.approx(
+            SEGMENT_FIGURE_BASE_HEIGHT_INCHES
+        )
+        assert figure.subplotpars.bottom == pytest.approx(
+            SEGMENT_FIGURE_BOTTOM
+        )
+        expected_top = (
+            0.80
+            if figure_kind == "segment"
+            else SEGMENT_TEMPORAL_FIGURE_TOP
+        )
+        expected_title_y = 0.98 if figure_kind == "segment" else 0.96
+        assert figure.subplotpars.top == pytest.approx(expected_top)
+        assert figure._suptitle.get_position()[1] == pytest.approx(
+            expected_title_y
+        )
+        version_notices = [
+            artist
+            for artist in figure.texts
+            if artist.get_text().startswith("WSPRadar.org ")
+        ]
+        assert len(version_notices) == 1
+        assert version_notices[0].get_position()[1] == pytest.approx(
+            SEGMENT_FIGURE_FOOTER_Y
+        )
+        assert not [
+            artist
+            for artist in figure.texts
+            if artist.get_gid() == "reference-snr-correction-notice"
+        ]
+    finally:
+        dispose_matplotlib_figure(figure)
 
 
 def _render_compare_evidence_figure(metric_values, identity_labels):
@@ -495,10 +762,18 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             assert len(
                 _lines_with_gid(axis, "compare-temporal-zero-line")
             ) == 1
-            assert _legend_texts(axis) == ["Median +6.0 dB", "Bin median"]
             _assert_legend_keys_precede_text(figure, axis)
             assert not _texts_with_gid(axis, "compare-median-focus-note")
             assert not axis.patches
+        assert _legend_texts(chronological_axis) == [
+            "Median +6.0 dB",
+            "Bin median",
+        ]
+        assert _legend_texts(folded_axis) == [
+            "Median +6.0 dB",
+            "Bin median",
+            recipe["bin_iqr_label"],
+        ]
         assert chronological_axis.get_ylim() == pytest.approx(
             folded_axis.get_ylim()
         )
@@ -942,6 +1217,164 @@ def test_selected_compare_dual_panels_share_reference_line_hierarchy(
         dispose_matplotlib_figure(figure)
 
 
+def _compare_temporal_iqr_gap_rows():
+    """Return fractional raw evidence with two supported bins around a gap."""
+    first_bin_values = [0.11, 0.21, 0.31, 0.41, 2.51]
+    gap_bin_values = [8.11, 8.21, 8.31, 8.41]
+    third_bin_values = [4.05, 4.15, 4.25, 4.35, 7.45]
+    timestamps = (
+        ["2026-07-01T00:05:00Z"] * len(first_bin_values)
+        + ["2026-07-01T03:05:00Z"] * len(gap_bin_values)
+        + ["2026-07-01T06:05:00Z"] * len(third_bin_values)
+        + ["2026-07-02T12:05:00Z"]
+    )
+    metric_values = (
+        first_bin_values
+        + gap_bin_values
+        + third_bin_values
+        + [1.25]
+    )
+    return pd.DataFrame(
+        {
+            "identity": ["A (AA00)"] * len(metric_values),
+            "plot_time": pd.to_datetime(timestamps, utc=True),
+            "metric": metric_values,
+        }
+    )
+
+
+@pytest.mark.parametrize("scope", ["segment", "selected"])
+def test_compare_temporal_iqr_uses_raw_quartiles_and_breaks_at_unsupported_bins(
+    scope,
+):
+    """Share exact raw-value Q1/Q3 rails without bridging a four-value bin."""
+    plot_df = _compare_temporal_iqr_gap_rows()
+    if scope == "segment":
+        recipe = _localized_segment_temporal_recipe(
+            plot_df,
+            "Segment temporal IQR",
+            "3h",
+        )
+        figure = render_segment_temporal_evidence_export_figure(recipe)
+    else:
+        recipe = _localized_selected_evidence_recipe(
+            plot_df,
+            "Selected temporal IQR",
+            "3h",
+        )
+        figure = render_selected_evidence_export_figure(recipe)
+
+    try:
+        chronological_axis = figure.axes[0]
+        q1_lines = _lines_with_gid(chronological_axis, "temporal-bin-iqr-q1")
+        q3_lines = _lines_with_gid(chronological_axis, "temporal-bin-iqr-q3")
+        assert len(q1_lines) == len(q3_lines) == 1
+        q1_values = np.asarray(q1_lines[0].get_ydata(), dtype=float)
+        q3_values = np.asarray(q3_lines[0].get_ydata(), dtype=float)
+        assert np.flatnonzero(np.isfinite(q1_values)).tolist() == [0, 2]
+        assert np.flatnonzero(np.isfinite(q3_values)).tolist() == [0, 2]
+        assert q1_values[[0, 2]] == pytest.approx([0.21, 4.15])
+        assert q3_values[[0, 2]] == pytest.approx([0.41, 4.35])
+        assert np.isnan(q1_values[1])
+        assert np.isnan(q3_values[1])
+        assert q1_lines[0].get_marker() == "_"
+        assert q3_lines[0].get_marker() == "_"
+        assert q1_lines[0].get_color() == TEMPORAL_IQR_COLOR
+        assert q3_lines[0].get_linewidth() == pytest.approx(0.68)
+        assert q3_lines[0].get_zorder() < 4.0
+
+        q1_understrokes = _lines_with_gid(
+            chronological_axis,
+            "temporal-bin-iqr-q1-understroke",
+        )
+        q3_understrokes = _lines_with_gid(
+            chronological_axis,
+            "temporal-bin-iqr-q3-understroke",
+        )
+        assert len(q1_understrokes) == len(q3_understrokes) == 1
+        assert q1_understrokes[0].get_color() == TEMPORAL_IQR_UNDERSTROKE_COLOR
+        assert q1_understrokes[0].get_linewidth() > q1_lines[0].get_linewidth()
+
+        legend_texts = _legend_texts(chronological_axis)
+        assert legend_texts.count(recipe["bin_iqr_label"]) == 1
+        assert legend_texts[-1] == recipe["bin_iqr_label"]
+        median_markers = next(
+            collection
+            for collection in chronological_axis.collections
+            if collection.get_gid() == "temporal-bin-median-markers"
+        )
+        assert median_markers.get_zorder() > q3_lines[0].get_zorder()
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
+def test_compare_folded_iqr_pools_raw_rows_and_requires_five_values():
+    """Pool raw UTC-hour evidence while omitting a four-value folded hour."""
+    plot_df = pd.DataFrame(
+        {
+            "identity": ["A (AA00)"] * 9,
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:05:00Z",
+                    "2026-07-01T00:10:00Z",
+                    "2026-07-01T00:15:00Z",
+                    "2026-07-02T00:05:00Z",
+                    "2026-07-02T00:10:00Z",
+                    "2026-07-01T03:05:00Z",
+                    "2026-07-01T03:10:00Z",
+                    "2026-07-02T03:05:00Z",
+                    "2026-07-02T03:10:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [0.11, 0.21, 0.31, 0.41, 2.51, 8.11, 8.21, 8.31, 8.41],
+        }
+    )
+    recipe = _localized_selected_evidence_recipe(
+        plot_df,
+        "Selected folded IQR",
+        "3h",
+    )
+    figure = render_selected_evidence_export_figure(recipe)
+    try:
+        chronological_axis, folded_axis = figure.axes[:2]
+        assert not _lines_with_gid(chronological_axis, "temporal-bin-iqr-q1")
+
+        folded_q1 = _lines_with_gid(folded_axis, "temporal-bin-iqr-q1")
+        folded_q3 = _lines_with_gid(folded_axis, "temporal-bin-iqr-q3")
+        assert len(folded_q1) == len(folded_q3) == 1
+        q1_values = np.asarray(folded_q1[0].get_ydata(), dtype=float)
+        q3_values = np.asarray(folded_q3[0].get_ydata(), dtype=float)
+        assert np.flatnonzero(np.isfinite(q1_values)).tolist() == [0]
+        assert np.flatnonzero(np.isfinite(q3_values)).tolist() == [0]
+        assert q1_values[0] == pytest.approx(0.21)
+        assert q3_values[0] == pytest.approx(0.41)
+        assert np.isnan(q1_values[3])
+        assert np.isnan(q3_values[3])
+        assert folded_q1[0].get_marker() == "_"
+        assert _legend_texts(folded_axis).count(recipe["bin_iqr_label"]) == 1
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
+def test_compare_temporal_iqr_fails_closed_for_tampered_recipe_threshold():
+    """Do not render quartile rails when recipe metadata relaxes the contract."""
+    recipe = _localized_segment_temporal_recipe(
+        _compare_temporal_iqr_gap_rows(),
+        "Tampered temporal IQR",
+        "3h",
+    )
+    recipe["iqr_min_count"] = TEMPORAL_IQR_MIN_COUNT - 1
+
+    figure = render_segment_temporal_evidence_export_figure(recipe)
+    try:
+        for temporal_axis in figure.axes[:2]:
+            assert not _lines_with_gid(temporal_axis, "temporal-bin-iqr-q1")
+            assert recipe["bin_iqr_label"] not in _legend_texts(temporal_axis)
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
 def test_segment_compare_temporal_recipe_and_dual_density_figure():
     """Keep recipes compact and normalize chronological/folded panels separately."""
     plot_df = pd.DataFrame(
@@ -966,7 +1399,8 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
     )
 
     assert recipe["kind"] == "segment_compare_temporal"
-    assert recipe["schema_version"] == 1
+    assert recipe["schema_version"] == 2
+    assert recipe["iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT
     assert recipe["time_bin"] == "3h"
     assert recipe["utc_date_count"] == 2
     assert recipe["folded_title"] == "\u0394 SNR by UTC Hour (1 h bins)"
@@ -1139,6 +1573,7 @@ def test_segment_temporal_recipe_accepts_localized_labels():
         ),
         median_label="Median",
         bin_median_label=T["de"]["fig_temporal_bin_median"],
+        bin_iqr_label=T["de"]["fig_temporal_bin_iqr"],
     )
 
     assert recipe["chronological_title"] == "Zeitverlauf (3h)"
@@ -1155,6 +1590,7 @@ def test_segment_temporal_recipe_accepts_localized_labels():
     )
     assert recipe["median_label"] == "Median"
     assert recipe["bin_median_label"] == "Lokaler Median"
+    assert recipe["bin_iqr_label"] == T["de"]["fig_temporal_bin_iqr"]
 
 
 def test_segment_temporal_figure_keeps_folded_placeholder_for_one_utc_date():

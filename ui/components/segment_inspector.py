@@ -9,6 +9,7 @@ import inspect
 from collections.abc import Mapping
 from contextlib import nullcontext
 from functools import partial
+from html import escape
 from numbers import Integral
 from pathlib import Path
 from time import perf_counter
@@ -123,9 +124,10 @@ from ui.result_guidance import (
     RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
     render_result_guidance_popover,
 )
+from ui.reference_correction import configured_snr_correction_notice
 
-INSPECTOR_CACHE_VERSION = 35
-INSPECTOR_PNG_RENDER_VERSION = 29
+INSPECTOR_CACHE_VERSION = 38
+INSPECTOR_PNG_RENDER_VERSION = 33
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
 RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
@@ -364,26 +366,14 @@ def _success_figure_labels(translations, analysis_id):
         "snr_chronological_title": translations[
             f"fig_success_snr_chronological_title_{mode_suffix}"
         ],
-        "snr_chronological_subtitle": translations[
-            f"fig_success_snr_chronological_subtitle_{mode_suffix}"
-        ],
         "snr_utc_hour_title": translations[
             f"fig_success_snr_utc_hour_title_{mode_suffix}"
-        ],
-        "snr_utc_hour_subtitle": translations[
-            f"fig_success_snr_utc_hour_subtitle_{mode_suffix}"
         ],
         "evidence_chronological_title": translations[
             "fig_success_evidence_chronological_title"
         ],
         "evidence_utc_hour_title": translations[
             "fig_success_evidence_utc_hour_title"
-        ],
-        "station_support_folded_subtitle": translations[
-            "fig_success_station_support_folded_subtitle"
-        ],
-        "opportunity_folded_subtitle": translations[
-            "fig_success_opportunities_folded_subtitle"
         ],
         "station_vote_y": translations[
             f"fig_success_station_votes_y_{mode_suffix}"
@@ -413,6 +403,7 @@ def _success_figure_labels(translations, analysis_id):
         "bin_median_folded": translations[
             "fig_success_bin_median_folded"
         ],
+        "bin_iqr": translations["fig_temporal_bin_iqr"],
         "snr_anomaly_unavailable": translations[
             "fig_success_snr_anomaly_unavailable"
         ],
@@ -425,14 +416,8 @@ def _success_figure_labels(translations, analysis_id):
         "selected_snr_chronological_title": translations[
             "fig_success_selected_snr_chronological_title"
         ],
-        "selected_snr_chronological_subtitle": translations[
-            "fig_success_selected_snr_chronological_subtitle"
-        ],
         "selected_snr_utc_hour_title": translations[
             "fig_success_selected_snr_utc_hour_title"
-        ],
-        "selected_snr_utc_hour_subtitle": translations[
-            "fig_success_selected_snr_utc_hour_subtitle"
         ],
         "selected_snr_y": translations[
             "fig_success_selected_temporal_snr_y"
@@ -448,9 +433,6 @@ def _success_figure_labels(translations, analysis_id):
         ],
         "selected_snr_unavailable": translations[
             "fig_success_selected_snr_unavailable"
-        ],
-        "selected_station_support_folded_subtitle": translations[
-            "fig_success_selected_station_support_folded_subtitle"
         ],
     }
 
@@ -1271,19 +1253,20 @@ def _format_snr_display_columns(df):
     return display_df
 
 
-def _reference_correction_note(t, is_compare):
-    """Return the active reference-SNR correction notice, or None when inactive."""
-    if not is_compare:
-        return None
-    benchmark_offset_db = round(float(st.session_state.get("val_benchmark_offset_db", 0.0)), 1)
-    if abs(benchmark_offset_db) < 0.05:
-        return None
-    offset_note = t["txt_benchmark_offset_note"]
-    return offset_note.format(offset=benchmark_offset_db)
-
-def _render_reference_correction_notice(t, is_compare):
-    """Render the correction notice as a full-width one-liner on desktop."""
-    note = _reference_correction_note(t, is_compare)
+def _render_reference_correction_notice(
+    t,
+    *,
+    is_compare,
+    is_sequential,
+    analysis_context,
+):
+    """Render the completed run's configured correction as a compact notice."""
+    note = configured_snr_correction_notice(
+        analysis_context,
+        t,
+        is_compare=is_compare,
+        is_sequential=is_sequential,
+    )
     if not note:
         return
     st.markdown(
@@ -1297,7 +1280,7 @@ def _render_reference_correction_notice(t, is_compare):
             }}
         </style>
         <div class="reference-correction-note" style="font-size:0.78em; color:#9aa4b2; margin-top:-0.15rem; margin-bottom:0.35rem; font-family:'Space Mono', monospace;">
-            {note}
+            {escape(note)}
         </div>
         """,
         unsafe_allow_html=True
@@ -1589,7 +1572,12 @@ def _render_drilldown_dataframe(
                             display_drill_df[col].astype(str).isin(sel_vals)
                         ]
 
-    _render_reference_correction_notice(t, is_compare)
+    _render_reference_correction_notice(
+        t,
+        is_compare=is_compare,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
+    )
     with _timed_span(timing_collector, "drilldown dataframe render"):
         drill_display_df = _format_snr_display_columns(display_drill_df)
         _render_compact_dataframe(
@@ -1659,6 +1647,12 @@ def _render_selected_station_evidence(
             "Selected Station Evidence requires exactly one station identity."
         )
     identity_labels = identity_meta["identity"].tolist()
+    reference_snr_correction_notice = configured_snr_correction_notice(
+        analysis_context,
+        t,
+        is_compare=True,
+        is_sequential=is_sequential,
+    )
 
     selected_bundle, selected_cache_hit = _inspector_cache_get(
         run_id,
@@ -1718,6 +1712,9 @@ def _render_selected_station_evidence(
                 evidence_title,
                 time_agg_default,
                 is_sequential,
+                reference_snr_correction_notice=(
+                    reference_snr_correction_notice
+                ),
                 count_label=count_label,
                 chronological_title=t[
                     "fig_selected_compare_chronological_title"
@@ -1740,6 +1737,7 @@ def _render_selected_station_evidence(
                 ],
                 median_label=t["fig_median_label"],
                 bin_median_label=t["fig_temporal_bin_median"],
+                bin_iqr_label=t["fig_temporal_bin_iqr"],
             )
             if base_recipe["utc_date_count"] < 2:
                 insufficient_date_label = t[
@@ -2988,6 +2986,12 @@ def _render_segment_inspector_body(
         is_compare=is_compare,
     )
     run_id = st.session_state.get("run_id", 0)
+    reference_snr_correction_notice = configured_snr_correction_notice(
+        analysis_context,
+        t,
+        is_compare=is_compare,
+        is_sequential=is_sequential,
+    )
     if not ARTIFACT_STORE.touch(parquet_path):
         log_performance_event(
             "session_artifact_read",
@@ -3361,6 +3365,9 @@ def _render_segment_inspector_body(
                     title=title,
                     selected_segment=selected_seg,
                     is_sequential=is_sequential,
+                    reference_snr_correction_notice=(
+                        reference_snr_correction_notice
+                    ),
                     station_values=vals,
                     spot_values=segment_raw_values,
                     panel_labels=segment_panel_labels,
@@ -3430,6 +3437,9 @@ def _render_segment_inspector_body(
                                 temporal_figure_title,
                                 temporal_time_default,
                                 temporal_count_label,
+                                reference_snr_correction_notice=(
+                                    reference_snr_correction_notice
+                                ),
                                 chronological_title=(
                                     chronological_title_template
                                 ),
@@ -3454,6 +3464,9 @@ def _render_segment_inspector_body(
                                 median_label=t["fig_median_label"],
                                 bin_median_label=t[
                                     "fig_temporal_bin_median"
+                                ],
+                                bin_iqr_label=t[
+                                    "fig_temporal_bin_iqr"
                                 ],
                             )
                         )
@@ -3616,6 +3629,12 @@ def _render_segment_inspector_body(
                 is_sequential=is_sequential,
                 analysis_context=analysis_context,
             )
+            _render_reference_correction_notice(
+                t,
+                is_compare=True,
+                is_sequential=is_sequential,
+                analysis_context=analysis_context,
+            )
 
             if has_plot_data:
                 if segment_summary:
@@ -3765,7 +3784,12 @@ def _render_segment_inspector_body(
         # --- END FILTER ---
 
         with level_three_container:
-            _render_reference_correction_notice(t, True)
+            _render_reference_correction_notice(
+                t,
+                is_compare=True,
+                is_sequential=is_sequential,
+                analysis_context=analysis_context,
+            )
 
         # Die Tabelle rendert nun den gefilterten Zustand
         tbl_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"

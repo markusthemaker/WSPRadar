@@ -32,12 +32,12 @@ from ui.plots.evidence_figures import (
     SEGMENT_TEMPORAL_FIGURE_RIGHT,
     SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES,
     SEGMENT_TEMPORAL_FIGURE_TOP,
+    TEMPORAL_IQR_MIN_COUNT,
+    _draw_temporal_iqr_overlay,
     _format_temporal_time_bin_label,
     _place_metric_legend,
-    _place_temporal_panel_subtitle,
     _set_metric_axis_labels,
     _set_temporal_panel_title,
-    _set_temporal_panel_title_with_subtitle,
     _style_evidence_axis,
     _time_agg_minutes,
 )
@@ -1440,11 +1440,13 @@ def _aggregate_success_chronological_snr(
     anomaly_centers_db,
     anomaly_edges_db,
 ):
-    """Aggregate at most one station-median anomaly into each chronological bin."""
+    """Aggregate station-balanced median and quartiles by chronological bin."""
     bin_minutes = _time_agg_minutes(time_bin)
     bin_delta = pd.Timedelta(minutes=bin_minutes)
     bin_count = max(1, int(np.ceil((end - start) / bin_delta)))
     median_trace = np.full(bin_count, np.nan, dtype=float)
+    q1_trace = np.full(bin_count, np.nan, dtype=float)
+    q3_trace = np.full(bin_count, np.nan, dtype=float)
     station_value_counts = np.zeros(bin_count, dtype=np.int64)
     if anomaly_rows.empty:
         station_bins = pd.DataFrame(
@@ -1468,19 +1470,27 @@ def _aggregate_success_chronological_snr(
             station_bins["bin_index"].between(0, bin_count - 1)
         ].copy()
         if not station_bins.empty:
-            medians = station_bins.groupby(
+            grouped_station_values = station_bins.groupby(
                 "bin_index",
                 observed=True,
-            )["snr_anomaly_db"].median()
-            counts = station_bins.groupby(
-                "bin_index",
-                observed=True,
-            ).size()
+            )["snr_anomaly_db"]
+            medians = grouped_station_values.median()
+            q1_values = grouped_station_values.quantile(0.25)
+            q3_values = grouped_station_values.quantile(0.75)
+            counts = grouped_station_values.size()
             median_indexes = medians.index.to_numpy(
                 dtype=np.int64,
                 copy=False,
             )
             median_trace[median_indexes] = medians.to_numpy(
+                dtype=float,
+                copy=False,
+            )
+            q1_trace[median_indexes] = q1_values.to_numpy(
+                dtype=float,
+                copy=False,
+            )
+            q3_trace[median_indexes] = q3_values.to_numpy(
                 dtype=float,
                 copy=False,
             )
@@ -1503,6 +1513,8 @@ def _aggregate_success_chronological_snr(
             anomaly_centers_db=anomaly_centers_db,
         ),
         "snr_station_balanced_median_db": median_trace,
+        "snr_station_balanced_q1_db": q1_trace,
+        "snr_station_balanced_q3_db": q3_trace,
         "snr_station_value_counts": station_value_counts,
     }
 
@@ -1512,8 +1524,10 @@ def _aggregate_success_folded_snr(
     anomaly_centers_db,
     anomaly_edges_db,
 ):
-    """Aggregate one station-date-hour median anomaly into each UTC hour."""
+    """Aggregate station-date-hour median anomalies and quartiles by UTC hour."""
     median_trace = np.full(24, np.nan, dtype=float)
+    q1_trace = np.full(24, np.nan, dtype=float)
+    q3_trace = np.full(24, np.nan, dtype=float)
     station_value_counts = np.zeros(24, dtype=np.int64)
     if anomaly_rows.empty:
         station_date_hours = pd.DataFrame(
@@ -1538,17 +1552,18 @@ def _aggregate_success_folded_snr(
             .reset_index()
         )
         if not station_date_hours.empty:
-            medians = station_date_hours.groupby(
+            grouped_station_date_hours = station_date_hours.groupby(
                 "utc_hour",
                 observed=True,
-            )["snr_anomaly_db"].median()
-            counts = station_date_hours.groupby(
-                "utc_hour",
-                observed=True,
-            ).size()
-            median_trace[
-                medians.index.to_numpy(dtype=np.int64, copy=False)
-            ] = medians.to_numpy(dtype=float, copy=False)
+            )["snr_anomaly_db"]
+            medians = grouped_station_date_hours.median()
+            q1_values = grouped_station_date_hours.quantile(0.25)
+            q3_values = grouped_station_date_hours.quantile(0.75)
+            counts = grouped_station_date_hours.size()
+            indexes = medians.index.to_numpy(dtype=np.int64, copy=False)
+            median_trace[indexes] = medians.to_numpy(dtype=float, copy=False)
+            q1_trace[indexes] = q1_values.to_numpy(dtype=float, copy=False)
+            q3_trace[indexes] = q3_values.to_numpy(dtype=float, copy=False)
             station_value_counts[
                 counts.index.to_numpy(dtype=np.int64, copy=False)
             ] = counts.to_numpy(dtype=np.int64, copy=False)
@@ -1574,6 +1589,8 @@ def _aggregate_success_folded_snr(
             anomaly_centers_db=anomaly_centers_db,
         ),
         "snr_station_balanced_median_db": median_trace,
+        "snr_station_balanced_q1_db": q1_trace,
+        "snr_station_balanced_q3_db": q3_trace,
         "snr_station_value_counts": station_value_counts,
     }
 
@@ -1674,10 +1691,12 @@ def _aggregate_success_chronological_actual_snr(
     time_bin,
     snr_edges_db,
 ):
-    """Aggregate all selected-station successful SNR observations by time bin."""
+    """Aggregate raw selected-station SNR median and quartiles by time bin."""
     bin_delta = pd.Timedelta(minutes=_time_agg_minutes(time_bin))
     bin_count = max(1, int(np.ceil((end - start) / bin_delta)))
     median_trace = np.full(bin_count, np.nan, dtype=float)
+    q1_trace = np.full(bin_count, np.nan, dtype=float)
+    q3_trace = np.full(bin_count, np.nan, dtype=float)
     value_counts = np.zeros(bin_count, dtype=np.int64)
     if successful_rows.empty:
         binned_rows = pd.DataFrame(columns=["bin_index", "target_snr"])
@@ -1690,16 +1709,24 @@ def _aggregate_success_chronological_actual_snr(
             binned_rows["bin_index"].between(0, bin_count - 1)
         ].copy()
         if not binned_rows.empty:
-            medians = binned_rows.groupby(
+            grouped_observations = binned_rows.groupby(
                 "bin_index",
                 observed=True,
-            )["target_snr"].median()
-            counts = binned_rows.groupby(
-                "bin_index",
-                observed=True,
-            ).size()
+            )["target_snr"]
+            medians = grouped_observations.median()
+            q1_values = grouped_observations.quantile(0.25)
+            q3_values = grouped_observations.quantile(0.75)
+            counts = grouped_observations.size()
             indexes = medians.index.to_numpy(dtype=np.int64, copy=False)
             median_trace[indexes] = medians.to_numpy(
+                dtype=float,
+                copy=False,
+            )
+            q1_trace[indexes] = q1_values.to_numpy(
+                dtype=float,
+                copy=False,
+            )
+            q3_trace[indexes] = q3_values.to_numpy(
                 dtype=float,
                 copy=False,
             )
@@ -1718,6 +1745,8 @@ def _aggregate_success_chronological_actual_snr(
             snr_edges_db=snr_edges_db,
         ),
         "snr_median_db": median_trace,
+        "snr_q1_db": q1_trace,
+        "snr_q3_db": q3_trace,
         "snr_value_counts": value_counts,
     }
 
@@ -1726,8 +1755,10 @@ def _aggregate_success_folded_actual_snr(
     successful_rows,
     snr_edges_db,
 ):
-    """Fold one selected-station median per represented date-hour."""
+    """Fold selected-station date-hour medians into hourly median and quartiles."""
     median_trace = np.full(24, np.nan, dtype=float)
+    q1_trace = np.full(24, np.nan, dtype=float)
+    q3_trace = np.full(24, np.nan, dtype=float)
     value_counts = np.zeros(24, dtype=np.int64)
     if successful_rows.empty:
         date_hour_medians = pd.DataFrame(
@@ -1751,16 +1782,24 @@ def _aggregate_success_folded_actual_snr(
             .reset_index()
         )
         if not date_hour_medians.empty:
-            medians = date_hour_medians.groupby(
+            grouped_date_hours = date_hour_medians.groupby(
                 "utc_hour",
                 observed=True,
-            )["target_snr"].median()
-            counts = date_hour_medians.groupby(
-                "utc_hour",
-                observed=True,
-            ).size()
+            )["target_snr"]
+            medians = grouped_date_hours.median()
+            q1_values = grouped_date_hours.quantile(0.25)
+            q3_values = grouped_date_hours.quantile(0.75)
+            counts = grouped_date_hours.size()
             indexes = medians.index.to_numpy(dtype=np.int64, copy=False)
             median_trace[indexes] = medians.to_numpy(
+                dtype=float,
+                copy=False,
+            )
+            q1_trace[indexes] = q1_values.to_numpy(
+                dtype=float,
+                copy=False,
+            )
+            q3_trace[indexes] = q3_values.to_numpy(
                 dtype=float,
                 copy=False,
             )
@@ -1785,6 +1824,8 @@ def _aggregate_success_folded_actual_snr(
             snr_edges_db=snr_edges_db,
         ),
         "snr_median_db": median_trace,
+        "snr_q1_db": q1_trace,
+        "snr_q3_db": q3_trace,
         "snr_value_counts": value_counts,
     }
 
@@ -1902,8 +1943,6 @@ def _opportunity_temporal_recipe(
     common_label_keys = (
         "evidence_chronological_title",
         "evidence_utc_hour_title",
-        "station_support_folded_subtitle",
-        "opportunity_folded_subtitle",
         "station_vote_y",
         "station_support_folded_y",
         "opportunity_y",
@@ -1914,28 +1953,24 @@ def _opportunity_temporal_recipe(
         "utc_hour_x",
         "target_evidence",
         "counter_evidence",
+        "bin_iqr",
         "temporal_unavailable",
         "utc_dates_folded",
     )
     if snr_representation == SUCCESS_SNR_REPRESENTATION_ACTUAL:
         representation_label_keys = (
             "selected_snr_chronological_title",
-            "selected_snr_chronological_subtitle",
             "selected_snr_utc_hour_title",
-            "selected_snr_utc_hour_subtitle",
             "selected_snr_y",
             "selected_snr_density",
             "selected_bin_median_chronological",
             "selected_bin_median_folded",
             "selected_snr_unavailable",
-            "selected_station_support_folded_subtitle",
         )
     else:
         representation_label_keys = (
             "snr_chronological_title",
-            "snr_chronological_subtitle",
             "snr_utc_hour_title",
-            "snr_utc_hour_subtitle",
             "snr_anomaly_y",
             "snr_density",
             "station_baseline",
@@ -1953,14 +1988,8 @@ def _opportunity_temporal_recipe(
                 "snr_chronological_title": labels[
                     "selected_snr_chronological_title"
                 ],
-                "snr_chronological_subtitle": labels[
-                    "selected_snr_chronological_subtitle"
-                ],
                 "snr_utc_hour_title": labels[
                     "selected_snr_utc_hour_title"
-                ],
-                "snr_utc_hour_subtitle": labels[
-                    "selected_snr_utc_hour_subtitle"
                 ],
                 "snr_y": labels["selected_snr_y"],
                 "snr_density": labels["selected_snr_density"],
@@ -1971,9 +2000,6 @@ def _opportunity_temporal_recipe(
                     "selected_bin_median_folded"
                 ],
                 "snr_unavailable": labels["selected_snr_unavailable"],
-                "station_support_folded_subtitle": labels[
-                    "selected_station_support_folded_subtitle"
-                ],
             }
         )
     else:
@@ -2134,9 +2160,10 @@ def _opportunity_temporal_recipe(
     )
     return {
         "kind": "opportunity_success_temporal",
-        "schema_version": 7,
+        "schema_version": 8,
         "population_mode": population_mode,
         "snr_representation": snr_representation,
+        "snr_iqr_min_count": TEMPORAL_IQR_MIN_COUNT,
         "snr_baseline_version": (
             SUCCESS_SNR_BASELINE_VERSION
             if snr_representation
@@ -2421,11 +2448,10 @@ def _draw_success_snr_density_panel(
     profile,
     labels,
     title,
-    subtitle,
     median_label,
     snr_representation,
 ):
-    """Draw one shared successful-SNR density panel and its median trace."""
+    """Draw one title-only successful-SNR density panel and its median trace."""
     is_actual_snr = (
         snr_representation == SUCCESS_SNR_REPRESENTATION_ACTUAL
     )
@@ -2473,15 +2499,25 @@ def _draw_success_snr_density_panel(
         )
         baseline_line.set_gid("success-temporal-snr-baseline")
         legend_handles.append(baseline_line)
-    median_trace = np.asarray(
-        profile.get(
-            "snr_median_db"
-            if is_actual_snr
-            else "snr_station_balanced_median_db",
-            [],
-        ),
-        dtype=float,
+    if is_actual_snr:
+        median_key = "snr_median_db"
+        q1_key = "snr_q1_db"
+        q3_key = "snr_q3_db"
+        count_key = "snr_value_counts"
+    else:
+        median_key = "snr_station_balanced_median_db"
+        q1_key = "snr_station_balanced_q1_db"
+        q3_key = "snr_station_balanced_q3_db"
+        count_key = "snr_station_value_counts"
+    iqr_handle = _draw_temporal_iqr_overlay(
+        axis,
+        x_centers,
+        np.asarray(profile.get(q1_key, []), dtype=float),
+        np.asarray(profile.get(q3_key, []), dtype=float),
+        np.asarray(profile.get(count_key, []), dtype=np.int64),
+        label=labels["bin_iqr"],
     )
+    median_trace = np.asarray(profile.get(median_key, []), dtype=float)
     median_line = axis.plot(
         x_centers,
         median_trace,
@@ -2494,17 +2530,14 @@ def _draw_success_snr_density_panel(
     )[0]
     median_line.set_gid("success-temporal-snr-bin-median")
     legend_handles.append(median_line)
+    if iqr_handle is not None:
+        legend_handles.append(iqr_handle)
     axis.set_ylim(snr_edges_db[0], snr_edges_db[-1])
     if is_actual_snr:
         axis.yaxis.set_major_locator(
             mpl.ticker.MaxNLocator(nbins=7, integer=True)
         )
-    _set_temporal_panel_title_with_subtitle(
-        axis,
-        title,
-        subtitle,
-        subtitle_gid="success-temporal-panel-subtitle",
-    )
+    _set_temporal_panel_title(axis, title)
     _set_metric_axis_labels(
         axis,
         y_label=labels["snr_y"],
@@ -2532,8 +2565,10 @@ def _draw_success_snr_density_panel(
 
 def _success_temporal_render_context(recipe):
     """Resolve and validate the shared profile and axes for both figure blocks."""
-    if int(recipe.get("schema_version", 0)) != 7:
+    if int(recipe.get("schema_version", 0)) != 8:
         raise ValueError("Unsupported Success temporal recipe schema.")
+    if int(recipe.get("snr_iqr_min_count", 0)) != TEMPORAL_IQR_MIN_COUNT:
+        raise ValueError("Unsupported Success temporal SNR IQR threshold.")
     population_mode = str(
         recipe.get(
             "population_mode",
@@ -2829,9 +2864,6 @@ def _render_opportunity_temporal_snr_figure(recipe):
         chronological,
         labels,
         labels["snr_chronological_title"],
-        labels["snr_chronological_subtitle"].format(
-            time_bin=context["display_time_bin"],
-        ),
         labels["bin_median_chronological"],
         context["snr_representation"],
     )
@@ -2850,7 +2882,6 @@ def _render_opportunity_temporal_snr_figure(recipe):
             folded,
             labels,
             labels["snr_utc_hour_title"],
-            labels["snr_utc_hour_subtitle"],
             labels["bin_median_folded"],
             context["snr_representation"],
         )
@@ -3007,19 +3038,6 @@ def _render_opportunity_temporal_evidence_figure(recipe):
             labels["evidence_utc_hour_title"],
             gid="success-temporal-evidence-folded-column-header",
         )
-        _place_temporal_panel_subtitle(
-            folded_station_axis,
-            labels["station_support_folded_subtitle"],
-            gid="success-temporal-station-folded-subtitle",
-            y=1.0,
-        )
-        _place_temporal_panel_subtitle(
-            folded_opportunity_axis,
-            labels["opportunity_folded_subtitle"],
-            gid="success-temporal-opportunity-folded-subtitle",
-            y=1.0,
-        )
-
     chronological_bar_widths = (
         np.diff(context["chronological_edges"]) * 0.78
     )
