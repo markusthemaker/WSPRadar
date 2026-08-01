@@ -539,7 +539,7 @@ def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
     section_key,
     population_phrases,
 ):
-    """Keep Q1–Q3 meaning explicit in every segment and selected-path view."""
+    """Keep the IQR-band presentation and Q1–Q3 meaning explicit."""
     item = RESULT_GUIDANCE[language]["sections"][section_key]
     combined = f"{item['read']} {item['limits']}"
 
@@ -558,12 +558,27 @@ def test_temporal_iqr_guidance_defines_population_support_and_interpretation(
             "nicht die Unsicherheit oder ein Konfidenzintervall",
         )
     )
-    for required_phrase in (*common_phrases, *population_phrases):
+    presentation_phrases = (
+        ("subtle IQR band", "bounded by fine Q1–Q3 lines")
+        if language == "en"
+        else ("dezentes IQR-Band", "begrenzt von feinen Q1–Q3-Linien")
+    )
+    for required_phrase in (
+        *common_phrases,
+        *presentation_phrases,
+        *population_phrases,
+    ):
         assert required_phrase in combined, (
             language,
             section_key,
             required_phrase,
         )
+    superseded_phrase = (
+        "Fine pale Q1–Q3 rails"
+        if language == "en"
+        else "Feine helle Q1–Q3-Linien"
+    )
+    assert superseded_phrase not in combined
 
 
 @pytest.mark.parametrize(

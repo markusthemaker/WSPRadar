@@ -1380,6 +1380,81 @@ def test_compare_segment_histograms_share_median_legend_and_mean_placement():
         dispose_matplotlib_figure(figure)
 
 
+def test_compare_segment_paper_export_restyles_all_foreground_boxes(monkeypatch):
+    """Convert retained legends and text boxes without mutating web styling."""
+    recipe = _localized_compare_segment_recipe(
+        {
+            "title": "RX Compare",
+            "selected_segment": "Full Range | All Directions",
+            "is_sequential": False,
+            "station_values": np.array([6.0, 7.0]),
+            "spot_values": np.array([6.0, 8.0]),
+            "panel_station_counts": [1, 2, 0, 1],
+            "panel_spot_counts": [2, 8, 1, 3],
+            "panel_series_labels": ["Stations", "Spots"],
+            "panel_labels": ["Target", "Joint", "Both (Async)", "Reference"],
+            "panel_y_label": "Share (%)",
+        }
+    )
+    figure = render_segment_insight_export_figure(recipe)
+    try:
+        split_legends = {
+            legend.get_gid(): legend
+            for legend in figure.findobj(Legend)
+            if str(legend.get_gid() or "").startswith("decode-outcome-")
+        }
+        assert set(split_legends) == {
+            "decode-outcome-station-legend",
+            "decode-outcome-spot-legend",
+        }
+        mean_annotations = [
+            text
+            for axis in figure.axes
+            for text in axis.texts
+            if text.get_gid() == "compare-metric-mean"
+        ]
+        assert len(mean_annotations) == 2
+        for legend in split_legends.values():
+            assert legend.get_frame().get_facecolor()[:3] == pytest.approx(
+                to_rgba("#121212")[:3]
+            )
+        for annotation in mean_annotations:
+            assert annotation.get_bbox_patch().get_facecolor()[:3] == pytest.approx(
+                to_rgba("#121212")[:3]
+            )
+
+        def inspect_paper_style(image_buffer, **_save_options):
+            """Inspect the temporary light styling at the actual save boundary."""
+            for legend in split_legends.values():
+                assert legend.get_frame().get_facecolor()[:3] == pytest.approx(
+                    to_rgba("white")[:3]
+                )
+                assert {text.get_color() for text in legend.get_texts()} == {
+                    "#111111"
+                }
+            for annotation in mean_annotations:
+                assert annotation.get_color() == "#111111"
+                assert annotation.get_bbox_patch().get_facecolor()[:3] == (
+                    pytest.approx(to_rgba("#f3f3f3")[:3])
+                )
+            image_buffer.write(b"paper-style")
+
+        monkeypatch.setattr(figure, "savefig", inspect_paper_style)
+        assert figure_to_png_bytes(figure, dpi=80) == b"paper-style"
+
+        for legend in split_legends.values():
+            assert legend.get_frame().get_facecolor()[:3] == pytest.approx(
+                to_rgba("#121212")[:3]
+            )
+        for annotation in mean_annotations:
+            assert annotation.get_color() == "#cccccc"
+            assert annotation.get_bbox_patch().get_facecolor()[:3] == pytest.approx(
+                to_rgba("#121212")[:3]
+            )
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
 def test_compare_outcomes_and_station_histogram_share_station_hatching():
     """Keep split inside legends and dense station hatching across Compare."""
     recipe = {

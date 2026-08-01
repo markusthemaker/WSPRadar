@@ -177,6 +177,27 @@ def test_temporal_snr_render_version_changes_export_signature(monkeypatch):
     assert version_two_signature != results_export._export_signature(blocks)
 
 
+def test_temporal_iqr_band_alpha_changes_export_signature(monkeypatch):
+    """Invalidate prepared ZIPs when configured IQR shading changes."""
+    blocks = {
+        "RX_COMPARE": {
+            "analysis_id": "RX_COMPARE",
+            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        }
+    }
+
+    monkeypatch.setattr(results_export, "TEMPORAL_IQR_BAND_ALPHA", 0.10)
+    ten_percent_signature = results_export._export_signature(blocks)
+    ten_percent_payload = json.loads(ten_percent_signature)
+    monkeypatch.setattr(results_export, "TEMPORAL_IQR_BAND_ALPHA", 0.15)
+
+    assert ten_percent_payload[0]["temporal_iqr_band_alpha"] == pytest.approx(
+        0.10
+    )
+    assert ten_percent_signature != results_export._export_signature(blocks)
+
+
 def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
     """Preserve operator correction provenance beside its scientific value."""
     monkeypatch.setattr(

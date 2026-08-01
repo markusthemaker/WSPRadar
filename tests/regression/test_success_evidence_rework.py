@@ -5,8 +5,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-from matplotlib.colors import to_hex
+from matplotlib.colors import to_hex, to_rgba
 
+from config import TEMPORAL_IQR_BAND_ALPHA
 from core.opportunity_engine import opportunity_utc_from_time_slot
 from core.presentation_context import PresentationContext
 from i18n import T
@@ -19,8 +20,10 @@ from ui.components.segment_inspector import (
 )
 from ui.inspector.view_models import build_opportunity_inspector_view_model
 from ui.matplotlib_renderer import dispose_matplotlib_figure
+from ui.results_export import figure_to_png_bytes
 from ui.result_hierarchy import evidence_level_header_html
 from ui.plots.evidence_figures import (
+    TEMPORAL_IQR_COLOR,
     TEMPORAL_IQR_MIN_COUNT,
     _segment_temporal_evidence_export_recipe,
     render_segment_temporal_evidence_export_figure,
@@ -507,7 +510,7 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         "observation_level": "Opportunity-level Decode Rate",
         "median": "Median",
         "iqr": "IQR",
-        "bin_iqr": "Bin Q1–Q3 (middle 50%)",
+        "bin_iqr": "Bin IQR (middle 50%)",
         "two_station_range": "Range (2 stations)",
         "evidence_chronological_title": (
             "Evidence over Time ({time_bin} bins)"
@@ -550,7 +553,7 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         "observation_level": "Dekodierrate auf Gelegenheitsebene",
         "median": "Median",
         "iqr": "IQR",
-        "bin_iqr": "Q1–Q3 je Bin (mittlere 50 %)",
+        "bin_iqr": "IQR je Bin (mittlere 50 %)",
         "two_station_range": "Spanne (2 Stationen)",
         "evidence_chronological_title": (
             "Evidenz im Zeitverlauf ({time_bin}-Bins)"
@@ -1906,6 +1909,7 @@ def test_selected_success_actual_snr_renderer_reuses_axes_without_baseline():
 def test_success_temporal_iqr_renderer_applies_threshold_gaps_and_legend(
     population_mode,
     analysis_id,
+    monkeypatch,
 ):
     """Use one TX/RX-neutral renderer for supported active and selected IQRs."""
     if population_mode == SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION:
@@ -1947,6 +1951,7 @@ def test_success_temporal_iqr_renderer_applies_threshold_gaps_and_legend(
     try:
         assert figure is not None
         figure.canvas.draw()
+        snr_axes = []
         for axis_gid, profile in (
             (
                 "success-temporal-snr-chronological-axis",
@@ -1958,6 +1963,7 @@ def test_success_temporal_iqr_renderer_applies_threshold_gaps_and_legend(
             ),
         ):
             axis = _axis_by_gid(figure, axis_gid)
+            snr_axes.append(axis)
             q1_lines = [
                 line
                 for line in axis.lines
@@ -1968,27 +1974,58 @@ def test_success_temporal_iqr_renderer_applies_threshold_gaps_and_legend(
                 for line in axis.lines
                 if line.get_gid() == "temporal-bin-iqr-q3"
             ]
+            iqr_bands = [
+                collection
+                for collection in axis.collections
+                if collection.get_gid() == "temporal-bin-iqr-band"
+            ]
             median_lines = [
                 line
                 for line in axis.lines
                 if line.get_gid() == "success-temporal-snr-bin-median"
             ]
-            assert len(q1_lines) == len(q3_lines) == len(median_lines) == 1
+            assert (
+                len(q1_lines)
+                == len(q3_lines)
+                == len(iqr_bands)
+                == len(median_lines)
+                == 1
+            )
             q1_line = q1_lines[0]
             q3_line = q3_lines[0]
+            iqr_band = iqr_bands[0]
             median_line = median_lines[0]
             np.testing.assert_array_equal(
                 np.flatnonzero(np.isfinite(q1_line.get_ydata())),
-                [0, 1, 3, 5, 6],
+                [0, 1, 5, 6],
             )
             np.testing.assert_array_equal(
                 np.flatnonzero(np.isfinite(q3_line.get_ydata())),
-                [0, 1, 3, 5, 6],
+                [0, 1, 5, 6],
             )
-            assert q1_line.get_marker() == q3_line.get_marker() == "_"
+            assert q1_line.get_marker() == q3_line.get_marker() == "None"
+            assert all(
+                line.get_marker() == "None"
+                for line in axis.lines
+                if str(line.get_gid() or "").startswith("temporal-bin-iqr-")
+            )
             assert np.isnan(q1_line.get_ydata()[2])
-            assert np.isfinite(q1_line.get_ydata()[3])
+            assert np.isnan(q1_line.get_ydata()[3])
             assert np.isnan(q1_line.get_ydata()[4])
+            assert len(iqr_band.get_paths()) == 2
+            assert iqr_band.get_alpha() == pytest.approx(
+                TEMPORAL_IQR_BAND_ALPHA
+            )
+            assert iqr_band.get_facecolors()[0] == pytest.approx(
+                to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+            )
+            density_mesh = next(
+                collection
+                for collection in axis.collections
+                if collection.get_gid() == "success-temporal-snr-density"
+            )
+            assert density_mesh.get_zorder() < iqr_band.get_zorder()
+            assert iqr_band.get_zorder() < q1_line.get_zorder()
             assert q1_line.get_zorder() < median_line.get_zorder()
             assert q3_line.get_zorder() < median_line.get_zorder()
             assert axis.get_ylim() == pytest.approx(
@@ -2016,9 +2053,132 @@ def test_success_temporal_iqr_renderer_applies_threshold_gaps_and_legend(
                     recipe["labels"]["bin_iqr"],
                 ]
             )
+            legend = axis.get_legend()
             assert [
-                text.get_text() for text in axis.get_legend().get_texts()
+                text.get_text() for text in legend.get_texts()
             ] == expected_legend_labels
+            iqr_legend_handles = [
+                legend_handle
+                for legend_handle in legend.legend_handles
+                if legend_handle.get_gid() == "temporal-bin-iqr-band-legend"
+            ]
+            assert len(iqr_legend_handles) == 1
+            iqr_legend_handle = iqr_legend_handles[0]
+            assert iqr_legend_handle.get_facecolor() == pytest.approx(
+                to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+            )
+            assert iqr_legend_handle.get_edgecolor() == pytest.approx(
+                to_rgba(TEMPORAL_IQR_COLOR)
+            )
+            assert iqr_legend_handle.get_linewidth() == pytest.approx(0.68)
+
+        def inspect_paper_style(image_buffer, **_save_options):
+            """Verify Performance exports use a fine black IQR band."""
+            for axis in snr_axes:
+                q1_line = next(
+                    line
+                    for line in axis.lines
+                    if line.get_gid() == "temporal-bin-iqr-q1"
+                )
+                q3_line = next(
+                    line
+                    for line in axis.lines
+                    if line.get_gid() == "temporal-bin-iqr-q3"
+                )
+                understrokes = [
+                    line
+                    for line in axis.lines
+                    if str(line.get_gid() or "").startswith(
+                        "temporal-bin-iqr-"
+                    )
+                    and str(line.get_gid()).endswith("-understroke")
+                ]
+                median_line = next(
+                    line
+                    for line in axis.lines
+                    if line.get_gid() == "success-temporal-snr-bin-median"
+                )
+                iqr_band = next(
+                    collection
+                    for collection in axis.collections
+                    if collection.get_gid() == "temporal-bin-iqr-band"
+                )
+                iqr_legend_handle = next(
+                    legend_handle
+                    for legend_handle in axis.get_legend().legend_handles
+                    if legend_handle.get_gid()
+                    == "temporal-bin-iqr-band-legend"
+                )
+                assert len(understrokes) == 2
+                assert not any(line.get_visible() for line in understrokes)
+                assert iqr_band.get_alpha() == pytest.approx(
+                    TEMPORAL_IQR_BAND_ALPHA
+                )
+                assert iqr_band.get_facecolors()[0] == pytest.approx(
+                    to_rgba("#111111", TEMPORAL_IQR_BAND_ALPHA)
+                )
+                assert iqr_legend_handle.get_facecolor() == pytest.approx(
+                    to_rgba("#111111", TEMPORAL_IQR_BAND_ALPHA)
+                )
+                assert iqr_legend_handle.get_edgecolor() == pytest.approx(
+                    to_rgba("#111111")
+                )
+                assert iqr_legend_handle.get_linewidth() == pytest.approx(0.4)
+                for quartile_line in (q1_line, q3_line):
+                    assert quartile_line.get_visible()
+                    assert quartile_line.get_color() == "#111111"
+                    assert quartile_line.get_linewidth() == pytest.approx(0.4)
+                    assert quartile_line.get_marker() == "None"
+                    assert (
+                        quartile_line.get_linewidth()
+                        < median_line.get_linewidth()
+                    )
+            image_buffer.write(b"paper-style")
+
+        monkeypatch.setattr(figure, "savefig", inspect_paper_style)
+        assert figure_to_png_bytes(figure, dpi=80) == b"paper-style"
+        for axis in snr_axes:
+            assert all(
+                line.get_visible()
+                for line in axis.lines
+                if str(line.get_gid() or "").endswith("-understroke")
+            )
+            assert all(
+                line.get_color() == TEMPORAL_IQR_COLOR
+                for line in axis.lines
+                if line.get_gid() in {
+                    "temporal-bin-iqr-q1",
+                    "temporal-bin-iqr-q3",
+                }
+            )
+            assert all(
+                line.get_linewidth() == pytest.approx(0.68)
+                for line in axis.lines
+                if line.get_gid() in {
+                    "temporal-bin-iqr-q1",
+                    "temporal-bin-iqr-q3",
+                }
+            )
+            iqr_band = next(
+                collection
+                for collection in axis.collections
+                if collection.get_gid() == "temporal-bin-iqr-band"
+            )
+            iqr_legend_handle = next(
+                legend_handle
+                for legend_handle in axis.get_legend().legend_handles
+                if legend_handle.get_gid() == "temporal-bin-iqr-band-legend"
+            )
+            assert iqr_band.get_facecolors()[0] == pytest.approx(
+                to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+            )
+            assert iqr_legend_handle.get_facecolor() == pytest.approx(
+                to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+            )
+            assert iqr_legend_handle.get_edgecolor() == pytest.approx(
+                to_rgba(TEMPORAL_IQR_COLOR)
+            )
+            assert iqr_legend_handle.get_linewidth() == pytest.approx(0.68)
     finally:
         if figure is not None:
             dispose_matplotlib_figure(figure)

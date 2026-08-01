@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.dates as mdates
 
-from config import APP_VERSION
+from config import APP_VERSION, TEMPORAL_IQR_BAND_ALPHA
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.evidence_statistics import (
     _expanded_metric_limits,
@@ -56,8 +56,6 @@ GRID_COLOR = "#777777"
 GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
 TEMPORAL_GUIDE_COLOR = "#d0d0d0"
-TEMPORAL_ZERO_LINE_COLOR = "#f4f1e8"
-TEMPORAL_ZERO_UNDERSTROKE_COLOR = "#050505"
 TEMPORAL_IQR_COLOR = "#f4f7f8"
 TEMPORAL_IQR_UNDERSTROKE_COLOR = "#050505"
 METRIC_MEDIAN_COLOR = "red"
@@ -302,8 +300,8 @@ def _add_horizontal_grid(ax):
     ax.set_axisbelow(True)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
 
-def _format_absolute_delta_tick(value_db, median_db):
-    """Format one absolute Delta-SNR tick and mark the focus median with M."""
+def _format_absolute_delta_tick(value_db):
+    """Format one signed absolute Delta-SNR tick without a semantic suffix."""
     value_db = float(value_db)
     rounded_value = round(value_db)
     if np.isclose(value_db, rounded_value, atol=1e-9):
@@ -319,8 +317,6 @@ def _format_absolute_delta_tick(value_db, median_db):
             if value_db > 0.0
             else f"\u2212{abs(value_db):.1f}"
         )
-    if np.isclose(value_db, median_db, atol=1e-9):
-        return f"{numeric_label} M"
     return numeric_label
 
 
@@ -354,51 +350,6 @@ def _add_metric_median_reference(
     return median_line
 
 
-def _add_compare_absolute_zero_reference(ax, spec):
-    """Retain the raw zero-dB equality reference on a median-focused axis."""
-    if not spec.lower_limit_db <= 0.0 <= spec.upper_limit_db:
-        return
-
-    zero_understroke = ax.axhline(
-        0.0,
-        color=TEMPORAL_ZERO_UNDERSTROKE_COLOR,
-        linestyle="--",
-        linewidth=1.7,
-        alpha=0.92,
-        zorder=2.9,
-    )
-    zero_understroke.set_gid("compare-temporal-zero-understroke")
-    zero_line = ax.axhline(
-        0.0,
-        color=TEMPORAL_ZERO_LINE_COLOR,
-        linestyle="--",
-        linewidth=0.85,
-        alpha=0.98,
-        zorder=3.0,
-    )
-    zero_line.set_gid("compare-temporal-zero-line")
-
-    if not any(np.isclose(tick_db, 0.0) for tick_db in spec.tick_values_db):
-        zero_label = ax.text(
-            0.99,
-            0.0,
-            "0 dB",
-            transform=ax.get_yaxis_transform(),
-            color=TEMPORAL_ZERO_LINE_COLOR,
-            fontsize=8,
-            ha="right",
-            va="bottom",
-            zorder=6,
-            bbox={
-                "boxstyle": "square,pad=0.12",
-                "facecolor": "black",
-                "edgecolor": "none",
-                "alpha": 0.58,
-            },
-        )
-        zero_label.set_gid("compare-temporal-zero-label")
-
-
 def _apply_compare_median_focus_axis(
     ax,
     spec,
@@ -425,10 +376,7 @@ def _apply_compare_median_focus_axis(
     ax.yaxis.set_major_locator(mpl.ticker.FixedLocator(spec.tick_values_db))
     ax.yaxis.set_major_formatter(
         mpl.ticker.FuncFormatter(
-            lambda value_db, _position: _format_absolute_delta_tick(
-                value_db,
-                spec.median_db,
-            )
+            lambda value_db, _position: _format_absolute_delta_tick(value_db)
         )
     )
     ax.set_ylabel(axis_label, color="white")
@@ -460,7 +408,6 @@ def _apply_compare_median_focus_axis(
         )
         guide_line.set_gid("compare-median-focus-guide")
 
-    _add_compare_absolute_zero_reference(ax, spec)
     if show_median_legend and median_reference_line is not None:
         legend_handles = [median_reference_line]
         bin_median_markers = next(
@@ -475,9 +422,9 @@ def _apply_compare_median_focus_axis(
             legend_handles.append(bin_median_markers)
         bin_iqr_handle = next(
             (
-                line
-                for line in ax.lines
-                if line.get_gid() == "temporal-bin-iqr-q3"
+                collection
+                for collection in ax.collections
+                if collection.get_gid() == "temporal-bin-iqr-band"
             ),
             None,
         )
@@ -526,6 +473,20 @@ def _place_metric_legend(
     if labels is not None:
         legend_kwargs["labels"] = labels
     legend = legend_owner.legend(**legend_kwargs)
+    if handles is not None:
+        legend_handles = getattr(legend, "legend_handles", ())
+        for source_handle, legend_handle in zip(handles, legend_handles):
+            if source_handle.get_gid() == "temporal-bin-iqr-band":
+                legend_handle.set_gid("temporal-bin-iqr-band-legend")
+                legend_handle.set_alpha(None)
+                legend_handle.set_facecolor(
+                    mpl.colors.to_rgba(
+                        TEMPORAL_IQR_COLOR,
+                        TEMPORAL_IQR_BAND_ALPHA,
+                    )
+                )
+                legend_handle.set_edgecolor(TEMPORAL_IQR_COLOR)
+                legend_handle.set_linewidth(0.68)
     for legend_text in legend.get_texts():
         legend_text.set_fontfamily(METRIC_FONT_FAMILY)
         legend_text.set_fontweight("normal")
@@ -902,12 +863,12 @@ def _draw_temporal_iqr_overlay(
     label,
 ):
     """
-    Draw supported temporal Q1/Q3 rails and return their single legend handle.
+    Draw a supported temporal IQR band and return its single legend handle.
 
     A bin contributes only when at least ``TEMPORAL_IQR_MIN_COUNT`` raw values
     produced both finite quartiles. NaN gaps prevent connectors across
-    unsupported bins, while short horizontal markers keep an isolated
-    supported bin visible.
+    unsupported bins. The marker-free rails avoid cap-like whiskers, so an
+    isolated supported bin is omitted unless an adjacent bin can form a rail.
     """
     x_values = np.asarray(x_centers, dtype=float)
     q1_values = np.asarray(q1_values, dtype=float)
@@ -928,16 +889,26 @@ def _draw_temporal_iqr_overlay(
         & np.isfinite(count_values)
         & (count_values >= TEMPORAL_IQR_MIN_COUNT)
     )
-    if not supported_bins.any():
+    adjacent_supported_pairs = supported_bins[:-1] & supported_bins[1:]
+    rail_bins = np.zeros_like(supported_bins)
+    rail_bins[:-1] |= adjacent_supported_pairs
+    rail_bins[1:] |= adjacent_supported_pairs
+    if not rail_bins.any():
         return None
 
-    supported_q1 = np.where(supported_bins, q1_values, np.nan)
-    supported_q3 = np.where(supported_bins, q3_values, np.nan)
-    common_style = {
-        "marker": "_",
-        "markersize": 4.5,
-        "solid_capstyle": "round",
-    }
+    supported_q1 = np.where(rail_bins, q1_values, np.nan)
+    supported_q3 = np.where(rail_bins, q3_values, np.nan)
+    iqr_band = ax.fill_between(
+        x_values,
+        supported_q1,
+        supported_q3,
+        color=TEMPORAL_IQR_COLOR,
+        alpha=TEMPORAL_IQR_BAND_ALPHA,
+        edgecolor="none",
+        label=label,
+        zorder=3.0,
+    )
+    iqr_band.set_gid("temporal-bin-iqr-band")
     for quartile_name, quartile_values in (
         ("q1", supported_q1),
         ("q3", supported_q3),
@@ -947,10 +918,9 @@ def _draw_temporal_iqr_overlay(
             quartile_values,
             color=TEMPORAL_IQR_UNDERSTROKE_COLOR,
             linewidth=1.75,
-            markeredgewidth=1.75,
             alpha=0.82,
+            solid_capstyle="round",
             zorder=3.05,
-            **common_style,
         )
         understroke.set_gid(f"temporal-bin-iqr-{quartile_name}-understroke")
 
@@ -959,10 +929,9 @@ def _draw_temporal_iqr_overlay(
         supported_q1,
         color=TEMPORAL_IQR_COLOR,
         linewidth=0.68,
-        markeredgewidth=0.8,
         alpha=0.94,
+        solid_capstyle="round",
         zorder=3.1,
-        **common_style,
     )
     q1_line.set_gid("temporal-bin-iqr-q1")
     q3_line, = ax.plot(
@@ -970,14 +939,12 @@ def _draw_temporal_iqr_overlay(
         supported_q3,
         color=TEMPORAL_IQR_COLOR,
         linewidth=0.68,
-        markeredgewidth=0.8,
         alpha=0.94,
-        label=label,
+        solid_capstyle="round",
         zorder=3.1,
-        **common_style,
     )
     q3_line.set_gid("temporal-bin-iqr-q3")
-    return q3_line
+    return iqr_band
 
 
 def _temporal_metric_summary(grouped_metrics, complete_bins):

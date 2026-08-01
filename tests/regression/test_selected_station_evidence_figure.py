@@ -6,8 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from config import TEMPORAL_IQR_BAND_ALPHA
 from i18n import T
 from ui.matplotlib_renderer import dispose_matplotlib_figure
+from ui.results_export import figure_to_png_bytes
 from ui.plots.evidence_figures import (
     METRIC_FONT_FAMILY,
     METRIC_LEGEND_FONTSIZE,
@@ -497,6 +499,26 @@ def _lines_with_gid(axis, gid):
     return [line_artist for line_artist in axis.lines if line_artist.get_gid() == gid]
 
 
+def _collections_with_gid(axis, gid):
+    """Return collections tagged as one temporal evidence-overlay class."""
+    return [
+        collection
+        for collection in axis.collections
+        if collection.get_gid() == gid
+    ]
+
+
+def _legend_handles_with_gid(axis, gid):
+    """Return legend proxy artists tagged as one visual-summary class."""
+    legend = axis.get_legend()
+    assert legend is not None
+    return [
+        legend_handle
+        for legend_handle in legend.legend_handles
+        if legend_handle.get_gid() == gid
+    ]
+
+
 def _formatted_y_ticks(axis):
     """Return the active major y-tick labels without requiring a GUI canvas."""
     formatter = axis.yaxis.get_major_formatter()
@@ -745,7 +767,7 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             "−4",
             "0",
             "+3",
-            "+6 M",
+            "+6",
             "+9",
             "+12",
             "+16",
@@ -759,9 +781,12 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
             assert axis.get_ylabel() == (
                 "\u0394 SNR (dB \u00b7 median-centered nonlinear)"
             )
-            assert len(
-                _lines_with_gid(axis, "compare-temporal-zero-line")
-            ) == 1
+            assert not _lines_with_gid(axis, "compare-temporal-zero-line")
+            assert not _lines_with_gid(
+                axis,
+                "compare-temporal-zero-understroke",
+            )
+            assert not _texts_with_gid(axis, "compare-temporal-zero-label")
             _assert_legend_keys_precede_text(figure, axis)
             assert not _texts_with_gid(axis, "compare-median-focus-note")
             assert not axis.patches
@@ -772,8 +797,9 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
         assert _legend_texts(folded_axis) == [
             "Median +6.0 dB",
             "Bin median",
-            recipe["bin_iqr_label"],
         ]
+        assert not _lines_with_gid(folded_axis, "temporal-bin-iqr-q1")
+        assert not _lines_with_gid(folded_axis, "temporal-bin-iqr-q3")
         assert chronological_axis.get_ylim() == pytest.approx(
             folded_axis.get_ylim()
         )
@@ -786,8 +812,8 @@ def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks()
         dispose_matplotlib_figure(figure)
 
 
-def test_selected_compare_marks_absolute_zero_between_noninteger_focus_ticks():
-    """Keep Target/Reference equality visible when zero is not a focus anchor."""
+def test_selected_compare_omits_separate_zero_reference_and_median_tick_suffix():
+    """Use plain absolute ticks without a separate boxed zero reference."""
     figure = _render_compare_evidence_figure(
         [4.5, 5.5, 5.5, 6.5],
         ["A (AA00)"] * 4,
@@ -796,17 +822,14 @@ def test_selected_compare_marks_absolute_zero_between_noninteger_focus_ticks():
     try:
         chronological_axis, folded_axis = figure.axes[:2]
         for axis in (chronological_axis, folded_axis):
-            assert "+5.5 M" in _formatted_y_ticks(axis)
+            assert "+5.5" in _formatted_y_ticks(axis)
             assert "0" not in _formatted_y_ticks(axis)
-            assert len(
-                _lines_with_gid(axis, "compare-temporal-zero-line")
-            ) == 1
-            zero_labels = [
-                text
-                for text in axis.texts
-                if text.get_gid() == "compare-temporal-zero-label"
-            ]
-            assert [text.get_text() for text in zero_labels] == ["0 dB"]
+            assert not _lines_with_gid(axis, "compare-temporal-zero-line")
+            assert not _lines_with_gid(
+                axis,
+                "compare-temporal-zero-understroke",
+            )
+            assert not _texts_with_gid(axis, "compare-temporal-zero-label")
     finally:
         dispose_matplotlib_figure(figure)
 
@@ -1103,7 +1126,7 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
         (1, "compare-temporal-folded-axis"),
     ),
 )
-def test_selected_compare_dual_panels_share_reference_line_hierarchy(
+def test_selected_compare_dual_panels_share_guide_and_median_hierarchy(
     axis_index,
     axis_gid,
 ):
@@ -1161,8 +1184,8 @@ def test_selected_compare_dual_panels_share_reference_line_hierarchy(
             10.0,
             20.0,
         ]
-        assert len(zero_understrokes) == 1
-        assert len(zero_lines) == 1
+        assert not zero_understrokes
+        assert not zero_lines
         assert len(median_lines) == 1
         for guide_line in focus_guides:
             assert guide_line.get_color() == "#d0d0d0"
@@ -1175,16 +1198,12 @@ def test_selected_compare_dual_panels_share_reference_line_hierarchy(
             "−10",
             "−6",
             "−3",
-            "0 M",
+            "0",
             "+3",
             "+6",
             "+10",
             "+20",
         ]
-        assert zero_lines[0].get_linestyle() == "--"
-        assert zero_lines[0].get_linewidth() == pytest.approx(0.85)
-        assert zero_understrokes[0].get_linewidth() == pytest.approx(1.7)
-        assert zero_lines[0].get_color() == "#f4f1e8"
         assert median_lines[0].get_color() == "red"
         assert median_lines[0].get_linestyle() == "--"
         assert median_lines[0].get_linewidth() == pytest.approx(1.0)
@@ -1207,8 +1226,6 @@ def test_selected_compare_dual_panels_share_reference_line_hierarchy(
             line.get_zorder()
             for line in [
                 *focus_guides,
-                *zero_understrokes,
-                *zero_lines,
                 *median_lines,
             ]
         ) < 4.0
@@ -1218,20 +1235,26 @@ def test_selected_compare_dual_panels_share_reference_line_hierarchy(
 
 
 def _compare_temporal_iqr_gap_rows():
-    """Return fractional raw evidence with two supported bins around a gap."""
+    """Return fractional raw evidence with supported rail runs around a gap."""
     first_bin_values = [0.11, 0.21, 0.31, 0.41, 2.51]
+    second_bin_values = [1.11, 1.21, 1.31, 1.41, 3.51]
     gap_bin_values = [8.11, 8.21, 8.31, 8.41]
-    third_bin_values = [4.05, 4.15, 4.25, 4.35, 7.45]
+    fourth_bin_values = [4.05, 4.15, 4.25, 4.35, 7.45]
+    fifth_bin_values = [5.05, 5.15, 5.25, 5.35, 8.45]
     timestamps = (
         ["2026-07-01T00:05:00Z"] * len(first_bin_values)
-        + ["2026-07-01T03:05:00Z"] * len(gap_bin_values)
-        + ["2026-07-01T06:05:00Z"] * len(third_bin_values)
+        + ["2026-07-01T03:05:00Z"] * len(second_bin_values)
+        + ["2026-07-01T06:05:00Z"] * len(gap_bin_values)
+        + ["2026-07-01T09:05:00Z"] * len(fourth_bin_values)
+        + ["2026-07-01T12:05:00Z"] * len(fifth_bin_values)
         + ["2026-07-02T12:05:00Z"]
     )
     metric_values = (
         first_bin_values
+        + second_bin_values
         + gap_bin_values
-        + third_bin_values
+        + fourth_bin_values
+        + fifth_bin_values
         + [1.25]
     )
     return pd.DataFrame(
@@ -1246,8 +1269,9 @@ def _compare_temporal_iqr_gap_rows():
 @pytest.mark.parametrize("scope", ["segment", "selected"])
 def test_compare_temporal_iqr_uses_raw_quartiles_and_breaks_at_unsupported_bins(
     scope,
+    monkeypatch,
 ):
-    """Share exact raw-value Q1/Q3 rails without bridging a four-value bin."""
+    """Share one supported IQR band without bridging a four-value bin."""
     plot_df = _compare_temporal_iqr_gap_rows()
     if scope == "segment":
         recipe = _localized_segment_temporal_recipe(
@@ -1268,20 +1292,38 @@ def test_compare_temporal_iqr_uses_raw_quartiles_and_breaks_at_unsupported_bins(
         chronological_axis = figure.axes[0]
         q1_lines = _lines_with_gid(chronological_axis, "temporal-bin-iqr-q1")
         q3_lines = _lines_with_gid(chronological_axis, "temporal-bin-iqr-q3")
-        assert len(q1_lines) == len(q3_lines) == 1
+        iqr_bands = _collections_with_gid(
+            chronological_axis,
+            "temporal-bin-iqr-band",
+        )
+        assert len(q1_lines) == len(q3_lines) == len(iqr_bands) == 1
+        iqr_band = iqr_bands[0]
         q1_values = np.asarray(q1_lines[0].get_ydata(), dtype=float)
         q3_values = np.asarray(q3_lines[0].get_ydata(), dtype=float)
-        assert np.flatnonzero(np.isfinite(q1_values)).tolist() == [0, 2]
-        assert np.flatnonzero(np.isfinite(q3_values)).tolist() == [0, 2]
-        assert q1_values[[0, 2]] == pytest.approx([0.21, 4.15])
-        assert q3_values[[0, 2]] == pytest.approx([0.41, 4.35])
-        assert np.isnan(q1_values[1])
-        assert np.isnan(q3_values[1])
-        assert q1_lines[0].get_marker() == "_"
-        assert q3_lines[0].get_marker() == "_"
+        assert np.flatnonzero(np.isfinite(q1_values)).tolist() == [0, 1, 3, 4]
+        assert np.flatnonzero(np.isfinite(q3_values)).tolist() == [0, 1, 3, 4]
+        assert q1_values[[0, 1, 3, 4]] == pytest.approx(
+            [0.21, 1.21, 4.15, 5.15]
+        )
+        assert q3_values[[0, 1, 3, 4]] == pytest.approx(
+            [0.41, 1.41, 4.35, 5.35]
+        )
+        assert np.isnan(q1_values[2])
+        assert np.isnan(q3_values[2])
+        assert q1_lines[0].get_marker() == "None"
+        assert q3_lines[0].get_marker() == "None"
         assert q1_lines[0].get_color() == TEMPORAL_IQR_COLOR
         assert q3_lines[0].get_linewidth() == pytest.approx(0.68)
         assert q3_lines[0].get_zorder() < 4.0
+        assert len(iqr_band.get_paths()) == 2
+        assert iqr_band.get_label() == "Bin IQR (middle 50%)"
+        assert iqr_band.get_alpha() == pytest.approx(
+            TEMPORAL_IQR_BAND_ALPHA
+        )
+        assert iqr_band.get_facecolors()[0] == pytest.approx(
+            to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+        )
+        assert iqr_band.get_zorder() < q1_lines[0].get_zorder()
 
         q1_understrokes = _lines_with_gid(
             chronological_axis,
@@ -1294,25 +1336,92 @@ def test_compare_temporal_iqr_uses_raw_quartiles_and_breaks_at_unsupported_bins(
         assert len(q1_understrokes) == len(q3_understrokes) == 1
         assert q1_understrokes[0].get_color() == TEMPORAL_IQR_UNDERSTROKE_COLOR
         assert q1_understrokes[0].get_linewidth() > q1_lines[0].get_linewidth()
+        assert q1_understrokes[0].get_marker() == "None"
+        assert q3_understrokes[0].get_marker() == "None"
 
         legend_texts = _legend_texts(chronological_axis)
         assert legend_texts.count(recipe["bin_iqr_label"]) == 1
         assert legend_texts[-1] == recipe["bin_iqr_label"]
+        iqr_legend_handles = _legend_handles_with_gid(
+            chronological_axis,
+            "temporal-bin-iqr-band-legend",
+        )
+        assert len(iqr_legend_handles) == 1
+        iqr_legend_handle = iqr_legend_handles[0]
+        assert iqr_legend_handle.get_facecolor() == pytest.approx(
+            to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+        )
+        assert iqr_legend_handle.get_edgecolor() == pytest.approx(
+            to_rgba(TEMPORAL_IQR_COLOR)
+        )
+        assert iqr_legend_handle.get_linewidth() == pytest.approx(0.68)
         median_markers = next(
             collection
             for collection in chronological_axis.collections
             if collection.get_gid() == "temporal-bin-median-markers"
         )
         assert median_markers.get_zorder() > q3_lines[0].get_zorder()
+
+        median_reference = _lines_with_gid(
+            chronological_axis,
+            "compare-median-focus-center",
+        )[0]
+
+        def inspect_paper_style(image_buffer, **_save_options):
+            """Assert paper styling uses a fine black band and boundary."""
+            assert not q1_understrokes[0].get_visible()
+            assert not q3_understrokes[0].get_visible()
+            assert iqr_band.get_alpha() == pytest.approx(
+                TEMPORAL_IQR_BAND_ALPHA
+            )
+            assert iqr_band.get_facecolors()[0] == pytest.approx(
+                to_rgba("#111111", TEMPORAL_IQR_BAND_ALPHA)
+            )
+            assert iqr_legend_handle.get_facecolor() == pytest.approx(
+                to_rgba("#111111", TEMPORAL_IQR_BAND_ALPHA)
+            )
+            assert iqr_legend_handle.get_edgecolor() == pytest.approx(
+                to_rgba("#111111")
+            )
+            assert iqr_legend_handle.get_linewidth() == pytest.approx(0.4)
+            for quartile_line in (q1_lines[0], q3_lines[0]):
+                assert quartile_line.get_visible()
+                assert quartile_line.get_color() == "#111111"
+                assert quartile_line.get_linewidth() == pytest.approx(0.4)
+                assert quartile_line.get_marker() == "None"
+                assert (
+                    quartile_line.get_linewidth()
+                    < median_reference.get_linewidth()
+                )
+            image_buffer.write(b"paper-style")
+
+        monkeypatch.setattr(figure, "savefig", inspect_paper_style)
+        assert figure_to_png_bytes(figure, dpi=80) == b"paper-style"
+        assert q1_understrokes[0].get_visible()
+        assert q3_understrokes[0].get_visible()
+        assert q1_lines[0].get_color() == TEMPORAL_IQR_COLOR
+        assert q3_lines[0].get_color() == TEMPORAL_IQR_COLOR
+        assert q1_lines[0].get_linewidth() == pytest.approx(0.68)
+        assert q3_lines[0].get_linewidth() == pytest.approx(0.68)
+        assert iqr_band.get_facecolors()[0] == pytest.approx(
+            to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+        )
+        assert iqr_legend_handle.get_facecolor() == pytest.approx(
+            to_rgba(TEMPORAL_IQR_COLOR, TEMPORAL_IQR_BAND_ALPHA)
+        )
+        assert iqr_legend_handle.get_edgecolor() == pytest.approx(
+            to_rgba(TEMPORAL_IQR_COLOR)
+        )
+        assert iqr_legend_handle.get_linewidth() == pytest.approx(0.68)
     finally:
         dispose_matplotlib_figure(figure)
 
 
-def test_compare_folded_iqr_pools_raw_rows_and_requires_five_values():
-    """Pool raw UTC-hour evidence while omitting a four-value folded hour."""
+def test_compare_folded_iqr_pools_raw_rows_and_requires_a_rail_run():
+    """Pool UTC-hour quartiles and omit an isolated chronological band."""
     plot_df = pd.DataFrame(
         {
-            "identity": ["A (AA00)"] * 9,
+            "identity": ["A (AA00)"] * 14,
             "plot_time": pd.to_datetime(
                 [
                     "2026-07-01T00:05:00Z",
@@ -1320,6 +1429,11 @@ def test_compare_folded_iqr_pools_raw_rows_and_requires_five_values():
                     "2026-07-01T00:15:00Z",
                     "2026-07-02T00:05:00Z",
                     "2026-07-02T00:10:00Z",
+                    "2026-07-01T01:05:00Z",
+                    "2026-07-01T01:10:00Z",
+                    "2026-07-01T01:15:00Z",
+                    "2026-07-02T01:05:00Z",
+                    "2026-07-02T01:10:00Z",
                     "2026-07-01T03:05:00Z",
                     "2026-07-01T03:10:00Z",
                     "2026-07-02T03:05:00Z",
@@ -1327,7 +1441,22 @@ def test_compare_folded_iqr_pools_raw_rows_and_requires_five_values():
                 ],
                 utc=True,
             ),
-            "metric": [0.11, 0.21, 0.31, 0.41, 2.51, 8.11, 8.21, 8.31, 8.41],
+            "metric": [
+                0.11,
+                0.21,
+                0.31,
+                0.41,
+                2.51,
+                1.11,
+                1.21,
+                1.31,
+                1.41,
+                3.51,
+                8.11,
+                8.21,
+                8.31,
+                8.41,
+            ],
         }
     )
     recipe = _localized_selected_evidence_recipe(
@@ -1339,19 +1468,31 @@ def test_compare_folded_iqr_pools_raw_rows_and_requires_five_values():
     try:
         chronological_axis, folded_axis = figure.axes[:2]
         assert not _lines_with_gid(chronological_axis, "temporal-bin-iqr-q1")
+        assert not _collections_with_gid(
+            chronological_axis,
+            "temporal-bin-iqr-band",
+        )
+        assert recipe["bin_iqr_label"] not in _legend_texts(chronological_axis)
 
         folded_q1 = _lines_with_gid(folded_axis, "temporal-bin-iqr-q1")
         folded_q3 = _lines_with_gid(folded_axis, "temporal-bin-iqr-q3")
         assert len(folded_q1) == len(folded_q3) == 1
         q1_values = np.asarray(folded_q1[0].get_ydata(), dtype=float)
         q3_values = np.asarray(folded_q3[0].get_ydata(), dtype=float)
-        assert np.flatnonzero(np.isfinite(q1_values)).tolist() == [0]
-        assert np.flatnonzero(np.isfinite(q3_values)).tolist() == [0]
-        assert q1_values[0] == pytest.approx(0.21)
-        assert q3_values[0] == pytest.approx(0.41)
+        assert np.flatnonzero(np.isfinite(q1_values)).tolist() == [0, 1]
+        assert np.flatnonzero(np.isfinite(q3_values)).tolist() == [0, 1]
+        assert q1_values[[0, 1]] == pytest.approx([0.21, 1.21])
+        assert q3_values[[0, 1]] == pytest.approx([0.41, 1.41])
         assert np.isnan(q1_values[3])
         assert np.isnan(q3_values[3])
-        assert folded_q1[0].get_marker() == "_"
+        assert folded_q1[0].get_marker() == "None"
+        assert folded_q3[0].get_marker() == "None"
+        folded_bands = _collections_with_gid(
+            folded_axis,
+            "temporal-bin-iqr-band",
+        )
+        assert len(folded_bands) == 1
+        assert len(folded_bands[0].get_paths()) == 1
         assert _legend_texts(folded_axis).count(recipe["bin_iqr_label"]) == 1
     finally:
         dispose_matplotlib_figure(figure)
@@ -1370,6 +1511,10 @@ def test_compare_temporal_iqr_fails_closed_for_tampered_recipe_threshold():
     try:
         for temporal_axis in figure.axes[:2]:
             assert not _lines_with_gid(temporal_axis, "temporal-bin-iqr-q1")
+            assert not _collections_with_gid(
+                temporal_axis,
+                "temporal-bin-iqr-band",
+            )
             assert recipe["bin_iqr_label"] not in _legend_texts(temporal_axis)
     finally:
         dispose_matplotlib_figure(figure)
@@ -1457,7 +1602,7 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
         assert _formatted_y_ticks(chronological_axis) == [
             "−3",
             "−1",
-            "0 M",
+            "0",
             "+1",
             "+3",
         ]
@@ -1534,7 +1679,7 @@ def test_segment_temporal_fractional_ticks_remain_inside_the_canvas():
     figure = render_segment_temporal_evidence_export_figure(recipe)
     try:
         chronological_axis = figure.axes[0]
-        assert "+2.8 M" in _formatted_y_ticks(chronological_axis)
+        assert "+2.8" in _formatted_y_ticks(chronological_axis)
 
         figure.canvas.draw()
         renderer = figure.canvas.get_renderer()
@@ -1590,7 +1735,7 @@ def test_segment_temporal_recipe_accepts_localized_labels():
     )
     assert recipe["median_label"] == "Median"
     assert recipe["bin_median_label"] == "Lokaler Median"
-    assert recipe["bin_iqr_label"] == T["de"]["fig_temporal_bin_iqr"]
+    assert recipe["bin_iqr_label"] == "IQR je Bin (mittlere 50 %)"
 
 
 def test_segment_temporal_figure_keeps_folded_placeholder_for_one_utc_date():

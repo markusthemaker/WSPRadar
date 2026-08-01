@@ -847,6 +847,12 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` and `M +/- 30 dB" in DOC_EN
     assert "M +/- 1`, `M +/- 3`, `M +/- 6` und `M +/- 10 dB" in DOC_DE
     assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` und `M +/- 30 dB" in DOC_DE
+    assert "+6 M" not in DOC_EN
+    assert "+6 M" not in DOC_DE
+    assert "red median line and legend identify" in DOC_EN
+    assert "rote Medianlinie und die Legende kennzeichnen" in DOC_DE
+    assert "no dedicated zero reference line" in DOC_EN
+    assert "keine eigene Nullreferenzlinie" in DOC_DE
     assert "Segment-histogram counts and bin edges remain in raw dB" in DOC_EN
     assert (
         "Anzahlen und Klassengrenzen der Segment-Histogramme bleiben in "
@@ -874,12 +880,13 @@ def test_bilingual_manuals_define_temporal_iqr_science_and_axis_contract():
         "chronological density receives every retained successful observation from that path",
         "folded density first forms one median for every represented UTC date and UTC hour",
         "Q1 and Q3 are computed from those same unrounded contributed values",
-        "drawn as fine rails only where at least five values contribute",
-        "each rail pair requires at least five Joint Spots or complete Scheduled Pairs in its bin",
-        "Its Q1–Q3 rails use those same unrounded observations and require at least five in the bin",
+        "only where at least five values contribute, bound a subtle IQR band with fine lines",
+        "the band and its boundaries require at least five Joint Spots or complete Scheduled Pairs within a bin",
+        "Its subtle IQR band and fine Q1/Q3 boundary lines use those same unrounded observations and require at least five values in the bin",
+        "A subtle IQR band bounded by fine Q1/Q3 lines shows the middle 50%",
         "from five represented-date values onward",
         "The linear y-axis continues to include the complete finite SNR envelope; the quartiles do not set or clip its limits",
-        "do not alter the full finite evidence envelope used by the axis",
+        "does not alter the full finite evidence envelope used by the axis",
         "one linear actual-SNR range covering the complete finite population",
     )
     german_contract = (
@@ -890,12 +897,13 @@ def test_bilingual_manuals_define_temporal_iqr_science_and_axis_contract():
         "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs",
         "bildet zunächst einen Median für jedes berücksichtigte UTC-Datum und jede UTC-Stunde",
         "Q1 und Q3 werden aus denselben ungerundeten beitragenden Werten berechnet",
-        "nur bei mindestens fünf Werten als feine Linien gezeichnet",
-        "jedes Linienpaar erfordert mindestens fünf Joint Spots beziehungsweise vollständige Scheduled Pairs im Bin",
+        "begrenzen nur bei mindestens fünf Werten mit feinen Linien ein dezentes IQR-Band",
+        "das Band und seine Grenzen erfordern mindestens fünf Joint Spots beziehungsweise vollständige Scheduled Pairs im Bin",
         "verwenden dieselben ungerundeten Beobachtungen und erfordern mindestens fünf Werte im Bin",
-        "ab fünf berücksichtigten Tageswerten Q1–Q3-Linien",
+        "ab fünf berücksichtigten Tageswerten ein dezentes IQR-Band, das von feinen Q1/Q3-Linien begrenzt wird",
+        "Ein dezentes IQR-Band, das von feinen Q1/Q3-Linien begrenzt wird, zeigt die mittleren 50 %",
         "Die lineare y-Achse umfasst weiterhin die vollständige endliche SNR-Spanne; die Quartile bestimmen oder beschneiden ihre Grenzen nicht",
-        "sie verändern nicht die vollständige endliche Evidenzspanne der Achse",
+        "es verändert nicht die vollständige endliche Evidenzspanne der Achse",
         "einen gemeinsamen linearen Wertebereich des tatsächlichen SNR, der die vollständige endliche Population umfasst",
     )
 

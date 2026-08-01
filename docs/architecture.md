@@ -531,11 +531,15 @@ Target SNR observations per station. It precomputes all six supported
 chronological profiles and one fixed one-hour UTC-folded profile. Each
 chronological density cell receives at most one station-bin median anomaly per
 station; each folded cell receives one station-date-hour median anomaly.
-The bin median and Q1/Q3 rails use those same unrounded contributed values;
-quartile rails require at least five values, break at unsupported bins, and do
-not suppress sparse medians. They describe within-bin spread rather than
-uncertainty and do not alter the full finite SNR envelope used for the linear
-y-axis.
+The bin median and the Q1/Q3 boundaries of the subtle IQR band use those same
+unrounded contributed values; each band requires at least five values, breaks
+at unsupported bins, and does not suppress sparse medians. It describes
+within-bin spread rather than uncertainty and does not alter the full finite SNR
+envelope used for the linear y-axis.
+`TEMPORAL_IQR_BAND_ALPHA` in `config/plot_constants.py` configures the shared
+preview and paper-export band opacity. It is presentation-only, participates in
+the corresponding render/export cache fingerprints, and does not enter
+`AnalysisContext` or the scientific aggregation recipes.
 Stations below the SNR-baseline threshold remain in both non-SNR evidence
 layers. In each chronological bin, every contributing qualifying station
 supplies one split vote whose successful and counter-outcome fractions sum to
@@ -587,9 +591,13 @@ The absolute temporal Delta SNR recipe remains a Joint-only projection of this
 frame. Its chronological and pooled UTC-hour bin medians retain their raw
 observation-level populations. Q1 and Q3 use those same unrounded Joint Spot or
 complete Scheduled Pair values before integer heatmap binning and the
-median-centered nonlinear display transform. The fine rails require at least
-five values, break at unsupported bins without suppressing sparse medians, and
-do not alter the complete finite evidence envelope used by the axis.
+median-centered nonlinear display transform. The subtle IQR band is bounded by
+fine Q1/Q3 lines, requires at least five values, breaks at unsupported bins
+without suppressing sparse medians, and does not alter the complete finite
+evidence envelope used by the axis. The exact
+scope median is identified by its red line and legend rather than a tick-label
+suffix. Absolute zero remains inside the scale envelope but has no separate
+reference line or boxed label.
 
 Compare Temporal Evidence Coverage keeps all three retained outcomes. In every
 chronological bin, one contributing station supplies one total vote partitioned
@@ -606,9 +614,10 @@ with distinct localized title routing: the upper title identifies **Temporal
 SNR Evidence**, while the lower title identifies **Temporal Evidence**. The
 first figure contains chronological and folded successful-SNR deviation panels
 with their established heatmap, median, baseline and colorbar semantics plus
-Q1/Q3 rails for bins with at least five contributed station-bin medians or
-station-date-hour medians. The rails are descriptive middle-50% spread rather
-than confidence intervals and remain below the median in the visual hierarchy.
+subtle IQR bands bounded by fine Q1/Q3 lines for bins with at least five
+contributed station-bin medians or station-date-hour medians. The bands show
+descriptive middle-50% spread rather than confidence intervals and remain below
+the median in the visual hierarchy.
 The second contains two aligned stacked rows for station-balanced evidence and
 confirmed opportunities. Its shared localized column headers identify
 **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h
@@ -665,10 +674,11 @@ Selected chronological SNR density receives every successful normalized Target
 SNR observation from that one identity, and the overlay is the median in each
 selected time bin. Folded SNR preparation first forms one median per represented
 UTC date-hour and then uses those date-hour medians for density and its cross-date
-median. Chronological Q1/Q3 uses the same raw successful observations, while
-folded Q1/Q3 uses the same date-hour-median population; each rail pair requires
-at least five values and neither changes the complete finite linear actual-SNR
-range shared by the panels. This representation does not subtract a station
+median. The chronological IQR band's Q1/Q3 boundaries use the same raw
+successful observations, while the folded band's Q1/Q3 boundaries use the same
+date-hour-median population; each band requires at least five values and neither
+changes the complete finite linear actual-SNR range shared by the panels. This
+representation does not subtract a station
 baseline, require three reports, render a `0 dB`
 baseline, or synthesize SNR for counter outcomes. Its empty state therefore
 states explicitly that unsuccessful signals have no recorded Target SNR.
@@ -697,10 +707,11 @@ it pools qualifying evidence by UTC hour without first reducing or equally
 weighting represented dates. Both panels use independent panel-relative density
 normalization, one shared colorbar and the selected path's presentation-only,
 median-centered nonlinear Delta SNR scale with absolute dB tick labels. No
-date-first reduction is introduced for quartiles: Q1/Q3 uses the same raw
-Joint-Spot or complete-Scheduled-Pair population as each bin median and appears
-only from five contributed values onward. Unsupported bins break the rails
-without hiding their medians, and the rails do not change axis limits. No
+date-first reduction is introduced for quartiles: the IQR band's Q1/Q3
+boundaries use the same raw Joint-Spot or complete-Scheduled-Pair population as
+each bin median, and the band appears only from five contributed values onward.
+Unsupported bins break the band without hiding their medians, and the band does
+not change axis limits. No
 selected-station histogram or temporal-view selector remains. When fewer than
 two UTC dates contribute, the folded panel is omitted, the chronological panel
 expands and the localized unavailable notice is retained.

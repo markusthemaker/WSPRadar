@@ -16,10 +16,11 @@ from datetime import datetime, timezone
 import pandas as pd
 import streamlit as st
 from matplotlib import colors as mcolors
+from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
-from config import APP_VERSION
+from config import APP_VERSION, TEMPORAL_IQR_BAND_ALPHA
 from core.analysis_context import AnalysisContext
 from core.artifact_store import (
     ARTIFACT_STORE,
@@ -63,7 +64,8 @@ from ui.url_state import build_share_url
 COMPARE_EXPORT_FOLDER = "compare"
 SUCCESS_EXPORT_FOLDER = "success"
 EXPORTABLE_RESULT_FOLDERS = frozenset({COMPARE_EXPORT_FOLDER, SUCCESS_EXPORT_FOLDER})
-TEMPORAL_SNR_EXPORT_RENDER_VERSION = 3
+TEMPORAL_SNR_EXPORT_RENDER_VERSION = 6
+TEMPORAL_IQR_EXPORT_LINEWIDTH = 0.4
 COMPARE_EVIDENCE_FIGURE_EXPORTS = (
     (
         "figure_segment_temporal_coverage.png",
@@ -144,6 +146,34 @@ def _is_light_line_color(rgba):
         return False
 
 
+def _style_patch_for_paper(snapshots, patch):
+    """Temporarily adapt one dark-theme patch to a white paper background."""
+    if _is_near_white(patch.get_facecolor()):
+        _set_with_restore(
+            snapshots,
+            patch,
+            "get_facecolor",
+            "set_facecolor",
+            "#d0d0d0",
+        )
+    elif _is_near_black(patch.get_facecolor()):
+        _set_with_restore(
+            snapshots,
+            patch,
+            "get_facecolor",
+            "set_facecolor",
+            "#f3f3f3",
+        )
+    if _is_near_white(patch.get_edgecolor()):
+        _set_with_restore(
+            snapshots,
+            patch,
+            "get_edgecolor",
+            "set_edgecolor",
+            "#777777",
+        )
+
+
 def _style_figure_for_paper(fig):
     """Temporarily restyle a dark UI figure for white-paper PNG export."""
     snapshots = []
@@ -158,18 +188,21 @@ def _style_figure_for_paper(fig):
         for spine in ax.spines.values():
             _set_with_restore(snapshots, spine, "get_edgecolor", "set_edgecolor", "#777777")
         for patch in ax.patches:
-            if _is_near_white(patch.get_facecolor()):
-                _set_with_restore(snapshots, patch, "get_facecolor", "set_facecolor", "#d0d0d0")
-            elif _is_near_black(patch.get_facecolor()):
-                _set_with_restore(snapshots, patch, "get_facecolor", "set_facecolor", "#f3f3f3")
-            if _is_near_white(patch.get_edgecolor()):
-                _set_with_restore(snapshots, patch, "get_edgecolor", "set_edgecolor", "#777777")
+            _style_patch_for_paper(snapshots, patch)
         for collection in ax.collections:
             try:
                 facecolors = collection.get_facecolors()
             except Exception:
                 continue
-            if len(facecolors) and all(_is_near_white(color) for color in facecolors):
+            if collection.get_gid() == "temporal-bin-iqr-band":
+                _set_with_restore(
+                    snapshots,
+                    collection,
+                    "get_facecolors",
+                    "set_facecolor",
+                    "#111111",
+                )
+            elif len(facecolors) and all(_is_near_white(color) for color in facecolors):
                 _set_with_restore(snapshots, collection, "get_facecolors", "set_facecolor", "#d0d0d0")
             elif len(facecolors) and all(_is_near_black(color) for color in facecolors):
                 _set_with_restore(snapshots, collection, "get_facecolors", "set_facecolor", "#f3f3f3")
@@ -182,27 +215,67 @@ def _style_figure_for_paper(fig):
 
     for text in fig.findobj(Text):
         _set_with_restore(snapshots, text, "get_color", "set_color", "#111111")
+        text_box = text.get_bbox_patch()
+        if text_box is not None:
+            _style_patch_for_paper(snapshots, text_box)
 
     for line in fig.findobj(Line2D):
+        line_gid = str(line.get_gid() or "")
+        if (
+            line_gid.startswith("temporal-bin-iqr-")
+            and line_gid.endswith("-understroke")
+        ):
+            _set_with_restore(
+                snapshots,
+                line,
+                "get_visible",
+                "set_visible",
+                False,
+            )
+            continue
+        if line_gid in {"temporal-bin-iqr-q1", "temporal-bin-iqr-q3"}:
+            _set_with_restore(
+                snapshots,
+                line,
+                "get_linewidth",
+                "set_linewidth",
+                TEMPORAL_IQR_EXPORT_LINEWIDTH,
+            )
         if _is_near_white(line.get_color()) or _is_light_line_color(line.get_color()):
             _set_with_restore(snapshots, line, "get_color", "set_color", "#111111")
 
-    for legend in fig.legends:
+    for legend in fig.findobj(Legend):
         frame = legend.get_frame()
         _set_with_restore(snapshots, frame, "get_facecolor", "set_facecolor", "white")
         _set_with_restore(snapshots, frame, "get_edgecolor", "set_edgecolor", "#bbbbbb")
         for text in legend.get_texts():
             _set_with_restore(snapshots, text, "get_color", "set_color", "#111111")
-
-    for ax in fig.axes:
-        legend = ax.get_legend()
-        if legend is None:
-            continue
-        frame = legend.get_frame()
-        _set_with_restore(snapshots, frame, "get_facecolor", "set_facecolor", "white")
-        _set_with_restore(snapshots, frame, "get_edgecolor", "set_edgecolor", "#bbbbbb")
-        for text in legend.get_texts():
-            _set_with_restore(snapshots, text, "get_color", "set_color", "#111111")
+        for legend_handle in getattr(legend, "legend_handles", ()):
+            if legend_handle.get_gid() == "temporal-bin-iqr-band-legend":
+                _set_with_restore(
+                    snapshots,
+                    legend_handle,
+                    "get_facecolor",
+                    "set_facecolor",
+                    mcolors.to_rgba(
+                        "#111111",
+                        TEMPORAL_IQR_BAND_ALPHA,
+                    ),
+                )
+                _set_with_restore(
+                    snapshots,
+                    legend_handle,
+                    "get_edgecolor",
+                    "set_edgecolor",
+                    "#111111",
+                )
+                _set_with_restore(
+                    snapshots,
+                    legend_handle,
+                    "get_linewidth",
+                    "set_linewidth",
+                    TEMPORAL_IQR_EXPORT_LINEWIDTH,
+                )
 
     for ax in fig.axes:
         try:
@@ -665,6 +738,7 @@ def _export_signature(blocks):
             "temporal_snr_export_render_version": (
                 TEMPORAL_SNR_EXPORT_RENDER_VERSION
             ),
+            "temporal_iqr_band_alpha": TEMPORAL_IQR_BAND_ALPHA,
             "analysis_id": block.get("analysis_id"),
             "title": block.get("title"),
             "mode_folder": block.get("mode_folder"),

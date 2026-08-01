@@ -29,6 +29,7 @@ from config import (
     SESSION_ARTIFACT_TTL_SEC,
     SNR_CORRECTION_MODES,
     STANDARD_QUERY_CACHE_TTL_SEC,
+    TEMPORAL_IQR_BAND_ALPHA,
     WSPR_CSV_MAX_RESPONSE_BYTES,
     WSPR_DATABASE_PROVIDERS,
     WSPR_HTTP_CONNECT_TIMEOUT_SEC,
@@ -108,6 +109,12 @@ def test_config_package_exports_core_constants_and_demo_profiles():
         "establish_offset",
     }
     assert "vanhamel_rx_calibration" in DEMO_PROFILES
+
+
+def test_temporal_iqr_band_alpha_is_explicit_and_safe():
+    """Keep the shared web/export IQR shading policy configurable and valid."""
+    assert TEMPORAL_IQR_BAND_ALPHA == pytest.approx(0.10)
+    assert 0.0 <= TEMPORAL_IQR_BAND_ALPHA <= 1.0
 
 
 def test_demo_presentation_text_separates_em_dashes_from_words():

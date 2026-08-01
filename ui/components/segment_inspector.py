@@ -24,6 +24,7 @@ from config import (
     INSPECTOR_CACHE_SEGMENT_MAX_ENTRIES,
     INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
     SEGMENT_SELECTION_ALL,
+    TEMPORAL_IQR_BAND_ALPHA,
 )
 from core.input_validation import (
     is_valid_callsign,
@@ -126,8 +127,8 @@ from ui.result_guidance import (
 )
 from ui.reference_correction import configured_snr_correction_notice
 
-INSPECTOR_CACHE_VERSION = 38
-INSPECTOR_PNG_RENDER_VERSION = 33
+INSPECTOR_CACHE_VERSION = 39
+INSPECTOR_PNG_RENDER_VERSION = 36
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
 RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
@@ -1032,6 +1033,7 @@ def _render_cached_recipe(
     png_key = (
         INSPECTOR_CACHE_VERSION,
         INSPECTOR_PNG_RENDER_VERSION,
+        TEMPORAL_IQR_BAND_ALPHA,
         render_mode,
         subject,
         cache_key,
