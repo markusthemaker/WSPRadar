@@ -2,6 +2,91 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-07-30
+
+- Completed the visible migration from Success to **Performance** without
+  changing the underlying conditional opportunity calculations. Guided and
+  Classic Inputs, run choices, result headers, maps, legends, axes, Segment
+  Inspector, Station Insights, selected-station evidence, Drill-Down, exports,
+  PDFs and the English/German manuals now consistently use RX/TX Performance,
+  direction-specific outcome language and **Decode Rate**. The results
+  distinguish Station-balanced Decode Rate from Opportunity-level Decode Rate,
+  state each denominator and weighting explicitly, and identify successful
+  Target SNR as evidence conditional on a successful decode rather than an
+  absolute measurement of sensitivity, gain, efficiency or radiated power.
+  Canonical `success` classifications, `results_view.success`, established
+  schema tokens and compatibility export paths remain stable so the terminology
+  change does not alter scientific results or supported persisted contracts.
+- Refined the Performance result flow after the main evidence redesign. Station
+  Insights now uses a compact scrolling view with shorter bilingual headings
+  and the two direction-specific outcome counts instead of a redundant total;
+  Drill-Down exposes those counts directly while retaining auditable Target
+  evidence that lacks the independent confirmation required for the Decode
+  Rate. Selected-path context is more compact, chronological and folded
+  temporal panels align under the SNR colorbar footprint, and a clearer
+  dark-blue-to-warm rate palette improves map and figure reading without
+  changing the retained rows, rates or export data.
+- Unified the UI, saved configurations, demos and replay links on exact absolute
+  `start_utc` and `end_utc` boundaries. A new session resolves one stable
+  24-hour default window, all endpoints are quantized down to 15-minute UTC
+  boundaries, and validation enforces the historical floor, positive ordering,
+  the 31-day maximum and a non-future end. The resulting half-open interval is
+  persisted exactly, so loading, rerunning or sharing an analysis cannot
+  silently advance its evidence window.
+- Added versioned, human-readable analysis URLs for Performance, Hardware A/B,
+  Reference Station and Local Neighborhood analyses. A canonical URL can carry
+  the exact UTC interval, applicable scientific controls and filters, active
+  result scope, evidence time bins, visibility choice and one selected station;
+  stable defaults are omitted and every value passes through the normal strict
+  configuration validation before state is applied. Replay links enter the
+  existing submission and admission lifecycle exactly once and return to the
+  result inspection region. The bilingual **Share Analysis** control provides
+  copy, browser-native and encoded email/social sharing from the canonical
+  `https://wspradar.org/` address. A shared link is a reproducible rerun recipe
+  using the current application code and then-current upstream data, not a
+  frozen result-data snapshot.
+- Rebuilt Compare evidence around complementary station-balanced and
+  observation-level views. **Decode Outcomes** now shows normalized Joint, Only
+  Target, Both (Async) and Only Reference composition for station identities
+  beside processed spots or scheduled pairs; **Station Medians (Delta SNR)**
+  gives every contributing path equal weight; and **Joint-Spot or
+  Scheduled-Pair Delta SNR** retains every paired observation. The paired
+  timeline now presents **Delta SNR over Time** beside **Delta SNR by UTC Hour**
+  in one full-width view, using signed absolute-dB tick labels, `0 dB` equality
+  and a shared median-centered display scale while leaving raw Delta SNR values,
+  bins and medians unchanged. Selected Station Evidence uses the same paired
+  chronological/folded structure for one path instead of the former histogram
+  and mutually exclusive time-view selector; with fewer than two represented
+  UTC dates, the chronological panel expands and the unavailable folded view is
+  stated explicitly.
+- Added **Compare Temporal Evidence Coverage** below the paired Delta SNR view
+  and **Selected Path Evidence Coverage** below the selected-path Delta SNR
+  view. These figures use all retained Only Target, Joint and Only Reference
+  outcomes, separating equal-station support from actual transmitter cycles,
+  receiver cycles or Scheduled A/B Pairs and showing both station-balanced and
+  pooled-outcome **Joint Evidence Share** where applicable. Chronological panels
+  preserve run order; folded UTC-hour bars report averages per represented UTC
+  date and retain zero-support in-window hours. The guidance makes clear that
+  Joint Evidence Share measures pairability and Delta-SNR coverage—not a Target
+  score, win rate or symmetric success rate—and preserves the Target-Active
+  Gate asymmetry and sequential-pair timing limits. Prepared exports include
+  stable segment and selected-path coverage figures built from the same recipes
+  as the browser views.
+- Expanded the bilingual **How to read this** guidance for the revised
+  Performance and Compare hierarchy. The point-of-use text names every visible
+  figure and axis, explains evidence units, denominators, aggregation and
+  weighting, distinguishes breadth from repeated depth, and tells operators how
+  to assess within-run consistency and path traceability without assigning a
+  live result a strength grade or causal interpretation. English/German
+  manuals, generated README, PDF rendering, export descriptions and regression
+  contracts were updated with the same terminology and scientific boundaries.
+- Added a maintained, publication-grounded Griffiths/Squibb RX Performance demo
+  for G3ZIL's April 2017 operation on 40 m. The fixed month-long profile uses
+  six-hour evidence bins and preselects EA4URA/IN80CI so operators can move
+  directly from geographic and temporal population evidence to one radio path;
+  its description identifies the paper, operator question, evidence scale and
+  the limits on antenna- or cause-specific conclusions.
+
 ## 2026-07-26
 
 - Redesigned the Success map: sector color is now the sole quantitative map
