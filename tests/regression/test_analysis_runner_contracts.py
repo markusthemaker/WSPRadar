@@ -73,6 +73,22 @@ def test_no_benchmark_builds_only_the_directional_success_analysis():
     assert all(analysis["analysis_kind"] == "opportunity" for analysis in tx_analyses + rx_analyses)
 
 
+def test_letter_only_reporting_identifier_builds_exact_rx_success_query():
+    """Query an exact archive reporter such as KFS without prefix matching."""
+    rx_analysis = _analysis_by_id(
+        _analysis_context(
+            run_mode="RX",
+            comparison_mode=COMPARISON_NONE,
+            callsign=" kfs ",
+        ),
+        "RX_ABS",
+    )
+
+    assert "rx_sign = 'KFS'" in rx_analysis["query"]
+    assert "rx_sign != 'KFS'" in rx_analysis["query"]
+    assert "rx_sign LIKE 'KFS%'" not in rx_analysis["query"]
+
+
 @pytest.mark.parametrize(
     "comparison_mode",
     [

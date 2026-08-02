@@ -1865,7 +1865,7 @@ def test_station_selection_matches_one_identity_and_reports_missing():
             {"callsign": "A1AAA", "locator": "AA00"},
             {"callsign": "a1aaa", "locator": "aa00"},
         ],
-        [{"callsign": "MISSING", "locator": "AA00"}],
+        [{"callsign": "123", "locator": "AA00"}],
         [{"callsign": "A1AAA", "locator": "ZZ99"}],
         [{"callsign": "A1AAA", "locator": "AA00", "extra": True}],
     ],
@@ -1968,7 +1968,7 @@ def test_station_selection_writer_rejects_multiple_rows_atomically(monkeypatch):
     assert session_state["selected"] is previous_selection
 
     malformed_station_table = pd.DataFrame(
-        {"Station": ["MISSING"], "Locator": ["AA00"]}
+        {"Station": ["123"], "Locator": ["AA00"]}
     )
     segment_inspector._mark_station_selection_changed(
         "table_selection_changed"

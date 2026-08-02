@@ -916,13 +916,13 @@ These controls define the Target, operating direction, band and evidence window.
 | UI label | Factory default | What it controls |
 |---|---|---|
 | **RX Analysis / TX Analysis** | none; required | RX evaluates the Target as a receiving WSPR station; TX evaluates it as a transmitting WSPR station. `Run` and `Save Config` remain disabled until either option is selected. |
-| **Target callsign (receiver under test)** / **Target callsign (transmitter under test)** | blank | Valid exact Target callsign; valid `/` variants and one terminal `-` suffix are accepted. |
+| **Target callsign (receiver under test)** / **Target callsign (transmitter under test)** | blank | Exact Target callsign or archive reporting identifier; letter-only identifiers, valid `/` variants and one terminal `-` suffix are accepted. |
 | **Target QTH (4 or 6 characters)** | blank | Map center and local-radius origin; its first four characters constrain Target matching. |
 | **Operating Band** | `20m` | Exactly one of `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` or `23cm`. |
 | **UTC measurement window** | absolute 24-hour window ending at the current 15-minute UTC boundary | Selects fixed UTC evidence that remains unchanged across reruns. |
 | **Start Date (UTC)**, **End Date (UTC)**, **Start Time (UTC)**, **End Time (UTC)** | exact default boundaries above | Dates start at 2008 and one window is limited to 31 days. End must follow start and cannot be later than the current 15-minute UTC boundary. Edited values are quantized down to 15-minute boundaries and the effective values are written back to the controls. |
 
-Use the callsign exactly as uploaded. Prefer standard callsign forms and enter a hyphenated reporting identifier only when that is the exact archive identity you need to query. `DL1MKS`, `DL1MKS/P`, `DL1MKS/1`, `DL1MKS/QRP` and `DL1MKS-1` are separate identities; WSPRadar neither treats `/` and `-` as aliases nor applies hidden prefix matching.
+Use the callsign or reporting identifier exactly as uploaded. Prefer standard callsign forms when they are the uploaded identity; letter-only archive reporting identifiers such as `KFS` are also accepted. Enter a hyphenated reporting identifier only when that is the exact archive identity you need to query. `KFS`, `KFS/SE`, `DL1MKS`, `DL1MKS/P`, `DL1MKS/1`, `DL1MKS/QRP` and `DL1MKS-1` are separate identities; WSPRadar neither treats `/` and `-` as aliases nor applies hidden prefix matching.
 
 A Maidenhead locator is a compact grid-square location code. Four characters identify a broad area; six characters identify a smaller area inside it. WSPRadar uses the configured QTH as the map center and local-radius origin. Performance and Compare match Target spots using its first four locator characters; grid-6 is not part of this selector.
 

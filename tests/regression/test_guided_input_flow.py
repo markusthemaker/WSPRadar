@@ -620,6 +620,13 @@ def test_complete_hardware_state_satisfies_every_node_rule():
     )
 
 
+def test_letter_only_archive_identity_completes_guided_target_step():
+    """Allow an exact reporting identity such as KFS to reach Guided review."""
+    state = _complete_state(val_callsign="KFS")
+
+    assert is_guided_node_complete("target_and_window", state)
+
+
 @pytest.mark.parametrize(
     ("node_id", "updates"),
     [

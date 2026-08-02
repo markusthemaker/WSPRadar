@@ -381,9 +381,10 @@ def test_guided_evidence_fields_use_two_equal_columns(monkeypatch):
 def test_callsign_entry_guidance_recommends_standard_forms_in_both_languages(
     language,
 ):
-    """Explain both accepted suffix forms without presenting aliases as equivalent."""
+    """Explain letter-only and suffix forms without treating aliases as equivalent."""
     labels = T[language]
 
+    assert "KFS" in labels["hlp_callsign_entry"]
     assert "DL1MKS/P" in labels["hlp_callsign_entry"]
     assert "DL1MKS-1" in labels["hlp_callsign_entry"]
     assert "standard" in labels["hlp_callsign_entry"].lower()
@@ -392,6 +393,18 @@ def test_callsign_entry_guidance_recommends_standard_forms_in_both_languages(
     ].lower()
     assert "DL1MKS/P" in labels["ph_reference_callsign"]
     assert "DL1MKS-1" in labels["ph_reference_callsign"]
+    guided_messages = GUIDED_INPUTS[language]["messages"]
+    assert "KFS" in guided_messages["target_callsign_help"]
+    assert "KFS" in guided_messages["reference_callsign_help"]
+    if language == "en":
+        required_letter_text = "at least one letter"
+        no_digit_text = "a digit is not required"
+    else:
+        required_letter_text = "mindestens einen Buchstaben"
+        no_digit_text = "eine Ziffer ist nicht erforderlich"
+    for error_key in ("err_callsign_format", "err_reference_callsign_format"):
+        assert required_letter_text in labels[error_key]
+        assert no_digit_text in labels[error_key]
 
 
 @pytest.mark.parametrize(
@@ -621,13 +634,14 @@ def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(
 
 
 def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
-    """Attach the same exact-identity guidance to the editable Target field."""
+    """Accept a letter-only archive identity in the shared Target field."""
     text_input = Mock()
+    error = Mock()
     session_state = _SessionState(
         {
             "config_panels_expanded": True,
             "val_analysis_direction": "rx",
-            "val_callsign": "DL1MKS-1",
+            "val_callsign": "KFS",
             "val_qth": "JN37",
             "val_start_d": date(2026, 7, 1),
             "val_start_t": time(0, 0),
@@ -641,7 +655,7 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
         SimpleNamespace(
             session_state=session_state,
             columns=Mock(return_value=(_NullContext(), _NullContext())),
-            error=Mock(),
+            error=error,
             markdown=Mock(),
             selectbox=Mock(),
             date_input=Mock(),
@@ -658,6 +672,7 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
         if call.kwargs.get("key") == "val_callsign"
     )
     assert target_callsign_input.kwargs["help"] == T["en"]["hlp_callsign_entry"]
+    error.assert_not_called()
 
 
 def test_reference_station_identity_keeps_reference_grid4_editable(monkeypatch):
@@ -720,7 +735,7 @@ def test_reference_station_identity_reports_invalid_reference_fields(monkeypatch
         {
             "val_callsign": "DL1MKS",
             "val_qth": "JN37AA",
-            "val_ref_callsign": "ABC",
+            "val_ref_callsign": "123",
             "val_ref_qth": "JO62AA",
         }
     )

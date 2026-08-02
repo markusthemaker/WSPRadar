@@ -333,6 +333,24 @@ def test_hyphen_suffixes_normalize_across_config_callsign_inputs():
     ]
 
 
+def test_letter_only_reporting_identifiers_normalize_across_config_inputs():
+    """Preserve exact letter-only Target, Reference, and selected identities."""
+    settings = _valid_settings(comparison_mode="reference_station")
+    settings["core_parameters"]["callsign"] = " kfs "
+    settings["comparison_parameters"]["reference_callsign"] = " kfs/se "
+    settings["results_view"]["success"]["selected_stations"] = [
+        {"callsign": " kfs/nw ", "locator": " cm87 "},
+    ]
+
+    normalized = config_io.validate_config_document(_config_document(settings))
+
+    assert normalized["callsign"] == "KFS"
+    assert normalized["reference_callsign"] == "KFS/SE"
+    assert normalized["selected_stations_absolute"] == [
+        {"callsign": "KFS/NW", "locator": "CM87"},
+    ]
+
+
 def test_reference_station_requires_an_exact_grid4_reference_qth():
     """Keep the editable Buddy selector aligned with its grid-4 query scope."""
     settings = _valid_settings(comparison_mode="reference_station")

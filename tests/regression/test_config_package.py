@@ -113,7 +113,7 @@ def test_config_package_exports_core_constants_and_demo_profiles():
 
 def test_temporal_iqr_band_alpha_is_explicit_and_safe():
     """Keep the shared web/export IQR shading policy configurable and valid."""
-    assert TEMPORAL_IQR_BAND_ALPHA == pytest.approx(0.10)
+    assert TEMPORAL_IQR_BAND_ALPHA == pytest.approx(0.25)
     assert 0.0 <= TEMPORAL_IQR_BAND_ALPHA <= 1.0
 
 

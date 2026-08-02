@@ -8,6 +8,12 @@ from core import input_validation, time_utils
 @pytest.mark.parametrize(
     "callsign",
     [
+        "KFS",
+        "kfs",
+        "KFS/SE",
+        "KFS-1",
+        "ABC",
+        "ABC-1",
         "w1a",
         "DL1MKS",
         "SK0WE/P",
@@ -22,14 +28,13 @@ from core import input_validation, time_utils
 def test_dependency_free_callsign_validation_accepts_plausible_archive_tokens(
     callsign,
 ):
-    """Accept plausible exact callsign tokens, including portable affixes."""
+    """Accept exact archive tokens, including letter-only and portable forms."""
     assert input_validation.is_valid_callsign(callsign)
 
 
 @pytest.mark.parametrize(
     "callsign",
     [
-        "ABC",
         "123",
         "///",
         "/DL1ABC",
@@ -41,7 +46,6 @@ def test_dependency_free_callsign_validation_accepts_plausible_archive_tokens(
         "DL1MKS-1-2",
         "DL1MKS-1/P",
         "DL1MKS/-1",
-        "ABC-1",
         "123-P",
         "DL1ABC'; DROP TABLE spots",
         "DL1 ABC",

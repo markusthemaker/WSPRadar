@@ -316,8 +316,9 @@ def _validated_reference_callsign(reference_callsign):
     if not is_valid_callsign(stripped_callsign):
         raise AnalysisConfigError(
             "Invalid Reference Callsign. Enter 3-15 ASCII characters with at "
-            "least one slash-separated segment containing a letter and a digit; "
-            "one terminal alphanumeric hyphen suffix is also accepted."
+            "least one letter before any hyphen; use slash only between non-empty "
+            "alphanumeric segments. One terminal alphanumeric hyphen suffix is "
+            "also accepted."
         )
     return normalize_ascii_upper(stripped_callsign)
 
@@ -367,8 +368,9 @@ def build_analysis_batches(
     if not is_valid_callsign(stripped_callsign):
         raise AnalysisConfigError(
             "Invalid Target Callsign. Enter 3-15 ASCII characters with at least "
-            "one slash-separated segment containing a letter and a digit; one "
-            "terminal alphanumeric hyphen suffix is also accepted."
+            "one letter before any hyphen; use slash only between non-empty "
+            "alphanumeric segments. One terminal alphanumeric hyphen suffix is "
+            "also accepted."
         )
     callsign = normalize_ascii_upper(stripped_callsign)
     if analysis_context.band not in BAND_MAP:

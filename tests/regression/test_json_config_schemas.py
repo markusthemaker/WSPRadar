@@ -731,7 +731,6 @@ def test_hardware_schema_rejects_redundant_reference_qth(
 @pytest.mark.parametrize(
     ("field", "invalid_identity"),
     [
-        ("callsign", "ABC"),
         ("callsign", "123"),
         ("callsign", "DL1ABC//P"),
         ("callsign", "-DL1MKS"),
@@ -740,7 +739,6 @@ def test_hardware_schema_rejects_redundant_reference_qth(
         ("callsign", "DL1MKS-1-2"),
         ("callsign", "DL1MKS-1/P"),
         ("callsign", "DL1MKS/-1"),
-        ("callsign", "ABC-1"),
         ("callsign", "123-P"),
         ("callsign", "DL1\u00df"),
         ("callsign", "D\u01311ABC"),
@@ -766,6 +764,11 @@ def test_formal_schema_rejects_malformed_or_unicode_target_identities(
 @pytest.mark.parametrize(
     "callsign",
     [
+        "KFS",
+        "KFS/SE",
+        "KFS-1",
+        "ABC",
+        "ABC-1",
         "W1A",
         "DL1MKS",
         "SK0WE/P",
@@ -791,7 +794,6 @@ def test_formal_schema_accepts_plausible_callsign_tokens(
 @pytest.mark.parametrize(
     "callsign",
     [
-        "ABC",
         "123",
         "DL1ABC//P",
         "-DL1MKS",
@@ -800,7 +802,6 @@ def test_formal_schema_accepts_plausible_callsign_tokens(
         "DL1MKS-1-2",
         "DL1MKS-1/P",
         "DL1MKS/-1",
-        "ABC-1",
         "123-P",
         "DL1\u00df",
     ],
@@ -821,9 +822,19 @@ def test_selected_station_schema_uses_the_same_callsign_contract(
 
 @pytest.mark.parametrize(
     "callsign",
-    ["DL1MKS-1", "DL1MKS-P", "EA8/DL1ABC-1", "DL1MKS/P-1"],
+    [
+        "KFS",
+        "KFS/SE",
+        "KFS-1",
+        "ABC",
+        "ABC-1",
+        "DL1MKS-1",
+        "DL1MKS-P",
+        "EA8/DL1ABC-1",
+        "DL1MKS/P-1",
+    ],
 )
-def test_selected_station_schema_accepts_hyphen_suffix_callsigns(
+def test_selected_station_schema_accepts_supported_archive_callsign_tokens(
     config_validator,
     callsign,
 ):

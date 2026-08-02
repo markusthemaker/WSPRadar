@@ -303,14 +303,18 @@ def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity()
     assert "nicht veröffentlichte v1-Prototypen werden nicht migriert" in DOC_DE
 
 
-def test_bilingual_manuals_define_hyphen_suffix_as_one_exact_identity():
-    """Recommend standard forms while documenting the accepted archive token."""
+def test_bilingual_manuals_define_supported_exact_archive_identities():
+    """Document letter-only and suffix forms as distinct exact archive tokens."""
     assert "Prefer standard callsign forms" in DOC_EN
     assert "Bevorzuge standardmäßige Rufzeichenformen" in DOC_DE
     assert "`DL1MKS-1`" in DOC_EN
     assert "`DL1MKS-1`" in DOC_DE
     assert "neither treats `/` and `-` as aliases" in DOC_EN
     assert "behandelt `/` und `-` weder als gleichbedeutend" in DOC_DE
+    assert "letter-only archive reporting identifiers such as `KFS`" in DOC_EN
+    assert "nur aus Buchstaben bestehende Archiv-Meldekennungen wie `KFS`" in DOC_DE
+    assert "`KFS/SE`" in DOC_EN
+    assert "`KFS/SE`" in DOC_DE
 
 
 def test_bilingual_manuals_document_explicit_snr_correction_modes():

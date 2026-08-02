@@ -62,6 +62,7 @@ result = {
         for popover in application.get("popover")
     ],
     "warnings": [warning.value for warning in application.warning],
+    "errors": [error.value for error in application.error],
 }
 print("WSPRADAR_GUIDED_APPLICATION_RESULT=" + json.dumps(result, sort_keys=True))
 '''
@@ -1543,6 +1544,23 @@ def test_guided_run_and_save_actions_are_gated_by_terminal_readiness():
         ]
         assert ready_application["save_actions"] == [
             {"label": "Save Config", "disabled": False}
+        ]
+
+
+def test_letter_only_archive_identity_is_valid_in_guided_and_classic_inputs():
+    """Render KFS without an identity error and keep both editors runnable."""
+    for input_view in ("guided", "classic"):
+        application = _run_application_with_state(
+            _canonical_state(input_view=input_view, val_callsign="KFS")
+        )
+
+        assert application["errors"] == []
+        assert application["run_actions"] == [
+            {
+                "label": "Run RX Analysis",
+                "disabled": False,
+                "type": "primary",
+            }
         ]
 
 
