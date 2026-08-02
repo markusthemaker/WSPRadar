@@ -577,7 +577,7 @@ elif st.session_state.run_mode and should_execute_analysis:
                 "msg_loading_analysis_engine",
                 "Preparing analysis engine...",
             )):
-                from core.plot_engine import generate_map_plot
+                from core.plot_engine import generate_map_plot, render_map_figure
                 from ui.run_controller import (
                     ANALYSIS_RUN_FOLLOWER_COMPLETED,
                     render_analysis_run,
@@ -601,6 +601,8 @@ elif st.session_state.run_mode and should_execute_analysis:
                 start_t=start_t,
                 end_t=end_t,
                 generate_map_plot=generate_map_plot,
+                render_map_figure=render_map_figure,
+                is_existing_run_rerender=is_existing_run_rerender,
             )
         finally:
             finish_current_analysis_submission()

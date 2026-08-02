@@ -61,8 +61,8 @@ def _aggregate_periodic_sequential_compare(
     group_keys: list[str],
     spatial_agg: dict[str, str],
 ) -> pd.DataFrame:
-    """Aggregate decoded rows by deterministic scheduled Target/Reference pair."""
-    work = df.copy()
+    """Aggregate owned decoded rows by deterministic scheduled Target/Reference pair."""
+    work = df
     if "tx_ab_pair_id" not in work.columns:
         work = assign_tx_ab_pair_columns(
             work,
@@ -115,7 +115,11 @@ def _aggregate_periodic_sequential_compare(
     pairs["pair_delta"] = (
         pairs["target_micro_median"] - pairs["reference_micro_median"]
     )
-    pairs = round_snr_like_columns(pairs, columns=["pair_delta"])
+    pairs = round_snr_like_columns(
+        pairs,
+        columns=["pair_delta"],
+        owns_input=True,
+    )
 
     joint_pairs = pairs[pairs["is_joint"]]
     non_joint_pairs = pairs[~pairs["is_joint"]]
@@ -198,8 +202,8 @@ def _aggregate_simultaneous_compare(
     group_keys: list[str],
     spatial_agg: dict[str, str],
 ) -> pd.DataFrame:
-    """Aggregate simultaneous RX/TX compare observations into station evidence."""
-    df_plot = df.copy()
+    """Aggregate an owned simultaneous RX/TX frame into station evidence."""
+    df_plot = df
     df_plot["is_joint_spot"] = ((df_plot["has_u"] > 0) & (df_plot["has_r"] > 0)).astype(int)
     df_plot["is_u_spot"] = ((df_plot["has_u"] > 0) & (df_plot["has_r"] == 0)).astype(int)
     df_plot["is_r_spot"] = ((df_plot["has_u"] == 0) & (df_plot["has_r"] > 0)).astype(int)
@@ -208,7 +212,7 @@ def _aggregate_simultaneous_compare(
         df_plot["snr_u_norm"] - df_plot["snr_r_norm"],
         np.nan,
     )
-    df_plot = round_snr_like_columns(df_plot)
+    df_plot = round_snr_like_columns(df_plot, owns_input=True)
 
     agg_ops = {
         "is_joint_spot": "sum",
@@ -243,18 +247,21 @@ def aggregate_compare_map_data(
     tx_ab_repeat_interval_minutes: int = 10,
     tx_ab_target_start_minute: int = 0,
     tx_ab_reference_start_minute: int = 2,
+    owns_input: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Aggregate raw Compare rows into map station rows and segment medians.
 
     The returned dataframes intentionally preserve the historical plot_engine
     schema so the segment inspector, export flow, and map rendering continue to
-    see the same columns.
+    see the same columns. By default the raw input remains unchanged. When
+    ``owns_input`` is true, the caller transfers the frame for in-place
+    transient-column preparation and must not use it afterward.
     """
     if df is None or df.empty:
         return pd.DataFrame(), pd.DataFrame()
 
-    work = df.copy()
+    work = df if owns_input else df.copy()
     min_spots = int(min_spots)
     base_min_stations = int(base_min_stations)
     spatial_agg = _compare_spatial_aggregation_columns(work)
@@ -282,7 +289,7 @@ def aggregate_compare_map_data(
         | (df_agg["count_only_u"] > 0)
         | (df_agg["count_only_r"] > 0)
     ].copy()
-    df_plot = round_snr_like_columns(df_plot)
+    df_plot = round_snr_like_columns(df_plot, owns_input=True)
 
     def segment_agg(segment_df):
         vals = segment_df["stat_val"].dropna()
@@ -299,7 +306,11 @@ def aggregate_compare_map_data(
         return df_plot, pd.DataFrame(columns=COMPARE_SEGMENT_KEYS + ["val", "cnt", "total_spots"])
 
     segs = df_plot.groupby(COMPARE_SEGMENT_KEYS).apply(segment_agg).reset_index()
-    segs = round_snr_like_columns(segs, columns=["val"])
+    segs = round_snr_like_columns(
+        segs,
+        columns=["val"],
+        owns_input=True,
+    )
     segs = segs[segs["cnt"] >= base_min_stations]
     return df_plot, segs
 

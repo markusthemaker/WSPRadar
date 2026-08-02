@@ -217,6 +217,60 @@ def test_query_fetch_trace_preserves_strict_and_legacy_tiers_and_timings(tmp_pat
     ]
 
 
+@pytest.mark.parametrize("requires_legacy", [False, True])
+def test_selected_fetch_frame_has_one_owner_before_processing_and_staging(
+    tmp_path,
+    requires_legacy,
+):
+    """Release strict or legacy FetchResult ownership before local processing."""
+    plan = _comparison_plan()
+    controller = _controller()
+    lease = controller.try_acquire_run({"wspr_live": 2, "wd2": 2, "wd1": 2})
+    strict_frame = _comparison_frame(has_u=0 if requires_legacy else 1)
+    legacy_frame = _comparison_frame(has_u=1)
+    strict_result = _result("wspr_live", strict_frame)
+    legacy_result = _result("wspr_live", legacy_frame)
+    selected_frame = legacy_frame if requires_legacy else strict_frame
+    selected_result = legacy_result if requires_legacy else strict_result
+
+    def fake_fetch(query, *, request_permit, **_kwargs):
+        request_permit.consume_request()
+        if query == "COMPARE STRICT":
+            return strict_result
+        return legacy_result
+
+    def assert_single_owner_post_fetch(frame, *_args, **_kwargs):
+        assert frame is selected_frame
+        assert selected_result.dataframe is None
+        return frame, None
+
+    def assert_single_owner_writer(frame, path, *, index):
+        assert frame is selected_frame
+        assert selected_result.dataframe is None
+        frame.to_parquet(path, index=index)
+
+    bundle = prepare_provider_bundle(
+        [plan],
+        provider_lease=lease,
+        is_demo_run=False,
+        analysis_context=object(),
+        center_latitude=47.0,
+        center_longitude=8.0,
+        labels={"warn_no_data": "No data: {title}"},
+        artifact_paths={"RX_COMP": tmp_path / "compare.parquet"},
+        fetch_data=fake_fetch,
+        post_fetch_filter=assert_single_owner_post_fetch,
+        artifact_writer=assert_single_owner_writer,
+    )
+    lease.report_success()
+    lease.release()
+
+    assert strict_result.dataframe is None
+    if requires_legacy:
+        assert legacy_result.dataframe is None
+    assert bundle.analyses[0].artifact_path.is_file()
+
+
 def test_operational_strict_failure_never_triggers_legacy_query(tmp_path):
     plan = _comparison_plan()
     controller = _controller()

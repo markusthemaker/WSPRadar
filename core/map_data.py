@@ -128,7 +128,9 @@ def build_map_data(
     )
 
     if is_opportunity:
-        station_rows = work.copy()
+        # Peer aggregation already returns an owned frame, and segment
+        # aggregation does not mutate it, so station rows can reuse that owner.
+        station_rows = work
         segment_rows = aggregate_opportunity_segments(station_rows)
         if not segment_rows.empty:
             segment_rows = segment_rows[
@@ -143,6 +145,7 @@ def build_map_data(
             tx_ab_repeat_interval_minutes=int(tx_ab_repeat_interval_minutes),
             tx_ab_target_start_minute=int(tx_ab_target_start_minute),
             tx_ab_reference_start_minute=int(tx_ab_reference_start_minute),
+            owns_input=True,
         )
 
     if station_rows.empty or (segment_rows.empty and not is_opportunity):

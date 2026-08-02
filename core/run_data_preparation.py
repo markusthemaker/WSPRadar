@@ -247,7 +247,8 @@ def prepare_provider_bundle(
     ``provider_lease``. A structured fetch error stops the attempt before a
     legacy decision or any map/export publication. Successfully processed rows
     are written one analysis at a time so the complete raw bundle need not be
-    retained in memory.
+    retained in memory. The selected fetch result relinquishes its DataFrame
+    before local processing so one owner carries the potentially large frame.
     """
     expected_source = _expected_database_source(provider_lease.source_key)
     prepared_analyses: list[PreparedAnalysisData] = []
@@ -359,6 +360,9 @@ def prepare_provider_bundle(
                 f"{expected_source.display_name} via "
                 f"{query_fetches[-1].delivery_source.delivery_label}"
             )
+            # The local variable becomes the sole owner before scientific work;
+            # otherwise FetchResult retains the complete raw frame until staging.
+            fetch_result.dataframe = None
 
             if frame is None or frame.empty:
                 prepared_analyses.append(PreparedAnalysisData(
@@ -400,7 +404,6 @@ def prepare_provider_bundle(
                     profile_timer=profile_timer,
                 ))
                 del frame
-                fetch_result.dataframe = None
                 gc.collect()
                 continue
 
@@ -421,7 +424,6 @@ def prepare_provider_bundle(
                 profile_timer=profile_timer,
             ))
             del frame
-            fetch_result.dataframe = None
             gc.collect()
     except (ProviderBundleFetchError, ProviderBundlePreparationError):
         _delete_staged_artifacts(staged_paths)

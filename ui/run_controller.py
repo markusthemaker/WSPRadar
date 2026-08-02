@@ -1,9 +1,12 @@
 """Streamlit run orchestration for WSPRadar analyses."""
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import gc
 import hashlib
 import json
+import math
+from pathlib import Path
 import time
 import uuid
 
@@ -30,13 +33,26 @@ from core.artifact_store import (
     session_artifact_owner,
     session_artifact_path,
     touch_registered_session_artifacts,
+    validate_registered_session_artifacts,
 )
 from core.data_engine import cleanup_old_parquets, estimate_uncached_requests
-from core.fetch_models import FetchFailureScope, RESULT_ROW_LIMIT_EXCEEDED_CODE
+from core.fetch_models import (
+    DatabaseSource,
+    FetchFailureScope,
+    FetchSource,
+    RESULT_ROW_LIMIT_EXCEEDED_CODE,
+)
 from core.input_validation import is_valid_callsign, is_valid_locator
+from core.map_data_artifacts import (
+    MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+    MapDataArtifactPaths,
+    read_map_data_artifacts,
+    write_map_data_artifacts,
+)
 from core.math_utils import locator_to_latlon
 from core.matplotlib_runtime import matplotlib_profile_collector
 from core.performance_timer import (
+    PerformanceTimer,
     log_performance_event,
     process_peak_rss_bytes,
     process_rss_bytes,
@@ -50,6 +66,7 @@ from core.provider_dispatch import (
     UPSTREAM_PROVIDER_DISPATCH,
 )
 from core.run_data_preparation import (
+    PreparedQueryFetch,
     ProviderBundleFetchError,
     ProviderBundlePreparationError,
     prepare_provider_bundle,
@@ -82,13 +99,35 @@ from ui.result_guidance import (
 from ui.results_export import register_map_export_context
 from ui.presentation_context_adapter import build_presentation_context_from_session_state
 from ui.result_state import (
+    COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
     clear_rendered_result_state,
     get_active_run_database_source,
+    get_completed_run_snapshot,
+    publish_completed_run_snapshot,
+    reset_result_state,
     set_active_run_database_source,
 )
 
 
 ANALYSIS_RUN_FOLLOWER_COMPLETED = "duplicate_follower_completed"
+COMPLETED_RUN_RERENDER_UNAVAILABLE = "completed_rerender_unavailable"
+
+_SNAPSHOT_OUTCOME_RENDERABLE = "renderable"
+_SNAPSHOT_OUTCOME_PREPARED_NO_DATA = "prepared_no_data"
+_SNAPSHOT_OUTCOME_MAP_NO_DATA = "map_no_data"
+_SNAPSHOT_OUTCOMES = frozenset({
+    _SNAPSHOT_OUTCOME_RENDERABLE,
+    _SNAPSHOT_OUTCOME_PREPARED_NO_DATA,
+    _SNAPSHOT_OUTCOME_MAP_NO_DATA,
+})
+
+
+@dataclass(frozen=True)
+class _StagedAnalysisArtifactPaths:
+    """Hold the evidence and compact render paths for one provider attempt."""
+
+    evidence_path: Path
+    map_data_paths: MapDataArtifactPaths
 
 
 def _analysis_request_fingerprint(
@@ -108,6 +147,30 @@ def _analysis_request_fingerprint(
         "active_demo_profile": active_demo_profile,
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _analysis_plan_fingerprint(analyses) -> str:
+    """Fingerprint ordered scientific plans without localized presentation text."""
+    plan_rows = []
+    for analysis in analyses:
+        plan_rows.append({
+            "id": str(analysis.get("id", "")),
+            "analysis_kind": str(analysis.get("analysis_kind", "")),
+            "is_compare": bool(analysis.get("is_compare")),
+            "is_sequential": bool(analysis.get("is_sequential")),
+            "is_local_median": bool(analysis.get("is_local_median")),
+            "response_format": str(analysis.get("response_format", "csv")),
+            "absolute_mode": analysis.get("absolute_mode"),
+            "absolute_method_version": analysis.get("absolute_method_version"),
+            "query_sha256": hashlib.sha256(
+                str(analysis.get("query", "")).encode("utf-8")
+            ).hexdigest(),
+            "legacy_query_sha256": hashlib.sha256(
+                str(analysis.get("legacy_query", "")).encode("utf-8")
+            ).hexdigest(),
+        })
+    canonical = json.dumps(plan_rows, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -209,14 +272,32 @@ def _try_reserve_upstream_capacity(
 
 
 def _staged_artifact_paths(analyses, *, provider_key):
-    """Return unique unregistered paths for one transactional provider attempt."""
+    """Return all unique unregistered paths for one provider attempt."""
     attempt_token = f"{provider_key}_{uuid.uuid4().hex[:12]}"
     return {
-        analysis["id"]: session_artifact_path(
-            CACHE_DIR,
-            st.session_state,
-            run_id=f"{st.session_state.run_id}_{attempt_token}",
-            analysis_id=analysis["id"],
+        analysis["id"]: _StagedAnalysisArtifactPaths(
+            evidence_path=session_artifact_path(
+                CACHE_DIR,
+                st.session_state,
+                run_id=f"{st.session_state.run_id}_{attempt_token}",
+                analysis_id=analysis["id"],
+            ),
+            map_data_paths=MapDataArtifactPaths(
+                station_rows_path=session_artifact_path(
+                    CACHE_DIR,
+                    st.session_state,
+                    run_id=f"{st.session_state.run_id}_{attempt_token}",
+                    analysis_id=analysis["id"],
+                    artifact_kind="map_stations",
+                ),
+                segment_rows_path=session_artifact_path(
+                    CACHE_DIR,
+                    st.session_state,
+                    run_id=f"{st.session_state.run_id}_{attempt_token}",
+                    analysis_id=analysis["id"],
+                    artifact_kind="map_segments",
+                ),
+            ),
         )
         for analysis in analyses
     }
@@ -267,19 +348,19 @@ def _database_origin_status(provider_key, *, selection_reason):
     )
 
 
-def _query_fetch_status(prepared_analysis):
-    """Render strict and legacy delivery tiers from one committed query trace."""
-    query_fetches = prepared_analysis.query_fetches
+def _format_query_fetch_status(
+    query_fetches,
+    *,
+    has_legacy_query,
+    has_usable_result,
+):
+    """Render strict and legacy delivery tiers from normalized query metadata."""
     if not query_fetches:
         return "query delivery details unavailable"
 
     has_legacy_fetch = any(
         query_fetch.decode_filter_mode == DECODE_FILTER_LEGACY
         for query_fetch in query_fetches
-    )
-    has_usable_result = (
-        prepared_analysis.warning_message is None
-        and prepared_analysis.artifact_path is not None
     )
     fetch_descriptions = []
     for query_index, query_fetch in enumerate(query_fetches):
@@ -308,18 +389,212 @@ def _query_fetch_status(prepared_analysis):
             f"in {query_fetch.elapsed_seconds:.2f}s ({outcome})"
         )
 
-    if (
-        prepared_analysis.analysis.get("legacy_query")
-        and not has_legacy_fetch
-    ):
+    if has_legacy_query and not has_legacy_fetch:
         fetch_descriptions.append("legacy: not needed")
     return "; ".join(fetch_descriptions)
+
+
+def _query_fetch_status(prepared_analysis):
+    """Render query delivery status from one newly prepared analysis."""
+    return _format_query_fetch_status(
+        prepared_analysis.query_fetches,
+        has_legacy_query=bool(prepared_analysis.analysis.get("legacy_query")),
+        has_usable_result=(
+            prepared_analysis.warning_message is None
+            and prepared_analysis.artifact_path is not None
+        ),
+    )
 
 
 def _refresh_session_artifacts_before_cleanup():
     """Protect this session's retained artifacts before global TTL cleanup."""
     touch_registered_session_artifacts(st.session_state)
     return cleanup_old_parquets()
+
+
+def _analysis_snapshot_contract(analysis) -> dict:
+    """Return the stable non-presentation contract for one result block."""
+    return {
+        "id": str(analysis.get("id", "")),
+        "analysis_kind": str(analysis.get("analysis_kind", "")),
+        "is_compare": bool(analysis.get("is_compare")),
+        "is_sequential": bool(analysis.get("is_sequential")),
+        "absolute_method_version": analysis.get("absolute_method_version"),
+    }
+
+
+def _serialize_query_fetches(query_fetches) -> tuple[dict, ...]:
+    """Return session-safe strict/legacy provenance for one completed query."""
+    return tuple({
+        "decode_filter_mode": str(query_fetch.decode_filter_mode),
+        "elapsed_seconds": float(query_fetch.elapsed_seconds),
+        "delivery_source": query_fetch.delivery_source.value,
+    } for query_fetch in query_fetches)
+
+
+def _validate_completed_run_snapshot(
+    *,
+    analyses,
+    request_fingerprint,
+    analysis_plan_fingerprint,
+    committed_source,
+    session_owner,
+):
+    """Return a reusable snapshot only when identity and artifacts still match."""
+    snapshot = get_completed_run_snapshot(st.session_state)
+    if snapshot is None:
+        return None
+    if snapshot.get("run_id") != st.session_state.get("run_id"):
+        return None
+    if snapshot.get("request_fingerprint") != request_fingerprint:
+        return None
+    if snapshot.get("analysis_plan_fingerprint") != analysis_plan_fingerprint:
+        return None
+    if snapshot.get("database_source") != committed_source or not committed_source:
+        return None
+    try:
+        DatabaseSource(snapshot["database_source"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if (
+        snapshot.get("map_data_schema_version")
+        != MAP_DATA_ARTIFACT_SCHEMA_VERSION
+    ):
+        return None
+
+    snapshot_analyses = snapshot.get("analyses")
+    if not isinstance(snapshot_analyses, (list, tuple)):
+        return None
+    if len(snapshot_analyses) != len(analyses) or not analyses:
+        return None
+
+    valid_delivery_sources = {source.value for source in FetchSource}
+    for analysis, snapshot_analysis in zip(analyses, snapshot_analyses):
+        if not isinstance(snapshot_analysis, dict):
+            return None
+        if snapshot_analysis.get("analysis") != _analysis_snapshot_contract(analysis):
+            return None
+        outcome = snapshot_analysis.get("outcome")
+        if outcome not in _SNAPSHOT_OUTCOMES:
+            return None
+
+        evidence_path = snapshot_analysis.get("evidence_path")
+        station_rows_path = snapshot_analysis.get("station_rows_path")
+        segment_rows_path = snapshot_analysis.get("segment_rows_path")
+        required_path_specs = []
+        if outcome == _SNAPSHOT_OUTCOME_RENDERABLE:
+            required_path_specs.extend([
+                (evidence_path, "spots"),
+                (station_rows_path, "map_stations"),
+                (segment_rows_path, "map_segments"),
+            ])
+        elif outcome == _SNAPSHOT_OUTCOME_MAP_NO_DATA:
+            required_path_specs.append((evidence_path, "spots"))
+            if station_rows_path is not None or segment_rows_path is not None:
+                return None
+        elif any(
+            path is not None
+            for path in (evidence_path, station_rows_path, segment_rows_path)
+        ):
+            return None
+        if any(
+            not isinstance(path, str) or not path
+            for path, _artifact_kind in required_path_specs
+        ):
+            return None
+        if required_path_specs:
+            try:
+                validate_registered_session_artifacts(
+                    CACHE_DIR,
+                    st.session_state,
+                    analysis_id=analysis["id"],
+                    artifact_paths_by_kind={
+                        artifact_kind: path
+                        for path, artifact_kind in required_path_specs
+                    },
+                    expected_session_owner=session_owner,
+                )
+            except (OSError, RuntimeError, TypeError, ValueError):
+                return None
+
+        selected_decode_filter_mode = snapshot_analysis.get(
+            "selected_decode_filter_mode"
+        )
+        if selected_decode_filter_mode not in {
+            DECODE_FILTER_STRICT,
+            DECODE_FILTER_LEGACY,
+        }:
+            return None
+        query_fetches = snapshot_analysis.get("query_fetches")
+        if not isinstance(query_fetches, (list, tuple)) or not query_fetches:
+            return None
+        for query_fetch in query_fetches:
+            if not isinstance(query_fetch, dict):
+                return None
+            if query_fetch.get("decode_filter_mode") not in {
+                DECODE_FILTER_STRICT,
+                DECODE_FILTER_LEGACY,
+            }:
+                return None
+            elapsed_seconds = query_fetch.get("elapsed_seconds")
+            if (
+                isinstance(elapsed_seconds, bool)
+                or not isinstance(elapsed_seconds, (int, float))
+                or not math.isfinite(elapsed_seconds)
+                or elapsed_seconds < 0
+            ):
+                return None
+            if query_fetch.get("delivery_source") not in valid_delivery_sources:
+                return None
+        if (
+            query_fetches[-1].get("decode_filter_mode")
+            != selected_decode_filter_mode
+        ):
+            return None
+    return snapshot
+
+
+def _snapshot_analysis_entry(
+    prepared_analysis,
+    *,
+    outcome,
+    map_data_paths=None,
+) -> dict:
+    """Build one language-free completed-analysis snapshot entry."""
+    evidence_path = prepared_analysis.artifact_path
+    return {
+        "analysis": _analysis_snapshot_contract(prepared_analysis.analysis),
+        "outcome": str(outcome),
+        "evidence_path": (
+            str(Path(evidence_path).resolve())
+            if evidence_path is not None
+            else None
+        ),
+        "station_rows_path": (
+            str(Path(map_data_paths.station_rows_path).resolve())
+            if map_data_paths is not None
+            else None
+        ),
+        "segment_rows_path": (
+            str(Path(map_data_paths.segment_rows_path).resolve())
+            if map_data_paths is not None
+            else None
+        ),
+        "selected_decode_filter_mode": str(
+            prepared_analysis.analysis.get("decode_filter_mode", "")
+        ),
+        "query_fetches": _serialize_query_fetches(
+            prepared_analysis.query_fetches
+        ),
+    }
+
+
+def _invalidate_completed_rerender(translations) -> str:
+    """Retire an unusable implicit result without starting replacement work."""
+    st.session_state.run_mode = None
+    reset_result_state(st.session_state)
+    st.warning(translations["warn_analysis_cache_expired"])
+    return COMPLETED_RUN_RERENDER_UNAVAILABLE
 
 
 def render_analysis_run(
@@ -332,6 +607,8 @@ def render_analysis_run(
     start_t,
     end_t,
     generate_map_plot,
+    render_map_figure=None,
+    is_existing_run_rerender=False,
 ):
     """Admit one active run, then execute it with unconditional slot release."""
     if not st.session_state.run_mode:
@@ -443,6 +720,23 @@ def render_analysis_run(
         band_filter=band_filter,
         active_demo_profile=st.session_state.get("active_demo_profile"),
     )
+    analysis_plan_key = _analysis_plan_fingerprint(analyses)
+    execution_kind = (
+        "completed_rerender"
+        if is_existing_run_rerender
+        else "analysis"
+    )
+    completed_run_snapshot = None
+    if is_existing_run_rerender:
+        completed_run_snapshot = _validate_completed_run_snapshot(
+            analyses=analyses,
+            request_fingerprint=request_key,
+            analysis_plan_fingerprint=analysis_plan_key,
+            committed_source=committed_source,
+            session_owner=owner,
+        )
+        if completed_run_snapshot is None or not callable(render_map_figure):
+            return _invalidate_completed_rerender(t)
 
     def log_admission(outcome):
         active, queued = ANALYSIS_ADMISSION_GATE.counts()
@@ -455,6 +749,7 @@ def render_analysis_run(
             "active": active,
             "queued": queued,
             "rss_bytes": process_rss_bytes(),
+            "execution_kind": execution_kind,
         }
         if outcome == "admitted":
             admission_values = {
@@ -464,7 +759,11 @@ def render_analysis_run(
         log_performance_event(
             "analysis_admission",
             leading_blank_line=(outcome == "admitted"),
-            banner_label="ANALYSIS RUN START" if outcome == "admitted" else None,
+            banner_label=(
+                "COMPLETED RESULT RERENDER START"
+                if outcome == "admitted" and is_existing_run_rerender
+                else "ANALYSIS RUN START" if outcome == "admitted" else None
+            ),
             **admission_values,
         )
 
@@ -473,7 +772,11 @@ def render_analysis_run(
             owner=owner,
             request_key=request_key,
             on_wait=show_waiting,
-            reserve_capacity=reserve_upstream_capacity,
+            reserve_capacity=(
+                None
+                if is_existing_run_rerender
+                else reserve_upstream_capacity
+            ),
         )
     except AnalysisDuplicateRequest:
         log_admission("duplicate")
@@ -530,7 +833,8 @@ def render_analysis_run(
         return
     except AnalysisQueueFull:
         log_admission("queue_full")
-        st.session_state.run_mode = None
+        if not is_existing_run_rerender:
+            st.session_state.run_mode = None
         run_status_slot.warning(t.get(
             "warn_analysis_queue_full",
             "High demand right now. The analysis queue is full. Please try again shortly.",
@@ -538,7 +842,8 @@ def render_analysis_run(
         return
     except AnalysisQueueTimeout:
         log_admission("queue_timeout")
-        st.session_state.run_mode = None
+        if not is_existing_run_rerender:
+            st.session_state.run_mode = None
         if waiting_status is not None:
             run_status_slot.empty()
         run_status_slot.warning(t.get(
@@ -567,24 +872,49 @@ def render_analysis_run(
     run_outcome = "failed"
     try:
         with permit:
-            run_outcome = _render_admitted_analysis_run(
-                t=t,
-                run_status_slot=run_status_slot,
-                start_t=start_t,
-                end_t=end_t,
-                generate_map_plot=generate_map_plot,
-                admission_permit=permit,
-                analyses=analyses,
-                analysis_context=analysis_context,
-                presentation_context=presentation_context,
-                center_latitude=center_latitude,
-                center_longitude=center_longitude,
-                active_demo=active_demo,
-                active_demo_key=active_demo_key,
-                is_demo_run=is_demo_run,
-                request_counts_by_provider=request_counts_by_provider,
-                committed_source=committed_source,
-            )
+            if is_existing_run_rerender:
+                run_outcome = _render_completed_analysis_run(
+                    t=t,
+                    run_status_slot=run_status_slot,
+                    start_t=start_t,
+                    end_t=end_t,
+                    render_map_figure=render_map_figure,
+                    admission_permit=permit,
+                    analyses=analyses,
+                    analysis_context=analysis_context,
+                    presentation_context=presentation_context,
+                    center_latitude=center_latitude,
+                    center_longitude=center_longitude,
+                    completed_run_snapshot=completed_run_snapshot,
+                )
+            else:
+                run_outcome = _render_admitted_analysis_run(
+                    t=t,
+                    run_status_slot=run_status_slot,
+                    start_t=start_t,
+                    end_t=end_t,
+                    generate_map_plot=generate_map_plot,
+                    admission_permit=permit,
+                    analyses=analyses,
+                    analysis_context=analysis_context,
+                    presentation_context=presentation_context,
+                    center_latitude=center_latitude,
+                    center_longitude=center_longitude,
+                    active_demo=active_demo,
+                    active_demo_key=active_demo_key,
+                    is_demo_run=is_demo_run,
+                    request_counts_by_provider=request_counts_by_provider,
+                    committed_source=committed_source,
+                    request_fingerprint=request_key,
+                    analysis_plan_fingerprint=analysis_plan_key,
+                )
+    except Exception as exc:
+        run_outcome = type(exc).__name__
+        if is_existing_run_rerender:
+            return _invalidate_completed_rerender(t)
+        st.session_state.run_mode = None
+        reset_result_state(st.session_state)
+        raise
     except BaseException as exc:
         run_outcome = type(exc).__name__
         raise
@@ -594,6 +924,7 @@ def render_analysis_run(
             "analysis_run",
             trailing_blank_line=True,
             outcome=run_outcome,
+            execution_kind=execution_kind,
             run_mode=st.session_state.get("run_mode"),
             duration_seconds=time.perf_counter() - run_started,
             active_after_release=active,
@@ -602,6 +933,425 @@ def render_analysis_run(
             rss_end_bytes=process_rss_bytes(),
             process_peak_rss_bytes=process_peak_rss_bytes(),
         )
+
+
+def _render_map_result_block(
+    *,
+    t,
+    analysis,
+    plot_result,
+    parquet_path,
+    map_data_paths,
+    start_t,
+    end_t,
+    loading_label,
+    max_peer_distance_km,
+    center_latitude,
+    center_longitude,
+    analysis_context,
+    presentation_context,
+    database_source,
+    profile_timer,
+):
+    """Render one map block and return its deferred Inspector inputs."""
+    fig = plot_result.figure
+    enriched_df = plot_result.map_data.station_rows
+    line1_str = plot_result.footer_text
+    run_id = st.session_state.get("run_id", 0)
+    profile_timer.add_memory("map station dataframe", df=enriched_df)
+
+    result_context = build_result_context(
+        analysis,
+        analysis_context,
+        start_t,
+        end_t,
+        t,
+    )
+    station_type = remote_station_type(analysis["id"])
+    if analysis["is_compare"]:
+        map_subtitle = t["sub_results_map_compare"]
+    else:
+        map_subtitle = t["sub_results_map_success"].format(
+            station_type=station_type
+        )
+    with st.container(
+        key=f"results_evidence_flow_{analysis['id']}_{run_id}"
+    ):
+        st.markdown(
+            result_context_html(result_context),
+            unsafe_allow_html=True,
+        )
+        render_result_guidance_popover(
+            RESULT_GUIDANCE_CONTEXT,
+            result_context.title,
+            language=presentation_context.language,
+            translations=t,
+            key=(
+                f"results_guidance_context_"
+                f"{analysis['id']}_{run_id}"
+            ),
+            analysis_id=analysis["id"],
+            is_compare=analysis["is_compare"],
+            is_sequential=analysis["is_sequential"],
+            analysis_context=analysis_context,
+        )
+        with st.container(
+            key=f"results_evidence_spine_{analysis['id']}_{run_id}"
+        ):
+            level_one_container = st.container(
+                key=(
+                    f"results_evidence_level_1_"
+                    f"{analysis['id']}_{run_id}"
+                )
+            )
+            level_one_container.markdown(
+                evidence_level_header_html(
+                    1,
+                    t["lbl_results_level_run"],
+                    t["hdr_results_map_view"],
+                    map_subtitle,
+                ),
+                unsafe_allow_html=True,
+            )
+            with level_one_container:
+                render_result_guidance_popover(
+                    RESULT_GUIDANCE_MAP,
+                    t["hdr_results_map_view"],
+                    language=presentation_context.language,
+                    translations=t,
+                    key=(
+                        f"results_guidance_map_"
+                        f"{analysis['id']}_{run_id}"
+                    ),
+                    analysis_id=analysis["id"],
+                    is_compare=analysis["is_compare"],
+                    is_sequential=analysis["is_sequential"],
+                    analysis_context=analysis_context,
+                )
+                try:
+                    with (
+                        profile_timer.span(
+                            matplotlib_render_span_label("map render")
+                        ),
+                        matplotlib_profile_collector(profile_timer),
+                    ):
+                        render_matplotlib_figure(
+                            fig,
+                            width="stretch",
+                            bbox_inches=None,
+                            timing_collector=profile_timer,
+                            subject="map",
+                        )
+                    register_map_export_context(
+                        analysis=analysis,
+                        parquet_path=parquet_path,
+                        map_data_paths=map_data_paths,
+                        start_t=start_t,
+                        end_t=end_t,
+                        max_peer_distance_km=max_peer_distance_km,
+                        base_min_stations=st.session_state.val_min_stations,
+                        lat_0=center_latitude,
+                        lon_0=center_longitude,
+                        analysis_context=analysis_context,
+                        presentation_context=presentation_context,
+                        database_source=database_source,
+                    )
+                finally:
+                    with (
+                        profile_timer.span("map figure disposal"),
+                        matplotlib_profile_collector(profile_timer),
+                    ):
+                        dispose_matplotlib_figure(fig)
+                        del fig
+                        del plot_result
+                        gc.collect()
+
+            level_one_container.markdown(
+                transition_prompt_html(
+                    t["txt_results_transition_scope"]
+                ),
+                unsafe_allow_html=True,
+            )
+
+            inspector_container = st.container()
+            skeleton_ph = inspector_container.empty()
+
+            with skeleton_ph.container():
+                st.markdown(
+                    evidence_level_header_html(
+                        2,
+                        t["lbl_results_level_scope"],
+                        t["hdr_results_segment_inspector"],
+                        t["sub_results_segment_inspector"],
+                    ),
+                    unsafe_allow_html=True,
+                )
+                wait_left, wait_right = st.columns(2)
+                with wait_left:
+                    st.selectbox(
+                        t["lbl_results_distance_range"],
+                        [loading_label],
+                        key=f"w_dist_{analysis['id']}_{run_id}",
+                        disabled=True,
+                        label_visibility="collapsed",
+                    )
+                with wait_right:
+                    st.selectbox(
+                        t["lbl_results_direction"],
+                        [loading_label],
+                        key=f"w_dir_{analysis['id']}_{run_id}",
+                        disabled=True,
+                        label_visibility="collapsed",
+                    )
+
+    return {
+        "analysis": analysis,
+        "enriched_df": enriched_df,
+        "parquet_path": parquet_path,
+        "line1_str": line1_str,
+        "skeleton_ph": skeleton_ph,
+        "inspector_container": inspector_container,
+        "start_t": start_t,
+        "end_t": end_t,
+        "profile_timer": profile_timer,
+    }
+
+
+def _render_deferred_inspectors(
+    deferred_render_data,
+    *,
+    t,
+    admission_permit,
+    max_peer_distance_km,
+    analysis_context,
+    presentation_context,
+):
+    """Render every Inspector after its map skeleton is visible."""
+    for index, data in enumerate(deferred_render_data):
+        admission_permit.touch()
+        data["skeleton_ph"].empty()
+        with data["inspector_container"]:
+            inspector_span = (
+                "first Segment Inspector render"
+                if index == 0
+                else "Segment Inspector render"
+            )
+            with matplotlib_profile_collector(data["profile_timer"]):
+                render_segment_inspector(
+                    data["analysis"]["id"],
+                    data["analysis"]["title"],
+                    data["analysis"]["is_compare"],
+                    data["analysis"]["is_sequential"],
+                    data["enriched_df"],
+                    data["parquet_path"],
+                    data["line1_str"],
+                    t,
+                    max_peer_distance_km,
+                    analysis_context,
+                    presentation_context,
+                    analysis_start_t=data["start_t"],
+                    analysis_end_t=data["end_t"],
+                    analysis_kind=data["analysis"]["analysis_kind"],
+                    show_export_button=(
+                        index == len(deferred_render_data) - 1
+                    ),
+                    timing_collector=data["profile_timer"],
+                    timing_label=inspector_span,
+                )
+
+
+def _render_completed_analysis_run(
+    *,
+    t,
+    run_status_slot,
+    start_t,
+    end_t,
+    render_map_figure,
+    admission_permit,
+    analyses,
+    analysis_context,
+    presentation_context,
+    center_latitude,
+    center_longitude,
+    completed_run_snapshot,
+):
+    """Render a validated completed snapshot without provider or query work."""
+    max_peer_distance_km = analysis_context.max_peer_distance_km
+    selected_source_key = completed_run_snapshot["database_source"]
+    source_label = DatabaseSource(selected_source_key).display_name
+    clear_rendered_result_state(
+        st.session_state,
+        preserve_inspector_cache=True,
+    )
+
+    with run_status_slot.container():
+        status_box = st.status(
+            f"Restoring completed {st.session_state.run_mode} analysis...",
+            expanded=True,
+            state="running",
+        )
+        with status_box:
+            status_body = st.empty()
+
+    status_log = [
+        "**System Audit Status:**",
+        "- Reusing completed station and segment aggregates; no database request was made.",
+        (
+            "- Database origin for complete run: "
+            f"**{source_label}** (committed source)"
+        ),
+    ]
+    prepared_render_entries = []
+    for analysis, snapshot_analysis in zip(
+        analyses,
+        completed_run_snapshot["analyses"],
+    ):
+        restored_analysis = dict(analysis)
+        restored_analysis["decode_filter_mode"] = snapshot_analysis[
+            "selected_decode_filter_mode"
+        ]
+        query_fetches = tuple(
+            PreparedQueryFetch(
+                decode_filter_mode=query_fetch["decode_filter_mode"],
+                elapsed_seconds=float(query_fetch["elapsed_seconds"]),
+                delivery_source=FetchSource(query_fetch["delivery_source"]),
+            )
+            for query_fetch in snapshot_analysis["query_fetches"]
+        )
+        query_fetch_status = _format_query_fetch_status(
+            query_fetches,
+            has_legacy_query=bool(restored_analysis.get("legacy_query")),
+            has_usable_result=(
+                snapshot_analysis["outcome"]
+                != _SNAPSHOT_OUTCOME_PREPARED_NO_DATA
+            ),
+        )
+        status_log.append(
+            f"- Map {len(prepared_render_entries) + 1}/{len(analyses)}: "
+            f"{restored_analysis['title']} — "
+            f"{query_fetch_status}"
+        )
+        prepared_render_entries.append((restored_analysis, snapshot_analysis))
+    status_body.markdown("  \n".join(status_log))
+
+    deferred_render_data = []
+    loading_label = t["msg_loading"]
+
+    def fail_completed_rerender(exc, *, stage, plot_result=None):
+        """Retire a completed snapshot that failed during local restoration."""
+        if plot_result is not None:
+            try:
+                dispose_matplotlib_figure(plot_result.figure)
+            except Exception:
+                pass
+        status_box.update(
+            label="Completed analysis data became unavailable",
+            state="error",
+            expanded=True,
+        )
+        log_performance_event(
+            "analysis_preparation_failure",
+            source=selected_source_key,
+            failure_scope=FetchFailureScope.LOCAL.value,
+            failure_type=type(exc).__name__,
+            stage=stage,
+        )
+        return _invalidate_completed_rerender(t)
+
+    for index, (analysis, snapshot_analysis) in enumerate(prepared_render_entries):
+        admission_permit.touch()
+        outcome = snapshot_analysis["outcome"]
+        if outcome != _SNAPSHOT_OUTCOME_RENDERABLE:
+            st.warning(t["warn_no_data"].format(title=analysis["title"]))
+            st.markdown("---")
+            continue
+
+        profile_timer = PerformanceTimer()
+        map_data_paths = MapDataArtifactPaths(
+            station_rows_path=Path(snapshot_analysis["station_rows_path"]),
+            segment_rows_path=Path(snapshot_analysis["segment_rows_path"]),
+        )
+        plot_result = None
+        try:
+            with profile_timer.span("completed map aggregate read"):
+                map_data = read_map_data_artifacts(
+                    map_data_paths,
+                    analysis_id=analysis["id"],
+                    is_compare=analysis["is_compare"],
+                    is_sequential=analysis["is_sequential"],
+                    analysis_kind=analysis["analysis_kind"],
+                )
+            profile_timer.add_memory(
+                "completed map station dataframe",
+                df=map_data.station_rows,
+            )
+            status_box.update(
+                label=f"Rendering maps... ({index + 1}/{len(analyses)})",
+                state="running",
+                expanded=True,
+            )
+            with (
+                profile_timer.span("map generation"),
+                matplotlib_profile_collector(profile_timer),
+            ):
+                plot_result = render_map_figure(
+                    map_data,
+                    title=analysis["title"],
+                    start_t=start_t,
+                    end_t=end_t,
+                    max_dist_km=max_peer_distance_km,
+                    base_min_stations=st.session_state.val_min_stations,
+                    lat_0=center_latitude,
+                    lon_0=center_longitude,
+                    analysis_context=analysis_context,
+                    presentation_context=presentation_context,
+                    timing_collector=profile_timer,
+                )
+            del map_data
+            deferred_render_entry = _render_map_result_block(
+                t=t,
+                analysis=analysis,
+                plot_result=plot_result,
+                parquet_path=Path(snapshot_analysis["evidence_path"]),
+                map_data_paths=map_data_paths,
+                start_t=start_t,
+                end_t=end_t,
+                loading_label=loading_label,
+                max_peer_distance_km=max_peer_distance_km,
+                center_latitude=center_latitude,
+                center_longitude=center_longitude,
+                analysis_context=analysis_context,
+                presentation_context=presentation_context,
+                database_source=selected_source_key,
+                profile_timer=profile_timer,
+            )
+            plot_result = None
+        except Exception as exc:
+            return fail_completed_rerender(
+                exc,
+                stage="restore_completed_map",
+                plot_result=plot_result,
+            )
+        deferred_render_data.append(deferred_render_entry)
+        gc.collect()
+        st.markdown("---")
+
+    try:
+        _render_deferred_inspectors(
+            deferred_render_data,
+            t=t,
+            admission_permit=admission_permit,
+            max_peer_distance_km=max_peer_distance_km,
+            analysis_context=analysis_context,
+            presentation_context=presentation_context,
+        )
+    except Exception as exc:
+        return fail_completed_rerender(
+            exc,
+            stage="restore_completed_inspectors",
+        )
+    status_box.update(label="Complete", state="complete", expanded=False)
+    return "completed"
 
 
 def _render_admitted_analysis_run(
@@ -622,6 +1372,8 @@ def _render_admitted_analysis_run(
     is_demo_run,
     request_counts_by_provider,
     committed_source,
+    request_fingerprint,
+    analysis_plan_fingerprint,
 ):
     """Execute an admitted run and return its terminal telemetry outcome."""
 
@@ -647,6 +1399,7 @@ def _render_admitted_analysis_run(
     status_body.markdown("  \n".join(status_log))
 
     deferred_render_data = []
+    snapshot_analysis_entries = []
     loading_label = t["msg_loading"]
     provider_lease = admission_permit.capacity_lease
     if not isinstance(provider_lease, ProviderRunLease):
@@ -659,6 +1412,7 @@ def _render_admitted_analysis_run(
     excluded_sources = set(provider_lease.skipped_sources)
     capacity_replans = 0
     prepared_bundle = None
+    staged_artifact_paths = None
     final_fetch_failure = None
     attempt_status_log = []
 
@@ -680,6 +1434,10 @@ def _render_admitted_analysis_run(
             expanded=True,
         )
         try:
+            staged_artifact_paths = _staged_artifact_paths(
+                analyses,
+                provider_key=provider.key,
+            )
             prepared_bundle = prepare_provider_bundle(
                 analyses,
                 provider_lease=provider_lease,
@@ -688,10 +1446,10 @@ def _render_admitted_analysis_run(
                 center_latitude=center_latitude,
                 center_longitude=center_longitude,
                 labels=t,
-                artifact_paths=_staged_artifact_paths(
-                    analyses,
-                    provider_key=provider.key,
-                ),
+                artifact_paths={
+                    analysis_id: paths.evidence_path
+                    for analysis_id, paths in staged_artifact_paths.items()
+                },
                 on_legacy_retry=report_legacy_retry,
             )
         except ProviderBundleFetchError as exc:
@@ -903,6 +1661,10 @@ def _render_admitted_analysis_run(
         parquet_path = prepared_analysis.artifact_path
 
         if prepared_analysis.warning_message or parquet_path is None:
+            snapshot_analysis_entries.append(_snapshot_analysis_entry(
+                prepared_analysis,
+                outcome=_SNAPSHOT_OUTCOME_PREPARED_NO_DATA,
+            ))
             profile_timer.log_report(analysis_title=analysis["title"])
             st.warning(
                 prepared_analysis.warning_message
@@ -921,6 +1683,7 @@ def _render_admitted_analysis_run(
             )
             st.error(f"Error reading prepared analysis data: {exc}")
             st.session_state.run_mode = None
+            reset_result_state(st.session_state)
             log_performance_event(
                 "analysis_preparation_failure",
                 source=selected_source_key,
@@ -967,199 +1730,94 @@ def _render_admitted_analysis_run(
             gc.collect()
 
             if plot_result is None:
+                snapshot_analysis_entries.append(_snapshot_analysis_entry(
+                    prepared_analysis,
+                    outcome=_SNAPSHOT_OUTCOME_MAP_NO_DATA,
+                ))
                 profile_timer.log_report(analysis_title=analysis["title"])
                 st.warning(t["warn_no_data"].format(title=analysis["title"]))
                 st.markdown("---")
                 continue
 
-            fig = plot_result.figure
-            enriched_df = plot_result.map_data.station_rows
-            line1_str = plot_result.footer_text
-            run_id = st.session_state.get("run_id", 0)
-            profile_timer.add_memory("map station dataframe", df=enriched_df)
-
-            result_context = build_result_context(
-                analysis,
-                analysis_context,
-                start_t,
-                end_t,
-                t,
-            )
-            station_type = remote_station_type(analysis["id"])
-            if analysis["is_compare"]:
-                map_subtitle = t["sub_results_map_compare"]
-            else:
-                map_subtitle = t["sub_results_map_success"].format(
-                    station_type=station_type
+            map_data_paths = staged_artifact_paths[analysis["id"]].map_data_paths
+            try:
+                write_map_data_artifacts(plot_result.map_data, map_data_paths)
+                register_session_artifact(
+                    st.session_state,
+                    map_data_paths.station_rows_path,
                 )
-            with st.container(
-                key=f"results_evidence_flow_{analysis['id']}_{run_id}"
-            ):
-                st.markdown(
-                    result_context_html(result_context),
-                    unsafe_allow_html=True,
+                register_session_artifact(
+                    st.session_state,
+                    map_data_paths.segment_rows_path,
                 )
-                render_result_guidance_popover(
-                    RESULT_GUIDANCE_CONTEXT,
-                    result_context.title,
-                    language=presentation_context.language,
-                    translations=t,
-                    key=(
-                        f"results_guidance_context_"
-                        f"{analysis['id']}_{run_id}"
-                    ),
-                    analysis_id=analysis["id"],
-                    is_compare=analysis["is_compare"],
-                    is_sequential=analysis["is_sequential"],
-                    analysis_context=analysis_context,
+            except Exception as exc:
+                dispose_matplotlib_figure(plot_result.figure)
+                del plot_result
+                gc.collect()
+                status_box.update(
+                    label=t["err_analysis_processing_failed"],
+                    state="error",
+                    expanded=True,
                 )
-                with st.container(
-                    key=f"results_evidence_spine_{analysis['id']}_{run_id}"
-                ):
-                    level_one_container = st.container(
-                        key=(
-                            f"results_evidence_level_1_"
-                            f"{analysis['id']}_{run_id}"
-                        )
-                    )
-                    level_one_container.markdown(
-                        evidence_level_header_html(
-                            1,
-                            t["lbl_results_level_run"],
-                            t["hdr_results_map_view"],
-                            map_subtitle,
-                        ),
-                        unsafe_allow_html=True,
-                    )
-                    with level_one_container:
-                        render_result_guidance_popover(
-                            RESULT_GUIDANCE_MAP,
-                            t["hdr_results_map_view"],
-                            language=presentation_context.language,
-                            translations=t,
-                            key=(
-                                f"results_guidance_map_"
-                                f"{analysis['id']}_{run_id}"
-                            ),
-                            analysis_id=analysis["id"],
-                            is_compare=analysis["is_compare"],
-                            is_sequential=analysis["is_sequential"],
-                            analysis_context=analysis_context,
-                        )
-                        try:
-                            with (
-                                profile_timer.span(
-                                    matplotlib_render_span_label("map render")
-                                ),
-                                matplotlib_profile_collector(profile_timer),
-                            ):
-                                render_matplotlib_figure(
-                                    fig,
-                                    width="stretch",
-                                    bbox_inches=None,
-                                    timing_collector=profile_timer,
-                                    subject="map",
-                                )
-                            register_map_export_context(
-                                analysis=analysis,
-                                parquet_path=parquet_path,
-                                start_t=start_t,
-                                end_t=end_t,
-                                max_peer_distance_km=max_peer_distance_km,
-                                base_min_stations=st.session_state.val_min_stations,
-                                lat_0=center_latitude,
-                                lon_0=center_longitude,
-                                analysis_context=analysis_context,
-                                presentation_context=presentation_context,
-                                database_source=selected_source_key,
-                            )
-                        finally:
-                            with (
-                                profile_timer.span("map figure disposal"),
-                                matplotlib_profile_collector(profile_timer),
-                            ):
-                                dispose_matplotlib_figure(fig)
-                                del fig
-                                del plot_result
-                                gc.collect()
-
-                    level_one_container.markdown(
-                        transition_prompt_html(
-                            t["txt_results_transition_scope"]
-                        ),
-                        unsafe_allow_html=True,
-                    )
-
-                    inspector_container = st.container()
-                    skeleton_ph = inspector_container.empty()
-
-                    with skeleton_ph.container():
-                        st.markdown(
-                            evidence_level_header_html(
-                                2,
-                                t["lbl_results_level_scope"],
-                                t["hdr_results_segment_inspector"],
-                                t["sub_results_segment_inspector"],
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                        wait_left, wait_right = st.columns(2)
-                        with wait_left:
-                            st.selectbox(
-                                t["lbl_results_distance_range"],
-                                [loading_label],
-                                key=f"w_dist_{analysis['id']}_{run_id}",
-                                disabled=True,
-                                label_visibility="collapsed",
-                            )
-                        with wait_right:
-                            st.selectbox(
-                                t["lbl_results_direction"],
-                                [loading_label],
-                                key=f"w_dir_{analysis['id']}_{run_id}",
-                                disabled=True,
-                                label_visibility="collapsed",
-                            )
-
-            deferred_render_data.append({
-                "analysis": analysis,
-                "enriched_df": enriched_df,
-                "parquet_path": parquet_path,
-                "line1_str": line1_str,
-                "skeleton_ph": skeleton_ph,
-                "inspector_container": inspector_container,
-                "start_t": start_t,
-                "end_t": end_t,
-                "profile_timer": profile_timer,
-            })
+                st.error(t["err_analysis_processing_failed"])
+                st.session_state.run_mode = None
+                reset_result_state(st.session_state)
+                log_performance_event(
+                    "analysis_preparation_failure",
+                    source=selected_source_key,
+                    failure_scope=FetchFailureScope.LOCAL.value,
+                    failure_type=type(exc).__name__,
+                    stage="publish_map_data_artifacts",
+                )
+                return "failed"
+            snapshot_analysis_entries.append(_snapshot_analysis_entry(
+                prepared_analysis,
+                outcome=_SNAPSHOT_OUTCOME_RENDERABLE,
+                map_data_paths=map_data_paths,
+            ))
+            deferred_render_data.append(_render_map_result_block(
+                t=t,
+                analysis=analysis,
+                plot_result=plot_result,
+                parquet_path=parquet_path,
+                map_data_paths=map_data_paths,
+                start_t=start_t,
+                end_t=end_t,
+                loading_label=loading_label,
+                max_peer_distance_km=max_peer_distance_km,
+                center_latitude=center_latitude,
+                center_longitude=center_longitude,
+                analysis_context=analysis_context,
+                presentation_context=presentation_context,
+                database_source=selected_source_key,
+                profile_timer=profile_timer,
+            ))
+            del plot_result
+            gc.collect()
 
         st.markdown("---")
 
-    for index, data in enumerate(deferred_render_data):
-        admission_permit.touch()
-        data["skeleton_ph"].empty()
-        with data["inspector_container"]:
-            inspector_span = "first Segment Inspector render" if index == 0 else "Segment Inspector render"
-            with matplotlib_profile_collector(data["profile_timer"]):
-                render_segment_inspector(
-                    data["analysis"]["id"],
-                    data["analysis"]["title"],
-                    data["analysis"]["is_compare"],
-                    data["analysis"]["is_sequential"],
-                    data["enriched_df"],
-                    data["parquet_path"],
-                    data["line1_str"],
-                    t,
-                    max_peer_distance_km,
-                    analysis_context,
-                    presentation_context,
-                    analysis_start_t=data["start_t"],
-                    analysis_end_t=data["end_t"],
-                    analysis_kind=data["analysis"]["analysis_kind"],
-                    show_export_button=(index == len(deferred_render_data) - 1),
-                    timing_collector=data["profile_timer"],
-                    timing_label=inspector_span,
-                )
+    _render_deferred_inspectors(
+        deferred_render_data,
+        t=t,
+        admission_permit=admission_permit,
+        max_peer_distance_km=max_peer_distance_km,
+        analysis_context=analysis_context,
+        presentation_context=presentation_context,
+    )
+
+    publish_completed_run_snapshot(
+        st.session_state,
+        {
+            "schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
+            "map_data_schema_version": MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+            "run_id": st.session_state.get("run_id"),
+            "request_fingerprint": request_fingerprint,
+            "analysis_plan_fingerprint": analysis_plan_fingerprint,
+            "database_source": selected_source_key,
+            "analyses": tuple(snapshot_analysis_entries),
+        },
+    )
 
     status_box.update(label="Complete", state="complete", expanded=False)
 

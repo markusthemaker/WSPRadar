@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+import pandas as pd
 import pytest
 
 from config import DEMO_PROFILES, WSPR_DATABASE_PROVIDERS
@@ -15,6 +16,10 @@ from core.analysis_runner import (
     DECODE_FILTER_STRICT,
     AnalysisConfigError,
 )
+from core.artifact_store import (
+    SESSION_ARTIFACT_OWNER_KEY,
+    SESSION_ARTIFACT_PATHS_KEY,
+)
 from core.fetch_models import (
     DatabaseSource,
     FetchError,
@@ -22,6 +27,7 @@ from core.fetch_models import (
     FetchResult,
     FetchSource,
 )
+from core.map_models import MapData, MapFigure
 from core.provider_dispatch import ProviderDispatchController, ProviderSkipReason
 from core.run_data_preparation import (
     PreparedAnalysisData,
@@ -37,9 +43,13 @@ from ui.analysis_submission_state import (
     claim_analysis_submission_request,
 )
 from ui.result_state import (
+    COMPLETED_RUN_SNAPSHOT_KEY,
+    COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
     EXPORT_STATE_KEY,
     INSPECTOR_CACHE_STATE_KEY,
     get_active_run_database_source,
+    get_completed_run_snapshot,
+    publish_completed_run_snapshot,
     set_active_run_database_source,
 )
 
@@ -119,6 +129,9 @@ class _FakeStreamlit:
         self.statuses.append(status)
         return status
 
+    def spinner(self, *_args, **_kwargs):
+        return _Context()
+
     def empty(self):
         placeholder = _Placeholder()
         self.placeholders.append(placeholder)
@@ -138,6 +151,12 @@ class _FakeStreamlit:
 
 
 class _ProfileTimer:
+    def span(self, *_args, **_kwargs):
+        return _Context()
+
+    def add_memory(self, *_args, **_kwargs):
+        return None
+
     def log_report(self, **_kwargs):
         return None
 
@@ -235,7 +254,20 @@ def _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare):
     monkeypatch.setattr(
         run_controller,
         "_staged_artifact_paths",
-        lambda plans, **_kwargs: {plan["id"]: None for plan in plans},
+        lambda plans, **_kwargs: {
+            plan["id"]: run_controller._StagedAnalysisArtifactPaths(
+                evidence_path=Path(f"{plan['id']}_evidence.parquet"),
+                map_data_paths=run_controller.MapDataArtifactPaths(
+                    station_rows_path=Path(
+                        f"{plan['id']}_map_stations.parquet"
+                    ),
+                    segment_rows_path=Path(
+                        f"{plan['id']}_map_segments.parquet"
+                    ),
+                ),
+            )
+            for plan in plans
+        },
     )
 
 
@@ -318,6 +350,174 @@ def _render_admission_presentation(fake_st, run_status_slot, *, translations=Non
         start_t=SimpleNamespace(isoformat=lambda: "start"),
         end_t=SimpleNamespace(isoformat=lambda: "end"),
         generate_map_plot=lambda *_args, **_kwargs: None,
+    )
+
+
+def _publish_valid_completed_snapshot(
+    fake_st,
+    analysis,
+    *,
+    path_root=None,
+    request_fingerprint="request-key",
+    analysis_plan_fingerprint="analysis-plan-key",
+    selected_decode_filter_mode=DECODE_FILTER_STRICT,
+):
+    """Publish one registered renderable snapshot for controller tests."""
+    cache_root = Path(path_root) if path_root is not None else Path.cwd()
+    fake_st.completed_cache_root = cache_root
+    artifact_root = (
+        cache_root
+        / "session-artifacts"
+        / "owner-token"
+        / f"run_{fake_st.session_state.run_id}_attempt"
+    )
+    evidence_path = (artifact_root / f"spots_{analysis['id']}.parquet").resolve()
+    station_rows_path = (
+        artifact_root / f"map_stations_{analysis['id']}.parquet"
+    ).resolve()
+    segment_rows_path = (
+        artifact_root / f"map_segments_{analysis['id']}.parquet"
+    ).resolve()
+    artifact_root.mkdir(parents=True, exist_ok=True)
+    for artifact_path in (
+        evidence_path,
+        station_rows_path,
+        segment_rows_path,
+    ):
+        artifact_path.write_bytes(b"registered test artifact")
+    fake_st.session_state[SESSION_ARTIFACT_OWNER_KEY] = "owner-token"
+    fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY] = [
+        str(evidence_path),
+        str(station_rows_path),
+        str(segment_rows_path),
+    ]
+    set_active_run_database_source(
+        fake_st.session_state,
+        run_id=fake_st.session_state.run_id,
+        source_key="wd2",
+    )
+    query_fetches = [{
+        "decode_filter_mode": DECODE_FILTER_STRICT,
+        "elapsed_seconds": 0.12,
+        "delivery_source": FetchSource.DISK_CACHE.value,
+    }]
+    if selected_decode_filter_mode == DECODE_FILTER_LEGACY:
+        query_fetches.append({
+            "decode_filter_mode": DECODE_FILTER_LEGACY,
+            "elapsed_seconds": 0.34,
+            "delivery_source": FetchSource.MEMORY_CACHE.value,
+        })
+    snapshot = {
+        "schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
+        "map_data_schema_version": (
+            run_controller.MAP_DATA_ARTIFACT_SCHEMA_VERSION
+        ),
+        "run_id": fake_st.session_state.run_id,
+        "request_fingerprint": request_fingerprint,
+        "analysis_plan_fingerprint": analysis_plan_fingerprint,
+        "database_source": "wd2",
+        "analyses": ({
+            "analysis": run_controller._analysis_snapshot_contract(analysis),
+            "outcome": run_controller._SNAPSHOT_OUTCOME_RENDERABLE,
+            "evidence_path": str(evidence_path),
+            "station_rows_path": str(station_rows_path),
+            "segment_rows_path": str(segment_rows_path),
+            "selected_decode_filter_mode": selected_decode_filter_mode,
+            "query_fetches": tuple(query_fetches),
+        },),
+    }
+    publish_completed_run_snapshot(fake_st.session_state, snapshot)
+    return get_completed_run_snapshot(fake_st.session_state)
+
+
+def _patch_completed_rerender_environment(
+    monkeypatch,
+    fake_st,
+    gate,
+    analysis,
+):
+    """Install a deterministic shell for implicit completed-result rerenders."""
+    analysis_context = SimpleNamespace(
+        to_dict=lambda: {"scientific": "current"},
+        max_peer_distance_km=22000,
+    )
+    presentation_context = SimpleNamespace(language="de", theme="dark")
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(
+        run_controller,
+        "CACHE_DIR",
+        fake_st.completed_cache_root,
+    )
+    monkeypatch.setattr(run_controller, "ANALYSIS_ADMISSION_GATE", gate)
+    monkeypatch.setattr(run_controller, "is_valid_callsign", lambda _value: True)
+    monkeypatch.setattr(run_controller, "is_valid_locator", lambda _value: True)
+    monkeypatch.setattr(
+        run_controller,
+        "locator_to_latlon",
+        lambda _value: (47.0, 8.0),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_context_from_session_state",
+        lambda _state: analysis_context,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "build_presentation_context_from_session_state",
+        lambda *_args, **_kwargs: presentation_context,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_batches",
+        lambda *_args, **_kwargs: [dict(analysis)],
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_refresh_session_artifacts_before_cleanup",
+        lambda: {},
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "session_artifact_owner",
+        lambda _state: "owner-token",
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_analysis_request_fingerprint",
+        lambda **_kwargs: "request-key",
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_analysis_plan_fingerprint",
+        lambda _analyses: "analysis-plan-key",
+    )
+    monkeypatch.setattr(run_controller, "process_rss_bytes", lambda: 0)
+    monkeypatch.setattr(run_controller, "process_peak_rss_bytes", lambda: 0)
+    monkeypatch.setattr(
+        run_controller,
+        "log_performance_event",
+        lambda *_args, **_kwargs: None,
+    )
+    return analysis_context, presentation_context
+
+
+def _render_completed_rerender(fake_st, run_status_slot, render_map_figure):
+    """Invoke the public implicit-rerender path with fixed valid inputs."""
+    return run_controller.render_analysis_run(
+        t={
+            "warn_analysis_cache_expired": "Completed result expired.",
+        },
+        run_status_slot=run_status_slot,
+        callsign="G3ZIL",
+        qth_locator="IO90",
+        band_filter=7,
+        start_t=SimpleNamespace(isoformat=lambda: "start"),
+        end_t=SimpleNamespace(isoformat=lambda: "end"),
+        generate_map_plot=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Completed rerender must not rebuild map data")
+        ),
+        render_map_figure=render_map_figure,
+        is_existing_run_rerender=True,
     )
 
 
@@ -416,6 +616,521 @@ def test_waiting_status_shows_only_the_sessions_own_queue_position(monkeypatch):
         "All analysis capacity is in use; queued at position 8."
     ]
     assert fake_st.placeholders == []
+
+
+def test_valid_completed_rerender_is_admitted_without_provider_capacity(
+    monkeypatch,
+    tmp_path,
+):
+    """Rebuild presentation from a completed snapshot without query work."""
+    fake_st = _FakeStreamlit()
+    analysis = _analysis("RX_COMP", "Current translated title")
+    _publish_valid_completed_snapshot(
+        fake_st,
+        analysis,
+        path_root=tmp_path,
+    )
+    acquire_calls = []
+    permit = _Context()
+
+    def acquire(**kwargs):
+        acquire_calls.append(kwargs)
+        return permit
+
+    gate = SimpleNamespace(acquire=acquire, counts=lambda: (0, 0))
+    analysis_context, presentation_context = (
+        _patch_completed_rerender_environment(
+            monkeypatch,
+            fake_st,
+            gate,
+            analysis,
+        )
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_try_reserve_upstream_capacity",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Completed rerender must not reserve provider capacity")
+        ),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "prepare_provider_bundle",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Completed rerender must not prepare query data")
+        ),
+    )
+    completed_calls = []
+
+    def render_completed(**kwargs):
+        completed_calls.append(kwargs)
+        return "completed"
+
+    monkeypatch.setattr(
+        run_controller,
+        "_render_completed_analysis_run",
+        render_completed,
+    )
+    render_map_figure = lambda *_args, **_kwargs: None
+
+    outcome = _render_completed_rerender(
+        fake_st,
+        _RunStatusSlot(),
+        render_map_figure,
+    )
+
+    assert outcome is None
+    assert len(acquire_calls) == 1
+    assert acquire_calls[0]["reserve_capacity"] is None
+    assert completed_calls[0]["analysis_context"] is analysis_context
+    assert completed_calls[0]["presentation_context"] is presentation_context
+    assert completed_calls[0]["render_map_figure"] is render_map_figure
+    assert fake_st.session_state.run_mode == "RX"
+    assert get_completed_run_snapshot(fake_st.session_state) is not None
+
+
+def test_invalid_completed_rerender_requires_explicit_run_without_admission(
+    monkeypatch,
+    tmp_path,
+):
+    """Invalidate stale identity and stop before either admission or database work."""
+    fake_st = _FakeStreamlit()
+    analysis = _analysis("RX_COMP", "Current translated title")
+    _publish_valid_completed_snapshot(
+        fake_st,
+        analysis,
+        path_root=tmp_path,
+        request_fingerprint="stale-request-key",
+    )
+    gate = SimpleNamespace(
+        acquire=lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Invalid completed result must fail before admission")
+        ),
+        counts=lambda: (0, 0),
+    )
+    _patch_completed_rerender_environment(
+        monkeypatch,
+        fake_st,
+        gate,
+        analysis,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "prepare_provider_bundle",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Invalid completed result must not query a database")
+        ),
+    )
+
+    outcome = _render_completed_rerender(
+        fake_st,
+        _RunStatusSlot(),
+        lambda *_args, **_kwargs: None,
+    )
+
+    assert outcome == run_controller.COMPLETED_RUN_RERENDER_UNAVAILABLE
+    assert fake_st.warnings == ["Completed result expired."]
+    assert fake_st.session_state.run_mode is None
+    assert get_completed_run_snapshot(fake_st.session_state) is None
+    assert get_active_run_database_source(fake_st.session_state) is None
+
+
+@pytest.mark.parametrize(
+    "invalid_contract",
+    [
+        "snapshot_schema",
+        "map_schema",
+        "run_id",
+        "request_fingerprint",
+        "analysis_plan",
+        "database_source",
+        "analysis_contract",
+        "artifact_registration",
+        "artifact_scope",
+    ],
+)
+def test_completed_snapshot_validation_rejects_every_identity_boundary(
+    monkeypatch,
+    tmp_path,
+    invalid_contract,
+):
+    """Require all version, identity, provenance, and ownership checks together."""
+    fake_st = _FakeStreamlit()
+    analysis = _analysis("RX_COMP", "Current title")
+    _publish_valid_completed_snapshot(
+        fake_st,
+        analysis,
+        path_root=tmp_path,
+    )
+    snapshot = fake_st.session_state[COMPLETED_RUN_SNAPSHOT_KEY]
+    request_fingerprint = "request-key"
+    analysis_plan_fingerprint = "analysis-plan-key"
+    committed_source = "wd2"
+    if invalid_contract == "snapshot_schema":
+        snapshot["schema_version"] = 999
+    elif invalid_contract == "map_schema":
+        snapshot["map_data_schema_version"] = 999
+    elif invalid_contract == "run_id":
+        snapshot["run_id"] = 999
+    elif invalid_contract == "request_fingerprint":
+        request_fingerprint = "different-request"
+    elif invalid_contract == "analysis_plan":
+        analysis_plan_fingerprint = "different-plan"
+    elif invalid_contract == "database_source":
+        snapshot["database_source"] = "unsupported-source"
+        committed_source = "unsupported-source"
+        fake_st.session_state["active_run_database_source"]["source_key"] = (
+            "unsupported-source"
+        )
+    elif invalid_contract == "analysis_contract":
+        snapshot["analyses"][0]["analysis"]["analysis_kind"] = "opportunity"
+    elif invalid_contract == "artifact_registration":
+        fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY].pop()
+    elif invalid_contract == "artifact_scope":
+        outside_path = (tmp_path / "outside" / "spots_RX_COMP.parquet").resolve()
+        snapshot["analyses"][0]["evidence_path"] = str(outside_path)
+        fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY][0] = str(outside_path)
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(run_controller, "CACHE_DIR", tmp_path)
+
+    assert run_controller._validate_completed_run_snapshot(
+        analyses=[analysis],
+        request_fingerprint=request_fingerprint,
+        analysis_plan_fingerprint=analysis_plan_fingerprint,
+        committed_source=committed_source,
+        session_owner="owner",
+    ) is None
+
+
+def test_completed_snapshot_rejects_artifact_triples_swapped_between_analyses(
+    monkeypatch,
+    tmp_path,
+):
+    """Bind every registered artifact filename to its owning analysis ID."""
+    fake_st = _FakeStreamlit()
+    first_analysis = _analysis("RX_COMP", "Compare")
+    second_analysis = _analysis("RX_ABS", "Performance")
+    second_analysis.update({
+        "analysis_kind": "opportunity",
+        "is_compare": False,
+    })
+
+    first_snapshot = _publish_valid_completed_snapshot(
+        fake_st,
+        first_analysis,
+        path_root=tmp_path,
+    )
+    first_registered_paths = list(
+        fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY]
+    )
+    second_snapshot = _publish_valid_completed_snapshot(
+        fake_st,
+        second_analysis,
+        path_root=tmp_path,
+    )
+    second_registered_paths = list(
+        fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY]
+    )
+    first_entry = dict(first_snapshot["analyses"][0])
+    second_entry = dict(second_snapshot["analyses"][0])
+    artifact_path_keys = (
+        "evidence_path",
+        "station_rows_path",
+        "segment_rows_path",
+    )
+    swapped_first_entry = {
+        **first_entry,
+        **{path_key: second_entry[path_key] for path_key in artifact_path_keys},
+    }
+    swapped_second_entry = {
+        **second_entry,
+        **{path_key: first_entry[path_key] for path_key in artifact_path_keys},
+    }
+    fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY] = (
+        first_registered_paths + second_registered_paths
+    )
+    publish_completed_run_snapshot(
+        fake_st.session_state,
+        {
+            **first_snapshot,
+            "analyses": (swapped_first_entry, swapped_second_entry),
+        },
+    )
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(run_controller, "CACHE_DIR", tmp_path)
+
+    assert run_controller._validate_completed_run_snapshot(
+        analyses=[first_analysis, second_analysis],
+        request_fingerprint="request-key",
+        analysis_plan_fingerprint="analysis-plan-key",
+        committed_source="wd2",
+        session_owner="owner",
+    ) is None
+
+
+@pytest.mark.parametrize(
+    "queue_error",
+    [
+        AnalysisQueueFull("simulated full queue"),
+        AnalysisQueueTimeout("simulated queue timeout"),
+    ],
+)
+def test_completed_rerender_queue_pressure_preserves_snapshot_and_run_mode(
+    monkeypatch,
+    tmp_path,
+    queue_error,
+):
+    """Allow an implicit render retry after temporary analysis-slot pressure."""
+    fake_st = _FakeStreamlit()
+    analysis = _analysis("RX_COMP", "Current translated title")
+    expected_snapshot = _publish_valid_completed_snapshot(
+        fake_st,
+        analysis,
+        path_root=tmp_path,
+    )
+    acquire_calls = []
+
+    def reject(**kwargs):
+        acquire_calls.append(kwargs)
+        raise queue_error
+
+    gate = SimpleNamespace(acquire=reject, counts=lambda: (0, 10))
+    _patch_completed_rerender_environment(
+        monkeypatch,
+        fake_st,
+        gate,
+        analysis,
+    )
+    run_status_slot = _RunStatusSlot()
+
+    outcome = _render_completed_rerender(
+        fake_st,
+        run_status_slot,
+        lambda *_args, **_kwargs: None,
+    )
+
+    assert outcome is None
+    assert acquire_calls[0]["reserve_capacity"] is None
+    assert fake_st.session_state.run_mode == "RX"
+    assert get_completed_run_snapshot(fake_st.session_state) == expected_snapshot
+    assert run_status_slot.notices[0][0] == "warning"
+
+
+def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
+    monkeypatch,
+    tmp_path,
+):
+    """Preserve scientific/export provenance while rebuilding localized figures."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.val_min_stations = 3
+    fake_st.session_state[EXPORT_STATE_KEY] = {"old": "recipe"}
+    inspector_cache = object()
+    fake_st.session_state[INSPECTOR_CACHE_STATE_KEY] = inspector_cache
+    current_analysis = _analysis("RX_COMP", "Aktueller Kartentitel")
+    completed_snapshot = _publish_valid_completed_snapshot(
+        fake_st,
+        current_analysis,
+        path_root=tmp_path,
+        selected_decode_filter_mode=DECODE_FILTER_LEGACY,
+    )
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(
+        run_controller,
+        "PerformanceTimer",
+        lambda: _ProfileTimer(),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "matplotlib_profile_collector",
+        lambda *_args, **_kwargs: _Context(),
+    )
+    map_data = MapData(
+        station_rows=pd.DataFrame({
+            "SegmentID": ["[0-2500km] N"],
+            "dist_label": ["[0-2500km]"],
+            "dir_name": ["N"],
+            "r_min": [0.0],
+            "r_max": [2500.0],
+            "az_bucket": [0.0],
+            "peer_sign": ["K1ABC"],
+            "peer_grid": ["FN31"],
+            "peer_lat": [41.5],
+            "peer_lon": [-72.5],
+            "calc_dist": [6000.0],
+            "calc_azimuth": [300.0],
+            "spot_count": [4],
+            "stat_val": [1.5],
+            "count_only_u": [0],
+            "count_only_r": [0],
+        }),
+        segment_rows=pd.DataFrame({
+            "SegmentID": ["[0-2500km] N"],
+            "dist_label": ["[0-2500km]"],
+            "dir_name": ["N"],
+            "r_min": [0.0],
+            "r_max": [2500.0],
+            "az_bucket": [0.0],
+            "val": [1.5],
+            "cnt": [1],
+        }),
+        analysis_id="RX_COMP",
+        is_compare=True,
+        is_sequential=False,
+        analysis_kind="comparison",
+    )
+    run_controller.write_map_data_artifacts(
+        map_data,
+        run_controller.MapDataArtifactPaths(
+            station_rows_path=Path(
+                completed_snapshot["analyses"][0]["station_rows_path"]
+            ),
+            segment_rows_path=Path(
+                completed_snapshot["analyses"][0]["segment_rows_path"]
+            ),
+        ),
+    )
+    render_calls = []
+
+    def render_map(restored_map_data, **kwargs):
+        render_calls.append((restored_map_data, kwargs))
+        return SimpleNamespace(figure=object(), map_data=restored_map_data)
+
+    block_calls = []
+
+    def render_block(**kwargs):
+        block_calls.append(kwargs)
+        return {"deferred": True}
+
+    monkeypatch.setattr(
+        run_controller,
+        "_render_map_result_block",
+        render_block,
+    )
+    deferred_calls = []
+    monkeypatch.setattr(
+        run_controller,
+        "_render_deferred_inspectors",
+        lambda entries, **kwargs: deferred_calls.append((entries, kwargs)),
+    )
+    presentation_context = SimpleNamespace(language="de", theme="dark")
+    analysis_context = SimpleNamespace(max_peer_distance_km=22000)
+    permit = SimpleNamespace(touch=lambda: True)
+
+    outcome = run_controller._render_completed_analysis_run(
+        t={"msg_loading": "Laden", "warn_no_data": "Keine Daten: {title}"},
+        run_status_slot=_RunStatusSlot(),
+        start_t="start",
+        end_t="end",
+        render_map_figure=render_map,
+        admission_permit=permit,
+        analyses=[current_analysis],
+        analysis_context=analysis_context,
+        presentation_context=presentation_context,
+        center_latitude=47.0,
+        center_longitude=8.0,
+        completed_run_snapshot=completed_snapshot,
+    )
+
+    assert outcome == "completed"
+    pd.testing.assert_frame_equal(
+        render_calls[0][0].station_rows,
+        map_data.station_rows,
+    )
+    assert render_calls[0][0].analysis_id == "RX_COMP"
+    assert render_calls[0][1]["title"] == "Aktueller Kartentitel"
+    assert render_calls[0][1]["presentation_context"] is presentation_context
+    assert block_calls[0]["analysis"]["decode_filter_mode"] == DECODE_FILTER_LEGACY
+    assert block_calls[0]["analysis"]["title"] == "Aktueller Kartentitel"
+    assert block_calls[0]["presentation_context"] is presentation_context
+    assert block_calls[0]["parquet_path"] == Path(
+        completed_snapshot["analyses"][0]["evidence_path"]
+    )
+    assert block_calls[0]["map_data_paths"] == run_controller.MapDataArtifactPaths(
+        station_rows_path=Path(
+            completed_snapshot["analyses"][0]["station_rows_path"]
+        ),
+        segment_rows_path=Path(
+            completed_snapshot["analyses"][0]["segment_rows_path"]
+        ),
+    )
+    assert deferred_calls[0][0] == [{"deferred": True}]
+    assert fake_st.session_state[EXPORT_STATE_KEY] == {}
+    assert (
+        fake_st.session_state[INSPECTOR_CACHE_STATE_KEY]
+        is inspector_cache
+    )
+    assert get_completed_run_snapshot(fake_st.session_state) == completed_snapshot
+    audit_text = fake_st.placeholders[0].markdowns[-1]
+    assert "strict: **disk cache**" in audit_text
+    assert "legacy: **RAM cache**" in audit_text
+
+
+def test_completed_render_failure_retires_snapshot_without_database_fallback(
+    monkeypatch,
+    tmp_path,
+):
+    """Convert corrupt aggregate rendering into an explicit-run warning."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.val_min_stations = 3
+    analysis = _analysis("RX_COMP", "Current title")
+    completed_snapshot = _publish_valid_completed_snapshot(
+        fake_st,
+        analysis,
+        path_root=tmp_path,
+    )
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(
+        run_controller,
+        "PerformanceTimer",
+        lambda: _ProfileTimer(),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "matplotlib_profile_collector",
+        lambda *_args, **_kwargs: _Context(),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "read_map_data_artifacts",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            station_rows=pd.DataFrame({"corrupt": [object()]})
+        ),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "prepare_provider_bundle",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("A restoration failure must not query a provider")
+        ),
+    )
+
+    outcome = run_controller._render_completed_analysis_run(
+        t={
+            "msg_loading": "Loading",
+            "warn_no_data": "No data: {title}",
+            "warn_analysis_cache_expired": "Completed result expired.",
+        },
+        run_status_slot=_RunStatusSlot(),
+        start_t="start",
+        end_t="end",
+        render_map_figure=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            TypeError("corrupt aggregate dtype")
+        ),
+        admission_permit=SimpleNamespace(touch=lambda: True),
+        analyses=[analysis],
+        analysis_context=SimpleNamespace(max_peer_distance_km=22000),
+        presentation_context=SimpleNamespace(language="en"),
+        center_latitude=47.0,
+        center_longitude=8.0,
+        completed_run_snapshot=completed_snapshot,
+    )
+
+    assert outcome == run_controller.COMPLETED_RUN_RERENDER_UNAVAILABLE
+    assert fake_st.warnings == ["Completed result expired."]
+    assert fake_st.session_state.run_mode is None
+    assert get_completed_run_snapshot(fake_st.session_state) is None
+    assert get_active_run_database_source(fake_st.session_state) is None
+    assert SESSION_ARTIFACT_PATHS_KEY not in fake_st.session_state
 
 
 def test_queue_full_warning_uses_replaceable_run_status_slot(monkeypatch):
@@ -707,6 +1422,40 @@ def test_structured_early_failure_marks_complete_run_telemetry_failed(monkeypatc
     assert run_event["outcome"] == "failed"
 
 
+def test_unexpected_first_render_failure_clears_partial_result_state(
+    monkeypatch,
+    tmp_path,
+):
+    """Leave no source, snapshot, or registered artifacts after an exception."""
+    fake_st = _FakeStreamlit()
+    analysis = _analysis("RX_COMP", "Prior result")
+    _publish_valid_completed_snapshot(
+        fake_st,
+        analysis,
+        path_root=tmp_path,
+    )
+    gate = SimpleNamespace(
+        acquire=lambda **_kwargs: _Context(),
+        counts=lambda: (0, 0),
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+    monkeypatch.setattr(
+        run_controller,
+        "_render_admitted_analysis_run",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError("simulated first-render failure")
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="first-render failure"):
+        _render_admission_presentation(fake_st, _RunStatusSlot())
+
+    assert fake_st.session_state.run_mode is None
+    assert get_completed_run_snapshot(fake_st.session_state) is None
+    assert get_active_run_database_source(fake_st.session_state) is None
+    assert SESSION_ARTIFACT_PATHS_KEY not in fake_st.session_state
+
+
 def test_each_capacity_attempt_reinspects_source_specific_caches(monkeypatch):
     """Do not retain request estimates across a potentially long queue wait."""
     estimates = [
@@ -835,8 +1584,204 @@ def _render_fake_run(
             or {"wspr_live": 1, "wd2": 1, "wd1": 1}
         ),
         committed_source=committed_source,
+        request_fingerprint="request-key",
+        analysis_plan_fingerprint="analysis-plan-key",
     )
     return fake_st
+
+
+def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
+    monkeypatch,
+    tmp_path,
+):
+    """Commit a reusable result only after both map tables and consumers succeed."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.val_min_stations = 1
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    permit = _AnalysisPermit(controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 1, "wd1": 1}
+    ))
+    analysis = _analysis("RX_ABS", "Performance")
+    evidence_path = tmp_path / "evidence.parquet"
+    evidence_path.write_bytes(b"prepared evidence")
+    map_paths = run_controller.MapDataArtifactPaths(
+        station_rows_path=tmp_path / "map_stations.parquet",
+        segment_rows_path=tmp_path / "map_segments.parquet",
+    )
+    station_rows = pd.DataFrame({
+        "SegmentID": ["[0-2500km] N"],
+        "dist_label": ["[0-2500km]"],
+        "dir_name": ["N"],
+        "r_min": [0.0],
+        "r_max": [2500.0],
+        "az_bucket": [0.0],
+        "peer_sign": ["K1ABC"],
+        "peer_grid": ["FN31"],
+        "peer_lat": [41.5],
+        "peer_lon": [-72.5],
+        "calc_dist": [6000.0],
+        "calc_azimuth": [300.0],
+        "spot_count": [4],
+        "stat_val": [75.0],
+        "opportunities": [4],
+        "hits": [3],
+        "misses": [1],
+        "target_only": [2],
+        "target_observations": [5],
+        "successful_snr_median": [-12.5],
+        "eligible": [True],
+        "rate_pct": [75.0],
+    })
+    segment_rows = pd.DataFrame({
+        "SegmentID": ["[0-2500km] N"],
+        "dist_label": ["[0-2500km]"],
+        "dir_name": ["N"],
+        "r_min": [0.0],
+        "r_max": [2500.0],
+        "az_bucket": [0.0],
+        "val": [75.0],
+        "cnt": [1],
+    })
+    map_data = MapData(
+        station_rows=station_rows,
+        segment_rows=segment_rows,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        is_sequential=False,
+        analysis_kind="opportunity",
+    )
+    prepared_bundle = PreparedProviderBundle(
+        database_source=DatabaseSource.WSPR_LIVE,
+        analyses=[PreparedAnalysisData(
+            analysis=dict(analysis),
+            artifact_path=evidence_path,
+            warning_message=None,
+            query_fetches=(PreparedQueryFetch(
+                decode_filter_mode=DECODE_FILTER_STRICT,
+                elapsed_seconds=0.1,
+                delivery_source=FetchSource.WSPR_LIVE,
+            ),),
+            profile_timer=_ProfileTimer(),
+        )],
+    )
+    _patch_run_environment(
+        monkeypatch,
+        fake_st,
+        controller,
+        lambda *_args, **_kwargs: prepared_bundle,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_staged_artifact_paths",
+        lambda _plans, **_kwargs: {
+            "RX_ABS": run_controller._StagedAnalysisArtifactPaths(
+                evidence_path=evidence_path,
+                map_data_paths=map_paths,
+            )
+        },
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "read_parquet_artifact",
+        lambda _path: pd.DataFrame({"prepared": [1]}),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "matplotlib_profile_collector",
+        lambda *_args, **_kwargs: _Context(),
+    )
+    lifecycle_events = []
+    rendered_map_blocks = []
+
+    def generate_map(*_args, **_kwargs):
+        lifecycle_events.append("map generated")
+        return MapFigure(
+            figure=object(),
+            map_data=map_data,
+            footer_text="footer",
+        )
+
+    def render_map_block(**kwargs):
+        rendered_map_blocks.append(kwargs)
+        lifecycle_events.append("map UI rendered")
+        return {"deferred": True}
+
+    monkeypatch.setattr(
+        run_controller,
+        "_render_map_result_block",
+        render_map_block,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_render_deferred_inspectors",
+        lambda *_args, **_kwargs: lifecycle_events.append(
+            "inspectors rendered"
+        ),
+    )
+    real_publish_snapshot = run_controller.publish_completed_run_snapshot
+
+    def publish_snapshot(session_state, snapshot):
+        lifecycle_events.append("snapshot published")
+        real_publish_snapshot(session_state, snapshot)
+
+    monkeypatch.setattr(
+        run_controller,
+        "publish_completed_run_snapshot",
+        publish_snapshot,
+    )
+
+    outcome = run_controller._render_admitted_analysis_run(
+        t={**T["en"], "warn_no_data": "No data: {title}"},
+        run_status_slot=_RunStatusSlot(),
+        start_t="start",
+        end_t="end",
+        generate_map_plot=generate_map,
+        admission_permit=permit,
+        analyses=[analysis],
+        analysis_context=SimpleNamespace(
+            max_peer_distance_km=22000,
+            exclude_special_callsigns=False,
+        ),
+        presentation_context=SimpleNamespace(),
+        center_latitude=47.0,
+        center_longitude=8.0,
+        active_demo=None,
+        active_demo_key=None,
+        is_demo_run=False,
+        request_counts_by_provider={"wspr_live": 1, "wd2": 1, "wd1": 1},
+        committed_source=None,
+        request_fingerprint="request-key",
+        analysis_plan_fingerprint="analysis-plan-key",
+    )
+
+    assert outcome == "completed"
+    assert lifecycle_events == [
+        "map generated",
+        "map UI rendered",
+        "inspectors rendered",
+        "snapshot published",
+    ]
+    assert rendered_map_blocks[0]["map_data_paths"] == map_paths
+    assert map_paths.station_rows_path.is_file()
+    assert map_paths.segment_rows_path.is_file()
+    registered_paths = set(fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY])
+    assert registered_paths == {
+        str(evidence_path.resolve()),
+        str(map_paths.station_rows_path.resolve()),
+        str(map_paths.segment_rows_path.resolve()),
+    }
+    snapshot = get_completed_run_snapshot(fake_st.session_state)
+    assert snapshot["database_source"] == "wspr_live"
+    assert snapshot["analyses"][0]["outcome"] == (
+        run_controller._SNAPSHOT_OUTCOME_RENDERABLE
+    )
+    assert snapshot["analyses"][0]["station_rows_path"] == str(
+        map_paths.station_rows_path.resolve()
+    )
 
 
 def test_provider_failure_restarts_active_compare_analysis_on_wd2(monkeypatch):

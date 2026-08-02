@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 import threading
 import time
-from typing import Callable, Iterator, MutableMapping
+from typing import Callable, Iterator, Mapping, MutableMapping
 import uuid
 
 
@@ -26,6 +26,11 @@ class ArtifactNamespace(str, Enum):
 SESSION_ARTIFACT_OWNER_KEY = "_artifact_session_id"
 SESSION_ARTIFACT_PATHS_KEY = "_session_artifact_paths"
 SESSION_ARTIFACT_LEASE_FILENAME = ".active-lease"
+SESSION_ARTIFACT_KINDS = frozenset({
+    "spots",
+    "map_stations",
+    "map_segments",
+})
 _ATOMIC_TEMPORARY_NAME_PATTERN = re.compile(
     r"^\.(?P<destination_name>.+)\.(?P<token>[0-9a-f]{32})\.tmp$"
 )
@@ -488,24 +493,131 @@ def session_artifact_owner(session_state: MutableMapping) -> str:
     return owner
 
 
+def session_artifact_filename(
+    *,
+    analysis_id,
+    artifact_kind: str = "spots",
+) -> str:
+    """Return the exact validated filename for one session analysis artifact."""
+    normalized_artifact_kind = str(artifact_kind).strip()
+    if normalized_artifact_kind not in SESSION_ARTIFACT_KINDS:
+        raise ValueError(
+            "Session artifact kind must be one of: "
+            + ", ".join(sorted(SESSION_ARTIFACT_KINDS))
+        )
+    analysis_token = _safe_path_token(analysis_id, "analysis")
+    return f"{normalized_artifact_kind}_{analysis_token}.parquet"
+
+
 def session_artifact_path(
     cache_root,
     session_state: MutableMapping,
     *,
     run_id,
     analysis_id,
+    artifact_kind: str = "spots",
 ) -> Path:
-    """Return the deterministic Parquet path for one session analysis result."""
+    """Return a validated Parquet path for one session analysis artifact."""
     owner = session_artifact_owner(session_state)
     run_token = _safe_path_token(run_id, "run")
-    analysis_token = _safe_path_token(analysis_id, "analysis")
     return ARTIFACT_STORE.namespace_path(
         cache_root,
         ArtifactNamespace.SESSION_ARTIFACT,
         owner,
         f"run_{run_token}",
-        f"spots_{analysis_token}.parquet",
+        session_artifact_filename(
+            analysis_id=analysis_id,
+            artifact_kind=artifact_kind,
+        ),
     )
+
+
+def validate_registered_session_artifacts(
+    cache_root,
+    session_state: MutableMapping,
+    *,
+    analysis_id,
+    artifact_paths_by_kind: Mapping[str, object],
+    expected_session_owner: str | None = None,
+    require_common_parent: bool = True,
+) -> dict[str, Path]:
+    """Validate exact current-session artifacts for one analysis.
+
+    Every requested path must remain registered to the current session, exist
+    below that session's artifact namespace, use the exact analysis/kind
+    filename contract, and be distinct from the other requested artifacts.
+    When ``require_common_parent`` is true, all paths must also belong to the
+    same immutable run directory.
+    """
+    if not isinstance(artifact_paths_by_kind, Mapping) or not artifact_paths_by_kind:
+        raise ValueError("At least one session artifact path is required")
+
+    session_owner = session_artifact_owner(session_state)
+    if (
+        expected_session_owner is not None
+        and str(expected_session_owner) != session_owner
+    ):
+        raise ValueError("Session artifact owner no longer matches the current session")
+
+    session_artifact_root = ARTIFACT_STORE.namespace_path(
+        cache_root,
+        ArtifactNamespace.SESSION_ARTIFACT,
+        session_owner,
+    ).resolve()
+    registered_paths = set()
+    for raw_path in session_state.get(SESSION_ARTIFACT_PATHS_KEY, []):
+        if not isinstance(raw_path, (str, Path)):
+            continue
+        try:
+            registered_path = Path(raw_path).resolve()
+        except (OSError, RuntimeError, ValueError):
+            continue
+        if registered_path.is_relative_to(session_artifact_root):
+            registered_paths.add(registered_path)
+
+    validated_paths = {}
+    for artifact_kind, raw_path in artifact_paths_by_kind.items():
+        expected_filename = session_artifact_filename(
+            analysis_id=analysis_id,
+            artifact_kind=artifact_kind,
+        )
+        if not isinstance(raw_path, (str, Path)) or not str(raw_path).strip():
+            raise ValueError(
+                f"Session artifact path is missing for {artifact_kind}"
+            )
+        try:
+            artifact_path = Path(raw_path).resolve()
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise ValueError(
+                f"Session artifact path is invalid for {artifact_kind}"
+            ) from exc
+        if not artifact_path.is_relative_to(session_artifact_root):
+            raise ValueError(
+                f"Session artifact is outside the current session namespace: {artifact_kind}"
+            )
+        if artifact_path not in registered_paths:
+            raise ValueError(
+                f"Session artifact is not registered to the current session: {artifact_kind}"
+            )
+        if artifact_path.name != expected_filename:
+            raise ValueError(
+                f"Session artifact filename does not match {artifact_kind} for this analysis"
+            )
+        if not artifact_path.is_file():
+            raise FileNotFoundError(
+                f"Required session artifact is no longer available: {artifact_kind}"
+            )
+        validated_paths[str(artifact_kind)] = artifact_path
+
+    canonical_paths = tuple(validated_paths.values())
+    if len(set(canonical_paths)) != len(canonical_paths):
+        raise ValueError("Session artifact paths must be distinct")
+    if (
+        require_common_parent
+        and len({artifact_path.parent for artifact_path in canonical_paths}) != 1
+    ):
+        raise ValueError("Session artifacts must belong to the same analysis run")
+    return validated_paths
 
 
 def register_session_artifact(session_state: MutableMapping, path) -> None:

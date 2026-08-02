@@ -691,6 +691,8 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
     only afterward, so distant peer rows can establish those global exclusions
     but cannot enter thresholds, aggregation, staged artifacts, or exports.
     Scheduled TX A/B pair assignment likewise precedes geographic filtering.
+    The preparation layer transfers ownership of ``df``; this function may
+    therefore normalize or reset the retained frame in place.
     """
     if analysis.get("analysis_kind") == "opportunity":
         with _timed_span(timing_collector, "opportunity prepare rows"):
@@ -737,7 +739,8 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
         if df.empty:
             return df, t["warn_no_data"].format(title=analysis["title"])
         with _timed_span(timing_collector, "opportunity filtered reset"):
-            return df.reset_index(drop=True), None
+            df.index = pd.RangeIndex(len(df))
+            return df, None
 
     if analysis.get("is_compare") and analysis.get("is_sequential"):
         with _timed_span(timing_collector, "TX A/B scheduled pair assignment"):
@@ -828,5 +831,5 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
         return df, t["warn_no_data"].format(title=analysis['title'])
 
     with _timed_span(timing_collector, "comparison SNR rounding"):
-        df = round_snr_like_columns(df)
+        df = round_snr_like_columns(df, owns_input=True)
     return df, None

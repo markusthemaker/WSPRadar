@@ -10,6 +10,7 @@ import io
 import math
 import threading
 import time
+from typing import NamedTuple
 
 import pandas as pd
 import requests
@@ -18,6 +19,9 @@ from config import (
     CACHE_DIR,
     DEMO_QUERY_CACHE_TTL_SEC,
     MAX_ANALYSIS_RESULT_ROWS,
+    QUERY_DATAFRAME_CACHE_MAX_BYTES,
+    QUERY_DATAFRAME_CACHE_MAX_ENTRIES,
+    QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES,
     SESSION_ARTIFACT_TTL_SEC,
     STANDARD_QUERY_CACHE_TTL_SEC,
     WSPR_CSV_MAX_RESPONSE_BYTES,
@@ -47,7 +51,6 @@ from core.snr_utils import round_snr_like_columns
 http_session = requests.Session()
 http_session.headers.update({"Accept-Encoding": "gzip, deflate"})
 
-_DATAFRAME_CACHE_MAX_ENTRIES = 32
 _RESULT_ROW_LIMIT_CACHE_MAX_ENTRIES = 128
 _HTTP_CHUNK_BYTES = 1024 * 1024
 _HTTP_ERROR_BODY_MAX_BYTES = 64 * 1024
@@ -56,9 +59,28 @@ _dataframe_cache_guard = threading.RLock()
 _result_row_limit_cache = OrderedDict()
 _result_row_limit_cache_guard = threading.RLock()
 _CSV_PARSE_ENGINE = "c"
+_STANDARD_CSV_FLOAT_COLUMNS = (
+    "snr",
+    "power",
+    "stat_val",
+    "snr_u_norm",
+    "snr_r_norm",
+    "peer_lat",
+    "peer_lon",
+    "best_ref_dist",
+)
+_STANDARD_CSV_INTEGER_COLUMNS = ("has_u", "has_r", "is_me", "time_slot")
 _ARTIFACT_CLEANUP_MIN_INTERVAL_SECONDS = 60.0
 _artifact_cleanup_guard = threading.Lock()
 _last_artifact_cleanup_monotonic: float | None = None
+
+
+class _DataFrameCacheEntry(NamedTuple):
+    """One isolated raw-query L1 value and its accounted retained bytes."""
+
+    expires_at_epoch: float | None
+    dataframe: pd.DataFrame
+    retained_bytes: int
 
 
 class FetchResponseTooLarge(ValueError):
@@ -107,18 +129,48 @@ def _direct_fetch_source(provider: WsprDatabaseProviderConfig) -> FetchSource:
     }[provider.key]
 
 
+def _dataframe_memory_bytes(frame: pd.DataFrame) -> int:
+    """Estimate logical bytes retained by one DataFrame, including its index."""
+    return int(frame.memory_usage(index=True, deep=True).sum())
+
+
+def _dataframe_cache_total_bytes_unlocked() -> int:
+    """Return accounted L1 bytes while the caller holds the cache guard."""
+    return sum(entry.retained_bytes for entry in _dataframe_cache.values())
+
+
+def _prune_expired_dataframe_cache_entries_unlocked(now: float) -> None:
+    """Remove every expired L1 entry before byte-capacity decisions."""
+    expired_keys = [
+        cache_key
+        for cache_key, entry in _dataframe_cache.items()
+        if entry.expires_at_epoch is not None
+        and entry.expires_at_epoch <= now
+    ]
+    for cache_key in expired_keys:
+        _dataframe_cache.pop(cache_key, None)
+
+
 def _dataframe_cache_get(cache_key):
     now = time.time()
     with _dataframe_cache_guard:
         cached = _dataframe_cache.get(cache_key)
         if cached is None:
             return None
-        expires_at, frame = cached
-        if expires_at is not None and expires_at <= now:
+        if (
+            cached.expires_at_epoch is not None
+            and cached.expires_at_epoch <= now
+        ):
             _dataframe_cache.pop(cache_key, None)
             return None
         _dataframe_cache.move_to_end(cache_key)
-        return frame.copy(deep=True)
+        try:
+            return cached.dataframe.copy(deep=True)
+        except Exception:
+            # L1 is optional. Discard an entry that cannot be isolated so the
+            # caller can continue through the persistent tier or a cache miss.
+            _dataframe_cache.pop(cache_key, None)
+            return None
 
 
 def _dataframe_cache_contains(cache_key):
@@ -128,8 +180,10 @@ def _dataframe_cache_contains(cache_key):
         cached = _dataframe_cache.get(cache_key)
         if cached is None:
             return False
-        expires_at, _frame = cached
-        if expires_at is not None and expires_at <= now:
+        if (
+            cached.expires_at_epoch is not None
+            and cached.expires_at_epoch <= now
+        ):
             _dataframe_cache.pop(cache_key, None)
             return False
         return True
@@ -142,11 +196,13 @@ def _dataframe_cache_peek(cache_key):
         cached = _dataframe_cache.get(cache_key)
         if cached is None:
             return None
-        expires_at, frame = cached
-        if expires_at is not None and expires_at <= now:
+        if (
+            cached.expires_at_epoch is not None
+            and cached.expires_at_epoch <= now
+        ):
             _dataframe_cache.pop(cache_key, None)
             return None
-        return frame
+        return cached.dataframe
 
 
 def _dataframe_cache_put(
@@ -156,7 +212,13 @@ def _dataframe_cache_put(
     ttl_seconds=None,
     expires_at_epoch=None,
 ):
-    """Store a copy with either a relative or absolute wall-clock expiry."""
+    """Store an isolated L1 copy when it fits all configured RAM limits.
+
+    Returns ``False`` without affecting row delivery when the frame exceeds the
+    per-entry or total byte policy, or when optional accounting/copying fails.
+    Expired and least-recently-used entries are removed under the process-local
+    guard before the new copy is retained.
+    """
     if ttl_seconds is not None and expires_at_epoch is not None:
         raise ValueError("Specify ttl_seconds or expires_at_epoch, not both")
     if expires_at_epoch is not None:
@@ -165,11 +227,44 @@ def _dataframe_cache_put(
         expires_at = time.time() + float(ttl_seconds)
     else:
         expires_at = None
+
+    try:
+        retained_bytes = _dataframe_memory_bytes(frame)
+    except Exception:
+        # Deep accounting is cache policy, not part of delivering valid rows.
+        return False
+    if (
+        QUERY_DATAFRAME_CACHE_MAX_ENTRIES <= 0
+        or retained_bytes > QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES
+        or retained_bytes > QUERY_DATAFRAME_CACHE_MAX_BYTES
+    ):
+        return False
+
     with _dataframe_cache_guard:
-        _dataframe_cache[cache_key] = (expires_at, frame.copy(deep=True))
+        _prune_expired_dataframe_cache_entries_unlocked(time.time())
+        _dataframe_cache.pop(cache_key, None)
+        retained_total = _dataframe_cache_total_bytes_unlocked()
+        while _dataframe_cache and (
+            len(_dataframe_cache) >= QUERY_DATAFRAME_CACHE_MAX_ENTRIES
+            or retained_total + retained_bytes
+            > QUERY_DATAFRAME_CACHE_MAX_BYTES
+        ):
+            _evicted_key, evicted_entry = _dataframe_cache.popitem(last=False)
+            retained_total -= evicted_entry.retained_bytes
+
+        if retained_total + retained_bytes > QUERY_DATAFRAME_CACHE_MAX_BYTES:
+            return False
+        try:
+            cached_frame = frame.copy(deep=True)
+        except Exception:
+            return False
+        _dataframe_cache[cache_key] = _DataFrameCacheEntry(
+            expires_at_epoch=expires_at,
+            dataframe=cached_frame,
+            retained_bytes=retained_bytes,
+        )
         _dataframe_cache.move_to_end(cache_key)
-        while len(_dataframe_cache) > _DATAFRAME_CACHE_MAX_ENTRIES:
-            _dataframe_cache.popitem(last=False)
+        return True
 
 
 def _result_row_limit_cache_contains(cache_key):
@@ -211,7 +306,11 @@ def _replace_dataframe_cache_with_row_limit_marker(cache_key, *, is_demo):
     """Evict oversized cached rows while preserving their original expiry."""
     with _dataframe_cache_guard:
         cached_entry = _dataframe_cache.pop(cache_key, None)
-    expires_at = cached_entry[0] if cached_entry is not None else None
+    expires_at = (
+        cached_entry.expires_at_epoch
+        if cached_entry is not None
+        else None
+    )
     if expires_at is not None:
         _result_row_limit_cache_put(
             cache_key,
@@ -281,7 +380,13 @@ def is_wspr_query_cached(
     response_format="csv",
     database_provider=None,
 ):
-    """Return whether one provider-scoped query can avoid an HTTP request."""
+    """Return whether one provider-scoped query can avoid an HTTP request.
+
+    The complete SQL text, including its ``FORMAT`` clause, is authoritative
+    cache identity. ``response_format`` selects the matching transport path and
+    must therefore agree with that clause; production analysis plans enforce
+    this invariant.
+    """
     provider = _database_provider(database_provider)
     memory_cache_key = _memory_cache_key(
         sql_query,
@@ -293,19 +398,11 @@ def is_wspr_query_cached(
     if _dataframe_cache_contains(memory_cache_key):
         return True
 
-    if str(response_format).lower() == "parquet":
-        cache_path = _query_cache_path(sql_query, provider, is_demo=is_demo)
-        return _query_cache_expiry_epoch(
-            cache_path,
-            _query_cache_ttl_seconds(is_demo=is_demo),
-        ) is not None
-    if is_demo:
-        cache_path = _query_cache_path(sql_query, provider, is_demo=True)
-        return _query_cache_expiry_epoch(
-            cache_path,
-            DEMO_QUERY_CACHE_TTL_SEC,
-        ) is not None
-    return False
+    cache_path = _query_cache_path(sql_query, provider, is_demo=is_demo)
+    return _query_cache_expiry_epoch(
+        cache_path,
+        _query_cache_ttl_seconds(is_demo=is_demo),
+    ) is not None
 
 
 def invalidate_wspr_query_cache(
@@ -320,6 +417,8 @@ def invalidate_wspr_query_cache(
     This is used when downstream row-contract validation proves that a decoded
     provider response is unsafe to reuse. The same key lock as the fetch path
     prevents invalidation from racing publication or a coordinated disk read.
+    The SQL ``FORMAT`` clause is part of identity; ``response_format`` is routing
+    metadata and must match the plan that produced the SQL.
     """
     provider = _database_provider(database_provider)
     memory_cache_key = _memory_cache_key(
@@ -327,33 +426,17 @@ def invalidate_wspr_query_cache(
         is_demo=is_demo,
         database_provider=provider,
     )
-    has_disk_cache = is_demo or str(response_format).lower() == "parquet"
     cache_path = _query_cache_path(
         sql_query,
         provider,
         is_demo=is_demo,
     )
-    lock_path = (
-        cache_path
-        if has_disk_cache
-        else cache_path.with_suffix(".standard-memory-cache")
-    )
-
-    # Avoid creating cross-process lock state for injected/test fetchers that
-    # did not publish through this engine.
-    with _dataframe_cache_guard:
-        has_memory_cache = memory_cache_key in _dataframe_cache
-    with _result_row_limit_cache_guard:
-        has_row_limit_marker = memory_cache_key in _result_row_limit_cache
-    if (
-        not has_memory_cache
-        and not has_row_limit_marker
-        and not (has_disk_cache and cache_path.is_file())
-    ):
-        return False
 
     removed = False
-    with ARTIFACT_STORE.key_lock(lock_path):
+    # Inspect only after taking the same key lock as publication. Otherwise an
+    # absent pre-lock snapshot can return while an in-flight fetch later
+    # publishes the artifact that this call was meant to invalidate.
+    with ARTIFACT_STORE.key_lock(cache_path):
         with _dataframe_cache_guard:
             removed = _dataframe_cache.pop(memory_cache_key, None) is not None
         with _result_row_limit_cache_guard:
@@ -361,13 +444,40 @@ def invalidate_wspr_query_cache(
                 _result_row_limit_cache.pop(memory_cache_key, None) is not None
                 or removed
             )
-        if has_disk_cache:
-            try:
-                cache_path.unlink()
-                removed = True
-            except FileNotFoundError:
-                pass
+        try:
+            cache_path.unlink()
+            removed = True
+        except FileNotFoundError:
+            pass
     return removed
+
+
+def _read_validated_cached_marker(
+    cache_path,
+    marker_column,
+    *,
+    refresh_access,
+):
+    """Read one admission marker without refreshing an unusable query artifact.
+
+    Footer admission and projected marker decoding run under the artifact key
+    lock before an ordinary-cache access touch. Invalid or oversized files are
+    removed best-effort while still coordinated; callers retain policy-specific
+    overflow markers separately.
+    """
+    with ARTIFACT_STORE.lease(cache_path, refresh_access=False) as leased_path:
+        try:
+            _raise_if_parquet_result_exceeds_row_limit(leased_path)
+            frame = pd.read_parquet(leased_path, columns=[marker_column])
+        except (FetchResultRowLimitExceeded, OSError, ValueError, KeyError):
+            try:
+                leased_path.unlink()
+            except OSError:
+                pass
+            raise
+        if refresh_access:
+            ARTIFACT_STORE.touch_unlocked(leased_path)
+        return frame
 
 
 def _cached_strict_target_evidence(
@@ -400,12 +510,11 @@ def _cached_strict_target_evidence(
             return None
         marker_column = "target_seen"
         try:
-            with ARTIFACT_STORE.lease(
+            frame = _read_validated_cached_marker(
                 cache_path,
+                marker_column,
                 refresh_access=not is_demo,
-            ) as leased_path:
-                _raise_if_parquet_result_exceeds_row_limit(leased_path)
-                frame = pd.read_parquet(leased_path, columns=[marker_column])
+            )
         except FetchResultRowLimitExceeded:
             _result_row_limit_cache_put(
                 cache_key,
@@ -426,32 +535,32 @@ def _cached_strict_target_evidence(
             marker_column = "is_me"
         else:
             marker_column = "has_u"
-        if frame is None and is_demo:
+        if frame is None:
             cache_path = _query_cache_path(
                 sql_query,
                 database_provider,
-                is_demo=True,
+                is_demo=is_demo,
             )
-            demo_expires_at = _query_cache_expiry_epoch(
+            cache_expires_at = _query_cache_expiry_epoch(
                 cache_path,
-                DEMO_QUERY_CACHE_TTL_SEC,
+                _query_cache_ttl_seconds(is_demo=is_demo),
             )
-            if demo_expires_at is None:
+            if cache_expires_at is None:
                 return None
             try:
-                with ARTIFACT_STORE.lease(
+                frame = _read_validated_cached_marker(
                     cache_path,
-                    refresh_access=False,
-                ) as leased_path:
-                    _raise_if_parquet_result_exceeds_row_limit(leased_path)
-                    frame = pd.read_parquet(
-                        leased_path,
-                        columns=[marker_column],
-                    )
+                    marker_column,
+                    refresh_access=not is_demo,
+                )
             except FetchResultRowLimitExceeded:
                 _result_row_limit_cache_put(
                     cache_key,
-                    expires_at_epoch=demo_expires_at,
+                    **(
+                        {"expires_at_epoch": cache_expires_at}
+                        if is_demo
+                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
+                    ),
                 )
                 return None
             except (OSError, ValueError, KeyError):
@@ -673,6 +782,24 @@ def _read_wspr_csv_response(response_buffer, *, encoding="utf-8"):
     )
 
 
+def _normalize_csv_query_frame(frame: pd.DataFrame, *, is_demo: bool) -> pd.DataFrame:
+    """Reapply the established standard or demo CSV transport normalization.
+
+    Ordinary Compare rows downcast their known numeric transport columns before
+    SNR-like rounding. Demo rows deliberately retain their parser-inferred
+    numeric widths. Both direct responses and raw Parquet L2 reloads use this
+    helper so delivery tier cannot change the returned values or dtypes.
+    """
+    if not is_demo:
+        for column in _STANDARD_CSV_FLOAT_COLUMNS:
+            if column in frame.columns:
+                frame[column] = pd.to_numeric(frame[column], downcast="float")
+        for column in _STANDARD_CSV_INTEGER_COLUMNS:
+            if column in frame.columns:
+                frame[column] = pd.to_numeric(frame[column], downcast="integer")
+    return round_snr_like_columns(frame, owns_input=True)
+
+
 def _parquet_result_row_count(path):
     """Read only Parquet footer metadata and return its logical row count."""
     import pyarrow.parquet as parquet
@@ -852,11 +979,13 @@ def _fetch_wspr_data_standard(
     database_provider=None,
     request_permit=None,
 ):
-    """Fetch source-pinned CSV rows through RAM and optional demo disk cache.
+    """Fetch source-pinned CSV rows through a byte-bounded L1 and raw disk L2.
 
-    Standard requests retain the existing one-hour RAM-only policy. Demo
-    requests add a provider-scoped Parquet L2 containing transport-decoded
-    query rows before scientific post-fetch filtering.
+    Every accepted exact query is written through to a provider- and
+    policy-isolated raw Parquet artifact before CSV transport normalization.
+    Standard artifacts have sliding one-hour freshness; demos retain their
+    absolute 24-hour publication deadline. Large frames remain disk-only when
+    the optional process-memory L1 declines them by byte policy.
     """
     provider = _database_provider(database_provider)
     cache_mode = "demo" if is_demo else "standard"
@@ -865,19 +994,13 @@ def _fetch_wspr_data_standard(
         is_demo=is_demo,
         database_provider=provider,
     )
-    demo_cache_path = (
-        _query_cache_path(sql_query, provider, is_demo=True)
-        if is_demo
-        else None
+    cache_path = _query_cache_path(
+        sql_query,
+        provider,
+        is_demo=is_demo,
     )
-    lock_path = (
-        demo_cache_path
-        if demo_cache_path is not None
-        else _query_cache_path(sql_query, provider).with_suffix(
-            f".{cache_mode}-memory-cache"
-        )
-    )
-    with ARTIFACT_STORE.key_lock(lock_path):
+    cache_ttl_seconds = _query_cache_ttl_seconds(is_demo=is_demo)
+    with ARTIFACT_STORE.key_lock(cache_path):
         if _result_row_limit_cache_contains(cache_key):
             return _result_row_limit_error_result(
                 sql_query,
@@ -913,55 +1036,73 @@ def _fetch_wspr_data_standard(
                     source=FetchSource.MEMORY_CACHE,
                     failure_stage="validate_memory_cache_rows",
                 )
+            if (
+                not is_demo
+                and _query_cache_expiry_epoch(
+                    cache_path,
+                    STANDARD_QUERY_CACHE_TTL_SEC,
+                )
+                is not None
+            ):
+                ARTIFACT_STORE.touch_unlocked(cache_path)
             return FetchResult(
                 dataframe=cached,
                 source=FetchSource.MEMORY_CACHE,
                 database_source=_database_source(provider),
             )
 
-        if demo_cache_path is not None:
-            demo_expires_at = _query_cache_expiry_epoch(
-                demo_cache_path,
-                DEMO_QUERY_CACHE_TTL_SEC,
-            )
-            if demo_expires_at is not None:
+        cache_expires_at = _query_cache_expiry_epoch(
+            cache_path,
+            cache_ttl_seconds,
+        )
+        if cache_expires_at is not None:
+            try:
+                frame = _read_csv_query_parquet(
+                    cache_path,
+                    is_demo=is_demo,
+                )
+            except FetchResultRowLimitExceeded:
                 try:
-                    frame = _read_query_parquet(
-                        demo_cache_path,
-                        downcast_integer_columns=False,
-                    )
-                except FetchResultRowLimitExceeded:
-                    try:
-                        demo_cache_path.unlink()
-                    except OSError:
-                        pass
-                    _result_row_limit_cache_put(
-                        cache_key,
-                        expires_at_epoch=demo_expires_at,
-                    )
-                    return _result_row_limit_error_result(
-                        sql_query,
-                        database_provider=provider,
-                        source=FetchSource.DISK_CACHE,
-                        failure_stage="validate_query_cache_rows",
-                    )
-                except (OSError, ValueError):
-                    try:
-                        demo_cache_path.unlink()
-                    except OSError:
-                        pass
-                else:
-                    _dataframe_cache_put(
-                        cache_key,
-                        frame,
-                        expires_at_epoch=demo_expires_at,
-                    )
-                    return FetchResult(
-                        dataframe=frame,
-                        artifact_path=demo_cache_path,
-                        source=FetchSource.DISK_CACHE,
-                        database_source=_database_source(provider),
-                    )
+                    cache_path.unlink()
+                except OSError:
+                    pass
+                _result_row_limit_cache_put(
+                    cache_key,
+                    **(
+                        {"expires_at_epoch": cache_expires_at}
+                        if is_demo
+                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
+                    ),
+                )
+                return _result_row_limit_error_result(
+                    sql_query,
+                    database_provider=provider,
+                    source=FetchSource.DISK_CACHE,
+                    failure_stage="validate_query_cache_rows",
+                )
+            except (OSError, ValueError):
+                try:
+                    cache_path.unlink()
+                except OSError:
+                    pass
+            else:
+                if not is_demo:
+                    ARTIFACT_STORE.touch_unlocked(cache_path)
+                _dataframe_cache_put(
+                    cache_key,
+                    frame,
+                    **(
+                        {"expires_at_epoch": cache_expires_at}
+                        if is_demo
+                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
+                    ),
+                )
+                return FetchResult(
+                    dataframe=frame,
+                    artifact_path=cache_path,
+                    source=FetchSource.DISK_CACHE,
+                    database_source=_database_source(provider),
+                )
 
         budget_error = _consume_request(
             request_permit,
@@ -1054,7 +1195,7 @@ def _fetch_wspr_data_standard(
         if len(frame) > MAX_ANALYSIS_RESULT_ROWS:
             _result_row_limit_cache_put(
                 cache_key,
-                ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+                ttl_seconds=cache_ttl_seconds,
             )
             return _result_row_limit_error_result(
                 sql_query,
@@ -1062,38 +1203,20 @@ def _fetch_wspr_data_standard(
                 failure_stage="validate_materialized_csv_rows",
             )
 
-        if demo_cache_path is not None:
-            try:
-                with ARTIFACT_STORE.atomic_output_path(
-                    demo_cache_path
-                ) as temporary_path:
-                    frame.to_parquet(temporary_path, index=False)
-            except Exception as exc:
-                # A valid provider response remains usable from RAM even when
-                # the optional persistent demo tier cannot be published.
-                print(
-                    f"[{datetime.now().strftime('%H:%M:%S')}] "
-                    f"DEMO DISK CACHE WRITE FAILED for {provider.display_name}: {exc}"
-                )
-        else:
-            float_columns = [
-                "snr",
-                "power",
-                "stat_val",
-                "snr_u_norm",
-                "snr_r_norm",
-                "peer_lat",
-                "peer_lon",
-                "best_ref_dist",
-            ]
-            for column in float_columns:
-                if column in frame.columns:
-                    frame[column] = pd.to_numeric(frame[column], downcast="float")
-            for column in ["has_u", "has_r", "is_me", "time_slot"]:
-                if column in frame.columns:
-                    frame[column] = pd.to_numeric(frame[column], downcast="integer")
+        try:
+            with ARTIFACT_STORE.atomic_output_path(cache_path) as temporary_path:
+                frame.to_parquet(temporary_path, index=False)
+        except Exception as exc:
+            # A valid provider response remains usable even when the optional
+            # persistent tier cannot be published. A frame above the L1 byte
+            # policy will intentionally be fetched again after this run.
+            print(
+                f"[{datetime.now().strftime('%H:%M:%S')}] "
+                f"{cache_mode.upper()} DISK CACHE WRITE FAILED for "
+                f"{provider.display_name}: {exc}"
+            )
 
-        frame = round_snr_like_columns(frame)
+        frame = _normalize_csv_query_frame(frame, is_demo=is_demo)
         _dataframe_cache_put(
             cache_key,
             frame,
@@ -1101,13 +1224,13 @@ def _fetch_wspr_data_standard(
                 {
                     "expires_at_epoch": (
                         _query_cache_expiry_epoch(
-                            demo_cache_path,
+                            cache_path,
                             DEMO_QUERY_CACHE_TTL_SEC,
                         )
                         or time.time() + DEMO_QUERY_CACHE_TTL_SEC
                     )
                 }
-                if demo_cache_path is not None
+                if is_demo
                 else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
             ),
         )
@@ -1124,10 +1247,23 @@ def _fetch_wspr_data_standard(
         )
 
 
+def _read_raw_query_parquet(path) -> pd.DataFrame:
+    """Read one raw query artifact after footer-only row admission."""
+    _raise_if_parquet_result_exceeds_row_limit(path)
+    return pd.read_parquet(path)
+
+
+def _read_csv_query_parquet(path, *, is_demo: bool) -> pd.DataFrame:
+    """Read raw CSV query rows and reapply their policy-specific normalization."""
+    return _normalize_csv_query_frame(
+        _read_raw_query_parquet(path),
+        is_demo=is_demo,
+    )
+
+
 def _read_query_parquet(path, *, downcast_integer_columns=True):
     """Read one raw query cache and reapply transport normalization."""
-    _raise_if_parquet_result_exceeds_row_limit(path)
-    frame = pd.read_parquet(path)
+    frame = _read_raw_query_parquet(path)
     integer_columns = [
         "time_slot",
         "target_seen",
@@ -1141,7 +1277,7 @@ def _read_query_parquet(path, *, downcast_integer_columns=True):
         for column in integer_columns:
             if column in frame.columns:
                 frame[column] = pd.to_numeric(frame[column], downcast="integer")
-    return round_snr_like_columns(frame)
+    return round_snr_like_columns(frame, owns_input=True)
 
 
 def _fetch_wspr_parquet(

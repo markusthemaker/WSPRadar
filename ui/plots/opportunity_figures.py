@@ -500,7 +500,6 @@ def _opportunity_segment_recipe(
     title,
     selected_segment,
     peer_df,
-    rows,
     analysis_start_t,
     analysis_end_t,
     terminology,

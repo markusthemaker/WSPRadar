@@ -1,7 +1,9 @@
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
+import threading
 import time
 import uuid
 
@@ -19,6 +21,7 @@ from core.fetch_models import (
     FetchSource,
 )
 from core.provider_dispatch import ProviderDispatchController
+from core.snr_utils import round_snr_like_columns
 
 
 class _StreamingResponse:
@@ -195,7 +198,15 @@ def test_request_estimator_evicts_oversized_memory_rows(monkeypatch):
     monkeypatch.setattr(
         data_engine,
         "_dataframe_cache",
-        OrderedDict({cache_key: (expires_at, oversized_frame)}),
+        OrderedDict({
+            cache_key: data_engine._DataFrameCacheEntry(
+                expires_at_epoch=expires_at,
+                dataframe=oversized_frame,
+                retained_bytes=data_engine._dataframe_memory_bytes(
+                    oversized_frame
+                ),
+            )
+        }),
     )
     monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
 
@@ -210,6 +221,192 @@ def test_request_estimator_evicts_oversized_memory_rows(monkeypatch):
     assert data_engine._result_row_limit_cache[cache_key] == pytest.approx(
         expires_at
     )
+
+
+def test_dataframe_l1_rejects_oversized_entry_before_copy(monkeypatch):
+    """Do not amplify a frame that cannot fit the configured L1 entry budget."""
+    frame = pd.DataFrame({"value": [1]})
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "QUERY_DATAFRAME_CACHE_MAX_BYTES", 4)
+    monkeypatch.setattr(
+        data_engine,
+        "QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES",
+        2,
+    )
+    monkeypatch.setattr(data_engine, "_dataframe_memory_bytes", lambda _frame: 3)
+    monkeypatch.setattr(
+        data_engine.pd.DataFrame,
+        "copy",
+        lambda *_args, **_kwargs: pytest.fail("oversized frame was copied"),
+    )
+
+    assert not data_engine._dataframe_cache_put(
+        "oversized",
+        frame,
+        ttl_seconds=60.0,
+    )
+    assert data_engine._dataframe_cache == OrderedDict()
+
+
+def test_dataframe_l1_evicts_by_total_bytes_in_lru_order(monkeypatch):
+    """Keep accounted bytes bounded even while the entry ceiling has room."""
+    frames = {
+        key: pd.DataFrame({"value": [marker]})
+        for marker, key in enumerate(("first", "second", "third"), start=1)
+    }
+    entry_bytes = data_engine._dataframe_memory_bytes(frames["first"])
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine,
+        "QUERY_DATAFRAME_CACHE_MAX_BYTES",
+        entry_bytes * 2,
+    )
+    monkeypatch.setattr(
+        data_engine,
+        "QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES",
+        entry_bytes,
+    )
+    monkeypatch.setattr(data_engine, "QUERY_DATAFRAME_CACHE_MAX_ENTRIES", 32)
+
+    assert data_engine._dataframe_cache_put(
+        "first", frames["first"], ttl_seconds=60.0
+    )
+    assert data_engine._dataframe_cache_put(
+        "second", frames["second"], ttl_seconds=60.0
+    )
+    assert data_engine._dataframe_cache_get("first") is not None
+    assert data_engine._dataframe_cache_put(
+        "third", frames["third"], ttl_seconds=60.0
+    )
+
+    assert list(data_engine._dataframe_cache) == ["first", "third"]
+    assert (
+        data_engine._dataframe_cache_total_bytes_unlocked()
+        <= data_engine.QUERY_DATAFRAME_CACHE_MAX_BYTES
+    )
+
+
+def test_dataframe_l1_accounting_failure_reuses_persistent_rows(
+    tmp_path,
+    monkeypatch,
+):
+    """Keep valid direct and L2 rows usable when optional deep accounting fails."""
+    query = "SELECT accounting_failure FORMAT CSVWithNames"
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse([b"peer_sign,stat_val\nK1AAA,-12.3\n"])
+
+    def fail_accounting(_frame):
+        raise MemoryError("simulated deep-accounting pressure")
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    monkeypatch.setattr(data_engine, "_dataframe_memory_bytes", fail_accounting)
+
+    direct_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    disk_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=False,
+        database_provider=WSPR_DATABASE_PROVIDERS[0],
+    )
+
+    assert request_count == 1
+    assert direct_result.error is None
+    assert direct_result.source == FetchSource.WSPR_LIVE
+    assert disk_result.error is None
+    assert disk_result.source == FetchSource.DISK_CACHE
+    assert cache_key not in data_engine._dataframe_cache
+    assert data_engine._query_cache_path(query, is_demo=False).is_file()
+
+
+def test_dataframe_l1_copy_failure_falls_back_to_persistent_rows(
+    tmp_path,
+    monkeypatch,
+):
+    """Evict an uncopyable L1 entry and continue through the valid disk L2."""
+
+    class UncopyableDataFrame(pd.DataFrame):
+        def copy(self, deep=True):
+            raise MemoryError("simulated copy-on-read pressure")
+
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    query = "SELECT copy_failure FORMAT CSVWithNames"
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=False,
+        database_provider=provider,
+    )
+    cached_frame = UncopyableDataFrame({"has_u": [1]})
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(
+        data_engine,
+        "_dataframe_cache",
+        OrderedDict({
+            cache_key: data_engine._DataFrameCacheEntry(
+                expires_at_epoch=time.time() + 60.0,
+                dataframe=cached_frame,
+                retained_bytes=1,
+            )
+        }),
+    )
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: pytest.fail(
+            "copy failure should fall back to the persistent tier"
+        ),
+    )
+    cache_path = data_engine._query_cache_path(
+        query,
+        provider,
+        is_demo=False,
+    )
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"has_u": [1]}).to_parquet(cache_path, index=False)
+
+    result = data_engine.fetch_wspr_data(
+        query,
+        is_demo=False,
+        database_provider=provider,
+    )
+
+    assert result.error is None
+    assert result.source == FetchSource.DISK_CACHE
+    assert cache_key in data_engine._dataframe_cache
+    assert not isinstance(
+        data_engine._dataframe_cache[cache_key].dataframe,
+        UncopyableDataFrame,
+    )
+
+
+def test_csv_normalization_reuses_the_owned_transport_frame():
+    """Avoid another full frame while normalizing a freshly parsed or read query."""
+    frame = pd.DataFrame({"stat_val": [-12.34], "has_u": [1]})
+
+    normalized = data_engine._normalize_csv_query_frame(frame, is_demo=False)
+
+    assert normalized is frame
+    assert str(normalized["stat_val"].dtype) == "float32"
+    assert float(normalized.loc[0, "stat_val"]) == pytest.approx(-12.3)
+
+
+def test_snr_rounding_preserves_nonowned_callers_by_default():
+    """Keep the established nonmutating contract outside owned fetch paths."""
+    frame = pd.DataFrame({"snr": [-12.34]})
+    original = frame.copy(deep=True)
+
+    rounded = round_snr_like_columns(frame)
+
+    assert rounded is not frame
+    pd.testing.assert_frame_equal(frame, original)
+    assert float(rounded.loc[0, "snr"]) == pytest.approx(-12.3)
 
 
 def test_one_line_csv_body_is_preserved_for_schema_validation(monkeypatch):
@@ -604,6 +801,296 @@ def test_demo_compare_first_fetch_publishes_and_second_fetch_reuses_disk_rows(
     assert all(result.source == FetchSource.DISK_CACHE for result in second_results)
 
 
+def test_standard_csv_write_through_preserves_raw_disk_and_normalized_dtype(
+    tmp_path,
+    monkeypatch,
+):
+    """Reuse ordinary Compare rows from disk without changing direct semantics."""
+    query = "SELECT standard_compare_cache FORMAT CSVWithNames"
+    payload = (
+        b"time_slot,peer_sign,stat_val,has_u\n"
+        b"1,K1AAA,-12.34,1\n"
+    )
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse([payload])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+
+    direct_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    cache_path = data_engine._query_cache_path(query, is_demo=False)
+    raw_disk_frame = pd.read_parquet(cache_path)
+    previous_access = time.time() - 300.0
+    os.utime(cache_path, (previous_access, previous_access))
+
+    ram_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    touched_access = cache_path.stat().st_mtime
+    data_engine._dataframe_cache.clear()
+    disk_result = data_engine.fetch_wspr_data(query, is_demo=False)
+
+    assert request_count == 1
+    assert direct_result.source == FetchSource.WSPR_LIVE
+    assert ram_result.source == FetchSource.MEMORY_CACHE
+    assert disk_result.source == FetchSource.DISK_CACHE
+    assert cache_path.parent.parent.name == ArtifactNamespace.QUERY.value
+    assert str(raw_disk_frame["stat_val"].dtype) == "float64"
+    assert str(direct_result.dataframe["stat_val"].dtype) == "float32"
+    assert str(disk_result.dataframe["stat_val"].dtype) == "float32"
+    assert float(disk_result.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
+    assert touched_access > previous_access + 250.0
+
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=False,
+        database_provider=WSPR_DATABASE_PROVIDERS[0],
+    )
+    assert data_engine.invalidate_wspr_query_cache(
+        query,
+        is_demo=False,
+        response_format="csv",
+    )
+    assert cache_key not in data_engine._dataframe_cache
+    assert not cache_path.exists()
+
+
+def test_large_standard_csv_stays_disk_only_and_avoids_second_request(
+    tmp_path,
+    monkeypatch,
+):
+    """Reuse an L1-rejected Compare result from the standard disk namespace."""
+    query = "SELECT standard_compare_disk_only FORMAT CSVWithNames"
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse([b"peer_sign,stat_val\nK1AAA,-12.3\n"])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES", 1)
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+
+    direct_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    disk_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=False,
+        database_provider=WSPR_DATABASE_PROVIDERS[0],
+    )
+
+    assert request_count == 1
+    assert direct_result.source == FetchSource.WSPR_LIVE
+    assert disk_result.source == FetchSource.DISK_CACHE
+    assert cache_key not in data_engine._dataframe_cache
+    assert data_engine._query_cache_path(query, is_demo=False).is_file()
+
+
+def test_standard_csv_disk_cache_informs_strict_and_legacy_request_estimate(
+    tmp_path,
+    monkeypatch,
+):
+    """Reserve no HTTP slots when ordinary strict and legacy rows are on disk."""
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    strict_query = "SELECT standard_compare_strict FORMAT CSVWithNames"
+    legacy_query = "SELECT standard_compare_legacy FORMAT CSVWithNames"
+    analysis = {
+        "analysis_kind": "comparison",
+        "is_sequential": False,
+        "query": strict_query,
+        "legacy_query": legacy_query,
+        "response_format": "csv",
+    }
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    earlier_access = time.time() - 300.0
+    cache_paths = {}
+
+    for query, marker in ((strict_query, 0), (legacy_query, 1)):
+        cache_path = data_engine._query_cache_path(
+            query,
+            provider,
+            is_demo=False,
+        )
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame({"has_u": [marker]}).to_parquet(cache_path, index=False)
+        os.utime(cache_path, (earlier_access, earlier_access))
+        cache_paths[query] = cache_path
+
+    assert data_engine.estimate_uncached_requests(
+        [analysis],
+        is_demo=False,
+        database_provider=provider,
+    ) == 0
+    assert cache_paths[strict_query].stat().st_mtime > earlier_access + 250.0
+    assert cache_paths[legacy_query].stat().st_mtime == pytest.approx(
+        earlier_access,
+        abs=0.1,
+    )
+
+
+def test_standard_admission_inspection_deletes_corrupt_l2_without_touching(
+    tmp_path,
+    monkeypatch,
+):
+    """Do not revive a query artifact whose projected marker cannot be decoded."""
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    query = "SELECT corrupt_standard_cache FORMAT CSVWithNames"
+    analysis = {
+        "analysis_kind": "comparison",
+        "is_sequential": False,
+        "query": query,
+        "response_format": "csv",
+    }
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.ARTIFACT_STORE,
+        "touch_unlocked",
+        lambda _path: pytest.fail("invalid admission cache was touched"),
+    )
+    cache_path = data_engine._query_cache_path(
+        query,
+        provider,
+        is_demo=False,
+    )
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_bytes(b"not a parquet artifact")
+
+    request_count = data_engine.estimate_uncached_requests(
+        [analysis],
+        is_demo=False,
+        database_provider=provider,
+    )
+
+    assert request_count == 1
+    assert not cache_path.exists()
+
+
+def test_standard_admission_inspection_deletes_oversized_l2_and_keeps_marker(
+    tmp_path,
+    monkeypatch,
+):
+    """Remove an oversized artifact without losing its bounded rejection marker."""
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    query = "SELECT oversized_standard_cache FORMAT Parquet"
+    analysis = {
+        "analysis_kind": "opportunity",
+        "is_sequential": False,
+        "query": query,
+        "response_format": "parquet",
+    }
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 1)
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.ARTIFACT_STORE,
+        "touch_unlocked",
+        lambda _path: pytest.fail("oversized admission cache was touched"),
+    )
+    cache_path = data_engine._query_cache_path(
+        query,
+        provider,
+        is_demo=False,
+    )
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"target_seen": [1, 1]}).to_parquet(
+        cache_path,
+        index=False,
+    )
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=False,
+        database_provider=provider,
+    )
+
+    request_count = data_engine.estimate_uncached_requests(
+        [analysis],
+        is_demo=False,
+        database_provider=provider,
+    )
+
+    assert request_count == 0
+    assert not cache_path.exists()
+    assert data_engine._result_row_limit_cache[cache_key] > time.time() + 3500.0
+
+
+def test_standard_csv_disk_write_failure_does_not_discard_valid_rows(
+    tmp_path,
+    monkeypatch,
+):
+    """Keep the persistent L2 optional when local publication fails."""
+    query = "SELECT standard_compare_disk_failure FORMAT CSVWithNames"
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse(
+            [b"peer_sign,stat_val\nK1AAA,-12.3\n"]
+        ),
+    )
+
+    def fail_parquet_write(*_args, **_kwargs):
+        raise OSError("simulated cache filesystem failure")
+
+    monkeypatch.setattr(data_engine.pd.DataFrame, "to_parquet", fail_parquet_write)
+
+    result = data_engine.fetch_wspr_data(query, is_demo=False)
+
+    assert result.error is None
+    assert result.source == FetchSource.WSPR_LIVE
+    assert float(result.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
+    assert not data_engine._query_cache_path(query, is_demo=False).exists()
+
+
+def test_standard_csv_write_through_is_single_flight_under_concurrency(
+    tmp_path,
+    monkeypatch,
+):
+    """Publish one standard L2 artifact for simultaneous identical callers."""
+    worker_count = 6
+    start_barrier = threading.Barrier(worker_count)
+    request_count = 0
+    request_count_guard = threading.Lock()
+    query = "SELECT concurrent_standard_compare FORMAT CSVWithNames"
+
+    class SlowStreamingResponse(_StreamingResponse):
+        def iter_content(self, chunk_size):
+            assert chunk_size > 0
+            time.sleep(0.03)
+            yield from self.chunks
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        with request_count_guard:
+            request_count += 1
+        return SlowStreamingResponse([b"peer_sign,stat_val\nK1AAA,-12.3\n"])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+
+    def fetch_query(_index):
+        start_barrier.wait()
+        return data_engine.fetch_wspr_data(query, is_demo=False)
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        results = list(executor.map(fetch_query, range(worker_count)))
+
+    assert request_count == 1
+    assert all(result.error is None for result in results)
+    assert data_engine._query_cache_path(query, is_demo=False).is_file()
+
+
 def test_future_demo_query_mtime_is_rejected_as_an_invalid_freshness_anchor(
     tmp_path,
     monkeypatch,
@@ -727,6 +1214,57 @@ def test_demo_compare_cache_invalidation_is_scoped_to_provider_and_mode(
         response_format="csv",
         database_provider=primary,
     )
+
+
+def test_query_cache_invalidation_waits_for_inflight_publication(
+    tmp_path,
+    monkeypatch,
+):
+    """Remove a publication that began while every visible cache tier was absent."""
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    query = "SELECT invalidate_inflight_publication FORMAT CSVWithNames"
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    cache_path = data_engine._query_cache_path(
+        query,
+        provider,
+        is_demo=False,
+    )
+    publication_started = threading.Event()
+    publication_allowed = threading.Event()
+
+    def publish_after_release():
+        with data_engine.ARTIFACT_STORE.key_lock(cache_path):
+            publication_started.set()
+            assert publication_allowed.wait(timeout=2.0)
+            with data_engine.ARTIFACT_STORE.atomic_output_path(
+                cache_path
+            ) as temporary_path:
+                pd.DataFrame({"has_u": [1]}).to_parquet(
+                    temporary_path,
+                    index=False,
+                )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        publication_future = executor.submit(publish_after_release)
+        assert publication_started.wait(timeout=1.0)
+        invalidation_future = executor.submit(
+            data_engine.invalidate_wspr_query_cache,
+            query,
+            is_demo=False,
+            response_format="csv",
+            database_provider=provider,
+        )
+        try:
+            with pytest.raises(FutureTimeoutError):
+                invalidation_future.result(timeout=0.1)
+        finally:
+            publication_allowed.set()
+        publication_future.result(timeout=2.0)
+        assert invalidation_future.result(timeout=2.0)
+
+    assert not cache_path.exists()
 
 
 def test_parquet_response_over_limit_is_not_published(tmp_path, monkeypatch):

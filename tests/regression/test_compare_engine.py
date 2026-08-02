@@ -54,6 +54,55 @@ def test_simultaneous_compare_aggregation_preserves_joint_and_non_joint_counts()
     assert int(segment["total_spots"]) == 2
 
 
+def test_simultaneous_compare_aggregation_respects_input_ownership():
+    """Reuse a transferred raw frame without changing default nonmutation."""
+    source = pd.DataFrame([
+        {
+            **_base_row(),
+            "has_u": 1,
+            "has_r": 1,
+            "snr_u_norm": -10.04,
+            "snr_r_norm": -12.04,
+        },
+        {
+            **_base_row(),
+            "has_u": 1,
+            "has_r": 0,
+            "snr_u_norm": -7.06,
+            "snr_r_norm": None,
+        },
+    ])
+    original = source.copy(deep=True)
+
+    copied_station_rows, copied_segments = aggregate_compare_map_data(
+        source,
+        is_sequential=False,
+        min_spots=1,
+        base_min_stations=1,
+    )
+
+    pd.testing.assert_frame_equal(source, original)
+
+    owned_source = original.copy(deep=True)
+    owned_station_rows, owned_segments = aggregate_compare_map_data(
+        owned_source,
+        is_sequential=False,
+        min_spots=1,
+        base_min_stations=1,
+        owns_input=True,
+    )
+
+    assert {
+        "is_joint_spot",
+        "is_u_spot",
+        "is_r_spot",
+        "spot_diff",
+    }.issubset(owned_source.columns)
+    assert float(owned_source.loc[0, "snr_u_norm"]) == -10.0
+    pd.testing.assert_frame_equal(owned_station_rows, copied_station_rows)
+    pd.testing.assert_frame_equal(owned_segments, copied_segments)
+
+
 def test_compare_footer_counts_preserve_async_spot_bucket_for_joint_stations():
     df_plot = pd.DataFrame([
         {

@@ -4,6 +4,8 @@ from contextlib import nullcontext
 import io
 import inspect
 import json
+import os
+from pathlib import Path
 from types import SimpleNamespace
 import zipfile
 
@@ -12,6 +14,11 @@ import pytest
 
 from core import plot_engine
 from core.analysis_context import AnalysisContext
+from core.artifact_store import (
+    SESSION_ARTIFACT_PATHS_KEY,
+    register_session_artifact,
+    session_artifact_path,
+)
 from i18n import T
 from ui import results_export
 from ui.plots import compare_evidence_figures, evidence_figures
@@ -67,6 +74,66 @@ RETIRED_COMPARE_FIGURE_EXPORTS = (
         "render_compare_path_consistency_export_figure",
     ),
 )
+
+
+def _create_registered_export_artifacts(tmp_path, *, analysis_id="RX_ABS"):
+    """Create one exact registered evidence/map artifact triplet for tests."""
+    state = {"run_id": 17}
+    artifact_paths = {
+        artifact_kind: session_artifact_path(
+            tmp_path,
+            state,
+            run_id=17,
+            analysis_id=analysis_id,
+            artifact_kind=artifact_kind,
+        )
+        for artifact_kind in ("spots", "map_stations", "map_segments")
+    }
+    for artifact_path in artifact_paths.values():
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        artifact_path.write_bytes(b"test artifact")
+        register_session_artifact(state, artifact_path)
+    return state, artifact_paths
+
+
+def _map_export_test_block(artifact_paths):
+    """Return one complete Success map-export recipe for artifact tests."""
+    analysis_context = AnalysisContext(
+        callsign="TARGET",
+        qth="JN47",
+        band="20m",
+    )
+    return {
+        "analysis_id": "RX_ABS",
+        "title": "RX Performance",
+        "is_compare": False,
+        "is_sequential": False,
+        "analysis_kind": "opportunity",
+        "map_context": {
+            "parquet_path": str(artifact_paths["spots"]),
+            "map_data_artifacts": {
+                "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+                "analysis_id": "RX_ABS",
+                "is_compare": False,
+                "is_sequential": False,
+                "analysis_kind": "opportunity",
+                "station_rows_path": str(artifact_paths["map_stations"]),
+                "segment_rows_path": str(artifact_paths["map_segments"]),
+            },
+            "start_t": "2026-07-01T00:00:00Z",
+            "end_t": "2026-07-02T00:00:00Z",
+            "max_peer_distance_km": 10000,
+            "base_min_stations": 1,
+            "lat_0": 50.0,
+            "lon_0": 5.0,
+            "analysis_context": analysis_context.to_dict(),
+            "presentation_context": {
+                "language": "en",
+                "theme": "dark",
+                "solar_label": "All",
+            },
+        },
+    }
 
 
 class _FooterColumn:
@@ -170,10 +237,9 @@ def test_temporal_snr_render_version_changes_export_signature(monkeypatch):
 
     monkeypatch.setattr(results_export, "TEMPORAL_SNR_EXPORT_RENDER_VERSION", 2)
     version_two_signature = results_export._export_signature(blocks)
-    version_two_payload = json.loads(version_two_signature)
     monkeypatch.setattr(results_export, "TEMPORAL_SNR_EXPORT_RENDER_VERSION", 3)
 
-    assert version_two_payload[0]["temporal_snr_export_render_version"] == 2
+    assert len(version_two_signature) == 64
     assert version_two_signature != results_export._export_signature(blocks)
 
 
@@ -193,14 +259,13 @@ def test_success_distance_render_version_changes_export_signature(monkeypatch):
         2,
     )
     version_two_signature = results_export._export_signature(blocks)
-    version_two_payload = json.loads(version_two_signature)
     monkeypatch.setattr(
         results_export,
         "SUCCESS_DISTANCE_EXPORT_RENDER_VERSION",
         3,
     )
 
-    assert version_two_payload[0]["success_distance_export_render_version"] == 2
+    assert len(version_two_signature) == 64
     assert version_two_signature != results_export._export_signature(blocks)
 
     compare_blocks = {
@@ -231,13 +296,82 @@ def test_temporal_iqr_band_alpha_changes_export_signature(monkeypatch):
 
     monkeypatch.setattr(results_export, "TEMPORAL_IQR_BAND_ALPHA", 0.10)
     ten_percent_signature = results_export._export_signature(blocks)
-    ten_percent_payload = json.loads(ten_percent_signature)
     monkeypatch.setattr(results_export, "TEMPORAL_IQR_BAND_ALPHA", 0.15)
 
-    assert ten_percent_payload[0]["temporal_iqr_band_alpha"] == pytest.approx(
-        0.10
-    )
+    assert len(ten_percent_signature) == 64
     assert ten_percent_signature != results_export._export_signature(blocks)
+
+
+def test_export_signature_is_path_free_and_tracks_artifact_changes(
+    tmp_path,
+    monkeypatch,
+):
+    """Hash private artifact locations while retaining artifact invalidation."""
+    evidence_path = tmp_path / "private_raw_path_token.parquet"
+    station_path = tmp_path / "private_station_path_token.parquet"
+    segment_path = tmp_path / "private_segment_path_token.parquet"
+    replacement_evidence_path = tmp_path / "replacement_raw_token.parquet"
+    for artifact_path in (
+        evidence_path,
+        station_path,
+        segment_path,
+        replacement_evidence_path,
+    ):
+        artifact_path.write_bytes(b"artifact")
+    map_context = {
+        "parquet_path": str(evidence_path),
+        "map_data_artifacts": {
+            "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+            "analysis_id": "RX_ABS",
+            "is_compare": False,
+            "is_sequential": False,
+            "analysis_kind": "opportunity",
+            "station_rows_path": str(station_path),
+            "segment_rows_path": str(segment_path),
+        },
+        "max_peer_distance_km": 10000,
+    }
+    block = {
+        "analysis_id": "RX_ABS",
+        "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+        "database_source": "wspr_live",
+        "map_context": map_context,
+    }
+    blocks = {"RX_ABS": block}
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+
+    signature = results_export._export_signature(blocks)
+    metadata_text = json.dumps(
+        results_export._build_run_metadata(blocks, {"settings": {}}),
+        sort_keys=True,
+    )
+
+    assert len(signature) == 64
+    assert int(signature, 16) >= 0
+    for artifact_path in (evidence_path, station_path, segment_path):
+        assert str(artifact_path) not in metadata_text
+        assert artifact_path.name not in metadata_text
+
+    path_changed_block = {
+        **block,
+        "map_context": {
+            **map_context,
+            "parquet_path": str(replacement_evidence_path),
+        },
+    }
+    assert signature != results_export._export_signature(
+        {"RX_ABS": path_changed_block}
+    )
+
+    os.utime(station_path, (1_000_000_000, 1_000_000_000))
+    assert signature == results_export._export_signature(blocks)
+
+    station_path.write_bytes(b"artifact changed")
+    assert signature != results_export._export_signature(blocks)
 
 
 def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
@@ -590,6 +724,179 @@ def test_segment_temporal_figure_uses_its_distinct_export_recipe(monkeypatch):
     assert disposed_figures == [fake_figure]
 
 
+@pytest.mark.parametrize(
+    ("identity_key", "invalid_value"),
+    [
+        ("schema_version", 999),
+        ("analysis_id", "TX_ABS"),
+        ("is_compare", True),
+        ("is_sequential", True),
+        ("analysis_kind", "comparison"),
+    ],
+)
+def test_map_export_rejects_mismatched_compact_artifact_identity(
+    monkeypatch,
+    identity_key,
+    invalid_value,
+):
+    """Never reinterpret a compact aggregate under another scientific mode."""
+    map_artifacts = {
+        "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+        "analysis_id": "RX_ABS",
+        "is_compare": False,
+        "is_sequential": False,
+        "analysis_kind": "opportunity",
+        "station_rows_path": "map_stations_RX_ABS.parquet",
+        "segment_rows_path": "map_segments_RX_ABS.parquet",
+    }
+    map_artifacts[identity_key] = invalid_value
+    monkeypatch.setattr(
+        results_export,
+        "read_map_data_artifacts",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Invalid map identity must fail before artifact reads")
+        ),
+    )
+    block = {
+        "analysis_id": "RX_ABS",
+        "is_compare": False,
+        "is_sequential": False,
+        "analysis_kind": "opportunity",
+        "map_context": {"map_data_artifacts": map_artifacts},
+    }
+
+    with pytest.raises(
+        results_export.ExportArtifactUnavailableError,
+        match="identity no longer matches",
+    ):
+        results_export._render_map_png_for_block(block)
+
+
+@pytest.mark.parametrize(
+    ("failure_mode", "expected_message"),
+    [
+        ("unregistered", "not registered"),
+        ("out_of_scope", "outside the current session namespace"),
+    ],
+)
+def test_map_export_registration_rejects_unowned_artifact_paths(
+    tmp_path,
+    monkeypatch,
+    failure_mode,
+    expected_message,
+):
+    """Reject compact map recipes not owned by the active UI session."""
+    state, artifact_paths = _create_registered_export_artifacts(tmp_path)
+    if failure_mode == "unregistered":
+        rejected_path = artifact_paths["map_stations"].resolve()
+        state[SESSION_ARTIFACT_PATHS_KEY] = [
+            registered_path
+            for registered_path in state[SESSION_ARTIFACT_PATHS_KEY]
+            if Path(registered_path) != rejected_path
+        ]
+    else:
+        outside_path = tmp_path / "outside" / "map_stations_RX_ABS.parquet"
+        outside_path.parent.mkdir(parents=True)
+        outside_path.write_bytes(b"outside")
+        artifact_paths["map_stations"] = outside_path
+        state[SESSION_ARTIFACT_PATHS_KEY].append(str(outside_path.resolve()))
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state=state),
+    )
+    monkeypatch.setattr(results_export, "CACHE_DIR", tmp_path)
+
+    with pytest.raises(ValueError, match=expected_message):
+        results_export.register_map_export_context(
+            analysis={
+                "id": "RX_ABS",
+                "title": "RX Performance",
+                "is_compare": False,
+                "is_sequential": False,
+                "analysis_kind": "opportunity",
+            },
+            parquet_path=artifact_paths["spots"],
+            map_data_paths=results_export.MapDataArtifactPaths(
+                station_rows_path=artifact_paths["map_stations"],
+                segment_rows_path=artifact_paths["map_segments"],
+            ),
+            start_t="2026-07-01T00:00:00Z",
+            end_t="2026-07-02T00:00:00Z",
+            max_peer_distance_km=10000,
+            base_min_stations=1,
+            lat_0=50.0,
+            lon_0=5.0,
+            analysis_context=SimpleNamespace(to_dict=lambda: {}),
+            presentation_context=SimpleNamespace(
+                language="en",
+                theme="dark",
+                solar_label="All",
+            ),
+            database_source="wspr_live",
+        )
+
+
+@pytest.mark.parametrize("failure_mode", ["deleted", "corrupt"])
+def test_map_export_aborts_when_required_compact_aggregate_is_unusable(
+    tmp_path,
+    monkeypatch,
+    failure_mode,
+):
+    """Never silently omit the map when its registered aggregate is unusable."""
+    state, artifact_paths = _create_registered_export_artifacts(tmp_path)
+    if failure_mode == "deleted":
+        artifact_paths["map_segments"].unlink()
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state=state),
+    )
+    monkeypatch.setattr(results_export, "CACHE_DIR", tmp_path)
+
+    with pytest.raises(
+        results_export.ExportArtifactUnavailableError,
+        match="run the analysis again",
+    ):
+        results_export._render_map_png_for_block(
+            _map_export_test_block(artifact_paths)
+        )
+
+
+def test_map_export_wraps_renderer_failure_as_actionable_artifact_error(
+    tmp_path,
+    monkeypatch,
+):
+    """Convert a compact-recipe render failure into the export UI contract."""
+    state, artifact_paths = _create_registered_export_artifacts(tmp_path)
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state=state),
+    )
+    monkeypatch.setattr(results_export, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(
+        results_export,
+        "read_map_data_artifacts",
+        lambda *_args, **_kwargs: SimpleNamespace(marker="compact"),
+    )
+    monkeypatch.setattr(
+        plot_engine,
+        "render_map_figure",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ValueError("invalid compact render recipe")
+        ),
+    )
+
+    with pytest.raises(
+        results_export.ExportArtifactUnavailableError,
+        match="could not be rendered",
+    ):
+        results_export._render_map_png_for_block(
+            _map_export_test_block(artifact_paths)
+        )
+
+
 def test_success_temporal_snr_figure_uses_its_separate_export_recipe(
     monkeypatch,
 ):
@@ -823,11 +1130,11 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
     assert metadata["result_blocks"][0]["compare_evidence_figures"] == (
         expected_descriptions
     )
-    signature = json.loads(metadata["export_signature"])
     assert [
         recipe["filename"]
-        for recipe in signature[0]["compare_evidence_recipes"]
+        for recipe in results_export._compare_evidence_recipe_signature(block)
     ] == list(expected_descriptions)
+    assert len(metadata["export_signature"]) == 64
     without_selected_coverage = {
         "RX_COMPARE": {
             **block,
@@ -1050,7 +1357,7 @@ def test_run_metadata_zip_preserves_literal_utf8_and_json_round_trip(
     monkeypatch.setattr(
         results_export,
         "_render_map_png_for_block",
-        lambda _block: None,
+        lambda _block: b"map-png",
     )
     monkeypatch.setattr(
         results_export,
@@ -1353,6 +1660,11 @@ def test_success_results_zip_records_selected_figures_and_context(
         "_render_inspector_png_for_block",
         render_inspector_figure,
     )
+    monkeypatch.setattr(
+        results_export,
+        "_render_map_png_for_block",
+        lambda _block: b"map-png",
+    )
 
     zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
 
@@ -1520,6 +1832,11 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
         "_render_inspector_png_for_block",
         render_inspector_figure,
     )
+    monkeypatch.setattr(
+        results_export,
+        "_render_map_png_for_block",
+        lambda _block: b"map-png",
+    )
 
     zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
 
@@ -1590,8 +1907,6 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
 
 def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
     """New Success packages must not expose the superseded Absolute name."""
-    parquet_path = tmp_path / "success_evidence.parquet"
-    parquet_path.write_bytes(b"compact evidence")
     state = {
         "run_id": 17,
         results_export.EXPORT_RUN_ID_KEY: 17,
@@ -1599,6 +1914,21 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         "lang": "en",
         "run_mode": "RX",
     }
+    artifact_paths = {
+        artifact_kind: session_artifact_path(
+            tmp_path,
+            state,
+            run_id=17,
+            analysis_id="RX_ABS",
+            artifact_kind=artifact_kind,
+        )
+        for artifact_kind in ("spots", "map_stations", "map_segments")
+    }
+    for artifact_path in artifact_paths.values():
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        artifact_path.write_bytes(b"compact artifact")
+        register_session_artifact(state, artifact_path)
+    parquet_path = artifact_paths["spots"]
     config_payload = {
         "format": "wspradar.config",
         "schema_version": 1,
@@ -1619,6 +1949,7 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
     config_bytes = json.dumps(config_payload).encode("utf-8")
 
     monkeypatch.setattr(results_export, "st", SimpleNamespace(session_state=state))
+    monkeypatch.setattr(results_export, "CACHE_DIR", tmp_path)
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
@@ -1640,6 +1971,10 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
             "absolute_method_version": "opportunity-v1",
         },
         parquet_path=str(parquet_path),
+        map_data_paths=results_export.MapDataArtifactPaths(
+            station_rows_path=artifact_paths["map_stations"],
+            segment_rows_path=artifact_paths["map_segments"],
+        ),
         start_t="2026-07-01T00:00:00Z",
         end_t="2026-07-02T00:00:00Z",
         max_peer_distance_km=10000,
@@ -1655,6 +1990,16 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         database_source="wd2",
     )
     success_block = state[results_export.EXPORT_STATE_KEY]["RX_ABS"]
+    assert success_block["map_context"]["parquet_path"] == str(parquet_path)
+    assert success_block["map_context"]["map_data_artifacts"] == {
+        "schema_version": results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+        "analysis_id": "RX_ABS",
+        "is_compare": False,
+        "is_sequential": False,
+        "analysis_kind": "opportunity",
+        "station_rows_path": str(artifact_paths["map_stations"].resolve()),
+        "segment_rows_path": str(artifact_paths["map_segments"].resolve()),
+    }
     success_block["table_station_insights_current_segment.csv"] = pd.DataFrame(
         {"Peer": ["TEST"]}
     )
@@ -1671,6 +2016,11 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         results_export,
         "_render_inspector_png_for_block",
         render_success_inspector_figure,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_render_map_png_for_block",
+        lambda _block: b"map-png",
     )
 
     zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
@@ -1708,51 +2058,55 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
     assert "absolute" not in json.dumps(metadata).casefold()
 
 
-def test_success_map_export_reuses_projected_shared_map_renderer(monkeypatch):
-    """Rebuild the light export from the same opportunity map entry point."""
-    source_frame = pd.DataFrame(
-        {
-            "time_slot": [1],
-            "peer_sign": ["K1AAA"],
-            "peer_grid": ["FN31"],
-            "target_seen": [1],
-            "target_snr": [-12.0],
-            "peer_lat": [41.0],
-            "peer_lon": [-72.0],
-            "opportunity": [1],
-            "hit": [1],
-            "miss": [0],
-            "target_only": [0],
-        }
+def test_success_map_export_reuses_compact_aggregate_without_raw_evidence_read(
+    tmp_path,
+    monkeypatch,
+):
+    """Rebuild the light export without materializing row-level evidence."""
+    state = {"run_id": 17}
+    artifact_paths = {
+        artifact_kind: session_artifact_path(
+            tmp_path,
+            state,
+            run_id=17,
+            analysis_id="RX_ABS",
+            artifact_kind=artifact_kind,
+        )
+        for artifact_kind in ("spots", "map_stations", "map_segments")
+    }
+    for artifact_path in artifact_paths.values():
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        artifact_path.write_bytes(b"compact artifact")
+        register_session_artifact(state, artifact_path)
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state=state),
     )
-    read_calls = []
+    monkeypatch.setattr(results_export, "CACHE_DIR", tmp_path)
+    compact_map_data = SimpleNamespace(marker="compact map data")
+    aggregate_read_calls = []
     render_calls = []
     disposed_figures = []
     fake_figure = object()
 
-    monkeypatch.setattr(
-        results_export,
-        "_parquet_schema_columns",
-        lambda _path: set(results_export.OPPORTUNITY_MAP_EXPORT_COLUMNS),
-    )
+    def fake_read_map_data_artifacts(paths, **kwargs):
+        aggregate_read_calls.append((paths, kwargs))
+        return compact_map_data
 
-    def fake_read_parquet_artifact(path, *, columns):
-        read_calls.append((path, columns))
-        return source_frame.loc[:, columns].copy()
-
-    def fake_generate_map_plot(*args, **kwargs):
+    def fake_render_map_figure(*args, **kwargs):
         render_calls.append((args, kwargs))
         return SimpleNamespace(figure=fake_figure)
 
     monkeypatch.setattr(
         results_export,
-        "read_parquet_artifact",
-        fake_read_parquet_artifact,
+        "read_map_data_artifacts",
+        fake_read_map_data_artifacts,
     )
     monkeypatch.setattr(
         plot_engine,
-        "generate_map_plot",
-        fake_generate_map_plot,
+        "render_map_figure",
+        fake_render_map_figure,
     )
     monkeypatch.setattr(
         results_export,
@@ -1780,7 +2134,18 @@ def test_success_map_export_reuses_projected_shared_map_renderer(monkeypatch):
         "is_sequential": False,
         "analysis_kind": "opportunity",
         "map_context": {
-            "parquet_path": "success-evidence.parquet",
+            "parquet_path": str(artifact_paths["spots"]),
+            "map_data_artifacts": {
+                "schema_version": (
+                    results_export.MAP_DATA_ARTIFACT_SCHEMA_VERSION
+                ),
+                "analysis_id": "RX_ABS",
+                "is_compare": False,
+                "is_sequential": False,
+                "analysis_kind": "opportunity",
+                "station_rows_path": str(artifact_paths["map_stations"]),
+                "segment_rows_path": str(artifact_paths["map_segments"]),
+            },
             "start_t": "2026-07-01T00:00:00Z",
             "end_t": "2026-07-02T00:00:00Z",
             "max_peer_distance_km": 10000,
@@ -1799,20 +2164,25 @@ def test_success_map_export_reuses_projected_shared_map_renderer(monkeypatch):
     rendered = results_export._render_map_png_for_block(block)
 
     assert rendered == b"map-png"
-    assert read_calls == [
-        (
-            "success-evidence.parquet",
-            list(results_export.OPPORTUNITY_MAP_EXPORT_COLUMNS),
-        )
-    ]
+    assert len(aggregate_read_calls) == 1
+    aggregate_paths, aggregate_identity = aggregate_read_calls[0]
+    assert aggregate_paths == results_export.MapDataArtifactPaths(
+        station_rows_path=artifact_paths["map_stations"].resolve(),
+        segment_rows_path=artifact_paths["map_segments"].resolve(),
+    )
+    assert aggregate_identity == {
+        "analysis_id": "RX_ABS",
+        "is_compare": False,
+        "is_sequential": False,
+        "analysis_kind": "opportunity",
+    }
     assert len(render_calls) == 1
     positional, keyword = render_calls[0]
-    assert positional[0].equals(source_frame)
-    assert positional[1:4] == ("RX Performance", False, False)
-    assert positional[7] == "RX_ABS"
-    assert keyword["analysis_kind"] == "opportunity"
-    assert keyword["theme"] == "light"
+    assert positional == (compact_map_data,)
+    assert keyword["title"] == "RX Performance"
+    assert keyword["start_t"] == "2026-07-01T00:00:00Z"
+    assert keyword["end_t"] == "2026-07-02T00:00:00Z"
     assert keyword["analysis_context"] == analysis_context
     assert keyword["presentation_context"].language == "en"
-    assert keyword["presentation_context"].theme == "dark"
+    assert keyword["presentation_context"].theme == "light"
     assert disposed_figures == [fake_figure]

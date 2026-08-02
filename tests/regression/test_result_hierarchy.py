@@ -1474,14 +1474,15 @@ def test_map_and_deferred_inspector_share_one_progressive_flow_container():
     source = (REPOSITORY_ROOT / "ui" / "run_controller.py").read_text(
         encoding="utf-8"
     )
-    result_start = source.index("result_context = build_result_context(")
-    result_flow = source[result_start:]
+    result_start = source.index("def _render_map_result_block(")
+    result_end = source.index("\ndef _render_deferred_inspectors(", result_start)
+    result_flow = source[result_start:result_end]
 
     assert (
         result_flow.index('key=f"results_evidence_flow_')
         < result_flow.index('key=f"results_evidence_spine_')
         < result_flow.index('f"results_evidence_level_1_"')
-        < result_flow.index("evidence_level_header_html(\n                            1,")
+        < result_flow.index("evidence_level_header_html(")
         < result_flow.index("render_matplotlib_figure(")
         < result_flow.index("transition_prompt_html(")
         < result_flow.index("inspector_container = st.container()")
@@ -1495,15 +1496,20 @@ def test_run_is_complete_only_after_deferred_inspectors_finish():
     source = (REPOSITORY_ROOT / "ui" / "run_controller.py").read_text(
         encoding="utf-8"
     )
-    result_start = source.index("deferred_render_data = []")
+    helper_start = source.index("def _render_deferred_inspectors(")
+    helper_end = source.index("\ndef _render_completed_analysis_run(", helper_start)
+    inspector_helper = source[helper_start:helper_end]
+    result_start = source.index("def _render_admitted_analysis_run(")
     result_flow = source[result_start:]
 
-    inspector_render_index = result_flow.index("render_segment_inspector(")
+    assert "render_segment_inspector(" in inspector_helper
+    inspector_render_index = result_flow.index("_render_deferred_inspectors(")
+    snapshot_publish_index = result_flow.index("publish_completed_run_snapshot(")
     complete_status_index = result_flow.index(
         'status_box.update(label="Complete"'
     )
 
-    assert inspector_render_index < complete_status_index
+    assert inspector_render_index < snapshot_publish_index < complete_status_index
 
 
 def test_segment_heading_precedes_accessibly_labelled_scope_selectors():

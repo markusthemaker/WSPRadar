@@ -42,6 +42,7 @@ class _FakeStreamlit:
         self.slots = []
         self.statuses = []
         self.warnings = []
+        self.errors = []
         self.spinner_labels = []
 
     def empty(self):
@@ -60,6 +61,9 @@ class _FakeStreamlit:
 
     def warning(self, message):
         self.warnings.append(message)
+
+    def error(self, message):
+        self.errors.append(message)
 
 
 class _Permit(_Context):
@@ -162,6 +166,38 @@ def test_export_preparation_waits_for_admission_and_releases_permit(monkeypatch)
     assert events[0][1]["initial_queue_position"] == 2
     assert events[1][1]["outcome"] == "completed"
     assert events[1][1]["zip_bytes"] == len(b"prepared-zip")
+
+
+def test_required_map_artifact_failure_is_reported_and_releases_permit(
+    monkeypatch,
+):
+    """Show a rerun action instead of returning a ZIP with no required map."""
+    fake_st = _FakeStreamlit()
+    permit = _Permit()
+    gate = _AdmittingGate(permit)
+    events = _patch_profiling(monkeypatch)
+    monkeypatch.setattr(results_export, "st", fake_st)
+    monkeypatch.setattr(results_export, "EXPORT_ADMISSION_GATE", gate)
+    monkeypatch.setattr(
+        results_export,
+        "build_results_zip",
+        lambda _translations: (_ for _ in ()).throw(
+            results_export.ExportArtifactUnavailableError(
+                "Required compact map data is unavailable; run the analysis again"
+            )
+        ),
+    )
+
+    result = results_export._prepare_results_zip_with_admission(T["en"])
+
+    assert result == (None, None)
+    assert permit.released is True
+    assert fake_st.errors == [
+        "Analysis evidence could not be prepared. Please run the analysis again."
+    ]
+    assert events[-1][0] == "export_preparation"
+    assert events[-1][1]["outcome"] == "ExportArtifactUnavailableError"
+    assert events[-1][1]["zip_bytes"] == 0
 
 
 def test_full_export_queue_does_not_start_zip_construction(monkeypatch):

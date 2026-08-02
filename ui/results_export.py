@@ -7,8 +7,10 @@ tables are built only after the user requests the prepared results package,
 while preserving the current segment, station, non-joint, and time-bin state.
 """
 
+import hashlib
 import io
 import json
+from pathlib import Path
 import time
 import zipfile
 from datetime import datetime, timezone
@@ -20,19 +22,22 @@ from matplotlib.legend import Legend
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
-from config import APP_VERSION, TEMPORAL_IQR_BAND_ALPHA
+from config import APP_VERSION, CACHE_DIR, TEMPORAL_IQR_BAND_ALPHA
+from core.analysis_admission import AnalysisQueueFull, AnalysisQueueTimeout
 from core.analysis_context import AnalysisContext
 from core.artifact_store import (
     ARTIFACT_STORE,
-    read_parquet_artifact,
     session_artifact_owner,
+    validate_registered_session_artifacts,
 )
-from core.analysis_admission import AnalysisQueueFull, AnalysisQueueTimeout
 from core.export_admission import EXPORT_ADMISSION_GATE
 from core.fetch_models import DatabaseSource
 from core.matplotlib_runtime import matplotlib_operation_lock
-from core.map_data import validate_map_analysis_mode
-from core.opportunity_engine import OPPORTUNITY_MAP_EXPORT_COLUMNS
+from core.map_data_artifacts import (
+    MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+    MapDataArtifactPaths,
+    read_map_data_artifacts,
+)
 from core.performance_timer import (
     log_performance_event,
     process_peak_rss_bytes,
@@ -79,6 +84,10 @@ COMPARE_EVIDENCE_FIGURE_EXPORTS = (
         ("evidence_title",),
     ),
 )
+
+
+class ExportArtifactUnavailableError(RuntimeError):
+    """Report that a required registered export artifact cannot be reused."""
 
 
 def _normalized_database_source(source_key) -> str:
@@ -333,6 +342,7 @@ def figure_to_png_bytes(
 def register_map_export_context(
     analysis,
     parquet_path,
+    map_data_paths,
     start_t,
     end_t,
     max_peer_distance_km,
@@ -343,7 +353,22 @@ def register_map_export_context(
     presentation_context,
     database_source,
 ):
-    """Register map recipe and immutable database provenance for one result."""
+    """Register compact map and raw-evidence recipes with immutable provenance."""
+    if not isinstance(map_data_paths, MapDataArtifactPaths):
+        raise TypeError("Map export context requires compact map artifact paths")
+    validated_paths = validate_registered_session_artifacts(
+        CACHE_DIR,
+        st.session_state,
+        analysis_id=analysis["id"],
+        artifact_paths_by_kind={
+            "spots": parquet_path,
+            "map_stations": map_data_paths.station_rows_path,
+            "map_segments": map_data_paths.segment_rows_path,
+        },
+    )
+    parquet_path = str(validated_paths["spots"])
+    station_rows_path = str(validated_paths["map_stations"])
+    segment_rows_path = str(validated_paths["map_segments"])
     blocks = _ensure_current_export_state()
     block = blocks.setdefault(analysis["id"], {})
     block.update({
@@ -362,6 +387,15 @@ def register_map_export_context(
         "database_source": _normalized_database_source(database_source),
         "map_context": {
             "parquet_path": parquet_path,
+            "map_data_artifacts": {
+                "schema_version": MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+                "analysis_id": str(analysis["id"]),
+                "is_compare": bool(analysis["is_compare"]),
+                "is_sequential": bool(analysis["is_sequential"]),
+                "analysis_kind": str(analysis["analysis_kind"]),
+                "station_rows_path": station_rows_path,
+                "segment_rows_path": segment_rows_path,
+            },
             "start_t": start_t,
             "end_t": end_t,
             "max_peer_distance_km": max_peer_distance_km,
@@ -730,6 +764,63 @@ def _table_signature_value(df):
     return [int(df.shape[0]), int(df.shape[1])]
 
 
+def _artifact_export_signature(path_value):
+    """Return path-free identity and stat inputs for one immutable artifact."""
+    if not isinstance(path_value, (str, Path)) or not str(path_value).strip():
+        return None
+    try:
+        artifact_path = Path(path_value).resolve()
+    except (OSError, RuntimeError, ValueError):
+        return {"identity": "invalid", "exists": False}
+    signature = {
+        "identity": hashlib.sha256(
+            str(artifact_path).encode("utf-8")
+        ).hexdigest(),
+    }
+    try:
+        artifact_stat = artifact_path.stat()
+    except OSError:
+        signature["exists"] = False
+    else:
+        signature.update({
+            "exists": True,
+            "size_bytes": int(artifact_stat.st_size),
+        })
+    return signature
+
+
+def _map_context_export_signature(context):
+    """Return map recipe inputs without embedding filesystem path text."""
+    if not isinstance(context, dict):
+        return None
+    map_artifacts = context.get("map_data_artifacts")
+    safe_context = {
+        key: value
+        for key, value in context.items()
+        if key not in {"parquet_path", "map_data_artifacts"}
+    }
+    safe_context["evidence_artifact"] = _artifact_export_signature(
+        context.get("parquet_path")
+    )
+    if isinstance(map_artifacts, dict):
+        safe_context["map_data_artifacts"] = {
+            "schema_version": map_artifacts.get("schema_version"),
+            "analysis_id": map_artifacts.get("analysis_id"),
+            "is_compare": map_artifacts.get("is_compare"),
+            "is_sequential": map_artifacts.get("is_sequential"),
+            "analysis_kind": map_artifacts.get("analysis_kind"),
+            "station_artifact": _artifact_export_signature(
+                map_artifacts.get("station_rows_path")
+            ),
+            "segment_artifact": _artifact_export_signature(
+                map_artifacts.get("segment_rows_path")
+            ),
+        }
+    else:
+        safe_context["map_data_artifacts"] = None
+    return safe_context
+
+
 def _export_signature(blocks):
     """Return a compact fingerprint for registered state and render contracts."""
     payload = []
@@ -778,12 +869,20 @@ def _export_signature(blocks):
             "show_zero_target": block.get("show_zero_target"),
             "evidence_time_bin": block.get("evidence_time_bin"),
             "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
-            "map_context": block.get("map_context"),
+            "map_context": _map_context_export_signature(
+                block.get("map_context")
+            ),
             "station_table_shape": _table_signature_value(block.get("table_station_insights_current_segment.csv")),
             "selected_drilldown_shape": _table_signature_value(block.get("table_drilldown_selected_stations.csv")),
             "all_drilldown_station_count": len((block.get("all_drilldown_context") or {}).get("station_meta_df", [])),
         })
-    return json.dumps(payload, sort_keys=True, default=_json_default)
+    canonical_payload = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=_json_default,
+    )
+    return hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
 
 
 def _safe_analysis_filename(analysis_id):
@@ -814,129 +913,116 @@ def _analysis_cache_export_paths(blocks):
     return paths
 
 
-def _parquet_schema_columns(parquet_path):
-    """Return parquet column names when the active parquet engine exposes metadata."""
-    try:
-        import pyarrow.parquet as pq
-    except Exception:
-        return None
-
-    try:
-        with ARTIFACT_STORE.lease(parquet_path) as leased_path:
-            return set(pq.ParquetFile(leased_path).schema.names)
-    except Exception:
-        return None
-
-
-def _project_existing_columns(columns, available_columns):
-    if available_columns is None:
-        return list(columns)
-    return [column for column in columns if column in available_columns]
-
-
-def _map_export_read_columns(block, parquet_path):
-    """Return the minimum raw-cache columns needed to reconstruct a map."""
-    available_columns = _parquet_schema_columns(parquet_path)
-    analysis_kind = block["analysis_kind"]
-    is_compare = bool(block["is_compare"])
-    is_sequential = bool(block["is_sequential"])
-    is_opportunity = validate_map_analysis_mode(
-        analysis_kind=analysis_kind,
-        is_compare=is_compare,
-    )
-
-    if is_opportunity:
-        return _project_existing_columns(OPPORTUNITY_MAP_EXPORT_COLUMNS, available_columns)
-
-    if is_sequential:
-        return _project_existing_columns(
-            [
-                "time",
-                "peer_sign",
-                "peer_grid",
-                "peer_lat",
-                "peer_lon",
-                "stat_val",
-                "is_me",
-                "tx_ab_pair_id",
-                "tx_ab_pair_target_time",
-                "tx_ab_pair_reference_time",
-            ],
-            available_columns,
-        )
-
-    return _project_existing_columns(
-        [
-            "time_slot",
-            "peer_sign",
-            "peer_grid",
-            "peer_lat",
-            "peer_lon",
-            "snr_u_norm",
-            "snr_r_norm",
-            "has_u",
-            "has_r",
-            "best_ref_sign",
-            "best_ref_dist",
-        ],
-        available_columns,
-    )
-
-
 def _render_map_png_for_block(block):
-    """Render the registered map context as a high-resolution light-theme PNG."""
+    """Render a light-theme map from its compact registered aggregate pair."""
+    analysis_id = str(block.get("analysis_id", ""))
     context = block.get("map_context")
-    if not context:
-        return block.get("figure_map_highres.png")
+    if not isinstance(context, dict):
+        raise ExportArtifactUnavailableError(
+            f"Required map export context is unavailable for {analysis_id}; "
+            "run the analysis again"
+        )
+    map_artifacts = context.get("map_data_artifacts")
+    if not isinstance(map_artifacts, dict):
+        raise ExportArtifactUnavailableError(
+            f"Required compact map data is unavailable for {analysis_id}; "
+            "run the analysis again"
+        )
+    expected_identity = {
+        "schema_version": MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+        "analysis_id": analysis_id,
+        "is_compare": bool(block.get("is_compare")),
+        "is_sequential": bool(block.get("is_sequential")),
+        "analysis_kind": str(block.get("analysis_kind", "")),
+    }
+    if any(
+        map_artifacts.get(identity_key) != identity_value
+        for identity_key, identity_value in expected_identity.items()
+    ):
+        raise ExportArtifactUnavailableError(
+            f"Compact map data identity no longer matches {analysis_id}; "
+            "run the analysis again"
+        )
+    station_rows_path = map_artifacts.get("station_rows_path")
+    segment_rows_path = map_artifacts.get("segment_rows_path")
+    try:
+        validated_paths = validate_registered_session_artifacts(
+            CACHE_DIR,
+            st.session_state,
+            analysis_id=analysis_id,
+            artifact_paths_by_kind={
+                "spots": context.get("parquet_path"),
+                "map_stations": station_rows_path,
+                "map_segments": segment_rows_path,
+            },
+        )
+    except (OSError, RuntimeError, TypeError, ValueError) as exc:
+        raise ExportArtifactUnavailableError(
+            f"Required map artifacts are no longer valid for {analysis_id}; "
+            "run the analysis again"
+        ) from exc
+    map_data_paths = MapDataArtifactPaths(
+        station_rows_path=validated_paths["map_stations"],
+        segment_rows_path=validated_paths["map_segments"],
+    )
+    try:
+        map_data = read_map_data_artifacts(
+            map_data_paths,
+            analysis_id=expected_identity["analysis_id"],
+            is_compare=expected_identity["is_compare"],
+            is_sequential=expected_identity["is_sequential"],
+            analysis_kind=expected_identity["analysis_kind"],
+        )
+    except Exception as exc:
+        raise ExportArtifactUnavailableError(
+            f"Required compact map data could not be read for {analysis_id}; "
+            "run the analysis again"
+        ) from exc
 
     try:
-        read_columns = _map_export_read_columns(block, context["parquet_path"])
-        df = read_parquet_artifact(context["parquet_path"], columns=read_columns)
-    except (KeyError, ValueError):
-        try:
-            df = read_parquet_artifact(context["parquet_path"])
-        except Exception:
-            return None
-    except Exception:
-        return None
+        from core.plot_engine import render_map_figure
 
-    from core.plot_engine import generate_map_plot
-    analysis_context = AnalysisContext.from_dict(context["analysis_context"])
-    presentation_values = context["presentation_context"]
-    presentation_language = presentation_values["language"]
-    presentation_labels = T[presentation_language]
-    presentation_context = PresentationContext(
-        language=presentation_language,
-        labels=presentation_labels,
-        theme=presentation_values.get("theme", "dark"),
-        solar_label=presentation_values.get(
-            "solar_label",
-            presentation_labels["opt_solar_all"],
-        ),
-    )
-    plot_result = generate_map_plot(
-        df,
-        block.get("title", ""),
-        block["is_compare"],
-        block["is_sequential"],
-        context["start_t"],
-        context["end_t"],
-        context["max_peer_distance_km"],
-        block.get("analysis_id"),
-        context["base_min_stations"],
-        context["lat_0"],
-        context["lon_0"],
-        analysis_context=analysis_context,
-        presentation_context=presentation_context,
-        theme="light",
-        analysis_kind=block["analysis_kind"],
-    )
-    if plot_result is None:
-        return None
+        analysis_context = AnalysisContext.from_dict(context["analysis_context"])
+        presentation_values = context["presentation_context"]
+        presentation_language = presentation_values["language"]
+        presentation_labels = T[presentation_language]
+        presentation_context = PresentationContext(
+            language=presentation_language,
+            labels=presentation_labels,
+            theme="light",
+            solar_label=presentation_values.get(
+                "solar_label",
+                presentation_labels["opt_solar_all"],
+            ),
+        )
+        plot_result = render_map_figure(
+            map_data,
+            title=block.get("title", ""),
+            start_t=context["start_t"],
+            end_t=context["end_t"],
+            max_dist_km=context["max_peer_distance_km"],
+            base_min_stations=context["base_min_stations"],
+            lat_0=context["lat_0"],
+            lon_0=context["lon_0"],
+            analysis_context=analysis_context,
+            presentation_context=presentation_context,
+        )
+        if plot_result is None:
+            raise ValueError("Map renderer produced no figure")
+        fig = plot_result.figure
+    except Exception as exc:
+        raise ExportArtifactUnavailableError(
+            f"Required map export could not be rendered for {analysis_id}; "
+            "run the analysis again"
+        ) from exc
 
-    fig = plot_result.figure
     try:
         return figure_to_png_bytes(fig, paper_theme=False)
+    except Exception as exc:
+        raise ExportArtifactUnavailableError(
+            f"Required map export could not be encoded for {analysis_id}; "
+            "run the analysis again"
+        ) from exc
     finally:
         dispose_matplotlib_figure(fig)
 
@@ -1142,6 +1228,11 @@ def build_results_zip(translations):
                     if figure_name == "figure_map_highres.png"
                     else _render_inspector_png_for_block(block, figure_name)
                 )
+                if figure_name == "figure_map_highres.png" and not png_bytes:
+                    raise ExportArtifactUnavailableError(
+                        "Required high-resolution map export produced no image; "
+                        "run the analysis again"
+                    )
                 if png_bytes:
                     zf.writestr(f"{root}/{folder}/{figure_name}", png_bytes)
 
@@ -1256,6 +1347,10 @@ def _prepare_results_zip_with_admission(t):
         if not result[0]:
             export_outcome = "empty"
         return result
+    except ExportArtifactUnavailableError:
+        export_outcome = ExportArtifactUnavailableError.__name__
+        st.error(t["err_analysis_processing_failed"])
+        return None, None
     except BaseException as exc:
         export_outcome = type(exc).__name__
         raise

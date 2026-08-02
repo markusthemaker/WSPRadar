@@ -44,12 +44,18 @@ def is_snr_like_column_name(column_name):
     return any(marker in text for marker in SNR_NAME_MARKERS)
 
 
-def round_snr_like_columns(df, columns=None, decimals=1):
-    """Round known SNR-like dataframe columns while leaving other numeric data alone."""
+def round_snr_like_columns(
+    df,
+    columns=None,
+    decimals=1,
+    *,
+    owns_input=False,
+):
+    """Round SNR-like columns, copying unless the caller owns the input frame."""
     if not isinstance(df, pd.DataFrame) or df.empty:
         return df
 
-    rounded_df = df.copy()
+    rounded_df = df if owns_input else df.copy()
     explicit_columns = columns is not None
     candidate_columns = columns if explicit_columns else rounded_df.columns
     for col in candidate_columns:

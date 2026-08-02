@@ -147,6 +147,9 @@ Important defaults currently include:
 - Ordinary query-cache TTL: 3600 seconds.
 - Guided-demo query-cache TTL: 86400 seconds from publication; cache reads do
   not extend this absolute freshness window.
+- Process-wide raw-query DataFrame L1: 64 MiB total, 16 MiB per entry, and 32
+  entries; larger accepted results remain reusable from the disk L2 without a
+  second retained DataFrame copy.
 - Fresh guided-demo runs prefer the configured-first provider with a complete
   zero-request cache bundle before normal network-backed provider selection.
 - Session-artifact TTL: 3600 seconds, with active leases and access touches.
@@ -321,6 +324,8 @@ Useful files when tracing behavior:
   aggregation and classification.
 - `core/map_data.py` and `core/plot_engine.py`: pure map aggregation and
   presentation rendering.
+- `core/map_data_artifacts.py`: versioned persistence and validation of compact
+  station/segment render aggregates for completed-run rerenders.
 - `ui/result_hierarchy.py` and `ui/result_guidance.py`: semantic result-flow
   presentation, scope copy, and bilingual mode-aware interpretation help.
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
@@ -340,8 +345,8 @@ Useful files when tracing behavior:
 - `ui/results_export.py`: lazy export recipe execution and ZIP construction.
 - `ui/analysis_submission_state.py`: lightweight, token-aware in-flight analysis
   ownership used to guard Streamlit reruns before admission.
-- `ui/result_state.py`: lightweight result/export reset and database-provenance
-  lifecycle used by idle configuration callbacks.
+- `ui/result_state.py`: lightweight result/export reset, database provenance,
+  and completed-run snapshot lifecycle used by idle configuration callbacks.
 - `ui/page_navigation.py`: stable application-region anchors, coarse scroll
   tracking, and one-shot browser navigation requests above the manual boundary.
 - `ui/documentation_scroll_trigger.py`: browser viewport, history/navigation,
@@ -370,10 +375,10 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Verified result on 2026-07-11:
+Verified result on 2026-08-02:
 
 ```text
-116 passed, 1 skipped, 1 warning
+1676 passed, 1 skipped, 1 warning
 ```
 
 The skipped test requires a generated fixture under
@@ -419,13 +424,17 @@ ignored by Git:
   .artifact-locks/
 ```
 
-Ordinary query and session artifacts use one-hour access-aware cleanup. Guided
-demo query artifacts use a separate 24-hour absolute freshness lifetime: reads
-do not touch their publication timestamp. Demo Compare keeps a process-memory
-DataFrame L1 and a Parquet disk L2; demo Success uses the same persistent demo
-namespace. Both tiers cache raw provider query results rather than completed
-scientific analyses, and provider identity remains part of every query-cache
-key. Geographic Analysis Scope is intentionally absent from this raw-query
+Ordinary query and session artifacts use one-hour access-aware cleanup. Every
+ordinary Compare CSV exact query is written through as raw Parquet rows in the
+same ordinary disk L2 used by Success query artifacts. Guided demo query
+artifacts use a separate 24-hour absolute freshness lifetime: reads do not touch
+their publication timestamp. Compare keeps an optional process-memory DataFrame
+L1 and a Parquet disk L2; demo Success uses the same persistent demo namespace.
+The process-wide DataFrame L1 admits at most 64 MiB total, 16 MiB per entry, and
+32 entries after deep-byte accounting; larger frames remain disk-only. Both
+tiers cache raw provider query results rather than completed scientific
+analyses, and provider identity remains part of every query-cache key.
+Geographic Analysis Scope is intentionally absent from this raw-query
 identity because its scientific filtering happens post-fetch; the scope remains
 part of the canonical analysis request and processed artifacts. Before issuing
 demo requests, provider selection prefers the first enabled
@@ -436,7 +445,11 @@ artifacts are neither relabelled nor combined across sources. Loading a built-in
 demo establishes this demo identity without immediately running it; the normal
 Run action preserves the identity while its scientific controls remain
 unchanged, and a scientific edit returns the configuration to ordinary cache
-policy. Derived basemaps
+policy. A completed run stores scoped evidence plus compact station/segment map
+aggregates under its session-artifact owner. Later full Streamlit rerenders
+validate a lightweight completed-run snapshot and reuse those aggregates without
+another database request or full raw-frame map aggregation; stale or missing
+artifacts require an explicit new run. Derived basemaps
 are shared across sessions and are not currently subject to TTL cleanup. Process
 memory also holds the query DataFrame LRU, admission state, inspector session
 models/PNGs, generated documentation PDF cache, and provider rolling-request,

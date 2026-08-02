@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 
 from config import WSPR_DATABASE_PROVIDERS
-from core import data_engine, plot_engine
+from core import data_engine, map_data as map_data_module, plot_engine
 from core.analysis_context import (
     AnalysisContext,
     COMPARISON_HARDWARE_AB,
@@ -469,6 +469,107 @@ def test_map_data_is_pure_for_compare_aggregates():
     assert not map_data.segment_rows.empty
 
 
+def test_compare_map_transfers_its_owned_working_frame_to_aggregation(
+    monkeypatch,
+):
+    """Do not clone the raw Compare frame again after map ownership transfer."""
+    source = pd.DataFrame({"raw": [1]})
+    observed = {}
+
+    def fake_geometry(frame, **_kwargs):
+        observed["geometry"] = frame
+
+    def fake_compare_aggregation(frame, **kwargs):
+        observed["aggregation"] = frame
+        observed["owns_input"] = kwargs["owns_input"]
+        return (
+            pd.DataFrame({"peer_sign": ["K1AAA"]}),
+            pd.DataFrame({"cnt": [1]}),
+        )
+
+    monkeypatch.setattr(map_data_module, "_attach_map_geometry", fake_geometry)
+    monkeypatch.setattr(
+        map_data_module,
+        "aggregate_compare_map_data",
+        fake_compare_aggregation,
+    )
+
+    result = map_data_module.build_map_data(
+        source,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        is_sequential=False,
+        analysis_kind="comparison",
+        center_latitude=47.0,
+        center_longitude=8.0,
+        min_spots=1,
+        min_opportunities=3,
+        base_min_stations=1,
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
+        owns_input=True,
+    )
+
+    assert result is not None
+    assert observed["geometry"] is source
+    assert observed["aggregation"] is source
+    assert observed["owns_input"] is True
+
+
+def test_success_map_reuses_owned_peer_aggregate_for_station_rows(monkeypatch):
+    """Avoid a second station-frame owner between geometry and segmentation."""
+    source = pd.DataFrame({"raw": [1]})
+    peer_rows = pd.DataFrame({"peer_sign": ["K1AAA"]})
+    observed_frames = {}
+
+    def fake_peer_aggregation(frame, *, min_opportunities):
+        assert frame is source
+        assert min_opportunities == 3
+        return peer_rows
+
+    def fake_geometry(frame, **_kwargs):
+        observed_frames["geometry"] = frame
+
+    def fake_segment_aggregation(frame):
+        observed_frames["segments"] = frame
+        return pd.DataFrame({"cnt": [1]})
+
+    monkeypatch.setattr(
+        map_data_module,
+        "aggregate_opportunity_peers",
+        fake_peer_aggregation,
+    )
+    monkeypatch.setattr(map_data_module, "_attach_map_geometry", fake_geometry)
+    monkeypatch.setattr(
+        map_data_module,
+        "aggregate_opportunity_segments",
+        fake_segment_aggregation,
+    )
+
+    result = map_data_module.build_map_data(
+        source,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        is_sequential=False,
+        analysis_kind="opportunity",
+        center_latitude=47.0,
+        center_longitude=8.0,
+        min_spots=1,
+        min_opportunities=3,
+        base_min_stations=1,
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
+        owns_input=True,
+    )
+
+    assert result is not None
+    assert observed_frames["geometry"] is peer_rows
+    assert observed_frames["segments"] is peer_rows
+    assert result.station_rows is peer_rows
+
+
 @pytest.mark.parametrize(
     ("analysis_kind", "is_compare"),
     [
@@ -559,6 +660,7 @@ def test_compare_view_model_localization_cannot_change_scope_or_evidence():
         }
     )
     context = _analysis_context()
+    original_scope_rows = scope_rows.copy(deep=True)
 
     english = view_models.build_compare_inspector_view_model(
         scope_rows,
@@ -575,9 +677,18 @@ def test_compare_view_model_localization_cannot_change_scope_or_evidence():
         presentation_context=_presentation("de"),
     )
 
-    pd.testing.assert_frame_equal(english.scope_rows, german.scope_rows)
-    pd.testing.assert_frame_equal(english.evidence_identities, german.evidence_identities)
-    pd.testing.assert_series_equal(english.values, german.values)
+    pd.testing.assert_frame_equal(scope_rows, original_scope_rows)
+    pd.testing.assert_frame_equal(
+        english.build_evidence_identities(),
+        german.build_evidence_identities(),
+    )
+    pd.testing.assert_series_equal(
+        english.station_table.iloc[:, -1],
+        german.station_table.iloc[:, -1],
+        check_names=False,
+    )
+    assert not hasattr(english, "values")
+    assert not hasattr(english, "evidence_identities")
     assert list(english.station_table.columns) != list(german.station_table.columns)
 
 
@@ -603,7 +714,7 @@ def test_hardware_compare_labels_use_fixed_identities_or_scheduled_roles():
     assert sequential[:2] == ("Target", "Reference")
 
 
-def test_compare_view_model_exposes_full_table_and_joint_evidence_identities():
+def test_compare_view_model_exposes_one_table_and_joint_evidence_identities():
     scope_rows = pd.DataFrame(
         {
             "peer_sign": ["K1AAA", "K2BBB", "K3CCC"],
@@ -630,13 +741,11 @@ def test_compare_view_model_exposes_full_table_and_joint_evidence_identities():
     derived_joint_identities.columns = ["peer_sign", "peer_grid"]
 
     pd.testing.assert_frame_equal(
-        view_model.station_table,
-        view_model.full_station_table,
-    )
-    pd.testing.assert_frame_equal(
-        view_model.evidence_identities.reset_index(drop=True),
+        view_model.build_evidence_identities().reset_index(drop=True),
         derived_joint_identities,
     )
+    assert not hasattr(view_model, "values")
+    assert not hasattr(view_model, "evidence_identities")
 
 
 def test_opportunity_view_model_localization_cannot_change_eligibility_or_evidence():
@@ -653,32 +762,25 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
             "successful_snr_median": [-12.0, -5.0],
         }
     )
-    evidence_rows = pd.DataFrame(
-        {
-            "peer_sign": ["K1AAA", "K1AAA", "K2BBB"],
-            "peer_grid": ["FN31", "FN31", "EM12"],
-            "hit": [1, 0, 1],
-            "miss": [0, 1, 0],
-        }
-    )
+    original_scope_rows = scope_rows.copy(deep=True)
 
     english = view_models.build_opportunity_inspector_view_model(
         scope_rows,
-        evidence_rows,
         analysis_id="RX_ABS",
         minimum_confirmed=5,
         presentation_context=_presentation("en"),
     )
     german = view_models.build_opportunity_inspector_view_model(
         scope_rows,
-        evidence_rows,
         analysis_id="RX_ABS",
         minimum_confirmed=5,
         presentation_context=_presentation("de"),
     )
 
+    pd.testing.assert_frame_equal(scope_rows, original_scope_rows)
     pd.testing.assert_frame_equal(english.confirmed_rows, german.confirmed_rows)
-    pd.testing.assert_frame_equal(english.evidence_rows, german.evidence_rows)
+    assert not hasattr(english, "evidence_rows")
+    assert not hasattr(german, "evidence_rows")
     assert english.confirmed_rows["peer_sign"].tolist() == ["K1AAA"]
     assert english.confirmed_station_count == 1
     assert english.confirmed_opportunity_count == 2
@@ -709,7 +811,9 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         "Dekodierrate (%)",
         "Median-SNR @ 30 dBm",
     ]
-    assert list(english.export_station_table.columns) == [
+    english_export_table = english.build_export_station_table()
+    german_export_table = german.build_export_station_table()
+    assert list(english_export_table.columns) == [
         "TX Station",
         "Locator",
         "km",
@@ -719,7 +823,7 @@ def test_opportunity_view_model_localization_cannot_change_eligibility_or_eviden
         "T/(T+E) (%)",
         "Median Target SNR (dB @ 30 dBm)",
     ]
-    assert list(german.export_station_table.columns) == [
+    assert list(german_export_table.columns) == [
         "TX Station",
         "Locator",
         "km",
@@ -764,25 +868,14 @@ def test_empty_success_scope_uses_localized_evidence_threshold_message():
             "successful_snr_median": [float("nan")],
         }
     )
-    evidence_rows = pd.DataFrame(
-        {
-            "peer_sign": ["K1AAA"],
-            "peer_grid": ["FN31"],
-            "hit": [0],
-            "miss": [0],
-        }
-    )
-
     english = view_models.build_opportunity_inspector_view_model(
         scope_rows,
-        evidence_rows,
         analysis_id="RX_ABS",
         minimum_confirmed=5,
         presentation_context=_presentation("en"),
     )
     german = view_models.build_opportunity_inspector_view_model(
         scope_rows,
-        evidence_rows,
         analysis_id="RX_ABS",
         minimum_confirmed=5,
         presentation_context=_presentation("de"),
@@ -795,7 +888,7 @@ def test_empty_success_scope_uses_localized_evidence_threshold_message():
         "Keine Station erfüllt in diesem Bereich die Schwelle für bestätigte Gelegenheiten."
     ]
     assert english.full_station_table.empty
-    assert english.export_station_table.empty
+    assert english.build_export_station_table().empty
 
 
 def test_core_and_pure_inspector_modules_have_no_streamlit_dependency():

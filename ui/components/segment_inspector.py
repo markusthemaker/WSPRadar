@@ -127,7 +127,7 @@ from ui.result_guidance import (
 )
 from ui.reference_correction import configured_snr_correction_notice
 
-INSPECTOR_CACHE_VERSION = 41
+INSPECTOR_CACHE_VERSION = 42
 INSPECTOR_PNG_RENDER_VERSION = 38
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
@@ -898,36 +898,13 @@ def _selection_requires_zero_hit_rows(
 
 def _opportunity_export_station_rows(
     display_station_table,
-    export_station_table,
     *,
-    display_station_column,
-    display_locator_column,
-    export_station_column,
-    export_locator_column,
+    export_column_renames,
 ):
-    """Return canonical export rows matching visible Station Insights rows."""
-    if export_station_table is None:
+    """Rename only visible Success station rows into the export schema."""
+    if display_station_table is None:
         return pd.DataFrame()
-    if display_station_table is None or display_station_table.empty:
-        return export_station_table.iloc[0:0].copy()
-    visible_identities = (
-        display_station_table[
-            [display_station_column, display_locator_column]
-        ]
-        .drop_duplicates()
-        .rename(
-            columns={
-                display_station_column: export_station_column,
-                display_locator_column: export_locator_column,
-            }
-        )
-    )
-    return export_station_table.merge(
-        visible_identities,
-        on=[export_station_column, export_locator_column],
-        how="inner",
-        sort=False,
-    )
+    return display_station_table.rename(columns=export_column_renames)
 
 
 def _warn_missing_station_identities(missing_identities, t):
@@ -2189,10 +2166,10 @@ def _render_opportunity_scope(
                     if not row_times.empty
                     else _as_utc_timestamp(analysis_start_t) + pd.Timedelta(minutes=2)
                 )
+            del row_times
 
             opportunity_view_model = build_opportunity_inspector_view_model(
                 df_seg,
-                rows,
                 analysis_id=analysis_id,
                 minimum_confirmed=analysis_context.min_confirmed_opportunities_per_peer,
                 presentation_context=presentation_context,
@@ -2206,7 +2183,6 @@ def _render_opportunity_scope(
                 title,
                 selected_seg,
                 opportunity_view_model.confirmed_rows,
-                opportunity_view_model.evidence_rows,
                 analysis_start_t,
                 analysis_end_t,
                 opportunity_terms,
@@ -2227,7 +2203,7 @@ def _render_opportunity_scope(
                 ),
                 selected_seg,
                 opportunity_view_model.confirmed_rows,
-                opportunity_view_model.evidence_rows,
+                rows,
                 analysis_start_t,
                 analysis_end_t,
                 opportunity_terms,
@@ -2259,8 +2235,8 @@ def _render_opportunity_scope(
                 opportunity_view_model.confirmed_opportunity_count
             ),
             "full_station_table": opportunity_view_model.full_station_table,
-            "export_station_table": (
-                opportunity_view_model.export_station_table
+            "export_column_renames": dict(
+                opportunity_view_model.export_column_renames
             ),
             "station_column": opportunity_view_model.station_column,
             "locator_column": opportunity_view_model.locator_column,
@@ -2281,6 +2257,7 @@ def _render_opportunity_scope(
             "analysis_start_t": analysis_start_t,
             "analysis_end_t": analysis_end_t,
         }
+        del identity_meta, opportunity_view_model, rows
         _inspector_cache_put(
             run_id,
             "segment",
@@ -2385,9 +2362,11 @@ def _render_opportunity_scope(
         ),
     )
 
-    disp_df = full_segment_disp_df.copy()
+    disp_df = full_segment_disp_df
     if not show_zero_hits:
-        disp_df = disp_df[disp_df[hit_col] > 0].reset_index(drop=True)
+        disp_df = full_segment_disp_df.loc[
+            full_segment_disp_df[hit_col] > 0
+        ].reset_index(drop=True)
 
     level_three_container = st.container(
         key=(
@@ -2447,9 +2426,11 @@ def _render_opportunity_scope(
             RESULTS_SHOW_ZERO_TARGET_STATE_KEY,
         )
 
-    disp_df = full_segment_disp_df.copy()
+    disp_df = full_segment_disp_df
     if not show_zero_hits:
-        disp_df = disp_df[disp_df[hit_col] > 0].reset_index(drop=True)
+        disp_df = full_segment_disp_df.loc[
+            full_segment_disp_df[hit_col] > 0
+        ].reset_index(drop=True)
 
     with col_filter:
         with st.popover(
@@ -2827,17 +2808,22 @@ def _render_opportunity_scope(
 
     export_station_col = opportunity_display_model["export_station_column"]
     export_loc_col = opportunity_display_model["export_locator_column"]
-    export_station_table = opportunity_display_model["export_station_table"]
-    full_meta_df = export_station_table[
-        [export_station_col, export_loc_col, km_col, az_col]
+    export_column_renames = opportunity_display_model[
+        "export_column_renames"
+    ]
+    full_meta_df = full_segment_disp_df[
+        [station_col, loc_col, km_col, az_col]
     ].copy()
+    full_meta_df.rename(
+        columns={
+            station_col: export_station_col,
+            loc_col: export_loc_col,
+        },
+        inplace=True,
+    )
     filtered_export_station_table = _opportunity_export_station_rows(
         disp_df,
-        export_station_table,
-        display_station_column=station_col,
-        display_locator_column=loc_col,
-        export_station_column=export_station_col,
-        export_locator_column=export_loc_col,
+        export_column_renames=export_column_renames,
     )
     all_drilldown_context = {
         "station_meta_df": full_meta_df,
@@ -3031,7 +3017,6 @@ def _render_segment_inspector_body(
             options_cache_key,
             options_view_model,
         )
-    inspector_source_df = options_view_model.source_rows
     valid_distances = options_view_model.valid_distances
     level_two_container = st.container(
         key=f"results_evidence_level_2_{analysis_id}_{run_id}"
@@ -3169,7 +3154,7 @@ def _render_segment_inspector_body(
     scope_token = f"r{range_token}_d{direction_token}"
     success_distance_scope_intervals = (
         _success_distance_scope_intervals(
-            inspector_source_df,
+            enriched_df,
             selected_ranges,
             max_peer_distance_km=max_peer_distance_km,
         )
@@ -3181,7 +3166,8 @@ def _render_segment_inspector_body(
     if valid_distances and valid_dirs:
         with _timed_span(timing_collector, "segment scope filter"):
             df_seg = filter_inspector_scope(
-                inspector_source_df,
+                enriched_df,
+                max_peer_distance_km=max_peer_distance_km,
                 selected_ranges=selected_ranges,
                 selected_directions=selected_directions,
             )
@@ -3276,9 +3262,11 @@ def _render_segment_inspector_body(
                 analysis_context=analysis_context,
                 presentation_context=presentation_context,
             )
-            vals = compare_view_model.values
+            vals = df_seg["stat_val"].dropna()
             col_u_name = compare_view_model.target_name
-            evidence_meta_df = compare_view_model.evidence_identities
+            evidence_meta_df = (
+                compare_view_model.build_evidence_identities()
+            )
             has_plot_data = compare_view_model.has_plot_data
             segment_figure_recipe = None
             segment_temporal_bundle = None
@@ -3545,6 +3533,7 @@ def _render_segment_inspector_body(
                     spot_summary=spot_summary,
                 )
 
+            del vals, evidence_meta_df
             segment_bundle = {
                 "view_model": compare_view_model,
                 "figure_recipe": segment_figure_recipe,
@@ -3573,11 +3562,11 @@ def _render_segment_inspector_body(
         station_col = compare_view_model.station_column
         col_joint_name = compare_view_model.joint_column
 
-        disp_df = compare_view_model.station_table.copy()
+        disp_df = compare_view_model.station_table
         if not show_non_joint and col_joint_name in disp_df.columns:
             disp_df = disp_df[disp_df[col_joint_name] > 0].reset_index(drop=True)
-        sorted_disp_df = disp_df.copy()
-        full_segment_disp_df = compare_view_model.full_station_table
+        sorted_disp_df = disp_df
+        full_segment_disp_df = compare_view_model.station_table
         has_plot_data = compare_view_model.has_plot_data
 
         segment_temporal_export = None

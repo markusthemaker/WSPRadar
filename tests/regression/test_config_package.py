@@ -28,6 +28,9 @@ from config import (
     EXPORT_QUEUE_WAIT_TIMEOUT_SEC,
     MAP_SCOPE_OPTIONS,
     MAX_ANALYSIS_RESULT_ROWS,
+    QUERY_DATAFRAME_CACHE_MAX_BYTES,
+    QUERY_DATAFRAME_CACHE_MAX_ENTRIES,
+    QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES,
     SESSION_ARTIFACT_TTL_SEC,
     SNR_CORRECTION_MODES,
     STANDARD_QUERY_CACHE_TTL_SEC,
@@ -228,6 +231,22 @@ def test_cache_lifecycle_ttls_are_explicit_and_exported():
     assert STANDARD_QUERY_CACHE_TTL_SEC == 3600
     assert DEMO_QUERY_CACHE_TTL_SEC == 86400
     assert SESSION_ARTIFACT_TTL_SEC == 3600
+
+
+def test_query_dataframe_cache_memory_limits_are_explicit_and_exported():
+    """Bound retained raw-query DataFrames by bytes as well as entry count."""
+    assert QUERY_DATAFRAME_CACHE_MAX_BYTES == 64 * 1024 * 1024
+    assert QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES == 16 * 1024 * 1024
+    assert QUERY_DATAFRAME_CACHE_MAX_ENTRIES == 32
+    assert (
+        QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES
+        <= QUERY_DATAFRAME_CACHE_MAX_BYTES
+    )
+    assert {
+        "QUERY_DATAFRAME_CACHE_MAX_BYTES",
+        "QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES",
+        "QUERY_DATAFRAME_CACHE_MAX_ENTRIES",
+    }.issubset(config_package.__all__)
 
 
 def test_wspr_database_provider_priority_and_limits_are_explicit():

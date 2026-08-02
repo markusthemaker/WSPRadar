@@ -186,7 +186,6 @@ def _success_segment_figure_recipe_for_test(title):
         title,
         "Full Range | All Directions",
         peer_rows,
-        pd.DataFrame(),
         pd.Timestamp("2026-07-10T00:00:00Z"),
         pd.Timestamp("2026-07-11T00:00:00Z"),
         absolute_terms(T["en"], "RX"),

@@ -74,6 +74,14 @@ STANDARD_QUERY_CACHE_TTL_SEC = 3600
 DEMO_QUERY_CACHE_TTL_SEC = 24 * 3600
 SESSION_ARTIFACT_TTL_SEC = 3600
 
+# Process-wide raw-query DataFrame L1. Deep DataFrame bytes are accounted before
+# copying so large accepted results remain disk-only instead of being retained
+# again in RAM. The entry-count ceiling remains a metadata/fragmentation guard
+# for very small frames; byte limits are the primary memory policy.
+QUERY_DATAFRAME_CACHE_MAX_BYTES = 64 * 1024 * 1024
+QUERY_DATAFRAME_CACHE_MAX_ENTRY_BYTES = 16 * 1024 * 1024
+QUERY_DATAFRAME_CACHE_MAX_ENTRIES = 32
+
 # Compatibility alias for integrations that still import the former shared
 # cache TTL. Runtime cache policy uses the lifecycle-specific constants above.
 CACHE_TTL_SEC = STANDARD_QUERY_CACHE_TTL_SEC
@@ -82,7 +90,7 @@ MAX_DAYS_HISTORY = 31
 # Maximum complete query-result rows accepted for one analysis block. SQL asks
 # for one additional sentinel row so an exact-limit result remains distinguishable
 # from a larger result that must be rejected before scientific processing.
-MAX_ANALYSIS_RESULT_ROWS = 1_000_000
+MAX_ANALYSIS_RESULT_ROWS = 5_000_000
 
 # WSPR transport guardrails. The read timeout is socket inactivity, not a
 # total request-duration limit; byte ceilings apply to decompressed response data.

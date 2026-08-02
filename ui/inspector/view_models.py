@@ -17,15 +17,14 @@ from core.analysis_context import (
 
 @dataclass
 class InspectorOptionsViewModel:
-    source_rows: pd.DataFrame
+    """Small selector model that never owns the station-row source frame."""
+
     valid_distances: list[str]
     valid_directions: list[str]
 
 
 @dataclass
 class CompareInspectorViewModel:
-    scope_rows: pd.DataFrame
-    values: pd.Series
     has_joint_rows: bool
     has_non_joint_rows: bool
     has_plot_data: bool
@@ -42,15 +41,21 @@ class CompareInspectorViewModel:
     reference_only_label: str
     is_local_median: bool
     scope_summary: str
-    full_station_table: pd.DataFrame
     station_table: pd.DataFrame
-    evidence_identities: pd.DataFrame
+
+    def build_evidence_identities(self) -> pd.DataFrame:
+        """Project Joint station identities without retaining a second table."""
+        identities = self.station_table.loc[
+            self.station_table[self.joint_column] > 0,
+            [self.station_column, self.locator_column],
+        ].copy()
+        identities.columns = ["peer_sign", "peer_grid"]
+        return identities
 
 
 @dataclass
 class OpportunityInspectorViewModel:
     confirmed_rows: pd.DataFrame
-    evidence_rows: pd.DataFrame
     confirmed_station_count: int
     target_station_count: int
     zero_target_station_count: int
@@ -63,7 +68,7 @@ class OpportunityInspectorViewModel:
     median_opportunities_per_station: float
     summary_lines: list[str]
     full_station_table: pd.DataFrame
-    export_station_table: pd.DataFrame
+    export_column_renames: dict[str, str]
     station_column: str
     locator_column: str
     distance_column: str
@@ -74,6 +79,12 @@ class OpportunityInspectorViewModel:
     snr_column: str
     export_station_column: str
     export_locator_column: str
+
+    def build_export_station_table(self) -> pd.DataFrame:
+        """Return the canonical export schema without retaining a second table."""
+        return self.full_station_table.rename(
+            columns=self.export_column_renames,
+        )
 
 
 def _localized_integer(count: int, labels) -> str:
@@ -88,43 +99,55 @@ def build_inspector_options(
     *,
     max_peer_distance_km: float,
 ) -> InspectorOptionsViewModel:
-    """Return inspectable options inside the half-open peer-distance scope."""
-    source_rows = enriched_df[enriched_df["SegmentID"] != "Out of Bounds"].copy()
-    source_rows = source_rows[
-        source_rows["r_min"] < max_peer_distance_km
-    ]
+    """Return options without retaining or copying the station-row source."""
+    inspectable_mask = (
+        enriched_df["SegmentID"].ne("Out of Bounds")
+        & enriched_df["r_min"].lt(max_peer_distance_km)
+    )
     valid_distances = sorted(
-        [value for value in source_rows["dist_label"].dropna().unique()],
+        [
+            value
+            for value in enriched_df.loc[
+                inspectable_mask,
+                "dist_label",
+            ].dropna().unique()
+        ],
         key=lambda value: int(value.strip("[]km").split("-")[0]),
     )
     valid_directions = sorted(
         [
             value
-            for value in source_rows["dir_name"].dropna().unique()
+            for value in enriched_df.loc[
+                inspectable_mask,
+                "dir_name",
+            ].dropna().unique()
             if value in COMPASS
         ],
         key=COMPASS.index,
     )
     return InspectorOptionsViewModel(
-        source_rows=source_rows,
         valid_distances=valid_distances,
         valid_directions=valid_directions,
     )
 
 
 def filter_inspector_scope(
-    source_rows: pd.DataFrame,
+    enriched_df: pd.DataFrame,
     *,
+    max_peer_distance_km: float,
     selected_ranges,
     selected_directions,
 ) -> pd.DataFrame:
-    """Return the selected Cartesian distance/direction scope."""
-    scope_rows = source_rows.copy()
+    """Materialize one selected scope directly from the shared station rows."""
+    selected_mask = (
+        enriched_df["SegmentID"].ne("Out of Bounds")
+        & enriched_df["r_min"].lt(max_peer_distance_km)
+    )
     if selected_ranges:
-        scope_rows = scope_rows[scope_rows["dist_label"].isin(selected_ranges)]
+        selected_mask &= enriched_df["dist_label"].isin(selected_ranges)
     if selected_directions:
-        scope_rows = scope_rows[scope_rows["dir_name"].isin(selected_directions)]
-    return scope_rows
+        selected_mask &= enriched_df["dir_name"].isin(selected_directions)
+    return enriched_df.loc[selected_mask]
 
 
 def compare_scope_availability(scope_rows: pd.DataFrame) -> tuple[bool, bool]:
@@ -270,15 +293,11 @@ def build_compare_inspector_view_model(
         if joint_column != metric_column
         else [joint_column]
     )
-    full_station_table = station_table.sort_values(
+    station_table = station_table.sort_values(
         by=sort_columns,
         ascending=[False] * len(sort_columns),
         na_position="last",
     ).reset_index(drop=True)
-    station_table = full_station_table.copy()
-    evidence_rows = station_table[station_table[joint_column] > 0]
-    evidence_identities = evidence_rows[[station_column, locator_column]].copy()
-    evidence_identities.columns = ["peer_sign", "peer_grid"]
     has_plot_data = bool(
         not values.empty
         or (
@@ -287,8 +306,6 @@ def build_compare_inspector_view_model(
         )
     )
     return CompareInspectorViewModel(
-        scope_rows=scope_rows,
-        values=values,
         has_joint_rows=has_joint_rows,
         has_non_joint_rows=has_non_joint_rows,
         has_plot_data=has_plot_data,
@@ -305,15 +322,12 @@ def build_compare_inspector_view_model(
         reference_only_label=reference_only_label,
         is_local_median=is_local_median,
         scope_summary=scope_summary,
-        full_station_table=full_station_table,
         station_table=station_table,
-        evidence_identities=evidence_identities,
     )
 
 
 def build_opportunity_inspector_view_model(
     scope_rows: pd.DataFrame,
-    evidence_rows: pd.DataFrame,
     *,
     analysis_id: str,
     minimum_confirmed: int,
@@ -323,8 +337,9 @@ def build_opportunity_inspector_view_model(
 
     Qualifying callsign/locator identities receive one vote in the
     station-balanced rate. Confirmed Target and counter outcomes receive one
-    vote in the observation-level rate; Target-only rows remain auditable in
-    the evidence frame but do not enter either denominator.
+    vote in the observation-level rate. The peer aggregates already exclude
+    Target-only rows from that denominator, so row-level evidence is not
+    retained by this display model.
     """
     labels = presentation_context.labels
     terms = presentation_context.absolute_terms(
@@ -341,13 +356,10 @@ def build_opportunity_inspector_view_model(
     distance_column = labels["tbl_col_km"]
     azimuth_column = labels["tbl_col_az"]
     confirmed = scope_rows[scope_rows["eligible"] & scope_rows["rate_pct"].notna()].copy()
-    confirmed_evidence = evidence_rows.merge(
-        confirmed[["peer_sign", "peer_grid"]].drop_duplicates(),
-        on=["peer_sign", "peer_grid"],
-        how="inner",
+    hits = int(pd.to_numeric(confirmed["hits"], errors="coerce").fillna(0).sum())
+    misses = int(
+        pd.to_numeric(confirmed["misses"], errors="coerce").fillna(0).sum()
     )
-    hits = int(confirmed_evidence["hit"].sum())
-    misses = int(confirmed_evidence["miss"].sum())
     overall_rate = 100.0 * hits / (hits + misses) if hits + misses else np.nan
     confirmed_trials = confirmed["hits"] + confirmed["misses"]
     confirmed_station_rates = np.where(
@@ -422,18 +434,6 @@ def build_opportunity_inspector_view_model(
             "successful_snr_median",
         ]
     ].copy()
-    display_station_table = display_station_table[
-        [
-            "peer_sign",
-            "peer_grid",
-            "calc_dist",
-            "calc_azimuth",
-            "hits",
-            "misses",
-            "rate_pct",
-            "successful_snr_median",
-        ]
-    ]
     display_station_table.columns = [
         station_column,
         locator_column,
@@ -462,54 +462,15 @@ def build_opportunity_inspector_view_model(
         na_position="last",
     ).reset_index(drop=True)
 
-    export_station_table = confirmed[
-        [
-            "peer_sign",
-            "peer_grid",
-            "calc_dist",
-            "calc_azimuth",
-            "hits",
-            "misses",
-            "rate_pct",
-            "successful_snr_median",
-        ]
-    ].copy()
-    export_station_table.columns = [
-        export_station_column,
-        locator_column,
-        distance_column,
-        azimuth_column,
-        terms["target_column"],
-        terms["counter_column"],
-        terms["rate_column"],
-        export_snr_column,
-    ]
-    export_station_table[distance_column] = (
-        export_station_table[distance_column].round(0).astype("Int64")
-    )
-    export_station_table[azimuth_column] = export_station_table[
-        azimuth_column
-    ].round(1)
-    export_station_table[terms["rate_column"]] = pd.to_numeric(
-        export_station_table[terms["rate_column"]],
-        errors="coerce",
-    ).round(1)
-    export_station_table[export_snr_column] = pd.to_numeric(
-        export_station_table[export_snr_column],
-        errors="coerce",
-    ).round(1)
-    export_station_table = export_station_table.sort_values(
-        [
-            terms["target_column"],
-            terms["counter_column"],
-            terms["rate_column"],
-        ],
-        ascending=[False, False, False],
-        na_position="last",
-    ).reset_index(drop=True)
+    export_column_renames = {
+        station_column: export_station_column,
+        terms["station_success"]: terms["target_column"],
+        station_counter_column: terms["counter_column"],
+        rate_column: terms["rate_column"],
+        snr_column: export_snr_column,
+    }
     return OpportunityInspectorViewModel(
         confirmed_rows=confirmed,
-        evidence_rows=confirmed_evidence,
         confirmed_station_count=len(confirmed),
         target_station_count=target_station_count,
         zero_target_station_count=zero_target_station_count,
@@ -522,7 +483,7 @@ def build_opportunity_inspector_view_model(
         median_opportunities_per_station=median_opportunities_per_station,
         summary_lines=summary_lines,
         full_station_table=full_station_table,
-        export_station_table=export_station_table,
+        export_column_renames=export_column_renames,
         station_column=station_column,
         locator_column=locator_column,
         distance_column=distance_column,

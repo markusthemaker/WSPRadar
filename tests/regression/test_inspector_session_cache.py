@@ -1746,6 +1746,7 @@ def test_inspector_distance_options_stop_at_ten_thousand_kilometres():
         {
             "SegmentID": ["a", "b", "c", "d", "Out of Bounds"],
             "r_min": [0, 2500, 5000, 10000, 0],
+            "r_max": [2500, 5000, 10000, 15000, 2500],
             "dist_label": [
                 "[0-2500km]",
                 "[2500-5000km]",
@@ -1768,7 +1769,45 @@ def test_inspector_distance_options_stop_at_ten_thousand_kilometres():
         "[5000-10000km]",
     ]
     assert options.valid_directions == ["N", "NE", "E"]
-    assert set(options.source_rows["r_min"]) == {0, 2500, 5000}
+    assert not hasattr(options, "source_rows")
+    selected_rows = view_models.filter_inspector_scope(
+        station_rows,
+        max_peer_distance_km=10000,
+        selected_ranges=options.valid_distances,
+        selected_directions=options.valid_directions,
+    )
+    assert set(selected_rows["r_min"]) == {0, 2500, 5000}
+    assert segment_inspector._success_distance_scope_intervals(
+        station_rows,
+        options.valid_distances,
+        max_peer_distance_km=10000,
+    ) == ((0.0, 2500.0), (2500.0, 5000.0), (5000.0, 10000.0))
+
+
+def test_inspector_options_cache_model_does_not_retain_station_rows():
+    """Keep selector caching independent of the station aggregate's row count."""
+    station_rows = pd.DataFrame(
+        {
+            "SegmentID": ["a"] * 20_000,
+            "r_min": [0.0] * 20_000,
+            "dist_label": ["[0-2500km]"] * 20_000,
+            "dir_name": ["N"] * 20_000,
+        }
+    )
+
+    options = view_models.build_inspector_options(
+        station_rows,
+        max_peer_distance_km=10_000,
+    )
+
+    station_bytes = int(station_rows.memory_usage(index=True, deep=True).sum())
+    option_bytes = estimate_cache_value_bytes(options)
+    assert option_bytes < 4_096
+    assert station_bytes > option_bytes * 1_000
+    assert _cache(
+        max_bytes=5 * 1024 * 1024,
+        limits={"options": 2},
+    ).put("options", "options", options)
 
 
 def test_saved_inspector_range_beyond_ten_thousand_km_falls_back_to_all(
@@ -2082,6 +2121,16 @@ def test_compare_station_insights_uses_single_row_selection_and_compact_viewport
     assert '"selection_mode": "single-row"' in function_source
     assert '"selection_mode": "multi-row"' not in function_source
     assert "tbl_event = _render_compact_dataframe(" in function_source
+
+
+def test_inspector_body_uses_shared_station_rows_for_every_scope_consumer():
+    """Prevent a removed duplicate frame owner from returning as a stale name."""
+    function_source = inspect.getsource(
+        segment_inspector._render_segment_inspector_body
+    )
+
+    assert "inspector_source_df" not in function_source
+    assert function_source.count("enriched_df,") >= 3
 
 
 def test_inspector_fragment_synchronizes_durable_url_state_in_place():
@@ -2498,7 +2547,7 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
         confirmed_station_count=6,
         confirmed_opportunity_count=6,
         full_station_table=station_table,
-        export_station_table=station_table,
+        export_column_renames={},
         station_column=station_column,
         locator_column=locator_column,
         distance_column=distance_column,
@@ -2507,7 +2556,6 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
         export_station_column=station_column,
         export_locator_column=locator_column,
         confirmed_rows=pd.DataFrame(),
-        evidence_rows=pd.DataFrame(),
     )
     monkeypatch.setattr(
         segment_inspector,

@@ -159,11 +159,14 @@ def test_prepare_opportunity_rows_respects_input_ownership_contract():
     pd.testing.assert_frame_equal(source, original)
 
     owned_source = original.copy(deep=True)
-    prepare_opportunity_rows(
+    owned_source.index = pd.Index([10, 20])
+    owned_result = prepare_opportunity_rows(
         owned_source,
         target_callsign="DL1MKS",
         owns_input=True,
     )
+    assert owned_result is owned_source
+    assert owned_result.index.equals(pd.RangeIndex(len(owned_result)))
     assert owned_source.loc[0, "peer_sign"] == "K1AAA"
     assert owned_source.loc[0, "peer_grid"] == "FN31AA"
     assert str(owned_source["target_seen"].dtype) == "int8"
@@ -193,6 +196,72 @@ def test_target_only_never_enters_denominator():
     assert int(peer["target_only"]) == 2
     assert not bool(peer["eligible"])
     assert pd.isna(peer["rate_pct"])
+
+
+def test_peer_aggregation_preserves_hit_median_bounds_schema_and_input():
+    """Pin H/M/T semantics while aggregating without cloning evidence rows."""
+    source = pd.DataFrame([
+        _server_row(100, "K1AAA", "FN31aa", 1, 0, -50),
+        _server_row(101, "K1AAA", "FN31aa", 1, 1, -20),
+        _server_row(102, "K1AAA", "FN31aa", 0, 1, None),
+        _server_row(103, "K1AAA", "FN31aa", 1, 1, -10),
+        _server_row(104, "K1AAA", "FN31aa", 1, 0, -5),
+        _server_row(200, "K2BBB", "EM12aa", 1, 1, -30),
+        _server_row(201, "K2BBB", "EM12aa", 1, 1, -10),
+        _server_row(202, "K2BBB", "EM12aa", 0, 1, None),
+    ])
+    rows = prepare_opportunity_rows(source, target_callsign="DL1MKS")
+    rows.loc[(rows["peer_sign"] == "K1AAA") & (rows["miss"] == 1), "target_snr"] = 99.0
+    original = rows.copy(deep=True)
+
+    peers = aggregate_opportunity_peers(rows, min_opportunities=3)
+
+    pd.testing.assert_frame_equal(rows, original)
+    assert list(peers.columns) == [
+        "peer_sign",
+        "peer_grid",
+        "opportunities",
+        "hits",
+        "misses",
+        "target_only",
+        "target_observations",
+        "successful_snr_median",
+        "first_evidence_utc",
+        "last_evidence_utc",
+        "peer_lat",
+        "peer_lon",
+        "eligible",
+        "rate_pct",
+        "stat_val",
+        "spot_count",
+    ]
+    for column in [
+        "opportunities",
+        "hits",
+        "misses",
+        "target_only",
+        "target_observations",
+    ]:
+        assert str(peers[column].dtype) == "int64"
+
+    first_peer = peers.loc[peers["peer_sign"] == "K1AAA"].iloc[0]
+    assert int(first_peer["opportunities"]) == 3
+    assert int(first_peer["hits"]) == 2
+    assert int(first_peer["misses"]) == 1
+    assert int(first_peer["target_only"]) == 2
+    assert int(first_peer["target_observations"]) == 4
+    assert float(first_peer["successful_snr_median"]) == pytest.approx(-15.0)
+    assert first_peer["first_evidence_utc"] == opportunity_utc_from_time_slot(
+        pd.Series([100])
+    ).iloc[0]
+    assert first_peer["last_evidence_utc"] == opportunity_utc_from_time_slot(
+        pd.Series([104])
+    ).iloc[0]
+    assert bool(first_peer["eligible"])
+    assert float(first_peer["rate_pct"]) == pytest.approx(66.7)
+
+    second_peer = peers.loc[peers["peer_sign"] == "K2BBB"].iloc[0]
+    assert float(second_peer["successful_snr_median"]) == pytest.approx(-20.0)
 
 
 def test_success_footer_counts_only_visible_qualified_denominator_evidence():

@@ -283,6 +283,18 @@ builds contexts, computes a request fingerprint, acquires admission, asks
 processing, stores session evidence, renders maps and previews, registers export
 recipes, and invokes the Segment Inspector.
 
+The first successful render also persists the language-neutral station and
+segment map aggregates beside the scoped evidence and publishes a versioned
+completed-run snapshot only after all result blocks and Inspectors are ready.
+On a later full Streamlit rerun, the controller rebuilds the current scientific
+plan, validates the request and plan fingerprints, committed provider, aggregate
+schema, strict/legacy trace, and registered artifact ownership, then enters the
+normal analysis admission gate without reserving provider capacity. A valid
+snapshot renders from the compact map aggregates and projected evidence only;
+it performs no database request and does not rematerialize the raw evidence for
+map aggregation. A missing, stale, or incompatible snapshot is retired with an
+explicit rerun warning rather than silently querying a provider.
+
 `ui/result_hierarchy.py` owns the pure, escaped HTML builders and localized
 scope-copy helpers for the progressive result flow from map overview through
 row-level evidence. `ui/result_guidance.py` resolves mode- and benchmark-aware
@@ -382,8 +394,10 @@ TX A/B pair assignment also precedes geographic filtering.
 `FetchResult`, delivery-tier, database-source, and error data without rendering
 Streamlit UI. It provides:
 
-- a process-memory DataFrame LRU;
-- provider-scoped exact-query SHA-256 disk-cache keys;
+- a process-memory DataFrame LRU bounded to 64 MiB total, 16 MiB per entry and
+  32 entries after deep-byte accounting;
+- provider-scoped exact-query SHA-256 disk-cache keys, including a write-through
+  raw Parquet L2 for ordinary Compare CSV rows;
 - a separate provider-scoped demo-query namespace with an absolute 24-hour
   freshness lifetime;
 - CSV and Parquet response handling;
@@ -470,6 +484,10 @@ conversion, geometry, and solar helpers for the scientific path.
 
 `core/map_data.py` converts comparison or opportunity rows into pure `MapData`
 aggregates. `core/map_models.py` defines the `MapData` and `MapFigure` contracts.
+Map preparation owns its working evidence frame and transfers that owner into
+Compare or Success aggregation, which may attach transient columns in place;
+standalone Compare aggregation remains nonmutating unless ownership is supplied
+explicitly.
 These consumers receive evidence already constrained by Geographic Analysis
 Scope. The same maximum distance controls the rendered extent and footer, so
 the visible map and its reported scope describe the scientific population
@@ -526,6 +544,13 @@ for selections and rendering. Preparation is split into pure modules:
   segment models, selected models, and PNGs;
 - `ui/plots/` prepares pure figure recipes and renders evidence figures from
   them.
+
+The cached options model contains only valid distance and direction choices,
+not a second owner of the complete station aggregate. Compare retains one
+canonical station display table instead of parallel full/display copies.
+Success retains its station display table plus a small export-column mapping;
+the export schema is renamed lazily, and row-level evidence is released after
+the compact temporal recipes have been prepared.
 
 Inspector range and direction controls may narrow the retained geographic
 population for exploration, but they cannot widen the completed run or
@@ -803,9 +828,10 @@ from `core/export_admission.py`. The configured policy allows one active export
 and up to ten queued exports.
 
 `ui/result_state.py` owns the lightweight result/export session-state keys,
-active-run database provenance, and reset lifecycle. Configuration callbacks
-can retire session artifacts and clear export, inspector, and provenance state
-without importing Pandas, Matplotlib, the inspector, or export rendering.
+active-run database provenance, the versioned completed-run snapshot, and reset
+lifecycle. Configuration callbacks can retire session artifacts and clear
+export, inspector, snapshot, and provenance state without importing Pandas,
+Matplotlib, the inspector, or export rendering.
 `ui/analysis_submission_state.py` separately owns the UUID-token lifecycle for
 one session's in-flight analysis. Keeping submission state separate from
 `run_mode` is required because `run_mode` remains set while completed results
@@ -818,7 +844,15 @@ evidence, and PNGs. Comparison artifacts are grouped under `compare/`; Success
 artifacts are grouped under `success/`, with the same names reflected in run
 metadata. Both result families register the active segment evidence and segment
 temporal recipes, so preview and export use the same prepared values and
-renderers.
+renderers. High-resolution map export reloads the registered compact station and
+segment map aggregates and invokes the pure map renderer; it does not reread raw
+evidence or repeat map aggregation. The scoped evidence artifact remains
+available for drill-down and inclusion in the export package. Registration and
+export preparation both revalidate current-session ownership, namespace,
+analysis-specific filenames and common-run identity for all three artifacts. A
+missing, corrupt or mismatched compact aggregate aborts preparation with an
+explicit rerun instruction instead of silently omitting the map. Export metadata
+stores a path-free SHA-256 recipe signature rather than local artifact paths.
 
 Success selected evidence is exported under two stable filenames:
 `figure_selected_station_snr_evidence.png` and
@@ -991,7 +1025,9 @@ must remain outside `README.md`.
    configured maximum remain.
 4. The final categorized, geographically scoped artifact is written as session
    Parquet.
-5. Map and segment aggregates use the corresponding narrow projections.
+5. Peer aggregation groups the owned schema columns directly, derives UTC slot
+   bounds only after aggregation, and avoids a second full-frame working copy.
+   Map and segment aggregates use the corresponding narrow projections.
 6. The inspector loads selected evidence only when required.
 
 ### Duplicate and Admission Flow
@@ -1083,10 +1119,10 @@ outcomes do not trigger cross-database selection.
 
 | Namespace | Contents | Lifecycle |
 | --- | --- | --- |
-| `queries` | Provider-scoped ordinary exact-query Parquet responses | One-hour last-access freshness and cleanup. |
+| `queries` | Provider-scoped ordinary exact-query rows stored as Parquet, including locally serialized Compare CSV rows | One-hour last-access freshness and cleanup. |
 | `demo-queries` | Provider-scoped raw Compare and Success demo-query rows, stored as Parquet | Absolute 24-hour freshness and cleanup; reads never extend publication time. |
 | `derived-analysis` | Shared basemap PNGs | Reused across sessions; no current TTL cleanup. |
-| `session-artifacts` | Per-owner, per-run analysis Parquet evidence | Active leases/touches plus one-hour cleanup. |
+| `session-artifacts` | Per-owner, per-run scoped evidence and compact map station/segment Parquet aggregates | Active leases/touches plus one-hour cleanup. |
 
 All artifact paths are validated to remain under the configured cache root.
 Publication uses unique sibling temporary paths and `os.replace`. Lock
@@ -1121,16 +1157,21 @@ not touch the file: its publication mtime is the immutable freshness anchor,
 and any RAM L1 entry expires at that same absolute deadline.
 
 Compare continues to request upstream CSV because that is its established
-transport and parser path, but guided-demo CSV rows are converted to raw
-Parquet in the disk L2 before scientific post-fetch processing. Success keeps
-its upstream Parquet transport and publishes it in the same demo namespace.
-Consequently both demo analysis types survive a process-memory eviction or
-restart when the local cache filesystem survives, without caching completed
-scientific output across code changes.
+transport and parser path, but every accepted CSV exact query is converted to
+raw Parquet in its policy-specific disk L2 before transport normalization and
+scientific post-fetch processing. Ordinary Compare uses the one-hour
+last-access `queries` namespace; guided-demo Compare uses the absolute 24-hour
+`demo-queries` namespace. Success keeps its upstream Parquet transport and
+publishes it under the same ordinary/demo namespace policy. The optional
+process-memory DataFrame L1 stores isolated normalized copies only when they fit
+the 16 MiB per-entry, 64 MiB total and 32-entry limits; larger accepted frames
+remain disk-only. Consequently ordinary and demo analysis types can survive a
+process-memory eviction or restart when the local cache filesystem survives,
+without caching completed scientific output across code changes.
 
 The following state is process-memory only:
 
-- DataFrame query LRU;
+- byte-bounded DataFrame query LRU;
 - bounded exact-query result-row overflow markers;
 - analysis/export controller state;
 - provider rolling request timestamps, reservations and circuit/probe state;
@@ -1231,6 +1272,11 @@ columns. These artifacts contain only the peer rows retained by Geographic
 Analysis Scope, so neither Inspector controls nor export preparation can
 reconstruct or re-admit excluded peers. Leases preserve interactive continuity
 across Streamlit reruns.
+
+Completed maps additionally store the much smaller station and segment
+aggregates required by the pure map renderer. The session snapshot is the commit
+marker for this set: per-file writes are atomic, but no aggregate pair is
+reusable until both paths are registered and the snapshot has been published.
 
 ### Local Single-Flight and Atomic Publication
 

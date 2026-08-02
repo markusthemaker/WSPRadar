@@ -20,6 +20,7 @@ from core.artifact_store import (
     retire_registered_session_artifacts,
     session_artifact_path,
     touch_registered_session_artifacts,
+    validate_registered_session_artifacts,
 )
 
 
@@ -341,6 +342,110 @@ def test_registered_session_artifacts_are_registered_once_and_touched(tmp_path):
     assert touch_registered_session_artifacts(state) == 1
     assert artifact_path.stat().st_mtime > time.time() - 5.0
     assert lease_path.stat().st_mtime > time.time() - 5.0
+
+
+def test_session_artifact_kinds_share_run_ownership_but_not_filenames(tmp_path):
+    """Keep evidence and compact map tables in one lease-managed run directory."""
+    state = {}
+    paths = {
+        artifact_kind: session_artifact_path(
+            tmp_path,
+            state,
+            run_id=123,
+            analysis_id="RX_ABS",
+            artifact_kind=artifact_kind,
+        )
+        for artifact_kind in ("spots", "map_stations", "map_segments")
+    }
+
+    assert len({path.resolve() for path in paths.values()}) == 3
+    assert len({path.parent.resolve() for path in paths.values()}) == 1
+    assert paths["spots"].name == "spots_RX_ABS.parquet"
+    assert paths["map_stations"].name == "map_stations_RX_ABS.parquet"
+    assert paths["map_segments"].name == "map_segments_RX_ABS.parquet"
+    with pytest.raises(ValueError, match="Session artifact kind"):
+        session_artifact_path(
+            tmp_path,
+            state,
+            run_id=123,
+            analysis_id="RX_ABS",
+            artifact_kind="unsupported",
+        )
+
+
+def test_registered_session_artifact_validation_accepts_one_exact_run(tmp_path):
+    """Accept only the registered evidence and map pair from one analysis run."""
+    state = {}
+    paths = {
+        artifact_kind: session_artifact_path(
+            tmp_path,
+            state,
+            run_id=123,
+            analysis_id="RX_ABS",
+            artifact_kind=artifact_kind,
+        )
+        for artifact_kind in ("spots", "map_stations", "map_segments")
+    }
+    for artifact_path in paths.values():
+        artifact_path.parent.mkdir(parents=True, exist_ok=True)
+        artifact_path.write_bytes(b"registered")
+        register_session_artifact(state, artifact_path)
+
+    validated = validate_registered_session_artifacts(
+        tmp_path,
+        state,
+        analysis_id="RX_ABS",
+        artifact_paths_by_kind=paths,
+    )
+
+    assert validated == {
+        artifact_kind: artifact_path.resolve()
+        for artifact_kind, artifact_path in paths.items()
+    }
+
+
+def test_registered_session_artifact_validation_rejects_unregistered_path(tmp_path):
+    """Reject a correctly named file that the current session never registered."""
+    state = {}
+    artifact_path = session_artifact_path(
+        tmp_path,
+        state,
+        run_id=123,
+        analysis_id="RX_ABS",
+    )
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_bytes(b"not registered")
+
+    with pytest.raises(ValueError, match="not registered"):
+        validate_registered_session_artifacts(
+            tmp_path,
+            state,
+            analysis_id="RX_ABS",
+            artifact_paths_by_kind={"spots": artifact_path},
+        )
+
+
+def test_registered_session_artifact_validation_rejects_out_of_scope_path(tmp_path):
+    """Reject even a listed path when it lies outside the session namespace."""
+    state = {}
+    session_artifact_path(
+        tmp_path,
+        state,
+        run_id=123,
+        analysis_id="RX_ABS",
+    )
+    artifact_path = tmp_path / "outside" / "spots_RX_ABS.parquet"
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_bytes(b"outside")
+    state[SESSION_ARTIFACT_PATHS_KEY] = [str(artifact_path.resolve())]
+
+    with pytest.raises(ValueError, match="outside the current session namespace"):
+        validate_registered_session_artifacts(
+            tmp_path,
+            state,
+            analysis_id="RX_ABS",
+            artifact_paths_by_kind={"spots": artifact_path},
+        )
 
 
 def test_active_session_lease_prevents_ttl_cleanup(tmp_path):

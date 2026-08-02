@@ -112,31 +112,6 @@ def _summary_peer_rows() -> pd.DataFrame:
     )
 
 
-def _summary_evidence_rows() -> pd.DataFrame:
-    """Return row-level outcomes matching the scoped summary aggregates."""
-    records = []
-    for peer in _summary_peer_rows().itertuples(index=False):
-        for _ in range(int(peer.hits)):
-            records.append(
-                {
-                    "peer_sign": peer.peer_sign,
-                    "peer_grid": peer.peer_grid,
-                    "hit": 1,
-                    "miss": 0,
-                }
-            )
-        for _ in range(int(peer.misses)):
-            records.append(
-                {
-                    "peer_sign": peer.peer_sign,
-                    "peer_grid": peer.peer_grid,
-                    "hit": 0,
-                    "miss": 1,
-                }
-            )
-    return pd.DataFrame.from_records(records)
-
-
 def _temporal_peer_rows() -> pd.DataFrame:
     """Return three qualifying stations and one excluded station."""
     return pd.DataFrame(
@@ -850,7 +825,6 @@ def test_success_distance_grid_depends_on_intervals_not_direction_population():
         "RX Performance Evidence",
         "North",
         north_peers,
-        pd.DataFrame(),
         None,
         None,
         rx_terms,
@@ -861,7 +835,6 @@ def test_success_distance_grid_depends_on_intervals_not_direction_population():
         "RX Performance Evidence",
         "South",
         south_peers,
-        pd.DataFrame(),
         None,
         None,
         rx_terms,
@@ -1038,7 +1011,6 @@ def test_success_summary_retains_metrics_and_displays_compact_directional_terms(
     """Keep both weighting metrics while displaying the requested compact rows."""
     summary = build_opportunity_inspector_view_model(
         _summary_peer_rows(),
-        _summary_evidence_rows(),
         analysis_id=analysis_id,
         minimum_confirmed=2,
         presentation_context=_presentation(language),
@@ -1080,10 +1052,11 @@ def test_success_summary_retains_metrics_and_displays_compact_directional_terms(
     canonical_counter_column = T[language][
         f"abs_{mode_key}_counter_column"
     ]
-    assert canonical_counter_column in summary.export_station_table.columns
+    export_station_table = summary.build_export_station_table()
+    assert canonical_counter_column in export_station_table.columns
     assert (
         T[language]["tbl_col_success_snr"]
-        in summary.export_station_table.columns
+        in export_station_table.columns
     )
     outcomes = _SUCCESS_DIRECTION_FIGURE_LABELS[
         (language, analysis_id)
@@ -1117,38 +1090,30 @@ def test_success_summary_retains_metrics_and_displays_compact_directional_terms(
         assert "Other Signals" not in line
 
 
-def test_visible_success_station_filter_maps_back_to_canonical_export_rows():
-    """Keep display-only columns out of the compatibility station CSV."""
+def test_visible_success_station_rows_rename_directly_to_export_schema():
+    """Rename only visible rows without materializing the full export table."""
     display = pd.DataFrame(
         {
             "TX-Station": ["B"],
             "Locator": ["B000"],
             "Vom Target gehört": [1],
             "Nur von anderen gehört": [1],
+            "Dekodierrate (%)": [50.0],
         }
     )
-    canonical = pd.DataFrame(
-        {
-            "TX Station": ["A", "B"],
-            "Locator": ["A000", "B000"],
-            "Target (T)": [0, 1],
-            "Elsewhere (E)": [5, 1],
-            "T/(T+E) (%)": [0.0, 50.0],
-        }
-    )
-    source = canonical.copy(deep=True)
+    source = display.copy(deep=True)
 
     selected = _opportunity_export_station_rows(
         display,
-        canonical,
-        display_station_column="TX-Station",
-        display_locator_column="Locator",
-        export_station_column="TX Station",
-        export_locator_column="Locator",
+        export_column_renames={
+            "TX-Station": "TX Station",
+            "Vom Target gehört": "Target (T)",
+            "Nur von anderen gehört": "Elsewhere (E)",
+            "Dekodierrate (%)": "T/(T+E) (%)",
+        },
     )
 
-    pd.testing.assert_frame_equal(canonical, source)
-    assert list(selected.columns) == list(canonical.columns)
+    pd.testing.assert_frame_equal(display, source)
     assert selected.to_dict("records") == [
         {
             "TX Station": "B",
@@ -2675,7 +2640,6 @@ def test_success_distance_renderer_has_localized_compare_aligned_panels(
         f"{analysis_id} Performance Evidence",
         "Disjoint Range | All Directions",
         peers,
-        pd.DataFrame(),
         None,
         None,
         _presentation(language).absolute_terms(

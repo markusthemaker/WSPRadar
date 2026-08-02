@@ -141,11 +141,20 @@ def _empty_processed_opportunity_rows() -> pd.DataFrame:
 
 
 def _apply_processed_opportunity_schema(frame: pd.DataFrame) -> pd.DataFrame:
-    """Order and type processed opportunity rows for stable cache/read behavior."""
+    """Type an owned opportunity frame and project only noncanonical layouts."""
     if frame is None or frame.empty:
         return _empty_processed_opportunity_rows()
 
-    work = frame.loc[:, PROCESSED_OPPORTUNITY_COLUMNS]
+    missing_columns = set(PROCESSED_OPPORTUNITY_COLUMNS).difference(frame.columns)
+    if missing_columns:
+        raise ValueError(
+            "Processed opportunity rows are missing columns: "
+            + ", ".join(sorted(missing_columns))
+        )
+    if tuple(frame.columns) == PROCESSED_OPPORTUNITY_COLUMNS:
+        work = frame
+    else:
+        work = frame.loc[:, PROCESSED_OPPORTUNITY_COLUMNS].copy()
     work["time_slot"] = pd.to_numeric(work["time_slot"], errors="coerce").astype("int64")
     for column in ["target_seen", "external_seen", "opportunity", "hit", "miss", "target_only"]:
         work[column] = pd.to_numeric(work[column], errors="coerce").fillna(0).astype("int8")
@@ -402,7 +411,8 @@ def prepare_opportunity_rows(
         work["target_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").round(1)
 
     with _timed_span(timing_collector, "opportunity final reset"):
-        return _apply_processed_opportunity_schema(work.reset_index(drop=True))
+        work.index = pd.RangeIndex(len(work))
+        return _apply_processed_opportunity_schema(work)
 
 
 def aggregate_opportunity_peers(
@@ -410,32 +420,53 @@ def aggregate_opportunity_peers(
     *,
     min_opportunities: int,
 ) -> pd.DataFrame:
-    """Aggregate peer-cycle evidence into auditable peer-level O/H/M/T rates."""
+    """Aggregate immutable peer-cycle evidence into peer-level O/H/M/T rates.
+
+    Successful-SNR medians use hit rows only. Evidence bounds include every
+    retained row, including Target-only observations, and are converted from
+    canonical 120-second UTC slots after aggregation to avoid a row-sized
+    timestamp column.
+    """
     if rows is None or rows.empty:
         return pd.DataFrame()
 
     min_opportunities = max(int(min_opportunities), 1)
-    work = rows.copy()
-    work["hit_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").where(
-        work["hit"] > 0
+    group_keys = ["peer_sign", "peer_grid"]
+    grouped_rows = rows.groupby(group_keys, dropna=False, observed=True)
+    grouped = grouped_rows.agg(
+        opportunities=("opportunity", "sum"),
+        hits=("hit", "sum"),
+        misses=("miss", "sum"),
+        target_only=("target_only", "sum"),
+        target_observations=("target_seen", "sum"),
+        first_evidence_time_slot=("time_slot", "min"),
+        last_evidence_time_slot=("time_slot", "max"),
+        peer_lat=("peer_lat", "first"),
+        peer_lon=("peer_lon", "first"),
     )
-    work["evidence_utc"] = opportunity_utc_from_time_slot(work["time_slot"])
-    grouped = (
-        work.groupby(["peer_sign", "peer_grid"], dropna=False, observed=True)
-        .agg(
-            opportunities=("opportunity", "sum"),
-            hits=("hit", "sum"),
-            misses=("miss", "sum"),
-            target_only=("target_only", "sum"),
-            target_observations=("target_seen", "sum"),
-            successful_snr_median=("hit_snr", "median"),
-            first_evidence_utc=("evidence_utc", "min"),
-            last_evidence_utc=("evidence_utc", "max"),
-            peer_lat=("peer_lat", "first"),
-            peer_lon=("peer_lon", "first"),
-        )
-        .reset_index()
+    hit_snr = pd.to_numeric(rows["target_snr"], errors="coerce").where(
+        rows["hit"] > 0
     )
+    successful_snr_median = hit_snr.groupby(
+        [rows[column] for column in group_keys],
+        dropna=False,
+        observed=True,
+    ).median()
+    grouped.insert(
+        grouped.columns.get_loc("first_evidence_time_slot"),
+        "successful_snr_median",
+        successful_snr_median,
+    )
+    grouped["first_evidence_time_slot"] = opportunity_utc_from_time_slot(
+        grouped["first_evidence_time_slot"]
+    )
+    grouped["last_evidence_time_slot"] = opportunity_utc_from_time_slot(
+        grouped["last_evidence_time_slot"]
+    )
+    grouped = grouped.rename(columns={
+        "first_evidence_time_slot": "first_evidence_utc",
+        "last_evidence_time_slot": "last_evidence_utc",
+    }).reset_index()
     for column in [
         "opportunities",
         "hits",
