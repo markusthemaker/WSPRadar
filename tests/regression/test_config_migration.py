@@ -970,6 +970,14 @@ def test_loading_active_only_config_resets_inactive_widget_state():
     assert session_state["val_benchmark_offset_db"] == 0.0
     assert session_state["val_tx_ab_method"] == "simultaneous"
     assert session_state["val_min_spots"] == 1
+    assert session_state["val_exclude_special_callsigns"] is False
+    assert session_state["val_filter_moving"] is False
+    assert session_state["_population_exclusion_overrides"] == {
+        "val_exclude_special_callsigns": True,
+        "val_filter_moving": True,
+    }
+    assert "_val_exclude_special_callsigns" not in session_state
+    assert "_val_filter_moving" not in session_state
     assert session_state["val_results_show_non_joint"] is None
     assert session_state["val_results_show_zero_target"] is False
     assert session_state["val_results_selected_ranges_compare"] == "all"

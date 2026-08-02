@@ -38,6 +38,7 @@ from core.opportunity_engine import (
     prepare_opportunity_rows,
     target_grid4,
 )
+from core.query_limits import apply_analysis_result_row_limit
 from core.snr_utils import round_snr_like_columns
 from core.tx_ab_schedule import (
     assign_tx_ab_pair_columns,
@@ -270,12 +271,16 @@ def without_decode_code_filter(query):
 
 
 def with_decode_fallback(analysis):
-    """Attach strict/legacy decode metadata and a no-code fallback query."""
-    strict_query = analysis["query"]
-    legacy_query = without_decode_code_filter(strict_query)
+    """Attach bounded strict/legacy SQL and historical decode metadata."""
+    unbounded_strict_query = analysis["query"]
+    unbounded_legacy_query = without_decode_code_filter(unbounded_strict_query)
+    strict_query = apply_analysis_result_row_limit(unbounded_strict_query)
+    analysis["query"] = strict_query
     analysis["decode_filter_mode"] = DECODE_FILTER_STRICT
-    if legacy_query != strict_query:
-        analysis["legacy_query"] = legacy_query
+    if unbounded_legacy_query != unbounded_strict_query:
+        analysis["legacy_query"] = apply_analysis_result_row_limit(
+            unbounded_legacy_query
+        )
         analysis["legacy_decode_filter_mode"] = DECODE_FILTER_LEGACY
     return analysis
 
@@ -692,7 +697,6 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
             df = prepare_opportunity_rows(
                 df,
                 target_callsign=analysis_context.callsign,
-                target_qth=analysis_context.qth,
                 timing_collector=timing_collector,
                 owns_input=True,
             )

@@ -2,6 +2,27 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-08-02
+
+- Added a configurable 1,000,000-row ceiling for every complete Performance and
+  Compare provider result. SQL retrieves one sentinel row beyond the ceiling,
+  CSV counts logical records while buffering and parses the accepted byte buffer
+  directly, while Parquet uses footer metadata; both reject the sentinel before
+  full Pandas materialization. Strict and legacy queries abort without partial
+  analysis or provider failover, and a
+  short-lived exact-query marker prevents an immediate repeat request. The
+  bilingual warning distinguishes SQL-level special-callsign and Local
+  Neighborhood-radius filters from maximum peer-distance, moving-station,
+  solar-state and evidence filters that run only after retrieval.
+- Removed the unused observation-level path-illumination enrichment from
+  Performance processing and its six auxiliary columns from the processed
+  Parquet artifact. No active filter, calculation, map, figure, table or CSV
+  export consumed those fields, so opportunity outcomes, denominators,
+  aggregation and Target-QTH solar-state selection remain unchanged. This
+  eliminates the per-row great-circle solar sampling that dominated large-run
+  memory and CPU use; external consumers of `success/analysis_cache.parquet`
+  should no longer expect the retired auxiliary columns.
+
 ## 2026-07-30
 
 - Completed the visible migration from Success to **Performance** without

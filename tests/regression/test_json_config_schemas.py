@@ -254,6 +254,23 @@ def test_formal_schema_describes_performance_without_renaming_success_state(
     )
 
 
+def test_required_population_exclusions_have_no_universal_schema_default(
+    config_schema,
+):
+    """Leave mode-aware interactive defaults outside the explicit file contract."""
+    definitions = config_schema["$defs"]
+
+    assert "default" not in definitions["excludeSpecialCallsigns"]
+    assert "default" not in definitions["excludeMovingStations"]
+    for branch_name in (
+        "advancedParametersNoComparison",
+        "advancedParametersWithComparison",
+    ):
+        required = definitions[branch_name]["required"]
+        assert "exclude_special_callsigns" in required
+        assert "exclude_moving_stations" in required
+
+
 def test_every_demo_is_an_ordinary_config_matching_the_formal_schema(
     config_validator,
 ):

@@ -50,6 +50,11 @@ from core.time_utils import (
     resolve_default_utc_window,
 )
 from ui.analysis_submission_state import cancel_analysis_submission
+from ui.population_exclusion_state import (
+    population_exclusion_defaults,
+    register_explicit_population_exclusion_values,
+    result_type_from_comparison_mode,
+)
 from ui.result_state import reset_result_state
 from ui.time_window import (
     ABSOLUTE_TIME_WINDOW_INITIALIZED_KEY,
@@ -477,6 +482,9 @@ def _settings_from_session_state(state, lang):
         MODE_VALUES,
         "none",
     )
+    population_defaults = population_exclusion_defaults(
+        result_type_from_comparison_mode(benchmark_mode)
+    )
     comparison_parameters = {"mode": benchmark_mode}
     if benchmark_mode != "none":
         comparison_parameters["snr_correction_mode"] = _validate_choice(
@@ -576,11 +584,14 @@ def _settings_from_session_state(state, lang):
         "exclude_special_callsigns": bool(
             state.get(
                 "val_exclude_special_callsigns",
-                defaults["exclude_special_callsigns"],
+                population_defaults["val_exclude_special_callsigns"],
             )
         ),
         "exclude_moving_stations": bool(
-            state.get("val_filter_moving", defaults["exclude_moving_stations"])
+            state.get(
+                "val_filter_moving",
+                population_defaults["val_filter_moving"],
+            )
         ),
         "min_confirmed_opportunities_per_peer": int(
             state.get(
@@ -1423,6 +1434,7 @@ def apply_config_state_values(config, session_state):
             "val_config_extensions": deepcopy(config.get("extensions", {})),
         }
     )
+    register_explicit_population_exclusion_values(session_state)
 
 
 def apply_config_values_to_state(config, session_state):

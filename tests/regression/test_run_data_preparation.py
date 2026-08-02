@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 from config import WSPR_DATABASE_PROVIDERS
+from core import run_data_preparation
 from core.analysis_runner import DECODE_FILTER_LEGACY, DECODE_FILTER_STRICT
 from core.fetch_models import (
     DatabaseSource,
@@ -249,6 +250,56 @@ def test_operational_strict_failure_never_triggers_legacy_query(tmp_path):
     assert exc_info.value.fetch_result.error.scope == FetchFailureScope.PROVIDER
     assert requests == ["COMPARE STRICT"]
     assert list(tmp_path.glob("*.parquet")) == []
+
+
+def test_injected_row_limit_overflow_stops_before_legacy_or_processing(
+    tmp_path,
+    monkeypatch,
+):
+    """Defend cached and injected fetchers before fallback or artifact staging."""
+    plan = _comparison_plan()
+    controller = _controller()
+    lease = controller.try_acquire_run({"wspr_live": 1, "wd2": 1, "wd1": 1})
+    requests = []
+    oversized_frame = pd.concat(
+        [_comparison_frame(has_u=0)] * 3,
+        ignore_index=True,
+    )
+
+    def fake_fetch(query, *, database_provider, **_kwargs):
+        requests.append(query)
+        return _result(database_provider.key, oversized_frame)
+
+    monkeypatch.setattr(run_data_preparation, "MAX_ANALYSIS_RESULT_ROWS", 2)
+    with pytest.raises(ProviderBundleFetchError) as exc_info:
+        prepare_provider_bundle(
+            [plan],
+            provider_lease=lease,
+            is_demo_run=False,
+            analysis_context=object(),
+            center_latitude=47.0,
+            center_longitude=8.0,
+            labels={"warn_no_data": "No data: {title}"},
+            artifact_paths={"RX_COMP": tmp_path / "compare.parquet"},
+            fetch_data=fake_fetch,
+            post_fetch_filter=lambda *_args, **_kwargs: pytest.fail(
+                "oversized rows reached post-fetch processing"
+            ),
+            artifact_writer=lambda *_args, **_kwargs: pytest.fail(
+                "oversized rows reached artifact staging"
+            ),
+            query_cache_invalidator=lambda *_args, **_kwargs: pytest.fail(
+                "valid oversized rows were treated as a schema failure"
+            ),
+        )
+    lease.release()
+
+    error = exc_info.value.fetch_result.error
+    assert requests == ["COMPARE STRICT"]
+    assert error.code == "result_row_limit_exceeded"
+    assert error.scope == FetchFailureScope.REQUEST
+    assert error.failure_stage == "validate_prepared_query_rows"
+    assert not (tmp_path / "compare.parquet").exists()
 
 
 def test_valid_empty_strict_and_legacy_responses_do_not_become_provider_errors(tmp_path):

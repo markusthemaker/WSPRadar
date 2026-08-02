@@ -79,6 +79,11 @@ SESSION_ARTIFACT_TTL_SEC = 3600
 CACHE_TTL_SEC = STANDARD_QUERY_CACHE_TTL_SEC
 MAX_DAYS_HISTORY = 31
 
+# Maximum complete query-result rows accepted for one analysis block. SQL asks
+# for one additional sentinel row so an exact-limit result remains distinguishable
+# from a larger result that must be rejected before scientific processing.
+MAX_ANALYSIS_RESULT_ROWS = 1_000_000
+
 # WSPR transport guardrails. The read timeout is socket inactivity, not a
 # total request-duration limit; byte ceilings apply to decompressed response data.
 WSPR_HTTP_CONNECT_TIMEOUT_SEC = 10

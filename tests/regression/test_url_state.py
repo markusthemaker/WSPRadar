@@ -224,6 +224,28 @@ def test_url_v1_omits_every_stable_default_and_orders_required_fields():
     )
 
 
+def test_performance_ui_defaults_are_explicit_against_url_v1_false_defaults():
+    """Preserve old omitted URLs while encoding the new interactive defaults."""
+    settings = _settings_for_mode("performance")
+    settings["advanced_parameters"].update(
+        {
+            "exclude_special_callsigns": True,
+            "exclude_moving_stations": True,
+        }
+    )
+
+    entries = url_state.build_query_from_settings(settings, include_run=False)
+    entry_map = dict(entries)
+    normalized = url_state.build_config_from_url(
+        url_state.parse_url_query(entry_map)
+    )
+
+    assert entry_map["exclude_special"] == "1"
+    assert entry_map["exclude_moving"] == "1"
+    assert normalized["exclude_special_callsigns"] is True
+    assert normalized["exclude_moving_stations"] is True
+
+
 def test_nondefault_fields_use_global_deterministic_parameter_order():
     """Place advanced and result values in the public contract's fixed order."""
     settings = _settings_for_mode("reference_station")

@@ -1315,16 +1315,10 @@ def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contra
             ),
             "fig_success_station_votes_y_rx": "TX Stations",
             "fig_success_station_votes_y_tx": "RX Stations",
-            "fig_success_station_support_folded_y_rx": (
-                "Avg. TX Stations\n/ Represented\nUTC Date"
-            ),
-            "fig_success_station_support_folded_y_tx": (
-                "Avg. RX Stations\n/ Represented\nUTC Date"
-            ),
+            "fig_success_station_support_folded_y_rx": "Avg. TX Stations",
+            "fig_success_station_support_folded_y_tx": "Avg. RX Stations",
             "fig_success_opportunities_y": "Opportunities",
-            "fig_success_opportunities_folded_y": (
-                "Avg. Opportunities\n/ Represented\nUTC Date"
-            ),
+            "fig_success_opportunities_folded_y": "Avg. Opportunities",
             "fig_success_rate_legend": "Decode Rate",
         },
         "de": {
@@ -1336,16 +1330,10 @@ def test_success_temporal_evidence_labels_match_bilingual_column_and_axis_contra
             ),
             "fig_success_station_votes_y_rx": "TX-Stationen",
             "fig_success_station_votes_y_tx": "RX-Stationen",
-            "fig_success_station_support_folded_y_rx": (
-                "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
-            ),
-            "fig_success_station_support_folded_y_tx": (
-                "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
-            ),
+            "fig_success_station_support_folded_y_rx": "Ø TX-Stationen",
+            "fig_success_station_support_folded_y_tx": "Ø RX-Stationen",
             "fig_success_opportunities_y": "Gelegenheiten",
-            "fig_success_opportunities_folded_y": (
-                "Ø Gelegenheiten je\nberücksichtigtem\nUTC-Tag"
-            ),
+            "fig_success_opportunities_folded_y": "Ø Gelegenheiten",
             "fig_success_rate_legend": "Dekodierrate",
         },
     }

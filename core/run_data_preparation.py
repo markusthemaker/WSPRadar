@@ -8,6 +8,7 @@ import gc
 import time
 from typing import Callable, Mapping
 
+from config import MAX_ANALYSIS_RESULT_ROWS
 from core.analysis_runner import (
     DECODE_FILTER_LEGACY,
     DECODE_FILTER_STRICT,
@@ -22,6 +23,7 @@ from core.fetch_models import (
     FetchFailureScope,
     FetchResult,
     FetchSource,
+    RESULT_ROW_LIMIT_EXCEEDED_CODE,
 )
 from core.opportunity_engine import OPPORTUNITY_QUERY_COLUMNS
 from core.performance_timer import PerformanceTimer
@@ -159,6 +161,34 @@ def _schema_error(fetch_result: FetchResult, analysis: dict) -> FetchResult | No
     )
 
 
+def _raise_for_result_row_limit(
+    fetch_result: FetchResult,
+    analysis: dict,
+) -> None:
+    """Reject an oversized supplied frame before fallback or scientific work."""
+    frame = fetch_result.dataframe
+    if frame is None or len(frame) <= MAX_ANALYSIS_RESULT_ROWS:
+        return
+
+    row_limit_error = FetchResult(
+        artifact_path=fetch_result.artifact_path,
+        source=fetch_result.source,
+        database_source=fetch_result.database_source,
+        error=FetchError(
+            code=RESULT_ROW_LIMIT_EXCEEDED_CODE,
+            message=(
+                "Search result exceeded the configured safe limit of "
+                f"{MAX_ANALYSIS_RESULT_ROWS} rows."
+            ),
+            scope=FetchFailureScope.REQUEST,
+            query=analysis.get("query", ""),
+            failure_stage="validate_prepared_query_rows",
+        ),
+    )
+    fetch_result.dataframe = None
+    raise ProviderBundleFetchError(row_limit_error, analysis)
+
+
 def _raise_for_invalid_query_schema(
     fetch_result: FetchResult,
     analysis: dict,
@@ -254,6 +284,7 @@ def prepare_provider_bundle(
                 raise ProviderBundlePreparationError(
                     "Fetched data source does not match the provider bound to the run"
                 )
+            _raise_for_result_row_limit(fetch_result, analysis)
             _raise_for_invalid_query_schema(
                 fetch_result,
                 analysis,
@@ -295,6 +326,7 @@ def prepare_provider_bundle(
                     raise ProviderBundlePreparationError(
                         "Legacy data source does not match the provider bound to the run"
                     )
+                _raise_for_result_row_limit(fetch_result, analysis)
                 _raise_for_invalid_query_schema(
                     fetch_result,
                     analysis,

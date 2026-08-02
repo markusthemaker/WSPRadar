@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+import config as config_package
 from config import (
     ANALYSIS_ACTIVE_LEASE_TIMEOUT_SEC,
     ANALYSIS_MAX_CONCURRENT,
@@ -26,6 +27,7 @@ from config import (
     EXPORT_QUEUE_POLL_INTERVAL_SEC,
     EXPORT_QUEUE_WAIT_TIMEOUT_SEC,
     MAP_SCOPE_OPTIONS,
+    MAX_ANALYSIS_RESULT_ROWS,
     SESSION_ARTIFACT_TTL_SEC,
     SNR_CORRECTION_MODES,
     STANDARD_QUERY_CACHE_TTL_SEC,
@@ -212,6 +214,13 @@ def test_wspr_http_guardrails_are_safe_and_exported():
     assert 0 < WSPR_HTTP_CONNECT_TIMEOUT_SEC < WSPR_HTTP_READ_TIMEOUT_SEC
     assert WSPR_CSV_MAX_RESPONSE_BYTES >= 1024 * 1024
     assert WSPR_PARQUET_MAX_RESPONSE_BYTES >= 1024 * 1024
+
+
+def test_analysis_result_row_limit_is_explicit_and_exported():
+    """Keep the accepted row ceiling distinct from its SQL sentinel row."""
+    assert MAX_ANALYSIS_RESULT_ROWS == 1_000_000
+    assert isinstance(MAX_ANALYSIS_RESULT_ROWS, int)
+    assert "MAX_ANALYSIS_RESULT_ROWS" in config_package.__all__
 
 
 def test_cache_lifecycle_ttls_are_explicit_and_exported():

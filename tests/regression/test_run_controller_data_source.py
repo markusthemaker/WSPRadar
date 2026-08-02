@@ -551,7 +551,11 @@ def test_fetch_failure_telemetry_omits_query_and_error_message(monkeypatch):
         ),
     )
 
-    run_controller._render_fetch_error(fetch_result)
+    run_controller._render_fetch_error(
+        fetch_result,
+        T["en"],
+        exclude_special_callsigns=False,
+    )
 
     assert performance_events == [(
         "analysis_fetch_failure",
@@ -798,15 +802,13 @@ def _render_fake_run(
     active_demo_key=None,
     request_counts_by_provider=None,
     language="en",
+    exclude_special_callsigns=False,
 ):
     """Execute the admitted transactional path without map rendering."""
     fake_st.analysis_run_outcome = run_controller._render_admitted_analysis_run(
         t={
+            **T[language],
             "warn_no_data": "No data: {title}",
-            "msg_loading": T[language]["msg_loading"],
-            "err_analysis_processing_failed": T[language][
-                "err_analysis_processing_failed"
-            ],
         },
         run_status_slot=_RunStatusSlot(),
         start_t="start",
@@ -816,7 +818,10 @@ def _render_fake_run(
         ),
         admission_permit=permit,
         analyses=analyses,
-        analysis_context=SimpleNamespace(max_peer_distance_km=22000),
+        analysis_context=SimpleNamespace(
+            max_peer_distance_km=22000,
+            exclude_special_callsigns=exclude_special_callsigns,
+        ),
         presentation_context=SimpleNamespace(),
         center_latitude=47.0,
         center_longitude=8.0,
@@ -1213,6 +1218,86 @@ def test_request_scoped_failure_does_not_switch_database(monkeypatch):
     assert attempts == ["wspr_live"]
     assert get_active_run_database_source(fake_st.session_state) is None
     assert fake_st.errors
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("exclude_special_callsigns", [False, True])
+def test_result_row_limit_warning_is_localized_and_does_not_fail_over(
+    monkeypatch,
+    language,
+    exclude_special_callsigns,
+):
+    """Treat the safety stop as the user's request outcome, not provider health."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.lang = language
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    permit = _AnalysisPermit(controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 1, "wd1": 1}
+    ))
+    analyses = [_analysis("RX_ABS", "Performance")]
+    attempts = []
+
+    def fake_prepare(plans, *, provider_lease, **_kwargs):
+        attempts.append(provider_lease.source_key)
+        raise ProviderBundleFetchError(
+            FetchResult(
+                source=FetchSource.WSPR_LIVE,
+                database_source=DatabaseSource.WSPR_LIVE,
+                error=FetchError(
+                    code="result_row_limit_exceeded",
+                    message="technical row limit detail",
+                    scope=FetchFailureScope.REQUEST,
+                    query="SELECT private_query_text",
+                    failure_stage="validate_csv_result_rows",
+                ),
+            ),
+            plans[0],
+        )
+
+    _patch_run_environment(monkeypatch, fake_st, controller, fake_prepare)
+    _render_fake_run(
+        fake_st,
+        permit,
+        analyses,
+        language=language,
+        exclude_special_callsigns=exclude_special_callsigns,
+    )
+
+    special_callsign_advice = (
+        ""
+        if exclude_special_callsigns
+        else T[language][
+            "warn_analysis_result_row_limit_special_callsign_advice"
+        ].format(
+            special_callsign_label=T[language]["lbl_exclude_special"],
+        )
+    )
+    expected_warning = T[language]["warn_analysis_result_row_limit"].format(
+        max_rows=("1,000,000" if language == "en" else "1.000.000"),
+        special_callsign_advice=special_callsign_advice,
+        max_peer_distance_label=T[language]["lbl_max_dist"],
+        neighborhood_radius_label=T[language]["lbl_ref_radius_km"],
+    )
+    assert fake_st.analysis_run_outcome == "failed"
+    assert attempts == ["wspr_live"]
+    assert controller.snapshot("wspr_live").consecutive_failures == 0
+    assert get_active_run_database_source(fake_st.session_state) is None
+    assert fake_st.warnings == [expected_warning]
+    assert fake_st.errors == []
+    assert fake_st.codes == []
+    assert fake_st.statuses[0].label == T[language][
+        "status_analysis_result_row_limit"
+    ]
+    assert T[language]["status_analysis_result_row_limit"] in (
+        fake_st.placeholders[0].markdowns[-1]
+    )
+    assert "could not complete the data bundle" not in (
+        fake_st.placeholders[0].markdowns[-1]
+    )
 
 
 @pytest.mark.parametrize(

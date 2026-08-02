@@ -5,6 +5,7 @@ from core.analysis_runner import (
     DECODE_FILTER_STRICT,
     should_retry_without_decode_filter,
     without_decode_code_filter,
+    with_decode_fallback,
 )
 
 
@@ -29,6 +30,21 @@ def test_without_decode_code_filter_removes_strict_predicate_forms():
 
     assert "code = 1" not in legacy
     assert "tx_sign = 'KP4MD'" in legacy
+
+
+def test_bounded_decode_fallback_preserves_outer_limit_and_format():
+    analysis = with_decode_fallback({
+        "query": (
+            "SELECT * FROM wspr.rx WHERE code = 1 AND tx_sign = 'KP4MD' "
+            "FORMAT CSVWithNames"
+        )
+    })
+
+    assert "code = 1" in analysis["query"]
+    assert "code = 1" not in analysis["legacy_query"]
+    for query in (analysis["query"], analysis["legacy_query"]):
+        assert query.count("LIMIT 1000001") == 1
+        assert query.endswith("LIMIT 1000001\nFORMAT CSVWithNames")
 
 
 def test_retry_compare_only_when_target_side_is_absent():

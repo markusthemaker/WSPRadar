@@ -44,7 +44,7 @@ body:
         - Station balancing or median aggregation
         - Evidence thresholds or stability intervals
         - Geographic segmentation or map aggregation
-        - Path illumination or solar-state classification
+        - Solar-state classification
         - Query filtering or historical data validity
         - Documentation, terminology, or claim wording
         - Other

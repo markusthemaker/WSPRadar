@@ -9,7 +9,7 @@ import uuid
 
 import streamlit as st
 
-from config import CACHE_DIR, DEMO_PROFILES
+from config import CACHE_DIR, DEMO_PROFILES, MAX_ANALYSIS_RESULT_ROWS
 from core.analysis_admission import (
     ANALYSIS_ADMISSION_GATE,
     AnalysisDuplicateRequest,
@@ -32,7 +32,7 @@ from core.artifact_store import (
     touch_registered_session_artifacts,
 )
 from core.data_engine import cleanup_old_parquets, estimate_uncached_requests
-from core.fetch_models import FetchFailureScope
+from core.fetch_models import FetchFailureScope, RESULT_ROW_LIMIT_EXCEEDED_CODE
 from core.input_validation import is_valid_callsign, is_valid_locator
 from core.math_utils import locator_to_latlon
 from core.matplotlib_runtime import matplotlib_profile_collector
@@ -111,7 +111,12 @@ def _analysis_request_fingerprint(
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _render_fetch_error(fetch_result):
+def _render_fetch_error(
+    fetch_result,
+    labels,
+    *,
+    exclude_special_callsigns,
+):
     """Render one structured core fetch failure at the UI boundary."""
     error = fetch_result.error
     if error is None:
@@ -128,6 +133,8 @@ def _render_fetch_error(fetch_result):
         failure_diagnostics["retry_after_seconds"] = error.retry_after_seconds
     if error.failure_stage:
         failure_diagnostics["failure_stage"] = error.failure_stage
+    if error.code == RESULT_ROW_LIMIT_EXCEEDED_CODE:
+        failure_diagnostics["max_result_rows"] = MAX_ANALYSIS_RESULT_ROWS
     if fetch_result.artifact_path is not None:
         artifact_parts = set(fetch_result.artifact_path.parts)
         if ArtifactNamespace.DEMO_QUERY.value in artifact_parts:
@@ -137,6 +144,27 @@ def _render_fetch_error(fetch_result):
             failure_diagnostics["cache_namespace"] = ArtifactNamespace.QUERY.value
             failure_diagnostics["cache_policy"] = "standard_access_1h"
     log_performance_event("analysis_fetch_failure", **failure_diagnostics)
+    if error.code == RESULT_ROW_LIMIT_EXCEEDED_CODE:
+        special_callsign_advice = ""
+        if not exclude_special_callsigns:
+            special_callsign_advice = labels[
+                "warn_analysis_result_row_limit_special_callsign_advice"
+            ].format(
+                special_callsign_label=labels["lbl_exclude_special"],
+            )
+        max_rows = f"{MAX_ANALYSIS_RESULT_ROWS:,}".replace(
+            ",",
+            str(labels["fmt_results_thousands_separator"]),
+        )
+        st.warning(
+            labels["warn_analysis_result_row_limit"].format(
+                max_rows=max_rows,
+                special_callsign_advice=special_callsign_advice,
+                max_peer_distance_label=labels["lbl_max_dist"],
+                neighborhood_radius_label=labels["lbl_ref_radius_km"],
+            )
+        )
+        return
     if error.status_code is not None:
         st.error(f"CLICKHOUSE DATABASE ERROR {error.status_code}")
     else:
@@ -684,16 +712,30 @@ def _render_admitted_analysis_run(
             may_fallback = is_provider_failure and committed_source is None
             may_replan_capacity = is_capacity_failure and capacity_replans < 3
             if not may_fallback and not may_replan_capacity:
-                status_log.append(
-                    f"- {provider.display_name} could not complete the data bundle."
-                )
+                if (
+                    error is not None
+                    and error.code == RESULT_ROW_LIMIT_EXCEEDED_CODE
+                ):
+                    terminal_status_label = t["status_analysis_result_row_limit"]
+                    status_log.append(f"- {terminal_status_label}.")
+                else:
+                    terminal_status_label = "WSPR data request failed"
+                    status_log.append(
+                        f"- {provider.display_name} could not complete the data bundle."
+                    )
                 status_body.markdown("  \n".join(status_log))
                 status_box.update(
-                    label="WSPR data request failed",
+                    label=terminal_status_label,
                     state="error",
                     expanded=True,
                 )
-                _render_fetch_error(final_fetch_failure)
+                _render_fetch_error(
+                    final_fetch_failure,
+                    t,
+                    exclude_special_callsigns=(
+                        analysis_context.exclude_special_callsigns
+                    ),
+                )
                 st.session_state.run_mode = None
                 return "failed"
 
@@ -746,7 +788,13 @@ def _render_admitted_analysis_run(
                     expanded=True,
                 )
                 if final_fetch_failure is not None:
-                    _render_fetch_error(final_fetch_failure)
+                    _render_fetch_error(
+                        final_fetch_failure,
+                        t,
+                        exclude_special_callsigns=(
+                            analysis_context.exclude_special_callsigns
+                        ),
+                    )
                 else:
                     st.error(str(acquire_error))
                 st.session_state.run_mode = None

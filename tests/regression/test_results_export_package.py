@@ -177,6 +177,48 @@ def test_temporal_snr_render_version_changes_export_signature(monkeypatch):
     assert version_two_signature != results_export._export_signature(blocks)
 
 
+def test_success_distance_render_version_changes_export_signature(monkeypatch):
+    """Invalidate prepared ZIPs when Success distance rendering changes."""
+    blocks = {
+        "RX_ABS": {
+            "analysis_id": "RX_ABS",
+            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        }
+    }
+
+    monkeypatch.setattr(
+        results_export,
+        "SUCCESS_DISTANCE_EXPORT_RENDER_VERSION",
+        2,
+    )
+    version_two_signature = results_export._export_signature(blocks)
+    version_two_payload = json.loads(version_two_signature)
+    monkeypatch.setattr(
+        results_export,
+        "SUCCESS_DISTANCE_EXPORT_RENDER_VERSION",
+        3,
+    )
+
+    assert version_two_payload[0]["success_distance_export_render_version"] == 2
+    assert version_two_signature != results_export._export_signature(blocks)
+
+    compare_blocks = {
+        "RX_COMPARE": {
+            "analysis_id": "RX_COMPARE",
+            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        }
+    }
+    compare_signature = results_export._export_signature(compare_blocks)
+    monkeypatch.setattr(
+        results_export,
+        "SUCCESS_DISTANCE_EXPORT_RENDER_VERSION",
+        4,
+    )
+    assert compare_signature == results_export._export_signature(compare_blocks)
+
+
 def test_temporal_iqr_band_alpha_changes_export_signature(monkeypatch):
     """Invalidate prepared ZIPs when configured IQR shading changes."""
     blocks = {

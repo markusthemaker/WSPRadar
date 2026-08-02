@@ -264,6 +264,71 @@ def test_classic_advanced_panel_groups_filters_scope_and_evidence(
     evidence_threshold_fields.assert_called_once_with(labels)
 
 
+def test_population_toggles_register_explicit_edits_before_owner_callback(
+    monkeypatch,
+):
+    """Wrap each shared toggle with its field-specific override callback."""
+    toggle = Mock()
+    owner_callback = Mock()
+    session_state = _SessionState({"val_comp_mode": "none"})
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(session_state=session_state, toggle=toggle),
+    )
+
+    config_fields.render_station_population_fields(
+        T["en"],
+        on_change=owner_callback,
+        on_change_args=("scope_and_evidence",),
+    )
+
+    assert [call.kwargs["on_change"] for call in toggle.call_args_list] == [
+        callbacks.handle_population_exclusion_change,
+        callbacks.handle_population_exclusion_change,
+    ]
+    assert [call.kwargs["key"] for call in toggle.call_args_list] == [
+        "_val_exclude_special_callsigns",
+        "_val_filter_moving",
+    ]
+    assert [call.kwargs["args"] for call in toggle.call_args_list] == [
+        (
+            "val_exclude_special_callsigns",
+            owner_callback,
+            ("scope_and_evidence",),
+        ),
+        (
+            "val_filter_moving",
+            owner_callback,
+            ("scope_and_evidence",),
+        ),
+    ]
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
+    assert session_state._val_exclude_special_callsigns is True
+    assert session_state._val_filter_moving is True
+
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    session_state._val_exclude_special_callsigns = False
+    callbacks.handle_population_exclusion_change(
+        "val_exclude_special_callsigns",
+        owner_callback,
+        ("scope_and_evidence",),
+    )
+
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is True
+    assert session_state._population_exclusion_overrides == {
+        "val_exclude_special_callsigns": True,
+        "val_filter_moving": False,
+    }
+    owner_callback.assert_called_once_with("scope_and_evidence")
+
+
 @pytest.mark.parametrize("language", ["en", "de"])
 def test_tx_ab_threshold_wording_describes_scheduled_pairs(language):
     """Do not describe scheduled pairs as joint spots."""
@@ -675,6 +740,84 @@ def test_target_callsign_widget_uses_shared_entry_guidance(monkeypatch):
     error.assert_not_called()
 
 
+def test_shared_date_widgets_suggest_and_constrain_the_end_date(monkeypatch):
+    """Use the smart Start callback and start-relative 31-day End bounds."""
+    date_input = Mock()
+    session_state = _SessionState(
+        {
+            "val_analysis_direction": "rx",
+            "val_callsign": "DL1MKS",
+            "val_qth": "JN37",
+            "val_band": "20m",
+            "val_start_d": date(2026, 7, 1),
+            "val_start_t": time(0, 0),
+            "val_end_d": date(2026, 7, 2),
+            "val_end_t": time(0, 0),
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            columns=Mock(return_value=(_NullContext(), _NullContext())),
+            error=Mock(),
+            markdown=Mock(),
+            selectbox=Mock(),
+            date_input=date_input,
+            time_input=Mock(),
+        ),
+    )
+    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", Mock())
+
+    config_fields.render_target_and_window_fields(T["en"])
+
+    start_date_call, end_date_call = date_input.call_args_list
+    assert start_date_call.kwargs["on_change"] is callbacks.handle_start_date_change
+    assert end_date_call.kwargs["on_change"] is callbacks.handle_time_window_change
+    assert end_date_call.kwargs["min_value"] == date(2026, 7, 1)
+    assert end_date_call.kwargs["max_value"] == date(2026, 8, 1)
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_shared_time_fields_report_an_excessive_window_during_entry(
+    monkeypatch,
+    language,
+):
+    """Show the exact localized 31-day error before Run can be submitted."""
+    error = Mock()
+    session_state = _SessionState(
+        {
+            "val_analysis_direction": "rx",
+            "val_callsign": "DL1MKS",
+            "val_qth": "JN37",
+            "val_band": "20m",
+            "val_start_d": date(2026, 6, 1),
+            "val_start_t": time(0, 0),
+            "val_end_d": date(2026, 7, 2),
+            "val_end_t": time(0, 15),
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            columns=Mock(return_value=(_NullContext(), _NullContext())),
+            error=error,
+            markdown=Mock(),
+            selectbox=Mock(),
+            date_input=Mock(),
+            time_input=Mock(),
+        ),
+    )
+    monkeypatch.setattr(config_panel, "text_input_no_autocomplete", Mock())
+
+    config_fields.render_target_and_window_fields(T[language])
+
+    error.assert_called_once_with(T[language]["err_time_duration"])
+
+
 def test_reference_station_identity_keeps_reference_grid4_editable(monkeypatch):
     """Keep Buddy QTH independent while retaining the shared identity layout."""
     text_input = Mock()
@@ -797,6 +940,8 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_tx_ab_method == "simultaneous"
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
     assert session_state.val_results_show_zero_target is False
     assert session_state.val_results_selected_ranges_compare == "all"
     assert session_state.val_results_selected_directions_compare == "all"
@@ -828,6 +973,8 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert analysis_context.tx_ab_method == "simultaneous"
     assert analysis_context.reference_qth == ""
     assert analysis_context.max_peer_distance_km == 22000
+    assert analysis_context.exclude_special_callsigns is True
+    assert analysis_context.exclude_moving_stations is True
 
 
 @pytest.mark.parametrize(
@@ -929,6 +1076,8 @@ def test_reset_config_returns_to_success_only(monkeypatch):
     assert session_state.val_analysis_direction is None
     assert session_state.val_ref_qth == ""
     assert session_state.val_tx_ab_method == "simultaneous"
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
     assert session_state.val_results_show_non_joint is None
     assert session_state.val_results_show_zero_target is False
     assert session_state.val_results_selected_ranges_compare == "all"
@@ -950,6 +1099,85 @@ def test_reset_config_returns_to_success_only(monkeypatch):
     )
     assert reset_end_utc - reset_start_utc == timedelta(hours=24)
     assert reset_end_utc.minute in {0, 15, 30, 45}
+
+
+def test_compare_session_starts_with_both_population_exclusions_off(monkeypatch):
+    """Apply Compare defaults when that result family owns a new session."""
+    session_state = _SessionState({"val_comp_mode": "reference_station"})
+    monkeypatch.setattr(
+        state_manager,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    state_manager.init_session_state()
+
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is False
+
+
+def test_mode_defaults_follow_untouched_fields_and_preserve_manual_edits(
+    monkeypatch,
+):
+    """Keep explicit filter choices while untouched fields follow result defaults."""
+    session_state = _SessionState()
+    monkeypatch.setattr(
+        state_manager,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    state_manager.init_session_state()
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
+
+    session_state._val_exclude_special_callsigns = False
+    callbacks.handle_population_exclusion_change(
+        "val_exclude_special_callsigns"
+    )
+    session_state.val_comp_mode = "reference_station"
+    callbacks.handle_comp_mode_change()
+
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is False
+
+    session_state.val_comp_mode = "hardware_ab"
+    callbacks.handle_comp_mode_change()
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is False
+
+    session_state.val_comp_mode = "none"
+    callbacks.handle_comp_mode_change()
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is True
+
+
+def test_hardware_direction_change_applies_untouched_performance_defaults(
+    monkeypatch,
+):
+    """Treat the implicit Hardware-to-Performance fallback as a mode transition."""
+    session_state = _SessionState({"val_comp_mode": "hardware_ab"})
+    monkeypatch.setattr(
+        state_manager,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    state_manager.init_session_state()
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
+
+    callbacks.handle_analysis_direction_change()
+
+    assert session_state.val_comp_mode == "none"
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
 
 
 @pytest.mark.parametrize(

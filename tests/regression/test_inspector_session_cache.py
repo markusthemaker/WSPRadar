@@ -2640,7 +2640,6 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
                     -10.0 - row_index
                     for row_index in range(len(selected_pairs))
                 ],
-                "path_illumination": ["Daylight"] * len(selected_pairs),
             }
         )
 

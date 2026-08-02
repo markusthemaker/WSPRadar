@@ -9,6 +9,10 @@ from ui.config_io import (
     SOLAR_VALUES,
     canonical_from_translated,
 )
+from ui.population_exclusion_state import (
+    population_exclusion_defaults,
+    result_type_from_comparison_mode,
+)
 
 
 def build_analysis_context_from_session_state(session_state):
@@ -18,6 +22,9 @@ def build_analysis_context_from_session_state(session_state):
         session_state.get("val_comp_mode", "none"),
         MODE_VALUES,
         "none",
+    )
+    population_defaults = population_exclusion_defaults(
+        result_type_from_comparison_mode(comparison_mode)
     )
     target_qth = normalize_ascii_upper(session_state.get("val_qth", ""))
     reference_qth = (
@@ -64,8 +71,18 @@ def build_analysis_context_from_session_state(session_state):
         max_peer_distance_km=int(
             session_state.get("val_max_peer_distance_km", 22000)
         ),
-        exclude_special_callsigns=bool(session_state.get("val_exclude_special_callsigns", False)),
-        exclude_moving_stations=bool(session_state.get("val_filter_moving", False)),
+        exclude_special_callsigns=bool(
+            session_state.get(
+                "val_exclude_special_callsigns",
+                population_defaults["val_exclude_special_callsigns"],
+            )
+        ),
+        exclude_moving_stations=bool(
+            session_state.get(
+                "val_filter_moving",
+                population_defaults["val_filter_moving"],
+            )
+        ),
         min_joint_spots_per_station=int(session_state.get("val_min_spots", 1)),
         min_confirmed_opportunities_per_peer=int(session_state.get("val_min_opportunities", 5)),
         min_joint_stations_per_map_segment=int(session_state.get("val_min_stations", 1)),

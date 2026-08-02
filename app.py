@@ -76,7 +76,10 @@ from ui.analysis_submission_state import (
 )
 from ui.result_state import reset_result_state
 from ui.state_manager import init_session_state
-from ui.time_window import utc_window_from_state
+from ui.time_window import (
+    time_window_validation_message_key,
+    utc_window_from_state,
+)
 from ui.url_state import (
     URL_QUERY_SYNCHRONIZER_PAGE_KEY,
     collect_query_values,
@@ -452,7 +455,10 @@ def render_run_analysis_button(*, is_busy):
         key="run_analysis_button",
         type="primary",
         width="stretch",
-        disabled=analysis_direction not in {"rx", "tx"},
+        disabled=(
+            analysis_direction not in {"rx", "tx"}
+            or time_window_validation_error is not None
+        ),
         on_click=request_main_analysis_submission,
     )
 
@@ -505,12 +511,9 @@ if is_new_analysis_submission:
         st.session_state.run_mode = None
         submission_initialization_failed = True
     elif time_window_validation_error is not None:
-        time_error_key = {
-            "before_minimum": "err_time_before_minimum",
-            "order": "err_time_order",
-            "duration": "err_time_duration",
-            "future": "err_time_future",
-        }.get(time_window_validation_error.reason, "err_time_invalid")
+        time_error_key = time_window_validation_message_key(
+            time_window_validation_error
+        )
         st.error(t[time_error_key])
         st.session_state.run_mode = None
         submission_initialization_failed = True

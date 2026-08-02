@@ -872,13 +872,14 @@ def _render_opportunity_segment_figure(recipe):
         & np.isfinite(snr_lower)
         & np.isfinite(snr_upper)
     )
+    range_artist = None
     if two_station_mask.any():
         range_artist = snr_axis.vlines(
             distance_centers[two_station_mask],
             snr_lower[two_station_mask],
             snr_upper[two_station_mask],
-            color=SUCCESS_OBSERVATION_LEVEL_COLOR,
-            linewidth=2.0,
+            color=SUCCESS_STATION_BALANCED_COLOR,
+            linewidth=0.7,
             alpha=0.85,
             label=labels["two_station_range"],
             zorder=3,
@@ -909,6 +910,11 @@ def _render_opportunity_segment_figure(recipe):
     )
     _place_metric_legend(
         snr_axis,
+        handles=[
+            snr_line,
+            *([range_artist] if range_artist is not None else []),
+            iqr_artist,
+        ],
         loc="upper right",
         borderaxespad=0.0,
         gid="success-distance-snr-legend",

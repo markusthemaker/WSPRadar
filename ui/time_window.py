@@ -20,6 +20,14 @@ TIME_WINDOW_STATE_KEYS = (
     "val_end_d",
     "val_end_t",
 )
+SUGGESTED_WINDOW_DURATION = timedelta(days=7)
+
+_TIME_WINDOW_ERROR_MESSAGE_KEYS = {
+    "before_minimum": "err_time_before_minimum",
+    "order": "err_time_order",
+    "duration": "err_time_duration",
+    "future": "err_time_future",
+}
 
 
 def _combine_utc(date_value, time_value, *, field: str) -> datetime:
@@ -64,6 +72,69 @@ def set_default_utc_window_state(
     start_utc, end_utc = resolve_default_utc_window(current_utc=current_utc)
     write_utc_window_to_state(state, start_utc, end_utc)
     return start_utc, end_utc
+
+
+def set_suggested_end_date_from_start_date(
+    state: MutableMapping,
+    *,
+    current_utc: datetime | None = None,
+) -> date:
+    """Set End Date seven days after an edited Start Date, capped at today UTC."""
+    start_date = state.get("val_start_d")
+    if not isinstance(start_date, date) or isinstance(start_date, datetime):
+        raise UtcWindowValidationError(
+            "invalid",
+            "start_utc must contain a date.",
+        )
+    _, effective_current_utc = resolve_default_utc_window(
+        current_utc=current_utc
+    )
+    suggested_end_date = min(
+        start_date + SUGGESTED_WINDOW_DURATION,
+        effective_current_utc.date(),
+    )
+    state["val_end_d"] = suggested_end_date
+    return suggested_end_date
+
+
+def end_date_entry_bounds(
+    state: Mapping,
+    *,
+    current_utc: datetime | None = None,
+) -> tuple[date, date]:
+    """Return nominal bounds widened only to render a retained invalid End Date."""
+    start_date = state.get("val_start_d")
+    if not isinstance(start_date, date) or isinstance(start_date, datetime):
+        raise UtcWindowValidationError(
+            "invalid",
+            "start_utc must contain a date.",
+        )
+    _, effective_current_utc = resolve_default_utc_window(
+        current_utc=current_utc
+    )
+    minimum_end_date = start_date
+    maximum_end_date = min(
+        start_date + timedelta(days=MAX_DAYS_HISTORY),
+        effective_current_utc.date(),
+    )
+    retained_end_date = state.get("val_end_d")
+    if isinstance(retained_end_date, date) and not isinstance(
+        retained_end_date,
+        datetime,
+    ):
+        minimum_end_date = min(minimum_end_date, retained_end_date)
+        maximum_end_date = max(maximum_end_date, retained_end_date)
+    return minimum_end_date, maximum_end_date
+
+
+def time_window_validation_message_key(
+    error: UtcWindowValidationError,
+) -> str:
+    """Map a stable UTC-window validation reason to its localized UI key."""
+    return _TIME_WINDOW_ERROR_MESSAGE_KEYS.get(
+        error.reason,
+        "err_time_invalid",
+    )
 
 
 def quantize_utc_window_state(

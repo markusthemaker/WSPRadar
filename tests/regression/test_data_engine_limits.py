@@ -6,6 +6,7 @@ import time
 import uuid
 
 import pandas as pd
+import pytest
 import requests
 
 from config import WSPR_DATABASE_PROVIDERS
@@ -91,6 +92,124 @@ def test_csv_fetch_avoids_arrow_parser(monkeypatch):
     assert result.error is None
     assert result.source == data_engine.FetchSource.WSPR_LIVE
     assert parse_kwargs["engine"] == "c"
+
+
+def test_csv_row_limit_accepts_exact_limit_and_quoted_newline(monkeypatch):
+    """Count logical CSV records rather than physical lines before Pandas."""
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse([
+            b'peer_sign,note\r\nK1AAA,"first line\r',
+            b'\nsecond "',
+            b'"quoted"" line"\r',
+            b'\nK2BBB,ok\r\n',
+        ]),
+    )
+
+    result = data_engine.fetch_wspr_data(
+        f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+    )
+
+    assert result.error is None
+    assert len(result.dataframe) == 2
+    assert result.dataframe.loc[0, "note"] == 'first line\r\nsecond "quoted" line'
+
+
+def test_csv_row_counter_accepts_field_larger_than_stdlib_csv_limit(monkeypatch):
+    """Do not add csv.reader's hidden 128 KiB field limit to ClickHouse rows."""
+    large_field = "x" * 131_073
+    payload = f"peer_sign,note\nK1AAA,{large_field}\n".encode("utf-8")
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 1)
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse([payload]),
+    )
+
+    result = data_engine.fetch_wspr_data(
+        f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+    )
+
+    assert result.error is None
+    assert len(result.dataframe) == 1
+    assert result.dataframe.loc[0, "note"] == large_field
+
+
+def test_csv_row_limit_rejects_before_pandas_and_caches_marker(monkeypatch):
+    """Stop at the sentinel row and avoid repeating the exact database request."""
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse([
+            b"peer_sign,stat_val\nK1AAA,-1\nK2BBB,-2\nK3CCC,-3\n"
+        ])
+
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    monkeypatch.setattr(
+        data_engine,
+        "_read_wspr_csv_response",
+        lambda *_args, **_kwargs: pytest.fail("oversized CSV reached Pandas"),
+    )
+    query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+
+    first = data_engine.fetch_wspr_data(query)
+    second = data_engine.fetch_wspr_data(query)
+
+    assert request_count == 1
+    assert first.dataframe is None
+    assert second.dataframe is None
+    assert first.error.code == "result_row_limit_exceeded"
+    assert second.error.code == "result_row_limit_exceeded"
+    assert first.error.scope == FetchFailureScope.REQUEST
+    assert second.source == FetchSource.MEMORY_CACHE
+    assert data_engine.is_wspr_query_cached(query)
+    assert data_engine.estimate_uncached_requests(
+        [{"query": query, "response_format": "csv"}],
+        is_demo=False,
+        database_provider=WSPR_DATABASE_PROVIDERS[0],
+    ) == 0
+    assert data_engine._dataframe_cache == OrderedDict()
+
+
+def test_request_estimator_evicts_oversized_memory_rows(monkeypatch):
+    """Replace a stale oversized RAM frame with an expiry-preserving marker."""
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    query = f"SELECT '{uuid.uuid4().hex}' FORMAT CSVWithNames"
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=False,
+        database_provider=provider,
+    )
+    expires_at = time.time() + 300
+    oversized_frame = pd.DataFrame({"has_u": [1, 1, 1]})
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
+    monkeypatch.setattr(
+        data_engine,
+        "_dataframe_cache",
+        OrderedDict({cache_key: (expires_at, oversized_frame)}),
+    )
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+
+    request_count = data_engine.estimate_uncached_requests(
+        [{"query": query, "response_format": "csv"}],
+        is_demo=False,
+        database_provider=provider,
+    )
+
+    assert request_count == 0
+    assert cache_key not in data_engine._dataframe_cache
+    assert data_engine._result_row_limit_cache[cache_key] == pytest.approx(
+        expires_at
+    )
 
 
 def test_one_line_csv_body_is_preserved_for_schema_validation(monkeypatch):
@@ -681,6 +800,125 @@ def test_parquet_fetch_preserves_table_after_bounded_stream(tmp_path, monkeypatc
     assert request_kwargs["timeout"] == (
         data_engine.WSPR_HTTP_CONNECT_TIMEOUT_SEC,
         data_engine.WSPR_HTTP_READ_TIMEOUT_SEC,
+    )
+
+
+def test_parquet_row_limit_rejects_footer_before_pandas_and_caches_marker(
+    tmp_path,
+    monkeypatch,
+):
+    """Use footer metadata, retain no sentinel rows, and avoid an exact retry."""
+    source_path = tmp_path / "oversized-source.parquet"
+    pd.DataFrame({
+        "time_slot": [1, 2, 3],
+        "target_seen": [1, 1, 1],
+    }).to_parquet(source_path, index=False)
+    payload = source_path.read_bytes()
+    request_count = 0
+
+    def fake_get(*_args, **_kwargs):
+        nonlocal request_count
+        request_count += 1
+        return _StreamingResponse([payload])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine,
+        "WSPR_PARQUET_MAX_RESPONSE_BYTES",
+        len(payload) + 1,
+    )
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+    monkeypatch.setattr(
+        data_engine.pd,
+        "read_parquet",
+        lambda *_args, **_kwargs: pytest.fail("oversized Parquet reached Pandas"),
+    )
+    query = "SELECT row_sentinel FORMAT Parquet"
+
+    first = data_engine._fetch_wspr_parquet(query)
+    second = data_engine._fetch_wspr_parquet(query)
+    cache_path = data_engine._query_cache_path(query)
+
+    assert request_count == 1
+    assert first.error.code == "result_row_limit_exceeded"
+    assert second.error.code == "result_row_limit_exceeded"
+    assert first.error.scope == FetchFailureScope.REQUEST
+    assert second.source == FetchSource.MEMORY_CACHE
+    assert not cache_path.exists()
+    assert list((tmp_path / "cache").rglob("*.tmp")) == []
+
+
+def test_parquet_row_limit_accepts_exact_limit(tmp_path, monkeypatch):
+    expected = pd.DataFrame({
+        "time_slot": [1, 2],
+        "target_seen": [1, 0],
+    })
+    source_path = tmp_path / "exact-limit-source.parquet"
+    expected.to_parquet(source_path, index=False)
+    payload = source_path.read_bytes()
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine,
+        "WSPR_PARQUET_MAX_RESPONSE_BYTES",
+        len(payload) + 1,
+    )
+    monkeypatch.setattr(
+        data_engine.http_session,
+        "get",
+        lambda *_args, **_kwargs: _StreamingResponse([payload]),
+    )
+
+    result = data_engine._fetch_wspr_parquet("SELECT exact_limit FORMAT Parquet")
+
+    assert result.error is None
+    assert len(result.dataframe) == 2
+
+
+def test_demo_parquet_overflow_marker_keeps_original_absolute_expiry(
+    tmp_path,
+    monkeypatch,
+):
+    """A late cache inspection must not restart the fixed 24-hour demo TTL."""
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    query = "SELECT demo_row_sentinel FORMAT Parquet"
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    cache_path = data_engine._query_cache_path(
+        query,
+        provider,
+        is_demo=True,
+    )
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"target_seen": [1, 1, 1]}).to_parquet(
+        cache_path,
+        index=False,
+    )
+    cache_mtime = time.time() - data_engine.DEMO_QUERY_CACHE_TTL_SEC + 120
+    os.utime(cache_path, (cache_mtime, cache_mtime))
+    expected_expiry = cache_mtime + data_engine.DEMO_QUERY_CACHE_TTL_SEC
+    cache_key = data_engine._memory_cache_key(
+        query,
+        is_demo=True,
+        database_provider=provider,
+    )
+
+    result = data_engine._fetch_wspr_parquet(
+        query,
+        is_demo=True,
+        database_provider=provider,
+    )
+
+    assert result.error.code == "result_row_limit_exceeded"
+    assert not cache_path.exists()
+    assert data_engine._result_row_limit_cache[cache_key] == pytest.approx(
+        expected_expiry,
+        abs=0.1,
     )
 
 

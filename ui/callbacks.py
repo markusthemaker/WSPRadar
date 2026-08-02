@@ -23,8 +23,16 @@ from ui.page_navigation import (
     request_page_navigation,
 )
 from ui.result_state import reset_result_state
+from ui.population_exclusion_state import (
+    PERFORMANCE_RESULT_TYPE,
+    reset_population_exclusion_state,
+    result_type_from_comparison_mode,
+    store_population_exclusion_widget_value,
+    transition_population_exclusion_result_type,
+)
 from ui.time_window import (
     quantize_utc_window_state,
+    set_suggested_end_date_from_start_date,
     set_default_utc_window_state,
 )
 from ui.analysis_submission_state import (
@@ -58,6 +66,23 @@ def reset_audit():
 def handle_time_window_change(after_change=None, after_change_args=()):
     """Canonicalize edited UTC endpoints before running the owning callback."""
     quantize_utc_window_state(st.session_state)
+    if after_change is not None:
+        after_change(*after_change_args)
+
+
+def handle_start_date_change(after_change=None, after_change_args=()):
+    """Suggest a seven-day End Date, then finish the shared window callback."""
+    set_suggested_end_date_from_start_date(st.session_state)
+    handle_time_window_change(after_change, after_change_args)
+
+
+def handle_population_exclusion_change(
+    state_key,
+    after_change=None,
+    after_change_args=(),
+):
+    """Retain one explicit filter edit before running its owning callback."""
+    store_population_exclusion_widget_value(st.session_state, state_key)
     if after_change is not None:
         after_change(*after_change_args)
 
@@ -162,7 +187,7 @@ def update_lang():
 
 
 def handle_input_view_change():
-    """Switch editors and keep any active scientific request attached."""
+    """Switch editors while retaining the canonical runnable configuration."""
     if st.session_state.get("run_mode"):
         handoff_analysis_submission(
             st.session_state,
@@ -171,6 +196,13 @@ def handle_input_view_change():
     if st.session_state.get("input_view") == "guided":
         st.session_state.guided_reconstruct_requested = True
         st.session_state.guided_collapse_all = False
+    else:
+        transition_population_exclusion_result_type(
+            st.session_state,
+            result_type_from_comparison_mode(
+                st.session_state.get("val_comp_mode")
+            ),
+        )
 
 def _apply_demo_profile_values(profile_key):
     """Apply one explicit runnable demo profile to the normal editable config state."""
@@ -263,6 +295,12 @@ def handle_comp_mode_change():
     """
     Reset active results and correction when the benchmark design changes.
     """
+    transition_population_exclusion_result_type(
+        st.session_state,
+        result_type_from_comparison_mode(
+            st.session_state.get("val_comp_mode")
+        ),
+    )
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_snr_correction_mode = "no_offset"
     reset_audit()
@@ -282,6 +320,10 @@ def handle_analysis_direction_change():
     retained_mode = st.session_state.get("guided_last_compare_mode")
     if active_mode == "hardware_ab" or retained_mode == "hardware_ab":
         st.session_state.val_comp_mode = "none"
+        transition_population_exclusion_result_type(
+            st.session_state,
+            PERFORMANCE_RESULT_TYPE,
+        )
         st.session_state.guided_reference_design = None
         st.session_state.guided_last_compare_mode = None
         st.session_state.val_benchmark_offset_db = 0.0
@@ -324,8 +366,7 @@ def set_reset_config(*, reset_time_window=True):
     st.session_state.val_tx_ab_target_start_minute = 0
     st.session_state.val_tx_ab_reference_start_minute = 2
     st.session_state.val_max_peer_distance_km = 22000
-    st.session_state.val_exclude_special_callsigns = False
-    st.session_state.val_filter_moving = False
+    reset_population_exclusion_state(st.session_state)
     st.session_state.val_min_spots = 1
     st.session_state.val_min_opportunities = 5
     st.session_state.val_min_stations = 1

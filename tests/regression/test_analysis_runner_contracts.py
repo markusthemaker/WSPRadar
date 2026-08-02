@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pandas as pd
 import pytest
 
+from config import MAX_ANALYSIS_RESULT_ROWS
 from core.analysis_context import (
     AnalysisContext,
     COMPARISON_HARDWARE_AB,
@@ -17,6 +18,7 @@ from core.analysis_context import (
 )
 from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
 from core.presentation_context import PresentationContext
+from core.query_limits import apply_analysis_result_row_limit
 from i18n import T
 
 
@@ -71,6 +73,89 @@ def test_no_benchmark_builds_only_the_directional_success_analysis():
     assert [analysis["id"] for analysis in tx_analyses] == ["TX_ABS"]
     assert [analysis["id"] for analysis in rx_analyses] == ["RX_ABS"]
     assert all(analysis["analysis_kind"] == "opportunity" for analysis in tx_analyses + rx_analyses)
+
+
+@pytest.mark.parametrize(
+    "context",
+    [
+        _analysis_context(run_mode="TX", comparison_mode=COMPARISON_NONE),
+        _analysis_context(run_mode="RX", comparison_mode=COMPARISON_NONE),
+        _analysis_context(run_mode="TX", comparison_mode=COMPARISON_REFERENCE_STATION),
+        _analysis_context(run_mode="RX", comparison_mode=COMPARISON_REFERENCE_STATION),
+        _analysis_context(
+            run_mode="TX",
+            self_test_mode=SELF_TEST_TX,
+            comparison_mode=COMPARISON_HARDWARE_AB,
+            tx_ab_method=TX_AB_METHOD_SEQUENTIAL,
+        ),
+        _analysis_context(
+            run_mode="RX",
+            comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
+            local_benchmark=LOCAL_BENCHMARK_MEDIAN,
+        ),
+    ],
+)
+def test_every_analysis_query_has_one_outer_result_row_sentinel(context):
+    """Bound each complete strict and legacy result after unions and grouping."""
+    analysis = _build_analyses(context)[0]
+    sentinel_clause = f"LIMIT {MAX_ANALYSIS_RESULT_ROWS + 1}"
+
+    for query in (analysis["query"], analysis["legacy_query"]):
+        expected_format = (
+            "Parquet"
+            if analysis["response_format"] == "parquet"
+            else "CSVWithNames"
+        )
+        assert query.startswith("SELECT *\nFROM (\n")
+        assert query.count("LIMIT ") == 1
+        assert query.count("FORMAT ") == 1
+        assert query.rfind(sentinel_clause) > query.rfind("UNION ALL")
+        assert query.rfind(sentinel_clause) > query.rfind("GROUP BY")
+        assert query.rfind("FORMAT ") > query.rfind(sentinel_clause)
+        assert query.endswith(
+            f")\n{sentinel_clause}\nFORMAT {expected_format}"
+        )
+
+
+def test_result_limit_wraps_complete_union_and_moves_terminal_format():
+    """Keep the sentinel outside a full union and normalize its SQL terminator."""
+    bounded_query = apply_analysis_result_row_limit(
+        "SELECT 1 AS value UNION ALL SELECT 2 AS value FORMAT CSVWithNames;",
+        max_result_rows=7,
+    )
+
+    assert bounded_query == (
+        "SELECT *\n"
+        "FROM (\n"
+        "SELECT 1 AS value UNION ALL SELECT 2 AS value\n"
+        ")\n"
+        "LIMIT 8\n"
+        "FORMAT CSVWithNames"
+    )
+
+
+@pytest.mark.parametrize(
+    ("sql_query", "maximum_rows", "expected_exception"),
+    [
+        ("SELECT 1 FORMAT CSVWithNames", True, TypeError),
+        ("SELECT 1 FORMAT CSVWithNames", 1.5, TypeError),
+        ("SELECT 1 FORMAT CSVWithNames", 0, ValueError),
+        ("SELECT 1 FORMAT CSVWithNames", -1, ValueError),
+        ("", 1, ValueError),
+        ("SELECT 1", 1, ValueError),
+    ],
+)
+def test_result_limit_rejects_invalid_policy_or_unfinished_sql(
+    sql_query,
+    maximum_rows,
+    expected_exception,
+):
+    """Fail closed when the safety policy or terminal FORMAT is invalid."""
+    with pytest.raises(expected_exception):
+        apply_analysis_result_row_limit(
+            sql_query,
+            max_result_rows=maximum_rows,
+        )
 
 
 def test_letter_only_reporting_identifier_builds_exact_rx_success_query():

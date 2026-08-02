@@ -26,12 +26,24 @@ from core.input_validation import (
     is_valid_locator,
     normalize_ascii_upper,
 )
+from core.time_utils import UtcWindowValidationError
 from ui.callbacks import (
     reset_audit, handle_analysis_direction_change, handle_comp_mode_change,
+    handle_population_exclusion_change,
     handle_reference_correction_context_change,
+    handle_start_date_change,
     handle_time_window_change,
     handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
     handle_tx_ab_target_start_change, swap_tx_ab_starts,
+)
+from ui.population_exclusion_state import (
+    load_population_exclusion_widget_values,
+    population_exclusion_widget_key,
+)
+from ui.time_window import (
+    end_date_entry_bounds,
+    time_window_validation_message_key,
+    utc_window_from_state,
 )
 
 
@@ -610,7 +622,12 @@ def render_target_and_window_fields(
             f"**{t['lbl_time_window']}**",
             help=help_overrides.get("time"),
         )
-        today_utc = datetime.now(timezone.utc).date()
+        current_utc = datetime.now(timezone.utc)
+        today_utc = current_utc.date()
+        minimum_end_date, maximum_end_date = end_date_entry_bounds(
+            st.session_state,
+            current_utc=current_utc,
+        )
 
         date_start, date_end = st.columns(
             2, gap="large", vertical_alignment="bottom"
@@ -621,7 +638,7 @@ def render_target_and_window_fields(
                 key="val_start_d",
                 min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
                 max_value=today_utc,
-                on_change=handle_time_window_change,
+                on_change=handle_start_date_change,
                 args=(on_change, on_change_args),
                 format="DD-MM-YYYY",
             )
@@ -629,8 +646,8 @@ def render_target_and_window_fields(
             st.date_input(
                 t["lbl_end_d"],
                 key="val_end_d",
-                min_value=datetime(2008, 1, 1, tzinfo=timezone.utc).date(),
-                max_value=today_utc,
+                min_value=minimum_end_date,
+                max_value=maximum_end_date,
                 on_change=handle_time_window_change,
                 args=(on_change, on_change_args),
                 format="DD-MM-YYYY",
@@ -655,6 +672,11 @@ def render_target_and_window_fields(
                 on_change=handle_time_window_change,
                 args=(on_change, on_change_args),
             )
+
+        try:
+            utc_window_from_state(st.session_state, current_utc=current_utc)
+        except UtcWindowValidationError as error:
+            st.error(t[time_window_validation_message_key(error)])
 
 
 def render_core_expander(t):
@@ -842,19 +864,30 @@ def render_station_population_fields(
     on_change_args=(),
 ):
     """Render shared identity-population exclusions."""
+    load_population_exclusion_widget_values(st.session_state)
     st.toggle(
         t["lbl_exclude_special"],
-        key="val_exclude_special_callsigns",
+        key=population_exclusion_widget_key(
+            "val_exclude_special_callsigns"
+        ),
         help=t["tt_exclude_special"],
-        on_change=on_change,
-        args=on_change_args,
+        on_change=handle_population_exclusion_change,
+        args=(
+            "val_exclude_special_callsigns",
+            on_change,
+            on_change_args,
+        ),
     )
     st.toggle(
         t["lbl_filter_moving"],
-        key="val_filter_moving",
+        key=population_exclusion_widget_key("val_filter_moving"),
         help=t["tt_filter_moving"],
-        on_change=on_change,
-        args=on_change_args,
+        on_change=handle_population_exclusion_change,
+        args=(
+            "val_filter_moving",
+            on_change,
+            on_change_args,
+        ),
     )
 
 

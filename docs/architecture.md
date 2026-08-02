@@ -202,6 +202,29 @@ serialization, URL synchronization, Guided summaries, or analysis execution
 read the state. Reset resolves a fresh absolute default; ordinary reruns do not
 advance it.
 
+An operator edit to Start Date also proposes an End Date seven days later,
+capped at the current UTC date. The End Date picker is bounded by Start Date,
+the configured 31-day limit, and today. The shared Guided/Classic renderer
+immediately reports any remaining exact date-and-time validation error, while
+the Run action stays unavailable; submission and configuration boundaries
+repeat the same validation defensively. A retained invalid End Date from an
+older session temporarily widens only the applicable picker boundary enough to
+render that unchanged value for correction, so widget construction cannot hide
+the validation error or silently repair scientific state.
+
+The two station-population exclusions retain their existing canonical shared
+fields. A dependency-free transient UI policy initializes untouched Performance
+fields to enabled and untouched Compare fields to disabled. Editing either
+toggle gives that field explicit session ownership, so later result-family
+changes update only untouched fields. Config, demo, and URL application marks
+both loaded booleans explicit. The permanent canonical fields are copied into
+underscore-prefixed temporary widget keys immediately before rendering and
+copied back by the toggle callbacks. Streamlit may therefore clean up hidden
+Guided widgets without deleting the canonical scientific values. This transient
+ownership and widget state are neither serialized nor added to
+`AnalysisContext`; the resulting canonical booleans retain their existing
+scientific and request-identity meaning.
+
 `config/guided_input_flow.json` declares the ordered question graph from use
 case through review. `ui/guided_inputs/flow_loader.py` performs bounded strict
 JSON decoding, Draft 2020-12 schema validation, registered-renderer checks,
@@ -319,6 +342,15 @@ geographically eligible callsign/full-locator identities. Sequential TX
 Hardware A/B applies the shared Target callsign and grid-4 to both schedule
 branches.
 
+Every completed strict or legacy analysis query is wrapped once by
+`core/query_limits.py` with an outer `LIMIT MAX_ANALYSIS_RESULT_ROWS + 1`
+before its terminal `FORMAT` clause. The configured accepted maximum is
+1,000,000 rows. The extra row is only an overflow sentinel: exactly one million
+rows remain valid, while a returned sentinel stops the request without analyzing
+a truncated result. The wrapper encloses complete unions and final aggregations,
+so it limits only transport/output rows and never an individual union branch or
+input to a scientific aggregate. No separate `COUNT(*)` request is made.
+
 For periodic hardware A/B Compare work, SQL applies the exact UTC-minute modulo
 predicate for each path's repeat interval and start phase. Comparison post-fetch
 processing rejects rows outside their assigned path schedule and attaches stable
@@ -355,6 +387,9 @@ Streamlit UI. It provides:
 - a separate provider-scoped demo-query namespace with an absolute 24-hour
   freshness lifetime;
 - CSV and Parquet response handling;
+- quote-aware logical CSV-record counting while transport chunks are buffered,
+  direct Pandas parsing from that byte buffer, and Parquet-footer row inspection
+  before full Pandas materialization;
 - connect/read deadlines;
 - streamed byte accounting and decompressed response ceilings;
 - unique temporary files and atomic promotion through the artifact store;
@@ -367,6 +402,13 @@ cache namespace and policy. It deliberately excludes the SQL text and captured
 error body. The engine holds a module-level Requests session. Explicit proof of
 all concurrent session-use semantics was not found, so thread-safety beyond the
 exercised tests remains an operational uncertainty.
+
+An overflow is reported as `result_row_limit_exceeded` with request scope. A
+bounded process-memory marker keyed by provider, cache policy and exact SQL keeps
+an immediate identical retry from querying again without retaining the sentinel
+rows. `prepare_provider_bundle()` repeats a `len(frame)` defense before schema
+validation, strict-to-legacy fallback, post-fetch filtering or artifact staging,
+covering injected and cached-frame paths.
 
 `core/provider_dispatch.py` owns ordered provider selection, conservative
 complete-run request reservations, rolling actual-request timestamps, HTTP 429
@@ -406,19 +448,12 @@ processed schema deliberately:
 
 - stores `time_slot` as an integer and derives UTC timestamps from
   `time_slot * 120` through one helper;
-- stores repeated peer callsign, locator, outcome, and path-illumination values
-  categorically;
+- stores repeated peer callsign, locator, and outcome values categorically;
 - retains peer coordinates and target SNR at their existing precision;
-- uses reduced precision only for designated solar summary columns;
 - distinguishes hits, misses, target-only observations, and eligible evidence;
 - uses peer-balanced segment aggregation while retaining pooled diagnostics;
 - allows owned-input mutation to avoid unnecessary full DataFrame copies;
 - projects only the columns needed by segment, drilldown, and map consumers.
-
-`core/solar_path.py` computes vectorized solar time terms, Sun vectors,
-great-circle samples, endpoint solar states, and path-illumination classes. The
-opportunity pipeline transfers frame ownership so enrichment does not create an
-additional full-frame copy.
 
 `core/input_validation.py` contains dependency-free callsign and Maidenhead
 locator validation. Core Target QTH accepts four or six characters; the
@@ -621,9 +656,10 @@ the median in the visual hierarchy.
 The second contains two aligned stacked rows for station-balanced evidence and
 confirmed opportunities. Its shared localized column headers identify
 **Evidence over Time ({time_bin} bins)** and **Evidence by UTC Hour (1 h
-bins)**; y-axis labels identify the station and opportunity rows, and the folded
-y-axis labels state average station support or average confirmed opportunities
-per represented UTC date. Successful outcomes use the
+bins)**; concise y-axis labels identify the station and opportunity rows. The
+folded values remain average station support or average confirmed opportunities
+per represented UTC date even though those denominators are omitted from the
+axis labels. Successful outcomes use the
 established green and counter-outcomes use neutral grey. Each of the four panels
 has a secondary Success Rate axis; all four twin axes begin at zero and share
 one capped, rounded ceiling derived from the four unchanged rate series. One
@@ -736,8 +772,8 @@ changing its chronological bin reuses retained evidence and leaves the
 independent Segment Inspector bin and completed provider analysis untouched. The
 inspector model and PNG render versions invalidate temporal recipes and images
 from before the IQR and title-only presentation contracts. The prepared-export
-signature separately includes a temporal-SNR render
-version so a hot reload cannot reuse a ZIP rendered under the previous visual
+signature separately includes Success distance-evidence and temporal-SNR render
+versions so a hot reload cannot reuse a ZIP rendered under a previous visual
 contract. The visible Performance Station Insights table uses the
 direction-aware Success
 outcomes, places the counter-only visibility toggle above its left edge, and
@@ -949,8 +985,7 @@ must remain outside `README.md`.
    this standalone Success query.
 2. The fetched globally Target-Active frame is normalized into the explicit
    opportunity schema. Peer coordinates are assigned without a full coordinate
-   merge, outcomes are classified, and solar path enrichment operates on the
-   owned frame.
+   merge, and outcomes are classified on the owned frame.
 3. Target-QTH solar selection and global moving-station integrity are applied,
    followed by Geographic Analysis Scope; only peers strictly nearer than the
    configured maximum remain.
@@ -1038,9 +1073,9 @@ can therefore be waiting in this mid-run state.
 
 HTTP 408/429/5xx responses, transport timeouts/errors, malformed payloads and
 incompatible non-empty response schemas are provider-scoped. Valid empty data,
-the response-size safety ceiling, normal request/input errors, local filesystem
-errors, post-filter warnings and scientific no-evidence outcomes do not trigger
-cross-database selection.
+the response-size and result-row safety ceilings, normal request/input errors,
+local filesystem errors, post-filter warnings and scientific no-evidence
+outcomes do not trigger cross-database selection.
 
 ## Persistence and Cache Lifecycles
 
@@ -1096,6 +1131,7 @@ scientific output across code changes.
 The following state is process-memory only:
 
 - DataFrame query LRU;
+- bounded exact-query result-row overflow markers;
 - analysis/export controller state;
 - provider rolling request timestamps, reservations and circuit/probe state;
 - inspector view-model and PNG cache;

@@ -1451,13 +1451,11 @@
     },
     "excludeSpecialCallsigns": {
       "type": "boolean",
-      "description": "Whether to exclude special callsigns ending in Q, 0, or 1.",
-      "default": false
+      "description": "Whether to exclude special callsigns beginning with Q, 0, or 1. This required saved value has no schema-level default; the interactive UI uses result-specific defaults."
     },
     "excludeMovingStations": {
       "type": "boolean",
-      "description": "Whether to exclude callsigns observed at more than one locator.",
-      "default": false
+      "description": "Whether to exclude callsigns observed at more than one locator. This required saved value has no schema-level default; the interactive UI uses result-specific defaults."
     },
     "minJointSpotsPerStation": {
       "type": "integer",

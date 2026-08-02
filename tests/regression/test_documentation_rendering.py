@@ -369,6 +369,8 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "TX Decode Rate by RX-Station Distance",
         "Successful Target SNR by TX-Station Distance",
         "Successful Target SNR by RX-Station Distance",
+        "`Min-Max (2 stations)`",
+        "`IQR (3+ stations)`",
         "exact, unrounded calculated distance",
         "full qualifying station population",
         "`Heard only by other stations.`",
@@ -384,8 +386,8 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "RX Performance Temporal Evidence: Target {callsign}",
         "Evidence over Time ({time_bin} bins)",
         "Evidence by UTC Hour (1 h bins)",
-        "folded station row uses the denominator-explicit **Avg. TX Stations / Represented UTC Date**",
-        "folded row uses the denominator-explicit **Avg. Opportunities / Represented UTC Date**",
+        "folded station row uses the short **Avg. TX Stations** or **Avg. RX Stations** y-axis title",
+        "folded row uses the short **Avg. Opportunities** y-axis title",
         "chronological station-balanced upper row keeps the short **TX Stations** or **RX Stations** y-axis title",
         "chronological lower row keeps the short **Opportunities** y-axis title",
         "every contributing qualifying station gives one total vote",
@@ -421,6 +423,8 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "TX Dekodierrate nach Entfernung der RX-Station",
         "Erfolgreiches Target-SNR nach Entfernung der TX-Station",
         "Erfolgreiches Target-SNR nach Entfernung der RX-Station",
+        "`Min-Max (2 Stationen)`",
+        "`IQR (3+ Stationen)`",
         "exakten, ungerundeten berechneten Entfernung",
         "vollständigen qualifizierenden Stationspopulation",
         "`Nur von anderen Stationen gehört.`",
@@ -436,8 +440,8 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
         "RX Performance — Zeitliche Evidenz: Target {callsign}",
         "Evidenz im Zeitverlauf ({time_bin}-Bins)",
         "Evidenz nach UTC-Stunde (1-h-Bins)",
-        "gefaltete Stationszeile mit **Ø TX-Stationen je berücksichtigtem UTC-Tag**",
-        "gefaltete Zeile mit **Ø Gelegenheiten je berücksichtigtem UTC-Tag**",
+        "gefaltete Stationszeile den kurzen y-Achsentitel **Ø TX-Stationen** beziehungsweise **Ø RX-Stationen** verwendet",
+        "gefaltete Zeile den kurzen y-Achsentitel **Ø Gelegenheiten** verwendet",
         "chronologische stationsgleichgewichtete obere Zeile behält den kurzen y-Achsentitel **TX-Stationen** beziehungsweise **RX-Stationen**",
         "chronologische untere Zeile behält den kurzen y-Achsentitel **Gelegenheiten**",
         "eine Gesamtstimme ab",
@@ -1020,6 +1024,10 @@ def test_bilingual_manuals_document_only_absolute_utc_analysis_windows():
         in DOC_DE
     )
     assert "exakten absoluten UTC-Start- und Endgrenzen" in DOC_DE
+    assert "suggests an End Date seven days later" in DOC_EN
+    assert "exact date-and-time violations are shown immediately" in DOC_EN
+    assert "wird ein Enddatum sieben Tage später vorgeschlagen" in DOC_DE
+    assert "werden sofort angezeigt" in DOC_DE
     for retired_phrase in (
         "Last X Hours",
         "Last-X",
@@ -1030,6 +1038,16 @@ def test_bilingual_manuals_document_only_absolute_utc_analysis_windows():
     ):
         assert retired_phrase not in DOC_EN
         assert retired_phrase not in DOC_DE
+
+
+def test_bilingual_manuals_document_result_specific_population_defaults():
+    """Describe interactive defaults without weakening explicit saved values."""
+    assert "Performance setup starts with both exclusions on" in DOC_EN
+    assert "Compare setup starts with both off" in DOC_EN
+    assert "Loaded configurations, demos and analysis URLs" in DOC_EN
+    assert "Performance-Konfiguration startet mit beiden Ausschlüssen" in DOC_DE
+    assert "Compare-Konfiguration ohne beide" in DOC_DE
+    assert "Geladene Konfigurationen, Demos und Analyse-URLs" in DOC_DE
 
 
 def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch):

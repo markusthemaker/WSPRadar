@@ -612,6 +612,11 @@ def test_query_cache_constructs_once_under_concurrency(tmp_path, monkeypatch):
     monkeypatch.setattr(data_engine.http_session, "get", fake_get)
     monkeypatch.setattr(
         data_engine,
+        "_raise_if_parquet_result_exceeds_row_limit",
+        lambda _path: None,
+    )
+    monkeypatch.setattr(
+        data_engine,
         "_read_query_parquet",
         lambda _path: pd.DataFrame({"value": [1]}),
     )

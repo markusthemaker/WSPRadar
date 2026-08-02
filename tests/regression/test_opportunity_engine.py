@@ -20,15 +20,6 @@ from core.opportunity_engine import (
     opportunity_rate_scale_max,
     prepare_opportunity_rows,
 )
-from core.solar_path import (
-    ILLUMINATION_DAYLIGHT,
-    ILLUMINATION_NIGHT,
-    _solar_elevation_from_unit_vectors,
-    _solar_time_terms,
-    _unit_vector,
-    classify_path_illumination,
-    sun_unit_vectors_from_terms,
-)
 from i18n import T
 from ui.inspector import drilldown as drilldown_module
 from ui.inspector.drilldown import (
@@ -36,6 +27,16 @@ from ui.inspector.drilldown import (
     _load_station_rows_for_drilldown,
     opportunity_drilldown_display_table,
 )
+
+
+_RETIRED_PATH_ILLUMINATION_COLUMNS = {
+    "path_daylight_fraction",
+    "target_solar_elevation",
+    "path_midpoint_solar_elevation",
+    "peer_solar_elevation",
+    "path_greyline_crossing",
+    "path_illumination",
+}
 
 
 def _server_row(slot, call, grid, target_seen, external_seen, target_snr=None):
@@ -69,7 +70,6 @@ def test_rx_opportunity_classification_and_target_exclusion():
     rows = prepare_opportunity_rows(
         source,
         target_callsign="DL1MKS",
-        target_qth="JN37UN",
     )
 
     assert rows["outcome"].tolist() == ["H", "M", "T"]
@@ -78,10 +78,13 @@ def test_rx_opportunity_classification_and_target_exclusion():
     assert int(rows["miss"].sum()) == 1
     assert int(rows["target_only"].sum()) == 1
     assert (rows["opportunity"] == rows["hit"] + rows["miss"]).all()
-    assert {"path_illumination", "path_daylight_fraction", "target_solar_elevation", "path_midpoint_solar_elevation", "peer_solar_elevation", "path_greyline_crossing"}.issubset(rows.columns)
+    assert _RETIRED_PATH_ILLUMINATION_COLUMNS.isdisjoint(rows.columns)
+    assert _RETIRED_PATH_ILLUMINATION_COLUMNS.isdisjoint(
+        OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS
+    )
     assert "cycle_time" not in rows.columns
     assert list(rows.columns) == list(PROCESSED_OPPORTUNITY_COLUMNS)
-    for categorical_column in ["peer_sign", "peer_grid", "outcome", "path_illumination"]:
+    for categorical_column in ["peer_sign", "peer_grid", "outcome"]:
         assert isinstance(rows[categorical_column].dtype, pd.CategoricalDtype)
 
     peers = aggregate_opportunity_peers(rows, min_opportunities=2)
@@ -107,12 +110,10 @@ def test_opportunity_science_and_aggregates_match_across_owned_and_copied_inputs
     copied = prepare_opportunity_rows(
         source,
         target_callsign="DL1MKS",
-        target_qth="JN37UN",
     )
     owned = prepare_opportunity_rows(
         source.copy(deep=True),
         target_callsign="DL1MKS",
-        target_qth="JN37UN",
         owns_input=True,
     )
 
@@ -130,11 +131,10 @@ def test_opportunity_science_and_aggregates_match_across_owned_and_copied_inputs
         "miss",
         "target_only",
         "outcome",
-        "path_illumination",
     ]
     pd.testing.assert_frame_equal(
-        copied[science_columns].astype({"peer_sign": str, "peer_grid": str, "outcome": str, "path_illumination": str}),
-        owned[science_columns].astype({"peer_sign": str, "peer_grid": str, "outcome": str, "path_illumination": str}),
+        copied[science_columns].astype({"peer_sign": str, "peer_grid": str, "outcome": str}),
+        owned[science_columns].astype({"peer_sign": str, "peer_grid": str, "outcome": str}),
     )
 
     copied_peers = aggregate_opportunity_peers(copied, min_opportunities=2)
@@ -155,7 +155,6 @@ def test_prepare_opportunity_rows_respects_input_ownership_contract():
     prepare_opportunity_rows(
         source,
         target_callsign="DL1MKS",
-        target_qth="JN37UN",
     )
     pd.testing.assert_frame_equal(source, original)
 
@@ -163,7 +162,6 @@ def test_prepare_opportunity_rows_respects_input_ownership_contract():
     prepare_opportunity_rows(
         owned_source,
         target_callsign="DL1MKS",
-        target_qth="JN37UN",
         owns_input=True,
     )
     assert owned_source.loc[0, "peer_sign"] == "K1AAA"
@@ -180,82 +178,6 @@ def test_time_slot_helper_matches_legacy_utc_timestamp_conversion():
     pd.testing.assert_series_equal(actual, expected)
 
 
-def test_path_illumination_preserves_duplicate_row_results():
-    duplicate_rows = pd.DataFrame({
-        "cycle_time": [
-            datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
-            datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc),
-        ],
-        "peer_lat": [40.0, 40.0],
-        "peer_lon": [-75.0, -75.0],
-    })
-
-    classified = classify_path_illumination(
-        duplicate_rows,
-        target_latitude=47.0,
-        target_longitude=8.0,
-        daylight_fraction_threshold=0.75,
-        twilight_elevation_degrees=6.0,
-        sample_points=5,
-    )
-    single = classify_path_illumination(
-        duplicate_rows.iloc[[0]],
-        target_latitude=47.0,
-        target_longitude=8.0,
-        daylight_fraction_threshold=0.75,
-        twilight_elevation_degrees=6.0,
-        sample_points=5,
-    )
-
-    assert len(classified) == 2
-    for column in [
-        "path_daylight_fraction",
-        "target_solar_elevation",
-        "path_midpoint_solar_elevation",
-        "peer_solar_elevation",
-        "path_greyline_crossing",
-    ]:
-        assert classified.loc[0, column] == classified.loc[1, column]
-        assert classified.loc[0, column] == single.loc[0, column]
-    assert str(classified.loc[0, "path_illumination"]) == str(classified.loc[1, "path_illumination"])
-    assert str(classified.loc[0, "path_illumination"]) == str(single.loc[0, "path_illumination"])
-
-
-def test_sun_vector_elevation_matches_reference_formula_across_edge_cases():
-    times = pd.DatetimeIndex([
-        "2026-03-20 00:00:00Z",
-        "2026-03-20 12:00:00Z",
-        "2026-06-21 23:58:00Z",
-        "2026-12-21 00:02:00Z",
-        "2026-07-05 04:30:00Z",
-        "2026-07-05 16:30:00Z",
-    ])
-    latitudes = np.asarray([0.0, 0.0, 66.5, -66.5, 47.0, -33.9], dtype=float)
-    longitudes = np.asarray([0.0, 179.9, -179.9, 8.0, -75.0, 151.2], dtype=float)
-    solar_terms = _solar_time_terms(times)
-
-    true_solar_minutes = (
-        solar_terms.minutes_utc
-        + solar_terms.equation_of_time
-        + 4.0 * longitudes
-    ) % 1440.0
-    hour_angle = np.radians(true_solar_minutes / 4.0 - 180.0)
-    latitude_radians = np.radians(latitudes)
-    cos_zenith = (
-        np.sin(latitude_radians) * np.sin(solar_terms.declination)
-        + np.cos(latitude_radians)
-        * np.cos(solar_terms.declination)
-        * np.cos(hour_angle)
-    )
-    reference = 90.0 - np.degrees(np.arccos(np.clip(cos_zenith, -1.0, 1.0)))
-    vectorized = _solar_elevation_from_unit_vectors(
-        sun_unit_vectors_from_terms(solar_terms),
-        _unit_vector(np.radians(latitudes), np.radians(longitudes)),
-    )
-
-    assert np.allclose(vectorized, reference, rtol=0.0, atol=1e-10)
-
-
 def test_target_only_never_enters_denominator():
     source = pd.DataFrame([
         _server_row(100, "K1AAA", "FN31aa", 1, 0, -12),
@@ -264,7 +186,6 @@ def test_target_only_never_enters_denominator():
     rows = prepare_opportunity_rows(
         source,
         target_callsign="DL1MKS",
-        target_qth="JN37",
     )
     peer = aggregate_opportunity_peers(rows, min_opportunities=1).iloc[0]
 
@@ -334,7 +255,6 @@ def test_projected_opportunity_drilldown_read_produces_identical_table(tmp_path)
     rows = prepare_opportunity_rows(
         source,
         target_callsign="DL1MKS",
-        target_qth="JN37UN",
     )
     parquet_path = tmp_path / "opportunity_rows.parquet"
     rows.to_parquet(parquet_path, index=False)
@@ -643,7 +563,6 @@ def test_processed_opportunity_categoricals_survive_parquet_round_trip(tmp_path)
     rows = prepare_opportunity_rows(
         source,
         target_callsign="DL1MKS",
-        target_qth="JN37UN",
     )
     parquet_path = tmp_path / "categorical_rows.parquet"
     rows.to_parquet(parquet_path, index=False)
@@ -652,7 +571,7 @@ def test_processed_opportunity_categoricals_survive_parquet_round_trip(tmp_path)
 
     assert "cycle_time" not in restored.columns
     assert list(restored.columns) == list(PROCESSED_OPPORTUNITY_COLUMNS)
-    for categorical_column in ["peer_sign", "peer_grid", "outcome", "path_illumination"]:
+    for categorical_column in ["peer_sign", "peer_grid", "outcome"]:
         assert isinstance(restored[categorical_column].dtype, pd.CategoricalDtype)
         assert restored[categorical_column].astype(str).tolist() == rows[categorical_column].astype(str).tolist()
 
@@ -857,29 +776,3 @@ def test_tx_query_requires_both_target_schedule_values():
             qth="JN37",
             target_repeat_interval_minutes=10,
         )
-
-def test_path_illumination_uses_configurable_daylight_fraction_threshold():
-    frame = pd.DataFrame({
-        "cycle_time": [
-            pd.Timestamp("2026-03-20 12:00:00Z"),
-            pd.Timestamp("2026-03-20 00:00:00Z"),
-        ],
-        "peer_lat": [0.0, 0.0],
-        "peer_lon": [10.0, 10.0],
-    })
-
-    classified = classify_path_illumination(
-        frame,
-        target_latitude=0.0,
-        target_longitude=0.0,
-        daylight_fraction_threshold=0.75,
-        twilight_elevation_degrees=6.0,
-        sample_points=9,
-    )
-
-    assert classified["path_illumination"].astype(str).tolist() == [
-        ILLUMINATION_DAYLIGHT,
-        ILLUMINATION_NIGHT,
-    ]
-    assert float(classified.iloc[0]["path_daylight_fraction"]) >= 0.75
-    assert float(classified.iloc[1]["path_daylight_fraction"]) <= 0.25

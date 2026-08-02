@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 import inspect
 import os
+from string import Formatter
 import time
 import uuid
 
@@ -169,6 +170,39 @@ def test_no_data_warning_prompts_for_primary_run_definition_inputs():
     assert T["de"]["warn_no_data"].endswith(
         "Sind Rufzeichenangaben, Locator, Band, Datum und UTC-Zeit korrekt?"
     )
+
+
+def test_result_row_limit_warning_has_bilingual_placeholder_parity():
+    """Keep the localized safety stop wired to the same dynamic UI values."""
+    main_key = "warn_analysis_result_row_limit"
+    advice_key = "warn_analysis_result_row_limit_special_callsign_advice"
+
+    for key, expected_fields in (
+        (
+            main_key,
+            {
+                "max_rows",
+                "special_callsign_advice",
+                "max_peer_distance_label",
+                "neighborhood_radius_label",
+            },
+        ),
+        (advice_key, {"special_callsign_label"}),
+    ):
+        english_fields = {
+            field_name
+            for _literal, field_name, _format_spec, _conversion
+            in Formatter().parse(T["en"][key])
+            if field_name is not None
+        }
+        german_fields = {
+            field_name
+            for _literal, field_name, _format_spec, _conversion
+            in Formatter().parse(T["de"][key])
+            if field_name is not None
+        }
+        assert english_fields == expected_fields
+        assert german_fields == expected_fields
 
 
 def test_localized_presentation_changes_titles_but_not_queries():

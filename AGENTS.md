@@ -378,6 +378,10 @@ been audited, even when only some surfaces require edits.
 
 Before editing:
 
+- Do not change a plot axis label or a figure or panel title without the user's
+  explicit approval of the replacement wording. A user request that explicitly
+  supplies that wording, or the user's explicit approval of proposed wording,
+  satisfies this requirement.
 - Define the old term, the approved replacement, capitalization, singular/plural
   forms, and any RX/TX, Compare/Performance, or English/German variants.
 - State whether the change affects only presentation terminology or also changes

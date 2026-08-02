@@ -796,12 +796,45 @@ def test_reconstruct_success_and_general_defaults_from_canonical_state():
 
     apply_general_scope_defaults(state)
     assert scope_matches_general_defaults(state)
+    assert state["val_exclude_special_callsigns"] is True
+    assert state["val_filter_moving"] is True
     reconstruct_guided_transients(state, has_loaded_demo=False)
 
     assert state["guided_use_case"] == "rx_success"
     assert state["guided_reference_design"] is None
     assert state["val_snr_correction_mode"] == "no_offset"
     assert state["guided_scope_mode"] == "general"
+
+
+@pytest.mark.parametrize(
+    ("guided_use_case", "comparison_mode", "expected_default"),
+    [
+        ("rx_success", "none", True),
+        ("tx_success", "none", True),
+        ("rx_compare", "hardware_ab", False),
+        ("rx_compare", "reference_station", False),
+        ("tx_compare", "local_neighborhood", False),
+    ],
+)
+def test_general_population_defaults_follow_the_guided_result_family(
+    guided_use_case,
+    comparison_mode,
+    expected_default,
+):
+    """Use Performance-on and Compare-off defaults in the shared Guided preset."""
+    state = _complete_state(
+        guided_use_case=guided_use_case,
+        val_comp_mode=comparison_mode,
+        val_exclude_special_callsigns=not expected_default,
+        val_filter_moving=not expected_default,
+    )
+
+    assert not scope_matches_general_defaults(state)
+    apply_general_scope_defaults(state)
+
+    assert state["val_exclude_special_callsigns"] is expected_default
+    assert state["val_filter_moving"] is expected_default
+    assert scope_matches_general_defaults(state)
 
 
 def test_flow_fields_and_renderers_are_closed_whitelists():

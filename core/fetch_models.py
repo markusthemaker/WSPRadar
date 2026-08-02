@@ -11,6 +11,9 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
+RESULT_ROW_LIMIT_EXCEEDED_CODE = "result_row_limit_exceeded"
+
+
 class FetchSource(str, Enum):
     """Identify whether rows came from a provider request or a cache tier."""
 

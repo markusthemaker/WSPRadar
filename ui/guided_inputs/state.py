@@ -15,6 +15,13 @@ from config import (
 )
 from core.input_validation import is_valid_callsign, is_valid_grid4, is_valid_locator
 from ui.config_io import _default_config
+from ui.population_exclusion_state import (
+    COMPARE_RESULT_TYPE,
+    PERFORMANCE_RESULT_TYPE,
+    apply_population_exclusion_defaults,
+    population_exclusion_defaults,
+    result_type_from_comparison_mode,
+)
 from ui.time_window import utc_window_from_state
 
 
@@ -194,11 +201,13 @@ def is_guided_node_complete(node_id: str, state: Mapping[str, Any]) -> bool:
 def scope_matches_general_defaults(state: Mapping[str, Any]) -> bool:
     """Return whether every scope/evidence field equals its authoritative default."""
     defaults = _default_config()
+    exclusion_defaults = population_exclusion_defaults(
+        _population_exclusion_result_type(state)
+    )
     expected_values = {
         "val_solar": defaults["solar_state"],
         "val_max_peer_distance_km": defaults["max_peer_distance_km"],
-        "val_exclude_special_callsigns": defaults["exclude_special_callsigns"],
-        "val_filter_moving": defaults["exclude_moving_stations"],
+        **exclusion_defaults,
         "val_min_spots": defaults["min_joint_spots_per_station"],
         "val_min_opportunities": defaults[
             "min_confirmed_opportunities_per_peer"
@@ -213,13 +222,25 @@ def apply_general_scope_defaults(state: MutableMapping[str, Any]) -> None:
     defaults = _default_config()
     state["val_solar"] = defaults["solar_state"]
     state["val_max_peer_distance_km"] = defaults["max_peer_distance_km"]
-    state["val_exclude_special_callsigns"] = defaults["exclude_special_callsigns"]
-    state["val_filter_moving"] = defaults["exclude_moving_stations"]
+    apply_population_exclusion_defaults(
+        state,
+        _population_exclusion_result_type(state),
+    )
     state["val_min_spots"] = defaults["min_joint_spots_per_station"]
     state["val_min_opportunities"] = defaults[
         "min_confirmed_opportunities_per_peer"
     ]
     state["val_min_stations"] = defaults["min_joint_stations_per_map_segment"]
+
+
+def _population_exclusion_result_type(state: Mapping[str, Any]) -> str:
+    """Resolve Performance or Compare intent even before a Guided design exists."""
+    guided_use_case = state.get("guided_use_case")
+    if guided_use_case in {"rx_compare", "tx_compare"}:
+        return COMPARE_RESULT_TYPE
+    if guided_use_case in {"rx_success", "tx_success"}:
+        return PERFORMANCE_RESULT_TYPE
+    return result_type_from_comparison_mode(state.get("val_comp_mode"))
 
 
 def reconstruct_guided_transients(

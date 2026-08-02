@@ -509,17 +509,15 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         "station_balanced": "Station-balanced Decode Rate",
         "observation_level": "Opportunity-level Decode Rate",
         "median": "Median",
-        "iqr": "IQR",
+        "iqr": "IQR (3+ stations)",
         "bin_iqr": "Bin IQR (middle 50%)",
-        "two_station_range": "Range (2 stations)",
+        "two_station_range": "Min-Max (2 stations)",
         "evidence_chronological_title": (
             "Evidence over Time ({time_bin} bins)"
         ),
         "evidence_utc_hour_title": "Evidence by UTC Hour (1 h bins)",
         "opportunity_y": "Opportunities",
-        "opportunity_folded_y": (
-            "Avg. Opportunities\n/ Represented\nUTC Date"
-        ),
+        "opportunity_folded_y": "Avg. Opportunities",
         "rate_legend": "Decode Rate",
         "time_x": "Date/Time (UTC)",
         "utc_hour_x": "UTC hour",
@@ -552,9 +550,9 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
         "station_balanced": "Stationsgleichgewichtete Dekodierrate",
         "observation_level": "Dekodierrate auf Gelegenheitsebene",
         "median": "Median",
-        "iqr": "IQR",
+        "iqr": "IQR (3+ Stationen)",
         "bin_iqr": "IQR je Bin (mittlere 50 %)",
-        "two_station_range": "Spanne (2 Stationen)",
+        "two_station_range": "Min-Max (2 Stationen)",
         "evidence_chronological_title": (
             "Evidenz im Zeitverlauf ({time_bin}-Bins)"
         ),
@@ -562,9 +560,7 @@ _SUCCESS_COMMON_FIGURE_LABELS = {
             "Evidenz nach UTC-Stunde (1-h-Bins)"
         ),
         "opportunity_y": "Gelegenheiten",
-        "opportunity_folded_y": (
-            "Ø Gelegenheiten je\nberücksichtigtem\nUTC-Tag"
-        ),
+        "opportunity_folded_y": "Ø Gelegenheiten",
         "rate_legend": "Dekodierrate",
         "time_x": "Datum/Uhrzeit (UTC)",
         "utc_hour_x": "UTC-Stunde",
@@ -613,9 +609,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
             "Deviation from each TX station’s run median (dB)"
         ),
         "station_vote_y": "TX Stations",
-        "station_support_folded_y": (
-            "Avg. TX Stations\n/ Represented\nUTC Date"
-        ),
+        "station_support_folded_y": "Avg. TX Stations",
         "evidence_title": "RX Performance Temporal Evidence: Target {callsign}",
         "snr_title": (
             "RX Performance Temporal SNR Evidence: Target {callsign}"
@@ -645,9 +639,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
             "Deviation from each RX station’s run median (dB)"
         ),
         "station_vote_y": "RX Stations",
-        "station_support_folded_y": (
-            "Avg. RX Stations\n/ Represented\nUTC Date"
-        ),
+        "station_support_folded_y": "Avg. RX Stations",
         "evidence_title": "TX Performance Temporal Evidence: Target {callsign}",
         "snr_title": (
             "TX Performance Temporal SNR Evidence: Target {callsign}"
@@ -681,9 +673,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
             "Abweichung vom Laufmedian jeder TX-Station (dB)"
         ),
         "station_vote_y": "TX-Stationen",
-        "station_support_folded_y": (
-            "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
-        ),
+        "station_support_folded_y": "Ø TX-Stationen",
         "evidence_title": (
             "RX Performance — Zeitliche Evidenz: Target {callsign}"
         ),
@@ -719,9 +709,7 @@ _SUCCESS_DIRECTION_FIGURE_LABELS = {
             "Abweichung vom Laufmedian jeder RX-Station (dB)"
         ),
         "station_vote_y": "RX-Stationen",
-        "station_support_folded_y": (
-            "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
-        ),
+        "station_support_folded_y": "Ø RX-Stationen",
         "evidence_title": (
             "TX Performance — Zeitliche Evidenz: Target {callsign}"
         ),
@@ -1001,7 +989,7 @@ def test_success_distance_formulas_and_support_reconcile():
 
 
 def test_successful_snr_distance_handles_zero_one_two_and_three_stations():
-    """Show no interval, a two-station range, then an IQR without report weighting."""
+    """Show no interval, two-station min-max, then IQR without report weighting."""
     peers = pd.DataFrame(
         [
             _peer("Z", 10.0, hits=0, misses=2),
@@ -2759,6 +2747,14 @@ def test_success_distance_renderer_has_localized_compare_aligned_panels(
             labels["station_balanced"],
             labels["observation_level"],
         ]
+        assert [
+            text.get_text()
+            for text in snr_axis.get_legend().get_texts()
+        ] == [
+            labels["median"],
+            labels["two_station_range"],
+            labels["iqr"],
+        ]
 
         expected_gids = {
             "success-distance-peer-reach",
@@ -2774,6 +2770,16 @@ def test_success_distance_renderer_has_localized_compare_aligned_panels(
             "success-distance-support-strip",
             "success-distance-support-count",
         }.intersection(_artist_gids(figure))
+
+        min_max_artist = next(
+            collection
+            for collection in snr_axis.collections
+            if collection.get_gid()
+            == "success-distance-snr-two-station-range"
+        )
+        assert to_hex(min_max_artist.get_colors()[0]) == "#36aaf9"
+        assert min_max_artist.get_linewidths() == pytest.approx([0.7])
+        assert min_max_artist.get_alpha() == pytest.approx(0.85)
 
         reach_bar = next(
             patch
@@ -3454,7 +3460,7 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
 def test_success_temporal_lower_folded_column_uses_upper_colorbar_footprint(
     success_recipe_factory,
 ):
-    """Widen both folded panels 20 px left with one fixed right edge."""
+    """Widen folded panels while keeping center-gutter y-labels separate."""
     reference_figure_width_px = 1300.0
     folded_column_left_expansion_px = 28.0
     success_recipe = success_recipe_factory()
@@ -3534,6 +3540,20 @@ def test_success_temporal_lower_folded_column_uses_upper_colorbar_footprint(
         assert opportunity_folded.get_ylabel() == success_recipe["labels"][
             "opportunity_folded_y"
         ]
+        evidence_renderer = evidence_figure.canvas.get_renderer()
+        for chronological_rate_axis, folded_axis in (
+            (station_chronological_rate, station_folded),
+            (opportunity_chronological_rate, opportunity_folded),
+        ):
+            chronological_rate_bounds = (
+                chronological_rate_axis.yaxis.label.get_window_extent(
+                    evidence_renderer
+                )
+            )
+            folded_label_bounds = folded_axis.yaxis.label.get_window_extent(
+                evidence_renderer
+            )
+            assert chronological_rate_bounds.x1 < folded_label_bounds.x0
 
         for lower_axis in (
             station_chronological,

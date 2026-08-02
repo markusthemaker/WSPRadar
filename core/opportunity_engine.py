@@ -14,18 +14,12 @@ from contextlib import nullcontext
 import numpy as np
 import pandas as pd
 
-from config import (
-    ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD,
-    ABS_PATH_SAMPLE_POINTS,
-    ABS_PATH_TWILIGHT_ELEVATION_DEG,
-)
 from core.input_validation import (
     is_valid_callsign,
     is_valid_locator,
     normalize_ascii_upper,
 )
 from core.math_utils import locator_to_latlon
-from core.solar_path import classify_path_illumination
 from core.tx_ab_schedule import tx_ab_schedule_sql
 
 
@@ -54,12 +48,6 @@ PROCESSED_OPPORTUNITY_SCHEMA = {
     "miss": "int8",
     "target_only": "int8",
     "outcome": "category",
-    "path_daylight_fraction": "float32",
-    "target_solar_elevation": "float32",
-    "path_midpoint_solar_elevation": "float32",
-    "peer_solar_elevation": "float32",
-    "path_greyline_crossing": "int8",
-    "path_illumination": "category",
 }
 PROCESSED_OPPORTUNITY_COLUMNS = tuple(PROCESSED_OPPORTUNITY_SCHEMA.keys())
 OPPORTUNITY_SEGMENT_VIEW_COLUMNS = (
@@ -78,7 +66,6 @@ OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS = (
     "miss",
     "target_only",
     "target_snr",
-    "path_illumination",
 )
 OPPORTUNITY_MAP_EXPORT_COLUMNS = (
     "time_slot",
@@ -160,25 +147,16 @@ def _apply_processed_opportunity_schema(frame: pd.DataFrame) -> pd.DataFrame:
 
     work = frame.loc[:, PROCESSED_OPPORTUNITY_COLUMNS]
     work["time_slot"] = pd.to_numeric(work["time_slot"], errors="coerce").astype("int64")
-    for column in ["target_seen", "external_seen", "opportunity", "hit", "miss", "target_only", "path_greyline_crossing"]:
+    for column in ["target_seen", "external_seen", "opportunity", "hit", "miss", "target_only"]:
         work[column] = pd.to_numeric(work[column], errors="coerce").fillna(0).astype("int8")
     for column in ["target_snr", "peer_lat", "peer_lon"]:
         work[column] = pd.to_numeric(work[column], errors="coerce").astype("float64")
-    for column in [
-        "path_daylight_fraction",
-        "target_solar_elevation",
-        "path_midpoint_solar_elevation",
-        "peer_solar_elevation",
-    ]:
-        work[column] = pd.to_numeric(work[column], errors="coerce").astype("float32")
     work["peer_sign"] = work["peer_sign"].astype("category")
     work["peer_grid"] = work["peer_grid"].astype("category")
     work["outcome"] = pd.Categorical(
         work["outcome"].astype(str),
         categories=OPPORTUNITY_OUTCOME_CATEGORIES,
     )
-    if not isinstance(work["path_illumination"].dtype, pd.CategoricalDtype):
-        work["path_illumination"] = work["path_illumination"].astype("category")
     return work
 
 
@@ -342,7 +320,6 @@ def prepare_opportunity_rows(
     df: pd.DataFrame,
     *,
     target_callsign: str,
-    target_qth: str,
     timing_collector=None,
     owns_input: bool = False,
 ) -> pd.DataFrame:
@@ -385,8 +362,6 @@ def prepare_opportunity_rows(
                 "Opportunity preparation requires a valid exact Target Callsign."
             )
         target_call = normalize_ascii_upper(stripped_target_call)
-        _ = target_grid4(target_qth)
-        target_latitude, target_longitude = locator_to_latlon(target_qth)
         is_target_identity = work["peer_sign"].eq(target_call)
         if bool(is_target_identity.any()):
             work = work.loc[~is_target_identity].copy()
@@ -425,19 +400,6 @@ def prepare_opportunity_rows(
             default="",
         )
         work["target_snr"] = pd.to_numeric(work["target_snr"], errors="coerce").round(1)
-
-    with _timed_span(timing_collector, "opportunity path illumination"):
-        work = classify_path_illumination(
-            work,
-            target_latitude=target_latitude,
-            target_longitude=target_longitude,
-            daylight_fraction_threshold=ABS_PATH_DAYLIGHT_FRACTION_THRESHOLD,
-            twilight_elevation_degrees=ABS_PATH_TWILIGHT_ELEVATION_DEG,
-            sample_points=ABS_PATH_SAMPLE_POINTS,
-            time_values=opportunity_utc_from_time_slot(work["time_slot"]),
-            copy=False,
-            timing_collector=timing_collector,
-        )
 
     with _timed_span(timing_collector, "opportunity final reset"):
         return _apply_processed_opportunity_schema(work.reset_index(drop=True))

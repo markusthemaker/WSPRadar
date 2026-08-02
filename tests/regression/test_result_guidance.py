@@ -928,6 +928,18 @@ def test_success_segment_distance_and_temporal_guidance_matches_editorial_contra
             ),
         },
     }
+    distance_legend_labels = {
+        "en": (
+            "`Median`",
+            "`Min-Max (2 stations)`",
+            "`IQR (3+ stations)`",
+        ),
+        "de": (
+            "`Median`",
+            "`Min-Max (2 Stationen)`",
+            "`IQR (3+ Stationen)`",
+        ),
+    }
     for language, directions in directional_expectations.items():
         for direction, expected_phrases in directions.items():
             sections = RESULT_GUIDANCE[language]["sections"]
@@ -940,6 +952,10 @@ def test_success_segment_distance_and_temporal_guidance_matches_editorial_contra
                 )
             )
             assert all(phrase in combined for phrase in expected_phrases)
+            assert all(
+                label in combined
+                for label in distance_legend_labels[language]
+            )
             assert (
                 "Compare the two Decode Rates directly" in combined
                 if language == "en"

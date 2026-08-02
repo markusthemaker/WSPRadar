@@ -11,6 +11,8 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+from streamlit.testing.v1 import AppTest
+
 from i18n import GUIDED_INPUTS, T
 from ui import callbacks, config_io, page_navigation
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
@@ -21,11 +23,13 @@ from ui.analysis_submission_state import (
 )
 from ui.guided_inputs import renderer
 from ui.guided_inputs.state import reconstruct_guided_transients
+from ui.population_exclusion_state import initialize_population_exclusion_state
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 APPLICATION_RESULT_PREFIX = "WSPRADAR_GUIDED_APPLICATION_RESULT="
 APPLICATION_PROBE = r'''
+from datetime import date, time
 import json
 from pathlib import Path
 import sys
@@ -41,6 +45,10 @@ application = AppTest.from_file(
 )
 application.session_state["_initial_config_loaded"] = True
 for key, value in initial_state.items():
+    if key in {"val_start_d", "val_end_d"}:
+        value = date.fromisoformat(value)
+    elif key in {"val_start_t", "val_end_t"}:
+        value = time.fromisoformat(value)
     application.session_state[key] = value
 application.run()
 result = {
@@ -1026,6 +1034,146 @@ def test_guided_use_case_maps_to_canonical_state_and_invalidates_active_results(
     assert session_state.val_ref_qth == "JO63"
 
 
+def test_guided_result_family_defaults_preserve_only_explicit_filter_edits(
+    monkeypatch,
+):
+    """Apply Compare-off and Performance-on while retaining a manual choice."""
+    session_state = _canonical_state(
+        guided_use_case="rx_success",
+        guided_reference_design=None,
+        guided_last_compare_mode=None,
+        val_comp_mode="none",
+    )
+    session_state.pop("val_exclude_special_callsigns")
+    session_state.pop("val_filter_moving")
+    initialize_population_exclusion_state(session_state)
+    _install_shared_streamlit_state(monkeypatch, session_state)
+
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
+
+    session_state.guided_use_case = "rx_compare"
+    renderer._handle_use_case_change()
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is False
+
+    session_state._val_exclude_special_callsigns = True
+    callbacks.handle_population_exclusion_change(
+        "val_exclude_special_callsigns"
+    )
+    session_state.guided_use_case = "rx_success"
+    renderer._handle_use_case_change()
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
+
+    session_state.guided_use_case = "rx_compare"
+    renderer._handle_use_case_change()
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is False
+
+
+def test_population_exclusion_widgets_restore_canonical_values_after_cleanup():
+    """Keep explicit filters when Streamlit removes conditionally hidden widgets."""
+    script = r'''
+import streamlit as st
+
+from ui.population_exclusion_state import (
+    initialize_population_exclusion_state,
+    load_population_exclusion_widget_values,
+    population_exclusion_widget_key,
+    store_population_exclusion_widget_value,
+)
+
+
+def store_special_callsign_filter():
+    store_population_exclusion_widget_value(
+        st.session_state,
+        "val_exclude_special_callsigns",
+    )
+
+
+def store_moving_station_filter():
+    store_population_exclusion_widget_value(
+        st.session_state,
+        "val_filter_moving",
+    )
+
+
+initialize_population_exclusion_state(st.session_state)
+show_filters = st.toggle("Show filters", key="show_population_filters")
+if show_filters:
+    load_population_exclusion_widget_values(st.session_state)
+    st.toggle(
+        "Exclude special callsigns",
+        key=population_exclusion_widget_key("val_exclude_special_callsigns"),
+        on_change=store_special_callsign_filter,
+    )
+    st.toggle(
+        "Exclude moving stations",
+        key=population_exclusion_widget_key("val_filter_moving"),
+        on_change=store_moving_station_filter,
+    )
+'''
+    application = AppTest.from_string(script, default_timeout=10)
+    application.session_state["val_comp_mode"] = "none"
+    application.session_state["show_population_filters"] = True
+
+    application.run()
+    assert application.exception.values == []
+    assert application.toggle("_val_exclude_special_callsigns").value is True
+    assert application.toggle("_val_filter_moving").value is True
+
+    application.toggle("_val_exclude_special_callsigns").set_value(False).run()
+    assert application.session_state["val_exclude_special_callsigns"] is False
+    assert application.session_state["val_filter_moving"] is True
+
+    application.toggle("show_population_filters").set_value(False).run()
+    assert "_val_exclude_special_callsigns" not in application.session_state
+    assert "_val_filter_moving" not in application.session_state
+    assert application.session_state["val_exclude_special_callsigns"] is False
+    assert application.session_state["val_filter_moving"] is True
+
+    application.toggle("show_population_filters").set_value(True).run()
+    assert application.exception.values == []
+    assert application.toggle("_val_exclude_special_callsigns").value is False
+    assert application.toggle("_val_filter_moving").value is True
+
+
+def test_incomplete_guided_compare_defaults_reconcile_when_opening_classic(
+    monkeypatch,
+):
+    """Do not expose Compare defaults under Classic's canonical Performance mode."""
+    for switch_path in ("selector", "guided_action"):
+        session_state = _canonical_state(
+            input_view="guided",
+            guided_use_case="rx_success",
+            guided_reference_design=None,
+            guided_last_compare_mode=None,
+            val_comp_mode="none",
+        )
+        session_state.pop("val_exclude_special_callsigns")
+        session_state.pop("val_filter_moving")
+        initialize_population_exclusion_state(session_state)
+        _install_shared_streamlit_state(monkeypatch, session_state)
+
+        session_state.guided_use_case = "rx_compare"
+        renderer._handle_use_case_change()
+        assert session_state.val_comp_mode == "none"
+        assert session_state.val_exclude_special_callsigns is False
+        assert session_state.val_filter_moving is False
+
+        if switch_path == "selector":
+            session_state.input_view = "classic"
+            callbacks.handle_input_view_change()
+        else:
+            renderer._open_classic_view()
+
+        assert session_state.input_view == "classic"
+        assert session_state.val_comp_mode == "none"
+        assert session_state.val_exclude_special_callsigns is True
+        assert session_state.val_filter_moving is True
+
+
 def test_guided_direction_change_requires_hardware_design_confirmation(
     monkeypatch,
 ):
@@ -1288,6 +1436,7 @@ def test_switching_to_classic_preserves_configuration_context_and_results(
         "st",
         SimpleNamespace(session_state=session_state),
     )
+    initialize_population_exclusion_state(session_state)
     before_state = deepcopy(session_state)
     guided_context = build_analysis_context_from_session_state(session_state)
 
@@ -1458,6 +1607,22 @@ def test_loading_success_config_clears_previous_transient_compare_design(
     assert session_state.val_comp_mode == "none"
     assert session_state.guided_last_compare_mode is None
     assert session_state.guided_reconstruct_requested is True
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is False
+
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
+    session_state.val_comp_mode = "reference_station"
+    callbacks.handle_comp_mode_change()
+    session_state.val_comp_mode = "none"
+    callbacks.handle_comp_mode_change()
+
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is False
 
 
 def _run_application_with_state(initial_state):
@@ -1468,9 +1633,12 @@ def _run_application_with_state(initial_state):
         "val_start_t",
         "val_end_d",
         "val_end_t",
-        "_absolute_time_window_initialized",
     ):
-        serializable_initial_state.pop(time_state_key, None)
+        time_state_value = serializable_initial_state.get(time_state_key)
+        if isinstance(time_state_value, (date, time)):
+            serializable_initial_state[time_state_key] = (
+                time_state_value.isoformat()
+            )
     environment = os.environ.copy()
     existing_python_path = environment.get("PYTHONPATH")
     environment["PYTHONPATH"] = os.pathsep.join(
@@ -1544,6 +1712,55 @@ def test_guided_run_and_save_actions_are_gated_by_terminal_readiness():
         ]
         assert ready_application["save_actions"] == [
             {"label": "Save Config", "disabled": False}
+        ]
+
+
+def test_classic_invalid_windows_are_reported_and_blocked_before_submission():
+    """Render exact and retained-invalid windows without a widget exception."""
+    invalid_windows = (
+        (
+            date(2026, 6, 1),
+            time(0, 0),
+            date(2026, 7, 2),
+            time(0, 15),
+            "err_time_duration",
+        ),
+        (
+            date(2026, 6, 1),
+            time(0, 0),
+            date(2026, 7, 3),
+            time(0, 0),
+            "err_time_duration",
+        ),
+        (
+            date(2026, 7, 10),
+            time(0, 0),
+            date(2026, 7, 9),
+            time(0, 0),
+            "err_time_order",
+        ),
+    )
+
+    for start_date, start_time, end_date, end_time, error_key in invalid_windows:
+        invalid_application = _run_application_with_state(
+            _canonical_state(
+                input_view="classic",
+                val_start_d=start_date,
+                val_start_t=start_time,
+                val_end_d=end_date,
+                val_end_t=end_time,
+                _absolute_time_window_initialized=True,
+            )
+        )
+
+        assert invalid_application["exceptions"] == []
+        assert invalid_application["errors"] == [T["en"][error_key]]
+        assert invalid_application["run_actions"] == [
+            {
+                "label": "Run RX Analysis",
+                "disabled": True,
+                "type": "primary",
+            }
         ]
 
 

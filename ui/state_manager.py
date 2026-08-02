@@ -13,6 +13,7 @@ from config import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
+from ui.population_exclusion_state import initialize_population_exclusion_state
 from ui.time_window import initialize_utc_window_state
 
 
@@ -187,10 +188,7 @@ def init_session_state():
     )
     if "val_max_peer_distance_km" not in st.session_state:
         st.session_state.val_max_peer_distance_km = 22000
-    if "val_exclude_special_callsigns" not in st.session_state:
-        st.session_state.val_exclude_special_callsigns = False
-    if "val_filter_moving" not in st.session_state: 
-        st.session_state.val_filter_moving = False
+    initialize_population_exclusion_state(st.session_state)
     if "val_min_spots" not in st.session_state: 
         st.session_state.val_min_spots = 1
     if "val_min_opportunities" not in st.session_state:

@@ -17,6 +17,7 @@ import requests
 from config import (
     CACHE_DIR,
     DEMO_QUERY_CACHE_TTL_SEC,
+    MAX_ANALYSIS_RESULT_ROWS,
     SESSION_ARTIFACT_TTL_SEC,
     STANDARD_QUERY_CACHE_TTL_SEC,
     WSPR_CSV_MAX_RESPONSE_BYTES,
@@ -37,6 +38,7 @@ from core.fetch_models import (
     FetchFailureScope,
     FetchResult,
     FetchSource,
+    RESULT_ROW_LIMIT_EXCEEDED_CODE,
 )
 from core.provider_dispatch import ProviderRateLimitExceeded
 from core.snr_utils import round_snr_like_columns
@@ -46,10 +48,13 @@ http_session = requests.Session()
 http_session.headers.update({"Accept-Encoding": "gzip, deflate"})
 
 _DATAFRAME_CACHE_MAX_ENTRIES = 32
+_RESULT_ROW_LIMIT_CACHE_MAX_ENTRIES = 128
 _HTTP_CHUNK_BYTES = 1024 * 1024
 _HTTP_ERROR_BODY_MAX_BYTES = 64 * 1024
 _dataframe_cache = OrderedDict()
 _dataframe_cache_guard = threading.RLock()
+_result_row_limit_cache = OrderedDict()
+_result_row_limit_cache_guard = threading.RLock()
 _CSV_PARSE_ENGINE = "c"
 _ARTIFACT_CLEANUP_MIN_INTERVAL_SECONDS = 60.0
 _artifact_cleanup_guard = threading.Lock()
@@ -62,6 +67,16 @@ class FetchResponseTooLarge(ValueError):
     def __init__(self, max_bytes):
         self.max_bytes = int(max_bytes)
         super().__init__(f"WSPR response exceeded {self.max_bytes} bytes")
+
+
+class FetchResultRowLimitExceeded(Exception):
+    """Raised before a query result beyond the configured row ceiling is loaded."""
+
+    def __init__(self, max_result_rows):
+        self.max_result_rows = int(max_result_rows)
+        super().__init__(
+            f"WSPR query result exceeded {self.max_result_rows} rows"
+        )
 
 
 _PRIMARY_DATABASE_PROVIDER = WSPR_DATABASE_PROVIDERS[0]
@@ -157,6 +172,58 @@ def _dataframe_cache_put(
             _dataframe_cache.popitem(last=False)
 
 
+def _result_row_limit_cache_contains(cache_key):
+    """Return whether an unexpired overflow marker exists for one exact query."""
+    now = time.time()
+    with _result_row_limit_cache_guard:
+        expires_at = _result_row_limit_cache.get(cache_key)
+        if expires_at is None:
+            return False
+        if expires_at <= now:
+            _result_row_limit_cache.pop(cache_key, None)
+            return False
+        _result_row_limit_cache.move_to_end(cache_key)
+        return True
+
+
+def _result_row_limit_cache_put(
+    cache_key,
+    *,
+    ttl_seconds=None,
+    expires_at_epoch=None,
+):
+    """Remember an oversized exact query without retaining any of its rows."""
+    if (ttl_seconds is None) == (expires_at_epoch is None):
+        raise ValueError("Specify exactly one row-limit marker expiry")
+    expires_at = (
+        float(expires_at_epoch)
+        if expires_at_epoch is not None
+        else time.time() + float(ttl_seconds)
+    )
+    with _result_row_limit_cache_guard:
+        _result_row_limit_cache[cache_key] = expires_at
+        _result_row_limit_cache.move_to_end(cache_key)
+        while len(_result_row_limit_cache) > _RESULT_ROW_LIMIT_CACHE_MAX_ENTRIES:
+            _result_row_limit_cache.popitem(last=False)
+
+
+def _replace_dataframe_cache_with_row_limit_marker(cache_key, *, is_demo):
+    """Evict oversized cached rows while preserving their original expiry."""
+    with _dataframe_cache_guard:
+        cached_entry = _dataframe_cache.pop(cache_key, None)
+    expires_at = cached_entry[0] if cached_entry is not None else None
+    if expires_at is not None:
+        _result_row_limit_cache_put(
+            cache_key,
+            expires_at_epoch=expires_at,
+        )
+    else:
+        _result_row_limit_cache_put(
+            cache_key,
+            ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+        )
+
+
 def _query_digest(sql_query):
     """Return the stable digest shared by source-specific cache identities."""
     return hashlib.sha256(sql_query.encode("utf-8")).hexdigest()
@@ -221,6 +288,8 @@ def is_wspr_query_cached(
         is_demo=is_demo,
         database_provider=provider,
     )
+    if _result_row_limit_cache_contains(memory_cache_key):
+        return True
     if _dataframe_cache_contains(memory_cache_key):
         return True
 
@@ -274,13 +343,24 @@ def invalidate_wspr_query_cache(
     # did not publish through this engine.
     with _dataframe_cache_guard:
         has_memory_cache = memory_cache_key in _dataframe_cache
-    if not has_memory_cache and not (has_disk_cache and cache_path.is_file()):
+    with _result_row_limit_cache_guard:
+        has_row_limit_marker = memory_cache_key in _result_row_limit_cache
+    if (
+        not has_memory_cache
+        and not has_row_limit_marker
+        and not (has_disk_cache and cache_path.is_file())
+    ):
         return False
 
     removed = False
     with ARTIFACT_STORE.key_lock(lock_path):
         with _dataframe_cache_guard:
             removed = _dataframe_cache.pop(memory_cache_key, None) is not None
+        with _result_row_limit_cache_guard:
+            removed = (
+                _result_row_limit_cache.pop(memory_cache_key, None) is not None
+                or removed
+            )
         if has_disk_cache:
             try:
                 cache_path.unlink()
@@ -301,18 +381,22 @@ def _cached_strict_target_evidence(
     if not sql_query:
         return None
     response_format = analysis.get("response_format", "csv")
+    cache_key = _memory_cache_key(
+        sql_query,
+        is_demo=is_demo,
+        database_provider=database_provider,
+    )
     if str(response_format).lower() == "parquet":
         cache_path = _query_cache_path(
             sql_query,
             database_provider,
             is_demo=is_demo,
         )
-        if not is_wspr_query_cached(
-            sql_query,
-            is_demo=is_demo,
-            response_format=response_format,
-            database_provider=database_provider,
-        ):
+        cache_expires_at = _query_cache_expiry_epoch(
+            cache_path,
+            _query_cache_ttl_seconds(is_demo=is_demo),
+        )
+        if cache_expires_at is None:
             return None
         marker_column = "target_seen"
         try:
@@ -320,15 +404,21 @@ def _cached_strict_target_evidence(
                 cache_path,
                 refresh_access=not is_demo,
             ) as leased_path:
+                _raise_if_parquet_result_exceeds_row_limit(leased_path)
                 frame = pd.read_parquet(leased_path, columns=[marker_column])
+        except FetchResultRowLimitExceeded:
+            _result_row_limit_cache_put(
+                cache_key,
+                **(
+                    {"expires_at_epoch": cache_expires_at}
+                    if is_demo
+                    else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
+                ),
+            )
+            return None
         except (OSError, ValueError, KeyError):
             return None
     else:
-        cache_key = _memory_cache_key(
-            sql_query,
-            is_demo=is_demo,
-            database_provider=database_provider,
-        )
         frame = _dataframe_cache_peek(cache_key)
         if analysis.get("analysis_kind") == "opportunity":
             marker_column = "target_seen"
@@ -342,23 +432,37 @@ def _cached_strict_target_evidence(
                 database_provider,
                 is_demo=True,
             )
-            if _query_cache_expiry_epoch(
+            demo_expires_at = _query_cache_expiry_epoch(
                 cache_path,
                 DEMO_QUERY_CACHE_TTL_SEC,
-            ) is None:
+            )
+            if demo_expires_at is None:
                 return None
             try:
                 with ARTIFACT_STORE.lease(
                     cache_path,
                     refresh_access=False,
                 ) as leased_path:
+                    _raise_if_parquet_result_exceeds_row_limit(leased_path)
                     frame = pd.read_parquet(
                         leased_path,
                         columns=[marker_column],
                     )
+            except FetchResultRowLimitExceeded:
+                _result_row_limit_cache_put(
+                    cache_key,
+                    expires_at_epoch=demo_expires_at,
+                )
+                return None
             except (OSError, ValueError, KeyError):
                 return None
 
+    if frame is not None and len(frame) > MAX_ANALYSIS_RESULT_ROWS:
+        _replace_dataframe_cache_with_row_limit_marker(
+            cache_key,
+            is_demo=is_demo,
+        )
+        return None
     if frame is None or marker_column not in frame.columns:
         return None
     if frame.empty:
@@ -376,6 +480,13 @@ def estimate_uncached_requests(analyses, *, is_demo, database_provider):
         strict_query = analysis.get("query")
         if not strict_query:
             continue
+        strict_cache_key = _memory_cache_key(
+            strict_query,
+            is_demo=is_demo,
+            database_provider=provider,
+        )
+        if _result_row_limit_cache_contains(strict_cache_key):
+            continue
         is_strict_cached = is_wspr_query_cached(
             strict_query,
             is_demo=is_demo,
@@ -391,6 +502,8 @@ def estimate_uncached_requests(analyses, *, is_demo, database_provider):
             if is_strict_cached
             else None
         )
+        if _result_row_limit_cache_contains(strict_cache_key):
+            continue
         if not is_strict_cached or cached_target_evidence is None:
             request_count += 1
 
@@ -453,17 +566,76 @@ def _decode_response_bytes(payload, response):
     return payload.decode(encoding, errors="replace")
 
 
-def _bounded_response_bytes(response, max_bytes):
+def _bounded_csv_response_buffer(response, max_bytes, max_result_rows):
+    """Buffer bounded CSV bytes while counting logical records in constant space.
+
+    The byte-level state machine recognizes doubled quotes and quoted CR/LF
+    characters across transport chunks. UTF-8 and single-byte encodings retain
+    the ASCII quote/newline bytes, so overflow can be rejected before decoding
+    the payload or allocating Pandas columns. The first non-blank record is the
+    required ``CSVWithNames`` header and is not counted as a result row.
+    """
     payload = io.BytesIO()
     total_bytes = 0
+    is_inside_quotes = False
+    has_pending_quote = False
+    should_skip_line_feed = False
+    record_has_content = False
+    has_header = False
+    result_rows = 0
+
+    def finish_record():
+        """Count one non-blank logical record and raise on the sentinel row."""
+        nonlocal record_has_content, has_header, result_rows
+        if not record_has_content:
+            return
+        record_has_content = False
+        if not has_header:
+            has_header = True
+            return
+        result_rows += 1
+        if result_rows > max_result_rows:
+            raise FetchResultRowLimitExceeded(max_result_rows)
+
     for chunk in response.iter_content(chunk_size=_HTTP_CHUNK_BYTES):
         if not chunk:
             continue
         total_bytes += len(chunk)
         if total_bytes > max_bytes:
             raise FetchResponseTooLarge(max_bytes)
+        for byte in chunk:
+            if has_pending_quote:
+                has_pending_quote = False
+                if byte == 34:  # Doubled quote inside a quoted CSV field.
+                    record_has_content = True
+                    continue
+                is_inside_quotes = False
+
+            if is_inside_quotes:
+                record_has_content = True
+                if byte == 34:
+                    has_pending_quote = True
+                continue
+
+            if should_skip_line_feed:
+                should_skip_line_feed = False
+                if byte == 10:
+                    continue
+
+            if byte == 34:
+                is_inside_quotes = True
+                record_has_content = True
+            elif byte == 13:
+                finish_record()
+                should_skip_line_feed = True
+            elif byte == 10:
+                finish_record()
+            else:
+                record_has_content = True
         payload.write(chunk)
-    return payload.getvalue()
+    finish_record()
+    payload.seek(0)
+    return payload
 
 
 def _bounded_error_text(response):
@@ -486,15 +658,32 @@ def _bounded_error_text(response):
     return f"{text}\n[response truncated]" if truncated else text
 
 
-def _read_wspr_csv_response(response_text):
-    """Parse a bounded WSPR CSV response without using Arrow's native CSV reader.
+def _read_wspr_csv_response(response_buffer, *, encoding="utf-8"):
+    """Parse a bounded WSPR CSV byte buffer without an intermediate text copy.
 
-    The standard query path already holds the full bounded response in memory.
-    Pandas' C engine is sufficient for these CSVWithNames responses and avoids
-    the pyarrow CSV parser, whose native failures can terminate the whole
-    Streamlit process before Python can return a structured fetch error.
+    Pandas' C engine reads the transport buffer directly and avoids both a large
+    ``StringIO`` allocation and the pyarrow CSV parser, whose native failures
+    can terminate the Streamlit process before Python returns a structured
+    fetch error.
     """
-    return pd.read_csv(io.StringIO(response_text), engine=_CSV_PARSE_ENGINE)
+    return pd.read_csv(
+        response_buffer,
+        engine=_CSV_PARSE_ENGINE,
+        encoding=encoding,
+    )
+
+
+def _parquet_result_row_count(path):
+    """Read only Parquet footer metadata and return its logical row count."""
+    import pyarrow.parquet as parquet
+
+    return int(parquet.read_metadata(path).num_rows)
+
+
+def _raise_if_parquet_result_exceeds_row_limit(path):
+    """Reject an oversized Parquet result before Pandas allocates its columns."""
+    if _parquet_result_row_count(path) > MAX_ANALYSIS_RESULT_ROWS:
+        raise FetchResultRowLimitExceeded(MAX_ANALYSIS_RESULT_ROWS)
 
 
 def _parse_retry_after_seconds(value, *, now_utc=None):
@@ -553,6 +742,31 @@ def _http_error_result(
     )
 
 
+def _result_row_limit_error_result(
+    sql_query,
+    *,
+    database_provider,
+    source=None,
+    failure_stage="",
+):
+    """Return the stable request-scoped failure for an oversized query result."""
+    provider = _database_provider(database_provider)
+    return FetchResult(
+        source=source or _direct_fetch_source(provider),
+        database_source=_database_source(provider),
+        error=FetchError(
+            code=RESULT_ROW_LIMIT_EXCEEDED_CODE,
+            message=(
+                "Search result exceeded the configured safe limit of "
+                f"{MAX_ANALYSIS_RESULT_ROWS} rows."
+            ),
+            scope=FetchFailureScope.REQUEST,
+            query=sql_query,
+            failure_stage=str(failure_stage or ""),
+        ),
+    )
+
+
 def _request_error_result(
     exc,
     sql_query,
@@ -562,6 +776,12 @@ def _request_error_result(
     failure_stage="",
 ):
     provider = _database_provider(database_provider)
+    if isinstance(exc, FetchResultRowLimitExceeded):
+        return _result_row_limit_error_result(
+            sql_query,
+            database_provider=provider,
+            failure_stage=failure_stage,
+        )
     if isinstance(exc, requests.Timeout):
         code = "timeout"
         scope = FetchFailureScope.PROVIDER
@@ -658,8 +878,41 @@ def _fetch_wspr_data_standard(
         )
     )
     with ARTIFACT_STORE.key_lock(lock_path):
+        if _result_row_limit_cache_contains(cache_key):
+            return _result_row_limit_error_result(
+                sql_query,
+                database_provider=provider,
+                source=FetchSource.MEMORY_CACHE,
+                failure_stage="result_row_limit_cache",
+            )
+        cached_reference = _dataframe_cache_peek(cache_key)
+        if (
+            cached_reference is not None
+            and len(cached_reference) > MAX_ANALYSIS_RESULT_ROWS
+        ):
+            _replace_dataframe_cache_with_row_limit_marker(
+                cache_key,
+                is_demo=is_demo,
+            )
+            return _result_row_limit_error_result(
+                sql_query,
+                database_provider=provider,
+                source=FetchSource.MEMORY_CACHE,
+                failure_stage="validate_memory_cache_rows",
+            )
         cached = _dataframe_cache_get(cache_key)
         if cached is not None:
+            if len(cached) > MAX_ANALYSIS_RESULT_ROWS:
+                _replace_dataframe_cache_with_row_limit_marker(
+                    cache_key,
+                    is_demo=is_demo,
+                )
+                return _result_row_limit_error_result(
+                    sql_query,
+                    database_provider=provider,
+                    source=FetchSource.MEMORY_CACHE,
+                    failure_stage="validate_memory_cache_rows",
+                )
             return FetchResult(
                 dataframe=cached,
                 source=FetchSource.MEMORY_CACHE,
@@ -676,6 +929,21 @@ def _fetch_wspr_data_standard(
                     frame = _read_query_parquet(
                         demo_cache_path,
                         downcast_integer_columns=False,
+                    )
+                except FetchResultRowLimitExceeded:
+                    try:
+                        demo_cache_path.unlink()
+                    except OSError:
+                        pass
+                    _result_row_limit_cache_put(
+                        cache_key,
+                        expires_at_epoch=demo_expires_at,
+                    )
+                    return _result_row_limit_error_result(
+                        sql_query,
+                        database_provider=provider,
+                        source=FetchSource.DISK_CACHE,
+                        failure_stage="validate_query_cache_rows",
                     )
                 except (OSError, ValueError):
                     try:
@@ -725,22 +993,50 @@ def _fetch_wspr_data_standard(
                         database_provider=provider,
                         response_text=_bounded_error_text(response),
                     )
-                payload = _bounded_response_bytes(
+                response_buffer = _bounded_csv_response_buffer(
                     response,
                     WSPR_CSV_MAX_RESPONSE_BYTES,
+                    MAX_ANALYSIS_RESULT_ROWS,
                 )
-                response_text = _decode_response_bytes(payload, response)
-                payload_bytes = len(payload)
-        except (requests.RequestException, FetchResponseTooLarge) as exc:
+                response_buffer.seek(0, io.SEEK_END)
+                payload_bytes = response_buffer.tell()
+                response_buffer.seek(0)
+                response_encoding = response.encoding or "utf-8"
+        except (
+            requests.RequestException,
+            FetchResponseTooLarge,
+            FetchResultRowLimitExceeded,
+        ) as exc:
+            if isinstance(exc, FetchResultRowLimitExceeded):
+                _result_row_limit_cache_put(
+                    cache_key,
+                    ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+                )
             return _request_error_result(
                 exc,
                 sql_query,
                 database_provider=provider,
+                failure_stage=(
+                    "stream_validate_csv_result_rows"
+                    if isinstance(exc, FetchResultRowLimitExceeded)
+                    else ""
+                ),
             )
 
         try:
-            frame = _read_wspr_csv_response(response_text)
+            frame = _read_wspr_csv_response(
+                response_buffer,
+                encoding=response_encoding,
+            )
         except (OSError, ValueError) as exc:
+            response_buffer.seek(0)
+            error_payload = response_buffer.read(_HTTP_ERROR_BODY_MAX_BYTES)
+            response_text = error_payload.decode(
+                response_encoding,
+                errors="replace",
+            )
+            if payload_bytes > len(error_payload):
+                response_text = f"{response_text}\n[response truncated]"
             return FetchResult(
                 source=_direct_fetch_source(provider),
                 database_source=_database_source(provider),
@@ -751,6 +1047,19 @@ def _fetch_wspr_data_standard(
                     response_text=response_text,
                     query=sql_query,
                 ),
+            )
+        finally:
+            response_buffer.close()
+
+        if len(frame) > MAX_ANALYSIS_RESULT_ROWS:
+            _result_row_limit_cache_put(
+                cache_key,
+                ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+            )
+            return _result_row_limit_error_result(
+                sql_query,
+                database_provider=provider,
+                failure_stage="validate_materialized_csv_rows",
             )
 
         if demo_cache_path is not None:
@@ -817,6 +1126,7 @@ def _fetch_wspr_data_standard(
 
 def _read_query_parquet(path, *, downcast_integer_columns=True):
     """Read one raw query cache and reapply transport normalization."""
+    _raise_if_parquet_result_exceeds_row_limit(path)
     frame = pd.read_parquet(path)
     integer_columns = [
         "time_slot",
@@ -844,8 +1154,20 @@ def _fetch_wspr_parquet(
     """Stream source-pinned Parquet rows to an isolated exact-query cache."""
     provider = _database_provider(database_provider)
     cache_path = _query_cache_path(sql_query, provider, is_demo=is_demo)
+    cache_key = _memory_cache_key(
+        sql_query,
+        is_demo=is_demo,
+        database_provider=provider,
+    )
 
     with ARTIFACT_STORE.key_lock(cache_path):
+        if _result_row_limit_cache_contains(cache_key):
+            return _result_row_limit_error_result(
+                sql_query,
+                database_provider=provider,
+                source=FetchSource.MEMORY_CACHE,
+                failure_stage="result_row_limit_cache",
+            )
         cache_expires_at = _query_cache_expiry_epoch(
             cache_path,
             _query_cache_ttl_seconds(is_demo=is_demo),
@@ -859,6 +1181,25 @@ def _fetch_wspr_parquet(
                     artifact_path=cache_path,
                     source=FetchSource.DISK_CACHE,
                     database_source=_database_source(provider),
+                )
+            except FetchResultRowLimitExceeded:
+                try:
+                    cache_path.unlink()
+                except OSError:
+                    pass
+                _result_row_limit_cache_put(
+                    cache_key,
+                    **(
+                        {"expires_at_epoch": cache_expires_at}
+                        if is_demo
+                        else {"ttl_seconds": STANDARD_QUERY_CACHE_TTL_SEC}
+                    ),
+                )
+                return _result_row_limit_error_result(
+                    sql_query,
+                    database_provider=provider,
+                    source=FetchSource.DISK_CACHE,
+                    failure_stage="validate_query_cache_rows",
                 )
             except (OSError, ValueError):
                 try:
@@ -916,6 +1257,7 @@ def _fetch_wspr_parquet(
                     failure_stage = "validate_query_cache_temporary"
                     if temporary_path.stat().st_size == 0:
                         raise ValueError("WSPR Parquet response was empty")
+                    _raise_if_parquet_result_exceeds_row_limit(temporary_path)
                     failure_stage = "publish_query_cache"
 
             failure_stage = "read_published_query_cache"
@@ -932,7 +1274,22 @@ def _fetch_wspr_parquet(
                 source=_direct_fetch_source(provider),
                 database_source=_database_source(provider),
             )
-        except (requests.RequestException, OSError, ValueError, FetchResponseTooLarge) as exc:
+        except (
+            requests.RequestException,
+            OSError,
+            ValueError,
+            FetchResponseTooLarge,
+            FetchResultRowLimitExceeded,
+        ) as exc:
+            if isinstance(exc, FetchResultRowLimitExceeded):
+                _result_row_limit_cache_put(
+                    cache_key,
+                    ttl_seconds=_query_cache_ttl_seconds(is_demo=is_demo),
+                )
+                try:
+                    cache_path.unlink()
+                except OSError:
+                    pass
             return _request_error_result(
                 exc,
                 sql_query,

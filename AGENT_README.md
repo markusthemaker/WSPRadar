@@ -31,7 +31,6 @@ measurement system.
 - Geographic station and segment aggregation on an azimuthal-equidistant map.
 - Segment Inspector views with station tables, evidence figures, and drilldown
   tables backed by projected Parquet reads.
-- Path-illumination classification using vectorized solar geometry.
 - Downloadable analysis exports containing configuration, metadata, tables,
   compact Parquet evidence, and high-resolution figures.
 - Guided demo profiles for historical examples.
@@ -135,6 +134,12 @@ is ignored by Git.
 Important defaults currently include:
 
 - Maximum query interval: 31 days.
+- New untouched interactive Performance setups enable special-callsign and
+  moving-station exclusion; untouched Compare setups disable both. A manual
+  toggle edit remains explicit across result-family changes, while saved
+  configurations, demos, and URLs retain their required explicit values.
+- Maximum accepted result per analysis query: 1,000,000 rows; a max-plus-one
+  SQL sentinel detects larger results before scientific processing.
 - Analysis admission: 2 active, 10 queued, 600-second queue wait.
 - Export admission: 1 active, 10 queued, 600-second queue wait.
 - CSV and Parquet decompressed response ceiling: 64 MiB each.

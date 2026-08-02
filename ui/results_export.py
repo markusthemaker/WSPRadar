@@ -64,7 +64,8 @@ from ui.url_state import build_share_url
 COMPARE_EXPORT_FOLDER = "compare"
 SUCCESS_EXPORT_FOLDER = "success"
 EXPORTABLE_RESULT_FOLDERS = frozenset({COMPARE_EXPORT_FOLDER, SUCCESS_EXPORT_FOLDER})
-TEMPORAL_SNR_EXPORT_RENDER_VERSION = 6
+SUCCESS_DISTANCE_EXPORT_RENDER_VERSION = 1
+TEMPORAL_SNR_EXPORT_RENDER_VERSION = 7
 TEMPORAL_IQR_EXPORT_LINEWIDTH = 0.4
 COMPARE_EVIDENCE_FIGURE_EXPORTS = (
     (
@@ -735,6 +736,11 @@ def _export_signature(blocks):
     for key, block in sorted(blocks.items()):
         payload.append({
             "key": key,
+            "success_distance_export_render_version": (
+                SUCCESS_DISTANCE_EXPORT_RENDER_VERSION
+                if block.get("mode_folder") == SUCCESS_EXPORT_FOLDER
+                else None
+            ),
             "temporal_snr_export_render_version": (
                 TEMPORAL_SNR_EXPORT_RENDER_VERSION
             ),

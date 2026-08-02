@@ -29,6 +29,13 @@ from ui.page_navigation import (
     PARAMETER_SETTINGS_ANCHOR_ID,
     request_page_navigation,
 )
+from ui.population_exclusion_state import (
+    COMPARE_RESULT_TYPE,
+    PERFORMANCE_RESULT_TYPE,
+    register_explicit_population_exclusion_values,
+    result_type_from_comparison_mode,
+    transition_population_exclusion_result_type,
+)
 
 from .flow_engine import available_flow_nodes, matching_next_node
 from .flow_loader import (
@@ -147,6 +154,14 @@ def _handle_use_case_change() -> None:
             # silently choose a scientific Reference design for the operator.
             st.session_state.val_comp_mode = "none"
             st.session_state.guided_reference_design = None
+    transition_population_exclusion_result_type(
+        st.session_state,
+        (
+            PERFORMANCE_RESULT_TYPE
+            if result_type == "success"
+            else COMPARE_RESULT_TYPE
+        ),
+    )
     _guided_scientific_change("use_case")
 
 
@@ -158,6 +173,10 @@ def _handle_reference_design_change() -> None:
     previous_mode = st.session_state.get("val_comp_mode")
     st.session_state.val_comp_mode = new_mode
     st.session_state.guided_last_compare_mode = new_mode
+    transition_population_exclusion_result_type(
+        st.session_state,
+        COMPARE_RESULT_TYPE,
+    )
     if new_mode != previous_mode:
         # Fixed-Reference identities and corrections have design-specific
         # meanings. Reinterpreting a remote station as a co-located path (or a
@@ -226,6 +245,7 @@ def _apply_loaded_demo_scope() -> None:
     )
     if scope_values:
         st.session_state.update(scope_values)
+        register_explicit_population_exclusion_values(st.session_state)
 
 
 def _handle_scope_mode_change() -> None:
@@ -264,8 +284,14 @@ def _open_demo_node(node_id: str) -> None:
 
 
 def _open_classic_view() -> None:
-    """Switch editors without touching the shared scientific configuration."""
+    """Open Classic with defaults matching its canonical runnable result."""
     st.session_state.input_view = "classic"
+    transition_population_exclusion_result_type(
+        st.session_state,
+        result_type_from_comparison_mode(
+            st.session_state.get("val_comp_mode")
+        ),
+    )
     if st.session_state.get("run_mode"):
         handoff_analysis_submission(
             st.session_state,
