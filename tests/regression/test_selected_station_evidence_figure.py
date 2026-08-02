@@ -471,7 +471,7 @@ def test_selected_single_evidence_uses_localized_recipe_labels(language):
 
     figure = render_selected_evidence_export_figure(recipe)
     try:
-        chronological_axis, colorbar_axis = figure.axes
+        chronological_axis, folded_axis, colorbar_axis = figure.axes
         assert chronological_axis.get_gid() == (
             "compare-temporal-chronological-axis"
         )
@@ -489,9 +489,19 @@ def test_selected_single_evidence_uses_localized_recipe_labels(language):
         assert colorbar_axis.get_ylabel() == translations[
             "fig_relative_joint_spot_density"
         ]
-        assert translations["fig_segment_folded_unavailable"] in {
-            text.get_text() for text in chronological_axis.texts
-        }
+        assert folded_axis.get_gid() == "compare-temporal-folded-axis"
+        assert folded_axis.get_title() == translations[
+            "fig_selected_compare_folded_title"
+        ]
+        _assert_folded_unavailable_annotation(
+            figure,
+            folded_axis,
+            translations["fig_segment_folded_unavailable"],
+        )
+        assert not any(
+            isinstance(collection, QuadMesh)
+            for collection in folded_axis.collections
+        )
         assert not any(
             "Distribution" in axis.get_title()
             or "Verteilung" in axis.get_title()
@@ -734,7 +744,6 @@ def test_selected_compare_recipe_retires_histogram_and_temporal_view_state():
     assert recipe["chronological_subtitle"] is None
     assert recipe["folded_title"] == "\u0394 SNR by UTC Hour"
     assert recipe["folded_subtitle"] is None
-    assert recipe["omit_folded_when_unavailable"] is True
     assert recipe["show_folded_date_annotation"] is True
     assert recipe["selected_identity_count"] == 1
     assert len(recipe["plot_time_ns"]) == len(plot_df)
@@ -746,6 +755,7 @@ def test_selected_compare_recipe_retires_histogram_and_temporal_view_state():
         "histogram",
         "mean_label",
         "share_axis_label",
+        "omit_folded_when_unavailable",
     ):
         assert retired_field not in recipe
 
@@ -1113,7 +1123,7 @@ def test_selected_compare_bin_changes_chronology_but_not_fixed_utc_hour_fold():
 
 
 def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
-    """Expand chronology and omit the folded panel below two UTC dates."""
+    """Keep the folded panel and show its notice below two UTC dates."""
     plot_df = pd.DataFrame(
         {
             "identity": ["A (AA00)"] * 3,
@@ -1141,8 +1151,8 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
 
     figure = render_selected_evidence_export_figure(recipe)
     try:
-        assert len(figure.axes) == 2
-        chronological_axis, colorbar_axis = figure.axes
+        assert len(figure.axes) == 3
+        chronological_axis, folded_axis, colorbar_axis = figure.axes
 
         assert any(
             isinstance(collection, QuadMesh)
@@ -1151,17 +1161,28 @@ def test_selected_folded_view_uses_localized_placeholder_below_two_dates():
         assert chronological_axis.get_gid() == (
             "compare-temporal-chronological-axis"
         )
-        assert all(
-            axis.get_gid() != "compare-temporal-folded-axis"
-            for axis in figure.axes
+        assert folded_axis.get_gid() == "compare-temporal-folded-axis"
+        assert not any(
+            isinstance(collection, QuadMesh)
+            for collection in folded_axis.collections
         )
-        assert chronological_axis.get_position().width > 0.75
-        assert placeholder in {
-            text.get_text() for text in chronological_axis.texts
-        }
+        assert (
+            chronological_axis.get_position().width
+            / folded_axis.get_position().width
+        ) == pytest.approx(1.95)
+        assert not _texts_with_gid(
+            chronological_axis,
+            "folded-utc-unavailable-annotation",
+        )
+        _assert_folded_unavailable_annotation(
+            figure,
+            folded_axis,
+            placeholder,
+        )
         assert chronological_axis.get_title() == (
             T["en"]["fig_selected_compare_chronological_title"]
         )
+        assert folded_axis.get_title() == "UTC-Profil"
         _assert_no_selected_compare_subtitles(figure)
         assert colorbar_axis.get_gid() == "compare-temporal-colorbar-axis"
         assert colorbar_axis.get_ylabel() == (
@@ -1596,7 +1617,7 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
     )
 
     assert recipe["kind"] == "segment_compare_temporal"
-    assert recipe["schema_version"] == 3
+    assert recipe["schema_version"] == 4
     assert recipe["iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT
     assert recipe["time_bin"] == "3h"
     assert recipe["utc_date_count"] == 2
@@ -2046,16 +2067,23 @@ def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
         assert "Relative scheduled-pair density (% of panel maximum)" in {
             axis.get_ylabel() for axis in figure.axes
         }
-        chronological_axis = figure.axes[0]
-        assert T["en"]["fig_segment_folded_unavailable"] in {
-            text.get_text() for text in chronological_axis.texts
-        }
+        chronological_axis, folded_axis, _colorbar_axis = figure.axes
+        assert not _texts_with_gid(
+            chronological_axis,
+            "folded-utc-unavailable-annotation",
+        )
+        _assert_folded_unavailable_annotation(
+            figure,
+            folded_axis,
+            T["en"]["fig_segment_folded_unavailable"],
+        )
         assert "requires paired evidence" in T["en"][
             "fig_segment_folded_unavailable"
         ]
-        assert all(
-            axis.get_gid() != "compare-temporal-folded-axis"
-            for axis in figure.axes
+        assert folded_axis.get_gid() == "compare-temporal-folded-axis"
+        assert not any(
+            isinstance(collection, QuadMesh)
+            for collection in folded_axis.collections
         )
     finally:
         dispose_matplotlib_figure(figure)

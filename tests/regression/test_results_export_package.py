@@ -243,6 +243,24 @@ def test_temporal_snr_render_version_changes_export_signature(monkeypatch):
     assert version_two_signature != results_export._export_signature(blocks)
 
 
+def test_temporal_evidence_layout_version_changes_export_signature(monkeypatch):
+    """Invalidate prepared ZIPs when the shared temporal layout changes."""
+    blocks = {
+        "RX_ABS": {
+            "analysis_id": "RX_ABS",
+            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        }
+    }
+
+    monkeypatch.setattr(results_export, "TEMPORAL_EVIDENCE_LAYOUT_VERSION", 1)
+    version_one_signature = results_export._export_signature(blocks)
+    monkeypatch.setattr(results_export, "TEMPORAL_EVIDENCE_LAYOUT_VERSION", 2)
+
+    assert len(version_one_signature) == 64
+    assert version_one_signature != results_export._export_signature(blocks)
+
+
 def test_success_distance_render_version_changes_export_signature(monkeypatch):
     """Invalidate prepared ZIPs when Success distance rendering changes."""
     blocks = {

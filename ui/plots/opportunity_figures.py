@@ -24,10 +24,6 @@ from ui.plots.evidence_figures import (
     METRIC_TICK_LABEL_FONTSIZE,
     SEGMENT_FIGURE_BOTTOM,
     SEGMENT_FIGURE_FOOTER_Y,
-    SEGMENT_TEMPORAL_COLORBAR_FRACTION,
-    SEGMENT_TEMPORAL_COLORBAR_PAD,
-    SEGMENT_TEMPORAL_COLUMN_SPACE,
-    SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS,
     SEGMENT_TEMPORAL_FIGURE_LEFT,
     SEGMENT_TEMPORAL_FIGURE_RIGHT,
     SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES,
@@ -41,6 +37,16 @@ from ui.plots.evidence_figures import (
     _style_evidence_axis,
     _time_agg_minutes,
 )
+from ui.plots.temporal_layout import (
+    TEMPORAL_COLORBAR_FRACTION,
+    TEMPORAL_COLORBAR_PAD,
+    TEMPORAL_COLUMN_SPACE,
+    TEMPORAL_EVIDENCE_ROW_SPACE,
+    align_folded_evidence_axes_to_colorbar,
+    build_temporal_plot_grid,
+    draw_folded_utc_unavailable_annotation,
+)
+
 SUCCESS_TEMPORAL_TIME_BINS = STATION_EVIDENCE_TIME_BIN_OPTIONS
 SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE = "active_scope"
 SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION = "selected_station"
@@ -84,10 +90,6 @@ SUCCESS_TEMPORAL_RATE_CEILINGS = (
     100.0,
 )
 SUCCESS_TEMPORAL_EVIDENCE_FIGURE_TOP = 0.76
-SUCCESS_TEMPORAL_EVIDENCE_ROW_SPACE = 0.24
-SUCCESS_TEMPORAL_FOLDED_COLUMN_X_SHIFT = 0.025
-SUCCESS_TEMPORAL_REFERENCE_FIGURE_WIDTH_PX = 1300.0
-SUCCESS_TEMPORAL_FOLDED_COLUMN_LEFT_EXPANSION_PX = 28.0
 
 
 def _opportunity_time_bin(rows, analysis_start_t=None, analysis_end_t=None):
@@ -2633,7 +2635,7 @@ def _success_temporal_render_context(recipe):
         "chronological": chronological,
         "folded": dict(recipe.get("folded_profile") or {}),
         "utc_date_count": utc_date_count,
-        "folding_available": utc_date_count >= 2,
+        "folded_data_available": utc_date_count >= 2,
         "chronological_centers": chronological_center_numbers,
         "chronological_edges": chronological_edge_numbers,
         "folded_edges": np.arange(25, dtype=float),
@@ -2659,7 +2661,7 @@ def _create_success_temporal_figure(
         right=SEGMENT_TEMPORAL_FIGURE_RIGHT,
         bottom=float(figure_bottom),
         top=float(figure_top),
-        wspace=SEGMENT_TEMPORAL_COLUMN_SPACE,
+        wspace=TEMPORAL_COLUMN_SPACE,
     )
     figure_title = recipe.get(title_key, recipe.get("title", ""))
     if (
@@ -2688,93 +2690,6 @@ def _create_success_temporal_figure(
     )
     version_footer.set_gid("wspradar-version-footer")
     return figure
-
-
-def _success_temporal_plot_grid(
-    figure,
-    *,
-    row_count,
-    folding_available,
-    row_space,
-    column_space=SEGMENT_TEMPORAL_COLUMN_SPACE,
-):
-    """Create Success temporal plot columns with caller-selected gutter width."""
-    column_count = 2 if folding_available else 1
-    grid_kwargs = {
-        "nrows": int(row_count),
-        "ncols": column_count,
-        "hspace": float(row_space),
-    }
-    if folding_available:
-        grid_kwargs.update(
-            {
-                "width_ratios": SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS,
-                "wspace": float(column_space),
-            }
-        )
-    return figure.add_gridspec(**grid_kwargs)
-
-
-def _reserve_success_temporal_colorbar_footprint(figure, axes):
-    """Reserve the upper SNR colorbar gutter without adding a lower colorbar."""
-    layout_mappable = mpl.cm.ScalarMappable(
-        norm=mpl.colors.Normalize(
-            vmin=EVIDENCE_DENSITY_MIN,
-            vmax=EVIDENCE_DENSITY_MAX,
-        ),
-        cmap=EVIDENCE_HEATMAP_CMAP,
-    )
-    reserved_colorbar = figure.colorbar(
-        layout_mappable,
-        ax=list(axes),
-        pad=SEGMENT_TEMPORAL_COLORBAR_PAD,
-        fraction=SEGMENT_TEMPORAL_COLORBAR_FRACTION,
-    )
-    reserved_colorbar.ax.remove()
-
-
-def _translate_success_temporal_folded_column(*folded_axes):
-    """Move the complete lower UTC-hour column into the colorbar footprint.
-
-    The figure-relative translation preserves each panel's width and height.
-    Titles, ticks, labels, annotations, and the subsequently created twin axes
-    inherit the translated axis transforms.
-    """
-    for axis in folded_axes:
-        position = axis.get_position()
-        axis.set_position(
-            [
-                position.x0 + SUCCESS_TEMPORAL_FOLDED_COLUMN_X_SHIFT,
-                position.y0,
-                position.width,
-                position.height,
-            ],
-            which="both",
-        )
-
-
-def _expand_success_temporal_folded_column_left(*folded_axes):
-    """Widen both folded evidence panels equally toward their left side.
-
-    Their shared right edge remains fixed while both left axes and their labels
-    move 20 pixels left on the 1,300-pixel reference canvas. The subsequently
-    created Decode Rate twin axes inherit the widened bounds.
-    """
-    left_expansion = (
-        SUCCESS_TEMPORAL_FOLDED_COLUMN_LEFT_EXPANSION_PX
-        / SUCCESS_TEMPORAL_REFERENCE_FIGURE_WIDTH_PX
-    )
-    for axis in folded_axes:
-        position = axis.get_position()
-        axis.set_position(
-            [
-                position.x0 - left_expansion,
-                position.y0,
-                position.width + left_expansion,
-                position.height,
-            ],
-            which="both",
-        )
 
 
 def _place_success_temporal_evidence_column_header(
@@ -2837,30 +2752,26 @@ def _render_opportunity_temporal_snr_figure(recipe):
     labels = context["labels"]
     chronological = context["chronological"]
     folded = context["folded"]
-    folding_available = context["folding_available"]
+    folded_data_available = context["folded_data_available"]
     figure = _create_success_temporal_figure(
         recipe,
         title_key="snr_title",
         figure_top=SEGMENT_TEMPORAL_FIGURE_TOP,
     )
-    plot_grid = _success_temporal_plot_grid(
+    plot_grid = build_temporal_plot_grid(
         figure,
         row_count=1,
-        folding_available=folding_available,
         row_space=0.0,
     )
     chronological_axis = figure.add_subplot(plot_grid[0, 0])
     chronological_axis.set_gid("success-temporal-snr-chronological-axis")
-    folded_axis = None
-    if folding_available:
-        folded_axis = figure.add_subplot(
-            plot_grid[0, 1],
-            sharey=chronological_axis,
-        )
-        folded_axis.set_gid("success-temporal-snr-folded-axis")
+    folded_axis = figure.add_subplot(
+        plot_grid[0, 1],
+        sharey=chronological_axis,
+    )
+    folded_axis.set_gid("success-temporal-snr-folded-axis")
     for axis in (chronological_axis, folded_axis):
-        if axis is not None:
-            _style_evidence_axis(axis)
+        _style_evidence_axis(axis)
 
     chronological_mesh = _draw_success_snr_density_panel(
         chronological_axis,
@@ -2879,7 +2790,7 @@ def _render_opportunity_temporal_snr_figure(recipe):
     )
 
     folded_mesh = None
-    if folding_available:
+    if folded_data_available:
         folded_mesh = _draw_success_snr_density_panel(
             folded_axis,
             context["folded_edges"],
@@ -2889,11 +2800,6 @@ def _render_opportunity_temporal_snr_figure(recipe):
             labels["snr_utc_hour_title"],
             labels["bin_median_folded"],
             context["snr_representation"],
-        )
-        _configure_success_folded_axis(
-            folded_axis,
-            context,
-            show_labels=True,
         )
         folded_axis.text(
             0.02,
@@ -2908,31 +2814,29 @@ def _render_opportunity_temporal_snr_figure(recipe):
             va="bottom",
         )
     else:
-        chronological_axis.text(
-            0.98,
-            0.05,
-            labels["temporal_unavailable"],
-            transform=chronological_axis.transAxes,
-            color="#cccccc",
-            fontsize=METRIC_TICK_LABEL_FONTSIZE,
-            ha="right",
-            va="bottom",
-            bbox={
-                "facecolor": "none",
-                "edgecolor": "#444444",
-                "alpha": 1.0,
-                "pad": 4,
-            },
+        _set_temporal_panel_title(
+            folded_axis,
+            labels["snr_utc_hour_title"],
         )
+        _set_metric_axis_labels(
+            folded_axis,
+            y_label=labels["snr_y"],
+        )
+        draw_folded_utc_unavailable_annotation(
+            folded_axis,
+            labels["temporal_unavailable"],
+        )
+    _configure_success_folded_axis(
+        folded_axis,
+        context,
+        show_labels=True,
+    )
 
-    colorbar_axes = [chronological_axis]
-    if folded_axis is not None:
-        colorbar_axes.append(folded_axis)
     colorbar = figure.colorbar(
         folded_mesh if folded_mesh is not None else chronological_mesh,
-        ax=colorbar_axes,
-        pad=SEGMENT_TEMPORAL_COLORBAR_PAD,
-        fraction=SEGMENT_TEMPORAL_COLORBAR_FRACTION,
+        ax=[chronological_axis, folded_axis],
+        pad=TEMPORAL_COLORBAR_PAD,
+        fraction=TEMPORAL_COLORBAR_FRACTION,
         ticks=np.linspace(
             EVIDENCE_DENSITY_MIN,
             EVIDENCE_DENSITY_MAX,
@@ -2954,23 +2858,28 @@ def _render_opportunity_temporal_evidence_figure(recipe):
     labels = context["labels"]
     chronological = context["chronological"]
     folded = context["folded"]
-    folding_available = context["folding_available"]
-    common_rate_upper_limit = _success_temporal_rate_axis_max(
+    folded_data_available = context["folded_data_available"]
+    rate_series = [
         chronological.get("station_balanced_rate_pct", []),
         chronological.get("observation_level_rate_pct", []),
-        folded.get("station_balanced_rate_pct", []),
-        folded.get("observation_level_rate_pct", []),
-    )
+    ]
+    if folded_data_available:
+        rate_series.extend(
+            [
+                folded.get("station_balanced_rate_pct", []),
+                folded.get("observation_level_rate_pct", []),
+            ]
+        )
+    common_rate_upper_limit = _success_temporal_rate_axis_max(*rate_series)
     figure = _create_success_temporal_figure(
         recipe,
         title_key="evidence_title",
         figure_top=SUCCESS_TEMPORAL_EVIDENCE_FIGURE_TOP,
     )
-    plot_grid = _success_temporal_plot_grid(
+    plot_grid = build_temporal_plot_grid(
         figure,
         row_count=2,
-        folding_available=folding_available,
-        row_space=SUCCESS_TEMPORAL_EVIDENCE_ROW_SPACE,
+        row_space=TEMPORAL_EVIDENCE_ROW_SPACE,
     )
     chronological_station_axis = figure.add_subplot(plot_grid[0, 0])
     chronological_station_axis.set_gid(
@@ -2983,51 +2892,38 @@ def _render_opportunity_temporal_evidence_figure(recipe):
     chronological_opportunity_axis.set_gid(
         "success-temporal-opportunity-chronological-axis"
     )
-    folded_station_axis = None
-    folded_opportunity_axis = None
-    if folding_available:
-        folded_station_axis = figure.add_subplot(plot_grid[0, 1])
-        folded_station_axis.set_gid(
-            "success-temporal-station-folded-axis"
-        )
-        folded_opportunity_axis = figure.add_subplot(
-            plot_grid[1, 1],
-            sharex=folded_station_axis,
-        )
-        folded_opportunity_axis.set_gid(
-            "success-temporal-opportunity-folded-axis"
-        )
+    folded_station_axis = figure.add_subplot(plot_grid[0, 1])
+    folded_station_axis.set_gid(
+        "success-temporal-station-folded-axis"
+    )
+    folded_opportunity_axis = figure.add_subplot(
+        plot_grid[1, 1],
+        sharex=folded_station_axis,
+    )
+    folded_opportunity_axis.set_gid(
+        "success-temporal-opportunity-folded-axis"
+    )
     for axis in (
         chronological_station_axis,
         chronological_opportunity_axis,
         folded_station_axis,
         folded_opportunity_axis,
     ):
-        if axis is not None:
-            _style_evidence_axis(axis)
+        _style_evidence_axis(axis)
 
-    _reserve_success_temporal_colorbar_footprint(
+    align_folded_evidence_axes_to_colorbar(
         figure,
-        tuple(
-            axis
-            for axis in (
-                chronological_station_axis,
-                chronological_opportunity_axis,
-                folded_station_axis,
-                folded_opportunity_axis,
-            )
-            if axis is not None
+        all_axes=(
+            chronological_station_axis,
+            chronological_opportunity_axis,
+            folded_station_axis,
+            folded_opportunity_axis,
+        ),
+        folded_axes=(
+            folded_station_axis,
+            folded_opportunity_axis,
         ),
     )
-    if folding_available:
-        _translate_success_temporal_folded_column(
-            folded_station_axis,
-            folded_opportunity_axis,
-        )
-        _expand_success_temporal_folded_column_left(
-            folded_station_axis,
-            folded_opportunity_axis,
-        )
     _place_success_temporal_evidence_column_header(
         figure,
         chronological_station_axis,
@@ -3036,13 +2932,12 @@ def _render_opportunity_temporal_evidence_figure(recipe):
         ),
         gid="success-temporal-evidence-chronological-column-header",
     )
-    if folding_available:
-        _place_success_temporal_evidence_column_header(
-            figure,
-            folded_station_axis,
-            labels["evidence_utc_hour_title"],
-            gid="success-temporal-evidence-folded-column-header",
-        )
+    _place_success_temporal_evidence_column_header(
+        figure,
+        folded_station_axis,
+        labels["evidence_utc_hour_title"],
+        gid="success-temporal-evidence-folded-column-header",
+    )
     chronological_bar_widths = (
         np.diff(context["chronological_edges"]) * 0.78
     )
@@ -3096,7 +2991,7 @@ def _render_opportunity_temporal_evidence_figure(recipe):
         show_labels=True,
     )
 
-    if folding_available:
+    if folded_data_available:
         _draw_success_outcome_stack(
             folded_station_axis,
             context["folded_centers"],
@@ -3158,5 +3053,40 @@ def _render_opportunity_temporal_evidence_figure(recipe):
             fontsize=8,
             ha="right",
             va="bottom",
+        )
+    else:
+        _set_metric_axis_labels(
+            folded_station_axis,
+            y_label=labels["station_support_folded_y"],
+        )
+        folded_station_axis.yaxis.labelpad = 1.0
+        _set_metric_axis_labels(
+            folded_opportunity_axis,
+            y_label=labels["opportunity_folded_y"],
+        )
+        folded_opportunity_axis.yaxis.labelpad = 1.0
+        for folded_axis in (
+            folded_station_axis,
+            folded_opportunity_axis,
+        ):
+            folded_axis.set_ylim(0.0, 1.0)
+            folded_axis.set_yticks([])
+        _configure_success_folded_axis(
+            folded_station_axis,
+            context,
+            show_labels=False,
+        )
+        _configure_success_folded_axis(
+            folded_opportunity_axis,
+            context,
+            show_labels=True,
+        )
+        draw_folded_utc_unavailable_annotation(
+            folded_station_axis,
+            labels["temporal_unavailable"],
+        )
+        draw_folded_utc_unavailable_annotation(
+            folded_opportunity_axis,
+            labels["temporal_unavailable"],
         )
     return figure

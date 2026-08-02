@@ -78,8 +78,8 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   bins and medians unchanged. Selected Station Evidence uses the same paired
   chronological/folded structure for one path instead of the former histogram
   and mutually exclusive time-view selector; with fewer than two represented
-  UTC dates, the chronological panel expands and the unavailable folded view is
-  stated explicitly.
+  UTC dates, the folded panel retains its normal geometry without folded data
+  and states the unavailable view explicitly.
 - Added **Compare Temporal Evidence Coverage** below the paired Delta SNR view
   and **Selected Path Evidence Coverage** below the selected-path Delta SNR
   view. These figures use all retained Only Target, Joint and Only Reference

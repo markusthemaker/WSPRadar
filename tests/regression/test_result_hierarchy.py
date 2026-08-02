@@ -226,6 +226,7 @@ EXPECTED_COMPARE_COVERAGE_PRESENTATION_KEYS = {
     "fig_compare_coverage_title_tx",
     "fig_compare_coverage_chronological_title",
     "fig_compare_coverage_utc_hour_title",
+    "fig_compare_coverage_folded_unavailable",
     "fig_compare_coverage_station_y_rx",
     "fig_compare_coverage_station_y_tx",
     "fig_compare_coverage_station_folded_y_rx",
@@ -1188,24 +1189,18 @@ def test_compare_coverage_keys_have_bilingual_placeholder_parity():
 
 
 def test_compare_coverage_folded_axes_and_selected_units_are_exact():
-    """Pin averaging denominators on axes and retire Comparison Units copy."""
+    """Pin compact axes, coverage warning, and selected-unit copy."""
     expected = {
         "en": {
-            "fig_compare_coverage_station_folded_y_rx": (
-                "Avg. TX Stations\n/ Represented\nUTC Date"
+            "fig_compare_coverage_folded_unavailable": (
+                "UTC-hour pattern unavailable — requires comparison evidence "
+                "from at least 2 UTC dates."
             ),
-            "fig_compare_coverage_station_folded_y_tx": (
-                "Avg. RX Stations\n/ Represented\nUTC Date"
-            ),
-            "fig_compare_coverage_unit_folded_y_rx": (
-                "Avg. Transmitter-\nCycles / Represented\nUTC Date"
-            ),
-            "fig_compare_coverage_unit_folded_y_tx": (
-                "Avg. Receiver-Cycles\n/ Represented\nUTC Date"
-            ),
-            "fig_compare_coverage_unit_folded_y_scheduled": (
-                "Avg. Scheduled A/B\nPairs / Represented\nUTC Date"
-            ),
+            "fig_compare_coverage_station_folded_y_rx": "Avg. TX Stations",
+            "fig_compare_coverage_station_folded_y_tx": "Avg. RX Stations",
+            "fig_compare_coverage_unit_folded_y_rx": "Avg. Transmitter-Cycles",
+            "fig_compare_coverage_unit_folded_y_tx": "Avg. Receiver-Cycles",
+            "fig_compare_coverage_unit_folded_y_scheduled": "Avg. Scheduled A/B Pairs",
             "fig_selected_compare_coverage_chronological_title": (
                 "{unit} over Time ({time_bin} bins)"
             ),
@@ -1222,25 +1217,19 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
                 "WSPR Cycles"
             ),
             "fig_selected_compare_coverage_unit_folded_y_simultaneous": (
-                "Avg. WSPR Cycles\n/ Represented UTC Date"
+                "Avg. WSPR Cycles"
             ),
         },
         "de": {
-            "fig_compare_coverage_station_folded_y_rx": (
-                "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
+            "fig_compare_coverage_folded_unavailable": (
+                "UTC-Stundenmuster nicht verfügbar — erfordert Compare-Evidenz "
+                "aus mindestens 2 UTC-Tagen."
             ),
-            "fig_compare_coverage_station_folded_y_tx": (
-                "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
-            ),
-            "fig_compare_coverage_unit_folded_y_rx": (
-                "Ø Senderzyklen je\nberücksichtigtem\nUTC-Tag"
-            ),
-            "fig_compare_coverage_unit_folded_y_tx": (
-                "Ø Empfängerzyklen je\nberücksichtigtem\nUTC-Tag"
-            ),
-            "fig_compare_coverage_unit_folded_y_scheduled": (
-                "Ø geplante A/B-Paare je\nberücksichtigtem\nUTC-Tag"
-            ),
+            "fig_compare_coverage_station_folded_y_rx": "Ø TX-Stationen",
+            "fig_compare_coverage_station_folded_y_tx": "Ø RX-Stationen",
+            "fig_compare_coverage_unit_folded_y_rx": "Ø Senderzyklen",
+            "fig_compare_coverage_unit_folded_y_tx": "Ø Empfängerzyklen",
+            "fig_compare_coverage_unit_folded_y_scheduled": "Ø geplante A/B-Paare",
             "fig_selected_compare_coverage_chronological_title": (
                 "{unit} im Zeitverlauf ({time_bin}-Bins)"
             ),
@@ -1257,7 +1246,7 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
                 "WSPR-Zyklen"
             ),
             "fig_selected_compare_coverage_unit_folded_y_simultaneous": (
-                "Ø WSPR-Zyklen je\nberücksichtigtem\nUTC-Tag"
+                "Ø WSPR-Zyklen"
             ),
         },
     }

@@ -653,6 +653,17 @@ Chronological one-hour support is directly comparable in units only when bin
 edges are anchored to UTC-hour boundaries; wider chronological bins cover
 multiple hours. Target-only audit rows do not enter either Success denominator.
 
+All Performance and Compare temporal presentations use one unavailable-state
+contract in RX and TX, for both active-scope segment and selected-station
+figures, and in both browser previews and exports. UTC-hour folding remains
+scientifically available only when at least two represented UTC dates
+contribute. Below that threshold, every affected folded panel remains in its
+normal position and size, draws no folded data, and contains the localized
+boxed unavailable notice; chronological panels retain their normal bounds.
+`ui/plots/temporal_layout.py` owns the shared two-column geometry, lower-row
+spacing, colorbar-footprint alignment, 28-pixel left expansion, unavailable
+annotation painter and preview/export layout version.
+
 Compare temporal preparation uses one canonical retained-unit frame after the
 completed run's gates, geographic scope and station-level category thresholds.
 Each simultaneous row is one transmitter-cycle for RX Compare or one
@@ -707,14 +718,15 @@ one capped, rounded ceiling derived from the four unchanged rate series. One
 figure-level legend centered below the lower title identifies both outcome
 stacks and the Success Rate line. The left support axes scale independently and
 share the compact ham-style count formatter. Lower chronological data axes
-align exactly with the upper chronological SNR axis. The two lower folded
-panels preserve the upper folded panel's width but translate right together
-with their titles, axes, twin rate axes, labels and annotations so their
-rightmost labeling aligns with the upper colorbar label. The lower layout
-reserves and then uses that upper colorbar footprint without adding a lower
-colorbar. Both folded evidence panels expand 20 px toward the left on the
-1,300 px reference canvas while retaining their shared right edge; the two
-chronological panels retain their established bounds. Panel heights remain
+align exactly with the upper chronological SNR or Delta SNR axis. Performance
+and Compare use one shared lower-folded-column alignment contract. The two
+lower folded panels begin from the upper folded panel's width and translate
+right together with their titles, axes, twin rate axes, labels and annotations
+so their rightmost labeling aligns with the upper colorbar label. The lower
+layout reserves and uses that colorbar footprint without adding another
+colorbar, then expands both folded evidence panels 28 px toward the left on the
+1,300 px reference canvas while retaining their shared right edge. The two
+chronological panels retain their established bounds, and panel heights remain
 aligned. Each figure keeps one
 folded-date annotation without repeating it in both panels of a row. Browser
 preview and high-resolution export use the same two recipes and renderers;
@@ -769,9 +781,9 @@ folded opportunity height is average confirmed opportunities over the same
 represented-date denominator. For one station, station-balanced and
 observation-level Success Rate series are numerically identical, but both rows
 remain because they expose presence and evidence depth respectively. UTC-hour
-folding still requires at least two represented dates; otherwise the shared
-renderer expands the chronological panels and emits the localized unavailable
-message.
+folding still requires at least two represented dates. Below that threshold,
+both folded panels retain their normal geometry, draw no folded data, and show
+the localized boxed unavailable notice; the chronological panels do not expand.
 
 For Compare, the compact selected-path context is followed by the same prompted,
 full-width chronological-bin control used in Performance and one two-panel
@@ -790,8 +802,9 @@ each bin median, and the band appears only from five contributed values onward.
 Unsupported bins break the band without hiding their medians, and the band does
 not change axis limits. No
 selected-station histogram or temporal-view selector remains. When fewer than
-two UTC dates contribute, the folded panel is omitted, the chronological panel
-expands and the localized unavailable notice is retained.
+two UTC dates contribute, the folded panel remains in its normal position and
+size, draws no folded data, and shows the localized boxed unavailable notice;
+the chronological panel retains its normal bounds.
 
 Directly below that absolute figure, Selected Path Evidence Coverage
 uses the same selected-station chronological-bin control and the same retained
@@ -800,7 +813,9 @@ row split into Only Target, Joint and Only Reference units with outcome-level
 Joint Evidence Share. A second station-support row is deliberately absent:
 with exactly one selected path it would duplicate the same ratio. A one-sided
 selected path can therefore show coverage even when no absolute Delta SNR
-figure is available.
+figure is available. The same two-date unavailable-state contract keeps this
+coverage figure's folded panel visible without folded data and places the
+localized boxed notice inside it.
 
 The run-scoped segment-cache key includes explicit
 `exact-distance-v1` and `station-median-min3-v1` policy versions, the geographic
@@ -811,11 +826,12 @@ rows are downstream presentation state and do not invalidate segment recipes.
 Changing the selected Success identity invalidates only selected-station recipes;
 changing its chronological bin reuses retained evidence and leaves the
 independent Segment Inspector bin and completed provider analysis untouched. The
-inspector model and PNG render versions invalidate temporal recipes and images
-from before the IQR and title-only presentation contracts. The prepared-export
-signature separately includes Success distance-evidence and temporal-SNR render
-versions so a hot reload cannot reuse a ZIP rendered under a previous visual
-contract. The visible Performance Station Insights table uses the
+inspector model version invalidates temporal recipe schemas, while the shared
+temporal-evidence layout version fingerprints both preview PNGs and prepared
+exports so one geometry-contract change invalidates both surfaces. Existing
+PNG, Success distance-evidence and temporal-SNR render versions retain their
+more specific invalidation roles, so a hot reload cannot reuse an image or ZIP
+rendered under a previous visual contract. The visible Performance Station Insights table uses the
 direction-aware Success
 outcomes, places the counter-only visibility toggle above its left edge, and
 uses a fixed five-body-row scrolling viewport. It omits the redundant derived

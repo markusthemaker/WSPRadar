@@ -40,14 +40,17 @@ from ui.plots.opportunity_figures import (
     _format_ham_compact_count,
     _place_success_temporal_evidence_column_header,
     _represented_utc_date_hour_counts,
-    _reserve_success_temporal_colorbar_footprint,
-    _success_temporal_plot_grid,
     _success_temporal_rate_axis_max,
-    _translate_success_temporal_folded_column,
+)
+from ui.plots.temporal_layout import (
+    TEMPORAL_EVIDENCE_ROW_SPACE,
+    align_folded_evidence_axes_to_colorbar,
+    build_temporal_plot_grid,
+    draw_folded_utc_unavailable_annotation,
 )
 
 
-COMPARE_COVERAGE_RECIPE_SCHEMA_VERSION = 1
+COMPARE_COVERAGE_RECIPE_SCHEMA_VERSION = 2
 COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND = (
     "compare_temporal_evidence_coverage"
 )
@@ -566,6 +569,7 @@ def _compare_coverage_recipe(
     """
     required_label_keys = (
         "utc_dates_folded",
+        "folded_unavailable",
         "time_x",
         "utc_hour_x",
         "evidence_chronological_title",
@@ -724,7 +728,7 @@ def _compare_coverage_render_context(recipe):
         "chronological": chronological,
         "folded": dict(recipe.get("folded_profile") or {}),
         "utc_date_count": utc_date_count,
-        "folding_available": utc_date_count >= 2,
+        "folded_data_available": utc_date_count >= 2,
         "chronological_centers": chronological_center_numbers,
         "chronological_edges": chronological_edge_numbers,
         "folded_edges": np.arange(25, dtype=float),
@@ -944,13 +948,19 @@ def render_compare_temporal_coverage_export_figure(recipe):
     labels = context["labels"]
     chronological = context["chronological"]
     folded = context["folded"]
-    folding_available = context["folding_available"]
-    common_share_limit = _success_temporal_rate_axis_max(
+    folded_data_available = context["folded_data_available"]
+    share_series = [
         chronological.get("station_joint_share_pct", []),
         chronological.get("outcome_joint_share_pct", []),
-        folded.get("station_joint_share_pct", []),
-        folded.get("outcome_joint_share_pct", []),
-    )
+    ]
+    if folded_data_available:
+        share_series.extend(
+            [
+                folded.get("station_joint_share_pct", []),
+                folded.get("outcome_joint_share_pct", []),
+            ]
+        )
+    common_share_limit = _success_temporal_rate_axis_max(*share_series)
     figure = _create_success_temporal_figure(
         recipe,
         title_key="evidence_title",
@@ -958,11 +968,10 @@ def render_compare_temporal_coverage_export_figure(recipe):
         figure_bottom=COMPARE_COVERAGE_FIGURE_BOTTOM,
         footer_y=COMPARE_COVERAGE_VERSION_FOOTER_Y,
     )
-    plot_grid = _success_temporal_plot_grid(
+    plot_grid = build_temporal_plot_grid(
         figure,
         row_count=2,
-        folding_available=folding_available,
-        row_space=0.24,
+        row_space=TEMPORAL_EVIDENCE_ROW_SPACE,
     )
     chronological_station_axis = figure.add_subplot(plot_grid[0, 0])
     chronological_station_axis.set_gid(
@@ -975,18 +984,15 @@ def render_compare_temporal_coverage_export_figure(recipe):
     chronological_unit_axis.set_gid(
         "compare-temporal-unit-chronological-axis"
     )
-    folded_station_axis = None
-    folded_unit_axis = None
-    if folding_available:
-        folded_station_axis = figure.add_subplot(plot_grid[0, 1])
-        folded_station_axis.set_gid(
-            "compare-temporal-station-folded-axis"
-        )
-        folded_unit_axis = figure.add_subplot(
-            plot_grid[1, 1],
-            sharex=folded_station_axis,
-        )
-        folded_unit_axis.set_gid("compare-temporal-unit-folded-axis")
+    folded_station_axis = figure.add_subplot(plot_grid[0, 1])
+    folded_station_axis.set_gid(
+        "compare-temporal-station-folded-axis"
+    )
+    folded_unit_axis = figure.add_subplot(
+        plot_grid[1, 1],
+        sharex=folded_station_axis,
+    )
+    folded_unit_axis.set_gid("compare-temporal-unit-folded-axis")
     axes = (
         chronological_station_axis,
         chronological_unit_axis,
@@ -994,17 +1000,15 @@ def render_compare_temporal_coverage_export_figure(recipe):
         folded_unit_axis,
     )
     for axis in axes:
-        if axis is not None:
-            _style_evidence_axis(axis)
-    _reserve_success_temporal_colorbar_footprint(
+        _style_evidence_axis(axis)
+    align_folded_evidence_axes_to_colorbar(
         figure,
-        tuple(axis for axis in axes if axis is not None),
-    )
-    if folding_available:
-        _translate_success_temporal_folded_column(
+        all_axes=axes,
+        folded_axes=(
             folded_station_axis,
             folded_unit_axis,
-        )
+        ),
+    )
     _place_success_temporal_evidence_column_header(
         figure,
         chronological_station_axis,
@@ -1013,13 +1017,12 @@ def render_compare_temporal_coverage_export_figure(recipe):
         ),
         gid="compare-temporal-coverage-chronological-column-header",
     )
-    if folding_available:
-        _place_success_temporal_evidence_column_header(
-            figure,
-            folded_station_axis,
-            labels["evidence_utc_hour_title"],
-            gid="compare-temporal-coverage-folded-column-header",
-        )
+    _place_success_temporal_evidence_column_header(
+        figure,
+        folded_station_axis,
+        labels["evidence_utc_hour_title"],
+        gid="compare-temporal-coverage-folded-column-header",
+    )
 
     bar_widths = np.diff(context["chronological_edges"]) * 0.78
     _draw_compare_outcome_stack(
@@ -1077,7 +1080,7 @@ def render_compare_temporal_coverage_export_figure(recipe):
         show_labels=True,
     )
 
-    if folding_available:
+    if folded_data_available:
         _draw_compare_outcome_stack(
             folded_station_axis,
             context["folded_centers"],
@@ -1146,6 +1149,24 @@ def render_compare_temporal_coverage_export_figure(recipe):
             ha="right",
             va="bottom",
         )
+    else:
+        for axis, y_label, show_labels in (
+            (folded_station_axis, labels["station_folded_y"], False),
+            (folded_unit_axis, labels["unit_folded_y"], True),
+        ):
+            _set_metric_axis_labels(axis, y_label=y_label)
+            axis.yaxis.labelpad = 0.0
+            axis.set_ylim(0.0, 1.0)
+            axis.set_yticks([])
+            _configure_success_folded_axis(
+                axis,
+                context,
+                show_labels=show_labels,
+            )
+            draw_folded_utc_unavailable_annotation(
+                axis,
+                labels["folded_unavailable"],
+            )
     _place_compare_coverage_legend(
         figure,
         labels,
@@ -1168,11 +1189,11 @@ def render_selected_compare_coverage_export_figure(recipe):
     labels = context["labels"]
     chronological = context["chronological"]
     folded = context["folded"]
-    folding_available = context["folding_available"]
-    common_share_limit = _success_temporal_rate_axis_max(
-        chronological.get("outcome_joint_share_pct", []),
-        folded.get("outcome_joint_share_pct", []),
-    )
+    folded_data_available = context["folded_data_available"]
+    share_series = [chronological.get("outcome_joint_share_pct", [])]
+    if folded_data_available:
+        share_series.append(folded.get("outcome_joint_share_pct", []))
+    common_share_limit = _success_temporal_rate_axis_max(*share_series)
     figure = _create_success_temporal_figure(
         recipe,
         title_key="evidence_title",
@@ -1180,30 +1201,25 @@ def render_selected_compare_coverage_export_figure(recipe):
         figure_bottom=COMPARE_SELECTED_COVERAGE_FIGURE_BOTTOM,
         footer_y=COMPARE_COVERAGE_VERSION_FOOTER_Y,
     )
-    plot_grid = _success_temporal_plot_grid(
+    plot_grid = build_temporal_plot_grid(
         figure,
         row_count=1,
-        folding_available=folding_available,
         row_space=0.0,
     )
     chronological_axis = figure.add_subplot(plot_grid[0, 0])
     chronological_axis.set_gid(
         "selected-compare-coverage-chronological-axis"
     )
-    folded_axis = None
-    if folding_available:
-        folded_axis = figure.add_subplot(plot_grid[0, 1])
-        folded_axis.set_gid("selected-compare-coverage-folded-axis")
+    folded_axis = figure.add_subplot(plot_grid[0, 1])
+    folded_axis.set_gid("selected-compare-coverage-folded-axis")
     axes = (chronological_axis, folded_axis)
     for axis in axes:
-        if axis is not None:
-            _style_evidence_axis(axis)
-    _reserve_success_temporal_colorbar_footprint(
+        _style_evidence_axis(axis)
+    align_folded_evidence_axes_to_colorbar(
         figure,
-        tuple(axis for axis in axes if axis is not None),
+        all_axes=axes,
+        folded_axes=(folded_axis,),
     )
-    if folding_available:
-        _translate_success_temporal_folded_column(folded_axis)
     _place_success_temporal_evidence_column_header(
         figure,
         chronological_axis,
@@ -1213,15 +1229,14 @@ def render_selected_compare_coverage_export_figure(recipe):
         ),
         gid="selected-compare-coverage-chronological-header",
     )
-    if folding_available:
-        _place_success_temporal_evidence_column_header(
-            figure,
-            folded_axis,
-            labels["selected_utc_hour_title"].format(
-                unit=labels["selected_title_unit"],
-            ),
-            gid="selected-compare-coverage-folded-header",
-        )
+    _place_success_temporal_evidence_column_header(
+        figure,
+        folded_axis,
+        labels["selected_utc_hour_title"].format(
+            unit=labels["selected_title_unit"],
+        ),
+        gid="selected-compare-coverage-folded-header",
+    )
     bar_widths = np.diff(context["chronological_edges"]) * 0.78
     _draw_compare_outcome_stack(
         chronological_axis,
@@ -1250,7 +1265,7 @@ def render_selected_compare_coverage_export_figure(recipe):
         context,
         show_labels=True,
     )
-    if folding_available:
+    if folded_data_available:
         _draw_compare_outcome_stack(
             folded_axis,
             context["folded_centers"],
@@ -1290,6 +1305,23 @@ def render_selected_compare_coverage_export_figure(recipe):
             fontsize=8,
             ha="left",
             va="bottom",
+        )
+    else:
+        _set_metric_axis_labels(
+            folded_axis,
+            y_label=labels["selected_unit_folded_y"],
+        )
+        folded_axis.yaxis.labelpad = 0.0
+        folded_axis.set_ylim(0.0, 1.0)
+        folded_axis.set_yticks([])
+        _configure_success_folded_axis(
+            folded_axis,
+            context,
+            show_labels=True,
+        )
+        draw_folded_utc_unavailable_annotation(
+            folded_axis,
+            labels["folded_unavailable"],
         )
     _place_compare_coverage_legend(
         figure,

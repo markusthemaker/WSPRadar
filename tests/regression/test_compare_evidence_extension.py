@@ -30,9 +30,17 @@ from ui.plots.compare_evidence_figures import (
 )
 from ui.plots.evidence_figures import (
     METRIC_LEGEND_FONTSIZE,
+    SEGMENT_TEMPORAL_FIGURE_LEFT,
+    SEGMENT_TEMPORAL_FIGURE_RIGHT,
 )
 from ui.plots.opportunity_figures import (
     SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+)
+from ui.plots.temporal_layout import (
+    TEMPORAL_COLORBAR_FRACTION,
+    TEMPORAL_COLORBAR_PAD,
+    TEMPORAL_COLUMN_WIDTH_RATIOS,
+    TEMPORAL_FOLDED_COLUMN_X_SHIFT,
 )
 
 
@@ -73,6 +81,10 @@ def _compare_coverage_labels():
     """Return complete neutral labels for pure recipe and render tests."""
     return {
         "utc_dates_folded": "{count} dates",
+        "folded_unavailable": (
+            "UTC-hour pattern unavailable - requires evidence from at least "
+            "2 UTC dates."
+        ),
         "time_x": "Time",
         "utc_hour_x": "UTC hour",
         "evidence_chronological_title": "Coverage ({time_bin})",
@@ -260,6 +272,65 @@ def _assert_folded_y_labels_fit_figure(
         assert bounds.y1 <= figure.bbox.y1
 
 
+def _assert_compare_coverage_horizontal_geometry(
+    figure,
+    *,
+    axis_gid_pairs,
+):
+    """Keep the folded right edge while widening its left edge by 28 px."""
+    chronological_ratio, folded_ratio = TEMPORAL_COLUMN_WIDTH_RATIOS
+    figure_width_pixels = figure.get_figwidth() * figure.dpi
+    expected_folded_right = SEGMENT_TEMPORAL_FIGURE_LEFT + (
+        SEGMENT_TEMPORAL_FIGURE_RIGHT - SEGMENT_TEMPORAL_FIGURE_LEFT
+    ) * (1.0 - TEMPORAL_COLORBAR_PAD - TEMPORAL_COLORBAR_FRACTION) + (
+        TEMPORAL_FOLDED_COLUMN_X_SHIFT
+    )
+    for chronological_gid, folded_gid in axis_gid_pairs:
+        chronological_axis = next(
+            axis
+            for axis in figure.axes
+            if axis.get_gid() == chronological_gid
+        )
+        folded_axis = next(
+            axis
+            for axis in figure.axes
+            if axis.get_gid() == folded_gid
+        )
+        chronological_bounds = chronological_axis.get_position()
+        folded_bounds = folded_axis.get_position()
+        unexpanded_folded_width = (
+            chronological_bounds.width
+            * folded_ratio
+            / chronological_ratio
+        )
+        expansion_pixels = (
+            folded_bounds.width - unexpanded_folded_width
+        ) * figure_width_pixels
+        assert expansion_pixels == pytest.approx(28.0, abs=0.1)
+        assert folded_bounds.x1 == pytest.approx(expected_folded_right)
+
+
+def _assert_folded_coverage_is_unavailable(axis, expected_message):
+    """Require one warning and no artists that imply folded evidence."""
+    warnings = [
+        text_artist
+        for text_artist in axis.texts
+        if text_artist.get_gid() == "folded-utc-unavailable-annotation"
+    ]
+    assert len(warnings) == 1
+    normalized_expected = str(expected_message)
+    for separator in (" - ", " — ", " – "):
+        normalized_expected = normalized_expected.replace(separator, " ")
+    assert " ".join(warnings[0].get_text().split()).casefold() == (
+        " ".join(normalized_expected.split()).casefold()
+    )
+    assert warnings[0].get_bbox_patch() is not None
+    assert not axis.patches
+    assert not axis.lines
+    assert not axis.collections
+    assert axis.get_xlim() == pytest.approx((0.0, 24.0))
+
+
 def _assert_compare_coverage_note_is_in_footer(
     figure,
     *,
@@ -411,6 +482,29 @@ def _assert_compare_coverage_share_labels(
     }
     assert set(expected_legend_labels).issubset(legend_texts)
     assert expected_axis_label not in legend_texts
+
+
+def test_coverage_recipe_requires_folded_unavailable_label():
+    """Reject serialized coverage recipes without the shared warning copy."""
+    units = _canonical_compare_units(
+        [
+            ("A1AAA", "AA00", "2026-07-01T00:00Z", "joint", 1.0, True),
+        ]
+    )
+    incomplete_labels = _compare_coverage_labels()
+    incomplete_labels.pop("folded_unavailable")
+
+    with pytest.raises(ValueError, match="folded_unavailable"):
+        _compare_coverage_recipe(
+            units,
+            coverage_title="Compare Temporal Evidence Coverage",
+            selected_segment="0-1000 km",
+            analysis_start_t="2026-07-01T00:00Z",
+            analysis_end_t="2026-07-02T00:00Z",
+            time_bin_options=["1h"],
+            time_bin_default="1h",
+            figure_labels=incomplete_labels,
+        )
 
 
 def test_coverage_splits_one_station_vote_and_preserves_raw_unit_counts():
@@ -1055,7 +1149,7 @@ def test_segment_coverage_recipe_accepts_minimal_units_and_renders(language):
     ]
 
     assert recipe["kind"] == COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
-    assert recipe["schema_version"] == 1
+    assert recipe["schema_version"] == 2
     assert not any(key.startswith("snr_") for key in recipe)
     assert "reference_snr_correction_notice" not in recipe
     assert "absolute_mode" not in recipe
@@ -1066,6 +1160,9 @@ def test_segment_coverage_recipe_accepts_minimal_units_and_renders(language):
         "coverage_unavailable",
         "selected_utc_hour_subtitle",
     }.isdisjoint(recipe["labels"])
+    assert recipe["labels"]["folded_unavailable"] == (
+        _compare_coverage_labels()["folded_unavailable"]
+    )
 
     coverage_figure = render_compare_temporal_coverage_export_figure(recipe)
     try:
@@ -1149,6 +1246,19 @@ def test_segment_coverage_recipe_accepts_minimal_units_and_renders(language):
             header_gids=(
                 "compare-temporal-coverage-chronological-column-header",
                 "compare-temporal-coverage-folded-column-header",
+            ),
+        )
+        _assert_compare_coverage_horizontal_geometry(
+            coverage_figure,
+            axis_gid_pairs=(
+                (
+                    "compare-temporal-station-chronological-axis",
+                    "compare-temporal-station-folded-axis",
+                ),
+                (
+                    "compare-temporal-unit-chronological-axis",
+                    "compare-temporal-unit-folded-axis",
+                ),
             ),
         )
         _assert_compare_coverage_note_is_in_footer(
@@ -1282,9 +1392,199 @@ def test_selected_coverage_shortens_plot_area_without_resizing_canvas():
             selected_plot_top - selected_plot_bottom
             < segment_plot_top - segment_plot_bottom
         )
+        _assert_compare_coverage_horizontal_geometry(
+            segment_figure,
+            axis_gid_pairs=(
+                (
+                    "compare-temporal-station-chronological-axis",
+                    "compare-temporal-station-folded-axis",
+                ),
+                (
+                    "compare-temporal-unit-chronological-axis",
+                    "compare-temporal-unit-folded-axis",
+                ),
+            ),
+        )
+        _assert_compare_coverage_horizontal_geometry(
+            selected_figure,
+            axis_gid_pairs=(
+                (
+                    "selected-compare-coverage-chronological-axis",
+                    "selected-compare-coverage-folded-axis",
+                ),
+            ),
+        )
+        selected_chronological_bounds = selected_primary_axes[0].get_position()
+        selected_folded_bounds = selected_primary_axes[1].get_position()
+        segment_chronological_bounds = next(
+            axis
+            for axis in segment_primary_axes
+            if axis.get_gid()
+            == "compare-temporal-station-chronological-axis"
+        ).get_position()
+        segment_folded_bounds = next(
+            axis
+            for axis in segment_primary_axes
+            if axis.get_gid() == "compare-temporal-station-folded-axis"
+        ).get_position()
+        assert selected_chronological_bounds.x0 == pytest.approx(
+            segment_chronological_bounds.x0
+        )
+        assert selected_chronological_bounds.x1 == pytest.approx(
+            segment_chronological_bounds.x1
+        )
+        assert selected_folded_bounds.x0 == pytest.approx(
+            segment_folded_bounds.x0
+        )
+        assert selected_folded_bounds.x1 == pytest.approx(
+            segment_folded_bounds.x1
+        )
     finally:
         dispose_matplotlib_figure(segment_figure)
         dispose_matplotlib_figure(selected_figure)
+
+
+def test_one_date_segment_coverage_retains_empty_folded_panels_with_warnings():
+    """Retain both UTC panels without plotting unsupported one-date folds."""
+    units = _canonical_compare_units(
+        [
+            ("A1AAA", "AA00", "2026-07-01T00:00Z", "joint", 1.0, True),
+            (
+                "A1AAA",
+                "AA00",
+                "2026-07-01T01:00Z",
+                "target_only",
+                np.nan,
+                True,
+            ),
+            (
+                "B2BBB",
+                "BB00",
+                "2026-07-01T02:00Z",
+                "reference_only",
+                np.nan,
+                False,
+            ),
+        ]
+    )
+    recipe = _coverage_recipe(
+        units,
+        start="2026-07-01T00:00Z",
+        end="2026-07-03T00:00Z",
+    )
+    assert recipe["utc_date_count"] == 1
+
+    figure = render_compare_temporal_coverage_export_figure(recipe)
+    try:
+        folded_axes = [
+            next(
+                axis
+                for axis in figure.axes
+                if axis.get_gid() == axis_gid
+            )
+            for axis_gid in (
+                "compare-temporal-station-folded-axis",
+                "compare-temporal-unit-folded-axis",
+            )
+        ]
+        for folded_axis in folded_axes:
+            _assert_folded_coverage_is_unavailable(
+                folded_axis,
+                recipe["labels"]["folded_unavailable"],
+            )
+        assert not any(
+            (axis.get_gid() or "").endswith("-folded-share-axis")
+            for axis in figure.axes
+        )
+        folded_date_text = recipe["labels"]["utc_dates_folded"].format(
+            count=1
+        )
+        assert all(
+            text_artist.get_text() != folded_date_text
+            for folded_axis in folded_axes
+            for text_artist in folded_axis.texts
+        )
+        assert _figure_artist_with_gid(
+            figure,
+            "compare-temporal-coverage-folded-column-header",
+        ).get_text() == recipe["labels"]["evidence_utc_hour_title"]
+        _assert_compare_coverage_horizontal_geometry(
+            figure,
+            axis_gid_pairs=(
+                (
+                    "compare-temporal-station-chronological-axis",
+                    "compare-temporal-station-folded-axis",
+                ),
+                (
+                    "compare-temporal-unit-chronological-axis",
+                    "compare-temporal-unit-folded-axis",
+                ),
+            ),
+        )
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
+def test_one_date_selected_coverage_retains_empty_folded_panel_with_warning():
+    """Retain the selected UTC panel without plotting a one-date fold."""
+    units = _canonical_compare_units(
+        [
+            ("A1AAA", "AA00", "2026-07-01T00:00Z", "joint", 1.0, True),
+            (
+                "A1AAA",
+                "AA00",
+                "2026-07-01T01:00Z",
+                "target_only",
+                np.nan,
+                True,
+            ),
+        ]
+    )
+    recipe = _coverage_recipe(
+        units,
+        start="2026-07-01T00:00Z",
+        end="2026-07-03T00:00Z",
+        population_mode=SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+    )
+    assert recipe["utc_date_count"] == 1
+
+    figure = render_selected_compare_coverage_export_figure(recipe)
+    try:
+        folded_axis = next(
+            axis
+            for axis in figure.axes
+            if axis.get_gid() == "selected-compare-coverage-folded-axis"
+        )
+        _assert_folded_coverage_is_unavailable(
+            folded_axis,
+            recipe["labels"]["folded_unavailable"],
+        )
+        assert not any(
+            (axis.get_gid() or "").endswith("-folded-share-axis")
+            for axis in figure.axes
+        )
+        assert all(
+            text_artist.get_text()
+            != recipe["labels"]["utc_dates_folded"].format(count=1)
+            for text_artist in folded_axis.texts
+        )
+        assert _figure_artist_with_gid(
+            figure,
+            "selected-compare-coverage-folded-header",
+        ).get_text() == recipe["labels"][
+            "selected_utc_hour_title"
+        ].format(unit=recipe["labels"]["selected_title_unit"])
+        _assert_compare_coverage_horizontal_geometry(
+            figure,
+            axis_gid_pairs=(
+                (
+                    "selected-compare-coverage-chronological-axis",
+                    "selected-compare-coverage-folded-axis",
+                ),
+            ),
+        )
+    finally:
+        dispose_matplotlib_figure(figure)
 
 
 def test_retired_compare_views_have_no_scientific_or_renderer_symbols():

@@ -63,6 +63,7 @@ from ui.result_state import (
     clear_prepared_result_state,
 )
 from ui.matplotlib_renderer import dispose_matplotlib_figure
+from ui.plots.temporal_layout import TEMPORAL_EVIDENCE_LAYOUT_VERSION
 from ui.url_state import build_share_url
 
 
@@ -834,6 +835,9 @@ def _export_signature(blocks):
             ),
             "temporal_snr_export_render_version": (
                 TEMPORAL_SNR_EXPORT_RENDER_VERSION
+            ),
+            "temporal_evidence_layout_version": (
+                TEMPORAL_EVIDENCE_LAYOUT_VERSION
             ),
             "temporal_iqr_band_alpha": TEMPORAL_IQR_BAND_ALPHA,
             "analysis_id": block.get("analysis_id"),

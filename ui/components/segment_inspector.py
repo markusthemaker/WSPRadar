@@ -100,6 +100,7 @@ from ui.plots.compare_evidence_figures import (
     render_compare_temporal_coverage_export_figure,
     render_selected_compare_coverage_export_figure,
 )
+from ui.plots.temporal_layout import TEMPORAL_EVIDENCE_LAYOUT_VERSION
 from ui.result_hierarchy import (
     active_scope_text,
     drilldown_subtitle,
@@ -127,7 +128,7 @@ from ui.result_guidance import (
 )
 from ui.reference_correction import configured_snr_correction_notice
 
-INSPECTOR_CACHE_VERSION = 43
+INSPECTOR_CACHE_VERSION = 44
 INSPECTOR_PNG_RENDER_VERSION = 38
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
@@ -495,6 +496,9 @@ def _compare_coverage_figure_labels(
         ]
     return {
         "utc_dates_folded": translations["fig_segment_dates_folded"],
+        "folded_unavailable": translations[
+            "fig_compare_coverage_folded_unavailable"
+        ],
         "time_x": translations["fig_segment_chronological_x"],
         "utc_hour_x": translations["fig_segment_utc_hour_x"],
         "evidence_chronological_title": translations[
@@ -1010,6 +1014,7 @@ def _render_cached_recipe(
     png_key = (
         INSPECTOR_CACHE_VERSION,
         INSPECTOR_PNG_RENDER_VERSION,
+        TEMPORAL_EVIDENCE_LAYOUT_VERSION,
         TEMPORAL_IQR_BAND_ALPHA,
         render_mode,
         subject,
@@ -1719,14 +1724,6 @@ def _render_selected_station_evidence(
                 bin_iqr_label=t["fig_temporal_bin_iqr"],
                 time_bin_options=time_agg_options,
             )
-            if base_recipe["utc_date_count"] < 2:
-                insufficient_date_label = t[
-                    "fig_segment_dates_insufficient"
-                ].format(count=base_recipe["utc_date_count"])
-                base_recipe[
-                    "folded_date_annotation"
-                ] = insufficient_date_label
-
         selected_coverage_recipe = None
         if not comparison_units.empty:
             selected_identity = identity_meta.iloc[0]
@@ -3528,16 +3525,6 @@ def _render_segment_inspector_body(
                                     time_bin_options=temporal_time_options,
                                 )
                             )
-                        if temporal_base_recipe["utc_date_count"] < 2:
-                            insufficient_date_label = t[
-                                "fig_segment_dates_insufficient"
-                            ].format(
-                                count=temporal_base_recipe["utc_date_count"]
-                            )
-                            temporal_base_recipe[
-                                "folded_date_annotation"
-                            ] = insufficient_date_label
-
                     segment_temporal_bundle = {
                         "base_recipe": temporal_base_recipe,
                         "coverage_recipe": compare_coverage_recipe,

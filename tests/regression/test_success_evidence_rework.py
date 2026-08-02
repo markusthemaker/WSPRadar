@@ -3288,17 +3288,60 @@ def test_success_temporal_count_axes_scale_independently_for_six_hour_bins():
             dispose_matplotlib_figure(figure)
 
 
-def test_success_temporal_export_uses_full_width_chronology_for_one_date():
-    """Both one-date figures expand chronology and omit folded UTC panels."""
-    rows = _temporal_evidence_rows()
-    rows = rows[
-        rows["time_slot"] < _time_slot("2026-07-11T00:00:00Z")
-    ].copy()
-    recipe = _temporal_recipe_for_test(
-        rows=rows,
-        end_t="2026-07-11T00:00:00Z",
-    )
+@pytest.mark.parametrize("analysis_id", ("RX_ABS", "TX_ABS"))
+@pytest.mark.parametrize(
+    "population_mode",
+    (
+        SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
+        SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+    ),
+)
+def test_success_temporal_export_retains_folded_warnings_for_one_date(
+    analysis_id,
+    population_mode,
+):
+    """Retain every folded subplot but draw no folded data from one UTC date."""
+    if population_mode == SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION:
+        rows = _selected_actual_snr_evidence_rows()
+        rows = rows[
+            rows["time_slot"] < _time_slot("2026-07-11T00:00:00Z")
+        ].copy()
+        recipe = _selected_actual_snr_recipe_for_test(
+            rows=rows,
+            analysis_id=analysis_id,
+        )
+    else:
+        rows = _temporal_evidence_rows()
+        rows = rows[
+            rows["time_slot"] < _time_slot("2026-07-11T00:00:00Z")
+        ].copy()
+        recipe = _temporal_recipe_for_test(
+            analysis_id=analysis_id,
+            rows=rows,
+            end_t="2026-07-11T00:00:00Z",
+        )
     recipe["time_bin"] = "1h"
+    chronological_profile = recipe["chronological_profiles"]["1h"]
+    chronological_profile["station_balanced_rate_pct"] = np.full(
+        len(chronological_profile["station_balanced_rate_pct"]),
+        1.0,
+    )
+    chronological_profile["observation_level_rate_pct"] = np.full(
+        len(chronological_profile["observation_level_rate_pct"]),
+        2.0,
+    )
+    recipe["folded_profile"]["station_balanced_rate_pct"] = np.full(
+        24,
+        100.0,
+    )
+    recipe["folded_profile"]["observation_level_rate_pct"] = np.full(
+        24,
+        100.0,
+    )
+    expected_chronological_rate_limit = _success_temporal_rate_axis_max(
+        chronological_profile["station_balanced_rate_pct"],
+        chronological_profile["observation_level_rate_pct"],
+    )
 
     snr_figure = render_segment_temporal_snr_export_figure(recipe)
     evidence_figure = render_segment_temporal_evidence_export_figure(recipe)
@@ -3312,6 +3355,14 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
             snr_figure,
             "success-temporal-snr-chronological-axis",
         )
+        folded_snr = _axis_by_gid(
+            snr_figure,
+            "success-temporal-snr-folded-axis",
+        )
+        snr_colorbar = _axis_by_gid(
+            snr_figure,
+            "success-temporal-snr-colorbar-axis",
+        )
         chronological_station = _axis_by_gid(
             evidence_figure,
             "success-temporal-station-chronological-axis",
@@ -3319,6 +3370,14 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
         chronological_opportunity = _axis_by_gid(
             evidence_figure,
             "success-temporal-opportunity-chronological-axis",
+        )
+        folded_station = _axis_by_gid(
+            evidence_figure,
+            "success-temporal-station-folded-axis",
+        )
+        folded_opportunity = _axis_by_gid(
+            evidence_figure,
+            "success-temporal-opportunity-folded-axis",
         )
         station_rate_axis = _axis_by_gid(
             evidence_figure,
@@ -3332,19 +3391,23 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
             evidence_figure,
             "success-temporal-evidence-chronological-column-header",
         )
+        folded_header = _figure_text_by_gid(
+            evidence_figure,
+            "success-temporal-evidence-folded-column-header",
+        )
 
         assert recipe["utc_date_count"] == 1
-        assert chronological_snr.get_position().width > 0.80
-        assert chronological_station.get_position().width > 0.80
-        assert chronological_opportunity.get_position().width > 0.80
-        assert len(snr_figure.axes) == 2
-        assert len(evidence_figure.axes) == 4
+        assert len(snr_figure.axes) == 3
+        assert len(evidence_figure.axes) == 6
         assert chronological_snr.get_title() == labels[
             "snr_chronological_title"
         ]
+        assert folded_snr.get_title() == labels["snr_utc_hour_title"]
         for axis in (
             chronological_station,
             chronological_opportunity,
+            folded_station,
+            folded_opportunity,
         ):
             assert axis.get_title() == ""
             assert not any(
@@ -3353,11 +3416,15 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
             )
         assert not any(
             text.get_gid() == "success-temporal-panel-subtitle"
-            for text in chronological_snr.texts
+            for axis in (chronological_snr, folded_snr)
+            for text in axis.texts
         )
         assert chronological_header.get_text() == labels[
             "evidence_chronological_title"
         ].format(time_bin="1 h")
+        assert folded_header.get_text() == labels[
+            "evidence_utc_hour_title"
+        ]
         assert chronological_header.get_position()[0] == pytest.approx(
             (
                 chronological_station.get_position().x0
@@ -3365,10 +3432,12 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
             )
             / 2.0
         )
-        assert not any(
-            text.get_gid()
-            == "success-temporal-evidence-folded-column-header"
-            for text in evidence_figure.texts
+        assert folded_header.get_position()[0] == pytest.approx(
+            (
+                folded_station.get_position().x0
+                + folded_station.get_position().x1
+            )
+            / 2.0
         )
         for count_axis, rate_axis in (
             (chronological_station, station_rate_axis),
@@ -3376,6 +3445,9 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
         ):
             assert rate_axis.get_ylabel() == labels["rate_y"]
             assert rate_axis.get_ylim()[0] == pytest.approx(0.0)
+            assert rate_axis.get_ylim()[1] == pytest.approx(
+                expected_chronological_rate_limit
+            )
             assert len(rate_axis.lines) == 1
             assert rate_axis.get_position().bounds == pytest.approx(
                 count_axis.get_position().bounds
@@ -3386,23 +3458,80 @@ def test_success_temporal_export_uses_full_width_chronology_for_one_date():
             assert count_axis.get_position().x1 == pytest.approx(
                 chronological_snr.get_position().x1
             )
-        assert any(
-            text.get_text() == labels["temporal_unavailable"]
-            for text in chronological_snr.texts
+        for folded_axis in (
+            folded_snr,
+            folded_station,
+            folded_opportunity,
+        ):
+            warnings = [
+                text
+                for text in folded_axis.texts
+                if text.get_gid() == "folded-utc-unavailable-annotation"
+            ]
+            assert len(warnings) == 1
+            displayed_warning = warnings[0].get_text().replace("—", " ")
+            expected_warning = labels["temporal_unavailable"].replace(
+                "—",
+                " ",
+            )
+            assert " ".join(displayed_warning.split()).casefold() == " ".join(
+                expected_warning.split()
+            ).casefold()
+            assert not folded_axis.lines
+            assert not folded_axis.collections
+            assert not folded_axis.patches
+            assert folded_axis.get_xlim() == pytest.approx((0.0, 24.0))
+            assert folded_axis.get_xticks() == pytest.approx(
+                np.arange(0.5, 24.0, 3.0)
+            )
+        for chronological_axis in (
+            chronological_snr,
+            chronological_station,
+            chronological_opportunity,
+        ):
+            assert not any(
+                text.get_gid() == "folded-utc-unavailable-annotation"
+                for text in chronological_axis.texts
+            )
+        assert folded_station.get_ylabel() == labels[
+            "station_support_folded_y"
+        ]
+        assert folded_opportunity.get_ylabel() == labels[
+            "opportunity_folded_y"
+        ]
+        for folded_evidence_axis in (
+            folded_station,
+            folded_opportunity,
+        ):
+            assert folded_evidence_axis.get_ylim() == pytest.approx(
+                (0.0, 1.0)
+            )
+            assert len(folded_evidence_axis.get_yticks()) == 0
+        assert folded_snr.get_xlabel() == labels["utc_hour_x"]
+        assert folded_opportunity.get_xlabel() == labels["utc_hour_x"]
+        assert folded_station.get_position().x0 == pytest.approx(
+            folded_opportunity.get_position().x0
         )
-        assert not any(
-            axis.get_gid() == "success-temporal-snr-folded-axis"
-            for axis in snr_figure.axes
+        assert folded_station.get_position().x1 == pytest.approx(
+            folded_opportunity.get_position().x1
+        )
+        assert folded_station.get_position().x1 == pytest.approx(
+            snr_colorbar.get_position().x1,
+            abs=1e-4,
         )
         assert not any(
             axis.get_gid()
             in {
-                "success-temporal-station-folded-axis",
-                "success-temporal-opportunity-folded-axis",
                 "success-temporal-station-balanced-folded-rate-axis",
                 "success-temporal-observation-level-folded-rate-axis",
             }
             for axis in evidence_figure.axes
+        )
+        folded_date_annotation = labels["utc_dates_folded"].format(count=1)
+        assert not any(
+            text.get_text() == folded_date_annotation
+            for axis in (folded_snr, folded_station, folded_opportunity)
+            for text in axis.texts
         )
     finally:
         if snr_figure is not None:

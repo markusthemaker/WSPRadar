@@ -938,18 +938,12 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
             False,
             {
                 "station_vote_y": "TX Stations",
-                "station_folded_y": (
-                    "Avg. TX Stations\n/ Represented\nUTC Date"
-                ),
+                "station_folded_y": "Avg. TX Stations",
                 "unit_y": "Transmitter-Cycles",
-                "unit_folded_y": (
-                    "Avg. Transmitter-\nCycles / Represented\nUTC Date"
-                ),
+                "unit_folded_y": "Avg. Transmitter-Cycles",
                 "selected_title_unit": "Retained WSPR Cycles",
                 "selected_unit_y": "WSPR Cycles",
-                "selected_unit_folded_y": (
-                    "Avg. WSPR Cycles\n/ Represented UTC Date"
-                ),
+                "selected_unit_folded_y": "Avg. WSPR Cycles",
                 "selected_chronological_title": (
                     "Retained WSPR Cycles over Time (6 h bins)"
                 ),
@@ -965,18 +959,12 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
             False,
             {
                 "station_vote_y": "RX Stations",
-                "station_folded_y": (
-                    "Avg. RX Stations\n/ Represented\nUTC Date"
-                ),
+                "station_folded_y": "Avg. RX Stations",
                 "unit_y": "Receiver-Cycles",
-                "unit_folded_y": (
-                    "Avg. Receiver-Cycles\n/ Represented\nUTC Date"
-                ),
+                "unit_folded_y": "Avg. Receiver-Cycles",
                 "selected_title_unit": "Retained WSPR Cycles",
                 "selected_unit_y": "WSPR Cycles",
-                "selected_unit_folded_y": (
-                    "Avg. WSPR Cycles\n/ Represented UTC Date"
-                ),
+                "selected_unit_folded_y": "Avg. WSPR Cycles",
                 "selected_chronological_title": (
                     "Retained WSPR Cycles over Time (6 h bins)"
                 ),
@@ -992,18 +980,12 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
             True,
             {
                 "station_vote_y": "RX Stations",
-                "station_folded_y": (
-                    "Avg. RX Stations\n/ Represented\nUTC Date"
-                ),
+                "station_folded_y": "Avg. RX Stations",
                 "unit_y": "Scheduled A/B Pairs",
-                "unit_folded_y": (
-                    "Avg. Scheduled A/B\nPairs / Represented\nUTC Date"
-                ),
+                "unit_folded_y": "Avg. Scheduled A/B Pairs",
                 "selected_title_unit": "Scheduled A/B Pairs",
                 "selected_unit_y": "Scheduled A/B Pairs",
-                "selected_unit_folded_y": (
-                    "Avg. Scheduled A/B\nPairs / Represented\nUTC Date"
-                ),
+                "selected_unit_folded_y": "Avg. Scheduled A/B Pairs",
                 "selected_chronological_title": (
                     "Scheduled A/B Pairs over Time (6 h bins)"
                 ),
@@ -1019,18 +1001,12 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
             False,
             {
                 "station_vote_y": "TX-Stationen",
-                "station_folded_y": (
-                    "Ø TX-Stationen je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "station_folded_y": "Ø TX-Stationen",
                 "unit_y": "Senderzyklen",
-                "unit_folded_y": (
-                    "Ø Senderzyklen je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "unit_folded_y": "Ø Senderzyklen",
                 "selected_title_unit": "Berücksichtigte WSPR-Zyklen",
                 "selected_unit_y": "WSPR-Zyklen",
-                "selected_unit_folded_y": (
-                    "Ø WSPR-Zyklen je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "selected_unit_folded_y": "Ø WSPR-Zyklen",
                 "selected_chronological_title": (
                     "Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)"
                 ),
@@ -1047,18 +1023,12 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
             False,
             {
                 "station_vote_y": "RX-Stationen",
-                "station_folded_y": (
-                    "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "station_folded_y": "Ø RX-Stationen",
                 "unit_y": "Empfängerzyklen",
-                "unit_folded_y": (
-                    "Ø Empfängerzyklen je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "unit_folded_y": "Ø Empfängerzyklen",
                 "selected_title_unit": "Berücksichtigte WSPR-Zyklen",
                 "selected_unit_y": "WSPR-Zyklen",
-                "selected_unit_folded_y": (
-                    "Ø WSPR-Zyklen je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "selected_unit_folded_y": "Ø WSPR-Zyklen",
                 "selected_chronological_title": (
                     "Berücksichtigte WSPR-Zyklen im Zeitverlauf (6 h-Bins)"
                 ),
@@ -1075,18 +1045,12 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
             True,
             {
                 "station_vote_y": "RX-Stationen",
-                "station_folded_y": (
-                    "Ø RX-Stationen je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "station_folded_y": "Ø RX-Stationen",
                 "unit_y": "Geplante A/B-Paare",
-                "unit_folded_y": (
-                    "Ø geplante A/B-Paare je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "unit_folded_y": "Ø geplante A/B-Paare",
                 "selected_title_unit": "Geplante A/B-Paare",
                 "selected_unit_y": "Geplante A/B-Paare",
-                "selected_unit_folded_y": (
-                    "Ø geplante A/B-Paare je\nberücksichtigtem\nUTC-Tag"
-                ),
+                "selected_unit_folded_y": "Ø geplante A/B-Paare",
                 "selected_chronological_title": (
                     "Geplante A/B-Paare im Zeitverlauf (6 h-Bins)"
                 ),
@@ -1118,6 +1082,9 @@ def test_compare_coverage_labels_route_all_compare_design_families(
 
     assert labels["target_only"] == target_label
     assert labels["reference_only"] == reference_label
+    assert labels["folded_unavailable"] == T[language][
+        "fig_compare_coverage_folded_unavailable"
+    ]
     routed_labels = {
         key: labels[key]
         for key in (
@@ -2414,6 +2381,49 @@ def test_cached_recipe_builds_and_disposes_figure_only_once(monkeypatch):
     cache = session_state[segment_inspector.INSPECTOR_CACHE_STATE_KEY]
     assert cache.run_id == 42
     assert cache.entry_count == 1
+
+
+def test_cached_recipe_key_tracks_shared_temporal_layout_version(monkeypatch):
+    """Invalidate preview PNGs when the shared temporal layout changes."""
+    captured_keys = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "get_matplotlib_render_mode",
+        lambda: "image",
+    )
+
+    def capture_cache_key(_run_id, _namespace, cache_key, *_args, **_kwargs):
+        captured_keys.append(cache_key)
+        return None, False
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_get",
+        capture_cache_key,
+    )
+    kwargs = {
+        "run_id": 42,
+        "cache_key": ("RX_COMP", "all"),
+        "subject": "temporal evidence",
+        "build_label": "temporal evidence figure build",
+        "render_figure": lambda _recipe: None,
+    }
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "TEMPORAL_EVIDENCE_LAYOUT_VERSION",
+        1,
+    )
+    assert segment_inspector._render_cached_recipe({}, **kwargs) is None
+    monkeypatch.setattr(
+        segment_inspector,
+        "TEMPORAL_EVIDENCE_LAYOUT_VERSION",
+        2,
+    )
+    assert segment_inspector._render_cached_recipe({}, **kwargs) is None
+
+    assert len(captured_keys) == 2
+    assert captured_keys[0] != captured_keys[1]
 
 
 def test_new_run_replaces_the_session_cache(monkeypatch):

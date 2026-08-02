@@ -3,7 +3,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from math import prod
-import textwrap
 import zlib
 
 import numpy as np
@@ -18,6 +17,13 @@ from core.evidence_statistics import (
     _format_metric_signed,
     _metric_histogram_bins,
     _metric_values,
+)
+from ui.plots.temporal_layout import (
+    TEMPORAL_COLORBAR_FRACTION as SEGMENT_TEMPORAL_COLORBAR_FRACTION,
+    TEMPORAL_COLORBAR_PAD as SEGMENT_TEMPORAL_COLORBAR_PAD,
+    TEMPORAL_COLUMN_SPACE as SEGMENT_TEMPORAL_COLUMN_SPACE,
+    build_temporal_plot_grid,
+    draw_folded_utc_unavailable_annotation,
 )
 
 EVIDENCE_AGG_COLOR = "#36aaf9"
@@ -34,10 +40,6 @@ SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES = (
 SEGMENT_TEMPORAL_FIGURE_LEFT = 0.07
 SEGMENT_TEMPORAL_FIGURE_RIGHT = 0.95
 SEGMENT_TEMPORAL_FIGURE_TOP = 0.82
-SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS = (1.95, 1.0)
-SEGMENT_TEMPORAL_COLUMN_SPACE = 0.20
-SEGMENT_TEMPORAL_COLORBAR_PAD = 0.012
-SEGMENT_TEMPORAL_COLORBAR_FRACTION = 0.03
 EVIDENCE_TIME_AGG_PRESETS = [
     (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
     (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
@@ -53,8 +55,6 @@ EVIDENCE_DENSITY_MIN = 0.0
 EVIDENCE_DENSITY_MAX = 100.0
 TEMPORAL_MEDIAN_LINK_MIN_COUNT = 3
 TEMPORAL_IQR_MIN_COUNT = 5
-FOLDED_UTC_UNAVAILABLE_WRAP_WIDTH = 34
-FOLDED_UTC_UNAVAILABLE_DETAIL_WRAP_WIDTH = 30
 GRID_COLOR = "#777777"
 GRID_LINEWIDTH = 1.0
 GRID_ALPHA = 0.35
@@ -83,7 +83,7 @@ COMPARE_MEDIAN_FOCUS_BROAD_LABELS_DB = (0.0, 3.0, 6.0, 10.0, 20.0, 30.0)
 COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES = 256 * 1024
 COMPARE_RECIPE_ARRAY_ENCODING = "numpy-zlib-v1"
 COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION = 2
-COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 3
+COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 4
 
 
 def _encode_compare_recipe_array(values, *, dtype):
@@ -1255,53 +1255,6 @@ def _build_compare_temporal_profile_recipes(
     }
 
 
-def _draw_folded_utc_unavailable_annotation(axis, message):
-    """Draw an opaque, compact notice when a UTC-hour fold is unsupported."""
-    normalized_message = " ".join(str(message).split())
-    if " - " in normalized_message:
-        headline, detail = normalized_message.split(" - ", maxsplit=1)
-        detail = detail[:1].upper() + detail[1:]
-        wrapped_lines = [headline]
-        wrapped_lines.extend(
-            textwrap.wrap(
-                detail,
-                width=FOLDED_UTC_UNAVAILABLE_DETAIL_WRAP_WIDTH,
-                break_long_words=False,
-                break_on_hyphens=False,
-            )
-        )
-    else:
-        wrapped_lines = textwrap.wrap(
-            normalized_message,
-            width=FOLDED_UTC_UNAVAILABLE_WRAP_WIDTH,
-            break_long_words=False,
-            break_on_hyphens=False,
-        )
-    annotation = axis.text(
-        0.5,
-        0.5,
-        "\n".join(wrapped_lines),
-        transform=axis.transAxes,
-        color="white",
-        ha="center",
-        va="center",
-        fontsize=9,
-        fontfamily=METRIC_FONT_FAMILY,
-        fontweight="normal",
-        linespacing=1.3,
-        bbox={
-            "boxstyle": "round,pad=0.55",
-            "facecolor": "black",
-            "edgecolor": "#555555",
-            "linewidth": 0.8,
-            "alpha": 1.0,
-        },
-        zorder=METRIC_FOREGROUND_ZORDER,
-    )
-    annotation.set_gid("folded-utc-unavailable-annotation")
-    return annotation
-
-
 def _segment_temporal_evidence_export_recipe(
     plot_df,
     title,
@@ -1322,7 +1275,6 @@ def _segment_temporal_evidence_export_recipe(
     bin_iqr_label,
     chronological_subtitle=None,
     folded_subtitle=None,
-    omit_folded_when_unavailable=False,
     show_folded_date_annotation=False,
     kind="segment_compare_temporal",
     reference_snr_correction_notice="",
@@ -1412,9 +1364,6 @@ def _segment_temporal_evidence_export_recipe(
         "folded_date_annotation": str(folded_date_annotation),
         "density_label": str(density_label),
         "folded_unavailable_text": str(folded_unavailable_text),
-        "omit_folded_when_unavailable": bool(
-            omit_folded_when_unavailable
-        ),
         "show_folded_date_annotation": bool(
             show_folded_date_annotation
         ),
@@ -1547,10 +1496,6 @@ def render_segment_temporal_evidence_export_figure(recipe):
         metric_focus_values,
     )
     should_draw_iqr = _recipe_uses_authoritative_temporal_iqr(recipe)
-    show_folded_axis = (
-        is_folded_available
-        or not bool(recipe.get("omit_folded_when_unavailable", False))
-    )
 
     correction_notice = recipe.get("reference_snr_correction_notice", "")
     figure_height_inches = _figure_height_for_reference_correction(
@@ -1579,22 +1524,20 @@ def render_segment_temporal_evidence_export_figure(recipe):
         ),
         wspace=SEGMENT_TEMPORAL_COLUMN_SPACE,
     )
-    grid_spec_kwargs = {"nrows": 1, "ncols": 2 if show_folded_axis else 1}
-    if show_folded_axis:
-        grid_spec_kwargs["width_ratios"] = SEGMENT_TEMPORAL_COLUMN_WIDTH_RATIOS
-    grid_spec = figure.add_gridspec(**grid_spec_kwargs)
+    grid_spec = build_temporal_plot_grid(
+        figure,
+        row_count=1,
+        row_space=0.0,
+    )
     chronological_axis = figure.add_subplot(grid_spec[0, 0])
     chronological_axis.set_gid("compare-temporal-chronological-axis")
-    folded_axis = None
-    if show_folded_axis:
-        folded_axis = figure.add_subplot(
-            grid_spec[0, 1],
-            sharey=chronological_axis,
-        )
-        folded_axis.set_gid("compare-temporal-folded-axis")
+    folded_axis = figure.add_subplot(
+        grid_spec[0, 1],
+        sharey=chronological_axis,
+    )
+    folded_axis.set_gid("compare-temporal-folded-axis")
     for axis in (chronological_axis, folded_axis):
-        if axis is not None:
-            _style_evidence_axis(axis)
+        _style_evidence_axis(axis)
 
     density_norm = mpl.colors.Normalize(
         vmin=EVIDENCE_DENSITY_MIN,
@@ -1623,7 +1566,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
             label=recipe["bin_iqr_label"],
         )
     folded_mesh = None
-    if is_folded_available and folded_axis is not None:
+    if is_folded_available:
         folded_mesh = _draw_relative_density_mesh(
             folded_axis,
             folded_edges,
@@ -1646,27 +1589,10 @@ def render_segment_temporal_evidence_export_figure(recipe):
                 folded_medians["count"],
                 label=recipe["bin_iqr_label"],
             )
-    elif folded_axis is not None:
-        _draw_folded_utc_unavailable_annotation(
+    else:
+        draw_folded_utc_unavailable_annotation(
             folded_axis,
             recipe["folded_unavailable_text"],
-        )
-    else:
-        chronological_axis.text(
-            0.98,
-            0.05,
-            recipe["folded_unavailable_text"],
-            transform=chronological_axis.transAxes,
-            color="#cccccc",
-            fontsize=METRIC_TICK_LABEL_FONTSIZE,
-            ha="right",
-            va="bottom",
-            bbox={
-                "facecolor": "none",
-                "edgecolor": "#444444",
-                "alpha": 1.0,
-                "pad": 4,
-            },
         )
 
     date_locator = mdates.AutoDateLocator(minticks=4, maxticks=8)
@@ -1691,55 +1617,51 @@ def render_segment_temporal_evidence_export_figure(recipe):
         y_label=recipe["metric_axis_label"],
     )
 
-    if folded_axis is not None:
-        folded_axis.set_xlim(0.0, 24.0)
-        folded_axis.set_xticks(np.arange(0.5, 24.0, 3.0))
-        folded_axis.set_xticklabels(
-            [f"{hour:02d}" for hour in range(0, 24, 3)]
-        )
-        if recipe.get("folded_subtitle") is None:
-            _set_temporal_panel_title(
-                folded_axis,
-                recipe["folded_title"],
-            )
-        else:
-            _set_temporal_panel_title_with_subtitle(
-                folded_axis,
-                recipe["folded_title"],
-                recipe["folded_subtitle"],
-                subtitle_gid="compare-temporal-folded-subtitle",
-            )
-        _set_metric_axis_labels(
+    folded_axis.set_xlim(0.0, 24.0)
+    folded_axis.set_xticks(np.arange(0.5, 24.0, 3.0))
+    folded_axis.set_xticklabels(
+        [f"{hour:02d}" for hour in range(0, 24, 3)]
+    )
+    if recipe.get("folded_subtitle") is None:
+        _set_temporal_panel_title(
             folded_axis,
-            x_label=recipe["folded_x_label"],
+            recipe["folded_title"],
         )
-        if (
-            is_folded_available
-            and recipe.get("show_folded_date_annotation", False)
-        ):
-            folded_axis.text(
-                0.02,
-                0.04,
-                recipe["folded_date_annotation"],
-                transform=folded_axis.transAxes,
-                color="#cccccc",
-                fontsize=8,
-                ha="left",
-                va="bottom",
-            )
+    else:
+        _set_temporal_panel_title_with_subtitle(
+            folded_axis,
+            recipe["folded_title"],
+            recipe["folded_subtitle"],
+            subtitle_gid="compare-temporal-folded-subtitle",
+        )
+    _set_metric_axis_labels(
+        folded_axis,
+        x_label=recipe["folded_x_label"],
+    )
+    if (
+        is_folded_available
+        and recipe.get("show_folded_date_annotation", False)
+    ):
+        folded_axis.text(
+            0.02,
+            0.04,
+            recipe["folded_date_annotation"],
+            transform=folded_axis.transAxes,
+            color="#cccccc",
+            fontsize=8,
+            ha="left",
+            va="bottom",
+        )
     for axis in (chronological_axis, folded_axis):
-        if axis is not None:
-            _apply_compare_median_focus_axis(
-                axis,
-                median_focus_spec,
-                axis_label=recipe["median_focus_axis_label"],
-                median_label=recipe["median_label"],
-            )
+        _apply_compare_median_focus_axis(
+            axis,
+            median_focus_spec,
+            axis_label=recipe["median_focus_axis_label"],
+            median_label=recipe["median_label"],
+        )
 
     colorbar_mesh = folded_mesh if folded_mesh is not None else chronological_mesh
-    colorbar_axes = [chronological_axis]
-    if folded_axis is not None:
-        colorbar_axes.append(folded_axis)
+    colorbar_axes = [chronological_axis, folded_axis]
     colorbar = figure.colorbar(
         colorbar_mesh,
         ax=colorbar_axes,
@@ -1827,7 +1749,6 @@ def _selected_evidence_export_recipe(
         median_label=median_label,
         bin_median_label=bin_median_label,
         bin_iqr_label=bin_iqr_label,
-        omit_folded_when_unavailable=True,
         show_folded_date_annotation=True,
         kind="selected_compare_temporal",
         reference_snr_correction_notice=reference_snr_correction_notice,
