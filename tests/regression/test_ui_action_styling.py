@@ -7,6 +7,20 @@ from ui import css as ui_css
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_top_row_places_configuration_actions_before_view_and_language():
+    """Keep setup actions first and presentation selectors last."""
+    app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
+
+    assert (
+        "col_b1, col_b2, col_b3, col_view, col_lang = st.columns("
+        in app_source
+    )
+    assert (
+        'f"input_view_selector_{st.session_state.input_view}"'
+        in app_source
+    )
+
+
 def test_classic_action_pairs_remove_control_specific_vertical_offsets(
     monkeypatch,
 ):
@@ -330,10 +344,12 @@ def test_selectboxes_support_legacy_and_current_streamlit_dom_contracts(
         "border: 1px solid rgba(57, 255, 20, 0.35) !important"
         in control_rule
     )
+    assert "font-family: 'Space Mono', monospace !important" in control_rule
     assert "min-height: 40px !important" in control_rule
 
     current_value = (
-        'div[data-testid="stSelectbox"] input[role="combobox"]'
+        'div[data-testid="stSelectbox"] '
+        'div[role="group"] > input[role="combobox"]'
     )
     value_start = stylesheet.index(current_value)
     value_rule_open = stylesheet.index("{", value_start)
@@ -343,6 +359,10 @@ def test_selectboxes_support_legacy_and_current_streamlit_dom_contracts(
     assert "font-size: 0.85rem !important" in value_rule
     assert "text-align: center !important" in value_rule
     assert "padding-left: 2.5rem !important" in value_rule
+    assert (
+        'div[data-testid="stSelectbox"] input[role="combobox"] {'
+        not in stylesheet
+    )
 
     current_arrow = (
         'div[data-testid="stSelectbox"] '
@@ -363,6 +383,11 @@ def test_selectboxes_support_legacy_and_current_streamlit_dom_contracts(
         'div[data-testid="stSelectboxVirtualDropdown"] [role="option"]'
         in stylesheet
     )
+    assert ".st-key-input_view_selector_guided .st-key-input_view" in stylesheet
+    assert ".st-key-input_view_selector_classic .st-key-input_view" in stylesheet
+    assert 'content: "route"' in stylesheet
+    assert 'content: "tune"' in stylesheet
+    assert "transform: translateY(0.08rem)" in stylesheet
     assert (
         'div[data-testid="stSelectbox"] '
         'div[role="group"]:has(> input[role="combobox"]:disabled)'

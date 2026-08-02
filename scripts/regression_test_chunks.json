@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "chunk_count": 5,
+  "chunks": [
+    {
+      "id": 1,
+      "tests": [
+        "tests/regression/test_analysis_submission_state.py",
+        "tests/regression/test_benchmark_mode_defaults.py",
+        "tests/regression/test_documentation_state.py",
+        "tests/regression/test_evidence_statistics.py",
+        "tests/regression/test_json_config_schemas.py",
+        "tests/regression/test_map_data_artifacts.py",
+        "tests/regression/test_opportunity_engine.py",
+        "tests/regression/test_regression_runner.py",
+        "tests/regression/test_success_evidence_rework.py",
+        "tests/regression/test_success_input_terminology.py",
+        "tests/regression/test_test_workspace.py",
+        "tests/regression/test_tx_ab_schedule.py",
+        "tests/regression/test_url_browser_components.py"
+      ]
+    },
+    {
+      "id": 2,
+      "tests": [
+        "tests/regression/test_compare_evidence_extension.py",
+        "tests/regression/test_config_metadata_panel.py",
+        "tests/regression/test_config_migration.py",
+        "tests/regression/test_decode_filter_fallback.py",
+        "tests/regression/test_guided_input_flow.py",
+        "tests/regression/test_inspector_session_cache.py",
+        "tests/regression/test_lightweight_input_helpers.py",
+        "tests/regression/test_page_navigation.py",
+        "tests/regression/test_provider_dispatch.py",
+        "tests/regression/test_public_entrypoint.py",
+        "tests/regression/test_timed_ab_relay_switch.py"
+      ]
+    },
+    {
+      "id": 3,
+      "tests": [
+        "tests/regression/test_absolute_time_window.py",
+        "tests/regression/test_analysis_admission.py",
+        "tests/regression/test_analysis_runner_contracts.py",
+        "tests/regression/test_data_engine_cache_cleanup.py",
+        "tests/regression/test_documentation_pdf.py",
+        "tests/regression/test_documentation_rendering.py",
+        "tests/regression/test_documentation_scroll_trigger.py",
+        "tests/regression/test_export_admission.py",
+        "tests/regression/test_map_figure_lifecycle.py",
+        "tests/regression/test_run_controller_data_source.py",
+        "tests/regression/test_tx_ab_inspector_pairing.py",
+        "tests/regression/test_url_state.py"
+      ]
+    },
+    {
+      "id": 4,
+      "tests": [
+        "tests/regression/test_analysis_request_dedup.py",
+        "tests/regression/test_artifact_store.py",
+        "tests/regression/test_compare_engine.py",
+        "tests/regression/test_config_save.py",
+        "tests/regression/test_demo_fixtures.py",
+        "tests/regression/test_geographic_scope.py",
+        "tests/regression/test_guided_input_integration.py",
+        "tests/regression/test_result_hierarchy.py",
+        "tests/regression/test_results_export_package.py",
+        "tests/regression/test_runtime_package_watching.py",
+        "tests/regression/test_success_map_status_redesign.py"
+      ]
+    },
+    {
+      "id": 5,
+      "tests": [
+        "tests/regression/test_config_package.py",
+        "tests/regression/test_core_ui_boundaries.py",
+        "tests/regression/test_data_engine_limits.py",
+        "tests/regression/test_idle_import_boundary.py",
+        "tests/regression/test_json_utils.py",
+        "tests/regression/test_performance_profiling.py",
+        "tests/regression/test_performance_terminology_migration.py",
+        "tests/regression/test_result_guidance.py",
+        "tests/regression/test_result_state.py",
+        "tests/regression/test_run_data_preparation.py",
+        "tests/regression/test_segment_temporal_evidence.py",
+        "tests/regression/test_selected_station_evidence_figure.py",
+        "tests/regression/test_ui_action_styling.py"
+      ]
+    }
+  ]
+}

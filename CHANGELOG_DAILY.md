@@ -22,6 +22,43 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
   eliminates the per-row great-circle solar sampling that dominated large-run
   memory and CPU use; external consumers of `success/analysis_cache.parquet`
   should no longer expect the retired auxiliary columns.
+- Extended exact callsign validation to accept letter-only archive reporting
+  identifiers such as `KFS`, while retaining the three-to-fifteen-character
+  ASCII allowlist, non-empty slash segments, optional terminal alphanumeric
+  hyphen suffix and requirement for a letter before that suffix. The UI, saved
+  configuration schema, analysis boundary and English/German manuals now share
+  the same validation contract; identifiers remain exact archive identities
+  rather than aliases or prefix matches.
+- Refined new-analysis defaults and UTC-window editing. Changing Start Date now
+  proposes an End Date seven days later, capped at today; the End Date control
+  enforces the configured 31-day maximum and invalid exact date/time windows are
+  reported before Run is available. Untouched Performance setups enable the
+  special-callsign and moving-station exclusions, while untouched Compare setups
+  disable them; manual choices and values loaded from configurations, demos or
+  URLs remain explicit across result-family changes.
+- Reduced large-run memory retention and made completed results resilient across
+  full Streamlit rerenders. Raw-query memory caching is bounded by retained
+  bytes, accepted Compare CSV results are written through to provider-scoped
+  Parquet cache, and owned processing paths avoid redundant full-frame copies.
+  A completed run now publishes validated compact station/segment map aggregates
+  and a versioned snapshot, so later rerenders and high-resolution map export can
+  reuse the committed provider evidence without another database request or raw
+  evidence map aggregation. Missing, stale or incompatible artifacts require an
+  explicit rerun instead of silently fetching new data.
+- Reworked the Compare Segment Inspector cache to retain exact histogram and
+  sufficient-statistic recipes within the shared byte budget, losslessly
+  compress large numeric arrays, and precompute every offered chronological bin
+  plus the one-hour folded profile. Time-bin changes and browser/export figure
+  rendering now reuse those recipes without rereading Parquet, regrouping the
+  observation rows or contacting a database provider; no sampling or numerical
+  precision reduction was introduced.
+- Harmonized temporal figure geometry across Performance and Compare, RX and TX,
+  active-scope and selected-station views, and browser previews and exports. A
+  shared layout contract aligns chronological and folded panels with their upper
+  SNR or Delta SNR views. When fewer than two UTC dates contribute, folded panels
+  now retain their normal position and size, draw no folded data and show the
+  localized unavailable notice, while chronological panels keep their normal
+  bounds; layout-version changes invalidate both preview and export renders.
 
 ## 2026-07-30
 

@@ -247,7 +247,7 @@ st.markdown(f"""
 <div class="dev-credit-container" style='text-align: center; color: #888888; font-size: 0.85rem; margin-top: 0.5rem; margin-bottom: 1.5rem; line-height: 1.3;'>{t["dev_credit"]}</div>
 """, unsafe_allow_html=True)
 
-col_lang, col_b1, col_view, col_b2, col_b3 = st.columns(
+col_b1, col_b2, col_b3, col_view, col_lang = st.columns(
     5,
     vertical_alignment="bottom",
 )
@@ -283,14 +283,18 @@ with col_b1:
 
 with col_view:
     guided_mode_content = GUIDED_INPUTS[st.session_state.lang]["mode"]
-    st.selectbox(
-        guided_mode_content["label"],
-        ("guided", "classic"),
-        key="input_view",
-        label_visibility="collapsed",
-        format_func=lambda input_view: guided_mode_content[input_view],
-        on_change=handle_input_view_change,
+    input_view_selector_key = (
+        f"input_view_selector_{st.session_state.input_view}"
     )
+    with st.container(key=input_view_selector_key):
+        st.selectbox(
+            guided_mode_content["label"],
+            ("guided", "classic"),
+            key="input_view",
+            label_visibility="collapsed",
+            format_func=lambda input_view: guided_mode_content[input_view],
+            on_change=handle_input_view_change,
+        )
 
 with col_b2:
     if st.button(t.get("btn_load_config", "Load Config"), icon=":material/upload_file:", width="stretch"):

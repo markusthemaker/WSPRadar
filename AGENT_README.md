@@ -360,25 +360,49 @@ changes to it are exercised by the Streamlit regression suite.
 
 ## Testing and Checks
 
-Run the complete regression suite:
+Run the complete regression suite on Windows through the foreground-only
+repository runner:
 
 ```powershell
+.\scripts\run_regression.cmd
+```
+
+The launcher applies `-ExecutionPolicy Bypass` only to the checked-in runner;
+it does not change the user or machine execution policy. The runner validates
+its five fixed serial fallback chunks, invokes
+`.\.venv\Scripts\python.exe -u -m pytest` in the foreground without activation
+or a `PYTHONPATH` workaround, and returns pytest's exit code. Use
+`.\scripts\run_regression.cmd -ValidateChunks` to validate the partition and
+`.\scripts\run_regression.cmd -Durations 30` to profile a canonical serial run.
+If one complete foreground session cannot be retained, run `-Chunk 1` through
+`-Chunk 5` serially; do not run chunks concurrently because they share the
+`.test` workspace.
+
+On Linux or macOS, invoke pytest directly:
+
+```bash
 python -m pytest tests/regression -q
 ```
 
-In automated Windows sessions, use the direct equivalent
-`.\.venv\Scripts\python.exe -m pytest tests\regression -q` to run the provisioned
-test environment without a `PYTHONPATH` workaround.
+pytest-xdist is not part of the development environment. Do not install it or
+pass `-n` until the concurrency, filesystem, Streamlit, Matplotlib, cache, port,
+and process-state tests have been audited for worker isolation.
+
+For incremental work, select the directly affected test modules according to
+the focused-verification contract in `AGENTS.md`. Figure, PDF, Streamlit
+integration, and export-package tests are intentionally omitted from unrelated
+focused runs; they remain mandatory when their implementation or direct callers
+change and whenever the full-verification rules apply.
 
 Pytest stores its disposable per-run files and cache under the ignored `.test/`
 directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Verified result on 2026-08-02:
+Latest complete serial measurement on 2026-08-02:
 
 ```text
-1676 passed, 1 skipped, 1 warning
+1697 passed, 1 skipped, 1 warning in 353.62 seconds
 ```
 
 The skipped test requires a generated fixture under

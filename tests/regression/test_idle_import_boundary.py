@@ -15,6 +15,7 @@ import builtins
 import importlib
 import inspect
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -35,6 +36,7 @@ forbidden_modules = (
     "cartopy",
 )
 forbidden_imports = set()
+application_origin_cache = {}
 real_import = builtins.__import__
 real_import_module = importlib.import_module
 
@@ -47,12 +49,27 @@ def application_origin(module_globals):
     if not source_path:
         return None
     try:
-        relative_path = Path(source_path).resolve().relative_to(project_root)
-    except (OSError, ValueError):
+        normalized_source_path = os.path.normcase(
+            os.path.abspath(os.fspath(source_path))
+        )
+    except (TypeError, ValueError):
         return None
-    if relative_path.parts and relative_path.parts[0] in application_roots:
-        return str(relative_path)
-    return None
+    if normalized_source_path in application_origin_cache:
+        return application_origin_cache[normalized_source_path]
+    try:
+        relative_path = Path(normalized_source_path).resolve().relative_to(project_root)
+    except (OSError, ValueError):
+        origin = None
+    else:
+        origin = (
+            str(relative_path)
+            if relative_path.parts and relative_path.parts[0] in application_roots
+            else None
+        )
+    # The project root and application-root allowlist are immutable for this
+    # audit, so positive and negative source classifications are pure.
+    application_origin_cache[normalized_source_path] = origin
+    return origin
 
 
 def requested_module_names(name, module_globals, fromlist, level):
@@ -126,8 +143,22 @@ app_test = AppTest.from_file(
 )
 app_test.run()
 
+positive_control_request = "numpy.__wspradar_import_audit_positive_control__"
+positive_control_origin = application_origin(
+    {"__file__": str(project_root / "app.py")}
+)
+positive_control_record = (
+    "numpy",
+    positive_control_request,
+    positive_control_origin,
+)
+record_forbidden_imports({positive_control_request}, positive_control_origin)
+positive_control_detected = positive_control_record in forbidden_imports
+forbidden_imports.discard(positive_control_record)
+
 result = {
     "app_exceptions": [str(exception.value) for exception in app_test.exception],
+    "positive_control_detected": positive_control_detected,
     "forbidden_imports": [
         {
             "forbidden_module": forbidden_module,
@@ -182,6 +213,7 @@ def test_idle_app_does_not_request_analysis_or_scientific_dependencies():
     audit_result = json.loads(result_lines[-1][len(AUDIT_RESULT_PREFIX):])
 
     assert audit_result["app_exceptions"] == []
+    assert audit_result["positive_control_detected"] is True
     assert audit_result["forbidden_imports"] == [], (
         "The idle app requested analysis-only imports:\n"
         + json.dumps(audit_result["forbidden_imports"], indent=2)

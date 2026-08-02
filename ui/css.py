@@ -179,9 +179,11 @@ def apply_custom_css():
         /*
          * React Aria keeps the displayed value in an input beside a 32 px
          * arrow button. Its extra left padding compensates for that sibling so
-         * centered text remains centered over the complete control.
+         * centered text remains centered over the complete control. Scope this
+         * rule to the React Aria group because BaseWeb also has a measurement
+         * input; padding that input steals width from its visible label.
          */
-        div[data-testid="stSelectbox"] input[role="combobox"] {
+        div[data-testid="stSelectbox"] div[role="group"] > input[role="combobox"] {
             font-family: 'Space Mono', monospace !important;
             font-size: 0.85rem !important;
             color: inherit !important;
@@ -197,7 +199,70 @@ def apply_custom_css():
             color: inherit !important;
             text-align: center !important;
         }
-                
+
+        /* Keep the mode icon and label centered as one baseline-independent row. */
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[data-baseweb="select"] div[value],
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[data-baseweb="select"] div[value] {
+            display: inline-flex !important;
+            align-items: center !important;
+        }
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[data-baseweb="select"] div[value]::before,
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[data-baseweb="select"] div[value]::before,
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"])::before,
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"])::before {
+            font-family: 'Material Symbols Rounded' !important;
+            font-feature-settings: 'liga' 1;
+            font-size: 1rem !important;
+            font-style: normal !important;
+            font-weight: 400 !important;
+            line-height: 1 !important;
+            color: #ffffff !important;
+            text-transform: none !important;
+        }
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[data-baseweb="select"] div[value]::before,
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[data-baseweb="select"] div[value]::before {
+            margin-right: 0.45rem;
+            transform: translateY(0.08rem);
+        }
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"]),
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"]) {
+            position: relative;
+        }
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"])::before,
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"])::before {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(calc(-50% + 0.08rem));
+            pointer-events: none;
+            z-index: 1;
+        }
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[data-baseweb="select"] div[value]::before,
+        .st-key-input_view_selector_guided .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"])::before {
+            content: "route";
+        }
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[data-baseweb="select"] div[value]::before,
+        .st-key-input_view_selector_classic .st-key-input_view
+        div[role="group"]:has(> input[role="combobox"])::before {
+            content: "tune";
+        }
+
+
         /* Colorize the dropdown arrow icon */
         div[data-testid="stSelectbox"] div[data-baseweb="select"] svg,
         div[data-testid="stSelectbox"] button[aria-label="Open"] svg {

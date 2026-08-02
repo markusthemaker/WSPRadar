@@ -157,8 +157,8 @@ def _install_shared_streamlit_state(monkeypatch, session_state):
 def test_input_view_selector_uses_concise_wizard_and_panel_labels():
     """Keep both localized selector options concise and visually distinct."""
     expected_labels = {
-        "en": {"guided": "🧭 Guided", "classic": "⚙️ Classic"},
-        "de": {"guided": "🧭 Geführt", "classic": "⚙️ Klassisch"},
+        "en": {"guided": "Guided", "classic": "Classic"},
+        "de": {"guided": "Geführt", "classic": "Klassisch"},
     }
 
     for language, labels in expected_labels.items():
@@ -166,7 +166,6 @@ def test_input_view_selector_uses_concise_wizard_and_panel_labels():
             input_view: GUIDED_INPUTS[language]["mode"][input_view]
             for input_view in ("guided", "classic")
         } == labels
-
 
 def test_guided_definitions_reuse_documentation_defined_term_markup():
     """Highlight introduced domain terms without recoloring ordinary emphasis."""

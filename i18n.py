@@ -1333,8 +1333,8 @@ GUIDED_INPUTS = {
     "en": {
         "mode": {
             "label": "Input view",
-            "guided": "🧭 Guided",
-            "classic": "⚙️ Classic",
+            "guided": "Guided",
+            "classic": "Classic",
         },
         "steps": {
             "use_case": {
@@ -1539,8 +1539,8 @@ GUIDED_INPUTS = {
     "de": {
         "mode": {
             "label": "Eingabeansicht",
-            "guided": "🧭 Geführt",
-            "classic": "⚙️ Klassisch",
+            "guided": "Geführt",
+            "classic": "Klassisch",
         },
         "steps": {
             "use_case": {

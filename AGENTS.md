@@ -102,16 +102,26 @@ python -m streamlit run app.py
 The entry point was verified by starting it headlessly on an alternate port and
 receiving `200 ok` from `/_stcore/health`.
 
-Run the complete regression suite:
+Run the complete regression suite on Windows through the checked-in foreground
+runner:
 
 ```powershell
+.\scripts\run_regression.cmd
+```
+
+On Linux or macOS, invoke pytest directly:
+
+```bash
 python -m pytest tests/regression -q
 ```
 
-Expected result as of 2026-07-26: `1228 passed, 1 skipped`. The skip is the
-fixture-integrity test because no generated fixture is committed under
-`tests/regression/fixtures/`. One existing Matplotlib pending-deprecation
-warning is emitted from `ui/plots/evidence_figures.py`.
+The Windows runner invokes `.\.venv\Scripts\python.exe -u -m pytest` directly,
+keeps pytest attached to the foreground terminal, validates the fixed serial
+fallback chunks, and propagates pytest's exit code. The dated complete-run
+record is maintained in `AGENT_README.md`. The fixture-integrity test is skipped
+when no generated fixture is committed under `tests/regression/fixtures/`. One
+existing Matplotlib pending-deprecation warning is emitted from
+`ui/plots/evidence_figures.py`.
 
 Compile all Python sources:
 
@@ -142,58 +152,68 @@ or verification work that lasts more than a short interaction:
   concrete statement of what remains;
 - treat percentages as honest estimates rather than false precision. Revise
   them transparently when new coupling or additional scope is discovered;
-- report unexpected failures, stalls, launcher problems, or possible orphaned
-  processes promptly, together with the bounded recovery action being taken;
-- do not hide progress behind a long blocking command. Use supervised processes
-  or bounded chunks so commentary remains available and the user can redirect
-  the work;
+- report unexpected failures, stalls, terminal-session interruptions, or
+  possible leftover processes promptly, together with the bounded recovery
+  action being taken;
+- do not hide progress behind a long blocking tool call. Keep long checks in a
+  Codex-managed foreground terminal session that can be polled, or run them as
+  deterministic fixed chunks, so commentary remains available and the user can
+  redirect the work;
 - keep short tasks concise; percentage updates are unnecessary when the work
   completes within one quick tool round trip.
 
-### Supervising Long-Running Windows Checks
+### Running Long Windows Checks in Foreground Terminal Sessions
 
-When a Windows verification command may outlive an interactive tool call,
-supervise it explicitly rather than treating missing console output as failure:
+Run verification commands in a Codex-managed foreground terminal session. Allow
+a long command to yield a reusable terminal or session identifier, then poll
+that same session; keep the command attached to its terminal for its entire
+lifetime.
 
-- before relaunching a check, perform a read-only inspection for a matching
-  orphaned process and for status or log artifacts from the earlier attempt;
-- place explicit stdout, stderr, and exit-status files in a uniquely named
-  disposable directory whose resolved path has been verified to remain under
-  the workspace, launch the process hidden, and retain its exact PID or process
-  handle;
-- never let a background or detached child inherit the command tool's stdin,
-  PowerShell pipeline, or other live console handles. Close or redirect stdin
-  explicitly (for example to `DEVNULL`), redirect stdout and stderr to files,
-  close unrelated inherited handles where the launcher supports it, and verify
-  that the launching tool call returns promptly;
-- use a launcher that preserves the inherited Windows environment without
-  rebuilding it as a case-sensitive mapping, because environments containing
-  both `Path` and `PATH` can make such launchers fail before the check starts;
-- prefer a bounded foreground wrapper for short startup or health checks. Give
-  it an explicit deadline and terminate the exact child in a `finally` path,
-  escalating from graceful termination to a forced stop only if the bounded
-  wait expires;
-- poll at bounded intervals of no more than 60 seconds and provide progress
-  commentary; distinguish quiet but active work from a hang by considering
-  process state, CPU-time changes, and log size or write-time changes together;
-- if a tool call is interrupted or aborted after a child may have started,
-  inspect the recorded PID and artifacts before doing anything else in the next
-  turn; validate that the PID still belongs to the intended executable, then
-  stop that exact process or process tree before continuing;
-- terminate only after a declared timeout, repeated evidence of a stall, or an
-  explicit user request; first validate that the retained PID still belongs to
-  the intended command, then terminate only that exact process tree—never all
-  Python or test processes by name;
-- inspect stdout, stderr, and the recorded exit status before reporting the
-  result; if abnormal termination left no exit status, report the run as
-  inconclusive rather than failed;
-- clean up only the exact verified disposable artifacts for that run, and only
-  after any needed diagnostic evidence has been captured.
-
-If the available launcher cannot provide reliable PID, log, and exit-status
-supervision, run bounded test modules or focused chunks instead of starting an
-unsupervised background suite. The combined chunks must still cover the
-verification scope required for the change.
+- invoke the repository interpreter directly and keep each pytest, compilation,
+  or documentation check in the foreground;
+- use `.\scripts\run_regression.cmd` for the complete Windows regression suite.
+  The launcher applies a process-local execution-policy bypass only to the
+  checked-in PowerShell runner, which invokes the repository venv directly with
+  unbuffered Python and propagates pytest's exit code;
+- poll the same terminal session at bounded intervals of no more than 60 seconds
+  and provide progress commentary. Quiet output alone is not evidence of a hang
+  or failure;
+- do not use `Start-Process`, PowerShell background jobs, hidden-window
+  launchers, detached child processes, output redirection, or custom
+  PID/stdout/stderr/exit-status supervisors for routine checks. A tool-call yield
+  or duration limit is not a reason to detach the command. In particular,
+  `Start-Process` can fail before launch when a host process exposes both `Path`
+  and `PATH`;
+- treat the Windows venv launcher and its configured base interpreter as one
+  foreground command. Seeing both processes is not by itself evidence of a
+  stall; the foreground terminal's output and final exit code are authoritative;
+- prefer one complete pytest session because it also detects cross-module state
+  leakage. If that session cannot be retained reliably, run
+  `.\scripts\run_regression.cmd -Chunk 1` through `-Chunk 5` serially. The
+  checked-in manifest is validated before every invocation and fails if a test
+  module is unassigned, duplicated, renamed, or removed. Never run these chunks
+  concurrently because pytest clears and reuses the same `.test` workspace;
+- use `.\scripts\run_regression.cmd -ValidateChunks` to check the fixed fallback
+  partition without running pytest. Use
+  `.\scripts\run_regression.cmd -Durations 30` to report the slowest tests in a
+  canonical serial full-suite run;
+- do not install or use pytest-xdist and do not pass `-n` until a separate audit
+  proves that concurrency, filesystem, Streamlit, Matplotlib, cache, port, and
+  process-state tests are worker-isolated. The runner rejects xdist worker
+  options. Timing results may inform a later checked-in chunk rebalance, but do
+  not reshuffle a run already in progress;
+- for a short startup or health check that must spawn a child process, use a
+  bounded foreground wrapper. Retain the exact child handle or PID, enforce an
+  explicit deadline, and terminate that exact child in a `finally` path,
+  escalating from graceful termination only if the deadline expires;
+- if a terminal session or tool call is interrupted, do not immediately
+  relaunch the check. Reconnect to or poll the same session when possible. If a
+  process may remain, validate its exact PID, executable, and command line before
+  stopping that process tree; never stop every Python or pytest process by name;
+- capture the terminal output and exit status before reporting. If no reliable
+  exit status remains, report the affected run as inconclusive and rerun only
+  the affected fixed chunk. Clean up only exact run artifacts after preserving
+  any needed diagnostics.
 
 ## Verification Scope and Proportionality
 
@@ -231,6 +251,29 @@ Run the directly affected test nodes or modules plus applicable localization
 parity, schema, rendering, or synchronization checks. Compile only the changed
 Python scope. The complete regression suite is not required for this class
 during incremental work.
+
+High-cost presentation and integration tests are scoped by the contract touched;
+they are not a default addition to every focused run:
+
+- run figure and plot rendering tests only when changes can affect `ui/plots/`,
+  `core/plot_engine.py`, `core/matplotlib_runtime.py`, plotting constants,
+  figure recipes, layout/render versions, preview/export parity, or their direct
+  callers;
+- run export-package and exported-figure tests only when changes can affect
+  `ui/results_export.py`, export recipes, export metadata, exported projections
+  or schemas, artifact ownership, filenames, or rendered export assets;
+- run documentation PDF/rendering tests only when documentation generation,
+  document content, PDF layout, fonts, or document-rendering dependencies change;
+- run Streamlit AppTest input/integration modules only when application shell,
+  input, state, callback, navigation, or submission behavior can change. Run the
+  idle-import boundary test only for startup/import-boundary changes;
+- do not decide scope from test filenames alone. Some evidence modules combine
+  scientific recipe assertions with rendering assertions; when a shared recipe
+  or caller changes, run the complete directly affected module.
+
+These focused-scope rules do not override the full-verification triggers below.
+When full verification is required, the complete suite runs, including figures,
+PDFs, Streamlit integration, and exports.
 
 Focused verification is not sufficient for changes to scientific calculations,
 SQL, time synchronization, normalization, classification, geometry, context or
