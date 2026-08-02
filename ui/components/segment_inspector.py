@@ -127,7 +127,7 @@ from ui.result_guidance import (
 )
 from ui.reference_correction import configured_snr_correction_notice
 
-INSPECTOR_CACHE_VERSION = 42
+INSPECTOR_CACHE_VERSION = 43
 INSPECTOR_PNG_RENDER_VERSION = 38
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
@@ -1717,6 +1717,7 @@ def _render_selected_station_evidence(
                 median_label=t["fig_median_label"],
                 bin_median_label=t["fig_temporal_bin_median"],
                 bin_iqr_label=t["fig_temporal_bin_iqr"],
+                time_bin_options=time_agg_options,
             )
             if base_recipe["utc_date_count"] < 2:
                 insufficient_date_label = t[
@@ -1776,6 +1777,7 @@ def _render_selected_station_evidence(
             cache_key,
             selected_bundle,
         )
+        del comparison_units, evidence_df
 
     identity_labels = list(selected_bundle["identity_labels"])
     evidence_count = int(selected_bundle["evidence_count"])
@@ -3379,14 +3381,42 @@ def _render_segment_inspector_body(
                         else t["fig_joint_spot_delta"]
                     ),
                 )
+                station_summary = _compare_metric_distribution_summary(
+                    vals,
+                    t["fmt_results_station_delta_summary"],
+                    total_count=segment_station_total_count,
+                    joint_count=segment_station_joint_count,
+                    joint_label=joint_lbl,
+                )
+                observation_summary_key = (
+                    "fmt_results_scheduled_pair_delta_summary"
+                    if is_sequential
+                    else "fmt_results_joint_spot_delta_summary"
+                )
+                spot_summary = _compare_metric_distribution_summary(
+                    segment_raw_values,
+                    t[observation_summary_key],
+                    total_count=segment_spot_total_count,
+                    joint_count=segment_spot_joint_count,
+                    joint_label=joint_lbl,
+                )
+                segment_summary = _segment_summary_lines(
+                    station_summary=station_summary,
+                    spot_summary=spot_summary,
+                )
+                segment_temporal_rows = segment_evidence_df[
+                    ["plot_time", "metric"]
+                ].copy()
+                del segment_evidence_df, segment_raw_values
                 if not segment_comparison_units.empty:
                     temporal_time_source = _compare_temporal_time_source(
-                        segment_evidence_df,
+                        segment_temporal_rows,
                         segment_comparison_units,
                     )
                     temporal_time_options, temporal_time_default = (
                         _time_agg_options_for_span(temporal_time_source)
                     )
+                    del temporal_time_source
                     chronological_title_label = t[
                         "fig_segment_chronological_delta"
                     ]
@@ -3405,71 +3435,6 @@ def _render_segment_inspector_body(
                         selected_seg,
                         t,
                     )
-                    temporal_base_recipe = None
-                    if not segment_evidence_df.empty:
-                        if is_sequential:
-                            temporal_count_label = t[
-                                "fig_scheduled_pair_count"
-                            ]
-                            temporal_density_label = t[
-                                "fig_relative_scheduled_pair_density"
-                            ]
-                        else:
-                            temporal_count_label = t[
-                                "fig_joint_spot_count"
-                            ]
-                            temporal_density_label = t[
-                                "fig_relative_joint_spot_density"
-                            ]
-                        temporal_base_recipe = (
-                            _segment_temporal_evidence_export_recipe(
-                                segment_evidence_df,
-                                temporal_figure_title,
-                                temporal_time_default,
-                                temporal_count_label,
-                                reference_snr_correction_notice=(
-                                    reference_snr_correction_notice
-                                ),
-                                chronological_title=(
-                                    chronological_title_template
-                                ),
-                                chronological_x_label=t[
-                                    "fig_segment_chronological_x"
-                                ],
-                                metric_axis_label=t["tbl_col_delta_snr"],
-                                folded_title=(
-                                    _folded_utc_hour_panel_title(t)
-                                ),
-                                folded_date_annotation=folded_date_template,
-                                folded_x_label=t[
-                                    "fig_segment_utc_hour_x"
-                                ],
-                                density_label=temporal_density_label,
-                                folded_unavailable_text=t[
-                                    "fig_segment_folded_unavailable"
-                                ],
-                                median_focus_axis_label=t[
-                                    "fig_compare_median_focus_axis"
-                                ],
-                                median_label=t["fig_median_label"],
-                                bin_median_label=t[
-                                    "fig_temporal_bin_median"
-                                ],
-                                bin_iqr_label=t[
-                                    "fig_temporal_bin_iqr"
-                                ],
-                            )
-                        )
-                        if temporal_base_recipe["utc_date_count"] < 2:
-                            insufficient_date_label = t[
-                                "fig_segment_dates_insufficient"
-                            ].format(
-                                count=temporal_base_recipe["utc_date_count"]
-                            )
-                            temporal_base_recipe[
-                                "folded_date_annotation"
-                            ] = insufficient_date_label
-
                     compare_figure_labels = (
                         _compare_coverage_figure_labels(
                             t,
@@ -3502,6 +3467,77 @@ def _render_segment_inspector_body(
                         time_bin_default=temporal_time_default,
                         figure_labels=compare_figure_labels,
                     )
+                    del segment_comparison_units
+                    temporal_base_recipe = None
+                    if not segment_temporal_rows.empty:
+                        if is_sequential:
+                            temporal_count_label = t[
+                                "fig_scheduled_pair_count"
+                            ]
+                            temporal_density_label = t[
+                                "fig_relative_scheduled_pair_density"
+                            ]
+                        else:
+                            temporal_count_label = t[
+                                "fig_joint_spot_count"
+                            ]
+                            temporal_density_label = t[
+                                "fig_relative_joint_spot_density"
+                            ]
+                        with _timed_span(
+                            timing_collector,
+                            "segment temporal profiles build",
+                        ):
+                            temporal_base_recipe = (
+                                _segment_temporal_evidence_export_recipe(
+                                    segment_temporal_rows,
+                                    temporal_figure_title,
+                                    temporal_time_default,
+                                    temporal_count_label,
+                                    reference_snr_correction_notice=(
+                                        reference_snr_correction_notice
+                                    ),
+                                    chronological_title=(
+                                        chronological_title_template
+                                    ),
+                                    chronological_x_label=t[
+                                        "fig_segment_chronological_x"
+                                    ],
+                                    metric_axis_label=t["tbl_col_delta_snr"],
+                                    folded_title=(
+                                        _folded_utc_hour_panel_title(t)
+                                    ),
+                                    folded_date_annotation=folded_date_template,
+                                    folded_x_label=t[
+                                        "fig_segment_utc_hour_x"
+                                    ],
+                                    density_label=temporal_density_label,
+                                    folded_unavailable_text=t[
+                                        "fig_segment_folded_unavailable"
+                                    ],
+                                    median_focus_axis_label=t[
+                                        "fig_compare_median_focus_axis"
+                                    ],
+                                    median_label=t["fig_median_label"],
+                                    bin_median_label=t[
+                                        "fig_temporal_bin_median"
+                                    ],
+                                    bin_iqr_label=t[
+                                        "fig_temporal_bin_iqr"
+                                    ],
+                                    time_bin_options=temporal_time_options,
+                                )
+                            )
+                        if temporal_base_recipe["utc_date_count"] < 2:
+                            insufficient_date_label = t[
+                                "fig_segment_dates_insufficient"
+                            ].format(
+                                count=temporal_base_recipe["utc_date_count"]
+                            )
+                            temporal_base_recipe[
+                                "folded_date_annotation"
+                            ] = insufficient_date_label
+
                     segment_temporal_bundle = {
                         "base_recipe": temporal_base_recipe,
                         "coverage_recipe": compare_coverage_recipe,
@@ -3509,29 +3545,9 @@ def _render_segment_inspector_body(
                         "time_bin_default": temporal_time_default,
                         "chronological_title_template": chronological_title_template,
                     }
-                station_summary = _compare_metric_distribution_summary(
-                    segment_figure_recipe["station_values"],
-                    t["fmt_results_station_delta_summary"],
-                    total_count=segment_station_total_count,
-                    joint_count=segment_station_joint_count,
-                    joint_label=joint_lbl,
-                )
-                observation_summary_key = (
-                    "fmt_results_scheduled_pair_delta_summary"
-                    if is_sequential
-                    else "fmt_results_joint_spot_delta_summary"
-                )
-                spot_summary = _compare_metric_distribution_summary(
-                    segment_figure_recipe["spot_values"],
-                    t[observation_summary_key],
-                    total_count=segment_spot_total_count,
-                    joint_count=segment_spot_joint_count,
-                    joint_label=joint_lbl,
-                )
-                segment_summary = _segment_summary_lines(
-                    station_summary=station_summary,
-                    spot_summary=spot_summary,
-                )
+                else:
+                    del segment_comparison_units
+                del segment_temporal_rows
 
             del vals, evidence_meta_df
             segment_bundle = {

@@ -2,9 +2,11 @@ import ast
 import inspect
 from types import SimpleNamespace
 
+import numpy as np
 import pandas as pd
 import pytest
 
+from config import INSPECTOR_CACHE_MAX_BYTES
 from i18n import T
 from ui.components import segment_inspector
 from ui.inspector import drilldown, view_models
@@ -2257,6 +2259,116 @@ def test_cache_size_estimator_counts_dataframe_and_png_payloads():
     frame = pd.DataFrame({"station": ["K1AAA", "K2BBB"], "value": [1.0, 2.0]})
     value = {"view_model": frame, "png": b"preview"}
     assert estimate_cache_value_bytes(value) >= int(frame.memory_usage(index=True, deep=True).sum()) + len(b"preview")
+
+
+def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
+    """Retain the heavy Compare model beside realistic sibling cache entries."""
+    evidence_count = 268_100
+    represented_time_count = 20_756
+    station_count = 7_850
+    row_numbers = np.arange(evidence_count, dtype=np.int64)
+    time_offsets_ns = (
+        row_numbers % represented_time_count
+    ) * 120 * 1_000_000_000
+    plot_times = pd.to_datetime(
+        pd.Timestamp("2026-07-01T00:00:00Z").value + time_offsets_ns,
+        unit="ns",
+        utc=True,
+    )
+    metric_values = ((row_numbers % 401) - 200).astype(np.float64) / 10.0
+    station_values = ((np.arange(station_count) % 121) - 60) / 10.0
+
+    segment_figure_recipe = segment_inspector._segment_figure_export_recipe(
+        title="Observed-scale Compare",
+        selected_segment="Full Range | All Directions",
+        is_sequential=False,
+        station_values=station_values,
+        spot_values=metric_values,
+        panel_labels=["Only Target", "Joint", "Both", "Only Reference"],
+        panel_y_label="Share (%)",
+        decode_outcomes_title="Decode Outcomes",
+        station_medians_title="Station Medians Delta SNR",
+        paired_evidence_title="Joint-Spot Delta SNR",
+        metric_axis_label="Delta SNR (dB)",
+        median_label="Median",
+        mean_label="Mean",
+        no_data_label="No data",
+        panel_station_counts=[100, 200, 50, 100],
+        panel_spot_counts=[1_000, 2_000, 500, 1_000],
+        panel_series_labels=["Stations", "Spots"],
+    )
+    temporal_recipe = (
+        segment_inspector._segment_temporal_evidence_export_recipe(
+            pd.DataFrame(
+                {
+                    "plot_time": plot_times,
+                    "metric": metric_values,
+                }
+            ),
+            "Observed-scale Compare Temporal Evidence",
+            "6h",
+            "Joint spot count",
+            chronological_title="Delta SNR over Time ({time_bin})",
+            chronological_x_label="UTC date and time",
+            metric_axis_label="Delta SNR (dB)",
+            folded_title="Delta SNR by UTC Hour",
+            folded_x_label="UTC hour",
+            folded_date_annotation="{utc_date_count} UTC dates folded",
+            density_label="Relative joint-spot density",
+            folded_unavailable_text="Requires at least two UTC dates",
+            median_focus_axis_label="Distance from median",
+            median_label="Median",
+            bin_median_label="Bin median",
+            bin_iqr_label="Bin IQR",
+            time_bin_options=("1h", "3h", "6h", "12h", "24h"),
+        )
+    )
+    station_table = pd.DataFrame(
+        {
+            "Station": [f"STATION-{index:05d}" for index in range(station_count)],
+            "Locator": [f"L{index % 1_000:03d}" for index in range(station_count)],
+            "Distance (km)": np.arange(station_count, dtype=np.int64),
+            "Azimuth": np.arange(station_count, dtype=np.float64) % 360.0,
+            "Joint": np.arange(station_count, dtype=np.int64) % 500,
+            "Only Target": np.arange(station_count, dtype=np.int64) % 100,
+            "Only Reference": np.arange(station_count, dtype=np.int64) % 100,
+            "Delta SNR": station_values,
+        }
+    )
+    segment_bundle = {
+        "view_model": {"station_table": station_table},
+        "figure_recipe": segment_figure_recipe,
+        "temporal_bundle": {
+            "base_recipe": temporal_recipe,
+            "coverage_recipe": b"c" * (150 * 1024),
+            "time_bin_options": ("1h", "3h", "6h", "12h", "24h"),
+            "time_bin_default": "6h",
+        },
+        "summary": ["Observed-scale summary"],
+        "evidence_station_count": station_count,
+        "evidence_count": evidence_count,
+    }
+
+    segment_bytes = estimate_cache_value_bytes(segment_bundle)
+    assert segment_bytes < 3 * 1024 * 1024
+
+    cache = SessionInspectorCache(
+        7,
+        max_bytes=INSPECTOR_CACHE_MAX_BYTES,
+        namespace_limits={
+            "options": 2,
+            "segment": 2,
+            "selected": 2,
+            "png": 4,
+        },
+    )
+    assert cache.put("options", "scope", b"o" * (32 * 1024))
+    assert cache.put("segment", "heavy", segment_bundle)
+    assert cache.put("selected", "station", b"s" * (256 * 1024))
+    assert cache.put("png", "figures", b"p" * (1024 * 1024))
+
+    assert cache.get("segment", "heavy") == (segment_bundle, True)
+    assert cache.total_bytes <= INSPECTOR_CACHE_MAX_BYTES
 
 
 def test_cached_recipe_builds_and_disposes_figure_only_once(monkeypatch):

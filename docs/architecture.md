@@ -552,6 +552,22 @@ Success retains its station display table plus a small export-column mapping;
 the export schema is renamed lazily, and row-level evidence is released after
 the compact temporal recipes have been prepared.
 
+Compare recipes likewise remain below the shared Inspector-cache budget without
+sampling or reducing numeric precision. Segment Insight retains exact histogram
+centers, counts, medians and means rather than observation-length station and
+spot vectors; large numeric recipe arrays use a lossless internal compressed
+representation. Compare temporal recipes precompute the exact density grid,
+median, count, Q1 and Q3 inputs for every offered chronological bin plus the
+one-hour folded profile, then release the canonical comparison-unit and
+Joint-evidence frames. A time-bin change therefore selects retained sufficient
+statistics and builds only the requested Matplotlib figure; it does not decode
+observation rows, repeat group-by work, reread Parquet or contact a provider.
+Preparing a previously unseen scope deliberately computes those selectable
+profiles once before caching the model, trading additional cold-preparation CPU
+for fast subsequent interaction.
+Selected-station Compare recipes use the same profile contract. Browser
+previews and high-resolution exports render from the same retained recipes.
+
 Inspector range and direction controls may narrow the retained geographic
 population for exploration, but they cannot widen the completed run or
 re-admit peer rows excluded by Geographic Analysis Scope. A broader scientific

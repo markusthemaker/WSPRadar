@@ -1,7 +1,10 @@
 """Matplotlib evidence and Segment Insight figures for WSPRadar."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from math import prod
 import textwrap
+import zlib
 
 import numpy as np
 import pandas as pd
@@ -77,6 +80,87 @@ COMPARE_MEDIAN_FOCUS_TIGHT_ANCHORS_DB = (0.0, 1.0, 3.0, 6.0, 10.0, 20.0, 40.0)
 COMPARE_MEDIAN_FOCUS_TIGHT_LABELS_DB = (0.0, 1.0, 3.0, 6.0, 10.0)
 COMPARE_MEDIAN_FOCUS_BROAD_ANCHORS_DB = (0.0, 3.0, 6.0, 10.0, 20.0, 30.0, 60.0)
 COMPARE_MEDIAN_FOCUS_BROAD_LABELS_DB = (0.0, 3.0, 6.0, 10.0, 20.0, 30.0)
+COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES = 256 * 1024
+COMPARE_RECIPE_ARRAY_ENCODING = "numpy-zlib-v1"
+COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION = 2
+COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 3
+
+
+def _encode_compare_recipe_array(values, *, dtype):
+    """Losslessly encode one owned numeric Compare recipe array."""
+    numeric_values = np.ascontiguousarray(np.asarray(values, dtype=dtype))
+    if numeric_values.ndim not in (1, 2):
+        raise ValueError("Compare recipe arrays must have one or two dimensions")
+    compressed_payload = zlib.compress(
+        memoryview(numeric_values).cast("B"),
+        level=6,
+    )
+    return {
+        "encoding": COMPARE_RECIPE_ARRAY_ENCODING,
+        "dtype": numeric_values.dtype.str,
+        "shape": tuple(int(length) for length in numeric_values.shape),
+        "payload": compressed_payload,
+    }
+
+
+def _compact_compare_recipe_array(values, *, dtype):
+    """Own a numeric recipe array and compress large, compressible values."""
+    numeric_values = np.ascontiguousarray(np.asarray(values, dtype=dtype))
+    if numeric_values.ndim not in (1, 2):
+        raise ValueError("Compare recipe arrays must have one or two dimensions")
+    if numeric_values.nbytes < COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES:
+        return numeric_values.copy()
+    encoded_values = _encode_compare_recipe_array(
+        numeric_values,
+        dtype=numeric_values.dtype,
+    )
+    if len(encoded_values["payload"]) >= numeric_values.nbytes:
+        return numeric_values.copy()
+    return encoded_values
+
+
+def _compare_recipe_array_values(value, *, dtype):
+    """Decode one compact Compare recipe array or accept its legacy ndarray."""
+    requested_dtype = np.dtype(dtype)
+    if not (
+        isinstance(value, Mapping)
+        and value.get("encoding") == COMPARE_RECIPE_ARRAY_ENCODING
+    ):
+        return np.asarray(value, dtype=requested_dtype)
+
+    try:
+        stored_dtype = np.dtype(value["dtype"])
+        stored_shape = tuple(int(length) for length in value["shape"])
+        compressed_payload = value["payload"]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("Invalid compact Compare recipe array metadata") from exc
+    if (
+        stored_dtype != requested_dtype
+        or len(stored_shape) not in (1, 2)
+        or any(length < 0 for length in stored_shape)
+    ):
+        raise ValueError("Compact Compare recipe array metadata does not match")
+    if not isinstance(compressed_payload, (bytes, bytearray, memoryview)):
+        raise ValueError("Compact Compare recipe array payload must be bytes")
+
+    value_count = prod(stored_shape)
+    expected_bytes = value_count * stored_dtype.itemsize
+    decompressor = zlib.decompressobj()
+    raw_values = decompressor.decompress(
+        compressed_payload,
+        expected_bytes + 1,
+    )
+    if (
+        len(raw_values) != expected_bytes
+        or not decompressor.eof
+        or decompressor.unused_data
+    ):
+        raise ValueError("Compact Compare recipe array payload is invalid")
+    return np.frombuffer(
+        raw_values,
+        dtype=stored_dtype,
+        count=value_count,
+    ).reshape(stored_shape)
 
 
 @dataclass(frozen=True)
@@ -674,23 +758,66 @@ def _style_evidence_axis(ax):
     for spine in ax.spines.values():
         spine.set_color("#444444")
 
-def _draw_vertical_metric_histogram(
+def _vertical_metric_histogram_recipe(values):
+    """Retain exact histogram sufficient statistics without observation rows."""
+    numeric_values = _metric_values(values)
+    edges, centers, bin_width = _metric_histogram_bins(numeric_values)
+    counts = (
+        np.histogram(numeric_values, bins=edges)[0]
+        if len(numeric_values)
+        else np.array([], dtype=np.int64)
+    )
+    return {
+        "centers": np.asarray(centers, dtype=np.float64),
+        "counts": np.asarray(counts, dtype=np.int64),
+        "bin_width": float(bin_width),
+        "value_count": int(len(numeric_values)),
+        "median": (
+            float(np.median(numeric_values))
+            if len(numeric_values)
+            else np.nan
+        ),
+        "mean": (
+            float(np.mean(numeric_values))
+            if len(numeric_values)
+            else np.nan
+        ),
+    }
+
+
+def _draw_vertical_metric_histogram_recipe(
     ax,
-    values,
+    histogram_recipe,
     color="#36aaf9",
     *,
     share_axis_label,
     hatch=None,
     artist_gid=None,
 ):
-    """Draw a conventional horizontal-metric histogram and return its median."""
-    values = _metric_values(values)
-    if len(values) == 0:
+    """Draw one retained metric histogram and return its exact median."""
+    if not isinstance(histogram_recipe, Mapping):
         return np.nan
-
-    edges, centers, bin_width = _metric_histogram_bins(values)
-    counts, _ = np.histogram(values, bins=edges)
-    if counts.sum() == 0:
+    centers = np.asarray(
+        histogram_recipe.get("centers", []),
+        dtype=np.float64,
+    )
+    counts = np.asarray(
+        histogram_recipe.get("counts", []),
+        dtype=np.int64,
+    )
+    try:
+        bin_width = float(histogram_recipe["bin_width"])
+        median = float(histogram_recipe["median"])
+    except (KeyError, TypeError, ValueError):
+        return np.nan
+    if (
+        len(centers) == 0
+        or len(centers) != len(counts)
+        or counts.sum() <= 0
+        or not np.isfinite(bin_width)
+        or bin_width <= 0.0
+        or not np.isfinite(median)
+    ):
         return np.nan
 
     shares = 100.0 * counts.astype(float) / float(counts.sum())
@@ -715,7 +842,27 @@ def _draw_vertical_metric_histogram(
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=5))
     ax.grid(axis="x", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=GRID_ALPHA)
     ax.grid(axis="y", color=GRID_COLOR, linewidth=GRID_LINEWIDTH, alpha=0.20)
-    return float(np.median(values))
+    return median
+
+
+def _draw_vertical_metric_histogram(
+    ax,
+    values,
+    color="#36aaf9",
+    *,
+    share_axis_label,
+    hatch=None,
+    artist_gid=None,
+):
+    """Draw a conventional horizontal-metric histogram and return its median."""
+    return _draw_vertical_metric_histogram_recipe(
+        ax,
+        _vertical_metric_histogram_recipe(values),
+        color=color,
+        share_axis_label=share_axis_label,
+        hatch=hatch,
+        artist_gid=artist_gid,
+    )
 
 def _time_agg_minutes(time_agg):
     """Parse a compact minute/hour selector label such as '15m' or '3h' into minutes."""
@@ -1022,6 +1169,92 @@ def _folded_utc_hour_density_components(work_df, metric_bins):
     return count_grid, summary_df, x_edges, x_centers
 
 
+def _compare_temporal_profile_recipe(
+    count_grid,
+    summary_df,
+    x_edges,
+    x_centers,
+):
+    """Store sufficient statistics for one exact Compare temporal profile."""
+    return {
+        "count_grid": _compact_compare_recipe_array(
+            count_grid.to_numpy(dtype=np.int64, copy=True),
+            dtype=np.int64,
+        ),
+        "median": summary_df["median"].to_numpy(
+            dtype=np.float64,
+            copy=True,
+        ),
+        "count": summary_df["count"].to_numpy(
+            dtype=np.float64,
+            copy=True,
+        ),
+        "q1": summary_df["q1"].to_numpy(dtype=np.float64, copy=True),
+        "q3": summary_df["q3"].to_numpy(dtype=np.float64, copy=True),
+        "x_edges": np.asarray(x_edges, dtype=np.float64).copy(),
+        "x_centers": np.asarray(x_centers, dtype=np.float64).copy(),
+    }
+
+
+def _compare_temporal_profile_values(profile):
+    """Restore one retained Compare temporal profile for figure rendering."""
+    if not isinstance(profile, Mapping):
+        raise ValueError("Compare temporal profile must be a mapping")
+    x_centers = np.asarray(profile.get("x_centers", []), dtype=np.float64)
+    summary_df = pd.DataFrame(
+        {
+            "median": np.asarray(profile.get("median", []), dtype=np.float64),
+            "count": np.asarray(profile.get("count", []), dtype=np.float64),
+            "q1": np.asarray(profile.get("q1", []), dtype=np.float64),
+            "q3": np.asarray(profile.get("q3", []), dtype=np.float64),
+        }
+    )
+    if len(summary_df) != len(x_centers):
+        raise ValueError("Compare temporal profile summaries must align")
+    return (
+        _compare_recipe_array_values(
+            profile.get("count_grid", []),
+            dtype=np.int64,
+        ),
+        summary_df,
+        np.asarray(profile.get("x_edges", []), dtype=np.float64),
+        x_centers,
+    )
+
+
+def _build_compare_temporal_profile_recipes(
+    work_df,
+    time_bin_options,
+    *,
+    utc_date_count,
+):
+    """Precompute exact plot profiles so time-bin changes avoid row aggregation."""
+    metric_min = int(work_df["metric_bin"].min())
+    metric_max = int(work_df["metric_bin"].max())
+    metric_bins = np.arange(metric_min, metric_max + 1)
+    y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
+    chronological_profiles = {}
+    for time_bin in dict.fromkeys(str(value) for value in time_bin_options):
+        chronological_profiles[time_bin] = _compare_temporal_profile_recipe(
+            *_chronological_density_components(
+                work_df,
+                _time_agg_minutes(time_bin),
+                metric_bins,
+            )
+        )
+
+    folded_profile = None
+    if utc_date_count >= 2:
+        folded_profile = _compare_temporal_profile_recipe(
+            *_folded_utc_hour_density_components(work_df, metric_bins)
+        )
+    return {
+        "chronological": chronological_profiles,
+        "folded": folded_profile,
+        "y_edges": y_edges,
+    }
+
+
 def _draw_folded_utc_unavailable_annotation(axis, message):
     """Draw an opaque, compact notice when a UTC-hour fold is unsupported."""
     normalized_message = " ".join(str(message).split())
@@ -1093,8 +1326,9 @@ def _segment_temporal_evidence_export_recipe(
     show_folded_date_annotation=False,
     kind="segment_compare_temporal",
     reference_snr_correction_notice="",
+    time_bin_options=None,
 ):
-    """Return compact arrays and localized labels for Compare temporal evidence."""
+    """Return localized Compare evidence with compact rows or prepared profiles."""
     work_df = _prepare_temporal_metric_rows(plot_df)
     time_bin = str(time_bin)
     utc_date_count = _temporal_utc_date_count(work_df)
@@ -1129,9 +1363,42 @@ def _segment_temporal_evidence_export_recipe(
     median_focus = _compare_median_focus_recipe(
         _build_compare_median_focus_spec(work_df["metric"])
     )
-    return {
+    plot_time_ns = (
+        work_df["plot_time"]
+        .to_numpy(dtype="datetime64[ns]")
+        .astype(np.int64, copy=False)
+    )
+    metric_values = work_df["metric"].to_numpy(
+        dtype=np.float64,
+        copy=False,
+    )
+    resolved_time_bin_options = tuple(
+        dict.fromkeys(str(value) for value in (time_bin_options or ()))
+    )
+    if resolved_time_bin_options and time_bin not in resolved_time_bin_options:
+        resolved_time_bin_options = resolved_time_bin_options + (time_bin,)
+    if resolved_time_bin_options:
+        numeric_recipe = {
+            "prepared_profiles": _build_compare_temporal_profile_recipes(
+                work_df,
+                resolved_time_bin_options,
+                utc_date_count=utc_date_count,
+            )
+        }
+    else:
+        numeric_recipe = {
+            "plot_time_ns": _compact_compare_recipe_array(
+                plot_time_ns,
+                dtype=np.int64,
+            ),
+            "metric": _compact_compare_recipe_array(
+                metric_values,
+                dtype=np.float64,
+            ),
+        }
+    recipe = {
         "kind": str(kind),
-        "schema_version": 2,
+        "schema_version": COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION,
         "title": str(title),
         "time_bin": time_bin,
         "count_label": str(count_label),
@@ -1161,13 +1428,9 @@ def _segment_temporal_evidence_export_recipe(
             reference_snr_correction_notice or ""
         ),
         "utc_date_count": utc_date_count,
-        "plot_time_ns": (
-            work_df["plot_time"]
-            .to_numpy(dtype="datetime64[ns]")
-            .astype(np.int64, copy=True)
-        ),
-        "metric": work_df["metric"].to_numpy(dtype=np.float64, copy=True),
     }
+    recipe.update(numeric_recipe)
+    return recipe
 
 
 @synchronized_matplotlib
@@ -1193,50 +1456,101 @@ def render_segment_temporal_evidence_export_figure(recipe):
         )
 
         return _render_opportunity_temporal_evidence_figure(recipe)
-    plot_time_ns = np.asarray(recipe.get("plot_time_ns", []), dtype=np.int64)
-    metric_values = np.asarray(recipe.get("metric", []), dtype=float)
-    if len(plot_time_ns) == 0 or len(plot_time_ns) != len(metric_values):
-        return None
-
-    plot_df = pd.DataFrame(
-        {
-            "plot_time": pd.to_datetime(plot_time_ns, unit="ns", utc=True),
-            "metric": metric_values,
-        }
-    )
-    work_df = _prepare_temporal_metric_rows(plot_df)
-    if work_df.empty:
-        return None
-    median_focus_spec = _compare_median_focus_spec_from_recipe(
-        recipe.get("median_focus"),
-        work_df["metric"],
-    )
-    should_draw_iqr = _recipe_uses_authoritative_temporal_iqr(recipe)
-
     time_bin = str(recipe["time_bin"])
-    utc_date_count = _temporal_utc_date_count(work_df)
-    is_folded_available = utc_date_count >= 2
-    show_folded_axis = (
-        is_folded_available
-        or not bool(recipe.get("omit_folded_when_unavailable", False))
-    )
-    bin_minutes = _time_agg_minutes(time_bin)
-    metric_min = int(work_df["metric_bin"].min())
-    metric_max = int(work_df["metric_bin"].max())
-    metric_bins = np.arange(metric_min, metric_max + 1)
-    y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
-
-    chronological_grid, chronological_medians, chronological_edges, chronological_centers = (
-        _chronological_density_components(work_df, bin_minutes, metric_bins)
-    )
+    prepared_profiles = recipe.get("prepared_profiles")
+    metric_focus_values = np.array([], dtype=np.float64)
     folded_grid = None
     folded_medians = None
     folded_edges = np.arange(25, dtype=float)
     folded_centers = np.arange(24, dtype=float) + 0.5
-    if is_folded_available:
-        folded_grid, folded_medians, folded_edges, folded_centers = (
-            _folded_utc_hour_density_components(work_df, metric_bins)
+    if isinstance(prepared_profiles, Mapping):
+        chronological_profiles = prepared_profiles.get("chronological")
+        if not isinstance(chronological_profiles, Mapping):
+            return None
+        chronological_profile = chronological_profiles.get(time_bin)
+        if chronological_profile is None:
+            return None
+        (
+            chronological_grid,
+            chronological_medians,
+            chronological_edges,
+            chronological_centers,
+        ) = _compare_temporal_profile_values(chronological_profile)
+        y_edges = np.asarray(
+            prepared_profiles.get("y_edges", []),
+            dtype=np.float64,
         )
+        try:
+            utc_date_count = int(recipe["utc_date_count"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        is_folded_available = utc_date_count >= 2
+        if is_folded_available:
+            folded_profile = prepared_profiles.get("folded")
+            if folded_profile is None:
+                return None
+            (
+                folded_grid,
+                folded_medians,
+                folded_edges,
+                folded_centers,
+            ) = _compare_temporal_profile_values(folded_profile)
+    else:
+        plot_time_ns = _compare_recipe_array_values(
+            recipe.get("plot_time_ns", []),
+            dtype=np.int64,
+        )
+        metric_values = _compare_recipe_array_values(
+            recipe.get("metric", []),
+            dtype=np.float64,
+        )
+        if len(plot_time_ns) == 0 or len(plot_time_ns) != len(metric_values):
+            return None
+
+        plot_df = pd.DataFrame(
+            {
+                "plot_time": pd.to_datetime(plot_time_ns, unit="ns", utc=True),
+                "metric": metric_values,
+            }
+        )
+        work_df = _prepare_temporal_metric_rows(plot_df)
+        if work_df.empty:
+            return None
+        metric_focus_values = work_df["metric"]
+        utc_date_count = _temporal_utc_date_count(work_df)
+        is_folded_available = utc_date_count >= 2
+        bin_minutes = _time_agg_minutes(time_bin)
+        metric_min = int(work_df["metric_bin"].min())
+        metric_max = int(work_df["metric_bin"].max())
+        metric_bins = np.arange(metric_min, metric_max + 1)
+        y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
+        (
+            chronological_grid,
+            chronological_medians,
+            chronological_edges,
+            chronological_centers,
+        ) = _chronological_density_components(
+            work_df,
+            bin_minutes,
+            metric_bins,
+        )
+        if is_folded_available:
+            (
+                folded_grid,
+                folded_medians,
+                folded_edges,
+                folded_centers,
+            ) = _folded_utc_hour_density_components(work_df, metric_bins)
+
+    median_focus_spec = _compare_median_focus_spec_from_recipe(
+        recipe.get("median_focus"),
+        metric_focus_values,
+    )
+    should_draw_iqr = _recipe_uses_authoritative_temporal_iqr(recipe)
+    show_folded_axis = (
+        is_folded_available
+        or not bool(recipe.get("omit_folded_when_unavailable", False))
+    )
 
     correction_notice = recipe.get("reference_snr_correction_notice", "")
     figure_height_inches = _figure_height_for_reference_correction(
@@ -1482,6 +1796,7 @@ def _selected_evidence_export_recipe(
     bin_median_label,
     bin_iqr_label,
     reference_snr_correction_notice="",
+    time_bin_options=None,
 ):
     """Return one selected Compare path recipe without redundant subtitles."""
     plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
@@ -1516,6 +1831,7 @@ def _selected_evidence_export_recipe(
         show_folded_date_annotation=True,
         kind="selected_compare_temporal",
         reference_snr_correction_notice=reference_snr_correction_notice,
+        time_bin_options=time_bin_options,
     )
     recipe["is_sequential"] = bool(is_sequential)
     recipe["selected_identity_count"] = selected_identity_count
@@ -1550,11 +1866,14 @@ def _segment_figure_export_recipe(
 ):
     """Store numeric inputs and localized labels for Compare segment evidence."""
     return {
+        "schema_version": COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION,
         "title": title,
         "selected_segment": selected_segment,
         "is_sequential": bool(is_sequential),
-        "station_values": _metric_values(station_values).astype(np.float64, copy=True),
-        "spot_values": _metric_values(spot_values).astype(np.float64, copy=True),
+        "station_histogram": _vertical_metric_histogram_recipe(
+            station_values
+        ),
+        "spot_histogram": _vertical_metric_histogram_recipe(spot_values),
         "panel_labels": [str(value) for value in panel_labels],
         "panel_y_label": str(panel_y_label),
         "decode_outcomes_title": str(decode_outcomes_title),
@@ -1720,8 +2039,26 @@ def render_segment_insight_export_figure(recipe):
     if recipe_kind is not None:
         return None
 
-    station_values = np.asarray(recipe.get("station_values", []), dtype=float)
-    spot_values = np.asarray(recipe.get("spot_values", []), dtype=float)
+    station_histogram = recipe.get("station_histogram")
+    if not isinstance(station_histogram, Mapping):
+        station_histogram = _vertical_metric_histogram_recipe(
+            _compare_recipe_array_values(
+                recipe.get("station_values", []),
+                dtype=np.float64,
+            )
+        )
+    spot_histogram = recipe.get("spot_histogram")
+    if not isinstance(spot_histogram, Mapping):
+        spot_histogram = _vertical_metric_histogram_recipe(
+            _compare_recipe_array_values(
+                recipe.get("spot_values", []),
+                dtype=np.float64,
+            )
+        )
+    station_value_count = int(station_histogram.get("value_count", 0))
+    spot_value_count = int(spot_histogram.get("value_count", 0))
+    station_mean = float(station_histogram.get("mean", np.nan))
+    spot_mean = float(spot_histogram.get("mean", np.nan))
     panel_labels = list(recipe.get("panel_labels", []))
     panel_station_counts = list(recipe.get("panel_station_counts", []))
     panel_spot_counts = list(recipe.get("panel_spot_counts", []))
@@ -1830,10 +2167,10 @@ def render_segment_insight_export_figure(recipe):
     for spine in ax_spot.spines.values():
         spine.set_color("#444444")
 
-    if len(station_values):
-        station_median = _draw_vertical_metric_histogram(
+    if station_value_count > 0:
+        station_median = _draw_vertical_metric_histogram_recipe(
             ax_hist,
-            station_values,
+            station_histogram,
             color=EVIDENCE_AGG_COLOR,
             share_axis_label=recipe["panel_y_label"],
             hatch=STATION_EVIDENCE_HATCH,
@@ -1851,11 +2188,12 @@ def render_segment_insight_export_figure(recipe):
             ax_hist,
             handles=[station_median_line],
         )
-        _add_metric_mean_annotation(
-            ax_hist,
-            float(np.mean(station_values)),
-            label=recipe["mean_label"],
-        )
+        if np.isfinite(station_mean):
+            _add_metric_mean_annotation(
+                ax_hist,
+                station_mean,
+                label=recipe["mean_label"],
+            )
     else:
         ax_hist.text(
             0.5,
@@ -1870,9 +2208,9 @@ def render_segment_insight_export_figure(recipe):
         ax_hist.set_xticks([])
         ax_hist.set_yticks([])
 
-    spot_median = _draw_vertical_metric_histogram(
+    spot_median = _draw_vertical_metric_histogram_recipe(
         ax_spot,
-        spot_values,
+        spot_histogram,
         color=EVIDENCE_AGG_COLOR,
         share_axis_label=recipe["panel_y_label"],
         artist_gid="spot-metric-histogram",
@@ -1890,10 +2228,10 @@ def render_segment_insight_export_figure(recipe):
             ax_spot,
             handles=[spot_median_line],
         )
-        if len(spot_values):
+        if spot_value_count > 0 and np.isfinite(spot_mean):
             _add_metric_mean_annotation(
                 ax_spot,
-                float(np.mean(spot_values)),
+                spot_mean,
                 label=recipe["mean_label"],
             )
     else:

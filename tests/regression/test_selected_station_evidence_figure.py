@@ -10,6 +10,7 @@ from config import TEMPORAL_IQR_BAND_ALPHA
 from i18n import T
 from ui.matplotlib_renderer import dispose_matplotlib_figure
 from ui.results_export import figure_to_png_bytes
+from ui.plots import evidence_figures
 from ui.plots.evidence_figures import (
     METRIC_FONT_FAMILY,
     METRIC_LEGEND_FONTSIZE,
@@ -222,6 +223,19 @@ def _render_correction_footer_figure(figure_kind, notice):
         )
         return render_selected_evidence_export_figure(recipe), recipe
     raise AssertionError(f"Unsupported figure kind: {figure_kind}")
+
+
+def test_compare_segment_recipe_retains_histograms_without_observation_vectors():
+    """Keep exact Segment Insight statistics independent of evidence row count."""
+    recipe = _correction_footer_segment_recipe()
+
+    assert recipe["schema_version"] == 2
+    assert "station_values" not in recipe
+    assert "spot_values" not in recipe
+    assert recipe["station_histogram"]["counts"].sum() == 2
+    assert recipe["spot_histogram"]["counts"].sum() == 3
+    assert recipe["station_histogram"]["median"] == pytest.approx(0.0)
+    assert recipe["spot_histogram"]["mean"] == pytest.approx(0.0)
 
 
 @pytest.mark.parametrize(
@@ -734,6 +748,44 @@ def test_selected_compare_recipe_retires_histogram_and_temporal_view_state():
         "share_axis_label",
     ):
         assert retired_field not in recipe
+
+
+def test_selected_compare_recipe_prepares_every_interactive_time_bin():
+    """Keep selected-station bin changes independent of retained evidence rows."""
+    plot_df = pd.DataFrame(
+        {
+            "identity": ["A (AA00)"] * 4,
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:05:00Z",
+                    "2026-07-01T03:05:00Z",
+                    "2026-07-02T00:05:00Z",
+                    "2026-07-02T03:05:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [-2.0, 1.0, 2.0, 3.0],
+        }
+    )
+    recipe = _localized_selected_evidence_recipe(
+        plot_df,
+        "Selected Station Evidence",
+        "1h",
+        time_bin_options=("1h", "3h"),
+    )
+
+    assert set(recipe["prepared_profiles"]["chronological"]) == {"1h", "3h"}
+    assert "plot_time_ns" not in recipe
+    assert "metric" not in recipe
+
+    render_recipe = dict(recipe)
+    render_recipe["time_bin"] = "3h"
+    figure = render_selected_evidence_export_figure(render_recipe)
+    try:
+        assert figure is not None
+        assert len(figure.axes) == 3
+    finally:
+        dispose_matplotlib_figure(figure)
 
 
 def test_selected_compare_panels_center_on_selected_median_with_absolute_ticks():
@@ -1544,7 +1596,7 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
     )
 
     assert recipe["kind"] == "segment_compare_temporal"
-    assert recipe["schema_version"] == 2
+    assert recipe["schema_version"] == 3
     assert recipe["iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT
     assert recipe["time_bin"] == "3h"
     assert recipe["utc_date_count"] == 2
@@ -1650,6 +1702,183 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
         )
     finally:
         dispose_matplotlib_figure(figure)
+
+
+def test_prepared_compare_profiles_render_time_bin_changes_without_row_work(
+    monkeypatch,
+):
+    """Render every retained bin without decoding or regrouping evidence rows."""
+    plot_df = pd.DataFrame(
+        {
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:05:00Z",
+                    "2026-07-01T01:05:00Z",
+                    "2026-07-02T00:05:00Z",
+                    "2026-07-02T03:05:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [-2.0, 0.0, 1.0, 3.0],
+        }
+    )
+    recipe = _localized_segment_temporal_recipe(
+        plot_df,
+        "Prepared Compare Temporal Evidence",
+        "1h",
+        time_bin_options=("1h", "3h"),
+    )
+
+    assert "prepared_profiles" in recipe
+    assert "plot_time_ns" not in recipe
+    assert "metric" not in recipe
+    assert set(recipe["prepared_profiles"]["chronological"]) == {"1h", "3h"}
+
+    def fail_row_work(*_args, **_kwargs):
+        raise AssertionError("prepared rendering must not revisit evidence rows")
+
+    monkeypatch.setattr(
+        evidence_figures,
+        "_prepare_temporal_metric_rows",
+        fail_row_work,
+    )
+    monkeypatch.setattr(
+        evidence_figures,
+        "_chronological_density_components",
+        fail_row_work,
+    )
+    monkeypatch.setattr(
+        evidence_figures,
+        "_folded_utc_hour_density_components",
+        fail_row_work,
+    )
+
+    for time_bin in ("1h", "3h"):
+        render_recipe = dict(recipe)
+        render_recipe["time_bin"] = time_bin
+        figure = render_segment_temporal_evidence_export_figure(render_recipe)
+        try:
+            assert figure is not None
+            assert len(figure.axes) == 3
+        finally:
+            dispose_matplotlib_figure(figure)
+
+
+@pytest.mark.parametrize("time_bin", ("1h", "3h"))
+def test_prepared_compare_profile_matches_exact_row_aggregation(time_bin):
+    """Retain the exact density, median and quartile inputs for every bin."""
+    plot_df = pd.DataFrame(
+        {
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:05:00Z",
+                    "2026-07-01T01:05:00Z",
+                    "2026-07-02T00:05:00Z",
+                    "2026-07-02T03:05:00Z",
+                    "2026-07-02T03:25:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [-2.0, 0.0, 1.0, 3.0, 3.5],
+        }
+    )
+    recipe = _localized_segment_temporal_recipe(
+        plot_df,
+        "Prepared Compare Temporal Evidence",
+        "1h",
+        time_bin_options=("1h", "3h"),
+    )
+    work_df = evidence_figures._prepare_temporal_metric_rows(plot_df)
+    metric_bins = np.arange(
+        int(work_df["metric_bin"].min()),
+        int(work_df["metric_bin"].max()) + 1,
+    )
+    expected = evidence_figures._chronological_density_components(
+        work_df,
+        evidence_figures._time_agg_minutes(time_bin),
+        metric_bins,
+    )
+    actual = evidence_figures._compare_temporal_profile_values(
+        recipe["prepared_profiles"]["chronological"][time_bin]
+    )
+
+    np.testing.assert_array_equal(actual[0], expected[0].to_numpy())
+    for column in ("median", "count", "q1", "q3"):
+        np.testing.assert_allclose(
+            actual[1][column],
+            expected[1][column],
+            equal_nan=True,
+        )
+    np.testing.assert_allclose(actual[2], expected[2])
+    np.testing.assert_allclose(actual[3], expected[3])
+
+    expected_folded = evidence_figures._folded_utc_hour_density_components(
+        work_df,
+        metric_bins,
+    )
+    actual_folded = evidence_figures._compare_temporal_profile_values(
+        recipe["prepared_profiles"]["folded"]
+    )
+    np.testing.assert_array_equal(
+        actual_folded[0],
+        expected_folded[0].to_numpy(),
+    )
+    for column in ("median", "count", "q1", "q3"):
+        np.testing.assert_allclose(
+            actual_folded[1][column],
+            expected_folded[1][column],
+            equal_nan=True,
+        )
+    np.testing.assert_allclose(actual_folded[2], expected_folded[2])
+    np.testing.assert_allclose(actual_folded[3], expected_folded[3])
+
+
+def test_large_compare_recipe_arrays_round_trip_without_precision_loss():
+    """Compact large numeric payloads while retaining exact dtype and values."""
+    arrays = (
+        np.linspace(-40.0, 40.0, 40_000, dtype=np.float64),
+        np.tile(np.arange(400, dtype=np.int64), (400, 1)),
+    )
+
+    for values in arrays:
+        compact_values = evidence_figures._compact_compare_recipe_array(
+            values,
+            dtype=values.dtype,
+        )
+        restored_values = evidence_figures._compare_recipe_array_values(
+            compact_values,
+            dtype=values.dtype,
+        )
+
+        assert isinstance(compact_values, dict)
+        assert compact_values["encoding"] == "numpy-zlib-v1"
+        assert restored_values.dtype == values.dtype
+        np.testing.assert_array_equal(restored_values, values)
+
+
+def test_compact_compare_recipe_arrays_reject_corrupt_metadata_and_payloads():
+    """Fail closed on truncated, trailing or structurally mismatched arrays."""
+    encoded = evidence_figures._encode_compare_recipe_array(
+        np.arange(1_000, dtype=np.float64),
+        dtype=np.float64,
+    )
+    invalid_payloads = []
+    for replacement in (
+        {"payload": encoded["payload"][:-1]},
+        {"payload": encoded["payload"] + b"trailing"},
+        {"dtype": np.dtype(np.int64).str},
+        {"shape": (999,)},
+    ):
+        invalid_payload = dict(encoded)
+        invalid_payload.update(replacement)
+        invalid_payloads.append(invalid_payload)
+
+    for invalid_payload in invalid_payloads:
+        with pytest.raises(ValueError):
+            evidence_figures._compare_recipe_array_values(
+                invalid_payload,
+                dtype=np.float64,
+            )
 
 
 def test_segment_temporal_fractional_ticks_remain_inside_the_canvas():
@@ -1760,6 +1989,7 @@ def test_segment_temporal_figure_keeps_folded_placeholder_for_one_utc_date():
         "3h",
         "Joint spot count",
         folded_unavailable_text=placeholder,
+        time_bin_options=("1h", "3h"),
     )
 
     figure = render_segment_temporal_evidence_export_figure(recipe)
@@ -1808,6 +2038,7 @@ def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
         "Scheduled Evidence",
         "1h",
         is_sequential=True,
+        time_bin_options=("1h", "3h"),
     )
 
     figure = render_selected_evidence_export_figure(recipe)
