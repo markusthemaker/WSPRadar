@@ -1,5 +1,6 @@
 name: Apply Benchmark documentation revision
 
+# One-shot branch workflow; it deletes itself after producing the documentation diff.
 on:
   push:
     branches:
