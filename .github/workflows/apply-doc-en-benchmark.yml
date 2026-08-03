@@ -1,0 +1,51 @@
+name: Apply Benchmark documentation revision
+
+on:
+  push:
+    branches:
+      - agent/benchmark-documentation-playbook
+
+permissions:
+  contents: write
+
+jobs:
+  revise-documentation:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out documentation branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/benchmark-documentation-playbook
+          fetch-depth: 0
+
+      - name: Correct temporary helper guard
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("tools/apply_doc_en_benchmark_revision.py")
+          text = path.read_text(encoding="utf-8")
+          old = "The choices are mutually exclusive result types. Performance and Benchmark are mutually exclusive result types. Selecting any Reference-based design produces Benchmark only; it does not render, inspect or export a separate Performance result."
+          new = "The choices are mutually exclusive result types. No benchmark produces Performance only; every benchmark choice produces Benchmark only and does not render, inspect or export a separate Performance result."
+          if text.count(old) != 1:
+              raise SystemExit("temporary helper guard did not match exactly once")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8", newline="\n")
+          PY
+
+      - name: Revise and validate English documentation
+        run: python tools/apply_doc_en_benchmark_revision.py
+
+      - name: Check final branch diff
+        shell: bash
+        run: |
+          git diff --check
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Revise Benchmark documentation"
+          changed="$(git diff --name-only origin/main...HEAD)"
+          test "$changed" = "docs/doc_en.py"
+          git push origin HEAD:agent/benchmark-documentation-playbook
