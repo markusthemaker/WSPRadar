@@ -357,6 +357,9 @@ def apply_custom_css():
             scroll-margin-top: 5rem;
         }
 
+        .st-key-documentation_body .stMarkdown h2 {
+            font-size: 1.95rem !important;
+        }
         .stMarkdown h3 { color: #39ff14 !important; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-bottom: 8px; margin-top: 2.5rem; font-family: 'Rajdhani', sans-serif !important; font-size: 1.8rem; letter-spacing: 1px; }
         .stMarkdown h4 { color: #ffffff !important; margin-top: 1.8rem; font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
         .st-key-documentation_body .stMarkdown h4 {
@@ -662,6 +665,100 @@ def apply_custom_css():
         .st-key-documentation_body table.documentation-weighted-columns {
             table-layout: fixed !important;
             width: 100% !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] {
+            border-collapse: separate !important;
+            border-spacing: 0 0.45rem !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] thead th {
+            padding: 0.35rem 0.85rem 0.45rem !important;
+            background: transparent !important;
+            border: 0 !important;
+            color: #f1f5f9 !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td {
+            padding: 0.75rem 0.85rem !important;
+            vertical-align: top !important;
+            background: rgba(26, 38, 66, 0.56) !important;
+            border-top: 1px solid rgba(148, 163, 184, 0.2) !important;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2) !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:nth-child(2) {
+            color: #f1f5f9 !important;
+            font-weight: 600 !important;
+            line-height: 1.45 !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:nth-child(3) {
+            color: #cbd5e1 !important;
+            font-size: 0.92rem !important;
+            line-height: 1.45 !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:first-child {
+            border-left: 1px solid rgba(148, 163, 184, 0.2) !important;
+            border-radius: 0.3rem 0 0 0.3rem !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td:last-child {
+            border-right: 1px solid rgba(148, 163, 184, 0.2) !important;
+            border-radius: 0 0.3rem 0.3rem 0 !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-choice-single {
+            color: #39ff14 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.9rem !important;
+            font-weight: 700 !important;
+            white-space: nowrap !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-choice {
+            display: block !important;
+            line-height: 1.2 !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-choice > br {
+            display: none !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-family {
+            display: block !important;
+            color: #39ff14 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 0.76rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.045em !important;
+            line-height: 1.2 !important;
+            text-transform: uppercase !important;
+            white-space: nowrap !important;
+        }
+        .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-variant {
+            display: block !important;
+            margin-top: 0.28rem !important;
+            color: #f1f5f9 !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            line-height: 1.25 !important;
+            white-space: nowrap !important;
+        }
+        @media (max-width: 800px) {
+            .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] tbody td {
+                padding: 0.65rem 0.6rem !important;
+            }
+            .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-choice-single,
+            .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-family,
+            .st-key-documentation_body table[data-documentation-column-layout="section-0-1"] .analysis-variant {
+                white-space: normal !important;
+            }
+        }
+        .st-key-documentation_body .stMarkdown blockquote.evidence-conclusion {
+            margin: 0.75rem 0 1.5rem !important;
+            padding: 0.85rem 1rem !important;
+            background-color: rgba(26, 38, 66, 0.72) !important;
+            border: 1px solid rgba(57, 255, 20, 0.25) !important;
+            border-left: 4px solid #39ff14 !important;
+            border-radius: 0.3rem !important;
+            color: #f1f5f9 !important;
+            opacity: 1 !important;
+        }
+        .st-key-documentation_body .stMarkdown blockquote.evidence-conclusion p {
+            margin: 0 !important;
+            color: inherit !important;
         }
         .st-key-documentation_body .stMarkdown strong.defined-term,
         .st-key-guided_input_flow .stMarkdown strong.defined-term,

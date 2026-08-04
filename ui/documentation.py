@@ -180,6 +180,7 @@ def _render_documentation_section(t, lang, logo_base64, version):
         render_documentation_scroll_trigger(
             key=DOCUMENTATION_SCROLL_TRIGGER_KEY,
             anchor_ids=_documentation_anchor_ids(documentation_text),
+            documentation_language=lang,
             is_auto_expand_enabled=_should_render_scroll_trigger(
                 is_documentation_expanded
             ),

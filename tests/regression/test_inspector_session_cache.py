@@ -82,7 +82,7 @@ def test_compare_summary_count_uses_apostrophe_thousands_separator():
 def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
     monkeypatch,
 ):
-    """Label Compare tables from frozen run context without exposing raw HTML."""
+    """Label Benchmark tables from frozen run context without exposing raw HTML."""
     rendered_markup = []
     monkeypatch.setattr(
         segment_inspector,
@@ -191,13 +191,13 @@ def test_compare_correction_notice_precedes_statistics_and_enters_snr_recipes():
         ),
     ),
 )
-def test_selected_compare_temporal_panel_titles_are_localized_and_captions_retired(
+def test_selected_benchmark_temporal_titles_are_localized_and_captions_retired(
     language,
     chronological_title,
     folded_title,
     folded_unavailable,
 ):
-    """Keep selected Compare titles localized without redundant captions."""
+    """Keep selected Benchmark titles localized without redundant captions."""
     translations = T[language]
 
     assert (
@@ -424,9 +424,9 @@ def _render_segment_temporal_for_test(
     temporal_bundle = {
             "base_recipe": {
                 "kind": (
-                    "segment_compare_temporal"
+                    "segment_benchmark_temporal"
                     if is_compare
-                    else "opportunity_success_temporal"
+                    else "opportunity_performance_temporal"
                 ),
                 "time_bin": "3h",
             },
@@ -435,7 +435,7 @@ def _render_segment_temporal_for_test(
         }
     if include_compare_coverage:
         temporal_bundle["coverage_recipe"] = {
-            "kind": "compare_temporal_evidence_coverage",
+            "kind": "benchmark_temporal_evidence_coverage",
             "time_bin": "3h",
         }
     result = segment_inspector._render_segment_temporal_evidence(
@@ -446,7 +446,7 @@ def _render_segment_temporal_for_test(
         cache_key=("segment",),
         t={
             "hdr_results_temporal_evidence": "Temporal Evidence",
-            "sub_results_temporal_evidence": "Compare subtitle",
+            "sub_results_temporal_evidence": "Benchmark subtitle",
             "sub_results_success_temporal": "Performance subtitle",
             "lbl_time_aggregation_bin_size": "Select time aggregation bin size",
         },
@@ -459,7 +459,7 @@ def _render_segment_temporal_for_test(
 
 
 def test_success_segment_temporal_renders_snr_before_lower_evidence(monkeypatch):
-    """Use separate cache entries and export recipes for the two Success canvases."""
+    """Use separate cache entries and export recipes for two Performance canvases."""
     result, render_calls = _render_segment_temporal_for_test(
         monkeypatch,
         is_compare=False,
@@ -486,7 +486,7 @@ def test_success_segment_temporal_renders_snr_before_lower_evidence(monkeypatch)
 
 
 def test_compare_segment_temporal_keeps_one_combined_figure(monkeypatch):
-    """Do not split or otherwise reroute the established Compare figure."""
+    """Do not split or otherwise reroute the established Benchmark figure."""
     result, render_calls = _render_segment_temporal_for_test(
         monkeypatch,
         is_compare=True,
@@ -534,14 +534,16 @@ def test_compare_segment_time_bin_drives_absolute_and_coverage_figures(
 def test_compare_display_bin_changes_use_retained_recipes_without_provider_request(
     monkeypatch,
 ):
-    """Keep both Compare controls inside retained-evidence fragment work."""
+    """Keep both Benchmark controls inside retained-evidence fragment work."""
     from core import data_engine
 
     provider_requests = []
 
     def reject_provider_request(*args, **kwargs):
         provider_requests.append((args, kwargs))
-        raise AssertionError("Compare display controls must not query a provider.")
+        raise AssertionError(
+            "Benchmark display controls must not query a provider."
+        )
 
     monkeypatch.setattr(
         data_engine.http_session,
@@ -591,9 +593,9 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
     )
 
     segment_bundle = {
-        "base_recipe": {"kind": "segment_compare_temporal"},
+        "base_recipe": {"kind": "segment_benchmark_temporal"},
         "coverage_recipe": {
-            "kind": "compare_temporal_evidence_coverage"
+            "kind": "benchmark_temporal_evidence_coverage"
         },
         "time_bin_options": ("1h", "6h"),
         "time_bin_default": "1h",
@@ -614,7 +616,7 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
         )
 
     selected_bundle = {
-        "base_recipe": {"kind": "selected_compare_temporal"},
+        "base_recipe": {"kind": "selected_benchmark_temporal"},
         "coverage_recipe": {
             "kind": "selected_path_evidence_coverage"
         },
@@ -900,28 +902,28 @@ def test_one_sided_selected_path_renders_coverage_without_absolute_delta(
     )
 
 
-def test_segment_temporal_title_distinguishes_rx_and_tx_compare_figures():
+def test_segment_temporal_title_distinguishes_rx_and_tx_benchmark_figures():
     """Keep the compact temporal title scoped without repeating an outer heading."""
     labels = {
-        "fig_rx_comp_temporal_prefix": "RX Compare Temporal",
-        "fig_tx_comp_temporal_prefix": "TX Compare Temporal",
+        "fig_rx_comp_temporal_prefix": "RX Benchmark Temporal",
+        "fig_tx_comp_temporal_prefix": "TX Benchmark Temporal",
     }
 
     assert segment_inspector._segment_temporal_figure_title(
-        "RX Compare: G3ZIL (Target) vs. G4HZX (Reference)",
+        "RX Benchmark: G3ZIL (Target) vs. G4HZX (Reference)",
         "RX_COMP",
         "[5000-10000km] | WNW",
         labels,
     ) == (
-        "RX Compare Temporal: G3ZIL (Target) vs. G4HZX (Reference) - "
+        "RX Benchmark Temporal: G3ZIL (Target) vs. G4HZX (Reference) - "
         "[5000-10000km] | WNW"
     )
     assert segment_inspector._segment_temporal_figure_title(
-        "TX Compare: G3ZIL (Target) vs. G4HZX (Reference)",
+        "TX Benchmark: G3ZIL (Target) vs. G4HZX (Reference)",
         "TX_COMP",
         "Full Range | All Directions",
         labels,
-    ).startswith("TX Compare Temporal:")
+    ).startswith("TX Benchmark Temporal:")
 
 
 @pytest.mark.parametrize(
@@ -1372,7 +1374,7 @@ def test_compare_shared_bin_policy_preserves_paired_absolute_time_span():
 
 
 def test_time_bin_control_stretches_segmented_options_across_container(monkeypatch):
-    """Keep Segment Compare and Success time selectors compact and full-width."""
+    """Keep Benchmark and Performance time selectors compact and full-width."""
     captured = {}
 
     def segmented_control(label, options, **kwargs):
@@ -1657,7 +1659,7 @@ def test_selected_compare_persists_only_the_selected_chronological_bin():
 def test_segment_scope_initializes_from_saved_state_and_syncs_user_changes(
     monkeypatch,
 ):
-    """Keep Compare and Success scope intent outside transient run widget keys."""
+    """Keep Benchmark and Performance scope intent outside transient widget keys."""
     persistent_key = segment_inspector.RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY
     session_state = {
         persistent_key: ["[2500-5000km]", "[5000-10000km]"],
@@ -2049,7 +2051,7 @@ def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
 
 
 def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
-    """Make a saved zero-hit Success station visible before resolving defaults."""
+    """Make a saved zero-hit Performance station visible before resolving defaults."""
     station_table = pd.DataFrame(
         {
             "Station": ["A1AAA", "B2BBB"],
@@ -2082,7 +2084,7 @@ def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
 
 
 def test_compare_station_insights_uses_single_row_selection_and_compact_viewport():
-    """Keep Compare selection semantics with the shared five-row viewport."""
+    """Keep Benchmark selection semantics with the shared five-row viewport."""
     function_source = inspect.getsource(
         segment_inspector._render_segment_inspector_body
     )
@@ -2229,7 +2231,7 @@ def test_cache_size_estimator_counts_dataframe_and_png_payloads():
 
 
 def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
-    """Retain the heavy Compare model beside realistic sibling cache entries."""
+    """Retain the heavy Benchmark model beside realistic sibling cache entries."""
     evidence_count = 268_100
     represented_time_count = 20_756
     station_count = 7_850
@@ -2246,7 +2248,7 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
     station_values = ((np.arange(station_count) % 121) - 60) / 10.0
 
     segment_figure_recipe = segment_inspector._segment_figure_export_recipe(
-        title="Observed-scale Compare",
+        title="Observed-scale Benchmark",
         selected_segment="Full Range | All Directions",
         is_sequential=False,
         station_values=station_values,
@@ -2272,7 +2274,7 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
                     "metric": metric_values,
                 }
             ),
-            "Observed-scale Compare Temporal Evidence",
+            "Observed-scale Benchmark Temporal Evidence",
             "6h",
             "Joint spot count",
             chronological_title="Delta SNR over Time ({time_bin})",
@@ -2446,7 +2448,7 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
     from core import data_engine
 
     class FakeContainer:
-        """Provide the small context/container surface used by the Success inspector."""
+        """Provide the context/container surface used by the Performance inspector."""
 
         def __init__(self, fake_streamlit):
             self.fake_streamlit = fake_streamlit

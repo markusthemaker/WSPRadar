@@ -348,10 +348,10 @@ def build_analysis_batches(
     presentation_context=None,
     warn=None,
 ):
-    """Build exactly one direction-specific Success or Compare execution batch.
+    """Build one direction-specific Performance or Benchmark execution batch.
 
-    Success-only returns one opportunity batch. Any selected benchmark returns
-    only its comparison batch, preventing inactive Success queries, inspectors,
+    Performance returns one opportunity batch. Any selected benchmark returns
+    only its comparison batch, preventing inactive Performance queries, inspectors,
     and export artifacts while leaving comparison mathematics unchanged.
     Reference Station requires an exact callsign and four-character grid
     identity. Simultaneous Hardware A/B requires distinct callsigns and derives
@@ -590,12 +590,13 @@ def build_analysis_batches(
                 station_weighted_reference_median=station_weighted_reference_median,
             )
             analyses.append(with_decode_fallback({
-                "id": "TX_COMP",
+                "id": "TX_BENCHMARK",
                 "title": label("fig_tx_comp").format(
                     callsign=display_callsign,
                     comp_title=comp_title,
                 ),
                 "is_compare": True,
+                "result_family": "benchmark",
                 "is_sequential": is_sequential,
                 "is_local_median": station_weighted_reference_median,
                 "analysis_kind": "comparison",
@@ -606,9 +607,10 @@ def build_analysis_batches(
             }))
         if comp_mode == COMPARISON_NONE:
             analyses.append(with_decode_fallback({
-                "id": "TX_ABS",
+                "id": "TX_PERFORMANCE",
                 "title": label("fig_tx_abs").format(callsign=callsign),
                 "is_compare": False,
+                "result_family": "performance",
                 "is_sequential": False,
                 "analysis_kind": "opportunity",
                 "absolute_mode": "TX",
@@ -645,12 +647,13 @@ def build_analysis_batches(
                 station_weighted_reference_median=station_weighted_reference_median,
             )
             analyses.append(with_decode_fallback({
-                "id": "RX_COMP",
+                "id": "RX_BENCHMARK",
                 "title": label("fig_rx_comp").format(
                     callsign=display_callsign,
                     comp_title=comp_title,
                 ),
                 "is_compare": True,
+                "result_family": "benchmark",
                 "is_sequential": is_sequential,
                 "is_local_median": station_weighted_reference_median,
                 "analysis_kind": "comparison",
@@ -661,9 +664,10 @@ def build_analysis_batches(
             }))
         if comp_mode == COMPARISON_NONE:
             analyses.append(with_decode_fallback({
-                "id": "RX_ABS",
+                "id": "RX_PERFORMANCE",
                 "title": label("fig_rx_abs").format(callsign=callsign),
                 "is_compare": False,
+                "result_family": "performance",
                 "is_sequential": False,
                 "analysis_kind": "opportunity",
                 "absolute_mode": "RX",

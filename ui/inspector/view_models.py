@@ -151,7 +151,7 @@ def filter_inspector_scope(
 
 
 def compare_scope_availability(scope_rows: pd.DataFrame) -> tuple[bool, bool]:
-    """Return whether a Compare scope contains paired or unpaired evidence."""
+    """Return whether a Benchmark scope contains paired or unpaired evidence."""
     has_joint_rows = bool((scope_rows["spot_count"] > 0).any())
     has_non_joint_rows = bool(
         ((scope_rows["count_only_u"] > 0) | (scope_rows["count_only_r"] > 0)).any()
@@ -160,7 +160,7 @@ def compare_scope_availability(scope_rows: pd.DataFrame) -> tuple[bool, bool]:
 
 
 def _compare_labels(analysis_context, labels, *, is_sequential):
-    """Return Target/Reference labels for fixed, local, and scheduled Compare."""
+    """Return Target/Reference labels for fixed, local, and scheduled Benchmark."""
     target_call = analysis_context.callsign.upper()
     if (
         analysis_context.comparison_mode == COMPARISON_HARDWARE_AB
@@ -194,7 +194,7 @@ def build_compare_inspector_view_model(
     analysis_context,
     presentation_context,
 ) -> CompareInspectorViewModel:
-    """Prepare Compare tables and paired-evidence identities without widgets."""
+    """Prepare Benchmark tables and paired-evidence identities without widgets."""
     labels = presentation_context.labels
     has_joint_rows, has_non_joint_rows = compare_scope_availability(scope_rows)
     values = scope_rows["stat_val"].dropna()

@@ -41,12 +41,8 @@ from ui.callbacks import (
     set_reset_config,
     update_lang,
 )
-from ui.components.config_panel import (
-    render_advanced_expander,
-    render_compare_expander,
-    render_core_expander,
-    render_metadata_expander,
-)
+from ui.classic_inputs import render_classic_inputs
+from ui.components.config_panel import render_metadata_expander
 from ui.guided_inputs.renderer import render_guided_inputs
 from ui.page_navigation import (
     PAGE_TOP_ANCHOR_ID,
@@ -322,14 +318,13 @@ if st.session_state.get("show_config_loader", False):
 render_page_anchor(PARAMETER_SETTINGS_ANCHOR_ID)
 
 guided_render_result = None
+classic_render_result = None
 if st.session_state.input_view == "guided":
     with st.container(key="guided_input_flow"):
         guided_render_result = render_guided_inputs(t)
 else:
     render_metadata_expander(t)
-    render_core_expander(t)
-    render_compare_expander(t)
-    render_advanced_expander(t)
+    classic_render_result = render_classic_inputs(t)
 
 if st.session_state.get("configuration_changed_since_run", False):
     st.warning(
@@ -462,6 +457,7 @@ def render_run_analysis_button(*, is_busy):
         disabled=(
             analysis_direction not in {"rx", "tx"}
             or time_window_validation_error is not None
+            or not input_configuration_ready
         ),
         on_click=request_main_analysis_submission,
     )
@@ -470,6 +466,12 @@ guided_actions_available = bool(
     guided_render_result is not None
     and guided_render_result.is_ready
     and guided_render_result.review_actions_slot is not None
+)
+input_configuration_ready = bool(
+    classic_render_result.is_ready
+    if st.session_state.input_view == "classic"
+    and classic_render_result is not None
+    else guided_actions_available
 )
 should_render_actions = (
     st.session_state.input_view == "classic" or guided_actions_available
@@ -486,7 +488,10 @@ if should_render_actions:
             run_analysis_button_slot = st.empty()
             render_run_analysis_button(is_busy=submission_snapshot is not None)
         with save_col:
-            render_config_save_control(popover_key="config_save_top_trigger")
+            render_config_save_control(
+                popover_key="config_save_top_trigger",
+                is_configuration_ready=input_configuration_ready,
+            )
 else:
     run_analysis_button_slot = st.empty()
 
@@ -648,10 +653,11 @@ if consume_url_replay_navigation(st.session_state):
 render_page_navigation_controller(
     consume_page_navigation_request(st.session_state)
 )
-render_current_url_synchronizer(
-    st.session_state,
-    key=URL_QUERY_SYNCHRONIZER_PAGE_KEY,
-)
+if st.session_state.input_view != "classic" or input_configuration_ready:
+    render_current_url_synchronizer(
+        st.session_state,
+        key=URL_QUERY_SYNCHRONIZER_PAGE_KEY,
+    )
 
 # Load the small documentation preview only after the operational interface.
 from ui.documentation import render_documentation_section

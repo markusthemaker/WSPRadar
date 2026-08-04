@@ -81,7 +81,7 @@ def _placeholder_names(value: str) -> set[str]:
 def _complete_state(**overrides):
     """Return one valid RX Hardware A/B Guided Input state."""
     state = {
-        "guided_use_case": "rx_compare",
+        "guided_use_case": "rx_benchmark",
         "val_analysis_direction": "rx",
         "val_callsign": "DL1MKS",
         "val_qth": "JN37AA",
@@ -368,7 +368,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
     ),
     [
         (
-            "rx_success",
+            "rx_performance",
             "none",
             "local_median",
             "simultaneous",
@@ -376,7 +376,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ("use_case", "target_and_window", "scope_and_evidence", "review_and_run"),
         ),
         (
-            "tx_success",
+            "tx_performance",
             "none",
             "local_median",
             "simultaneous",
@@ -384,7 +384,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ("use_case", "target_and_window", "scope_and_evidence", "review_and_run"),
         ),
         (
-            "rx_compare",
+            "rx_benchmark",
             "hardware_ab",
             "local_median",
             "simultaneous",
@@ -399,7 +399,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "rx_compare",
+            "rx_benchmark",
             "reference_station",
             "local_median",
             "simultaneous",
@@ -414,7 +414,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "rx_compare",
+            "rx_benchmark",
             "local_neighborhood",
             "local_median",
             "simultaneous",
@@ -428,7 +428,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "rx_compare",
+            "rx_benchmark",
             "local_neighborhood",
             "local_best",
             "simultaneous",
@@ -442,7 +442,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "tx_compare",
+            "tx_benchmark",
             "hardware_ab",
             "local_median",
             "simultaneous",
@@ -457,7 +457,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "tx_compare",
+            "tx_benchmark",
             "hardware_ab",
             "local_median",
             "sequential",
@@ -472,7 +472,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "tx_compare",
+            "tx_benchmark",
             "reference_station",
             "local_median",
             "simultaneous",
@@ -487,7 +487,7 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "tx_compare",
+            "tx_benchmark",
             "local_neighborhood",
             "local_median",
             "simultaneous",
@@ -502,8 +502,8 @@ def test_condition_engine_rejects_an_unsupported_condition():
         ),
     ],
     ids=[
-        "rx-success",
-        "tx-success",
+        "rx-performance",
+        "tx-performance",
         "rx-hardware-no-offset",
         "rx-reference-established-offset",
         "rx-local-median",
@@ -563,7 +563,7 @@ def test_optional_skip_condition_omits_node_and_follows_its_transition():
     flow, _ = _flow_and_schema()
     flow["nodes"]["reference_design"]["skip_when"] = {
         "field": "guided_use_case",
-        "in": ["rx_success", "tx_success"],
+        "in": ["rx_performance", "tx_performance"],
     }
     flow["nodes"]["target_and_window"]["transitions"][0]["next"] = (
         "reference_design"
@@ -573,7 +573,7 @@ def test_optional_skip_condition_omits_node_and_follows_its_transition():
         {
             "when": {
                 "field": "guided_use_case",
-                "in": ["rx_success", "tx_success"],
+                "in": ["rx_performance", "tx_performance"],
             },
             "next": "scope_and_evidence",
         },
@@ -582,7 +582,7 @@ def test_optional_skip_condition_omits_node_and_follows_its_transition():
     path = resolve_flow_path(
         flow,
         {
-            "guided_use_case": "rx_success",
+            "guided_use_case": "rx_performance",
             "guided_scope_mode": "general",
         },
     )
@@ -600,14 +600,14 @@ def test_skipped_node_without_matching_transition_fails_clearly():
     flow, _ = _flow_and_schema()
     flow["nodes"]["reference_design"]["skip_when"] = {
         "field": "guided_use_case",
-        "equals": "rx_success",
+        "equals": "rx_performance",
     }
     flow["nodes"]["target_and_window"]["transitions"][0]["next"] = (
         "reference_design"
     )
 
     with pytest.raises(GuidedFlowError, match="has no matching transition"):
-        resolve_flow_path(flow, {"guided_use_case": "rx_success"})
+        resolve_flow_path(flow, {"guided_use_case": "rx_performance"})
 
 
 def test_complete_hardware_state_satisfies_every_node_rule():
@@ -702,7 +702,7 @@ def test_completion_rules_cover_absolute_time_and_reference_subbranches():
     assert not is_guided_node_complete("reference_design", local_state)
 
     scheduled_state = _complete_state(
-        guided_use_case="tx_compare",
+        guided_use_case="tx_benchmark",
         val_analysis_direction="tx",
         val_tx_ab_method="sequential",
         val_tx_ab_repeat_interval_minutes=10,
@@ -750,9 +750,9 @@ def test_reconstruct_guided_transients_from_canonical_loaded_config():
 
     reconstruct_guided_transients(state, has_loaded_demo=False)
 
-    assert state["guided_use_case"] == "tx_compare"
+    assert state["guided_use_case"] == "tx_benchmark"
     assert state["guided_reference_design"] == "reference_station"
-    assert state["guided_last_compare_mode"] == "reference_station"
+    assert state["guided_last_benchmark_mode"] == "reference_station"
     assert state["val_snr_correction_mode"] == "established_offset"
     assert state["guided_scope_mode"] == "custom"
 
@@ -773,8 +773,8 @@ def test_reconstruct_guided_transients_preserves_configured_establishment_mode()
     assert state["val_benchmark_offset_db"] == 0.0
 
 
-def test_reconstruct_success_and_general_defaults_from_canonical_state():
-    """Derive Success and general-purpose transient choices from ordinary values."""
+def test_reconstruct_performance_and_general_defaults_from_canonical_state():
+    """Derive Performance and general-purpose transients from ordinary values."""
     state = _complete_state(
         guided_use_case=None,
         val_analysis_direction="rx",
@@ -791,7 +791,7 @@ def test_reconstruct_success_and_general_defaults_from_canonical_state():
         val_min_opportunities=25,
         val_min_stations=3,
     )
-    assert derive_guided_use_case(state) == "rx_success"
+    assert derive_guided_use_case(state) == "rx_performance"
     assert not scope_matches_general_defaults(state)
 
     apply_general_scope_defaults(state)
@@ -800,7 +800,7 @@ def test_reconstruct_success_and_general_defaults_from_canonical_state():
     assert state["val_filter_moving"] is True
     reconstruct_guided_transients(state, has_loaded_demo=False)
 
-    assert state["guided_use_case"] == "rx_success"
+    assert state["guided_use_case"] == "rx_performance"
     assert state["guided_reference_design"] is None
     assert state["val_snr_correction_mode"] == "no_offset"
     assert state["guided_scope_mode"] == "general"
@@ -809,11 +809,11 @@ def test_reconstruct_success_and_general_defaults_from_canonical_state():
 @pytest.mark.parametrize(
     ("guided_use_case", "comparison_mode", "expected_default"),
     [
-        ("rx_success", "none", True),
-        ("tx_success", "none", True),
-        ("rx_compare", "hardware_ab", False),
-        ("rx_compare", "reference_station", False),
-        ("tx_compare", "local_neighborhood", False),
+        ("rx_performance", "none", True),
+        ("tx_performance", "none", True),
+        ("rx_benchmark", "hardware_ab", False),
+        ("rx_benchmark", "reference_station", False),
+        ("tx_benchmark", "local_neighborhood", False),
     ],
 )
 def test_general_population_defaults_follow_the_guided_result_family(
@@ -821,7 +821,7 @@ def test_general_population_defaults_follow_the_guided_result_family(
     comparison_mode,
     expected_default,
 ):
-    """Use Performance-on and Compare-off defaults in the shared Guided preset."""
+    """Use the result-family defaults in the shared Guided preset."""
     state = _complete_state(
         guided_use_case=guided_use_case,
         val_comp_mode=comparison_mode,

@@ -87,10 +87,10 @@ COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 4
 
 
 def _encode_compare_recipe_array(values, *, dtype):
-    """Losslessly encode one owned numeric Compare recipe array."""
+    """Losslessly encode one owned numeric Benchmark recipe array."""
     numeric_values = np.ascontiguousarray(np.asarray(values, dtype=dtype))
     if numeric_values.ndim not in (1, 2):
-        raise ValueError("Compare recipe arrays must have one or two dimensions")
+        raise ValueError("Benchmark recipe arrays must have one or two dimensions")
     compressed_payload = zlib.compress(
         memoryview(numeric_values).cast("B"),
         level=6,
@@ -107,7 +107,7 @@ def _compact_compare_recipe_array(values, *, dtype):
     """Own a numeric recipe array and compress large, compressible values."""
     numeric_values = np.ascontiguousarray(np.asarray(values, dtype=dtype))
     if numeric_values.ndim not in (1, 2):
-        raise ValueError("Compare recipe arrays must have one or two dimensions")
+        raise ValueError("Benchmark recipe arrays must have one or two dimensions")
     if numeric_values.nbytes < COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES:
         return numeric_values.copy()
     encoded_values = _encode_compare_recipe_array(
@@ -120,7 +120,7 @@ def _compact_compare_recipe_array(values, *, dtype):
 
 
 def _compare_recipe_array_values(value, *, dtype):
-    """Decode one compact Compare recipe array or accept its legacy ndarray."""
+    """Decode one compact Benchmark recipe array or accept its legacy ndarray."""
     requested_dtype = np.dtype(dtype)
     if not (
         isinstance(value, Mapping)
@@ -133,15 +133,15 @@ def _compare_recipe_array_values(value, *, dtype):
         stored_shape = tuple(int(length) for length in value["shape"])
         compressed_payload = value["payload"]
     except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError("Invalid compact Compare recipe array metadata") from exc
+        raise ValueError("Invalid compact Benchmark recipe array metadata") from exc
     if (
         stored_dtype != requested_dtype
         or len(stored_shape) not in (1, 2)
         or any(length < 0 for length in stored_shape)
     ):
-        raise ValueError("Compact Compare recipe array metadata does not match")
+        raise ValueError("Compact Benchmark recipe array metadata does not match")
     if not isinstance(compressed_payload, (bytes, bytearray, memoryview)):
-        raise ValueError("Compact Compare recipe array payload must be bytes")
+        raise ValueError("Compact Benchmark recipe array payload must be bytes")
 
     value_count = prod(stored_shape)
     expected_bytes = value_count * stored_dtype.itemsize
@@ -155,7 +155,7 @@ def _compare_recipe_array_values(value, *, dtype):
         or not decompressor.eof
         or decompressor.unused_data
     ):
-        raise ValueError("Compact Compare recipe array payload is invalid")
+        raise ValueError("Compact Benchmark recipe array payload is invalid")
     return np.frombuffer(
         raw_values,
         dtype=stored_dtype,
@@ -165,7 +165,7 @@ def _compare_recipe_array_values(value, *, dtype):
 
 @dataclass(frozen=True)
 class _CompareMedianFocusSpec:
-    """Describe one shared absolute-dB axis focused around a Compare median."""
+    """Describe one shared absolute-dB axis focused around a Benchmark median."""
 
     median_db: float
     anchor_offsets_db: tuple[float, ...]
@@ -251,7 +251,7 @@ def _compare_median_focus_inverse(values, spec):
 
 def _build_compare_median_focus_spec(values):
     """
-    Build a display-only Compare scale from raw evidence values.
+    Build a display-only Benchmark scale from raw evidence values.
 
     The exact evidence median is the center. Raw histogram and integer heatmap
     bin edges, plus absolute zero, determine a symmetric non-clipping span. A
@@ -1175,7 +1175,7 @@ def _compare_temporal_profile_recipe(
     x_edges,
     x_centers,
 ):
-    """Store sufficient statistics for one exact Compare temporal profile."""
+    """Store sufficient statistics for one exact Benchmark temporal profile."""
     return {
         "count_grid": _compact_compare_recipe_array(
             count_grid.to_numpy(dtype=np.int64, copy=True),
@@ -1197,9 +1197,9 @@ def _compare_temporal_profile_recipe(
 
 
 def _compare_temporal_profile_values(profile):
-    """Restore one retained Compare temporal profile for figure rendering."""
+    """Restore one retained Benchmark temporal profile for figure rendering."""
     if not isinstance(profile, Mapping):
-        raise ValueError("Compare temporal profile must be a mapping")
+        raise ValueError("Benchmark temporal profile must be a mapping")
     x_centers = np.asarray(profile.get("x_centers", []), dtype=np.float64)
     summary_df = pd.DataFrame(
         {
@@ -1210,7 +1210,7 @@ def _compare_temporal_profile_values(profile):
         }
     )
     if len(summary_df) != len(x_centers):
-        raise ValueError("Compare temporal profile summaries must align")
+        raise ValueError("Benchmark temporal profile summaries must align")
     return (
         _compare_recipe_array_values(
             profile.get("count_grid", []),
@@ -1276,11 +1276,11 @@ def _segment_temporal_evidence_export_recipe(
     chronological_subtitle=None,
     folded_subtitle=None,
     show_folded_date_annotation=False,
-    kind="segment_compare_temporal",
+    kind="segment_benchmark_temporal",
     reference_snr_correction_notice="",
     time_bin_options=None,
 ):
-    """Return localized Compare evidence with compact rows or prepared profiles."""
+    """Return localized Benchmark evidence with compact rows or prepared profiles."""
     work_df = _prepare_temporal_metric_rows(plot_df)
     time_bin = str(time_bin)
     utc_date_count = _temporal_utc_date_count(work_df)
@@ -1384,8 +1384,8 @@ def _segment_temporal_evidence_export_recipe(
 
 @synchronized_matplotlib
 def render_segment_temporal_snr_export_figure(recipe):
-    """Render shared Success temporal SNR evidence in its configured representation."""
-    if not recipe or recipe.get("kind") != "opportunity_success_temporal":
+    """Render Performance temporal SNR evidence in its configured representation."""
+    if not recipe or recipe.get("kind") != "opportunity_performance_temporal":
         return None
     from ui.plots.opportunity_figures import (
         _render_opportunity_temporal_snr_figure,
@@ -1396,10 +1396,10 @@ def render_segment_temporal_snr_export_figure(recipe):
 
 @synchronized_matplotlib
 def render_segment_temporal_evidence_export_figure(recipe):
-    """Render a registered Compare temporal or Success evidence recipe."""
+    """Render a registered Benchmark or Performance temporal evidence recipe."""
     if not recipe:
         return None
-    if recipe.get("kind") == "opportunity_success_temporal":
+    if recipe.get("kind") == "opportunity_performance_temporal":
         from ui.plots.opportunity_figures import (
             _render_opportunity_temporal_evidence_figure,
         )
@@ -1720,7 +1720,7 @@ def _selected_evidence_export_recipe(
     reference_snr_correction_notice="",
     time_bin_options=None,
 ):
-    """Return one selected Compare path recipe without redundant subtitles."""
+    """Return one selected Benchmark path recipe without redundant subtitles."""
     plot_times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True)
     numeric_metrics = pd.to_numeric(plot_df["metric"], errors="coerce")
     valid = plot_times.notna() & numeric_metrics.notna() & np.isfinite(numeric_metrics)
@@ -1750,7 +1750,7 @@ def _selected_evidence_export_recipe(
         bin_median_label=bin_median_label,
         bin_iqr_label=bin_iqr_label,
         show_folded_date_annotation=True,
-        kind="selected_compare_temporal",
+        kind="selected_benchmark_temporal",
         reference_snr_correction_notice=reference_snr_correction_notice,
         time_bin_options=time_bin_options,
     )
@@ -1759,8 +1759,8 @@ def _selected_evidence_export_recipe(
     return recipe
 
 def render_selected_evidence_export_figure(recipe):
-    """Render selected Compare evidence through the shared temporal renderer."""
-    if not recipe or recipe.get("kind") != "selected_compare_temporal":
+    """Render selected Benchmark evidence through the shared temporal renderer."""
+    if not recipe or recipe.get("kind") != "selected_benchmark_temporal":
         return None
     return render_segment_temporal_evidence_export_figure(recipe)
 
@@ -1785,7 +1785,7 @@ def _segment_figure_export_recipe(
     panel_series_labels=None,
     reference_snr_correction_notice="",
 ):
-    """Store numeric inputs and localized labels for Compare segment evidence."""
+    """Store numeric inputs and localized labels for Benchmark segment evidence."""
     return {
         "schema_version": COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION,
         "title": title,
@@ -1861,9 +1861,9 @@ def _draw_compare_outcome_bars(
     if not (
         len(panel_labels) == len(station_counts) == len(spot_counts)
     ):
-        raise ValueError("Compare outcome labels and count series must align")
+        raise ValueError("Benchmark outcome labels and count series must align")
     if len(series_labels) != 2:
-        raise ValueError("Compare outcome bars require station and spot labels")
+        raise ValueError("Benchmark outcome bars require station and spot labels")
 
     station_percentages = _percentage_shares(station_counts)
     spot_percentages = _percentage_shares(spot_counts)
@@ -1954,7 +1954,7 @@ def render_segment_insight_export_figure(recipe):
     if not recipe:
         return None
     recipe_kind = recipe.get("kind")
-    if recipe_kind == "opportunity_success_evidence":
+    if recipe_kind == "opportunity_performance_evidence":
         from ui.plots.opportunity_figures import _render_opportunity_segment_figure
         return _render_opportunity_segment_figure(recipe)
     if recipe_kind is not None:

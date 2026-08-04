@@ -136,7 +136,7 @@ MAP_THEMES = {
 
 @dataclass(frozen=True)
 class _CompareMapColorScale:
-    """Describe one stepped, symmetric Compare-map display scale in dB."""
+    """Describe one stepped, symmetric Benchmark-map display scale in dB."""
 
     colormap: mpl.colors.ListedColormap
     normalization: mpl.colors.BoundaryNorm
@@ -146,7 +146,7 @@ class _CompareMapColorScale:
 
 
 def _format_compare_map_tick(value_db):
-    """Format one signed whole-dB Compare-map colorbar tick."""
+    """Format one signed whole-dB Benchmark-map colorbar tick."""
     rounded_value = int(round(float(value_db)))
     if rounded_value > 0:
         return f"+{rounded_value}"
@@ -195,7 +195,7 @@ def _compare_map_bin_boundaries(half_span_db, tick_step_db):
     the outer boundaries extend half a step beyond the last ticks.
     """
     if tick_step_db < 1.0:
-        raise ValueError("Compare-map tick spacing must be at least 1 dB.")
+        raise ValueError("Benchmark-map tick spacing must be at least 1 dB.")
 
     positive_tick_count = int(round(half_span_db / tick_step_db))
     positive_boundaries_db = tuple(
@@ -213,7 +213,7 @@ def _compare_map_bin_boundaries(half_span_db, tick_step_db):
 
 def _build_compare_map_color_scale(segment_values):
     """
-    Build the presentation-only Compare scale from rendered sector medians.
+    Build the presentation-only Benchmark scale from rendered sector medians.
 
     The outer labelled ticks contain every finite sector value. Whole-dB steps
     retain as many equal-width color classes as the configured tick limit

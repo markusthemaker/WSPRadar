@@ -28,13 +28,20 @@ from core.input_validation import (
 )
 from core.time_utils import UtcWindowValidationError
 from ui.callbacks import (
-    reset_audit, handle_analysis_direction_change, handle_comp_mode_change,
+    reset_audit, handle_analysis_direction_change,
+    handle_classic_benchmark_design_change,
+    handle_classic_question_change,
     handle_population_exclusion_change,
     handle_reference_correction_context_change,
     handle_start_date_change,
     handle_time_window_change,
     handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
     handle_tx_ab_target_start_change, swap_tx_ab_starts,
+)
+from ui.analysis_question_state import ANALYSIS_QUESTION_CHOICES
+from ui.classic_input_state import (
+    CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
+    CLASSIC_QUESTION_KEY,
 )
 from ui.population_exclusion_state import (
     load_population_exclusion_widget_values,
@@ -234,9 +241,8 @@ def _render_identity_format_error(
     return is_valid
 
 def _benchmark_mode_options(t):
-    """Return stable Success/Compare design tokens in their displayed order."""
+    """Return the three visible Classic Benchmark designs in display order."""
     return [
-        "none",
         "hardware_ab",
         "reference_station",
         "local_neighborhood",
@@ -246,12 +252,35 @@ def _benchmark_mode_options(t):
 def _format_benchmark_mode(t, benchmark_mode):
     """Localize one stable benchmark-design token for display."""
     translation_keys = {
-        "none": "opt_comp_none",
-        "hardware_ab": "opt_comp_self",
-        "reference_station": "opt_comp_buddy",
-        "local_neighborhood": "opt_comp_radius",
+        "hardware_ab": "opt_benchmark_hardware_ab",
+        "reference_station": "opt_benchmark_reference_station",
+        "local_neighborhood": "opt_benchmark_local_neighborhood",
     }
     return t[translation_keys[benchmark_mode]]
+
+
+def _classic_question_options():
+    """Return the four stable direction/result questions in display order."""
+    return ANALYSIS_QUESTION_CHOICES
+
+
+def _format_classic_question(t, question):
+    """Localize one stable four-way Classic question token for display."""
+    return t[f"opt_question_{question}"]
+
+
+def _classic_question_captions(t):
+    """Return localized explanations aligned with the four question choices."""
+    return tuple(
+        t[f"desc_question_{question}"]
+        for question in _classic_question_options()
+    )
+
+
+def _numbered_panel_heading(t, translation_key, step_number):
+    """Prefix one localized Classic panel heading with its visible step."""
+    heading = t[translation_key]
+    return f"{step_number} · {heading}" if step_number is not None else heading
 
 
 def _comparison_column_widths(t, comparison_mode, analysis_direction):
@@ -679,13 +708,32 @@ def render_target_and_window_fields(
             st.error(t[time_window_validation_message_key(error)])
 
 
-def render_core_expander(t):
-    """Render analysis direction, target identity, band, and time controls."""
+def render_classic_question_expander(t, *, step_number=None):
+    """Render the required four-way RX/TX Performance/Benchmark question."""
     with st.expander(
-        t["exp_core"],
+        _numbered_panel_heading(t, "exp_question", step_number),
         expanded=st.session_state.get("config_panels_expanded", True),
     ):
-        _render_analysis_direction_selector(t)
+        st.markdown(t["txt_question_intro"])
+        st.radio(
+            t["lbl_question"],
+            _classic_question_options(),
+            key=CLASSIC_QUESTION_KEY,
+            index=None,
+            captions=_classic_question_captions(t),
+            label_visibility="collapsed",
+            on_change=handle_classic_question_change,
+            format_func=lambda question: _format_classic_question(t, question),
+            width="stretch",
+        )
+
+
+def render_core_expander(t, *, step_number=None):
+    """Render Target identity, band, and absolute UTC-window controls."""
+    with st.expander(
+        _numbered_panel_heading(t, "exp_core", step_number),
+        expanded=st.session_state.get("config_panels_expanded", True),
+    ):
         render_target_and_window_fields(
             t,
             correction_context_on_change=handle_reference_correction_context_change,
@@ -831,11 +879,18 @@ def render_reference_design_fields(
         else:
             st.info(t["msg_select_analysis_direction_hardware"])
 
-def render_compare_expander(t):
-    """Render the Success-only choice and optional benchmark-design controls."""
-    with st.expander(t["exp_comp"], expanded=st.session_state.get("config_panels_expanded", True)):
+def render_benchmark_expander(t, *, step_number=None):
+    """Render the conditional Classic Benchmark-design controls."""
+    with st.expander(
+        _numbered_panel_heading(t, "exp_comp", step_number),
+        expanded=st.session_state.get("config_panels_expanded", True),
+    ):
         comp_mode = st.session_state.val_comp_mode
         analysis_direction = st.session_state.get("val_analysis_direction")
+        benchmark_modes = _benchmark_mode_options(t)
+        st.session_state[CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY] = (
+            comp_mode if comp_mode in benchmark_modes else None
+        )
         col_comp_l, col_comp_r = st.columns(
             _comparison_column_widths(t, comp_mode, analysis_direction),
             gap="large",
@@ -843,15 +898,17 @@ def render_compare_expander(t):
         with col_comp_l:
             st.radio(
                 t["lbl_comp_mode"],
-                _benchmark_mode_options(t),
-                key="val_comp_mode",
+                benchmark_modes,
+                key=CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
+                index=None,
                 label_visibility="collapsed",
-                on_change=handle_comp_mode_change,
+                on_change=handle_classic_benchmark_design_change,
                 format_func=lambda benchmark_mode: _format_benchmark_mode(
                     t, benchmark_mode
                 ),
+                width="stretch",
             )
-            if st.session_state.val_comp_mode != "none":
+            if comp_mode != "none":
                 render_reference_correction_field(t)
         
         with col_comp_r:
@@ -942,14 +999,22 @@ def render_evidence_threshold_fields(
     """Render active thresholds with result- and direction-specific guidance."""
     if result_type is None:
         result_type = (
-            "success" if st.session_state.get("val_comp_mode") == "none" else "compare"
+            "performance"
+            if st.session_state.get("val_comp_mode") == "none"
+            else "benchmark"
         )
+    elif result_type == "success":
+        result_type = "performance"
+    elif result_type == "compare":
+        result_type = "benchmark"
+    if result_type not in {"performance", "benchmark"}:
+        raise ValueError(f"Unsupported result type {result_type!r}.")
     analysis_direction = (
         "tx"
         if st.session_state.get("val_analysis_direction", "rx") == "tx"
         else "rx"
     )
-    if result_type == "success":
+    if result_type == "performance":
         minimum_opportunities_help = t[
             f"hlp_min_opportunities_{analysis_direction}"
         ]
@@ -963,7 +1028,7 @@ def render_evidence_threshold_fields(
     min_spots_label = t["lbl_min_spots"]
     min_spots_help = t["hlp_min_spots"]
     if (
-        result_type == "compare"
+        result_type == "benchmark"
         and st.session_state.get("val_comp_mode") == "hardware_ab"
         and analysis_direction == "tx"
         and st.session_state.get("val_tx_ab_method") == "sequential"
@@ -985,7 +1050,7 @@ def render_evidence_threshold_fields(
         else (nullcontext(), nullcontext())
     )
     with threshold_containers[0]:
-        if result_type == "compare":
+        if result_type == "benchmark":
             st.slider(
                 min_spots_label,
                 1,
@@ -1017,10 +1082,10 @@ def render_evidence_threshold_fields(
         )
 
 
-def render_advanced_expander(t):
+def render_advanced_expander(t, *, result_type=None, step_number=None):
     """Render shared population, scope, and active-result evidence controls."""
     with st.expander(
-        t["exp_adv"],
+        _numbered_panel_heading(t, "exp_adv", step_number),
         expanded=st.session_state.get("config_panels_expanded", True),
     ):
         col3, col4 = st.columns(2, gap="large")
@@ -1031,4 +1096,4 @@ def render_advanced_expander(t):
             render_scope_fields(t)
         with col4:
             st.markdown(f"**{t['hdr_evidence_requirements']}**")
-            render_evidence_threshold_fields(t)
+            render_evidence_threshold_fields(t, result_type=result_type)

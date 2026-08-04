@@ -67,13 +67,15 @@ from ui.plots.temporal_layout import TEMPORAL_EVIDENCE_LAYOUT_VERSION
 from ui.url_state import build_share_url
 
 
-COMPARE_EXPORT_FOLDER = "compare"
-SUCCESS_EXPORT_FOLDER = "success"
-EXPORTABLE_RESULT_FOLDERS = frozenset({COMPARE_EXPORT_FOLDER, SUCCESS_EXPORT_FOLDER})
-SUCCESS_DISTANCE_EXPORT_RENDER_VERSION = 1
+BENCHMARK_EXPORT_FOLDER = "benchmark"
+PERFORMANCE_EXPORT_FOLDER = "performance"
+EXPORTABLE_RESULT_FOLDERS = frozenset(
+    {BENCHMARK_EXPORT_FOLDER, PERFORMANCE_EXPORT_FOLDER}
+)
+PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION = 1
 TEMPORAL_SNR_EXPORT_RENDER_VERSION = 7
 TEMPORAL_IQR_EXPORT_LINEWIDTH = 0.4
-COMPARE_EVIDENCE_FIGURE_EXPORTS = (
+BENCHMARK_EVIDENCE_FIGURE_EXPORTS = (
     (
         "figure_segment_temporal_coverage.png",
         "segment_temporal_coverage_figure_recipe",
@@ -376,14 +378,14 @@ def register_map_export_context(
         "analysis_id": analysis["id"],
         "title": analysis["title"],
         "mode_folder": (
-            COMPARE_EXPORT_FOLDER
+            BENCHMARK_EXPORT_FOLDER
             if analysis["is_compare"]
-            else SUCCESS_EXPORT_FOLDER
+            else PERFORMANCE_EXPORT_FOLDER
         ),
         "is_compare": bool(analysis["is_compare"]),
         "is_sequential": bool(analysis["is_sequential"]),
         "analysis_kind": analysis["analysis_kind"],
-        "success_method_version": analysis.get("absolute_method_version"),
+        "performance_method_version": analysis.get("absolute_method_version"),
         "decode_filter_mode": analysis.get("decode_filter_mode"),
         "database_source": _normalized_database_source(database_source),
         "map_context": {
@@ -524,10 +526,10 @@ def _selected_evidence_weighting_label(selected_station_count, translations):
     return None
 
 
-def _compare_evidence_figure_descriptions(block):
-    """Map registered Compare coverage filenames to localized recipe titles."""
+def _benchmark_evidence_figure_descriptions(block):
+    """Map registered Benchmark coverage filenames to localized recipe titles."""
     descriptions = {}
-    for figure_name, recipe_key, title_keys in COMPARE_EVIDENCE_FIGURE_EXPORTS:
+    for figure_name, recipe_key, title_keys in BENCHMARK_EVIDENCE_FIGURE_EXPORTS:
         recipe = block.get(recipe_key)
         if not isinstance(recipe, dict):
             continue
@@ -542,10 +544,10 @@ def _compare_evidence_figure_descriptions(block):
     return descriptions
 
 
-def _compare_evidence_recipe_signature(block):
-    """Fingerprint compact Compare recipes without serializing plot arrays."""
+def _benchmark_evidence_recipe_signature(block):
+    """Fingerprint compact Benchmark recipes without serializing plot arrays."""
     recipe_signatures = []
-    for figure_name, recipe_key, title_keys in COMPARE_EVIDENCE_FIGURE_EXPORTS:
+    for figure_name, recipe_key, title_keys in BENCHMARK_EVIDENCE_FIGURE_EXPORTS:
         recipe = block.get(recipe_key)
         if recipe is None:
             continue
@@ -646,18 +648,29 @@ def _json_default(value):
     return str(value)
 
 
+def _canonical_export_analysis_id(block, analysis_direction):
+    """Return a portable direction/result identifier without internal aliases."""
+    result_mode = str(block.get("mode_folder", "")).strip().casefold()
+    direction = str(analysis_direction or "").strip().casefold()
+    if direction not in {"rx", "tx"}:
+        internal_analysis_id = str(block.get("analysis_id", "")).strip()
+        candidate_direction = internal_analysis_id.partition("_")[0].casefold()
+        direction = candidate_direction if candidate_direction in {"rx", "tx"} else ""
+    return f"{direction}_{result_mode}" if direction else result_mode
+
+
 def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
     settings = config_payload.get("settings", {})
     core_parameters = settings.get("core_parameters", {})
     comparison_parameters = settings.get("comparison_parameters", {})
     advanced_parameters = settings.get("advanced_parameters", {})
     time_selection = core_parameters.get("time_selection", {})
-    compare_present = any(
-        block.get("mode_folder") == COMPARE_EXPORT_FOLDER
+    benchmark_present = any(
+        block.get("mode_folder") == BENCHMARK_EXPORT_FOLDER
         for block in blocks.values()
     )
-    success_present = any(
-        block.get("mode_folder") == SUCCESS_EXPORT_FOLDER
+    performance_present = any(
+        block.get("mode_folder") == PERFORMANCE_EXPORT_FOLDER
         for block in blocks.values()
     )
     analysis_cache_paths = analysis_cache_paths or {}
@@ -685,8 +698,8 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         "run_mode": str(core_parameters.get("analysis_direction", "")).upper(),
         "database_source": database_source,
         "blocks_present": {
-            COMPARE_EXPORT_FOLDER: compare_present,
-            SUCCESS_EXPORT_FOLDER: success_present,
+            BENCHMARK_EXPORT_FOLDER: benchmark_present,
+            PERFORMANCE_EXPORT_FOLDER: performance_present,
         },
         "callsign": core_parameters.get("callsign"),
         "reference_or_benchmark_mode": comparison_parameters.get("mode"),
@@ -712,9 +725,13 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
         },
         "result_blocks": [
             {
-                "analysis_id": block.get("analysis_id"),
+                "analysis_id": _canonical_export_analysis_id(
+                    block,
+                    core_parameters.get("analysis_direction"),
+                ),
                 "title": block.get("title"),
                 "folder": block.get("mode_folder"),
+                "result_mode": block.get("mode_folder"),
                 "analysis_cache_file": analysis_cache_paths.get(key),
                 "selected_segment": block.get("selected_segment"),
                 "selected_distance": block.get("selected_distance"),
@@ -742,17 +759,17 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                     "selected_evidence_figure_descriptions",
                     {},
                 ),
-                "compare_evidence_figures": (
-                    _compare_evidence_figure_descriptions(block)
+                "benchmark_evidence_figures": (
+                    _benchmark_evidence_figure_descriptions(block)
                 ),
                 "show_non_joint": block.get("show_non_joint"),
                 "show_zero_target": block.get("show_zero_target"),
                 "evidence_time_bin": block.get("evidence_time_bin"),
                 "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
-                "is_compare": block.get("is_compare"),
                 "is_sequential": block.get("is_sequential"),
-                "analysis_kind": block.get("analysis_kind"),
-                "success_method_version": block.get("success_method_version"),
+                "performance_method_version": block.get(
+                    "performance_method_version"
+                ),
             }
             for key, block in blocks.items()
         ],
@@ -828,9 +845,9 @@ def _export_signature(blocks):
     for key, block in sorted(blocks.items()):
         payload.append({
             "key": key,
-            "success_distance_export_render_version": (
-                SUCCESS_DISTANCE_EXPORT_RENDER_VERSION
-                if block.get("mode_folder") == SUCCESS_EXPORT_FOLDER
+            "performance_distance_export_render_version": (
+                PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION
+                if block.get("mode_folder") == PERFORMANCE_EXPORT_FOLDER
                 else None
             ),
             "temporal_snr_export_render_version": (
@@ -866,8 +883,8 @@ def _export_signature(blocks):
                 "selected_evidence_figure_descriptions",
                 {},
             ),
-            "compare_evidence_recipes": (
-                _compare_evidence_recipe_signature(block)
+            "benchmark_evidence_recipes": (
+                _benchmark_evidence_recipe_signature(block)
             ),
             "show_non_joint": block.get("show_non_joint"),
             "show_zero_target": block.get("show_zero_target"),
@@ -1038,11 +1055,11 @@ def _render_inspector_png_for_block(block, figure_name):
         render_segment_temporal_snr_export_figure,
         render_selected_evidence_export_figure,
     )
-    selected_success_figure_names = {
+    selected_performance_figure_names = {
         "figure_selected_station_snr_evidence.png",
         "figure_selected_station_temporal_evidence.png",
     }
-    selected_success_recipes = {
+    selected_performance_recipes = {
         "figure_selected_station_snr_evidence.png": block.get(
             "selected_station_snr_evidence_figure_recipe"
         ),
@@ -1050,27 +1067,27 @@ def _render_inspector_png_for_block(block, figure_name):
             "selected_station_temporal_evidence_figure_recipe"
         ),
     }
-    compare_coverage_recipe_keys = {
+    benchmark_coverage_recipe_keys = {
         figure_name: recipe_key
         for figure_name, recipe_key, _title_keys in (
-            COMPARE_EVIDENCE_FIGURE_EXPORTS
+            BENCHMARK_EVIDENCE_FIGURE_EXPORTS
         )
     }
-    if figure_name in selected_success_figure_names:
-        selected_success_recipe = selected_success_recipes[figure_name]
-        if selected_success_recipe is None:
+    if figure_name in selected_performance_figure_names:
+        selected_performance_recipe = selected_performance_recipes[figure_name]
+        if selected_performance_recipe is None:
             return None
-    if figure_name in compare_coverage_recipe_keys:
+    if figure_name in benchmark_coverage_recipe_keys:
         coverage_recipe = block.get(
-            compare_coverage_recipe_keys[figure_name]
+            benchmark_coverage_recipe_keys[figure_name]
         )
         if coverage_recipe is None:
             return None
-        from ui.plots.compare_evidence_figures import (
+        from ui.plots.benchmark_evidence_figures import (
             render_compare_temporal_coverage_export_figure,
             render_selected_compare_coverage_export_figure,
         )
-        compare_coverage_renderers = {
+        benchmark_coverage_renderers = {
             "figure_segment_temporal_coverage.png": (
                 render_compare_temporal_coverage_export_figure
             ),
@@ -1078,7 +1095,7 @@ def _render_inspector_png_for_block(block, figure_name):
                 render_selected_compare_coverage_export_figure
             ),
         }
-        fig = compare_coverage_renderers[figure_name](coverage_recipe)
+        fig = benchmark_coverage_renderers[figure_name](coverage_recipe)
     elif figure_name == "figure_segment_insight.png":
         fig = render_segment_insight_export_figure(block.get("segment_figure_recipe"))
     elif figure_name == "figure_segment_temporal_evidence.png":
@@ -1093,11 +1110,11 @@ def _render_inspector_png_for_block(block, figure_name):
         fig = render_selected_evidence_export_figure(block.get("selected_evidence_figure_recipe"))
     elif figure_name == "figure_selected_station_snr_evidence.png":
         fig = render_segment_temporal_snr_export_figure(
-            selected_success_recipes[figure_name]
+            selected_performance_recipes[figure_name]
         )
     elif figure_name == "figure_selected_station_temporal_evidence.png":
         fig = render_segment_temporal_evidence_export_figure(
-            selected_success_recipes[figure_name]
+            selected_performance_recipes[figure_name]
         )
     else:
         return None
@@ -1207,7 +1224,7 @@ def build_results_zip(translations):
                 "figure_segment_insight.png",
                 "figure_segment_temporal_evidence.png",
             ]
-            if folder == SUCCESS_EXPORT_FOLDER:
+            if folder == PERFORMANCE_EXPORT_FOLDER:
                 figure_names.insert(
                     2,
                     "figure_segment_temporal_snr_deviation.png",

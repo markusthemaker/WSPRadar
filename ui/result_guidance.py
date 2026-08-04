@@ -69,7 +69,7 @@ def _localized_guidance_item(section_content, item_key, format_values):
 
 
 def _comparison_benchmark_guidance_key(analysis_context):
-    """Return the generic guidance key for the active Compare benchmark."""
+    """Return the generic guidance key for the active Benchmark design."""
     comparison_mode = getattr(
         analysis_context,
         "comparison_mode",
@@ -91,7 +91,7 @@ def _comparison_benchmark_guidance_key(analysis_context):
             return "benchmark_local_best"
         raise ValueError(f"Unsupported local benchmark: {local_benchmark}")
     raise ValueError(
-        "Compare result guidance requires a supported comparison mode"
+        "Benchmark result guidance requires a supported comparison mode"
     )
 
 
@@ -121,7 +121,7 @@ def _result_guidance_item_keys(
         != COMPARISON_HARDWARE_AB
     ):
         raise ValueError(
-            "Scheduled result guidance is valid only for TX Hardware A/B Compare"
+            "Scheduled result guidance is valid only for TX Hardware A/B Benchmark"
         )
 
     if section_id == RESULT_GUIDANCE_CONTEXT:
@@ -152,7 +152,7 @@ def _result_guidance_item_keys(
     if section_id == RESULT_GUIDANCE_COMPARISON_EVIDENCE:
         if not is_compare:
             raise ValueError(
-                "Comparison Evidence guidance is unavailable for Success"
+                "Benchmark Evidence guidance is unavailable for Performance"
             )
         return [
             "comparison_evidence_scheduled"
@@ -172,7 +172,7 @@ def _result_guidance_item_keys(
     if section_id == RESULT_GUIDANCE_SUCCESS_EVIDENCE:
         if is_compare:
             raise ValueError(
-                "Success Evidence guidance is unavailable for Compare"
+                "Performance Evidence guidance is unavailable for Benchmark"
             )
         return [f"success_evidence_{direction.lower()}"]
 

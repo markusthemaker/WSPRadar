@@ -11,7 +11,12 @@ from config import DEMO_PROFILES
 from config.demo_profiles import prepare_demo_description_markdown
 from i18n import GUIDED_INPUTS
 from ui.analysis_submission_state import handoff_analysis_submission
+from ui.analysis_question_state import apply_analysis_question_choice
 from ui.callbacks import reset_audit
+from ui.classic_input_state import (
+    classic_result_type,
+    synchronize_classic_input_state,
+)
 from ui.components.config_fields import (
     render_evidence_threshold_fields,
     render_reference_correction_field,
@@ -30,10 +35,9 @@ from ui.page_navigation import (
     request_page_navigation,
 )
 from ui.population_exclusion_state import (
-    COMPARE_RESULT_TYPE,
+    BENCHMARK_RESULT_TYPE,
     PERFORMANCE_RESULT_TYPE,
     register_explicit_population_exclusion_values,
-    result_type_from_comparison_mode,
     transition_population_exclusion_result_type,
 )
 
@@ -50,6 +54,7 @@ from .state import (
     GUIDED_SCOPE_MODES,
     GUIDED_USE_CASES,
     apply_general_scope_defaults,
+    canonicalize_guided_use_case,
     guided_facts,
     is_guided_node_complete,
     reconstruct_guided_transients,
@@ -82,7 +87,7 @@ def _guided_scientific_change(node_id: str) -> None:
 def _guided_correction_context_change(node_id: str) -> None:
     """Invalidate any established offset whose scientific context was edited."""
     active_mode = st.session_state.get("val_comp_mode")
-    retained_mode = st.session_state.get("guided_last_compare_mode")
+    retained_mode = st.session_state.get("guided_last_benchmark_mode")
     if active_mode in COMPARISON_MODES or retained_mode in COMPARISON_MODES:
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
@@ -91,77 +96,13 @@ def _guided_correction_context_change(node_id: str) -> None:
 
 def _handle_use_case_change() -> None:
     """Map one transient question token atomically into canonical direction/design."""
-    use_case = st.session_state.get("guided_use_case")
+    use_case = canonicalize_guided_use_case(
+        st.session_state.get("guided_use_case")
+    )
     if use_case not in GUIDED_USE_CASES:
         return
-    analysis_direction, result_type = use_case.split("_", 1)
-    previous_direction = st.session_state.get("val_analysis_direction")
-    did_change_direction = (
-        previous_direction in {"rx", "tx"}
-        and previous_direction != analysis_direction
-    )
-    active_or_retained_design = st.session_state.get("val_comp_mode")
-    if active_or_retained_design not in COMPARISON_MODES:
-        active_or_retained_design = st.session_state.get(
-            "guided_reference_design"
-        )
-    if active_or_retained_design not in COMPARISON_MODES:
-        active_or_retained_design = st.session_state.get(
-            "guided_last_compare_mode"
-        )
-    if (
-        did_change_direction
-        and active_or_retained_design == "hardware_ab"
-    ):
-        # RX and TX Hardware A/B have different identity/schedule semantics.
-        # Match the Classic editor by requiring the operator to choose that
-        # design again after changing direction, while retaining harmless
-        # downstream values for possible reuse.
-        st.session_state.val_comp_mode = "none"
-        st.session_state.guided_reference_design = None
-        st.session_state.guided_last_compare_mode = None
-        st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.val_snr_correction_mode = "no_offset"
-        st.session_state.val_tx_ab_method = "simultaneous"
-        st.session_state.val_tx_ab_repeat_interval_minutes = 10
-        st.session_state.val_tx_ab_target_start_minute = 0
-        st.session_state.val_tx_ab_reference_start_minute = 2
-    elif did_change_direction and active_or_retained_design in {
-        "reference_station",
-        "local_neighborhood",
-    }:
-        # RX and TX compare different sides of a station pair or neighborhood.
-        # A correction established for one direction is not an established
-        # baseline for the other, even when the identities/scope remain useful.
-        st.session_state.val_benchmark_offset_db = 0.0
-        st.session_state.val_snr_correction_mode = "no_offset"
-    st.session_state.val_analysis_direction = analysis_direction
-    if result_type == "success":
-        current_mode = st.session_state.get("val_comp_mode")
-        if current_mode in COMPARISON_MODES:
-            st.session_state.guided_last_compare_mode = current_mode
-        st.session_state.val_comp_mode = "none"
-        st.session_state.guided_reference_design = None
-    else:
-        retained_mode = st.session_state.get("guided_reference_design")
-        if retained_mode not in COMPARISON_MODES:
-            retained_mode = st.session_state.get("guided_last_compare_mode")
-        if retained_mode in COMPARISON_MODES:
-            st.session_state.val_comp_mode = retained_mode
-            st.session_state.guided_reference_design = retained_mode
-        else:
-            # Compare intent is intentionally incomplete until Step 3; do not
-            # silently choose a scientific Reference design for the operator.
-            st.session_state.val_comp_mode = "none"
-            st.session_state.guided_reference_design = None
-    transition_population_exclusion_result_type(
-        st.session_state,
-        (
-            PERFORMANCE_RESULT_TYPE
-            if result_type == "success"
-            else COMPARE_RESULT_TYPE
-        ),
-    )
+    st.session_state.guided_use_case = use_case
+    apply_analysis_question_choice(st.session_state, use_case)
     _guided_scientific_change("use_case")
 
 
@@ -172,10 +113,10 @@ def _handle_reference_design_change() -> None:
         return
     previous_mode = st.session_state.get("val_comp_mode")
     st.session_state.val_comp_mode = new_mode
-    st.session_state.guided_last_compare_mode = new_mode
+    st.session_state.guided_last_benchmark_mode = new_mode
     transition_population_exclusion_result_type(
         st.session_state,
-        COMPARE_RESULT_TYPE,
+        BENCHMARK_RESULT_TYPE,
     )
     if new_mode != previous_mode:
         # Fixed-Reference identities and corrections have design-specific
@@ -284,13 +225,16 @@ def _open_demo_node(node_id: str) -> None:
 
 
 def _open_classic_view() -> None:
-    """Open Classic with defaults matching its canonical runnable result."""
+    """Open Classic while preserving any incomplete Guided Benchmark intent."""
     st.session_state.input_view = "classic"
+    synchronize_classic_input_state(
+        st.session_state,
+        preferred_question=st.session_state.get("guided_use_case"),
+    )
     transition_population_exclusion_result_type(
         st.session_state,
-        result_type_from_comparison_mode(
-            st.session_state.get("val_comp_mode")
-        ),
+        classic_result_type(st.session_state)
+        or PERFORMANCE_RESULT_TYPE,
     )
     if st.session_state.get("run_mode"):
         handoff_analysis_submission(
@@ -484,7 +428,9 @@ def _render_scope_and_evidence_fields(t, guided_content):
     render_evidence_threshold_fields(
         t,
         result_type=(
-            "success" if st.session_state.get("val_comp_mode") == "none" else "compare"
+            "performance"
+            if st.session_state.get("val_comp_mode") == "none"
+            else "benchmark"
         ),
         on_change=_guided_scientific_change,
         on_change_args=("scope_and_evidence",),
@@ -535,7 +481,7 @@ def _render_review_and_run(t, guided_content):
     """Render the complete active-only configuration summary and action placeholder."""
     messages = guided_content["messages"]
     use_case = st.session_state.get("guided_use_case")
-    is_compare = use_case in {"rx_compare", "tx_compare"}
+    is_compare = use_case in {"rx_benchmark", "tx_benchmark"}
     lines = [
         f"- **{messages['review_question']}:** {guided_content['options']['use_cases'][use_case]['label']}",
         f"- **{messages['review_target']}:** "
@@ -575,7 +521,7 @@ def _render_review_and_run(t, guided_content):
             ),
             f"- **{messages['review_scope']}:** {st.session_state.get('val_max_peer_distance_km', 22000)} km · {t[SOLAR_KEYS.get(st.session_state.get('val_solar'), 'opt_solar_all')]}",
             f"- **{messages['review_evidence']}:** {_evidence_value_summary(guided_content)}",
-            f"- **{messages['review_result']}:** {messages['result_compare' if is_compare else 'result_success']}",
+            f"- **{messages['review_result']}:** {messages['result_benchmark' if is_compare else 'result_performance']}",
         ]
     )
     st.markdown("\n".join(lines))

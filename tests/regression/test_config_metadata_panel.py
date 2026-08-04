@@ -102,14 +102,26 @@ def test_metadata_expander_is_hidden_without_loaded_profile(monkeypatch):
     assert fake_streamlit.captions == []
 
 
-def test_metadata_expander_precedes_core_parameters():
-    """Keep Classic loaded context above its first editable parameter panel."""
+def test_metadata_expander_precedes_classic_question_and_target_panels():
+    """Keep loaded context above Classic's first Question and Target panels."""
     app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
+    classic_source = (
+        REPOSITORY_ROOT / "ui" / "classic_inputs.py"
+    ).read_text(encoding="utf-8")
 
     metadata_call_index = app_source.index("render_metadata_expander(t)")
-    core_call_index = app_source.index("render_core_expander(t)")
+    classic_call_index = app_source.index(
+        "classic_render_result = render_classic_inputs(t)"
+    )
+    question_call_index = classic_source.index(
+        "render_classic_question_expander(t, step_number=1)"
+    )
+    target_call_index = classic_source.index(
+        "render_core_expander(t, step_number=2)"
+    )
 
-    assert metadata_call_index < core_call_index
+    assert metadata_call_index < classic_call_index
+    assert question_call_index < target_call_index
 
 
 def test_metadata_expander_shows_a_title_without_requiring_description(monkeypatch):
@@ -122,7 +134,7 @@ def test_metadata_expander_shows_a_title_without_requiring_description(monkeypat
         },
     )
 
-    assert fake_streamlit.expanders == [("🏷️ Metadata", True)]
+    assert fake_streamlit.expanders == [("Metadata", True)]
     assert fake_streamlit.markdowns == [("**Portable RX**", {})]
     assert fake_streamlit.container_keys == []
     assert fake_streamlit.captions == []
@@ -162,7 +174,7 @@ def test_metadata_title_displays_markdown_punctuation_as_plain_text(monkeypatch)
             "de",
             {"en": "English title", "de": "Deutscher Titel"},
             {"en": "English description", "de": "Deutsche Beschreibung"},
-            "🏷️ Metadaten",
+            "Metadaten",
             "Deutscher Titel",
             "Deutsche Beschreibung",
         ),
@@ -170,7 +182,7 @@ def test_metadata_title_displays_markdown_punctuation_as_plain_text(monkeypatch)
             "de",
             {"en": "English-only title"},
             {"en": "First line\n[Paper](https://example.org/paper)"},
-            "🏷️ Metadaten",
+            "Metadaten",
             "English-only title",
             "First line  \n[Paper](https://example.org/paper)",
         ),
@@ -178,7 +190,7 @@ def test_metadata_title_displays_markdown_punctuation_as_plain_text(monkeypatch)
             "en",
             {"fr": "Titre français"},
             {"fr": "Description française"},
-            "🏷️ Metadata",
+            "Metadata",
             "Titre français",
             "Description française",
         ),

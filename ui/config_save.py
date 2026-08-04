@@ -86,17 +86,21 @@ def render_config_save_control(
     *,
     popover_key="config_save_top_trigger",
     form_scope=None,
+    is_configuration_ready=True,
 ):
     """Render metadata, preparation, and download in one fragment.
 
     Preparing within this fragment reads inspector state at click time, including
-    selections changed by the independent Segment Inspector fragment.
+    selections changed by the independent Segment Inspector fragment. Callers
+    can disable the control while a transient editor branch is incomplete.
     """
     session_state = st.session_state
     language = session_state.get("lang", "en")
     translations = T[language]
     analysis_direction = session_state.get("val_analysis_direction")
-    is_save_available = analysis_direction in {"rx", "tx"}
+    is_save_available = bool(
+        is_configuration_ready and analysis_direction in {"rx", "tx"}
+    )
     profile_title_widget_key = _scoped_form_key(
         _PROFILE_TITLE_WIDGET_KEY,
         form_scope,

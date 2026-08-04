@@ -32,13 +32,13 @@ TABLE_FILES = [
     "table_drilldown_all_stations_current_segment.csv",
 ]
 FIGURE_FILES_BY_FOLDER = {
-    "compare": (
+    "benchmark": (
         "figure_map_highres.png",
         "figure_segment_insight.png",
         "figure_segment_temporal_evidence.png",
         "figure_selected_station_evidence.png",
     ),
-    "success": (
+    "performance": (
         "figure_map_highres.png",
         "figure_segment_insight.png",
         "figure_segment_temporal_snr_deviation.png",
@@ -164,7 +164,7 @@ def _safe_remove_fixture(destination: Path, fixture_root: Path) -> None:
 
 
 def _copy_export_tree(export_root: Path, destination: Path) -> None:
-    """Copy configuration plus current Compare and Success export folders."""
+    """Copy configuration plus current Benchmark and Performance folders."""
     for name in ["config", *BLOCK_FOLDERS]:
         source = export_root / name
         if source.exists():
@@ -315,10 +315,11 @@ def _build_regression_report(
             "folder": folder,
             "analysis_id": block.get("analysis_id"),
             "title": block.get("title"),
-            "mode": "compare" if block.get("is_compare") else "success",
+            "result_mode": block.get("result_mode", folder),
             "is_sequential": block.get("is_sequential"),
-            "analysis_kind": block.get("analysis_kind"),
-            "success_method_version": block.get("success_method_version"),
+            "performance_method_version": block.get(
+                "performance_method_version"
+            ),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),
@@ -393,7 +394,7 @@ def _write_regression_report_markdown(path: Path, report: dict[str, Any]) -> Non
         lines.extend([
             f"## {block.get('folder')} - {block.get('title')}",
             "",
-            f"- Mode: {block.get('mode')}",
+            f"- Result mode: {block.get('result_mode')}",
             f"- Sequential: {block.get('is_sequential')}",
             f"- Segment: {block.get('selected_distance')} / {block.get('selected_direction')}",
             f"- Include Unpaired Evidence: {block.get('show_non_joint')}",
@@ -443,10 +444,11 @@ def _build_manifest(
             "title": block.get("title"),
             "folder": folder,
             "analysis_cache_file": block.get("analysis_cache_file"),
-            "is_compare": block.get("is_compare"),
+            "result_mode": block.get("result_mode", folder),
             "is_sequential": block.get("is_sequential"),
-            "analysis_kind": block.get("analysis_kind"),
-            "success_method_version": block.get("success_method_version"),
+            "performance_method_version": block.get(
+                "performance_method_version"
+            ),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),
             "show_non_joint": block.get("show_non_joint"),

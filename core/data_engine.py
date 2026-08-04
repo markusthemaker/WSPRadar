@@ -785,7 +785,7 @@ def _read_wspr_csv_response(response_buffer, *, encoding="utf-8"):
 def _normalize_csv_query_frame(frame: pd.DataFrame, *, is_demo: bool) -> pd.DataFrame:
     """Reapply the established standard or demo CSV transport normalization.
 
-    Ordinary Compare rows downcast their known numeric transport columns before
+    Ordinary Benchmark rows downcast their known numeric transport columns before
     SNR-like rounding. Demo rows deliberately retain their parser-inferred
     numeric widths. Both direct responses and raw Parquet L2 reloads use this
     helper so delivery tier cannot change the returned values or dtypes.

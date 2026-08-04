@@ -95,7 +95,7 @@ from ui.plots.opportunity_figures import (
     _opportunity_temporal_recipe,
     _render_opportunity_segment_figure,
 )
-from ui.plots.compare_evidence_figures import (
+from ui.plots.benchmark_evidence_figures import (
     _compare_coverage_recipe,
     render_compare_temporal_coverage_export_figure,
     render_selected_compare_coverage_export_figure,
@@ -174,14 +174,14 @@ INSPECTOR_CACHE_NAMESPACE_LIMITS = {
 
 
 def _validate_inspector_analysis_mode(*, analysis_kind, is_compare):
-    """Return whether the inspector mode is Success and reject retired modes."""
+    """Return whether the mode is Performance and reject retired combinations."""
     if analysis_kind == "opportunity" and not is_compare:
         return True
     if analysis_kind == "comparison" and is_compare:
         return False
     raise ValueError(
-        "Segment Inspector mode must be Success "
-        "(analysis_kind='opportunity', is_compare=False) or Compare "
+        "Segment Inspector mode must be Performance "
+        "(analysis_kind='opportunity', is_compare=False) or Benchmark "
         "(analysis_kind='comparison', is_compare=True)."
     )
 
@@ -205,7 +205,7 @@ def _selected_stations_persistent_state_key(is_compare):
 
 
 def _segment_scope_persistent_state_keys(is_compare):
-    """Return canonical range and direction keys for Compare or Success."""
+    """Return canonical range and direction keys for Benchmark or Performance."""
     if is_compare:
         return (
             RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY,
@@ -295,7 +295,7 @@ def _render_prompted_segment_time_bin_control(
 
 
 def _segment_temporal_figure_title(title, analysis_id, selected_segment, t):
-    """Build the localized Compare-temporal title while preserving its scope text."""
+    """Build the localized Benchmark-temporal title with its scope text."""
     original_title = str(title)
     _, separator, comparison_title = original_title.partition(":")
     if not separator:
@@ -310,7 +310,7 @@ def _segment_temporal_figure_title(title, analysis_id, selected_segment, t):
 
 
 def _success_figure_labels(translations, analysis_id):
-    """Return localized labels for the pure Success evidence recipes."""
+    """Return localized labels for the pure Performance evidence recipes."""
     is_tx = str(analysis_id).upper().startswith("TX")
     mode_suffix = "tx" if is_tx else "rx"
     return {
@@ -448,14 +448,14 @@ def _compare_coverage_figure_labels(
     joint_label,
     reference_only_label,
 ):
-    """Return semantic labels for Compare evidence-coverage recipes."""
+    """Return semantic labels for Benchmark evidence-coverage recipes."""
     if (
         target_only_label is None
         or joint_label is None
         or reference_only_label is None
     ):
         raise ValueError(
-            "Compare temporal outcome labels must be localized strings."
+            "Benchmark temporal outcome labels must be localized strings."
         )
     mode_suffix = (
         "tx"
@@ -546,7 +546,7 @@ def _compare_temporal_coverage_title(
     analysis_id,
     callsign,
 ):
-    """Build the localized Compare Temporal Evidence Coverage title."""
+    """Build the localized Benchmark Temporal Evidence Coverage title."""
     mode_suffix = (
         "tx"
         if str(analysis_id).upper().startswith("TX")
@@ -591,7 +591,7 @@ def _success_temporal_figure_title(
     *,
     figure_kind,
 ):
-    """Build one localized SNR or evidence Success temporal figure title."""
+    """Build one localized Performance temporal SNR or evidence figure title."""
     mode_suffix = (
         "tx"
         if str(analysis_id).upper().startswith("TX")
@@ -603,7 +603,7 @@ def _success_temporal_figure_title(
         title_key = f"fig_success_temporal_title_{mode_suffix}"
     else:
         raise ValueError(
-            "Success temporal figure kind must be 'snr' or 'evidence'."
+            "Performance temporal figure kind must be 'snr' or 'evidence'."
         )
     return translations[
         title_key
@@ -620,7 +620,7 @@ def _selected_success_temporal_figure_title(
     *,
     figure_kind,
 ):
-    """Build one localized shared-figure title for a selected Success station."""
+    """Build one localized figure title for a selected Performance station."""
     mode_suffix = (
         "tx"
         if str(analysis_id).upper().startswith("TX")
@@ -636,7 +636,7 @@ def _selected_success_temporal_figure_title(
         )
     else:
         raise ValueError(
-            "Selected Success figure kind must be 'snr' or 'evidence'."
+            "Selected Performance figure kind must be 'snr' or 'evidence'."
         )
     return translations[title_key].format(
         station=str(station).strip().upper(),
@@ -867,7 +867,7 @@ def _selection_requires_zero_hit_rows(
     hit_column,
     configured_identities,
 ):
-    """Return whether a saved Success selection includes a hidden zero-hit row."""
+    """Return whether a Performance selection includes a hidden zero-hit row."""
     normalized_identities = _validate_single_station_identity_records(
         configured_identities
     )
@@ -905,7 +905,7 @@ def _opportunity_export_station_rows(
     *,
     export_column_renames,
 ):
-    """Rename only visible Success station rows into the export schema."""
+    """Rename only visible Performance station rows into the export schema."""
     if display_station_table is None:
         return pd.DataFrame()
     return display_station_table.rename(columns=export_column_renames)
@@ -1181,7 +1181,7 @@ def _success_distance_scope_intervals(
     )
     if len(intervals) != len(selected_ranges):
         raise ValueError(
-            "Every selected Success distance range requires stable bounds."
+            "Every selected Performance distance range requires stable bounds."
         )
     return intervals
 
@@ -1301,7 +1301,7 @@ def _format_localized_decimal(value, translations, *, decimals=1):
 
 
 def _selected_success_context_line(recipe, translations):
-    """Format the one-line complete-run context for one selected Success path."""
+    """Format complete-run context for one selected Performance path."""
     summary = dict((recipe or {}).get("selected_station_summary") or {})
     confirmed_opportunities = int(
         summary.get("confirmed_opportunities", 0)
@@ -1371,7 +1371,7 @@ def _compare_metric_distribution_summary(
     joint_count=None,
     joint_label="Joint",
 ):
-    """Format one Compare distribution summary with optional outcome counts."""
+    """Format one Benchmark distribution summary with optional outcome counts."""
     numeric_values = np.asarray(values, dtype=float)
     numeric_values = numeric_values[np.isfinite(numeric_values)]
     if len(numeric_values) == 0:
@@ -1622,7 +1622,7 @@ def _render_selected_station_evidence(
     reference_only_label=None,
     timing_collector=None,
 ):
-    """Render absolute Delta-SNR and coverage for one selected Compare path."""
+    """Render absolute Delta-SNR and coverage for one selected Benchmark path."""
     identity_meta = _prepare_identity_meta(selected_identity_df)
     if identity_meta.empty:
         return None
@@ -1914,7 +1914,7 @@ def _render_segment_temporal_evidence(
     language,
     timing_collector=None,
 ):
-    """Render one segment-scoped Compare or Success temporal evidence view."""
+    """Render one segment-scoped Benchmark or Performance temporal view."""
     if not temporal_bundle:
         return None
 
@@ -2090,7 +2090,7 @@ def _render_opportunity_scope(
     presentation_context,
     timing_collector=None,
 ):
-    """Render the opportunity-specific Success inspector and export state."""
+    """Render the opportunity-specific Performance inspector and export state."""
     opportunity_terms = presentation_context.absolute_terms(
         "TX" if analysis_id.startswith("TX") else "RX"
     )

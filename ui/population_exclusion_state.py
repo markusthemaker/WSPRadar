@@ -4,11 +4,15 @@ from collections.abc import Mapping, MutableMapping
 
 
 PERFORMANCE_RESULT_TYPE = "performance"
-COMPARE_RESULT_TYPE = "compare"
+BENCHMARK_RESULT_TYPE = "benchmark"
 POPULATION_EXCLUSION_RESULT_TYPE_KEY = "_population_exclusion_result_type"
 POPULATION_EXCLUSION_OVERRIDES_KEY = "_population_exclusion_overrides"
 
-_RESULT_TYPES = frozenset({PERFORMANCE_RESULT_TYPE, COMPARE_RESULT_TYPE})
+_RESULT_TYPES = frozenset({PERFORMANCE_RESULT_TYPE, BENCHMARK_RESULT_TYPE})
+_LEGACY_RESULT_TYPE_ALIASES = {
+    "success": PERFORMANCE_RESULT_TYPE,
+    "compare": BENCHMARK_RESULT_TYPE,
+}
 _COMPARISON_MODES = frozenset(
     {"hardware_ab", "reference_station", "local_neighborhood"}
 )
@@ -24,7 +28,7 @@ _DEFAULTS_BY_RESULT_TYPE = {
         "val_exclude_special_callsigns": True,
         "val_filter_moving": True,
     },
-    COMPARE_RESULT_TYPE: {
+    BENCHMARK_RESULT_TYPE: {
         "val_exclude_special_callsigns": False,
         "val_filter_moving": False,
     },
@@ -36,14 +40,20 @@ def result_type_from_comparison_mode(comparison_mode: object) -> str:
     if comparison_mode == "none":
         return PERFORMANCE_RESULT_TYPE
     if comparison_mode in _COMPARISON_MODES:
-        return COMPARE_RESULT_TYPE
+        return BENCHMARK_RESULT_TYPE
     raise ValueError(f"Unsupported comparison mode {comparison_mode!r}.")
+
+
+def _canonical_result_type(result_type: object) -> object:
+    """Normalize a bounded legacy session token without writing it again."""
+    return _LEGACY_RESULT_TYPE_ALIASES.get(result_type, result_type)
 
 
 def population_exclusion_defaults(result_type: str) -> dict[str, bool]:
     """Return a new canonical filter-default mapping for one result type."""
+    canonical_result_type = _canonical_result_type(result_type)
     try:
-        return dict(_DEFAULTS_BY_RESULT_TYPE[result_type])
+        return dict(_DEFAULTS_BY_RESULT_TYPE[canonical_result_type])
     except KeyError as error:
         raise ValueError(f"Unsupported result type {result_type!r}.") from error
 
@@ -65,7 +75,9 @@ def initialize_population_exclusion_state(state: MutableMapping) -> None:
     """Initialize new sessions while preserving canonical existing values."""
     # Reassignment detaches values from the former direct widget keys so a
     # hot-reloaded Streamlit session cannot delete the new canonical shadows.
-    tracked_result_type = state.get(POPULATION_EXCLUSION_RESULT_TYPE_KEY)
+    tracked_result_type = _canonical_result_type(
+        state.get(POPULATION_EXCLUSION_RESULT_TYPE_KEY)
+    )
     overrides = _override_flags(state)
     if tracked_result_type in _RESULT_TYPES and overrides is not None:
         defaults = population_exclusion_defaults(tracked_result_type)
@@ -76,6 +88,7 @@ def initialize_population_exclusion_state(state: MutableMapping) -> None:
                 if isinstance(canonical_value, bool)
                 else defaults[state_key]
             )
+        state[POPULATION_EXCLUSION_RESULT_TYPE_KEY] = tracked_result_type
         return
 
     active_result_type = result_type_from_comparison_mode(
@@ -100,6 +113,7 @@ def transition_population_exclusion_result_type(
     result_type: str,
 ) -> None:
     """Apply another result family's defaults only to untouched filter fields."""
+    result_type = _canonical_result_type(result_type)
     if result_type not in _RESULT_TYPES:
         raise ValueError(f"Unsupported result type {result_type!r}.")
 
@@ -164,6 +178,7 @@ def apply_population_exclusion_defaults(
     result_type: str,
 ) -> None:
     """Apply both defaults and clear explicit ownership for a fresh preset."""
+    result_type = _canonical_result_type(result_type)
     defaults = population_exclusion_defaults(result_type)
     state.update(defaults)
     state[POPULATION_EXCLUSION_RESULT_TYPE_KEY] = result_type
@@ -181,6 +196,7 @@ def register_explicit_population_exclusion_values(
     active_result_type = result_type or result_type_from_comparison_mode(
         state.get("val_comp_mode")
     )
+    active_result_type = _canonical_result_type(active_result_type)
     population_exclusion_defaults(active_result_type)
     if any(
         not isinstance(state.get(state_key), bool)

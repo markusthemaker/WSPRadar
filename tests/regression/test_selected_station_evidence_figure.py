@@ -1,4 +1,4 @@
-"""Regression coverage for Compare selected and segment temporal evidence."""
+"""Regression coverage for Benchmark selected and temporal evidence."""
 
 from matplotlib.collections import QuadMesh
 from matplotlib.colors import to_rgba
@@ -45,7 +45,7 @@ def _localized_selected_evidence_recipe(
     is_sequential=False,
     **overrides,
 ):
-    """Build one localized dual-panel selected-Compare recipe."""
+    """Build one localized dual-panel selected-Benchmark recipe."""
     translations = T[language]
     presentation = {
         "count_label": translations[
@@ -178,9 +178,9 @@ def _correction_footer_test_rows():
 
 
 def _correction_footer_segment_recipe(notice=""):
-    """Build one complete Compare segment recipe for footer assertions."""
+    """Build one complete Benchmark segment recipe for footer assertions."""
     return _segment_figure_export_recipe(
-        title="RX Compare",
+        title="RX Benchmark",
         selected_segment="Full Range | All Directions",
         is_sequential=False,
         station_values=[-1.0, 1.0],
@@ -202,14 +202,14 @@ def _correction_footer_segment_recipe(notice=""):
 
 
 def _render_correction_footer_figure(figure_kind, notice):
-    """Render one Compare Delta-SNR figure through the requested recipe path."""
+    """Render one Benchmark Delta-SNR figure through the requested recipe path."""
     if figure_kind == "segment":
         recipe = _correction_footer_segment_recipe(notice)
         return render_segment_insight_export_figure(recipe), recipe
     if figure_kind == "segment_temporal":
         recipe = _localized_segment_temporal_recipe(
             _correction_footer_test_rows(),
-            "RX Compare Temporal Evidence",
+            "RX Benchmark Temporal Evidence",
             "3h",
             reference_snr_correction_notice=notice,
         )
@@ -425,7 +425,7 @@ def test_compare_delta_snr_figures_omit_empty_correction_footer(figure_kind):
 
 
 def _render_compare_evidence_figure(metric_values, identity_labels):
-    """Render one Compare selected-station recipe from exact evidence rows."""
+    """Render one Benchmark selected-station recipe from exact evidence rows."""
     plot_df = pd.DataFrame(
         {
             "identity": identity_labels,
@@ -443,7 +443,7 @@ def _render_compare_evidence_figure(metric_values, identity_labels):
         "3h",
         is_sequential=False,
     )
-    assert recipe["kind"] == "selected_compare_temporal"
+    assert recipe["kind"] == "selected_benchmark_temporal"
     assert "temporal_view" not in recipe
     return render_selected_evidence_export_figure(recipe)
 
@@ -555,7 +555,7 @@ def _texts_with_gid(axis, gid):
 
 
 def _assert_no_selected_compare_subtitles(figure):
-    """Keep selected Compare panels free of redundant subtitle artists."""
+    """Keep selected Benchmark panels free of redundant subtitle artists."""
     subtitle_gids = {
         "compare-temporal-chronological-subtitle",
         "compare-temporal-folded-subtitle",
@@ -738,7 +738,7 @@ def test_selected_compare_recipe_retires_histogram_and_temporal_view_state():
         "6h",
     )
 
-    assert recipe["kind"] == "selected_compare_temporal"
+    assert recipe["kind"] == "selected_benchmark_temporal"
     assert recipe["time_bin"] == "6h"
     assert recipe["chronological_title"] == "\u0394 SNR over Time"
     assert recipe["chronological_subtitle"] is None
@@ -1593,7 +1593,7 @@ def test_compare_temporal_iqr_fails_closed_for_tampered_recipe_threshold():
         dispose_matplotlib_figure(figure)
 
 
-def test_segment_compare_temporal_recipe_and_dual_density_figure():
+def test_segment_benchmark_temporal_recipe_and_dual_density_figure():
     """Keep recipes compact and normalize chronological/folded panels separately."""
     plot_df = pd.DataFrame(
         {
@@ -1611,12 +1611,12 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
     )
     recipe = _localized_segment_temporal_recipe(
         plot_df,
-        "RX Compare Temporal: G3ZIL (Target) vs. G4HZX (Reference)",
+        "RX Benchmark Temporal: G3ZIL (Target) vs. G4HZX (Reference)",
         "3h",
         "Joint spot count",
     )
 
-    assert recipe["kind"] == "segment_compare_temporal"
+    assert recipe["kind"] == "segment_benchmark_temporal"
     assert recipe["schema_version"] == 4
     assert recipe["iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT
     assert recipe["time_bin"] == "3h"
@@ -1716,7 +1716,7 @@ def test_segment_compare_temporal_recipe_and_dual_density_figure():
             text.get_text() for text in folded_axis.texts
         }
         assert figure._suptitle.get_text() == (
-            "RX Compare Temporal: G3ZIL (Target) vs. G4HZX (Reference)"
+            "RX Benchmark Temporal: G3ZIL (Target) vs. G4HZX (Reference)"
         )
         assert colorbar_axis.get_ylabel() == (
             "Relative joint-spot density (% of panel maximum)"
@@ -1745,7 +1745,7 @@ def test_prepared_compare_profiles_render_time_bin_changes_without_row_work(
     )
     recipe = _localized_segment_temporal_recipe(
         plot_df,
-        "Prepared Compare Temporal Evidence",
+        "Prepared Benchmark Temporal Evidence",
         "1h",
         time_bin_options=("1h", "3h"),
     )
@@ -1805,7 +1805,7 @@ def test_prepared_compare_profile_matches_exact_row_aggregation(time_bin):
     )
     recipe = _localized_segment_temporal_recipe(
         plot_df,
-        "Prepared Compare Temporal Evidence",
+        "Prepared Benchmark Temporal Evidence",
         "1h",
         time_bin_options=("1h", "3h"),
     )
@@ -1920,7 +1920,7 @@ def test_segment_temporal_fractional_ticks_remain_inside_the_canvas():
     )
     recipe = _localized_segment_temporal_recipe(
         plot_df,
-        "Fractional Compare Temporal Evidence",
+        "Fractional Benchmark Temporal Evidence",
         "3h",
         "Joint spot count",
     )

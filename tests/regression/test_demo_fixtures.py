@@ -24,13 +24,13 @@ TABLE_FILES = [
     "table_drilldown_all_stations_current_segment.csv",
 ]
 FIGURE_FILES_BY_FOLDER = {
-    "compare": (
+    "benchmark": (
         "figure_map_highres.png",
         "figure_segment_insight.png",
         "figure_segment_temporal_evidence.png",
         "figure_selected_station_evidence.png",
     ),
-    "success": (
+    "performance": (
         "figure_map_highres.png",
         "figure_segment_insight.png",
         "figure_segment_temporal_snr_deviation.png",
@@ -54,13 +54,13 @@ FIXTURES = _fixture_dirs()
 
 
 def test_fixture_builder_uses_current_mode_specific_figure_contracts(tmp_path):
-    """Track current Compare and Success figures without a legacy result folder."""
+    """Track current Benchmark and Performance figures without a legacy result folder."""
     for folder in FIGURE_FILES_BY_FOLDER:
         (tmp_path / folder).mkdir()
 
     expected_metrics = fixture_builder._build_expected_metrics(tmp_path)
 
-    assert fixture_builder.BLOCK_FOLDERS == ("compare", "success")
+    assert fixture_builder.BLOCK_FOLDERS == ("benchmark", "performance")
     assert fixture_builder.FIGURE_FILES_BY_FOLDER == FIGURE_FILES_BY_FOLDER
     assert set(expected_metrics) == set(FIGURE_FILES_BY_FOLDER)
     for folder, figure_files in FIGURE_FILES_BY_FOLDER.items():

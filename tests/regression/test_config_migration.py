@@ -75,7 +75,7 @@ def _valid_settings(
         "min_joint_stations_per_map_segment": 1,
     }
     results_view = {
-        "success": {
+        "performance": {
             "selected_ranges": "all",
             "selected_directions": "all",
             "show_zero_target": False,
@@ -86,7 +86,7 @@ def _valid_settings(
     }
     if comparison_mode != "none":
         advanced_parameters["min_joint_spots_per_station"] = 1
-        results_view["compare"] = {
+        results_view["benchmark"] = {
                 "selected_ranges": "all",
                 "selected_directions": "all",
                 "show_non_joint": False,
@@ -149,18 +149,76 @@ def test_current_config_document_validates_complete_settings():
     assert config["snr_correction_mode"] == "no_offset"
 
 
+def test_config_reader_accepts_unambiguous_legacy_result_branch_names():
+    """Read old version-1 branch names without retaining them in canonical state."""
+    canonical_document = _config_document()
+    legacy_document = deepcopy(canonical_document)
+    legacy_results_view = legacy_document["settings"]["results_view"]
+    legacy_results_view["success"] = legacy_results_view.pop("performance")
+    legacy_results_view["compare"] = legacy_results_view.pop("benchmark")
+
+    assert config_io.validate_config_document(legacy_document) == (
+        config_io.validate_config_document(canonical_document)
+    )
+    assert set(legacy_document["settings"]["results_view"]) == {
+        "success",
+        "compare",
+    }
+
+
+def test_resaving_legacy_result_branch_names_emits_only_canonical_names():
+    """Canonicalize old branch names once an accepted config is written again."""
+    legacy_document = _config_document()
+    legacy_results_view = legacy_document["settings"]["results_view"]
+    legacy_results_view["success"] = legacy_results_view.pop("performance")
+    legacy_results_view["compare"] = legacy_results_view.pop("benchmark")
+    normalized = config_io.validate_config_document(legacy_document)
+    session_state = {"lang": "en"}
+    config_io.apply_config_state_values(normalized, session_state)
+
+    payload_bytes, _filename = config_io.build_config_payload(
+        title="Canonicalized Benchmark",
+        state=session_state,
+    )
+    written_results_view = json.loads(payload_bytes)["settings"]["results_view"]
+
+    assert set(written_results_view) == {"performance", "benchmark"}
+    assert "success" not in written_results_view
+    assert "compare" not in written_results_view
+
+
+@pytest.mark.parametrize(
+    ("legacy_key", "canonical_key"),
+    (("success", "performance"), ("compare", "benchmark")),
+)
+def test_config_reader_rejects_legacy_and_canonical_result_key_collisions(
+    legacy_key,
+    canonical_key,
+):
+    """Reject ambiguous version-1 input instead of choosing one result branch."""
+    document = _config_document()
+    results_view = document["settings"]["results_view"]
+    results_view[legacy_key] = deepcopy(results_view[canonical_key])
+
+    with pytest.raises(
+        ValueError,
+        match=rf"cannot contain both '{legacy_key}' and '{canonical_key}'",
+    ):
+        config_io.validate_config_document(document)
+
+
 @pytest.mark.parametrize(
     ("language", "expected_message"),
     [
         (
             "en",
             "Invalid configuration at "
-            "results_view.success.segment_evidence_time_bin.",
+            "results_view.performance.segment_evidence_time_bin.",
         ),
         (
             "de",
             "Ungültige Konfiguration bei "
-            "results_view.success.segment_evidence_time_bin.",
+            "results_view.performance.segment_evidence_time_bin.",
         ),
     ],
 )
@@ -170,7 +228,7 @@ def test_config_validation_ui_message_localizes_only_the_canonical_field_path(
 ):
     """Keep canonical diagnostics while suppressing English validator prose."""
     settings = _valid_settings(comparison_mode="none")
-    settings["results_view"]["success"]["segment_evidence_time_bin"] = "4h"
+    settings["results_view"]["performance"]["segment_evidence_time_bin"] = "4h"
     with pytest.raises(ValueError) as validation_error:
         config_io.validate_config_document(_config_document(settings))
 
@@ -192,9 +250,9 @@ def test_config_validation_ui_message_localizes_only_the_canonical_field_path(
             "settings.results_view",
         ),
         (
-            "results_view.success.selected_stations[3].callsign "
+            "results_view.performance.selected_stations[3].callsign "
             "is not a valid callsign.",
-            "results_view.success.selected_stations[3].callsign",
+            "results_view.performance.selected_stations[3].callsign",
         ),
         (
             "profile.title.fr must be a non-empty string.",
@@ -237,7 +295,7 @@ def test_config_validation_ui_message_is_generic_without_a_canonical_path():
 def test_config_validation_retains_complete_technical_detail_in_internal_log(caplog):
     """Keep actionable validator detail outside the localized user message."""
     technical_detail = (
-        "results_view.success.selected_ranges contains duplicate value "
+        "results_view.performance.selected_ranges contains duplicate value "
         "'[0-2500km]'."
     )
 
@@ -320,7 +378,7 @@ def test_hyphen_suffixes_normalize_across_config_callsign_inputs():
     settings = _valid_settings(comparison_mode="reference_station")
     settings["core_parameters"]["callsign"] = " dl1mks-1 "
     settings["comparison_parameters"]["reference_callsign"] = " dl2xyz-p "
-    settings["results_view"]["success"]["selected_stations"] = [
+    settings["results_view"]["performance"]["selected_stations"] = [
         {"callsign": " k1abc-1 ", "locator": " fn31 "},
     ]
 
@@ -338,7 +396,7 @@ def test_letter_only_reporting_identifiers_normalize_across_config_inputs():
     settings = _valid_settings(comparison_mode="reference_station")
     settings["core_parameters"]["callsign"] = " kfs "
     settings["comparison_parameters"]["reference_callsign"] = " kfs/se "
-    settings["results_view"]["success"]["selected_stations"] = [
+    settings["results_view"]["performance"]["selected_stations"] = [
         {"callsign": " kfs/nw ", "locator": " cm87 "},
     ]
 
@@ -443,8 +501,8 @@ def test_config_envelope_preparation_returns_an_independent_copy():
 def test_two_hour_station_evidence_bins_round_trip_through_config_validation():
     """Keep the multi-day 2 h station-evidence choice saveable and reloadable."""
     settings = _valid_settings()
-    settings["results_view"]["compare"]["station_evidence_time_bin"] = "2h"
-    settings["results_view"]["success"]["station_evidence_time_bin"] = "2h"
+    settings["results_view"]["benchmark"]["station_evidence_time_bin"] = "2h"
+    settings["results_view"]["performance"]["station_evidence_time_bin"] = "2h"
 
     config, warnings = config_io.validate_config_upload(
         json.dumps(_config_document(settings)).encode("utf-8")
@@ -470,19 +528,19 @@ def test_station_evidence_bin_order_and_validation_set_have_exact_parity():
     )
 
 
-def test_success_segment_evidence_bin_rejects_an_unsupported_width():
-    """Apply the shared segment-bin allowlist at the Success config boundary."""
+def test_performance_segment_evidence_bin_rejects_an_unsupported_width():
+    """Apply the shared segment-bin allowlist at the Performance config boundary."""
     settings = _valid_settings(comparison_mode="none")
-    settings["results_view"]["success"]["segment_evidence_time_bin"] = "4h"
+    settings["results_view"]["performance"]["segment_evidence_time_bin"] = "4h"
 
     with pytest.raises(
         ValueError,
-        match=r"results_view\.success\.segment_evidence_time_bin",
+        match=r"results_view\.performance\.segment_evidence_time_bin",
     ):
         config_io.validate_config_document(_config_document(settings))
 
 
-@pytest.mark.parametrize("result_mode", ("success", "compare"))
+@pytest.mark.parametrize("result_mode", ("performance", "benchmark"))
 def test_station_evidence_bin_rejects_segment_only_minute_widths(result_mode):
     """Reserve minute-scale bins for segment evidence in both result modes."""
     settings = _valid_settings()
@@ -495,17 +553,17 @@ def test_station_evidence_bin_rejects_segment_only_minute_widths(result_mode):
         config_io.validate_config_document(_config_document(settings))
 
 
-def test_obsolete_selected_compare_temporal_view_field_is_strictly_rejected():
+def test_obsolete_selected_benchmark_temporal_view_field_is_strictly_rejected():
     """Reject the retired saved toggle instead of silently preserving dead state."""
     settings = _valid_settings()
-    settings["results_view"]["compare"][
+    settings["results_view"]["benchmark"][
         "station_evidence_temporal_view"
     ] = "chronological"
 
     with pytest.raises(
         ValueError,
         match=(
-            r"Unknown settings\.results_view\.compare field.*"
+            r"Unknown settings\.results_view\.benchmark field.*"
             r"station_evidence_temporal_view"
         ),
     ):
@@ -516,7 +574,7 @@ def test_complete_result_view_state_round_trips_with_single_station_intent():
     """Persist durable plot choices and zero-or-one identity per result."""
     settings = _valid_settings()
     settings["results_view"] = {
-        "success": {
+        "performance": {
             "selected_ranges": ["[0-2500km]", "[2500-5000km]"],
             "selected_directions": ["N", "NNE"],
             "show_zero_target": True,
@@ -524,7 +582,7 @@ def test_complete_result_view_state_round_trips_with_single_station_intent():
             "station_evidence_time_bin": "6h",
             "selected_stations": [],
         },
-        "compare": {
+        "benchmark": {
             "selected_ranges": ["[5000-10000km]"],
             "selected_directions": ["WNW", "NW"],
             "show_non_joint": True,
@@ -571,7 +629,7 @@ def test_selected_station_validation_rejects_legacy_or_multiple_state(
 ):
     """Reject retired all-station intent and any multi-station selection."""
     settings = _valid_settings()
-    settings["results_view"]["compare"]["selected_stations"] = (
+    settings["results_view"]["benchmark"]["selected_stations"] = (
         selected_stations
     )
 
@@ -583,10 +641,10 @@ def test_saved_inspector_range_outside_analysis_scope_falls_back_to_all():
     """Prevent saved result-view state from widening a 10,000 km analysis."""
     settings = _valid_settings()
     settings["advanced_parameters"]["max_peer_distance_km"] = 10000
-    settings["results_view"]["success"]["selected_ranges"] = [
+    settings["results_view"]["performance"]["selected_ranges"] = [
         "[10000-15000km]"
     ]
-    settings["results_view"]["compare"]["selected_ranges"] = [
+    settings["results_view"]["benchmark"]["selected_ranges"] = [
         "[5000-10000km]",
         "[10000-15000km]",
     ]
@@ -600,7 +658,7 @@ def test_saved_inspector_range_outside_analysis_scope_falls_back_to_all():
 def test_selected_station_validation_rejects_normalized_duplicate_identities():
     """Do not silently change authored station-selection order during loading."""
     settings = _valid_settings()
-    settings["results_view"]["compare"]["selected_stations"] = [
+    settings["results_view"]["benchmark"]["selected_stations"] = [
         {"callsign": "f4wbn", "locator": "jn18"},
         {"callsign": "F4WBN", "locator": "JN18"},
     ]
@@ -771,7 +829,7 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
         "advanced_parameters"
     ]
     assert payload["settings"]["results_view"] == {
-        "success": {
+        "performance": {
             "selected_ranges": "all",
             "selected_directions": "all",
             "show_zero_target": False,
@@ -1083,7 +1141,7 @@ def test_comparison_modes_use_only_their_active_fields(
     assert normalized["benchmark_mode"] == comparison_mode
     if comparison_mode == "none":
         assert "min_joint_spots_per_station" not in settings["advanced_parameters"]
-        assert set(settings["results_view"]) == {"success"}
+        assert set(settings["results_view"]) == {"performance"}
 
 
 @pytest.mark.parametrize(
@@ -1206,8 +1264,8 @@ def test_absolute_time_selection_rejects_invalid_effective_windows(
         config_io.validate_config_document(_config_document(settings))
 
 
-def test_success_only_rejects_hidden_comparison_view_fields():
-    """Reject comparison-only thresholds and view controls in Success-only mode."""
+def test_performance_only_rejects_hidden_comparison_view_fields():
+    """Reject comparison-only thresholds and view controls in Performance-only mode."""
     settings = _valid_settings(comparison_mode="none")
     settings["advanced_parameters"]["min_joint_spots_per_station"] = 1
 
@@ -1218,7 +1276,7 @@ def test_success_only_rejects_hidden_comparison_view_fields():
         config_io.validate_config_document(_config_document(settings))
 
     settings = _valid_settings(comparison_mode="none")
-    settings["results_view"]["compare"] = {
+    settings["results_view"]["benchmark"] = {
         "selected_ranges": "all",
         "selected_directions": "all",
         "show_non_joint": False,
@@ -1228,6 +1286,6 @@ def test_success_only_rejects_hidden_comparison_view_fields():
     }
     with pytest.raises(
         ValueError,
-        match=r"Unknown settings\.results_view field.*compare",
+        match=r"Unknown settings\.results_view field.*benchmark",
     ):
         config_io.validate_config_document(_config_document(settings))

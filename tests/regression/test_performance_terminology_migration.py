@@ -51,6 +51,8 @@ INTERNAL_EXCEPTION_CONSTRUCTORS = frozenset(
 )
 VISIBLE_LEGACY_TERMINOLOGY = re.compile(
     r"\b(?:RX Success|TX Success|Success Results|Success Evidence|Success Rate|Success)\b"
+    r"|\b(?:RX Compare|TX Compare|Compare (?:Results?|Evidence|Mode|Temporal|Map|Selected|Station|result|setup))\b"
+    r"|\bCompare-(?:Evidenz|Modus|Ergebnis)\b"
 )
 
 
@@ -159,11 +161,11 @@ def test_localization_catalogs_have_exact_recursive_key_and_formatter_parity(
     ("catalog_name", "catalog"),
     tuple(LOCALIZED_CATALOGS.items()),
 )
-def test_localization_catalogs_have_no_visible_legacy_success_terminology(
+def test_localization_catalogs_have_no_visible_legacy_result_terminology(
     catalog_name,
     catalog,
 ):
-    """Keep retired family and metric wording out of every visible catalog leaf."""
+    """Keep retired result-family wording out of every visible catalog leaf."""
     for language in ("en", "de"):
         for path, visible_text in _flatten_catalog(catalog[language]).items():
             assert VISIBLE_LEGACY_TERMINOLOGY.search(visible_text) is None, (
@@ -217,11 +219,11 @@ def test_targeted_renderers_do_not_branch_on_presentation_language(relative_path
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_guided_canonical_success_values_render_as_rx_tx_performance(language):
+def test_guided_canonical_result_families_render_as_performance_and_benchmark(language):
     """Keep persisted Guided values stable behind the approved visible labels."""
     use_cases = GUIDED_INPUTS[language]["options"]["use_cases"]
 
-    assert use_cases["rx_success"]["label"] == "RX Performance"
-    assert use_cases["tx_success"]["label"] == "TX Performance"
-    assert use_cases["rx_compare"]["label"] == "RX Compare"
-    assert use_cases["tx_compare"]["label"] == "TX Compare"
+    assert use_cases["rx_performance"]["label"] == "RX Performance"
+    assert use_cases["tx_performance"]["label"] == "TX Performance"
+    assert use_cases["rx_benchmark"]["label"] in {"RX Benchmark", "RX-Benchmark"}
+    assert use_cases["tx_benchmark"]["label"] in {"TX Benchmark", "TX-Benchmark"}

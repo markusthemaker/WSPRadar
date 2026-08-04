@@ -62,7 +62,7 @@ def _localized_integer(count, translations):
 
 
 def comparison_constraint_text(analysis, analysis_context, translations):
-    """Return the active Compare constraint for result provenance metadata."""
+    """Return the active Benchmark constraint for result provenance metadata."""
     if not bool(analysis.get("is_compare")):
         return ""
 
@@ -436,7 +436,7 @@ def selected_station_context(
     is_sequential,
     translations,
 ):
-    """Return localized Compare context for exactly one selected radio path."""
+    """Return localized Benchmark context for one selected radio path."""
     identities = [str(identity) for identity in station_identities]
     if len(identities) != 1:
         raise ValueError("Selected-station context requires exactly one identity.")

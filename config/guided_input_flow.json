@@ -23,10 +23,10 @@
           "when": {
             "field": "guided_use_case",
             "in": [
-              "rx_success",
-              "tx_success",
-              "rx_compare",
-              "tx_compare"
+              "rx_performance",
+              "tx_performance",
+              "rx_benchmark",
+              "tx_benchmark"
             ]
           },
           "next": "target_and_window"
@@ -48,8 +48,8 @@
           "when": {
             "field": "guided_use_case",
             "in": [
-              "rx_success",
-              "tx_success"
+              "rx_performance",
+              "tx_performance"
             ]
           },
           "next": "scope_and_evidence"
@@ -58,8 +58,8 @@
           "when": {
             "field": "guided_use_case",
             "in": [
-              "rx_compare",
-              "tx_compare"
+              "rx_benchmark",
+              "tx_benchmark"
             ]
           },
           "next": "reference_design"

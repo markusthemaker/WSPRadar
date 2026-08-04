@@ -62,7 +62,7 @@ def _analysis_by_id(context, analysis_id):
     return next(analysis for analysis in _build_analyses(context) if analysis["id"] == analysis_id)
 
 
-def test_no_benchmark_builds_only_the_directional_success_analysis():
+def test_no_benchmark_builds_only_the_directional_performance_analysis():
     tx_analyses = _build_analyses(
         _analysis_context(run_mode="TX", comparison_mode=COMPARISON_NONE)
     )
@@ -70,8 +70,12 @@ def test_no_benchmark_builds_only_the_directional_success_analysis():
         _analysis_context(run_mode="RX", comparison_mode=COMPARISON_NONE)
     )
 
-    assert [analysis["id"] for analysis in tx_analyses] == ["TX_ABS"]
-    assert [analysis["id"] for analysis in rx_analyses] == ["RX_ABS"]
+    assert [analysis["id"] for analysis in tx_analyses] == ["TX_PERFORMANCE"]
+    assert [analysis["id"] for analysis in rx_analyses] == ["RX_PERFORMANCE"]
+    assert all(
+        analysis["result_family"] == "performance"
+        for analysis in tx_analyses + rx_analyses
+    )
     assert all(analysis["analysis_kind"] == "opportunity" for analysis in tx_analyses + rx_analyses)
 
 
@@ -166,7 +170,7 @@ def test_letter_only_reporting_identifier_builds_exact_rx_success_query():
             comparison_mode=COMPARISON_NONE,
             callsign=" kfs ",
         ),
-        "RX_ABS",
+        "RX_PERFORMANCE",
     )
 
     assert "rx_sign = 'KFS'" in rx_analysis["query"]
@@ -185,8 +189,8 @@ def test_letter_only_reporting_identifier_builds_exact_rx_success_query():
 @pytest.mark.parametrize(
     ("run_mode", "self_test_mode", "expected_analysis_id"),
     [
-        ("RX", SELF_TEST_RX, "RX_COMP"),
-        ("TX", SELF_TEST_TX, "TX_COMP"),
+        ("RX", SELF_TEST_RX, "RX_BENCHMARK"),
+        ("TX", SELF_TEST_TX, "TX_BENCHMARK"),
     ],
 )
 def test_benchmark_builds_only_the_directional_compare_analysis(
@@ -265,7 +269,7 @@ def test_added_live_wspr_bands_build_numeric_opportunity_predicates():
         )
 
         assert len(analyses) == 1
-        assert analyses[0]["id"] == "RX_ABS"
+        assert analyses[0]["id"] == "RX_PERFORMANCE"
         assert f"band = {band_value}" in analyses[0]["query"]
 
 
@@ -280,7 +284,7 @@ def test_tx_ab_schedule_sql_filters_compare_to_both_configured_starts():
         tx_ab_reference_start_minute=2,
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert "toMinute(time) % 10 = 0" in tx_compare["query"]
     assert "toMinute(time) % 10 = 2" in tx_compare["query"]
@@ -299,7 +303,7 @@ def test_four_minute_tx_ab_schedule_uses_demo_query_contract():
         tx_ab_reference_start_minute=0,
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert "toMinute(time) % 4 = 2" in tx_compare["query"]
     assert "toMinute(time) % 4 = 0" in tx_compare["query"]
@@ -327,7 +331,7 @@ def test_tx_hardware_ab_defaults_to_simultaneous_fixed_reference_comparison():
         reference_qth="",
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert context.tx_ab_method == TX_AB_METHOD_SIMULTANEOUS
     assert tx_compare["is_sequential"] is False
@@ -341,7 +345,7 @@ def test_tx_hardware_ab_defaults_to_simultaneous_fixed_reference_comparison():
     )
     assert "toMinute(time) %" not in tx_compare["query"]
     assert tx_compare["title"] == (
-        "TX Compare: DL1MKS (Target) vs. DL2XYZ/P (Reference)"
+        "TX Benchmark: DL1MKS (Target) vs. DL2XYZ/P (Reference)"
     )
 
 
@@ -354,7 +358,7 @@ def test_sequential_tx_hardware_ab_preserves_shared_identity_and_schedule_title(
         reference_qth="",
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert tx_compare["is_sequential"] is True
     assert tx_compare["query"].count(
@@ -363,15 +367,15 @@ def test_sequential_tx_hardware_ab_preserves_shared_identity_and_schedule_title(
     assert "toMinute(time) % 10 = 0" in tx_compare["query"]
     assert "toMinute(time) % 10 = 2" in tx_compare["query"]
     assert tx_compare["title"] == (
-        "TX Compare: DL1MKS (Target) vs. DL1MKS (Reference)"
+        "TX Benchmark: DL1MKS (Target) vs. DL1MKS (Reference)"
     )
 
 
 @pytest.mark.parametrize(
     ("run_mode", "self_test_mode", "analysis_id"),
     [
-        ("TX", SELF_TEST_TX, "TX_COMP"),
-        ("RX", SELF_TEST_RX, "RX_COMP"),
+        ("TX", SELF_TEST_TX, "TX_BENCHMARK"),
+        ("RX", SELF_TEST_RX, "RX_BENCHMARK"),
     ],
 )
 def test_simultaneous_hardware_ab_reuses_fixed_reference_query_contract(
@@ -433,7 +437,7 @@ def test_hardware_ab_derives_reference_grid4_from_target_qth(
 
     comparison = _analysis_by_id(
         context,
-        "RX_COMP" if self_test_mode == SELF_TEST_RX else "TX_COMP",
+        "RX_BENCHMARK" if self_test_mode == SELF_TEST_RX else "TX_BENCHMARK",
     )
 
     identity_column = "rx" if self_test_mode == SELF_TEST_RX else "tx"
@@ -489,7 +493,7 @@ def test_reference_station_rejects_grid6_reference_qth():
 def test_positive_reference_snr_correction_is_added_to_reference_side():
     context = _analysis_context(reference_snr_correction_db=1.6)
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert "maxIf(snr - power + 30, is_me = 1) AS snr_u_norm" in tx_compare["query"]
     assert "maxIf((snr - power + 30 + 1.6), is_me = 0) AS snr_r_norm" in tx_compare["query"]
@@ -504,7 +508,7 @@ def test_reference_station_matching_uses_exact_callsign_and_grid4_per_side():
         reference_qth="JO62",
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert (
         "tx_sign = 'DL1MKS' AND substring(tx_loc, 1, 4) = 'JN37'"
@@ -529,7 +533,7 @@ def test_rx_reference_station_constrains_each_side_to_its_configured_grid4():
         reference_qth="jo62",
     )
 
-    rx_compare = _analysis_by_id(context, "RX_COMP")
+    rx_compare = _analysis_by_id(context, "RX_BENCHMARK")
 
     assert (
         "rx_sign = 'DL1MKS' AND substring(rx_loc, 1, 4) = 'JN37'"
@@ -562,7 +566,7 @@ def test_reference_station_matching_accepts_exact_suffix_callsigns_per_side(
         reference_qth="JO62",
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert f"tx_sign = '{target_callsign}'" in tx_compare["query"]
     assert f"tx_sign = '{reference_callsign}'" in tx_compare["query"]
@@ -578,7 +582,7 @@ def test_rx_hardware_ab_matching_uses_exact_callsigns_to_protect_suffixes():
         reference_qth="",
     )
 
-    rx_compare = _analysis_by_id(context, "RX_COMP")
+    rx_compare = _analysis_by_id(context, "RX_BENCHMARK")
 
     assert "rx_sign = 'DL1MKS'" in rx_compare["query"]
     assert "rx_sign = 'DL1MKS/P'" in rx_compare["query"]
@@ -605,7 +609,7 @@ def test_rx_hardware_ab_matching_accepts_one_exact_reference_suffix_callsign():
         reference_qth="",
     )
 
-    rx_compare = _analysis_by_id(context, "RX_COMP")
+    rx_compare = _analysis_by_id(context, "RX_BENCHMARK")
 
     assert (
         "rx_sign = 'DL1MKS/1' AND substring(rx_loc, 1, 4) = 'JN37'"
@@ -625,7 +629,7 @@ def test_local_median_neighborhood_uses_station_weighted_reference_median_sql():
         neighborhood_radius_km=100,
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert tx_compare["is_local_median"] is True
     assert "quantileExactInclusive(0.5)((snr - power + 30 + 0.0)) AS station_snr_norm" in tx_compare["query"]
@@ -644,7 +648,7 @@ def test_local_neighborhood_excludes_only_the_exact_target_callsign():
         callsign="DL1MKS/P",
     )
 
-    tx_compare = _analysis_by_id(context, "TX_COMP")
+    tx_compare = _analysis_by_id(context, "TX_BENCHMARK")
 
     assert (
         "tx_sign = 'DL1MKS/P' AND substring(tx_loc, 1, 4) = 'JN37'"
@@ -664,7 +668,7 @@ def test_rx_local_median_neighborhood_weights_receiver_reference_identities():
         neighborhood_radius_km=100,
     )
 
-    rx_compare = _analysis_by_id(context, "RX_COMP")
+    rx_compare = _analysis_by_id(context, "RX_BENCHMARK")
 
     assert (
         "rx_sign = 'DL1MKS' AND substring(rx_loc, 1, 4) = 'JN37'"
@@ -681,7 +685,7 @@ def test_rx_local_median_neighborhood_weights_receiver_reference_identities():
 
 @pytest.mark.parametrize(
     ("run_mode", "analysis_id"),
-    [("TX", "TX_COMP"), ("RX", "RX_COMP")],
+    [("TX", "TX_BENCHMARK"), ("RX", "RX_BENCHMARK")],
 )
 def test_compare_queries_use_half_open_analysis_interval(run_mode, analysis_id):
     context = _analysis_context(run_mode=run_mode)

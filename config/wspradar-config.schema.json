@@ -75,7 +75,7 @@
           "min_joint_stations_per_map_segment": 1
         },
         "results_view": {
-          "success": {
+          "performance": {
             "selected_ranges": "all",
             "selected_directions": "all",
             "show_zero_target": false,
@@ -201,10 +201,10 @@
         "results_view": {
           "oneOf": [
             {
-              "$ref": "#/$defs/resultsViewNoComparison"
+              "$ref": "#/$defs/resultsViewPerformance"
             },
             {
-              "$ref": "#/$defs/resultsViewWithComparison"
+              "$ref": "#/$defs/resultsViewBenchmark"
             }
           ]
         }
@@ -309,7 +309,7 @@
                 "$ref": "#/$defs/advancedParametersNoComparison"
               },
               "results_view": {
-                "$ref": "#/$defs/resultsViewNoComparison"
+                "$ref": "#/$defs/resultsViewPerformance"
               }
             }
           },
@@ -319,7 +319,7 @@
                 "$ref": "#/$defs/advancedParametersWithComparison"
               },
               "results_view": {
-                "$ref": "#/$defs/resultsViewWithComparison"
+                "$ref": "#/$defs/resultsViewBenchmark"
               }
             }
           }
@@ -1478,39 +1478,39 @@
       "description": "Minimum number of qualifying stations required for a map segment.",
       "default": 1
     },
-    "resultsViewNoComparison": {
+    "resultsViewPerformance": {
       "type": "object",
-      "description": "Durable visible Performance result-view state active when comparison mode is none; the canonical success key is retained for compatibility.",
+      "description": "Durable Performance result-view state active when benchmark mode is not configured.",
       "required": [
-        "success"
+        "performance"
       ],
       "properties": {
-        "success": {
-          "$ref": "#/$defs/successResultsView"
+        "performance": {
+          "$ref": "#/$defs/performanceResultsView"
         }
       },
       "additionalProperties": false
     },
-    "resultsViewWithComparison": {
+    "resultsViewBenchmark": {
       "type": "object",
-      "description": "Durable Compare result-view state active for comparison analyses; the canonical success view remains serialized for compatibility without creating a separate visible Performance result.",
+      "description": "Durable Performance and Benchmark result-view state active for benchmark analyses.",
       "required": [
-        "success",
-        "compare"
+        "performance",
+        "benchmark"
       ],
       "properties": {
-        "success": {
-          "$ref": "#/$defs/successResultsView"
+        "performance": {
+          "$ref": "#/$defs/performanceResultsView"
         },
-        "compare": {
-          "$ref": "#/$defs/compareResultsView"
+        "benchmark": {
+          "$ref": "#/$defs/benchmarkResultsView"
         }
       },
       "additionalProperties": false
     },
-    "successResultsView": {
+    "performanceResultsView": {
       "type": "object",
-      "description": "Station-insight state for visible Performance, stored under the canonical success identifier for compatibility.",
+      "description": "Performance segment and station-insight state.",
       "required": [
         "selected_ranges",
         "selected_directions",
@@ -1528,7 +1528,7 @@
         },
         "show_zero_target": {
           "type": "boolean",
-          "description": "Whether visible Performance Station Insights includes qualifying stations with zero Target confirmations; this remains part of the canonical success view state.",
+          "description": "Whether Performance Station Insights includes qualifying stations with zero Target confirmations.",
           "default": false
         },
         "segment_evidence_time_bin": {
@@ -1543,9 +1543,9 @@
       },
       "additionalProperties": false
     },
-    "compareResultsView": {
+    "benchmarkResultsView": {
       "type": "object",
-      "description": "Compare segment and station-insight state.",
+      "description": "Benchmark segment and station-insight state.",
       "required": [
         "selected_ranges",
         "selected_directions",

@@ -89,6 +89,7 @@ def _assert_documentation_trigger_call(
     assert trigger_call == {
         "key": documentation.DOCUMENTATION_SCROLL_TRIGGER_KEY,
         "anchor_ids": documentation._documentation_anchor_ids(documentation_text),
+        "documentation_language": "en" if documentation_text is DOC_EN else "de",
         "is_auto_expand_enabled": is_auto_expand_enabled,
         "is_documentation_expanded": is_documentation_expanded,
         "allow_initial_hash_expansion": allow_initial_hash_expansion,
@@ -129,6 +130,39 @@ def test_documentation_text_is_process_cached_without_modification():
     assert get_docs("de") is DOC_DE
     assert get_docs("en") is DOC_EN
     assert get_docs.cache_info().hits == 1
+
+
+def test_english_scientific_methods_use_streamlit_math_delimiters():
+    """Keep Chapter 7 formulas parseable without changing their mathematics."""
+    scientific_methods = DOC_EN.split('<a id="sec-7"></a>', 1)[1].split(
+        '<a id="sec-8"></a>', 1
+    )[0]
+
+    assert r"\(" not in scientific_methods
+    assert r"\)" not in scientific_methods
+    assert (
+        r"$$v_{T,i,b}=\frac{T_{i,b}}{N_{i,b}},\qquad "
+        r"v_{J,i,b}=\frac{J_{i,b}}{N_{i,b}},\qquad "
+        r"v_{R,i,b}=\frac{R_{i,b}}{N_{i,b}}$$"
+        in scientific_methods
+    )
+
+
+@pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_simultaneous_benchmark_formulas_stay_nested_in_numbered_steps(
+    documentation_text,
+):
+    """Align peer and segment estimators with their numbered instructions."""
+    before_peer_formula, after_peer_formula = documentation_text.split(
+        "$$m_i=\\operatorname{median}_{c}(D_{i,c})$$",
+        1,
+    )
+
+    assert before_peer_formula.endswith("\n    ")
+    assert (
+        "\n    $$M_g=\\operatorname{median}_{i\\in I_g}(m_i)$$"
+        in after_peer_formula
+    )
 
 
 @pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
@@ -247,22 +281,99 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
     assert "## Part 0: Preface" not in DOC_EN
     assert DOC_EN.count("**Part 0: Preface**") == 1
     assert "### 0. Why WSPRadar?" in DOC_EN
-    assert "#### 0.3 What one run produces" in DOC_EN
-    assert "#### 0.4 Your first useful run: start with a guided demo" in DOC_EN
-    assert "`Run Selected Demo`" in DOC_EN
-    assert "`Load Selected Demo Configuration`" in DOC_EN
+    for heading in (
+        "#### 0.0 WSPR in 2 Minutes",
+        "#### 0.1 What WSPRadar can show",
+        "#### 0.2 What one run produces",
+        "#### 0.3 Your first useful run",
+    ):
+        assert heading in DOC_EN
+    for toc_entry in (
+        "* [0.0 WSPR in 2 Minutes](#sec-1-1)",
+        "* [0.1 What WSPRadar can show](#sec-1-0)",
+        "* [0.2 What one run produces](#sec-1-3)",
+        "* [0.3 Your first useful run](#sec-1-4)",
+    ):
+        assert toc_entry in DOC_EN
+    assert "| Analysis | Question | Practical examples |" in DOC_EN
+    assert "| What you want to learn | WSPRadar approach |" not in DOC_EN
+    for operating_question in (
+        "How broadly and consistently does my receiver decode signals that were independently confirmed elsewhere?",
+        "Where, when and how consistently is my transmitter decoded by receivers independently shown to be active?",
+        "Did two local receive paths differ while observing the same remote transmissions?",
+        "Did two local transmit paths differ under simultaneous or tightly scheduled operation?",
+        "How does my complete station compare with one known station?",
+        "How does my station compare with the typical active WSPR group nearby?",
+        "How does my station compare with the strongest active nearby peer available on each path and cycle?",
+    ):
+        assert operating_question in DOC_EN
+    for benchmark_family, benchmark_variant in (
+        ("RX Benchmark", "Hardware A/B"),
+        ("TX Benchmark", "Hardware A/B"),
+        ("RX/TX Benchmark", "Reference Station / Buddy Test"),
+        ("RX/TX Benchmark", "Local Median Neighborhood"),
+        ("RX/TX Benchmark", "Local Best Station"),
+    ):
+        assert (
+            f'<span class="analysis-family">{benchmark_family}</span><br>'
+            f'<strong class="analysis-variant">{benchmark_variant}</strong>'
+            in DOC_EN
+        )
+    assert DOC_EN.count('class="analysis-choice"') == 5
+    assert DOC_EN.count('class="analysis-choice-single"') == 2
+    for scientific_safeguard in (
+        "as complete receive paths",
+        "matched, characterized or confirmed by crossover",
+        "synchronized cycles, distinguishable signals and adequate isolation",
+        "without treating the Buddy as an absolute calibrated standard",
+        "cycle- and path-specific median",
+        "checking neighborhood membership and radius sensitivity",
+        "in comparable repeat runs",
+        "without treating the result as a ranking against one permanent competitor or a stable calibrated baseline",
+    ):
+        assert scientific_safeguard in DOC_EN
+    assert "Benchmark —" not in DOC_EN[: DOC_EN.index('<a id="sec-1-3"></a>')]
+    assert "Choose the question you want to answer" not in DOC_EN
     assert "A demo is a worked example of WSPRadar's method" in DOC_EN
-    assert "### 1. Experiment Playbooks" in DOC_EN
+    assert "### 1. Choose and Prepare the Analysis" in DOC_EN
     assert '<strong class="defined-term">Target</strong>' in DOC_EN
     assert '<strong class="defined-term">Reference</strong>' in DOC_EN
     assert '<strong class="defined-term">Performance</strong>' in DOC_EN
+
+
+def test_english_evidence_path_is_a_defined_term_in_both_guide_locations():
+    """Keep the complete operator path emphasized without fragmenting its meaning."""
+    defined_evidence_path = (
+        '<strong class="defined-term">Map → Segment Inspector → '
+        'Performance/Benchmark Evidence → Temporal Evidence → Station Insights '
+        '→ Selected Station Evidence → Drill-Down</strong>'
+    )
+
+    assert DOC_EN.count(defined_evidence_path) == 2
+
+
+def test_english_section_two_conclusions_use_scoped_callout_markup():
+    """Style every Chapter 2 conclusion without affecting other blockquotes."""
+    before_section_two, section_two_and_later = DOC_EN.split(
+        "### 2. Run and Interpret Your Analysis",
+        1,
+    )
+    section_two, section_three_and_later = section_two_and_later.split(
+        "### 3. Strengthen and Communicate Your Result",
+        1,
+    )
+    conclusion_opening = '<blockquote class="evidence-conclusion">'
+
+    assert section_two.count(conclusion_opening) == 11
+    assert conclusion_opening not in before_section_two
+    assert conclusion_opening not in section_three_and_later
 
 
 def test_english_playbooks_define_performance_evidence_and_tx_ab_timing():
     """Operator playbooks must retain the clarified Performance and TX A/B guidance."""
     assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
     assert (
-        "independently confirmed WSPR opportunities represented in the selected evidence"
+        "Target and independent activity evidence retained after the run's identity, band, time, Target-activity, filter and threshold rules"
         in DOC_EN
     )
     assert "actual recurrence and UTC phase" in DOC_EN
@@ -335,20 +446,20 @@ def test_results_chapter_uses_concise_evidence_path_and_consecutive_sections():
         "**Performance:** Map → Segment Inspector → Station Insights → Drill-Down."
     ) in DOC_EN
     assert (
-        "**Compare:** Map → Segment Inspector → Station Insights → Drill-Down."
+        "**Benchmark:** Map → Segment Inspector → Station Insights → Drill-Down."
     ) in DOC_EN
     assert (
         "**Performance:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
     ) in DOC_DE
     assert (
-        "**Compare:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
+        "**Benchmark:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
     ) in DOC_DE
     assert "#### 2.1 Read a Performance result" in DOC_EN
-    assert "#### 2.2 Read a Compare result" in DOC_EN
-    assert "#### 2.8 Worked Compare example" in DOC_EN
+    assert "#### 2.2 Read a Benchmark result" in DOC_EN
+    assert "#### 2.8 Worked Benchmark example" in DOC_EN
 
-    rx_explanation = DOC_EN.index("* In simultaneous RX Compare")
-    tx_explanation = DOC_EN.index("* In same-cycle TX Compare")
+    rx_explanation = DOC_EN.index("* In simultaneous RX Benchmark")
+    tx_explanation = DOC_EN.index("* In same-cycle TX Benchmark")
     sequential_explanation = DOC_EN.index(
         "* Sequential TX Hardware A/B uses deterministic scheduled pairs"
     )
@@ -473,11 +584,11 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
 
     performance_section_en = DOC_EN.split(
         "#### 2.5a Inspect a Geographic Segment (Performance Mode)", 1
-    )[1].split("#### 2.5b Inspect a Geographic Segment (Compare Mode)", 1)[0]
+    )[1].split("#### 2.5b Inspect a Geographic Segment (Benchmark Mode)", 1)[0]
     performance_section_de = DOC_DE.split(
         "#### 2.5a Ein geografisches Segment untersuchen (Performance-Modus)", 1
     )[1].split(
-        "#### 2.5b Ein geografisches Segment untersuchen (Compare-Modus)", 1
+        "#### 2.5b Ein geografisches Segment untersuchen (Benchmark-Modus)", 1
     )[0]
     for retired_text in (
         "Station Success Rate by Evidence Count",
@@ -526,7 +637,7 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "Select exactly one station row to open `Selected Station Evidence`",
         "Selecting another row replaces the current station",
         "clearing the row hides the section",
-        "Performance and Compare each save no more than one exact `callsign + locator` identity",
+        "Performance and Benchmark each save no more than one exact `callsign + locator` identity",
         "selecting another row replaces the current identity",
         "clearing the row saves an explicit deselection",
         "actual normalized successful Target SNR",
@@ -547,7 +658,7 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "Wähle genau eine Stationszeile aus, um die `Evidenz der ausgewählten Station` zu öffnen",
         "Die Auswahl einer anderen Zeile ersetzt die bisherige Station",
         "das Aufheben der Auswahl blendet den Abschnitt aus",
-        "Performance und Compare speichern jeweils höchstens eine exakte Identität",
+        "Performance und Benchmark speichern jeweils höchstens eine exakte Identität",
         "die Auswahl einer anderen Zeile ersetzt die aktuelle Identität",
         "das Aufheben der Auswahl speichert eine ausdrückliche Abwahl",
         "tatsächlichen normierten erfolgreichen Target-SNR",
@@ -574,13 +685,13 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "figure_selected_station_snr_evidence.png",
         "figure_selected_station_temporal_evidence.png",
     )
-    compare_evidence_filenames = (
+    benchmark_evidence_filenames = (
         "figure_segment_temporal_evidence.png",
         "figure_segment_temporal_coverage.png",
         "figure_selected_station_evidence.png",
         "figure_selected_station_coverage.png",
     )
-    retired_compare_evidence_filenames = (
+    retired_benchmark_evidence_filenames = (
         "figure_segment_temporal_delta_change.png",
         "figure_path_agreement_consistency.png",
     )
@@ -597,31 +708,35 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "`selected_station_role`",
         "`selected_evidence_weighting`",
         "`selected_evidence_figures`",
-        "`compare_evidence_figures`",
-        "`compare_evidence_recipes`",
+        "`benchmark_evidence_figures`",
+        "`benchmark_evidence_recipes`",
     )
     for manual in (DOC_EN, DOC_DE):
-        compare_export_listing = manual.split("compare/", 1)[1].split(
-            "success/",
+        export_listing = manual.split(
+            "  run_metadata.json\nbenchmark/",
+            1,
+        )[1].split("```", 1)[0]
+        benchmark_export_listing = export_listing.split(
+            "performance/",
             1,
         )[0]
-        performance_export_listing = manual.split("success/", 1)[1].split(
-            "```",
+        performance_export_listing = export_listing.split(
+            "performance/",
             1,
-        )[0]
+        )[1]
         for filename in selected_performance_filenames:
             assert filename in performance_export_listing
             assert filename in manual
         for filename in obsolete_performance_filenames:
             assert filename not in performance_export_listing
             assert filename not in manual
-        for filename in compare_evidence_filenames:
-            assert filename in compare_export_listing
+        for filename in benchmark_evidence_filenames:
+            assert filename in benchmark_export_listing
             assert filename in manual
-        for filename in retired_compare_evidence_filenames:
-            assert filename not in compare_export_listing
+        for filename in retired_benchmark_evidence_filenames:
+            assert filename not in benchmark_export_listing
             assert filename not in manual
-        assert "figure_selected_station_evidence.png" in compare_export_listing
+        assert "figure_selected_station_evidence.png" in benchmark_export_listing
         assert (
             "figure_selected_station_evidence.png"
             not in performance_export_listing
@@ -630,10 +745,10 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
             assert metadata_field in manual
 
 
-def test_bilingual_manuals_define_compare_evidence_science_and_limits():
-    """Keep retained Compare coverage explicit and retired views absent."""
+def test_bilingual_manuals_define_benchmark_evidence_science_and_limits():
+    """Keep retained Benchmark coverage explicit and retired views absent."""
     english_contract = (
-        "Compare Temporal Evidence Coverage",
+        "Benchmark Temporal Evidence Coverage",
         "Selected Path Evidence Coverage",
         "Retained WSPR Cycles over Time",
         "Retained WSPR Cycles by UTC Hour",
@@ -646,7 +761,7 @@ def test_bilingual_manuals_define_compare_evidence_science_and_limits():
         "It is not a Target win rate",
     )
     german_contract = (
-        "Zeitliche Compare-Evidenzabdeckung",
+        "Zeitliche Benchmark-Evidenzabdeckung",
         "Evidenzabdeckung des ausgewählten Funkwegs",
         "Berücksichtigte WSPR-Zyklen im Zeitverlauf",
         "Berücksichtigte WSPR-Zyklen nach UTC-Stunde",
@@ -680,11 +795,11 @@ def test_bilingual_manuals_define_compare_evidence_science_and_limits():
 
     performance_section_en = DOC_EN.split(
         "#### 2.6a Inspect the Contributing Stations (Performance Mode)", 1
-    )[1].split("#### 2.6b Inspect the Contributing Stations (Compare Mode)", 1)[0]
+    )[1].split("#### 2.6b Inspect the Contributing Stations (Benchmark Mode)", 1)[0]
     performance_section_de = DOC_DE.split(
         "#### 2.6a Die beitragenden Stationen untersuchen (Performance-Modus)", 1
     )[1].split(
-        "#### 2.6b Die beitragenden Stationen untersuchen (Compare-Modus)", 1
+        "#### 2.6b Die beitragenden Stationen untersuchen (Benchmark-Modus)", 1
     )[0]
     for retired_text in (
         "Selected Path Summary",
@@ -754,7 +869,7 @@ def test_bilingual_manuals_explain_simplified_performance_map_semantics():
 
 
 def test_bilingual_manuals_explain_dual_level_decode_outcome_bars():
-    """Keep the operator interpretation aligned with the rendered Compare figure."""
+    """Keep the operator interpretation aligned with the rendered Benchmark figure."""
     assert "The left, hatched bar in each category" in DOC_EN
     assert "the right, solid-blue bar" in DOC_EN
     assert "Each level is normalized against its own total" in DOC_EN
@@ -792,7 +907,7 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
     assert "`Include Unpaired Evidence`" in DOC_EN
     assert "`Ungepaarte Evidenz einbeziehen`" in DOC_DE
     assert "where applicable" in DOC_EN
-    assert "bei Compare gegebenenfalls" in DOC_DE
+    assert "beim Benchmark gegebenenfalls" in DOC_DE
     assert "automatically records the application name and version" in DOC_EN
     assert "erfasst automatisch Anwendungsname und -version" in DOC_DE
 
@@ -806,7 +921,7 @@ def test_end_user_manuals_omit_internal_interval_boundary_convention():
 
 
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():
-    """Keep Compare temporal evidence scientifically and operationally explicit."""
+    """Keep Benchmark temporal evidence scientifically and operationally explicit."""
     assert "exactly the same observation-level evidence rows" in DOC_EN
     assert "at least two distinct UTC dates" in DOC_EN
     assert "D_{relative} = 100" in DOC_EN
@@ -816,7 +931,7 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     ) in DOC_EN
     assert "there is no separate selected temporal-view preference" in DOC_EN
     assert (
-        "For Compare, the prompt `↓ Select time aggregation bin size` appears under `Temporal Evidence`"
+        "For Benchmark, the prompt `↓ Select time aggregation bin size` appears under `Temporal Evidence`"
         in DOC_EN
     )
 
@@ -832,7 +947,7 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
         "es nicht mehr"
     ) in DOC_DE
     assert (
-        "Bei Compare steht die Aufforderung `↓ Zeitliche Aggregationsbreite auswählen` unter `Zeitliche Evidenz`"
+        "Beim Benchmark steht die Aufforderung `↓ Zeitliche Aggregationsbreite auswählen` unter `Zeitliche Evidenz`"
         in DOC_DE
     )
 
@@ -921,7 +1036,7 @@ def test_bilingual_manuals_define_temporal_iqr_science_and_axis_contract():
         assert required_text in DOC_DE
 
 
-def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
+def test_benchmark_map_uses_stepped_station_balanced_db_scale_bilingually():
     """Keep the map label and manual aligned with the signed stepped dB scale."""
     assert T["en"]["cbar_comp"] == "Station-balanced median \u0394SNR (dB)"
     assert (
@@ -971,10 +1086,10 @@ def test_compare_map_uses_stepped_station_balanced_db_scale_bilingually():
 
 def test_bilingual_manuals_define_saved_inspector_selection_contracts():
     """Saved result-view guidance must enforce one focused station in both paths."""
-    assert "Compare and Performance selections are saved independently" in DOC_EN
+    assert "Benchmark and Performance selections are saved independently" in DOC_EN
     assert "Its setting is saved for Performance" in DOC_EN
     assert (
-        "Performance and Compare each save no more than one exact "
+        "Performance and Benchmark each save no more than one exact "
         "`callsign + locator` identity"
         in DOC_EN
     )
@@ -986,10 +1101,10 @@ def test_bilingual_manuals_define_saved_inspector_selection_contracts():
         in DOC_EN
     )
 
-    assert "für Compare und Performance getrennt gespeichert" in DOC_DE
+    assert "Benchmark und Performance werden getrennt unter den kanonischen Schlüsseln" in DOC_DE
     assert "Die Einstellung wird für Performance gespeichert" in DOC_DE
     assert (
-        "Performance und Compare speichern jeweils höchstens eine exakte "
+        "Performance und Benchmark speichern jeweils höchstens eine exakte "
         "Identität aus `Rufzeichen + Locator`"
         in DOC_DE
     )
@@ -1043,11 +1158,48 @@ def test_bilingual_manuals_document_only_absolute_utc_analysis_windows():
 def test_bilingual_manuals_document_result_specific_population_defaults():
     """Describe interactive defaults without weakening explicit saved values."""
     assert "Performance setup starts with both exclusions on" in DOC_EN
-    assert "Compare setup starts with both off" in DOC_EN
+    assert "Benchmark setup starts with both off" in DOC_EN
     assert "Loaded configurations, demos and analysis URLs" in DOC_EN
     assert "Performance-Konfiguration startet mit beiden Ausschlüssen" in DOC_DE
-    assert "Compare-Konfiguration ohne beide" in DOC_DE
+    assert "Benchmark-Konfiguration ohne beide" in DOC_DE
     assert "Geladene Konfigurationen, Demos und Analyse-URLs" in DOC_DE
+
+
+def test_bilingual_manuals_document_classic_question_first_workflow():
+    """Keep the conditional Classic panel sequence explicit in both manuals."""
+    for question in (
+        "RX Performance",
+        "TX Performance",
+        "RX Benchmark",
+        "TX Benchmark",
+    ):
+        assert question in DOC_EN
+    for benchmark_design in (
+        "`Hardware A/B`",
+        "`Known Reference Station`",
+        "`Local Neighborhood`",
+    ):
+        assert benchmark_design in DOC_EN
+    assert "first panel, **`Question`**" in DOC_EN
+    assert "second panel, **`Target and measurement window`**" in DOC_EN
+    assert "omits the **`Benchmark design`** panel entirely" in DOC_EN
+
+    for question in (
+        "RX Performance",
+        "TX Performance",
+        "RX-Benchmark",
+        "TX-Benchmark",
+    ):
+        assert question in DOC_DE
+    for benchmark_design in (
+        "`Hardware A/B`",
+        "`Bekannte Referenzstation`",
+        "`Lokale Nachbarschaft`",
+    ):
+        assert benchmark_design in DOC_DE
+    assert "Im ersten Bereich **`Frage`**" in DOC_DE
+    assert "Der zweite Bereich **`Target und Messzeitraum`**" in DOC_DE
+    assert "entfällt der Bereich **`Benchmark-Design`** vollständig" in DOC_DE
 
 
 def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch):
@@ -1065,11 +1217,25 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
     stylesheet = rendered_styles[0]
     assert ".st-key-documentation_body .stMarkdown h4" in stylesheet
     assert ".st-key-documentation_body .stMarkdown h5" in stylesheet
+    assert ".st-key-documentation_body .stMarkdown h2" in stylesheet
+    assert "font-size: 1.95rem !important" in stylesheet
     assert (
         ".st-key-documentation_body table.documentation-weighted-columns"
         in stylesheet
     )
     assert "table-layout: fixed !important" in stylesheet
+    assert (
+        'table[data-documentation-column-layout="section-0-1"]'
+        in stylesheet
+    )
+    assert "border-spacing: 0 0.45rem !important" in stylesheet
+    assert ".analysis-choice-single" in stylesheet
+    assert ".analysis-family" in stylesheet
+    assert ".analysis-variant" in stylesheet
+    assert "white-space: nowrap !important" in stylesheet
+    assert "tbody td:nth-child(2)" in stylesheet
+    assert "tbody td:nth-child(3)" in stylesheet
+    assert "@media (max-width: 800px)" in stylesheet
     assert ".st-key-documentation_body .stMarkdown strong.defined-term" in stylesheet
     assert ".st-key-guided_input_flow .stMarkdown strong.defined-term" in stylesheet
     assert ".st-key-documentation_body .stMarkdown p" in stylesheet
@@ -1079,6 +1245,17 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
     assert "strong:first-child:not(.defined-term)" in stylesheet
     assert "color: #39ff14 !important" in stylesheet
     assert 'div[data-testid="stPopover"] button[kind="primary"]' in stylesheet
+
+    conclusion_style_match = re.search(
+        r"blockquote\.evidence-conclusion\s*\{(?P<rules>[^}]*)\}",
+        stylesheet,
+    )
+    assert conclusion_style_match is not None
+    conclusion_rules = conclusion_style_match.group("rules")
+    assert re.search(r"background(?:-color)?\s*:", conclusion_rules)
+    assert re.search(r"border-left\s*:", conclusion_rules)
+    assert re.search(r"(?<!-)color\s*:", conclusion_rules)
+    assert re.search(r"opacity\s*:\s*1\s*!important", conclusion_rules)
 
 
 @pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
@@ -1101,11 +1278,12 @@ def test_manual_internal_links_resolve_to_unique_anchors(documentation_text):
 
 
 def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
-    """Localized manuals must retain the same ordered runtime and chapter anchors."""
+    """Localized manuals retain shared anchors while English translation leads."""
     english_anchors = re.findall(r'<a id="([^"]+)"></a>', DOC_EN)
     german_anchors = re.findall(r'<a id="([^"]+)"></a>', DOC_DE)
 
-    assert german_anchors == english_anchors
+    assert len(english_anchors) == len(set(english_anchors))
+    assert len(german_anchors) == len(set(german_anchors))
 
     shared_runtime_anchors = {
         "sec-1",

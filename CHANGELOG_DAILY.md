@@ -2,6 +2,22 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-08-03
+
+- Renamed the formal result type **Compare** to **Benchmark** across Guided and
+  Classic inputs, bilingual result presentation, demos, saved configurations,
+  shared URLs and prepared exports. Canonical configuration branches are now
+  `results_view.performance` and `results_view.benchmark`; export packages use
+  `performance/` and `benchmark/`, and Benchmark metadata uses
+  `benchmark_evidence_figures` and `benchmark_evidence_recipes`. New writers
+  emit only these names. The configuration reader still accepts unambiguous
+  legacy `success` / `compare` branches, and the URL reader still accepts the
+  former design-as-mode values before canonicalizing them forward. Scientific
+  calculations, evidence eligibility, pairing, aggregation, thresholds,
+  colors and chart geometry remain unchanged.
+- Replaced the authoritative English and German manuals with the supplied
+  Benchmark editions and regenerated `README.md` from the English source.
+
 ## 2026-08-02
 
 - Added a configurable 1,000,000-row ceiling for every complete Performance and

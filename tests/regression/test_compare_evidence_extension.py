@@ -1,4 +1,4 @@
-"""Scientific regression contracts for retained Compare evidence views."""
+"""Scientific regression contracts for retained Benchmark evidence views."""
 
 from pathlib import Path
 
@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from i18n import T
-import ui.plots.compare_evidence_figures as compare_evidence_figures
+import ui.plots.benchmark_evidence_figures as benchmark_evidence_figures
 from ui.inspector.evidence_data import (
     COMPARE_OUTCOME_JOINT,
     COMPARE_OUTCOME_REFERENCE_ONLY,
@@ -18,9 +18,9 @@ from ui.inspector.evidence_data import (
     _retain_thresholded_compare_outcomes,
 )
 from ui.matplotlib_renderer import dispose_matplotlib_figure
-from ui.plots.compare_evidence_figures import (
-    COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND,
-    COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND,
+from ui.plots.benchmark_evidence_figures import (
+    BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND,
+    BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND,
     _aggregate_compare_chronological_coverage,
     _aggregate_compare_folded_coverage,
     _compare_coverage_recipe,
@@ -45,7 +45,7 @@ from ui.plots.temporal_layout import (
 
 
 def _canonical_compare_units(rows):
-    """Return canonical retained Compare units from compact test tuples."""
+    """Return canonical retained Benchmark units from compact test tuples."""
     units = pd.DataFrame(
         rows,
         columns=[
@@ -110,13 +110,13 @@ def _compare_coverage_labels():
 
 
 def _coverage_recipe(units, *, start, end, population_mode=None):
-    """Build one one-hour Compare temporal recipe for tests."""
+    """Build one one-hour Benchmark temporal recipe for tests."""
     recipe_kwargs = {}
     if population_mode is not None:
         recipe_kwargs["population_mode"] = population_mode
     return _compare_coverage_recipe(
         units,
-        coverage_title="Compare Temporal Evidence Coverage",
+        coverage_title="Benchmark Temporal Evidence Coverage",
         selected_segment="0-1000 km",
         analysis_start_t=start,
         analysis_end_t=end,
@@ -497,7 +497,7 @@ def test_coverage_recipe_requires_folded_unavailable_label():
     with pytest.raises(ValueError, match="folded_unavailable"):
         _compare_coverage_recipe(
             units,
-            coverage_title="Compare Temporal Evidence Coverage",
+            coverage_title="Benchmark Temporal Evidence Coverage",
             selected_segment="0-1000 km",
             analysis_start_t="2026-07-01T00:00Z",
             analysis_end_t="2026-07-02T00:00Z",
@@ -809,7 +809,7 @@ def test_selected_path_coverage_recipe_renders_only_comparison_unit_row(
         "fig_selected_compare_coverage_unit_folded_y_simultaneous"
     ]
 
-    assert recipe["kind"] == COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+    assert recipe["kind"] == BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND
     assert recipe["comparison_unit_count"] == 5
     assert recipe["paired_comparison_unit_count"] == 3
     assert {
@@ -1148,7 +1148,7 @@ def test_segment_coverage_recipe_accepts_minimal_units_and_renders(language):
         "fig_compare_coverage_unit_folded_y_rx"
     ]
 
-    assert recipe["kind"] == COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+    assert recipe["kind"] == BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND
     assert recipe["schema_version"] == 2
     assert not any(key.startswith("snr_") for key in recipe)
     assert "reference_snr_correction_notice" not in recipe
@@ -1608,7 +1608,7 @@ def test_retired_compare_views_have_no_scientific_or_renderer_symbols():
     )
 
     assert not any(
-        hasattr(compare_evidence_figures, symbol)
+        hasattr(benchmark_evidence_figures, symbol)
         for symbol in retired_symbols
     )
 
@@ -1688,8 +1688,8 @@ def test_contributor_language_distinguishes_visible_and_compatibility_terms():
         repository_root / "AGENTS.md"
     ).read_text(encoding="utf-8")
 
-    assert "visible Performance and Compare paths" in contributor_text
-    assert "canonical `success` compatibility paths" in contributor_text
+    assert "visible Performance and Benchmark paths" in contributor_text
+    assert "canonical `performance` contract paths" in contributor_text
     assert "within-path consistency" in contributor_text
     assert "experimental repeatability" in contributor_text
     assert "Joint Evidence Share" in contributor_text
@@ -1697,6 +1697,8 @@ def test_contributor_language_distinguishes_visible_and_compatibility_terms():
     assert "Decode Rate" in contributor_text
     for stale_phrase in (
         "Compare/Success",
+        "visible Performance and Compare paths",
+        "canonical `success` compatibility paths",
         "Success Rate",
         "Success and Compare results",
         "Success classification",

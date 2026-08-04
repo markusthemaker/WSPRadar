@@ -47,7 +47,7 @@ def configured_snr_correction_notice(
     is_compare,
     is_sequential=False,
 ):
-    """Return localized provenance for a nonzero completed Compare correction.
+    """Return localized provenance for a nonzero completed Benchmark correction.
 
     The numeric value comes only from the immutable completed
     ``AnalysisContext``. It is rounded to the one-decimal precision used by the

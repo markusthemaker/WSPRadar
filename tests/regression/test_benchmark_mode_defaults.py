@@ -38,7 +38,7 @@ class _NullContext:
         return False
 
 
-def test_benchmark_design_options_put_success_only_before_comparisons():
+def test_classic_benchmark_design_excludes_canonical_performance_mode():
     canonical_modes = [
         "none",
         "hardware_ab",
@@ -47,7 +47,7 @@ def test_benchmark_design_options_put_success_only_before_comparisons():
     ]
     assert list(MODE_KEYS) == canonical_modes
     for lang in ["en", "de"]:
-        assert _benchmark_mode_options(T[lang]) == canonical_modes
+        assert _benchmark_mode_options(T[lang]) == canonical_modes[1:]
 
 
 @pytest.mark.parametrize(
@@ -56,19 +56,17 @@ def test_benchmark_design_options_put_success_only_before_comparisons():
         (
             "en",
             (
-                "Performance — no Reference",
-                "Compare — Hardware A/B",
-                "Compare — Known Reference Station",
-                "Compare — local neighborhood benchmark",
+                "Hardware A/B",
+                "Known Reference Station",
+                "Local Neighborhood",
             ),
         ),
         (
             "de",
             (
-                "Performance — keine Referenz",
-                "Compare — Hardware A/B",
-                "Compare — bekannte Referenzstation",
-                "Compare — lokaler Nachbarschaftsvergleich",
+                "Hardware A/B",
+                "Bekannte Referenzstation",
+                "Lokale Nachbarschaft",
             ),
         ),
     ],
@@ -78,7 +76,7 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
     language,
     expected_labels,
 ):
-    """Keep canonical state behind localized Performance/Compare labels."""
+    """Offer only the three localized designs after Benchmark is selected."""
     benchmark_selector = Mock()
     session_state = _SessionState(
         {
@@ -99,11 +97,10 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
     )
 
     labels = T[language]
-    config_panel.render_compare_expander(labels)
+    config_panel.render_benchmark_expander(labels)
 
     positional_args, keyword_args = benchmark_selector.call_args
     canonical_modes = [
-        "none",
         "hardware_ab",
         "reference_station",
         "local_neighborhood",
@@ -117,8 +114,93 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
 
 
 @pytest.mark.parametrize(
+    ("language", "expected_intro", "expected_labels", "expected_captions"),
+    [
+        (
+            "en",
+            "The **Target** is the station or controlled signal path being evaluated - likely your station. Choose whether to assess its RX or TX Performance, or Benchmark it against a Reference:",
+            (
+                "RX Performance",
+                "TX Performance",
+                "RX Benchmark",
+                "TX Benchmark",
+            ),
+            (
+                "Assess how reliably the Target hears independently active transmitters.",
+                "Assess how reliably active receivers hear the Target.",
+                "Compare what the Target and Reference receivers hear under matched conditions.",
+                "Compare how the Target and Reference transmit paths are heard under matched conditions.",
+            ),
+        ),
+        (
+            "de",
+            "Als **Target** wird eine Station oder ein kontrollierter Signalpfad ausgewertet – wahrscheinlich deine Station. Wähle, ob du die RX- oder TX-Performance des Targets bewerten oder es gegen eine Referenz benchmarken möchtest:",
+            (
+                "RX Performance",
+                "TX Performance",
+                "RX-Benchmark",
+                "TX-Benchmark",
+            ),
+            (
+                "Bewerte, wie zuverlässig das Target Sender hört, deren Aktivität unabhängig bestätigt ist.",
+                "Bewerte, wie zuverlässig nachweislich aktive Empfänger das Target hören.",
+                "Vergleiche, was die Target- und Referenzempfänger unter zugeordneten Bedingungen hören.",
+                "Vergleiche, wie die Target- und Referenzsendepfade unter zugeordneten Bedingungen gehört werden.",
+            ),
+        ),
+    ],
+)
+def test_classic_question_selector_is_four_way_and_bilingual(
+    monkeypatch,
+    language,
+    expected_intro,
+    expected_labels,
+    expected_captions,
+):
+    """Explain Target and each atomic Classic question in both languages."""
+    question_selector = Mock()
+    intro_markdown = Mock()
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=_SessionState(
+                {
+                    "config_panels_expanded": True,
+                    "classic_question": None,
+                }
+            ),
+            expander=Mock(return_value=_NullContext()),
+            markdown=intro_markdown,
+            radio=question_selector,
+        ),
+    )
+
+    labels = T[language]
+    config_panel.render_classic_question_expander(labels, step_number=1)
+
+    positional_args, keyword_args = question_selector.call_args
+    canonical_questions = (
+        "rx_performance",
+        "tx_performance",
+        "rx_benchmark",
+        "tx_benchmark",
+    )
+    assert positional_args == (labels["lbl_question"], canonical_questions)
+    assert tuple(
+        keyword_args["format_func"](question)
+        for question in canonical_questions
+    ) == expected_labels
+    intro_markdown.assert_called_once_with(expected_intro)
+    assert keyword_args["captions"] == expected_captions
+    assert keyword_args["index"] is None
+    assert keyword_args["label_visibility"] == "collapsed"
+
+
+@pytest.mark.parametrize(
     (
         "language",
+        "expected_question_heading",
         "expected_core_heading",
         "expected_comparison_heading",
         "expected_advanced_heading",
@@ -129,18 +211,20 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
     [
         (
             "en",
-            "📡 Target and measurement window",
-            "⚖️ Results view and benchmark design",
-            "⚙️ Filters, analysis scope and evidence",
+            "Question",
+            "Target and measurement window",
+            "Benchmark design",
+            "Filters, analysis scope and evidence",
             "Target callsign (receiver under test)",
             "Target callsign (transmitter under test)",
             "Target QTH (4 or 6 characters)",
         ),
         (
             "de",
-            "📡 Target und Messzeitraum",
-            "⚖️ Ergebnisansicht und Benchmark-Design",
-            "⚙️ Filter, Analyseumfang und Evidenz",
+            "Frage",
+            "Target und Messzeitraum",
+            "Benchmark-Design",
+            "Filter, Analyseumfang und Evidenz",
             "Target-Rufzeichen (Empfänger im Test)",
             "Target-Rufzeichen (Sender im Test)",
             "Target-QTH (4 oder 6 Zeichen)",
@@ -149,6 +233,7 @@ def test_classic_benchmark_selector_formats_canonical_modes_bilingually(
 )
 def test_classic_headings_and_target_labels_are_task_oriented(
     language,
+    expected_question_heading,
     expected_core_heading,
     expected_comparison_heading,
     expected_advanced_heading,
@@ -159,9 +244,10 @@ def test_classic_headings_and_target_labels_are_task_oriented(
     """Keep the compact Classic hierarchy explicit and bilingual."""
     labels = T[language]
 
+    assert labels["exp_question"] == expected_question_heading
     assert labels["exp_core"] == expected_core_heading
     assert labels["exp_comp"] == expected_comparison_heading
-    assert labels["lbl_comp_mode"] == expected_comparison_heading.split(" ", 1)[1]
+    assert labels["lbl_comp_mode"] == expected_comparison_heading
     assert labels["exp_adv"] == expected_advanced_heading
     assert labels["lbl_callsign_rx"] == expected_rx_callsign
     assert labels["lbl_callsign_tx"] == expected_tx_callsign
@@ -261,7 +347,7 @@ def test_classic_advanced_panel_groups_filters_scope_and_evidence(
     ]
     station_population_fields.assert_called_once_with(labels)
     scope_fields.assert_called_once_with(labels)
-    evidence_threshold_fields.assert_called_once_with(labels)
+    evidence_threshold_fields.assert_called_once_with(labels, result_type=None)
 
 
 def test_population_toggles_register_explicit_edits_before_owner_callback(
@@ -343,8 +429,8 @@ def test_tx_ab_threshold_wording_describes_scheduled_pairs(language):
 @pytest.mark.parametrize(
     ("result_type", "comparison_mode", "expected_label", "inactive_label"),
     [
-        ("success", "none", "lbl_min_opportunities", "lbl_min_spots"),
-        ("compare", "reference_station", "lbl_min_spots", "lbl_min_opportunities"),
+        ("performance", "none", "lbl_min_opportunities", "lbl_min_spots"),
+        ("benchmark", "reference_station", "lbl_min_spots", "lbl_min_opportunities"),
     ],
 )
 def test_shared_evidence_fields_render_only_the_active_result_threshold(
@@ -431,7 +517,7 @@ def test_guided_evidence_fields_use_two_equal_columns(monkeypatch):
 
     config_fields.render_evidence_threshold_fields(
         T["en"],
-        result_type="compare",
+        result_type="benchmark",
         use_two_column_layout=True,
     )
 
@@ -1272,7 +1358,7 @@ def test_classic_direction_change_clears_retained_guided_hardware(monkeypatch):
         {
             "val_comp_mode": "none",
             "guided_reference_design": None,
-            "guided_last_compare_mode": "hardware_ab",
+            "guided_last_benchmark_mode": "hardware_ab",
             "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": 1.2,
             "val_tx_ab_method": "simultaneous",
@@ -1292,7 +1378,7 @@ def test_classic_direction_change_clears_retained_guided_hardware(monkeypatch):
 
     assert session_state.val_comp_mode == "none"
     assert session_state.guided_reference_design is None
-    assert session_state.guided_last_compare_mode is None
+    assert session_state.guided_last_benchmark_mode is None
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_snr_correction_mode == "no_offset"
 
@@ -1306,7 +1392,7 @@ def test_classic_direction_change_clears_direction_specific_correction(
     session_state = _SessionState(
         {
             "val_comp_mode": comparison_mode,
-            "guided_last_compare_mode": comparison_mode,
+            "guided_last_benchmark_mode": comparison_mode,
             "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": -0.8,
         }
@@ -1321,7 +1407,7 @@ def test_classic_direction_change_clears_direction_specific_correction(
     callbacks.handle_analysis_direction_change()
 
     assert session_state.val_comp_mode == comparison_mode
-    assert session_state.guided_last_compare_mode == comparison_mode
+    assert session_state.guided_last_benchmark_mode == comparison_mode
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_snr_correction_mode == "no_offset"
 
@@ -1394,7 +1480,7 @@ def test_classic_context_edit_clears_established_reference_correction(monkeypatc
     session_state = _SessionState(
         {
             "val_comp_mode": "reference_station",
-            "guided_last_compare_mode": "reference_station",
+            "guided_last_benchmark_mode": "reference_station",
             "val_snr_correction_mode": "established_offset",
             "val_benchmark_offset_db": 1.2,
         }

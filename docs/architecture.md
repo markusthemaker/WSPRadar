@@ -99,15 +99,15 @@ active-only: the document contains every setting applicable to the selected
 comparison mode and omits inactive hidden fields. Applying a document resets
 inactive comparison controls before loading the validated active branch.
 
-`results_view` has an always-present `success` branch and a conditional
-`compare` branch. Both preserve canonical Segment Inspector range/direction,
+`results_view` has an always-present `performance` branch and a conditional
+`benchmark` branch. Both preserve canonical Segment Inspector range/direction,
 segment temporal bins, selected-station chronological bins, and
 station-selection intent. Explicit stations are canonical callsign/locator
 pairs. Both branches permit `null`, an empty list, or one identity. `null`
 retains the normal initial table behavior, while an empty list records
 deliberate deselection; `"all"`, duplicates, malformed identities, and
-multiple identities are rejected without migration. Compare additionally
-preserves `show_non_joint`; Success preserves the canonical `show_zero_target` boolean,
+multiple identities are rejected without migration. Benchmark additionally
+preserves `show_non_joint`; Performance preserves the canonical `show_zero_target` boolean,
 which the presentation layer exposes through the direction-specific
 counter-only-station controls rather than through that internal name. Table and
 Drill-Down filters, expander state, and other transient controls are
@@ -128,7 +128,7 @@ applied; `establish_offset` marks a deliberately uncorrected baseline run; both
 require exactly `0.0 dB`. `established_offset` applies a documented signed value
 and explicitly permits a genuinely established `0.0 dB`. Local Neighborhood
 supports `no_offset` and `established_offset` but not the controlled
-offset-establishment workflow. Success-only documents omit both correction
+offset-establishment workflow. Performance-only documents omit both correction
 fields. Applicable unpublished v1 documents without the mode are rejected:
 neither the numeric value nor profile identity is used to guess its meaning.
 
@@ -147,7 +147,7 @@ branch instead stores a shared
 **Target Start**, and **Reference Start** only for sequential operation, offers
 intervals of 4, 6, 10, 12, 20, 30, or 60 minutes, restricts starts to distinct
 even phases below the interval, and defaults them to 10, 0, and 2 minutes.
-Sequential Compare always assigns planned pairs from this schedule; the
+Sequential Benchmark always assigns planned pairs from this schedule; the
 unpublished fixed-bin prototype is not a supported runtime branch. This remains
 schema version 1: pre-production v1 documents without the now-required active
 branch fields are rejected rather than migrated or guessed.
@@ -178,9 +178,18 @@ used by the query.
 
 Guided Input and Classic Input are two Streamlit compositions over the same
 canonical `val_*` session fields. `input_view` defaults to `guided` and persists
-for the browser session, but the editor choice and Guided navigation keys are
-transient presentation state outside `AnalysisContext` and the version-1 saved
-configuration. Correction mode is different: it is durable operator provenance
+for the browser session, but the editor choice, the four-way Classic Question,
+and Guided navigation keys are transient presentation state outside
+`AnalysisContext` and the version-1 saved configuration. Classic renders that
+Question first, followed by Target/window fields and, only for Benchmark, a
+required Benchmark-design panel. A newly selected Benchmark may therefore have
+valid transient RX/TX Benchmark intent while canonical `val_comp_mode` remains
+`none` until Hardware A/B, Reference Station, or Local Neighborhood is chosen.
+During that incomplete state, Run, Save Config, and public-URL synchronization
+are gated, while the advanced panel explicitly routes Benchmark thresholds, so
+the canonical `none` value cannot be misrepresented as an intentional
+Performance configuration. Correction mode is
+different: it is durable operator provenance
 stored in the configuration, held in the canonical
 `val_snr_correction_mode` field, and preserved when editors switch. Guided
 renders the three-way choice directly from this field. Classic keeps the shared
@@ -214,7 +223,7 @@ the validation error or silently repair scientific state.
 
 The two station-population exclusions retain their existing canonical shared
 fields. A dependency-free transient UI policy initializes untouched Performance
-fields to enabled and untouched Compare fields to disabled. Editing either
+fields to enabled and untouched Benchmark fields to disabled. Editing either
 toggle gives that field explicit session ownership, so later result-family
 changes update only untouched fields. Config, demo, and URL application marks
 both loaded booleans explicit. The permanent canonical fields are copied into
@@ -313,8 +322,8 @@ fallback line and removes the decoration at the mobile breakpoint.
 Provider readiness participates in the same FIFO admission decision as the two
 active-analysis slots. Once admitted, the controller prepares every block
 required by the selected active result against one provider before publishing
-it. A no-benchmark run prepares Success only; a run with any benchmark prepares
-Compare only. Strict and legacy compatibility requests remain on that provider.
+it. A no-benchmark run prepares Performance only; a run with any benchmark prepares
+Benchmark only. Strict and legacy compatibility requests remain on that provider.
 A classified provider failure deletes the attempt's unregistered session
 artifacts, releases its reservation, and restarts the complete active-result
 bundle from its first required request on the next source.
@@ -340,7 +349,7 @@ Scheduled TX A/B post-fetch eligibility applies the same convention to both
 planned starts, so adjacent windows cannot share an observation or planned
 pair.
 
-Every Success and Compare Target branch requires the exact direction-specific
+Every Performance and Benchmark Target branch requires the exact direction-specific
 callsign and a reported endpoint locator whose first four characters equal the
 configured Target QTH grid-4. The complete four- or six-character Target QTH is
 retained separately as the geographic origin for map, radius, distance/azimuth,
@@ -363,7 +372,7 @@ a truncated result. The wrapper encloses complete unions and final aggregations,
 so it limits only transport/output rows and never an individual union branch or
 input to a scientific aggregate. No separate `COUNT(*)` request is made.
 
-For periodic hardware A/B Compare work, SQL applies the exact UTC-minute modulo
+For periodic hardware A/B Benchmark work, SQL applies the exact UTC-minute modulo
 predicate for each path's repeat interval and start phase. Comparison post-fetch
 processing rejects rows outside their assigned path schedule and attaches stable
 `tx_ab_pair_id`, `tx_ab_pair_target_time`, and
@@ -381,7 +390,7 @@ Inspector evidence.
 
 Two integrity rules intentionally operate on the geographically global,
 otherwise eligible post-fetch population before this geographic gate. In
-Compare, solar selection occurs first, followed by moving-station integrity and
+Benchmark, solar selection occurs first, followed by moving-station integrity and
 then Target-Active synchronization before geographic scope. Target-Active
 synchronization may therefore use an out-of-scope row to establish that the
 Target was active, but that row cannot subsequently contribute an outcome,
@@ -397,7 +406,7 @@ Streamlit UI. It provides:
 - a process-memory DataFrame LRU bounded to 64 MiB total, 16 MiB per entry and
   32 entries after deep-byte accounting;
 - provider-scoped exact-query SHA-256 disk-cache keys, including a write-through
-  raw Parquet L2 for ordinary Compare CSV rows;
+  raw Parquet L2 for ordinary Benchmark CSV rows;
 - a separate provider-scoped demo-query namespace with an absolute 24-hour
   freshness lifetime;
 - CSV and Parquet response handling;
@@ -485,8 +494,8 @@ conversion, geometry, and solar helpers for the scientific path.
 `core/map_data.py` converts comparison or opportunity rows into pure `MapData`
 aggregates. `core/map_models.py` defines the `MapData` and `MapFigure` contracts.
 Map preparation owns its working evidence frame and transfers that owner into
-Compare or Success aggregation, which may attach transient columns in place;
-standalone Compare aggregation remains nonmutating unless ownership is supplied
+Benchmark or Performance aggregation, which may attach transient columns in place;
+standalone Benchmark aggregation remains nonmutating unless ownership is supplied
 explicitly.
 These consumers receive evidence already constrained by Geographic Analysis
 Scope. The same maximum distance controls the rendered extent and footer, so
@@ -499,7 +508,7 @@ features. Rendered static basemaps are stored in the derived-analysis namespace.
 Same-key construction is coordinated and publication uses a unique temporary
 path followed by atomic replacement.
 
-`core/presentation_context.py` keeps canonical Success terms and explicit
+`core/presentation_context.py` keeps canonical scientific success terms and explicit
 direction-aware presentation terms in one immutable presentation-only bundle.
 Canonical `Target`/`Elsewhere` and `Target`/`Other Signals` names, compact
 formulas, stored fields and compatibility-export headings remain unchanged.
@@ -509,7 +518,7 @@ direction-specific audit-only wording. Neither family can select a scientific
 branch or enter `AnalysisContext`.
 
 `core/plot_engine.py` applies presentation labels and renders a figure from pure
-map aggregates. It does not access Streamlit state. Success sector color retains
+map aggregates. It does not access Streamlit state. Performance sector color retains
 the station-balanced aggregate as the only quantitative color layer. Qualifying
 station markers are split into one vectorized dark-green target-positive group
 and one light-grey mode-specific counter-only group, both at the legacy fixed
@@ -517,9 +526,9 @@ marker size with black edges. RX labels these groups `Heard by Target` and
 `Heard by others only`; TX uses `Target heard` and
 `Other signals heard only`. Dark-green markers render above co-located light-grey
 markers; neither color nor size encodes an individual rate or evidence depth.
-Valid 0% sectors remain on the Success-rate scale, while non-qualifying sectors
+Valid 0% sectors remain on the Decode Rate scale, while non-qualifying sectors
 leave the neutral base map visible as insufficient evidence. The localized
-compact footer reuses the Compare-map bar and typography primitives with a
+compact footer reuses the Benchmark-map bar and typography primitives with a
 wider label gutter, placing denominator `OPPORTUNITIES` above qualifying
 `STATIONS` and showing exact counts only in segments wide enough to contain them.
 `ui/matplotlib_renderer.py` serializes lower-DPI preview PNGs and displays them
@@ -538,7 +547,7 @@ for selections and rendering. Preparation is split into pure modules:
 
 - `ui/inspector/view_models.py` builds compare and opportunity data view models;
 - `ui/inspector/evidence_data.py` performs projected Parquet reads and prepares
-  the canonical retained Compare comparison-unit frame;
+  the canonical retained Benchmark comparison-unit frame;
 - `ui/inspector/drilldown.py` builds selected-station evidence tables;
 - `ui/inspector/session_cache.py` maintains a run-scoped bounded LRU for options,
   segment models, selected models, and PNGs;
@@ -546,17 +555,17 @@ for selections and rendering. Preparation is split into pure modules:
   them.
 
 The cached options model contains only valid distance and direction choices,
-not a second owner of the complete station aggregate. Compare retains one
+not a second owner of the complete station aggregate. Benchmark retains one
 canonical station display table instead of parallel full/display copies.
-Success retains its station display table plus a small export-column mapping;
+Performance retains its station display table plus a small export-column mapping;
 the export schema is renamed lazily, and row-level evidence is released after
 the compact temporal recipes have been prepared.
 
-Compare recipes likewise remain below the shared Inspector-cache budget without
+Benchmark recipes likewise remain below the shared Inspector-cache budget without
 sampling or reducing numeric precision. Segment Insight retains exact histogram
 centers, counts, medians and means rather than observation-length station and
 spot vectors; large numeric recipe arrays use a lossless internal compressed
-representation. Compare temporal recipes precompute the exact density grid,
+representation. Benchmark temporal recipes precompute the exact density grid,
 median, count, Q1 and Q3 inputs for every offered chronological bin plus the
 one-hour folded profile, then release the canonical comparison-unit and
 Joint-evidence frames. A time-bin change therefore selects retained sufficient
@@ -565,7 +574,7 @@ observation rows, repeat group-by work, reread Parquet or contact a provider.
 Preparing a previously unseen scope deliberately computes those selectable
 profiles once before caching the model, trading additional cold-preparation CPU
 for fast subsequent interaction.
-Selected-station Compare recipes use the same profile contract. Browser
+Selected-station Benchmark recipes use the same profile contract. Browser
 previews and high-resolution exports render from the same retained recipes.
 
 Inspector range and direction controls may narrow the retained geographic
@@ -581,17 +590,17 @@ station-level rows, so the redesigned views require no provider query and no
 full Parquet projection. Selected-station reads request only evidence columns
 required by the corresponding table and figure.
 
-The Success scope model computes the station-balanced and pooled-opportunity
+The Performance scope model computes the station-balanced and pooled-opportunity
 rates and their station and outcome counts without changing admission. The
 scope summary identifies the two weighting contracts explicitly as
-`Station-balanced Success Rate` and `Observation-level Success Rate`. It also
+`Station-balanced Decode Rate` and `Opportunity-level Decode Rate`. It also
 retains the signed weighting gap — observation-level minus station-balanced, in
 percentage points — and median confirmed opportunities per station so weighting
 and evidence-depth differences remain visible.
 `ui/plots/opportunity_figures.py` then prepares a
 separate exact-distance recipe from the complete qualifying station population.
 One deterministic bin grid, keyed only by the selected distance intervals,
-serves Peer Reach, station-balanced and observation-level Success Rate, and
+serves Peer Reach, station-balanced and opportunity-level Decode Rate, and
 station-median successful Target SNR. The recipe retains all support counts for
 traceability but does not render a support-count strip. Widths are
 `125 km` through a selected span of `1,250 km`, `250 km` through `3,000 km`,
@@ -601,7 +610,7 @@ the final selected upper boundary is included, and inactive bins retain gaps
 between disjoint selected ranges. Missing evidence remains missing rather than
 becoming 0%.
 
-The separate Success temporal base recipe derives station baselines from the
+The separate Performance temporal base recipe derives station baselines from the
 complete active-scope UTC window, requiring at least three successful normalized
 Target SNR observations per station. It precomputes all six supported
 chronological profiles and one fixed one-hour UTC-folded profile. Each
@@ -620,9 +629,9 @@ Stations below the SNR-baseline threshold remain in both non-SNR evidence
 layers. In each chronological bin, every contributing qualifying station
 supplies one split vote whose successful and counter-outcome fractions sum to
 one; their ratio continues to reproduce the established station-balanced
-Success Rate. The chronological confirmed-opportunity stack counts every
+Decode Rate. The chronological confirmed-opportunity stack counts every
 successful or counter-outcome once, and their ratio continues to reproduce the
-established observation-level Success Rate.
+established opportunity-level Decode Rate.
 
 Folded station support is a distinct display contract. For each UTC hour it
 counts every distinct station-date-hour presence once and divides by the
@@ -638,7 +647,7 @@ rate-partitioned support display, not averages of station-date split votes.
 Folded opportunity components instead divide pooled outcome counts directly by
 the same per-hour date denominator, so they are per-date count averages while
 their ratio preserves the unchanged observation-level rate. All non-SNR
-support and Success-rate calculations remain unchanged.
+support and success-rate calculations remain unchanged.
 
 A represented UTC date has at least one confirmed opportunity from a qualifying
 station somewhere in the active scope and selected window; a completely absent
@@ -651,9 +660,9 @@ partially overlapping boundary slot counts as one represented slot rather than
 being exposure-fraction weighted, so its folded mean can be depressed.
 Chronological one-hour support is directly comparable in units only when bin
 edges are anchored to UTC-hour boundaries; wider chronological bins cover
-multiple hours. Target-only audit rows do not enter either Success denominator.
+multiple hours. Target-only audit rows do not enter either Performance denominator.
 
-All Performance and Compare temporal presentations use one unavailable-state
+All Performance and Benchmark temporal presentations use one unavailable-state
 contract in RX and TX, for both active-scope segment and selected-station
 figures, and in both browser previews and exports. UTC-hour folding remains
 scientifically available only when at least two represented UTC dates
@@ -664,10 +673,10 @@ boxed unavailable notice; chronological panels retain their normal bounds.
 spacing, colorbar-footprint alignment, 28-pixel left expansion, unavailable
 annotation painter and preview/export layout version.
 
-Compare temporal preparation uses one canonical retained-unit frame after the
+Benchmark temporal preparation uses one canonical retained-unit frame after the
 completed run's gates, geographic scope and station-level category thresholds.
-Each simultaneous row is one transmitter-cycle for RX Compare or one
-receiver-cycle for TX Compare. Sequential TX rows are reduced to one Scheduled
+Each simultaneous row is one transmitter-cycle for RX Benchmark or one
+receiver-cycle for TX Benchmark. Sequential TX rows are reduced to one Scheduled
 A/B Pair per receiver and planned pair ID after per-side micro-medians; the
 planned Target timestamp is its temporal coordinate. Each unit is classified
 as Only Target, Joint or Only Reference. The simultaneous Target-Active Gate
@@ -686,7 +695,7 @@ scope median is identified by its red line and legend rather than a tick-label
 suffix. Absolute zero remains inside the scale envelope but has no separate
 reference line or boxed label.
 
-Compare Temporal Evidence Coverage keeps all three retained outcomes. In every
+Benchmark Temporal Evidence Coverage keeps all three retained outcomes. In every
 chronological bin, one contributing station supplies one total vote partitioned
 by that station's Only Target, Joint and Only Reference fractions. The upper
 ratio is therefore the station-balanced mean of each station's Joint fraction.
@@ -696,7 +705,7 @@ Evidence Share: pairability coverage for Delta SNR, not a Target score or win
 rate. Folded support and counts use the same represented-UTC-date and
 zero-support treatment as the Performance temporal base.
 
-Success temporal presentation consumes that one recipe as two separate figures
+Performance temporal presentation consumes that one recipe as two separate figures
 with distinct localized title routing: the upper title identifies **Temporal
 SNR Evidence**, while the lower title identifies **Temporal Evidence**. The
 first figure contains chronological and folded successful-SNR deviation panels
@@ -713,13 +722,13 @@ folded values remain average station support or average confirmed opportunities
 per represented UTC date even though those denominators are omitted from the
 axis labels. Successful outcomes use the
 established green and counter-outcomes use neutral grey. Each of the four panels
-has a secondary Success Rate axis; all four twin axes begin at zero and share
+has a secondary Decode Rate axis; all four twin axes begin at zero and share
 one capped, rounded ceiling derived from the four unchanged rate series. One
 figure-level legend centered below the lower title identifies both outcome
-stacks and the Success Rate line. The left support axes scale independently and
+stacks and the Decode Rate line. The left support axes scale independently and
 share the compact ham-style count formatter. Lower chronological data axes
 align exactly with the upper chronological SNR or Delta SNR axis. Performance
-and Compare use one shared lower-folded-column alignment contract. The two
+and Benchmark use one shared lower-folded-column alignment contract. The two
 lower folded panels begin from the upper folded panel's width and translate
 right together with their titles, axes, twin rate axes, labels and annotations
 so their rightmost labeling aligns with the upper colorbar label. The lower
@@ -730,16 +739,16 @@ chronological panels retain their established bounds, and panel heights remain
 aligned. Each figure keeps one
 folded-date annotation without repeating it in both panels of a row. Browser
 preview and high-resolution export use the same two recipes and renderers;
-Success exports add
+Performance exports add
 `figure_segment_temporal_snr_deviation.png` and retain
 `figure_segment_temporal_evidence.png` for the station/opportunity figure, while
-Compare retains `figure_segment_temporal_evidence.png` for absolute Delta SNR
-and adds `figure_segment_temporal_coverage.png`. One Compare segment time-bin
+Benchmark retains `figure_segment_temporal_evidence.png` for absolute Delta SNR
+and adds `figure_segment_temporal_coverage.png`. One Benchmark segment time-bin
 control sets both chronological profiles; every folded profile remains fixed
 at one hour.
 
 Selected Station Evidence permits zero or one station in both Performance and
-Compare. Both Station Insights tables use the component's native replaceable
+Benchmark. Both Station Insights tables use the component's native replaceable
 single-row selection. Selecting a different row replaces the exact
 callsign-plus-locator identity consumed by both Selected Station Evidence and
 Drill-Down; clearing the row hides the selected section.
@@ -750,7 +759,7 @@ statistics, Comparison Evidence, and temporal evidence remain unchanged.
 
 For Performance, the section contains one compact selected-path context, the
 independent selected-station chronological-bin control, and two full-width figures.
-`ui/plots/opportunity_figures.py` parameterizes the shared Success temporal
+`ui/plots/opportunity_figures.py` parameterizes the shared Performance temporal
 recipe and renderers by population mode (`active_scope` or `selected_station`)
 and SNR representation (`station_relative_deviation` or
 `actual_normalized_snr`). Segment Inspector retains active-scope,
@@ -779,13 +788,13 @@ the opportunity row counts every retained confirmed opportunity. Folded station
 height is average presence per represented UTC date, between zero and one, while
 folded opportunity height is average confirmed opportunities over the same
 represented-date denominator. For one station, station-balanced and
-observation-level Success Rate series are numerically identical, but both rows
+opportunity-level Decode Rate series are numerically identical, but both rows
 remain because they expose presence and evidence depth respectively. UTC-hour
 folding still requires at least two represented dates. Below that threshold,
 both folded panels retain their normal geometry, draw no folded data, and show
 the localized boxed unavailable notice; the chronological panels do not expand.
 
-For Compare, the compact selected-path context is followed by the same prompted,
+For Benchmark, the compact selected-path context is followed by the same prompted,
 full-width chronological-bin control used in Performance and one two-panel
 figure built through the shared temporal layout primitives. The left **Δ SNR
 over Time** panel preserves the selected station's actual UTC sequence at the
@@ -823,16 +832,16 @@ scope and the complete UTC window. Selecting another chronological bin reuses
 the precomputed temporal base recipe and does not rebuild distance aggregates.
 Station Insights filters, sorting, counter-only-station visibility and selected
 rows are downstream presentation state and do not invalidate segment recipes.
-Changing the selected Success identity invalidates only selected-station recipes;
+Changing the selected Performance identity invalidates only selected-station recipes;
 changing its chronological bin reuses retained evidence and leaves the
 independent Segment Inspector bin and completed provider analysis untouched. The
 inspector model version invalidates temporal recipe schemas, while the shared
 temporal-evidence layout version fingerprints both preview PNGs and prepared
 exports so one geometry-contract change invalidates both surfaces. Existing
-PNG, Success distance-evidence and temporal-SNR render versions retain their
+PNG, Performance distance-evidence and temporal-SNR render versions retain their
 more specific invalidation roles, so a hot reload cannot reuse an image or ZIP
 rendered under a previous visual contract. The visible Performance Station Insights table uses the
-direction-aware Success
+direction-aware Performance
 outcomes, places the counter-only visibility toggle above its left edge, and
 uses a fixed five-body-row scrolling viewport. It omits the redundant derived
 confirmed-opportunity total, shortens the visible successful-SNR heading, and
@@ -841,9 +850,9 @@ export table preserves the established compatibility headings and canonical
 outcome fields. Performance Drill-Down uses the same five-body-row viewport,
 omits the display-only `Outcome` column, and applies the same shortened TX
 counter heading. Filtering is still projected back to unchanged canonical rows
-registered for export, including their `Outcome` values. Compare Station
+registered for export, including their `Outcome` values. Benchmark Station
 Insights and Drill-Down use the same five-body-row scrolling viewport while
-retaining their established columns and headings. Success and Compare
+retaining their established columns and headings. Performance and Benchmark
 temporal-bin choices use independent durable state. Browser preview and
 high-resolution export consume the same exact-distance and temporal recipes and
 renderer semantics.
@@ -872,8 +881,8 @@ are reconstructed on later Streamlit reruns.
 Preparing an export reuses completed analysis and projected artifacts; it does
 not rerun the upstream scientific query. It renders paper-theme, high-resolution
 figures and packages configuration, metadata, CSV tables, compact Parquet
-evidence, and PNGs. Comparison artifacts are grouped under `compare/`; Success
-artifacts are grouped under `success/`, with the same names reflected in run
+evidence, and PNGs. Benchmark artifacts are grouped under `benchmark/`; Performance
+artifacts are grouped under `performance/`, with the same names reflected in run
 metadata. Both result families register the active segment evidence and segment
 temporal recipes, so preview and export use the same prepared values and
 renderers. High-resolution map export reloads the registered compact station and
@@ -886,29 +895,29 @@ missing, corrupt or mismatched compact aggregate aborts preparation with an
 explicit rerun instruction instead of silently omitting the map. Export metadata
 stores a path-free SHA-256 recipe signature rather than local artifact paths.
 
-Success selected evidence is exported under two stable filenames:
+Performance selected evidence is exported under two stable filenames:
 `figure_selected_station_snr_evidence.png` and
 `figure_selected_station_temporal_evidence.png`. They use the same shared
-temporal recipes and renderers as the two browser figures. Compare retains
+temporal recipes and renderers as the two browser figures. Benchmark retains
 `figure_selected_station_evidence.png` for its one-station, two-panel Delta SNR
 presentation and adds `figure_selected_station_coverage.png` for the one-row
-coverage view. Compare segment exports also include
-`figure_segment_temporal_coverage.png`. Success export registration stores the
+coverage view. Benchmark segment exports also include
+`figure_segment_temporal_coverage.png`. Performance export registration stores the
 shared selection label and context, selection count, direction-aware station
 role, weighting mode, and
 filename-to-description mapping. `run_metadata.json` publishes these as
 `selected_station_label`, `selected_station_context`,
 `selected_station_count`, `selected_station_role`,
-`selected_evidence_weighting`, and `selected_evidence_figures`, so a Success
-package identifies its one exact selected identity. Compare records its
+`selected_evidence_weighting`, and `selected_evidence_figures`, so a Performance
+package identifies its one exact selected identity. Benchmark records its
 zero-or-one exact identity in the compatibility field `selected_stations`, its
 selection count, selected chronological evidence bin and dual-panel evidence
 recipe; there is no selected active-view choice because each export contains
-both time panels. Compare metadata publishes the stable
-`compare_evidence_figures` filename-to-description map for the complementary
+both time panels. Benchmark metadata publishes the stable
+`benchmark_evidence_figures` filename-to-description map for the complementary
 evidence figures, and the export signature fingerprints their recipe kind,
-schema, time bin and title through `compare_evidence_recipes` without
-serializing scientific arrays. The optional Success descriptive fields remain
+schema, time bin and title through `benchmark_evidence_recipes` without
+serializing scientific arrays. The optional Performance descriptive fields remain
 unset.
 
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
@@ -1023,7 +1032,7 @@ must remain outside `README.md`.
    TX A/B predicates select each path by its exact repeat interval and UTC start
    phase.
 4. `run_data_preparation` fetches and processes every block required by the
-   active Compare result against the selected provider. Any provider failover
+   active Benchmark result against the selected provider. Any provider failover
    restarts this unpublished phase.
 5. Post-fetch logic applies solar selection, evaluates moving-station integrity
    and then Target-Active synchronization against the geographically global
@@ -1045,10 +1054,10 @@ must remain outside `README.md`.
 
 ### Opportunity Analysis
 
-1. In a no-benchmark Success run, an active-cycle ClickHouse query returns one
+1. In a no-benchmark Performance run, an active-cycle ClickHouse query returns one
    row per time slot and peer identity with target/external evidence and target
    SNR. Hidden benchmark and scheduled TX A/B settings do not participate in
-   this standalone Success query.
+   this standalone Performance query.
 2. The fetched globally Target-Active frame is normalized into the explicit
    opportunity schema. Peer coordinates are assigned without a full coordinate
    merge, and outcomes are classified on the owned frame.
@@ -1151,8 +1160,8 @@ outcomes do not trigger cross-database selection.
 
 | Namespace | Contents | Lifecycle |
 | --- | --- | --- |
-| `queries` | Provider-scoped ordinary exact-query rows stored as Parquet, including locally serialized Compare CSV rows | One-hour last-access freshness and cleanup. |
-| `demo-queries` | Provider-scoped raw Compare and Success demo-query rows, stored as Parquet | Absolute 24-hour freshness and cleanup; reads never extend publication time. |
+| `queries` | Provider-scoped ordinary exact-query rows stored as Parquet, including locally serialized Benchmark CSV rows | One-hour last-access freshness and cleanup. |
+| `demo-queries` | Provider-scoped raw Benchmark and Performance demo-query rows, stored as Parquet | Absolute 24-hour freshness and cleanup; reads never extend publication time. |
 | `derived-analysis` | Shared basemap PNGs | Reused across sessions; no current TTL cleanup. |
 | `session-artifacts` | Per-owner, per-run scoped evidence and compact map station/segment Parquet aggregates | Active leases/touches plus one-hour cleanup. |
 
@@ -1188,12 +1197,12 @@ Demo-query reads still take the same-key coordination lock but deliberately do
 not touch the file: its publication mtime is the immutable freshness anchor,
 and any RAM L1 entry expires at that same absolute deadline.
 
-Compare continues to request upstream CSV because that is its established
+Benchmark continues to request upstream CSV because that is its established
 transport and parser path, but every accepted CSV exact query is converted to
 raw Parquet in its policy-specific disk L2 before transport normalization and
-scientific post-fetch processing. Ordinary Compare uses the one-hour
-last-access `queries` namespace; guided-demo Compare uses the absolute 24-hour
-`demo-queries` namespace. Success keeps its upstream Parquet transport and
+scientific post-fetch processing. Ordinary Benchmark uses the one-hour
+last-access `queries` namespace; guided-demo Benchmark uses the absolute 24-hour
+`demo-queries` namespace. Performance keeps its upstream Parquet transport and
 publishes it under the same ordinary/demo namespace policy. The optional
 process-memory DataFrame L1 stores isolated normalized copies only when they fit
 the 16 MiB per-entry, 64 MiB total and 32-entry limits; larger accepted frames
@@ -1325,7 +1334,7 @@ same-session amplification while preserving independent demo use by other users.
 ### One Database Source per Published Run
 
 Provider choice is scientifically material because the public databases are not
-assumed perfectly synchronized. The single active Compare or Success result and
+assumed perfectly synchronized. The single active Benchmark or Performance result and
 every strict/legacy request in one published run therefore share one stable
 `DatabaseSource`. Provider failure restarts the unpublished active-result bundle
 rather than continuing another block elsewhere. Query cache keys include

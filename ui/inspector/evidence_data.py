@@ -21,7 +21,7 @@ def _empty_evidence_df():
 
 
 def _empty_compare_unit_df():
-    """Return the canonical retained Compare-unit schema."""
+    """Return the canonical retained Benchmark-unit schema."""
     return pd.DataFrame(
         columns=[
             "identity",
@@ -431,7 +431,7 @@ def _build_evidence_points(
     tx_ab_target_start_minute=0,
     tx_ab_reference_start_minute=2,
 ):
-    """Build Compare Delta-SNR points for selected station identities."""
+    """Build Benchmark Delta-SNR points for selected station identities."""
     comparison_units = _build_compare_unit_rows(
         station_df,
         identity_df,
@@ -454,7 +454,7 @@ def _build_segment_compare_units(
     tx_ab_target_start_minute=0,
     tx_ab_reference_start_minute=2,
 ):
-    """Load one projected active-scope frame and build all retained Compare units.
+    """Load one projected active-scope frame and build all retained Benchmark units.
 
     When the scoped station frame carries the established thresholded category
     counts, units are retained only for outcome categories that survived that
@@ -529,7 +529,7 @@ def _build_segment_evidence_points(
     tx_ab_target_start_minute=0,
     tx_ab_reference_start_minute=2,
 ):
-    """Build Compare segment evidence from projected station-identity rows."""
+    """Build Benchmark segment evidence from projected station-identity rows."""
     comparison_units = _build_segment_compare_units(
         df_seg,
         df_seg,

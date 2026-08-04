@@ -32,8 +32,8 @@ body:
       label: Affected method or evidence layer
       multiple: true
       options:
-        - TX Success and Target / Other Signals
-        - RX Success and Target / Elsewhere
+        - TX Performance and Target / Other Signals
+        - RX Performance and Target / Elsewhere
         - Simultaneous RX A/B pairing
         - Sequential TX A/B pairing and time bins
         - Reference station / Buddy comparison

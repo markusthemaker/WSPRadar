@@ -114,7 +114,7 @@ def test_compare_segment_renderer_uses_localized_recipe_labels(language):
     translations = T[language]
     recipe = _localized_compare_segment_recipe(
         {
-            "title": "Localized Compare",
+            "title": "Localized Benchmark",
             "selected_segment": "Full Range | All Directions",
             "is_sequential": False,
             "station_values": np.array([], dtype=float),
@@ -565,7 +565,7 @@ def test_compare_map_renderer_scales_only_from_visible_segments(monkeypatch):
 
     rendered_map = plot_engine.render_map_figure(
         map_data,
-        title="Compare map",
+        title="Benchmark map",
         start_t=datetime(2026, 7, 1, tzinfo=timezone.utc),
         end_t=datetime(2026, 7, 2, tzinfo=timezone.utc),
         max_dist_km=5000,
@@ -1318,7 +1318,7 @@ def test_high_resolution_export_uses_shared_matplotlib_runtime():
 def test_compare_segment_histograms_share_median_legend_and_mean_placement():
     """Standardize Compare median legends and separate Mean annotations."""
     recipe = {
-        "title": "RX Compare",
+        "title": "RX Benchmark",
         "selected_segment": "Full Range | All Directions",
         "is_sequential": False,
         "station_values": np.array([6.0, 7.0]),
@@ -1383,7 +1383,7 @@ def test_compare_segment_paper_export_restyles_all_foreground_boxes(monkeypatch)
     """Convert retained legends and text boxes without mutating web styling."""
     recipe = _localized_compare_segment_recipe(
         {
-            "title": "RX Compare",
+            "title": "RX Benchmark",
             "selected_segment": "Full Range | All Directions",
             "is_sequential": False,
             "station_values": np.array([6.0, 7.0]),
@@ -1457,7 +1457,7 @@ def test_compare_segment_paper_export_restyles_all_foreground_boxes(monkeypatch)
 def test_compare_outcomes_and_station_histogram_share_station_hatching():
     """Keep split inside legends and dense station hatching across Compare."""
     recipe = {
-        "title": "RX Compare",
+        "title": "RX Benchmark",
         "selected_segment": "Full Range | All Directions",
         "is_sequential": False,
         "station_values": np.array([-2.0, 0.0, 2.0]),
@@ -1681,7 +1681,7 @@ def test_segment_insight_rejects_obsolete_opportunity_recipe_alias():
 def test_success_segment_layout_matches_compare_panel_size_and_title_clearance():
     """Match Compare panel width and measure clearance between both title tiers."""
     compare_recipe = {
-        "title": "RX Compare",
+        "title": "RX Benchmark",
         "selected_segment": "Full Range | All Directions",
         "is_sequential": False,
         "station_values": np.array([-2.0, 0.0, 2.0]),

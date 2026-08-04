@@ -13,6 +13,19 @@ from config import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from ui.documentation_state import collapse_documentation
+from ui.analysis_question_state import (
+    ANALYSIS_QUESTION_CHOICES,
+    BENCHMARK_MODES,
+    analysis_question_result_type,
+    apply_analysis_question_choice,
+    canonicalize_analysis_question,
+)
+from ui.classic_input_state import (
+    CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
+    CLASSIC_QUESTION_KEY,
+    classic_result_type,
+    synchronize_classic_input_state,
+)
 from ui.config_io import (
     apply_config_state_values,
     validate_config_document,
@@ -24,6 +37,7 @@ from ui.page_navigation import (
 )
 from ui.result_state import reset_result_state
 from ui.population_exclusion_state import (
+    BENCHMARK_RESULT_TYPE,
     PERFORMANCE_RESULT_TYPE,
     reset_population_exclusion_state,
     result_type_from_comparison_mode,
@@ -96,7 +110,7 @@ def handle_reference_correction_context_change():
     reported Delta SNR under a context for which it was not established.
     """
     active_mode = st.session_state.get("val_comp_mode")
-    retained_mode = st.session_state.get("guided_last_compare_mode")
+    retained_mode = st.session_state.get("guided_last_benchmark_mode")
     comparison_modes = {
         "hardware_ab",
         "reference_station",
@@ -194,12 +208,31 @@ def handle_input_view_change():
             request_source="input_view_change",
         )
     if st.session_state.get("input_view") == "guided":
-        st.session_state.guided_reconstruct_requested = True
+        classic_question = canonicalize_analysis_question(
+            st.session_state.get(CLASSIC_QUESTION_KEY)
+        )
+        is_pending_benchmark = bool(
+            classic_question in ANALYSIS_QUESTION_CHOICES
+            and analysis_question_result_type(classic_question) == "benchmark"
+            and st.session_state.get("val_comp_mode") == "none"
+        )
+        if is_pending_benchmark:
+            st.session_state.guided_use_case = classic_question
+            st.session_state.guided_reference_design = None
+            st.session_state.guided_reconstruct_requested = False
+            st.session_state.guided_active_node = "reference_design"
+        else:
+            st.session_state.guided_reconstruct_requested = True
         st.session_state.guided_collapse_all = False
     else:
+        synchronize_classic_input_state(
+            st.session_state,
+            preferred_question=st.session_state.get("guided_use_case"),
+        )
         transition_population_exclusion_result_type(
             st.session_state,
-            result_type_from_comparison_mode(
+            classic_result_type(st.session_state)
+            or result_type_from_comparison_mode(
                 st.session_state.get("val_comp_mode")
             ),
         )
@@ -211,7 +244,7 @@ def _apply_demo_profile_values(profile_key):
         return
 
     normalized_config = validate_config_document(_demo_config_document(profile))
-    st.session_state.guided_last_compare_mode = None
+    st.session_state.guided_last_benchmark_mode = None
     apply_config_state_values(normalized_config, st.session_state)
 
 def load_demo_profile_config(profile_key):
@@ -306,18 +339,49 @@ def handle_comp_mode_change():
     reset_audit()
 
 
+def handle_classic_question_change():
+    """Apply the four-way Classic question as one scientific-state change."""
+    question = canonicalize_analysis_question(
+        st.session_state.get(CLASSIC_QUESTION_KEY)
+    )
+    if question not in ANALYSIS_QUESTION_CHOICES:
+        return
+    canonical_question = apply_analysis_question_choice(
+        st.session_state,
+        question,
+    )
+    st.session_state[CLASSIC_QUESTION_KEY] = canonical_question
+    st.session_state.guided_use_case = canonical_question
+    reset_audit()
+
+
+def handle_classic_benchmark_design_change():
+    """Store one visible Classic Benchmark design in canonical shared state."""
+    benchmark_design = st.session_state.get(
+        CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY
+    )
+    if benchmark_design not in BENCHMARK_MODES:
+        return
+    if classic_result_type(st.session_state) != BENCHMARK_RESULT_TYPE:
+        return
+    st.session_state.val_comp_mode = benchmark_design
+    st.session_state.guided_reference_design = benchmark_design
+    st.session_state.guided_last_benchmark_mode = benchmark_design
+    handle_comp_mode_change()
+
+
 def handle_analysis_direction_change():
     """
     Reset active results after selecting RX or TX analysis direction.
 
     Hardware A/B uses direction-specific parameters. Changing direction while
-    that design is active or retained returns to Success-only mode so an RX
+    that design is active or retained returns to Performance-only mode so an RX
     identity can never become a TX schedule configuration, or vice versa.
     Reference Station and Local Neighborhood keep their identities/scope but
     clear any direction-specific correction.
     """
     active_mode = st.session_state.get("val_comp_mode")
-    retained_mode = st.session_state.get("guided_last_compare_mode")
+    retained_mode = st.session_state.get("guided_last_benchmark_mode")
     if active_mode == "hardware_ab" or retained_mode == "hardware_ab":
         st.session_state.val_comp_mode = "none"
         transition_population_exclusion_result_type(
@@ -325,7 +389,7 @@ def handle_analysis_direction_change():
             PERFORMANCE_RESULT_TYPE,
         )
         st.session_state.guided_reference_design = None
-        st.session_state.guided_last_compare_mode = None
+        st.session_state.guided_last_benchmark_mode = None
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
         st.session_state.val_tx_ab_method = "simultaneous"
@@ -393,13 +457,14 @@ def set_reset_config(*, reset_time_window=True):
     st.session_state.run_mode = None
     st.session_state.guided_use_case = None
     st.session_state.guided_reference_design = None
-    st.session_state.guided_last_compare_mode = None
+    st.session_state.guided_last_benchmark_mode = None
     st.session_state.guided_scope_mode = "general"
     st.session_state.guided_active_node = "use_case"
     st.session_state.guided_reconstruct_requested = False
     st.session_state.guided_demo_metadata_open = False
     st.session_state.guided_loaded_demo_profile = None
     st.session_state.guided_collapse_all = False
+    synchronize_classic_input_state(st.session_state)
     st.session_state.configuration_changed_since_run = False
     reset_result_state(st.session_state)
     for state_key in tuple(st.session_state.keys()):

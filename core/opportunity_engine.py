@@ -198,7 +198,7 @@ def _is_valid_maidenhead(locator: str) -> bool:
 
 
 def target_grid4(qth: str) -> str:
-    """Return the configured grid-4 shared by Success and Compare Target matching."""
+    """Return the configured grid-4 shared by Success and Benchmark Target matching."""
     stripped_qth = str(qth or "").strip()
     if not _is_valid_maidenhead(stripped_qth):
         raise ValueError("Analysis requires a valid target QTH locator.")

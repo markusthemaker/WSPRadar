@@ -24,7 +24,7 @@ class _SessionState(dict):
         self[key] = value
 
 
-def _default_success_results():
+def _default_performance_results():
     """Return the stable Performance result-view defaults."""
     return {
         "selected_ranges": "all",
@@ -36,8 +36,8 @@ def _default_success_results():
     }
 
 
-def _default_compare_results():
-    """Return the stable Compare result-view defaults."""
+def _default_benchmark_results():
+    """Return the stable Benchmark result-view defaults."""
     return {
         "selected_ranges": "all",
         "selected_directions": "all",
@@ -122,10 +122,10 @@ def _settings_for_mode(
         "min_confirmed_opportunities_per_peer": 5,
         "min_joint_stations_per_map_segment": 1,
     }
-    results_view = {"success": _default_success_results()}
+    results_view = {"performance": _default_performance_results()}
     if comparison["mode"] != "none":
         advanced["min_joint_spots_per_station"] = 1
-        results_view["compare"] = _default_compare_results()
+        results_view["benchmark"] = _default_benchmark_results()
     return {
         "core_parameters": {
             "analysis_direction": contract["direction"],
@@ -144,25 +144,40 @@ def _settings_for_mode(
 
 
 @pytest.mark.parametrize(
-    ("case", "expected_public_mode", "expected_internal_mode", "expected_direction"),
+    (
+        "case",
+        "expected_public_mode",
+        "expected_benchmark_design",
+        "expected_internal_mode",
+        "expected_direction",
+    ),
     [
-        ("performance", "performance", "none", "rx"),
-        ("hardware_rx", "hardware_ab", "hardware_ab", "rx"),
+        ("performance", "performance", None, "none", "rx"),
+        ("hardware_rx", "benchmark", "hardware_ab", "hardware_ab", "rx"),
         (
             "hardware_tx_simultaneous",
+            "benchmark",
             "hardware_ab",
             "hardware_ab",
             "tx",
         ),
-        ("hardware_tx_sequential", "hardware_ab", "hardware_ab", "tx"),
+        (
+            "hardware_tx_sequential",
+            "benchmark",
+            "hardware_ab",
+            "hardware_ab",
+            "tx",
+        ),
         (
             "reference_station",
+            "benchmark",
             "reference_station",
             "reference_station",
             "rx",
         ),
         (
             "local_neighborhood",
+            "benchmark",
             "local_neighborhood",
             "local_neighborhood",
             "tx",
@@ -172,6 +187,7 @@ def _settings_for_mode(
 def test_each_analysis_case_round_trips_through_url_v1(
     case,
     expected_public_mode,
+    expected_benchmark_design,
     expected_internal_mode,
     expected_direction,
 ):
@@ -183,7 +199,9 @@ def test_each_analysis_case_round_trips_through_url_v1(
     parsed_parameters = url_state.parse_url_query(dict(entries))
     normalized = url_state.build_config_from_url(parsed_parameters)
 
-    assert dict(entries)["mode"] == expected_public_mode
+    entry_map = dict(entries)
+    assert entry_map["mode"] == expected_public_mode
+    assert entry_map.get("benchmark_design") == expected_benchmark_design
     assert normalized["benchmark_mode"] == expected_internal_mode
     assert normalized["analysis_direction"] == expected_direction
     assert normalized["start_utc"].isoformat() == "2026-07-20T00:00:00+00:00"
@@ -197,6 +215,74 @@ def test_each_analysis_case_round_trips_through_url_v1(
         include_run=True,
     )
     assert rebuilt_entries == entries
+
+
+@pytest.mark.parametrize(
+    ("case", "legacy_design_mode"),
+    (
+        ("hardware_rx", "hardware_ab"),
+        ("reference_station", "reference_station"),
+        ("local_neighborhood", "local_neighborhood"),
+    ),
+)
+def test_legacy_design_as_mode_urls_are_read_and_canonicalized_forward(
+    case,
+    legacy_design_mode,
+):
+    """Keep old shared links readable while emitting only the new URL contract."""
+    canonical_entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode(case),
+            include_run=True,
+        )
+    )
+    legacy_entries = dict(canonical_entries)
+    legacy_entries["mode"] = legacy_entries.pop("benchmark_design")
+
+    canonical_config = url_state.build_config_from_url(canonical_entries)
+    legacy_config = url_state.build_config_from_url(legacy_entries)
+    canonicalized_entries = dict(
+        parse_qsl(url_state.canonicalize_query(legacy_entries))
+    )
+
+    assert legacy_entries["mode"] == legacy_design_mode
+    assert legacy_config == canonical_config
+    assert canonicalized_entries["mode"] == "benchmark"
+    assert canonicalized_entries["benchmark_design"] == legacy_design_mode
+
+
+def test_canonical_benchmark_url_requires_a_supported_design():
+    """Reject incomplete or unknown canonical Benchmark links."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("hardware_rx"),
+            include_run=False,
+        )
+    )
+    entries.pop("benchmark_design")
+    with pytest.raises(url_state.UrlStateError, match="benchmark_design"):
+        url_state.build_config_from_url(entries)
+
+    entries["benchmark_design"] = "unknown_design"
+    with pytest.raises(url_state.UrlStateError, match="Unsupported URL benchmark design"):
+        url_state.build_config_from_url(entries)
+
+
+def test_legacy_design_as_mode_rejects_a_canonical_design_collision():
+    """Reject mixed legacy and canonical URL spellings as ambiguous input."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("hardware_rx"),
+            include_run=False,
+        )
+    )
+    entries["mode"] = "hardware_ab"
+
+    with pytest.raises(
+        url_state.UrlStateError,
+        match="cannot also supply benchmark_design",
+    ):
+        url_state.build_config_from_url(entries)
 
 
 def test_url_v1_omits_every_stable_default_and_orders_required_fields():
@@ -260,7 +346,7 @@ def test_nondefault_fields_use_global_deterministic_parameter_order():
             "min_joint_stations_per_map_segment": 3,
         }
     )
-    settings["results_view"]["compare"].update(
+    settings["results_view"]["benchmark"].update(
         {
             "selected_ranges": [
                 SEGMENT_RANGE_OPTIONS[2],
@@ -296,7 +382,7 @@ def test_standard_encoding_escapes_slash_at_comma_and_timestamps():
         target_qth="jn37",
     )
     settings["comparison_parameters"]["reference_callsign"] = "dl1mks/p"
-    settings["results_view"]["compare"].update(
+    settings["results_view"]["benchmark"].update(
         {
             "selected_ranges": [
                 SEGMENT_RANGE_OPTIONS[1],
@@ -326,7 +412,7 @@ def test_standard_encoding_escapes_slash_at_comma_and_timestamps():
 def test_explicit_station_deselection_round_trips_as_none():
     """Distinguish explicit deselection from omitted automatic selection."""
     settings = _settings_for_mode("hardware_rx")
-    settings["results_view"]["compare"]["selected_stations"] = []
+    settings["results_view"]["benchmark"]["selected_stations"] = []
 
     entries = url_state.build_query_from_settings(settings, include_run=False)
     normalized = url_state.build_config_from_url(
@@ -353,7 +439,7 @@ def test_omitted_station_retains_automatic_selection_intent():
 def test_performance_url_maps_only_the_active_result_branch():
     """Serialize the active Performance controls using unprefixed URL names."""
     settings = _settings_for_mode("performance")
-    settings["results_view"]["success"].update(
+    settings["results_view"]["performance"].update(
         {
             "selected_ranges": [
                 SEGMENT_RANGE_OPTIONS[3],
@@ -387,10 +473,10 @@ def test_performance_url_maps_only_the_active_result_branch():
     ]
 
 
-def test_compare_url_maps_only_the_active_result_branch():
-    """Ignore inactive Performance choices and round-trip Compare controls."""
+def test_benchmark_url_maps_only_the_active_result_branch():
+    """Ignore inactive Performance choices and round-trip Benchmark controls."""
     settings = _settings_for_mode("hardware_rx")
-    settings["results_view"]["success"].update(
+    settings["results_view"]["performance"].update(
         {
             "selected_ranges": [SEGMENT_RANGE_OPTIONS[5]],
             "selected_directions": ["S"],
@@ -399,7 +485,7 @@ def test_compare_url_maps_only_the_active_result_branch():
             "show_zero_target": True,
         }
     )
-    settings["results_view"]["compare"].update(
+    settings["results_view"]["benchmark"].update(
         {
             "selected_ranges": [SEGMENT_RANGE_OPTIONS[1]],
             "selected_directions": ["NE"],
@@ -432,10 +518,10 @@ def test_compare_url_maps_only_the_active_result_branch():
 
 
 @pytest.mark.parametrize("legacy_temporal_view", ("chronological", "utc_hour"))
-def test_compare_accepts_valid_legacy_temporal_view_as_a_noop(
+def test_benchmark_accepts_valid_legacy_temporal_view_as_a_noop(
     legacy_temporal_view,
 ):
-    """Load old Compare links without restoring or re-emitting retired state."""
+    """Load old Benchmark links without restoring or re-emitting retired state."""
     settings = _settings_for_mode("hardware_rx")
     canonical_entries = dict(
         url_state.build_query_from_settings(settings, include_run=False)
@@ -455,7 +541,7 @@ def test_compare_accepts_valid_legacy_temporal_view_as_a_noop(
     assert "temporal_view" not in canonical_entries
 
 
-def test_compare_rejects_an_unknown_legacy_temporal_view():
+def test_benchmark_rejects_an_unknown_legacy_temporal_view():
     """Validate retired URL values before discarding the compatibility no-op."""
     entries = dict(
         url_state.build_query_from_settings(
@@ -476,6 +562,7 @@ def test_compare_rejects_an_unknown_legacy_temporal_view():
     ("case", "inapplicable_key", "inapplicable_value"),
     [
         ("performance", "reference", "DL2XYZ"),
+        ("performance", "benchmark_design", "hardware_ab"),
         ("performance", "min_joint_spots", "2"),
         ("performance", "temporal_view", "utc_hour"),
         ("performance", "show_unpaired", "1"),
@@ -609,7 +696,7 @@ def test_malformed_or_multiple_selected_station_values_are_rejected(
 def test_serializer_rejects_more_than_one_station():
     """Never emit a public URL that combines multiple radio paths."""
     settings = _settings_for_mode("hardware_rx")
-    settings["results_view"]["compare"]["selected_stations"] = [
+    settings["results_view"]["benchmark"]["selected_stations"] = [
         {"callsign": "K1ABC", "locator": "FN42"},
         {"callsign": "W1AAA", "locator": "FN31"},
     ]
@@ -789,7 +876,7 @@ def test_run_output_tracks_result_validity_but_not_result_view_edits():
 def test_share_url_uses_canonical_origin_owned_state_run_and_result_anchor():
     """Build a clean replay URL instead of copying unrelated browser state."""
     settings = _settings_for_mode("hardware_rx")
-    settings["results_view"]["compare"]["selected_stations"] = [
+    settings["results_view"]["benchmark"]["selected_stations"] = [
         {"callsign": "K1ABC", "locator": "FN42"},
     ]
     normalized = config_io.normalize_config_settings(settings)
@@ -853,7 +940,7 @@ def test_app_hydrates_before_widgets_and_routes_replay_through_normal_submission
         < app_source.index("set_reset_config(reset_time_window=False)")
         < app_source.index("hydrate_initial_url_state(")
         < app_source.index("t = T[st.session_state.lang]")
-        < app_source.index("render_core_expander(t)")
+        < app_source.index("classic_render_result = render_classic_inputs(t)")
     )
     assert (
         'submission_request.source in {"main_button", "url_replay"}'
@@ -865,4 +952,26 @@ def test_app_hydrates_before_widgets_and_routes_replay_through_normal_submission
         < app_source.index("render_page_navigation_controller(")
         < app_source.index("render_current_url_synchronizer(")
         < app_source.index("render_documentation_section(")
+    )
+
+
+def test_app_gates_actions_and_url_sync_for_incomplete_classic_benchmark():
+    """Keep an unfinished Classic Benchmark local and non-runnable."""
+    repository_root = Path(__file__).resolve().parents[2]
+    app_source = (repository_root / "app.py").read_text(encoding="utf-8")
+
+    assert (
+        "classic_render_result.is_ready\n"
+        '    if st.session_state.input_view == "classic"'
+        in app_source
+    )
+    assert (
+        'st.session_state.input_view == "classic" or guided_actions_available'
+        in app_source
+    )
+    assert "or not input_configuration_ready" in app_source
+    assert "is_configuration_ready=input_configuration_ready" in app_source
+    assert (
+        'if st.session_state.input_view != "classic" or input_configuration_ready:'
+        in app_source
     )

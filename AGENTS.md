@@ -426,13 +426,15 @@ Before editing:
   supplies that wording, or the user's explicit approval of proposed wording,
   satisfies this requirement.
 - Define the old term, the approved replacement, capitalization, singular/plural
-  forms, and any RX/TX, Compare/Performance, or English/German variants.
+  forms, and any RX/TX, Benchmark/Performance, or English/German variants.
 - State whether the change affects only presentation terminology or also changes
   scientific meaning, configuration, schemas, exports, or compatibility.
-- Identify canonical internal terms that must remain stable. Do not globally
-  replace internal identifiers, DataFrame columns, classifications, formulas,
-  schema fields, cache keys, or compatibility export headings merely because
-  their visible presentation name changes.
+- Identify canonical internal terms that must remain stable in code and
+  supported contracts. Do not globally replace internal identifiers, DataFrame
+  columns, classifications, formulas, schema fields, cache keys, or compatibility
+  export headings merely because their visible presentation name changes. Do not
+  expose those internal names in the narrative manuals merely to map prose back to
+  the implementation.
 
 Audit all applicable surfaces:
 
@@ -530,7 +532,7 @@ define or select scientific behavior.
   run as **within-run consistency**, **within-path consistency**, or
   **station-to-station agreement**.
 - Name every displayed ratio by its actual denominator and scientific meaning.
-  In Target-active-conditioned Compare, Only Target and Only Reference remain
+  In Target-active-conditioned Benchmark, Only Target and Only Reference remain
   directional evidence rather than symmetric wins or losses. Joint Evidence Share
   is a pairability or coverage metric; never describe it as a Target score, win
   rate, or symmetric Target-versus-Reference success rate.
@@ -559,9 +561,13 @@ define or select scientific behavior.
   their meaning is unambiguous.
 - Use established WSPRadar terminology consistently. Do not introduce synonyms
   for visible concepts such as Target, Reference, Joint, Opportunity, Decode Rate,
-  Decode Outcomes or Target-Active Gate. Canonical internal or compatibility terms
-  such as `success`, Elsewhere and Other Signals may remain where their contract
-  requires them; do not expose them as replacement UI terminology.
+  Decode Outcomes or Target-Active Gate. Internal or compatibility terms such as
+  `success`, Elsewhere and Other Signals may remain in code or a supported external
+  contract where required; they must not appear in narrative manual prose merely to
+  explain how the implementation stores a scientific category. If an exact name is
+  part of a supported configuration, URL, export or data contract, document it once
+  in Chapter 8 or a dedicated data dictionary and label it explicitly as a
+  machine-readable contract value.
 - Function and method names should describe the action performed, normally using
   a verb phrase such as `build_analysis_batches`, `prepare_opportunity_rows`, or
   `validate_config_upload`.
@@ -629,7 +635,7 @@ not as optional follow-up work.
 - Delete tests and fixtures that assert only retired behavior. Replace them with
   coverage of the active contract and retain negative assertions when they
   prevent obsolete UI, exports, terminology, or schemas from returning.
-- Audit shared and mode-specific paths—including visible Performance and Compare paths, canonical `success` compatibility paths, RX, TX,
+- Audit shared and mode-specific paths—including visible Performance and Benchmark paths, canonical `performance` contract paths, RX, TX,
   Guided, Classic, preview, export, and both languages—before declaring code
   unused. Preserve a compatibility path only when a current supported producer
   or consumer, persisted contract, or explicit migration requirement still
@@ -804,45 +810,142 @@ not as optional follow-up work.
   still map to the implementation. This verification does not require visual or
   layout parity between the manual and the rendered UI.
 
-### End-User Manual Style and Structure
+### Manual Style, Audience and Structure
 
-Use the English manual's operator-first, layered style as the reference model
-for future end-user documentation work:
+Use the layered rules below as the reference model for future end-user and
+scientific-manual work. Existing manual prose is source material to audit, not
+automatic style precedent; a passage does not belong merely because it is
+technically correct or already present.
 
-- Write primarily for radio amateurs and WSPR operators: first-time WSPR users,
-  experienced experimenters, and scientifically critical readers. Keep
-  repository-engineering detail in contributor or architecture documentation.
-- Begin with why WSPRadar is useful and distinctive, followed by the minimum
-  WSPR background needed to understand it. Explain genuine strengths without
-  unsupported `first`, `only`, calibrated-measurement, or causation claims.
+**Audience and technical depth are part-specific:**
+
+- **Part 0 is the product preface and bounded positioning layer.** Write for
+  prospective and first-time users who need to understand the measurement
+  problem, why WSPRadar is distinctive, which questions it can answer, what its
+  evidence can reveal and where its limits lie. Part 0 may use engaging,
+  benefit-led and modestly promotional language, concrete station use cases and
+  an inviting call to explore a demo. It must remain technically honest and
+  must not use unsupported `first`, `only`, calibrated-measurement, superiority
+  or causation claims. It is not an operating guide.
+- **Part I is operator-first.** Write for first-time WSPR users and experienced
+  experimenters who need to prepare, run and interpret an analysis.
+- **Part II is an exact operating reference.** Document the controls, defaults,
+  ranges, applicability, persistence and diagnosis that affect operator action.
+  Do not reproduce cache, queue or rendering internals unless they explain an
+  observable status or materially change troubleshooting.
+- **Part III is a scientific methods reference.** Write for scientifically
+  critical radio amateurs, HamSCI contributors and reviewers. Formal notation,
+  equations and detailed treatment of analysis targets, observation and
+  comparison units, constructed evidence units, derived quantities, descriptive
+  summaries, conditioning, missingness, weighting, dependence, transformations,
+  uncertainty limits, provenance and reproducibility are appropriate. Part III
+  must nevertheless remain accessible to a technically minded radio amateur:
+  introduce the radio or analysis meaning before the formal definition, define
+  symbols and denominators, explain formulas again in plain language and add a
+  small numerical example when it materially improves understanding. Prefer
+  precise plain language over unnecessary statistical jargon. Part III may be
+  longer and denser than the operator sections when the added detail is
+  scientifically material; `lean` means removing non-scientific clutter, not
+  suppressing methods needed for audit. Include software implementation detail
+  only when it changes scientific semantics, provenance or reproducibility; keep
+  repository architecture and cosmetic rendering behavior elsewhere.
+- **Part IV is a practical technical supplement.** Retain platform-, device- and
+  calibration-specific procedures that would interrupt the main operator path.
+- Begin with why WSPRadar is useful and distinctive. Part 0 should create
+  interest by making the real station-measurement problem recognizable, showing
+  how WSPR and WSPRadar address it, and describing the practical value of an
+  auditable evidence path. Follow with the minimum WSPR background, the
+  questions WSPRadar can address, what one run produces and an invitation to
+  begin with a maintained demo. Explain genuine strengths without unsupported
+  `first`, `only`, calibrated-measurement, superiority or causation claims.
 - Build understanding progressively. Introduce terms such as Target, Reference,
   peer, Decode Rate, Decode Outcomes, and Delta SNR in plain operator language
   before relying on them. Do not front-load a dense glossary.
 - Preserve the manual's authoritative order: Part 0 Preface; Part I Operator
-  Guide with Experiment Playbooks, Read Your Results, and Strengthen and
-  Communicate Your Result; Part II Controls and Troubleshooting; Part III
-  Scientific Foundations, Methods and Claims with Literature, Prior Art and
-  Positioning, Scientific Methods, and Evidence-Matched Claims and
-  Reproducibility; References; Part IV Practical Supplements; then License.
-- Keep that structure as MECE as the subject permits. Give experiment
-  selection, UI interpretation, configuration, scientific formulas and
-  inference limits one authoritative home each. When a complex multi-stage
-  method requires a documented ownership split, follow the Authoritative
-  Ownership rules below. Cross-reference instead of repeating full explanations
-  in several mode guides.
+  Guide with **Choose and Prepare the Analysis**, **Run and Interpret Your
+  Analysis**, and **Strengthen and Communicate Your Result**; Part II Controls
+  and Troubleshooting; Part III Scientific Foundations, Methods and Claims with
+  Literature, Prior Art and Positioning, Scientific Methods, and
+  Evidence-Matched Claims and Reproducibility; References; Part IV Practical
+  Supplements; then License. Within Part 0 use this sequence: **Why WSPRadar?**;
+  **WSPR in 2 Minutes**; **What WSPRadar can show**, including the conceptual
+  question-to-analysis overview; **What one run produces**; and **Your first
+  useful run**.
+- Organize Part I around the operator's analysis question rather than around a
+  generic inventory of screens. Chapter 2 uses the four analysis families **RX
+  Performance**, **TX Performance**, **RX Benchmark**, and **TX Benchmark**.
+  RX Benchmark distinguishes Hardware A/B, Reference Station / Buddy Test,
+  Local Median Neighborhood and Local Best Station. TX Benchmark distinguishes
+  simultaneous Hardware A/B, sequential Hardware A/B, Reference Station / Buddy
+  Test, Local Median Neighborhood and Local Best Station.
+- Use the common evidence path **Map → Segment Inspector →
+  Performance/Benchmark Evidence → Temporal Evidence → Station Insights →
+  Selected Station Evidence → Drill-Down**. Explain the path once at overview
+  level, then interpret it in the relevant RX/TX and Reference context.
+- Give direction- or design-specific playbooks a consistent interpretive shape:
+  question answered; minimum valid setup; what WSPRadar evaluates or compares;
+  how to read the evidence path; common interpretation patterns; strongest
+  relevant boundary; how to strengthen or confirm the result; and an
+  evidence-matched conclusion. These elements need not become mechanical
+  headings when a shorter treatment is clearer.
+- Share common Benchmark mechanics once at RX- or TX-family level. Design
+  subsections should focus on what the Reference represents, which setup
+  controls matter, which interpretations become stronger or weaker, and which
+  confirmation method is most useful. Do not repeat the complete UI or
+  scientific explanation in every Reference subsection.
+- Worked examples are optional and are not required in the core Part I
+  structure. Prefer maintained demo-specific interpretation in a later,
+  explicitly scoped iteration over generic hypothetical examples embedded in
+  every manual revision.
+- Keep the structure as MECE as the subject permits. Give experiment selection,
+  result interpretation, configuration, scientific formulas and inference
+  limits one authoritative home each. When a complex multi-stage method requires
+  a documented ownership split, follow the Authoritative Ownership rules below.
+  Cross-reference instead of repeating full explanations.
 - Layer practical and scientific depth. State what a result means for the
   operator first, then place exact matching, denominators, evidence units,
   aggregation, and formulas in Chapter 7, Scientific Methods.
-- Make the Preface and Experiment Playbooks teach how to produce and recognize
-  a valid result, not merely which buttons to click.
+- Make Part 0 explain why the product is worth exploring, what problems it can
+  address, what evidence it produces and why that evidence is different from a
+  spot count or one-off report. Make the Part I playbooks teach how to prepare,
+  recognize and interpret a valid result. Neither section should merely list
+  buttons.
 - Keep the tone technically rigorous but practical and inviting. Each paragraph
   should help answer an operator's likely `so what?`; avoid dry implementation
-  narration that does not change setup, interpretation, or claim language.
-- **Use an operator-relevance test.** Include a detail only if it changes what
-  the operator should do, how evidence should be interpreted, what real-world
-  consequence it has, what claim is supported, or how a problem is diagnosed.
-  When evidence supports practical value, explain it in a constructive,
-  appropriately positive tone without overstating the supported claim.
+  narration that does not change setup, interpretation or claim language.
+- **Apply a product-relevance test to Part 0.** Include a detail when it helps a
+  prospective user understand the station-measurement problem, WSPRadar's value
+  and distinctiveness, the questions it can answer, the evidence one run
+  produces, a compelling real-world use case or an important credibility
+  boundary. Part 0 need not instruct an operator action, but every paragraph
+  should strengthen understanding, interest or trust.
+- **Apply the operator-relevance test to Parts I-II.** Include a detail only if
+  it changes what the operator should do, how evidence should be interpreted,
+  what real-world consequence it has, what claim is supported, or how a problem
+  is diagnosed. When evidence supports practical value, explain it
+  constructively without overstating the supported claim.
+- **Apply a scientific-relevance and reproducibility test to Part III.** Include
+  a detail when it is needed to define or audit the data, analysis target,
+  observation or comparison unit, constructed evidence unit, derived quantity,
+  descriptive summary, conditioning, transformation, uncertainty boundary,
+  validation evidence, provenance or reproducibility contract. Technical
+  accuracy alone still does not justify UI-layout narration, cache mechanics or
+  implementation trivia that has no scientific consequence.
+- **Audit every code-styled or implementation-facing name in the manuals.**
+  Classify it as visible UI terminology, formal mathematical notation, a
+  scientifically necessary upstream source field, a supported public contract
+  value, or an internal implementation name. Retain public contract values only in
+  Chapter 8 or a dedicated data dictionary. Remove private enum values, DataFrame
+  columns, helper names, cache keys, state keys, temporary state names and internal
+  classifications when their scientific meaning can be stated in domain language.
+- **The end-user manual is not a UI specification, rendering contract,
+  regression-test oracle, code map or catalogue of every visible label.** Do not
+  inventory titles, panel order, axis labels, legend placement, spacing, empty-state
+  geometry or other presentation details solely because they exist. Do not expose
+  private enum values, internal classifications, DataFrame columns, helper names,
+  cache keys, state keys or temporary state names in narrative manual sections.
+  Name a figure or control exactly when the reader needs that name to locate,
+  operate or correctly interpret it.
 - **Keep automatic interval-boundary semantics out of the end-user manual.**
   The half-open query/window convention is a deterministic internal rule, not
   an operator choice or reporting requirement. Do not mention it in
@@ -856,18 +959,67 @@ for future end-user documentation work:
   explanation.
 - **Treat implementation and tests as fact-checking sources, not documentation
   checklists.** They establish whether a claim is accurate; they do not establish
-  that every fact belongs in the manual.
-- **Keep scientific mechanics in Chapter 7.** Normalization, nonlinear scales,
-  binning, weighting, eligibility gates, estimators and edge cases belong once
-  in Scientific Methods. Part II owns exact control labels, defaults, ranges,
-  applicability, configuration behavior and diagnosis. Practical and control
-  sections should link to Chapter 7 when a short explanation is necessary to
-  prevent a materially wrong operation or interpretation.
+  that every implementation or rendering fact belongs in the manual. Translate
+  scientific behavior into domain language instead of preserving the names of
+  internal storage categories.
+- **Keep scientific mechanics in Chapter 7.** Observation and comparison units,
+  notation, analysis targets, evidence construction, derived quantities,
+  descriptive summaries, eligibility, conditioning, missingness, censoring,
+  normalization, binning, weighting, aggregation, dependence, analysis
+  transformations and scientifically material edge cases belong once in
+  Scientific Methods. Describe classifications by their scientific meaning rather
+  than by private enum values or internal column names. Exact upstream source fields
+  may be named only when they materially define reproducible source selection. Part
+  II owns exact control labels, defaults, ranges, applicability, configuration
+  behavior and diagnosis. Part I should state the operator consequence and link to
+  the authoritative method only where omission would cause a materially wrong
+  operation or interpretation.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
 - Define each formula once in its scientific home, ensure it renders in both the
   Web UI and generated PDF, and link to it from practical sections when needed.
+- In Chapter 7, use the hierarchy **reported observations → constructed
+  evidence units → derived quantities → descriptive summaries → bounded
+  interpretation**. Distinguish the selected **analysis target** from the
+  retained evidence and from the descriptive summary calculated from that
+  evidence. The selected design defines the analysis target—formally, the
+  *estimand*—through its eligibility, conditioning and weighting rules. WSPRadar's
+  rates, medians, shares, reach values and temporal or geographic aggregates are
+  exact descriptive summaries of the retained evidence under those documented
+  rules; they are not automatically calibrated estimates of a wider population,
+  future behavior or physical station parameter. Use *estimator* only when the
+  text explicitly discusses generalization beyond the retained evidence and
+  identifies the sampling, dependence or inferential model supporting that
+  generalization.
+- Present each non-trivial Chapter 7 method in accessible layers: first state the
+  radio or analysis question; then define the observation or comparison unit,
+  eligibility, denominator, grouping and weighting; then give the formula;
+  follow it with a plain-language explanation of what the calculation does; add
+  a small numerical example when useful; and finish with the principal
+  interpretation boundary. Define every symbol, index, unit and denominator so a
+  technically minded amateur does not have to infer the radio meaning from the
+  notation alone.
+- State conditioning and selection explicitly: Target-active eligibility,
+  independent-activity qualification, joint-decode selection, successful-decode
+  censoring, one-sided evidence and any missing-not-at-random consequence.
+- State dependence explicitly. Repeated cycles, stations sharing propagation,
+  geographic clustering and temporal autocorrelation mean that row count is not
+  an independent sample size. Do not imply confidence intervals, significance or
+  precision that WSPRadar does not calculate.
+- Keep validation evidence auditable. Any empirical audit statistic must name or
+  link its datasets, date, method and software/revision context, or be clearly
+  labelled as a dated implementation check rather than a timeless method rule.
+- Separate analysis transformations from display-only transformations. Document
+  a presentation transform only when it changes how a scientific value must be
+  read; state explicitly that retained scientific values, evidence units,
+  groupings and descriptive summaries remain unchanged.
+- Chapter 8 should distinguish descriptive, comparative, component-attribution,
+  causal and inferential claims, and should specify the provenance and external
+  experiment records needed for reproduction. It is also the authoritative home for
+  exact names that form supported machine-readable configuration, URL, export or
+  data contracts; identify them explicitly as contract values and keep them out of
+  narrative method explanations.
 - When the manual names a UI label, default, result unit, export field or
   behavior, keep its name and meaning current. This is an accuracy requirement,
   not a requirement to inventory every visible interface detail. Challenge
@@ -886,49 +1038,79 @@ for future end-user documentation work:
   preserve all existing text. During an explicitly requested restructuring,
   preserve unique, correct and useful user guidance. `Useful` means that the
   content changes operator action, interpretation, diagnosis or supported
-  claims. Technical accuracy alone does not make a sentence useful operator
-  guidance, and removing duplicated material is not content loss. Only during
-  such an explicitly requested restructuring may passages classified as
-  duplicated, obsolete, implementation-only or scientifically unsupported be
-  removed; do not silently lose genuinely useful guidance.
+  claims. In Part III, useful content also includes material needed to define or
+  audit the scientific data, analysis target, evidence construction, derived
+  quantities, descriptive summaries, conditioning, uncertainty or
+  reproducibility contract. Technical accuracy alone does not make a sentence
+  useful, and removing duplicated material is not content loss. An explicitly
+  requested lean-manual audit authorizes removal of duplicated, obsolete,
+  implementation-only, self-evident presentation or scientifically unsupported
+  passages after useful guidance has been retained or relocated. Do not silently
+  lose genuinely useful guidance.
 
 ### Manual Content Ownership and Relocation
 
-Place end-user information in the layer where the reader needs it and keep each
-rule's complete explanation in one authoritative home, subject to the explicit
+Place manual information in the layer where the intended reader needs it and
+keep each rule's complete explanation in one authoritative home, subject to the
+explicit
 multi-stage-method ownership rule below:
 
-- **Part 0 — Preface:** motivation, minimum WSPR background,
-  experiment-question selection and the result blocks produced by one run.
-- **Part I, Chapter 1 — Experiment Playbooks:** which experiment answers the
-  question, the minimum valid physical setup, critical pre-run warnings and the
-  design's principal interpretation boundary. Do not reproduce complete control
-  ranges, exact algorithms or device-specific procedures.
-- **Part I, Chapter 2 — Read Your Results:** how to interpret the completed
-  result, including Performance and Compare results, the map, Stations and Spots,
-  geographic segments, contributing stations, underlying evidence and the
-  worked Compare example. Summarize scientific mechanics only where omission
-  would cause a materially wrong reading.
+- **Part 0 — Preface:** persuasive but bounded product motivation; the minimum
+  WSPR background; a conceptual question-to-Performance/Benchmark overview;
+  the evidence package produced by one run; and a gentle invitation to begin
+  with a maintained demo. It may explain the common evidence path at a high
+  level because that auditability is part of WSPRadar's value proposition, but
+  it must not become a walkthrough. Exclude exact control labels, selectors,
+  parameter choices, defaults, ranges, button sequences, saved-state behavior,
+  provider topology and cache behavior; those belong in Parts I-II or the
+  scientific and architecture documentation.
+- **Part I, Chapter 1 — Choose and Prepare the Analysis:** common experiment
+  foundation, the decision between RX/TX and Performance/Benchmark, Reference
+  selection, and a concise overview of the common evidence path. Do not repeat
+  exact control ranges, complete algorithms or device-specific procedures.
+- **Part I, Chapter 2 — Run and Interpret Your Analysis:** direction-, result-
+  and design-specific operator playbooks for RX Performance, TX Performance, RX
+  Benchmark and TX Benchmark. Explain what the visible evidence means in that
+  experiment context, how the evidence-path views should be combined, common
+  interpretation patterns, the strongest design-specific boundary and how to
+  strengthen the result. Include only the minimum setup reminders needed to
+  avoid an invalid experiment; exact controls remain in Part II and exact
+  scientific mechanics remain in Chapter 7.
 - **Part I, Chapter 3 — Strengthen and Communicate Your Result:** breadth,
   internal consistency, experimental repeatability, repetition and controls,
   evidence-matched conclusions, and preservation of the run and its physical
   context.
 - **Part II, Chapter 4 — Controls and Configuration:** exact UI labels,
-  defaults, ranges, applicability, configuration behavior and saved-state
-  behavior.
+  defaults, ranges, applicability, scientific consequence, configuration
+  behavior and saved-state behavior. Prefer compact control tables. Omit
+  internal state-machine, cache and queue details that do not alter operator
+  action or reproducibility.
 - **Part II, Chapter 5 — Troubleshooting and Data Quality:** run-definition,
   symptom, callsign, locator, historical fallback, Target-Active Gate and
-  upstream-data diagnosis.
-- **Part III, Chapter 6 — Literature, Prior Art and Positioning:** scientific
-  lineage, prior art, source-specific boundaries and bounded novelty claims.
-- **Part III, Chapter 7 — Scientific Methods:** data source, decode selection,
-  time model, identity, matching, Target-Active Gate, Performance classification and
-  formulas, power normalization, correction, Delta SNR, paired evidence, Decode
-  Outcomes, aggregation hierarchy, distributions, inspection-layer
-  weighting, geography and solar classification.
-- **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:**
-  supported inference, interpretation limits, reporting requirements, export
-  content and disclaimer.
+  upstream-data diagnosis. Explain audit/provenance statuses at the level needed
+  to diagnose a run; leave provider-selection and cache-lifecycle mechanics to
+  architecture documentation.
+- **Part III, Chapter 6 — Literature, Prior Art and Positioning:** the scope and
+  evidence class of the review; scientific lineage; prior art; source-specific
+  boundaries; and bounded novelty claims. State explicitly when the review is a
+  focused methodological review rather than a systematic or exhaustive search.
+- **Part III, Chapter 7 — Scientific Methods:** scientific scope and notation;
+  reported observations and constructed evidence units; time model; identity,
+  matching and consolidation; eligibility, conditioning and missingness;
+  Performance and Benchmark analysis targets; power normalization and
+  correction; derived Delta SNR and Decode Outcomes; hierarchical aggregation
+  and weighting; geographic, temporal and selected-path descriptive summaries;
+  scientifically material display transforms; dependence, uncertainty
+  limitations and dated validation scope. Present the practical radio meaning
+  before formal notation, explain every formula again in accessible prose and
+  describe category semantics without exposing private implementation names.
+- **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:** claim
+  classes, supported inference, interpretation limits, reporting and provenance
+  requirements, machine-readable configuration/URL/export/data contracts and
+  disclaimer. Describe export artifacts by scientific content, scope and stable
+  contract fields; label exact identifiers as machine-readable contract values and
+  do not turn the export section into an inventory of figure titles, axis labels or
+  browser layout.
 - **References:** the consolidated source list follows Chapter 8 and precedes
   Part IV.
 - **Part IV — Practical Supplements:** Appendix A owns parallel WSJT-X setup;
@@ -937,13 +1119,16 @@ multi-stage-method ownership rule below:
 
 Use this timing test when placement is unclear:
 
-- needed before or during the physical experiment -> Chapter 1;
-- needed while reading completed evidence -> Chapter 2;
+- needed to choose the question or prepare the common experiment -> Chapter 1;
+- needed to execute or interpret one specific RX/TX Performance or Benchmark
+  analysis -> Chapter 2;
 - needed when repeating, reporting or preserving the experiment -> Chapter 3;
 - needed to operate an exact control or diagnose behavior -> Part II;
 - needed to establish scientific lineage, prior art or positioning -> Chapter 6;
-- needed to audit a calculation or scientific method -> Chapter 7;
-- needed to bound, report or reproduce a claim -> Chapter 8;
+- needed to audit data construction, an observation or comparison unit,
+  analysis target, derived quantity, descriptive summary, conditioning rule,
+  transformation, dependence or uncertainty boundary -> Chapter 7;
+- needed to classify, bound, report or reproduce a claim -> Chapter 8;
 - needed to provide consolidated source metadata -> References;
 - needed only for a particular device, platform or calibration procedure ->
   Part IV.
@@ -978,12 +1163,19 @@ Examples:
 #### Relocation protocol
 
 A restructuring is substantial when it relocates content across multiple
-sections or parts, or removes or merges passages. For such work:
+sections or parts, or removes or merges passages. An explicitly requested
+lean-manual audit is a substantial restructuring and may remove duplicated,
+obsolete, implementation-only or self-evident presentation passages after
+useful operator or scientific guidance has been retained or relocated.
 
 The relocation-ledger requirement is prospective. A manually integrated
 baseline that the user explicitly accepts as grandfathered does not require a
 reconstructed ledger; apply the ledger requirement to later substantial
-restructures.
+restructures. When the user explicitly requests an English-only review draft,
+that draft may precede German parity and README synchronization. It is not a
+completed repository integration, must not be published as the authoritative
+manual, and does not require a committed relocation ledger until the structure
+is accepted for integration.
 
 1. Identify the authoritative destination before removing source text.
 2. Classify the source passage as unique useful guidance, duplicated explanation, obsolete material, implementation-only detail or unsupported claim.
@@ -1014,7 +1206,24 @@ repeatability, independence, calibration or statistical significance.
 
 #### English and German structural parity
 
-English and German manuals must retain equivalent section ownership, claims, warnings, formulas, references and cross-links. German should be a native technical adaptation using established amateur-radio terminology, not a mechanically literal translation. A relocation is incomplete until both languages have the same authoritative content home.
+English and German manuals must retain equivalent section ownership, claims,
+warnings, formulas, references and cross-links in every completed integration.
+German should be a native technical adaptation using established amateur-radio
+terminology, not a mechanically literal translation. In German Part III,
+prefer precise but readable terms such as **Analyseziel**, **Beobachtung**,
+**gebildete Evidenzeinheit**, **beobachtete gepaarte Differenz**, **deskriptive
+Kennzahl** and **Zusammenfassungsgröße**. Avoid **Schätzer**, **Schätzfunktion**
+and **Schätzwert** unless the passage genuinely discusses inference to a wider
+population under an explicit statistical model. Preserve every formula and
+scientific distinction, but explain it in natural amateur-radio and HamSCI
+German that remains accessible to a technically minded operator. A relocation
+is incomplete until both languages have the same authoritative content home.
+
+An English-only restructuring may be supplied as an explicitly labelled review
+draft when the user requests staged evaluation of the new structure. Do not
+regenerate `README.md`, publish the draft as authoritative or treat the
+restructuring as complete until the German manual has been adapted and parity,
+links, rendering and full integration checks have passed.
 
 #### Documentation restructuring checks
 
@@ -1025,12 +1234,41 @@ For a substantial manual restructuring, verify:
 - every defined term is introduced before it is relied upon;
 - formulas have one authoritative home; complex multi-stage methods follow the
   explicitly documented ownership split and cross-links;
+- Part 0 is engaging, benefit-led and technically bounded; follows the approved
+  sequence from motivation through WSPR background, capabilities/questions,
+  run outputs and first demo; and contains no control, selector, parameter or
+  button walkthrough;
+- Part II remains an operating reference and does not become an internal state,
+  cache, queue or persistence-structure specification;
+- Part III clearly distinguishes reported observations, constructed evidence
+  units, derived quantities, descriptive summaries and bounded interpretation;
+  defines analysis targets, observation and comparison units, conditioning,
+  missingness, weighting and dependence sufficiently for scientific audit; and
+  explains formal notation and formulas in language accessible to a technically
+  minded radio amateur;
+- empirical validation statistics carry reproducible provenance, are isolated
+  as dated validation evidence, or are removed from the normative method;
+- display-only transformations are separated from scientific calculations and
+  cosmetic rendering behavior is excluded;
+- Chapter 8 distinguishes descriptive, comparative, component-attribution,
+  causal and inferential claims; export documentation describes stable artifacts
+  and provenance rather than incidental figure layout; and every exact identifier
+  retained in the manuals is either a visible term, formal notation, a scientifically
+  necessary upstream field or an explicitly labelled public contract value;
 - no device-specific procedure interrupts the main operator journey;
 - no useful original guidance was silently dropped;
 - source references remain globally numbered in order of first use;
-- English and German structures and claim boundaries remain equivalent;
-- documentation tests assert required meaning and structure rather than obsolete incidental prose where practical;
-- README synchronization and web/PDF rendering are completed after authoritative integration;
+- Part I follows the approved analysis-centred playbook structure and does
+  not revert to a generic screen inventory;
+- self-evident UI narration and implementation-only rendering detail have not
+  been retained merely for technical completeness;
+- English and German structures and claim boundaries remain equivalent for a
+  completed integration; an explicitly requested English-only review draft is
+  identified as incomplete;
+- documentation tests assert required meaning and structure rather than obsolete
+  incidental prose where practical;
+- README synchronization and web/PDF rendering are completed after authoritative
+  bilingual integration;
 - the authoritative manuals import and compile, internal links resolve, and the
   complete regression suite plus any applicable documentation-specific checks
   pass.

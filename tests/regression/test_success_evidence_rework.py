@@ -442,7 +442,7 @@ def _compare_temporal_recipe_for_test() -> dict[str, object]:
     )
     return _segment_temporal_evidence_export_recipe(
         compare_rows,
-        "RX Compare Temporal Evidence",
+        "RX Benchmark Temporal Evidence",
         "1h",
         T["en"]["fig_joint_spot_count"],
         chronological_title=T["en"][

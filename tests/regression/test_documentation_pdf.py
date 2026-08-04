@@ -150,6 +150,26 @@ def test_generated_pdf_footer_uses_localized_page_label(monkeypatch):
             in rendered_templates[-1]
         )
 
+    conclusion_style_match = re.search(
+        r"blockquote\.evidence-conclusion\s*\{(?P<rules>[^}]*)\}",
+        rendered_templates[-1],
+    )
+    assert conclusion_style_match is not None
+    conclusion_rules = conclusion_style_match.group("rules")
+    assert re.search(r"background(?:-color)?\s*:", conclusion_rules)
+    assert re.search(r"border-left\s*:", conclusion_rules)
+    assert re.search(r"(?<!-)color\s*:", conclusion_rules)
+    assert re.search(r"page-break-inside\s*:\s*avoid", conclusion_rules)
+
+    conclusion_label_style_match = re.search(
+        r"p\.evidence-conclusion-label\s*\{(?P<rules>[^}]*)\}",
+        rendered_templates[-1],
+    )
+    assert conclusion_label_style_match is not None
+    conclusion_label_rules = conclusion_label_style_match.group("rules")
+    assert re.search(r"page-break-after\s*:\s*avoid", conclusion_label_rules)
+    assert re.search(r"-pdf-keep-with-next\s*:\s*true", conclusion_label_rules)
+
 
 def test_pdf_markdown_extensions_preserve_fenced_code_blocks():
     import markdown
@@ -161,6 +181,35 @@ def test_pdf_markdown_extensions_preserve_fenced_code_blocks():
 
     assert rendered.startswith("<pre><code")
     assert "config/\n  run_metadata.json" in rendered
+
+
+def test_pdf_preserves_section_zero_analysis_hierarchy_markup():
+    """Keep each Benchmark family above its decision in the printable table."""
+    table_start = DOC_EN.index("| Analysis | Question | Practical examples |")
+    table_end = DOC_EN.index("\n\n", table_start)
+
+    rendered = pdf_generator._render_pdf_html(
+        DOC_EN[table_start:table_end],
+        T["en"],
+    )
+
+    assert (
+        '<table class="pdf-intro-analysis-table" width="100%">'
+        in rendered
+    )
+    for header, width_percent in zip(
+        ("Analysis", "Question", "Practical examples"),
+        pdf_generator.PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT,
+    ):
+        assert f'<th style="width: {width_percent}%">{header}</th>' in rendered
+    assert rendered.count('class="analysis-choice"') == 5
+    assert rendered.count('class="analysis-family"') == 5
+    assert rendered.count('class="analysis-variant"') == 5
+    assert (
+        '<span class="analysis-family">RX/TX Benchmark</span><br>'
+        '<strong class="analysis-variant">Reference Station / Buddy Test</strong>'
+        in rendered
+    )
 
 
 def test_pdf_preprocessing_makes_fenced_code_layout_explicit():
@@ -182,6 +231,20 @@ def test_pdf_preprocessing_preserves_defined_term_markup():
 
     assert '<strong class="defined-term">Target</strong>' in rendered
     assert '<strong class="defined-term">Reference</strong>' in rendered
+    defined_evidence_path = (
+        '<strong class="defined-term">Map → Segment Inspector → '
+        'Performance/Benchmark Evidence → Temporal Evidence → Station Insights '
+        '→ Selected Station Evidence → Drill-Down</strong>'
+    )
+    assert rendered.count(defined_evidence_path) == 2
+
+
+def test_pdf_preprocessing_preserves_english_section_two_conclusion_callouts():
+    """Retain the scoped conclusion class for print-specific contrast styling."""
+    rendered = pdf_generator._render_pdf_html(DOC_EN, T["en"])
+
+    assert rendered.count('<blockquote class="evidence-conclusion">') == 11
+    assert rendered.count('<p class="evidence-conclusion-label">') == 2
 
 
 def test_pdf_preprocessing_keeps_em_dashes_separated_from_words():

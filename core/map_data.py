@@ -16,7 +16,7 @@ def validate_map_analysis_mode(*, analysis_kind: str, is_compare: bool) -> bool:
     """Validate the two supported map modes and return whether this is Success.
 
     Success maps use ``analysis_kind="opportunity"`` with ``is_compare=False``.
-    Compare maps use ``analysis_kind="comparison"`` with ``is_compare=True``.
+    Benchmark maps use ``analysis_kind="comparison"`` with ``is_compare=True``.
     Any other combination is outside the analysis-batch contract.
     """
     normalized_kind = str(analysis_kind)
@@ -27,7 +27,7 @@ def validate_map_analysis_mode(*, analysis_kind: str, is_compare: bool) -> bool:
         return False
     raise ValueError(
         "Map analysis mode must be Success "
-        "(analysis_kind='opportunity', is_compare=False) or Compare "
+        "(analysis_kind='opportunity', is_compare=False) or Benchmark "
         "(analysis_kind='comparison', is_compare=True)."
     )
 
@@ -104,7 +104,7 @@ def build_map_data(
     tx_ab_reference_start_minute: int,
     owns_input: bool = False,
 ) -> MapData | None:
-    """Return language-free Success or Compare aggregates for one map."""
+    """Return language-free Success or Benchmark aggregates for one map."""
     is_opportunity = validate_map_analysis_mode(
         analysis_kind=analysis_kind,
         is_compare=is_compare,

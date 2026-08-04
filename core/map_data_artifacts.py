@@ -93,7 +93,7 @@ def _validate_map_data_frames(
     if not isinstance(segment_rows, pd.DataFrame):
         raise ValueError("Map segment aggregate must be a DataFrame")
     if not is_opportunity and segment_rows.empty:
-        raise ValueError("Compare map segment aggregate must be non-empty")
+        raise ValueError("Benchmark map segment aggregate must be non-empty")
 
     required_station_columns = set(_COMMON_STATION_COLUMNS)
     if is_opportunity:

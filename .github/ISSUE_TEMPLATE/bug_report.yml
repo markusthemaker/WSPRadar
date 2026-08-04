@@ -33,8 +33,8 @@ body:
       label: Affected area
       multiple: true
       options:
-        - TX Success
-        - RX Success
+        - TX Performance
+        - RX Performance
         - RX hardware A/B test
         - Sequential TX hardware A/B test
         - Reference station / Buddy test

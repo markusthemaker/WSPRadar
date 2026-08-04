@@ -1,5 +1,7 @@
 """Focused regression coverage for fragment-scoped config-save state."""
 
+from types import SimpleNamespace
+
 from ui import config_save
 
 
@@ -58,3 +60,24 @@ def test_results_save_form_uses_distinct_widget_keys_with_shared_profile_data():
     assert results_title_key != config_save._PROFILE_TITLE_WIDGET_KEY
     assert session_state[results_title_key] == "Portable RX"
     assert config_save._PROFILE_TITLE_WIDGET_KEY not in session_state
+
+
+def test_incomplete_configuration_disables_save_control(monkeypatch):
+    """Do not open Save Config while Classic Benchmark design is incomplete."""
+    popover_calls = []
+
+    fake_streamlit = SimpleNamespace(
+        session_state={"lang": "en", "val_analysis_direction": "rx"},
+        popover=lambda *args, **kwargs: (
+            popover_calls.append((args, kwargs))
+            or SimpleNamespace(open=False)
+        ),
+    )
+    monkeypatch.setattr(config_save, "st", fake_streamlit)
+
+    config_save.render_config_save_control.__wrapped__(
+        is_configuration_ready=False,
+    )
+
+    assert len(popover_calls) == 1
+    assert popover_calls[0][1]["disabled"] is True

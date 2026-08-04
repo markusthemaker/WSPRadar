@@ -25,6 +25,10 @@ from config import (
     SEGMENT_RANGE_OPTIONS,
     SEGMENT_SELECTION_ALL,
 )
+from config.config_schema import (
+    BENCHMARK_RESULTS_VIEW_KEY,
+    PERFORMANCE_RESULTS_VIEW_KEY,
+)
 from core.time_utils import format_utc_minute, parse_utc_minute
 from ui.analysis_submission_state import begin_analysis_submission
 from ui.config_io import (
@@ -42,19 +46,17 @@ LOGGER = logging.getLogger(__name__)
 URL_V1_VERSION = "1"
 URL_V1_PUBLIC_MODES = (
     "performance",
+    "benchmark",
+)
+URL_V1_BENCHMARK_DESIGNS = (
     "hardware_ab",
     "reference_station",
     "local_neighborhood",
 )
-URL_V1_MODE_TO_CONFIG = {
-    "performance": "none",
-    "hardware_ab": "hardware_ab",
-    "reference_station": "reference_station",
-    "local_neighborhood": "local_neighborhood",
-}
+URL_V1_LEGACY_DESIGN_MODES = frozenset(URL_V1_BENCHMARK_DESIGNS)
 URL_V1_CONFIG_TO_MODE = {
-    config_mode: public_mode
-    for public_mode, config_mode in URL_V1_MODE_TO_CONFIG.items()
+    "none": "performance",
+    **{benchmark_design: "benchmark" for benchmark_design in URL_V1_BENCHMARK_DESIGNS},
 }
 
 URL_V1_RANGE_TOKENS = (
@@ -100,6 +102,7 @@ URL_V1_PARAMETER_ORDER = (
     "from",
     "to",
     "mode",
+    "benchmark_design",
     "reference",
     "reference_qth",
     "local_benchmark",
@@ -355,20 +358,54 @@ def _parse_selected_station(
     return [{"callsign": callsign, "locator": locator}]
 
 
+def _resolve_public_mode(
+    parameters: Mapping[str, str],
+) -> tuple[str, str | None]:
+    """Resolve canonical and legacy URL mode spellings without ambiguity.
+
+    Canonical URLs identify the result contract through ``mode`` and identify
+    the Benchmark mechanism separately through ``benchmark_design``.  The
+    former design-as-mode spellings remain reader-only compatibility inputs so
+    existing shared links can be canonicalized and re-emitted with new names.
+    """
+
+    requested_mode = _require_parameter(parameters, "mode")
+    if requested_mode == "performance":
+        return requested_mode, None
+    if requested_mode == "benchmark":
+        benchmark_design = _require_parameter(parameters, "benchmark_design")
+        if benchmark_design not in URL_V1_BENCHMARK_DESIGNS:
+            raise UrlStateError(
+                "invalid",
+                f"Unsupported URL benchmark design: {benchmark_design!r}.",
+            )
+        return requested_mode, benchmark_design
+    if requested_mode in URL_V1_LEGACY_DESIGN_MODES:
+        if "benchmark_design" in parameters:
+            raise UrlStateError(
+                "invalid",
+                "Legacy design-as-mode URLs cannot also supply benchmark_design.",
+            )
+        return "benchmark", requested_mode
+    raise UrlStateError(
+        "invalid",
+        f"Unsupported URL result mode: {requested_mode!r}.",
+    )
+
+
 def _comparison_contract(
     parameters: Mapping[str, str],
     *,
     public_mode: str,
+    benchmark_design: str | None,
     direction: str,
 ) -> tuple[set[str], set[str], dict[str, Any]]:
-    """Return allowed/required URL keys and one canonical comparison object."""
-    comparison: dict[str, Any] = {
-        "mode": URL_V1_MODE_TO_CONFIG[public_mode],
-    }
+    """Return allowed/required URL keys and one canonical benchmark object."""
+    comparison: dict[str, Any] = {"mode": benchmark_design or "none"}
     if public_mode == "performance":
         return set(), set(), comparison
 
-    required = {"snr_correction_mode", "snr_correction_db"}
+    required = {"benchmark_design", "snr_correction_mode", "snr_correction_db"}
     allowed = set(required)
     comparison["snr_correction_mode"] = _require_parameter(
         parameters,
@@ -379,7 +416,7 @@ def _comparison_contract(
         "snr_correction_db",
     )
 
-    if public_mode == "reference_station":
+    if benchmark_design == "reference_station":
         required.update({"reference", "reference_qth"})
         allowed.update(required)
         comparison["reference_callsign"] = _require_parameter(
@@ -390,7 +427,7 @@ def _comparison_contract(
             parameters,
             "reference_qth",
         )
-    elif public_mode == "local_neighborhood":
+    elif benchmark_design == "local_neighborhood":
         required.update({"local_benchmark", "radius_km"})
         allowed.update(required)
         comparison["local_benchmark"] = _require_parameter(
@@ -403,14 +440,14 @@ def _comparison_contract(
             "radius_km",
             0,
         )
-    elif direction == "rx":
+    elif benchmark_design == "hardware_ab" and direction == "rx":
         required.add("reference")
         allowed.add("reference")
         comparison["reference_callsign"] = _require_parameter(
             parameters,
             "reference",
         )
-    else:
+    elif benchmark_design == "hardware_ab":
         required.add("tx_ab_method")
         allowed.add("tx_ab_method")
         tx_ab_method = _require_parameter(parameters, "tx_ab_method")
@@ -456,10 +493,15 @@ def _comparison_contract(
                 "invalid",
                 "tx_ab_method must be simultaneous or sequential.",
             )
+    else:
+        raise UrlStateError(
+            "invalid",
+            f"Unsupported URL benchmark design: {benchmark_design!r}.",
+        )
     return allowed, required, comparison
 
 
-def _default_success_results_view() -> dict[str, Any]:
+def _default_performance_results_view() -> dict[str, Any]:
     """Return stable URL-v1 defaults for the Performance result branch."""
     return {
         "selected_ranges": URL_V1_DEFAULTS["ranges"],
@@ -471,8 +513,8 @@ def _default_success_results_view() -> dict[str, Any]:
     }
 
 
-def _default_compare_results_view() -> dict[str, Any]:
-    """Return stable URL-v1 defaults for the Compare result branch."""
+def _default_benchmark_results_view() -> dict[str, Any]:
+    """Return stable URL-v1 defaults for the Benchmark result branch."""
     return {
         "selected_ranges": URL_V1_DEFAULTS["ranges"],
         "selected_directions": URL_V1_DEFAULTS["directions"],
@@ -512,16 +554,12 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
     direction = _require_parameter(parameters, "direction")
     if direction not in {"rx", "tx"}:
         raise UrlStateError("invalid", "direction must be rx or tx.")
-    public_mode = _require_parameter(parameters, "mode")
-    if public_mode not in URL_V1_PUBLIC_MODES:
-        raise UrlStateError(
-            "invalid",
-            f"Unsupported URL analysis mode: {public_mode!r}.",
-        )
+    public_mode, benchmark_design = _resolve_public_mode(parameters)
 
     comparison_allowed, _comparison_required, comparison = _comparison_contract(
         parameters,
         public_mode=public_mode,
+        benchmark_design=benchmark_design,
         direction=direction,
     )
     result_allowed = set(_COMMON_RESULT_PARAMETERS)
@@ -581,16 +619,18 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
     selected_stations = _parse_selected_station(parameters)
 
     active_results_view: dict[str, Any]
-    results_view = {"success": _default_success_results_view()}
+    results_view = {
+        PERFORMANCE_RESULTS_VIEW_KEY: _default_performance_results_view()
+    }
     if public_mode == "performance":
-        active_results_view = results_view["success"]
+        active_results_view = results_view[PERFORMANCE_RESULTS_VIEW_KEY]
         active_results_view["show_zero_target"] = _parse_boolean_flag(
             parameters,
             "show_zero",
         )
     else:
-        results_view["compare"] = _default_compare_results_view()
-        active_results_view = results_view["compare"]
+        results_view[BENCHMARK_RESULTS_VIEW_KEY] = _default_benchmark_results_view()
+        active_results_view = results_view[BENCHMARK_RESULTS_VIEW_KEY]
         active_results_view["show_non_joint"] = _parse_boolean_flag(
             parameters,
             "show_unpaired",
@@ -791,6 +831,7 @@ def build_query_from_settings(
     advanced = canonical_settings["advanced_parameters"]
     results = canonical_settings["results_view"]
     public_mode = URL_V1_CONFIG_TO_MODE[comparison["mode"]]
+    benchmark_design = comparison["mode"] if public_mode == "benchmark" else None
 
     entries: list[tuple[str, str]] = [("v", URL_V1_VERSION)]
     if include_run:
@@ -806,15 +847,17 @@ def build_query_from_settings(
             ("mode", public_mode),
         )
     )
+    if benchmark_design is not None:
+        entries.append(("benchmark_design", benchmark_design))
 
-    if public_mode == "reference_station":
+    if benchmark_design == "reference_station":
         entries.extend(
             (
                 ("reference", comparison["reference_callsign"]),
                 ("reference_qth", comparison["reference_qth"]),
             )
         )
-    elif public_mode == "local_neighborhood":
+    elif benchmark_design == "local_neighborhood":
         entries.extend(
             (
                 ("local_benchmark", comparison["local_benchmark"]),
@@ -824,7 +867,7 @@ def build_query_from_settings(
                 ),
             )
         )
-    elif public_mode == "hardware_ab":
+    elif benchmark_design == "hardware_ab":
         if core["analysis_direction"] == "rx":
             entries.append(("reference", comparison["reference_callsign"]))
         else:
@@ -900,11 +943,11 @@ def build_query_from_settings(
         URL_V1_DEFAULTS["min_segment_stations"],
     )
 
-    active_results = (
-        results["success"]
+    active_results = results[
+        PERFORMANCE_RESULTS_VIEW_KEY
         if public_mode == "performance"
-        else results["compare"]
-    )
+        else BENCHMARK_RESULTS_VIEW_KEY
+    ]
     serialized_ranges = _serialize_segment_selection(
         active_results["selected_ranges"],
         config_order=SEGMENT_RANGE_OPTIONS,

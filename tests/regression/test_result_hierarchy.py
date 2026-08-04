@@ -334,7 +334,7 @@ def test_result_context_titles_and_subtitles_cover_every_analysis_family(
         "id": analysis_id,
         "is_compare": is_compare,
         "is_sequential": False,
-        "title": f"{direction} Compare: {comparison_context}",
+        "title": f"{direction} Benchmark: {comparison_context}",
     }
     analysis_context = SimpleNamespace(
         callsign=f"{direction.lower()}-target",
@@ -599,7 +599,7 @@ def test_compare_header_places_escaped_correction_below_run_metadata():
             "id": "RX_COMP",
             "is_compare": True,
             "is_sequential": False,
-            "title": "RX Compare: Target vs. Reference",
+            "title": "RX Benchmark: Target vs. Reference",
         },
         SimpleNamespace(
             callsign="target",
@@ -642,7 +642,7 @@ def test_fixed_reference_grid4_is_part_of_compare_metadata(
             "id": analysis_id,
             "is_compare": True,
             "is_sequential": False,
-            "title": "Compare: Target vs. Reference",
+            "title": "Benchmark: Target vs. Reference",
         },
         SimpleNamespace(
             callsign="g3zil",
@@ -956,7 +956,7 @@ def test_result_html_uses_semantic_heading_levels():
     """Expose the visual hierarchy as H2, H3, and H4 document structure."""
     context_markup = result_context_html(
         ResultContext(
-            title="RX Compare Results",
+            title="RX Benchmark Results",
             subtitle="Target vs. Reference",
             metadata="20m · UTC",
             evidence_path_label="Evidence path",
@@ -1026,7 +1026,7 @@ def test_dynamic_result_values_are_escaped_at_the_html_boundary():
             "id": "RX_COMP",
             "is_compare": True,
             "is_sequential": True,
-            "title": "RX Compare: ignored",
+            "title": "RX Benchmark: ignored",
         },
         SimpleNamespace(callsign=callsign, band="<20m>", qth='io"90'),
         datetime(2026, 7, 1),
@@ -1045,7 +1045,7 @@ def test_dynamic_result_values_are_escaped_at_the_html_boundary():
             "id": "TX_COMP",
             "is_compare": True,
             "is_sequential": False,
-            "title": f"TX Compare: {malicious_title}",
+            "title": f"TX Benchmark: {malicious_title}",
         },
         SimpleNamespace(callsign="target", band="20m", qth="JO62"),
         datetime(2026, 7, 1),
@@ -1193,7 +1193,7 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
     expected = {
         "en": {
             "fig_compare_coverage_folded_unavailable": (
-                "UTC-hour pattern unavailable — requires comparison evidence "
+                "UTC-hour pattern unavailable — requires Benchmark evidence "
                 "from at least 2 UTC dates."
             ),
             "fig_compare_coverage_station_folded_y_rx": "Avg. TX Stations",
@@ -1222,7 +1222,7 @@ def test_compare_coverage_folded_axes_and_selected_units_are_exact():
         },
         "de": {
             "fig_compare_coverage_folded_unavailable": (
-                "UTC-Stundenmuster nicht verfügbar — erfordert Compare-Evidenz "
+                "UTC-Stundenmuster nicht verfügbar — erfordert Benchmark-Evidenz "
                 "aus mindestens 2 UTC-Tagen."
             ),
             "fig_compare_coverage_station_folded_y_rx": "Ø TX-Stationen",

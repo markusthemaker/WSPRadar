@@ -20,11 +20,14 @@ import streamlit as st
 from config import APP_VERSION, BAND_MAP, DEFAULT_BAND, MAP_SCOPE_OPTIONS, MAX_DAYS_HISTORY, MAX_DYNAMIC_RADIUS_KM
 from config.config_schema import (
     ANALYSIS_DIRECTIONS,
+    BENCHMARK_RESULTS_VIEW_KEY,
     COMPARISON_MODES,
     CONFIG_APP_NAME,
     CONFIG_DOCUMENT_FORMAT,
     CONFIG_KEYS,
     CONFIG_SCHEMA_VERSION,
+    LEGACY_RESULTS_VIEW_KEY_ALIASES,
+    PERFORMANCE_RESULTS_VIEW_KEY,
     SEGMENT_DIRECTION_OPTIONS,
     SEGMENT_EVIDENCE_TIME_BINS,
     SEGMENT_RANGE_OPTIONS,
@@ -50,6 +53,7 @@ from core.time_utils import (
     resolve_default_utc_window,
 )
 from ui.analysis_submission_state import cancel_analysis_submission
+from ui.classic_input_state import synchronize_classic_input_state
 from ui.population_exclusion_state import (
     population_exclusion_defaults,
     register_explicit_population_exclusion_values,
@@ -125,6 +129,7 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "mode",
         "neighborhood_radius_km",
         "profile",
+        "performance",
         "qth",
         "reference_callsign",
         "reference_qth",
@@ -145,6 +150,7 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "start_utc",
         "station_evidence_time_bin",
         "success",
+        "benchmark",
         "target_start_minute",
         "time_selection",
         "title",
@@ -615,14 +621,14 @@ def _settings_from_session_state(state, lang):
         )
 
     results_view = {
-        "success": {
+        PERFORMANCE_RESULTS_VIEW_KEY: {
             "selected_ranges": _limit_segment_selection_to_analysis_scope(
                 _validate_segment_selection(
                     state.get(
                         "val_results_selected_ranges_absolute",
                         defaults["selected_ranges_absolute"],
                     ),
-                    "results_view.success.selected_ranges",
+                    "results_view.performance.selected_ranges",
                     SEGMENT_RANGE_OPTIONS,
                 ),
                 max_peer_distance_km=advanced_parameters[
@@ -634,7 +640,7 @@ def _settings_from_session_state(state, lang):
                     "val_results_selected_directions_absolute",
                     defaults["selected_directions_absolute"],
                 ),
-                "results_view.success.selected_directions",
+                "results_view.performance.selected_directions",
                 SEGMENT_DIRECTION_OPTIONS,
             ),
             "show_zero_target": bool(
@@ -656,19 +662,19 @@ def _settings_from_session_state(state, lang):
                     "val_results_selected_stations_absolute",
                     defaults["selected_stations_absolute"],
                 ),
-                "results_view.success.selected_stations",
+                "results_view.performance.selected_stations",
             ),
         }
     }
     if benchmark_mode != "none":
-        results_view["compare"] = {
+        results_view[BENCHMARK_RESULTS_VIEW_KEY] = {
                 "selected_ranges": _limit_segment_selection_to_analysis_scope(
                     _validate_segment_selection(
                         state.get(
                             "val_results_selected_ranges_compare",
                             defaults["selected_ranges_compare"],
                         ),
-                        "results_view.compare.selected_ranges",
+                        "results_view.benchmark.selected_ranges",
                         SEGMENT_RANGE_OPTIONS,
                     ),
                     max_peer_distance_km=advanced_parameters[
@@ -680,7 +686,7 @@ def _settings_from_session_state(state, lang):
                         "val_results_selected_directions_compare",
                         defaults["selected_directions_compare"],
                     ),
-                    "results_view.compare.selected_directions",
+                    "results_view.benchmark.selected_directions",
                     SEGMENT_DIRECTION_OPTIONS,
                 ),
                 "show_non_joint": bool(
@@ -702,7 +708,7 @@ def _settings_from_session_state(state, lang):
                         "val_results_selected_stations_compare",
                         defaults["selected_stations_compare"],
                     ),
-                    "results_view.compare.selected_stations",
+                    "results_view.benchmark.selected_stations",
                 ),
             }
 
@@ -1191,17 +1197,17 @@ def normalize_config_settings(raw_settings):
             50,
         )
 
-    results_fields = {"success"}
+    results_fields = {PERFORMANCE_RESULTS_VIEW_KEY}
     if benchmark_mode != "none":
-        results_fields.add("compare")
+        results_fields.add(BENCHMARK_RESULTS_VIEW_KEY)
     results_view = _validate_object_fields(
         settings["results_view"],
         "settings.results_view",
         results_fields,
     )
-    success_results_view = _validate_object_fields(
-        results_view["success"],
-        "settings.results_view.success",
+    performance_results_view = _validate_object_fields(
+        results_view[PERFORMANCE_RESULTS_VIEW_KEY],
+        "settings.results_view.performance",
         {
             "selected_ranges",
             "selected_directions",
@@ -1214,40 +1220,40 @@ def normalize_config_settings(raw_settings):
     normalized["selected_ranges_absolute"] = (
         _limit_segment_selection_to_analysis_scope(
             _validate_segment_selection(
-                success_results_view["selected_ranges"],
-                "results_view.success.selected_ranges",
+                performance_results_view["selected_ranges"],
+                "results_view.performance.selected_ranges",
                 SEGMENT_RANGE_OPTIONS,
             ),
             max_peer_distance_km=normalized["max_peer_distance_km"],
         )
     )
     normalized["selected_directions_absolute"] = _validate_segment_selection(
-        success_results_view["selected_directions"],
-        "results_view.success.selected_directions",
+        performance_results_view["selected_directions"],
+        "results_view.performance.selected_directions",
         SEGMENT_DIRECTION_OPTIONS,
     )
     normalized["show_zero_target"] = _validate_bool(
-        success_results_view["show_zero_target"],
-        "results_view.success.show_zero_target",
+        performance_results_view["show_zero_target"],
+        "results_view.performance.show_zero_target",
     )
     normalized["segment_evidence_time_bin_absolute"] = _validate_choice(
-        success_results_view["segment_evidence_time_bin"],
-        "results_view.success.segment_evidence_time_bin",
+        performance_results_view["segment_evidence_time_bin"],
+        "results_view.performance.segment_evidence_time_bin",
         SEGMENT_EVIDENCE_TIME_BINS,
     )
     normalized["station_evidence_time_bin_absolute"] = _validate_choice(
-        success_results_view["station_evidence_time_bin"],
-        "results_view.success.station_evidence_time_bin",
+        performance_results_view["station_evidence_time_bin"],
+        "results_view.performance.station_evidence_time_bin",
         STATION_EVIDENCE_TIME_BINS,
     )
     normalized["selected_stations_absolute"] = _validate_selected_stations(
-        success_results_view["selected_stations"],
-        "results_view.success.selected_stations",
+        performance_results_view["selected_stations"],
+        "results_view.performance.selected_stations",
     )
     if benchmark_mode != "none":
-        compare_results_view = _validate_object_fields(
-            results_view["compare"],
-            "settings.results_view.compare",
+        benchmark_results_view = _validate_object_fields(
+            results_view[BENCHMARK_RESULTS_VIEW_KEY],
+            "settings.results_view.benchmark",
             {
                 "selected_ranges",
                 "selected_directions",
@@ -1260,43 +1266,71 @@ def normalize_config_settings(raw_settings):
         normalized["selected_ranges_compare"] = (
             _limit_segment_selection_to_analysis_scope(
                 _validate_segment_selection(
-                    compare_results_view["selected_ranges"],
-                    "results_view.compare.selected_ranges",
+                    benchmark_results_view["selected_ranges"],
+                    "results_view.benchmark.selected_ranges",
                     SEGMENT_RANGE_OPTIONS,
                 ),
                 max_peer_distance_km=normalized["max_peer_distance_km"],
             )
         )
         normalized["selected_directions_compare"] = _validate_segment_selection(
-            compare_results_view["selected_directions"],
-            "results_view.compare.selected_directions",
+            benchmark_results_view["selected_directions"],
+            "results_view.benchmark.selected_directions",
             SEGMENT_DIRECTION_OPTIONS,
         )
         normalized["show_non_joint"] = _validate_bool(
-            compare_results_view["show_non_joint"],
-            "results_view.compare.show_non_joint",
+            benchmark_results_view["show_non_joint"],
+            "results_view.benchmark.show_non_joint",
         )
         normalized["segment_evidence_time_bin_compare"] = _validate_choice(
-            compare_results_view["segment_evidence_time_bin"],
-            "results_view.compare.segment_evidence_time_bin",
+            benchmark_results_view["segment_evidence_time_bin"],
+            "results_view.benchmark.segment_evidence_time_bin",
             SEGMENT_EVIDENCE_TIME_BINS,
         )
         normalized["station_evidence_time_bin_compare"] = _validate_choice(
-            compare_results_view["station_evidence_time_bin"],
-            "results_view.compare.station_evidence_time_bin",
+            benchmark_results_view["station_evidence_time_bin"],
+            "results_view.benchmark.station_evidence_time_bin",
             STATION_EVIDENCE_TIME_BINS,
         )
         normalized["selected_stations_compare"] = _validate_selected_stations(
-            compare_results_view["selected_stations"],
-            "results_view.compare.selected_stations",
+            benchmark_results_view["selected_stations"],
+            "results_view.benchmark.selected_stations",
         )
 
     return normalized
 
 
+def _migrate_legacy_results_view_keys(settings):
+    """Migrate unambiguous legacy result-view branch names in-place.
+
+    Saved configuration schema version 1 was published during the pre-release
+    terminology transition.  Accept the former branch names only at this input
+    boundary; canonical validation and every writer continue to use
+    ``performance`` and ``benchmark``.  A document containing both spellings is
+    ambiguous and is rejected rather than silently choosing one value.
+    """
+
+    results_view = (
+        settings.get("results_view") if isinstance(settings, dict) else None
+    )
+    if not isinstance(results_view, dict):
+        return
+
+    for legacy_key, canonical_key in LEGACY_RESULTS_VIEW_KEY_ALIASES:
+        if legacy_key not in results_view:
+            continue
+        if canonical_key in results_view:
+            raise ValueError(
+                "settings.results_view cannot contain both "
+                f"{legacy_key!r} and {canonical_key!r}."
+            )
+        results_view[canonical_key] = results_view.pop(legacy_key)
+
+
 def validate_config_document(payload):
     """Validate and normalize one decoded versioned WSPRadar config document."""
     prepared_document = prepare_config_document(payload)
+    _migrate_legacy_results_view_keys(prepared_document["settings"])
     normalized_config = normalize_config_settings(prepared_document["settings"])
     normalized_config["profile"] = deepcopy(prepared_document.get("profile"))
     normalized_config["extensions"] = deepcopy(
@@ -1435,6 +1469,7 @@ def apply_config_state_values(config, session_state):
         }
     )
     register_explicit_population_exclusion_values(session_state)
+    synchronize_classic_input_state(session_state)
 
 
 def apply_config_values_to_state(config, session_state):
@@ -1448,7 +1483,7 @@ def apply_config_values_to_state(config, session_state):
     session_state["run_mode"] = None
     session_state["guided_loaded_demo_profile"] = None
     session_state["guided_demo_metadata_open"] = False
-    session_state["guided_last_compare_mode"] = None
+    session_state["guided_last_benchmark_mode"] = None
     session_state["guided_reconstruct_requested"] = True
     session_state["guided_collapse_all"] = False
     session_state["configuration_changed_since_run"] = False

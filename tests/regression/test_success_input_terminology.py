@@ -73,32 +73,32 @@ def _success_session_state(direction):
     [
         (
             "en",
-            "rx_success",
+            "rx_performance",
             ("Heard by Target", "Heard by others only"),
         ),
         (
             "en",
-            "tx_success",
+            "tx_performance",
             ("Target heard", "Other signals heard only"),
         ),
         (
             "de",
-            "rx_success",
+            "rx_performance",
             ("Vom Target gehört", "Nur von anderen gehört"),
         ),
         (
             "de",
-            "tx_success",
+            "tx_performance",
             ("Target gehört", "Nur andere Signale gehört"),
         ),
     ],
 )
-def test_guided_success_descriptions_name_the_displayed_outcomes(
+def test_guided_performance_descriptions_name_the_displayed_outcomes(
     language,
     use_case,
     expected_outcomes,
 ):
-    """Keep all four Guided Success captions aligned with result vocabulary."""
+    """Keep all four Guided Performance captions aligned with result vocabulary."""
     description = GUIDED_INPUTS[language]["options"]["use_cases"][use_case][
         "description"
     ]
@@ -114,10 +114,10 @@ def test_active_success_input_explanations_exclude_legacy_outcome_vocabulary():
     for language in ("en", "de"):
         active_text = "\n".join(
             [
-                GUIDED_INPUTS[language]["options"]["use_cases"]["rx_success"][
+                GUIDED_INPUTS[language]["options"]["use_cases"]["rx_performance"][
                     "description"
                 ],
-                GUIDED_INPUTS[language]["options"]["use_cases"]["tx_success"][
+                GUIDED_INPUTS[language]["options"]["use_cases"]["tx_performance"][
                     "description"
                 ],
                 *(T[language][key] for key in sorted(SUCCESS_HELP_KEYS)),
@@ -203,8 +203,8 @@ def test_classic_success_thresholds_resolve_direction_specific_help(
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_classic_compare_uses_separate_map_segment_help(monkeypatch, language):
-    """Keep Compare station help separate from both Success directions."""
+def test_classic_benchmark_uses_separate_map_segment_help(monkeypatch, language):
+    """Keep Benchmark station help separate from both Performance directions."""
     sliders = Mock()
     session_state = _SessionState(
         {
@@ -230,8 +230,8 @@ def test_classic_compare_uses_separate_map_segment_help(monkeypatch, language):
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_sequential_tx_compare_preserves_scheduled_pair_help(monkeypatch, language):
-    """Retain the scheduled-pair exception while routing Compare station help."""
+def test_sequential_tx_benchmark_preserves_scheduled_pair_help(monkeypatch, language):
+    """Retain scheduled-pair help while routing Benchmark station help."""
     sliders = Mock()
     session_state = _SessionState(
         {

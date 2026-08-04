@@ -312,10 +312,15 @@ def test_demo_configs_follow_filename_order_and_keep_canonical_settings():
         assert configuration["format"] == CONFIG_DOCUMENT_FORMAT
         assert configuration["schema_version"] == CONFIG_SCHEMA_VERSION
         assert set(configuration["settings"]) == CONFIG_KEYS
+        comparison_mode = configuration["settings"]["comparison_parameters"]["mode"]
+        expected_result_views = {"performance"}
+        if comparison_mode != "none":
+            expected_result_views.add("benchmark")
+        assert set(configuration["settings"]["results_view"]) == expected_result_views
 
 
 def test_demo_correction_modes_are_explicit_configuration():
-    """Keep Compare correction policy explicit and Performance policy inapplicable."""
+    """Keep Benchmark correction policy explicit and Performance inapplicable."""
     actual_modes = {
         profile_id: profile["configuration"]["settings"]["comparison_parameters"].get(
             "snr_correction_mode"

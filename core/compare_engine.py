@@ -1,5 +1,5 @@
 """
-Compare-mode aggregation helpers for WSPRadar.
+Benchmark-mode aggregation helpers for WSPRadar.
 
 This module keeps the A/B comparison science separate from map rendering:
 joint observations, non-joint evidence, sequential scheduled pairing, and segment
@@ -250,7 +250,7 @@ def aggregate_compare_map_data(
     owns_input: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Aggregate raw Compare rows into map station rows and segment medians.
+    Aggregate raw Benchmark rows into map station rows and segment medians.
 
     The returned dataframes intentionally preserve the historical plot_engine
     schema so the segment inspector, export flow, and map rendering continue to
@@ -316,7 +316,7 @@ def aggregate_compare_map_data(
 
 
 def compare_footer_counts(df_plot: pd.DataFrame, *, max_dist_km: float) -> dict[str, int]:
-    """Return station/spot yield counts for the Compare map footer bars."""
+    """Return station/spot yield counts for the Benchmark map footer bars."""
     if df_plot is None or df_plot.empty:
         return {
             "stat_joint": 0,

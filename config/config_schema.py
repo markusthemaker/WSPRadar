@@ -25,6 +25,16 @@ CONFIG_KEYS = frozenset(
     }
 )
 
+PERFORMANCE_RESULTS_VIEW_KEY = "performance"
+BENCHMARK_RESULTS_VIEW_KEY = "benchmark"
+RESULTS_VIEW_KEYS = frozenset(
+    {PERFORMANCE_RESULTS_VIEW_KEY, BENCHMARK_RESULTS_VIEW_KEY}
+)
+LEGACY_RESULTS_VIEW_KEY_ALIASES = (
+    ("success", PERFORMANCE_RESULTS_VIEW_KEY),
+    ("compare", BENCHMARK_RESULTS_VIEW_KEY),
+)
+
 ANALYSIS_DIRECTIONS = frozenset({"rx", "tx"})
 COMPARISON_MODES = frozenset(
     {"none", "hardware_ab", "reference_station", "local_neighborhood"}

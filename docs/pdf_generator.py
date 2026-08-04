@@ -20,6 +20,7 @@ from docs.doc_en import DOC_EN
 DOCUMENTATION_PDF_READY_KEY_PREFIX = "_documentation_pdf_ready"
 _DOCUMENTATION_PDF_GENERATION_LOCK = threading.Lock()
 PDF_MARKDOWN_EXTENSIONS = ("tables", "fenced_code")
+PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT = (28, 27, 45)
 PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT = (11, 8, 12, 10, 9, 10, 11, 8, 8, 13)
 
 
@@ -315,6 +316,56 @@ def _preserve_pdf_fenced_code_layout(html_content):
     return code_block_pattern.sub(preserve_layout, html_content)
 
 
+def _mark_intro_analysis_table_for_pdf(html_content):
+    """Apply stable print widths to the English Part 0 analysis catalogue."""
+    header_sequence = ("Analysis", "Question", "Practical examples")
+    header_start = html_content.find(f"<th>{header_sequence[0]}</th>")
+    if header_start < 0:
+        return html_content
+
+    table_start = html_content.rfind("<table>", 0, header_start)
+    table_end = html_content.find("</table>", header_start)
+    if table_start < 0 or table_end < 0:
+        return html_content
+    table_end += len("</table>")
+
+    analysis_table = html_content[table_start:table_end]
+    header_end = analysis_table.find("</thead>")
+    if header_end < 0:
+        return html_content
+    rendered_headers = re.findall(
+        r"<th>(.*?)</th>",
+        analysis_table[:header_end],
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if tuple(rendered_headers) != header_sequence:
+        return html_content
+
+    column_widths = iter(PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT)
+
+    def format_header_cell(header_match):
+        width_percent = next(column_widths)
+        return f'<th style="width: {width_percent}%">{header_match.group(1)}</th>'
+
+    analysis_table = analysis_table.replace(
+        "<table>",
+        '<table class="pdf-intro-analysis-table" width="100%">',
+        1,
+    )
+    analysis_table = re.sub(
+        r"<th>(.*?)</th>",
+        format_header_cell,
+        analysis_table,
+        count=len(PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT),
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    return (
+        html_content[:table_start]
+        + analysis_table
+        + html_content[table_end:]
+    )
+
+
 def _mark_method_matrix_for_pdf(html_content):
     """Isolate the Chapter 7 method matrix for a landscape PDF page template."""
     chapter_start = html_content.find('name="sec-7"')
@@ -405,6 +456,7 @@ def _render_pdf_html(md_text, translations, markdown_module=None):
     html_content = _preserve_pdf_fenced_code_layout(html_content)
     html_content = _add_pdf_anchor_names(html_content)
     html_content = _inject_pdf_list_markers(html_content)
+    html_content = _mark_intro_analysis_table_for_pdf(html_content)
     return _mark_method_matrix_for_pdf(html_content)
 
 
@@ -507,6 +559,56 @@ def _generate_pdf_doc(lang, logo_b64, version):
 
         th {{ text-align: left; background-color: #eee; padding: 4px; }}
         td {{ padding: 4px; border-bottom: 1px solid #eee; vertical-align: top; }}
+
+        .pdf-intro-analysis-table {{
+            width: 100%;
+            font-size: 7.5pt;
+            line-height: 1.22;
+        }}
+
+        .pdf-intro-analysis-table th {{
+            padding: 4px 3px;
+            font-size: 7.8pt;
+        }}
+
+        .pdf-intro-analysis-table td {{
+            padding: 4px 3px;
+        }}
+
+        .pdf-intro-analysis-table .analysis-choice-single,
+        .pdf-intro-analysis-table .analysis-family {{
+            color: #146b2e;
+            font-weight: bold;
+        }}
+
+        .pdf-intro-analysis-table .analysis-family {{
+            font-size: 6.8pt;
+        }}
+
+        .pdf-intro-analysis-table .analysis-variant {{
+            font-size: 7.5pt;
+        }}
+
+        blockquote.evidence-conclusion {{
+            margin: 6px 0 10px;
+            padding: 7px 9px;
+            background-color: #eef7ef;
+            border: 1px solid #b6d8bc;
+            border-left: 3px solid #146b2e;
+            color: #24312a;
+            page-break-inside: avoid;
+        }}
+
+        blockquote.evidence-conclusion p {{
+            margin: 0;
+            color: #24312a;
+        }}
+
+        p.evidence-conclusion-label {{
+            margin-bottom: 5px;
+            page-break-after: avoid;
+            -pdf-keep-with-next: true;
+        }}
 
         .pdf-method-matrix-label {{
             margin-bottom: 5px;

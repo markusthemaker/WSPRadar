@@ -22,7 +22,7 @@ measurement system.
 
 ## Main Features
 
-- TX and RX Success analyses that compare target opportunities with signals seen
+- TX and RX Performance analyses that compare target opportunities with signals seen
   by other active stations.
 - TX and RX comparison analyses for local/reference setups, hardware A/B cases,
   and deterministic scheduled TX A/B pairs.
@@ -135,7 +135,7 @@ Important defaults currently include:
 
 - Maximum query interval: 31 days.
 - New untouched interactive Performance setups enable special-callsign and
-  moving-station exclusion; untouched Compare setups disable both. A manual
+  moving-station exclusion; untouched Benchmark setups disable both. A manual
   toggle edit remains explicit across result-family changes, while saved
   configurations, demos, and URLs retain their required explicit values.
 - Maximum accepted result per analysis query: 1,000,000 rows; a max-plus-one
@@ -181,7 +181,7 @@ Every active comparison stores `snr_correction_mode` separately from
 correction of exactly `0.0 dB`; `established_offset` carries a documented signed
 value and may explicitly carry a genuinely established `0.0 dB`. Dynamic Local
 Neighborhood comparisons support `no_offset` and `established_offset` but not
-the controlled offset-establishment workflow. Success-only configurations omit
+the controlled offset-establishment workflow. Performance-only configurations omit
 both fields. Applicable unpublished version-1 documents that lack the mode are
 rejected rather than interpreted from an ambiguous numeric zero.
 
@@ -196,15 +196,15 @@ the selected interval, and new sessions default to 10, 0, and 2 minutes
 respectively. Scheduled transmissions are paired by their planned starts; the
 unpublished fixed-bin prototype is not part of the public contract.
 
-`results_view` is divided into `success` and, when applicable, `compare`.
+`results_view` is divided into `performance` and, when applicable, `benchmark`.
 It preserves each branch's Segment Inspector range/direction, segment temporal
 time bin, selected-station chronological time bin, and station-selection intent.
 Explicit stations use canonical callsign/locator pairs. Both branches accept
 `null`, an empty list, or one identity; `"all"`, duplicates, malformed
 identities, and multiple identities are rejected without migration. `null`
 retains the normal initial table behavior, while an empty list records
-deliberate deselection. Compare additionally preserves `show_non_joint`;
-Success preserves `show_zero_target`. Table filters,
+deliberate deselection. Benchmark additionally preserves `show_non_joint`;
+Performance preserves the canonical `show_zero_target` field. Table filters,
 Drill-Down filters, and other transient UI state remain outside the config
 contract. Optional non-core data belongs under `extensions` and is preserved
 across load and re-save.
@@ -221,8 +221,15 @@ conditional branches.
 
 Guided and Classic are two editors over the same canonical Streamlit session
 fields; neither owns a separate scientific configuration. The selected
-`input_view` and Guided navigation choices are transient session UI state and
-are not added to the version-1 saved-config contract. Correction mode is durable
+`input_view`, four-way Classic Question, and Guided navigation choices are
+transient session UI state and are not added to the version-1 saved-config
+contract. Classic asks RX/TX Performance or RX/TX Benchmark first, then reuses
+the shared Target/window fields and conditionally requires a Benchmark design.
+While Benchmark intent is selected but its design is still absent, Run, Save
+Config, and public-URL synchronization remain gated, while the advanced panel
+explicitly uses Benchmark thresholds rather than interpreting canonical
+`val_comp_mode = "none"` as an operator-selected Performance setup. Correction
+mode is durable
 operator/configuration provenance rather than navigation state: both editors
 preserve it, Guided renders its choice from the canonical mode, and the shared
 Classic/Guided correction text field accepts point-decimal input, normalizes it
@@ -234,8 +241,8 @@ after loading a personal configuration or demo. Its order and conditions come
 from the schema-validated
 `config/guided_input_flow.json`, while registered Python renderers and the
 separate bilingual `GUIDED_INPUTS` content in `i18n.py` provide controls and
-novice explanations. A run produces exactly one active result family: Success
-when no benchmark is selected, or Compare when any benchmark is selected.
+novice explanations. A run produces exactly one active result family: Performance
+when no benchmark is selected, or Benchmark when any benchmark is selected.
 
 `config/demo_profiles.py` discovers regular `config/demos/*.config` files in
 lexicographic filename order. The filename is an opaque ordering key and is
@@ -298,7 +305,7 @@ aggregation, session artifacts, and exports. The map, footer, and Segment
 Inspector consume that same retained population, and Inspector controls cannot
 widen it. Target-Active eligibility and moving-station integrity remain
 geographically global checks on the otherwise eligible population before
-distance scope; in Compare, they follow solar selection in moving-then-activity
+distance scope; in Benchmark, they follow solar selection in moving-then-activity
 order. Provider SQL responses and raw-query cache entries likewise remain
 global across scope choices.
 
@@ -332,6 +339,9 @@ Useful files when tracing behavior:
   orchestration and pure view models.
 - `ui/components/config_fields.py`: shared canonical field-composition surface
   used by Guided and Classic without duplicating scientific controls.
+- `ui/analysis_question_state.py`, `ui/classic_input_state.py`, and
+  `ui/classic_inputs.py`: atomic four-way question transitions, transient
+  Classic readiness, and question-first Classic panel composition.
 - `ui/guided_inputs/`: validated flow loading/evaluation, transient Guided
   state, summaries, and Streamlit accordion composition.
 - `ui/config_io.py` and `ui/config_save.py`: shared versioned-config semantics,
@@ -449,11 +459,11 @@ ignored by Git:
 ```
 
 Ordinary query and session artifacts use one-hour access-aware cleanup. Every
-ordinary Compare CSV exact query is written through as raw Parquet rows in the
-same ordinary disk L2 used by Success query artifacts. Guided demo query
+ordinary Benchmark CSV exact query is written through as raw Parquet rows in the
+same ordinary disk L2 used by Performance query artifacts. Guided demo query
 artifacts use a separate 24-hour absolute freshness lifetime: reads do not touch
-their publication timestamp. Compare keeps an optional process-memory DataFrame
-L1 and a Parquet disk L2; demo Success uses the same persistent demo namespace.
+their publication timestamp. Benchmark keeps an optional process-memory DataFrame
+L1 and a Parquet disk L2; demo Performance uses the same persistent demo namespace.
 The process-wide DataFrame L1 admits at most 64 MiB total, 16 MiB per entry, and
 32 entries after deep-byte accounting; larger frames remain disk-only. Both
 tiers cache raw provider query results rather than completed scientific

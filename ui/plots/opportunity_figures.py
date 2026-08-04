@@ -557,7 +557,7 @@ def _opportunity_segment_recipe(
     )
 
     return {
-        "kind": "opportunity_success_evidence",
+        "kind": "opportunity_performance_evidence",
         "schema_version": 2,
         "distance_binning_version": SUCCESS_DISTANCE_BINNING_VERSION,
         "title": title,
@@ -2166,7 +2166,7 @@ def _opportunity_temporal_recipe(
         else None
     )
     return {
-        "kind": "opportunity_success_temporal",
+        "kind": "opportunity_performance_temporal",
         "schema_version": 8,
         "population_mode": population_mode,
         "snr_representation": snr_representation,
@@ -2699,7 +2699,7 @@ def _place_success_temporal_evidence_column_header(
     *,
     gid,
 ):
-    """Center one Compare-styled heading above both lower evidence rows."""
+    """Center one Benchmark-styled heading above both lower evidence rows."""
     position = axis.get_position()
     header = figure.text(
         (position.x0 + position.x1) / 2.0,
@@ -2747,7 +2747,7 @@ def _configure_success_folded_axis(axis, context, *, show_labels):
 
 @synchronized_matplotlib
 def _render_opportunity_temporal_snr_figure(recipe):
-    """Render the standalone Compare-sized successful-SNR temporal figure."""
+    """Render the standalone Benchmark-sized successful-SNR temporal figure."""
     context = _success_temporal_render_context(recipe)
     labels = context["labels"]
     chronological = context["chronological"]

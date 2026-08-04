@@ -76,7 +76,7 @@ def _no_comparison_config():
                 "min_joint_stations_per_map_segment": 1,
             },
             "results_view": {
-                "success": {
+                "performance": {
                     "selected_ranges": "all",
                     "selected_directions": "all",
                     "show_zero_target": False,
@@ -114,7 +114,7 @@ def _tx_hardware_ab_config():
     }
     settings["advanced_parameters"]["min_joint_spots_per_station"] = 1
     settings["results_view"] = {
-        "success": {
+        "performance": {
             "selected_ranges": ["[0-2500km]"],
             "selected_directions": ["N", "NNE"],
             "show_zero_target": True,
@@ -127,7 +127,7 @@ def _tx_hardware_ab_config():
                 },
             ],
         },
-        "compare": {
+        "benchmark": {
             "selected_ranges": ["[5000-10000km]"],
             "selected_directions": ["WNW", "NW"],
             "show_non_joint": False,
@@ -213,45 +213,70 @@ def test_formal_config_schema_identity_is_version_1(config_schema):
     ]
 
 
-def test_formal_schema_describes_performance_without_renaming_success_state(
+def test_formal_schema_uses_canonical_performance_and_benchmark_result_keys(
     config_schema,
 ):
-    """Keep visible Performance prose separate from canonical saved-state keys."""
+    """Describe only the canonical result branches in newly written configs."""
     definitions = config_schema["$defs"]
     no_comparison = definitions["noComparison"]
-    no_comparison_results = definitions["resultsViewNoComparison"]
-    comparison_results = definitions["resultsViewWithComparison"]
-    success_results = definitions["successResultsView"]
+    performance_results_view = definitions["resultsViewPerformance"]
+    benchmark_results_view = definitions["resultsViewBenchmark"]
+    performance_results = definitions["performanceResultsView"]
+    benchmark_results = definitions["benchmarkResultsView"]
 
     assert no_comparison["properties"]["mode"]["const"] == "none"
     assert "visible Performance" in (
         no_comparison["properties"]["mode"]["description"]
     )
 
-    assert no_comparison_results["required"] == ["success"]
-    assert set(no_comparison_results["properties"]) == {"success"}
-    assert no_comparison_results["properties"]["success"]["$ref"] == (
-        "#/$defs/successResultsView"
+    assert performance_results_view["required"] == ["performance"]
+    assert set(performance_results_view["properties"]) == {"performance"}
+    assert performance_results_view["properties"]["performance"]["$ref"] == (
+        "#/$defs/performanceResultsView"
     )
-    assert "visible Performance" in no_comparison_results["description"]
-    assert "canonical success key" in no_comparison_results["description"]
+    assert "Performance result-view state" in performance_results_view["description"]
 
-    assert comparison_results["required"] == ["success", "compare"]
-    assert set(comparison_results["properties"]) == {"success", "compare"}
-    assert comparison_results["properties"]["success"]["$ref"] == (
-        "#/$defs/successResultsView"
+    assert benchmark_results_view["required"] == ["performance", "benchmark"]
+    assert set(benchmark_results_view["properties"]) == {
+        "performance",
+        "benchmark",
+    }
+    assert benchmark_results_view["properties"]["performance"]["$ref"] == (
+        "#/$defs/performanceResultsView"
     )
-    assert "canonical success view" in comparison_results["description"]
+    assert benchmark_results_view["properties"]["benchmark"]["$ref"] == (
+        "#/$defs/benchmarkResultsView"
+    )
+    assert "Benchmark result-view state" in benchmark_results_view["description"]
 
-    assert "visible Performance" in success_results["description"]
-    assert "canonical success identifier" in success_results["description"]
-    assert success_results["properties"]["show_zero_target"]["default"] is False
-    assert "visible Performance Station Insights" in (
-        success_results["properties"]["show_zero_target"]["description"]
+    assert performance_results["description"] == (
+        "Performance segment and station-insight state."
     )
-    assert "canonical success view state" in (
-        success_results["properties"]["show_zero_target"]["description"]
+    assert performance_results["properties"]["show_zero_target"]["default"] is False
+    assert "Performance Station Insights" in (
+        performance_results["properties"]["show_zero_target"]["description"]
     )
+    assert benchmark_results["description"] == (
+        "Benchmark segment and station-insight state."
+    )
+
+
+@pytest.mark.parametrize(
+    ("legacy_key", "canonical_key"),
+    (("success", "performance"), ("compare", "benchmark")),
+)
+def test_formal_schema_rejects_legacy_result_branch_names(
+    config_validator,
+    legacy_key,
+    canonical_key,
+):
+    """Keep legacy aliases reader-only and outside the formal write contract."""
+    config = _tx_hardware_ab_config()
+    results_view = config["settings"]["results_view"]
+    results_view[legacy_key] = results_view.pop(canonical_key)
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
 
 
 def test_required_population_exclusions_have_no_universal_schema_default(
@@ -474,8 +499,8 @@ def test_formal_schema_accepts_two_hour_station_evidence_bins(config_validator):
     """Keep the formal saved-config contract aligned with the multi-day UI."""
     config = _tx_hardware_ab_config()
     results_view = config["settings"]["results_view"]
-    results_view["compare"]["station_evidence_time_bin"] = "2h"
-    results_view["success"]["station_evidence_time_bin"] = "2h"
+    results_view["benchmark"]["station_evidence_time_bin"] = "2h"
+    results_view["performance"]["station_evidence_time_bin"] = "2h"
 
     config_validator.validate(config)
 
@@ -486,12 +511,12 @@ def test_formal_schema_accepts_null_empty_and_single_station_selections(
     """Distinguish automatic, deselected, and one explicit station identity."""
     config = _tx_hardware_ab_config()
     results_view = config["settings"]["results_view"]
-    results_view["success"]["selected_stations"] = None
-    results_view["compare"]["selected_stations"] = []
+    results_view["performance"]["selected_stations"] = None
+    results_view["benchmark"]["selected_stations"] = []
 
     config_validator.validate(config)
 
-    results_view["compare"]["selected_stations"] = [
+    results_view["benchmark"]["selected_stations"] = [
         {"callsign": "M7AEO", "locator": "IO82"}
     ]
     config_validator.validate(config)
@@ -519,17 +544,17 @@ def test_profile_description_accepts_newlines_links_and_no_german_translation(
 
 
 def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validator):
-    """Accept durable Success and Compare segment-bin choices."""
+    """Accept durable Performance and Benchmark segment-bin choices."""
     config = _tx_hardware_ab_config()
-    success_view = config["settings"]["results_view"]["success"]
-    compare_view = config["settings"]["results_view"]["compare"]
-    success_view["segment_evidence_time_bin"] = "12h"
-    compare_view["segment_evidence_time_bin"] = "6h"
+    performance_view = config["settings"]["results_view"]["performance"]
+    benchmark_view = config["settings"]["results_view"]["benchmark"]
+    performance_view["segment_evidence_time_bin"] = "12h"
+    benchmark_view["segment_evidence_time_bin"] = "6h"
 
     config_validator.validate(config)
 
 
-@pytest.mark.parametrize("result_mode", ("success", "compare"))
+@pytest.mark.parametrize("result_mode", ("performance", "benchmark"))
 def test_formal_schema_rejects_segment_only_minute_station_bins(
     config_validator,
     result_mode,
@@ -544,12 +569,12 @@ def test_formal_schema_rejects_segment_only_minute_station_bins(
         config_validator.validate(config)
 
 
-def test_formal_schema_rejects_obsolete_selected_compare_temporal_view(
+def test_formal_schema_rejects_obsolete_selected_benchmark_temporal_view(
     config_validator,
 ):
     """Reject the retired view toggle as an unknown saved-config property."""
     config = _tx_hardware_ab_config()
-    config["settings"]["results_view"]["compare"][
+    config["settings"]["results_view"]["benchmark"][
         "station_evidence_temporal_view"
     ] = "chronological"
 
@@ -560,39 +585,39 @@ def test_formal_schema_rejects_obsolete_selected_compare_temporal_view(
 @pytest.mark.parametrize(
     "mutate",
     [
-        lambda config: config["settings"]["results_view"].pop("compare"),
-        lambda config: config["settings"]["results_view"]["success"].pop(
+        lambda config: config["settings"]["results_view"].pop("benchmark"),
+        lambda config: config["settings"]["results_view"]["performance"].pop(
             "segment_evidence_time_bin"
         ),
-        lambda config: config["settings"]["results_view"]["success"].update(
+        lambda config: config["settings"]["results_view"]["performance"].update(
             {"segment_evidence_time_bin": "4h"}
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {"segment_evidence_time_bin": "4h"}
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {"selected_ranges": []}
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {"selected_directions": ["LOCAL"]}
         ),
-        lambda config: config["settings"]["results_view"]["success"].update(
+        lambda config: config["settings"]["results_view"]["performance"].update(
             {"show_zero_target": "yes"}
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {"selected_stations": "visible"}
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {"selected_stations": "all"}
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {
                 "selected_stations": [
                     {"callsign": "m7aeo", "locator": "IO82"},
                 ]
             }
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {
                 "selected_stations": [
                     {"callsign": "M7AEO", "locator": "IO82"},
@@ -600,7 +625,7 @@ def test_formal_schema_rejects_obsolete_selected_compare_temporal_view(
                 ]
             }
         ),
-        lambda config: config["settings"]["results_view"]["compare"].update(
+        lambda config: config["settings"]["results_view"]["benchmark"].update(
             {
                 "selected_stations": [
                     {"callsign": "M7AEO", "locator": "IO82"},
@@ -613,9 +638,9 @@ def test_formal_schema_rejects_obsolete_selected_compare_temporal_view(
         ),
     ],
     ids=[
-        "missing-compare-branch",
-        "missing-success-segment-bin",
-        "invalid-success-segment-bin",
+        "missing-benchmark-branch",
+        "missing-performance-segment-bin",
+        "invalid-performance-segment-bin",
         "invalid-segment-bin",
         "empty-segment-ranges",
         "invalid-segment-direction",
@@ -683,7 +708,7 @@ def test_v1_profile_rejects_invalid_identity_or_localized_text(
         ),
         lambda config: config["settings"]["results_view"].update(
             {
-                "compare": {
+                "benchmark": {
                     "selected_ranges": "all",
                     "selected_directions": "all",
                     "show_non_joint": False,
@@ -829,7 +854,7 @@ def test_selected_station_schema_uses_the_same_callsign_contract(
 ):
     """Do not weaken identity validation in persisted station selections."""
     config = _tx_hardware_ab_config()
-    config["settings"]["results_view"]["success"]["selected_stations"][0][
+    config["settings"]["results_view"]["performance"]["selected_stations"][0][
         "callsign"
     ] = callsign
 
@@ -857,7 +882,7 @@ def test_selected_station_schema_accepts_supported_archive_callsign_tokens(
 ):
     """Keep persisted peer identities aligned with the core callsign grammar."""
     config = _tx_hardware_ab_config()
-    config["settings"]["results_view"]["success"]["selected_stations"][0][
+    config["settings"]["results_view"]["performance"]["selected_stations"][0][
         "callsign"
     ] = callsign
 

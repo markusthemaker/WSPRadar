@@ -1,4 +1,4 @@
-"""Regression contracts for segment-scoped Compare temporal evidence."""
+"""Regression contracts for segment-scoped Benchmark temporal evidence."""
 
 import pandas as pd
 

@@ -1,4 +1,4 @@
-"""Pure preparation and rendering for Compare evidence coverage views."""
+"""Pure preparation and rendering for Benchmark evidence coverage views."""
 
 from __future__ import annotations
 
@@ -50,11 +50,11 @@ from ui.plots.temporal_layout import (
 )
 
 
-COMPARE_COVERAGE_RECIPE_SCHEMA_VERSION = 2
-COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND = (
-    "compare_temporal_evidence_coverage"
+BENCHMARK_COVERAGE_RECIPE_SCHEMA_VERSION = 2
+BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND = (
+    "benchmark_temporal_evidence_coverage"
 )
-COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND = (
+BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND = (
     "selected_path_evidence_coverage"
 )
 COMPARE_STATION_JOINT_SHARE_COLOR = "#36aaf9"
@@ -76,7 +76,7 @@ def _required_compare_labels(figure_labels, required_keys):
     missing = sorted(key for key in required_keys if key not in labels)
     if missing:
         raise ValueError(
-            "Compare temporal figure labels are missing: "
+            "Benchmark temporal figure labels are missing: "
             + ", ".join(missing)
         )
     return {key: str(labels[key]) for key in required_keys}
@@ -102,14 +102,14 @@ def _prepare_compare_coverage_units(
     )
     if missing_columns:
         raise ValueError(
-            "Compare temporal units are missing columns: "
+            "Benchmark temporal units are missing columns: "
             + ", ".join(missing_columns)
         )
     start = _as_utc_timestamp(analysis_start_t)
     end = _as_utc_timestamp(analysis_end_t)
     if pd.isna(start) or pd.isna(end) or end <= start:
         raise ValueError(
-            "Compare temporal evidence requires a positive UTC window."
+            "Benchmark temporal evidence requires a positive UTC window."
         )
 
     work = comparison_units[
@@ -328,7 +328,7 @@ def _partition_compare_folded_station_support(
     ]
     if any(share.shape != support.shape for share in shares):
         raise ValueError(
-            "Folded Compare station support and share arrays must align."
+            "Folded Benchmark station support and share arrays must align."
         )
     has_support = support > 0.0
     share_sum = shares[0] + shares[1] + shares[2]
@@ -341,7 +341,7 @@ def _partition_compare_folded_station_support(
     )
     if invalid.any():
         raise ValueError(
-            "Positive folded Compare station support requires three finite "
+            "Positive folded Benchmark station support requires three finite "
             "shares that sum to 100%."
         )
     partitions = []
@@ -355,7 +355,7 @@ def _partition_compare_folded_station_support(
 
 
 def _aggregate_compare_folded_coverage(work, start, end):
-    """Fold Compare coverage with Performance represented-date normalization."""
+    """Fold Benchmark coverage with Performance represented-date normalization."""
     station_joint_share = np.full(24, np.nan, dtype=float)
     outcome_joint_share = np.full(24, np.nan, dtype=float)
     station_target_votes = np.zeros(24, dtype=float)
@@ -561,7 +561,7 @@ def _compare_coverage_recipe(
     figure_labels,
     population_mode=SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
 ):
-    """Build coverage-only recipes from canonical retained Compare units.
+    """Build coverage-only recipes from canonical retained Benchmark units.
 
     Each chronological bin preserves one split vote per contributing station
     plus every retained comparison unit. Folded profiles preserve represented
@@ -603,25 +603,25 @@ def _compare_coverage_recipe(
     )
     time_bin_options = [str(value) for value in time_bin_options]
     if not time_bin_options:
-        raise ValueError("Compare temporal evidence requires time-bin options.")
+        raise ValueError("Benchmark temporal evidence requires time-bin options.")
     time_bin_default = str(time_bin_default)
     if time_bin_default not in time_bin_options:
         raise ValueError(
-            "Compare temporal default must be one of its time-bin options."
+            "Benchmark temporal default must be one of its time-bin options."
         )
     if population_mode not in {
         SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
         SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
     }:
         raise ValueError(
-            f"Unsupported Compare temporal population mode: {population_mode}"
+            f"Unsupported Benchmark temporal population mode: {population_mode}"
         )
     if (
         population_mode == SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
         and len(work[["peer_sign", "peer_grid"]].drop_duplicates()) > 1
     ):
         raise ValueError(
-            "Selected-path Compare coverage requires exactly one identity."
+            "Selected-path Benchmark coverage requires exactly one identity."
         )
 
     profiles = {
@@ -636,13 +636,13 @@ def _compare_coverage_recipe(
     folded_profile = _aggregate_compare_folded_coverage(work, start, end)
     utc_date_count = int(work["evidence_utc"].dt.normalize().nunique())
     kind = (
-        COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+        BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND
         if population_mode == SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
-        else COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+        else BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND
     )
     return {
         "kind": kind,
-        "schema_version": COMPARE_COVERAGE_RECIPE_SCHEMA_VERSION,
+        "schema_version": BENCHMARK_COVERAGE_RECIPE_SCHEMA_VERSION,
         "population_mode": population_mode,
         "title": str(coverage_title),
         "evidence_title": str(coverage_title),
@@ -674,9 +674,9 @@ def _compare_coverage_recipe(
 def _compare_coverage_render_context(recipe):
     """Validate one coverage recipe and resolve its selected plot profiles."""
     if int(recipe.get("schema_version", 0)) != (
-        COMPARE_COVERAGE_RECIPE_SCHEMA_VERSION
+        BENCHMARK_COVERAGE_RECIPE_SCHEMA_VERSION
     ):
-        raise ValueError("Unsupported Compare coverage recipe schema.")
+        raise ValueError("Unsupported Benchmark coverage recipe schema.")
     population_mode = str(
         recipe.get(
             "population_mode",
@@ -688,13 +688,13 @@ def _compare_coverage_render_context(recipe):
         SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
     }:
         raise ValueError(
-            f"Unsupported Compare coverage population mode: {population_mode}"
+            f"Unsupported Benchmark coverage population mode: {population_mode}"
         )
     selected_time_bin = str(recipe.get("time_bin", "1h"))
     profiles = recipe.get("chronological_profiles") or {}
     if selected_time_bin not in profiles:
         raise ValueError(
-            f"Unsupported Compare coverage time bin: {selected_time_bin}"
+            f"Unsupported Benchmark coverage time bin: {selected_time_bin}"
         )
     chronological = dict(profiles[selected_time_bin])
     chronological_centers = pd.to_datetime(
@@ -717,7 +717,7 @@ def _compare_coverage_render_context(recipe):
         len(chronological_center_numbers) + 1
     ):
         raise ValueError(
-            "Compare coverage chronological edges must bound every time bin."
+            "Benchmark coverage chronological edges must bound every time bin."
         )
     utc_date_count = int(recipe.get("utc_date_count", 0))
     return {
@@ -758,7 +758,7 @@ def _draw_compare_outcome_stack(
     ]
     if any(len(values) != len(x) for values in value_arrays):
         raise ValueError(
-            "Compare temporal outcome arrays must match their time axis."
+            "Benchmark temporal outcome arrays must match their time axis."
         )
     bottoms = np.zeros(len(x), dtype=float)
     artists = []
@@ -819,7 +819,7 @@ def _draw_compare_joint_share_overlay(
     shares = np.asarray(share_values, dtype=float)
     if len(shares) != len(x):
         raise ValueError(
-            "Compare Joint Evidence Share must match its time axis."
+            "Benchmark Joint Evidence Share must match its time axis."
         )
     share_axis = count_axis.twinx()
     share_axis.set_position(count_axis.get_position(), which="both")
@@ -938,10 +938,10 @@ def _annotate_compare_coverage_note(figure, note):
 
 @synchronized_matplotlib
 def render_compare_temporal_coverage_export_figure(recipe):
-    """Render the two-row station/unit Compare coverage view."""
+    """Render the two-row station/unit Benchmark coverage view."""
     if (
         not recipe
-        or recipe.get("kind") != COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+        or recipe.get("kind") != BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND
     ):
         return None
     context = _compare_coverage_render_context(recipe)
@@ -1182,7 +1182,7 @@ def render_selected_compare_coverage_export_figure(recipe):
     if (
         not recipe
         or recipe.get("kind")
-        != COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+        != BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND
     ):
         return None
     context = _compare_coverage_render_context(recipe)

@@ -21,7 +21,7 @@ from core.artifact_store import (
 )
 from i18n import T
 from ui import results_export
-from ui.plots import compare_evidence_figures, evidence_figures
+from ui.plots import benchmark_evidence_figures, evidence_figures
 
 
 SUCCESS_SELECTED_FIGURE_EXPORTS = (
@@ -52,7 +52,7 @@ COMPARE_COVERAGE_EXPORT_CASES = (
         "render_compare_temporal_coverage_export_figure",
         "segment_temporal_coverage_figure_recipe",
         "evidence_title",
-        "Compare Temporal Evidence Coverage",
+        "Benchmark Temporal Evidence Coverage",
     ),
     (
         "figure_selected_station_coverage.png",
@@ -162,11 +162,11 @@ def test_selected_compare_bin_is_recorded_without_retired_view_metadata(monkeypa
     )
     block = {
         "analysis_id": "RX_COMPARE",
-        "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+        "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
         "database_source": "wspr_live",
         "evidence_time_bin": "1h",
         "selected_evidence_figure_recipe": {
-            "kind": "selected_compare_temporal",
+            "kind": "selected_benchmark_temporal",
         },
     }
     one_hour_blocks = {"RX_COMPARE": block}
@@ -208,7 +208,7 @@ def test_show_zero_target_is_recorded_and_changes_export_signature(monkeypatch):
     )
     hidden_block = {
         "analysis_id": "RX_ABS",
-        "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+        "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
         "database_source": "wspr_live",
         "show_zero_target": False,
     }
@@ -230,7 +230,7 @@ def test_temporal_snr_render_version_changes_export_signature(monkeypatch):
     blocks = {
         "RX_ABS": {
             "analysis_id": "RX_ABS",
-            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
             "database_source": "wspr_live",
         }
     }
@@ -248,7 +248,7 @@ def test_temporal_evidence_layout_version_changes_export_signature(monkeypatch):
     blocks = {
         "RX_ABS": {
             "analysis_id": "RX_ABS",
-            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
             "database_source": "wspr_live",
         }
     }
@@ -266,20 +266,20 @@ def test_success_distance_render_version_changes_export_signature(monkeypatch):
     blocks = {
         "RX_ABS": {
             "analysis_id": "RX_ABS",
-            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
             "database_source": "wspr_live",
         }
     }
 
     monkeypatch.setattr(
         results_export,
-        "SUCCESS_DISTANCE_EXPORT_RENDER_VERSION",
+        "PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION",
         2,
     )
     version_two_signature = results_export._export_signature(blocks)
     monkeypatch.setattr(
         results_export,
-        "SUCCESS_DISTANCE_EXPORT_RENDER_VERSION",
+        "PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION",
         3,
     )
 
@@ -289,14 +289,14 @@ def test_success_distance_render_version_changes_export_signature(monkeypatch):
     compare_blocks = {
         "RX_COMPARE": {
             "analysis_id": "RX_COMPARE",
-            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
             "database_source": "wspr_live",
         }
     }
     compare_signature = results_export._export_signature(compare_blocks)
     monkeypatch.setattr(
         results_export,
-        "SUCCESS_DISTANCE_EXPORT_RENDER_VERSION",
+        "PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION",
         4,
     )
     assert compare_signature == results_export._export_signature(compare_blocks)
@@ -307,7 +307,7 @@ def test_temporal_iqr_band_alpha_changes_export_signature(monkeypatch):
     blocks = {
         "RX_COMPARE": {
             "analysis_id": "RX_COMPARE",
-            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
             "database_source": "wspr_live",
         }
     }
@@ -351,7 +351,7 @@ def test_export_signature_is_path_free_and_tracks_artifact_changes(
     }
     block = {
         "analysis_id": "RX_ABS",
-        "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+        "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
         "database_source": "wspr_live",
         "map_context": map_context,
     }
@@ -403,7 +403,7 @@ def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
         {
             "RX_COMPARE": {
                 "analysis_id": "RX_COMPARE",
-                "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+                "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
                 "database_source": "wspr_live",
             }
         },
@@ -438,7 +438,7 @@ def test_run_metadata_records_only_the_canonical_absolute_time_window(monkeypatc
         {
             "RX_ABS": {
                 "analysis_id": "RX_ABS",
-                "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+                "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
                 "database_source": "wspr_live",
             }
         },
@@ -463,12 +463,12 @@ def test_run_metadata_rejects_mixed_database_sources(monkeypatch):
     blocks = {
         "RX_COMP": {
             "analysis_id": "RX_COMP",
-            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
             "database_source": "wspr_live",
         },
         "RX_ABS": {
             "analysis_id": "RX_ABS",
-            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
             "database_source": "wd2",
         },
     }
@@ -489,7 +489,7 @@ def test_run_metadata_rejects_missing_database_provenance(monkeypatch):
             {
                 "RX_ABS": {
                     "analysis_id": "RX_ABS",
-                    "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+                    "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
                 }
             },
             {"settings": {}},
@@ -541,7 +541,7 @@ def test_results_footer_always_renders_redundant_save_control(
     monkeypatch.setattr(
         results_export,
         "_ensure_current_export_state",
-        lambda: {"RX_ABS": {"mode_folder": results_export.SUCCESS_EXPORT_FOLDER}},
+        lambda: {"RX_ABS": {"mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER}},
     )
     monkeypatch.setattr(
         results_export,
@@ -625,7 +625,7 @@ def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
         "_ensure_current_export_state",
         lambda: {
             "RX_COMPARE": {
-                "mode_folder": results_export.COMPARE_EXPORT_FOLDER
+                "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER
             }
         },
     )
@@ -708,7 +708,7 @@ def test_results_footer_omits_heading_without_exportable_results(monkeypatch):
 
 def test_segment_temporal_figure_uses_its_distinct_export_recipe(monkeypatch):
     """Keep segment temporal and selected-station figure recipes independent."""
-    temporal_recipe = {"kind": "segment_compare_temporal", "time_bin": "6h"}
+    temporal_recipe = {"kind": "segment_benchmark_temporal", "time_bin": "6h"}
     fake_figure = object()
     disposed_figures = []
 
@@ -920,7 +920,7 @@ def test_success_temporal_snr_figure_uses_its_separate_export_recipe(
 ):
     """Render and dispose the standalone Success SNR-deviation export."""
     snr_recipe = {
-        "kind": "opportunity_success_temporal",
+        "kind": "opportunity_performance_temporal",
         "time_bin": "6h",
     }
     fake_figure = object()
@@ -948,7 +948,7 @@ def test_success_temporal_snr_figure_uses_its_separate_export_recipe(
         {
             "segment_temporal_snr_deviation_figure_recipe": snr_recipe,
             "segment_temporal_evidence_figure_recipe": {
-                "kind": "opportunity_success_temporal",
+                "kind": "opportunity_performance_temporal",
             },
         },
         "figure_segment_temporal_snr_deviation.png",
@@ -978,9 +978,9 @@ def test_compare_coverage_figure_uses_its_registered_preview_recipe(
 ):
     """Render each Compare export from the exact registered preview recipe."""
     recipe_kind = (
-        compare_evidence_figures.COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+        benchmark_evidence_figures.BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND
         if recipe_key == "selected_station_coverage_figure_recipe"
-        else compare_evidence_figures.COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+        else benchmark_evidence_figures.BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND
     )
     recipe = {
         "kind": recipe_kind,
@@ -997,7 +997,7 @@ def test_compare_coverage_figure_uses_its_registered_preview_recipe(
         return fake_figure
 
     monkeypatch.setattr(
-        compare_evidence_figures,
+        benchmark_evidence_figures,
         renderer_name,
         render_coverage_recipe,
     )
@@ -1047,7 +1047,7 @@ def test_retired_compare_figures_have_no_export_recipe_or_renderer_path():
     export_definitions = {
         (figure_name, recipe_key)
         for figure_name, recipe_key, _title_keys in (
-            results_export.COMPARE_EVIDENCE_FIGURE_EXPORTS
+            results_export.BENCHMARK_EVIDENCE_FIGURE_EXPORTS
         )
     }
     renderer_source = inspect.getsource(
@@ -1080,10 +1080,10 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
     recipes = {
         recipe_key: {
             "kind": (
-                compare_evidence_figures.COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+                benchmark_evidence_figures.BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND
                 if recipe_key
                 == "selected_station_coverage_figure_recipe"
-                else compare_evidence_figures.COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+                else benchmark_evidence_figures.BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND
             ),
             "schema_version": 1,
             "time_bin": "6h",
@@ -1124,7 +1124,7 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
     block = blocks["RX_COMPARE"]
     block.update(
         {
-            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
             "database_source": "wspr_live",
         }
     )
@@ -1145,12 +1145,12 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
             figure_title,
         ) in COMPARE_COVERAGE_EXPORT_CASES
     }
-    assert metadata["result_blocks"][0]["compare_evidence_figures"] == (
+    assert metadata["result_blocks"][0]["benchmark_evidence_figures"] == (
         expected_descriptions
     )
     assert [
         recipe["filename"]
-        for recipe in results_export._compare_evidence_recipe_signature(block)
+        for recipe in results_export._benchmark_evidence_recipe_signature(block)
     ] == list(expected_descriptions)
     assert len(metadata["export_signature"]) == 64
     without_selected_coverage = {
@@ -1169,10 +1169,10 @@ def test_register_inspector_export_keeps_all_success_temporal_recipes_independen
 ):
     """Keep active-scope and selected-station canvases independently addressable."""
     blocks = {}
-    evidence_recipe = {"kind": "opportunity_success_temporal"}
-    snr_recipe = {"kind": "opportunity_success_temporal"}
+    evidence_recipe = {"kind": "opportunity_performance_temporal"}
+    snr_recipe = {"kind": "opportunity_performance_temporal"}
     selected_evidence_recipe = {
-        "kind": "opportunity_success_temporal",
+        "kind": "opportunity_performance_temporal",
         "population_mode": "selected_station",
         "snr_representation": "actual_normalized_snr",
     }
@@ -1345,7 +1345,7 @@ def test_run_metadata_zip_preserves_literal_utf8_and_json_round_trip(
             "RX_ABS": {
                 "analysis_id": "RX_ABS",
                 "title": metadata_title,
-                "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+                "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
                 "database_source": "wspr_live",
                 "is_compare": False,
                 "is_sequential": False,
@@ -1416,7 +1416,7 @@ def test_success_selected_figure_export_dispatches_shared_renderer(
 ):
     """Dispatch each singleton Success recipe through its shared renderer."""
     recipe = {
-        "kind": "opportunity_success_temporal",
+        "kind": "opportunity_performance_temporal",
         "population_mode": "selected_station",
         "snr_representation": "actual_normalized_snr",
     }
@@ -1606,7 +1606,7 @@ def test_success_results_zip_records_selected_figures_and_context(
         ) in SUCCESS_SELECTED_FIGURE_EXPORTS
     }
     selected_snr_recipe = {
-        "kind": "opportunity_success_temporal",
+        "kind": "opportunity_performance_temporal",
         "population_mode": "selected_station",
         "snr_representation": "actual_normalized_snr",
     }
@@ -1647,12 +1647,12 @@ def test_success_results_zip_records_selected_figures_and_context(
     success_block.update(
         {
             "title": "RX Performance",
-            "mode_folder": results_export.SUCCESS_EXPORT_FOLDER,
+            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
             "database_source": "wspr_live",
             "is_compare": False,
             "is_sequential": False,
             "analysis_kind": "opportunity",
-            "success_method_version": "opportunity-v1",
+            "performance_method_version": "opportunity-v1",
         }
     )
     rendered_figure_names = []
@@ -1714,21 +1714,26 @@ def test_success_results_zip_records_selected_figures_and_context(
         success_selected_names
     )
     for figure_name in expected_success_names:
-        assert f"{export_root}/success/{figure_name}" in package_paths
-        assert f"{export_root}/compare/{figure_name}" not in package_paths
+        assert f"{export_root}/performance/{figure_name}" in package_paths
+        assert f"{export_root}/benchmark/{figure_name}" not in package_paths
     for figure_name in OBSOLETE_SUCCESS_SELECTED_FIGURE_NAMES:
-        assert f"{export_root}/success/{figure_name}" not in package_paths
-        assert f"{export_root}/compare/{figure_name}" not in package_paths
+        assert f"{export_root}/performance/{figure_name}" not in package_paths
+        assert f"{export_root}/benchmark/{figure_name}" not in package_paths
     assert (
-        f"{export_root}/success/figure_selected_station_evidence.png"
+        f"{export_root}/performance/figure_selected_station_evidence.png"
         not in package_paths
     )
-    assert metadata["blocks_present"] == {"compare": False, "success": True}
+    assert metadata["blocks_present"] == {
+        "benchmark": False,
+        "performance": True,
+    }
 
     result_blocks = {
         block["analysis_id"]: block for block in metadata["result_blocks"]
     }
-    success_metadata = result_blocks["RX_ABS"]
+    success_metadata = result_blocks["rx_performance"]
+    assert success_metadata["folder"] == "performance"
+    assert success_metadata["result_mode"] == "performance"
     assert success_metadata["selected_stations"] == selected_identities
     assert success_metadata["selected_station_label"] == selected_label
     assert success_metadata["selected_station_context"] == selected_context
@@ -1740,10 +1745,10 @@ def test_success_results_zip_records_selected_figures_and_context(
     assert success_metadata["selected_evidence_figures"] == figure_descriptions
 
 
-def test_compare_results_zip_records_coverage_figures_in_stable_order(
+def test_benchmark_results_zip_records_coverage_figures_in_stable_order(
     monkeypatch,
 ):
-    """Package active Compare figures under stable names in presentation order."""
+    """Package active Benchmark figures under stable presentation-order names."""
     run_id = 72
     state = {
         "run_id": run_id,
@@ -1770,15 +1775,15 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
     }
     selected_identities = ["OK1FCX (JN79)"]
     selected_recipe = {
-        "kind": "selected_compare_temporal",
+        "kind": "selected_benchmark_temporal",
     }
     coverage_recipes = {
         recipe_key: {
             "kind": (
-                compare_evidence_figures.COMPARE_SELECTED_PATH_COVERAGE_RECIPE_KIND
+                benchmark_evidence_figures.BENCHMARK_SELECTED_PATH_COVERAGE_RECIPE_KIND
                 if recipe_key
                 == "selected_station_coverage_figure_recipe"
-                else compare_evidence_figures.COMPARE_TEMPORAL_COVERAGE_RECIPE_KIND
+                else benchmark_evidence_figures.BENCHMARK_TEMPORAL_COVERAGE_RECIPE_KIND
             ),
             "schema_version": 1,
             "time_bin": "6h",
@@ -1821,8 +1826,8 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
     compare_block = state[results_export.EXPORT_STATE_KEY]["RX_COMPARE"]
     compare_block.update(
         {
-            "title": "RX Compare",
-            "mode_folder": results_export.COMPARE_EXPORT_FOLDER,
+            "title": "RX Benchmark",
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
             "database_source": "wspr_live",
             "is_compare": True,
             "is_sequential": False,
@@ -1879,7 +1884,7 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
     ]
     assert compare_figure_names == expected_compare_figure_names
     for figure_name in packaged_compare_figures:
-        assert f"{export_root}/compare/{figure_name}" in package_paths
+        assert f"{export_root}/benchmark/{figure_name}" in package_paths
     for (
         success_figure_name,
         _renderer_name,
@@ -1887,10 +1892,10 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
         _segment_name,
         _segment_key,
     ) in SUCCESS_SELECTED_FIGURE_EXPORTS:
-        assert f"{export_root}/compare/{success_figure_name}" not in package_paths
+        assert f"{export_root}/benchmark/{success_figure_name}" not in package_paths
     for obsolete_figure_name in OBSOLETE_SUCCESS_SELECTED_FIGURE_NAMES:
         assert (
-            f"{export_root}/compare/{obsolete_figure_name}"
+            f"{export_root}/benchmark/{obsolete_figure_name}"
             not in package_paths
         )
     for retired_figure_name, _recipe_key, _renderer_name in (
@@ -1898,20 +1903,24 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
     ):
         assert retired_figure_name not in compare_figure_names
         assert (
-            f"{export_root}/compare/{retired_figure_name}"
+            f"{export_root}/benchmark/{retired_figure_name}"
             not in package_paths
         )
-    assert metadata["blocks_present"] == {"compare": True, "success": False}
+    assert metadata["blocks_present"] == {
+        "benchmark": True,
+        "performance": False,
+    }
     assert len(metadata["result_blocks"]) == 1
     compare_metadata = metadata["result_blocks"][0]
-    assert compare_metadata["analysis_id"] == "RX_COMPARE"
-    assert compare_metadata["folder"] == "compare"
+    assert compare_metadata["analysis_id"] == "rx_benchmark"
+    assert compare_metadata["folder"] == "benchmark"
+    assert compare_metadata["result_mode"] == "benchmark"
     assert compare_metadata["selected_stations"] == selected_identities
     assert compare_metadata["selected_station_count"] == 1
     assert compare_metadata["selected_evidence_weighting"] == (
         "Single selected path"
     )
-    assert compare_metadata["compare_evidence_figures"] == {
+    assert compare_metadata["benchmark_evidence_figures"] == {
         figure_name: figure_title
         for (
             figure_name,
@@ -1923,8 +1932,11 @@ def test_compare_results_zip_records_coverage_figures_in_stable_order(
     }
 
 
-def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
-    """New Success packages must not expose the superseded Absolute name."""
+def test_performance_export_uses_performance_folder_and_metadata(
+    tmp_path,
+    monkeypatch,
+):
+    """New Performance packages must not expose superseded result names."""
     state = {
         "run_id": 17,
         results_export.EXPORT_RUN_ID_KEY: 17,
@@ -2050,11 +2062,11 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
             archive.read(f"{export_root}/config/run_metadata.json")
         )
 
-    assert f"{export_root}/success/analysis_cache.parquet" in package_paths
+    assert f"{export_root}/performance/analysis_cache.parquet" in package_paths
     assert f"{export_root}/config/wspradar_config.config" in package_paths
-    assert f"{export_root}/success/table_station_insights_current_segment.csv" in package_paths
+    assert f"{export_root}/performance/table_station_insights_current_segment.csv" in package_paths
     assert (
-        f"{export_root}/success/figure_segment_temporal_snr_deviation.png"
+        f"{export_root}/performance/figure_segment_temporal_snr_deviation.png"
         in package_paths
     )
     assert "figure_segment_temporal_snr_deviation.png" in (
@@ -2066,13 +2078,20 @@ def test_success_export_uses_success_folder_and_metadata(tmp_path, monkeypatch):
         "figure_segment_temporal_evidence.png"
     )
     assert all("/absolute/" not in path for path in package_paths)
-    assert metadata["blocks_present"] == {"compare": False, "success": True}
+    assert metadata["blocks_present"] == {
+        "benchmark": False,
+        "performance": True,
+    }
     assert metadata["database_source"] == "wd2"
     assert (
         metadata["thresholds_and_filters"]["max_peer_distance_km"] == 10000
     )
-    assert metadata["result_blocks"][0]["folder"] == "success"
-    assert metadata["result_blocks"][0]["success_method_version"] == "opportunity-v1"
+    assert metadata["result_blocks"][0]["analysis_id"] == "rx_performance"
+    assert metadata["result_blocks"][0]["folder"] == "performance"
+    assert metadata["result_blocks"][0]["result_mode"] == "performance"
+    assert metadata["result_blocks"][0]["performance_method_version"] == (
+        "opportunity-v1"
+    )
     assert "absolute" not in json.dumps(metadata).casefold()
 
 

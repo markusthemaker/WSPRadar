@@ -21,6 +21,11 @@ from ui.analysis_submission_state import (
     claim_analysis_submission_request,
     get_analysis_submission,
 )
+from ui.classic_input_state import (
+    CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY,
+    CLASSIC_QUESTION_KEY,
+    is_classic_input_ready,
+)
 from ui.guided_inputs import renderer
 from ui.guided_inputs.state import reconstruct_guided_transients
 from ui.population_exclusion_state import initialize_population_exclusion_state
@@ -108,9 +113,9 @@ def _canonical_state(**overrides):
             "run_mode": None,
             "run_id": 17,
             "active_demo_profile": None,
-            "guided_use_case": "rx_success",
+            "guided_use_case": "rx_performance",
             "guided_reference_design": None,
-            "guided_last_compare_mode": None,
+            "guided_last_benchmark_mode": None,
             "val_snr_correction_mode": "no_offset",
             "guided_scope_mode": "general",
             "guided_active_node": "use_case",
@@ -170,8 +175,8 @@ def test_input_view_selector_uses_concise_wizard_and_panel_labels():
 def test_guided_definitions_reuse_documentation_defined_term_markup():
     """Highlight introduced domain terms without recoloring ordinary emphasis."""
     expected_terms = {
-        "en": ("Target", "Performance", "Compare", "SNR", "ΔSNR"),
-        "de": ("Target", "Performance", "Compare", "Referenz", "ΔSNR"),
+        "en": ("Target", "Performance", "Benchmark", "SNR", "ΔSNR"),
+        "de": ("Target", "Performance", "Benchmark", "Referenz", "ΔSNR"),
     }
 
     for language, terms in expected_terms.items():
@@ -299,7 +304,7 @@ def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch):
             SimpleNamespace(
                 session_state=_canonical_state(
                     lang=language,
-                    guided_use_case="rx_compare",
+                    guided_use_case="rx_benchmark",
                     guided_reference_design="reference_station",
                     val_comp_mode="reference_station",
                 ),
@@ -335,8 +340,8 @@ def test_offset_intent_options_use_localized_captioned_radio_rows(monkeypatch):
         ] == [option["label"] for option in options.values()]
 
 
-def test_compare_terminology_uses_three_bulleted_definitions():
-    """Indent each Compare term as a distinct bilingual list item."""
+def test_benchmark_terminology_uses_three_bulleted_definitions():
+    """Indent each Benchmark term as a distinct bilingual list item."""
     expected_term_labels = {
         "en": ("SNR", "ΔSNR", "Joint evidence"),
         "de": ("SNR", "ΔSNR", "Joint-Evidenz"),
@@ -856,20 +861,20 @@ def test_general_scope_panel_omits_redundant_guidance_and_value_summary(monkeypa
 
 
 def test_custom_scope_panel_shows_only_relevant_evidence_guidance(monkeypatch):
-    """Explain Success or Compare thresholds according to the active result."""
+    """Explain Performance or Benchmark thresholds for the active result."""
     messages = GUIDED_INPUTS["en"]["messages"]
     cases = (
         (
             "none",
             "success_evidence_requirements_body",
             "compare_evidence_requirements_body",
-            "success",
+            "performance",
         ),
         (
             "hardware_ab",
             "compare_evidence_requirements_body",
             "success_evidence_requirements_body",
-            "compare",
+            "benchmark",
         ),
     )
 
@@ -1003,7 +1008,7 @@ def test_guided_use_case_maps_to_canonical_state_and_invalidates_active_results(
     """Map Guided intent without a second scientific state or stale results."""
     session_state = _canonical_state(
         run_mode="RX",
-        guided_use_case="tx_compare",
+        guided_use_case="tx_benchmark",
         guided_reference_design="reference_station",
         val_comp_mode="reference_station",
         val_ref_callsign="DL2XYZ",
@@ -1022,13 +1027,13 @@ def test_guided_use_case_maps_to_canonical_state_and_invalidates_active_results(
     assert session_state.result_export_blocks == {}
     assert session_state.configuration_changed_since_run is True
 
-    session_state.guided_use_case = "rx_success"
+    session_state.guided_use_case = "rx_performance"
     renderer._handle_use_case_change()
 
     assert session_state.val_analysis_direction == "rx"
     assert session_state.val_comp_mode == "none"
     assert session_state.guided_reference_design is None
-    assert session_state.guided_last_compare_mode == "reference_station"
+    assert session_state.guided_last_benchmark_mode == "reference_station"
     assert session_state.val_ref_callsign == "DL2XYZ"
     assert session_state.val_ref_qth == "JO63"
 
@@ -1036,11 +1041,11 @@ def test_guided_use_case_maps_to_canonical_state_and_invalidates_active_results(
 def test_guided_result_family_defaults_preserve_only_explicit_filter_edits(
     monkeypatch,
 ):
-    """Apply Compare-off and Performance-on while retaining a manual choice."""
+    """Apply Benchmark-off and Performance-on while retaining a manual choice."""
     session_state = _canonical_state(
-        guided_use_case="rx_success",
+        guided_use_case="rx_performance",
         guided_reference_design=None,
-        guided_last_compare_mode=None,
+        guided_last_benchmark_mode=None,
         val_comp_mode="none",
     )
     session_state.pop("val_exclude_special_callsigns")
@@ -1051,7 +1056,7 @@ def test_guided_result_family_defaults_preserve_only_explicit_filter_edits(
     assert session_state.val_exclude_special_callsigns is True
     assert session_state.val_filter_moving is True
 
-    session_state.guided_use_case = "rx_compare"
+    session_state.guided_use_case = "rx_benchmark"
     renderer._handle_use_case_change()
     assert session_state.val_exclude_special_callsigns is False
     assert session_state.val_filter_moving is False
@@ -1060,13 +1065,61 @@ def test_guided_result_family_defaults_preserve_only_explicit_filter_edits(
     callbacks.handle_population_exclusion_change(
         "val_exclude_special_callsigns"
     )
-    session_state.guided_use_case = "rx_success"
+    session_state.guided_use_case = "rx_performance"
     renderer._handle_use_case_change()
     assert session_state.val_exclude_special_callsigns is True
     assert session_state.val_filter_moving is True
 
-    session_state.guided_use_case = "rx_compare"
+    session_state.guided_use_case = "rx_benchmark"
     renderer._handle_use_case_change()
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is False
+
+
+def test_classic_question_applies_defaults_and_preserves_manual_filter_edits(
+    monkeypatch,
+):
+    """Give Classic the Guided result-family defaults without enforcing them."""
+    session_state = _canonical_state(
+        input_view="classic",
+        classic_question="rx_performance",
+        guided_use_case="rx_performance",
+        guided_reference_design=None,
+        guided_last_benchmark_mode=None,
+        val_comp_mode="none",
+    )
+    session_state.pop("val_exclude_special_callsigns")
+    session_state.pop("val_filter_moving")
+    initialize_population_exclusion_state(session_state)
+    _install_shared_streamlit_state(monkeypatch, session_state)
+
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
+
+    session_state[CLASSIC_QUESTION_KEY] = "rx_benchmark"
+    callbacks.handle_classic_question_change()
+
+    assert session_state.val_comp_mode == "none"
+    assert session_state.val_exclude_special_callsigns is False
+    assert session_state.val_filter_moving is False
+    assert is_classic_input_ready(session_state) is False
+
+    session_state[CLASSIC_BENCHMARK_DESIGN_WIDGET_KEY] = "hardware_ab"
+    callbacks.handle_classic_benchmark_design_change()
+    assert session_state.val_comp_mode == "hardware_ab"
+    assert is_classic_input_ready(session_state) is True
+
+    session_state._val_exclude_special_callsigns = True
+    callbacks.handle_population_exclusion_change(
+        "val_exclude_special_callsigns"
+    )
+    session_state[CLASSIC_QUESTION_KEY] = "rx_performance"
+    callbacks.handle_classic_question_change()
+    assert session_state.val_exclude_special_callsigns is True
+    assert session_state.val_filter_moving is True
+
+    session_state[CLASSIC_QUESTION_KEY] = "rx_benchmark"
+    callbacks.handle_classic_question_change()
     assert session_state.val_exclude_special_callsigns is True
     assert session_state.val_filter_moving is False
 
@@ -1138,16 +1191,16 @@ if show_filters:
     assert application.toggle("_val_filter_moving").value is True
 
 
-def test_incomplete_guided_compare_defaults_reconcile_when_opening_classic(
+def test_incomplete_guided_benchmark_intent_survives_opening_classic(
     monkeypatch,
 ):
-    """Do not expose Compare defaults under Classic's canonical Performance mode."""
+    """Keep a design-pending Benchmark and its defaults across editor views."""
     for switch_path in ("selector", "guided_action"):
         session_state = _canonical_state(
             input_view="guided",
-            guided_use_case="rx_success",
+            guided_use_case="rx_performance",
             guided_reference_design=None,
-            guided_last_compare_mode=None,
+            guided_last_benchmark_mode=None,
             val_comp_mode="none",
         )
         session_state.pop("val_exclude_special_callsigns")
@@ -1155,7 +1208,7 @@ def test_incomplete_guided_compare_defaults_reconcile_when_opening_classic(
         initialize_population_exclusion_state(session_state)
         _install_shared_streamlit_state(monkeypatch, session_state)
 
-        session_state.guided_use_case = "rx_compare"
+        session_state.guided_use_case = "rx_benchmark"
         renderer._handle_use_case_change()
         assert session_state.val_comp_mode == "none"
         assert session_state.val_exclude_special_callsigns is False
@@ -1168,9 +1221,11 @@ def test_incomplete_guided_compare_defaults_reconcile_when_opening_classic(
             renderer._open_classic_view()
 
         assert session_state.input_view == "classic"
+        assert session_state[CLASSIC_QUESTION_KEY] == "rx_benchmark"
         assert session_state.val_comp_mode == "none"
-        assert session_state.val_exclude_special_callsigns is True
-        assert session_state.val_filter_moving is True
+        assert session_state.val_exclude_special_callsigns is False
+        assert session_state.val_filter_moving is False
+        assert is_classic_input_ready(session_state) is False
 
 
 def test_guided_direction_change_requires_hardware_design_confirmation(
@@ -1179,9 +1234,9 @@ def test_guided_direction_change_requires_hardware_design_confirmation(
     """Do not reinterpret RX Hardware identity as a TX Hardware schedule."""
     session_state = _canonical_state(
         run_mode="RX",
-        guided_use_case="tx_compare",
+        guided_use_case="tx_benchmark",
         guided_reference_design="hardware_ab",
-        guided_last_compare_mode="hardware_ab",
+        guided_last_benchmark_mode="hardware_ab",
         val_snr_correction_mode="established_offset",
         val_analysis_direction="rx",
         val_comp_mode="hardware_ab",
@@ -1199,7 +1254,7 @@ def test_guided_direction_change_requires_hardware_design_confirmation(
     assert session_state.val_analysis_direction == "tx"
     assert session_state.val_comp_mode == "none"
     assert session_state.guided_reference_design is None
-    assert session_state.guided_last_compare_mode is None
+    assert session_state.guided_last_benchmark_mode is None
     assert session_state.val_benchmark_offset_db == 0.0
     assert session_state.val_snr_correction_mode == "no_offset"
     assert session_state.val_tx_ab_method == "simultaneous"
@@ -1211,34 +1266,34 @@ def test_guided_direction_change_requires_hardware_design_confirmation(
     assert session_state.configuration_changed_since_run is True
 
 
-def test_direction_change_clears_hardware_retained_behind_success(monkeypatch):
-    """Do not reactivate RX Hardware semantics after crossing TX Success."""
+def test_direction_change_clears_hardware_retained_behind_performance(monkeypatch):
+    """Do not reactivate RX Hardware semantics after crossing TX Performance."""
     session_state = _canonical_state(
-        guided_use_case="rx_success",
-        guided_last_compare_mode="hardware_ab",
+        guided_use_case="rx_performance",
+        guided_last_benchmark_mode="hardware_ab",
         val_analysis_direction="rx",
         val_comp_mode="none",
         val_ref_callsign="DL1ABC-1",
     )
     _install_shared_streamlit_state(monkeypatch, session_state)
 
-    session_state.guided_use_case = "tx_success"
+    session_state.guided_use_case = "tx_performance"
     renderer._handle_use_case_change()
-    session_state.guided_use_case = "tx_compare"
+    session_state.guided_use_case = "tx_benchmark"
     renderer._handle_use_case_change()
 
     assert session_state.val_analysis_direction == "tx"
     assert session_state.val_comp_mode == "none"
     assert session_state.guided_reference_design is None
-    assert session_state.guided_last_compare_mode is None
+    assert session_state.guided_last_benchmark_mode is None
 
 
 def test_direction_change_resets_reference_station_pair_correction(monkeypatch):
     """Treat RX and TX Reference baselines as different operating designs."""
     session_state = _canonical_state(
-        guided_use_case="tx_compare",
+        guided_use_case="tx_benchmark",
         guided_reference_design="reference_station",
-        guided_last_compare_mode="reference_station",
+        guided_last_benchmark_mode="reference_station",
         val_snr_correction_mode="established_offset",
         val_analysis_direction="rx",
         val_comp_mode="reference_station",
@@ -1263,7 +1318,7 @@ def test_reference_branch_change_clears_only_pair_specific_canonical_values(
 ):
     """Deactivate fixed-Reference identity/correction while retaining scope."""
     session_state = _canonical_state(
-        guided_use_case="rx_compare",
+        guided_use_case="rx_benchmark",
         guided_reference_design="local_neighborhood",
         val_snr_correction_mode="established_offset",
         val_comp_mode="reference_station",
@@ -1279,7 +1334,7 @@ def test_reference_branch_change_clears_only_pair_specific_canonical_values(
     renderer._handle_reference_design_change()
 
     assert session_state.val_comp_mode == "local_neighborhood"
-    assert session_state.guided_last_compare_mode == "local_neighborhood"
+    assert session_state.guided_last_benchmark_mode == "local_neighborhood"
     assert session_state.val_ref_callsign == ""
     assert session_state.val_ref_qth == ""
     assert session_state.val_benchmark_offset_db == 0.0
@@ -1296,7 +1351,7 @@ def test_known_station_to_hardware_requires_reference_identity_confirmation(
 ):
     """Do not reinterpret a remote station identity as a co-located path."""
     session_state = _canonical_state(
-        guided_use_case="rx_compare",
+        guided_use_case="rx_benchmark",
         guided_reference_design="hardware_ab",
         val_snr_correction_mode="established_offset",
         val_comp_mode="reference_station",
@@ -1320,7 +1375,7 @@ def test_hardware_to_known_station_requires_reference_identity_confirmation(
 ):
     """Do not reinterpret a local path alias and stale grid as a remote station."""
     session_state = _canonical_state(
-        guided_use_case="rx_compare",
+        guided_use_case="rx_benchmark",
         guided_reference_design="reference_station",
         val_snr_correction_mode="established_offset",
         val_comp_mode="hardware_ab",
@@ -1342,7 +1397,7 @@ def test_hardware_to_known_station_requires_reference_identity_confirmation(
 def test_offset_intents_share_the_one_canonical_correction_field(monkeypatch):
     """Preserve an entered offset, but pin no-offset/calibration runs to zero."""
     session_state = _canonical_state(
-        guided_use_case="rx_compare",
+        guided_use_case="rx_benchmark",
         guided_reference_design="hardware_ab",
         val_snr_correction_mode="established_offset",
         val_comp_mode="hardware_ab",
@@ -1363,9 +1418,9 @@ def test_offset_intents_share_the_one_canonical_correction_field(monkeypatch):
 def test_guided_identity_edit_clears_established_pair_correction(monkeypatch):
     """Require a new offset after changing the pair, QTH, or operating band."""
     session_state = _canonical_state(
-        guided_use_case="rx_compare",
+        guided_use_case="rx_benchmark",
         guided_reference_design="reference_station",
-        guided_last_compare_mode="reference_station",
+        guided_last_benchmark_mode="reference_station",
         val_snr_correction_mode="established_offset",
         val_comp_mode="reference_station",
         val_ref_callsign="DL2XYZ",
@@ -1385,9 +1440,9 @@ def test_german_review_uses_localized_target_and_complete_tx_schedule(monkeypatc
     """Keep review prose localized and expose every scheduled pairing control."""
     session_state = _canonical_state(
         lang="de",
-        guided_use_case="tx_compare",
+        guided_use_case="tx_benchmark",
         guided_reference_design="hardware_ab",
-        guided_last_compare_mode="hardware_ab",
+        guided_last_benchmark_mode="hardware_ab",
         val_analysis_direction="tx",
         val_comp_mode="hardware_ab",
         val_tx_ab_method="sequential",
@@ -1428,7 +1483,7 @@ def test_switching_to_classic_preserves_configuration_context_and_results(
     """Treat editor selection as presentation state only."""
     session_state = _canonical_state(
         run_mode="RX",
-        result_export_blocks={"success": ["retained"]},
+        result_export_blocks={"performance": ["retained"]},
     )
     monkeypatch.setattr(
         renderer,
@@ -1443,12 +1498,15 @@ def test_switching_to_classic_preserves_configuration_context_and_results(
 
     assert session_state.input_view == "classic"
     assert session_state.run_mode == "RX"
-    assert session_state.result_export_blocks == {"success": ["retained"]}
+    assert session_state.result_export_blocks == {"performance": ["retained"]}
     assert {
-        key: value for key, value in session_state.items() if key != "input_view"
+        key: value
+        for key, value in session_state.items()
+        if key not in {"input_view", CLASSIC_QUESTION_KEY}
     } == {
         key: value for key, value in before_state.items() if key != "input_view"
     }
+    assert session_state[CLASSIC_QUESTION_KEY] == "rx_performance"
     assert build_analysis_context_from_session_state(session_state) == guided_context
 
 
@@ -1459,9 +1517,9 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
     session_state = _canonical_state(
         input_view="guided",
         run_mode="TX",
-        guided_use_case="rx_compare",
+        guided_use_case="rx_benchmark",
         guided_reference_design="hardware_ab",
-        guided_last_compare_mode="hardware_ab",
+        guided_last_benchmark_mode="hardware_ab",
         val_snr_correction_mode="established_offset",
         guided_scope_mode="custom",
         guided_reconstruct_requested=False,
@@ -1471,7 +1529,7 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
         val_local_benchmark="local_best",
         val_ref_radius_km=250,
         val_benchmark_offset_db=0.0,
-        result_export_blocks={"compare": ["retained"]},
+        result_export_blocks={"benchmark": ["retained"]},
     )
     monkeypatch.setattr(
         callbacks,
@@ -1485,17 +1543,17 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
     assert session_state.guided_reconstruct_requested is True
     assert session_state.guided_collapse_all is False
     assert session_state.run_mode == "TX"
-    assert session_state.result_export_blocks == {"compare": ["retained"]}
+    assert session_state.result_export_blocks == {"benchmark": ["retained"]}
 
     reconstruct_guided_transients(session_state, has_loaded_demo=False)
 
-    assert session_state.guided_use_case == "tx_compare"
+    assert session_state.guided_use_case == "tx_benchmark"
     assert session_state.guided_reference_design == "local_neighborhood"
-    assert session_state.guided_last_compare_mode == "local_neighborhood"
+    assert session_state.guided_last_benchmark_mode == "local_neighborhood"
     assert session_state.val_snr_correction_mode == "established_offset"
     assert session_state.guided_scope_mode == "general"
     assert session_state.run_mode == "TX"
-    assert session_state.result_export_blocks == {"compare": ["retained"]}
+    assert session_state.result_export_blocks == {"benchmark": ["retained"]}
     assert build_analysis_context_from_session_state(session_state) == canonical_context
 
 
@@ -1506,7 +1564,7 @@ def test_selector_change_hands_an_active_analysis_to_the_new_script(monkeypatch)
         run_mode="RX",
         guided_reconstruct_requested=False,
         guided_collapse_all=True,
-        result_export_blocks={"success": ["retained"]},
+        result_export_blocks={"performance": ["retained"]},
     )
     older_token = begin_main_analysis_submission(session_state)
     assert claim_analysis_submission_request(session_state) is not None
@@ -1525,7 +1583,7 @@ def test_selector_change_hands_an_active_analysis_to_the_new_script(monkeypatch)
     assert session_state.guided_reconstruct_requested is True
     assert session_state.guided_collapse_all is False
     assert session_state.run_mode == "RX"
-    assert session_state.result_export_blocks == {"success": ["retained"]}
+    assert session_state.result_export_blocks == {"performance": ["retained"]}
 
 
 def test_guided_classic_action_hands_an_active_analysis_to_the_new_script(
@@ -1534,7 +1592,7 @@ def test_guided_classic_action_hands_an_active_analysis_to_the_new_script(
     """Cover the programmatic Guided-to-Classic transition during an active run."""
     session_state = _canonical_state(
         run_mode="TX",
-        result_export_blocks={"compare": ["retained"]},
+        result_export_blocks={"benchmark": ["retained"]},
     )
     older_token = begin_main_analysis_submission(session_state)
     assert claim_analysis_submission_request(session_state) is not None
@@ -1553,16 +1611,16 @@ def test_guided_classic_action_hands_an_active_analysis_to_the_new_script(
     assert get_analysis_submission(session_state).token == request.token
     assert session_state.input_view == "classic"
     assert session_state.run_mode == "TX"
-    assert session_state.result_export_blocks == {"compare": ["retained"]}
+    assert session_state.result_export_blocks == {"benchmark": ["retained"]}
 
 
-def test_view_round_trip_preserves_retained_inactive_compare_design(monkeypatch):
-    """Keep view-only switching from erasing a Guided Success user's prior design."""
+def test_view_round_trip_preserves_retained_inactive_benchmark_design(monkeypatch):
+    """Keep view switching from erasing a prior Guided Benchmark design."""
     session_state = _canonical_state(
         input_view="guided",
-        guided_use_case="rx_success",
+        guided_use_case="rx_performance",
         guided_reference_design=None,
-        guided_last_compare_mode="reference_station",
+        guided_last_benchmark_mode="reference_station",
         val_snr_correction_mode="established_offset",
         val_comp_mode="none",
         val_ref_callsign="DL2XYZ",
@@ -1578,20 +1636,21 @@ def test_view_round_trip_preserves_retained_inactive_compare_design(monkeypatch)
     callbacks.handle_input_view_change()
     reconstruct_guided_transients(session_state, has_loaded_demo=False)
 
-    assert session_state.guided_use_case == "rx_success"
+    assert session_state.guided_use_case == "rx_performance"
     assert session_state.guided_reference_design is None
-    assert session_state.guided_last_compare_mode == "reference_station"
+    assert session_state.guided_last_benchmark_mode == "reference_station"
     assert session_state.val_ref_callsign == "DL2XYZ"
     assert session_state.val_ref_qth == "JO63"
     assert session_state.val_benchmark_offset_db == 1.2
 
 
-def test_loading_success_config_clears_previous_transient_compare_design(
+def test_loading_performance_config_clears_previous_transient_benchmark_design(
     monkeypatch,
 ):
-    """Do not let history from another config choose a later Compare branch."""
+    """Do not let config history choose a later Benchmark branch."""
     session_state = _canonical_state(
-        guided_last_compare_mode="hardware_ab",
+        classic_question="rx_benchmark",
+        guided_last_benchmark_mode="hardware_ab",
         guided_reference_design="hardware_ab",
         val_comp_mode="hardware_ab",
     )
@@ -1601,10 +1660,14 @@ def test_loading_success_config_clears_previous_transient_compare_design(
         SimpleNamespace(session_state=session_state),
     )
 
-    config_io.apply_config_values(config_io._default_config())
+    performance_config = config_io._default_config()
+    performance_config["analysis_direction"] = "rx"
+    config_io.apply_config_values(performance_config)
 
     assert session_state.val_comp_mode == "none"
-    assert session_state.guided_last_compare_mode is None
+    assert session_state[CLASSIC_QUESTION_KEY] == "rx_performance"
+    assert is_classic_input_ready(session_state) is True
+    assert session_state.guided_last_benchmark_mode is None
     assert session_state.guided_reconstruct_requested is True
     assert session_state.val_exclude_special_callsigns is False
     assert session_state.val_filter_moving is False
@@ -1692,8 +1755,8 @@ def test_guided_run_and_save_actions_are_gated_by_terminal_readiness():
     ]
 
     for direction, use_case, expected_label in (
-        ("rx", "rx_success", "Run RX Analysis"),
-        ("tx", "tx_success", "Run TX Analysis"),
+        ("rx", "rx_performance", "Run RX Analysis"),
+        ("tx", "tx_performance", "Run TX Analysis"),
     ):
         ready_application = _run_application_with_state(
             _canonical_state(
@@ -1712,6 +1775,53 @@ def test_guided_run_and_save_actions_are_gated_by_terminal_readiness():
         assert ready_application["save_actions"] == [
             {"label": "Save Config", "disabled": False}
         ]
+
+
+def test_classic_benchmark_actions_wait_for_a_design():
+    """Exercise pending and complete Classic Benchmark states through AppTest."""
+    pending_application = _run_application_with_state(
+        _canonical_state(
+            input_view="classic",
+            classic_question="rx_benchmark",
+            guided_use_case="rx_benchmark",
+            val_comp_mode="none",
+        )
+    )
+
+    assert pending_application["errors"] == []
+    assert pending_application["run_actions"] == [
+        {
+            "label": "Run RX Analysis",
+            "disabled": True,
+            "type": "primary",
+        }
+    ]
+    assert pending_application["save_actions"] == [
+        {"label": "Save Config", "disabled": True}
+    ]
+
+    ready_application = _run_application_with_state(
+        _canonical_state(
+            input_view="classic",
+            classic_question="rx_benchmark",
+            guided_use_case="rx_benchmark",
+            guided_reference_design="local_neighborhood",
+            guided_last_benchmark_mode="local_neighborhood",
+            val_comp_mode="local_neighborhood",
+        )
+    )
+
+    assert ready_application["errors"] == []
+    assert ready_application["run_actions"] == [
+        {
+            "label": "Run RX Analysis",
+            "disabled": False,
+            "type": "primary",
+        }
+    ]
+    assert ready_application["save_actions"] == [
+        {"label": "Save Config", "disabled": False}
+    ]
 
 
 def test_classic_invalid_windows_are_reported_and_blocked_before_submission():

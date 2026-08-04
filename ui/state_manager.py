@@ -13,8 +13,20 @@ from config import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
+from ui.classic_input_state import initialize_classic_input_state
 from ui.population_exclusion_state import initialize_population_exclusion_state
 from ui.time_window import initialize_utc_window_state
+
+
+_LEGACY_GUIDED_USE_CASE_ALIASES = {
+    "rx_success": "rx_performance",
+    "tx_success": "tx_performance",
+    "rx_compare": "rx_benchmark",
+    "tx_compare": "tx_benchmark",
+}
+_BENCHMARK_MODES = frozenset(
+    {"hardware_ab", "reference_station", "local_neighborhood"}
+)
 
 
 def _canonicalize_localized_state(value, canonical_to_translation_key, fallback):
@@ -63,20 +75,35 @@ def init_session_state():
         st.session_state.show_config_loader = False
     if st.session_state.get("input_view") not in {"guided", "classic"}:
         st.session_state.input_view = "guided"
-    if st.session_state.get("guided_use_case") not in {
+    guided_use_case = st.session_state.get("guided_use_case")
+    if guided_use_case in _LEGACY_GUIDED_USE_CASE_ALIASES:
+        st.session_state.guided_use_case = _LEGACY_GUIDED_USE_CASE_ALIASES[
+            guided_use_case
+        ]
+    elif guided_use_case not in {
         None,
-        "rx_success",
-        "tx_success",
-        "rx_compare",
-        "tx_compare",
+        "rx_performance",
+        "tx_performance",
+        "rx_benchmark",
+        "tx_benchmark",
     }:
         st.session_state.guided_use_case = None
     if "guided_use_case" not in st.session_state:
         st.session_state.guided_use_case = None
     if "guided_reference_design" not in st.session_state:
         st.session_state.guided_reference_design = None
-    if "guided_last_compare_mode" not in st.session_state:
-        st.session_state.guided_last_compare_mode = None
+    if "guided_last_benchmark_mode" not in st.session_state:
+        legacy_benchmark_mode = st.session_state.pop(
+            "guided_last_compare_mode",
+            None,
+        )
+        st.session_state.guided_last_benchmark_mode = (
+            legacy_benchmark_mode
+            if legacy_benchmark_mode in _BENCHMARK_MODES
+            else None
+        )
+    else:
+        st.session_state.pop("guided_last_compare_mode", None)
     if st.session_state.get("guided_scope_mode") not in {
         "general",
         "custom",
@@ -121,6 +148,7 @@ def init_session_state():
         },
         "none",
     )
+    initialize_classic_input_state(st.session_state)
     if "val_ref_stations" not in st.session_state: 
         st.session_state.val_ref_stations = 10
     if "val_ref_radius_km" not in st.session_state:

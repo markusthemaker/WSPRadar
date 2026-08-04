@@ -44,6 +44,19 @@ export default function(component) {
     const weightedTableClassName = 'documentation-weighted-columns';
     const tableLayoutSpecifications = [
         {
+            layoutName: 'section-0-1',
+            startAnchorId: 'sec-1-2',
+            endAnchorId: 'sec-1-3',
+            widthPercentages: [28, 27, 45],
+            languages: ['en'],
+        },
+        {
+            layoutName: 'section-1-2',
+            startAnchorId: 'sec-2-2',
+            endAnchorId: 'sec-2-3-overview',
+            widthMultipliers: [1, 1.5],
+        },
+        {
             layoutName: 'section-1-4',
             startAnchorId: 'sec-2-4',
             endAnchorId: 'sec-2-4-simultaneous',
@@ -134,23 +147,42 @@ export default function(component) {
         const headerCells = Array.from(
             table.querySelectorAll('thead tr:first-child > th')
         );
-        if (headerCells.length !== specification.widthMultipliers.length) {
+        const widthValues = (
+            specification.widthPercentages
+            ?? specification.widthMultipliers
+        );
+        if (headerCells.length !== widthValues.length) {
             return;
         }
 
-        // Capture the localized table's automatic layout before fixed column
-        // widths are applied, so each multiplier is relative to what the user
-        // was already seeing rather than to an arbitrary equal-width baseline.
-        const naturalWidths = headerCells.map(
-            (headerCell) => headerCell.getBoundingClientRect().width
-        );
-        if (naturalWidths.some((width) => !Number.isFinite(width) || width <= 0)) {
+        let weightedWidths;
+        if (specification.widthPercentages) {
+            weightedWidths = specification.widthPercentages;
+        } else {
+            // Capture the localized table's automatic layout before fixed
+            // column widths are applied, so each multiplier remains relative
+            // to the layout the user was already seeing.
+            const naturalWidths = headerCells.map(
+                (headerCell) => headerCell.getBoundingClientRect().width
+            );
+            if (
+                naturalWidths.some(
+                    (width) => !Number.isFinite(width) || width <= 0
+                )
+            ) {
+                return;
+            }
+            weightedWidths = naturalWidths.map(
+                (width, index) => width * specification.widthMultipliers[index]
+            );
+        }
+        if (
+            weightedWidths.some(
+                (width) => !Number.isFinite(width) || width <= 0
+            )
+        ) {
             return;
         }
-
-        const weightedWidths = naturalWidths.map(
-            (width, index) => width * specification.widthMultipliers[index]
-        );
         const totalWeightedWidth = weightedWidths.reduce(
             (total, width) => total + width,
             0
@@ -174,6 +206,12 @@ export default function(component) {
 
     function applyDocumentationTableLayouts() {
         for (const specification of tableLayoutSpecifications) {
+            if (
+                specification.languages
+                && !specification.languages.includes(data?.language)
+            ) {
+                continue;
+            }
             const table = findTableBetweenAnchors(
                 specification.startAnchorId,
                 specification.endAnchorId
@@ -494,6 +532,7 @@ def render_documentation_scroll_trigger(
     *,
     key: str,
     anchor_ids: tuple[str, ...],
+    documentation_language: str,
     is_auto_expand_enabled: bool,
     is_documentation_expanded: bool,
     allow_initial_hash_expansion: bool,
@@ -504,6 +543,7 @@ def render_documentation_scroll_trigger(
     _DOCUMENTATION_SCROLL_TRIGGER(
         data={
             "anchorIds": list(anchor_ids),
+            "language": documentation_language,
             "isAutoExpandEnabled": is_auto_expand_enabled,
             "isExpanded": is_documentation_expanded,
             "allowInitialHashExpansion": allow_initial_hash_expansion,

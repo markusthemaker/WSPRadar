@@ -14,9 +14,15 @@ from config import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from core.input_validation import is_valid_callsign, is_valid_grid4, is_valid_locator
+from ui.analysis_question_state import (
+    ANALYSIS_QUESTION_CHOICES,
+    BENCHMARK_MODES,
+    canonicalize_analysis_question,
+    derive_analysis_question,
+)
 from ui.config_io import _default_config
 from ui.population_exclusion_state import (
-    COMPARE_RESULT_TYPE,
+    BENCHMARK_RESULT_TYPE,
     PERFORMANCE_RESULT_TYPE,
     apply_population_exclusion_defaults,
     population_exclusion_defaults,
@@ -25,30 +31,27 @@ from ui.population_exclusion_state import (
 from ui.time_window import utc_window_from_state
 
 
-GUIDED_USE_CASES = frozenset(
-    {"rx_success", "tx_success", "rx_compare", "tx_compare"}
-)
+GUIDED_USE_CASES = frozenset(ANALYSIS_QUESTION_CHOICES)
 GUIDED_OFFSET_INTENTS = SNR_CORRECTION_MODES
 GUIDED_SCOPE_MODES = frozenset({"general", "custom", "demo"})
-COMPARISON_MODES = frozenset(
-    {"hardware_ab", "reference_station", "local_neighborhood"}
-)
+COMPARISON_MODES = BENCHMARK_MODES
+
+
+def canonicalize_guided_use_case(guided_use_case: object) -> object:
+    """Normalize a bounded legacy Guided token without emitting it again."""
+    return canonicalize_analysis_question(guided_use_case)
 
 
 def derive_guided_use_case(state: Mapping[str, Any]) -> str | None:
     """Derive the completed operating question from canonical scientific state."""
-    analysis_direction = state.get("val_analysis_direction")
-    if analysis_direction not in {"rx", "tx"}:
-        return None
-    result_type = (
-        "success" if state.get("val_comp_mode", "none") == "none" else "compare"
-    )
-    return f"{analysis_direction}_{result_type}"
+    return derive_analysis_question(state)
 
 
 def guided_facts(state: Mapping[str, Any]) -> dict[str, Any]:
     """Return the finite semantic facts exposed to declarative flow conditions."""
-    guided_use_case = state.get("guided_use_case")
+    guided_use_case = canonicalize_guided_use_case(
+        state.get("guided_use_case")
+    )
     if guided_use_case not in GUIDED_USE_CASES:
         guided_use_case = derive_guided_use_case(state)
     return {
@@ -184,7 +187,10 @@ def _scope_complete(state: Mapping[str, Any]) -> bool:
 def is_guided_node_complete(node_id: str, state: Mapping[str, Any]) -> bool:
     """Return completion for one logical step without mutating its configuration."""
     if node_id == "use_case":
-        return state.get("guided_use_case") in GUIDED_USE_CASES
+        return (
+            canonicalize_guided_use_case(state.get("guided_use_case"))
+            in GUIDED_USE_CASES
+        )
     if node_id == "target_and_window":
         return _target_and_window_complete(state)
     if node_id == "reference_design":
@@ -234,11 +240,13 @@ def apply_general_scope_defaults(state: MutableMapping[str, Any]) -> None:
 
 
 def _population_exclusion_result_type(state: Mapping[str, Any]) -> str:
-    """Resolve Performance or Compare intent even before a Guided design exists."""
-    guided_use_case = state.get("guided_use_case")
-    if guided_use_case in {"rx_compare", "tx_compare"}:
-        return COMPARE_RESULT_TYPE
-    if guided_use_case in {"rx_success", "tx_success"}:
+    """Resolve Performance or Benchmark intent before a Guided design exists."""
+    guided_use_case = canonicalize_guided_use_case(
+        state.get("guided_use_case")
+    )
+    if guided_use_case in {"rx_benchmark", "tx_benchmark"}:
+        return BENCHMARK_RESULT_TYPE
+    if guided_use_case in {"rx_performance", "tx_performance"}:
         return PERFORMANCE_RESULT_TYPE
     return result_type_from_comparison_mode(state.get("val_comp_mode"))
 
@@ -255,7 +263,7 @@ def reconstruct_guided_transients(
         benchmark_mode if benchmark_mode in COMPARISON_MODES else None
     )
     if benchmark_mode in COMPARISON_MODES:
-        state["guided_last_compare_mode"] = benchmark_mode
+        state["guided_last_benchmark_mode"] = benchmark_mode
     if has_loaded_demo:
         state["guided_scope_mode"] = "demo"
     else:

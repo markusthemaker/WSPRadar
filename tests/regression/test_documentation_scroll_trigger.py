@@ -143,11 +143,24 @@ def test_manual_scroll_synchronization_is_throttled_guarded_and_cleaned_up():
     assert "window.cancelAnimationFrame(visibleAnchorFrame)" in javascript
 
 
-def test_documentation_tables_multiply_their_natural_column_widths_by_section():
-    """Keep layout ratios relative to each localized table's rendered widths."""
+def test_documentation_tables_apply_scoped_column_widths_by_section():
+    """Support one exact English layout and localized natural-width ratios."""
     javascript = documentation_scroll_trigger._DOCUMENTATION_SCROLL_TRIGGER_JS
 
     expected_layouts = (
+        (
+            "layoutName: 'section-0-1'",
+            "startAnchorId: 'sec-1-2'",
+            "endAnchorId: 'sec-1-3'",
+            "widthPercentages: [28, 27, 45]",
+            "languages: ['en']",
+        ),
+        (
+            "layoutName: 'section-1-2'",
+            "startAnchorId: 'sec-2-2'",
+            "endAnchorId: 'sec-2-3-overview'",
+            "widthMultipliers: [1, 1.5]",
+        ),
         (
             "layoutName: 'section-1-4'",
             "startAnchorId: 'sec-2-4'",
@@ -181,9 +194,11 @@ def test_documentation_tables_multiply_their_natural_column_widths_by_section():
     assert "table.compareDocumentPosition(endAnchor)" in javascript
     assert "headerCell.getBoundingClientRect().width" in javascript
     assert "width * specification.widthMultipliers[index]" in javascript
+    assert "specification.widthPercentages" in javascript
     assert "weightedWidth / totalWeightedWidth" in javascript
     assert "document.createElement('colgroup')" in javascript
     assert "table.classList.add(weightedTableClassName)" in javascript
+    assert "!specification.languages.includes(data?.language)" in javascript
 
 
 def test_documentation_table_layout_waits_for_lazy_dom_and_cleans_up():
@@ -221,6 +236,7 @@ def test_scroll_trigger_wrapper_passes_stable_mount_and_callback_contract(monkey
     documentation_scroll_trigger.render_documentation_scroll_trigger(
         key="documentation-trigger-test",
         anchor_ids=("sec-2", "ref-1"),
+        documentation_language="en",
         is_auto_expand_enabled=True,
         is_documentation_expanded=False,
         allow_initial_hash_expansion=True,
@@ -232,6 +248,7 @@ def test_scroll_trigger_wrapper_passes_stable_mount_and_callback_contract(monkey
         {
             "data": {
                 "anchorIds": ["sec-2", "ref-1"],
+                "language": "en",
                 "isAutoExpandEnabled": True,
                 "isExpanded": False,
                 "allowInitialHashExpansion": True,
