@@ -920,6 +920,16 @@ This is a bounded integration and methods claim, not a global priority claim. Me
 
 This chapter defines the scientific contract of a WSPRadar run. WSPRadar starts from reported observations, constructs eligible evidence units, derives quantities such as normalized SNR and paired Delta SNR, and then calculates descriptive summaries. Those summaries are exact for the retained evidence under the selected rules. They become estimates of a broader or future population only if an additional sampling and dependence model is supplied; WSPRadar does not make that inferential step automatically.
 
+It is useful to distinguish five levels:
+
+1. **Reported observations:** uploaded WSPR spots with callsigns, locators, power, time and SNR.
+2. **Constructed evidence units:** qualifying opportunities, peer-cycles, Joint units and scheduled A/B pairs formed by WSPRadar’s eligibility and matching rules.
+3. **Derived quantities:** normalized SNR, Decode Outcomes and Target-minus-Reference Delta SNR for an individual evidence unit.
+4. **Descriptive summaries:** rates, medians, reach, evidence shares and temporal or geographic summaries calculated from the retained evidence.
+5. **Interpretation beyond the run:** statements about future behavior, a wider population or a physical cause. Such generalization requires additional assumptions and experimental control; the calculation alone is not sufficient.
+
+The selected design therefore defines the analysis target—in formal statistical language, the estimand—through its conditioning, eligibility and weighting rules. This manual normally uses the plainer term analysis target. WSPRadar does not attach an inferential sampling model or confidence interval to that target.
+
 **Notation used below**
 
 | Symbol | Meaning |
