@@ -21,7 +21,7 @@ DOCUMENTATION_PDF_READY_KEY_PREFIX = "_documentation_pdf_ready"
 _DOCUMENTATION_PDF_GENERATION_LOCK = threading.Lock()
 PDF_MARKDOWN_EXTENSIONS = ("tables", "fenced_code")
 PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT = (28, 27, 45)
-PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT = (11, 8, 12, 10, 9, 10, 11, 8, 8, 13)
+PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT = (18, 20, 23, 22, 17)
 
 
 @lru_cache(maxsize=2)
@@ -50,6 +50,98 @@ def _replace_pdf_math(md_text, translations):
         r"\frac{\text{Target}}{\text{Target} + \text{Other Signals}}"
     )
     block_replacements = {
+        (
+            r"n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}"
+        ): _formula(
+            "n<sub>i</sub> = sum<sub>c</sub> O<sub>i,c</sub>, "
+            "&nbsp;&nbsp;h<sub>i</sub> = sum<sub>c</sub> S<sub>i,c</sub>"
+        ),
+        r"r_i=100\%\times\frac{h_i}{n_i}": _formula(
+            "r<sub>i</sub> = 100% &times; h<sub>i</sub> / n<sub>i</sub>"
+        ),
+        r"R_{station}(g)=\frac{1}{|I_g|}\sum_{i\in I_g} r_i": _formula(
+            "R<sub>station</sub>(g) = (1 / |I<sub>g</sub>|) &times; "
+            "sum(i in I<sub>g</sub>) r<sub>i</sub>"
+        ),
+        (
+            r"R_{opportunity}(g)=100\%\times"
+            r"\frac{\sum_{i\in I_g}h_i}{\sum_{i\in I_g}n_i}"
+        ): _formula(
+            "R<sub>opportunity</sub>(g) = 100% &times; "
+            "sum(i in I<sub>g</sub>) h<sub>i</sub> / "
+            "sum(i in I<sub>g</sub>) n<sub>i</sub>"
+        ),
+        (
+            r"Reach(g)=100\%\times"
+            r"\frac{|\{i\in I_g:h_i\ge1\}|}{|I_g|}"
+        ): _formula(
+            "Reach(g) = 100% &times; count(i in I<sub>g</sub> with "
+            "h<sub>i</sub> &ge; 1) / |I<sub>g</sub>|"
+        ),
+        r"SNR_{norm}=SNR_{measured}-P_{TX(dBm)}+30": _formula(
+            "SNR<sub>norm</sub> = SNR<sub>measured</sub> - "
+            "P<sub>TX(dBm)</sub> + 30"
+        ),
+        r"SNR_{R,corr}=SNR_R+C_R": _formula(
+            "SNR<sub>R,corr</sub> = SNR<sub>R</sub> + C<sub>R</sub>"
+        ),
+        (
+            r"D_{i,c}=\Delta SNR_{i,c}="
+            r"SNR_{T,i,c}-SNR_{R,corr,i,c}"
+        ): _formula(
+            "D<sub>i,c</sub> = "
+            f"{delta_snr_label}<sub>i,c</sub> = "
+            "SNR<sub>T,i,c</sub> - SNR<sub>R,corr,i,c</sub>"
+        ),
+        r"m_i=\operatorname{median}_{c}(D_{i,c})": _formula(
+            "m<sub>i</sub> = median<sub>c</sub>(D<sub>i,c</sub>)"
+        ),
+        r"M_g=\operatorname{median}_{i\in I_g}(m_i)": _formula(
+            "M<sub>g</sub> = median(i in I<sub>g</sub>)(m<sub>i</sub>)"
+        ),
+        r"N_{i,b}=T_{i,b}+J_{i,b}+R_{i,b}": _formula(
+            "N<sub>i,b</sub> = T<sub>i,b</sub> + J<sub>i,b</sub> + "
+            "R<sub>i,b</sub>"
+        ),
+        (
+            r"v_{T,i,b}=\frac{T_{i,b}}{N_{i,b}},\qquad "
+            r"v_{J,i,b}=\frac{J_{i,b}}{N_{i,b}},\qquad "
+            r"v_{R,i,b}=\frac{R_{i,b}}{N_{i,b}}"
+        ): _formula(
+            "v<sub>T,i,b</sub> = T<sub>i,b</sub> / N<sub>i,b</sub>, "
+            "&nbsp;&nbsp;v<sub>J,i,b</sub> = J<sub>i,b</sub> / "
+            "N<sub>i,b</sub>, &nbsp;&nbsp;v<sub>R,i,b</sub> = "
+            "R<sub>i,b</sub> / N<sub>i,b</sub>"
+        ),
+        (
+            r"JES_{station}(b)=100\%\times\operatorname{mean}_{i}"
+            r"\left(\frac{J_{i,b}}{N_{i,b}}\right)"
+        ): _formula(
+            "JES<sub>station</sub>(b) = 100% &times; mean<sub>i</sub>("
+            "J<sub>i,b</sub> / N<sub>i,b</sub>)"
+        ),
+        (
+            r"JES_{outcome}(b)=100\%\times"
+            r"\frac{\sum_iJ_{i,b}}{\sum_iN_{i,b}}"
+        ): _formula(
+            "JES<sub>outcome</sub>(b) = 100% &times; "
+            "sum<sub>i</sub> J<sub>i,b</sub> / "
+            "sum<sub>i</sub> N<sub>i,b</sub>"
+        ),
+        (
+            r"A_{i,c}=SNR_{i,c}-\operatorname{median}_{c'}"
+            r"(SNR_{i,c'})"
+        ): _formula(
+            "A<sub>i,c</sub> = SNR<sub>i,c</sub> - "
+            "median<sub>c&apos;</sub>(SNR<sub>i,c&apos;</sub>)"
+        ),
+        (
+            r"D_{relative}=100\times"
+            r"\frac{n_{cell}}{\max(n_{cell,panel})}"
+        ): _formula(
+            "D<sub>relative</sub> = 100 &times; n<sub>cell</sub> / "
+            "max(n<sub>cell,panel</sub>)"
+        ),
         decode_rate_rx_formula: _formula(
             f"{decode_rate_label}<sub>RX</sub> = 100% &times; "
             "Target / (Target + Elsewhere)"
@@ -117,6 +209,60 @@ def _replace_pdf_math(md_text, translations):
     for latex, html in block_replacements.items():
         md_text = md_text.replace(f"$${latex}$$", html)
         md_text = md_text.replace(f"${latex}$", html)
+
+    inline_formula_replacements = {
+        r"A_c": "A<sub>c</sub>",
+        r"A_c=1": "A<sub>c</sub> = 1",
+        r"b": "b",
+        r"c": "c",
+        r"c'": "c&apos;",
+        r"C_R": "C<sub>R</sub>",
+        r"D_{i,c}": "D<sub>i,c</sub>",
+        r"g": "g",
+        r"h_i": "h<sub>i</sub>",
+        r"i": "i",
+        r"i,c": "i,c",
+        r"I_g": "I<sub>g</sub>",
+        r"J_{i,b}": "J<sub>i,b</sub>",
+        r"M": "M",
+        r"M\pm1": "M &plusmn; 1",
+        r"M\pm3": "M &plusmn; 3",
+        r"M\pm6": "M &plusmn; 6",
+        r"M\pm10": "M &plusmn; 10",
+        r"M\pm20": "M &plusmn; 20",
+        r"M\pm30": "M &plusmn; 30",
+        r"M\pm40": "M &plusmn; 40",
+        r"M\pm60": "M &plusmn; 60",
+        r"M_g": "M<sub>g</sub>",
+        r"m_i": "m<sub>i</sub>",
+        r"n_{cell}": "n<sub>cell</sub>",
+        r"n_i": "n<sub>i</sub>",
+        r"O_{i,c}": "O<sub>i,c</sub>",
+        r"O_{i,c}=1": "O<sub>i,c</sub> = 1",
+        r"R_{i,b}": "R<sub>i,b</sub>",
+        r"R_{opportunity}": "R<sub>opportunity</sub>",
+        r"R_{station}": "R<sub>station</sub>",
+        r"r_i": "r<sub>i</sub>",
+        r"S_{i,c}": "S<sub>i,c</sub>",
+        r"S_{i,c}\le O_{i,c}": (
+            "S<sub>i,c</sub> &le; O<sub>i,c</sub>"
+        ),
+        r"S_{i,c}=1": "S<sub>i,c</sub> = 1",
+        r"SNR_{R,corr,i,c}": "SNR<sub>R,corr,i,c</sub>",
+        r"SNR_{R,corr}": "SNR<sub>R,corr</sub>",
+        r"SNR_{T,i,c}": "SNR<sub>T,i,c</sub>",
+        r"SNR_R": "SNR<sub>R</sub>",
+        r"T_{i,b}": "T<sub>i,b</sub>",
+        r"T_{i,b},J_{i,b},R_{i,b}": (
+            "T<sub>i,b</sub>, J<sub>i,b</sub>, R<sub>i,b</sub>"
+        ),
+    }
+
+    for latex, html in inline_formula_replacements.items():
+        md_text = md_text.replace(
+            f"${latex}$",
+            f'<span class="inline-formula">{html}</span>',
+        )
 
     inline_replacements = {
         (
@@ -367,27 +513,33 @@ def _mark_intro_analysis_table_for_pdf(html_content):
 
 
 def _mark_method_matrix_for_pdf(html_content):
-    """Isolate the Chapter 7 method matrix for a landscape PDF page template."""
+    """Apply stable portrait widths to the Chapter 7 method matrix."""
     chapter_start = html_content.find('name="sec-7"')
     methods_start = html_content.find('name="sec-7-1"', chapter_start + 1)
     if chapter_start < 0 or methods_start < 0:
         return html_content
 
-    matrix_table_start = html_content.find("<table>", chapter_start, methods_start)
-    if matrix_table_start < 0:
-        return html_content
-    matrix_table_end = html_content.find("</table>", matrix_table_start, methods_start)
-    if matrix_table_end < 0:
-        return html_content
-    matrix_table_end += len("</table>")
-
-    matrix_table = html_content[matrix_table_start:matrix_table_end]
-    header_end = matrix_table.find("</thead>")
-    header_html = matrix_table[:header_end] if header_end >= 0 else matrix_table
-    if len(re.findall(r"<th\b", header_html, flags=re.IGNORECASE)) != len(
-        PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT
+    chapter_intro_html = html_content[chapter_start:methods_start]
+    matrix_candidates = []
+    for table_match in re.finditer(
+        r"<table\b[^>]*>.*?</table>",
+        chapter_intro_html,
+        flags=re.IGNORECASE | re.DOTALL,
     ):
+        table_html = table_match.group(0)
+        header_end = table_html.find("</thead>")
+        header_html = table_html[:header_end] if header_end >= 0 else table_html
+        header_count = len(re.findall(r"<th\b", header_html, flags=re.IGNORECASE))
+        if header_count == len(PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT):
+            matrix_candidates.append(table_match)
+
+    if len(matrix_candidates) != 1:
         return html_content
+
+    matrix_match = matrix_candidates[0]
+    matrix_table_start = chapter_start + matrix_match.start()
+    matrix_table_end = chapter_start + matrix_match.end()
+    matrix_table = matrix_match.group(0)
 
     column_widths = iter(PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT)
 
@@ -409,36 +561,47 @@ def _mark_method_matrix_for_pdf(html_content):
         flags=re.IGNORECASE | re.DOTALL,
     )
 
+    def add_comparison_unit_breaks(cell_match):
+        """Add print-only breaks to long localized comparison-unit names."""
+        opening_tag, cell_html, closing_tag = cell_match.groups()
+        cell_parts = re.split(r"(<[^>]+>)", cell_html)
+        for part_index in range(0, len(cell_parts), 2):
+            cell_parts[part_index] = (
+                cell_parts[part_index]
+                .replace("Target-/", "Target-/<br/>")
+                .replace("Target/", "Target/<br/>")
+                .replace("-Peer-", "-<br/>Peer-")
+            )
+        return opening_tag + "".join(cell_parts) + closing_tag
+
+    matrix_table = re.sub(
+        r"(<td\b[^>]*>)(.*?)(</td>)",
+        add_comparison_unit_breaks,
+        matrix_table,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    marked_html = (
+        html_content[:matrix_table_start]
+        + matrix_table
+        + html_content[matrix_table_end:]
+    )
     label_match = re.search(
         r"<p><strong>[^<]+</strong></p>\s*\Z",
-        html_content[chapter_start:matrix_table_start],
+        marked_html[chapter_start:matrix_table_start],
         flags=re.IGNORECASE,
     )
-    chapter_anchor_start = html_content.rfind("<a", 0, chapter_start)
-    landscape_start = (
-        chapter_anchor_start if chapter_anchor_start >= 0 else matrix_table_start
-    )
-    matrix_prefix = html_content[landscape_start:matrix_table_start]
-    if label_match:
-        label_start = chapter_start + label_match.start()
-        relative_label_start = label_start - landscape_start
-        matrix_prefix = (
-            matrix_prefix[:relative_label_start]
-            + matrix_prefix[relative_label_start:].replace(
-                "<p><strong>",
-                '<p class="pdf-method-matrix-label"><strong>',
-                1,
-            )
-        )
-    landscape_content = (
-        '<pdf:nextpage name="method_matrix_landscape" />'
-        f"{matrix_prefix}{matrix_table}"
-        '<pdf:nextpage name="body" />'
-    )
+    if not label_match:
+        return marked_html
+
+    label_start = chapter_start + label_match.start()
     return (
-        html_content[:landscape_start]
-        + landscape_content
-        + html_content[matrix_table_end:]
+        marked_html[:label_start]
+        + marked_html[label_start:].replace(
+            "<p><strong>",
+            '<p class="pdf-method-matrix-label"><strong>',
+            1,
+        )
     )
 
 
@@ -493,10 +656,6 @@ def _generate_pdf_doc(lang, logo_b64, version):
     <style>
         @page {{ size: a4 portrait; margin: 2cm;
                 @frame footer {{ -pdf-frame-content: footerContent; bottom: 1cm; margin-left: 2cm; margin-right: 2cm; height: 1cm; text-align: right; font-size: 8pt; color: #999; }}
-        }}
-
-        @page method_matrix_landscape {{ size: a4 landscape; margin: 1.2cm;
-                @frame footer {{ -pdf-frame-content: footerContent; bottom: 0.5cm; margin-left: 1.2cm; margin-right: 1.2cm; height: 0.6cm; text-align: right; font-size: 8pt; color: #999; }}
         }}
 
         body {{
@@ -613,6 +772,8 @@ def _generate_pdf_doc(lang, logo_b64, version):
         .pdf-method-matrix-label {{
             margin-bottom: 5px;
             font-size: 9pt;
+            page-break-after: avoid;
+            -pdf-keep-with-next: true;
         }}
 
         .pdf-method-matrix {{
@@ -685,6 +846,10 @@ def _generate_pdf_doc(lang, logo_b64, version):
             margin-top: 5px;
             margin-bottom: 7px;
             line-height: 1.25;
+        }}
+
+        .inline-formula {{
+            white-space: nowrap;
         }}
     </style>
     </head>

@@ -48,7 +48,7 @@ Durch diese Unterscheidung wird aus einer Sammlung erfolgreicher Spots Evidenz, 
 
 #### 0.1 Was WSPRadar zeigen kann
 
-WSPRadar ist ein WSPR-basiertes System zur Analyse und zum Benchmarking der Performance von Antennen und Stationen. Es wertet ein <strong class="defined-term">Target</strong> aus: entweder eine vollständig aufgebaute Station oder einen kontrollierten Sende- beziehungsweise Empfangspfad. Dabei beantwortet es eine von zwei grundlegenden Fragen.
+WSPRadar ist ein WSPR-basiertes System zur Analyse und zum Benchmarking der Performance von Antennen und Stationen. Es wertet ein <strong class="defined-term">Target</strong> aus: die zu untersuchende Station, normalerweise deine Station, dargestellt entweder als vollständig aufgebaute Station oder als kontrollierter Sende- beziehungsweise Empfangspfad. Ein <strong class="defined-term">Peer</strong> ist eine entfernte Gegenstation, deren Funkweg zur Analyse beiträgt. Die <strong class="defined-term">Dekodierrate</strong> ist der Prozentsatz unabhängig bestätigter Gelegenheiten mit einem erfolgreichen Decode auf der Target-Seite: Bei RX decodiert das Target den Peer, bei TX decodiert der Peer das Target. Dabei beantwortet WSPRadar eine von zwei grundlegenden Fragen.
 
 * <strong class="defined-term">Performance</strong> fragt, wie sich das Target innerhalb unabhängig bestätigter WSPR-Gelegenheiten verhalten hat. Sie kann die praktische Funkabdeckung, Mindestens-einmal-Reichweite, Dekodierrate, erfolgreiche Signalpegel, Distanz- und Richtungsstruktur, zeitliches Verhalten sowie Breite und Tiefe der stützenden Evidenz sichtbar machen.
 * <strong class="defined-term">Benchmark</strong> fragt, wie sich das Target unter zugeordneten Bedingungen relativ zu einer aussagekräftigen <strong class="defined-term">Referenz</strong> verhalten hat. Er kann gepaartes Delta SNR Target minus Referenz, gemeinsame und einseitige Decode Outcomes, den Anteil paarbarer Evidenz sowie Ort und Zeit des relativen Unterschieds zeigen.
@@ -545,7 +545,7 @@ Das beobachtete zeitliche, entfernungs- oder richtungsabhängige Muster der Deko
 
 #### 3.2 Ergebnis durch Wiederholung und Kontrolle absichern
 
-Nutze einen ersten explorativen Lauf, um ein mögliches Muster zu erkennen. Lege vor einer bestätigenden Wiederholung Richtung, Band, Benchmark, Filter, Evidenzschwellen, Zeitplan und den primären geografischen oder zeitlichen Auswertungsbereich einschließlich `Maximale Peer-Entfernung vom Target (km)` fest. Führe alternative Maximalentfernungen als getrennt bewahrte Sensitivitätsanalysen aus, statt nach Betrachtung des Ergebnisses nur den günstigsten Bereich auszuwählen.
+Nutze einen ersten explorativen Lauf, um ein mögliches Muster zu erkennen. Lege vor einer bestätigenden Wiederholung Richtung, Band, Benchmark, Filter, Evidenzschwellen, Zeitplan und den primären geografischen oder zeitlichen Auswertungsbereich einschließlich `Maximale Peer-Entfernung vom Target (km)` gemäß [Abschnitt 4.4](#sec-5-4) fest. Führe alternative Maximalentfernungen als getrennt bewahrte Sensitivitätsanalysen aus, statt nach Betrachtung des Ergebnisses nur den günstigsten Bereich auszuwählen.
 
 Wenn das Ergebnis eine wichtige Stationsentscheidung stützen soll:
 
@@ -560,7 +560,7 @@ Wenn das Ergebnis eine wichtige Stationsentscheidung stützen soll:
 
 Kleine beobachtete Unterschiede werden nützlicher, wenn sie über Stationen, Zeiträume, benachbarte Segmente und kontrollierte Wiederholungen erneut auftreten. Eine vertauschte Zuordnung bei sequenziellem TX ist besonders aufschlussreich, weil sie Zeitplan-, Schaltpfad- oder Zykluspositionseffekte sichtbar machen kann, die bei einer gewöhnlichen Wiederholung in derselben Rolle verbleiben.
 
-TX und RX verwenden unterschiedliche Peer-Populationen und Opportunity-Definitionen. Vergleiche gleichartige TX- und RX-Läufe, wenn du die Stationsbalance oder ein „Alligator“-Muster untersuchst.
+TX und RX verwenden unterschiedliche Peer-Populationen und Gelegenheitsdefinitionen. Vergleiche gleichartige TX- und RX-Läufe, wenn du die Stationsbalance oder ein „Alligator“-Muster untersuchst.
 
 <a id="sec-4-3"></a>
 
@@ -642,7 +642,7 @@ WSPRadar unterscheidet Bedienelemente, welche die beibehaltene wissenschaftliche
 | **Ansichtsbedienelemente** | Verändern den aktiven Inspektionsbereich, die ausgewählte Station, die Sichtbarkeit von Evidenz oder die Darstellungsaggregation, ohne beibehaltene Evidenz neu zu klassifizieren. | Nur ausdrücklich unterstützte dauerhafte Einstellungen | Nein |
 | **Temporäre Ansichtsoptionen** | Verändern nur die aktuelle Bildschirmdarstellung, temporäre Tabellenfilter, die Sichtbarkeit der Dokumentation oder einen vorbereiteten Download. | Nein | Nein |
 
-Versionierte Konfigurationen speichern die zutreffenden wissenschaftlichen Einstellungen und die unterstützten dauerhaften Ansichtsoptionen. Die exakten Berechnungen stehen in [Kapitel 7](#sec-7); die unterstützten maschinenlesbaren Bezeichnungen für Konfiguration und Export sind in [Abschnitt 8.4](#sec-8-4) dokumentiert.
+Versionierte Konfigurationen speichern die zutreffenden wissenschaftlichen Einstellungen und die unterstützten dauerhaften Ansichtsoptionen. Die exakten Berechnungen stehen in [Kapitel 7](#sec-7); [Abschnitt 8.4](#sec-8-4) fasst ausgewählte öffentliche maschinenlesbare Bezeichnungen für Konfiguration, URL und Export zusammen. Für den vollständigen Feldvertrag gespeicherter Konfigurationen ist das formale JSON-Schema maßgeblich.
 
 <a id="sec-5-1"></a>
 
@@ -659,7 +659,7 @@ Versionierte Konfigurationen speichern die zutreffenden wissenschaftlichen Einst
 | **`Vollständige Dokumentation laden` / `Vollständige Dokumentation ausblenden`** | Zeigt oder verbirgt das vollständige Webhandbuch. | Reiner Darstellungszustand. |
 | **`PDF vorbereiten`** | Erstellt das Handbuch in der gewählten Sprache als PDF. | Das vollständige Webhandbuch muss dazu nicht zuerst geöffnet werden. |
 
-**Konfigurationskompatibilität.** Gespeicherte Dateien bewahren die Eingaben und dauerhaften Ansichtsoptionen, die für die ausgewählte Analyse gelten. Ungültige oder nicht unterstützte Dateien werden abgelehnt, statt stillschweigend neu interpretiert zu werden. Der aktuelle maschinenlesbare Konfigurationsvertrag ist in [Abschnitt 8.4](#sec-8-4) dokumentiert. Das Laden oder Speichern einer Konfiguration erzeugt kein zusätzliches Ergebnis; ausgeführt wird nur die ausgewählte Performance- oder Benchmark-Analyse.
+**Konfigurationskompatibilität.** Gespeicherte Dateien bewahren die Eingaben und dauerhaften Ansichtsoptionen, die für die ausgewählte Analyse gelten. Ungültige oder nicht unterstützte Dateien werden abgelehnt, statt stillschweigend neu interpretiert zu werden. Das formale JSON-Schema ist der maßgebliche vollständige Vertrag gespeicherter Konfigurationen; [Abschnitt 8.4](#sec-8-4) bietet eine knappe, betriebsbezogene Zusammenfassung ausgewählter öffentlicher Bezeichnungen. Das Laden oder Speichern einer Konfiguration erzeugt kein zusätzliches Ergebnis; ausgeführt wird nur die ausgewählte Performance- oder Benchmark-Analyse.
 
 <a id="sec-5-2"></a>
 
@@ -670,7 +670,7 @@ Die Klassische Eingabe ordnet die wissenschaftliche Konfiguration nach der Frage
 | UI-Bezeichnung | Standard | Funktion |
 |---|---|---|
 | **Frage** | keine; erforderlich | Eine Auswahl aus `RX Performance`, `TX Performance`, `RX-Benchmark` oder `TX-Benchmark`; legt Richtung und Ergebnistyp gemeinsam fest. |
-| **Target-Rufzeichen (Empfänger im Test)** / **Target-Rufzeichen (Sender im Test)** | leer | Exakte Meldeidentität im Archiv. Standardrufzeichen, gültige Varianten mit `/`, reine Buchstabenkennungen und genau ein abschließendes `-`-Suffix sind zulässig. |
+| **Target-Rufzeichen (Empfänger im Test)** / **Target-Rufzeichen (Sender im Test)** | leer | Exakte Meldeidentität im Archiv. Standardrufzeichen, gültige Varianten mit `/`, reine Buchstabenkennungen und ein optionales abschließendes alphanumerisches Bindestrich-Suffix sind zulässig. |
 | **Target-QTH (4 oder 6 Zeichen)** | leer | Target-Zuordnung über Grid-4, Kartenmittelpunkt, Geometrie und Ursprung des lokalen Radius. |
 | **Frequenzband** | `20m` | Genau eines aus `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` oder `23cm`. |
 | **UTC-Messzeitraum** | festes 24-Stunden-Fenster bis zur aktuellen 15-Minuten-UTC-Grenze | Das absolute Evidenzintervall des Laufs. |
@@ -690,7 +690,7 @@ Für `RX-Benchmark` und `TX-Benchmark` zeigt die Klassische Eingabe einen dritte
 - `Bekannte Referenzstation`
 - `Lokale Nachbarschaft`
 
-Bei `RX Performance` und `TX Performance` entfällt der Bereich **`Benchmark-Design`** vollständig, weil Performance keine Referenz verwendet. `Starten` und `Konfig speichern` bleiben unverfügbar, solange die Frage unvollständig ist oder für eine Benchmark-Frage kein vollständiges Benchmark-Design vorliegt. Performance und Benchmark sind sich gegenseitig ausschließende Ergebnistypen: Ein Lauf erzeugt nur das ausgewählte Ergebnis. Die unterstützten maschinenlesbaren Bezeichnungen für Konfiguration, URL und Export stehen in [Abschnitt 8.4](#sec-8-4).
+Bei `RX Performance` und `TX Performance` entfällt der Bereich **`Benchmark-Design`** vollständig, weil Performance keine Referenz verwendet. Die richtungsabhängige Aktion `RX-Analyse starten` / `TX-Analyse starten` und `Konfig speichern` bleiben unverfügbar, solange die Frage unvollständig ist oder für eine Benchmark-Frage kein vollständiges Benchmark-Design vorliegt. Performance und Benchmark sind sich gegenseitig ausschließende Ergebnistypen: Ein Lauf erzeugt nur das ausgewählte Ergebnis. [Abschnitt 8.4](#sec-8-4) fasst ausgewählte öffentliche maschinenlesbare Bezeichnungen für Konfiguration, URL und Export zusammen; er ist kein vollständiger Feld- oder Parameterkatalog.
 
 | UI-Bezeichnung | Standard / Wertebereich | Gilt für | Wissenschaftliche Wirkung |
 |---|---|---|---|
@@ -930,8 +930,6 @@ Hilfreich ist die Unterscheidung von fünf Ebenen:
 4. **Deskriptive Zusammenfassungen:** Raten, Mediane, Reichweite, Evidenzanteile sowie zeitliche und geografische Zusammenfassungen der beibehaltenen Evidenz.
 5. **Interpretation über den Lauf hinaus:** Aussagen über künftiges Verhalten, eine breitere Population oder eine physische Ursache. Solche Verallgemeinerungen benötigen zusätzliche Annahmen und experimentelle Kontrolle; die reine Berechnung genügt dafür nicht.
 
-Das gewählte Design definiert damit das **Analyseziel** – in formaler statistischer Sprache das *Estimand* – durch seine Konditionierung, Zulässigkeit und Gewichtung. Dieses Handbuch verwendet normalerweise den verständlicheren Begriff *Analyseziel*. WSPRadar verknüpft damit kein inferenzstatistisches Stichprobenmodell und kein Konfidenzintervall.
-
 **Verwendete Notation**
 
 | Symbol | Bedeutung |
@@ -947,6 +945,8 @@ Das gewählte Design definiert damit das **Analyseziel** – in formaler statist
 
 Ein Indikator ist `1`, wenn seine Bedingung erfüllt ist, und sonst `0`. Die Notation macht Nenner und Gewichtung eindeutig; der Text nach jeder Formel erklärt dieselbe Berechnung in Funkpraxis-Sprache.
 
+Dieses Kapitel verwendet **Zusammenfassung** oder **deskriptive Kennzahl** für die Raten, Mediane, Anteile und Verteilungen der beibehaltenen Evidenz. Die Unterscheidung ist wichtig, weil ein Wert für die beibehaltenen Zeilen exakt berechnet sein und dennoch nur eine enge oder ausgewählte Population beschreiben kann.
+
 **Methodischer Überblick**
 
 | Design | Kleinste Vergleichseinheit | Konditionierung / Zulässigkeit | Hauptzusammenfassung | Wichtigste Grenze |
@@ -958,6 +958,8 @@ Ein Indikator ist `1`, wenn seine Bedingung erfüllt ist, und sonst `0`. Die Not
 | Sequenzielles TX Hardware A/B | ein entfernter Empfänger in einem geplanten Target-/Referenzpaar | deterministischer, überschneidungsfreier Zeitplan und vollständiges Paar im Zeitfenster | Stationsmedian des Paar-Deltas, danach Median über Stationen | zeitliche Trennung sowie Umschalt- und Zeitplaneffekte |
 | Lokaler Nachbarschafts-Median | ein Target-/lokaler-Referenz-Peer-Zyklus | Target aktiv; ein Beitrag je aktiver lokaler Identität | lokaler Median als Referenz, danach Stations- und Segmentmediane des Delta SNR | wechselnde, unkalibrierte Zusammensetzung |
 | Beste lokale Station | ein Target-/beste-lokale-Station-Peer-Zyklus | Target aktiv; stärkste qualifizierende lokale Identität | beste lokale Referenz, danach Stations- und Segmentmediane des Delta SNR | wechselnde Hüllkurve, kein fester Konkurrent |
+
+Die Hierarchie lässt sich von links nach rechts lesen: WSPRadar entscheidet zuerst, welche Evidenzeinheiten zur Analyse gehören, berechnet danach eine Größe auf Peer- oder Funkwegebene und bildet erst dann die angezeigte stationsgleichgewichtete Zusammenfassung. Die folgenden Formeln machen diese Schritte prüfbar; der Text nach jeder Formel erklärt dieselbe Berechnung in Funkpraxis-Sprache.
 
 <a id="sec-7-1"></a>
 #### 7.1 Datenquelle, Beobachtungseinheiten und Zeitmodell
@@ -1049,7 +1051,7 @@ Die Mindestens-einmal-Reichweite lautet:
 
 $$Reach(g)=100\%\times\frac{|\{i\in I_g:h_i\ge1\}|}{|I_g|}$$
 
-In Funkpraxis-Sprache ist dies der Prozentsatz qualifizierender Peers, bei denen das Target mindestens einmal Evidenz erzeugte. Die Reichweite beschreibt Breite und nimmt mit der Beobachtungsdauer normalerweise zu; sie sagt nicht, wie beständig diese Funkwege funktionierten.
+In Funkpraxis-Sprache ist dies der Prozentsatz qualifizierender Peers, bei denen das Target in mindestens einer qualifizierenden Gelegenheit erfolgreich war. Die Reichweite beschreibt Breite und nimmt mit der Beobachtungsdauer normalerweise zu; sie sagt nicht, wie beständig diese Funkwege funktionierten.
 
 Erfolgreiches Target-SNR ist nur definiert, wenn das Target decodiert oder gemeldet wurde. Es ist damit eine auf erfolgreiche Decodes bedingte Verteilung. Verpasste Gelegenheiten besitzen kein Target-SNR und erhalten keinen künstlichen Wert. Dekodierrate und erfolgreiches SNR müssen gemeinsam gelesen werden: Ein System, das zusätzliche schwache Signale decodiert, kann die praktische Reichweite verbessern und zugleich den Median der erfolgreichen SNR-Werte absenken.
 
@@ -1072,7 +1074,7 @@ Für eine gepaarte Beobachtung gilt:
 
 $$D_{i,c}=\Delta SNR_{i,c}=SNR_{T,i,c}-SNR_{R,corr,i,c}$$
 
-Positives $D_{i,c}$ spricht für das Target, negatives für die Referenz. Eine positive Korrektur macht die Referenz vor der Subtraktion stärker und senkt deshalb Delta SNR. Der eingegebene Kalibrierversatz verwendet dasselbe Vorzeichen `target - reference`.
+Dabei ist $C_R$ die vorzeichenbehaftete additive referenzseitige Korrektur. In der ersten Gleichung bezeichnen $SNR_R$ und $SNR_{R,corr}$ das Referenz-SNR vor und nach der Korrektur. In der Gleichung für das Paar kennzeichnen die Indizes $i,c$ den Peer und die zugeordnete Evidenzeinheit; $SNR_{T,i,c}$ ist das zugehörige normierte Target-SNR und $SNR_{R,corr,i,c}$ das korrigierte Referenz-SNR. Positives $D_{i,c}$ spricht für das Target, negatives für die Referenz. Eine positive Korrektur macht die Referenz vor der Subtraktion stärker und senkt deshalb Delta SNR. Der eingegebene Kalibrierversatz verwendet dasselbe Vorzeichen `target - reference`.
 
 Der Wert $D_{i,c}$ ist eine beobachtete gepaarte Differenz für genau eine beibehaltene Vergleichseinheit. Er wird exakt aus den beiden beibehaltenen SNR-Werten und der gegebenenfalls konfigurierten Korrektur berechnet. Seine Interpretation hängt dennoch davon ab, wofür beide Seiten stehen und wie gut der physische Versuch die übrigen Ketten kontrolliert hat.
 
@@ -1202,7 +1204,7 @@ Für die Abweichung des erfolgreichen Performance-SNR geht ein Peer nur dann in 
 
 $$A_{i,c}=SNR_{i,c}-\operatorname{median}_{c'}(SNR_{i,c'})$$
 
-Ein positiver Wert bedeutet, dass dieser erfolgreiche Decode stärker als der für diesen Peer übliche erfolgreiche Pegel im Lauf war; ein negativer Wert bedeutet schwächer. Es handelt sich um eine Abweichung innerhalb eines Funkwegs und nicht um Target-minus-Referenz-Delta-SNR.
+Dabei kennzeichnet $c$ die aktuelle erfolgreiche Beobachtung; $c'$ durchläuft alle erfolgreichen Beobachtungen des Peers $i$ im vollständigen Laufzeitfenster, aus denen seine Basislinie entsteht. `0 dB` bedeutet damit „auf dem für diesen Funkweg üblichen erfolgreichen Pegel“ und nicht Target–Referenz-Gleichheit. Ein positiver Wert bedeutet, dass dieser erfolgreiche Decode stärker als der für diesen Peer übliche erfolgreiche Pegel im Lauf war; ein negativer Wert bedeutet schwächer. Es handelt sich um eine Abweichung innerhalb eines Funkwegs und nicht um Target-minus-Referenz-Delta-SNR.
 
 Chronologisch trägt jeder Peer je ausgewähltem Bin höchstens einen Median der Abweichung bei. In der UTC-gefalteten Sicht trägt jeder Peer zunächst je Datum und UTC-Stunde einen Median bei; erst danach werden diese Peer-Datum-Stunden-Werte über die gefaltete Population zusammengefasst. Dadurch dominieren besonders häufig meldende Peers oder Tage nicht allein durch ihre Rohzeilenzahl.
 
@@ -1239,6 +1241,8 @@ Benchmark-Histogramme verwenden normalerweise 1-dB-Klassen, 0,5 dB nur bei einem
 
 $$D_{relative}=100\times\frac{n_{cell}}{\max(n_{cell,panel})}$$
 
+Dabei ist $n_{cell}$ die Evidenzanzahl in einer Dichtezelle. Die Division durch die am stärksten belegte Zelle wandelt das Panel in eine Darstellung der relativen Dichte um, ohne die zugrunde liegenden Anzahlen zu verändern.
+
 `100` bezeichnet damit die am stärksten belegte Zelle dieses Panels und nicht 100 % der gesamten Evidenz. Dichtefarben erlauben keinen Vergleich des absoluten Evidenzvolumens zwischen unabhängig normierten Panels; dafür sind die Stützzahlen maßgeblich.
 
 Zeitliche Benchmark-Ansichten und Histogramme verwenden eine rein darstellungsbezogene monotone Skala, die um den Bereichsmedian $M$ zentriert ist. Bei großer Spannweite liegen gleichmäßige visuelle Schritte bei $M$, $M\pm3$, $M\pm6$, $M\pm10$, $M\pm20$ und $M\pm30$ dB; ein Randanker liegt bei $M\pm60$ dB und wird bei Bedarf fortgesetzt. Wenn jede erforderliche Abweichung höchstens `10 dB` beträgt, lauten die engeren Anker $M$, $M\pm1$, $M\pm3$, $M\pm6$ und $M\pm10$ dB; Fortsetzungsanker liegen bei $M\pm20$ und $M\pm40$ dB. Der erforderliche Bereich umfasst die zutreffenden Rohgrenzen des Histogramms beziehungsweise die gerundeten Heatmap-Klassengrenzen, eine Mindesthalbspanne von `3 dB` und den absoluten Wert `0 dB`, damit Target-Referenz-Gleichheit sichtbar bleibt. Die Ankerabbildung verändert ausschließlich die dargestellten Abstände: Rohe Delta-SNR-Werte, Bin-Zuordnung, Anzahlen, Mediane und Quartile bleiben unverändert. Wegen der nichtlinearen vertikalen Abbildung ist die **Balkenlänge** entlang der Prozentachse – nicht die dargestellte Fläche – die quantitative Kodierung.
@@ -1268,7 +1272,7 @@ Die Zeilengrenze des Archivs und die Bedienelemente, mit denen sich die abgerufe
 
 Die Formeln dieses Kapitels berechnen exakte deskriptive Zusammenfassungen der beibehaltenen Evidenz. Unsicherheit entsteht, wenn daraus Aussagen über nicht beobachtete Bedingungen, künftige Läufe, eine breitere Stationspopulation oder eine physische Ursache abgeleitet werden.
 
-WSPRadar-Beobachtungen sind geclustert und nicht unabhängig. Wiederholte Zyklen eines Peers teilen Hardware- und Funkwegeigenschaften; Stationen in benachbarten Regionen teilen Ausbreitungsbedingungen; Zeit-Bins sind autokorreliert; und ein einzelnes ionosphärisches Ereignis oder eine Störung kann viele Beobachtungen gleichzeitig beeinflussen. Eine große Zeilenzahl ist daher keine unabhängige Stichprobengröße.
+WSPRadar-Beobachtungen sind geclustert und nicht unabhängig. In gewöhnlicher Stationssprache sind 1.000 Spots nicht dasselbe wie 1.000 voneinander unabhängige Experimente. Wiederholte Zyklen eines Peers teilen Hardware- und Funkwegeigenschaften; Stationen in benachbarten Regionen teilen Ausbreitungsbedingungen; Zeit-Bins sind autokorreliert; und ein einzelnes ionosphärisches Ereignis oder eine Störung kann viele Beobachtungen gleichzeitig beeinflussen. Eine große Zeilenzahl ist daher keine unabhängige Stichprobengröße.
 
 Stationsgleichgewichtung verringert die Dominanz besonders aktiver Peers, und Mediane verringern die Empfindlichkeit gegenüber einzelnen Ausreißern. Beides erzeugt weder Unabhängigkeit noch beseitigt es systematische Verzerrungen oder liefert eine Stichprobenverteilung. IQRs beschreiben die Streuung innerhalb des Laufs und sind keine Unsicherheitsintervalle.
 
@@ -1433,7 +1437,7 @@ Dateien ohne anwendbares Ergebnis oder ohne ausgewählte Station können fehlen.
 | Zeitliche Abbildungen | Chronologische und nach UTC-Stunde gefaltete Zusammenfassungen für das aktive Segment. |
 | Abbildungen der ausgewählten Station | Genau eine ausgewählte Peer-Identität; mehrere ausgewählte Funkwege werden niemals zusammengefasst. |
 
-**Maschinenlesbare Vertragsbezeichnungen.** Die folgenden exakten Namen stehen hier, weil sie unterstützte externe Konfigurations-, URL- oder Exportverträge sind. Sie sind keine Begriffe zur Erklärung der wissenschaftlichen Methode.
+**Ausgewählte öffentliche maschinenlesbare Vertragsbezeichnungen.** Diese knappe Tabelle nennt unterstützte externe Bezeichnungen, die für den Funkbetrieb und nachgelagerte Auswertungen nützlich sind; sie ist kein vollständiger Katalog der Felder gespeicherter Konfigurationen, URL-Parameter oder Exportmetadaten. Für Felder gespeicherter Konfigurationen ist das formale JSON-Schema (`config/wspradar-config.schema.json`) maßgeblich; der unterstützte öffentliche URL-Vertrag ist separat versioniert. Private Implementierungsbezeichnungen sind bewusst ausgelassen. Diese Namen sind keine Begriffe zur Erklärung der wissenschaftlichen Methode.
 
 | Vertragsbereich | Exakte Bezeichnungen | Bedeutung |
 |---|---|---|

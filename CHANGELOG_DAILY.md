@@ -2,6 +2,33 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-08-05
+
+- Reconciled the authoritative English and German manuals after the scientific-
+  methods restructuring. The preface now introduces Target, peer and Decode
+  Rate; the controls use the direction-specific Run labels and exact callsign
+  syntax; Chapter 7 restores the missing plain-language formula explanations and
+  bilingual symbol definitions; Chapter 8 now presents a concise, explicitly
+  non-exhaustive public-contract summary while leaving the formal JSON Schema
+  authoritative for saved-configuration fields. `README.md` was regenerated
+  from the English source.
+- Repaired documentation PDF generation for all current block and inline Chapter
+  7 notation, and optimized the five-column method matrix for readable portrait
+  output in both languages. Documentation regressions now test durable
+  scientific and operator meaning instead of obsolete panel, axis, legend and
+  layout narration, while retaining bilingual structure, formula and public-
+  contract checks.
+- Expanded contributor rules for bilingual manuals with proportional semantic-
+  parity review, source-led and parallel/co-authored source models, functional
+  HTML parity, localized decimal punctuation, explicit public/private identifier
+  boundaries, and a narrowly recorded duplicate-removal exception that does not
+  weaken the general preservation and relocation protocol.
+- Accepted the reconciled English and German manuals as the current
+  documentation baseline and grandfathered the structural relocations
+  introduced by commit `8773d5d67318896bd487f1c159ffb29d6155950f`. This closes
+  the retrospective relocation-ledger blocker without exempting later
+  substantial restructures from the relocation protocol.
+
 ## 2026-08-03
 
 - Renamed the formal result type **Compare** to **Benchmark** across Guided and

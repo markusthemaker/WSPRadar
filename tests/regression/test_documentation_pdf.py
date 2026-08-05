@@ -52,66 +52,65 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
     )
     for language, manual in localized_manuals:
         translations = T[language]
-        decode_rate_label = translations["pdf_metric_decode_rate"]
         rendered = pdf_generator._replace_pdf_math(manual, translations)
+        source_block_formulas = re.findall(r"\$\$(.*?)\$\$", manual, flags=re.DOTALL)
+        source_inline_formulas = re.findall(
+            r"(?<!\$)\$[^$\r\n]+\$(?!\$)",
+            manual,
+        )
 
+        assert len(source_block_formulas) == 16
+        assert rendered.count('<p class="formula"><b>') == len(
+            source_block_formulas
+        )
+        assert rendered.count('<span class="inline-formula">') == len(
+            source_inline_formulas
+        )
         assert "$$" not in rendered
+        assert not re.search(r"(?<!\$)\$[^$\r\n]+\$(?!\$)", rendered)
         assert "&Delta;" not in rendered
-        assert (
-            f"{decode_rate_label}<sub>RX</sub> = 100% &times; "
-            "Target / (Target + Elsewhere)"
-        ) in rendered
-        assert (
-            f"{decode_rate_label}<sub>TX</sub> = 100% &times; "
-            "Target / (Target + Other Signals)"
-        ) in rendered
-        assert "Success Rate<sub>" not in rendered
-        assert f"{translations['pdf_formula_delta_snr']} =" in rendered
-        assert (
-            "SNR<sub>reference</sub> + "
-            f"{translations['pdf_formula_correction']}"
-        ) in rendered
-        assert (
-            "v<sub>T,s,b</sub> = T<sub>s,b</sub> / N<sub>s,b</sub>"
-            in rendered
+        expected_formula_fragments = (
+            "n<sub>i</sub> = sum<sub>c</sub> O<sub>i,c</sub>",
+            "r<sub>i</sub> = 100% &times; h<sub>i</sub> / n<sub>i</sub>",
+            "R<sub>station</sub>(g) = (1 / |I<sub>g</sub>|)",
+            "R<sub>opportunity</sub>(g) = 100% &times;",
+            "Reach(g) = 100% &times; count(i in I<sub>g</sub>",
+            "SNR<sub>norm</sub> = SNR<sub>measured</sub>",
+            "SNR<sub>R,corr</sub> = SNR<sub>R</sub> + C<sub>R</sub>",
+            f"{translations['pdf_formula_delta_snr']}<sub>i,c</sub>",
+            "m<sub>i</sub> = median<sub>c</sub>(D<sub>i,c</sub>)",
+            "M<sub>g</sub> = median(i in I<sub>g</sub>)(m<sub>i</sub>)",
+            "N<sub>i,b</sub> = T<sub>i,b</sub> + J<sub>i,b</sub>",
+            "v<sub>T,i,b</sub> = T<sub>i,b</sub> / N<sub>i,b</sub>",
+            "v<sub>J,i,b</sub> = J<sub>i,b</sub> / N<sub>i,b</sub>",
+            "v<sub>R,i,b</sub> = R<sub>i,b</sub> / N<sub>i,b</sub>",
+            "JES<sub>station</sub>(b) = 100% &times; mean<sub>i</sub>",
+            "JES<sub>outcome</sub>(b) = 100% &times;",
+            "A<sub>i,c</sub> = SNR<sub>i,c</sub> - median<sub>c&apos;</sub>",
+            "D<sub>relative</sub> = 100 &times; n<sub>cell</sub>",
         )
-        assert (
-            "v<sub>J,s,b</sub> = J<sub>s,b</sub> / N<sub>s,b</sub>"
-            in rendered
-        )
-        assert (
-            "v<sub>R,s,b</sub> = R<sub>s,b</sub> / N<sub>s,b</sub>"
-            in rendered
-        )
-        assert (
-            "N<sub>s,b</sub> = T<sub>s,b</sub> + "
-            "J<sub>s,b</sub> + R<sub>s,b</sub>"
-            in rendered
-        )
-        assert (
-            "100 &times; mean<sub>s</sub>("
-            "J<sub>s,b</sub> / N<sub>s,b</sub>)"
-            in rendered
-        )
-        assert (
-            "100 &times; sum<sub>s</sub> J<sub>s,b</sub> / "
-            "sum<sub>s</sub> N<sub>s,b</sub>"
-            in rendered
-        )
+        for expected_formula_fragment in expected_formula_fragments:
+            assert expected_formula_fragment in rendered
+        for expected_inline_formula_fragment in (
+            "A<sub>c</sub> = 1",
+            "S<sub>i,c</sub> &le; O<sub>i,c</sub>",
+            "SNR<sub>R,corr,i,c</sub>",
+            "M &plusmn; 60",
+            "n<sub>cell</sub>",
+        ):
+            assert expected_inline_formula_fragment in rendered
         for unsupported_latex in (
             r"\(",
             r"\)",
+            r"\frac",
+            r"\ge",
+            r"\left",
             r"\operatorname",
+            r"\qquad",
+            r"\right",
             r"\sum",
         ):
             assert unsupported_latex not in rendered
-        assert "C<sub>s,b</sub>" not in rendered
-        assert "B<sub>s</sub>" not in rendered
-        assert "D<sub>relativ" in rendered
-        assert (
-            "f<sub>RF</sub> "
-            f"{translations['pdf_formula_approx']} f<sub>dial</sub>"
-        ) in rendered
 
 
 def test_generated_pdf_footer_uses_localized_page_label(monkeypatch):
@@ -319,11 +318,11 @@ def test_pdf_html_adds_named_destinations_without_removing_web_ids():
         assert f'<a id="{anchor}" name="{anchor}"></a>' in rendered
 
 
-def test_pdf_preprocessing_isolates_only_each_chapter_seven_method_matrix():
-    """Only the localized 10-column orientation matrices use landscape pages."""
+def test_pdf_preprocessing_marks_only_each_chapter_seven_method_matrix():
+    """Only the localized five-column orientation matrices receive print widths."""
     localized_manuals = (
-        (DOC_EN, T["en"], "Lowest observation/<br/>comparison unit"),
-        (DOC_DE, T["de"], "Beobachtungs-/<br/>Vergleichseinheit"),
+        (DOC_EN, T["en"], "Conditioning /<br/> eligibility"),
+        (DOC_DE, T["de"], "Konditionierung /<br/> Zulässigkeit"),
     )
     for manual, translations, wrapped_header in localized_manuals:
         rendered = pdf_generator._render_pdf_html(manual, translations)
@@ -332,22 +331,15 @@ def test_pdf_preprocessing_isolates_only_each_chapter_seven_method_matrix():
         )[0]
 
         assert rendered.count('class="pdf-method-matrix"') == 1
-        assert rendered.count(
-            '<pdf:nextpage name="method_matrix_landscape" />'
-        ) == 1
-        assert rendered.count('<pdf:nextpage name="body" />') == 1
-        assert rendered.index('name="method_matrix_landscape"') < rendered.index(
-            'name="sec-7"'
-        )
+        assert "method_matrix_landscape" not in rendered
+        assert '<pdf:nextpage name="body" />' not in rendered
         assert rendered.index('name="sec-7"') < rendered.index(
             'class="pdf-method-matrix-label"'
         )
         assert chapter_intro.index(
             'class="pdf-method-matrix-label"'
         ) < chapter_intro.index('class="pdf-method-matrix"')
-        assert chapter_intro.index('class="pdf-method-matrix"') < chapter_intro.index(
-            'name="body"'
-        )
+        assert chapter_intro.index('class="pdf-method-matrix"') < len(chapter_intro)
         assert tuple(
             int(width)
             for width in re.findall(
@@ -357,16 +349,20 @@ def test_pdf_preprocessing_isolates_only_each_chapter_seven_method_matrix():
         ) == pdf_generator.PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT
         assert wrapped_header in chapter_intro
 
+    german_rendered = pdf_generator._render_pdf_html(DOC_DE, T["de"])
+    assert "Target-/<br/>lokaler-Referenz-<br/>Peer-Zyklus" in german_rendered
+    assert "Target-/<br/>beste-lokale-Station-<br/>Peer-Zyklus" in german_rendered
 
-def test_generated_pdf_switches_to_landscape_for_method_matrix(monkeypatch):
-    """The named page templates must bracket the method matrix in the actual PDF."""
+
+def test_generated_pdf_keeps_method_matrix_in_portrait(monkeypatch):
+    """The method matrix must not switch any generated page to landscape."""
     from PIL import Image
     from pypdf import PdfReader
 
-    column_names = [f"Column {number}" for number in range(1, 11)]
+    column_names = [f"Column {number}" for number in range(1, 6)]
     header = "| " + " | ".join(column_names) + " |"
     separator = "|" + "|".join("---" for _column in column_names) + "|"
-    row = "| " + " | ".join(f"Cell {number}" for number in range(1, 11)) + " |"
+    row = "| " + " | ".join(f"Cell {number}" for number in range(1, 6)) + " |"
     compact_manual = "\n".join(
         (
             '<a id="sec-1"></a>',
@@ -399,24 +395,16 @@ def test_generated_pdf_switches_to_landscape_for_method_matrix(monkeypatch):
 
     assert pdf_bytes is not None
     reader = PdfReader(io.BytesIO(pdf_bytes))
-    pages_by_text = {
-        page.extract_text(): page
-        for page in reader.pages
-    }
-    matrix_page = next(
-        page for text, page in pages_by_text.items() if "Method matrix" in text
-    )
-    before_page = next(
-        page for text, page in pages_by_text.items() if "Before matrix" in text
-    )
-    after_page = next(
-        page for text, page in pages_by_text.items() if "After matrix" in text
-    )
+    extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
-    assert float(before_page.mediabox.width) < float(before_page.mediabox.height)
-    assert float(matrix_page.mediabox.width) > float(matrix_page.mediabox.height)
-    assert float(after_page.mediabox.width) < float(after_page.mediabox.height)
-    assert "Scientific methods" in matrix_page.extract_text()
+    assert all(
+        float(page.mediabox.width) < float(page.mediabox.height)
+        for page in reader.pages
+    )
+    assert "Before matrix" in extracted_text
+    assert "Method matrix" in extracted_text
+    assert "After matrix" in extracted_text
+    assert "Scientific methods" in extracted_text
 
 
 def test_xhtml2pdf_emits_an_internal_link_destination():

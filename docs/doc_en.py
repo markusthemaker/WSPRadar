@@ -48,7 +48,7 @@ This distinction turns WSPR from a collection of successful spots into evidence 
 
 #### 0.1 What WSPRadar can show
 
-WSPRadar is a WSPR-based antenna and station performance analysis and benchmarking system. It evaluates one <strong class="defined-term">Target</strong>: either a complete installed station or a controlled transmit or receive path. It then answers one of two broad questions.
+WSPRadar is a WSPR-based antenna and station performance analysis and benchmarking system. It evaluates one <strong class="defined-term">Target</strong>: the station under test, normally your station, represented either as a complete installed station or as a controlled transmit or receive path. A <strong class="defined-term">peer</strong> is a remote station whose radio path contributes to the analysis. <strong class="defined-term">Decode Rate</strong> is the percentage of independently confirmed opportunities in which the Target-side decode succeeded: the Target decoded the peer in RX, or the peer decoded the Target in TX. WSPRadar then answers one of two broad questions.
 
 * <strong class="defined-term">Performance</strong> asks how the Target behaved across independently confirmed WSPR opportunities. It can reveal practical footprint, at-least-once reach, Decode Rate, successful signal levels, distance and direction structure, temporal behavior, and the breadth and depth of the supporting evidence.
 * <strong class="defined-term">Benchmark</strong> asks how the Target behaved relative to a meaningful <strong class="defined-term">Reference</strong> under matched conditions. It can reveal paired Target-minus-Reference Delta SNR, joint and one-sided Decode Outcomes, how much evidence was pairable, and where and when the relative difference appeared.
@@ -229,7 +229,7 @@ Start with the station question and the physical experiment. The interface choic
 
 #### 1.1 Build a strong experiment foundation
 
-A useful WSPRadar result begins with one sentence stating what is being tested and what observation would count as support. Decide whether the run is exploratory—intended to find a possible pattern—or confirmatory—intended to test a pattern already identified.
+A useful WSPRadar result begins with one sentence stating what is being tested and what observation would count as support. Decide whether the run is exploratory — intended to find a possible pattern — or confirmatory — intended to test a pattern already identified.
 
 Use one exact band and a UTC window in which the Target was operating. Enter callsigns exactly as uploaded and verify the Target QTH. Record the antenna, feedline, radio, tuner, gain or power settings, decoder, software version, schedule and any deliberate change. Keep every variable outside the question as stable as practical.
 
@@ -548,7 +548,7 @@ The observed time, distance, direction, Decode Rate, successful-SNR or Delta-SNR
 
 #### 3.2 Strengthen a result through repetition and control
 
-Use an initial exploratory run to identify a possible pattern. Before a confirmatory repetition, freeze the direction, band, benchmark, filters, evidence thresholds, schedule and primary geographic or temporal evaluation scope, including `Maximum peer distance from Target (km)`. Run alternative maximum distances as separately preserved sensitivity analyses rather than selecting only the most favorable scope after seeing the result.
+Use an initial exploratory run to identify a possible pattern. Before a confirmatory repetition, freeze the direction, band, benchmark, filters, evidence thresholds, schedule and primary geographic or temporal evaluation scope, including `Maximum peer distance from Target (km)` as defined in [Section 4.4](#sec-5-4). Run alternative maximum distances as separately preserved sensitivity analyses rather than selecting only the most favorable scope after seeing the result.
 
 When the result will support an important station decision:
 
@@ -645,7 +645,7 @@ WSPRadar distinguishes controls that change the retained scientific evidence fro
 | **View controls** | Change the active inspection scope, selected station, evidence visibility or display aggregation without reclassifying retained evidence. | Supported durable choices only | No |
 | **Temporary interface choices** | Change only the current on-screen arrangement, temporary table filters, documentation visibility or a prepared download. | No | No |
 
-Versioned configurations store the applicable scientific settings and supported durable view choices. Exact calculations are defined in [Chapter 7](#sec-7); the supported machine-readable configuration and export names are documented in [Section 8.4](#sec-8-4).
+Versioned configurations store the applicable scientific settings and supported durable view choices. Exact calculations are defined in [Chapter 7](#sec-7); [Section 8.4](#sec-8-4) summarizes selected public machine-readable configuration, URL and export names. The formal JSON Schema is authoritative for the exhaustive saved-configuration field contract.
 
 <a id="sec-5-1"></a>
 
@@ -662,7 +662,7 @@ Versioned configurations store the applicable scientific settings and supported 
 | **`Load full documentation` / `Hide full documentation`** | Shows or hides the complete web manual. | Presentation state only. |
 | **`Prepare PDF`** | Builds the selected-language manual as PDF. | The full web manual does not need to be open first. |
 
-**Configuration compatibility.** Saved files preserve the inputs and durable view choices applicable to the selected analysis. Invalid or unsupported files are rejected rather than silently reinterpreted. The current machine-readable configuration contract is documented in [Section 8.4](#sec-8-4). Loading or saving a configuration does not create an additional result; only the selected Performance or Benchmark analysis is run.
+**Configuration compatibility.** Saved files preserve the inputs and durable view choices applicable to the selected analysis. Invalid or unsupported files are rejected rather than silently reinterpreted. The formal JSON Schema is the authoritative exhaustive saved-configuration contract; [Section 8.4](#sec-8-4) gives a concise operator-facing summary of selected public identifiers. Loading or saving a configuration does not create an additional result; only the selected Performance or Benchmark analysis is run.
 
 <a id="sec-5-2"></a>
 
@@ -673,7 +673,7 @@ Classic presents the scientific setup in a question-led order. The first panel, 
 | UI label | Default | What it controls |
 |---|---|---|
 | **Question** | none; required | One of `RX Performance`, `TX Performance`, `RX Benchmark` or `TX Benchmark`; sets direction and result type together. |
-| **Target callsign (receiver under test)** / **Target callsign (transmitter under test)** | blank | Exact archive reporting identity. Standard callsigns, valid `/` variants, letter-only reporting identifiers and one terminal `-` suffix are accepted. |
+| **Target callsign (receiver under test)** / **Target callsign (transmitter under test)** | blank | Exact archive reporting identity. Standard callsigns, valid `/` variants, letter-only reporting identifiers and one optional terminal alphanumeric hyphen suffix are accepted. |
 | **Target QTH (4 or 6 characters)** | blank | Target grid-4 matching, map center, geometry and local-radius origin. |
 | **Operating Band** | `20m` | Exactly one of `LF`, `MF`, `160m`, `80m`, `60m`, `40m`, `30m`, `22m`, `20m`, `17m`, `15m`, `12m`, `10m`, `8m`, `6m`, `4m`, `2m`, `70cm` or `23cm`. |
 | **UTC measurement window** | fixed 24-hour window ending at the current 15-minute UTC boundary | The absolute evidence interval used by the run. |
@@ -693,7 +693,7 @@ For `RX Benchmark` and `TX Benchmark`, Classic displays a third panel named **`B
 - `Known Reference Station`
 - `Local Neighborhood`
 
-Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and `TX Performance`, because Performance has no Reference. `Run` and `Save Config` remain unavailable while the Question is incomplete or while a Benchmark question has no complete Benchmark design. Performance and Benchmark are mutually exclusive result types: one run produces only the selected result. The supported machine-readable configuration, URL and export names are documented in [Section 8.4](#sec-8-4).
+Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and `TX Performance`, because Performance has no Reference. The direction-specific `Run RX Analysis` / `Run TX Analysis` action and `Save Config` remain unavailable while the Question is incomplete or while a Benchmark question has no complete Benchmark design. Performance and Benchmark are mutually exclusive result types: one run produces only the selected result. [Section 8.4](#sec-8-4) summarizes selected public machine-readable configuration, URL and export names; it is not an exhaustive field or parameter catalog.
 
 | UI label | Default / range | Applies to | Scientific effect |
 |---|---|---|---|
@@ -723,7 +723,7 @@ The correction applies to the Reference receive/transmit path or schedule in Har
 | **Use an established correction** | Apply a documented signed additive offset valid for this setup. | Enter the established value |
 | **Set up an offset-establishment run** | Collect evidence from which an offset can be derived; WSPRadar does not choose or calculate the offset automatically. | `0.0 dB` during the establishment run |
 
-A constant correction cannot repair clipping, unstable AGC, intermittent routing, frequency-dependent response or incorrect power reporting. Hardware A/B calibration should use a common input or calibrated reference plane. A geographically separated Reference Station can support only a repeatable baseline for that particular pair, band and setup—not an absolute calibration. [Appendix C](#sec-c) gives the practical procedure.
+A constant correction cannot repair clipping, unstable AGC, intermittent routing, frequency-dependent response or incorrect power reporting. Hardware A/B calibration should use a common input or calibrated reference plane. A geographically separated Reference Station can support only a repeatable baseline for that particular pair, band and setup — not an absolute calibration. [Appendix C](#sec-c) gives the practical procedure.
 
 <a id="sec-5-4"></a>
 
@@ -898,7 +898,7 @@ Griffiths and Robinett demonstrated a relational time-series self-join for the s
 
 WSPR.Rocks provides rapid SQL-based WSPR exploration, maps, tables, SpotQ and heatmaps. WSPRdaemon emphasizes robust multi-receiver acquisition, scheduling and added noise/Doppler metadata. SOTABEAMS WSPRlite/DXplorer, WSPR-Station-Compare, the Antenna Performance Analysis Tool and WATT provide additional comparison, reporting and visualization workflows <a href="#ref-14">[Ref-14]</a> <a href="#ref-15">[Ref-15]</a> <a href="#ref-16">[Ref-16]</a> <a href="#ref-17">[Ref-17]</a> <a href="#ref-18">[Ref-18]</a>.
 
-These systems establish substantial prior art in data acquisition, exploration, ranking, comparison, mapping and reporting. WSPRadar's positioning therefore rests on its integrated experiment definitions, conditional populations, hierarchical weighting, complementary paired/one-sided evidence and audit path—not on being the first WSPR analysis tool.
+These systems establish substantial prior art in data acquisition, exploration, ranking, comparison, mapping and reporting. WSPRadar's positioning therefore rests on its integrated experiment definitions, conditional populations, hierarchical weighting, complementary paired/one-sided evidence and audit path — not on being the first WSPR analysis tool.
 
 <a id="sec-d-5"></a>
 #### 6.5 What WSPRadar inherits, integrates and adds
@@ -931,8 +931,6 @@ It is useful to distinguish five levels:
 4. **Descriptive summaries:** rates, medians, reach, evidence shares and temporal or geographic summaries calculated from the retained evidence.
 5. **Interpretation beyond the run:** statements about future behavior, a wider population or a physical cause. Such generalization requires additional assumptions and experimental control; the calculation alone is not sufficient.
 
-The selected design therefore defines the analysis target—in formal statistical language, the estimand—through its conditioning, eligibility and weighting rules. This manual normally uses the plainer term analysis target. WSPRadar does not attach an inferential sampling model or confidence interval to that target.
-
 **Notation used below**
 
 | Symbol | Meaning |
@@ -946,7 +944,9 @@ The selected design therefore defines the analysis target—in formal statistica
 | $D_{i,c}$ | paired Target-minus-Reference <strong class="defined-term">Delta</strong> SNR where both sides are observed |
 | $T_{i,b},J_{i,b},R_{i,b}$ | Only <strong class="defined-term">Target</strong>, <strong class="defined-term">Joint</strong> and Only <strong class="defined-term">Reference</strong> counts in Benchmark scope $b$ |
 
-The selected design defines the **analysis target**—in formal statistical language, the estimand—through its eligibility, conditioning and weighting rules. This chapter uses **summary** or **descriptive statistic** for the rates, medians, shares and distributions calculated from the retained evidence. The distinction matters because a value can be calculated exactly for the retained rows while still describing a narrow or selected population.
+An indicator is `1` when its condition is met and `0` otherwise. The notation makes denominators and weighting explicit; the text after each formula explains the same calculation in ordinary station terms.
+
+This chapter uses **summary** or **descriptive statistic** for the rates, medians, shares and distributions calculated from the retained evidence. The distinction matters because a value can be calculated exactly for the retained rows while still describing a narrow or selected population.
 
 **Method orientation**
 
@@ -974,6 +974,8 @@ The lowest unit differs by design:
 * Performance and simultaneous Benchmark use one peer identity in one eligible WSPR cycle.
 * Sequential TX A/B retains exact scheduled starts, assigns them to Target or Reference by the configured modulo schedule and forms deterministic one-to-one Target/Reference pairs for each peer. Both planned starts must lie within the run window.
 * Local Neighborhood Benchmark additionally constructs a cycle/path Reference from qualifying local identities before forming Target-minus-Reference evidence.
+
+These units are constructed from reported spots; they are not additional radio measurements. Their purpose is to define unambiguously the conditions under which a success, missed decode or paired difference is counted.
 
 Historical `code = 1` fallback changes the source-row selection only when the strict request has no Target-side evidence. Run status records which source path was used. Upstream delay and data-quality limitations are described in [Section 5.6](#sec-6-6).
 
@@ -1061,7 +1063,7 @@ WSPR reports SNR on the WSJT scale in dB relative to a 2500 Hz reference bandwid
 
 $$SNR_{norm}=SNR_{measured}-P_{TX(dBm)}+30$$
 
-In words, the reported transmit-power difference is removed by expressing every successful TX-side SNR as though the reported power had been `30 dBm`. This removes only the **reported** power term. It does not correct antenna gain, radiation efficiency, feedline loss, EIRP, receiver calibration or local noise.
+In practical terms, a signal with `10 dB` less reported transmit power is raised by `10 dB` for this comparison. For example, an SNR reported as `-15 dB` at `20 dBm` is normalized to `-5 dB` at `30 dBm`. In words, the reported transmit-power difference is removed by expressing every successful TX-side SNR as though the reported power had been `30 dBm`. This removes only the **reported** power term. It does not correct antenna gain, radiation efficiency, feedline loss, EIRP, receiver calibration or local noise.
 
 Reference-side correction is additive:
 
@@ -1071,7 +1073,9 @@ For a paired observation:
 
 $$D_{i,c}=\Delta SNR_{i,c}=SNR_{T,i,c}-SNR_{R,corr,i,c}$$
 
-This is simply corrected Target SNR minus corrected Reference SNR for one matched evidence unit. Positive $D_{i,c}$ favors the Target; negative favors the Reference. A positive correction makes the Reference stronger before subtraction and therefore lowers Delta SNR. The entered calibration offset uses the same `target - reference` sign.
+Here $C_R$ is the signed additive Reference-side correction. In the first equation, $SNR_R$ and $SNR_{R,corr}$ denote Reference SNR before and after correction. In the paired equation, the indices $i,c$ identify the peer and matched evidence unit; $SNR_{T,i,c}$ is the corresponding normalized Target SNR and $SNR_{R,corr,i,c}$ is the corrected Reference SNR. This is simply corrected Target SNR minus corrected Reference SNR for one matched evidence unit. Positive $D_{i,c}$ favors the Target; negative favors the Reference. A positive correction makes the Reference stronger before subtraction and therefore lowers Delta SNR. The entered calibration offset uses the same `target - reference` sign.
+
+The value $D_{i,c}$ is an observed paired difference for exactly one retained comparison unit. It is calculated exactly from the two retained SNR values and the configured correction, if any. Its interpretation still depends on what the two sides represent and how well the physical experiment controlled the remaining chains.
 
 In same-transmitter RX pairs, the common reported TX-power term cancels. TX pairs involving different signals depend directly on reported-power accuracy and on any uncorrected transmitter/feedline difference. A Reference correction is scientifically defensible only when the offset is approximately additive and stable over the relevant band, level, hardware state and time.
 
@@ -1184,9 +1188,9 @@ The outcome-level share is:
 
 $$JES_{outcome}(b)=100\%\times\frac{\sum_iJ_{i,b}}{\sum_iN_{i,b}}$$
 
-The station-balanced form first asks what fraction of each peer's retained units were Joint and then averages those fractions. The outcome-level form simply pools all retained units before taking the Joint fraction. The same distinction—equal peer weight versus equal evidence-unit weight—appears elsewhere in WSPRadar.
+The station-balanced form first asks what fraction of each peer's retained units were Joint and then averages those fractions. The outcome-level form simply pools all retained units before taking the Joint fraction. The same distinction — equal peer weight versus equal evidence-unit weight — appears elsewhere in WSPRadar.
 
-The first gives every contributing peer equal weight; the second gives every retained comparison unit equal weight. Joint Evidence Share measures pairability—the fraction of retained evidence that can contribute Delta SNR. It is not a Target win rate.
+The first gives every contributing peer equal weight; the second gives every retained comparison unit equal weight. Joint Evidence Share measures pairability — the fraction of retained evidence that can contribute Delta SNR. It is not a Target win rate.
 
 Under the Target-Active Gate, Only Target and Only Reference are directional and asymmetric. Sequential TX A/B instead uses deterministic complete or one-sided scheduled pairs, but a one-sided pair still has no Pair Delta.
 
@@ -1199,7 +1203,7 @@ For Performance successful-SNR deviation, a peer enters the anomaly population o
 
 $$A_{i,c}=SNR_{i,c}-\operatorname{median}_{c'}(SNR_{i,c'})$$
 
-Thus `0 dB` means “at this path's own usual successful level,” not Target–Reference equality. A positive anomaly is a stronger-than-usual successful decode for that path, and a negative anomaly is weaker than usual.
+Here $c$ identifies the current successful observation and $c'$ indexes all successful observations for peer $i$ in the complete run window that define its baseline. Thus `0 dB` means “at this path's own usual successful level,” not Target–Reference equality. A positive anomaly is a stronger-than-usual successful decode for that path, and a negative anomaly is weaker than usual.
 
 Chronologically, each peer contributes at most one median anomaly per selected bin. In the UTC-folded view, each peer contributes one median per date and UTC hour before those peer-date-hour values are summarized across the folded population. This prevents prolific peers or dates from dominating through raw row count.
 
@@ -1240,7 +1244,7 @@ Here $n_{cell}$ is the evidence count in one density cell. Dividing by the most 
 
 Thus `100` means the most populated cell in that panel, not 100% of all evidence. Density colors cannot compare absolute evidence volume between independently normalized panels; support counts provide that information.
 
-Benchmark temporal and histogram views use a presentation-only monotonic scale centered on the scope median $M$. For a broad range, equal visual steps are anchored at $M$, $M\pm3$, $M\pm6$, $M\pm10$, $M\pm20$ and $M\pm30$ dB, with a tail anchor at $M\pm60$ dB and extrapolation when required. When every required deviation is at most `10 dB`, the tighter anchors are $M$, $M\pm1$, $M\pm3$, $M\pm6$ and $M\pm10$ dB, with continuation anchors at $M\pm20$ and $M\pm40$ dB. The required range includes the applicable raw histogram or rounded heatmap-bin edges, a minimum `3 dB` half-span and absolute `0 dB`, so Target–Reference equality remains visible. The anchor mapping changes displayed spacing only: raw Delta SNR values, bin membership, counts, medians and quartiles remain unchanged. Because the vertical mapping is nonlinear, histogram bar **length** against its percentage axis—not displayed area—is the quantitative encoding.
+Benchmark temporal and histogram views use a presentation-only monotonic scale centered on the scope median $M$. For a broad range, equal visual steps are anchored at $M$, $M\pm3$, $M\pm6$, $M\pm10$, $M\pm20$ and $M\pm30$ dB, with a tail anchor at $M\pm60$ dB and extrapolation when required. When every required deviation is at most `10 dB`, the tighter anchors are $M$, $M\pm1$, $M\pm3$, $M\pm6$ and $M\pm10$ dB, with continuation anchors at $M\pm20$ and $M\pm40$ dB. The required range includes the applicable raw histogram or rounded heatmap-bin edges, a minimum `3 dB` half-span and absolute `0 dB`, so Target–Reference equality remains visible. The anchor mapping changes displayed spacing only: raw Delta SNR values, bin membership, counts, medians and quartiles remain unchanged. Because the vertical mapping is nonlinear, histogram bar **length** against its percentage axis — not displayed area — is the quantitative encoding.
 
 Performance successful-SNR views remain on a linear dB axis.
 
@@ -1428,7 +1432,7 @@ Files without an applicable result or selected station can be absent.
 | Temporal figures | Chronological and UTC-folded summaries for the active segment. |
 | Selected-station figures | One exact selected peer identity; paths are never pooled across several selected stations. |
 
-**Machine-readable contract names.** The exact names below are included because they are supported external configuration, URL or export contracts. They are not vocabulary for explaining the scientific method.
+**Selected public machine-readable contract names.** This concise table identifies supported external names useful to operators and downstream consumers; it is not an exhaustive saved-configuration field, URL-parameter or export-metadata catalog. The formal JSON Schema (`config/wspradar-config.schema.json`) is authoritative for saved-configuration fields, while the supported public URL contract is versioned separately. Private implementation identifiers are deliberately omitted. These names are not vocabulary for explaining the scientific method.
 
 | Contract surface | Exact names | Meaning |
 |---|---|---|

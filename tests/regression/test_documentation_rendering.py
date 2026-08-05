@@ -148,6 +148,105 @@ def test_english_scientific_methods_use_streamlit_math_delimiters():
     )
 
 
+def test_scientific_methods_keep_bilingual_section_and_formula_parity():
+    """Keep Chapter 7 structure and mathematical contracts language-neutral."""
+    english_methods = DOC_EN.split('<a id="sec-7"></a>', 1)[1].split(
+        '<a id="sec-8"></a>', 1
+    )[0]
+    german_methods = DOC_DE.split('<a id="sec-7"></a>', 1)[1].split(
+        '<a id="sec-8"></a>', 1
+    )[0]
+
+    english_anchors = re.findall(r'<a id="(sec-7(?:-[^"]+)?)"></a>', english_methods)
+    german_anchors = re.findall(r'<a id="(sec-7(?:-[^"]+)?)"></a>', german_methods)
+    english_formulas = re.findall(r"\$\$(.*?)\$\$", english_methods, flags=re.DOTALL)
+    german_formulas = re.findall(r"\$\$(.*?)\$\$", german_methods, flags=re.DOTALL)
+
+    assert english_anchors == german_anchors
+    assert english_formulas == german_formulas
+    assert len(english_formulas) == 16
+
+
+def test_bilingual_preface_introduces_target_peer_and_decode_rate():
+    """Keep the first-use operator vocabulary explicit in both languages."""
+    english_preface = DOC_EN.split('<a id="sec-1-0"></a>', 1)[1].split(
+        '<a id="sec-1-3"></a>', 1
+    )[0]
+    german_preface = DOC_DE.split('<a id="sec-1-0"></a>', 1)[1].split(
+        '<a id="sec-1-3"></a>', 1
+    )[0]
+
+    assert "the station under test, normally your station" in english_preface
+    assert '<strong class="defined-term">peer</strong>' in english_preface
+    assert "percentage of independently confirmed opportunities" in english_preface
+    assert "the Target decoded the peer in RX" in english_preface
+    assert "the peer decoded the Target in TX" in english_preface
+
+    assert "die zu untersuchende Station, normalerweise deine Station" in german_preface
+    assert '<strong class="defined-term">Peer</strong>' in german_preface
+    assert "Prozentsatz unabhängig bestätigter Gelegenheiten" in german_preface
+    assert "Bei RX decodiert das Target den Peer" in german_preface
+    assert "bei TX decodiert der Peer das Target" in german_preface
+
+
+def test_bilingual_controls_keep_exact_run_labels_and_callsign_syntax():
+    """Match the rendered Run actions and authoritative callsign validator."""
+    for run_label in (
+        T["en"]["btn_run_analysis_rx"],
+        T["en"]["btn_run_analysis_tx"],
+    ):
+        assert f"`{run_label}`" in DOC_EN
+    for run_label in (
+        T["de"]["btn_run_analysis_rx"],
+        T["de"]["btn_run_analysis_tx"],
+    ):
+        assert f"`{run_label}`" in DOC_DE
+
+    assert "one optional terminal alphanumeric hyphen suffix" in DOC_EN
+    assert "ein optionales abschließendes alphanumerisches Bindestrich-Suffix" in DOC_DE
+    assert "**Start Date/Time (UTC)** and **End Date/Time (UTC)**" in DOC_EN
+    assert "**Startdatum/-zeit (UTC)** und **Enddatum/-zeit (UTC)**" in DOC_DE
+
+
+def test_bilingual_methods_keep_the_approved_plain_language_explanations():
+    """Protect the approved symbol, evidence-unit, and interpretation details."""
+    assert "An indicator is `1` when its condition is met and `0` otherwise" in DOC_EN
+    assert "Ein Indikator ist `1`, wenn seine Bedingung erfüllt ist, und sonst `0`" in DOC_DE
+    assert "These units are constructed from reported spots; they are not additional radio measurements" in DOC_EN
+    assert "Diese Einheiten werden aus gemeldeten Spots gebildet; sie sind keine zusätzlichen Funkmessungen" in DOC_DE
+    assert "an SNR reported as `-15 dB` at `20 dBm` is normalized to `-5 dB` at `30 dBm`" in DOC_EN
+    assert "Ein mit `-15 dB` gemeldetes SNR bei `20 dBm` wird beispielsweise auf `-5 dB` bei `30 dBm` normiert" in DOC_DE
+    assert "The value $D_{i,c}$ is an observed paired difference for exactly one retained comparison unit" in DOC_EN
+    assert "Der Wert $D_{i,c}$ ist eine beobachtete gepaarte Differenz für genau eine beibehaltene Vergleichseinheit" in DOC_DE
+    assert "$c'$ indexes all successful observations for peer $i$" in DOC_EN
+    assert "$c'$ durchläuft alle erfolgreichen Beobachtungen des Peers $i$" in DOC_DE
+    assert "Here $n_{cell}$ is the evidence count in one density cell" in DOC_EN
+    assert "Dabei ist $n_{cell}$ die Evidenzanzahl in einer Dichtezelle" in DOC_DE
+    assert "1,000 spots are not the same as 1,000 unrelated experiments" in DOC_EN
+    assert "1.000 Spots nicht dasselbe wie 1.000 voneinander unabhängige Experimente" in DOC_DE
+    assert "The selected design therefore defines the analysis target" not in DOC_EN
+    assert "formal statistical language, the estimand" not in DOC_EN
+    assert "Das gewählte Design definiert damit das **Analyseziel**" not in DOC_DE
+    assert "*Estimand*" not in DOC_DE
+    assert "This chapter uses **summary** or **descriptive statistic**" in DOC_EN
+    assert "Dieses Kapitel verwendet **Zusammenfassung** oder **deskriptive Kennzahl**" in DOC_DE
+
+
+def test_bilingual_contract_summary_is_public_concise_and_non_exhaustive():
+    """Keep Chapter 8 useful without presenting it as an exhaustive schema."""
+    for manual in (DOC_EN, DOC_DE):
+        assert "`config/wspradar-config.schema.json`" in manual
+        assert "`results_view.performance`" in manual
+        assert "`results_view.benchmark`" in manual
+        assert "`benchmark_snr_correction_mode`" in manual
+        assert "`benchmark_snr_correction_db`" in manual
+
+    assert "not an exhaustive saved-configuration field, URL-parameter or export-metadata catalog" in DOC_EN
+    assert "kein vollständiger Katalog der Felder gespeicherter Konfigurationen, URL-Parameter oder Exportmetadaten" in DOC_DE
+    assert "as defined in [Section 4.4](#sec-5-4)" in DOC_EN
+    assert "gemäß [Abschnitt 4.4](#sec-5-4)" in DOC_DE
+
+
 @pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
 def test_simultaneous_benchmark_formulas_stay_nested_in_numbered_steps(
     documentation_text,
@@ -185,33 +284,24 @@ def test_documentation_anchor_extraction_is_ordered_and_complete(documentation_t
     assert len(anchor_ids) == len(set(anchor_ids))
 
 
-def test_manual_names_primary_and_fallback_sources_concisely():
-    english_sentence_pattern = re.compile(
-        r"WSPRadar uses wspr\.live as its primary WSPR data source "
-        r'<a href="#ref-(?P<primary>\d+)">\[Ref-(?P=primary)\]</a>, with '
-        r"WSPRDaemon WD2 and WD1 as fallback sources "
-        r'<a href="#ref-(?P<fallback>\d+)">\[Ref-(?P=fallback)\]</a>\.'
-    )
-    german_sentence_pattern = re.compile(
-        r"WSPRadar nutzt wspr\.live als primäre WSPR-Datenquelle "
-        r'<a href="#ref-(?P<primary>\d+)">\[Ref-(?P=primary)\]</a>; '
-        r"WSPRDaemon WD2 und WD1 dienen als Ausweichquellen "
-        r'<a href="#ref-(?P<fallback>\d+)">\[Ref-(?P=fallback)\]</a>\.'
-    )
+def test_bilingual_manuals_define_one_selected_archive_per_completed_run():
+    """Describe source provenance without freezing provider failover narration."""
+    english_data_source = DOC_EN.split('<a id="sec-7-1"></a>', 1)[1].split(
+        '<a id="sec-7-2"></a>', 1
+    )[0]
+    german_data_source = DOC_DE.split('<a id="sec-7-1"></a>', 1)[1].split(
+        '<a id="sec-7-2"></a>', 1
+    )[0]
 
-    for manual, source_sentence_pattern in (
-        (DOC_EN, english_sentence_pattern),
-        (DOC_DE, german_sentence_pattern),
-    ):
-        source_sentence_matches = list(source_sentence_pattern.finditer(manual))
-        assert len(source_sentence_matches) == 1
-        source_sentence = source_sentence_matches[0].group(0)
-        containing_paragraph = next(
-            paragraph
-            for paragraph in manual.split("\n\n")
-            if source_sentence in paragraph
-        )
-        assert len(re.findall(r"\S+", containing_paragraph)) < 100
+    assert "one selected read-only archive for each completed run" in english_data_source
+    assert "does not combine data sources" in english_data_source
+    assert "einem ausgewählten, schreibgeschützten Archiv" in german_data_source
+    assert "mischt keine Datenquellen" in german_data_source
+    for manual in (DOC_EN, DOC_DE):
+        assert "wspr.live" in manual
+        assert "WSPRDaemon" in manual
+        assert '<a href="#ref-10">[Ref-10]</a>' in manual
+        assert '<a href="#ref-11">[Ref-11]</a>' in manual
 
 
 def test_load_and_hide_controls_have_english_and_german_labels():
@@ -369,24 +459,35 @@ def test_english_section_two_conclusions_use_scoped_callout_markup():
     assert conclusion_opening not in section_three_and_later
 
 
-def test_english_playbooks_define_performance_evidence_and_tx_ab_timing():
-    """Operator playbooks must retain the clarified Performance and TX A/B guidance."""
-    assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
-    assert (
-        "Target and independent activity evidence retained after the run's identity, band, time, Target-activity, filter and threshold rules"
-        in DOC_EN
-    )
-    assert "actual recurrence and UTC phase" in DOC_EN
-    assert "WSPRadar forms scheduled pairs automatically." in DOC_EN
+def test_english_playbooks_define_performance_opportunities_and_tx_ab_timing():
+    """Retain operator-facing eligibility and scheduled-pair safeguards."""
+    rx_performance = DOC_EN.split('<a id="sec-3-rx-performance"></a>', 1)[1].split(
+        '<a id="sec-3-tx-performance"></a>', 1
+    )[0]
+    tx_performance = DOC_EN.split('<a id="sec-3-tx-performance"></a>', 1)[1].split(
+        '<a id="sec-3-rx-benchmark"></a>', 1
+    )[0]
+    sequential_tx = DOC_EN.split(
+        '<a id="sec-3-tx-benchmark-sequential"></a>', 1
+    )[1].split('<a id="sec-3-tx-benchmark-buddy"></a>', 1)[0]
+
+    assert "confirmed RX opportunity" in rx_performance
+    assert "independent confirmation" in rx_performance
+    assert "confirmed TX opportunity" in tx_performance
+    assert "independent receiver-activity confirmation" in tx_performance
+    assert "deterministic schedule" in sequential_tx
+    assert "one-to-one Scheduled A/B Pairs automatically" in sequential_tx
+    assert "actual recurrence" in DOC_EN
+    assert "UTC phase" in DOC_EN
     assert "[Sections 7.1](#sec-7-1) and [7.7](#sec-7-7)" in DOC_EN
     assert "#### B.3 Ultimate3S schedule example" in DOC_EN
     assert "`Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`" in DOC_EN
-    assert "an invented power difference into an artificial comparison offset" in DOC_EN
+    assert "do not encode path identity through false dBm values" in DOC_EN
     assert '<a id="sec-b-5"></a>' in DOC_EN
 
 
 def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity():
-    """Keep the operator method choice, matching rules, and gate boundary aligned."""
+    """Keep simultaneous/sequential designs and exact identity safeguards aligned."""
     expected_anchors = (
         '<a id="sec-2-4-simultaneous"></a>',
         '<a id="sec-2-4-sequential"></a>',
@@ -400,181 +501,138 @@ def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity()
         assert "Setup A" not in manual
         assert "Setup B" not in manual
 
-    assert "TX Hardware A/B offers two methods" in DOC_EN
-    assert "TX Hardware A/B bietet zwei Methoden" in DOC_DE
-    assert "`Simultaneous TX` is the default" in DOC_EN
-    assert "`Simultanes TX` ist die Voreinstellung" in DOC_DE
-    assert "Target callsign` and `Reference callsign" in DOC_EN
-    assert "Target-Rufzeichen` und `Referenz-Rufzeichen" in DOC_DE
-    assert "exact callsign plus its own grid-4" in DOC_EN
-    assert "jeweiligen exakten Rufzeichens plus des eigenen Grid-4" in DOC_DE
-    assert "Target was decoded nowhere is excluded" in DOC_EN
-    assert "Target jedoch nirgends, wird ausgeschlossen" in DOC_DE
-    assert "Earlier unpublished v1 prototypes are not migrated" in DOC_EN
-    assert "nicht veröffentlichte v1-Prototypen werden nicht migriert" in DOC_DE
+    assert "##### 2.4.1 Hardware A/B: simultaneous transmit paths" in DOC_EN
+    assert "##### 2.4.2 Hardware A/B: sequential transmit paths" in DOC_EN
+    assert "##### 2.4.1 Hardware A/B: simultane Sendepfade" in DOC_DE
+    assert "##### 2.4.2 Hardware A/B: sequenzielle Sendepfade" in DOC_DE
+    assert "distinct exact reporting callsigns" in DOC_EN
+    assert "same Target grid-4" in DOC_EN
+    assert "unterschiedliche exakte Melderufzeichen" in DOC_DE
+    assert "dasselbe Target-Grid-4" in DOC_DE
+    assert "deterministic scheduled eligibility" in DOC_EN
+    assert "deterministische Zeitplanzulässigkeit" in DOC_DE
 
 
 def test_bilingual_manuals_define_supported_exact_archive_identities():
     """Document letter-only and suffix forms as distinct exact archive tokens."""
-    assert "Prefer standard callsign forms" in DOC_EN
-    assert "Bevorzuge standardmäßige Rufzeichenformen" in DOC_DE
-    assert "`DL1MKS-1`" in DOC_EN
-    assert "`DL1MKS-1`" in DOC_DE
-    assert "neither treats `/` and `-` as aliases" in DOC_EN
-    assert "behandelt `/` und `-` weder als gleichbedeutend" in DOC_DE
-    assert "letter-only archive reporting identifiers such as `KFS`" in DOC_EN
-    assert "nur aus Buchstaben bestehende Archiv-Meldekennungen wie `KFS`" in DOC_DE
-    assert "`KFS/SE`" in DOC_EN
-    assert "`KFS/SE`" in DOC_DE
+    exact_identity_examples = (
+        "`KFS`",
+        "`KFS/SE`",
+        "`DL1MKS`",
+        "`DL1MKS/P`",
+        "`DL1MKS/1`",
+        "`DL1MKS/QRP`",
+        "`DL1MKS-1`",
+    )
+    for manual in (DOC_EN, DOC_DE):
+        for identity in exact_identity_examples:
+            assert identity in manual
+
+    assert "distinct identities" in DOC_EN
+    assert "does not apply hidden prefix or suffix matching" in DOC_EN
+    assert "eigenständige Identitäten" in DOC_DE
+    assert "keine verdeckte Präfix- oder Suffixzuordnung" in DOC_DE
 
 
 def test_bilingual_manuals_document_explicit_snr_correction_modes():
     """Keep the durable correction meaning distinct from its numeric dB value."""
-    assert "`no_offset` and `establish_offset` require `0.0 dB`" in DOC_EN
-    assert "`no_offset` und `establish_offset` verlangen `0,0 dB`" in DOC_DE
-    assert "`Set up an offset-establishment run`" in DOC_EN
-    assert "`Offset-Ermittlungslauf einrichten`" in DOC_DE
+    for required_text in (
+        "No established offset",
+        "Use an established correction",
+        "Set up an offset-establishment run",
+    ):
+        assert required_text in DOC_EN
+    for required_text in (
+        "Kein ermittelter Offset",
+        "Ermittelte Korrektur verwenden",
+        "Offset-Ermittlungslauf einrichten",
+    ):
+        assert required_text in DOC_DE
+    assert "A positive correction increases corrected Reference SNR" in DOC_EN
+    assert "Eine positive Korrektur erhöht das korrigierte Referenz-SNR" in DOC_DE
     for manual in (DOC_EN, DOC_DE):
         assert "`benchmark_snr_correction_mode`" in manual
         assert "`benchmark_snr_correction_db`" in manual
 
 
-def test_results_chapter_uses_concise_evidence_path_and_consecutive_sections():
-    """Chapter 2 must use the same concise path while retaining its evidence sections."""
-    assert "#### 2.1 Confirm the run identity" not in DOC_EN
-    assert (
-        "**Performance:** Map → Segment Inspector → Station Insights → Drill-Down."
-    ) in DOC_EN
-    assert (
-        "**Benchmark:** Map → Segment Inspector → Station Insights → Drill-Down."
-    ) in DOC_EN
-    assert (
-        "**Performance:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
-    ) in DOC_DE
-    assert (
-        "**Benchmark:** Karte → Segment-Inspektor → Station Insights → Drill-Down."
-    ) in DOC_DE
-    assert "#### 2.1 Read a Performance result" in DOC_EN
-    assert "#### 2.2 Read a Benchmark result" in DOC_EN
-    assert "#### 2.8 Worked Benchmark example" in DOC_EN
-
-    rx_explanation = DOC_EN.index("* In simultaneous RX Benchmark")
-    tx_explanation = DOC_EN.index("* In same-cycle TX Benchmark")
-    sequential_explanation = DOC_EN.index(
-        "* Sequential TX Hardware A/B uses deterministic scheduled pairs"
+def test_results_chapter_is_question_led_and_uses_the_shared_evidence_path():
+    """Check durable operator flow without pinning panels, axes, or layout."""
+    english_headings = (
+        "#### 2.1 RX Performance",
+        "#### 2.2 TX Performance",
+        "#### 2.3 RX Benchmark",
+        "#### 2.4 TX Benchmark",
     )
-    assert rx_explanation < tx_explanation < sequential_explanation
+    german_headings = (
+        "#### 2.1 RX Performance",
+        "#### 2.2 TX Performance",
+        "#### 2.3 RX Benchmark",
+        "#### 2.4 TX Benchmark",
+    )
+    assert [DOC_EN.index(heading) for heading in english_headings] == sorted(
+        DOC_EN.index(heading) for heading in english_headings
+    )
+    assert [DOC_DE.index(heading) for heading in german_headings] == sorted(
+        DOC_DE.index(heading) for heading in german_headings
+    )
+
+    for manual, evidence_stages in (
+        (
+            DOC_EN,
+            (
+                "Map",
+                "Segment Inspector",
+                "Temporal Evidence",
+                "Station Insights",
+                "Selected Station Evidence",
+                "Drill-Down",
+            ),
+        ),
+        (
+            DOC_DE,
+            (
+                "Karte",
+                "Segment-Inspektor",
+                "Zeitliche Evidenz",
+                "Station Insights",
+                "Evidenz der ausgewählten Station",
+                "Drill-Down",
+            ),
+        ),
+    ):
+        for evidence_stage in evidence_stages:
+            assert evidence_stage in manual
 
 
-def test_bilingual_manuals_explain_the_performance_evidence_redesign():
-    """Keep exact-distance, temporal-SNR and weighting contracts auditable."""
+def test_bilingual_manuals_define_performance_opportunities_and_weighting():
+    """Keep Performance denominators and complementary weighting auditable."""
     english_contract = (
-        "OPPORTUNITIES",
+        r"$$n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}$$",
+        r"$$r_i=100\%\times\frac{h_i}{n_i}$$",
+        r"$$R_{station}(g)=\frac{1}{|I_g|}\sum_{i\in I_g} r_i$$",
+        r"$$R_{opportunity}(g)=100\%\times\frac{\sum_{i\in I_g}h_i}{\sum_{i\in I_g}n_i}$$",
+        r"$$Reach(g)=100\%\times\frac{|\{i\in I_g:h_i\ge1\}|}{|I_g|}$$",
         "Station-balanced Decode Rate",
         "Opportunity-level Decode Rate",
-        "The station-group counts describe at-least-once reach",
-        "Its displayed counts do form that rate's numerator and denominator",
-        "TX Stations Heard by Target at Least Once by Distance",
-        "RX Stations Hearing the Target at Least Once by Distance",
-        "RX Decode Rate by TX-Station Distance",
-        "TX Decode Rate by RX-Station Distance",
-        "Successful Target SNR by TX-Station Distance",
-        "Successful Target SNR by RX-Station Distance",
-        "`Min-Max (2 stations)`",
-        "`IQR (3+ stations)`",
-        "exact, unrounded calculated distance",
-        "full qualifying station population",
-        "`Heard only by other stations.`",
-        "`Only other signals heard.`",
-        "a row with neither count but with Target SNR preserves a Target decode without independent confirmation",
-        "a row with neither count but with Target SNR preserves a Target report without independent RX-activity confirmation",
-        "retained support data",
-        "does not render a support-count strip",
-        "at least three successful Target SNR observations",
-        "station-date-hour median",
-        "two vertically aligned figures",
-        "RX Performance Temporal SNR Evidence: Target {callsign}",
-        "RX Performance Temporal Evidence: Target {callsign}",
-        "Evidence over Time ({time_bin} bins)",
-        "Evidence by UTC Hour (1 h bins)",
-        "folded station row uses the short **Avg. TX Stations** or **Avg. RX Stations** y-axis title",
-        "folded row uses the short **Avg. Opportunities** y-axis title",
-        "chronological station-balanced upper row keeps the short **TX Stations** or **RX Stations** y-axis title",
-        "chronological lower row keeps the short **Opportunities** y-axis title",
-        "every contributing qualifying station gives one total vote",
-        "right-axis line is the Station-balanced Decode Rate",
-        "counts every confirmed opportunity once",
-        "right-axis line is the unchanged Opportunity-level Decode Rate",
-        "One shared legend below the lower figure title",
-        "All four right axes use one zero-based Decode Rate scale",
-        "average number of distinct station-date-hour presences over represented dates",
-        "represented date-hour with no evidence remains in the denominator with zero support",
-        "unchanged folded Station-balanced Decode Rate",
-        "unchanged Opportunity-level Decode Rate",
-        "A **represented UTC date** is a date with at least one confirmed opportunity",
-        "compact ham-style notation",
-        "Successful-SNR censoring remains possible",
-        "station-vote segments can be fractional",
-        "`figure_segment_temporal_snr_deviation.png` contains the chronological/UTC-hour",
-        "`figure_segment_temporal_evidence.png` contains the aligned lower **RX/TX Performance Temporal Evidence** figure",
-        "`1 h`, `2 h`, `3 h`, `6 h`, `12 h` or `24 h`",
-        "at least two UTC dates",
-        "Empty or sparse rate bins are missing or thin evidence, not failures",
-        "Grid-4 is not survey-grade positioning",
+        "every peer one equal vote",
+        "pools all qualifying opportunities",
+        "at least one Target success",
+        "success-conditioned distribution",
+        "Missed opportunities have no Target SNR and no synthetic value",
     )
     german_contract = (
-        "GELEGENHEITEN",
+        r"$$n_i=\sum_c O_{i,c},\qquad h_i=\sum_c S_{i,c}$$",
+        r"$$r_i=100\%\times\frac{h_i}{n_i}$$",
+        r"$$R_{station}(g)=\frac{1}{|I_g|}\sum_{i\in I_g} r_i$$",
+        r"$$R_{opportunity}(g)=100\%\times\frac{\sum_{i\in I_g}h_i}{\sum_{i\in I_g}n_i}$$",
+        r"$$Reach(g)=100\%\times\frac{|\{i\in I_g:h_i\ge1\}|}{|I_g|}$$",
         "stationsgleichgewichtete Dekodierrate",
         "Dekodierrate auf Gelegenheitsebene",
-        "Die Anzahlen der Stationsgruppen beschreiben eine Mindestens-einmal-Reichweite",
-        "Ihre angezeigten Anzahlen bilden den Zähler und Nenner dieser Rate",
-        "Vom Target mindestens einmal gehörte TX-Stationen nach Entfernung",
-        "RX-Stationen, die das Target mindestens einmal hörten, nach Entfernung",
-        "RX Dekodierrate nach Entfernung der TX-Station",
-        "TX Dekodierrate nach Entfernung der RX-Station",
-        "Erfolgreiches Target-SNR nach Entfernung der TX-Station",
-        "Erfolgreiches Target-SNR nach Entfernung der RX-Station",
-        "`Min-Max (2 Stationen)`",
-        "`IQR (3+ Stationen)`",
-        "exakten, ungerundeten berechneten Entfernung",
-        "vollständigen qualifizierenden Stationspopulation",
-        "`Nur von anderen Stationen gehört.`",
-        "`Nur andere Signale gehört.`",
-        "eine Zeile ohne einen der beiden Zählwerte, aber mit Target-SNR, bewahrt einen Target-Decode ohne unabhängige Bestätigung",
-        "eine Zeile ohne einen der beiden Zählwerte, aber mit Target-SNR, bewahrt einen Target-Report ohne unabhängige Bestätigung der RX-Aktivität",
-        "beibehaltenen Stützdaten",
-        "keinen Streifen mit Stützzahlen",
-        "mindestens drei erfolgreichen Target-SNR-Beobachtungen",
-        "Stations-Datum-Stunden-Median",
-        "zwei vertikal ausgerichtete Abbildungen",
-        "RX Performance — Zeitliche SNR-Evidenz: Target {callsign}",
-        "RX Performance — Zeitliche Evidenz: Target {callsign}",
-        "Evidenz im Zeitverlauf ({time_bin}-Bins)",
-        "Evidenz nach UTC-Stunde (1-h-Bins)",
-        "gefaltete Stationszeile den kurzen y-Achsentitel **Ø TX-Stationen** beziehungsweise **Ø RX-Stationen** verwendet",
-        "gefaltete Zeile den kurzen y-Achsentitel **Ø Gelegenheiten** verwendet",
-        "chronologische stationsgleichgewichtete obere Zeile behält den kurzen y-Achsentitel **TX-Stationen** beziehungsweise **RX-Stationen**",
-        "chronologische untere Zeile behält den kurzen y-Achsentitel **Gelegenheiten**",
-        "eine Gesamtstimme ab",
-        "Linie an der rechten Achse zeigt die stationsgleichgewichtete Dekodierrate",
-        "zählt jede bestätigte Gelegenheit chronologisch einmal",
-        "Linie an der rechten Achse zeigt die unveränderte Dekodierrate auf Gelegenheitsebene",
-        "Eine gemeinsame Legende unter dem Titel der unteren Abbildung",
-        "Alle vier rechten Achsen verwenden eine gemeinsame",
-        "durchschnittliche Zahl verschiedener Stations-Datum-Stunden-Präsenzen über die berücksichtigten Tage",
-        "eine berücksichtigte Datum-Stunde ohne Evidenz bleibt mit null Stützung im Nenner",
-        "unveränderten gefalteten stationsgleichgewichteten Dekodierrate",
-        "unveränderte Dekodierrate auf Gelegenheitsebene",
-        "Ein **berücksichtigter UTC-Tag** ist ein Tag, an dem",
-        "kompakte Amateurfunk-Schreibweisen",
-        "Zensierung des erfolgreichen SNR bleibt möglich",
-        "Segmente der Stationsstimmen können Bruchteile enthalten",
-        "`figure_segment_temporal_snr_deviation.png` enthält die chronologische",
-        "`figure_segment_temporal_evidence.png` enthält die daran ausgerichtete untere Abbildung **RX/TX Performance — Zeitliche Evidenz**",
-        "`1 h`, `2 h`, `3 h`, `6 h`, `12 h` oder `24 h`",
-        "mindestens zwei UTC-Tage",
-        "Leere oder schwach belegte Raten-Bins sind fehlende oder dünne Evidenz",
-        "Grid-4 ist keine vermessungsgenaue Positionierung",
+        "eine gleich große Stimme",
+        "Jede Gelegenheit erhält eine gleich große Stimme",
+        "in mindestens einer qualifizierenden Gelegenheit erfolgreich war",
+        "auf erfolgreiche Decodes bedingte Verteilung",
+        "Verpasste Gelegenheiten besitzen kein Target-SNR",
     )
 
     for required_text in english_contract:
@@ -582,98 +640,31 @@ def test_bilingual_manuals_explain_the_performance_evidence_redesign():
     for required_text in german_contract:
         assert required_text in DOC_DE
 
-    performance_section_en = DOC_EN.split(
-        "#### 2.5a Inspect a Geographic Segment (Performance Mode)", 1
-    )[1].split("#### 2.5b Inspect a Geographic Segment (Benchmark Mode)", 1)[0]
-    performance_section_de = DOC_DE.split(
-        "#### 2.5a Ein geografisches Segment untersuchen (Performance-Modus)", 1
-    )[1].split(
-        "#### 2.5b Ein geografisches Segment untersuchen (Benchmark-Modus)", 1
-    )[0]
-    for retired_text in (
-        "Station Success Rate by Evidence Count",
-        "Station Success Distribution",
-        "Evidence Depth per Station",
-        "Success by Distance uses the same radial ranges as the map",
-        "Success over time",
-        "**Success Rate over Time/by UTC Hour**",
-        "**Evidence Support over Time/by UTC Hour**",
-        "Station-Balanced Evidence over Time/by UTC Hour",
-        "Confirmed Opportunities over Time/by UTC Hour",
-        "The folded opportunity subtitle therefore reads",
-        "**Average per represented UTC date**",
-        "Average contributing station presences per represented UTC date",
-        "Average confirmed opportunities per represented UTC date",
-        "rather than being repeated as temporal lines",
-        "implicitly rather than as percentage lines",
-        "stacks the raw Target and counter-evidence counts",
-    ):
-        assert retired_text not in performance_section_en
-    for retired_text in (
-        "Station Success Rate by Evidence Count",
-        "Verteilung der Stations-Success-Rate",
-        "Evidenztiefe pro Station",
-        "Success nach Entfernung verwendet dieselben radialen Bereiche wie die Karte",
-        "Success im Zeitverlauf",
-        "Gewichtungsabstand",
-        "**Success Rate im Zeitverlauf/nach UTC-Stunde**",
-        "**Evidenzumfang im Zeitverlauf/nach UTC-Stunde**",
-        "Stationsgleichgewichtete Evidenz im Zeitverlauf/nach UTC-Stunde",
-        "Bestätigte Gelegenheiten im Zeitverlauf/nach UTC-Stunde",
-        "Der Untertitel des gefalteten Gelegenheits-Panels lautet",
-        "**Durchschnitt pro berücksichtigtem UTC-Tag**",
-        "Durchschnittliche Stationspräsenzen pro berücksichtigtem UTC-Tag",
-        "Durchschnittliche bestätigte Gelegenheiten pro berücksichtigtem UTC-Tag",
-        "statt als Zeitlinien wiederholt zu werden",
-        "implizit statt als Prozentlinien",
-        "stapelt stattdessen die rohen Anzahlen",
-    ):
-        assert retired_text not in performance_section_de
-
 
 def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
-    """Keep singleton selection, shared temporal science, and artifacts explicit."""
+    """Keep one selected peer and its public export artifacts explicit."""
     english_contract = (
-        "Select exactly one station row to open `Selected Station Evidence`",
-        "Selecting another row replaces the current station",
-        "clearing the row hides the section",
-        "Performance and Benchmark each save no more than one exact `callsign + locator` identity",
-        "selecting another row replaces the current identity",
-        "clearing the row saves an explicit deselection",
+        "One exact `callsign + locator` per result type",
+        "filters the active retained scope to one exact peer identity",
+        "without changing the upstream analysis population",
         "actual normalized successful Target SNR",
-        "chronological density receives every retained successful observation",
-        "one median for every represented UTC date and UTC hour",
-        "prevents a date with unusually many successful reports from dominating",
-        "separates station presence from opportunity depth",
-        "total station height is one",
-        "opportunity row stacks every confirmed successful and counter opportunity",
-        "Station-balanced Decode Rate and the Opportunity-level Decode Rate are numerically identical",
-        "conditional on successful Target decodes or reports",
-        "Counter outcomes have no recorded Target SNR",
-        "successful-decode censoring",
-        "UTC-hour folding requires at least two represented UTC dates",
-        "do not rerun the provider query",
+        "With one peer",
+        "numerically identical",
+        "distinguish path presence from evidence volume",
+        "Only Target, Joint and Only Reference",
+        "changes only the retained-evidence view",
     )
     german_contract = (
-        "Wähle genau eine Stationszeile aus, um die `Evidenz der ausgewählten Station` zu öffnen",
-        "Die Auswahl einer anderen Zeile ersetzt die bisherige Station",
-        "das Aufheben der Auswahl blendet den Abschnitt aus",
-        "Performance und Benchmark speichern jeweils höchstens eine exakte Identität",
-        "die Auswahl einer anderen Zeile ersetzt die aktuelle Identität",
-        "das Aufheben der Auswahl speichert eine ausdrückliche Abwahl",
-        "tatsächlichen normierten erfolgreichen Target-SNR",
-        "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs",
-        "einen Median für jedes berücksichtigte UTC-Datum und jede UTC-Stunde",
-        "verhindert, dass ein Tag mit ungewöhnlich vielen erfolgreichen Reports",
-        "trennt Stationspräsenz von Evidenztiefe",
-        "gesamte Stationshöhe ist damit eins",
-        "stapelt jede bestätigte Gelegenheit mit erfolgreichem beziehungsweise Gegen-Outcome",
+        "genau ein `Rufzeichen + Locator` je Ergebnistyp",
+        "genau eine Peer-Identität",
+        "ohne die vorgelagerte Analysepopulation zu verändern",
+        "das tatsächliche normierte erfolgreiche Target-SNR",
+        "Bei genau einem Peer",
         "stationsgleichgewichtete Dekodierrate und die Dekodierrate auf Gelegenheitsebene",
-        "durch erfolgreiche Target-Decodes beziehungsweise Target-Reports bedingt",
-        "Gegen-Outcomes besitzen kein aufgezeichnetes Target-SNR",
-        "Zensierung auf erfolgreiche Decodes",
-        "mindestens zwei berücksichtigte UTC-Tage",
-        "starten keine Provider-Abfrage erneut",
+        "numerisch identisch",
+        "Funkwegpräsenz von Evidenzvolumen",
+        "Only Target, Joint und Only Reference",
+        "verändert nur die Ansicht der beibehaltenen Evidenz",
     )
 
     for required_text in english_contract:
@@ -702,11 +693,6 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
         "figure_selected_station_similar_stations.png",
     )
     metadata_fields = (
-        "`selected_station_label`",
-        "`selected_station_context`",
-        "`selected_station_count`",
-        "`selected_station_role`",
-        "`selected_evidence_weighting`",
         "`selected_evidence_figures`",
         "`benchmark_evidence_figures`",
         "`benchmark_evidence_recipes`",
@@ -746,111 +732,28 @@ def test_bilingual_manuals_define_performance_selected_singleton_and_exports():
 
 
 def test_bilingual_manuals_define_benchmark_evidence_science_and_limits():
-    """Keep retained Benchmark coverage explicit and retired views absent."""
+    """Keep Benchmark pairability, weighting, and one-sided limits explicit."""
     english_contract = (
-        "Benchmark Temporal Evidence Coverage",
-        "Selected Path Evidence Coverage",
-        "Retained WSPR Cycles over Time",
-        "Retained WSPR Cycles by UTC Hour",
-        "Scheduled A/B Pairs over Time",
-        "Scheduled A/B Pairs by UTC Hour",
-        "averages per represented UTC date",
-        "one retained unit on the selected path is one WSPR cycle",
-        r"\(100\times\operatorname{mean}_s(J_{s,b}/N_{s,b})\)",
-        r"\(100\times\sum_sJ_{s,b}/\sum_sN_{s,b}\)",
+        r"$$N_{i,b}=T_{i,b}+J_{i,b}+R_{i,b}$$",
+        r"$$JES_{station}(b)=100\%\times\operatorname{mean}_{i}\left(\frac{J_{i,b}}{N_{i,b}}\right)$$",
+        r"$$JES_{outcome}(b)=100\%\times\frac{\sum_iJ_{i,b}}{\sum_iN_{i,b}}$$",
+        "Only Target, Joint and Only Reference",
+        "equal peer weight versus equal evidence-unit weight",
+        "Joint Evidence Share measures pairability",
         "It is not a Target win rate",
+        "directional and asymmetric",
+        "a one-sided pair still has no Pair Delta",
     )
     german_contract = (
-        "Zeitliche Benchmark-Evidenzabdeckung",
-        "Evidenzabdeckung des ausgewählten Funkwegs",
-        "Berücksichtigte WSPR-Zyklen im Zeitverlauf",
-        "Berücksichtigte WSPR-Zyklen nach UTC-Stunde",
-        "Geplante A/B-Paare im Zeitverlauf",
-        "Geplante A/B-Paare nach UTC-Stunde",
-        "Mittelwerte je berücksichtigtem UTC-Tag",
-        "eine beibehaltene Einheit auf dem ausgewählten Funkweg ein WSPR-Zyklus",
-        r"\(100\times\operatorname{mean}_s(J_{s,b}/N_{s,b})\)",
-        r"\(100\times\sum_sJ_{s,b}/\sum_sN_{s,b}\)",
-        "er ist keine Target-Siegquote",
-    )
-    retired_english_contract = (
-        "Station-normalized Delta SNR change",
-        "Path Agreement and Within-Path Consistency",
-        "at least three finite paired Delta SNR observations",
-    )
-    retired_german_contract = (
-        "stationsnormierte Delta-SNR-Änderung",
-        "Übereinstimmung und Konsistenz der Funkwege",
-        "mindestens drei endlichen gepaarten Delta-SNR-Beobachtungen",
-    )
-
-    for required_text in english_contract:
-        assert required_text in DOC_EN
-    for required_text in german_contract:
-        assert required_text in DOC_DE
-    for retired_text in retired_english_contract:
-        assert retired_text not in DOC_EN
-    for retired_text in retired_german_contract:
-        assert retired_text not in DOC_DE
-
-    performance_section_en = DOC_EN.split(
-        "#### 2.6a Inspect the Contributing Stations (Performance Mode)", 1
-    )[1].split("#### 2.6b Inspect the Contributing Stations (Benchmark Mode)", 1)[0]
-    performance_section_de = DOC_DE.split(
-        "#### 2.6a Die beitragenden Stationen untersuchen (Performance-Modus)", 1
-    )[1].split(
-        "#### 2.6b Die beitragenden Stationen untersuchen (Benchmark-Modus)", 1
-    )[0]
-    for retired_text in (
-        "Selected Path Summary",
-        "Selected Stations Summary",
-        "SNR Distribution",
-        "Selected Path vs. Similar Stations",
-        "Selected Stations vs. Similar Stations",
-    ):
-        assert retired_text not in performance_section_en
-    for retired_text in (
-        "Zusammenfassung des ausgewählten Funkwegs",
-        "Zusammenfassung ausgewählter Stationen",
-        "SNR-Verteilung",
-        "Ausgewählter Funkweg im Vergleich zu ähnlichen Stationen",
-        "Ausgewählte Stationen im Vergleich zu ähnlichen Stationen",
-    ):
-        assert retired_text not in performance_section_de
-
-    assert "Select one station to open the selected station evidence view" in DOC_EN
-    assert "Wähle eine Station aus, um ihre Evidenzansicht zu öffnen" in DOC_DE
-
-
-def test_bilingual_manuals_explain_simplified_performance_map_semantics():
-    """Document the sole quantitative layer, status markers, and missing state."""
-    english_contract = (
-        "sector fill is the only quantitative color layer",
-        "a small solid dark-green marker means `Heard by Target`",
-        "a small solid light-grey marker means `Heard by others only`",
-        "`Target heard` and `Other signals heard only`",
-        "encode neither individual Decode Rate nor evidence depth",
-        "dark-green markers are drawn above light-grey markers",
-        "remains unfilled so the neutral base map shows through",
-        "A valid Performance sector at `0%` remains on the Decode Rate scale",
-        "`Insufficient evidence` is a different state",
-        "upper <strong class=\"defined-term\">OPPORTUNITIES</strong> row",
-        "lower <strong class=\"defined-term\">STATIONS</strong> row",
-        "Exact counts appear inside segments when they fit",
-    )
-    german_contract = (
-        "Die Sektorfüllung ist die einzige quantitative Farbebene",
-        "ein kleiner dunkelgrüner Vollmarker `Vom Target gehört`",
-        "ein kleiner hellgrauer Vollmarker `Nur von anderen gehört`",
-        "`Target gehört` und `Nur andere Signale gehört`",
-        "codieren weder die individuelle Dekodierrate noch die Evidenztiefe",
-        "werden dunkelgrüne Marker über hellgrauen Markern gezeichnet",
-        "bleibt ungefüllt, sodass die neutrale Basiskarte",
-        "Ein gültiges Performance-Segment bei `0%` bleibt Teil der Dekodierratenskala",
-        "`Unzureichende Evidenz` ist ein anderer Zustand",
-        "obere Zeile <strong class=\"defined-term\">GELEGENHEITEN</strong>",
-        "untere Zeile <strong class=\"defined-term\">STATIONEN</strong>",
-        "Exakte Anzahlen erscheinen in ausreichend breiten Segmenten",
+        r"$$N_{i,b}=T_{i,b}+J_{i,b}+R_{i,b}$$",
+        r"$$JES_{station}(b)=100\%\times\operatorname{mean}_{i}\left(\frac{J_{i,b}}{N_{i,b}}\right)$$",
+        r"$$JES_{outcome}(b)=100\%\times\frac{\sum_iJ_{i,b}}{\sum_iN_{i,b}}$$",
+        "Only Target, Joint und Only Reference",
+        "jedem beitragenden Peer dasselbe Gewicht",
+        "Joint-Evidenzanteil misst die Paarbarkeit",
+        "keine Gewinnquote des Targets",
+        "gerichtet und asymmetrisch",
+        "einseitiges Paar besitzt jedoch kein Paar-Delta",
     )
 
     for required_text in english_contract:
@@ -858,26 +761,29 @@ def test_bilingual_manuals_explain_simplified_performance_map_semantics():
     for required_text in german_contract:
         assert required_text in DOC_DE
 
-    assert (
-        "uses the same scale for that station's individual Decode Rate"
-        not in DOC_EN
-    )
-    assert (
-        "dieselbe Skala für die individuelle Dekodierrate dieser Station"
-        not in DOC_DE
-    )
+
+def test_bilingual_manuals_require_map_values_to_be_read_with_support():
+    """Retain map interpretation while allowing presentation details to evolve."""
+    assert "Read sector color together with the station and opportunity, spot or pair support" in DOC_EN
+    assert "A colored sector is a prompt to inspect, not the conclusion" in DOC_EN
+    assert "sector color shows the Station-balanced Decode Rate" in DOC_EN
+
+    assert "Lies die Sektorfarbe stets zusammen mit der Unterstützung" in DOC_DE
+    assert "noch keine Schlussfolgerung" in DOC_DE
+    assert "Sektorfarbe die stationsgleichgewichtete Dekodierrate" in DOC_DE
 
 
-def test_bilingual_manuals_explain_dual_level_decode_outcome_bars():
-    """Keep the operator interpretation aligned with the rendered Benchmark figure."""
-    assert "The left, hatched bar in each category" in DOC_EN
-    assert "the right, solid-blue bar" in DOC_EN
-    assert "Each level is normalized against its own total" in DOC_EN
-    assert "The total and Joint counts for each level appear" in DOC_EN
-    assert "Der linke, schraffierte Balken jeder Kategorie" in DOC_DE
-    assert "der rechte, vollblaue Balken" in DOC_DE
-    assert "Jede Ebene wird gegen ihre eigene Gesamtsumme normiert" in DOC_DE
-    assert "Die Gesamt- und Joint-Anzahlen jeder Ebene stehen" in DOC_DE
+def test_bilingual_manuals_explain_station_and_observation_benchmark_weighting():
+    """Keep complementary Benchmark weighting without pinning bar styling."""
+    assert "two complementary compositions: station breadth and observation volume" in DOC_EN
+    assert "Station Medians give each remote transmitter one Delta-SNR value" in DOC_EN
+    assert "Joint-Spot distribution shows every paired observation" in DOC_EN
+    assert "station-level Decode Outcomes with the observation- or pair-level composition" in DOC_EN
+
+    assert "zwei ergänzende Zusammensetzungen: die Breite über Stationen und das Beobachtungsvolumen" in DOC_DE
+    assert "Stationsmediane geben jedem entfernten Sender genau einen Delta-SNR-Wert" in DOC_DE
+    assert "Verteilung der Joint Spots zeigt jede gepaarte Beobachtung" in DOC_DE
+    assert "stationsbezogenen Decode Outcomes mit der Zusammensetzung auf Beobachtungs- beziehungsweise Paarebene" in DOC_DE
 
 
 def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_policy():
@@ -902,14 +808,10 @@ def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_poli
         )[0]
         assert "(#sec-7-3)" in gate_diagnostic
 
-    assert '<strong class="defined-term">qualifying evidence</strong>' in DOC_EN
-    assert '<strong class="defined-term">qualifizierende Evidenz</strong>' in DOC_DE
     assert "`Include Unpaired Evidence`" in DOC_EN
     assert "`Ungepaarte Evidenz einbeziehen`" in DOC_DE
-    assert "where applicable" in DOC_EN
-    assert "beim Benchmark gegebenenfalls" in DOC_DE
-    assert "automatically records the application name and version" in DOC_EN
-    assert "erfasst automatisch Anwendungsname und -version" in DOC_DE
+    assert "**Only Target**, **Joint**, **Only Reference** and, at identity level, **Both (Async)**" in DOC_EN
+    assert "**Only Target**, **Joint**, **Only Reference** sowie auf Identitätsebene **Both (Async)**" in DOC_DE
 
 
 def test_end_user_manuals_omit_internal_interval_boundary_convention():
@@ -921,228 +823,87 @@ def test_end_user_manuals_omit_internal_interval_boundary_convention():
 
 
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():
-    """Keep Benchmark temporal evidence scientifically and operationally explicit."""
-    assert "exactly the same observation-level evidence rows" in DOC_EN
-    assert "at least two distinct UTC dates" in DOC_EN
-    assert "D_{relative} = 100" in DOC_EN
-    assert (
-        "The right **Δ SNR by UTC Hour** panel remains visible at fixed "
-        "one-hour bins"
-    ) in DOC_EN
-    assert "there is no separate selected temporal-view preference" in DOC_EN
-    assert (
-        "For Benchmark, the prompt `↓ Select time aggregation bin size` appears under `Temporal Evidence`"
-        in DOC_EN
-    )
+    """Keep temporal populations and density normalization explicit."""
+    assert "Chronological views preserve the actual sequence of the run" in DOC_EN
+    assert "fold evidence from represented dates onto fixed one-hour slots" in DOC_EN
+    assert "Benchmark temporal coverage uses all retained Only Target, Joint and Only Reference units" in DOC_EN
+    assert "requires at least two represented evidence dates" in DOC_EN
+    assert r"$$D_{relative}=100\times\frac{n_{cell}}{\max(n_{cell,panel})}$$" in DOC_EN
+    assert "not 100% of all evidence" in DOC_EN
 
-    assert "genau dieselben Evidenzzeilen auf Beobachtungsebene" in DOC_DE
-    assert "mindestens zwei verschiedenen UTC-Tagen" in DOC_DE
-    assert "D_{relative} = 100" in DOC_DE
-    assert (
-        "Das rechte Panel **Δ SNR nach UTC-Stunde** bleibt mit festen "
-        "einstündigen Bins sichtbar"
-    ) in DOC_DE
-    assert (
-        "eine getrennte Zeitansichtspräferenz für die ausgewählte Station gibt "
-        "es nicht mehr"
-    ) in DOC_DE
-    assert (
-        "Beim Benchmark steht die Aufforderung `↓ Zeitliche Aggregationsbreite auswählen` unter `Zeitliche Evidenz`"
-        in DOC_DE
-    )
-
-    assert "percentage of that panel's maximum cell count" in DOC_EN
-    assert "Prozentsatz der maximalen Zellbelegung dieses Panels" in DOC_DE
-    assert "Tick labels show the resulting **absolute Delta SNR**" in DOC_EN
-    assert "Die Skalenbeschriftungen zeigen das resultierende **absolute Delta SNR**" in DOC_DE
-    assert "The two segment temporal panels share the observation-level median" in DOC_EN
-    assert "Die beiden Zeitpanels des Segments teilen sich den Median" in DOC_DE
-    assert (
-        "both share the selected path's median-centered nonlinear Delta SNR axis"
-        in DOC_EN
-    )
-    assert (
-        "beide verwenden jedoch dieselbe medianzentrierte, nichtlineare "
-        "Delta-SNR-Achse des ausgewählten Funkwegs"
-        in DOC_DE
-    )
-    assert "M +/- 1`, `M +/- 3`, `M +/- 6` and `M +/- 10 dB" in DOC_EN
-    assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` and `M +/- 30 dB" in DOC_EN
-    assert "M +/- 1`, `M +/- 3`, `M +/- 6` und `M +/- 10 dB" in DOC_DE
-    assert "M +/- 3`, `M +/- 6`, `M +/- 10`, `M +/- 20` und `M +/- 30 dB" in DOC_DE
-    assert "+6 M" not in DOC_EN
-    assert "+6 M" not in DOC_DE
-    assert "red median line and legend identify" in DOC_EN
-    assert "rote Medianlinie und die Legende kennzeichnen" in DOC_DE
-    assert "no dedicated zero reference line" in DOC_EN
-    assert "keine eigene Nullreferenzlinie" in DOC_DE
-    assert "Segment-histogram counts and bin edges remain in raw dB" in DOC_EN
-    assert (
-        "Anzahlen und Klassengrenzen der Segment-Histogramme bleiben in "
-        "untransformierten dB-Werten"
-    ) in DOC_DE
-    assert "white connected markers remain a separate statistic" in DOC_EN
-    assert "chronological density receives every retained successful observation" in DOC_EN
-    assert "Die weißen verbundenen Marker bleiben eine eigene Statistik" in DOC_DE
-    assert "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs" in DOC_DE
-    for documentation_text in (DOC_EN, DOC_DE):
-        assert (
-            "figure_segment_temporal_snr_deviation.png"
-            in documentation_text
-        )
-        assert "figure_segment_temporal_evidence.png" in documentation_text
+    assert "Chronologische Ansichten bewahren die tatsächliche Reihenfolge des Laufs" in DOC_DE
+    assert "Beobachtungen verschiedener Tage auf dieselbe 24-Stunden-UTC-Uhr" in DOC_DE
+    assert "zeitliche Benchmark-Abdeckung verwendet alle beibehaltenen Einheiten Only Target, Joint und Only Reference" in DOC_DE
+    assert "mindestens zwei Tage mit Evidenz" in DOC_DE
+    assert r"$$D_{relative}=100\times\frac{n_{cell}}{\max(n_{cell,panel})}$$" in DOC_DE
+    assert "nicht 100 % der gesamten Evidenz" in DOC_DE
 
 
 def test_bilingual_manuals_define_temporal_iqr_science_and_axis_contract():
-    """Pin raw quartiles, all four SNR populations, support, and full ranges."""
-    english_contract = (
-        "same raw Joint-Spot or complete-Scheduled-Pair values before integer heatmap binning",
-        "medians and quartiles remain raw-dB statistics",
-        "chronological density receives at most one station-bin median per station and selected time bin",
-        "folded density receives one station-date-hour median per station, UTC date and UTC hour",
-        "chronological density receives every retained successful observation from that path",
-        "folded density first forms one median for every represented UTC date and UTC hour",
-        "Q1 and Q3 are computed from those same unrounded contributed values",
-        "only where at least five values contribute, bound a subtle IQR band with fine lines",
-        "the band and its boundaries require at least five Joint Spots or complete Scheduled Pairs within a bin",
-        "Its subtle IQR band and fine Q1/Q3 boundary lines use those same unrounded observations and require at least five values in the bin",
-        "A subtle IQR band bounded by fine Q1/Q3 lines shows the middle 50%",
-        "from five represented-date values onward",
-        "The linear y-axis continues to include the complete finite SNR envelope; the quartiles do not set or clip its limits",
-        "does not alter the full finite evidence envelope used by the axis",
-        "one linear actual-SNR range covering the complete finite population",
-    )
-    german_contract = (
-        "dieselben rohen Werte der Joint Spots beziehungsweise vollständigen Scheduled Pairs vor der Rundung",
-        "Mediane und Quartile bleiben Statistiken aus untransformierten dB-Werten",
-        "je Station und gewähltem Zeit-Bin höchstens ein Stations-Bin-Median",
-        "je Station, UTC-Datum und UTC-Stunde ein Stations-Datum-Stunden-Median",
-        "jede beibehaltene erfolgreiche Beobachtung dieses Funkwegs",
-        "bildet zunächst einen Median für jedes berücksichtigte UTC-Datum und jede UTC-Stunde",
-        "Q1 und Q3 werden aus denselben ungerundeten beitragenden Werten berechnet",
-        "begrenzen nur bei mindestens fünf Werten mit feinen Linien ein dezentes IQR-Band",
-        "das Band und seine Grenzen erfordern mindestens fünf Joint Spots beziehungsweise vollständige Scheduled Pairs im Bin",
-        "verwenden dieselben ungerundeten Beobachtungen und erfordern mindestens fünf Werte im Bin",
-        "ab fünf berücksichtigten Tageswerten ein dezentes IQR-Band, das von feinen Q1/Q3-Linien begrenzt wird",
-        "Ein dezentes IQR-Band, das von feinen Q1/Q3-Linien begrenzt wird, zeigt die mittleren 50 %",
-        "Die lineare y-Achse umfasst weiterhin die vollständige endliche SNR-Spanne; die Quartile bestimmen oder beschneiden ihre Grenzen nicht",
-        "es verändert nicht die vollständige endliche Evidenzspanne der Achse",
-        "einen gemeinsamen linearen Wertebereich des tatsächlichen SNR, der die vollständige endliche Population umfasst",
-    )
+    """Keep descriptive spread distinct from uncertainty and transforms."""
+    assert "IQR and min–max displays are descriptive spread summaries, not confidence intervals" in DOC_EN
+    assert "only where at least five values contribute" in DOC_EN
+    assert "Empty bins remain missing rather than becoming synthetic zero observations" in DOC_EN
+    assert "raw Delta SNR values, bin membership, counts, medians and quartiles remain unchanged" in DOC_EN
+    assert "Performance successful-SNR views remain on a linear dB axis" in DOC_EN
 
-    for required_text in english_contract:
-        assert required_text in DOC_EN
-    for required_text in german_contract:
-        assert required_text in DOC_DE
+    assert "IQR- und Min-Max-Darstellungen sind deskriptive Streuungsmaße und keine Konfidenzintervalle" in DOC_DE
+    assert "nur gezeichnet, wenn mindestens fünf Werte" in DOC_DE
+    assert "Leere Bins bleiben fehlend" in DOC_DE
+    assert "Rohe Delta-SNR-Werte, Bin-Zuordnung, Anzahlen, Mediane und Quartile bleiben unverändert" in DOC_DE
+    assert "Performance-Ansichten des erfolgreichen SNR bleiben auf einer linearen dB-Achse" in DOC_DE
 
 
-def test_benchmark_map_uses_stepped_station_balanced_db_scale_bilingually():
-    """Keep the map label and manual aligned with the signed stepped dB scale."""
+def test_benchmark_map_label_matches_station_balanced_delta_contract():
+    """Keep the rendered label aligned with the scientific map aggregation."""
     assert T["en"]["cbar_comp"] == "Station-balanced median \u0394SNR (dB)"
     assert (
         T["de"]["cbar_comp"]
         == "Stationsgleichgewichteter Median des \u0394SNR (dB)"
     )
-    assert "symmetric stepped dB color scale" in DOC_EN
-    assert "deep-navy-to-teal sectors have negative Delta SNR" in DOC_EN
-    assert "ochre-to-chestnut sectors have positive Delta SNR" in DOC_EN
-    assert "Light yellow-green marks the display-neutral interval" in DOC_EN
-    assert "display-neutral interval centered on `0 dB`" in DOC_EN
-    assert "active whole-dB color step" in DOC_EN
-    assert "rather than a claim of sub-dB measurement resolution" in DOC_EN
-    assert "Only exactly `0 dB` means equality" in DOC_EN
-    assert "`max(1, ceil(A / 6)) dB`" in DOC_EN
-    assert "outer labelled tick is the smallest multiple" in DOC_EN
-    assert "at most 13 color classes" in DOC_EN
-    assert "color-bin boundaries extend a further half-step" in DOC_EN
-    assert "never narrows below `-6 dB` to `+6 dB`" in DOC_EN
-    assert "symmetrische, abgestufte dB-Farbskala" in DOC_DE
-    assert "Dunkelblau- bis Petroltöne kennzeichnen ein negatives Delta SNR" in DOC_DE
-    assert "Ocker- bis Kastanientöne kennzeichnen ein positives Delta SNR" in DOC_DE
-    assert "Helles Gelbgrün markiert das um `0 dB` zentrierte" in DOC_DE
-    assert "um `0 dB` zentrierte darstellungsneutrale Intervall" in DOC_DE
-    assert "aktiven ganzzahligen dB-Farbschrittweite" in DOC_DE
-    assert "keine Aussage über eine Messauflösung unterhalb von `1 dB`" in DOC_DE
-    assert "Nur genau `0 dB` bedeutet Gleichheit" in DOC_DE
-    assert "`max(1, ceil(A / 6)) dB`" in DOC_DE
-    assert "äußerste beschriftete Skalenwert ist das kleinste Vielfache" in DOC_DE
-    assert "höchstens 13 Farbklassen" in DOC_DE
-    assert "Grenzen der Farbintervalle reichen einen weiteren halben Schritt" in DOC_DE
-    assert "nie enger als `-6 dB` bis `+6 dB`" in DOC_DE
-    for obsolete_scale_text in (
-        "No fixed headroom is added",
-        "outer half-bin provides the natural margin",
-        "keine feste Reserve hinzugefügt",
-        "äußere halbe Intervall bildet den natürlichen Rand",
-    ):
-        assert obsolete_scale_text not in DOC_EN
-        assert obsolete_scale_text not in DOC_DE
-    for obsolete_text in ("S-unit", "1S=6dB", "S-Stufe"):
-        assert obsolete_text not in DOC_EN
-        assert obsolete_text not in DOC_DE
-        assert obsolete_text not in T["en"]["cbar_comp"]
-        assert obsolete_text not in T["de"]["cbar_comp"]
+    for manual in (DOC_EN, DOC_DE):
+        assert r"$$m_i=\operatorname{median}_{c}(D_{i,c})$$" in manual
+        assert r"$$M_g=\operatorname{median}_{i\in I_g}(m_i)$$" in manual
+
+    assert "sector color summarizes the station-balanced median Delta SNR" in DOC_EN
+    assert "Positive $D_{i,c}$ favors the Target; negative favors the Reference" in DOC_EN
+    assert "Sektorfarbe den stationsgleichgewichteten Median des Delta SNR" in DOC_DE
+    assert "Positives $D_{i,c}$ spricht für das Target, negatives für die Referenz" in DOC_DE
 
 
 def test_bilingual_manuals_define_saved_inspector_selection_contracts():
-    """Saved result-view guidance must enforce one focused station in both paths."""
-    assert "Benchmark and Performance selections are saved independently" in DOC_EN
-    assert "Its setting is saved for Performance" in DOC_EN
-    assert (
-        "Performance and Benchmark each save no more than one exact "
-        "`callsign + locator` identity"
-        in DOC_EN
-    )
-    assert "selecting another row replaces the current identity" in DOC_EN
-    assert "clearing the row saves an explicit deselection" in DOC_EN
-    assert (
-        'Configurations containing `"all"`, duplicate identities or multiple '
-        "selected identities are rejected"
-        in DOC_EN
-    )
+    """Saved view guidance must retain one focused peer per result type."""
+    english_controls = DOC_EN.split('<a id="sec-5-5"></a>', 1)[1].split(
+        '<a id="sec-6"></a>', 1
+    )[0]
+    german_controls = DOC_DE.split('<a id="sec-5-5"></a>', 1)[1].split(
+        '<a id="sec-6"></a>', 1
+    )[0]
 
-    assert "Benchmark und Performance werden getrennt unter den kanonischen Schlüsseln" in DOC_DE
-    assert "Die Einstellung wird für Performance gespeichert" in DOC_DE
-    assert (
-        "Performance und Benchmark speichern jeweils höchstens eine exakte "
-        "Identität aus `Rufzeichen + Locator`"
-        in DOC_DE
-    )
-    assert "die Auswahl einer anderen Zeile ersetzt die aktuelle Identität" in DOC_DE
-    assert "das Aufheben der Auswahl speichert eine ausdrückliche Abwahl" in DOC_DE
-    assert (
-        'Konfigurationen mit `"all"`, doppelten Identitäten oder mehreren '
-        "ausgewählten Identitäten werden abgelehnt"
-        in DOC_DE
-    )
-    for retired_phrase in (
-        "one or multiple stations",
-        "one or more exact identities",
-        "all-stations intent",
-        "eine oder mehrere Stationen",
-        "eine oder mehrere exakte Identitäten",
-    ):
-        assert retired_phrase not in DOC_EN
-        assert retired_phrase not in DOC_DE
+    assert "Separately for Performance and Benchmark" in english_controls
+    assert "One exact `callsign + locator` per result type" in english_controls
+    assert "| No |" in english_controls
+    assert "one exact peer identity" in DOC_EN
+    assert "not matching, eligibility or aggregation upstream" in DOC_EN
+
+    assert "getrennt für Performance und Benchmark" in german_controls
+    assert "genau ein `Rufzeichen + Locator` je Ergebnistyp" in german_controls
+    assert "| Nein |" in german_controls
+    assert "genau eine Peer-Identität" in DOC_DE
+    assert "nicht die vorgelagerte Zuordnung, Zulässigkeit oder Aggregation" in DOC_DE
 
 
 def test_bilingual_manuals_document_only_absolute_utc_analysis_windows():
     """Describe fixed quantized boundaries without the retired rolling mode."""
-    assert (
-        "absolute 24-hour window ending at the current 15-minute UTC boundary"
-        in DOC_EN
-    )
-    assert "exact absolute UTC start and end boundaries" in DOC_EN
-    assert (
-        "absolutes 24-Stunden-Fenster bis zur aktuellen "
-        "15-Minuten-UTC-Grenze"
-        in DOC_DE
-    )
-    assert "exakten absoluten UTC-Start- und Endgrenzen" in DOC_DE
-    assert "suggests an End Date seven days later" in DOC_EN
-    assert "exact date-and-time violations are shown immediately" in DOC_EN
-    assert "wird ein Enddatum sieben Tage später vorgeschlagen" in DOC_DE
-    assert "werden sofort angezeigt" in DOC_DE
+    assert "fixed 24-hour window ending at the current 15-minute UTC boundary" in DOC_EN
+    assert "**Start Date/Time (UTC)** and **End Date/Time (UTC)**" in DOC_EN
+    assert "Dates begin in 2008; one run is limited to 31 elapsed days" in DOC_EN
+    assert "rounded down to effective 15-minute boundaries" in DOC_EN
+
+    assert "festes 24-Stunden-Fenster bis zur aktuellen 15-Minuten-UTC-Grenze" in DOC_DE
+    assert "**Startdatum/-zeit (UTC)** und **Enddatum/-zeit (UTC)**" in DOC_DE
+    assert "Datumswerte beginnen im Jahr 2008" in DOC_DE
+    assert "auf wirksame 15-Minuten-Grenzen abgerundet" in DOC_DE
     for retired_phrase in (
         "Last X Hours",
         "Last-X",

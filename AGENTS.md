@@ -429,12 +429,10 @@ Before editing:
   forms, and any RX/TX, Benchmark/Performance, or English/German variants.
 - State whether the change affects only presentation terminology or also changes
   scientific meaning, configuration, schemas, exports, or compatibility.
-- Identify canonical internal terms that must remain stable in code and
-  supported contracts. Do not globally replace internal identifiers, DataFrame
-  columns, classifications, formulas, schema fields, cache keys, or compatibility
-  export headings merely because their visible presentation name changes. Do not
-  expose those internal names in the narrative manuals merely to map prose back to
-  the implementation.
+- Identify canonical internal terms that must remain stable. Do not globally
+  replace internal identifiers, DataFrame columns, classifications, formulas,
+  schema fields, cache keys, or compatibility export headings merely because
+  their visible presentation name changes.
 
 Audit all applicable surfaces:
 
@@ -468,7 +466,15 @@ For bilingual terminology changes:
 
 - preserve English/German key and placeholder parity;
 - use an approved phrase matrix for every semantic and directional variant;
-- verify natural German wording rather than literal word substitution;
+- treat `i18n.py` as authoritative for exact rendered UI labels; use the
+  approved terminology matrix together with this section's prose rules for
+  narrative wording, without changing scientific meaning or supported contract
+  identifiers;
+- apply the **English–German translation and semantic parity** rules below,
+  including the requirement not to silently correct, omit, strengthen or add
+  meaning in only one language;
+- verify natural German wording against the official German UI terminology
+  rather than performing literal word substitution;
 - ensure fallback text cannot expose superseded English or canonical terms in
   either language.
 
@@ -542,8 +548,10 @@ define or select scientific behavior.
   controls, formulas or displayed values.
 - Include presentation mechanics only when they materially prevent a wrong
   interpretation; omit self-evident layout, typography and styling narration.
-- Preserve English/German semantic, key and placeholder parity. German should
-  be a natural technical adaptation, not a mechanically literal translation.
+- Apply the **English–German translation and semantic parity** rules below.
+  Preserve key and placeholder parity, stable scientific meaning and the exact
+  official German UI terms while writing natural technical German rather than a
+  mechanically literal translation.
 - Write each field as a complete prose fragment that remains grammatical when
   mode-, benchmark- or drill-down-specific items are concatenated. Keep prose
   paragraphs as triple-quoted strings on one physical source line.
@@ -561,13 +569,9 @@ define or select scientific behavior.
   their meaning is unambiguous.
 - Use established WSPRadar terminology consistently. Do not introduce synonyms
   for visible concepts such as Target, Reference, Joint, Opportunity, Decode Rate,
-  Decode Outcomes or Target-Active Gate. Internal or compatibility terms such as
-  `success`, Elsewhere and Other Signals may remain in code or a supported external
-  contract where required; they must not appear in narrative manual prose merely to
-  explain how the implementation stores a scientific category. If an exact name is
-  part of a supported configuration, URL, export or data contract, document it once
-  in Chapter 8 or a dedicated data dictionary and label it explicitly as a
-  machine-readable contract value.
+  Decode Outcomes or Target-Active Gate. Canonical internal or compatibility terms
+  such as `success`, Elsewhere and Other Signals may remain where their contract
+  requires them; do not expose them as replacement UI terminology.
 - Function and method names should describe the action performed, normally using
   a verb phrase such as `build_analysis_batches`, `prepare_opportunity_rows`, or
   `validate_config_upload`.
@@ -758,6 +762,15 @@ not as optional follow-up work.
   verification scope and why the narrower checks covered the changed contract.
 - Explicitly identify unverified assumptions, remaining risks, and checks that
   could not be run.
+- For bilingual documentation work, identify the accepted source model: either
+  the exact source-language file and revision or content hash, or a
+  parallel/co-authored pair with both hashes and its approved semantic
+  specification. State whether the work is a review draft or completed
+  integration, identify the semantic-parity scope reviewed, and report material
+  semantic or structural divergences, official-label or approved-localization
+  choices, unresolved source ambiguity, and semantic units that could not be
+  matched with confidence. Do not itemize routine non-literal grammatical or
+  syntactic adaptations that preserve the approved meaning.
 
 ## Definition of Done
 
@@ -789,6 +802,10 @@ not as optional follow-up work.
     Protocol, including cross-surface search, bilingual parity, active-route
     verification, and an explicit distinction between presentation wording and
     retained canonical or compatibility terminology.
+14. Every completed bilingual manual translation or synchronized bilingual
+    manual change has passed the semantic-unit parity review below. Matching
+    anchors, headings, formulas, tables, links or item counts alone is not
+    sufficient evidence of translation completeness.
 
 ## Documentation Maintenance
 
@@ -809,6 +826,10 @@ not as optional follow-up work.
 - Before completing a task, verify that factual claims and documented contracts
   still map to the implementation. This verification does not require visual or
   layout parity between the manual and the rendered UI.
+- When translating or synchronizing the manuals, verify semantic parity under
+  **Bilingual manual translation and semantic parity**. Structural, formula and
+  link parity alone are not evidence that all guidance, claims or scientific
+  distinctions were translated.
 
 ### Manual Style, Audience and Structure
 
@@ -931,21 +952,22 @@ technically correct or already present.
   validation evidence, provenance or reproducibility contract. Technical
   accuracy alone still does not justify UI-layout narration, cache mechanics or
   implementation trivia that has no scientific consequence.
-- **Audit every code-styled or implementation-facing name in the manuals.**
-  Classify it as visible UI terminology, formal mathematical notation, a
-  scientifically necessary upstream source field, a supported public contract
-  value, or an internal implementation name. Retain public contract values only in
-  Chapter 8 or a dedicated data dictionary. Remove private enum values, DataFrame
-  columns, helper names, cache keys, state keys, temporary state names and internal
-  classifications when their scientific meaning can be stated in domain language.
 - **The end-user manual is not a UI specification, rendering contract,
-  regression-test oracle, code map or catalogue of every visible label.** Do not
-  inventory titles, panel order, axis labels, legend placement, spacing, empty-state
-  geometry or other presentation details solely because they exist. Do not expose
-  private enum values, internal classifications, DataFrame columns, helper names,
-  cache keys, state keys or temporary state names in narrative manual sections.
-  Name a figure or control exactly when the reader needs that name to locate,
-  operate or correctly interpret it.
+  regression-test oracle or catalogue of every visible label.** Do not inventory
+  titles, panel order, axis labels, legend placement, spacing, empty-state
+  geometry or other presentation details solely because they exist. Name a
+  figure or control exactly when the reader needs that name to locate, operate
+  or correctly interpret it.
+- **Keep private implementation identifiers out of the manuals while preserving
+  supported public contracts.** Exclude private enum values, DataFrame columns,
+  helper names, cache keys, state keys, temporary state names and internal
+  classifications when their scientific meaning can be stated in domain
+  language. A supported public configuration, URL, export or data identifier may
+  be documented in Chapter 8 or a dedicated data dictionary, but only in a
+  clearly labelled machine-readable contract table; keep that operator-facing
+  table concise and explicitly non-exhaustive. The formal JSON Schema remains
+  authoritative for the exhaustive saved-configuration field contract. Do not
+  expose public contract identifiers as replacement narrative terminology.
 - **Keep automatic interval-boundary semantics out of the end-user manual.**
   The half-open query/window convention is a deterministic internal rule, not
   an operator choice or reporting requirement. Do not mention it in
@@ -959,21 +981,16 @@ technically correct or already present.
   explanation.
 - **Treat implementation and tests as fact-checking sources, not documentation
   checklists.** They establish whether a claim is accurate; they do not establish
-  that every implementation or rendering fact belongs in the manual. Translate
-  scientific behavior into domain language instead of preserving the names of
-  internal storage categories.
+  that every implementation or rendering fact belongs in the manual.
 - **Keep scientific mechanics in Chapter 7.** Observation and comparison units,
   notation, analysis targets, evidence construction, derived quantities,
   descriptive summaries, eligibility, conditioning, missingness, censoring,
   normalization, binning, weighting, aggregation, dependence, analysis
   transformations and scientifically material edge cases belong once in
-  Scientific Methods. Describe classifications by their scientific meaning rather
-  than by private enum values or internal column names. Exact upstream source fields
-  may be named only when they materially define reproducible source selection. Part
-  II owns exact control labels, defaults, ranges, applicability, configuration
-  behavior and diagnosis. Part I should state the operator consequence and link to
-  the authoritative method only where omission would cause a materially wrong
-  operation or interpretation.
+  Scientific Methods. Part II owns exact control labels, defaults, ranges,
+  applicability, configuration behavior and diagnosis. Part I should state the
+  operator consequence and link to the authoritative method only where omission
+  would cause a materially wrong operation or interpretation.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
@@ -1016,10 +1033,7 @@ technically correct or already present.
   groupings and descriptive summaries remain unchanged.
 - Chapter 8 should distinguish descriptive, comparative, component-attribution,
   causal and inferential claims, and should specify the provenance and external
-  experiment records needed for reproduction. It is also the authoritative home for
-  exact names that form supported machine-readable configuration, URL, export or
-  data contracts; identify them explicitly as contract values and keep them out of
-  narrative method explanations.
+  experiment records needed for reproduction.
 - When the manual names a UI label, default, result unit, export field or
   behavior, keep its name and meaning current. This is an accuracy requirement,
   not a requirement to inventory every visible interface detail. Challenge
@@ -1034,8 +1048,10 @@ technically correct or already present.
   number for later citations of that source. Do not hyperlink author names,
   publication titles, or explanatory phrases as source citations; reserve
   descriptive links for structural navigation such as sections and appendices.
-- **Clarify the preservation rule.** An ordinary documentation task must
-  preserve all existing text. During an explicitly requested restructuring,
+- **Clarify the preservation rule.** An ordinary documentation task, including
+  translation or bilingual synchronization, must preserve all existing text;
+  translation alone never authorizes deletion. During an explicitly requested
+  restructuring,
   preserve unique, correct and useful user guidance. `Useful` means that the
   content changes operator action, interpretation, diagnosis or supported
   claims. In Part III, useful content also includes material needed to define or
@@ -1046,7 +1062,11 @@ technically correct or already present.
   requested lean-manual audit authorizes removal of duplicated, obsolete,
   implementation-only, self-evident presentation or scientifically unsupported
   passages after useful guidance has been retained or relocated. Do not silently
-  lose genuinely useful guidance.
+  lose genuinely useful guidance. As a narrow exception, an expressly approved
+  deduplication may remove a demonstrable duplicate when the retained
+  authoritative occurrence, removed occurrence, disposition and approval are
+  recorded in the handoff. That exception does not authorize a broader merge or
+  waive the relocation protocol for substantial restructuring.
 
 ### Manual Content Ownership and Relocation
 
@@ -1102,14 +1122,13 @@ multi-stage-method ownership rule below:
   and weighting; geographic, temporal and selected-path descriptive summaries;
   scientifically material display transforms; dependence, uncertainty
   limitations and dated validation scope. Present the practical radio meaning
-  before formal notation, explain every formula again in accessible prose and
-  describe category semantics without exposing private implementation names.
+  before formal notation and explain every formula again in accessible prose.
 - **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:** claim
   classes, supported inference, interpretation limits, reporting and provenance
-  requirements, machine-readable configuration/URL/export/data contracts and
-  disclaimer. Describe export artifacts by scientific content, scope and stable
-  contract fields; label exact identifiers as machine-readable contract values and
-  do not turn the export section into an inventory of figure titles, axis labels or
+  requirements, selected public machine-readable configuration/URL/export/data
+  contracts and disclaimer. Describe export artifacts by scientific content,
+  scope and stable contract fields; do not turn the export section into an
+  exhaustive field catalog or an inventory of figure titles, axis labels or
   browser layout.
 - **References:** the consolidated source list follows Chapter 8 and precedes
   Part IV.
@@ -1168,10 +1187,25 @@ lean-manual audit is a substantial restructuring and may remove duplicated,
 obsolete, implementation-only or self-evident presentation passages after
 useful operator or scientific guidance has been retained or relocated.
 
+Translation or bilingual synchronization alone is not authorization to remove
+or merge passages. A demonstrable duplicate may be removed without treating an
+otherwise narrow parity repair as a substantial restructure only when the user
+expressly approves that exact deduplication and the task record or handoff names
+the removed occurrence, retained authoritative occurrence and disposition. This
+narrow exception never applies to unique guidance, multi-section consolidation
+or an unrecorded deletion; those remain subject to the full relocation protocol.
+
 The relocation-ledger requirement is prospective. A manually integrated
 baseline that the user explicitly accepts as grandfathered does not require a
 reconstructed ledger; apply the ledger requirement to later substantial
-restructures. When the user explicitly requests an English-only review draft,
+restructures. Commit `8773d5d67318896bd487f1c159ffb29d6155950f` is the
+explicitly user-accepted grandfathered origin of the current manual structure
+as of 2026-08-05. The accepted documentation baseline is the reconciled English
+and German state recorded in the 2026-08-05 changelog, not an exemption for
+defects in the historical commit. No retrospective relocation ledger is
+required for structural moves introduced by that commit; every later
+substantial restructure remains subject to this protocol. When the user
+explicitly requests an English-only review draft,
 that draft may precede German parity and README synchronization. It is not a
 completed repository integration, must not be published as the authoritative
 manual, and does not require a committed relocation ledger until the structure
@@ -1204,26 +1238,187 @@ Do not use `stable` ambiguously. Distinguish:
 Internal consistency within one run does not by itself establish future
 repeatability, independence, calibration or statistical significance.
 
-#### English and German structural parity
+#### Bilingual manual translation and semantic parity
 
-English and German manuals must retain equivalent section ownership, claims,
-warnings, formulas, references and cross-links in every completed integration.
-German should be a native technical adaptation using established amateur-radio
-terminology, not a mechanically literal translation. In German Part III,
-prefer precise but readable terms such as **Analyseziel**, **Beobachtung**,
-**gebildete Evidenzeinheit**, **beobachtete gepaarte Differenz**, **deskriptive
-Kennzahl** and **Zusammenfassungsgröße**. Avoid **Schätzer**, **Schätzfunktion**
-and **Schätzwert** unless the passage genuinely discusses inference to a wider
-population under an explicit statistical model. Preserve every formula and
-scientific distinction, but explain it in natural amateur-radio and HamSCI
-German that remains accessible to a technically minded operator. A relocation
-is incomplete until both languages have the same authoritative content home.
+Treat a completed English/German manual pair as one bilingual scientific and
+operator contract. The translation goal is **semantic equivalence in native
+technical prose**—not sentence-by-sentence literalness and not merely matching
+headings, anchors or formulas. Each language must carry the same reasoning,
+claims, qualifications, examples, warnings, interpretation boundaries and
+reproducibility obligations while reading as if it had been written originally
+for that language and audience.
 
-An English-only restructuring may be supplied as an explicitly labelled review
-draft when the user requests staged evaluation of the new structure. Do not
+##### Accepted source model and pre-translation audit
+
+- Establish and record one accepted source model before editing. In a
+  **source-led translation**, identify the source file, source revision or
+  content hash, and target language; when the user supplies a specific manual as
+  the new master, that exact file is the content source of truth for the
+  requested scope. In a **parallel/co-authored update**, record both manual
+  revisions or content hashes and the approved semantic specification against
+  which both languages are maintained; neither language is silently treated as
+  the sole master.
+- Do not work from memory, from `README.md`, from an older counterpart or from an
+  unrecorded mixture of drafts. In source-led work, translate from the accepted
+  source revision. In parallel/co-authored work, compare both accepted revisions
+  against the same approved semantic specification.
+- Before editing, compare the accepted pair over the affected scope. For
+  source-led work, classify every material difference as **source-only**,
+  **target-only**, **conflicting** or **intentional localization**. For
+  parallel/co-authored work, classify one-language-only, conflicting and
+  intentional-localization differences against the approved specification.
+  Matching anchors or headings do not establish that the prose is complete.
+- Resolve every one-language-only semantic unit under the accepted source model.
+  Do not silently discard useful guidance or silently promote it into the other
+  language. Report it and either add it to both approved meanings, retain it as
+  an explicitly approved localization, or remove it only under the preservation
+  and relocation rules. Translation or synchronization by itself never
+  authorizes deletion.
+- Resolve factual conflicts against the accepted source model, implementation
+  and cited evidence rather than guessing. If translation exposes an ambiguity,
+  omission or scientific error in either accepted manual or the shared semantic
+  specification, correct or flag it before treating the bilingual pair as
+  complete. Neither language may become the only unrecorded home of unique
+  scientific or operator guidance.
+- Treat `i18n.py` as authoritative for exact rendered UI labels. Build or reuse
+  an approved terminology matrix for product terms, RX/TX variants, scientific
+  vocabulary, units, placeholders, public-contract names and narrative prose.
+  The matrix and the prose rules in this file guide consistency but do not
+  replace semantic review or override supported machine-readable contracts.
+
+##### Translate by semantic unit
+
+- Account for every heading, prose paragraph, numbered or bulleted item, table
+  row and cell, blockquote, note or callout, caption, formula and formula
+  explanation, example, conclusion template, warning, limitation,
+  cross-reference, citation and public-contract statement in the accepted scope.
+- Sentences and paragraphs may be split, merged or reordered locally when this
+  produces natural target-language prose, but the argument, emphasis, evidence
+  boundary and content ownership must remain equivalent. Compression is allowed
+  only when no scientific, operational or interpretive meaning is lost.
+- Preserve every logical relation, including conditions, qualifiers,
+  quantifiers, negations, comparisons, directionality, exceptions, denominators,
+  causal boundaries and uncertainty statements. A smoother sentence must not
+  change what the evidence supports, excludes or leaves unresolved.
+- Do not add explanatory claims, examples, caveats or conclusions merely because
+  they seem useful in the target language. Propose improvements for both manuals
+  instead of creating one-language-only content.
+- Preserve mathematical meaning exactly: equations, symbols, indices, signs,
+  thresholds, units, numerical examples, denominators, conditioning and weighting
+  must remain equivalent. Explain formulas naturally in the target language
+  without changing the calculation or certainty of the claim.
+- Preserve anchors, links, semantic classes and other functional HTML markup,
+  placeholders, URLs, citation numbers, code, commands, paths, callsigns,
+  locators, schema values, filenames and supported public-contract identifiers
+  exactly unless the application exposes an approved localized form. HTML need
+  not be byte-identical: language-specific pagination or page-break markup may
+  differ when needed for readable layout and verified in the rendered Web and
+  PDF outputs. When the manual intentionally names a visible control or result,
+  use the actual rendered localized label from `i18n.py` rather than inventing a
+  new translation.
+- Preserve original publication and project titles unless an authoritative
+  translated title is explicitly used. Keep direct quotations in their source
+  language; any target-language explanation must sit outside the quotation and
+  must not replace or subtly alter the cited wording. Do not translate private
+  implementation identifiers into narrative prose.
+- Preserve numerical values, arithmetic, signs, units and examples exactly.
+  Exact localized labels may use their approved decimal comma, such as
+  `0,0 dB`. Machine-readable values, formula and code literals, and literal input
+  values must retain the decimal point, such as `0.0`; ordinary prose may use
+  target-language decimal punctuation when the numeric meaning is unchanged.
+- Preserve uncertainty and recommendation strength. Do not turn `may`, `can`,
+  `is consistent with`, `supports` or `does not establish` into stronger or
+  weaker claims in the target language.
+
+##### Match the audience and voice of each part
+
+- Part 0 must remain engaging, benefit-led and technically bounded rather than
+  becoming a literal or bureaucratic translation.
+- Part I must read as natural operating and interpretation guidance for radio
+  amateurs.
+- Part II must use exact localized controls and concise technical operating
+  language.
+- Part III must preserve HamSCI-level scientific distinctions while remaining
+  accessible to a technically minded radio amateur: practical meaning first,
+  formal definition and formula second, plain-language explanation and
+  interpretation boundary afterward.
+- Part IV must use established platform, RF, measurement and amateur-radio
+  terminology appropriate to the procedure.
+
+German must be a native technical adaptation using established amateur-radio
+terminology, not a mechanically literal translation. Prefer concise, idiomatic
+terms such as **Funkweg**, **Speiseleitung**, **Mantelwellensperre**,
+**Meldekennung**, **Störpegel**, **Analyseziel**, **Beobachtung**, **gebildete
+Evidenzeinheit**, **beobachtete gepaarte Differenz**, **deskriptive Kennzahl**
+and **Zusammenfassungsgröße** where they fit the meaning. Avoid **Schätzer**,
+**Schätzfunktion** and **Schätzwert** unless the passage genuinely discusses
+inference to a wider population under an explicit statistical model. Preserve
+established WSPRadar product terms such as Target, Reference, Performance,
+Benchmark, Decode Outcomes, Joint, Station Insights and Drill-Down when they are
+part of the approved bilingual terminology. Avoid unnecessary Anglicisms,
+literal calques, inflated nominal style and English word order; do not replace
+familiar radio terms with generic administrative German merely to avoid a
+technical loanword.
+
+##### Verify semantic parity, not only structural parity
+
+- Structural checks for headings, anchors, formulas, tables, links, references,
+  placeholders and public identifiers are required but never sufficient to prove
+  translation completeness.
+- Match semantic review depth to the change. For a narrow translation or
+  synchronization, inventory every changed semantic unit and review the affected
+  sections plus their inbound and outbound cross-links. For a substantial
+  translation, restructure or pair with known divergence, perform a complete
+  section-by-section review over the affected bilingual scope, comparing claims,
+  examples, warnings, limitations, list items, table meanings, formula
+  explanations, conclusion templates and cross-references. Under either scope,
+  every reviewed semantic unit must have an identifiable counterpart supported
+  by the accepted source model.
+- Create and compare independent reverse outlines for the complete affected scope
+  when the work is a substantial translation or restructure, or when the manuals
+  are known to have diverged. A narrow change does not require a full reverse
+  outline when changed-unit inventories and affected-section summaries establish
+  the same parity and cross-link coverage. A concept missing from a required
+  outline is a parity defect even when all anchors and formulas match. Machine
+  back-translation may assist discovery, but it is never evidence by itself that
+  semantic parity has been achieved.
+- Manually review the highest-risk content: experiment-validity conditions,
+  denominators and weighting, conditioning and missingness, calibration and
+  correction signs, one-sided-evidence asymmetry, supported-claim boundaries,
+  safety warnings and reproducibility requirements.
+- In source-led work, search the target for unintended source-language fragments
+  and verify that target-language prose has not leaked into the source. In
+  parallel/co-authored work, search both manuals for unintended fragments from
+  the other language. Allow only approved product terms, citations, publication
+  titles, commands and public identifiers.
+- Treat paragraph, sentence and word counts only as diagnostic signals. Natural
+  translations may differ in length; matching counts do not prove parity, and
+  differing counts do not prove an error.
+- Routine grammatical or syntactic adaptation that preserves approved meaning
+  is expected and need not be recorded as a divergence. Record each material
+  intentional semantic or structural divergence, official localized UI-label
+  choice, approved language-specific user need and its reason; none may alter
+  scientific meaning unless the user explicitly approves that bilingual contract
+  change. Unresolved one-language-only or conflicting content prevents
+  completion.
+- The handoff must state the accepted source model and recorded revision or
+  hashes, how semantic parity was reviewed at the proportional scope, material
+  intentional divergences, and any section that could not be verified. Do not
+  claim bilingual parity from structural validation alone.
+
+A substantial translation, substantial restructure or translation between
+manuals that had previously diverged must use a temporary section-level parity
+checklist during the task.
+Commit a separate translation ledger only when the work is combined with a
+substantial relocation/restructure or when the user explicitly requests one.
+
+A relocation is incomplete until both languages have the same authoritative
+content home. An English-only restructuring may be supplied as an explicitly
+labelled review draft when the user requests staged evaluation of the new
+structure. Mark the German manual as pending or stale for that scope. Do not
 regenerate `README.md`, publish the draft as authoritative or treat the
-restructuring as complete until the German manual has been adapted and parity,
-links, rendering and full integration checks have passed.
+integration as complete until the German manual has been adapted and the
+semantic, structural, link, rendering and full integration checks have passed.
 
 #### Documentation restructuring checks
 
@@ -1239,7 +1434,7 @@ For a substantial manual restructuring, verify:
   run outputs and first demo; and contains no control, selector, parameter or
   button walkthrough;
 - Part II remains an operating reference and does not become an internal state,
-  cache, queue or persistence-structure specification;
+  cache or queue specification;
 - Part III clearly distinguishes reported observations, constructed evidence
   units, derived quantities, descriptive summaries and bounded interpretation;
   defines analysis targets, observation and comparison units, conditioning,
@@ -1251,10 +1446,8 @@ For a substantial manual restructuring, verify:
 - display-only transformations are separated from scientific calculations and
   cosmetic rendering behavior is excluded;
 - Chapter 8 distinguishes descriptive, comparative, component-attribution,
-  causal and inferential claims; export documentation describes stable artifacts
-  and provenance rather than incidental figure layout; and every exact identifier
-  retained in the manuals is either a visible term, formal notation, a scientifically
-  necessary upstream field or an explicitly labelled public contract value;
+  causal and inferential claims, and export documentation describes stable
+  artifacts and provenance rather than incidental figure layout;
 - no device-specific procedure interrupts the main operator journey;
 - no useful original guidance was silently dropped;
 - source references remain globally numbered in order of first use;
@@ -1262,9 +1455,18 @@ For a substantial manual restructuring, verify:
   not revert to a generic screen inventory;
 - self-evident UI narration and implementation-only rendering detail have not
   been retained merely for technical completeness;
-- English and German structures and claim boundaries remain equivalent for a
-  completed integration; an explicitly requested English-only review draft is
+- English and German manuals have passed section-by-section semantic parity
+  review, not merely structural comparison: every accepted paragraph, list item,
+  numbered step, table row and cell, claim, example, warning, limitation,
+  formula explanation, conclusion template and cross-reference has an
+  identifiable counterpart; independent reverse outlines cover the complete
+  affected bilingual scope; material intentional divergences and approved
+  localization choices are recorded; unresolved one-language-only or conflicting
+  content is absent; and any explicitly requested one-language review draft is
   identified as incomplete;
+- formulas, numerical values, units, signs, thresholds, references, URLs,
+  placeholders and supported public-contract identifiers are preserved exactly,
+  while visible UI labels use their approved localized wording;
 - documentation tests assert required meaning and structure rather than obsolete
   incidental prose where practical;
 - README synchronization and web/PDF rendering are completed after authoritative
