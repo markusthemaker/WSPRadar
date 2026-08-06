@@ -2,6 +2,7 @@
 
 from matplotlib.collections import QuadMesh
 from matplotlib.colors import to_rgba
+import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 import pytest
@@ -47,7 +48,13 @@ def _localized_selected_evidence_recipe(
 ):
     """Build one localized dual-panel selected-Benchmark recipe."""
     translations = T[language]
+    analysis_start_t, analysis_end_t = _default_temporal_bounds(
+        plot_df,
+        time_agg,
+    )
     presentation = {
+        "analysis_start_t": analysis_start_t,
+        "analysis_end_t": analysis_end_t,
         "count_label": translations[
             (
                 "fig_scheduled_pair_count"
@@ -60,6 +67,9 @@ def _localized_selected_evidence_recipe(
         ],
         "chronological_x_label": translations[
             "fig_segment_chronological_x"
+        ],
+        "chronological_unavailable_text": translations[
+            "fig_compare_chronological_unavailable"
         ],
         "metric_axis_label": translations["tbl_col_delta_snr"],
         "folded_title": translations[
@@ -108,6 +118,10 @@ def _localized_segment_temporal_recipe(
 ):
     """Build a segment-temporal recipe with explicit localized labels."""
     translations = T[language]
+    analysis_start_t, analysis_end_t = _default_temporal_bounds(
+        plot_df,
+        time_bin,
+    )
     resolved_count_label = count_label or translations[
         (
             "fig_scheduled_pair_count"
@@ -117,6 +131,8 @@ def _localized_segment_temporal_recipe(
     ]
     chronological_title = translations["fig_segment_chronological_delta"]
     presentation = {
+        "analysis_start_t": analysis_start_t,
+        "analysis_end_t": analysis_end_t,
         "chronological_title": translations[
             "fmt_temporal_title_with_bins"
         ].format(
@@ -125,6 +141,9 @@ def _localized_segment_temporal_recipe(
         ),
         "chronological_x_label": translations[
             "fig_segment_chronological_x"
+        ],
+        "chronological_unavailable_text": translations[
+            "fig_compare_chronological_unavailable"
         ],
         "metric_axis_label": translations["tbl_col_delta_snr"],
         "folded_title": translations["fig_segment_utc_hour_title"],
@@ -157,6 +176,26 @@ def _localized_segment_temporal_recipe(
         resolved_count_label,
         **presentation,
     )
+
+
+def _default_temporal_bounds(plot_df, time_bin):
+    """Return old-compatible test bounds unless a case supplies explicit bounds."""
+    bin_minutes = evidence_figures._time_agg_minutes(time_bin)
+    bin_delta = pd.Timedelta(minutes=bin_minutes)
+    if plot_df is None or plot_df.empty or "plot_time" not in plot_df.columns:
+        start = pd.Timestamp("2026-07-01T00:00:00Z")
+        return start, start + bin_delta
+    plot_times = pd.to_datetime(
+        plot_df["plot_time"],
+        errors="coerce",
+        utc=True,
+    ).dropna()
+    if plot_times.empty:
+        start = pd.Timestamp("2026-07-01T00:00:00Z")
+        return start, start + bin_delta
+    start = plot_times.min().floor(f"{bin_minutes}min")
+    end = plot_times.max().floor(f"{bin_minutes}min") + bin_delta
+    return start, end
 
 
 def _correction_footer_test_rows():
@@ -1617,7 +1656,7 @@ def test_segment_benchmark_temporal_recipe_and_dual_density_figure():
     )
 
     assert recipe["kind"] == "segment_benchmark_temporal"
-    assert recipe["schema_version"] == 4
+    assert recipe["schema_version"] == 5
     assert recipe["iqr_min_count"] == TEMPORAL_IQR_MIN_COUNT
     assert recipe["time_bin"] == "3h"
     assert recipe["utc_date_count"] == 2
@@ -1818,6 +1857,8 @@ def test_prepared_compare_profile_matches_exact_row_aggregation(time_bin):
         work_df,
         evidence_figures._time_agg_minutes(time_bin),
         metric_bins,
+        pd.Timestamp(recipe["analysis_start_utc_ns"], unit="ns"),
+        pd.Timestamp(recipe["analysis_end_utc_ns"], unit="ns"),
     )
     actual = evidence_figures._compare_temporal_profile_values(
         recipe["prepared_profiles"]["chronological"][time_bin]
@@ -2087,3 +2128,221 @@ def test_sequential_time_heatmap_uses_relative_scheduled_pair_density_label():
         )
     finally:
         dispose_matplotlib_figure(figure)
+
+
+def test_compare_chronological_bins_anchor_to_selected_start_and_keep_gaps():
+    """Use the complete window grid without filling unsupported intervals."""
+    analysis_start = pd.Timestamp("2026-07-01T00:17:00Z")
+    analysis_end = pd.Timestamp("2026-07-01T04:05:00Z")
+    plot_df = pd.DataFrame(
+        {
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T00:17:00Z",
+                    "2026-07-01T02:17:00Z",
+                    "2026-07-01T04:05:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [0.0, 0.0, 0.0],
+        }
+    )
+    work_df = evidence_figures._prepare_temporal_metric_rows(plot_df)
+
+    count_grid, summaries, x_edges, x_centers = (
+        evidence_figures._chronological_density_components(
+            work_df,
+            60,
+            np.array([0], dtype=np.int64),
+            analysis_start,
+            analysis_end,
+        )
+    )
+
+    expected_edges = pd.to_datetime(
+        [
+            "2026-07-01T00:17:00Z",
+            "2026-07-01T01:17:00Z",
+            "2026-07-01T02:17:00Z",
+            "2026-07-01T03:17:00Z",
+            "2026-07-01T04:05:00Z",
+        ],
+        utc=True,
+    ).tz_convert(None)
+    expected_centers = pd.to_datetime(
+        [
+            "2026-07-01T00:47:00Z",
+            "2026-07-01T01:47:00Z",
+            "2026-07-01T02:47:00Z",
+            "2026-07-01T03:41:00Z",
+        ],
+        utc=True,
+    ).tz_convert(None)
+    np.testing.assert_allclose(
+        x_edges,
+        mdates.date2num(expected_edges.to_pydatetime()),
+    )
+    np.testing.assert_allclose(
+        x_centers,
+        mdates.date2num(expected_centers.to_pydatetime()),
+    )
+    np.testing.assert_array_equal(
+        count_grid.to_numpy(),
+        np.array([[1, 0, 1, 0]], dtype=np.int64),
+    )
+    assert summaries["count"].fillna(0).tolist() == [1, 0, 1, 0]
+    assert np.isnan(summaries.loc[1, "median"])
+    assert np.isnan(summaries.loc[3, "median"])
+
+
+@pytest.mark.parametrize("recipe_kind", ("segment", "selected"))
+def test_compare_temporal_views_use_exact_selected_window(recipe_kind):
+    """Keep segment and selected-path chronological limits on the run window."""
+    analysis_start = pd.Timestamp("2026-07-01T02:17:00+02:00")
+    analysis_end = pd.Timestamp("2026-07-01T06:05:00+02:00")
+    plot_df = pd.DataFrame(
+        {
+            "plot_time": pd.to_datetime(
+                [
+                    "2026-07-01T01:20:00Z",
+                    "2026-07-01T03:20:00Z",
+                ],
+                utc=True,
+            ),
+            "metric": [-1.0, 2.0],
+        }
+    )
+    common_overrides = {
+        "analysis_start_t": analysis_start,
+        "analysis_end_t": analysis_end,
+        "time_bin_options": ("1h",),
+    }
+    if recipe_kind == "segment":
+        recipe = _localized_segment_temporal_recipe(
+            plot_df,
+            "Selected-window segment",
+            "1h",
+            **common_overrides,
+        )
+    else:
+        recipe = _localized_selected_evidence_recipe(
+            plot_df,
+            "Selected-window path",
+            "1h",
+            **common_overrides,
+        )
+
+    figure = render_segment_temporal_evidence_export_figure(recipe)
+    try:
+        chronological_axis, folded_axis, _colorbar_axis = figure.axes
+        expected_limits = mdates.date2num(
+            pd.to_datetime(
+                [
+                    "2026-07-01T00:17:00Z",
+                    "2026-07-01T04:05:00Z",
+                ],
+                utc=True,
+            ).tz_convert(None).to_pydatetime()
+        )
+        assert chronological_axis.get_xlim() == pytest.approx(expected_limits)
+        assert folded_axis.get_xlim() == pytest.approx((0.0, 24.0))
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
+def test_empty_compare_temporal_recipe_keeps_full_frame_and_precise_notice():
+    """Distinguish no paired evidence from a zero-dB observation or short range."""
+    analysis_start = pd.Timestamp("2026-07-01T00:17:00Z")
+    analysis_end = pd.Timestamp("2026-07-03T02:05:00Z")
+    empty_rows = pd.DataFrame(
+        {
+            "plot_time": pd.Series(dtype="datetime64[ns, UTC]"),
+            "metric": pd.Series(dtype="float64"),
+        }
+    )
+    recipe = _localized_segment_temporal_recipe(
+        empty_rows,
+        "Empty selected window",
+        "3h",
+        analysis_start_t=analysis_start,
+        analysis_end_t=analysis_end,
+        time_bin_options=("3h",),
+    )
+
+    figure = render_segment_temporal_evidence_export_figure(recipe)
+    try:
+        chronological_axis, folded_axis, _colorbar_axis = figure.axes
+        expected_limits = mdates.date2num(
+            pd.DatetimeIndex(
+                [analysis_start.tz_localize(None), analysis_end.tz_localize(None)]
+            ).to_pydatetime()
+        )
+        assert chronological_axis.get_xlim() == pytest.approx(expected_limits)
+        assert folded_axis.get_xlim() == pytest.approx((0.0, 24.0))
+        for axis, annotation_gid in (
+            (
+                chronological_axis,
+                "compare-temporal-chronological-no-paired-evidence-annotation",
+            ),
+            (
+                folded_axis,
+                "compare-temporal-folded-no-paired-evidence-annotation",
+            ),
+        ):
+            annotations = _texts_with_gid(axis, annotation_gid)
+            assert len(annotations) == 1
+            assert " ".join(annotations[0].get_text().split()) == T["en"][
+                "fig_compare_chronological_unavailable"
+            ]
+            assert axis.get_yticks().size == 0
+            assert not _collections_with_gid(
+                axis,
+                "temporal-bin-median-markers",
+            )
+            assert not _collections_with_gid(axis, "temporal-bin-iqr-band")
+        density_mesh = next(
+            collection
+            for collection in chronological_axis.collections
+            if isinstance(collection, QuadMesh)
+        )
+        assert np.ma.asarray(density_mesh.get_array()).count() == 0
+    finally:
+        dispose_matplotlib_figure(figure)
+
+
+@pytest.mark.parametrize(
+    ("language", "expected_text"),
+    (
+        (
+            "en",
+            "No paired Δ SNR evidence is available in the selected UTC window.",
+        ),
+        (
+            "de",
+            "Im ausgewählten UTC-Zeitfenster liegt keine gepaarte Evidenz "
+            "für Δ SNR vor.",
+        ),
+    ),
+)
+def test_compare_chronological_empty_notice_is_exact_and_bilingual(
+    language,
+    expected_text,
+):
+    """Keep the empty frame distinct from zero dB in both UI languages."""
+    assert T[language]["fig_compare_chronological_unavailable"] == expected_text
+
+
+def test_compare_temporal_renderer_rejects_stale_data_tight_recipe_schema():
+    """Prevent cached schema-v4 recipes from restoring obsolete tight limits."""
+    recipe = _localized_segment_temporal_recipe(
+        _correction_footer_test_rows(),
+        "Stale selected window",
+        "3h",
+    )
+    recipe["schema_version"] = 4
+
+    with pytest.raises(
+        ValueError,
+        match="Unsupported Benchmark temporal recipe schema",
+    ):
+        render_segment_temporal_evidence_export_figure(recipe)

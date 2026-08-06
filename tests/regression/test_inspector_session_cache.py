@@ -735,9 +735,10 @@ def test_station_insights_has_no_retired_path_consistency_plot():
 
 
 def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
-    """Keep level 04 visible when only retained non-joint rows can be audited."""
+    """Keep level 04 and its full-window frame when no retained unit exists."""
     markdown_calls = []
     guidance_calls = []
+    render_calls = []
     monkeypatch.setattr(
         segment_inspector,
         "st",
@@ -761,6 +762,31 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
         "render_result_guidance_popover",
         lambda *args, **kwargs: guidance_calls.append((args, kwargs)),
     )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_put",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_initialize_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_sync_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        lambda recipe, **kwargs: render_calls.append((recipe, kwargs)),
+    )
 
     result = segment_inspector._render_selected_station_evidence(
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
@@ -776,10 +802,19 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
         cache_key=("selected",),
         analysis_context=SimpleNamespace(),
         language="en",
+        analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
+        analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
     )
 
     rendered_markup = "".join(markdown_calls)
-    assert result is None
+    assert result["export_recipe"]["kind"] == "selected_benchmark_temporal"
+    assert result["export_recipe"]["time_bin"] == "3h"
+    assert result["coverage_export_recipe"] is None
+    assert result["comparison_unit_count"] == 0
+    assert len(render_calls) == 1
+    assert render_calls[0][1]["render_figure"] is (
+        segment_inspector.render_selected_evidence_export_figure
+    )
     assert "04 · SELECTED STATIONS" not in rendered_markup
     assert (
         "aria-label='04 · Selected station: Selected Station Evidence'"
@@ -788,6 +823,7 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     assert "Selected Station Evidence" in rendered_markup
     assert "G3AAA (IO90) · 0 joint spots" in rendered_markup
     assert T["en"]["txt_results_selected_no_paired_evidence"] in rendered_markup
+    assert T["en"]["fig_selected_compare_coverage_unavailable"] in rendered_markup
     assert len(guidance_calls) == 1
     assert (
         guidance_calls[0][0][0]
@@ -795,10 +831,10 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     )
 
 
-def test_one_sided_selected_path_renders_coverage_without_absolute_delta(
+def test_one_sided_selected_path_renders_empty_absolute_frame_and_coverage(
     monkeypatch,
 ):
-    """Keep directional selected-path evidence when no Joint unit exists."""
+    """Show the selected window plus directional coverage without a Joint unit."""
     markdown_calls = []
     render_calls = []
     monkeypatch.setattr(
@@ -889,11 +925,16 @@ def test_one_sided_selected_path_renders_coverage_without_absolute_delta(
         reference_only_label="Only Reference",
     )
 
-    assert result["export_recipe"] is None
+    assert result["export_recipe"]["kind"] == "selected_benchmark_temporal"
+    assert result["export_recipe"]["time_bin"] == "1h"
+    assert result["export_recipe"]["utc_date_count"] == 0
     assert result["coverage_export_recipe"]["time_bin"] == "1h"
     assert result["comparison_unit_count"] == 1
-    assert len(render_calls) == 1
+    assert len(render_calls) == 2
     assert render_calls[0][1]["render_figure"] is (
+        segment_inspector.render_selected_evidence_export_figure
+    )
+    assert render_calls[1][1]["render_figure"] is (
         segment_inspector.render_selected_compare_coverage_export_figure
     )
     assert (
@@ -1279,21 +1320,21 @@ def test_compare_coverage_gate_notes_are_exact_and_route_by_design(
     assert scheduled_labels["gate_note"] == expected_scheduled_note
 
 
-def test_long_range_evidence_bins_include_one_and_two_hour_choices():
-    """Expose one shared hourly selector beyond 24 h through the 31-day limit."""
+def test_long_selected_windows_include_one_and_two_hour_choices():
+    """Base the shared hourly selector on the complete selected UTC window."""
     expected_options = ["1h", "2h", "3h", "6h", "12h", "24h"]
     start = pd.Timestamp("2017-04-01T00:00:00Z")
 
     seven_day_options, seven_day_default = (
-        segment_inspector._time_agg_options_for_span(
-            pd.DataFrame(
-                {"plot_time": [start, start + pd.Timedelta(days=7)]}
-            )
+        segment_inspector._time_agg_options_for_window(
+            start,
+            start + pd.Timedelta(days=7),
         )
     )
-    maximum_options, maximum_default = segment_inspector._time_agg_options_for_span(
-        pd.DataFrame(
-            {"plot_time": [start, start + pd.Timedelta(days=31)]}
+    maximum_options, maximum_default = (
+        segment_inspector._time_agg_options_for_window(
+            start,
+            start + pd.Timedelta(days=31),
         )
     )
 
@@ -1303,18 +1344,20 @@ def test_long_range_evidence_bins_include_one_and_two_hour_choices():
     assert maximum_default == "6h"
 
 
-def test_evidence_bins_keep_minute_scale_choices_through_24_hours():
-    """Do not replace the existing fine-grained policy for short analyses."""
+def test_selected_windows_keep_minute_scale_choices_through_24_hours():
+    """Keep the established fine-grained policy for short selected windows."""
     start = pd.Timestamp("2017-04-01T00:00:00Z")
 
-    six_hour_options, six_hour_default = segment_inspector._time_agg_options_for_span(
-        pd.DataFrame(
-            {"plot_time": [start, start + pd.Timedelta(hours=6)]}
+    six_hour_options, six_hour_default = (
+        segment_inspector._time_agg_options_for_window(
+            start,
+            start + pd.Timedelta(hours=6),
         )
     )
-    day_options, day_default = segment_inspector._time_agg_options_for_span(
-        pd.DataFrame(
-            {"plot_time": [start, start + pd.Timedelta(hours=24)]}
+    day_options, day_default = (
+        segment_inspector._time_agg_options_for_window(
+            start,
+            start + pd.Timedelta(hours=24),
         )
     )
 
@@ -1324,53 +1367,52 @@ def test_evidence_bins_keep_minute_scale_choices_through_24_hours():
     assert day_default == "30m"
 
 
-def test_compare_shared_bin_policy_preserves_paired_absolute_time_span():
-    """Do not let distant one-sided units alter the established absolute bin."""
+def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
+    monkeypatch,
+):
+    """Preserve a valid loaded fine bin while using selected-window defaults."""
     start = pd.Timestamp("2026-07-01T00:00:00Z")
-    paired_evidence = pd.DataFrame(
-        {"plot_time": [start, start + pd.Timedelta(hours=6)]}
-    )
-    comparison_units = pd.DataFrame(
-        {
-            "evidence_utc": [
-                start,
-                start + pd.Timedelta(hours=6),
-                start + pd.Timedelta(days=31),
-            ]
-        }
-    )
-
-    paired_time_source = segment_inspector._compare_temporal_time_source(
-        paired_evidence,
-        comparison_units,
-    )
-    paired_options, paired_default = (
-        segment_inspector._time_agg_options_for_span(
-            paired_time_source
+    options, default, cache_token = (
+        segment_inspector._compare_temporal_time_bin_policy(
+            start,
+            start + pd.Timedelta(days=31),
+            "5m",
         )
     )
-
-    assert paired_time_source["plot_time"].tolist() == (
-        paired_evidence["plot_time"].tolist()
-    )
-    assert paired_options == ["5m", "15m", "30m", "1h", "3h"]
-    assert paired_default == "15m"
-
-    coverage_only_source = segment_inspector._compare_temporal_time_source(
-        paired_evidence.iloc[0:0],
-        comparison_units,
-    )
-    coverage_options, coverage_default = (
-        segment_inspector._time_agg_options_for_span(
-            coverage_only_source
+    assert options == ["5m", "1h", "2h", "3h", "6h", "12h", "24h"]
+    assert default == "6h"
+    assert cache_token == "5m"
+    assert (
+        segment_inspector._compare_temporal_time_bin_policy(
+            start,
+            start + pd.Timedelta(days=31),
+            "6h",
         )
+        == (["1h", "2h", "3h", "6h", "12h", "24h"], "6h", None)
     )
 
-    assert coverage_only_source["plot_time"].tolist() == (
-        comparison_units["evidence_utc"].tolist()
+    session_state = {
+        segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY: "5m",
+    }
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(session_state=session_state),
     )
-    assert coverage_options == ["1h", "2h", "3h", "6h", "12h", "24h"]
-    assert coverage_default == "6h"
+
+    assert segment_inspector._initialize_time_bin_widget_state(
+        "segment_time_widget",
+        segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        options,
+        default,
+    ) == "5m"
+    assert session_state["segment_time_widget"] == "5m"
+    assert (
+        session_state[
+            segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY
+        ]
+        == "5m"
+    )
 
 
 def test_time_bin_control_stretches_segmented_options_across_container(monkeypatch):
@@ -2277,8 +2319,13 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
             "Observed-scale Benchmark Temporal Evidence",
             "6h",
             "Joint spot count",
+            analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
+            analysis_end_t=pd.Timestamp("2026-08-01T00:00Z"),
             chronological_title="Delta SNR over Time ({time_bin})",
             chronological_x_label="UTC date and time",
+            chronological_unavailable_text=(
+                "No paired Delta-SNR evidence in the selected UTC window"
+            ),
             metric_axis_label="Delta SNR (dB)",
             folded_title="Delta SNR by UTC Hour",
             folded_x_label="UTC hour",

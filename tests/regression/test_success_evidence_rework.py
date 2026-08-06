@@ -445,6 +445,8 @@ def _compare_temporal_recipe_for_test() -> dict[str, object]:
         "RX Benchmark Temporal Evidence",
         "1h",
         T["en"]["fig_joint_spot_count"],
+        analysis_start_t=pd.Timestamp("2026-07-10T00:00:00Z"),
+        analysis_end_t=pd.Timestamp("2026-07-11T01:00:00Z"),
         chronological_title=T["en"][
             "fmt_temporal_title_with_bins"
         ].format(
@@ -452,6 +454,9 @@ def _compare_temporal_recipe_for_test() -> dict[str, object]:
             time_bin="{time_bin}",
         ),
         chronological_x_label=T["en"]["fig_segment_chronological_x"],
+        chronological_unavailable_text=T["en"][
+            "fig_compare_chronological_unavailable"
+        ],
         metric_axis_label=T["en"]["tbl_col_delta_snr"],
         folded_title=T["en"]["fig_segment_utc_hour_title"],
         folded_x_label=T["en"]["fig_segment_utc_hour_x"],

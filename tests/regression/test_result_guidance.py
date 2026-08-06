@@ -239,6 +239,54 @@ def test_compare_temporal_and_selected_guidance_uses_full_readability_budget(
         )
 
 
+@pytest.mark.parametrize(
+    ("section_key", "english_missing_unit", "german_missing_unit"),
+    (
+        ("temporal_evidence_joint", "no Joint Spot remains", "kein Joint Spot"),
+        (
+            "temporal_evidence_scheduled",
+            "no complete Scheduled Pair remains",
+            "kein vollständiges geplantes Paar",
+        ),
+        ("selected_compare_joint", "no Joint Spot remains", "kein Joint Spot"),
+        (
+            "selected_compare_scheduled",
+            "no complete Scheduled Pair remains",
+            "kein vollständiges geplantes Paar",
+        ),
+    ),
+)
+def test_compare_temporal_guidance_explains_full_window_and_blank_intervals(
+    section_key,
+    english_missing_unit,
+    german_missing_unit,
+):
+    """Explain selected-window geometry without confusing gaps with zero dB."""
+    english_read = RESULT_GUIDANCE["en"]["sections"][section_key]["read"]
+    german_read = RESULT_GUIDANCE["de"]["sections"][section_key]["read"]
+
+    for phrase in (
+        "full selected UTC window",
+        "bins begin at the selected start",
+        "final interval may be shorter",
+        "remain blank rather than becoming 0 dB",
+        "whole panel is blank",
+        "can still show one-sided evidence",
+        english_missing_unit,
+    ):
+        assert phrase in english_read
+    for phrase in (
+        "vollständige ausgewählte UTC-Zeitfenster",
+        "Bins beginnen am ausgewählten Startzeitpunkt",
+        "abschließende Intervall kann kürzer sein",
+        "bleiben leer, statt zu 0 dB zu werden",
+        "gesamte Panel leer",
+        "kann dennoch einseitige Evidenz zeigen",
+        german_missing_unit,
+    ):
+        assert phrase in german_read
+
+
 def test_selected_compare_guidance_names_the_rendered_coverage_units():
     """Keep selected-path help aligned with simultaneous and scheduled plots."""
     expected_copy = {

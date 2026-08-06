@@ -91,8 +91,13 @@ def align_folded_evidence_axes_to_colorbar(
         )
 
 
-def draw_folded_utc_unavailable_annotation(axis, message):
-    """Draw the shared boxed notice inside an unavailable folded UTC panel."""
+def draw_temporal_unavailable_annotation(
+    axis,
+    message,
+    *,
+    artist_gid="temporal-unavailable-annotation",
+):
+    """Draw one shared boxed notice inside an unavailable temporal panel."""
     normalized_message = " ".join(str(message).split())
     headline = None
     detail = None
@@ -139,5 +144,14 @@ def draw_folded_utc_unavailable_annotation(axis, message):
         },
         zorder=10,
     )
-    annotation.set_gid("folded-utc-unavailable-annotation")
+    annotation.set_gid(str(artist_gid))
     return annotation
+
+
+def draw_folded_utc_unavailable_annotation(axis, message):
+    """Draw the shared boxed notice inside an unavailable folded UTC panel."""
+    return draw_temporal_unavailable_annotation(
+        axis,
+        message,
+        artist_gid="folded-utc-unavailable-annotation",
+    )

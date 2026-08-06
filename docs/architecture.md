@@ -568,8 +568,16 @@ spot vectors; large numeric recipe arrays use a lossless internal compressed
 representation. Benchmark temporal recipes precompute the exact density grid,
 median, count, Q1 and Q3 inputs for every offered chronological bin plus the
 one-hour folded profile, then release the canonical comparison-unit and
-Joint-evidence frames. A time-bin change therefore selects retained sufficient
-statistics and builds only the requested Matplotlib figure; it does not decode
+Joint-evidence frames. Every chronological profile retains the selected UTC
+boundaries. Benchmark Delta SNR and coverage use a common grid whose first edge
+is the exact selected start and whose last edge is the exact selected end;
+intermediate edges are anchored to that start, so the final interval can be
+shorter than the selected bin width. For Delta SNR, missing intervals retain
+masked density and NaN metric sufficient statistics rather than synthetic
+zeros; coverage count arrays can legitimately contain zero counts while an
+undefined share or rate remains NaN. A time-bin change therefore
+selects retained sufficient statistics and builds only the requested Matplotlib
+figure; it does not decode
 observation rows, repeat group-by work, reread Parquet or contact a provider.
 Preparing a previously unseen scope deliberately computes those selectable
 profiles once before caching the model, trading additional cold-preparation CPU
@@ -668,7 +676,13 @@ figures, and in both browser previews and exports. UTC-hour folding remains
 scientifically available only when at least two represented UTC dates
 contribute. Below that threshold, every affected folded panel remains in its
 normal position and size, draws no folded data, and contains the localized
-boxed unavailable notice; chronological panels retain their normal bounds.
+boxed unavailable notice; chronological panels retain the exact selected UTC
+window. When a Benchmark Delta SNR population has no paired rows, its
+chronological panel remains in place across that complete window, draws no
+density, median or IQR artists, and contains the localized no-paired-evidence
+notice. This state means that no retained Joint unit or complete Scheduled Pair
+remains in the displayed scope; the corresponding coverage panel can still
+contain one-sided retained outcomes.
 `ui/plots/temporal_layout.py` owns the shared two-column geometry, lower-row
 spacing, colorbar-footprint alignment, 28-pixel left expansion, unavailable
 annotation painter and preview/export layout version.
@@ -684,7 +698,14 @@ remains asymmetric: Only Reference is retained when the Target was active
 globally in that cycle but that path decoded only the Reference.
 
 The absolute temporal Delta SNR recipe remains a Joint-only projection of this
-frame. Its chronological and pooled UTC-hour bin medians retain their raw
+frame. Its chronological grid spans the selected half-open
+`[start_utc, end_utc)` window: edges begin at the selected start, advance by the
+chosen width and terminate at the exact selected end, allowing a shorter final
+interval. Rows are assigned relative to the selected start, out-of-window rows
+are excluded, and bins without paired rows remain masked or NaN. Changing the
+selected start therefore changes bin membership and the resulting density,
+median and quartile inputs; rendering does not merely widen the x-axis. Its
+chronological and pooled UTC-hour bin medians retain their raw
 observation-level populations. Q1 and Q3 use those same unrounded Joint Spot or
 complete Scheduled Pair values before integer heatmap binning and the
 median-centered nonlinear display transform. The subtle IQR band is bounded by
@@ -735,8 +756,8 @@ so their rightmost labeling aligns with the upper colorbar label. The lower
 layout reserves and uses that colorbar footprint without adding another
 colorbar, then expands both folded evidence panels 28 px toward the left on the
 1,300 px reference canvas while retaining their shared right edge. The two
-chronological panels retain their established bounds, and panel heights remain
-aligned. Each figure keeps one
+chronological panels share the exact selected-window bounds and bin edges, and
+panel heights remain aligned. Each figure keeps one
 folded-date annotation without repeating it in both panels of a row. Browser
 preview and high-resolution export use the same two recipes and renderers;
 Performance exports add
@@ -744,7 +765,11 @@ Performance exports add
 `figure_segment_temporal_evidence.png` for the station/opportunity figure, while
 Benchmark retains `figure_segment_temporal_evidence.png` for absolute Delta SNR
 and adds `figure_segment_temporal_coverage.png`. One Benchmark segment time-bin
-control sets both chronological profiles; every folded profile remains fixed
+control sets both chronological profiles. Its adaptive choices derive from the
+complete selected-window duration rather than the observed paired-evidence
+span. A valid explicitly persisted bin remains selectable even when that
+adaptive list would not otherwise offer it, so loading a saved configuration
+does not silently reinterpret the choice. Every folded profile remains fixed
 at one hour.
 
 Selected Station Evidence permits zero or one station in both Performance and
@@ -798,7 +823,8 @@ For Benchmark, the compact selected-path context is followed by the same prompte
 full-width chronological-bin control used in Performance and one two-panel
 figure built through the shared temporal layout primitives. The left **Δ SNR
 over Time** panel preserves the selected station's actual UTC sequence at the
-chosen aggregation bin. The right **Δ SNR by UTC Hour** panel simultaneously
+chosen aggregation bin across the exact selected UTC window. The right **Δ SNR
+by UTC Hour** panel simultaneously
 folds those same observation-level Joint Spots or Scheduled Pairs from all
 represented dates into fixed one-hour UTC slots. Folding remains row-weighted:
 it pools qualifying evidence by UTC hour without first reducing or equally
@@ -813,7 +839,10 @@ not change axis limits. No
 selected-station histogram or temporal-view selector remains. When fewer than
 two UTC dates contribute, the folded panel remains in its normal position and
 size, draws no folded data, and shows the localized boxed unavailable notice;
-the chronological panel retains its normal bounds.
+the chronological panel retains the exact selected-window bounds. With no
+paired rows at all, that chronological panel remains visible across the same
+window and shows the localized no-paired-evidence notice instead of being
+omitted.
 
 Directly below that absolute figure, Selected Path Evidence Coverage
 uses the same selected-station chronological-bin control and the same retained
@@ -821,8 +850,9 @@ comparison units. It renders one chronological and one fixed one-hour folded
 row split into Only Target, Joint and Only Reference units with outcome-level
 Joint Evidence Share. A second station-support row is deliberately absent:
 with exactly one selected path it would duplicate the same ratio. A one-sided
-selected path can therefore show coverage even when no absolute Delta SNR
-figure is available. The same two-date unavailable-state contract keeps this
+selected path can therefore show coverage while the absolute Delta SNR panel
+remains empty and explicitly labels the absence of paired evidence. The same
+two-date unavailable-state contract keeps this
 coverage figure's folded panel visible without folded data and places the
 localized boxed notice inside it.
 

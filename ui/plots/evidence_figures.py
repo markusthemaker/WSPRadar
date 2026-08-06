@@ -24,6 +24,7 @@ from ui.plots.temporal_layout import (
     TEMPORAL_COLUMN_SPACE as SEGMENT_TEMPORAL_COLUMN_SPACE,
     build_temporal_plot_grid,
     draw_folded_utc_unavailable_annotation,
+    draw_temporal_unavailable_annotation,
 )
 
 EVIDENCE_AGG_COLOR = "#36aaf9"
@@ -83,7 +84,7 @@ COMPARE_MEDIAN_FOCUS_BROAD_LABELS_DB = (0.0, 3.0, 6.0, 10.0, 20.0, 30.0)
 COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES = 256 * 1024
 COMPARE_RECIPE_ARRAY_ENCODING = "numpy-zlib-v1"
 COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION = 2
-COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 4
+COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 5
 
 
 def _encode_compare_recipe_array(values, *, dtype):
@@ -879,21 +880,99 @@ def _time_agg_minutes(time_agg):
         return 180
     return max(value * multiplier, 1)
 
-def _time_agg_options_for_span(plot_df):
-    """Return adaptive time-bin options and default based on selected evidence duration."""
-    if plot_df.empty or "plot_time" not in plot_df.columns:
-        return EVIDENCE_TIME_AGG_PRESETS[2][1], EVIDENCE_TIME_AGG_PRESETS[2][2]
+def _normalize_temporal_window(analysis_start_t, analysis_end_t):
+    """Return one validated half-open UTC window as naive plotting timestamps."""
+    start = pd.Timestamp(analysis_start_t)
+    end = pd.Timestamp(analysis_end_t)
+    if pd.isna(start) or pd.isna(end):
+        raise ValueError("Benchmark temporal evidence requires valid UTC bounds.")
+    start = (
+        start.tz_localize("UTC")
+        if start.tzinfo is None
+        else start.tz_convert("UTC")
+    ).tz_localize(None)
+    end = (
+        end.tz_localize("UTC")
+        if end.tzinfo is None
+        else end.tz_convert("UTC")
+    ).tz_localize(None)
+    if end <= start:
+        raise ValueError("Benchmark temporal evidence requires a positive UTC window.")
+    return start, end
 
-    times = pd.to_datetime(plot_df["plot_time"], errors="coerce", utc=True).dropna()
-    if times.empty:
-        return EVIDENCE_TIME_AGG_PRESETS[2][1], EVIDENCE_TIME_AGG_PRESETS[2][2]
 
-    span = times.max() - times.min()
+def _time_agg_options_for_window(
+    analysis_start_t,
+    analysis_end_t,
+    *,
+    retained_time_bin=None,
+):
+    """Return selected-window bins while retaining one valid explicit choice."""
+    start, end = _normalize_temporal_window(
+        analysis_start_t,
+        analysis_end_t,
+    )
+    span = end - start
+    resolved_options = None
+    resolved_default = None
     for max_span, options, default in EVIDENCE_TIME_AGG_PRESETS:
         if max_span is None or span <= max_span:
-            return options, default
+            resolved_options = list(options)
+            resolved_default = default
+            break
 
-    return EVIDENCE_TIME_AGG_PRESETS[-1][1], EVIDENCE_TIME_AGG_PRESETS[-1][2]
+    if resolved_options is None:
+        resolved_options = list(EVIDENCE_TIME_AGG_PRESETS[-1][1])
+        resolved_default = EVIDENCE_TIME_AGG_PRESETS[-1][2]
+
+    canonical_options = tuple(
+        sorted(
+            dict.fromkeys(
+                option
+                for _maximum_span, preset_options, _default in (
+                    EVIDENCE_TIME_AGG_PRESETS
+                )
+                for option in preset_options
+            ),
+            key=_time_agg_minutes,
+        )
+    )
+    if (
+        retained_time_bin in canonical_options
+        and retained_time_bin not in resolved_options
+    ):
+        included_options = set(resolved_options)
+        included_options.add(retained_time_bin)
+        resolved_options = [
+            option
+            for option in canonical_options
+            if option in included_options
+        ]
+    return resolved_options, resolved_default
+
+
+def _selected_window_chronological_axis(start, end, bin_minutes):
+    """Return selected-start bin edges and centers ending at the exact UTC bound."""
+    bin_delta = pd.Timedelta(minutes=int(bin_minutes))
+    if bin_delta <= pd.Timedelta(0):
+        raise ValueError("Benchmark temporal bin width must be positive.")
+    window_nanoseconds = int((end - start).value)
+    bin_nanoseconds = int(bin_delta.value)
+    bin_count = max(
+        1,
+        (window_nanoseconds + bin_nanoseconds - 1) // bin_nanoseconds,
+    )
+    bin_starts = pd.DatetimeIndex(
+        [start + (index * bin_delta) for index in range(bin_count)]
+    )
+    bin_edges = pd.DatetimeIndex(list(bin_starts) + [end])
+    bin_centers = pd.DatetimeIndex(
+        [
+            lower + ((upper - lower) / 2)
+            for lower, upper in zip(bin_edges[:-1], bin_edges[1:])
+        ]
+    )
+    return bin_delta, bin_count, bin_edges, bin_centers
 
 
 def _prepare_temporal_metric_rows(plot_df):
@@ -1120,17 +1199,38 @@ def _recipe_uses_authoritative_temporal_iqr(recipe):
     )
 
 
-def _chronological_density_components(work_df, bin_minutes, metric_bins):
-    """Build chronological UTC density and raw metric summaries by time bin."""
-    bin_delta = pd.to_timedelta(bin_minutes, unit="min")
-    bin_freq = f"{bin_minutes}min"
-    chronological_rows = work_df.copy()
-    chronological_rows["time_bin"] = chronological_rows["plot_time"].dt.floor(bin_freq)
-    time_bins = pd.date_range(
-        start=chronological_rows["time_bin"].min(),
-        end=chronological_rows["time_bin"].max(),
-        freq=bin_freq,
+def _chronological_density_components(
+    work_df,
+    bin_minutes,
+    metric_bins,
+    analysis_start_t,
+    analysis_end_t,
+):
+    """Build selected-window UTC density and raw metric summaries by time bin."""
+    start, end = _normalize_temporal_window(
+        analysis_start_t,
+        analysis_end_t,
     )
+    bin_delta, bin_count, time_edges, time_centers = (
+        _selected_window_chronological_axis(
+            start,
+            end,
+            bin_minutes,
+        )
+    )
+    time_bins = pd.RangeIndex(bin_count, name="time_bin")
+    chronological_rows = work_df[
+        work_df["plot_time"].ge(start)
+        & work_df["plot_time"].lt(end)
+    ].copy()
+    chronological_rows["time_bin"] = pd.Series(
+        index=chronological_rows.index,
+        dtype="int64",
+    )
+    if not chronological_rows.empty:
+        chronological_rows["time_bin"] = (
+            (chronological_rows["plot_time"] - start) // bin_delta
+        ).astype("int64")
     count_grid = (
         chronological_rows
         .groupby(["metric_bin", "time_bin"], dropna=False)
@@ -1142,9 +1242,8 @@ def _chronological_density_components(work_df, bin_minutes, metric_bins):
         chronological_rows.groupby("time_bin", dropna=False)["metric"],
         time_bins,
     )
-    time_edges = time_bins.append(pd.DatetimeIndex([time_bins[-1] + bin_delta]))
     x_edges = mdates.date2num(time_edges.to_pydatetime())
-    x_centers = mdates.date2num((time_bins + (bin_delta / 2)).to_pydatetime())
+    x_centers = mdates.date2num(time_centers.to_pydatetime())
     return count_grid, summary_df, x_edges, x_centers
 
 
@@ -1222,17 +1321,38 @@ def _compare_temporal_profile_values(profile):
     )
 
 
+def _compare_temporal_window_from_recipe(recipe):
+    """Restore and validate the authoritative UTC window stored in a recipe."""
+    try:
+        start_ns = int(recipe["analysis_start_utc_ns"])
+        end_ns = int(recipe["analysis_end_utc_ns"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            "Benchmark temporal recipe requires canonical UTC bounds."
+        ) from exc
+    return _normalize_temporal_window(
+        pd.Timestamp(start_ns, unit="ns"),
+        pd.Timestamp(end_ns, unit="ns"),
+    )
+
+
 def _build_compare_temporal_profile_recipes(
     work_df,
     time_bin_options,
     *,
+    analysis_start_t,
+    analysis_end_t,
     utc_date_count,
 ):
-    """Precompute exact plot profiles so time-bin changes avoid row aggregation."""
-    metric_min = int(work_df["metric_bin"].min())
-    metric_max = int(work_df["metric_bin"].max())
-    metric_bins = np.arange(metric_min, metric_max + 1)
-    y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
+    """Precompute selected-window profiles so bin changes avoid row aggregation."""
+    if work_df.empty:
+        metric_bins = np.array([0], dtype=np.int64)
+        y_edges = np.array([-0.5, 0.5], dtype=np.float64)
+    else:
+        metric_min = int(work_df["metric_bin"].min())
+        metric_max = int(work_df["metric_bin"].max())
+        metric_bins = np.arange(metric_min, metric_max + 1)
+        y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
     chronological_profiles = {}
     for time_bin in dict.fromkeys(str(value) for value in time_bin_options):
         chronological_profiles[time_bin] = _compare_temporal_profile_recipe(
@@ -1240,6 +1360,8 @@ def _build_compare_temporal_profile_recipes(
                 work_df,
                 _time_agg_minutes(time_bin),
                 metric_bins,
+                analysis_start_t,
+                analysis_end_t,
             )
         )
 
@@ -1261,8 +1383,11 @@ def _segment_temporal_evidence_export_recipe(
     time_bin,
     count_label,
     *,
+    analysis_start_t,
+    analysis_end_t,
     chronological_title,
     chronological_x_label,
+    chronological_unavailable_text,
     metric_axis_label,
     folded_title,
     folded_x_label,
@@ -1280,8 +1405,16 @@ def _segment_temporal_evidence_export_recipe(
     reference_snr_correction_notice="",
     time_bin_options=None,
 ):
-    """Return localized Benchmark evidence with compact rows or prepared profiles."""
+    """Return full-window Benchmark evidence with compact or prepared profiles."""
+    analysis_start, analysis_end = _normalize_temporal_window(
+        analysis_start_t,
+        analysis_end_t,
+    )
     work_df = _prepare_temporal_metric_rows(plot_df)
+    work_df = work_df[
+        work_df["plot_time"].ge(analysis_start)
+        & work_df["plot_time"].lt(analysis_end)
+    ].copy()
     time_bin = str(time_bin)
     utc_date_count = _temporal_utc_date_count(work_df)
     chronological_title = str(chronological_title).replace(
@@ -1334,6 +1467,8 @@ def _segment_temporal_evidence_export_recipe(
             "prepared_profiles": _build_compare_temporal_profile_recipes(
                 work_df,
                 resolved_time_bin_options,
+                analysis_start_t=analysis_start,
+                analysis_end_t=analysis_end,
                 utc_date_count=utc_date_count,
             )
         }
@@ -1354,9 +1489,14 @@ def _segment_temporal_evidence_export_recipe(
         "title": str(title),
         "time_bin": time_bin,
         "count_label": str(count_label),
+        "analysis_start_utc_ns": int(analysis_start.value),
+        "analysis_end_utc_ns": int(analysis_end.value),
         "chronological_title": str(chronological_title),
         "chronological_subtitle": resolved_chronological_subtitle,
         "chronological_x_label": str(chronological_x_label),
+        "chronological_unavailable_text": str(
+            chronological_unavailable_text
+        ),
         "metric_axis_label": str(metric_axis_label),
         "folded_title": str(folded_title),
         "folded_subtitle": resolved_folded_subtitle,
@@ -1405,6 +1545,13 @@ def render_segment_temporal_evidence_export_figure(recipe):
         )
 
         return _render_opportunity_temporal_evidence_figure(recipe)
+    if int(recipe.get("schema_version", 0)) != (
+        COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION
+    ):
+        raise ValueError("Unsupported Benchmark temporal recipe schema.")
+    analysis_start, analysis_end = _compare_temporal_window_from_recipe(
+        recipe
+    )
     time_bin = str(recipe["time_bin"])
     prepared_profiles = recipe.get("prepared_profiles")
     metric_focus_values = np.array([], dtype=np.float64)
@@ -1453,7 +1600,7 @@ def render_segment_temporal_evidence_export_figure(recipe):
             recipe.get("metric", []),
             dtype=np.float64,
         )
-        if len(plot_time_ns) == 0 or len(plot_time_ns) != len(metric_values):
+        if len(plot_time_ns) != len(metric_values):
             return None
 
         plot_df = pd.DataFrame(
@@ -1463,16 +1610,26 @@ def render_segment_temporal_evidence_export_figure(recipe):
             }
         )
         work_df = _prepare_temporal_metric_rows(plot_df)
-        if work_df.empty:
-            return None
+        work_df = work_df[
+            work_df["plot_time"].ge(analysis_start)
+            & work_df["plot_time"].lt(analysis_end)
+        ].copy()
         metric_focus_values = work_df["metric"]
         utc_date_count = _temporal_utc_date_count(work_df)
         is_folded_available = utc_date_count >= 2
         bin_minutes = _time_agg_minutes(time_bin)
-        metric_min = int(work_df["metric_bin"].min())
-        metric_max = int(work_df["metric_bin"].max())
-        metric_bins = np.arange(metric_min, metric_max + 1)
-        y_edges = np.arange(metric_min - 0.5, metric_max + 1.5, 1.0)
+        if work_df.empty:
+            metric_bins = np.array([0], dtype=np.int64)
+            y_edges = np.array([-0.5, 0.5], dtype=np.float64)
+        else:
+            metric_min = int(work_df["metric_bin"].min())
+            metric_max = int(work_df["metric_bin"].max())
+            metric_bins = np.arange(metric_min, metric_max + 1)
+            y_edges = np.arange(
+                metric_min - 0.5,
+                metric_max + 1.5,
+                1.0,
+            )
         (
             chronological_grid,
             chronological_medians,
@@ -1482,6 +1639,8 @@ def render_segment_temporal_evidence_export_figure(recipe):
             work_df,
             bin_minutes,
             metric_bins,
+            analysis_start,
+            analysis_end,
         )
         if is_folded_available:
             (
@@ -1491,10 +1650,61 @@ def render_segment_temporal_evidence_export_figure(recipe):
                 folded_centers,
             ) = _folded_utc_hour_density_components(work_df, metric_bins)
 
+    (
+        _expected_bin_delta,
+        _expected_bin_count,
+        expected_time_edges,
+        expected_time_centers,
+    ) = _selected_window_chronological_axis(
+        analysis_start,
+        analysis_end,
+        _time_agg_minutes(time_bin),
+    )
+    expected_chronological_edges = mdates.date2num(
+        expected_time_edges.to_pydatetime()
+    )
+    expected_chronological_centers = mdates.date2num(
+        expected_time_centers.to_pydatetime()
+    )
+    if (
+        np.asarray(chronological_edges).shape
+        != expected_chronological_edges.shape
+        or np.asarray(chronological_centers).shape
+        != expected_chronological_centers.shape
+        or not np.allclose(
+            chronological_edges,
+            expected_chronological_edges,
+            rtol=0.0,
+            atol=1e-9,
+        )
+        or not np.allclose(
+            chronological_centers,
+            expected_chronological_centers,
+            rtol=0.0,
+            atol=1e-9,
+        )
+    ):
+        raise ValueError(
+            "Benchmark chronological coordinates must use selected-start bins."
+        )
+    if (
+        np.asarray(chronological_grid).ndim != 2
+        or np.asarray(chronological_grid).shape[1]
+        != len(chronological_centers)
+        or len(y_edges) != np.asarray(chronological_grid).shape[0] + 1
+    ):
+        raise ValueError(
+            "Benchmark chronological density must align with its time and dB axes."
+        )
+
     median_focus_spec = _compare_median_focus_spec_from_recipe(
         recipe.get("median_focus"),
         metric_focus_values,
     )
+    if utc_date_count > 0 and median_focus_spec is None:
+        raise ValueError(
+            "Nonempty Benchmark temporal evidence requires a median focus."
+        )
     should_draw_iqr = _recipe_uses_authoritative_temporal_iqr(recipe)
 
     correction_notice = recipe.get("reference_snr_correction_notice", "")
@@ -1589,10 +1799,27 @@ def render_segment_temporal_evidence_export_figure(recipe):
                 folded_medians["count"],
                 label=recipe["bin_iqr_label"],
             )
-    else:
+    elif utc_date_count > 0:
         draw_folded_utc_unavailable_annotation(
             folded_axis,
             recipe["folded_unavailable_text"],
+        )
+    else:
+        draw_temporal_unavailable_annotation(
+            folded_axis,
+            recipe["chronological_unavailable_text"],
+            artist_gid=(
+                "compare-temporal-folded-no-paired-evidence-annotation"
+            ),
+        )
+
+    if utc_date_count == 0:
+        draw_temporal_unavailable_annotation(
+            chronological_axis,
+            recipe["chronological_unavailable_text"],
+            artist_gid=(
+                "compare-temporal-chronological-no-paired-evidence-annotation"
+            ),
         )
 
     date_locator = mdates.AutoDateLocator(minticks=4, maxticks=8)
@@ -1659,6 +1886,10 @@ def render_segment_temporal_evidence_export_figure(recipe):
             axis_label=recipe["median_focus_axis_label"],
             median_label=recipe["median_label"],
         )
+    if utc_date_count == 0:
+        for axis in (chronological_axis, folded_axis):
+            axis.set_ylim(y_edges[0], y_edges[-1])
+            axis.set_yticks([])
 
     colorbar_mesh = folded_mesh if folded_mesh is not None else chronological_mesh
     colorbar_axes = [chronological_axis, folded_axis]
@@ -1704,9 +1935,12 @@ def _selected_evidence_export_recipe(
     time_agg,
     is_sequential,
     *,
+    analysis_start_t,
+    analysis_end_t,
     count_label,
     chronological_title,
     chronological_x_label,
+    chronological_unavailable_text,
     metric_axis_label,
     folded_title,
     folded_x_label,
@@ -1735,9 +1969,12 @@ def _selected_evidence_export_recipe(
         evidence_title,
         time_agg,
         count_label,
+        analysis_start_t=analysis_start_t,
+        analysis_end_t=analysis_end_t,
         chronological_title=chronological_title,
         chronological_subtitle=None,
         chronological_x_label=chronological_x_label,
+        chronological_unavailable_text=chronological_unavailable_text,
         metric_axis_label=metric_axis_label,
         folded_title=folded_title,
         folded_subtitle=None,

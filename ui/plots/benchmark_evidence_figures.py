@@ -25,6 +25,7 @@ from ui.plots.evidence_figures import (
     _format_temporal_time_bin_label,
     _place_metric_legend,
     _set_metric_axis_labels,
+    _selected_window_chronological_axis,
     _style_evidence_axis,
     _time_agg_minutes,
 )
@@ -152,20 +153,12 @@ def _compare_outcome_indicators(work):
 
 
 def _compare_chronological_axis(start, end, time_bin):
-    """Return exact Performance-style chronological edges and centers."""
-    bin_delta = pd.Timedelta(minutes=_time_agg_minutes(time_bin))
-    bin_count = max(1, int(np.ceil((end - start) / bin_delta)))
-    bin_starts = pd.DatetimeIndex(
-        [start + (index * bin_delta) for index in range(bin_count)]
+    """Return the shared selected-window chronological edges and centers."""
+    return _selected_window_chronological_axis(
+        start,
+        end,
+        _time_agg_minutes(time_bin),
     )
-    bin_edges = pd.DatetimeIndex(list(bin_starts) + [end])
-    bin_centers = pd.DatetimeIndex(
-        [
-            lower + ((upper - lower) / 2)
-            for lower, upper in zip(bin_edges[:-1], bin_edges[1:])
-        ]
-    )
-    return bin_delta, bin_count, bin_edges, bin_centers
 
 
 def _aggregate_compare_chronological_coverage(work, start, end, time_bin):

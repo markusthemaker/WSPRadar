@@ -304,6 +304,59 @@ def test_bilingual_manuals_define_one_selected_archive_per_completed_run():
         assert '<a href="#ref-11">[Ref-11]</a>' in manual
 
 
+def test_bilingual_introductions_highlight_archives_and_explain_data_source_routing():
+    """Introduce upstream stewardship, priority, and whole-run routing early."""
+    english_intro = DOC_EN.split('<a id="sec-1-1"></a>', 1)[1].split(
+        '<a id="sec-1-0"></a>', 1
+    )[0]
+    german_intro = DOC_DE.split('<a id="sec-1-1"></a>', 1)[1].split(
+        '<a id="sec-1-0"></a>', 1
+    )[0]
+
+    english_archive_term = '<strong class="defined-term">archives</strong>'
+    german_archive_term = '<strong class="defined-term">Archive</strong>'
+    assert english_archive_term in english_intro
+    assert german_archive_term in german_intro
+    assert "archive" not in DOC_EN.split(english_archive_term, 1)[0].lower()
+    assert "archiv" not in DOC_DE.split(german_archive_term, 1)[0].lower()
+
+    for required_text in (
+        "**Data sources.** WSPRadar uses **wspr.live** as its primary data source",
+        "is grateful to the people behind wspr.live and WSPRDaemon",
+        "route a complete new run to **WSPRDaemon WD2** and then **WD1**",
+        "ordered capacity spillover is distinct from provider failover",
+        "Every completed run remains pinned to one archive",
+        "records from different sources are never combined",
+    ):
+        assert required_text in english_intro
+
+    for required_text in (
+        "**Datenquellen.** WSPRadar verwendet **wspr.live** als primäre Datenquelle",
+        "dankt den Menschen hinter wspr.live und WSPRDaemon",
+        "an **WSPRDaemon WD2** und danach **WD1** weiterleiten",
+        "geordnete Kapazitätsausgleich unterscheidet sich von einem Quellenwechsel nach einem Ausfall",
+        "Jeder abgeschlossene Lauf bleibt an genau ein Archiv gebunden",
+        "Datensätze aus verschiedenen Quellen werden niemals zusammengeführt",
+    ):
+        assert required_text in german_intro
+
+
+def test_bilingual_reference_entries_use_current_project_landing_pages():
+    """Keep the two early archive references on their approved public pages."""
+    for manual in (DOC_EN, DOC_DE):
+        assert (
+            '<a id="ref-10"></a><a href="https://wspr.live/">[Ref-10]</a>'
+            in manual
+        )
+        assert (
+            '<a id="ref-11"></a><a href="https://www.wsprdaemon.org/">'
+            "[Ref-11]</a>"
+            in manual
+        )
+        assert "wspr.live/wspr_downloader.php" not in manual
+        assert "wsprdaemon.readthedocs.io" not in manual
+
+
 def test_load_and_hide_controls_have_english_and_german_labels():
     assert T["en"]["btn_load_full_documentation"] == "Load full documentation"
     assert T["en"]["btn_hide_full_documentation"] == "Hide full documentation"
@@ -825,6 +878,10 @@ def test_end_user_manuals_omit_internal_interval_boundary_convention():
 def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     """Keep temporal populations and density normalization explicit."""
     assert "Chronological views preserve the actual sequence of the run" in DOC_EN
+    assert "across the full selected UTC window" in DOC_EN
+    assert "Bins begin at the selected start; the final interval may be shorter" in DOC_EN
+    assert "intervals without evidence remain blank rather than becoming 0 dB" in DOC_EN
+    assert "does not by itself mean that the data source returned no observations" in DOC_EN
     assert "fold evidence from represented dates onto fixed one-hour slots" in DOC_EN
     assert "Benchmark temporal coverage uses all retained Only Target, Joint and Only Reference units" in DOC_EN
     assert "requires at least two represented evidence dates" in DOC_EN
@@ -832,6 +889,10 @@ def test_bilingual_manuals_define_segment_temporal_density_and_scope():
     assert "not 100% of all evidence" in DOC_EN
 
     assert "Chronologische Ansichten bewahren die tatsächliche Reihenfolge des Laufs" in DOC_DE
+    assert "über das vollständige ausgewählte UTC-Zeitfenster" in DOC_DE
+    assert "Die Bins beginnen am ausgewählten Startzeitpunkt" in DOC_DE
+    assert "Zeitabschnitte ohne Evidenz bleiben leer, statt zu 0 dB zu werden" in DOC_DE
+    assert "daraus folgt nicht, dass die Datenquelle keine Beobachtungen lieferte" in DOC_DE
     assert "Beobachtungen verschiedener Tage auf dieselbe 24-Stunden-UTC-Uhr" in DOC_DE
     assert "zeitliche Benchmark-Abdeckung verwendet alle beibehaltenen Einheiten Only Target, Joint und Only Reference" in DOC_DE
     assert "mindestens zwei Tage mit Evidenz" in DOC_DE
