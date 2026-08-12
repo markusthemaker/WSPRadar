@@ -7,6 +7,10 @@ from urllib.parse import parse_qsl, urlsplit
 import pytest
 
 from config import SEGMENT_DIRECTION_OPTIONS, SEGMENT_RANGE_OPTIONS
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
 from ui import config_io, url_state
 from ui.analysis_submission_state import claim_analysis_submission_request
 
@@ -308,6 +312,198 @@ def test_url_v1_omits_every_stable_default_and_orders_required_fields():
             key=url_state.URL_V1_PARAMETER_ORDER.index,
         )
     )
+
+
+def test_compare_outlier_reporting_round_trips_as_presence_flag():
+    """Emit only enabled Compare reporting and restore it from report_outliers=1."""
+    settings = _settings_for_mode("reference_station")
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = True
+
+    entries = url_state.build_query_from_settings(settings, include_run=True)
+    normalized = url_state.build_config_from_url(dict(entries))
+
+    assert dict(entries)["report_outliers"] == "1"
+    assert normalized["report_delta_snr_outlier_candidates"] is True
+    assert tuple(key for key, _value in entries) == tuple(
+        key
+        for key in url_state.URL_V1_PARAMETER_ORDER
+        if key in dict(entries)
+    )
+
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = False
+    assert "report_outliers" not in dict(
+        url_state.build_query_from_settings(settings, include_run=True)
+    )
+
+
+def test_enabled_outlier_policy_url_emits_only_nondefaults_and_round_trips():
+    """Keep tuning in URL identity only under opt-in and preserve full precision."""
+    settings = _settings_for_mode("reference_station")
+    advanced = settings["advanced_parameters"]
+    advanced["report_delta_snr_outlier_candidates"] = True
+
+    default_entries = dict(
+        url_state.build_query_from_settings(settings, include_run=False)
+    )
+    assert all(
+        url_parameter not in default_entries
+        for url_parameter, _config_field, _policy_field in (
+            url_state.URL_V1_OUTLIER_POLICY_PARAMETERS
+        )
+    )
+
+    advanced.update(
+        {
+            "delta_snr_outlier_minimum_departure_db": 3.25,
+            "delta_snr_outlier_minimum_robust_z": 4.5,
+            "delta_snr_outlier_maximum_baseline_difference_db": 2.75,
+        }
+    )
+    entries = dict(
+        url_state.build_query_from_settings(settings, include_run=False)
+    )
+    normalized = url_state.build_config_from_url(entries)
+
+    assert entries["outlier_departure_db"] == "3.25"
+    assert entries["outlier_robust_z"] == "4.5"
+    assert entries["outlier_baseline_difference_db"] == "2.75"
+    assert not set(entries).intersection(
+        url_state.URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS
+    )
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        assert normalized[config_field] == advanced[config_field]
+
+
+@pytest.mark.parametrize(
+    ("burst_parameter", "burst_value", "expected_departure", "expected_z"),
+    (
+        ("outlier_burst_departure_db", "3.25", 3.25, 3.5),
+        ("outlier_burst_robust_z", "4.25", 3.0, 4.25),
+    ),
+)
+def test_legacy_outlier_policy_url_maps_short_burst_values_to_shared_gates(
+    burst_parameter,
+    burst_value,
+    expected_departure,
+    expected_z,
+):
+    """Read experimental duration URLs only through a supplied burst gate."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("reference_station"),
+            include_run=False,
+        )
+    )
+    entries.update(
+        {
+            "report_outliers": "1",
+            "outlier_spot_departure_db": "6",
+            "outlier_sustained_robust_z": "2.5",
+            "outlier_baseline_difference_db": "2.75",
+            burst_parameter: burst_value,
+        }
+    )
+
+    normalized = url_state.build_config_from_url(entries)
+
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == (
+        expected_departure
+    )
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == expected_z
+    assert (
+        normalized["delta_snr_outlier_maximum_baseline_difference_db"]
+        == 2.75
+    )
+
+
+def test_legacy_outlier_policy_url_requires_at_least_one_short_burst_gate():
+    """Reject duration URLs whose shared policy cannot be mapped unambiguously."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("reference_station"),
+            include_run=False,
+        )
+    )
+    entries.update(
+        {
+            "report_outliers": "1",
+            "outlier_spot_departure_db": "6",
+            "outlier_sustained_robust_z": "2.5",
+        }
+    )
+
+    with pytest.raises(
+        url_state.UrlStateError,
+        match="without a Short burst value",
+    ):
+        url_state.build_config_from_url(entries)
+
+
+def test_outlier_policy_url_rejects_mixed_shared_and_legacy_gates():
+    """Reject ambiguous URLs containing both canonical and duration thresholds."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("reference_station"),
+            include_run=False,
+        )
+    )
+    entries.update(
+        {
+            "report_outliers": "1",
+            "outlier_departure_db": "3.25",
+            "outlier_burst_robust_z": "4.25",
+        }
+    )
+
+    with pytest.raises(
+        url_state.UrlStateError,
+        match="Shared and legacy duration-specific.*cannot be combined",
+    ):
+        url_state.build_config_from_url(entries)
+
+
+@pytest.mark.parametrize(
+    "parameter_name",
+    ("outlier_departure_db", "outlier_spot_departure_db"),
+)
+def test_outlier_policy_url_parameters_require_enabled_reporting(parameter_name):
+    """Reject hidden tuning parameters instead of letting them affect an opt-out URL."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("reference_station"),
+            include_run=False,
+        )
+    )
+    entries[parameter_name] = "6"
+
+    with pytest.raises(
+        url_state.UrlStateError,
+        match=rf"not applicable.*{parameter_name}",
+    ):
+        url_state.build_config_from_url(entries)
+
+
+def test_performance_url_rejects_compare_outlier_reporting():
+    """Do not accept a Compare-only presence flag on Performance URLs."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("performance"),
+            include_run=False,
+        )
+    )
+    entries["report_outliers"] = "1"
+
+    with pytest.raises(
+        url_state.UrlStateError,
+        match="not applicable.*report_outliers",
+    ):
+        url_state.build_config_from_url(entries)
 
 
 def test_performance_ui_defaults_are_explicit_against_url_v1_false_defaults():
@@ -693,8 +889,8 @@ def test_malformed_or_multiple_selected_station_values_are_rejected(
         url_state.build_config_from_url(entries)
 
 
-def test_serializer_rejects_more_than_one_station():
-    """Never emit a public URL that combines multiple radio paths."""
+def test_serializer_rejects_more_than_one_station_when_reporting_is_disabled():
+    """Keep the ordinary Benchmark URL on its historical singleton contract."""
     settings = _settings_for_mode("hardware_rx")
     settings["results_view"]["benchmark"]["selected_stations"] = [
         {"callsign": "K1ABC", "locator": "FN42"},
@@ -703,6 +899,39 @@ def test_serializer_rejects_more_than_one_station():
 
     with pytest.raises(ValueError, match="at most one|exactly one"):
         url_state.build_query_from_settings(settings, include_run=False)
+
+
+def test_enabled_outlier_url_round_trips_ordered_multi_station_selection():
+    """Serialize and restore exact report-selected identities with the opt-in."""
+    settings = _settings_for_mode("hardware_rx")
+    selected_stations = [
+        {"callsign": "K1ABC", "locator": "FN42"},
+        {"callsign": "W1AAA", "locator": "FN31"},
+    ]
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = True
+    settings["results_view"]["benchmark"][
+        "selected_stations"
+    ] = selected_stations
+
+    entries = url_state.build_query_from_settings(
+        settings,
+        include_run=True,
+    )
+    entry_map = dict(entries)
+    normalized = url_state.build_config_from_url(entry_map)
+
+    assert entry_map["report_outliers"] == "1"
+    assert entry_map["selected_station"] == (
+        "K1ABC@FN42,W1AAA@FN31"
+    )
+    assert normalized["selected_stations_compare"] == selected_stations
+    assert tuple(key for key, _value in entries) == tuple(
+        key
+        for key in url_state.URL_V1_PARAMETER_ORDER
+        if key in entry_map
+    )
 
 
 def test_invalid_hydration_does_not_partially_apply_configuration():

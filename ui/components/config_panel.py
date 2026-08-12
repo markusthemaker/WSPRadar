@@ -20,6 +20,10 @@ from config import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.demo_profiles import prepare_demo_description_markdown
+from config.delta_snr_outlier import (
+    DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
+    DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
+)
 from core.input_validation import (
     is_valid_callsign,
     is_valid_grid4,
@@ -31,12 +35,14 @@ from ui.callbacks import (
     reset_audit, handle_analysis_direction_change,
     handle_classic_benchmark_design_change,
     handle_classic_question_change,
+    handle_delta_snr_outlier_reporting_change,
     handle_population_exclusion_change,
     handle_reference_correction_context_change,
     handle_start_date_change,
     handle_time_window_change,
     handle_tx_ab_reference_start_change, handle_tx_ab_repeat_interval_change,
     handle_tx_ab_target_start_change, swap_tx_ab_starts,
+    reset_delta_snr_outlier_detector_defaults,
 )
 from ui.analysis_question_state import ANALYSIS_QUESTION_CHOICES
 from ui.classic_input_state import (
@@ -1082,6 +1088,69 @@ def render_evidence_threshold_fields(
         )
 
 
+def render_delta_snr_outlier_reporting_field(
+    t,
+    *,
+    on_change=None,
+    on_change_args=(),
+):
+    """Render the opt-in report and its three shared qualification gates."""
+    owner_on_change = reset_audit if on_change is None else on_change
+    toggle_kwargs = {
+        "key": "val_report_delta_snr_outlier_candidates",
+        "help": t["tt_report_delta_snr_outlier_candidates"],
+        "on_change": handle_delta_snr_outlier_reporting_change,
+        "args": (owner_on_change, on_change_args),
+    }
+    st.toggle(
+        t["lbl_report_delta_snr_outlier_candidates"],
+        **toggle_kwargs,
+    )
+    if not st.session_state.get(
+        "val_report_delta_snr_outlier_candidates",
+        False,
+    ):
+        return
+
+    input_change_kwargs = {
+        "on_change": owner_on_change,
+        "args": on_change_args,
+    }
+    st.number_input(
+        t["lbl_delta_snr_outlier_minimum_departure_db"],
+        min_value=DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
+        max_value=DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
+        step=0.1,
+        key="val_delta_snr_outlier_minimum_departure_db",
+        help=t["tt_delta_snr_outlier_minimum_departure_db"],
+        **input_change_kwargs,
+    )
+    st.number_input(
+        t["lbl_delta_snr_outlier_minimum_robust_z"],
+        min_value=DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
+        max_value=DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
+        step=0.1,
+        key="val_delta_snr_outlier_minimum_robust_z",
+        help=t["tt_delta_snr_outlier_minimum_robust_z"],
+        **input_change_kwargs,
+    )
+    st.number_input(
+        t["lbl_delta_snr_outlier_maximum_baseline_difference_db"],
+        min_value=DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
+        max_value=DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
+        step=0.1,
+        key="val_delta_snr_outlier_maximum_baseline_difference_db",
+        help=t["tt_delta_snr_outlier_maximum_baseline_difference_db"],
+        **input_change_kwargs,
+    )
+    st.button(
+        t["btn_reset_delta_snr_outlier_detector_defaults"],
+        key="reset_delta_snr_outlier_detector_defaults",
+        on_click=reset_delta_snr_outlier_detector_defaults,
+        args=(owner_on_change, on_change_args),
+    )
+
+
 def render_advanced_expander(t, *, result_type=None, step_number=None):
     """Render shared population, scope, and active-result evidence controls."""
     with st.expander(
@@ -1097,3 +1166,5 @@ def render_advanced_expander(t, *, result_type=None, step_number=None):
         with col4:
             st.markdown(f"**{t['hdr_evidence_requirements']}**")
             render_evidence_threshold_fields(t, result_type=result_type)
+            if result_type == "benchmark":
+                render_delta_snr_outlier_reporting_field(t)

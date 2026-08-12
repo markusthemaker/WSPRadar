@@ -10,10 +10,12 @@ import streamlit as st
 PAGE_TOP_ANCHOR_ID = "wspradar-page-top"
 PARAMETER_SETTINGS_ANCHOR_ID = "wspradar-parameter-settings"
 RESULTS_INSPECTION_ANCHOR_ID = "wspradar-results-inspection"
+STATION_INSIGHTS_ANCHOR_ID = "wspradar-station-insights"
 APPLICATION_ANCHOR_IDS = (
     PAGE_TOP_ANCHOR_ID,
     PARAMETER_SETTINGS_ANCHOR_ID,
     RESULTS_INSPECTION_ANCHOR_ID,
+    STATION_INSIGHTS_ANCHOR_ID,
 )
 PAGE_NAVIGATION_CONTROLLER_KEY = "application_page_navigation_controller"
 PAGE_NAVIGATION_REQUEST_KEY = "_application_page_navigation_request"

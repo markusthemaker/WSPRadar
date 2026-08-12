@@ -10,6 +10,7 @@ while preserving the current segment, station, non-joint, and time-bin state.
 import hashlib
 import io
 import json
+from collections.abc import Mapping
 from pathlib import Path
 import time
 import zipfile
@@ -23,6 +24,10 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
 from config import APP_VERSION, CACHE_DIR, TEMPORAL_IQR_BAND_ALPHA
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DeltaSnrOutlierDetectionPolicy,
+)
 from core.analysis_admission import AnalysisQueueFull, AnalysisQueueTimeout
 from core.analysis_context import AnalysisContext
 from core.artifact_store import (
@@ -445,12 +450,16 @@ def register_inspector_export(
     selected_station_context_label=None,
     selected_station_role=None,
     selected_evidence_figure_descriptions=None,
+    allow_multiple_selected_stations=False,
+    report_delta_snr_outlier_candidates=False,
+    delta_snr_outlier_detector_version=None,
+    delta_snr_outlier_detection_policy=None,
 ):
     """Register localized Inspector state for lazy high-resolution export.
 
-    Selected-station artifacts are defined for zero or one station. Validate
-    that boundary before obtaining or mutating the pending export block so an
-    invalid caller cannot leave partially updated export state.
+    Performance selected-station artifacts remain bounded to one path.
+    Benchmark callers may explicitly register an ordered multi-path selection.
+    Validate that boundary before mutating pending export state.
     """
     if selected_stations is None:
         selected_stations = []
@@ -460,9 +469,67 @@ def register_inspector_export(
         )
     else:
         selected_stations = list(selected_stations)
-    if len(selected_stations) > 1:
+    is_outlier_reporting_enabled = bool(
+        report_delta_snr_outlier_candidates
+    )
+    if len(selected_stations) > 1 and not allow_multiple_selected_stations:
         raise ValueError(
             "Selected-station exports support at most one station."
+        )
+    if len(selected_stations) > 1 and not is_outlier_reporting_enabled:
+        raise ValueError(
+            "Multi-station Benchmark exports require enabled Delta-SNR "
+            "outlier reporting."
+        )
+    if is_outlier_reporting_enabled:
+        detector_version = str(
+            delta_snr_outlier_detector_version or ""
+        ).strip()
+        if not detector_version:
+            raise ValueError(
+                "Enabled Delta-SNR outlier export metadata requires a "
+                "detector version."
+            )
+        resolved_outlier_policy = (
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY
+            if delta_snr_outlier_detection_policy is None
+            else delta_snr_outlier_detection_policy
+        )
+        if not isinstance(
+            resolved_outlier_policy,
+            DeltaSnrOutlierDetectionPolicy,
+        ):
+            raise TypeError(
+                "Enabled Delta-SNR outlier export metadata requires a "
+                "DeltaSnrOutlierDetectionPolicy."
+            )
+        outlier_policy_metadata = resolved_outlier_policy.as_dict()
+    else:
+        outlier_policy_metadata = None
+        segment_temporal_evidence_figure_recipe = (
+            _without_delta_snr_outlier_markers(
+                segment_temporal_evidence_figure_recipe
+            )
+        )
+        segment_temporal_snr_deviation_figure_recipe = (
+            _without_delta_snr_outlier_markers(
+                segment_temporal_snr_deviation_figure_recipe
+            )
+        )
+        selected_evidence_figure_recipe = (
+            _without_delta_snr_outlier_markers(
+                selected_evidence_figure_recipe
+            )
+        )
+        selected_station_snr_evidence_figure_recipe = (
+            _without_delta_snr_outlier_markers(
+                selected_station_snr_evidence_figure_recipe
+            )
+        )
+        selected_station_temporal_evidence_figure_recipe = (
+            _without_delta_snr_outlier_markers(
+                selected_station_temporal_evidence_figure_recipe
+            )
         )
 
     blocks = _ensure_current_export_state()
@@ -513,17 +580,38 @@ def register_inspector_export(
         "all_drilldown_context": all_drilldown_context,
         "reference_snr_header": reference_snr_header,
     })
+    if is_outlier_reporting_enabled:
+        block.update(
+            {
+                "report_delta_snr_outlier_candidates": True,
+                "delta_snr_outlier_detector_version": detector_version,
+                "delta_snr_outlier_detection_policy": (
+                    outlier_policy_metadata
+                ),
+            }
+        )
+    else:
+        block.pop("report_delta_snr_outlier_candidates", None)
+        block.pop("delta_snr_outlier_detector_version", None)
+        block.pop("delta_snr_outlier_detection_policy", None)
 
 
 def _selected_evidence_weighting_label(selected_station_count, translations):
     """Return localized human-readable weighting metadata for a selection."""
-    if selected_station_count not in (0, 1):
-        raise ValueError(
-            "Selected-station evidence weighting requires zero or one station."
-        )
+    if selected_station_count > 1:
+        return translations["export_weighting_combined_observation"]
     if selected_station_count == 1:
         return translations["export_weighting_single_selected_path"]
     return None
+
+
+def _without_delta_snr_outlier_markers(recipe):
+    """Remove stale marker payloads from an explicitly disabled export recipe."""
+    if not isinstance(recipe, dict) or "delta_snr_outlier_markers" not in recipe:
+        return recipe
+    sanitized_recipe = dict(recipe)
+    sanitized_recipe.pop("delta_snr_outlier_markers", None)
+    return sanitized_recipe
 
 
 def _benchmark_evidence_figure_descriptions(block):
@@ -583,6 +671,44 @@ def _benchmark_evidence_recipe_signature(block):
             }
         )
     return recipe_signatures
+
+
+def _delta_snr_outlier_recipe_signature(recipe):
+    """Return compact marker identity without serializing temporal plot arrays."""
+    if not isinstance(recipe, dict):
+        return None
+    marker_recipe = recipe.get("delta_snr_outlier_markers")
+    if not isinstance(marker_recipe, dict):
+        return None
+    return {
+        "schema_version": marker_recipe.get("schema_version"),
+        "detector_version": marker_recipe.get("detector_version"),
+        "detection_resolution": marker_recipe.get("detection_resolution"),
+        "detection_policy_signature": marker_recipe.get(
+            "detection_policy_signature"
+        ),
+        "candidate_count": marker_recipe.get("candidate_count"),
+        "candidate_signature": marker_recipe.get("candidate_signature"),
+        "legend_label": marker_recipe.get("legend_label"),
+        "markers": [
+            {
+                "callsign": marker.get("callsign"),
+                "locator": marker.get("locator"),
+                "marker_utc_ns": marker.get("marker_utc_ns"),
+                "marker_delta_snr_db": marker.get("marker_delta_snr_db"),
+                "episode_start_utc_ns": marker.get(
+                    "episode_start_utc_ns"
+                ),
+                "episode_end_utc_ns": marker.get("episode_end_utc_ns"),
+                "event_kind": marker.get("event_kind"),
+                "detection_policy_signature": marker.get(
+                    "detection_policy_signature"
+                ),
+            }
+            for marker in marker_recipe.get("markers", ())
+            if isinstance(marker, Mapping)
+        ],
+    }
 
 
 def _should_annotate_reference_correction(column_name, reference_snr_header=None):
@@ -770,6 +896,22 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 "performance_method_version": block.get(
                     "performance_method_version"
                 ),
+                **(
+                    {
+                        "report_delta_snr_outlier_candidates": True,
+                        "delta_snr_outlier_detector_version": block.get(
+                            "delta_snr_outlier_detector_version"
+                        ),
+                        "delta_snr_outlier_detection_policy": block.get(
+                            "delta_snr_outlier_detection_policy"
+                        ),
+                    }
+                    if block.get(
+                        "report_delta_snr_outlier_candidates"
+                    )
+                    is True
+                    else {}
+                ),
             }
             for key, block in blocks.items()
         ],
@@ -885,6 +1027,31 @@ def _export_signature(blocks):
             ),
             "benchmark_evidence_recipes": (
                 _benchmark_evidence_recipe_signature(block)
+            ),
+            **(
+                {
+                    "report_delta_snr_outlier_candidates": True,
+                    "delta_snr_outlier_detector_version": block.get(
+                        "delta_snr_outlier_detector_version"
+                    ),
+                    "delta_snr_outlier_detection_policy": block.get(
+                        "delta_snr_outlier_detection_policy"
+                    ),
+                    "segment_delta_snr_outlier_markers": (
+                        _delta_snr_outlier_recipe_signature(
+                            block.get(
+                                "segment_temporal_evidence_figure_recipe"
+                            )
+                        )
+                    ),
+                    "selected_delta_snr_outlier_markers": (
+                        _delta_snr_outlier_recipe_signature(
+                            block.get("selected_evidence_figure_recipe")
+                        )
+                    ),
+                }
+                if block.get("report_delta_snr_outlier_candidates") is True
+                else {}
             ),
             "show_non_joint": block.get("show_non_joint"),
             "show_zero_target": block.get("show_zero_target"),

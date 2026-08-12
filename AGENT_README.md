@@ -31,6 +31,10 @@ measurement system.
 - Geographic station and segment aggregation on an azimuthal-equidistant map.
 - Segment Inspector views with station tables, evidence figures, and drilldown
   tables backed by projected Parquet reads.
+- Optional Benchmark Delta-SNR outlier-candidate reporting at native Joint Spot
+  or complete Scheduled Pair resolution, with robust local baselines,
+  duration-descriptive grouping, path/cross-path review, and traceable paired
+  evidence.
 - Downloadable analysis exports containing configuration, metadata, tables,
   compact Parquet evidence, and high-resolution figures.
 - Guided demo profiles for historical examples.
@@ -121,6 +125,7 @@ the application path.
 | `config/demo_profiles.py` | Dependency-free demo discovery, validation, duplicate-ID protection, stable filename ordering, and `DEMO_PROFILES` compatibility export. |
 | `config/config_schema.py` | Version-1 saved-configuration format identifier, schema version, grouped settings contract, and canonical enum values shared by demos and user files. |
 | `config/config_codec.py` | Dependency-free document-envelope and schema-version validation shared by demo and upload readers. |
+| `config/delta_snr_outlier.py` | Validated policy, defaults, ranges, and stable signature for optional Delta-SNR outlier-candidate reporting. |
 | `config/wspradar-config.schema.json` | Formal JSON Schema for every standalone saved or demo configuration. |
 | `config/guided_input_flow.json` | Ordered, conditional Guided Input steps and registered renderer keys. |
 | `config/guided_input_flow.schema.json` | Strict JSON Schema for the declarative Guided Input flow. |
@@ -134,6 +139,10 @@ is ignored by Git.
 Important defaults currently include:
 
 - Maximum query interval: 31 days.
+- Delta-SNR outlier reporting defaults off. When enabled for Benchmark, its
+  shared gates default to `3.0 dB` minimum absolute departure, `4.0` minimum
+  robust z-score, and `3.0 dB` maximum pre/post baseline difference; each
+  numeric setting accepts `0.1` through `100.0` inclusive.
 - New untouched interactive Performance setups enable special-callsign and
   moving-station exclusion; untouched Benchmark setups disable both. A manual
   toggle edit remains explicit across result-family changes, while saved
@@ -199,15 +208,22 @@ unpublished fixed-bin prototype is not part of the public contract.
 `results_view` is divided into `performance` and, when applicable, `benchmark`.
 It preserves each branch's Segment Inspector range/direction, segment temporal
 time bin, selected-station chronological time bin, and station-selection intent.
-Explicit stations use canonical callsign/locator pairs. Both branches accept
-`null`, an empty list, or one identity; `"all"`, duplicates, malformed
-identities, and multiple identities are rejected without migration. `null`
-retains the normal initial table behavior, while an empty list records
-deliberate deselection. Benchmark additionally preserves `show_non_joint`;
-Performance preserves the canonical `show_zero_target` field. Table filters,
-Drill-Down filters, and other transient UI state remain outside the config
-contract. Optional non-core data belongs under `extensions` and is preserved
-across load and re-save.
+Explicit stations use canonical callsign/locator pairs. Performance accepts
+`null`, an empty list, or one identity. Benchmark uses the same singleton
+contract normally, but accepts an ordered list of distinct identities while
+optional Delta-SNR outlier reporting is enabled so one review card can be
+opened in Station Insights. `"all"`, duplicates and malformed identities are
+rejected without migration. `null` retains the normal initial table behavior,
+while an empty list records deliberate deselection. Benchmark additionally
+preserves `show_non_joint`; Performance preserves the canonical
+`show_zero_target` field. Table filters, Drill-Down filters, and other transient
+UI state remain outside the config contract. Optional non-core data belongs
+under `extensions` and is preserved across load and re-save.
+
+Benchmark advanced parameters preserve the outlier-reporting toggle and, only
+when it is enabled, the three shared detector gates. The normal
+configuration-changed lifecycle applies: editing these controls does not run an
+analysis automatically.
 
 `config/config_codec.py` owns document-envelope and current-version validation;
 `ui/config_io.py` owns semantic settings validation, Streamlit-state
@@ -337,6 +353,9 @@ Useful files when tracing behavior:
   presentation, scope copy, and bilingual mode-aware interpretation help.
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
   orchestration and pure view models.
+- `ui/inspector/outlier_candidates.py` and `ui/inspector/outlier_report.py`:
+  optional native-paired-unit detection, cross-path review aggregation, and the
+  pure localized Outlier Report view model.
 - `ui/components/config_fields.py`: shared canonical field-composition surface
   used by Guided and Classic without duplicating scientific controls.
 - `ui/analysis_question_state.py`, `ui/classic_input_state.py`, and
@@ -409,10 +428,10 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Latest complete serial measurement on 2026-08-02:
+Latest complete serial measurement on 2026-08-12:
 
 ```text
-1697 passed, 1 skipped, 1 warning in 353.62 seconds
+1920 passed, 1 skipped, 1 warning in 227.24 seconds
 ```
 
 The skipped test requires a generated fixture under

@@ -59,7 +59,7 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             manual,
         )
 
-        assert len(source_block_formulas) == 16
+        assert len(source_block_formulas) == 32
         assert rendered.count('<p class="formula"><b>') == len(
             source_block_formulas
         )
@@ -88,6 +88,21 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             "JES<sub>outcome</sub>(b) = 100% &times;",
             "A<sub>i,c</sub> = SNR<sub>i,c</sub> - median<sub>c&apos;</sub>",
             "D<sub>relative</sub> = 100 &times; n<sub>cell</sub>",
+            "B<sub>pre</sub> = median(Q<sub>pre</sub>)",
+            "B<sub>post</sub> = median(Q<sub>post</sub>)",
+            "|B<sub>pre</sub> - B<sub>post</sub>| &le; H<sub>max</sub>",
+            "B = median(B<sub>pre</sub>, B<sub>post</sub>)",
+            "r<sub>i,u</sub> = D<sub>i,u</sub> - B",
+            "S<sub>robust</sub> = M (M &gt; 0)",
+            "z<sub>i,u</sub> = 0.6745 &times; r<sub>i,u</sub>",
+            "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) minutes",
+            "L = min(1 dB, D<sub>min</sub>)",
+            "W<sub>i</sub> = max(10 minutes, C<sub>i</sub>)",
+            "m<sub>E</sub> = median(u in E)(r<sub>i,u</sub>)",
+            "|m<sub>E</sub>| &ge; D<sub>min</sub>",
+            "|0.6745 &times; m<sub>E</sub> / S<sub>robust</sub>|",
+            "|{u in E: sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)}|",
+            "sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)",
         )
         for expected_formula_fragment in expected_formula_fragments:
             assert expected_formula_fragment in rendered
@@ -97,6 +112,11 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             "SNR<sub>R,corr,i,c</sub>",
             "M &plusmn; 60",
             "n<sub>cell</sub>",
+            "D<sub>i,u</sub>",
+            "Q<sub>i,k</sub>",
+            "M = MAD(U)",
+            "I = IQR(U)",
+            "H<sub>max</sub>",
         ):
             assert expected_inline_formula_fragment in rendered
         for unsupported_latex in (
@@ -109,6 +129,11 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             r"\qquad",
             r"\right",
             r"\sum",
+            r"\begin",
+            r"\end",
+            r"\land",
+            r"\mathrm",
+            r"\geq",
         ):
             assert unsupported_latex not in rendered
 
@@ -259,13 +284,14 @@ def test_pdf_preprocessing_keeps_em_dashes_separated_from_words():
 def test_generated_pdf_preserves_spaced_em_dashes_in_prose_and_ui_labels(
     monkeypatch,
 ):
-    """Prove that both proportional and monospace PDF fonts retain the glyph."""
+    """Embed Unicode fonts for prose, UI labels, and scientific symbols."""
     from PIL import Image
     from pypdf import PdfReader
 
     compact_manual = (
         "Plain prose — remains separated.\n\n"
-        "`Performance — no Reference`"
+        "`Performance — no Reference`\n\n"
+        "Delta marker ΔSNR; inequalities `1 ≤ 2` and `2 ≥ 1`."
     )
     monkeypatch.setattr(
         pdf_generator,
@@ -282,12 +308,26 @@ def test_generated_pdf_preserves_spaced_em_dashes_in_prose_and_ui_labels(
     pdf_bytes = pdf_generator._generate_pdf_doc("en", logo_b64, "test")
 
     assert pdf_bytes is not None
-    extracted_text = "\n".join(
-        page.extract_text() or ""
-        for page in PdfReader(io.BytesIO(pdf_bytes)).pages
-    )
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
     assert "Plain prose — remains separated." in extracted_text
     assert "Performance — no Reference" in extracted_text
+    assert "ΔSNR" in extracted_text
+    assert "1 ≤ 2" in extracted_text
+    assert "2 ≥ 1" in extracted_text
+
+    embedded_base_fonts = set()
+    for page in reader.pages:
+        font_resources = page["/Resources"].get("/Font", {})
+        for font_reference in font_resources.values():
+            font = font_reference.get_object()
+            font_descriptor = font.get("/FontDescriptor")
+            if font_descriptor is not None:
+                font_descriptor = font_descriptor.get_object()
+                if font_descriptor.get("/FontFile2") is not None:
+                    embedded_base_fonts.add(str(font.get("/BaseFont", "")))
+    assert any("DejaVuSans" in font for font in embedded_base_fonts)
+    assert any("DejaVuSansMono" in font for font in embedded_base_fonts)
 
 
 def test_pdf_preprocessing_preserves_numbering_and_nested_map_bullets():
@@ -314,7 +354,16 @@ def test_pdf_preprocessing_preserves_numbering_and_nested_map_bullets():
 def test_pdf_html_adds_named_destinations_without_removing_web_ids():
     rendered = pdf_generator._render_pdf_html(DOC_EN, T["en"])
 
-    for anchor in ("sec-1", "sec-1-3", "sec-1-4", "sec-2", "sec-7", "sec-ref"):
+    for anchor in (
+        "sec-1",
+        "sec-1-3",
+        "sec-1-4",
+        "sec-2",
+        "sec-outlier",
+        "sec-7",
+        "sec-7-11",
+        "sec-ref",
+    ):
         assert f'<a id="{anchor}" name="{anchor}"></a>' in rendered
 
 

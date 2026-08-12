@@ -30,6 +30,8 @@ def _empty_compare_unit_df():
             "identity_order",
             "evidence_utc",
             "outcome",
+            "target_snr_db",
+            "reference_snr_db",
             "metric",
             "paired_eligible",
         ]
@@ -66,7 +68,9 @@ def _build_compare_unit_rows(
     ``paired_identity_df`` identifies the subset admitted to segment-level
     paired-Delta-SNR views; coverage retains all active identities. Sequential
     rows are reduced to one planned pair per receiver after applying the
-    established per-side micro-median contract.
+    established per-side micro-median contract. Each retained unit also keeps
+    its nullable full-precision Target and correction-adjusted Reference SNR
+    components without changing the established Delta-SNR projection.
     """
     identity_meta = _prepare_identity_meta(identity_df)
     if (
@@ -183,6 +187,16 @@ def _build_compare_unit_rows(
             ],
             default="",
         )
+        units["target_snr_db"] = np.where(
+            has_target,
+            pd.to_numeric(units["target_snr"], errors="coerce"),
+            np.nan,
+        )
+        units["reference_snr_db"] = np.where(
+            has_reference,
+            pd.to_numeric(units["reference_snr"], errors="coerce"),
+            np.nan,
+        )
         units["evidence_utc"] = pd.to_datetime(
             units["tx_ab_pair_id"],
             unit="m",
@@ -191,8 +205,7 @@ def _build_compare_unit_rows(
         )
         units["metric"] = np.where(
             units["outcome"] == COMPARE_OUTCOME_JOINT,
-            pd.to_numeric(units["target_snr"], errors="coerce")
-            - pd.to_numeric(units["reference_snr"], errors="coerce"),
+            units["target_snr_db"] - units["reference_snr_db"],
             np.nan,
         )
     else:
@@ -233,6 +246,16 @@ def _build_compare_unit_rows(
             ],
             default="",
         )
+        units["target_snr_db"] = np.where(
+            has_target,
+            pd.to_numeric(units["snr_u_norm"], errors="coerce"),
+            np.nan,
+        )
+        units["reference_snr_db"] = np.where(
+            has_reference,
+            pd.to_numeric(units["snr_r_norm"], errors="coerce"),
+            np.nan,
+        )
         units["evidence_utc"] = pd.to_datetime(
             units["time_slot"] * 120,
             unit="s",
@@ -241,7 +264,7 @@ def _build_compare_unit_rows(
         )
         units["metric"] = np.where(
             units["outcome"] == COMPARE_OUTCOME_JOINT,
-            units["snr_u_norm"] - units["snr_r_norm"],
+            units["target_snr_db"] - units["reference_snr_db"],
             np.nan,
         )
 
@@ -278,6 +301,8 @@ def _build_compare_unit_rows(
                 "identity_order",
                 "evidence_utc",
                 "outcome",
+                "target_snr_db",
+                "reference_snr_db",
                 "metric",
                 "paired_eligible",
             ]

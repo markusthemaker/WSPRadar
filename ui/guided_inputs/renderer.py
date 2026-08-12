@@ -8,6 +8,9 @@ from typing import Any
 import streamlit as st
 
 from config import DEMO_PROFILES
+from config.delta_snr_outlier import (
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
 from config.demo_profiles import prepare_demo_description_markdown
 from i18n import GUIDED_INPUTS
 from ui.analysis_submission_state import handoff_analysis_submission
@@ -18,6 +21,7 @@ from ui.classic_input_state import (
     synchronize_classic_input_state,
 )
 from ui.components.config_fields import (
+    render_delta_snr_outlier_reporting_field,
     render_evidence_threshold_fields,
     render_reference_correction_field,
     render_reference_design_fields,
@@ -39,6 +43,9 @@ from ui.population_exclusion_state import (
     PERFORMANCE_RESULT_TYPE,
     register_explicit_population_exclusion_values,
     transition_population_exclusion_result_type,
+)
+from ui.result_state import (
+    normalize_compare_station_selection_for_outlier_reporting,
 )
 
 from .flow_engine import available_flow_nodes, matching_next_node
@@ -162,6 +169,25 @@ def _loaded_demo_scope_values(profile_key: str | None) -> dict[str, Any] | None:
             "min_confirmed_opportunities_per_peer"
         ],
         "val_min_stations": normalized["min_joint_stations_per_map_segment"],
+        **(
+            {
+                "val_report_delta_snr_outlier_candidates": normalized[
+                    "report_delta_snr_outlier_candidates"
+                ],
+                **(
+                    {
+                        f"val_{config_field}": normalized[config_field]
+                        for config_field, _policy_field in (
+                            DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                        )
+                    }
+                    if normalized["report_delta_snr_outlier_candidates"]
+                    else {}
+                ),
+            }
+            if normalized["benchmark_mode"] != "none"
+            else {}
+        ),
     }
 
 
@@ -186,6 +212,9 @@ def _apply_loaded_demo_scope() -> None:
     )
     if scope_values:
         st.session_state.update(scope_values)
+        normalize_compare_station_selection_for_outlier_reporting(
+            st.session_state
+        )
         register_explicit_population_exclusion_values(st.session_state)
 
 
@@ -436,6 +465,12 @@ def _render_scope_and_evidence_fields(t, guided_content):
         on_change_args=("scope_and_evidence",),
         use_two_column_layout=True,
     )
+    if st.session_state.get("val_comp_mode") != "none":
+        render_delta_snr_outlier_reporting_field(
+            t,
+            on_change=_guided_scientific_change,
+            on_change_args=("scope_and_evidence",),
+        )
 
 
 def _reference_review_value(guided_content) -> str:
@@ -524,6 +559,40 @@ def _render_review_and_run(t, guided_content):
             f"- **{messages['review_result']}:** {messages['result_benchmark' if is_compare else 'result_performance']}",
         ]
     )
+    if is_compare:
+        is_outlier_reporting_enabled = st.session_state.get(
+            "val_report_delta_snr_outlier_candidates",
+            False,
+        )
+        lines.append(
+            f"- **{t['lbl_report_delta_snr_outlier_candidates']}:** "
+            + (
+                "\u2713"
+                if is_outlier_reporting_enabled
+                else "\u2014"
+            )
+        )
+        if is_outlier_reporting_enabled:
+            lines.append(
+                f"- **{t['lbl_delta_snr_outlier_detector_thresholds']}:** "
+                + t["fmt_delta_snr_outlier_detector_thresholds"].format(
+                    departure=float(
+                        st.session_state[
+                            "val_delta_snr_outlier_minimum_departure_db"
+                        ]
+                    ),
+                    robust_z=float(
+                        st.session_state[
+                            "val_delta_snr_outlier_minimum_robust_z"
+                        ]
+                    ),
+                    baseline_difference=float(
+                        st.session_state[
+                            "val_delta_snr_outlier_maximum_baseline_difference_db"
+                        ]
+                    ),
+                )
+            )
     st.markdown("\n".join(lines))
     if st.session_state.get("val_snr_correction_mode") == "establish_offset":
         st.warning(messages["calibration_run_notice"])

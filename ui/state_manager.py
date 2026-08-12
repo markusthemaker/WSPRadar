@@ -12,6 +12,10 @@ from config import (
     SNR_CORRECTION_MODES,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
 from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
 from ui.classic_input_state import initialize_classic_input_state
 from ui.population_exclusion_state import initialize_population_exclusion_state
@@ -223,6 +227,17 @@ def init_session_state():
         st.session_state.val_min_opportunities = 5
     if "val_min_stations" not in st.session_state: 
         st.session_state.val_min_stations = 1
+    if "val_report_delta_snr_outlier_candidates" not in st.session_state:
+        st.session_state.val_report_delta_snr_outlier_candidates = False
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        state_key = f"val_{config_field}"
+        if state_key not in st.session_state:
+            st.session_state[state_key] = getattr(
+                DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                policy_field,
+            )
 
     # --- Stable Result-View Configuration ---
     if "val_results_show_non_joint" not in st.session_state:
@@ -288,6 +303,13 @@ def init_session_state():
         "val_min_spots",
         "val_min_opportunities",
         "val_min_stations",
+        "val_report_delta_snr_outlier_candidates",
+        *(
+            f"val_{config_field}"
+            for config_field, _policy_field in (
+                DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+            )
+        ),
     )
     for state_key in canonical_state_keys:
         if state_key in st.session_state:

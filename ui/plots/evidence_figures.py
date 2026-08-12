@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.dates as mdates
+import matplotlib.patheffects as path_effects
 
 from config import APP_VERSION, TEMPORAL_IQR_BAND_ALPHA
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
@@ -17,6 +18,9 @@ from core.evidence_statistics import (
     _format_metric_signed,
     _metric_histogram_bins,
     _metric_values,
+)
+from ui.inspector.outlier_candidates import (
+    DELTA_SNR_OUTLIER_RECIPE_SCHEMA_VERSION,
 )
 from ui.plots.temporal_layout import (
     TEMPORAL_COLORBAR_FRACTION as SEGMENT_TEMPORAL_COLORBAR_FRACTION,
@@ -85,6 +89,13 @@ COMPARE_RECIPE_ARRAY_COMPRESSION_MIN_BYTES = 256 * 1024
 COMPARE_RECIPE_ARRAY_ENCODING = "numpy-zlib-v1"
 COMPARE_SEGMENT_RECIPE_SCHEMA_VERSION = 2
 COMPARE_TEMPORAL_RECIPE_SCHEMA_VERSION = 5
+DELTA_SNR_OUTLIER_MARKER_SIZE = 84
+DELTA_SNR_OUTLIER_MARKER_FACE_COLOR = "#FF2BD6"
+DELTA_SNR_OUTLIER_MARKER_INNER_EDGE_COLOR = "#FFFFFF"
+DELTA_SNR_OUTLIER_MARKER_OUTER_EDGE_COLOR = "#000000"
+DELTA_SNR_OUTLIER_MARKER_INNER_EDGE_WIDTH = 1.15
+DELTA_SNR_OUTLIER_MARKER_OUTER_EDGE_WIDTH = 3.4
+DELTA_SNR_OUTLIER_MARKER_ZORDER = METRIC_FOREGROUND_ZORDER + 1.0
 
 
 def _encode_compare_recipe_array(values, *, dtype):
@@ -515,6 +526,17 @@ def _apply_compare_median_focus_axis(
         )
         if bin_iqr_handle is not None:
             legend_handles.append(bin_iqr_handle)
+        outlier_candidate_markers = next(
+            (
+                collection
+                for collection in ax.collections
+                if collection.get_gid()
+                == "delta-snr-outlier-candidate-markers"
+            ),
+            None,
+        )
+        if outlier_candidate_markers is not None:
+            legend_handles.append(outlier_candidate_markers)
         _place_metric_legend_top_right(ax, handles=legend_handles)
 
 def _apply_minimum_metric_yspan(ax, center=None):
@@ -558,6 +580,7 @@ def _place_metric_legend(
     if labels is not None:
         legend_kwargs["labels"] = labels
     legend = legend_owner.legend(**legend_kwargs)
+    has_outlier_candidate_markers = False
     if handles is not None:
         legend_handles = getattr(legend, "legend_handles", ())
         for source_handle, legend_handle in zip(handles, legend_handles):
@@ -572,11 +595,24 @@ def _place_metric_legend(
                 )
                 legend_handle.set_edgecolor(TEMPORAL_IQR_COLOR)
                 legend_handle.set_linewidth(0.68)
+            elif (
+                source_handle.get_gid()
+                == "delta-snr-outlier-candidate-markers"
+            ):
+                has_outlier_candidate_markers = True
+                _apply_delta_snr_outlier_marker_style(legend_handle)
+                legend_handle.set_gid(
+                    "delta-snr-outlier-candidate-markers-legend"
+                )
     for legend_text in legend.get_texts():
         legend_text.set_fontfamily(METRIC_FONT_FAMILY)
         legend_text.set_fontweight("normal")
     legend.set_gid(gid)
-    legend.set_zorder(METRIC_FOREGROUND_ZORDER)
+    legend.set_zorder(
+        DELTA_SNR_OUTLIER_MARKER_ZORDER + 1.0
+        if has_outlier_candidate_markers
+        else METRIC_FOREGROUND_ZORDER
+    )
     return legend
 
 
@@ -1077,6 +1113,163 @@ def _draw_temporal_median_overlay(
                 zorder=4,
             )
     return median_markers
+
+
+def _apply_delta_snr_outlier_marker_style(marker_collection):
+    """Apply the high-contrast candidate-star style to plot or legend art."""
+    marker_collection.set_facecolor(DELTA_SNR_OUTLIER_MARKER_FACE_COLOR)
+    marker_collection.set_edgecolor(DELTA_SNR_OUTLIER_MARKER_INNER_EDGE_COLOR)
+    marker_collection.set_linewidth(DELTA_SNR_OUTLIER_MARKER_INNER_EDGE_WIDTH)
+    marker_collection.set_path_effects(
+        [
+            path_effects.Stroke(
+                linewidth=DELTA_SNR_OUTLIER_MARKER_OUTER_EDGE_WIDTH,
+                foreground=DELTA_SNR_OUTLIER_MARKER_OUTER_EDGE_COLOR,
+            ),
+            path_effects.Normal(),
+        ]
+    )
+    return marker_collection
+
+
+def _draw_delta_snr_outlier_markers(ax, marker_recipe):
+    """Draw localized episode markers at their representative observations."""
+    if marker_recipe is None:
+        return None
+    if not isinstance(marker_recipe, Mapping):
+        raise ValueError("Delta-SNR outlier marker recipe must be a mapping.")
+    if int(marker_recipe.get("schema_version", 0)) != (
+        DELTA_SNR_OUTLIER_RECIPE_SCHEMA_VERSION
+    ):
+        raise ValueError("Unsupported Delta-SNR outlier marker recipe schema.")
+    detector_version = str(marker_recipe.get("detector_version", "")).strip()
+    if not detector_version:
+        raise ValueError(
+            "Delta-SNR outlier markers require a detector version."
+        )
+    if marker_recipe.get("detection_resolution") != "native-paired-unit":
+        raise ValueError(
+            "Delta-SNR outlier markers require native-paired-unit "
+            "detection resolution."
+        )
+    candidate_signature = str(
+        marker_recipe.get("candidate_signature", "")
+    ).strip()
+    if not candidate_signature:
+        raise ValueError(
+            "Delta-SNR outlier markers require a candidate signature."
+        )
+
+    markers = marker_recipe.get("markers")
+    if not isinstance(markers, (list, tuple)):
+        raise ValueError("Delta-SNR outlier marker recipe requires markers.")
+    try:
+        candidate_count = int(marker_recipe["candidate_count"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            "Delta-SNR outlier marker recipe requires a candidate count."
+        ) from exc
+    if candidate_count != len(markers):
+        raise ValueError(
+            "Delta-SNR outlier marker count must match its marker payload."
+        )
+    if not markers:
+        return None
+
+    legend_label = str(marker_recipe.get("legend_label", "")).strip()
+    if not legend_label:
+        raise ValueError(
+            "Delta-SNR outlier markers require a localized legend label."
+        )
+    try:
+        marker_times_utc_ns = np.asarray(
+            [marker["marker_utc_ns"] for marker in markers],
+            dtype=np.int64,
+        )
+        marker_delta_snr_db = np.asarray(
+            [marker["marker_delta_snr_db"] for marker in markers],
+            dtype=np.float64,
+        )
+        episode_starts_utc_ns = np.asarray(
+            [marker["episode_start_utc_ns"] for marker in markers],
+            dtype=np.int64,
+        )
+        episode_ends_utc_ns = np.asarray(
+            [marker["episode_end_utc_ns"] for marker in markers],
+            dtype=np.int64,
+        )
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(
+            "Delta-SNR outlier markers require numeric representative UTC, "
+            "Delta-SNR, and episode-bound values."
+        ) from exc
+    if not np.isfinite(marker_delta_snr_db).all():
+        raise ValueError("Delta-SNR outlier marker values must be finite.")
+
+    valid_event_kinds = {
+        "spot_impulse",
+        "short_burst",
+        "sustained_excursion",
+    }
+    for marker in markers:
+        if not str(marker.get("callsign", "")).strip() or not str(
+            marker.get("locator", "")
+        ).strip():
+            raise ValueError(
+                "Delta-SNR outlier markers require callsign and locator "
+                "identities."
+            )
+        if marker.get("event_kind") not in valid_event_kinds:
+            raise ValueError(
+                "Delta-SNR outlier markers require a supported event kind."
+            )
+
+    marker_times_utc = pd.to_datetime(
+        marker_times_utc_ns,
+        unit="ns",
+        utc=True,
+    )
+    episode_starts_utc = pd.to_datetime(
+        episode_starts_utc_ns,
+        unit="ns",
+        utc=True,
+    )
+    episode_ends_utc = pd.to_datetime(
+        episode_ends_utc_ns,
+        unit="ns",
+        utc=True,
+    )
+    if (
+        marker_times_utc.isna().any()
+        or episode_starts_utc.isna().any()
+        or episode_ends_utc.isna().any()
+    ):
+        raise ValueError(
+            "Delta-SNR outlier marker UTC values must be valid."
+        )
+    if np.any(episode_ends_utc_ns <= episode_starts_utc_ns):
+        raise ValueError(
+            "Delta-SNR outlier episode bounds must define positive intervals."
+        )
+    if np.any(
+        (marker_times_utc_ns < episode_starts_utc_ns)
+        | (marker_times_utc_ns >= episode_ends_utc_ns)
+    ):
+        raise ValueError(
+            "Delta-SNR outlier representative UTC values must fall inside "
+            "their episode intervals."
+        )
+    marker_collection = ax.scatter(
+        mdates.date2num(marker_times_utc.to_pydatetime()),
+        marker_delta_snr_db,
+        marker="*",
+        s=DELTA_SNR_OUTLIER_MARKER_SIZE,
+        label=legend_label,
+        zorder=DELTA_SNR_OUTLIER_MARKER_ZORDER,
+    )
+    _apply_delta_snr_outlier_marker_style(marker_collection)
+    marker_collection.set_gid("delta-snr-outlier-candidate-markers")
+    return marker_collection
 
 
 def _draw_temporal_iqr_overlay(
@@ -1775,6 +1968,10 @@ def render_segment_temporal_evidence_export_figure(recipe):
             chronological_medians["count"],
             label=recipe["bin_iqr_label"],
         )
+    _draw_delta_snr_outlier_markers(
+        chronological_axis,
+        recipe.get("delta_snr_outlier_markers"),
+    )
     folded_mesh = None
     if is_folded_available:
         folded_mesh = _draw_relative_density_mesh(

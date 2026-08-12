@@ -27,6 +27,14 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
             "schema_version": result_state.COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
             "run_id": 42,
         },
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+            "analysis_id": "RX_COMP",
+            "run_id": 42,
+            "scope_token": "rall_dall",
+            "station_identities": [
+                {"callsign": "A1AAA", "locator": "AA00"}
+            ],
+        },
         "unrelated": "preserved",
     }
 
@@ -41,6 +49,10 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
     assert result_state.INSPECTOR_CACHE_STATE_KEY not in session_state
     assert result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY not in session_state
     assert result_state.COMPLETED_RUN_SNAPSHOT_KEY not in session_state
+    assert (
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        not in session_state
+    )
     assert session_state["unrelated"] == "preserved"
 
 
@@ -76,6 +88,14 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
         result_state.INSPECTOR_CACHE_STATE_KEY: object(),
         result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY: source_binding,
         result_state.COMPLETED_RUN_SNAPSHOT_KEY: completed_snapshot,
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+            "analysis_id": "RX_COMP",
+            "run_id": 42,
+            "scope_token": "rall_dall",
+            "station_identities": [
+                {"callsign": "A1AAA", "locator": "AA00"}
+            ],
+        },
     }
 
     result_state.clear_rendered_result_state(session_state)
@@ -89,16 +109,28 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
         session_state[result_state.COMPLETED_RUN_SNAPSHOT_KEY]
         is completed_snapshot
     )
+    assert (
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        not in session_state
+    )
 
 
-def test_completed_rerender_state_clear_preserves_versioned_inspector_cache():
-    """Reuse compact Inspector models only for an already validated result."""
+def test_completed_rerender_preserves_inspector_cache_and_station_focus():
+    """Keep same-result cache and focus through a navigation rerender."""
     inspector_cache = object()
     session_state = {
         "run_id": 42,
         result_state.EXPORT_STATE_KEY: {"old": "recipe"},
         result_state.EXPORT_ZIP_BYTES_KEY: b"zip",
         result_state.INSPECTOR_CACHE_STATE_KEY: inspector_cache,
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+            "analysis_id": "RX_COMP",
+            "run_id": 42,
+            "scope_token": "rall_dall",
+            "station_identities": [
+                {"callsign": "A1AAA", "locator": "AA00"}
+            ],
+        },
     }
 
     result_state.clear_rendered_result_state(
@@ -112,6 +144,77 @@ def test_completed_rerender_state_clear_preserves_versioned_inspector_cache():
         session_state[result_state.INSPECTOR_CACHE_STATE_KEY]
         is inspector_cache
     )
+    assert session_state[
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+    ]["station_identities"] == [
+        {"callsign": "A1AAA", "locator": "AA00"}
+    ]
+
+
+def test_outlier_opt_out_always_clears_station_insights_focus():
+    """Do not retain report-only navigation semantics after the opt-in is off."""
+    focus_record = {
+        "analysis_id": "RX_COMP",
+        "run_id": 42,
+        "scope_token": "rall_dall",
+        "station_identities": [
+            {"callsign": "A1AAA", "locator": "AA00"}
+        ],
+    }
+    session_state = {
+        result_state.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: (
+            False
+        ),
+        result_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
+            {"callsign": "A1AAA", "locator": "AA00"}
+        ],
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
+            focus_record
+        ),
+    }
+
+    selection_changed = (
+        result_state.normalize_compare_station_selection_for_outlier_reporting(
+            session_state
+        )
+    )
+
+    assert selection_changed is False
+    assert (
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        not in session_state
+    )
+
+
+def test_enabled_outlier_reporting_preserves_station_insights_focus():
+    """Keep a queued focus record intact until its enabled report consumes it."""
+    focus_record = {
+        "analysis_id": "RX_COMP",
+        "run_id": 42,
+        "scope_token": "rall_dall",
+        "station_identities": [
+            {"callsign": "A1AAA", "locator": "AA00"}
+        ],
+    }
+    session_state = {
+        result_state.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: (
+            True
+        ),
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
+            focus_record
+        ),
+    }
+
+    selection_changed = (
+        result_state.normalize_compare_station_selection_for_outlier_reporting(
+            session_state
+        )
+    )
+
+    assert selection_changed is False
+    assert session_state[
+        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+    ] is focus_record
 
 
 def test_completed_run_snapshot_publication_and_reads_are_copy_isolated():

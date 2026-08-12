@@ -74,6 +74,8 @@ def _canonical_compare_units(rows):
         + units["peer_grid"].astype(str)
         + ")"
     )
+    units["target_snr_db"] = np.nan
+    units["reference_snr_db"] = np.nan
     return units
 
 
@@ -651,7 +653,45 @@ def test_simultaneous_units_preserve_target_active_gate_asymmetry():
         units["peer_sign"].eq("C3CCC"),
         "metric",
     ].item() == pytest.approx(4.03)
+    units_by_callsign = units.set_index("peer_sign")
+    assert units_by_callsign.loc["A1AAA", "target_snr_db"] == pytest.approx(
+        4.0
+    )
+    assert pd.isna(units_by_callsign.loc["A1AAA", "reference_snr_db"])
+    assert pd.isna(units_by_callsign.loc["B2BBB", "target_snr_db"])
+    assert units_by_callsign.loc[
+        "B2BBB", "reference_snr_db"
+    ] == pytest.approx(-3.0)
+    assert units_by_callsign.loc["C3CCC", "target_snr_db"] == pytest.approx(
+        5.04
+    )
+    assert units_by_callsign.loc[
+        "C3CCC", "reference_snr_db"
+    ] == pytest.approx(1.01)
     assert units["evidence_utc"].nunique() == 1
+
+
+def test_empty_compare_units_retain_component_snr_schema():
+    """Keep nullable component diagnostics present when no unit is retained."""
+    units = _build_compare_unit_rows(
+        pd.DataFrame(),
+        pd.DataFrame(),
+        is_sequential=False,
+    )
+
+    assert units.empty
+    assert list(units.columns) == [
+        "identity",
+        "peer_sign",
+        "peer_grid",
+        "identity_order",
+        "evidence_utc",
+        "outcome",
+        "target_snr_db",
+        "reference_snr_db",
+        "metric",
+        "paired_eligible",
+    ]
 
 
 def test_coverage_keeps_only_station_categories_retained_by_threshold():
@@ -748,6 +788,12 @@ def test_scheduled_pairs_use_planned_target_time_and_per_side_micro_medians():
     )
     assert units["metric"].iloc[0] == 2.0
     assert units["metric"].iloc[1:].isna().all()
+    assert units["target_snr_db"].iloc[0] == pytest.approx(3.0)
+    assert units["reference_snr_db"].iloc[0] == pytest.approx(1.0)
+    assert units["target_snr_db"].iloc[1] == pytest.approx(7.0)
+    assert pd.isna(units["reference_snr_db"].iloc[1])
+    assert pd.isna(units["target_snr_db"].iloc[2])
+    assert units["reference_snr_db"].iloc[2] == pytest.approx(4.0)
 
 
 @pytest.mark.parametrize("language", ("en", "de"))
@@ -1640,6 +1686,14 @@ def test_joint_projection_preserves_existing_absolute_delta_snr_contract():
         comparison_units["outcome"].eq(COMPARE_OUTCOME_JOINT),
         "metric",
     ].tolist() == pytest.approx([3.03, 1.04])
+    assert comparison_units.loc[
+        comparison_units["outcome"].eq(COMPARE_OUTCOME_JOINT),
+        "target_snr_db",
+    ].tolist() == pytest.approx([5.04, -1.04])
+    assert comparison_units.loc[
+        comparison_units["outcome"].eq(COMPARE_OUTCOME_JOINT),
+        "reference_snr_db",
+    ].tolist() == pytest.approx([2.01, -2.08])
     projected = _compare_joint_evidence_points(comparison_units)
     wrapper_result = _build_evidence_points(
         station_rows,
@@ -1664,6 +1718,43 @@ def test_joint_projection_preserves_existing_absolute_delta_snr_contract():
             utc=True,
         )
     )
+
+
+def test_component_diagnostics_do_not_change_established_delta_projection():
+    """Keep ordinary disabled-report figures independent of diagnostic columns."""
+    canonical_units = _canonical_compare_units(
+        [
+            ("A1AAA", "AA00", "2026-07-01T00:00Z", "joint", 3.03, True),
+            ("A1AAA", "AA00", "2026-07-01T00:02Z", "joint", 1.04, True),
+            (
+                "A1AAA",
+                "AA00",
+                "2026-07-01T00:04Z",
+                "target_only",
+                np.nan,
+                True,
+            ),
+        ]
+    )
+    legacy_schema_units = canonical_units.drop(
+        columns=["target_snr_db", "reference_snr_db"]
+    )
+    component_units = canonical_units.copy(deep=True)
+    component_units["target_snr_db"] = [5.04, -1.04, 9.0]
+    component_units["reference_snr_db"] = [2.01, -2.08, np.nan]
+
+    legacy_projection = _compare_joint_evidence_points(legacy_schema_units)
+    component_projection = _compare_joint_evidence_points(component_units)
+
+    pd.testing.assert_frame_equal(component_projection, legacy_projection)
+    assert list(component_projection.columns) == [
+        "identity",
+        "station",
+        "grid",
+        "identity_order",
+        "plot_time",
+        "metric",
+    ]
 
 
 def test_absolute_projection_keeps_legacy_nonmissing_infinite_metric():

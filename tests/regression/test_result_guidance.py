@@ -25,6 +25,7 @@ from ui.result_guidance import (
     RESULT_GUIDANCE_DOWNLOAD,
     RESULT_GUIDANCE_DRILLDOWN,
     RESULT_GUIDANCE_MAP,
+    RESULT_GUIDANCE_OUTLIER_REPORT,
     RESULT_GUIDANCE_SEGMENT,
     RESULT_GUIDANCE_SELECTED_STATIONS,
     RESULT_GUIDANCE_STATION_INSIGHTS,
@@ -40,6 +41,7 @@ COMPARE_SECTIONS = (
     RESULT_GUIDANCE_SEGMENT,
     RESULT_GUIDANCE_COMPARISON_EVIDENCE,
     RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+    RESULT_GUIDANCE_OUTLIER_REPORT,
     RESULT_GUIDANCE_STATION_INSIGHTS,
     RESULT_GUIDANCE_SELECTED_STATIONS,
     RESULT_GUIDANCE_DRILLDOWN,
@@ -98,6 +100,7 @@ def _build_guidance(
     is_sequential=False,
     analysis_context=None,
     selected_station_count=None,
+    allows_multiple_station_selection=False,
 ):
     """Build guidance with the matching localized general translation catalog."""
     return build_result_guidance(
@@ -109,6 +112,9 @@ def _build_guidance(
         is_sequential=is_sequential,
         analysis_context=analysis_context,
         selected_station_count=selected_station_count,
+        allows_multiple_station_selection=(
+            allows_multiple_station_selection
+        ),
     )
 
 
@@ -739,8 +745,8 @@ def test_success_selected_guidance_requires_exactly_one_station(
         )
 
 
-def test_compare_selected_guidance_requires_one_station_and_uses_one_path_copy():
-    """Enforce and describe the same singleton boundary for Compare."""
+def test_compare_selected_guidance_routes_single_and_combined_station_copy():
+    """Describe both one-path and combined Compare selections."""
     guidance = _build_guidance(
         RESULT_GUIDANCE_SELECTED_STATIONS,
         analysis_id="RX_COMP",
@@ -756,7 +762,7 @@ def test_compare_selected_guidance_requires_one_station_and_uses_one_path_copy()
     assert "chosen TX stations" not in guidance
     assert not _format_fields(guidance)
 
-    for selected_station_count in (None, 0, 2, 6):
+    for selected_station_count in (None, 0, -1, False, 1.5, "2"):
         with pytest.raises(
             ValueError,
             match="requires exactly one selected station",
@@ -770,6 +776,141 @@ def test_compare_selected_guidance_requires_one_station_and_uses_one_path_copy()
                 ),
                 selected_station_count=selected_station_count,
             )
+
+    combined_guidance = _build_guidance(
+        RESULT_GUIDANCE_SELECTED_STATIONS,
+        analysis_id="RX_COMP",
+        is_compare=True,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+        selected_station_count=2,
+        allows_multiple_station_selection=True,
+    )
+    assert "chosen TX radio paths" in combined_guidance
+    assert (
+        "combined view is observation-weighted"
+        in _plain_guidance(combined_guidance)
+    )
+    assert "one specific radio path" not in combined_guidance
+    assert not _format_fields(combined_guidance)
+
+
+@pytest.mark.parametrize(
+    ("is_sequential", "single_phrase", "multi_phrase"),
+    (
+        (False, "Select one row to inspect one path", "Select one or more rows"),
+        (
+            True,
+            "Select one row to inspect that receiver path",
+            "Select one or more rows",
+        ),
+    ),
+)
+def test_compare_station_insights_guidance_gates_multi_selection_copy(
+    is_sequential,
+    single_phrase,
+    multi_phrase,
+):
+    """Preserve singleton guidance off and expose multi-row guidance only on."""
+    analysis_context = AnalysisContext(
+        comparison_mode=(
+            COMPARISON_HARDWARE_AB
+            if is_sequential
+            else COMPARISON_REFERENCE_STATION
+        )
+    )
+    analysis_id = "TX_COMP" if is_sequential else "RX_COMP"
+    single_guidance = _build_guidance(
+        RESULT_GUIDANCE_STATION_INSIGHTS,
+        analysis_id=analysis_id,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
+    )
+    multi_guidance = _build_guidance(
+        RESULT_GUIDANCE_STATION_INSIGHTS,
+        analysis_id=analysis_id,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
+        allows_multiple_station_selection=True,
+    )
+
+    assert single_phrase in single_guidance
+    assert multi_phrase not in single_guidance
+    assert multi_phrase in multi_guidance
+
+
+def test_outlier_report_guidance_uses_shared_gates_and_descriptive_classes():
+    """Keep the three hard gates and non-qualifying duration labels bilingual."""
+    expected_fragments = {
+        "en": (
+            "every group must pass the same configured minimum absolute median departure",
+            "minimum absolute robust z-score",
+            "maximum pre/post baseline difference",
+            "These names describe the grouped evidence span only",
+            "The Joint-only table shows exact UTC, path, direction, local baseline, ΔSNR and residual.",
+            "**Expected local ΔSNR**",
+            "**Observed median ΔSNR**",
+            "**Largest single-cycle departure**",
+        ),
+        "de": (
+            "jede Gruppe muss dieselbe konfigurierte minimale absolute Medianabweichung",
+            "minimalen absoluten robusten z-Wert",
+            "maximalen Baseline-Unterschied davor/danach",
+            "Diese Bezeichnungen beschreiben nur die Zeitspanne der gruppierten Evidenz",
+            "Die Joint-only-Tabelle zeigt genaue UTC-Zeit, Funkweg, Richtung, lokale Baseline, ΔSNR und Residuum.",
+            "**Erwartetes lokales ΔSNR**",
+            "**Beobachteter ΔSNR-Median**",
+            "**Größte Einzelzyklusabweichung**",
+        ),
+    }
+    retired_claims = {
+        "en": (
+            "Qualification scales with duration",
+            "Typical departure from baseline",
+            "Target SNR and corrected Reference SNR",
+        ),
+        "de": (
+            "Die Qualifikation skaliert mit der Dauer",
+            "Typische Abweichung von der Baseline",
+            "Target-SNR und korrigiertes Referenz-SNR",
+        ),
+    }
+
+    for language in ("en", "de"):
+        expected_item = RESULT_GUIDANCE[language]["sections"][
+            "outlier_report"
+        ]
+        complete_copy = f"{expected_item['read']} {expected_item['limits']}"
+        tooltip = T[language]["tt_report_delta_snr_outlier_candidates"]
+        for fragment in expected_fragments[language]:
+            assert fragment in expected_item["read"]
+        for retired_claim in retired_claims[language]:
+            assert retired_claim not in complete_copy
+        assert "same three qualification gates" in tooltip or (
+            "dieselben drei Qualifikationskriterien" in tooltip
+        )
+        guidance = _build_guidance(
+            RESULT_GUIDANCE_OUTLIER_REPORT,
+            language=language,
+            analysis_id="RX_COMP",
+            analysis_context=AnalysisContext(
+                comparison_mode=COMPARISON_REFERENCE_STATION
+            ),
+        )
+        assert expected_item["read"] in guidance
+        assert expected_item["limits"] in guidance
+
+    with pytest.raises(
+        ValueError,
+        match="unavailable for Performance",
+    ):
+        _build_guidance(
+            RESULT_GUIDANCE_OUTLIER_REPORT,
+            analysis_id="RX_ABS",
+            is_compare=False,
+            analysis_context=AnalysisContext(),
+        )
 
 
 def test_success_selected_guidance_stays_near_readability_target():
@@ -2042,6 +2183,7 @@ def test_every_rendered_result_heading_has_its_expected_guidance_placement():
             "RESULT_GUIDANCE_SEGMENT": 1,
             "RESULT_GUIDANCE_COMPARISON_EVIDENCE": 1,
             "RESULT_GUIDANCE_TEMPORAL_EVIDENCE": 1,
+            "RESULT_GUIDANCE_OUTLIER_REPORT": 1,
             "RESULT_GUIDANCE_SUCCESS_EVIDENCE": 1,
             "RESULT_GUIDANCE_STATION_INSIGHTS": 2,
             "RESULT_GUIDANCE_SELECTED_STATIONS": 2,

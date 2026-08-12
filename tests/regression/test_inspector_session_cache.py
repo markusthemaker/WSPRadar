@@ -7,6 +7,10 @@ import pandas as pd
 import pytest
 
 from config import INSPECTOR_CACHE_MAX_BYTES
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DeltaSnrOutlierDetectionPolicy,
+)
 from i18n import T
 from ui.components import segment_inspector
 from ui.inspector import drilldown, view_models
@@ -384,6 +388,7 @@ def _render_segment_temporal_for_test(
     *,
     is_compare,
     include_compare_coverage=False,
+    outlier_model=None,
 ):
     """Render one temporal bundle while recording compact-recipe dispatches."""
     render_calls = []
@@ -449,11 +454,13 @@ def _render_segment_temporal_for_test(
             "sub_results_temporal_evidence": "Benchmark subtitle",
             "sub_results_success_temporal": "Performance subtitle",
             "lbl_time_aggregation_bin_size": "Select time aggregation bin size",
+            "fig_delta_snr_outlier_candidate": "* Delta-SNR candidate",
         },
         is_compare=is_compare,
         is_sequential=False,
         analysis_context=SimpleNamespace(),
         language="en",
+        outlier_model=outlier_model,
     )
     return result, render_calls
 
@@ -498,11 +505,324 @@ def test_compare_segment_temporal_keeps_one_combined_figure(monkeypatch):
         segment_inspector.render_segment_temporal_evidence_export_figure
     )
     assert recipe["time_bin"] == "6h"
+    assert "delta_snr_outlier_markers" not in recipe
+    assert render_call["cache_key"] == (
+        "segment",
+        "segment temporal evidence",
+        "6h",
+    )
     assert result == {
         "export_recipe": recipe,
         "snr_export_recipe": None,
         "time_bin": "6h",
     }
+
+
+def test_compare_segment_temporal_reuses_enabled_outlier_marker_recipe(
+    monkeypatch,
+):
+    """Attach active-scope markers to preview and export with one cache token."""
+    marker_recipe = {
+        "schema_version": 2,
+        "detector_version": (
+            segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION
+        ),
+        "detection_resolution": (
+            segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
+        ),
+        "candidate_count": 1,
+        "candidate_signature": "scope-candidate-signature",
+        "markers": [
+            {
+                "callsign": "G3AAA",
+                "locator": "IO90",
+                "marker_utc_ns": 1_782_864_600_000_000_000,
+                "marker_delta_snr_db": 8.25,
+                "episode_start_utc_ns": 1_782_864_600_000_000_000,
+                "episode_end_utc_ns": 1_782_864_600_000_000_001,
+                "event_kind": "spot_impulse",
+            }
+        ],
+    }
+
+    class FakeOutlierModel:
+        def marker_recipe(self, station_identities=None):
+            assert station_identities is None
+            return dict(marker_recipe)
+
+    result, render_calls = _render_segment_temporal_for_test(
+        monkeypatch,
+        is_compare=True,
+        outlier_model=FakeOutlierModel(),
+    )
+
+    assert len(render_calls) == 1
+    rendered_recipe, render_call = render_calls[0]
+    expected_marker_recipe = {
+        **marker_recipe,
+        "legend_label": "* Delta-SNR candidate",
+    }
+    assert rendered_recipe["delta_snr_outlier_markers"] == (
+        expected_marker_recipe
+    )
+    assert result["export_recipe"] is rendered_recipe
+    assert render_call["cache_key"] == (
+        "segment",
+        "segment temporal evidence",
+        "6h",
+        "delta-snr-outlier-markers",
+        2,
+        segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        "scope-candidate-signature",
+    )
+
+
+def test_selected_evidence_filters_active_model_without_rebuilding_units(
+    monkeypatch,
+):
+    """Reuse active-scope candidates while retaining the base selected cache."""
+    selected_identity_df = pd.DataFrame(
+        {
+            "peer_sign": ["G3AAA", "G4BBB"],
+            "peer_grid": ["IO90", "IO91"],
+        }
+    )
+    selected_bundle = {
+        "base_recipe": {"kind": "selected_benchmark_temporal"},
+        "coverage_recipe": None,
+        "time_agg_options": ("3h",),
+        "time_agg_default": "3h",
+        "title": "Selected Station Evidence",
+        "identity_labels": ("G3AAA (IO90)", "G4BBB (IO91)"),
+        "evidence_count": 9,
+        "comparison_unit_count": 9,
+        "selected_station_count": 2,
+    }
+    inspected_cache_keys = []
+    rendered_calls = []
+    selected_pairs = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(
+            session_state={"lang": "en"},
+            markdown=lambda *_args, **_kwargs: None,
+        ),
+    )
+
+    def cached_selected_bundle(
+        _run_id,
+        _namespace,
+        cache_key,
+        *_args,
+        **_kwargs,
+    ):
+        inspected_cache_keys.append(cache_key)
+        return selected_bundle, True
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_get",
+        cached_selected_bundle,
+    )
+    def fail_selected_unit_rebuild(*_args, **_kwargs):
+        raise AssertionError("selected units were rebuilt")
+
+    monkeypatch.setattr(
+        segment_inspector,
+        "_build_compare_unit_rows",
+        fail_selected_unit_rebuild,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_initialize_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_sync_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        lambda recipe, **kwargs: rendered_calls.append((recipe, kwargs)),
+    )
+
+    class FakeOutlierModel:
+        def marker_recipe(self, station_identities=None):
+            selected_pairs.extend(
+                station_identities[
+                    ["peer_sign", "peer_grid"]
+                ].itertuples(index=False, name=None)
+            )
+            return {
+                "schema_version": 2,
+                "detector_version": (
+                    segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION
+                ),
+                "detection_resolution": (
+                    segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
+                ),
+                "candidate_count": 1,
+                "candidate_signature": "selected-candidate-signature",
+                "markers": [
+                    {
+                        "callsign": "G4BBB",
+                        "locator": "IO91",
+                        "marker_utc_ns": 1_782_864_600_000_000_000,
+                        "marker_delta_snr_db": -7.5,
+                        "episode_start_utc_ns": 1_782_864_480_000_000_000,
+                        "episode_end_utc_ns": 1_782_864_720_000_000_000,
+                        "event_kind": "short_burst",
+                    }
+                ],
+            }
+
+    rendered = segment_inspector._render_selected_station_evidence(
+        pd.DataFrame(),
+        selected_identity_df,
+        False,
+        10,
+        0,
+        2,
+        t=T["en"],
+        analysis_id="RX_COMP",
+        run_id=17,
+        scope_token="active-scope",
+        cache_key=("selected-base",),
+        analysis_context=SimpleNamespace(),
+        language="en",
+        outlier_model=FakeOutlierModel(),
+    )
+
+    assert inspected_cache_keys == [("selected-base",)]
+    assert selected_pairs == [("G3AAA", "IO90"), ("G4BBB", "IO91")]
+    assert len(rendered_calls) == 1
+    rendered_recipe, render_call = rendered_calls[0]
+    assert rendered["export_recipe"] is rendered_recipe
+    assert rendered_recipe["delta_snr_outlier_markers"][
+        "candidate_signature"
+    ] == "selected-candidate-signature"
+    assert render_call["cache_key"] == (
+        "selected-base",
+        "3h",
+        "dual-temporal",
+        "delta-snr-outlier-markers",
+        2,
+        segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        "selected-candidate-signature",
+    )
+
+
+def test_disabled_selected_evidence_has_no_marker_or_outlier_cache_identity(
+    monkeypatch,
+):
+    """Reuse the historical singleton recipe and cache key when reporting is off."""
+    selected_identity_df = pd.DataFrame(
+        {"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}
+    )
+    selected_bundle = {
+        "base_recipe": {"kind": "selected_benchmark_temporal"},
+        "coverage_recipe": None,
+        "time_agg_options": ("3h",),
+        "time_agg_default": "3h",
+        "title": "Selected Station Evidence",
+        "identity_labels": ("G3AAA (IO90)",),
+        "evidence_count": 4,
+        "comparison_unit_count": 4,
+        "selected_station_count": 1,
+    }
+    inspected_cache_keys = []
+    rendered_calls = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(
+            session_state={"lang": "en"},
+            markdown=lambda *_args, **_kwargs: None,
+        ),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_get",
+        lambda _run_id, _namespace, cache_key, *_args, **_kwargs: (
+            inspected_cache_keys.append(cache_key) or selected_bundle,
+            True,
+        ),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_build_compare_unit_rows",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("disabled cached evidence rebuilt comparison units")
+        ),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_initialize_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_sync_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        lambda recipe, **kwargs: rendered_calls.append((recipe, kwargs)),
+    )
+
+    rendered = segment_inspector._render_selected_station_evidence(
+        pd.DataFrame(),
+        selected_identity_df,
+        False,
+        10,
+        0,
+        2,
+        t=T["en"],
+        analysis_id="RX_COMP",
+        run_id=17,
+        scope_token="active-scope",
+        cache_key=("selected-base",),
+        analysis_context=SimpleNamespace(),
+        language="en",
+        outlier_model=None,
+    )
+
+    assert inspected_cache_keys == [("selected-base",)]
+    assert len(rendered_calls) == 1
+    rendered_recipe, render_call = rendered_calls[0]
+    assert rendered["export_recipe"] is rendered_recipe
+    assert "delta_snr_outlier_markers" not in rendered_recipe
+    assert render_call["cache_key"] == (
+        "selected-base",
+        "3h",
+        "dual-temporal",
+    )
 
 
 def test_compare_segment_time_bin_drives_absolute_and_coverage_figures(
@@ -707,6 +1027,142 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
         ),
     ]
     assert provider_requests == []
+
+
+def test_outlier_segment_cache_suffix_is_absent_when_disabled_and_versioned_when_enabled():
+    """Keep disabled keys unchanged and identify enabled detector policy."""
+    assert segment_inspector._delta_snr_outlier_segment_cache_suffix(
+        False,
+        object(),
+    ) == ()
+    assert segment_inspector._delta_snr_outlier_segment_cache_suffix(
+        True,
+    ) == (
+        "delta-snr-outlier-candidates",
+        True,
+        segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.signature_tuple,
+    )
+    stricter_policy = DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=6.0,
+    )
+    assert segment_inspector._delta_snr_outlier_segment_cache_suffix(
+        True,
+        stricter_policy,
+    )[-1] == stricter_policy.signature_tuple
+
+
+def test_invalid_live_outlier_policy_pauses_only_optional_reporting():
+    """Preserve an existing result through a temporary invalid field edit."""
+    valid_state = {
+        segment_inspector.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: True,
+        **{
+            f"val_{config_field}": getattr(
+                DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                policy_field,
+            )
+            for config_field, policy_field in (
+                segment_inspector.DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+            )
+        },
+    }
+    assert isinstance(
+        segment_inspector._enabled_delta_snr_outlier_detection_policy(
+            valid_state
+        ),
+        DeltaSnrOutlierDetectionPolicy,
+    )
+
+    invalid_state = dict(valid_state)
+    invalid_state[
+        "val_delta_snr_outlier_minimum_departure_db"
+    ] = 0.0
+    assert segment_inspector._enabled_delta_snr_outlier_detection_policy(
+        invalid_state
+    ) is None
+
+    disabled_state = dict(invalid_state)
+    disabled_state[
+        segment_inspector.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY
+    ] = False
+    assert segment_inspector._enabled_delta_snr_outlier_detection_policy(
+        disabled_state
+    ) is None
+
+
+def test_outlier_detector_calls_remain_nested_under_enabled_guard():
+    """Guard detection, direction context, and report rendering when disabled."""
+    function_tree = ast.parse(
+        inspect.getsource(
+            segment_inspector._render_segment_inspector_body
+        )
+    )
+    parent_by_node = {
+        child: parent
+        for parent in ast.walk(function_tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    expected_call_counts = {
+        "prepare_delta_snr_outlier_model": 3,
+        "_outlier_station_direction_lookup": 1,
+        "_render_delta_snr_outlier_report": 2,
+    }
+    observed_call_counts = {call_name: 0 for call_name in expected_call_counts}
+    for node in ast.walk(function_tree):
+        if (
+            not isinstance(node, ast.Call)
+            or not isinstance(node.func, ast.Name)
+            or node.func.id not in expected_call_counts
+        ):
+            continue
+        observed_call_counts[node.func.id] += 1
+        ancestor = node
+        enabled_guard_found = False
+        while ancestor in parent_by_node:
+            ancestor = parent_by_node[ancestor]
+            if (
+                isinstance(ancestor, ast.If)
+                and "is_outlier_reporting_enabled"
+                in ast.unparse(ancestor.test)
+            ):
+                enabled_guard_found = True
+                break
+        assert enabled_guard_found, (
+            f"{node.func.id} must remain nested under the enabled guard"
+        )
+
+    assert observed_call_counts == expected_call_counts
+
+
+def test_outlier_detector_resolution_is_independent_of_display_bin():
+    """Use native evidence cadence, never the selected plot aggregation."""
+    function_source = inspect.getsource(
+        segment_inspector._render_segment_inspector_body
+    )
+    function_tree = ast.parse(function_source)
+    prepare_calls = [
+        node
+        for node in ast.walk(function_tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "prepare_delta_snr_outlier_model"
+    ]
+
+    assert prepare_calls
+    assert all(
+        "time_bin" not in {keyword.arg for keyword in call.keywords}
+        for call in prepare_calls
+    )
+    assert all(
+        "paired_unit_cadence_minutes"
+        in {keyword.arg for keyword in call.keywords}
+        for call in prepare_calls
+    )
+    assert function_source.count("paired_unit_cadence_minutes=(") == 3
+    assert function_source.count("if is_sequential") >= 3
+    assert function_source.count("else 2.0") >= 3
+    assert "selected_outlier_time_bin" not in function_source
 
 
 def test_station_insights_toggle_has_room_for_single_line_label():
@@ -1870,6 +2326,117 @@ def test_station_selection_defaults_distinguish_unset_from_explicit_empty():
     ) == ([], [])
 
 
+def test_focused_station_identities_are_stably_prioritized_without_mutation():
+    """Bring exact report-selected paths into view without changing row content."""
+    station_table = pd.DataFrame(
+        {
+            "Station": ["A1AAA", "B2BBB", "A1AAA", "C3CCC", "D4DDD"],
+            "Locator": ["AA00", "BB11", "AA01", "CC22", "DD33"],
+            "Metric": [10, 20, 30, 40, 50],
+        },
+        index=[10, 11, 12, 13, 14],
+    )
+    source_snapshot = station_table.copy(deep=True)
+
+    prioritized = segment_inspector._prioritize_focused_station_identities(
+        station_table,
+        "Station",
+        "Locator",
+        [
+            {"callsign": "a1aaa", "locator": "aa01"},
+            {"callsign": "b2bbb", "locator": "bb11"},
+        ],
+    )
+
+    pd.testing.assert_frame_equal(station_table, source_snapshot)
+    assert list(
+        prioritized[["Station", "Locator"]].itertuples(
+            index=False,
+            name=None,
+        )
+    ) == [
+        ("B2BBB", "BB11"),
+        ("A1AAA", "AA01"),
+        ("A1AAA", "AA00"),
+        ("C3CCC", "CC22"),
+        ("D4DDD", "DD33"),
+    ]
+    assert prioritized["Metric"].tolist() == [20, 30, 10, 40, 50]
+
+
+@pytest.mark.parametrize(
+    "focused_identities",
+    (
+        [],
+        [{"callsign": "A1AAA", "locator": "AA99"}],
+    ),
+)
+def test_station_focus_leaves_unmatched_display_order_intact(
+    focused_identities,
+):
+    """Do not filter, substitute, or reorder rows when no exact path matches."""
+    station_table = pd.DataFrame(
+        {
+            "Station": ["A1AAA", "A1AAA", "B2BBB"],
+            "Locator": ["AA00", "AA01", "BB11"],
+            "Metric": [10, 20, 30],
+        },
+        index=[4, 2, 8],
+    )
+    source_snapshot = station_table.copy(deep=True)
+
+    prioritized = segment_inspector._prioritize_focused_station_identities(
+        station_table,
+        "Station",
+        "Locator",
+        focused_identities,
+    )
+
+    pd.testing.assert_frame_equal(station_table, source_snapshot)
+    pd.testing.assert_frame_equal(prioritized, source_snapshot)
+
+
+def test_station_focus_is_resolved_only_in_its_originating_scope():
+    """Prevent a report action from reordering another run or segment table."""
+    focused_identities = [
+        {"callsign": "A1AAA", "locator": "AA00"},
+        {"callsign": "B2BBB", "locator": "BB11"},
+    ]
+    session_state = {
+        segment_inspector.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+            "analysis_id": "RX_COMP",
+            "run_id": 42,
+            "scope_token": "rall_dall",
+            "station_identities": focused_identities,
+        }
+    }
+
+    assert segment_inspector._focused_station_identities_for_scope(
+        session_state,
+        analysis_id="RX_COMP",
+        run_id=42,
+        scope_token="rall_dall",
+    ) is focused_identities
+    assert segment_inspector._focused_station_identities_for_scope(
+        session_state,
+        analysis_id="TX_COMP",
+        run_id=42,
+        scope_token="rall_dall",
+    ) is None
+    assert segment_inspector._focused_station_identities_for_scope(
+        session_state,
+        analysis_id="RX_COMP",
+        run_id=43,
+        scope_token="rall_dall",
+    ) is None
+    assert segment_inspector._focused_station_identities_for_scope(
+        session_state,
+        analysis_id="RX_COMP",
+        run_id=42,
+        scope_token="r0_dall",
+    ) is None
+
+
 def test_station_selection_matches_one_identity_and_reports_missing():
     """Match one normalized identity and never choose a substitute."""
     station_table = pd.DataFrame(
@@ -1902,6 +2469,45 @@ def test_station_selection_matches_one_identity_and_reports_missing():
     assert missing_identities == [
         {"callsign": "D4DDD", "locator": "DD33"}
     ]
+
+
+def test_enabled_multi_selection_resolves_against_unfiltered_scope_table():
+    """Keep every report identity even when a local display filter hides one."""
+    full_station_table = pd.DataFrame(
+        {
+            "Station": ["A1AAA", "B2BBB"],
+            "Locator": ["AA00", "BB11"],
+        }
+    )
+    filtered_station_table = full_station_table.iloc[[0]].reset_index(
+        drop=True
+    )
+    selected_identities = [
+        {"callsign": "A1AAA", "locator": "AA00"},
+        {"callsign": "B2BBB", "locator": "BB11"},
+    ]
+
+    assert segment_inspector._station_selection_default_rows(
+        filtered_station_table,
+        "Station",
+        "Locator",
+        selected_identities,
+        allow_multiple=True,
+    ) == (
+        [0],
+        [{"callsign": "B2BBB", "locator": "BB11"}],
+    )
+    assert segment_inspector._station_selection_default_rows(
+        full_station_table,
+        "Station",
+        "Locator",
+        selected_identities,
+        allow_multiple=True,
+    ) == ([0, 1], [])
+    function_source = inspect.getsource(
+        segment_inspector._render_segment_inspector_body
+    )
+    assert "selected_station_table = full_segment_disp_df" in function_source
 
 
 @pytest.mark.parametrize(
@@ -2125,15 +2731,90 @@ def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
     )
 
 
-def test_compare_station_insights_uses_single_row_selection_and_compact_viewport():
-    """Keep Benchmark selection semantics with the shared five-row viewport."""
+def test_compare_station_insights_gates_multi_selection_on_outlier_reporting():
+    """Keep disabled Benchmark singleton semantics and opt in to multi-row."""
     function_source = inspect.getsource(
         segment_inspector._render_segment_inspector_body
     )
 
-    assert '"selection_mode": "single-row"' in function_source
-    assert '"selection_mode": "multi-row"' not in function_source
+    assert (
+        "allow_multiple_station_selection = is_outlier_reporting_enabled"
+        in function_source
+    )
+    assert '"single-row"' in function_source
+    assert '"multi-row"' in function_source
+    assert 'tbl_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"' in function_source
+    assert 'tbl_key += f"_multi_selection_' in function_source
+    assert (
+        "allow_multiple=allow_multiple_station_selection"
+        in function_source
+    )
     assert "tbl_event = _render_compact_dataframe(" in function_source
+
+
+def test_enabled_empty_compare_scope_renders_and_exports_empty_outlier_report():
+    """Keep the opt-in report visible even when the active scope has no rows."""
+    function_source = inspect.getsource(
+        segment_inspector._render_segment_inspector_body
+    )
+    empty_scope_branch = function_source.split("if df_seg.empty:", 1)[1].split(
+        "if is_opportunity:",
+        1,
+    )[0]
+
+    assert "if is_outlier_reporting_enabled:" in empty_scope_branch
+    assert "_render_delta_snr_outlier_report(" in empty_scope_branch
+    assert "report_delta_snr_outlier_candidates=(" in empty_scope_branch
+    assert "delta_snr_outlier_detector_version=(" in empty_scope_branch
+    assert "delta_snr_outlier_detection_policy=(" in empty_scope_branch
+
+
+def test_enabled_compare_exports_use_the_active_outlier_detection_policy():
+    """Keep detector output and exported scientific provenance aligned."""
+    function_tree = ast.parse(
+        inspect.getsource(
+            segment_inspector._render_segment_inspector_body
+        )
+    )
+    export_calls = [
+        node
+        for node in ast.walk(function_tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "register_inspector_export"
+    ]
+    policy_values = [
+        keyword.value
+        for call in export_calls
+        for keyword in call.keywords
+        if keyword.arg == "delta_snr_outlier_detection_policy"
+    ]
+
+    assert len(policy_values) == 2
+    assert all(
+        "outlier_detection_policy"
+        in ast.unparse(policy_value)
+        and "is_outlier_reporting_enabled"
+        in ast.unparse(policy_value)
+        for policy_value in policy_values
+    )
+
+
+def test_disabling_outlier_reporting_restores_one_selected_station():
+    """Drop enabled multi-selection state back to the historical first path."""
+    selected_stations = [
+        {"callsign": "A1AAA", "locator": "AA00"},
+        {"callsign": "B2BBB", "locator": "BB11"},
+    ]
+
+    assert segment_inspector._station_selection_for_outlier_reporting_mode(
+        selected_stations,
+        is_outlier_reporting_enabled=True,
+    ) is selected_stations
+    assert segment_inspector._station_selection_for_outlier_reporting_mode(
+        selected_stations,
+        is_outlier_reporting_enabled=False,
+    ) == [{"callsign": "A1AAA", "locator": "AA00"}]
 
 
 def test_inspector_body_uses_shared_station_rows_for_every_scope_consumer():
@@ -2159,31 +2840,93 @@ def test_inspector_fragment_synchronizes_durable_url_state_in_place():
     )
 
 
-def test_selected_station_evidence_rejects_multiple_identities():
-    """Reject accidental multi-station fan-in before cache or figure work."""
+def test_selected_station_evidence_accepts_enabled_multiple_identities(
+    monkeypatch,
+):
+    """Render the pooled Compare view for an enabled report selection."""
     selected_identity_df = pd.DataFrame(
         {
             "peer_sign": ["A1AAA", "B2BBB"],
             "peer_grid": ["AA00", "BB11"],
         }
     )
+    rendered_recipes = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}, markdown=lambda *_args, **_kwargs: None),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_inspector_cache_get",
+        lambda *_args, **_kwargs: (
+            {
+                "base_recipe": {"kind": "selected_benchmark_temporal"},
+                "coverage_recipe": None,
+                "time_agg_options": ("3h",),
+                "time_agg_default": "3h",
+                "title": "Combined paths",
+                "identity_labels": (
+                    "A1AAA (AA00)",
+                    "B2BBB (BB11)",
+                ),
+                "evidence_count": 12,
+                "comparison_unit_count": 12,
+                "selected_station_count": 2,
+            },
+            True,
+        ),
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_result_guidance_popover",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_initialize_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_prompted_segment_time_bin_control",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_sync_time_bin_widget_state",
+        lambda *_args, **_kwargs: "3h",
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_cached_recipe",
+        lambda recipe, **_kwargs: rendered_recipes.append(recipe),
+    )
 
-    with pytest.raises(ValueError, match="exactly one station identity"):
-        segment_inspector._render_selected_station_evidence(
-            pd.DataFrame(),
-            selected_identity_df,
-            False,
-            10,
-            0,
-            2,
-            t=T["en"],
-            analysis_id="RX_COMPARE",
-            run_id=7,
-            scope_token="all",
-            cache_key=("selected",),
-            analysis_context=SimpleNamespace(),
-            language="en",
-        )
+    rendered = segment_inspector._render_selected_station_evidence(
+        pd.DataFrame(),
+        selected_identity_df,
+        False,
+        10,
+        0,
+        2,
+        t=T["en"],
+        analysis_id="RX_COMP",
+        run_id=7,
+        scope_token="all",
+        cache_key=("selected",),
+        analysis_context=SimpleNamespace(),
+        language="en",
+        outlier_model=SimpleNamespace(
+            marker_recipe=lambda _station_identities: None
+        ),
+    )
+
+    assert rendered["comparison_unit_count"] == 12
+    assert rendered["coverage_export_recipe"] is None
+    assert rendered_recipes == [
+        {"kind": "selected_benchmark_temporal", "time_bin": "3h"}
+    ]
 
 
 def test_show_non_joint_toggle_round_trips_through_canonical_state(monkeypatch):

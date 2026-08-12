@@ -1,6 +1,6 @@
 # WSPRadar Architecture
 
-This document describes the repository as inspected through 2026-07-23. It derives
+This document describes the repository as inspected through 2026-08-12. It derives
 component boundaries and behavior from the application code, configuration, and
 regression tests. Items explicitly marked uncertain were not established by the
 code or by the verification run.
@@ -79,6 +79,7 @@ operating risks. The Streamlit application neither imports nor starts it.
 | `config/demo_profiles.py` | Strict dependency-free demo discovery, schema/profile validation, duplicate-ID protection, and stable filename-ordered `DEMO_PROFILES` mapping. |
 | `config/config_schema.py` | Saved-config format identifier, current schema version, grouped settings contract, and canonical enum values. |
 | `config/config_codec.py` | Dependency-free document-envelope and schema-version validation shared by personal-config and demo readers. |
+| `config/delta_snr_outlier.py` | Dependency-light validated policy and authoritative defaults for the optional shared-gate Delta-SNR detector controls. |
 | `config/wspradar-config.schema.json` | Formal JSON Schema for every saved and demo configuration. |
 | `config/guided_input_flow.json` | Ordered Guided Input nodes, branch conditions, required state fields, and registered renderer names. |
 | `config/guided_input_flow.schema.json` | Strict Draft 2020-12 schema for the declarative Guided Input flow. |
@@ -103,11 +104,13 @@ inactive comparison controls before loading the validated active branch.
 `benchmark` branch. Both preserve canonical Segment Inspector range/direction,
 segment temporal bins, selected-station chronological bins, and
 station-selection intent. Explicit stations are canonical callsign/locator
-pairs. Both branches permit `null`, an empty list, or one identity. `null`
-retains the normal initial table behavior, while an empty list records
-deliberate deselection; `"all"`, duplicates, malformed identities, and
-multiple identities are rejected without migration. Benchmark additionally
-preserves `show_non_joint`; Performance preserves the canonical `show_zero_target` boolean,
+pairs. Performance permits `null`, an empty list, or one identity. Benchmark
+uses that same singleton contract normally, but permits an ordered list of
+distinct identities while optional Delta-SNR outlier-candidate reporting is
+enabled. `null` retains the normal initial table behavior, while an empty list
+records deliberate deselection; `"all"`, duplicates, and malformed identities
+are rejected without migration. Benchmark additionally preserves
+`show_non_joint`; Performance preserves the canonical `show_zero_target` boolean,
 which the presentation layer exposes through the direction-specific
 counter-only-station controls rather than through that internal name. Table and
 Drill-Down filters, expander state, and other transient controls are
@@ -716,6 +719,171 @@ scope median is identified by its red line and legend rather than a tick-label
 suffix. Absolute zero remains inside the scale envelope but has no separate
 reference line or boxed label.
 
+Optional Delta-SNR outlier-candidate reporting is a lazy, presentation-side
+subsystem over the retained full-precision comparison units. One simultaneous
+Joint Spot or complete Scheduled Pair remains the native detection unit; the
+selected temporal display bin never redefines an event. Per path, the detector
+first takes one median per UTC-aligned 10-minute cell solely to build scalable
+baseline support. It then assigns every retained native paired unit a residual
+against compatible candidate-excluded pre/post evidence within six hours on
+each side. At least four populated support cells are required on each flank,
+the two flank medians must agree within the configured maximum (3 dB by
+default), and their equal-side midpoint is the local baseline. Side-centered
+flank residuals provide a MAD scale with an
+IQR-equivalent fallback; when both are exactly zero, a 0.5 dB
+quantization-aware MAD floor avoids both an infinite score and rejection of an
+otherwise stable baseline. Unsupported native units abstain rather than being
+imputed or classified.
+
+Residuals enter permissive same-sign temporal grouping before any final event
+threshold is applied. The grouping floor is 1 dB under the default policy and
+falls with a configured shared departure threshold below 1 dB, so
+every accepted public departure threshold can seed a candidate without making
+the grouping floor stricter when the qualification gates are raised. A moderate
+sustained displacement therefore does not need to contain a strict single-spot
+outlier. Each path first estimates its effective evidence cadence from the median positive interval between unique
+eligible Joint, Only Target, and Only Reference outcome times. Intervals longer
+than the absolute 45-minute episode-gap cap are treated as outages or session
+breaks and excluded; at least two retained intervals are required, otherwise
+the configured simultaneous or Scheduled Pair cadence is the fallback. The
+initial pilot excludes at least 60 minutes around a tested support cell, widened
+to twice that path-effective cadence when necessary. Same-sign native units
+form a provisional path episode while their gaps do not exceed the smaller of
+45 minutes and the greater of 15 minutes or 1.5 times the path-effective
+cadence. One supported neutral unit is retained as a noise/quantization bridge;
+two supported neutral units establish a return to baseline, while a material
+opposite sign or an excessive gap splits the run. The complete provisional
+episode is then excluded from its baseline with a guard of at least 10 minutes
+or one path-effective cadence, and its shoulders can expand against that
+refined baseline for at most three passes. This candidate/episode exclusion
+prevents the event from pulling its own local reference level toward the
+excursion.
+
+Qualification uses the same three hard gates for every provisional episode.
+The episode's absolute median residual must meet the configured minimum
+departure, its absolute robust z-score must meet the configured minimum, and
+the absolute difference between the candidate-excluded pre- and post-baseline
+medians must not exceed the configured maximum. Defaults are 3 dB, 4, and 3 dB
+respectively. No duration multiplier, evidence-count boost, reduced effective
+threshold, or separate impulse/burst/sustained gate is applied. Every episode
+must additionally retain at least two-thirds same-sign native-unit support as a
+structural grouping-coherence invariant. Detector version
+`native-residual-episode-v7` always tests the complete refined provisional
+episode first. A qualifying interval is then bounded by native units that have
+the episode sign and individually meet both the configured absolute-departure
+and robust-z gates against the same final baseline and spread. The reported
+interval is trimmed to its first and last such strong anchor, retains every
+already grouped unit between those anchors, rebuilds its count, span, duration
+class, median, peak and component diagnostics, and is retested against the
+unchanged episode-level gates. Its baseline and flank support are not refitted,
+avoiding boundary-selection feedback. One surviving anchor is a Spot impulse;
+no surviving qualifying anchored interval is reported.
+
+Only when the complete interval cannot yield a qualifying strongly anchored
+event does the detector reuse its final candidate-excluded baseline and flank
+support to split the interval at genuine returns to that baseline. Each
+resulting contiguous same-sign member run is tested independently with the
+same departure, robust-z, baseline-stability, and sign-agreement gates and is
+then subjected to the same strong-anchor trimming and requalification.
+Baselines and component-baseline support are not recomputed for the shorter
+runs, so weak surrounding evidence cannot suppress a qualifying core or
+redefine its local reference. This fallback does not fragment a qualifying
+sustained event merely because it contains the one neutral bridge permitted
+during provisional grouping.
+
+One paired unit is described as a **Spot impulse**; at least three paired units spanning at least 30 observed
+minutes are a **Sustained excursion**; all other multi-unit episodes are **Short
+bursts**. These names describe temporal evidence shape and never change
+qualification. Observed span and largest evidence gap are stored separately;
+irregular WSPR sampling therefore does not claim continuous physical duration
+between observations. The path-effective cadence and its resulting maximum
+episode gap are also retained on every candidate. Scheduled Pair cadence is
+passed explicitly as the sparse-evidence fallback, so the same engine does not
+represent a non-simultaneous pair as a two-minute impulse. The validated policy
+and its stable signature participate in enabled detector, Inspector-cache,
+marker, and export identity; disabled analysis never consults the retained
+control values. Changing the reporting toggle or any detector gate follows the
+normal scientific-input lifecycle: the current result is retired, the
+configuration-changed notice is shown, and a new analysis waits for an explicit
+Run action. The widget rerun itself never starts provider or detector work.
+The current configuration writer and public-URL serializer emit only these
+three shared values. At the input boundary, an unpublished version-1 document
+that still contains the former duration-specific fields is converted by taking
+its Short burst departure and robust-z values plus the unchanged baseline
+difference; mixing old and new threshold fields is rejected. Public URL v1
+accepts the same legacy burst mapping for parse-only compatibility and emits
+only the shared parameter names.
+
+Each qualified path episode retains its Target and correction-adjusted
+Reference SNR episode medians, local component baselines, and component
+departures as diagnostic decomposition; these values support interpretation but
+do not select or strengthen a candidate. The detector also counts the same
+path's eligible Joint, Only Target, and Only Reference units inside a diagnostic
+neighborhood extending that path's maximum episode gap before and after the
+episode. A positive episode with nearby Only Target evidence receives a
+`reference_missing_near_positive_episode` decode-edge warning; a negative
+episode with nearby Only Reference evidence receives a
+`target_missing_near_negative_episode` warning. These warnings use no hard SNR
+cutoff and report only that the opposite side was missing nearby; they do not
+assert operation at a decoder floor or identify a cause. Outcome counts and the
+warning reason participate in the detector signature but not episode
+qualification.
+
+The chronological plot marker uses the exact native-unit UTC timestamp and
+Delta SNR having the largest absolute local residual, rather than an
+aggregate-bin center or median. Same-sign path episodes that overlap or fall
+within the greater of 10 minutes and half the paired-unit cadence are grouped
+into one contemporaneous review card. The card separately counts paths with
+retained paired evidence in that context, paths assessed against supported
+local baselines, and paths flagged for review. It classifies flagged breadth as
+path-specific, directionally coherent for adjacent compass sectors, scope-wide
+for separated sectors, or multiple paths when direction is unavailable.
+Coherence raises review context but is not required to report an individual
+path episode and is not a causal or independence claim. Segment and sector
+summaries retain positive, negative, and exact-neutral assessed-path counts. One
+active-segment model is reused by Selected Station Evidence instead of
+redetecting from a selected subset. Detector, marker-recipe, Inspector-cache,
+PNG, and export signatures are explicitly versioned. Enabling the subsystem
+changes no provider request, canonical comparison result, `AnalysisContext`, or
+map aggregation.
+
+The enabled report derives a separate compact, pure view model before the full
+comparison-unit frame is released from segment preparation. Each review card
+starts with its excursion class and exact UTC range. Numbered path blocks then
+show callsign + locator, direction, complete paired-unit count, first-to-last
+observed span, the median interval between the paired units actually listed for
+that path, largest observed gap, expected local Delta SNR, observed median Delta
+SNR, and largest single-cycle departure. The
+detector's cross-path denominators remain validated internal evidence but are
+not repeated in the default card. Per-path actions replace the Station Insights
+selection with exactly that identity, queue application-level navigation to the
+Station Insights anchor, and presentation-order the focused exact identity into
+the visible table rows without bypassing active table filters. A separate
+multi-path action selects and focuses all qualifying identities. These actions
+change only result presentation and never rerun or redefine detection. A single
+collapsed **WSPR cycle evidence** or **Scheduled-pair evidence** table replaces
+the former technical-details and direction-breakdown tables. It lists only
+qualified event-member Joint units or complete Scheduled Pairs, in exact UTC,
+path, direction, local-baseline, Delta-SNR, and residual order. Target and
+correction-adjusted Reference SNR remain retained in the detector/report model
+for diagnostic decomposition but are not displayed in this compact table.
+Their shared paired outcome is likewise not repeated as a column; nearby
+one-sided outcomes remain available only in the detector's diagnostic
+decomposition and warning state. The all-path temporal
+figure retains only the strongest representative marker per review card; a
+selected-path figure retains that path's own representative so selection cannot
+hide its event.
+
+The disabled branch is an explicit compatibility boundary: it does not invoke
+baseline, cadence, residual, episode, coherence, report-view-model, or marker
+preparation; it adds no outlier fields to the segment or selected-station cache
+identity; and it preserves the historical singleton Benchmark selection.
+Export registration omits outlier metadata and defensively strips any stale
+marker overlay from supplied figure recipes without mutating those source
+recipes. Consequently, disabling the option leaves ordinary result figures,
+selection semantics, export metadata, and export signatures free of outlier
+semantics.
+
 Benchmark Temporal Evidence Coverage keeps all three retained outcomes. In every
 chronological bin, one contributing station supplies one total vote partitioned
 by that station's Only Target, Joint and Only Reference fractions. The upper
@@ -772,15 +940,21 @@ adaptive list would not otherwise offer it, so loading a saved configuration
 does not silently reinterpret the choice. Every folded profile remains fixed
 at one hour.
 
-Selected Station Evidence permits zero or one station in both Performance and
-Benchmark. Both Station Insights tables use the component's native replaceable
-single-row selection. Selecting a different row replaces the exact
-callsign-plus-locator identity consumed by both Selected Station Evidence and
-Drill-Down; clearing the row hides the selected section.
+Selected Station Evidence permits zero or one station in Performance and in
+Benchmark while optional outlier-candidate reporting is disabled. Those Station
+Insights tables use the component's native replaceable single-row selection.
+When reporting is enabled, Benchmark switches to native multi-row selection and
+can retain an ordered set of exact callsign-plus-locator identities, including
+the flagged paths selected from one review episode while its original hourly
+entries remain available for audit. Turning reporting off keeps the first
+selected identity and restores the singleton contract. Drill-Down and Selected
+Station Evidence consume the same persisted selection; clearing it hides the
+selected section.
 `ui/components/segment_inspector.py` validates the durable boundary, loads only
-the retained projected rows for that identity, and never starts another
-provider query. The complete Station Insights population and the segment-level
-statistics, Comparison Evidence, and temporal evidence remain unchanged.
+the retained projected rows for the selected identities, and never starts
+another provider query. The complete Station Insights population and the
+segment-level statistics, Comparison Evidence, and temporal evidence remain
+unchanged.
 
 For Performance, the section contains one compact selected-path context, the
 independent selected-station chronological-bin control, and two full-width figures.
@@ -822,14 +996,14 @@ the localized boxed unavailable notice; the chronological panels do not expand.
 For Benchmark, the compact selected-path context is followed by the same prompted,
 full-width chronological-bin control used in Performance and one two-panel
 figure built through the shared temporal layout primitives. The left **Δ SNR
-over Time** panel preserves the selected station's actual UTC sequence at the
-chosen aggregation bin across the exact selected UTC window. The right **Δ SNR
-by UTC Hour** panel simultaneously
-folds those same observation-level Joint Spots or Scheduled Pairs from all
-represented dates into fixed one-hour UTC slots. Folding remains row-weighted:
-it pools qualifying evidence by UTC hour without first reducing or equally
-weighting represented dates. Both panels use independent panel-relative density
-normalization, one shared colorbar and the selected path's presentation-only,
+over Time** panel preserves the selected path population's actual UTC sequence
+at the chosen aggregation bin across the exact selected UTC window. The right
+**Δ SNR by UTC Hour** panel simultaneously folds those same observation-level
+Joint Spots or Scheduled Pairs from all represented dates into fixed one-hour
+UTC slots. Folding remains row-weighted: it pools qualifying evidence by UTC
+hour without first reducing or equally weighting represented dates. Both panels
+use independent panel-relative density normalization, one shared colorbar and
+the selected population's presentation-only,
 median-centered nonlinear Delta SNR scale with absolute dB tick labels. No
 date-first reduction is introduced for quartiles: the IQR band's Q1/Q3
 boundaries use the same raw Joint-Spot or complete-Scheduled-Pair population as
@@ -844,17 +1018,18 @@ paired rows at all, that chronological panel remains visible across the same
 window and shows the localized no-paired-evidence notice instead of being
 omitted.
 
-Directly below that absolute figure, Selected Path Evidence Coverage
-uses the same selected-station chronological-bin control and the same retained
-comparison units. It renders one chronological and one fixed one-hour folded
-row split into Only Target, Joint and Only Reference units with outcome-level
-Joint Evidence Share. A second station-support row is deliberately absent:
-with exactly one selected path it would duplicate the same ratio. A one-sided
-selected path can therefore show coverage while the absolute Delta SNR panel
-remains empty and explicitly labels the absence of paired evidence. The same
-two-date unavailable-state contract keeps this
-coverage figure's folded panel visible without folded data and places the
-localized boxed notice inside it.
+For exactly one selected Benchmark path, Selected Path Evidence Coverage sits
+directly below that absolute figure, uses the same chronological-bin control and
+retained comparison units, and renders one chronological and one fixed one-hour
+folded row split into Only Target, Joint and Only Reference units with
+outcome-level Joint Evidence Share. A second station-support row is deliberately
+absent because it would duplicate the same ratio. A one-sided selected path can
+therefore show coverage while the absolute Delta SNR panel remains empty and
+explicitly labels the absence of paired evidence. A multi-path selection omits
+this single-path coverage figure and states that limitation explicitly. The
+same two-date unavailable-state contract keeps the single-path coverage
+figure's folded panel visible without folded data and places the localized
+boxed notice inside it.
 
 The run-scoped segment-cache key includes explicit
 `exact-distance-v1` and `station-median-min3-v1` policy versions, the geographic
@@ -929,9 +1104,11 @@ Performance selected evidence is exported under two stable filenames:
 `figure_selected_station_snr_evidence.png` and
 `figure_selected_station_temporal_evidence.png`. They use the same shared
 temporal recipes and renderers as the two browser figures. Benchmark retains
-`figure_selected_station_evidence.png` for its one-station, two-panel Delta SNR
-presentation and adds `figure_selected_station_coverage.png` for the one-row
-coverage view. Benchmark segment exports also include
+`figure_selected_station_evidence.png` for its one-path or, while optional
+outlier reporting enables multi-selection, pooled multi-path two-panel Delta SNR
+presentation. It adds `figure_selected_station_coverage.png` only for a
+one-path selection; multi-path selection intentionally has no pooled coverage
+view. Benchmark segment exports also include
 `figure_segment_temporal_coverage.png`. Performance export registration stores the
 shared selection label and context, selection count, direction-aware station
 role, weighting mode, and
@@ -940,10 +1117,12 @@ filename-to-description mapping. `run_metadata.json` publishes these as
 `selected_station_count`, `selected_station_role`,
 `selected_evidence_weighting`, and `selected_evidence_figures`, so a Performance
 package identifies its one exact selected identity. Benchmark records its
-zero-or-one exact identity in the compatibility field `selected_stations`, its
-selection count, selected chronological evidence bin and dual-panel evidence
-recipe; there is no selected active-view choice because each export contains
-both time panels. Benchmark metadata publishes the stable
+ordered exact identity selection in the compatibility field
+`selected_stations`; it remains zero-or-one unless optional outlier reporting
+enables multi-selection. The metadata also records its selection count,
+selected chronological evidence bin and dual-panel evidence recipe; there is no
+selected active-view choice because each export contains both time panels.
+Benchmark metadata publishes the stable
 `benchmark_evidence_figures` filename-to-description map for the complementary
 evidence figures, and the export signature fingerprints their recipe kind,
 schema, time bin and title through `benchmark_evidence_recipes` without
@@ -1031,7 +1210,7 @@ internal-link navigation still creates a history step. Back and Forward
 explicitly scroll an already mounted manual anchor, or reuse the expansion path
 when that history target is not mounted.
 After lazy content mounts, the same controller assigns documentation-only
-weighted column layouts to four anchor-bounded tables. Each multiplier is
+weighted column layouts to the registered anchor-bounded tables. Each multiplier is
 applied to the localized table's natural browser widths and normalized back to
 the unchanged total table width.
 Hiding an already loaded manual does not immediately re-expand it.
@@ -1045,6 +1224,10 @@ its contents.
 `docs/pdf_generator.py` converts the manual to PDF only when requested. PDF
 generation is single-flight and process-cached, so the first requester waits and
 subsequent requesters reuse the cached bytes until process restart or cache loss.
+The generator lazily registers and embeds the proportional and monospace DejaVu
+font families shipped by the required Matplotlib package before xhtml2pdf runs,
+so German text, Delta notation and mathematical comparison symbols do not depend
+on viewer-side Symbol or ArialUnicode font substitution.
 `scripts/sync_readme_from_doc_en.py` rewrites `README.md` from a fixed header plus
 the complete English manual. Consequently, repository engineering documentation
 must remain outside `README.md`.

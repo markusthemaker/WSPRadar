@@ -12,6 +12,9 @@ import zipfile
 import pandas as pd
 import pytest
 
+from config.delta_snr_outlier import (
+    DeltaSnrOutlierDetectionPolicy,
+)
 from core import plot_engine
 from core.analysis_context import AnalysisContext
 from core.artifact_store import (
@@ -742,6 +745,125 @@ def test_segment_temporal_figure_uses_its_distinct_export_recipe(monkeypatch):
     assert disposed_figures == [fake_figure]
 
 
+def test_high_resolution_compare_exports_receive_exact_registered_marker_recipes(
+    monkeypatch,
+):
+    """Dispatch the same segment and selected candidate payloads to paper PNGs."""
+    segment_markers = {"candidate_signature": "segment", "markers": [1]}
+    selected_markers = {"candidate_signature": "selected", "markers": [2]}
+    segment_recipe = {
+        "kind": "segment_benchmark_temporal",
+        "delta_snr_outlier_markers": segment_markers,
+    }
+    selected_recipe = {
+        "kind": "selected_benchmark_temporal",
+        "delta_snr_outlier_markers": selected_markers,
+    }
+    received_recipes = []
+    figures = [object(), object()]
+    monkeypatch.setattr(
+        evidence_figures,
+        "render_segment_temporal_evidence_export_figure",
+        lambda recipe: received_recipes.append(recipe) or figures[0],
+    )
+    monkeypatch.setattr(
+        evidence_figures,
+        "render_selected_evidence_export_figure",
+        lambda recipe: received_recipes.append(recipe) or figures[1],
+    )
+    monkeypatch.setattr(
+        results_export,
+        "figure_to_png_bytes",
+        lambda figure, *, paper_theme: (
+            b"segment" if figure is figures[0] else b"selected"
+        )
+        if paper_theme
+        else b"",
+    )
+    monkeypatch.setattr(
+        results_export,
+        "dispose_matplotlib_figure",
+        lambda _figure: None,
+    )
+    block = {
+        "segment_temporal_evidence_figure_recipe": segment_recipe,
+        "selected_evidence_figure_recipe": selected_recipe,
+    }
+
+    assert results_export._render_inspector_png_for_block(
+        block,
+        "figure_segment_temporal_evidence.png",
+    ) == b"segment"
+    assert results_export._render_inspector_png_for_block(
+        block,
+        "figure_selected_station_evidence.png",
+    ) == b"selected"
+    assert received_recipes == [segment_recipe, selected_recipe]
+    assert received_recipes[0]["delta_snr_outlier_markers"] is segment_markers
+    assert received_recipes[1]["delta_snr_outlier_markers"] is selected_markers
+
+
+def test_export_marker_signature_tracks_payload_even_if_declared_hash_is_stale():
+    """Invalidate prepared ZIP identity when exact marker coordinates change."""
+    marker_recipe = {
+        "schema_version": 2,
+        "detector_version": "native-residual-episode-v1",
+        "detection_resolution": "native-paired-unit",
+        "candidate_count": 1,
+        "candidate_signature": "declared-signature",
+        "legend_label": "candidate",
+        "markers": [
+            {
+                "callsign": "A1AAA",
+                "locator": "AA00",
+                "marker_utc_ns": 1_782_864_600_000_000_000,
+                "marker_delta_snr_db": 7.5,
+                "episode_start_utc_ns": 1_782_864_480_000_000_000,
+                "episode_end_utc_ns": 1_782_864_720_000_000_000,
+                "event_kind": "spot_impulse",
+            }
+        ],
+    }
+    first_recipe = {"delta_snr_outlier_markers": marker_recipe}
+    changed_marker_recipe = {
+        **marker_recipe,
+        "markers": [
+            {
+                **marker_recipe["markers"][0],
+                "marker_delta_snr_db": 8.0,
+            }
+        ],
+    }
+    second_recipe = {"delta_snr_outlier_markers": changed_marker_recipe}
+
+    first_signature = results_export._delta_snr_outlier_recipe_signature(
+        first_recipe
+    )
+    assert first_signature == {
+        **{
+            key: marker_recipe[key]
+            for key in (
+                "schema_version",
+                "detector_version",
+                "detection_resolution",
+                "candidate_count",
+                "candidate_signature",
+                "legend_label",
+            )
+        },
+        "detection_policy_signature": None,
+        "markers": [
+            {
+                **marker_recipe["markers"][0],
+                "detection_policy_signature": None,
+            }
+        ],
+    }
+    assert first_signature != (
+        results_export._delta_snr_outlier_recipe_signature(second_recipe)
+    )
+
+
 @pytest.mark.parametrize(
     ("identity_key", "invalid_value"),
     [
@@ -1254,6 +1376,269 @@ def test_register_inspector_export_localizes_selected_evidence_weighting(
     assert block["selected_stations"] == selected_stations
     assert block["selected_station_count"] == len(selected_stations)
     assert block["selected_evidence_weighting"] == expected_weighting
+    assert "report_delta_snr_outlier_candidates" not in block
+    assert "delta_snr_outlier_detector_version" not in block
+
+
+def test_disabled_outlier_fields_do_not_change_result_metadata_or_signature(
+    monkeypatch,
+):
+    """Keep disabled Compare and Performance export contracts unchanged."""
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+    base_block = {
+        "analysis_id": "RX_ABS",
+        "mode_folder": "performance",
+        "database_source": "wspr_live",
+        "selected_stations": [],
+    }
+    false_field_block = {
+        **base_block,
+        "report_delta_snr_outlier_candidates": False,
+        "delta_snr_outlier_detector_version": None,
+    }
+
+    assert results_export._export_signature(
+        {"RX_ABS": base_block}
+    ) == results_export._export_signature(
+        {"RX_ABS": false_field_block}
+    )
+
+    metadata = results_export._build_run_metadata(
+        {"RX_ABS": false_field_block},
+        {
+            "settings": {
+                "advanced_parameters": {
+                    "report_delta_snr_outlier_candidates": False
+                }
+            }
+        },
+    )
+    assert (
+        "report_delta_snr_outlier_candidates"
+        not in metadata["thresholds_and_filters"]
+    )
+    assert (
+        "report_delta_snr_outlier_candidates"
+        not in metadata["result_blocks"][0]
+    )
+    assert (
+        "delta_snr_outlier_detector_version"
+        not in metadata["result_blocks"][0]
+    )
+
+
+def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
+    monkeypatch,
+):
+    """Make false an authoritative no-marker export boundary."""
+    marker_payload = {
+        "schema_version": 2,
+        "detector_version": "stale-detector",
+        "detection_resolution": "native-paired-unit",
+        "candidate_count": 1,
+        "candidate_signature": "stale-candidate",
+        "markers": [{"callsign": "K1AAA", "locator": "FN31"}],
+    }
+    stale_segment_recipe = {
+        "kind": "segment_benchmark_temporal",
+        "time_bin": "3h",
+        "delta_snr_outlier_markers": marker_payload,
+    }
+    stale_selected_recipe = {
+        "kind": "selected_benchmark_temporal",
+        "time_bin": "3h",
+        "delta_snr_outlier_markers": marker_payload,
+    }
+    disabled_blocks = {}
+    clean_blocks = {}
+    pending_states = [disabled_blocks, clean_blocks]
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: pending_states.pop(0),
+    )
+
+    common_arguments = {
+        "analysis_id": "RX_COMPARE",
+        "selected_segment": "Full Range | All Directions",
+        "selected_distance": "Full Range",
+        "selected_direction": "All Directions",
+        "show_non_joint": False,
+        "evidence_time_bin": "3h",
+        "selected_stations": [],
+        "translations": T["en"],
+    }
+    results_export.register_inspector_export(
+        **common_arguments,
+        segment_temporal_evidence_figure_recipe=stale_segment_recipe,
+        selected_evidence_figure_recipe=stale_selected_recipe,
+        report_delta_snr_outlier_candidates=False,
+        delta_snr_outlier_detector_version="stale-detector",
+        delta_snr_outlier_detection_policy=DeltaSnrOutlierDetectionPolicy(
+            minimum_departure_db=6.0,
+        ),
+    )
+    results_export.register_inspector_export(
+        **common_arguments,
+        segment_temporal_evidence_figure_recipe={
+            "kind": "segment_benchmark_temporal",
+            "time_bin": "3h",
+        },
+        selected_evidence_figure_recipe={
+            "kind": "selected_benchmark_temporal",
+            "time_bin": "3h",
+        },
+    )
+
+    disabled_block = disabled_blocks["RX_COMPARE"]
+    assert "delta_snr_outlier_markers" not in disabled_block[
+        "segment_temporal_evidence_figure_recipe"
+    ]
+    assert "delta_snr_outlier_markers" not in disabled_block[
+        "selected_evidence_figure_recipe"
+    ]
+    assert "report_delta_snr_outlier_candidates" not in disabled_block
+    assert "delta_snr_outlier_detector_version" not in disabled_block
+    assert "delta_snr_outlier_detection_policy" not in disabled_block
+    assert "delta_snr_outlier_markers" in stale_segment_recipe
+    assert "delta_snr_outlier_markers" in stale_selected_recipe
+    assert disabled_block["segment_temporal_evidence_figure_recipe"] is not (
+        stale_segment_recipe
+    )
+    assert disabled_block["selected_evidence_figure_recipe"] is not (
+        stale_selected_recipe
+    )
+    assert results_export._export_signature(disabled_blocks) == (
+        results_export._export_signature(clean_blocks)
+    )
+
+
+def test_enabled_outlier_metadata_remains_presentation_only(monkeypatch):
+    """Record detector identity per result block, not as a scientific filter."""
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state={"lang": "en"}),
+    )
+    detector_version = "native-residual-episode-v1"
+    metadata = results_export._build_run_metadata(
+        {
+            "RX_COMPARE": {
+                "analysis_id": "RX_COMPARE",
+                "mode_folder": "benchmark",
+                "database_source": "wspr_live",
+                "selected_stations": [],
+                "report_delta_snr_outlier_candidates": True,
+                "delta_snr_outlier_detector_version": detector_version,
+            }
+        },
+        {
+            "settings": {
+                "advanced_parameters": {
+                    "report_delta_snr_outlier_candidates": True
+                }
+            }
+        },
+    )
+
+    assert (
+        "report_delta_snr_outlier_candidates"
+        not in metadata["thresholds_and_filters"]
+    )
+    result_block = metadata["result_blocks"][0]
+    assert result_block["report_delta_snr_outlier_candidates"] is True
+    assert result_block["delta_snr_outlier_detector_version"] == detector_version
+
+
+@pytest.mark.parametrize(
+    ("language", "expected_weighting"),
+    (
+        ("en", "Combined observation-weighted evidence"),
+        ("de", "Kombinierte beobachtungsgewichtete Evidenz"),
+    ),
+)
+def test_register_inspector_export_accepts_enabled_multi_station_evidence(
+    monkeypatch,
+    language,
+    expected_weighting,
+):
+    """Retain exact enabled identities, weighting, detector, and recipes."""
+    blocks = {}
+    detection_policy = DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=3.5,
+        minimum_robust_z=4.0,
+        maximum_baseline_difference_db=2.0,
+    )
+    marker_recipe = {
+        "kind": "selected_benchmark_temporal",
+        "delta_snr_outlier_markers": {
+            "schema_version": 2,
+            "detector_version": "native-residual-episode-v1",
+            "detection_resolution": "native-paired-unit",
+            "candidate_count": 2,
+            "candidate_signature": "selected-signature",
+            "legend_label": "candidate",
+            "markers": [
+                {
+                    "callsign": "K1AAA",
+                    "locator": "FN31",
+                    "marker_utc_ns": 1_788_134_400_000_000_000,
+                    "marker_delta_snr_db": 8.0,
+                    "episode_start_utc_ns": 1_788_134_280_000_000_000,
+                    "episode_end_utc_ns": 1_788_134_520_000_000_000,
+                    "event_kind": "spot_impulse",
+                },
+                {
+                    "callsign": "K2BBB",
+                    "locator": "FN32",
+                    "marker_utc_ns": 1_788_138_000_000_000_000,
+                    "marker_delta_snr_db": -7.5,
+                    "episode_start_utc_ns": 1_788_137_640_000_000_000,
+                    "episode_end_utc_ns": 1_788_138_480_000_000_000,
+                    "event_kind": "short_burst",
+                },
+            ],
+        },
+    }
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: blocks,
+    )
+
+    results_export.register_inspector_export(
+        analysis_id="RX_COMPARE",
+        selected_segment="Full Range | All Directions",
+        selected_distance="Full Range",
+        selected_direction="All Directions",
+        show_non_joint=False,
+        evidence_time_bin="3h",
+        selected_stations=["K1AAA (FN31)", "K2BBB (FN32)"],
+        translations=T[language],
+        selected_evidence_figure_recipe=marker_recipe,
+        allow_multiple_selected_stations=True,
+        report_delta_snr_outlier_candidates=True,
+        delta_snr_outlier_detector_version="native-residual-episode-v1",
+        delta_snr_outlier_detection_policy=detection_policy,
+    )
+
+    block = blocks["RX_COMPARE"]
+    assert block["selected_stations"] == [
+        "K1AAA (FN31)",
+        "K2BBB (FN32)",
+    ]
+    assert block["selected_station_count"] == 2
+    assert block["selected_evidence_weighting"] == expected_weighting
+    assert block["selected_evidence_figure_recipe"] is marker_recipe
+    assert block["report_delta_snr_outlier_candidates"] is True
+    assert block["delta_snr_outlier_detector_version"] == (
+        "native-residual-episode-v1"
+    )
+    assert block["delta_snr_outlier_detection_policy"] == detection_policy.as_dict()
 
 
 @pytest.mark.parametrize(
@@ -1285,6 +1670,34 @@ def test_register_inspector_export_rejects_invalid_station_cardinality_atomicall
             evidence_time_bin="3h",
             selected_stations=selected_stations,
             translations=T["en"],
+        )
+
+    assert ensure_state_calls == []
+
+
+def test_register_export_rejects_multi_selection_without_enabled_reporting(
+    monkeypatch,
+):
+    """Keep the export boundary aligned with the Benchmark selection contract."""
+    ensure_state_calls = []
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: ensure_state_calls.append(True) or {},
+    )
+
+    with pytest.raises(ValueError, match="require enabled Delta-SNR"):
+        results_export.register_inspector_export(
+            analysis_id="RX_COMPARE",
+            selected_segment="Full Range | All Directions",
+            selected_distance="Full Range",
+            selected_direction="All Directions",
+            show_non_joint=False,
+            evidence_time_bin="3h",
+            selected_stations=["K1AAA (FN31)", "K2BBB (FN32)"],
+            translations=T["en"],
+            allow_multiple_selected_stations=True,
+            report_delta_snr_outlier_candidates=False,
         )
 
     assert ensure_state_calls == []

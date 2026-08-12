@@ -6,9 +6,11 @@ to allow UI updates without triggering full-page reruns.
 """
 
 import inspect
+import json
 from collections.abc import Mapping
 from contextlib import nullcontext
 from functools import partial
+from hashlib import sha256
 from html import escape
 from numbers import Integral
 from pathlib import Path
@@ -25,6 +27,11 @@ from config import (
     INSPECTOR_CACHE_SELECTED_MAX_ENTRIES,
     SEGMENT_SELECTION_ALL,
     TEMPORAL_IQR_BAND_ALPHA,
+)
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+    DeltaSnrOutlierDetectionPolicy,
 )
 from core.input_validation import (
     is_valid_callsign,
@@ -71,7 +78,26 @@ from ui.inspector.view_models import (
     filter_inspector_scope,
 )
 from ui.inspector.session_cache import SessionInspectorCache
-from ui.result_state import INSPECTOR_CACHE_STATE_KEY
+from ui.inspector.outlier_candidates import (
+    DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+    DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+    prepare_delta_snr_outlier_model,
+)
+from ui.inspector.outlier_report import (
+    OUTLIER_UNAVAILABLE_VALUE,
+    build_delta_snr_outlier_report_view_model,
+)
+from ui.page_navigation import (
+    STATION_INSIGHTS_ANCHOR_ID,
+    render_page_anchor,
+    request_page_navigation,
+)
+from ui.result_state import (
+    INSPECTOR_CACHE_STATE_KEY,
+    RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY,
+    RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY,
+    RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
+)
 from ui.plots.evidence_figures import (
     _segment_figure_export_recipe,
     _segment_temporal_evidence_export_recipe,
@@ -119,6 +145,7 @@ from ui.result_hierarchy import (
 from ui.result_guidance import (
     RESULT_GUIDANCE_COMPARISON_EVIDENCE,
     RESULT_GUIDANCE_DRILLDOWN,
+    RESULT_GUIDANCE_OUTLIER_REPORT,
     RESULT_GUIDANCE_SEGMENT,
     RESULT_GUIDANCE_SELECTED_STATIONS,
     RESULT_GUIDANCE_STATION_INSIGHTS,
@@ -128,7 +155,7 @@ from ui.result_guidance import (
 )
 from ui.reference_correction import configured_snr_correction_notice
 
-INSPECTOR_CACHE_VERSION = 45
+INSPECTOR_CACHE_VERSION = 46
 INSPECTOR_PNG_RENDER_VERSION = 38
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
@@ -150,11 +177,11 @@ RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY = (
 RESULTS_SEGMENT_TIME_BIN_ABSOLUTE_STATE_KEY = (
     "val_results_segment_time_bin_absolute"
 )
-RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = (
-    "val_results_selected_stations_compare"
-)
 RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY = (
     "val_results_selected_stations_absolute"
+)
+RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY = (
+    "results_station_selection_revision_compare"
 )
 STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (5, 4, 3)
 SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS = (9, 2)
@@ -253,6 +280,57 @@ def _compare_temporal_time_bin_policy(
         else None
     )
     return resolved_options, adaptive_default, retained_extra_cache_token
+
+
+def _delta_snr_outlier_segment_cache_suffix(
+    is_enabled,
+    detection_policy=None,
+):
+    """Return no cache fields when disabled and detector identity when on."""
+    if not is_enabled:
+        return ()
+    resolved_policy = (
+        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY
+        if detection_policy is None
+        else detection_policy
+    )
+    if not isinstance(resolved_policy, DeltaSnrOutlierDetectionPolicy):
+        raise TypeError(
+            "detection_policy must be a DeltaSnrOutlierDetectionPolicy."
+        )
+    return (
+        "delta-snr-outlier-candidates",
+        True,
+        DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        resolved_policy.signature_tuple,
+    )
+
+
+def _enabled_delta_snr_outlier_detection_policy(session_state):
+    """Return the valid enabled policy, pausing on invalid live edits."""
+    if session_state.get(
+        RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY,
+        False,
+    ) is not True:
+        return None
+    try:
+        return DeltaSnrOutlierDetectionPolicy(
+            **{
+                policy_field: session_state.get(
+                    f"val_{config_field}",
+                    getattr(
+                        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                        policy_field,
+                    ),
+                )
+                for config_field, policy_field in (
+                    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                )
+            }
+        )
+    except ValueError:
+        return None
 
 
 def _initialize_time_bin_widget_state(widget_key, persistent_key, options, fallback):
@@ -733,11 +811,67 @@ def _validate_single_station_identity_records(configured_identities):
     ]
 
 
+def _validate_multiple_station_identity_records(configured_identities):
+    """Validate an ordered Benchmark selection of exact station identities."""
+    if configured_identities is None:
+        return None
+    if not isinstance(configured_identities, list):
+        raise ValueError(
+            "Benchmark selected-station state must be null or a list."
+        )
+
+    normalized_identities = []
+    seen_identity_pairs = set()
+    for configured_identity in configured_identities:
+        if not isinstance(configured_identity, Mapping):
+            raise ValueError("Selected-station identity must be an object.")
+        if set(configured_identity) != {"callsign", "locator"}:
+            raise ValueError(
+                "Selected-station identity must contain only callsign and locator."
+            )
+        callsign = configured_identity["callsign"]
+        locator = configured_identity["locator"]
+        if not isinstance(callsign, str) or not is_valid_callsign(callsign):
+            raise ValueError("Selected-station callsign is invalid.")
+        if not isinstance(locator, str) or not is_valid_locator(locator):
+            raise ValueError("Selected-station locator is invalid.")
+        normalized_identity = {
+            "callsign": normalize_ascii_upper(callsign),
+            "locator": normalize_ascii_upper(locator),
+        }
+        identity_pair = (
+            normalized_identity["callsign"],
+            normalized_identity["locator"],
+        )
+        if identity_pair in seen_identity_pairs:
+            continue
+        seen_identity_pairs.add(identity_pair)
+        normalized_identities.append(normalized_identity)
+    return normalized_identities
+
+
+def _station_selection_for_outlier_reporting_mode(
+    configured_identities,
+    *,
+    is_outlier_reporting_enabled,
+):
+    """Restore the historical singleton selection when the opt-in is off."""
+    if (
+        is_outlier_reporting_enabled
+        or not isinstance(configured_identities, list)
+        or len(configured_identities) <= 1
+    ):
+        return configured_identities
+    return configured_identities[:1]
+
+
 def _station_selection_default_rows(
     station_table,
     station_column,
     locator_column,
     configured_identities,
+    *,
+    allow_multiple=False,
 ):
     """Resolve saved station identities to current display-row positions.
 
@@ -745,8 +879,10 @@ def _station_selection_default_rows(
     substitute row to be selected. A ``None`` configuration retains the normal
     first-row default, whereas an empty list resolves to no selected rows.
     """
-    normalized_identities = _validate_single_station_identity_records(
-        configured_identities
+    normalized_identities = (
+        _validate_multiple_station_identity_records(configured_identities)
+        if allow_multiple
+        else _validate_single_station_identity_records(configured_identities)
     )
     if normalized_identities is None:
         return ([0] if not station_table.empty else []), []
@@ -769,15 +905,99 @@ def _station_selection_default_rows(
         )
         available_rows.setdefault(identity_pair, row_position)
 
-    identity_record = normalized_identities[0]
-    identity_pair = (
-        identity_record["callsign"],
-        identity_record["locator"],
+    selected_rows = []
+    missing_identities = []
+    for identity_record in normalized_identities:
+        identity_pair = (
+            identity_record["callsign"],
+            identity_record["locator"],
+        )
+        row_position = available_rows.get(identity_pair)
+        if row_position is None:
+            missing_identities.append(identity_record)
+        else:
+            selected_rows.append(row_position)
+    return selected_rows, missing_identities
+
+
+def _prioritize_focused_station_identities(
+    station_table,
+    station_column,
+    locator_column,
+    focused_identities,
+):
+    """Move exact focused identities to the top of a display-only table.
+
+    Matching and non-matching rows each retain their existing relative order.
+    The supplied table is never mutated, and a focus hidden by an active table
+    filter remains absent rather than bypassing that filter.
+    """
+    normalized_identities = _validate_multiple_station_identity_records(
+        focused_identities
     )
-    row_position = available_rows.get(identity_pair)
-    if row_position is None:
-        return [], [identity_record]
-    return [row_position], []
+    if not normalized_identities or station_table.empty:
+        return station_table
+    focused_pairs = {
+        (identity["callsign"], identity["locator"])
+        for identity in normalized_identities
+    }
+    focused_positions = []
+    remaining_positions = []
+    for row_position, (callsign, locator) in enumerate(
+        station_table[[station_column, locator_column]].itertuples(
+            index=False,
+            name=None,
+        )
+    ):
+        identity_record = _station_identity_record(callsign, locator)
+        identity_pair = (
+            (
+                identity_record["callsign"],
+                identity_record["locator"],
+            )
+            if identity_record is not None
+            else None
+        )
+        destination = (
+            focused_positions
+            if identity_pair in focused_pairs
+            else remaining_positions
+        )
+        destination.append(row_position)
+    if not focused_positions:
+        return station_table
+    return station_table.iloc[
+        focused_positions + remaining_positions
+    ].reset_index(drop=True)
+
+
+def _focused_station_identities_for_scope(
+    session_state,
+    *,
+    analysis_id,
+    run_id,
+    scope_token,
+):
+    """Return one report-driven table focus only in its originating scope."""
+    focus_record = session_state.get(
+        RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+    )
+    if not isinstance(focus_record, dict):
+        return None
+    expected_scope = {
+        "analysis_id": analysis_id,
+        "run_id": run_id,
+        "scope_token": scope_token,
+    }
+    if any(
+        focus_record.get(field_name) != expected_value
+        for field_name, expected_value in expected_scope.items()
+    ):
+        return None
+    station_identities = focus_record.get("station_identities")
+    if not isinstance(station_identities, list):
+        return None
+    return station_identities
 
 
 def _station_identity_records_for_rows(
@@ -785,29 +1005,40 @@ def _station_identity_records_for_rows(
     selected_rows,
     station_column,
     locator_column,
+    *,
+    allow_multiple=False,
 ):
-    """Return the station identity for zero or one valid selected row."""
+    """Return ordered exact identities for valid selected station rows."""
     valid_rows = [
         row_position
         for row_position in selected_rows
         if isinstance(row_position, Integral)
         and 0 <= row_position < len(station_table)
     ]
-    if len(valid_rows) > 1:
+    if not allow_multiple and len(valid_rows) > 1:
         raise ValueError("Station selection must contain at most one row.")
     if not valid_rows:
         return []
 
-    row = station_table.iloc[valid_rows[0]]
-    identity_record = _station_identity_record(
-        row[station_column],
-        row[locator_column],
-    )
-    if identity_record is None:
-        raise ValueError(
-            "Selected station row must contain a callsign and locator."
+    selected_identity_records = []
+    for row_position in valid_rows:
+        row = station_table.iloc[row_position]
+        identity_record = _station_identity_record(
+            row[station_column],
+            row[locator_column],
         )
-    return _validate_single_station_identity_records([identity_record])
+        if identity_record is None:
+            raise ValueError(
+                "Selected station row must contain a callsign and locator."
+            )
+        selected_identity_records.append(identity_record)
+    if allow_multiple:
+        return _validate_multiple_station_identity_records(
+            selected_identity_records
+        )
+    return _validate_single_station_identity_records(
+        selected_identity_records
+    )
 
 
 def _sync_selected_station_state(
@@ -816,13 +1047,16 @@ def _sync_selected_station_state(
     selected_rows,
     station_column,
     locator_column,
+    *,
+    allow_multiple=False,
 ):
-    """Persist an explicit empty or single-station selection."""
+    """Persist an explicit empty, single, or Benchmark multi-selection."""
     selected_identities = _station_identity_records_for_rows(
         station_table,
         selected_rows,
         station_column,
         locator_column,
+        allow_multiple=allow_multiple,
     )
     st.session_state[persistent_key] = selected_identities
     return selected_identities
@@ -831,6 +1065,10 @@ def _sync_selected_station_state(
 def _mark_station_selection_changed(selection_changed_key):
     """Record that a user, rather than a table default, changed selection."""
     st.session_state[selection_changed_key] = True
+    st.session_state.pop(
+        RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
+        None,
+    )
 
 
 def _sync_selected_station_state_if_changed(
@@ -840,6 +1078,8 @@ def _sync_selected_station_state_if_changed(
     selected_rows,
     station_column,
     locator_column,
+    *,
+    allow_multiple=False,
 ):
     """Persist visible rows only after a user-generated selection event.
 
@@ -856,6 +1096,7 @@ def _sync_selected_station_state_if_changed(
         selected_rows,
         station_column,
         locator_column,
+        allow_multiple=allow_multiple,
     )
 
 
@@ -1451,6 +1692,7 @@ def _render_drilldown_dataframe(
     is_sequential,
     analysis_context,
     language,
+    allow_multiple_station_selection=False,
     timing_collector=None,
 ):
     """Render selected drill-down rows with local filters and return the displayed dataframe."""
@@ -1477,6 +1719,7 @@ def _render_drilldown_dataframe(
                 selected_station_labels,
                 analysis_id,
                 t,
+                allow_multiple=allow_multiple_station_selection,
             ),
         ),
         unsafe_allow_html=True,
@@ -1581,6 +1824,7 @@ def _selected_evidence_figure_title(
     analysis_id,
     is_sequential,
     translations,
+    allow_multiple=False,
 ):
     """Build a localized selected-station figure title from semantic evidence."""
     heading = translations["hdr_results_selected_station_evidence"]
@@ -1590,6 +1834,7 @@ def _selected_evidence_figure_title(
         analysis_id=analysis_id,
         is_sequential=is_sequential,
         translations=translations,
+        allow_multiple=allow_multiple,
     )
     return translations[
         "fmt_results_selected_station_evidence_title"
@@ -1597,6 +1842,736 @@ def _selected_evidence_figure_title(
         heading=heading,
         selection_context=selection_context,
     )
+
+
+def _delta_snr_outlier_marker_recipe(
+    outlier_model,
+    translations,
+    station_identities=None,
+):
+    """Return localized markers at episode or selected-path resolution."""
+    if outlier_model is None:
+        return None
+    marker_recipe = outlier_model.marker_recipe(station_identities)
+    if marker_recipe is None:
+        return None
+    report_entries = getattr(outlier_model, "report_entries", None)
+    if station_identities is None and report_entries is not None:
+        representative_keys = {
+            (
+                strongest_candidate.station_identity.callsign,
+                strongest_candidate.station_identity.locator,
+                int(strongest_candidate.representative_utc.value),
+            )
+            for report_entry in report_entries
+            if report_entry.candidates
+            for strongest_candidate in (
+                max(
+                    report_entry.candidates,
+                    key=lambda candidate: abs(candidate.peak_anomaly_db),
+                ),
+            )
+        }
+        episode_markers = [
+            marker
+            for marker in marker_recipe["markers"]
+            if (
+                marker["callsign"],
+                marker["locator"],
+                int(marker["marker_utc_ns"]),
+            )
+            in representative_keys
+        ]
+        if not episode_markers:
+            return None
+        marker_recipe = dict(marker_recipe)
+        marker_recipe["markers"] = episode_markers
+        marker_recipe["candidate_count"] = len(episode_markers)
+        marker_recipe["candidate_signature"] = sha256(
+            json.dumps(
+                episode_markers,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+                allow_nan=False,
+            ).encode("ascii")
+        ).hexdigest()
+    marker_recipe["legend_label"] = translations[
+        "fig_delta_snr_outlier_candidate"
+    ]
+    return marker_recipe
+
+
+def _outlier_station_direction_lookup(scope_rows):
+    """Return exact station identities mapped to retained compass sectors."""
+    required_columns = {"peer_sign", "peer_grid", "dir_name"}
+    if (
+        scope_rows is None
+        or scope_rows.empty
+        or not required_columns.issubset(scope_rows.columns)
+    ):
+        return {}
+    direction_lookup = {}
+    for callsign, locator, direction in scope_rows[
+        ["peer_sign", "peer_grid", "dir_name"]
+    ].itertuples(index=False, name=None):
+        callsign_text = str(callsign).strip().upper()
+        locator_text = str(locator).strip().upper()
+        direction_text = str(direction).strip().upper()
+        if (
+            callsign_text
+            and locator_text
+            and direction_text in COMPASS
+        ):
+            direction_lookup.setdefault(
+                (callsign_text, locator_text),
+                direction_text,
+            )
+    return direction_lookup
+
+
+def _format_signed_outlier_db(value, translations):
+    """Format one signed dB value with the active decimal separator."""
+    numeric_value = float(value)
+    sign = "+" if numeric_value >= 0.0 else "\u2212"
+    return f"{sign}{_format_localized_decimal(abs(numeric_value), translations)}"
+
+
+def _format_outlier_utc_interval(start_utc, end_utc, translations):
+    """Format one exact UTC interval without relying on process locale."""
+    interval_start = pd.Timestamp(start_utc).tz_convert("UTC")
+    interval_end = pd.Timestamp(end_utc).tz_convert("UTC")
+    is_same_date = interval_start.date() == interval_end.date()
+    month_names = str(translations["txt_outlier_utc_months"]).split("|")
+    if len(month_names) != 12:
+        raise ValueError("Outlier UTC month catalog must contain 12 entries.")
+
+    def format_date(timestamp):
+        return translations["fmt_outlier_utc_date"].format(
+            day=timestamp.day,
+            month=month_names[timestamp.month - 1],
+            time=timestamp.strftime("%H:%M"),
+        )
+
+    start_text = format_date(interval_start)
+    end_text = (
+        interval_end.strftime("%H:%M")
+        if is_same_date
+        else format_date(interval_end)
+    )
+    return translations["fmt_outlier_utc_range"].format(
+        start=start_text,
+        end=end_text,
+    )
+
+
+def _format_outlier_utc_range(report_entry, translations):
+    """Format exact observed UTC bounds without exposing half-open sentinels."""
+    interval_start = pd.Timestamp(report_entry.start_utc).tz_convert("UTC")
+    interval_end = pd.Timestamp(report_entry.end_utc).tz_convert("UTC")
+    if interval_end - interval_start <= pd.Timedelta(nanoseconds=1):
+        month_names = str(translations["txt_outlier_utc_months"]).split("|")
+        if len(month_names) != 12:
+            raise ValueError(
+                "Outlier UTC month catalog must contain 12 entries."
+            )
+        timestamp_text = translations["fmt_outlier_utc_date"].format(
+            day=interval_start.day,
+            month=month_names[interval_start.month - 1],
+            time=interval_start.strftime("%H:%M"),
+        )
+        return translations["fmt_outlier_utc_instant"].format(
+            timestamp=timestamp_text,
+        )
+    if interval_end > interval_start:
+        interval_end -= pd.Timedelta(nanoseconds=1)
+    return _format_outlier_utc_interval(
+        interval_start,
+        interval_end,
+        translations,
+    )
+
+
+def _localized_outlier_direction(direction, translations):
+    """Localize the east component of one canonical compass sector."""
+    return str(direction).replace(
+        "E",
+        translations["abbr_compass_east"],
+    )
+
+
+def _format_outlier_duration_minutes(value, translations):
+    """Format an observed episode duration without false decimal precision."""
+    numeric_value = float(value)
+    decimals = 0 if np.isclose(numeric_value, round(numeric_value)) else 1
+    return translations["fmt_outlier_minutes"].format(
+        value=_format_localized_decimal(
+            numeric_value,
+            translations,
+            decimals=decimals,
+        )
+    )
+
+
+def _localized_outlier_event_kind(event_kind, translations):
+    """Return the approved label for one detector event classification."""
+    event_keys = {
+        "spot_impulse": "txt_outlier_event_spot_impulse",
+        "short_burst": "txt_outlier_event_short_burst",
+        "sustained_excursion": "txt_outlier_event_sustained_excursion",
+        "mixed_duration": "txt_outlier_event_mixed_duration",
+    }
+    try:
+        return translations[event_keys[str(event_kind)]]
+    except KeyError as exc:
+        raise ValueError(
+            f"Unsupported Delta-SNR outlier event kind: {event_kind!r}."
+        ) from exc
+
+
+def _validate_outlier_report_entry_counts(report_entry):
+    """Validate one episode's narrowing path denominators."""
+    contributing_count = int(report_entry.contributing_station_count)
+    evaluable_count = int(report_entry.evaluable_station_count)
+    flagged_count = int(report_entry.flagged_station_count)
+    sign_counts = (
+        int(report_entry.segment_positive_station_count),
+        int(report_entry.segment_negative_station_count),
+        int(report_entry.segment_neutral_station_count),
+    )
+    if not 0 <= flagged_count <= evaluable_count <= contributing_count:
+        raise ValueError(
+            "Outlier episode path counts must satisfy "
+            "flagged <= assessed <= paired evidence."
+        )
+    if any(count < 0 for count in sign_counts):
+        raise ValueError("Outlier episode sign counts must be non-negative.")
+    if sum(sign_counts) != evaluable_count:
+        raise ValueError(
+            "Outlier episode above, below, and unchanged counts must sum "
+            "to the assessed-path count."
+        )
+    return contributing_count - evaluable_count
+
+
+def _format_outlier_named_paired_unit_count(
+    count,
+    is_sequential,
+    translations,
+):
+    """Name any complete paired-unit count in established WSPRadar terms."""
+    unit_kind = "scheduled" if is_sequential else "joint"
+    count = int(count)
+    number = "singular" if count == 1 else "plural"
+    return translations[f"fmt_outlier_{unit_kind}_count_{number}"].format(
+        count=_format_localized_integer(count, translations)
+    )
+
+
+def _candidate_joint_evidence_times(candidate, episode_card):
+    """Return the exact listed Joint timestamps belonging to one path episode."""
+    episode_start_utc = pd.Timestamp(candidate.start_utc).tz_convert("UTC")
+    episode_end_utc = pd.Timestamp(candidate.end_utc).tz_convert("UTC")
+    evidence_times = tuple(
+        sorted(
+            {
+                pd.Timestamp(evidence_row.evidence_utc).tz_convert("UTC")
+                for evidence_row in episode_card.evidence_rows
+                if evidence_row.station_identity == candidate.station_identity
+                and episode_start_utc
+                <= pd.Timestamp(evidence_row.evidence_utc).tz_convert("UTC")
+                < episode_end_utc
+            }
+        )
+    )
+    if len(evidence_times) != int(candidate.paired_unit_count):
+        raise ValueError(
+            "Listed Joint evidence must match the detector episode count."
+        )
+    return evidence_times
+
+
+def _format_outlier_optional_minutes(value, translations):
+    """Format one minute interval or an em dash when no interval exists."""
+    if value is None:
+        return OUTLIER_UNAVAILABLE_VALUE
+    return _format_outlier_duration_minutes(value, translations)
+
+
+def _format_outlier_candidate_facts(
+    candidate,
+    episode_card,
+    translations,
+    is_sequential,
+):
+    """Format path-centred evidence timing and Delta-SNR interpretation facts."""
+    evidence_times = _candidate_joint_evidence_times(candidate, episode_card)
+    first_to_last_minutes = (
+        evidence_times[-1] - evidence_times[0]
+    ).total_seconds() / 60.0
+    interval_minutes = [
+        (later_utc - earlier_utc).total_seconds() / 60.0
+        for earlier_utc, later_utc in zip(
+            evidence_times,
+            evidence_times[1:],
+        )
+    ]
+    median_interval_minutes = (
+        float(np.median(interval_minutes)) if interval_minutes else None
+    )
+    largest_gap_minutes = max(interval_minutes) if interval_minutes else None
+    observation_context = translations[
+        "fmt_outlier_path_observation_context"
+    ].format(
+        paired_count=_format_outlier_named_paired_unit_count(
+            len(evidence_times),
+            is_sequential,
+            translations,
+        ),
+        first_to_last_span=_format_outlier_duration_minutes(
+            first_to_last_minutes,
+            translations,
+        ),
+        median_interval=_format_outlier_optional_minutes(
+            median_interval_minutes,
+            translations,
+        ),
+        largest_gap=_format_outlier_optional_minutes(
+            largest_gap_minutes,
+            translations,
+        ),
+    )
+    delta_context = translations["fmt_outlier_path_delta_context"].format(
+        expected_local=_format_signed_outlier_db(
+            candidate.station_baseline_db,
+            translations,
+        ),
+        observed_median=_format_signed_outlier_db(
+            candidate.episode_median_delta_snr_db,
+            translations,
+        ),
+        largest_departure=_format_signed_outlier_db(
+            candidate.peak_anomaly_db,
+            translations,
+        ),
+    )
+    return f"{observation_context}\n\n{delta_context}"
+
+
+def _format_outlier_table_db(value, translations):
+    """Format one signed table value or an em dash for unavailable evidence."""
+    if value is None:
+        return OUTLIER_UNAVAILABLE_VALUE
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return OUTLIER_UNAVAILABLE_VALUE
+    if not np.isfinite(numeric_value):
+        return OUTLIER_UNAVAILABLE_VALUE
+    return _format_signed_outlier_db(numeric_value, translations)
+
+
+def _format_outlier_evidence_utc(evidence_utc, translations):
+    """Format one exact native evidence timestamp in UTC."""
+    timestamp = pd.Timestamp(evidence_utc).tz_convert("UTC")
+    return translations["fmt_outlier_evidence_utc"].format(
+        timestamp=timestamp.strftime("%Y-%m-%d %H:%M"),
+    )
+
+
+def _build_outlier_cycle_evidence_table(
+    episode_card,
+    translations,
+):
+    """Build the compact chronological table of episode-member Joint rows."""
+    columns = [
+        translations["col_outlier_evidence_utc"],
+        translations["col_outlier_evidence_path"],
+        translations["col_outlier_evidence_direction"],
+        translations["col_outlier_evidence_local_baseline"],
+        translations["col_outlier_evidence_delta_snr"],
+        translations["col_outlier_evidence_residual"],
+    ]
+    rows = []
+    for evidence_row in episode_card.evidence_rows:
+        direction = (
+            _localized_outlier_direction(
+                evidence_row.direction_sector,
+                translations,
+            )
+            if evidence_row.direction_sector in COMPASS
+            else OUTLIER_UNAVAILABLE_VALUE
+        )
+        rows.append(
+            {
+                columns[0]: _format_outlier_evidence_utc(
+                    evidence_row.evidence_utc,
+                    translations,
+                ),
+                columns[1]: evidence_row.station_identity.label,
+                columns[2]: direction,
+                columns[3]: _format_outlier_table_db(
+                    evidence_row.local_baseline_db,
+                    translations,
+                ),
+                columns[4]: _format_outlier_table_db(
+                    evidence_row.delta_snr_db,
+                    translations,
+                ),
+                columns[5]: _format_outlier_table_db(
+                    evidence_row.residual_db,
+                    translations,
+                ),
+            }
+        )
+    return pd.DataFrame(rows, columns=columns)
+
+
+def _outlier_candidates_by_identity(report_entry):
+    """Group one report entry's candidates in detector path order."""
+    candidates_by_identity = {}
+    for candidate in report_entry.candidates:
+        candidates_by_identity.setdefault(
+            candidate.station_identity,
+            [],
+        ).append(candidate)
+    grouped_candidates = []
+    for station_identity in report_entry.station_identities:
+        path_candidates = tuple(
+            candidates_by_identity.get(station_identity, ())
+        )
+        if not path_candidates:
+            raise ValueError(
+                "Every flagged episode path must retain a candidate."
+            )
+        grouped_candidates.append((station_identity, path_candidates))
+    return tuple(grouped_candidates)
+
+
+def _outlier_candidate_direction_text(candidates, translations):
+    """Return the retained direction or an explicit unavailable label."""
+    directions = tuple(
+        dict.fromkeys(
+            _localized_outlier_direction(
+                candidate.direction_sector,
+                translations,
+            )
+            for candidate in candidates
+            if candidate.direction_sector in COMPASS
+        )
+    )
+    return ", ".join(directions) or translations[
+        "txt_outlier_direction_unavailable"
+    ]
+
+
+def _select_outlier_station_identities(
+    station_identities,
+    session_state,
+    *,
+    analysis_id,
+    run_id,
+    scope_token,
+):
+    """Select, focus, and navigate to exact detector path identities."""
+    selected_identities = [
+        {
+            "callsign": station_identity.callsign,
+            "locator": station_identity.locator,
+        }
+        for station_identity in dict.fromkeys(station_identities)
+    ]
+    session_state[
+        RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+    ] = selected_identities
+    current_revision = session_state.get(
+        RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY,
+        0,
+    )
+    if isinstance(current_revision, bool) or not isinstance(
+        current_revision,
+        Integral,
+    ):
+        current_revision = 0
+    session_state[
+        RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
+    ] = int(current_revision) + 1
+    session_state[
+        RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+    ] = {
+        "analysis_id": analysis_id,
+        "run_id": run_id,
+        "scope_token": scope_token,
+        "station_identities": selected_identities,
+    }
+    request_page_navigation(
+        session_state,
+        STATION_INSIGHTS_ANCHOR_ID,
+        should_scroll=True,
+    )
+    return selected_identities
+
+
+def _select_outlier_path(
+    station_identity,
+    session_state,
+    *,
+    analysis_id,
+    run_id,
+    scope_token,
+):
+    """Show exactly one qualifying detector path in Station Insights."""
+    return _select_outlier_station_identities(
+        (station_identity,),
+        session_state,
+        analysis_id=analysis_id,
+        run_id=run_id,
+        scope_token=scope_token,
+    )
+
+
+def _select_outlier_episode_paths(
+    report_entry,
+    session_state,
+    *,
+    analysis_id,
+    run_id,
+    scope_token,
+):
+    """Show all unique qualifying paths from one event in Station Insights."""
+    return _select_outlier_station_identities(
+        report_entry.station_identities,
+        session_state,
+        analysis_id=analysis_id,
+        run_id=run_id,
+        scope_token=scope_token,
+    )
+
+
+def _render_delta_snr_outlier_report(
+    outlier_model,
+    report_view_model,
+    *,
+    t,
+    language,
+    analysis_id,
+    run_id,
+    scope_token,
+    is_sequential,
+    analysis_context,
+):
+    """Render native shared-gate detector episodes as review cards."""
+    if outlier_model is None or report_view_model is None:
+        raise ValueError(
+            "Enabled Delta-SNR outlier reporting requires detector and "
+            "report view models."
+        )
+    report_title = t["hdr_results_outlier_report"]
+    st.markdown(
+        evidence_child_header_html(
+            report_title,
+            t["sub_results_outlier_report"],
+        ),
+        unsafe_allow_html=True,
+    )
+    render_result_guidance_popover(
+        RESULT_GUIDANCE_OUTLIER_REPORT,
+        report_title,
+        language=language,
+        translations=t,
+        key=(
+            f"results_guidance_outlier_report_"
+            f"{analysis_id}_{run_id}_{scope_token}"
+        ),
+        analysis_id=analysis_id,
+        is_compare=True,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
+    )
+    report_entries = outlier_model.report_entries
+    paired_evidence_name = t[
+        "txt_outlier_paired_evidence_scheduled"
+        if is_sequential
+        else "txt_outlier_paired_evidence_joint"
+    ]
+    if outlier_model.populated_station_cycle_count == 0:
+        st.info(
+            t["msg_outlier_report_insufficient_paired_evidence"].format(
+                paired_evidence=paired_evidence_name,
+            ),
+            icon=":material/info:",
+        )
+        return
+    if outlier_model.evaluable_station_cycle_count == 0:
+        st.info(
+            t["msg_outlier_report_insufficient_local_baseline"].format(
+                populated=_format_localized_integer(
+                    outlier_model.populated_station_cycle_count,
+                    t,
+                ),
+                abstained=_format_localized_integer(
+                    outlier_model.abstained_station_cycle_count,
+                    t,
+                ),
+                paired_evidence=paired_evidence_name,
+            ),
+            icon=":material/info:",
+        )
+        return
+    if not report_entries:
+        st.info(
+            t["msg_outlier_report_no_candidates"].format(
+                assessed=_format_localized_integer(
+                    outlier_model.evaluable_station_cycle_count,
+                    t,
+                ),
+                abstained=_format_localized_integer(
+                    outlier_model.abstained_station_cycle_count,
+                    t,
+                ),
+                populated=_format_localized_integer(
+                    outlier_model.populated_station_cycle_count,
+                    t,
+                ),
+                paired_evidence=paired_evidence_name,
+            ),
+            icon=":material/search_off:",
+        )
+        return
+
+    if len(report_view_model.cards) != len(report_entries):
+        raise ValueError(
+            "Delta-SNR report view-model cards must match detector entries."
+        )
+    evidence_expander_key = (
+        "exp_outlier_scheduled_pair_evidence"
+        if is_sequential
+        else "exp_outlier_wspr_cycle_evidence"
+    )
+    for episode_card, report_entry in zip(
+        report_view_model.cards,
+        report_entries,
+    ):
+        if episode_card.report_entry != report_entry:
+            raise ValueError(
+                "Delta-SNR report view-model entry order is inconsistent."
+            )
+        _validate_outlier_report_entry_counts(report_entry)
+        episode_start_utc = pd.Timestamp(report_entry.start_utc)
+        episode_end_utc = pd.Timestamp(report_entry.end_utc)
+        episode_key_suffix = (
+            f"{analysis_id}_{run_id}_{scope_token}_"
+            f"{report_entry.episode_index}_"
+            f"{episode_start_utc.value}_{episode_end_utc.value}_"
+            f"{outlier_model.candidate_signature[:12]}"
+        )
+        episode_container = st.container(
+            border=True,
+            key=f"outlier_episode_{episode_key_suffix}",
+        )
+        episode_utc_range = _format_outlier_utc_range(report_entry, t)
+        episode_container.markdown(
+            f"##### {_localized_outlier_event_kind(report_entry.event_kind, t)} · "
+            f"{episode_utc_range}"
+        )
+        grouped_candidates = _outlier_candidates_by_identity(report_entry)
+        for path_index, (station_identity, path_candidates) in enumerate(
+            grouped_candidates,
+            start=1,
+        ):
+            path_heading_container = episode_container.container(
+                key=(
+                    f"outlier_path_heading_{episode_key_suffix}_"
+                    f"{path_index}_{station_identity.callsign}_"
+                    f"{station_identity.locator}"
+                ),
+                horizontal=True,
+                horizontal_alignment="distribute",
+                vertical_alignment="center",
+                gap="small",
+            )
+            path_heading_container.markdown(
+                "###### "
+                + t["fmt_outlier_path_heading"].format(
+                    index=_format_localized_integer(path_index, t),
+                    identity=station_identity.label,
+                    direction=_outlier_candidate_direction_text(
+                        path_candidates,
+                        t,
+                    ),
+                )
+            )
+            if path_heading_container.button(
+                t["btn_outlier_show_path_in_station_insights"],
+                key=(
+                    f"show_outlier_path_{episode_key_suffix}_"
+                    f"{path_index}_{station_identity.callsign}_"
+                    f"{station_identity.locator}"
+                ),
+                type="tertiary",
+                icon=":material/visibility:",
+            ):
+                _select_outlier_path(
+                    station_identity,
+                    st.session_state,
+                    analysis_id=analysis_id,
+                    run_id=run_id,
+                    scope_token=scope_token,
+                )
+                st.rerun(scope="app")
+            for candidate in path_candidates:
+                if len(path_candidates) > 1:
+                    episode_container.markdown(
+                        "**"
+                        + t["fmt_outlier_candidate_timeframe"].format(
+                            utc_range=_format_outlier_utc_range(
+                                candidate,
+                                t,
+                            )
+                        )
+                        + "**"
+                    )
+                episode_container.caption(
+                    _format_outlier_candidate_facts(
+                        candidate,
+                        episode_card,
+                        t,
+                        is_sequential,
+                    )
+                )
+        if report_entry.flagged_station_count > 1:
+            if episode_container.button(
+                t["btn_outlier_show_all_paths_in_station_insights"],
+                key=f"show_all_outlier_paths_{episode_key_suffix}",
+                type="tertiary",
+                icon=":material/checklist:",
+            ):
+                _select_outlier_episode_paths(
+                    report_entry,
+                    st.session_state,
+                    analysis_id=analysis_id,
+                    run_id=run_id,
+                    scope_token=scope_token,
+                )
+                st.rerun(scope="app")
+        if len(episode_card.evidence_rows) > 1:
+            evidence_expander = episode_container.expander(
+                t[evidence_expander_key].format(
+                    utc_range=episode_utc_range,
+                ),
+                expanded=False,
+                key=f"outlier_cycle_evidence_{episode_key_suffix}",
+                icon=":material/table_view:",
+            )
+            _render_compact_dataframe(
+                evidence_expander,
+                _build_outlier_cycle_evidence_table(
+                    episode_card,
+                    t,
+                ),
+                width="stretch",
+                hide_index=True,
+            )
 
 
 def _render_selected_station_evidence(
@@ -1619,15 +2594,17 @@ def _render_selected_station_evidence(
     analysis_end_t=None,
     target_only_label=None,
     reference_only_label=None,
+    outlier_model=None,
     timing_collector=None,
 ):
-    """Render absolute Delta-SNR and coverage for one selected Benchmark path."""
+    """Render pooled absolute Delta-SNR for selected Benchmark paths."""
     identity_meta = _prepare_identity_meta(selected_identity_df)
     if identity_meta.empty:
         return None
-    if len(identity_meta) > 1:
+    if len(identity_meta) > 1 and outlier_model is None:
         raise ValueError(
-            "Selected Station Evidence requires exactly one station identity."
+            "Selected Station Evidence requires exactly one station identity "
+            "when outlier reporting is disabled."
         )
     identity_labels = identity_meta["identity"].tolist()
     reference_snr_correction_notice = configured_snr_correction_notice(
@@ -1679,6 +2656,7 @@ def _render_selected_station_evidence(
             analysis_id=analysis_id,
             is_sequential=is_sequential,
             translations=t,
+            allow_multiple=(outlier_model is not None),
         )
         time_agg_options = tuple(SUCCESS_TEMPORAL_TIME_BINS)
         time_agg_default = "3h"
@@ -1727,7 +2705,7 @@ def _render_selected_station_evidence(
             time_bin_options=time_agg_options,
         )
         selected_coverage_recipe = None
-        if not comparison_units.empty:
+        if not comparison_units.empty and len(identity_meta) == 1:
             selected_identity = identity_meta.iloc[0]
             mode_suffix = (
                 "tx"
@@ -1769,6 +2747,7 @@ def _render_selected_station_evidence(
             "identity_labels": tuple(identity_labels),
             "evidence_count": int(evidence_count),
             "comparison_unit_count": int(len(comparison_units)),
+            "selected_station_count": int(len(identity_meta)),
         }
         _inspector_cache_put(
             run_id,
@@ -1783,11 +2762,18 @@ def _render_selected_station_evidence(
     comparison_unit_count = int(
         selected_bundle.get("comparison_unit_count", 0)
     )
+    selected_station_count = int(
+        selected_bundle.get("selected_station_count", len(identity_labels))
+    )
     selected_evidence_heading = t["hdr_results_selected_station_evidence"]
     st.markdown(
         evidence_level_header_html(
             4,
-            t["lbl_results_level_selection"],
+            t[
+                "lbl_results_level_selection_success"
+                if selected_station_count == 1
+                else "lbl_results_level_selection"
+            ],
             selected_evidence_heading,
             selected_station_context(
                 identity_labels,
@@ -1795,6 +2781,7 @@ def _render_selected_station_evidence(
                 analysis_id=analysis_id,
                 is_sequential=is_sequential,
                 translations=t,
+                allow_multiple=(outlier_model is not None),
             ),
         ),
         unsafe_allow_html=True,
@@ -1812,7 +2799,8 @@ def _render_selected_station_evidence(
         is_compare=True,
         is_sequential=is_sequential,
         analysis_context=analysis_context,
-        selected_station_count=1,
+        selected_station_count=selected_station_count,
+        allows_multiple_station_selection=(outlier_model is not None),
     )
     if evidence_count == 0:
         st.markdown(
@@ -1822,11 +2810,14 @@ def _render_selected_station_evidence(
             unsafe_allow_html=True,
         )
     if selected_bundle.get("coverage_recipe") is None:
+        coverage_unavailable_key = (
+            "fig_selected_compare_coverage_unavailable_multi"
+            if selected_station_count > 1
+            else "fig_selected_compare_coverage_unavailable"
+        )
         st.markdown(
             scope_context_html(
-                t[
-                    "fig_selected_compare_coverage_unavailable"
-                ]
+                t[coverage_unavailable_key]
             ),
             unsafe_allow_html=True,
         )
@@ -1869,10 +2860,31 @@ def _render_selected_station_evidence(
     if selected_bundle.get("base_recipe") is not None:
         selected_recipe = dict(selected_bundle["base_recipe"])
         selected_recipe["time_bin"] = time_agg
+        selected_marker_recipe = _delta_snr_outlier_marker_recipe(
+            outlier_model,
+            t,
+            selected_identity_df,
+        )
+        selected_marker_cache_token = ()
+        if selected_marker_recipe is not None:
+            selected_recipe[
+                "delta_snr_outlier_markers"
+            ] = selected_marker_recipe
+            selected_marker_cache_token = (
+                "delta-snr-outlier-markers",
+                selected_marker_recipe["schema_version"],
+                selected_marker_recipe["detector_version"],
+                selected_marker_recipe["detection_resolution"],
+                selected_marker_recipe["candidate_signature"],
+            )
         _render_cached_recipe(
             selected_recipe,
             run_id=run_id,
-            cache_key=cache_key + (time_agg, "dual-temporal"),
+            cache_key=(
+                cache_key
+                + (time_agg, "dual-temporal")
+                + selected_marker_cache_token
+            ),
             subject="selected evidence",
             build_label="selected evidence figure build",
             render_figure=render_selected_evidence_export_figure,
@@ -1915,6 +2927,7 @@ def _render_segment_temporal_evidence(
     is_sequential,
     analysis_context,
     language,
+    outlier_model=None,
     timing_collector=None,
 ):
     """Render one segment-scoped Benchmark or Performance temporal view."""
@@ -1996,6 +3009,23 @@ def _render_segment_temporal_evidence(
             temporal_recipe["chronological_title"] = temporal_bundle[
                 "chronological_title_template"
             ].format(time_bin=selected_time_bin)
+    outlier_marker_cache_token = ()
+    if is_compare and temporal_recipe is not None:
+        outlier_marker_recipe = _delta_snr_outlier_marker_recipe(
+            outlier_model,
+            t,
+        )
+        if outlier_marker_recipe is not None:
+            temporal_recipe[
+                "delta_snr_outlier_markers"
+            ] = outlier_marker_recipe
+            outlier_marker_cache_token = (
+                "delta-snr-outlier-markers",
+                outlier_marker_recipe["schema_version"],
+                outlier_marker_recipe["detector_version"],
+                outlier_marker_recipe["detection_resolution"],
+                outlier_marker_recipe["candidate_signature"],
+            )
     snr_export_recipe = None
     coverage_export_recipe = None
     if not is_compare:
@@ -2015,7 +3045,8 @@ def _render_segment_temporal_evidence(
             temporal_recipe,
             run_id=run_id,
             cache_key=cache_key
-            + ("segment temporal evidence", selected_time_bin),
+            + ("segment temporal evidence", selected_time_bin)
+            + outlier_marker_cache_token,
             subject="segment temporal evidence",
             build_label="segment temporal evidence figure build",
             render_figure=render_segment_temporal_evidence_export_figure,
@@ -3174,11 +4205,67 @@ def _render_segment_inspector_body(
                 selected_directions=selected_directions,
             )
 
+        is_outlier_reporting_requested = (
+            not is_opportunity
+            and st.session_state.get(
+                RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY,
+                False,
+            )
+            is True
+        )
+        outlier_detection_policy = (
+            _enabled_delta_snr_outlier_detection_policy(st.session_state)
+            if is_outlier_reporting_requested
+            else None
+        )
+        is_outlier_reporting_enabled = (
+            is_outlier_reporting_requested
+            and outlier_detection_policy is not None
+        )
+        if (
+            is_outlier_reporting_requested
+            and not is_outlier_reporting_enabled
+        ):
+            st.warning(
+                t["msg_outlier_report_invalid_detector_settings"],
+                icon=":material/warning:",
+            )
+
         if df_seg.empty:
             st.info(
                 t["msg_results_no_stations_in_scope"],
                 icon=":material/info:",
             )
+            if is_outlier_reporting_enabled:
+                outlier_model = prepare_delta_snr_outlier_model(
+                    True,
+                    pd.DataFrame(),
+                    analysis_start_utc=analysis_start_t,
+                    analysis_end_utc=analysis_end_t,
+                    paired_unit_cadence_minutes=(
+                        analysis_context.tx_ab_repeat_interval_minutes
+                        if is_sequential
+                        else 2.0
+                    ),
+                    detection_policy=outlier_detection_policy,
+                )
+                outlier_report_view_model = (
+                    build_delta_snr_outlier_report_view_model(
+                        outlier_model,
+                        pd.DataFrame(),
+                    )
+                )
+                _render_delta_snr_outlier_report(
+                    outlier_model,
+                    outlier_report_view_model,
+                    t=t,
+                    language=presentation_context.language,
+                    analysis_id=analysis_id,
+                    run_id=run_id,
+                    scope_token=scope_token,
+                    is_sequential=is_sequential,
+                    analysis_context=analysis_context,
+                )
             register_inspector_export(
                 translations=t,
                 analysis_id=analysis_id,
@@ -3192,6 +4279,22 @@ def _render_segment_inspector_body(
                 selected_stations=[],
                 station_insights_df=pd.DataFrame(),
                 drilldown_selected_df=pd.DataFrame(),
+                allow_multiple_selected_stations=(
+                    is_outlier_reporting_enabled
+                ),
+                report_delta_snr_outlier_candidates=(
+                    is_outlier_reporting_enabled
+                ),
+                delta_snr_outlier_detector_version=(
+                    DELTA_SNR_OUTLIER_DETECTOR_VERSION
+                    if is_outlier_reporting_enabled
+                    else None
+                ),
+                delta_snr_outlier_detection_policy=(
+                    outlier_detection_policy
+                    if is_outlier_reporting_enabled
+                    else None
+                ),
             )
             if show_export_button:
                 render_download_all_results(t)
@@ -3245,6 +4348,12 @@ def _render_segment_inspector_body(
             analysis_end_t,
             preferred_segment_time_bin,
         )
+        outlier_cache_key_suffix = (
+            _delta_snr_outlier_segment_cache_suffix(
+                is_outlier_reporting_enabled,
+                outlier_detection_policy,
+            )
+        )
 
         segment_cache_key = (
             INSPECTOR_CACHE_VERSION,
@@ -3263,7 +4372,7 @@ def _render_segment_inspector_body(
             presentation_context.theme,
             title,
             selected_seg,
-        )
+        ) + outlier_cache_key_suffix
         segment_bundle, segment_cache_hit = _inspector_cache_get(
             run_id,
             "segment",
@@ -3295,6 +4404,8 @@ def _render_segment_inspector_body(
             segment_spot_total_count = None
             segment_spot_joint_count = None
             joint_lbl = t["txt_joint"]
+            outlier_model = None
+            outlier_report_view_model = None
 
             if has_plot_data:
                 with _timed_span(
@@ -3320,6 +4431,32 @@ def _render_segment_inspector_body(
                         segment_comparison_units,
                         require_paired_eligible=True,
                     )
+                    if is_outlier_reporting_enabled:
+                        with _timed_span(
+                            timing_collector,
+                            "Delta-SNR outlier candidate detection",
+                        ):
+                            outlier_model = prepare_delta_snr_outlier_model(
+                                True,
+                                segment_comparison_units,
+                                analysis_start_utc=analysis_start_t,
+                                analysis_end_utc=analysis_end_t,
+                                station_directions=(
+                                    _outlier_station_direction_lookup(df_seg)
+                                ),
+                                paired_unit_cadence_minutes=(
+                                    analysis_context.tx_ab_repeat_interval_minutes
+                                    if is_sequential
+                                    else 2.0
+                                ),
+                                detection_policy=outlier_detection_policy,
+                            )
+                            outlier_report_view_model = (
+                                build_delta_snr_outlier_report_view_model(
+                                    outlier_model,
+                                    segment_comparison_units,
+                                )
+                            )
                 segment_raw_values = (
                     segment_evidence_df["metric"]
                     if not segment_evidence_df.empty
@@ -3549,6 +4686,26 @@ def _render_segment_inspector_body(
                     del segment_comparison_units
                 del segment_temporal_rows
 
+            if is_outlier_reporting_enabled and outlier_model is None:
+                outlier_model = prepare_delta_snr_outlier_model(
+                    True,
+                    pd.DataFrame(),
+                    analysis_start_utc=analysis_start_t,
+                    analysis_end_utc=analysis_end_t,
+                    paired_unit_cadence_minutes=(
+                        analysis_context.tx_ab_repeat_interval_minutes
+                        if is_sequential
+                        else 2.0
+                    ),
+                    detection_policy=outlier_detection_policy,
+                )
+                outlier_report_view_model = (
+                    build_delta_snr_outlier_report_view_model(
+                        outlier_model,
+                        pd.DataFrame(),
+                    )
+                )
+
             del vals, evidence_meta_df
             segment_bundle = {
                 "view_model": compare_view_model,
@@ -3558,6 +4715,11 @@ def _render_segment_inspector_body(
                 "evidence_station_count": int(segment_station_count),
                 "evidence_count": int(segment_evidence_count),
             }
+            if is_outlier_reporting_enabled:
+                segment_bundle["outlier_model"] = outlier_model
+                segment_bundle["outlier_report_view_model"] = (
+                    outlier_report_view_model
+                )
             _inspector_cache_put(
                 run_id,
                 "segment",
@@ -3571,6 +4733,10 @@ def _render_segment_inspector_body(
         segment_summary = segment_bundle["summary"]
         segment_station_count = int(segment_bundle["evidence_station_count"])
         segment_evidence_count = int(segment_bundle["evidence_count"])
+        outlier_model = segment_bundle.get("outlier_model")
+        outlier_report_view_model = segment_bundle.get(
+            "outlier_report_view_model"
+        )
         ref_header = compare_view_model.reference_header
         col_u_name = compare_view_model.target_name
         is_local_median = compare_view_model.is_local_median
@@ -3673,6 +4839,7 @@ def _render_segment_inspector_body(
                     is_sequential=is_sequential,
                     analysis_context=analysis_context,
                     language=presentation_context.language,
+                    outlier_model=outlier_model,
                     timing_collector=timing_collector,
                 )
             else:
@@ -3688,7 +4855,20 @@ def _render_segment_inspector_body(
                     f"<br>{seg_line2}</div>",
                     unsafe_allow_html=True,
                 )
+            if is_outlier_reporting_enabled:
+                _render_delta_snr_outlier_report(
+                    outlier_model,
+                    outlier_report_view_model,
+                    t=t,
+                    language=presentation_context.language,
+                    analysis_id=analysis_id,
+                    run_id=run_id,
+                    scope_token=scope_token,
+                    is_sequential=is_sequential,
+                    analysis_context=analysis_context,
+                )
 
+        render_page_anchor(STATION_INSIGHTS_ANCHOR_ID)
         level_three_container = st.container(
             key=(
                 f"results_evidence_level_3_"
@@ -3702,7 +4882,11 @@ def _render_segment_inspector_body(
                 3,
                 t["lbl_results_level_stations"],
                 station_insights_title,
-                t["sub_results_station_insights"].format(
+                t[
+                    "sub_results_station_insights_multi"
+                    if is_outlier_reporting_enabled
+                    else "sub_results_station_insights"
+                ].format(
                     station_type=station_type
                 ),
                 station_scope_text(
@@ -3729,6 +4913,9 @@ def _render_segment_inspector_body(
                 is_compare=True,
                 is_sequential=is_sequential,
                 analysis_context=analysis_context,
+                allows_multiple_station_selection=(
+                    is_outlier_reporting_enabled
+                ),
             )
         # --- 1. Define layout columns ---
         # Give localized toggle labels enough room while preserving the filter width.
@@ -3790,6 +4977,25 @@ def _render_segment_inspector_body(
 
         # --- END FILTER ---
 
+        station_insights_display_df = sorted_disp_df
+        if is_outlier_reporting_enabled:
+            focused_station_identities = (
+                _focused_station_identities_for_scope(
+                    st.session_state,
+                    analysis_id=analysis_id,
+                    run_id=run_id,
+                    scope_token=scope_token,
+                )
+            )
+            station_insights_display_df = (
+                _prioritize_focused_station_identities(
+                    sorted_disp_df,
+                    station_col,
+                    t['tbl_col_loc'],
+                    focused_station_identities,
+                )
+            )
+
         with level_three_container:
             _render_reference_correction_notice(
                 t,
@@ -3800,30 +5006,67 @@ def _render_segment_inspector_body(
 
         # Die Tabelle rendert nun den gefilterten Zustand
         tbl_key = f"tbl_{analysis_id}_{run_id}_{scope_token}"
+        if is_outlier_reporting_enabled:
+            selection_revision = st.session_state.get(
+                RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY,
+                0,
+            )
+            if isinstance(selection_revision, bool) or not isinstance(
+                selection_revision,
+                Integral,
+            ):
+                selection_revision = 0
+            tbl_key += f"_multi_selection_{int(selection_revision)}"
         selected_stations_state_key = _selected_stations_persistent_state_key(
             True
         )
+        allow_multiple_station_selection = is_outlier_reporting_enabled
         configured_station_identities = st.session_state.get(
             selected_stations_state_key
         )
+        mode_appropriate_station_identities = (
+            _station_selection_for_outlier_reporting_mode(
+                configured_station_identities,
+                is_outlier_reporting_enabled=(
+                    is_outlier_reporting_enabled
+                ),
+            )
+        )
+        if (
+            mode_appropriate_station_identities
+            is not configured_station_identities
+        ):
+            # Turning the opt-in report off restores the historical singleton
+            # Benchmark selection contract without discarding the first path.
+            configured_station_identities = mode_appropriate_station_identities
+            st.session_state[
+                selected_stations_state_key
+            ] = configured_station_identities
         selection_changed_key = f"{tbl_key}_selection_changed"
         dataframe_kwargs = {
             "width": "stretch",
             "hide_index": True,
-            "selection_mode": "single-row",
+            "selection_mode": (
+                "multi-row"
+                if allow_multiple_station_selection
+                else "single-row"
+            ),
             "on_select": partial(
                 _mark_station_selection_changed,
                 selection_changed_key,
             ),
             "key": tbl_key,
-            "column_config": _snr_column_config(sorted_disp_df),
+            "column_config": _snr_column_config(
+                station_insights_display_df
+            ),
         }
         selection_default_rows, missing_station_identities = (
             _station_selection_default_rows(
-                sorted_disp_df,
+                station_insights_display_df,
                 station_col,
                 t['tbl_col_loc'],
                 configured_station_identities,
+                allow_multiple=allow_multiple_station_selection,
             )
         )
         with level_three_container:
@@ -3835,7 +5078,7 @@ def _render_segment_inspector_body(
         with _timed_span(timing_collector, "station insights table render"):
             tbl_event = _render_compact_dataframe(
                 level_three_container,
-                sorted_disp_df,
+                station_insights_display_df,
                 **dataframe_kwargs,
             )
 
@@ -3874,45 +5117,85 @@ def _render_segment_inspector_body(
         sel_rows = [
             row
             for row in raw_sel_rows
-            if 0 <= row < len(sorted_disp_df)
-        ][:1]
+            if 0 <= row < len(station_insights_display_df)
+        ]
+        if not allow_multiple_station_selection:
+            sel_rows = sel_rows[:1]
         _sync_selected_station_state_if_changed(
             selection_changed_key,
             selected_stations_state_key,
-            sorted_disp_df,
+            station_insights_display_df,
             sel_rows,
             station_col,
             t['tbl_col_loc'],
+            allow_multiple=allow_multiple_station_selection,
         )
-        if sel_rows:
+        selected_station_table = station_insights_display_df
+        selected_rows_for_evidence = sel_rows
+        if allow_multiple_station_selection:
+            # A report selection remains exact even when a local Station
+            # Insights filter currently hides one of its station identities.
+            selected_station_table = full_segment_disp_df
+            selected_rows_for_evidence, _missing_from_active_scope = (
+                _station_selection_default_rows(
+                    selected_station_table,
+                    station_col,
+                    t['tbl_col_loc'],
+                    st.session_state.get(selected_stations_state_key),
+                    allow_multiple=True,
+                )
+            )
+        if selected_rows_for_evidence:
             loc_col = t['tbl_col_loc']
-            selected_meta_df = sorted_disp_df.iloc[sel_rows][[station_col, loc_col, t['tbl_col_km'], t['tbl_col_az']]].copy()
+            selected_meta_df = selected_station_table.iloc[
+                selected_rows_for_evidence
+            ][
+                [station_col, loc_col, t['tbl_col_km'], t['tbl_col_az']]
+            ].copy()
             selected_meta_df[station_col] = selected_meta_df[station_col].astype(str)
             selected_meta_df[loc_col] = selected_meta_df[loc_col].astype(str)
             selected_meta_df = selected_meta_df.drop_duplicates(subset=[station_col, loc_col])
             selected_identity_df = selected_meta_df[[station_col, loc_col]].copy()
             selected_identity_df.columns = ["peer_sign", "peer_grid"]
             selected_identity_df = selected_identity_df.drop_duplicates()
-            selected_station = str(
-                selected_identity_df.iloc[0]["peer_sign"]
-            ).strip().upper()
-            selected_locator = str(
-                selected_identity_df.iloc[0]["peer_grid"]
-            ).strip().upper()
+            selected_identity_pairs = tuple(
+                (
+                    str(callsign).strip().upper(),
+                    str(locator).strip().upper(),
+                )
+                for callsign, locator in selected_identity_df[
+                    ["peer_sign", "peer_grid"]
+                ].itertuples(index=False, name=None)
+            )
             selected_station_labels = (
                 selected_identity_df["peer_sign"].astype(str) +
                 " (" + selected_identity_df["peer_grid"].astype(str) + ")"
             ).tolist()
-            selected_thresholded_rows = df_seg[
-                df_seg["peer_sign"].astype(str).str.strip().str.upper().eq(
-                    selected_station
+            selected_identity_pair_set = set(selected_identity_pairs)
+            selected_thresholded_mask = [
+                (callsign, locator) in selected_identity_pair_set
+                for callsign, locator in zip(
+                    df_seg["peer_sign"]
+                    .astype(str)
+                    .str.strip()
+                    .str.upper(),
+                    df_seg["peer_grid"]
+                    .astype(str)
+                    .str.strip()
+                    .str.upper(),
                 )
-                & df_seg[
-                    "peer_grid"
-                ].astype(str).str.strip().str.upper().eq(
-                    selected_locator
-                )
+            ]
+            selected_thresholded_rows = df_seg.loc[
+                selected_thresholded_mask
             ].copy()
+            selected_identity_cache_key = (
+                selected_identity_pairs[0]
+                if len(selected_identity_pairs) == 1
+                else (
+                    "multiple-selected-stations",
+                    selected_identity_pairs,
+                )
+            )
             level_four_container = st.container(
                 key=(
                     f"results_evidence_level_4_"
@@ -3945,8 +5228,7 @@ def _render_segment_inspector_body(
                             "comparison",
                             analysis_id,
                             scope_token,
-                            selected_station,
-                            selected_locator,
+                            *selected_identity_cache_key,
                             bool(is_sequential),
                             int(analysis_context.tx_ab_repeat_interval_minutes),
                             int(analysis_context.tx_ab_target_start_minute),
@@ -3973,6 +5255,7 @@ def _render_segment_inspector_body(
                             )
                         ),
                         language=presentation_context.language,
+                        outlier_model=outlier_model,
                         timing_collector=timing_collector,
                     )
                 level_four_container.markdown(
@@ -4033,6 +5316,9 @@ def _render_segment_inspector_body(
                             is_sequential,
                             analysis_context,
                             presentation_context.language,
+                            allow_multiple_station_selection=(
+                                is_outlier_reporting_enabled
+                            ),
                             timing_collector=timing_collector,
                         )
 
@@ -4050,7 +5336,11 @@ def _render_segment_inspector_body(
         else:
             level_three_container.markdown(
                 transition_prompt_html(
-                    t["txt_results_transition_stations"]
+                    t[
+                        "txt_results_transition_stations_multi"
+                        if is_outlier_reporting_enabled
+                        else "txt_results_transition_stations"
+                    ]
                 ),
                 unsafe_allow_html=True,
             )
@@ -4085,6 +5375,22 @@ def _render_segment_inspector_body(
             drilldown_selected_df=drilldown_selected_df,
             all_drilldown_context=all_drilldown_context,
             reference_snr_header=f'{ref_header} SNR (dB)',
+            allow_multiple_selected_stations=(
+                allow_multiple_station_selection
+            ),
+            report_delta_snr_outlier_candidates=(
+                is_outlier_reporting_enabled
+            ),
+            delta_snr_outlier_detector_version=(
+                DELTA_SNR_OUTLIER_DETECTOR_VERSION
+                if is_outlier_reporting_enabled
+                else None
+            ),
+            delta_snr_outlier_detection_policy=(
+                outlier_detection_policy
+                if is_outlier_reporting_enabled
+                else None
+            ),
         )
 
         if show_export_button:

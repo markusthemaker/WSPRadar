@@ -5,10 +5,17 @@ from unittest.mock import Mock
 import pytest
 
 from config import DEFAULT_BAND
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+    DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD,
+    DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD,
+)
 from core.analysis_context import COMPARISON_NONE
 from i18n import GUIDED_INPUTS, LEGACY_LOCALIZED_STATE_VALUES, T
 from ui import callbacks, state_manager
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
+from ui.classic_input_state import is_classic_input_ready
 from ui.components import config_fields, config_panel
 from ui.components.config_panel import (
     _benchmark_mode_options,
@@ -413,6 +420,280 @@ def test_population_toggles_register_explicit_edits_before_owner_callback(
         "val_filter_moving": False,
     }
     owner_callback.assert_called_once_with("scope_and_evidence")
+
+
+def test_outlier_reporting_toggle_uses_presentation_only_callback_contract(
+    monkeypatch,
+):
+    """Expose the canonical key and optional non-resetting Guided callback."""
+    toggle = Mock()
+    owner_callback = Mock()
+    labels = {
+        "lbl_report_delta_snr_outlier_candidates": "Report outliers",
+        "tt_report_delta_snr_outlier_candidates": "Inspect unusual changes.",
+    }
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(session_state=_SessionState(), toggle=toggle),
+    )
+
+    config_fields.render_delta_snr_outlier_reporting_field(
+        labels,
+        on_change=owner_callback,
+        on_change_args=("scope_and_evidence",),
+    )
+
+    toggle.assert_called_once_with(
+        "Report outliers",
+        key="val_report_delta_snr_outlier_candidates",
+        help="Inspect unusual changes.",
+        on_change=callbacks.handle_delta_snr_outlier_reporting_change,
+        args=(owner_callback, ("scope_and_evidence",)),
+    )
+
+
+def test_enabled_outlier_reporting_renders_three_shared_gates_directly_below_toggle(
+    monkeypatch,
+):
+    """Expose three bounded, explained gates without the retired duration matrix."""
+    session_state = _SessionState(
+        {
+            "val_report_delta_snr_outlier_candidates": True,
+            **{
+                f"val_{config_field}": getattr(
+                    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                    policy_field,
+                )
+                for config_field, policy_field in (
+                    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                )
+            },
+        }
+    )
+    number_input_calls = []
+    rendered_button = Mock()
+    rendered_error = Mock()
+    rendered_caption = Mock()
+    rendered_columns = Mock()
+    fake_streamlit = SimpleNamespace(
+        session_state=session_state,
+        toggle=Mock(),
+        caption=rendered_caption,
+        columns=rendered_columns,
+        number_input=lambda label, **kwargs: number_input_calls.append(
+            (label, kwargs)
+        ),
+        error=rendered_error,
+        button=rendered_button,
+    )
+    monkeypatch.setattr(config_panel, "st", fake_streamlit)
+
+    config_fields.render_delta_snr_outlier_reporting_field(T["en"])
+
+    expected_fields = [
+        (
+            "val_delta_snr_outlier_minimum_departure_db",
+            "lbl_delta_snr_outlier_minimum_departure_db",
+            "tt_delta_snr_outlier_minimum_departure_db",
+            3.0,
+        ),
+        (
+            "val_delta_snr_outlier_minimum_robust_z",
+            "lbl_delta_snr_outlier_minimum_robust_z",
+            "tt_delta_snr_outlier_minimum_robust_z",
+            4.0,
+        ),
+        (
+            "val_delta_snr_outlier_maximum_baseline_difference_db",
+            "lbl_delta_snr_outlier_maximum_baseline_difference_db",
+            "tt_delta_snr_outlier_maximum_baseline_difference_db",
+            3.0,
+        ),
+    ]
+    assert len(number_input_calls) == len(expected_fields) == 3
+    for (label, kwargs), (
+        state_key,
+        label_key,
+        help_key,
+        expected_default,
+    ) in zip(number_input_calls, expected_fields):
+        assert label == T["en"][label_key]
+        assert kwargs["key"] == state_key
+        assert kwargs["help"] == T["en"][help_key]
+        assert kwargs["on_change"] is config_panel.reset_audit
+        assert kwargs["args"] == ()
+        assert session_state[state_key] == expected_default
+    assert all(
+        call[1]["min_value"] == DELTA_SNR_OUTLIER_MINIMUM_THRESHOLD
+        and call[1]["max_value"] == DELTA_SNR_OUTLIER_MAXIMUM_THRESHOLD
+        for call in number_input_calls
+    )
+    rendered_caption.assert_not_called()
+    rendered_columns.assert_not_called()
+    rendered_error.assert_not_called()
+    rendered_button.assert_called_once_with(
+        "Reset detector defaults",
+        key="reset_delta_snr_outlier_detector_defaults",
+        on_click=callbacks.reset_delta_snr_outlier_detector_defaults,
+        args=(config_panel.reset_audit, ()),
+    )
+
+
+def test_reset_outlier_detector_defaults_preserves_enabled_state_and_notifies_owner(
+    monkeypatch,
+):
+    """Reset only policy scalars while leaving the opt-in and callback ownership intact."""
+    session_state = _SessionState(
+        {
+            "val_report_delta_snr_outlier_candidates": True,
+            **{
+                f"val_{config_field}": 9.0
+                for config_field, _policy_field in (
+                    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                )
+            },
+        }
+    )
+    owner_callback = Mock()
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    callbacks.reset_delta_snr_outlier_detector_defaults(
+        owner_callback,
+        ("scope_and_evidence",),
+    )
+
+    assert session_state.val_report_delta_snr_outlier_candidates is True
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        assert session_state[f"val_{config_field}"] == getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
+    owner_callback.assert_called_once_with("scope_and_evidence")
+
+
+def test_classic_outlier_callbacks_invalidate_results_without_starting_analysis(
+    monkeypatch,
+):
+    """Use the ordinary Classic reset callback for toggle and threshold edits."""
+    reset = Mock()
+    session_state = _SessionState(
+        {"val_report_delta_snr_outlier_candidates": True}
+    )
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(callbacks, "reset_audit", reset)
+
+    callbacks.handle_delta_snr_outlier_reporting_change()
+    callbacks.reset_delta_snr_outlier_detector_defaults()
+
+    assert reset.call_count == 2
+    assert session_state.val_report_delta_snr_outlier_candidates is True
+    assert session_state.val_delta_snr_outlier_minimum_departure_db == 3.0
+    assert session_state.val_delta_snr_outlier_minimum_robust_z == 4.0
+    assert session_state.val_delta_snr_outlier_maximum_baseline_difference_db == 3.0
+
+
+def test_classic_readiness_validates_detector_policy_only_when_enabled():
+    """Disable Run for invalid visible thresholds but ignore retained opt-out tuning."""
+    state = {
+        "classic_question": "rx_benchmark",
+        "val_analysis_direction": "rx",
+        "val_comp_mode": "hardware_ab",
+        "val_report_delta_snr_outlier_candidates": False,
+        "val_delta_snr_outlier_minimum_departure_db": 0.0,
+    }
+
+    assert is_classic_input_ready(state)
+    state["val_report_delta_snr_outlier_candidates"] = True
+    assert not is_classic_input_ready(state)
+
+
+def test_outlier_reporting_opt_out_normalizes_selection_before_owner_callback(
+    monkeypatch,
+):
+    """Make same-rerun config and URL serialization singleton-safe."""
+    callback_observations = []
+    session_state = _SessionState(
+        {
+            "val_report_delta_snr_outlier_candidates": False,
+            "val_results_selected_stations_compare": [
+                {"callsign": "A1AAA", "locator": "AA00"},
+                {"callsign": "B2BBB", "locator": "BB11"},
+            ],
+        }
+    )
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+
+    callbacks.handle_delta_snr_outlier_reporting_change(
+        lambda marker: callback_observations.append(
+            (
+                marker,
+                list(session_state.val_results_selected_stations_compare),
+            )
+        ),
+        ("after-normalization",),
+    )
+
+    assert session_state.val_results_selected_stations_compare == [
+        {"callsign": "A1AAA", "locator": "AA00"}
+    ]
+    assert callback_observations == [
+        (
+            "after-normalization",
+            [{"callsign": "A1AAA", "locator": "AA00"}],
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("result_type", "expected_calls"),
+    (("performance", 0), ("benchmark", 1)),
+)
+def test_classic_advanced_outlier_reporting_is_benchmark_only(
+    monkeypatch,
+    result_type,
+    expected_calls,
+):
+    """Hide the optional reporting setting from Classic Performance."""
+    outlier_field = Mock()
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=_SessionState({"config_panels_expanded": True}),
+            expander=Mock(return_value=_NullContext()),
+            columns=Mock(return_value=(_NullContext(), _NullContext())),
+            markdown=Mock(),
+        ),
+    )
+    monkeypatch.setattr(config_panel, "render_station_population_fields", Mock())
+    monkeypatch.setattr(config_panel, "render_scope_fields", Mock())
+    monkeypatch.setattr(config_panel, "render_evidence_threshold_fields", Mock())
+    monkeypatch.setattr(
+        config_panel,
+        "render_delta_snr_outlier_reporting_field",
+        outlier_field,
+    )
+
+    config_panel.render_advanced_expander(T["en"], result_type=result_type)
+
+    assert outlier_field.call_count == expected_calls
+    if result_type == "benchmark":
+        outlier_field.assert_called_once_with(T["en"])
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
@@ -1034,6 +1315,14 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert session_state.val_results_selected_ranges_absolute == "all"
     assert session_state.val_results_selected_directions_absolute == "all"
     assert session_state.val_results_segment_time_bin_absolute == "auto"
+    assert session_state.val_report_delta_snr_outlier_candidates is False
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        assert session_state[f"val_{config_field}"] == getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
     default_start_utc = datetime.combine(
         session_state.val_start_d,
         session_state.val_start_t,
@@ -1050,6 +1339,7 @@ def test_missing_benchmark_design_defaults_to_success_only(monkeypatch):
     assert _default_config()["segment_evidence_time_bin_absolute"] == "auto"
     assert _default_config()["snr_correction_mode"] == "no_offset"
     assert _default_config()["band"] == DEFAULT_BAND
+    assert _default_config()["report_delta_snr_outlier_candidates"] is False
     analysis_context = build_analysis_context_from_session_state({})
     assert analysis_context.comparison_mode == COMPARISON_NONE
     assert analysis_context.band == DEFAULT_BAND
@@ -1114,6 +1404,26 @@ def test_correction_workflow_mode_does_not_change_analysis_context():
     ) == build_analysis_context_from_session_state(establishment_state)
 
 
+def test_outlier_reporting_toggle_does_not_change_analysis_context():
+    """Keep the optional report outside scientific and provider identities."""
+    base_state = {
+        "val_analysis_direction": "rx",
+        "val_comp_mode": "hardware_ab",
+        "val_report_delta_snr_outlier_candidates": False,
+    }
+    reporting_state = {
+        **base_state,
+        "val_report_delta_snr_outlier_candidates": True,
+        "val_delta_snr_outlier_minimum_departure_db": 4.0,
+        "val_delta_snr_outlier_minimum_robust_z": 5.0,
+        "val_delta_snr_outlier_maximum_baseline_difference_db": 4.0,
+    }
+
+    assert build_analysis_context_from_session_state(
+        base_state
+    ) == build_analysis_context_from_session_state(reporting_state)
+
+
 @pytest.mark.parametrize(
     ("legacy_label", "expected_mode"),
     tuple(LEGACY_LOCALIZED_STATE_VALUES.items()),
@@ -1173,6 +1483,7 @@ def test_reset_config_returns_to_success_only(monkeypatch):
     assert session_state.val_results_time_bin_compare is None
     assert session_state.val_results_time_bin_absolute is None
     assert session_state.val_results_segment_time_bin_absolute == "auto"
+    assert session_state.val_report_delta_snr_outlier_candidates is False
     reset_start_utc = datetime.combine(
         session_state.val_start_d,
         session_state.val_start_t,
@@ -1697,6 +2008,7 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
     assert session_state.val_comp_mode == "reference_station"
     assert session_state.val_max_peer_distance_km == 5000
     assert session_state.val_min_opportunities == 5
+    assert session_state.val_report_delta_snr_outlier_candidates is False
     assert session_state.val_results_show_non_joint is False
     assert session_state.val_results_show_zero_target is False
     assert session_state.val_results_selected_ranges_compare == "all"

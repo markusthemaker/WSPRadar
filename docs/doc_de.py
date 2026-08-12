@@ -145,21 +145,30 @@ Ziel ist keine schmeichelhafte Zahl. Ziel ist ein Ergebnis, das sich verstehen, 
     * [3.3 Evidenzgerechte Schlussfolgerung formulieren](#sec-4-3)
     * [3.4 Lauf und Kontext sichern](#sec-4-4)
 
-**Teil II: Bedienelemente und Fehlersuche**
+**Teil II: Bedienelemente, Fehlersuche und Ausreißererkennung**
 
-* [4. Bedienelemente und Konfiguration](#sec-5)
+* [4. Bedienelemente, Konfiguration und Fehlersuche](#sec-5)
     * [4.1 Ablaufsteuerung](#sec-5-1)
     * [4.2 Frage, Target und Messzeitraum](#sec-5-2)
     * [4.3 Benchmark-Design und -Einstellungen](#sec-5-3)
     * [4.4 Filter und Evidenzschwellen](#sec-5-4)
     * [4.5 Karten-, Inspektor- und Exporteinstellungen](#sec-5-5)
-* [5. Fehlersuche und Datenqualität](#sec-6)
-    * [5.1 Zuerst die Laufdefinition prüfen](#sec-6-1)
-    * [5.2 Fehler nach Symptom eingrenzen](#sec-6-2)
-    * [5.3 Rufzeichen und Locator prüfen](#sec-6-3)
-    * [5.4 Fallback für historische Decode-Codes](#sec-6-4)
-    * [5.5 Wie das Target-Active Gate die Evidenz prägt](#sec-6-5)
-    * [5.6 Umgang mit Upstream-Daten](#sec-6-6)
+    * [4.6 Bedienelemente der Benchmark-Ausreißererkennung](#sec-5-6)
+    * [4.7 Fehlersuche und Datenqualität](#sec-5-7)
+        * [4.7.1 Zuerst die Laufdefinition prüfen](#sec-6-1)
+        * [4.7.2 Fehler nach Symptom eingrenzen](#sec-6-2)
+        * [4.7.3 Rufzeichen und Locator prüfen](#sec-6-3)
+        * [4.7.4 Fallback für historische Decode-Codes](#sec-6-4)
+        * [4.7.5 Wie das Target-Active Gate die Evidenz prägt](#sec-6-5)
+        * [4.7.6 Umgang mit Upstream-Daten](#sec-6-6)
+* [5. Delta-SNR-Ausreißererkennung](#sec-outlier)
+    * [5.1 Zweck und Evidenzbereich](#sec-outlier-1)
+    * [5.2 Lokale Baseline und robuste Streuung](#sec-outlier-2)
+    * [5.3 Kandidatenbildung und Baseline-Verfeinerung](#sec-outlier-3)
+    * [5.4 Qualifikation, Prüfung eines starken Kerns und berichtete Grenzen](#sec-outlier-4)
+    * [5.5 Deskriptive Ereignisklassen](#sec-outlier-5)
+    * [5.6 Funkwegübergreifender Kontext und Diagnose](#sec-outlier-6)
+    * [5.7 Interpretation und Fehlersuche](#sec-outlier-7)
 
 **Teil III: Wissenschaftliche Grundlagen, Methoden und Aussagen**
 
@@ -185,6 +194,7 @@ Ziel ist keine schmeichelhafte Zahl. Ziel ist ein Ergebnis, das sich verstehen, 
         * [7.8.5 Deskriptive Streuung und Visualisierungstransformationen](#sec-7-8-5)
     * [7.9 Geografie, Sonnenstandsklassifikation und Populationsfilter](#sec-7-9)
     * [7.10 Abhängigkeit, Unsicherheit und Geltungsbereich der Validierung](#sec-7-10)
+    * [7.11 Robuste Delta-SNR-Ereigniserkennung mit lokaler Basislinie](#sec-7-11)
 * [8. Evidenzgerechte Aussagen und Reproduzierbarkeit](#sec-8)
     * [8.1 Aussageklassen und evidenzgerechte Formulierungen](#sec-8-1)
     * [8.2 Interpretationsgrenzen](#sec-8-2)
@@ -630,13 +640,15 @@ WSPRadar kann die konfigurierte Analyse und die verarbeitete Evidenz sichern, ab
 
 <a id="part-ii"></a>
 
-## Teil II: Bedienelemente und Fehlersuche
+## Teil II: Bedienelemente, Fehlersuche und Ausreißererkennung
 
 Nutze diesen Teil als Nachschlagewerk beim Einrichten, Wiederholen oder Diagnostizieren einer Analyse. Er dokumentiert die exakten Bedienelemente, Standardwerte, gespeicherten Einstellungen und wissenschaftlichen Auswirkungen, die für den Funkbetrieb relevant sind.
 
+Kapitel 5 dokumentiert die Delta-SNR-Ausreißererkennung für Benchmark als fachkundige Inspektionsmethode. Ihre formale wissenschaftliche Definition steht in [Abschnitt 7.11](#sec-7-11); sie bleibt bewusst außerhalb des Leitfadens für den Funkbetrieb in Teil I.
+
 <a id="sec-5"></a>
 
-### 4. Bedienelemente und Konfiguration
+### 4. Bedienelemente, Konfiguration und Fehlersuche
 
 WSPRadar unterscheidet Bedienelemente, welche die beibehaltene wissenschaftliche Evidenz verändern, von solchen, die nur die Inspektion bereits abgeschlossener Evidenz beeinflussen.
 
@@ -745,7 +757,7 @@ Wähle Filter und Schwellen vor einem bestätigenden Lauf aus der beabsichtigten
 
 Die beiden Ausschluss-Standardwerte gelten nur für unveränderte interaktive Konfigurationen. Eine Performance-Konfiguration startet mit beiden Ausschlüssen; eine Benchmark-Konfiguration ohne beide. Sobald der Bediener einen der Ausschlüsse manuell ändert, bleibt dieser ausdrückliche Wert über Wechsel der Frage hinweg erhalten und wird nicht mehr durch einen Ergebnistyp-Standard ersetzt. Geladene Konfigurationen, Demos und Analyse-URLs behalten ihre ausdrücklich gespeicherten Einstellungen ebenfalls bei.
 
-`Maximale Peer-Entfernung vom Target (km)` begrenzt die ausgewertete Population erst, nachdem die Archivzeilen abgerufen wurden. Eine Verringerung umgeht deshalb nicht die Zeilengrenze des Archivs. Ein kleinerer lokaler Nachbarschaftsradius und `Spezial-Rufzeichen Q, 0, 1 ausschließen` können bei bestimmten Analysen die abgerufene Population verkleinern; [Abschnitt 5.6](#sec-6-6) behandelt zu große Abrufe.
+`Maximale Peer-Entfernung vom Target (km)` begrenzt die ausgewertete Population erst, nachdem die Archivzeilen abgerufen wurden. Eine Verringerung umgeht deshalb nicht die Zeilengrenze des Archivs. Ein kleinerer lokaler Nachbarschaftsradius und `Spezial-Rufzeichen Q, 0, 1 ausschließen` können bei bestimmten Analysen die abgerufene Population verkleinern; [Abschnitt 4.7.6](#sec-6-6) behandelt zu große Abrufe.
 
 <a id="sec-5-5"></a>
 
@@ -763,15 +775,31 @@ Die beiden Ausschluss-Standardwerte gelten nur für unveränderte interaktive Ko
 
 Die chronologische Aggregation verändert weder die Klassifikation von Gelegenheiten noch die Benchmark-Paarbildung oder die festen einstündigen UTC-Profile. Leere Performance-Zeit- oder Entfernungs-Bins bleiben fehlende Evidenz und werden nicht zu künstlichen Beobachtungen mit einer Rate von null. Die Exportinhalte stehen in [Abschnitt 8.4](#sec-8-4).
 
-<a id="sec-6"></a>
+<a id="sec-5-6"></a>
 
-### 5. Fehlersuche und Datenqualität
+#### 4.6 Bedienelemente der Benchmark-Ausreißererkennung
+
+Die Delta-SNR-Ausreißererkennung für Benchmark ist eine optionale fachkundige Analyseebene über der beibehaltenen nativen gepaarten Evidenz. Eine native gepaarte Einheit ist ein simultaner **Joint Spot** oder bei sequenziellem TX Hardware A/B ein **vollständiges geplantes Paar**. Die Erkennung läuft getrennt für jeden exakten Peer-Funkweg `Rufzeichen + Locator` und unabhängig vom ausgewählten Darstellungs-Bin der **Zeitlichen Evidenz**. Einseitige Evidenz kann ein fehlendes Delta SNR nicht ersetzen. [Kapitel 5](#sec-outlier) erklärt Bedienung und Interpretation; [Abschnitt 7.11](#sec-7-11) definiert die Methode formal.
+
+| Bedienelement | Standard / Wertebereich | Methodensymbol | Wissenschaftliche Wirkung |
+|---|---|---|---|
+| **`ΔSNR-Ausreißerkandidaten melden`** | aus | — | Aktiviert den optionalen Detektor und Ausreißerbericht ausschließlich für Benchmark. Ist die Einstellung aus, fügt WSPRadar dem Ergebnis weder Ausreißererkennung, -felder, -markierungen oder -begriffe noch Ausreißer-Exportmetadaten hinzu. |
+| **`Minimale absolute ΔSNR-Abweichung (dB)`** | `3.0`; einschließlich `0.1`–`100.0 dB` | $D_{\min}$ | Verlangt, dass das mediane Residuum des Ereignisses und jeder berichtete Grenzanker mindestens um diesen Betrag von der lokalen Baseline abweichen. |
+| **`Minimaler robuster z-Wert`** | `4.0`; einschließlich `0.1`–`100.0` | $Z_{\min}$ | Verlangt, dass sowohl der Ereignismedian als auch jeder berichtete Grenzanker diesen absoluten robusten lokalen Streuungswert erreichen. Der Wert ist deskriptiv und weder eine kalibrierte Wahrscheinlichkeit noch ein konventionelles gaußsches Signifikanzniveau. |
+| **`Maximaler Unterschied zwischen Baseline davor/danach (dB)`** | `3.0`; einschließlich `0.1`–`100.0 dB` | $H_{\max}$ | Verwirft einen Kandidaten, wenn sich die Flankenmediane vor und nach dem Ereignis um mehr als diesen Betrag unterscheiden, damit eine instabile oder verschobene Baseline nicht als vorübergehende Auslenkung berichtet wird. |
+
+Der Schalter und die drei Schwellen werden gespeichert, soweit sie für die Analyse gelten. Ihre Änderung kennzeichnet die Konfiguration als geändert, startet aber nicht automatisch eine Analyse; berechne ein neues Ergebnis mit der normalen richtungsabhängigen Aktion **`RX-Analyse starten`** / **`TX-Analyse starten`**. Alle drei Schwellen gelten unverändert für Spot-Impulse, kurze Ausbrüche und anhaltende Auslenkungen. Für längere Ereignisse gibt es weder einen Dauerbonus noch eine schwächere Schwelle. Ein kleineres $D_{\min}$ oder $Z_{\min}$ beziehungsweise ein größeres $H_{\max}$ macht die Berichterstattung großzügiger; die jeweils umgekehrte Änderung macht sie selektiver. Lege die Schwellen für eine bestätigende Untersuchung vor Sichtung der Kandidaten fest und sichere sie, statt sie so lange anzupassen, bis ein gewünschtes Ereignis erscheint.
+
+<a id="sec-6"></a>
+<a id="sec-5-7"></a>
+
+#### 4.7 Fehlersuche und Datenqualität
 
 Prüfe die Laufdefinition, bevor du Filter oder Schwellen veränderst. Ein weiterer Bereich kann mehr Evidenz erhalten, aber keine falsche Identität, kein falsches Band, Zeitfenster oder physisches Zeitplanschema reparieren.
 
 <a id="sec-6-1"></a>
 
-#### 5.1 Zuerst die Laufdefinition prüfen
+##### 4.7.1 Zuerst die Laufdefinition prüfen
 
 1. **Target-Identität:** exaktes Rufzeichen beziehungsweise exakte Meldekennung einschließlich Suffix.
 2. **QTH:** konfigurierter Locator und die tatsächlich hochgeladenen ersten vier Zeichen.
@@ -785,7 +813,7 @@ Erst nach diesen Prüfungen sollten Evidenzschwellen, Ausschlüsse, Sonnenstand 
 
 <a id="sec-6-2"></a>
 
-#### 5.2 Fehler nach Symptom eingrenzen
+##### 4.7.2 Fehler nach Symptom eingrenzen
 
 | Symptom | Nächste Prüfungen |
 |---|---|
@@ -804,7 +832,7 @@ Ein Problem mit Upstream-Daten verändert, was die Quelle geliefert hat. Ein Pro
 
 <a id="sec-6-3"></a>
 
-#### 5.3 Rufzeichen und Locator prüfen
+##### 4.7.3 Rufzeichen und Locator prüfen
 
 Performance und jedes Benchmark-Design ordnen Target-Zeilen anhand des exakten Rufzeichens plus des Grid-4 des Target-QTHs zu. Ein Target, das `JN37` meldet, während `JN38` konfiguriert ist, wird nicht zugeordnet.
 
@@ -814,13 +842,13 @@ Rufzeichen müssen die dokumentierte Regel für Meldekennungen mit 3 bis 15 Zeic
 
 <a id="sec-6-4"></a>
 
-#### 5.4 Fallback für historische Decode-Codes
+##### 4.7.4 Fallback für historische Decode-Codes
 
 WSPRadar fragt WSPR-2-Zeilen zunächst mit `code = 1` ab. Liefert diese strenge Abfrage keine Target-seitige Evidenz, wird sie aus Gründen der historischen Kompatibilität ohne dieses Prädikat wiederholt; der Laufstatus meldet den Fallback. Der Fallback erweitert die Auswahl und kann für Performance und Benchmark unterschiedlich ausfallen.
 
 <a id="sec-6-5"></a>
 
-#### 5.5 Wie das Target-Active Gate die Evidenz prägt
+##### 4.7.5 Wie das Target-Active Gate die Evidenz prägt
 
 Das Target-Active Gate behält simultane Zyklen nur dann bei, wenn eine Beteiligung des Targets beobachtbar ist. Referenzmeldungen aus Zeiten, in denen das Target offline war, werden deshalb nicht automatisch als Misserfolge des Targets gezählt.
 
@@ -828,7 +856,7 @@ Das Gate ist bewusst Target-zentriert. Die Betriebsbereitschaft der Referenz ble
 
 <a id="sec-6-6"></a>
 
-#### 5.6 Umgang mit Upstream-Daten
+##### 4.7.6 Umgang mit Upstream-Daten
 
 Öffentliche WSPR-Archive können Duplikate, falsche Spots, fehlerhafte Locator oder Leistungsangaben, verspätete Uploads und spätere Korrekturen enthalten. wspr.live beschreibt aktuelle Daten als um einige Minuten verzögert. Etwa **fünf Minuten** nach dem letzten Zyklus zu warten ist eine praktische Schätzung und keine Vollständigkeitsgarantie <a href="#ref-10">[Ref-10]</a>.
 
@@ -843,7 +871,90 @@ Der **System Audit Status** dokumentiert die für die Auswertung notwendige Herk
 
 Diese Angaben zeigen, aus welcher Quelle die Evidenz stammt und ob der historische Kompatibilitäts-Fallback verwendet wurde; sie definieren keine andere wissenschaftliche Methode.
 
-Ein Archivabruf mit mehr als 1.000.000 vollständigen Zeilen wird vor der Analyse abgelehnt und nicht stillschweigend abgeschnitten. Verkürze das Zeitfenster oder verwende einen passenden archivseitigen Populationsfilter wie in [Abschnitt 5.2](#sec-6-2) beschrieben.
+Ein Archivabruf mit mehr als 1.000.000 vollständigen Zeilen wird vor der Analyse abgelehnt und nicht stillschweigend abgeschnitten. Verkürze das Zeitfenster oder verwende einen passenden archivseitigen Populationsfilter wie in [Abschnitt 4.7.2](#sec-6-2) beschrieben.
+
+<a id="sec-outlier"></a>
+### 5. Delta-SNR-Ausreißererkennung
+
+Benchmark-Zusammenfassungen beschreiben das typische Verhalten von Target gegenüber Referenz über die beibehaltene gepaarte Evidenz. Die Delta-SNR-Ausreißererkennung stellt eine engere, zeitlich lokale Frage: **Ist ein exakter Funkweg vorübergehend von seinem eigenen erwarteten lokalen Delta SNR abgewichen?** WSPRadar beantwortet sie mit einem robusten Ereignisdetektor auf Basis einer lokalen Baseline. Er untersucht native gepaarte Evidenz, bildet vorläufige gleichgerichtete Ereignisse, schließt jeden Kandidaten aus seiner eigenen Baseline-Berechnung aus und berichtet nur den durch starke Anker begrenzten Bereich, der weiterhin alle konfigurierten Bedingungen erfüllt.
+
+Dies ist ein fachkundiges Diagnosewerkzeug und keine automatische Erklärung. Ein berichtetes Ereignis ist ein begrenztes Muster in beibehaltenen gepaarten Beobachtungen. Es weist für sich allein weder Hardwarefehler noch Ausbreitungsart, Antennenänderung, Ursache, statistische Signifikanz oder ununterbrochene physische Dauer nach. Umgekehrt kann das Ausbleiben eines Berichts bedeuten, dass dem Detektor keine stabile lokale Baseline zur Verfügung stand — nicht, dass keine physische Änderung auftrat. [Abschnitt 7.11](#sec-7-11) enthält die formale Methode und Notation.
+
+<a id="sec-outlier-1"></a>
+#### 5.1 Zweck und Evidenzbereich
+
+Die Erkennungseinheit ist eine vollständige gepaarte Beobachtung: bei simultanen Benchmarks ein nativer **Joint Spot** mit bereits vorhandenem korrigierten Delta SNR Target minus Referenz, bei sequenziellem TX A/B ein vollständiges **geplantes Paar**. Nur solche gepaarten Einheiten können ein Ereignis qualifizieren. Ein Outcome `Only Target` oder `Only Reference` besitzt kein SNR der fehlenden Seite und kann daher nicht in Detektorevidenz umgewandelt werden.
+
+Die Erkennung läuft unabhängig für jeden exakten Peer-Funkweg `Rufzeichen + Locator`. Ein stark positives Residuum auf einem Funkweg und ein stark negatives Residuum auf einem anderen sind getrennte Kandidaten. Das ausgewählte Darstellungs-Bin der **Zeitlichen Evidenz** verändert den Detektor nicht, weil diese Aggregation erst nach der Erkennung in nativer Auflösung erfolgt.
+
+Die Zerlegung in Target- und Referenz-SNR sowie nahe einseitige Outcomes bleiben als Diagnose verfügbar. Sie können zeigen, ob eine berichtete Delta-SNR-Auslenkung mit einer Bewegung auf einer Seite oder mit veränderter Paarbarkeit zusammenfiel; sie qualifizieren, verstärken oder verlängern das Ereignis jedoch nicht.
+
+<a id="sec-outlier-2"></a>
+#### 5.2 Lokale Baseline und robuste Streuung
+
+WSPRadar schätzt das erwartete lokale Delta SNR aus Evidenz vor und nach einem möglichen Ereignis. Für diese Baseline-Berechnung werden native gepaarte Beobachtungen auf einen Median je belegter, UTC-ausgerichteter 10-Minuten-Zelle reduziert; Ereigniserkennung und berichtete Grenzen bleiben in der nativen Auflösung der gepaarten Einheiten.
+
+Der Detektor untersucht auf jeder Seite bis zu sechs Stunden belegter Evidenz. Er schließt den Kandidaten und einen Schutzbereich aus, verlangt davor wie danach mindestens vier belegte 10-Minuten-Zellen und ergänzt keine fehlenden Zellen. Der Median jeder Flanke bildet die Baseline davor beziehungsweise danach. Ihre Differenz darf **`Maximaler Unterschied zwischen Baseline davor/danach (dB)`** nicht überschreiten. Das gleich gewichtete Zentrum der beiden Flankenmediane ist das erwartete lokale Delta SNR. Fehlt einer Flanke die erforderliche Unterstützung oder unterscheiden sich beide zu stark, bleibt der Funkweg für diesen Kandidaten unklassifiziert; es wird kein Ausreißer berichtet.
+
+Jede native gepaarte Einheit wird anschließend als Residuum relativ zu dieser lokalen Baseline ausgedrückt. Ein positives Residuum liegt über dem erwarteten lokalen Delta SNR Target minus Referenz, ein negatives darunter. Die lokale Streuung wird robust aus den beiden Flanken geschätzt, nachdem jede um ihren eigenen Median zentriert wurde. Als Skala dient zunächst die mediane absolute Abweichung; ist diese null, die Hälfte des Interquartilsabstands; sind beide null, ein Quantisierungs-Sockel von `0.5 dB`.
+
+Der daraus gebildete modifizierte robuste z-Wert beschreibt die Abweichung relativ zu dieser robusten lokalen Skala. Damit lässt sich ein Residuum mit der nahen Streuung desselben Funkwegs vergleichen. Der Wert ist aber weder eine kalibrierte Wahrscheinlichkeit noch ein p-Wert oder ein konventionelles gaußsches Signifikanzniveau.
+
+<a id="sec-outlier-3"></a>
+#### 5.3 Kandidatenbildung und Baseline-Verfeinerung
+
+WSPRadar schätzt zunächst die übliche Evidenzkadenz eines Funkwegs aus zulässigen gepaarten und einseitigen Outcomes. Positive Intervalle über 45 Minuten gelten bei dieser Schätzung als Ausfälle; mindestens zwei beibehaltene Intervalle sind erforderlich, andernfalls wird die konfigurierte Kadenz gepaarter Einheiten verwendet. Der innerhalb eines vorläufigen Ereignisses zulässige Abstand liegt zwischen 15 und 45 Minuten und folgt sonst dem 1,5-Fachen der geschätzten Funkwegkadenz.
+
+Die Kandidatenbildung beginnt bewusst unterhalb der endgültigen Benutzerschwelle. Zunächst wird für jede unterstützte 10-Minuten-Zelle eine breite Pilot-Baseline mit einem Schutzbereich von mindestens 60 Minuten oder der doppelten geschätzten Funkwegkadenz gebildet — maßgeblich ist der größere Wert. Die vorläufige Gruppierungsschwelle ist der kleinere Wert aus `1 dB` und **`Minimale absolute ΔSNR-Abweichung (dB)`**. Nahe Pilot-Residuen gleichen Vorzeichens, deren Betrag mindestens diese großzügige Schwelle erreicht, bilden ein vorläufiges Ereignis. Eine zu große Zeitlücke, ein deutlich entgegengesetztes Residuum oder eine unterstützte Rückkehr zur Baseline beendet die Gruppe. Eine einzelne unterstützte neutrale gepaarte Einheit darf sie überbrücken, wenn sich die gleichgerichtete Abweichung fortsetzt; zwei aufeinanderfolgende unterstützte neutrale Einheiten beenden sie. Evidenz ohne Stützung durch eine Pilot-Baseline bleibt unklassifiziert und wird nie ergänzt.
+
+Das vollständige vorläufige Ereignis wird danach zusammen mit einem Schutzbereich aus der endgültigen Baseline-Berechnung ausgeschlossen. Der Schutzbereich beträgt mindestens 10 Minuten oder eine geschätzte Funkwegkadenz — maßgeblich ist der größere Wert. Anhand der verfeinerten Baseline darf der Kandidat in bis zu drei Durchgängen um gleichgerichtete Randeinheiten mit mindestens `1 dB` Residuum erweitert werden. Das vollständige Ausschließen und Verfeinern verhindert, dass die Auslenkung ihre eigene erwartete Baseline in ihre Richtung zieht.
+
+<a id="sec-outlier-4"></a>
+#### 5.4 Qualifikation, Prüfung eines starken Kerns und berichtete Grenzen
+
+Jedes vorläufige Ereignis muss unabhängig von seiner Dauer dieselben Bedingungen erfüllen. Der Betrag seines medianen Residuums muss **`Minimale absolute ΔSNR-Abweichung (dB)`** erreichen; der absolute robuste Wert dieses Medians muss **`Minimaler robuster z-Wert`** erreichen; und die beiden Flankenmediane müssen innerhalb von **`Maximaler Unterschied zwischen Baseline davor/danach (dB)`** bleiben. Außerdem müssen mindestens zwei Drittel der beibehaltenen gepaarten Einheiten mit dem Vorzeichen des Ereignisses übereinstimmen. Eine anhaltende Auslenkung erhält allein aufgrund ihrer längeren Dauer keine niedrigere Schwelle.
+
+Kann das vollständige verfeinerte Ereignis kein qualifiziertes, stark verankertes Intervall liefern, wird es nicht sofort verworfen. WSPRadar verwendet dieselbe endgültige lokale Baseline und Flankenstützung, teilt es an Rückkehrpunkten zur Baseline in zusammenhängende, gleichgerichtete Abschnitte ohne weitere neutrale Überbrückung und prüft diese unabhängig. Jeder dabei geprüfte starke Kern muss dieselben Schwellen und dieselbe Vorzeichenregel erfüllen. Die Baseline wird um den kleineren Abschnitt nicht neu angepasst. Dadurch kann ein tatsächlich starker Kern erhalten bleiben, den schwache umgebende Evidenz sonst unterdrücken würde, ohne dass dieser Kern eine günstigere lokale Referenz wählen kann.
+
+Nach erfolgreicher Qualifikation bestimmt WSPRadar **starke Anker**. Ein starker Anker besitzt das Vorzeichen des Ereignisses und erfüllt einzeln sowohl die absolute Abweichungs- als auch die robuste z-Schwelle gegenüber derselben endgültigen Baseline und robusten Streuung. Der berichtete Bereich wird auf den ersten und letzten starken Anker gekürzt, ohne erneute Anpassung der Baseline neu aufgebaut und anschließend nochmals gegen alle Bedingungen auf Ereignisebene geprüft.
+
+So entstehen hysteretische Grenzen: Schwache führende und nachlaufende gepaarte Einheiten entfallen, während schwächere Einheiten, die bereits zwischen erstem und letztem starken Anker gruppiert wurden, als interne Evidenz erhalten bleiben. Ein einziger verbleibender starker Anker wird zum Spot-Impuls. Erfüllt kein stark verankertes Intervall die unveränderten Bedingungen, wird kein Ereignis berichtet.
+
+<a id="sec-outlier-5"></a>
+#### 5.5 Deskriptive Ereignisklassen
+
+Die Klassifikation erfolgt erst nach der Kürzung auf starke Anker:
+
+| Ereignisklasse | Zeitliche Form der beibehaltenen Evidenz |
+|---|---|
+| **Spot-Impuls** | Genau eine beibehaltene gepaarte Einheit. |
+| **Anhaltende Auslenkung** | Mindestens drei beibehaltene gepaarte Einheiten mit mindestens 30 Minuten zwischen erster und letzter. |
+| **Kurzer Ausbruch** | Jedes andere beibehaltene Ereignis aus mehreren Einheiten. |
+
+Diese Bezeichnungen beschreiben ausschließlich die beobachtete zeitliche Form. Sie verändern weder die Qualifikationsschwellen noch implizieren sie unterschiedliche Gewissheit oder eine physische Ursache. Die angezeigte Spanne zwischen erster und letzter Einheit ist ein beobachtetes Evidenzintervall; sie beweist nicht, dass die zugrunde liegende Wirkung zwischen den beibehaltenen Beobachtungen ununterbrochen anhielt.
+
+<a id="sec-outlier-6"></a>
+#### 5.6 Funkwegübergreifender Kontext und Diagnose
+
+Funkwegereignisse werden unabhängig erkannt und danach zeitlich verglichen. Gleichgerichtete Ereignisse werden zusammengefasst, wenn sich ihre Zeiträume überschneiden oder höchstens um den größeren Wert aus 10 Minuten und der halben konfigurierten Kadenz gepaarter Einheiten unterscheiden. Der Bericht ordnet sie zur Prüfung ein als:
+
+* **funkwegspezifisch**, wenn nur ein Funkweg beiträgt;
+* **richtungskohärent**, wenn mehrere Funkwege aus benachbarten Kompasssektoren beitragen;
+* **bereichsweit**, wenn mehrere getrennte Richtungen beitragen oder
+* **mehrere Funkwege**, wenn mehrere Funkwege beitragen, aber eine vollständige Richtungszuordnung nicht möglich ist.
+
+Funkwegübergreifende Kohärenz kann ein Ereignis für die Interpretation wertvoller machen, weil dieselbe vorzeichenbehaftete Abweichung über mehr als einen Funkweg erscheint. Sie ist weder Voraussetzung für den Bericht eines einzelnen Funkwegereignisses noch verändert sie dessen Schwellen oder stellt sie eine Berechnung von Unabhängigkeit beziehungsweise Signifikanz dar.
+
+Die Zerlegung in Target und Referenz sowie nahe einseitige Outcomes bleiben reiner Diagnosekontext. Sie können beispielsweise zeigen, ob sich Target, Referenz oder Paarbarkeit in der Nähe des Ereignisses veränderten; eine fehlende gepaarte Beobachtung können sie weder herstellen noch die Qualifikation eines Ereignisses erhöhen.
+
+<a id="sec-outlier-7"></a>
+#### 5.7 Interpretation und Fehlersuche
+
+Beginne mit dem exakten Funkweg, dem Vorzeichen, den beibehaltenen Joint Spots beziehungsweise vollständigen geplanten Paaren, dem ersten und letzten berichteten starken Anker, dem erwarteten lokalen Delta SNR, dem beobachteten Ereignismedian und der größten Abweichung einer einzelnen Einheit. Der Detektor prüft intern die erforderliche Stützung vor und nach dem Ereignis sowie die Stabilität der Baseline; der kompakte Bericht zeigt diese Flankenwerte nicht als eigene Diagnosedaten. Nutze **In Station Insights anzeigen** und die **Drill-Down-Daten**, um die zugrunde liegenden SNR-Werte von Target und korrigierter Referenz sowie nahe einseitige Outcomes zu prüfen, und vergleiche zeitgleiche Ereignisse auf anderen Funkwegen. Vergleiche den Zeitraum anschließend mit Stationslog, Schaltplan, Änderungen an Leistung oder Verstärkung, beobachteten Störungen und anderen unabhängigen Messungen, bevor du eine Ursache zuschreibst.
+
+Ein Kandidat kann unberichtet bleiben, weil eine Flanke weniger als vier belegte Baseline-Zellen besitzt, sich die Flanken stärker als erlaubt unterscheiden, der Ereignismedian die absolute Abweichungs- oder robuste z-Schwelle verfehlt, weniger als zwei Drittel seiner gepaarten Einheiten im Vorzeichen übereinstimmen, Kadenzlücken den Kandidaten teilen oder kein stark verankertes Intervall die abschließende Prüfung übersteht. Dies sind unterschiedliche Formen von Enthaltung oder Verwerfung durch den Detektor und kein Beweis dafür, dass der Funkweg unverändert blieb.
+
+Für explorative Arbeit kann der Detektor prüfenswerte Intervalle auffinden. Lege für bestätigende Arbeit die drei Schwellen, das Band, das Benchmark-Design, die Korrektur, die Funkwegpopulation und den UTC-Bereich vor Sichtung des Ergebnisses fest und sichere sie. Prüfe anschließend, ob ein vergleichbares Ereignis in einem getrennten, geeignet kontrollierten Lauf erneut auftritt. Berichte es als **vorübergehende lokale Delta-SNR-Abweichung in der beibehaltenen gepaarten Evidenz**. Stärkere Aussagen erfordern die zur vorgeschlagenen Erklärung passenden externen Versuchskontrollen.
 
 <div style="page-break-before: always;"></div>
 
@@ -980,7 +1091,7 @@ Die kleinste Evidenzeinheit hängt vom Design ab:
 
 Diese Einheiten werden aus gemeldeten Spots gebildet; sie sind keine zusätzlichen Funkmessungen. Ihr Zweck ist, eindeutig festzulegen, unter welchen Bedingungen ein Erfolg, ein verpasster Decode oder eine gepaarte Differenz gezählt wird.
 
-Der historische Fallback ohne `code = 1` verändert die Auswahl der Quellzeilen nur, wenn die strenge Abfrage keine Target-seitige Evidenz liefert. Der Laufstatus dokumentiert den verwendeten Abfrageweg. Verzögerungen und Datenqualitätsgrenzen der Upstream-Quellen stehen in [Abschnitt 5.6](#sec-6-6).
+Der historische Fallback ohne `code = 1` verändert die Auswahl der Quellzeilen nur, wenn die strenge Abfrage keine Target-seitige Evidenz liefert. Der Laufstatus dokumentiert den verwendeten Abfrageweg. Verzögerungen und Datenqualitätsgrenzen der Upstream-Quellen stehen in [Abschnitt 4.7.6](#sec-6-6).
 
 <a id="sec-7-2"></a>
 #### 7.2 Identität, Zuordnung und Zeilenkonsolidierung
@@ -1269,7 +1380,7 @@ Zwei Regeln liegen vor diesem geografischen Bereich:
 
 Die Sonnenstandsklassifikation verwendet die Sonnenhöhe am Target-QTH. Evidenz desselben Zyklus verwendet den Zykluszeitstempel. Beim geplanten TX A/B wird die Mitte zwischen den geplanten Target- und Referenzstarts verwendet, damit ein Paar nicht auf zwei Sonnenklassen verteilt werden kann.
 
-Die Zeilengrenze des Archivs und die Bedienelemente, mit denen sich die abgerufene Population verkleinern lässt, sind betriebliche Fragen aus [Abschnitt 5.6](#sec-6-6). Sie verändern die wissenschaftlichen Zusammenfassungen nicht, nachdem die beibehaltene Population gebildet wurde.
+Die Zeilengrenze des Archivs und die Bedienelemente, mit denen sich die abgerufene Population verkleinern lässt, sind betriebliche Fragen aus [Abschnitt 4.7.6](#sec-6-6). Sie verändern die wissenschaftlichen Zusammenfassungen nicht, nachdem die beibehaltene Population gebildet wurde.
 
 <a id="sec-7-10"></a>
 #### 7.10 Abhängigkeit, Unsicherheit und Geltungsbereich der Validierung
@@ -1293,6 +1404,114 @@ Wissenschaftliche Unterstützung sollte deshalb auf mehreren Ebenen beschrieben 
 Diese Ebenen machen aus den beibehaltenen Zusammenfassungen keine kalibrierten Vorhersagen. Sie zeigen, wie viel Evidenz eine begrenzte deskriptive oder vergleichende Aussage stützt und wie gut der physische Versuch eine Zuordnung zur vermuteten Ursache trägt.
 
 Empirische Prüfungen der Softwarevalidierung sind keine zeitlosen Methodendefinitionen. Jede angeführte Validierungskennzahl muss Datensätze, Datum, WSPRadar-Version oder Quellrevision und Berechnungsmethode nennen. Ohne diese Provenienz sollte sie aus dem normativen Handbuch entfernt oder ausdrücklich als datierte Validierungsprüfung gekennzeichnet werden.
+
+<a id="sec-7-11"></a>
+#### 7.11 Robuste Delta-SNR-Ereigniserkennung mit lokaler Basislinie
+
+Das Analyseziel des Detektors ist eine vorübergehende gleichgerichtete Abweichung des gepaarten Delta SNR eines Funkwegs von einem stabilen lokalen Erwartungswert. Der Detektor sucht nicht einfach den größten Rohwert des Delta SNR im Lauf und schätzt keine Wahrscheinlichkeit dafür, dass ein Ereignis physisch anomal ist. [Kapitel 5](#sec-outlier) behandelt Bedienung und Interpretation; dieser Abschnitt definiert die wissenschaftliche Konstruktion.
+
+Die folgende Notation erweitert die Notation aus Kapitel 7. $i$ ist ein exakter Peer-Funkweg `Rufzeichen + Locator`, $u$ eine native gepaarte Einheit — ein Joint Spot aus demselben Zyklus oder ein vollständiges geplantes Paar — und $D_{i,u}$ das bereits in [Abschnitt 7.5](#sec-7-5) definierte korrigierte gepaarte Delta SNR Target minus Referenz. Die drei Benutzereinstellungen werden als $D_{\min}$ für **`Minimale absolute ΔSNR-Abweichung (dB)`**, $Z_{\min}$ für **`Minimaler robuster z-Wert`** und $H_{\max}$ für **`Maximaler Unterschied zwischen Baseline davor/danach (dB)`** geschrieben.
+
+**1. Erkennungsevidenz und Auflösung.** Nur vollständige native gepaarte Einheiten liefern Detektorwerte. Einseitige Outcomes besitzen kein gepaartes Delta SNR und sind von der Qualifikation ausgeschlossen; ihre Zeitstempel tragen jedoch zur Schätzung der Funkwegkadenz bei, und sie bleiben Diagnosekontext. Die Erkennung läuft für jeden Funkweg $i$ vor der Darstellungsaggregation der **Zeitlichen Evidenz**. Ein anderes Darstellungs-Bin kann deshalb kein Ereignis erzeugen, zusammenführen, teilen oder entfernen. Ist **`ΔSNR-Ausreißerkandidaten melden`** ausgeschaltet, läuft der Detektor nicht, und dem Ergebnis werden keinerlei Ausreißerbegriffe hinzugefügt.
+
+**2. UTC-ausgerichtete Baseline-Zellen und Flankenstützung.** Die nativen Werte $D_{i,u}$ werden auf einen Median $Q_{i,k}$ in jeder belegten, UTC-ausgerichteten 10-Minuten-Zelle $k$ reduziert. Diese Zellenmediane dienen zur Schätzung von Baseline und robuster Skala; Kandidatenbildung und Ereignisgrenzen behalten die Zeitstempel der nativen gepaarten Einheiten.
+
+Für ein Kandidatenintervall untersucht der Detektor bis zu sechs Stunden von Zellen davor und bis zu sechs Stunden danach. Der vollständige Kandidat und ein umgebender Schutzbereich werden ausgeschlossen. Jede Flanke muss mindestens vier belegte Zellen enthalten, und fehlende Zellen werden nicht ergänzt. $\mathcal{Q}_{\mathrm{pre}}$ und $\mathcal{Q}_{\mathrm{post}}$ seien die beibehaltenen Zellenwerte der beiden Flanken. Ihre Baselines sind:
+
+$$B_{\mathrm{pre}}=\operatorname{median}(\mathcal{Q}_{\mathrm{pre}})$$
+
+$$B_{\mathrm{post}}=\operatorname{median}(\mathcal{Q}_{\mathrm{post}})$$
+
+Die Stabilität der Baseline ist nur ausreichend, wenn:
+
+$$\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}$$
+
+Das erwartete lokale Delta SNR ist das gleich gewichtete Zentrum beider Seiten:
+
+$$B=\operatorname{median}(B_{\mathrm{pre}},B_{\mathrm{post}})$$
+
+Die gleiche Gewichtung verhindert, dass die Flanke mit mehr belegten Zellen das lokale Zentrum dominiert. Fehlt einer Flanke die Mindeststützung oder scheitert die Stabilitätsbedingung, bleibt der Funkweg für diesen Kandidaten unklassifiziert, und es wird kein Ausreißer berichtet.
+
+**3. Residuum der nativen gepaarten Einheit.** Jede native gepaarte Einheit des Kandidaten erhält:
+
+$$r_{i,u}=D_{i,u}-B$$
+
+Ein positives Residuum liegt über dem erwarteten lokalen Delta SNR Target minus Referenz des Funkwegs, ein negatives darunter. Gruppiert und qualifiziert wird das Vorzeichen dieses Residuums — nicht das Vorzeichen des Rohwerts $D_{i,u}$ relativ zur absoluten Gleichheit bei `0 dB`.
+
+**4. Robuste lokale Streuung und z-Wert.** Die Zellenwerte der Flanke davor werden um $B_{\mathrm{pre}}$, diejenigen der Flanke danach um $B_{\mathrm{post}}$ zentriert. $\mathcal{U}$ bezeichnet die Vereinigungsmenge dieser flankenzentrierten Werte, $M=\operatorname{MAD}(\mathcal{U})$ und $I=\operatorname{IQR}(\mathcal{U})$. Die robuste lokale Skala ist:
+
+$$
+S_{\mathrm{robust}}=
+\begin{cases}
+M, & M>0,\\
+\frac{1}{2}I, & M=0\ \land\ I>0,\\
+0.5\ \mathrm{dB}, & M=0\ \land\ I=0.
+\end{cases}
+$$
+
+MAD ist die mediane absolute Abweichung und IQR der Interquartilsabstand. Der abschließende Sockel von `0.5 dB` verhindert einen Nenner von null, wenn die lokal quantisierten Flankenwerte keine gemessene Streuung besitzen. Der modifizierte robuste z-Wert einer nativen gepaarten Einheit ist:
+
+$$z_{i,u}=0.6745\frac{r_{i,u}}{S_{\mathrm{robust}}}$$
+
+Der Faktor `0.6745` liefert die konventionelle Skalierung eines modifizierten robusten z-Werts, wenn MAD als Skala dient. $z_{i,u}$ bleibt ein standardisierter deskriptiver Wert. Er ist insbesondere beim IQR- oder Quantisierungs-Fallback weder eine kalibrierte Überschreitungswahrscheinlichkeit noch ein p-Wert oder ein konventionelles gaußsches Signifikanzniveau.
+
+**5. Funkwegkadenz und größte interne Lücke.** Der Detektor schätzt die typische Evidenzkadenz $C_i$ in Minuten aus eindeutigen Zeitstempeln zulässiger gepaarter und einseitiger Outcomes des Funkwegs. Er behält positive Intervalle bis einschließlich 45 Minuten und verlangt mindestens zwei solcher Intervalle; andernfalls liefert die konfigurierte Kadenz gepaarter Einheiten den Wert $C_i$. Die größte Lücke innerhalb eines vorläufigen Ereignisses ist:
+
+$$G_i=\min\left(45,\max\left(15,1.5C_i\right)\right)\ \mathrm{minutes}$$
+
+Damit erhalten dünn belegte Funkwege einen kadenzabhängigen Gruppierungsbereich; kein Ereignis darf jedoch mehr als 45 Minuten überbrücken, und keine geschätzte Kadenz senkt den zulässigen Abstand unter 15 Minuten.
+
+**6. Pilot-Baseline und großzügige vorläufige Gruppierung.** Um Kandidaten zu finden, ohne dass der jeweils geprüfte Punkt sein eigenes lokales Zentrum bestimmt, berechnet der Detektor für jede unterstützte 10-Minuten-Zelle eine Pilot-Baseline. Ihr Schutzbereich ist der größere Wert aus 60 Minuten und dem Doppelten von $C_i$; es gelten dieselben Regeln für Flankenstützung und $H_{\max}$. Eine native Einheit übernimmt die Pilot-Baseline ihrer 10-Minuten-Zelle und besitzt nur dann ein Pilot-Residuum, wenn diese Zelle unterstützte Flanken hat. Die anfängliche Mindestgröße des Residuums ist:
+
+$$L=\min(1\ \mathrm{dB},D_{\min})$$
+
+Nahe Pilot-Residuen gleichen Vorzeichens mit einem Betrag von mindestens $L$ bilden ein vorläufiges Ereignis. Ein Abstand über $G_i$, eine Einheit mit entgegengesetztem Vorzeichen oder eine unterstützte Rückkehr zur Baseline beendet die Gruppe. Eine unterstützte neutrale Einheit darf überbrückt werden, wenn sich die gleichgerichtete Abweichung fortsetzt; eine zweite aufeinanderfolgende unterstützte neutrale Einheit beendet das Ereignis. Nicht unterstützte Einheiten bleiben unklassifiziert und werden nicht ergänzt. Dieser Durchgang ist bewusst großzügig: $L$ findet zeitliche Kontinuität, während die strengeren Benutzerschwellen das endgültige Ereignis qualifizieren.
+
+**7. Kandidatenausschließende Baseline-Verfeinerung.** Das vollständige vorläufige Ereignis wird mit folgendem Schutzbereich aus der endgültigen Baseline-Berechnung ausgeschlossen:
+
+$$W_i=\max(10\ \mathrm{minutes},C_i)$$
+
+Anhand dieser verfeinerten Baseline dürfen gleichgerichtete Ränder mit mindestens `1 dB` Residuum das vorläufige Ereignis in bis zu drei Durchgängen erweitern. Bei jeder erneuten Anpassung der lokalen Baseline bleibt das vollständige erweiterte Intervall ausgeschlossen. So kann der Kandidat seinen eigenen Erwartungswert nicht in Richtung der Auslenkung verschieben.
+
+**8. Qualifikation auf Ereignisebene.** $E$ sei ein verfeinertes vorläufiges Ereignis mit folgendem medianen Residuum:
+
+$$m_E=\operatorname{median}_{u\in E}(r_{i,u})$$
+
+Das Ereignis qualifiziert sich nur, wenn alle drei Benutzereinstellungen erfüllt sind:
+
+$$|m_E|\geq D_{\min}$$
+
+$$\left|0.6745\frac{m_E}{S_{\mathrm{robust}}}\right|\geq Z_{\min}$$
+
+$$\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}$$
+
+Zusätzlich muss die Vorzeichenbedingung gelten:
+
+$$
+\frac{\left|\left\{u\in E:\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E)\right\}\right|}{|E|}\geq\frac{2}{3}
+$$
+
+Jede Dauer und jede spätere Ereignisklasse verwendet unverändert diese Bedingungen. Es gibt weder einen Dauerbonus oder Rabatt für angesammelte Evidenz noch eine schwächere Schwelle für ein anhaltendes Ereignis.
+
+**9. Prüfung eines starken Kerns.** Kann das vollständige verfeinerte Ereignis kein qualifiziertes, stark verankertes Intervall liefern, teilt der Detektor es anhand der endgültigen Baseline an Rückkehrpunkten zur Baseline in zusammenhängende gleichgerichtete Abschnitte ohne neutrale Überbrückung und prüft diese unabhängig. Jeder Abschnitt muss dieselben Bedingungen für $D_{\min}$, $Z_{\min}$, $H_{\max}$ und Vorzeichenübereinstimmung erfüllen. Die für das vollständige vorläufige Ereignis bestimmte endgültige Baseline und Flankenstützung werden wiederverwendet und nicht um den kleineren Abschnitt neu berechnet. So kann schwache umgebende Evidenz einen starken Kern nicht unterdrücken, und der Kern kann sich dennoch keine günstigere lokale Referenz auswählen.
+
+**10. Kürzung auf starke Anker.** Nach der Qualifikation auf Ereignisebene darf eine native gepaarte Einheit nur dann eine berichtete Grenze verankern, wenn:
+
+$$\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad |r_{i,u}|\geq D_{\min},\qquad |z_{i,u}|\geq Z_{\min}$$
+
+Das Ereignis wird auf den ersten und letzten starken Anker gekürzt. Bereits zwischen diesen Ankern gruppierte Einheiten bleiben als interne Evidenz erhalten, selbst wenn sie eine oder beide Ankerbedingungen einzeln verfehlen. Danach wird das gekürzte Ereignis mit derselben endgültigen Baseline, robusten Streuung und Flankenstützung neu aufgebaut und erneut gegen alle Bedingungen auf Ereignisebene geprüft. Schwache führende und nachlaufende Einheiten entfallen, schwächere interne Brückeneinheiten können erhalten bleiben. Ein verbleibender Anker ergibt einen Spot-Impuls; erfüllt kein stark verankertes Intervall die unveränderten Bedingungen, wird kein Ereignis berichtet. Die niedrigere Gruppierungsschwelle und die höhere Grenzschwelle erzeugen gemeinsam die hysteretischen Grenzen des Detektors.
+
+**11. Deskriptive Ereignisklasse und Zeitspanne.** Die Klassifikation erfolgt nach der Kürzung:
+
+* **Spot-Impuls:** eine beibehaltene native gepaarte Einheit;
+* **Anhaltende Auslenkung:** mindestens drei beibehaltene native gepaarte Einheiten mit mindestens 30 Minuten zwischen erster und letzter und
+* **Kurzer Ausbruch:** jedes andere beibehaltene Ereignis aus mehreren Einheiten.
+
+Die Klassen beschreiben die zeitliche Form der Evidenz und verändern die Qualifikation nicht. Das angezeigte Intervall von der ersten bis zur letzten Einheit ist die Spanne zwischen beobachteten beibehaltenen Einheiten und kein Nachweis dafür, dass die physische Wirkung dazwischen ununterbrochen anhielt.
+
+**12. Funkwegübergreifender Kontext.** Funkwegereignisse werden unabhängig qualifiziert. Gleichgerichtete Ereignisse werden in einer gemeinsamen Prüfkarte zusammengefasst, wenn sie sich überschneiden oder höchstens um die größere Toleranz aus 10 Minuten und der halben konfigurierten Kadenz gepaarter Einheiten getrennt sind. Bei einem einzelnen beitragenden Funkweg lautet die Einordnung funkwegspezifisch; mehrere Funkwege in benachbarten Kompasssektoren sind richtungskohärent; mehrere getrennte Richtungen sind bereichsweit. Tragen mehrere Funkwege bei, aber fehlt mindestens eine Richtungszuordnung, lautet die Einordnung mehrere Funkwege. Funkwegübergreifende Kohärenz kann eine breitere deskriptive Interpretation stützen, ist aber weder Voraussetzung für den Bericht eines einzelnen Funkwegs noch verändert sie dessen Qualifikation.
+
+Die Zerlegung in Target und Referenz sowie nahe einseitige Outcomes bleiben reine Diagnoseangaben. Sie können bei der Untersuchung helfen, welche Seite oder welches Paarbarkeitsmuster sich veränderte, qualifizieren, verlängern oder verstärken ein Ereignis jedoch nicht. Der Detektor bleibt damit ein deterministischer deskriptiver Klassifikator der beibehaltenen gepaarten Evidenz. Seine Ereigniszahl ist keine unabhängige Stichprobengröße; er nimmt keine Korrektur für die Signifikanz mehrfacher Ereignisse vor, und eine kausale Zuordnung erfordert weiterhin die in den Kapiteln 2, 3 und 8 beschriebene Versuchskontrolle.
 
 <a id="sec-8"></a>
 ### 8. Evidenzgerechte Aussagen und Reproduzierbarkeit
@@ -1373,6 +1592,8 @@ Bewahre für eine ernsthafte Analyse drei Ebenen auf.
 * primärer vorab festgelegter Auswertungsbereich und alle Sensitivitätsanalysen; und
 * ob der Lauf explorativ oder bestätigend war.
 
+Trägt ein Delta-SNR-Ausreißerkandidat zur Schlussfolgerung bei, dokumentiere zusätzlich, dass die Berichterstattung aktiviert war, die drei Detektorschwellen, die Detektorversion, den exakten Funkweg, das UTC-Intervall, die deskriptive Ereignisklasse sowie, ob das Ereignis explorativ gefunden oder unter einer vorab festgelegten bestätigenden Konfiguration bewertet wurde.
+
 **2. Evidenz hinter der Schlussfolgerung**
 
 * berichtete Zusammenfassung und Gewichtungsebene;
@@ -1439,7 +1660,9 @@ Dateien ohne anwendbares Ergebnis oder ohne ausgewählte Station können fehlen.
 | Drill-Down-CSV-Dateien | Beibehaltene Evidenz auf Zeilenebene für ausgewählte Identitäten oder Identitäten im aktiven Bereich. |
 | Karten- und Segmentabbildungen | Geografische und segmentbezogene deskriptive Zusammenfassungen des abgeschlossenen Ergebnisses. |
 | Zeitliche Abbildungen | Chronologische und nach UTC-Stunde gefaltete Zusammenfassungen für das aktive Segment. |
-| Abbildungen der ausgewählten Station | Genau eine ausgewählte Peer-Identität; mehrere ausgewählte Funkwege werden niemals zusammengefasst. |
+| Abbildungen der ausgewählten Station | Im Normalfall genau eine ausgewählte Peer-Identität; solange die optionale Delta-SNR-Ausreißererkennung eine geordnete Mehrfachauswahl von Funkwegen ermöglicht, kann Benchmark stattdessen die zugehörige zusammengefasste Mehrwegeansicht des Delta SNR exportieren. |
+
+Bei aktivierter Ausreißererkennung bewahrt der Export die aktivierte Einstellung, Detektorversion und Konfiguration der drei Schwellen sowie die Rezeptmetadaten und Sternmarkierungen zutreffender Ausreißerkandidaten in den Benchmark-Abbildungen. Er enthält derzeit weder einen eigenständigen **Ausreißerbericht** noch eine gesonderte Kandidatentabelle. Ist die Erkennung ausgeschaltet, fehlen sowohl Ausreißermetadaten als auch Ausreißer-Markierungsrezepte vollständig.
 
 **Ausgewählte öffentliche maschinenlesbare Vertragsbezeichnungen.** Diese knappe Tabelle nennt unterstützte externe Bezeichnungen, die für den Funkbetrieb und nachgelagerte Auswertungen nützlich sind; sie ist kein vollständiger Katalog der Felder gespeicherter Konfigurationen, URL-Parameter oder Exportmetadaten. Für Felder gespeicherter Konfigurationen ist das formale JSON-Schema (`config/wspradar-config.schema.json`) maßgeblich; der unterstützte öffentliche URL-Vertrag ist separat versioniert. Private Implementierungsbezeichnungen sind bewusst ausgelassen. Diese Namen sind keine Begriffe zur Erklärung der wissenschaftlichen Methode.
 

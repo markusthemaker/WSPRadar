@@ -8,6 +8,7 @@ second implementation of any scientific input.
 
 from .config_panel import (
     _render_analysis_direction_selector as render_analysis_direction,
+    render_delta_snr_outlier_reporting_field,
     render_evidence_threshold_fields,
     render_reference_correction_field,
     render_reference_design_fields,
@@ -18,6 +19,7 @@ from .config_panel import (
 
 __all__ = [
     "render_analysis_direction",
+    "render_delta_snr_outlier_reporting_field",
     "render_evidence_threshold_fields",
     "render_reference_correction_field",
     "render_reference_design_fields",

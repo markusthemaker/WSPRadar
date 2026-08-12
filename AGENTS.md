@@ -37,6 +37,9 @@ generated end-user and scientific manual, not the repository engineering guide.
   mappings, ordered standalone demo definitions, demo loading, the versioned
   saved-config contract, schema-version handling and formal JSON Schema, and
   map/scientific plotting constants.
+- `config/delta_snr_outlier.py` owns the validated shared detector gates,
+  defaults, accepted range, and stable policy signature for optional Delta-SNR
+  outlier-candidate reporting.
 - `core/analysis_context.py` defines canonical scientific configuration.
 - `core/presentation_context.py` defines language, labels, and theme inputs.
 - `core/opportunity_engine.py` defines the processed opportunity-row schema and
@@ -49,6 +52,9 @@ generated end-user and scientific manual, not the repository engineering guide.
   `ui/analysis_submission_state.py` owns token-aware in-flight submission state.
 - `ui/documentation_state.py` owns documentation visibility and one-shot scroll
   state; `ui/documentation_scroll_trigger.py` owns the browser viewport signal.
+- `ui/inspector/outlier_candidates.py` owns the optional native-paired-unit
+  detector and cross-path review model; `ui/inspector/outlier_report.py` owns the
+  pure localized Outlier Report view model.
 - `tests/regression/` is the executable behavioral contract.
 
 ## Setup
@@ -719,6 +725,11 @@ not as optional follow-up work.
   classification.
 - Opportunity map and inspector denominators, especially the distinction between
   peer-balanced segment averages and pooled diagnostics.
+- The optional Delta-SNR detector's native paired-unit input, candidate-excluded
+  two-sided local baseline, unchanged three-gate qualification across duration
+  classes, descriptive-only class names, and disabled compatibility boundary.
+  When reporting is off, ordinary result, cache, selection, marker, and export
+  paths must remain free of outlier semantics.
 - Maidenhead conversion, distance/azimuth geometry, map projection, and range
   bucket boundaries.
 - Cache-key inputs, artifact path layout, TTL/lease behavior, lock ordering, and
@@ -884,11 +895,11 @@ technically correct or already present.
   before relying on them. Do not front-load a dense glossary.
 - Preserve the manual's authoritative order: Part 0 Preface; Part I Operator
   Guide with **Choose and Prepare the Analysis**, **Run and Interpret Your
-  Analysis**, and **Strengthen and Communicate Your Result**; Part II Controls
-  and Troubleshooting; Part III Scientific Foundations, Methods and Claims with
-  Literature, Prior Art and Positioning, Scientific Methods, and
-  Evidence-Matched Claims and Reproducibility; References; Part IV Practical
-  Supplements; then License. Within Part 0 use this sequence: **Why WSPRadar?**;
+  Analysis**, and **Strengthen and Communicate Your Result**; Part II Controls,
+  Troubleshooting, and Outlier Detection; Part III Scientific Foundations,
+  Methods and Claims with Literature, Prior Art and Positioning, Scientific
+  Methods, and Evidence-Matched Claims and Reproducibility; References; Part IV
+  Practical Supplements; then License. Within Part 0 use this sequence: **Why WSPRadar?**;
   **WSPR in 2 Minutes**; **What WSPRadar can show**, including the conceptual
   question-to-analysis overview; **What one run produces**; and **Your first
   useful run**.
@@ -990,7 +1001,11 @@ technically correct or already present.
   Scientific Methods. Part II owns exact control labels, defaults, ranges,
   applicability, configuration behavior and diagnosis. Part I should state the
   operator consequence and link to the authoritative method only where omission
-  would cause a materially wrong operation or interpretation.
+  would cause a materially wrong operation or interpretation. Chapter 5's
+  operator-facing Delta-SNR outlier chapter is the narrow documented exception:
+  it may explain the method in non-formal language needed to operate and audit
+  the feature, while Section 7.11 remains the sole home of its notation,
+  equations, exact thresholds and complete scientific construction.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
@@ -1100,16 +1115,20 @@ multi-stage-method ownership rule below:
   internal consistency, experimental repeatability, repetition and controls,
   evidence-matched conclusions, and preservation of the run and its physical
   context.
-- **Part II, Chapter 4 — Controls and Configuration:** exact UI labels,
-  defaults, ranges, applicability, scientific consequence, configuration
-  behavior and saved-state behavior. Prefer compact control tables. Omit
-  internal state-machine, cache and queue details that do not alter operator
-  action or reproducibility.
-- **Part II, Chapter 5 — Troubleshooting and Data Quality:** run-definition,
+- **Part II, Chapter 4 — Controls, Configuration, and Troubleshooting:** exact UI
+  labels, defaults, ranges, applicability, scientific consequence, configuration
+  behavior and saved-state behavior, followed by general run-definition,
   symptom, callsign, locator, historical fallback, Target-Active Gate and
-  upstream-data diagnosis. Explain audit/provenance statuses at the level needed
-  to diagnose a run; leave provider-selection and cache-lifecycle mechanics to
-  architecture documentation.
+  upstream-data diagnosis. Prefer compact control tables. Explain
+  audit/provenance statuses only at the level needed to diagnose a run; omit
+  internal state-machine, provider-selection, cache and queue details that do
+  not alter operator action or reproducibility.
+- **Part II, Chapter 5 — Delta SNR Outlier Detection:** expert operator-facing
+  purpose, evidence scope, plain-language local-baseline and grouping method,
+  shared-gate and strong-anchor consequences, descriptive event classes,
+  cross-path context, interpretation and diagnosis. Keep equations and the exact
+  scientific construction in Section 7.11, and do not present candidates as
+  detected physical events or causal attribution.
 - **Part III, Chapter 6 — Literature, Prior Art and Positioning:** the scope and
   evidence class of the review; scientific lineage; prior art; source-specific
   boundaries; and bounded novelty claims. State explicitly when the review is a
@@ -1121,8 +1140,9 @@ multi-stage-method ownership rule below:
   correction; derived Delta SNR and Decode Outcomes; hierarchical aggregation
   and weighting; geographic, temporal and selected-path descriptive summaries;
   scientifically material display transforms; dependence, uncertainty
-  limitations and dated validation scope. Present the practical radio meaning
-  before formal notation and explain every formula again in accessible prose.
+  limitations and dated validation scope; and the formal robust local-baseline
+  Delta-SNR event detector. Present the practical radio meaning before formal
+  notation and explain every formula again in accessible prose.
 - **Part III, Chapter 8 — Evidence-Matched Claims and Reproducibility:** claim
   classes, supported inference, interpretation limits, reporting and provenance
   requirements, selected public machine-readable configuration/URL/export/data
@@ -1143,6 +1163,8 @@ Use this timing test when placement is unclear:
   analysis -> Chapter 2;
 - needed when repeating, reporting or preserving the experiment -> Chapter 3;
 - needed to operate an exact control or diagnose behavior -> Part II;
+- needed to operate, inspect or troubleshoot Delta-SNR outlier reporting ->
+  Chapter 5, with its exact formulas and complete construction in Section 7.11;
 - needed to establish scientific lineage, prior art or positioning -> Chapter 6;
 - needed to audit data construction, an observation or comparison unit,
   analysis target, derived quantity, descriptive summary, conditioning rule,
@@ -1176,6 +1198,9 @@ Examples:
   7.1 and 7.7 together from practical guidance; retain `pairing is automatic
   and deterministic` in the playbook;
 - define exact schedule choices in Section 4.3; retain `enter each path's actual recurrence and UTC phase` in the playbook;
+- define Delta-SNR outlier controls in Section 4.6, the operator-facing method
+  and interpretation in Chapter 5, and the complete notation and equations in
+  Section 7.11; cross-reference these sections rather than copying the formulas;
 - keep the Ultimate3S and QMX schedule examples in Appendix B, Sections B.3 and
   B.4, and link to them from the playbook.
 
@@ -1434,7 +1459,9 @@ For a substantial manual restructuring, verify:
   run outputs and first demo; and contains no control, selector, parameter or
   button walkthrough;
 - Part II remains an operating reference and does not become an internal state,
-  cache or queue specification;
+  cache or queue specification; Chapter 4 owns controls and general
+  troubleshooting, while Chapter 5 owns operator-facing Delta-SNR outlier use
+  and interpretation without duplicating Section 7.11's formal method;
 - Part III clearly distinguishes reported observations, constructed evidence
   units, derived quantities, descriptive summaries and bounded interpretation;
   defines analysis targets, observation and comparison units, conditioning,

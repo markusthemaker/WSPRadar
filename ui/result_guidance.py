@@ -23,6 +23,7 @@ RESULT_GUIDANCE_MAP = "map"
 RESULT_GUIDANCE_SEGMENT = "segment"
 RESULT_GUIDANCE_COMPARISON_EVIDENCE = "comparison_evidence"
 RESULT_GUIDANCE_TEMPORAL_EVIDENCE = "temporal_evidence"
+RESULT_GUIDANCE_OUTLIER_REPORT = "outlier_report"
 RESULT_GUIDANCE_SUCCESS_EVIDENCE = "success_evidence"
 RESULT_GUIDANCE_STATION_INSIGHTS = "station_insights"
 RESULT_GUIDANCE_SELECTED_STATIONS = "selected_stations"
@@ -39,6 +40,7 @@ RESULT_GUIDANCE_SECTION_IDS = frozenset(
         RESULT_GUIDANCE_SEGMENT,
         RESULT_GUIDANCE_COMPARISON_EVIDENCE,
         RESULT_GUIDANCE_TEMPORAL_EVIDENCE,
+        RESULT_GUIDANCE_OUTLIER_REPORT,
         RESULT_GUIDANCE_SUCCESS_EVIDENCE,
         RESULT_GUIDANCE_STATION_INSIGHTS,
         RESULT_GUIDANCE_SELECTED_STATIONS,
@@ -103,11 +105,12 @@ def _result_guidance_item_keys(
     is_sequential,
     analysis_context,
     selected_station_count=None,
+    allows_multiple_station_selection=False,
 ):
     """Resolve content keys from semantic mode and selection cardinality.
 
-    Selected-station guidance requires exactly one station in both result
-    branches so its one-path language cannot mask an invalid selection.
+    Performance selected-station guidance requires exactly one path. Benchmark
+    selected-station guidance distinguishes one path from a combined selection.
     """
     if section_id == RESULT_GUIDANCE_DOWNLOAD:
         return ["download"]
@@ -169,6 +172,13 @@ def _result_guidance_item_keys(
             else "temporal_evidence_joint"
         ]
 
+    if section_id == RESULT_GUIDANCE_OUTLIER_REPORT:
+        if not is_compare:
+            raise ValueError(
+                "Outlier Report guidance is unavailable for Performance"
+            )
+        return ["outlier_report"]
+
     if section_id == RESULT_GUIDANCE_SUCCESS_EVIDENCE:
         if is_compare:
             raise ValueError(
@@ -179,29 +189,47 @@ def _result_guidance_item_keys(
     if section_id == RESULT_GUIDANCE_STATION_INSIGHTS:
         if not is_compare:
             return [f"station_insights_success_{direction.lower()}"]
-        return [
+        station_insights_key = (
             "station_insights_compare_scheduled"
             if is_sequential
             else "station_insights_compare_joint"
-        ]
+        )
+        if allows_multiple_station_selection:
+            station_insights_key += "_multi"
+        return [station_insights_key]
 
     if section_id == RESULT_GUIDANCE_SELECTED_STATIONS:
+        if not is_compare:
+            if (
+                isinstance(selected_station_count, bool)
+                or not isinstance(selected_station_count, Integral)
+                or selected_station_count != 1
+            ):
+                raise ValueError(
+                    "Performance selected-station guidance requires exactly "
+                    "one selected station"
+                )
+            return [f"selected_success_{direction.lower()}"]
         if (
             isinstance(selected_station_count, bool)
             or not isinstance(selected_station_count, Integral)
-            or selected_station_count != 1
+            or selected_station_count < 1
+            or (
+                selected_station_count > 1
+                and not allows_multiple_station_selection
+            )
         ):
             raise ValueError(
-                "Selected-station guidance requires exactly one selected station"
+                "Selected-station guidance requires exactly one selected "
+                "station unless multi-selection is enabled"
             )
-        if not is_compare:
-            return [
-                f"selected_success_{direction.lower()}"
-            ]
         return [
-            "selected_compare_scheduled"
-            if is_sequential
-            else "selected_compare_joint"
+            (
+                "selected_compare_scheduled"
+                if is_sequential
+                else "selected_compare_joint"
+            )
+            + ("_multi" if selected_station_count > 1 else "")
         ]
 
     if section_id == RESULT_GUIDANCE_DRILLDOWN:
@@ -238,13 +266,14 @@ def build_result_guidance(
     is_sequential=False,
     analysis_context=None,
     selected_station_count=None,
+    allows_multiple_station_selection=False,
 ):
     """Build self-contained localized Markdown for one result-help popover.
 
     The resolver uses only semantic mode fields. It never parses localized
     labels or record identities, and its output is presentation-only.
-    Selected-station guidance requires ``selected_station_count`` so its
-    one-path wording remains unambiguous.
+    Selected-station guidance requires ``selected_station_count`` so one-path
+    and combined-selection wording remain unambiguous.
     """
     if section_id not in RESULT_GUIDANCE_SECTION_IDS:
         raise ValueError(f"Unknown result-guidance section: {section_id}")
@@ -263,6 +292,9 @@ def build_result_guidance(
         is_sequential=bool(is_sequential),
         analysis_context=analysis_context,
         selected_station_count=selected_station_count,
+        allows_multiple_station_selection=bool(
+            allows_multiple_station_selection
+        ),
     )
     format_values = {
         "peer_type": escape(remote_station_type(analysis_id)),
@@ -298,6 +330,7 @@ def render_result_guidance_popover(
     is_sequential=False,
     analysis_context=None,
     selected_station_count=None,
+    allows_multiple_station_selection=False,
 ):
     """Render one static click-open interpretation popover without a rerun.
 
@@ -313,6 +346,9 @@ def render_result_guidance_popover(
         is_sequential=is_sequential,
         analysis_context=analysis_context,
         selected_station_count=selected_station_count,
+        allows_multiple_station_selection=(
+            allows_multiple_station_selection
+        ),
     )
     guidance_content = RESULT_GUIDANCE[language]
     with st.popover(

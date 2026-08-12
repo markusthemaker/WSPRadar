@@ -146,6 +146,7 @@ def _canonical_state(**overrides):
             "val_min_spots": 1,
             "val_min_opportunities": 5,
             "val_min_stations": 1,
+            "val_report_delta_snr_outlier_candidates": False,
         }
     )
     state.update(overrides)
@@ -157,6 +158,44 @@ def _install_shared_streamlit_state(monkeypatch, session_state):
     fake_streamlit = SimpleNamespace(session_state=session_state)
     monkeypatch.setattr(renderer, "st", fake_streamlit)
     monkeypatch.setattr(callbacks, "st", fake_streamlit)
+
+
+def test_loaded_demo_scope_normalizes_multi_selection_when_reporting_turns_off(
+    monkeypatch,
+):
+    """Keep programmatic Guided presets serialization-safe in the same rerun."""
+    session_state = _canonical_state(
+        guided_loaded_demo_profile="benchmark-demo",
+        val_report_delta_snr_outlier_candidates=True,
+        val_results_selected_stations_compare=[
+            {"callsign": "A1AAA", "locator": "AA00"},
+            {"callsign": "B2BBB", "locator": "BB11"},
+        ],
+    )
+    monkeypatch.setattr(
+        renderer,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_loaded_demo_scope_values",
+        lambda _profile_key: {
+            "val_report_delta_snr_outlier_candidates": False
+        },
+    )
+    monkeypatch.setattr(
+        renderer,
+        "register_explicit_population_exclusion_values",
+        lambda _state: None,
+    )
+
+    renderer._apply_loaded_demo_scope()
+
+    assert session_state.val_report_delta_snr_outlier_candidates is False
+    assert session_state.val_results_selected_stations_compare == [
+        {"callsign": "A1AAA", "locator": "AA00"}
+    ]
 
 
 def test_input_view_selector_uses_concise_wizard_and_panel_labels():
@@ -881,6 +920,7 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(monkeypatch):
     for comparison_mode, expected_key, excluded_key, expected_result_type in cases:
         caption = Mock()
         render_evidence_fields = Mock()
+        render_outlier_reporting = Mock()
         monkeypatch.setattr(
             renderer,
             "st",
@@ -902,6 +942,11 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(monkeypatch):
             "render_evidence_threshold_fields",
             render_evidence_fields,
         )
+        monkeypatch.setattr(
+            renderer,
+            "render_delta_snr_outlier_reporting_field",
+            render_outlier_reporting,
+        )
 
         renderer._render_scope_and_evidence_fields(T["en"], GUIDED_INPUTS["en"])
 
@@ -916,6 +961,57 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(monkeypatch):
             render_evidence_fields.call_args.kwargs["use_two_column_layout"]
             is True
         )
+        assert render_outlier_reporting.call_count == (
+            0 if comparison_mode == "none" else 1
+        )
+        if comparison_mode != "none":
+            assert render_outlier_reporting.call_args.kwargs == {
+                "on_change": renderer._guided_scientific_change,
+                "on_change_args": ("scope_and_evidence",),
+            }
+
+
+def test_guided_outlier_setting_invalidates_results_and_requires_manual_run(
+    monkeypatch,
+):
+    """Retire stale evidence while keeping the edited Guided node open."""
+    session_state = _canonical_state(
+        guided_use_case="rx_benchmark",
+        val_comp_mode="hardware_ab",
+        guided_scope_mode="custom",
+        run_mode="RX",
+        active_demo_profile="hardware-demo",
+        completed_run_snapshot={
+            "schema_version": 1,
+            "analysis_id": "retained",
+        },
+    )
+    captured_callback = {}
+
+    def capture_outlier_field(_labels, **kwargs):
+        captured_callback.update(kwargs)
+
+    _install_shared_streamlit_state(monkeypatch, session_state)
+    renderer.st.radio = Mock()
+    renderer.st.markdown = Mock()
+    renderer.st.caption = Mock()
+    monkeypatch.setattr(renderer, "render_station_population_fields", Mock())
+    monkeypatch.setattr(renderer, "render_scope_fields", Mock())
+    monkeypatch.setattr(renderer, "render_evidence_threshold_fields", Mock())
+    monkeypatch.setattr(
+        renderer,
+        "render_delta_snr_outlier_reporting_field",
+        capture_outlier_field,
+    )
+
+    renderer._render_scope_and_evidence_fields(T["en"], GUIDED_INPUTS["en"])
+    captured_callback["on_change"](*captured_callback["on_change_args"])
+
+    assert session_state.guided_active_node == "scope_and_evidence"
+    assert session_state.run_mode is None
+    assert session_state.active_demo_profile is None
+    assert session_state.configuration_changed_since_run is True
+    assert "completed_run_snapshot" not in session_state
 
 
 def test_guided_demo_scope_label_requires_values_to_still_match_profile(

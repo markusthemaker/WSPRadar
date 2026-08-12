@@ -2,6 +2,11 @@
 
 from collections.abc import Mapping, MutableMapping
 
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+    DeltaSnrOutlierDetectionPolicy,
+)
 from ui.analysis_question_state import (
     ANALYSIS_QUESTION_CHOICES,
     BENCHMARK_MODES,
@@ -90,6 +95,32 @@ def classic_result_type(state: Mapping) -> str | None:
     return analysis_question_result_type(question)
 
 
+def _has_valid_enabled_outlier_detection_policy(state: Mapping) -> bool:
+    """Return whether the enabled-only detector values form one valid policy."""
+    is_reporting_enabled = state.get(
+        "val_report_delta_snr_outlier_candidates",
+        False,
+    )
+    if not isinstance(is_reporting_enabled, bool):
+        return False
+    if not is_reporting_enabled:
+        return True
+    policy_values = {
+        policy_field: state.get(
+            f"val_{config_field}",
+            getattr(DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY, policy_field),
+        )
+        for config_field, policy_field in (
+            DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+        )
+    }
+    try:
+        DeltaSnrOutlierDetectionPolicy(**policy_values)
+    except ValueError:
+        return False
+    return True
+
+
 def is_classic_input_ready(state: Mapping) -> bool:
     """Return whether Classic represents one complete serializable analysis."""
     question = canonicalize_analysis_question(state.get(CLASSIC_QUESTION_KEY))
@@ -99,4 +130,7 @@ def is_classic_input_ready(state: Mapping) -> bool:
     comparison_mode = state.get("val_comp_mode")
     if result_type == "performance":
         return comparison_mode == "none"
-    return comparison_mode in BENCHMARK_MODES
+    return (
+        comparison_mode in BENCHMARK_MODES
+        and _has_valid_enabled_outlier_detection_policy(state)
+    )

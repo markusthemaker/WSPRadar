@@ -10,6 +10,10 @@ from string import Formatter
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
 from i18n import GUIDED_INPUTS
 from ui.guided_inputs.flow_engine import (
     available_flow_nodes,
@@ -110,6 +114,7 @@ def _complete_state(**overrides):
         "val_min_spots": 1,
         "val_min_opportunities": 5,
         "val_min_stations": 1,
+        "val_report_delta_snr_outlier_candidates": False,
     }
     state.update(overrides)
     return state
@@ -835,6 +840,70 @@ def test_general_population_defaults_follow_the_guided_result_family(
     assert state["val_exclude_special_callsigns"] is expected_default
     assert state["val_filter_moving"] is expected_default
     assert scope_matches_general_defaults(state)
+
+
+def test_hidden_performance_outlier_state_does_not_force_custom_scope():
+    """Ignore inactive Compare presentation state when reconstructing Performance."""
+    performance_state = _complete_state(
+        guided_use_case="rx_performance",
+        val_comp_mode="none",
+        val_exclude_special_callsigns=True,
+        val_filter_moving=True,
+        val_report_delta_snr_outlier_candidates=True,
+    )
+
+    assert scope_matches_general_defaults(performance_state)
+
+    benchmark_state = _complete_state(
+        val_report_delta_snr_outlier_candidates=True,
+        val_results_selected_stations_compare=[
+            {"callsign": "A1AAA", "locator": "AA00"},
+            {"callsign": "B2BBB", "locator": "BB11"},
+        ],
+    )
+    assert not scope_matches_general_defaults(benchmark_state)
+
+    apply_general_scope_defaults(benchmark_state)
+    assert benchmark_state["val_report_delta_snr_outlier_candidates"] is False
+    assert benchmark_state["val_results_selected_stations_compare"] == [
+        {"callsign": "A1AAA", "locator": "AA00"}
+    ]
+    assert scope_matches_general_defaults(benchmark_state)
+
+
+def test_guided_scope_validates_detector_policy_only_while_reporting_is_enabled():
+    """Block an invalid visible policy while ignoring retained opt-out values."""
+    invalid_policy = {
+        "val_delta_snr_outlier_minimum_robust_z": 0.0,
+    }
+
+    assert is_guided_node_complete(
+        "scope_and_evidence",
+        _complete_state(
+            val_report_delta_snr_outlier_candidates=False,
+            **invalid_policy,
+        ),
+    )
+    assert not is_guided_node_complete(
+        "scope_and_evidence",
+        _complete_state(
+            val_report_delta_snr_outlier_candidates=True,
+            **invalid_policy,
+        ),
+    )
+
+    state = _complete_state(
+        val_report_delta_snr_outlier_candidates=True,
+        **invalid_policy,
+    )
+    apply_general_scope_defaults(state)
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        assert state[f"val_{config_field}"] == getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
 
 
 def test_flow_fields_and_renderers_are_closed_whitelists():

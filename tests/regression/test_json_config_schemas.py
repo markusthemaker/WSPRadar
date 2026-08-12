@@ -7,6 +7,11 @@ from pathlib import Path
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_SCHEMA_PATH = REPOSITORY_ROOT / "config" / "wspradar-config.schema.json"
@@ -296,6 +301,109 @@ def test_required_population_exclusions_have_no_universal_schema_default(
         assert "exclude_moving_stations" in required
 
 
+def test_outlier_reporting_schema_is_optional_and_compare_only(
+    config_schema,
+    config_validator,
+):
+    """Keep old v1 Compare files valid while rejecting the field in Performance."""
+    definitions = config_schema["$defs"]
+    compare_advanced = definitions["advancedParametersWithComparison"]
+    performance_advanced = definitions["advancedParametersNoComparison"]
+    field_name = "report_delta_snr_outlier_candidates"
+
+    assert field_name not in compare_advanced["required"]
+    reporting_schema = compare_advanced["properties"][field_name]
+    assert reporting_schema["type"] == "boolean"
+    assert reporting_schema["default"] is False
+    assert "one shared set of qualification gates" in reporting_schema[
+        "description"
+    ]
+    assert field_name not in performance_advanced["properties"]
+
+    old_compare_config = _tx_hardware_ab_config()
+    config_validator.validate(old_compare_config)
+    old_compare_config["settings"]["advanced_parameters"][field_name] = True
+    config_validator.validate(old_compare_config)
+
+    performance_config = _no_comparison_config()
+    performance_config["settings"]["advanced_parameters"][field_name] = False
+    with pytest.raises(ValidationError):
+        config_validator.validate(performance_config)
+
+
+def test_outlier_detector_schema_is_enabled_only_and_bounded(
+    config_schema,
+    config_validator,
+):
+    """Describe active tuning values while rejecting inactive or unsafe values."""
+    compare_advanced = config_schema["$defs"][
+        "advancedParametersWithComparison"
+    ]
+    properties = compare_advanced["properties"]
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        field_schema = properties[config_field]
+        assert field_schema["type"] == "number"
+        assert field_schema["minimum"] == 0.1
+        assert field_schema["maximum"] == 100.0
+        assert field_schema["default"] == getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
+        assert config_field not in compare_advanced["required"]
+
+    enabled_config = _tx_hardware_ab_config()
+    enabled_advanced = enabled_config["settings"]["advanced_parameters"]
+    enabled_advanced["report_delta_snr_outlier_candidates"] = True
+    enabled_advanced.update(
+        {
+            "delta_snr_outlier_minimum_departure_db": 3.25,
+            "delta_snr_outlier_minimum_robust_z": 4.5,
+            "delta_snr_outlier_maximum_baseline_difference_db": 2.75,
+        }
+    )
+    config_validator.validate(enabled_config)
+
+    disabled_config = deepcopy(enabled_config)
+    disabled_config["settings"]["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = False
+    with pytest.raises(ValidationError):
+        config_validator.validate(disabled_config)
+
+    for invalid_value in (0.0, 100.1):
+        invalid_config = deepcopy(enabled_config)
+        invalid_config["settings"]["advanced_parameters"][
+            "delta_snr_outlier_minimum_departure_db"
+        ] = invalid_value
+        with pytest.raises(ValidationError):
+            config_validator.validate(invalid_config)
+
+
+def test_outlier_detector_schema_exposes_only_shared_policy_fields(config_schema):
+    """Keep duration-specific compatibility confined to semantic migration."""
+    compare_properties = config_schema["$defs"][
+        "advancedParametersWithComparison"
+    ]["properties"]
+    legacy_fields = {
+        "delta_snr_outlier_spot_minimum_departure_db",
+        "delta_snr_outlier_burst_minimum_departure_db",
+        "delta_snr_outlier_sustained_minimum_departure_db",
+        "delta_snr_outlier_spot_minimum_robust_z",
+        "delta_snr_outlier_burst_minimum_robust_z",
+        "delta_snr_outlier_sustained_minimum_robust_z",
+    }
+
+    assert legacy_fields.isdisjoint(compare_properties)
+    assert {
+        config_field
+        for config_field, _policy_field in (
+            DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+        )
+    } <= set(compare_properties)
+
+
 def test_every_demo_is_an_ordinary_config_matching_the_formal_schema(
     config_validator,
 ):
@@ -520,6 +628,37 @@ def test_formal_schema_accepts_null_empty_and_single_station_selections(
         {"callsign": "M7AEO", "locator": "IO82"}
     ]
     config_validator.validate(config)
+
+
+def test_formal_schema_allows_benchmark_multi_selection_only_when_enabled(
+    config_validator,
+):
+    """Keep the formal cross-field opt-in aligned with semantic validation."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["results_view"]["benchmark"][
+        "selected_stations"
+    ] = [
+        {"callsign": "M7AEO", "locator": "IO82"},
+        {"callsign": "F4WBN", "locator": "JN18"},
+    ]
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+    config["settings"]["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = True
+    config_validator.validate(config)
+
+    config["settings"]["results_view"]["performance"][
+        "selected_stations"
+    ] = list(
+        config["settings"]["results_view"]["benchmark"][
+            "selected_stations"
+        ]
+    )
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
 
 
 def test_profile_metadata_is_optional_for_an_ordinary_saved_config(config_validator):

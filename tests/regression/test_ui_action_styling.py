@@ -151,6 +151,68 @@ def test_result_hierarchy_uses_green_levels_and_responsive_fine_evidence_spine(
     assert "display: none !important" in mobile_styles
 
 
+def test_outlier_station_insights_action_matches_transition_prompt_green(
+    monkeypatch,
+):
+    """Keep the path-level navigation action green without styling all buttons."""
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st,
+        "markdown",
+        lambda body, **_kwargs: rendered_styles.append(body),
+    )
+
+    ui_css.apply_custom_css()
+
+    assert len(rendered_styles) == 1
+    stylesheet = rendered_styles[0]
+    action_selector = (
+        'div[class*="st-key-outlier_path_heading_"] '
+        'button[kind="tertiary"]'
+    )
+    selector_start = stylesheet.index(action_selector)
+    rule_open = stylesheet.index("{", selector_start)
+    rule_close = stylesheet.index("}", rule_open)
+    assert "color: #84c97a !important" in stylesheet[rule_open:rule_close]
+
+    hover_selector = f"{action_selector}:hover"
+    hover_start = stylesheet.index(hover_selector, rule_close)
+    hover_rule_open = stylesheet.index("{", hover_start)
+    hover_rule_close = stylesheet.index("}", hover_rule_open)
+    assert (
+        "color: #a6ff8a !important"
+        in stylesheet[hover_rule_open:hover_rule_close]
+    )
+
+
+def test_only_outlier_number_input_step_buttons_are_hidden(monkeypatch):
+    """Retain direct numeric entry while scoping hidden steppers to outlier gates."""
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st,
+        "markdown",
+        lambda body, **_kwargs: rendered_styles.append(body),
+    )
+
+    ui_css.apply_custom_css()
+
+    stylesheet = rendered_styles[0]
+    hidden_stepper_rules = [
+        (selectors, declarations)
+        for selectors, declarations in re.findall(
+            r"([^{}]*stNumberInputStep(?:Down|Up)[^{}]*)\{([^{}]*)\}",
+            stylesheet,
+        )
+        if "display: none !important" in declarations
+    ]
+    assert len(hidden_stepper_rules) == 1
+    selectors, declarations = hidden_stepper_rules[0]
+    assert selectors.count('div[class*="st-key-val_delta_snr_outlier_"]') == 2
+    assert 'button[data-testid="stNumberInputStepDown"]' in selectors
+    assert 'button[data-testid="stNumberInputStepUp"]' in selectors
+    assert "display: none !important" in declarations
+
+
 def test_guided_workflow_actions_share_key_scoped_green_emphasis(monkeypatch):
     """Emphasize Guided actions while leaving the launcher secondary."""
     app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")

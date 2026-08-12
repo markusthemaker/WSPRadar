@@ -13,6 +13,8 @@ from core.analysis_context import (
 )
 from ui.reference_correction import configured_snr_correction_notice
 
+SELECTED_STATION_IDENTITY_LIST_LIMIT = 5
+
 
 @dataclass(frozen=True)
 class ResultContext:
@@ -420,12 +422,39 @@ def selected_station_label(
     *,
     analysis_id,
     translations,
+    allow_multiple=False,
 ):
-    """Return the exact label for one selected callsign-plus-locator identity."""
+    """Return the canonical localized label for one selected-station set.
+
+    A single callsign-plus-locator identity is preserved exactly. Selections
+    through the shared identity-list limit include every identity in order;
+    larger selections use only their localized count and direction-aware
+    remote-station role.
+    """
     identities = tuple(str(identity) for identity in station_identities)
-    if len(identities) != 1:
-        raise ValueError("Selected-station labels require exactly one identity.")
-    return identities[0]
+    if not allow_multiple and len(identities) != 1:
+        raise ValueError(
+            "Selected-station labels require exactly one identity."
+        )
+    if not identities:
+        raise ValueError(
+            "Selected-station labels require at least one identity."
+        )
+    if len(identities) == 1:
+        return identities[0]
+
+    selected_count = _localized_integer(len(identities), translations)
+    station_type = remote_station_type(analysis_id)
+    if 1 < len(identities) <= SELECTED_STATION_IDENTITY_LIST_LIMIT:
+        return translations["lbl_results_selected_station_named"].format(
+            selected_count=selected_count,
+            station_type=station_type,
+            stations=", ".join(identities),
+        )
+    return translations["lbl_results_selected_station_count"].format(
+        selected_count=selected_count,
+        station_type=station_type,
+    )
 
 
 def selected_station_context(
@@ -435,15 +464,23 @@ def selected_station_context(
     analysis_id,
     is_sequential,
     translations,
+    allow_multiple=False,
 ):
-    """Return localized Benchmark context for one selected radio path."""
+    """Return localized Benchmark context, naming at most five selected paths."""
     identities = [str(identity) for identity in station_identities]
-    if len(identities) != 1:
-        raise ValueError("Selected-station context requires exactly one identity.")
+    if not allow_multiple and len(identities) != 1:
+        raise ValueError(
+            "Selected-station context requires exactly one identity."
+        )
+    if not identities:
+        raise ValueError(
+            "Selected-station context requires at least one identity."
+        )
     selection_label = selected_station_label(
         identities,
         analysis_id=analysis_id,
         translations=translations,
+        allow_multiple=allow_multiple,
     )
     localized_evidence_count = _localized_integer(
         evidence_count,
@@ -455,20 +492,54 @@ def selected_station_context(
         is_sequential=is_sequential,
         translations=translations,
     )
-    station, locator = _split_station_identity(selection_label)
-    return translations["sub_results_selected_station_single"].format(
-        station=station,
-        locator=locator,
+    if len(identities) == 1:
+        station, locator = _split_station_identity(selection_label)
+        return translations["sub_results_selected_station_single"].format(
+            station=station,
+            locator=locator,
+            evidence_count=localized_evidence_count,
+            evidence_unit=unit,
+        )
+    if 1 < len(identities) <= SELECTED_STATION_IDENTITY_LIST_LIMIT:
+        return translations["sub_results_selected_station_named"].format(
+            selection_label=selection_label,
+            selected_count=_localized_integer(len(identities), translations),
+            station_type=remote_station_type(analysis_id),
+            stations=", ".join(identities),
+            evidence_count=localized_evidence_count,
+            evidence_unit=unit,
+        )
+    return translations["sub_results_selected_station_multi"].format(
+        selection_label=selection_label,
+        selected_count=_localized_integer(len(identities), translations),
+        station_type=remote_station_type(analysis_id),
         evidence_count=localized_evidence_count,
         evidence_unit=unit,
     )
 
 
-def drilldown_subtitle(station_identities, analysis_id, translations):
-    """Return localized row-level scope for exactly one selected identity."""
+def drilldown_subtitle(
+    station_identities,
+    analysis_id,
+    translations,
+    *,
+    allow_multiple=False,
+):
+    """Return localized row-level scope for selected station identities."""
     identities = [str(identity) for identity in station_identities]
-    if len(identities) != 1:
-        raise ValueError("Drill-Down context requires exactly one station.")
-    return translations["sub_results_drilldown_single"].format(
-        station=identities[0]
+    if not allow_multiple and len(identities) != 1:
+        raise ValueError(
+            "Drill-Down context requires exactly one station."
+        )
+    if not identities:
+        raise ValueError(
+            "Drill-Down context requires at least one station."
+        )
+    if len(identities) == 1:
+        return translations["sub_results_drilldown_single"].format(
+            station=identities[0]
+        )
+    return translations["sub_results_drilldown_multi"].format(
+        count=len(identities),
+        station_type=remote_station_type(analysis_id),
     )

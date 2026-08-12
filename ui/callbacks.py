@@ -12,6 +12,10 @@ from config import (
     SEGMENT_SELECTION_ALL,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
 from ui.documentation_state import collapse_documentation
 from ui.analysis_question_state import (
     ANALYSIS_QUESTION_CHOICES,
@@ -35,7 +39,10 @@ from ui.page_navigation import (
     RESULTS_INSPECTION_ANCHOR_ID,
     request_page_navigation,
 )
-from ui.result_state import reset_result_state
+from ui.result_state import (
+    normalize_compare_station_selection_for_outlier_reporting,
+    reset_result_state,
+)
 from ui.population_exclusion_state import (
     BENCHMARK_RESULT_TYPE,
     PERFORMANCE_RESULT_TYPE,
@@ -75,6 +82,38 @@ def reset_audit():
     reset_result_state(st.session_state)
     if had_current_result:
         st.session_state.configuration_changed_since_run = True
+
+
+def handle_delta_snr_outlier_reporting_change(
+    after_change=None,
+    after_change_args=(),
+):
+    """Normalize selection, then invalidate the owning scientific result."""
+    normalize_compare_station_selection_for_outlier_reporting(
+        st.session_state
+    )
+    if after_change is None:
+        reset_audit()
+    else:
+        after_change(*after_change_args)
+
+
+def reset_delta_snr_outlier_detector_defaults(
+    after_change=None,
+    after_change_args=(),
+):
+    """Restore all shared detector thresholds to policy defaults."""
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        st.session_state[f"val_{config_field}"] = getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
+    if after_change is None:
+        reset_audit()
+    else:
+        after_change(*after_change_args)
 
 
 def handle_time_window_change(after_change=None, after_change_args=()):
@@ -434,6 +473,14 @@ def set_reset_config(*, reset_time_window=True):
     st.session_state.val_min_spots = 1
     st.session_state.val_min_opportunities = 5
     st.session_state.val_min_stations = 1
+    st.session_state.val_report_delta_snr_outlier_candidates = False
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        st.session_state[f"val_{config_field}"] = getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
     st.session_state.val_results_show_non_joint = None
     st.session_state.val_results_show_zero_target = False
     st.session_state.val_results_selected_ranges_compare = SEGMENT_SELECTION_ALL

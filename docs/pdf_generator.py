@@ -6,6 +6,8 @@ import io
 import base64
 from html import escape
 from html.parser import HTMLParser
+from importlib.util import find_spec
+from pathlib import Path
 import re
 import threading
 from functools import lru_cache
@@ -22,6 +24,53 @@ _DOCUMENTATION_PDF_GENERATION_LOCK = threading.Lock()
 PDF_MARKDOWN_EXTENSIONS = ("tables", "fenced_code")
 PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT = (28, 27, 45)
 PDF_METHOD_MATRIX_COLUMN_WIDTHS_PERCENT = (18, 20, 23, 22, 17)
+PDF_PROPORTIONAL_FONT_FAMILY = "WSPRadarDejaVuSans"
+PDF_MONOSPACE_FONT_FAMILY = "WSPRadarDejaVuSansMono"
+
+
+def _register_pdf_fonts():
+    """Register portable Unicode PDF fonts from the required Matplotlib bundle."""
+    from reportlab.lib.fonts import addMapping
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from xhtml2pdf import default as pisa_default
+
+    matplotlib_spec = find_spec("matplotlib")
+    package_locations = (
+        tuple(matplotlib_spec.submodule_search_locations or ())
+        if matplotlib_spec is not None
+        else ()
+    )
+    if not package_locations:
+        raise RuntimeError(
+            "Documentation PDF generation requires the Matplotlib font bundle."
+        )
+    font_directory = (
+        Path(package_locations[0]) / "mpl-data" / "fonts" / "ttf"
+    )
+    font_faces = (
+        (PDF_PROPORTIONAL_FONT_FAMILY, "DejaVuSans.ttf", 0, 0),
+        (PDF_PROPORTIONAL_FONT_FAMILY, "DejaVuSans-Bold.ttf", 1, 0),
+        (PDF_PROPORTIONAL_FONT_FAMILY, "DejaVuSans-Oblique.ttf", 0, 1),
+        (PDF_PROPORTIONAL_FONT_FAMILY, "DejaVuSans-BoldOblique.ttf", 1, 1),
+        (PDF_MONOSPACE_FONT_FAMILY, "DejaVuSansMono.ttf", 0, 0),
+        (PDF_MONOSPACE_FONT_FAMILY, "DejaVuSansMono-Bold.ttf", 1, 0),
+        (PDF_MONOSPACE_FONT_FAMILY, "DejaVuSansMono-Oblique.ttf", 0, 1),
+        (PDF_MONOSPACE_FONT_FAMILY, "DejaVuSansMono-BoldOblique.ttf", 1, 1),
+    )
+    registered_fonts = set(pdfmetrics.getRegisteredFontNames())
+    for family, filename, is_bold, is_italic in font_faces:
+        font_path = font_directory / filename
+        if not font_path.is_file():
+            raise RuntimeError(
+                f"Documentation PDF font is unavailable: {font_path}."
+            )
+        face_name = f"{family}_{is_bold}{is_italic}"
+        if face_name not in registered_fonts:
+            pdfmetrics.registerFont(TTFont(face_name, str(font_path)))
+            registered_fonts.add(face_name)
+        addMapping(family, is_bold, is_italic, face_name)
+        pisa_default.DEFAULT_FONT[family.casefold()] = family
 
 
 @lru_cache(maxsize=2)
@@ -142,6 +191,86 @@ def _replace_pdf_math(md_text, translations):
             "D<sub>relative</sub> = 100 &times; n<sub>cell</sub> / "
             "max(n<sub>cell,panel</sub>)"
         ),
+        r"B_{\mathrm{pre}}=\operatorname{median}(\mathcal{Q}_{\mathrm{pre}})": _formula(
+            "B<sub>pre</sub> = median(Q<sub>pre</sub>)"
+        ),
+        r"B_{\mathrm{post}}=\operatorname{median}(\mathcal{Q}_{\mathrm{post}})": _formula(
+            "B<sub>post</sub> = median(Q<sub>post</sub>)"
+        ),
+        r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}": _formula(
+            "|B<sub>pre</sub> - B<sub>post</sub>| &le; H<sub>max</sub>"
+        ),
+        r"B=\operatorname{median}(B_{\mathrm{pre}},B_{\mathrm{post}})": _formula(
+            "B = median(B<sub>pre</sub>, B<sub>post</sub>)"
+        ),
+        r"r_{i,u}=D_{i,u}-B": _formula(
+            "r<sub>i,u</sub> = D<sub>i,u</sub> - B"
+        ),
+        (
+            "\n"
+            r"S_{\mathrm{robust}}="
+            "\n"
+            r"\begin{cases}"
+            "\n"
+            r"M, & M>0,\\"
+            "\n"
+            r"\frac{1}{2}I, & M=0\ \land\ I>0,\\"
+            "\n"
+            r"0.5\ \mathrm{dB}, & M=0\ \land\ I=0."
+            "\n"
+            r"\end{cases}"
+            "\n"
+        ): _formula(
+            "S<sub>robust</sub> = M (M &gt; 0); "
+            "I / 2 (M = 0, I &gt; 0); "
+            "0.5 dB (M = 0, I = 0)"
+        ),
+        r"z_{i,u}=0.6745\frac{r_{i,u}}{S_{\mathrm{robust}}}": _formula(
+            "z<sub>i,u</sub> = 0.6745 &times; "
+            "r<sub>i,u</sub> / S<sub>robust</sub>"
+        ),
+        (
+            r"G_i=\min\left(45,\max\left(15,1.5C_i\right)\right)"
+            r"\ \mathrm{minutes}"
+        ): _formula(
+            "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) minutes"
+        ),
+        r"L=\min(1\ \mathrm{dB},D_{\min})": _formula(
+            "L = min(1 dB, D<sub>min</sub>)"
+        ),
+        r"W_i=\max(10\ \mathrm{minutes},C_i)": _formula(
+            "W<sub>i</sub> = max(10 minutes, C<sub>i</sub>)"
+        ),
+        r"m_E=\operatorname{median}_{u\in E}(r_{i,u})": _formula(
+            "m<sub>E</sub> = median(u in E)(r<sub>i,u</sub>)"
+        ),
+        r"|m_E|\geq D_{\min}": _formula(
+            "|m<sub>E</sub>| &ge; D<sub>min</sub>"
+        ),
+        (
+            r"\left|0.6745\frac{m_E}{S_{\mathrm{robust}}}\right|"
+            r"\geq Z_{\min}"
+        ): _formula(
+            "|0.6745 &times; m<sub>E</sub> / S<sub>robust</sub>| "
+            "&ge; Z<sub>min</sub>"
+        ),
+        (
+            "\n"
+            r"\frac{\left|\left\{u\in E:\operatorname{sign}(r_{i,u})="
+            r"\operatorname{sign}(m_E)\right\}\right|}{|E|}\geq\frac{2}{3}"
+            "\n"
+        ): _formula(
+            "|{u in E: sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)}| "
+            "/ |E| &ge; 2 / 3"
+        ),
+        (
+            r"\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad "
+            r"|r_{i,u}|\geq D_{\min},\qquad |z_{i,u}|\geq Z_{\min}"
+        ): _formula(
+            "sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>), "
+            "&nbsp;&nbsp;|r<sub>i,u</sub>| &ge; D<sub>min</sub>, "
+            "&nbsp;&nbsp;|z<sub>i,u</sub>| &ge; Z<sub>min</sub>"
+        ),
         decode_rate_rx_formula: _formula(
             f"{decode_rate_label}<sub>RX</sub> = 100% &times; "
             "Target / (Target + Elsewhere)"
@@ -217,14 +346,25 @@ def _replace_pdf_math(md_text, translations):
         r"c": "c",
         r"c'": "c&apos;",
         r"C_R": "C<sub>R</sub>",
+        r"C_i": "C<sub>i</sub>",
+        r"D_{\min}": "D<sub>min</sub>",
         r"D_{i,c}": "D<sub>i,c</sub>",
+        r"D_{i,u}": "D<sub>i,u</sub>",
+        r"E": "E",
+        r"G_i": "G<sub>i</sub>",
         r"g": "g",
+        r"H_{\max}": "H<sub>max</sub>",
         r"h_i": "h<sub>i</sub>",
         r"i": "i",
         r"i,c": "i,c",
+        r"i,u": "i,u",
         r"I_g": "I<sub>g</sub>",
+        r"I=\operatorname{IQR}(\mathcal{U})": "I = IQR(U)",
         r"J_{i,b}": "J<sub>i,b</sub>",
+        r"k": "k",
+        r"L": "L",
         r"M": "M",
+        r"M=\operatorname{MAD}(\mathcal{U})": "M = MAD(U)",
         r"M\pm1": "M &plusmn; 1",
         r"M\pm3": "M &plusmn; 3",
         r"M\pm6": "M &plusmn; 6",
@@ -234,6 +374,7 @@ def _replace_pdf_math(md_text, translations):
         r"M\pm40": "M &plusmn; 40",
         r"M\pm60": "M &plusmn; 60",
         r"M_g": "M<sub>g</sub>",
+        r"m_E": "m<sub>E</sub>",
         r"m_i": "m<sub>i</sub>",
         r"n_{cell}": "n<sub>cell</sub>",
         r"n_i": "n<sub>i</sub>",
@@ -242,7 +383,9 @@ def _replace_pdf_math(md_text, translations):
         r"R_{i,b}": "R<sub>i,b</sub>",
         r"R_{opportunity}": "R<sub>opportunity</sub>",
         r"R_{station}": "R<sub>station</sub>",
+        r"r_{i,u}": "r<sub>i,u</sub>",
         r"r_i": "r<sub>i</sub>",
+        r"S_{\mathrm{robust}}": "S<sub>robust</sub>",
         r"S_{i,c}": "S<sub>i,c</sub>",
         r"S_{i,c}\le O_{i,c}": (
             "S<sub>i,c</sub> &le; O<sub>i,c</sub>"
@@ -256,6 +399,17 @@ def _replace_pdf_math(md_text, translations):
         r"T_{i,b},J_{i,b},R_{i,b}": (
             "T<sub>i,b</sub>, J<sub>i,b</sub>, R<sub>i,b</sub>"
         ),
+        r"u": "u",
+        r"W_i": "W<sub>i</sub>",
+        r"Z_{\min}": "Z<sub>min</sub>",
+        r"z_{i,u}": "z<sub>i,u</sub>",
+        r"\mathcal{Q}_{\mathrm{pre}}": "Q<sub>pre</sub>",
+        r"\mathcal{Q}_{\mathrm{post}}": "Q<sub>post</sub>",
+        r"\mathcal{U}": "U",
+        r"Q_{i,k}": "Q<sub>i,k</sub>",
+        r"B_{\mathrm{pre}}": "B<sub>pre</sub>",
+        r"B_{\mathrm{post}}": "B<sub>post</sub>",
+        r"B": "B",
     }
 
     for latex, html in inline_formula_replacements.items():
@@ -649,6 +803,7 @@ def _generate_pdf_doc(lang, logo_b64, version):
 
     dev_credit_pdf = translations["dev_credit"].replace("#39ff14", "#0a318f")
     page_label = translations["pdf_page_label"]
+    _register_pdf_fonts()
 
     template = f"""
     <html>
@@ -659,7 +814,7 @@ def _generate_pdf_doc(lang, logo_b64, version):
         }}
 
         body {{
-            font-family: Helvetica, Arial, sans-serif;
+            font-family: {PDF_PROPORTIONAL_FONT_FAMILY}, sans-serif;
             font-size: 10pt;
             color: #333;
             line-height: 1.35;
@@ -694,7 +849,7 @@ def _generate_pdf_doc(lang, logo_b64, version):
         .subtitle {{ font-size: 11pt; color: #666; margin-top: 5px; }}
 
         code {{
-            font-family: Courier, monospace;
+            font-family: {PDF_MONOSPACE_FONT_FAMILY}, monospace;
             background-color: #f4f4f4;
             padding: 2px 4px;
             font-size: 9pt;
@@ -702,7 +857,7 @@ def _generate_pdf_doc(lang, logo_b64, version):
         }}
 
         pre {{
-            font-family: Courier, monospace;
+            font-family: {PDF_MONOSPACE_FONT_FAMILY}, monospace;
             background-color: #f4f4f4;
             padding: 6px;
             font-size: 8pt;

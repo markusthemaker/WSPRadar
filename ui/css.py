@@ -634,6 +634,25 @@ def apply_custom_css():
             font-size: 0.88rem !important;
             line-height: 1.55 !important;
         }
+        div[class*="st-key-outlier_path_heading_"] button[kind="tertiary"],
+        div[class*="st-key-show_all_outlier_paths_"] button[kind="tertiary"] {
+            color: #84c97a !important;
+        }
+        div[class*="st-key-outlier_path_heading_"] button[kind="tertiary"] *,
+        div[class*="st-key-show_all_outlier_paths_"] button[kind="tertiary"] * {
+            color: inherit !important;
+        }
+        div[class*="st-key-outlier_path_heading_"] button[kind="tertiary"]:hover,
+        div[class*="st-key-show_all_outlier_paths_"] button[kind="tertiary"]:hover {
+            color: #a6ff8a !important;
+        }
+        /* Keep direct numeric entry and help while hiding only outlier steppers. */
+        div[class*="st-key-val_delta_snr_outlier_"]
+        button[data-testid="stNumberInputStepDown"],
+        div[class*="st-key-val_delta_snr_outlier_"]
+        button[data-testid="stNumberInputStepUp"] {
+            display: none !important;
+        }
 
         .result-utility-header {
             width: 100%;

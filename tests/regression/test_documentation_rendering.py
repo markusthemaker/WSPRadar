@@ -164,7 +164,7 @@ def test_scientific_methods_keep_bilingual_section_and_formula_parity():
 
     assert english_anchors == german_anchors
     assert english_formulas == german_formulas
-    assert len(english_formulas) == 16
+    assert len(english_formulas) == 32
 
 
 def test_bilingual_preface_introduces_target_peer_and_decode_rate():
@@ -206,6 +206,73 @@ def test_bilingual_controls_keep_exact_run_labels_and_callsign_syntax():
     assert "ein optionales abschließendes alphanumerisches Bindestrich-Suffix" in DOC_DE
     assert "**Start Date/Time (UTC)** and **End Date/Time (UTC)**" in DOC_EN
     assert "**Startdatum/-zeit (UTC)** und **Enddatum/-zeit (UTC)**" in DOC_DE
+
+
+def test_bilingual_manuals_document_the_outlier_detector_contract():
+    """Keep controls, paired units, gates, boundaries, and limits aligned."""
+    english_controls = DOC_EN.split('<a id="sec-5-6"></a>', 1)[1].split(
+        '<a id="sec-6"></a>', 1
+    )[0]
+    german_controls = DOC_DE.split('<a id="sec-5-6"></a>', 1)[1].split(
+        '<a id="sec-6"></a>', 1
+    )[0]
+    english_outlier = DOC_EN.split('<a id="sec-outlier"></a>', 1)[1].split(
+        '<a id="part-iii"></a>', 1
+    )[0]
+    german_outlier = DOC_DE.split('<a id="sec-outlier"></a>', 1)[1].split(
+        '<a id="part-iii"></a>', 1
+    )[0]
+    english_formal = DOC_EN.split('<a id="sec-7-11"></a>', 1)[1].split(
+        '<a id="sec-8"></a>', 1
+    )[0]
+    german_formal = DOC_DE.split('<a id="sec-7-11"></a>', 1)[1].split(
+        '<a id="sec-8"></a>', 1
+    )[0]
+
+    control_keys = (
+        "lbl_report_delta_snr_outlier_candidates",
+        "lbl_delta_snr_outlier_minimum_departure_db",
+        "lbl_delta_snr_outlier_minimum_robust_z",
+        "lbl_delta_snr_outlier_maximum_baseline_difference_db",
+    )
+    for control_key in control_keys:
+        assert f"`{T['en'][control_key]}`" in english_controls
+        assert f"`{T['de'][control_key]}`" in german_controls
+    for run_key in ("btn_run_analysis_rx", "btn_run_analysis_tx"):
+        assert f"`{T['en'][run_key]}`" in english_controls
+        assert f"`{T['de'][run_key]}`" in german_controls
+
+    assert "| off |" in english_controls
+    assert "| aus |" in german_controls
+    assert "`3.0`; `0.1`–`100.0 dB` inclusive" in english_controls
+    assert "`4.0`; `0.1`–`100.0` inclusive" in english_controls
+    assert "`3.0`; einschließlich `0.1`–`100.0 dB`" in german_controls
+    assert "`4.0`; einschließlich `0.1`–`100.0`" in german_controls
+    assert "does not automatically start an analysis" in english_controls
+    assert "startet aber nicht automatisch eine Analyse" in german_controls
+    assert "All three thresholds apply unchanged" in english_controls
+    assert "Alle drei Schwellen gelten unverändert" in german_controls
+
+    for section in (english_controls, english_outlier, english_formal):
+        assert "Joint Spot" in section
+        assert "complete Scheduled Pair" in section
+    for section in (german_controls, german_outlier, german_formal):
+        assert "Joint Spot" in section
+        assert "vollständige" in section
+        assert "Paar" in section
+    assert "changing the display bin cannot create, merge, split or remove an event" in english_outlier
+    assert "verändert den Detektor nicht" in german_outlier
+    assert "at least four populated 10-minute cells before and at least four after" in english_outlier
+    assert "never imputes missing cells" in english_outlier
+    assert "davor wie danach mindestens vier belegte 10-Minuten-Zellen" in german_outlier
+    assert "ergänzt keine fehlenden Zellen" in german_outlier
+    assert "trimmed to the first and last strong anchor" in english_formal
+    assert "between those anchors" in english_formal
+    assert "auf den ersten und letzten starken Anker gekürzt" in german_formal
+    assert "zwischen diesen Ankern" in german_formal
+    assert "not an independence or significance calculation" in english_outlier
+    assert "weder Voraussetzung" in german_outlier
+    assert "Signifikanz" in german_outlier
 
 
 def test_bilingual_methods_keep_the_approved_plain_language_explanations():
@@ -1106,6 +1173,7 @@ def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
 
     assert len(english_anchors) == len(set(english_anchors))
     assert len(german_anchors) == len(set(german_anchors))
+    assert english_anchors == german_anchors
 
     shared_runtime_anchors = {
         "sec-1",
@@ -1119,9 +1187,20 @@ def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
         "sec-3",
         "sec-4",
         "sec-5",
+        "sec-5-6",
+        "sec-5-7",
         "sec-6",
         "sec-7",
+        "sec-7-11",
         "sec-8",
+        "sec-outlier",
+        "sec-outlier-1",
+        "sec-outlier-2",
+        "sec-outlier-3",
+        "sec-outlier-4",
+        "sec-outlier-5",
+        "sec-outlier-6",
+        "sec-outlier-7",
         "sec-a",
         "sec-b",
         "sec-c",

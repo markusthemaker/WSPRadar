@@ -29,6 +29,12 @@ from config.config_schema import (
     BENCHMARK_RESULTS_VIEW_KEY,
     PERFORMANCE_RESULTS_VIEW_KEY,
 )
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+    LEGACY_BURST_MINIMUM_DEPARTURE_DB,
+    LEGACY_BURST_MINIMUM_ROBUST_Z,
+)
 from core.time_utils import format_utc_minute, parse_utc_minute
 from ui.analysis_submission_state import begin_analysis_submission
 from ui.config_io import (
@@ -83,6 +89,7 @@ URL_V1_DEFAULTS = {
     "min_joint_spots": 1,
     "min_opportunities": 5,
     "min_segment_stations": 1,
+    "report_outliers": False,
     "ranges": SEGMENT_SELECTION_ALL,
     "directions": SEGMENT_SELECTION_ALL,
     "segment_bin": "auto",
@@ -91,6 +98,40 @@ URL_V1_DEFAULTS = {
     "show_zero": False,
     "show_unpaired": False,
 }
+
+URL_V1_OUTLIER_POLICY_PARAMETERS = (
+    (
+        "outlier_departure_db",
+        "delta_snr_outlier_minimum_departure_db",
+        "minimum_departure_db",
+    ),
+    (
+        "outlier_robust_z",
+        "delta_snr_outlier_minimum_robust_z",
+        "minimum_robust_z",
+    ),
+    (
+        "outlier_baseline_difference_db",
+        "delta_snr_outlier_maximum_baseline_difference_db",
+        "maximum_baseline_difference_db",
+    ),
+)
+
+URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS = (
+    "outlier_spot_departure_db",
+    "outlier_burst_departure_db",
+    "outlier_sustained_departure_db",
+    "outlier_spot_robust_z",
+    "outlier_burst_robust_z",
+    "outlier_sustained_robust_z",
+)
+
+assert tuple(
+    (config_field, policy_field)
+    for _url_parameter, config_field, policy_field in (
+        URL_V1_OUTLIER_POLICY_PARAMETERS
+    )
+) == DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
 
 URL_V1_PARAMETER_ORDER = (
     "v",
@@ -120,6 +161,14 @@ URL_V1_PARAMETER_ORDER = (
     "min_joint_spots",
     "min_opportunities",
     "min_segment_stations",
+    "report_outliers",
+    *(
+        url_parameter
+        for url_parameter, _config_field, _policy_field in (
+            URL_V1_OUTLIER_POLICY_PARAMETERS
+        )
+    ),
+    *URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS,
     "ranges",
     "directions",
     "segment_bin",
@@ -296,6 +345,17 @@ def _parse_decimal(parameters: Mapping[str, str], key: str) -> float:
     return numeric_value
 
 
+def _parse_optional_decimal(
+    parameters: Mapping[str, str],
+    key: str,
+    default: float,
+) -> float:
+    """Parse one optional finite decimal using its canonical default."""
+    if key not in parameters:
+        return float(default)
+    return _parse_decimal(parameters, key)
+
+
 def _parse_boolean_flag(parameters: Mapping[str, str], key: str) -> bool:
     """Parse one presence-sensitive URL boolean represented only by ``1``."""
     if key not in parameters:
@@ -337,25 +397,53 @@ def _parse_ordered_selection(
 
 def _parse_selected_station(
     parameters: Mapping[str, str],
+    *,
+    allow_multiple: bool = False,
 ) -> None | list[dict[str, str]]:
-    """Parse omitted, explicit-none, or exactly one public station identity."""
+    """Parse omitted, explicit-none, or bounded public station identities."""
     if "selected_station" not in parameters:
         return None
     station_value = parameters["selected_station"]
     if station_value == "none":
         return []
-    if station_value.count("@") != 1:
+    identity_tokens = station_value.split(",")
+    if any(not identity_token for identity_token in identity_tokens):
         raise UrlStateError(
             "invalid",
-            "selected_station must use CALLSIGN@LOCATOR or the token none.",
+            "selected_station must contain non-empty station identities.",
         )
-    callsign, locator = station_value.split("@", 1)
-    if not callsign or not locator:
+    if not allow_multiple and len(identity_tokens) > 1:
         raise UrlStateError(
             "invalid",
-            "selected_station must contain both a callsign and locator.",
+            "The active URL configuration can contain at most one selected "
+            "station.",
         )
-    return [{"callsign": callsign, "locator": locator}]
+    selected_stations = []
+    seen_identities = set()
+    for identity_token in identity_tokens:
+        if identity_token.count("@") != 1:
+            raise UrlStateError(
+                "invalid",
+                "selected_station must use CALLSIGN@LOCATOR comma lists or "
+                "the token none.",
+            )
+        callsign, locator = identity_token.split("@", 1)
+        if not callsign or not locator:
+            raise UrlStateError(
+                "invalid",
+                "selected_station must contain both a callsign and locator.",
+            )
+        identity_pair = (callsign, locator)
+        if identity_pair in seen_identities:
+            raise UrlStateError(
+                "invalid",
+                "selected_station must not contain duplicate identities.",
+            )
+        seen_identities.add(identity_pair)
+        selected_stations.append(
+            {"callsign": callsign, "locator": locator}
+        )
+    return selected_stations
 
 
 def _resolve_public_mode(
@@ -555,6 +643,10 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
     if direction not in {"rx", "tx"}:
         raise UrlStateError("invalid", "direction must be rx or tx.")
     public_mode, benchmark_design = _resolve_public_mode(parameters)
+    is_outlier_reporting_enabled = (
+        public_mode != "performance"
+        and _parse_boolean_flag(parameters, "report_outliers")
+    )
 
     comparison_allowed, _comparison_required, comparison = _comparison_contract(
         parameters,
@@ -569,7 +661,15 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
         result_allowed.update({"temporal_view", "show_unpaired"})
     advanced_allowed = set(_COMMON_ADVANCED_PARAMETERS)
     if public_mode != "performance":
-        advanced_allowed.add("min_joint_spots")
+        advanced_allowed.update({"min_joint_spots", "report_outliers"})
+        if is_outlier_reporting_enabled:
+            advanced_allowed.update(
+                url_parameter
+                for url_parameter, _config_field, _policy_field in (
+                    URL_V1_OUTLIER_POLICY_PARAMETERS
+                )
+            )
+            advanced_allowed.update(URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS)
 
     allowed_parameters = (
         _CORE_PARAMETERS
@@ -616,7 +716,10 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
         "directions",
         public_order=SEGMENT_DIRECTION_OPTIONS,
     )
-    selected_stations = _parse_selected_station(parameters)
+    selected_stations = _parse_selected_station(
+        parameters,
+        allow_multiple=is_outlier_reporting_enabled,
+    )
 
     active_results_view: dict[str, Any]
     results_view = {
@@ -683,6 +786,83 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
             "min_joint_spots",
             URL_V1_DEFAULTS["min_joint_spots"],
         )
+        advanced_parameters["report_delta_snr_outlier_candidates"] = (
+            is_outlier_reporting_enabled
+        )
+        if is_outlier_reporting_enabled:
+            supplied_legacy_policy_parameters = set(parameters).intersection(
+                URL_V1_LEGACY_OUTLIER_POLICY_PARAMETERS
+            )
+            supplied_shared_policy_parameters = set(parameters).intersection(
+                {"outlier_departure_db", "outlier_robust_z"}
+            )
+            if (
+                supplied_legacy_policy_parameters
+                and supplied_shared_policy_parameters
+            ):
+                raise UrlStateError(
+                    "invalid",
+                    "Shared and legacy duration-specific outlier thresholds "
+                    "cannot be combined in one URL.",
+                )
+            if supplied_legacy_policy_parameters:
+                for legacy_parameter in supplied_legacy_policy_parameters:
+                    _parse_decimal(parameters, legacy_parameter)
+                if not supplied_legacy_policy_parameters.intersection(
+                    {
+                        "outlier_burst_departure_db",
+                        "outlier_burst_robust_z",
+                    }
+                ):
+                    raise UrlStateError(
+                        "invalid",
+                        "Legacy outlier thresholds without a Short burst value "
+                        "cannot be mapped to the shared detector policy.",
+                    )
+                advanced_parameters.update(
+                    {
+                        "delta_snr_outlier_minimum_departure_db": (
+                            _parse_optional_decimal(
+                                parameters,
+                                "outlier_burst_departure_db",
+                                LEGACY_BURST_MINIMUM_DEPARTURE_DB,
+                            )
+                        ),
+                        "delta_snr_outlier_minimum_robust_z": (
+                            _parse_optional_decimal(
+                                parameters,
+                                "outlier_burst_robust_z",
+                                LEGACY_BURST_MINIMUM_ROBUST_Z,
+                            )
+                        ),
+                    }
+                )
+                advanced_parameters[
+                    "delta_snr_outlier_maximum_baseline_difference_db"
+                ] = _parse_optional_decimal(
+                    parameters,
+                    "outlier_baseline_difference_db",
+                    getattr(
+                        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                        "maximum_baseline_difference_db",
+                    ),
+                )
+            else:
+                advanced_parameters.update(
+                    {
+                        config_field: _parse_optional_decimal(
+                            parameters,
+                            url_parameter,
+                            getattr(
+                                DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                                policy_field,
+                            ),
+                        )
+                        for url_parameter, config_field, policy_field in (
+                            URL_V1_OUTLIER_POLICY_PARAMETERS
+                        )
+                    }
+                )
 
     settings = {
         "core_parameters": {
@@ -797,22 +977,32 @@ def _serialize_segment_selection(
     return ",".join(ordered_values)
 
 
-def _serialize_selected_station(selection: Any) -> str | None:
-    """Return omitted, explicit-none, or one canonical public station identity."""
+def _serialize_selected_station(
+    selection: Any,
+    *,
+    allow_multiple: bool = False,
+) -> str | None:
+    """Return omitted, explicit-none, or canonical public station identities."""
     if selection is None:
         return None
     if selection == []:
         return "none"
-    if not isinstance(selection, list) or len(selection) != 1:
+    if not isinstance(selection, list) or not selection:
+        raise ValueError(
+            "Selected stations must be null, empty, or an identity list."
+        )
+    if not allow_multiple and len(selection) != 1:
         raise ValueError("A public URL can contain at most one selected station.")
-    station = selection[0]
-    if not isinstance(station, Mapping):
-        raise ValueError("The selected station must be an identity object.")
-    callsign = station.get("callsign")
-    locator = station.get("locator")
-    if not isinstance(callsign, str) or not isinstance(locator, str):
-        raise ValueError("The selected station identity is incomplete.")
-    return f"{callsign}@{locator}"
+    serialized_identities = []
+    for station in selection:
+        if not isinstance(station, Mapping):
+            raise ValueError("The selected station must be an identity object.")
+        callsign = station.get("callsign")
+        locator = station.get("locator")
+        if not isinstance(callsign, str) or not isinstance(locator, str):
+            raise ValueError("The selected station identity is incomplete.")
+        serialized_identities.append(f"{callsign}@{locator}")
+    return ",".join(serialized_identities)
 
 
 def build_query_from_settings(
@@ -930,6 +1120,23 @@ def build_query_from_settings(
             advanced["min_joint_spots_per_station"],
             URL_V1_DEFAULTS["min_joint_spots"],
         )
+        if advanced["report_delta_snr_outlier_candidates"]:
+            entries.append(("report_outliers", "1"))
+            for url_parameter, config_field, policy_field in (
+                URL_V1_OUTLIER_POLICY_PARAMETERS
+            ):
+                configured_value = advanced[config_field]
+                default_value = getattr(
+                    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                    policy_field,
+                )
+                if configured_value != default_value:
+                    entries.append(
+                        (
+                            url_parameter,
+                            _canonical_number(configured_value),
+                        )
+                    )
     _append_nondefault(
         entries,
         "min_opportunities",
@@ -974,7 +1181,13 @@ def build_query_from_settings(
         URL_V1_DEFAULTS["station_bin"],
     )
     selected_station = _serialize_selected_station(
-        active_results["selected_stations"]
+        active_results["selected_stations"],
+        allow_multiple=bool(
+            advanced.get(
+                "report_delta_snr_outlier_candidates",
+                False,
+            )
+        ),
     )
     if selected_station is not None:
         entries.append(("selected_station", selected_station))

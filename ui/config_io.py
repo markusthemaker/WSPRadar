@@ -38,6 +38,14 @@ from config.config_schema import (
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.config_codec import prepare_config_document
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+    LEGACY_BURST_MINIMUM_DEPARTURE_DB,
+    LEGACY_BURST_MINIMUM_ROBUST_Z,
+    LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS,
+    DeltaSnrOutlierDetectionPolicy,
+)
 from config.json_utils import decode_strict_json_bytes
 from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
 from core.input_validation import (
@@ -134,6 +142,16 @@ _CONFIG_FIELD_SEGMENTS = frozenset(
         "reference_callsign",
         "reference_qth",
         "reference_start_minute",
+        "report_delta_snr_outlier_candidates",
+        "delta_snr_outlier_minimum_departure_db",
+        "delta_snr_outlier_minimum_robust_z",
+        "delta_snr_outlier_spot_minimum_departure_db",
+        "delta_snr_outlier_burst_minimum_departure_db",
+        "delta_snr_outlier_sustained_minimum_departure_db",
+        "delta_snr_outlier_spot_minimum_robust_z",
+        "delta_snr_outlier_burst_minimum_robust_z",
+        "delta_snr_outlier_sustained_minimum_robust_z",
+        "delta_snr_outlier_maximum_baseline_difference_db",
         "repeat_interval_minutes",
         "results_view",
         "schema_version",
@@ -243,6 +261,16 @@ def _default_config():
         "min_joint_spots_per_station": 1,
         "min_confirmed_opportunities_per_peer": 5,
         "min_joint_stations_per_map_segment": 1,
+        "report_delta_snr_outlier_candidates": False,
+        **{
+            config_field: getattr(
+                DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                policy_field,
+            )
+            for config_field, policy_field in (
+                DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+            )
+        },
         "show_non_joint": False,
         "show_zero_target": False,
         "selected_ranges_compare": SEGMENT_SELECTION_ALL,
@@ -284,6 +312,50 @@ def _validate_float(value, field, min_value, max_value):
     if parsed < min_value or parsed > max_value:
         raise ValueError(f"{field} must be between {min_value:.1f} and {max_value:.1f}.")
     return parsed
+
+
+def _delta_snr_outlier_detection_policy_from_values(
+    values,
+    *,
+    state_keys=False,
+):
+    """Build the validated detector policy from config or session-state keys."""
+    policy_values = {}
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        source_field = f"val_{config_field}" if state_keys else config_field
+        raw_value = values.get(
+            source_field,
+            getattr(DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY, policy_field),
+        )
+        if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
+            raise ValueError(
+                f"{config_field} must be a finite positive number."
+            )
+        numeric_value = float(raw_value)
+        if not math.isfinite(numeric_value) or numeric_value <= 0.0:
+            raise ValueError(
+                f"{config_field} must be a finite positive number."
+            )
+        policy_values[policy_field] = numeric_value
+    try:
+        return DeltaSnrOutlierDetectionPolicy(**policy_values)
+    except ValueError as error:
+        error_message = str(error)
+        for config_field, policy_field in (
+            DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+        ):
+            error_message = error_message.replace(policy_field, config_field)
+        raise ValueError(error_message) from error
+
+
+def delta_snr_outlier_detection_policy_from_state(state):
+    """Return the validated optional detector policy retained in UI state."""
+    return _delta_snr_outlier_detection_policy_from_values(
+        state,
+        state_keys=True,
+    )
 
 
 def _validate_choice(value, field, choices):
@@ -368,8 +440,8 @@ def _validate_grid4(value, field, allow_empty=True):
     return normalize_ascii_upper(stripped_value)
 
 
-def _validate_selected_stations(value, field):
-    """Normalize automatic, empty, or one explicit station-selection identity."""
+def _validate_selected_stations(value, field, *, maximum_count=1):
+    """Normalize automatic, empty, or optionally bounded station identities."""
     if value is None:
         return None
     if not isinstance(value, list):
@@ -404,8 +476,17 @@ def _validate_selected_stations(value, field):
         normalized_stations.append(
             {"callsign": callsign, "locator": locator}
         )
-    if len(normalized_stations) > 1:
-        raise ValueError(f"{field} must contain at most one station identity.")
+    if (
+        maximum_count is not None
+        and len(normalized_stations) > int(maximum_count)
+    ):
+        if int(maximum_count) == 1:
+            raise ValueError(
+                f"{field} must contain at most one station identity."
+            )
+        raise ValueError(
+            f"{field} must contain at most {int(maximum_count)} station identities."
+        )
     return normalized_stations
 
 
@@ -619,6 +700,28 @@ def _settings_from_session_state(state, lang):
                 defaults["min_joint_spots_per_station"],
             )
         )
+        advanced_parameters["report_delta_snr_outlier_candidates"] = _validate_bool(
+            state.get(
+                "val_report_delta_snr_outlier_candidates",
+                defaults["report_delta_snr_outlier_candidates"],
+            ),
+            "report_delta_snr_outlier_candidates",
+        )
+        if advanced_parameters["report_delta_snr_outlier_candidates"]:
+            outlier_detection_policy = (
+                delta_snr_outlier_detection_policy_from_state(state)
+            )
+            advanced_parameters.update(
+                {
+                    config_field: getattr(
+                        outlier_detection_policy,
+                        policy_field,
+                    )
+                    for config_field, policy_field in (
+                        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                    )
+                }
+            )
 
     results_view = {
         PERFORMANCE_RESULTS_VIEW_KEY: {
@@ -709,6 +812,13 @@ def _settings_from_session_state(state, lang):
                         defaults["selected_stations_compare"],
                     ),
                     "results_view.benchmark.selected_stations",
+                    maximum_count=(
+                        None
+                        if advanced_parameters[
+                            "report_delta_snr_outlier_candidates"
+                        ]
+                        else 1
+                    ),
                 ),
             }
 
@@ -955,8 +1065,14 @@ def build_config_payload(
     )
 
 
-def _validate_object_fields(value, field, required_fields):
-    """Return one object after enforcing its exact active-branch fields."""
+def _validate_object_fields(
+    value,
+    field,
+    required_fields,
+    *,
+    optional_fields=(),
+):
+    """Return one object after enforcing required and allowed optional fields."""
     if not isinstance(value, dict):
         raise ValueError(f"{field} must be a JSON object.")
     missing_fields = sorted(set(required_fields) - set(value))
@@ -964,7 +1080,8 @@ def _validate_object_fields(value, field, required_fields):
         raise ValueError(
             f"Missing required {field} field(s): " + ", ".join(missing_fields) + "."
         )
-    unknown_fields = sorted(set(value) - set(required_fields))
+    allowed_fields = set(required_fields) | set(optional_fields)
+    unknown_fields = sorted(set(value) - allowed_fields)
     if unknown_fields:
         raise ValueError(
             f"Unknown {field} field(s): " + ", ".join(unknown_fields) + "."
@@ -1156,10 +1273,24 @@ def normalize_config_settings(raw_settings):
     }
     if benchmark_mode != "none":
         advanced_fields.add("min_joint_spots_per_station")
+    outlier_detection_fields = {
+        config_field
+        for config_field, _policy_field in (
+            DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+        )
+    }
     advanced = _validate_object_fields(
         settings["advanced_parameters"],
         "settings.advanced_parameters",
         advanced_fields,
+        optional_fields=(
+            {
+                "report_delta_snr_outlier_candidates",
+                *outlier_detection_fields,
+            }
+            if benchmark_mode != "none"
+            else ()
+        ),
     )
     normalized["solar_state"] = _validate_choice(
         advanced["solar_state"], "solar_state", SOLAR_KEYS.keys()
@@ -1196,6 +1327,37 @@ def normalize_config_settings(raw_settings):
             1,
             50,
         )
+        normalized["report_delta_snr_outlier_candidates"] = _validate_bool(
+            advanced.get("report_delta_snr_outlier_candidates", False),
+            "report_delta_snr_outlier_candidates",
+        )
+        supplied_outlier_detection_fields = (
+            set(advanced).intersection(outlier_detection_fields)
+        )
+        if not normalized["report_delta_snr_outlier_candidates"]:
+            if supplied_outlier_detection_fields:
+                raise ValueError(
+                    "Unknown settings.advanced_parameters field(s): "
+                    + ", ".join(sorted(supplied_outlier_detection_fields))
+                    + "."
+                )
+        else:
+            outlier_detection_policy = (
+                _delta_snr_outlier_detection_policy_from_values(advanced)
+            )
+            normalized.update(
+                {
+                    config_field: getattr(
+                        outlier_detection_policy,
+                        policy_field,
+                    )
+                    for config_field, policy_field in (
+                        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                    )
+                }
+            )
+    else:
+        normalized["report_delta_snr_outlier_candidates"] = False
 
     results_fields = {PERFORMANCE_RESULTS_VIEW_KEY}
     if benchmark_mode != "none":
@@ -1295,6 +1457,13 @@ def normalize_config_settings(raw_settings):
         normalized["selected_stations_compare"] = _validate_selected_stations(
             benchmark_results_view["selected_stations"],
             "results_view.benchmark.selected_stations",
+            maximum_count=(
+                None
+                if normalized[
+                    "report_delta_snr_outlier_candidates"
+                ]
+                else 1
+            ),
         )
 
     return normalized
@@ -1327,10 +1496,54 @@ def _migrate_legacy_results_view_keys(settings):
         results_view[canonical_key] = results_view.pop(legacy_key)
 
 
+def _migrate_legacy_delta_snr_outlier_policy(settings):
+    """Convert unpublished duration-specific detector fields to shared gates.
+
+    Experimental version-1 writers always stored every duration-specific
+    threshold. The Short burst pair is the neutral midpoint of that former
+    policy and therefore supplies the two shared qualification gates. Missing
+    legacy burst values retain their former defaults. Mixed legacy and shared
+    fields are rejected because their intended precedence would be ambiguous.
+    """
+    advanced_parameters = settings.get("advanced_parameters")
+    if not isinstance(advanced_parameters, dict):
+        return
+    legacy_fields = set(advanced_parameters).intersection(
+        LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS
+    )
+    if not legacy_fields:
+        return
+    shared_fields = {
+        "delta_snr_outlier_minimum_departure_db",
+        "delta_snr_outlier_minimum_robust_z",
+    }
+    mixed_fields = set(advanced_parameters).intersection(shared_fields)
+    if mixed_fields:
+        raise ValueError(
+            "settings.advanced_parameters cannot mix legacy duration-specific "
+            "Delta-SNR outlier thresholds with shared detector thresholds."
+        )
+    advanced_parameters["delta_snr_outlier_minimum_departure_db"] = (
+        advanced_parameters.get(
+            "delta_snr_outlier_burst_minimum_departure_db",
+            LEGACY_BURST_MINIMUM_DEPARTURE_DB,
+        )
+    )
+    advanced_parameters["delta_snr_outlier_minimum_robust_z"] = (
+        advanced_parameters.get(
+            "delta_snr_outlier_burst_minimum_robust_z",
+            LEGACY_BURST_MINIMUM_ROBUST_Z,
+        )
+    )
+    for legacy_field in LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS:
+        advanced_parameters.pop(legacy_field, None)
+
+
 def validate_config_document(payload):
     """Validate and normalize one decoded versioned WSPRadar config document."""
     prepared_document = prepare_config_document(payload)
     _migrate_legacy_results_view_keys(prepared_document["settings"])
+    _migrate_legacy_delta_snr_outlier_policy(prepared_document["settings"])
     normalized_config = normalize_config_settings(prepared_document["settings"])
     normalized_config["profile"] = deepcopy(prepared_document.get("profile"))
     normalized_config["extensions"] = deepcopy(
@@ -1423,6 +1636,19 @@ def apply_config_state_values(config, session_state):
             "val_min_stations": config[
                 "min_joint_stations_per_map_segment"
             ],
+            "val_report_delta_snr_outlier_candidates": config.get(
+                "report_delta_snr_outlier_candidates",
+                defaults["report_delta_snr_outlier_candidates"],
+            ),
+            **{
+                f"val_{config_field}": config.get(
+                    config_field,
+                    defaults[config_field],
+                )
+                for config_field, _policy_field in (
+                    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                )
+            },
             "val_results_show_non_joint": config.get("show_non_joint"),
             "val_results_show_zero_target": config["show_zero_target"],
             "val_results_selected_ranges_compare": deepcopy(

@@ -13,6 +13,10 @@ from config import (
     SNR_CORRECTION_MODES,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
 from core.input_validation import is_valid_callsign, is_valid_grid4, is_valid_locator
 from ui.analysis_question_state import (
     ANALYSIS_QUESTION_CHOICES,
@@ -20,13 +24,19 @@ from ui.analysis_question_state import (
     canonicalize_analysis_question,
     derive_analysis_question,
 )
-from ui.config_io import _default_config
+from ui.config_io import (
+    _default_config,
+    delta_snr_outlier_detection_policy_from_state,
+)
 from ui.population_exclusion_state import (
     BENCHMARK_RESULT_TYPE,
     PERFORMANCE_RESULT_TYPE,
     apply_population_exclusion_defaults,
     population_exclusion_defaults,
     result_type_from_comparison_mode,
+)
+from ui.result_state import (
+    normalize_compare_station_selection_for_outlier_reporting,
 )
 from ui.time_window import utc_window_from_state
 
@@ -176,12 +186,26 @@ def _scope_complete(state: Mapping[str, Any]) -> bool:
             or not minimum <= value <= maximum
         ):
             return False
-    return (
+    is_scope_valid = (
         state.get("val_solar") in {"all", "day", "night", "greyline"}
         and state.get("val_max_peer_distance_km") in MAP_SCOPE_OPTIONS
         and isinstance(state.get("val_exclude_special_callsigns"), bool)
         and isinstance(state.get("val_filter_moving"), bool)
     )
+    if _population_exclusion_result_type(state) == BENCHMARK_RESULT_TYPE:
+        is_outlier_reporting_enabled = state.get(
+            "val_report_delta_snr_outlier_candidates",
+            False,
+        )
+        if not isinstance(is_outlier_reporting_enabled, bool):
+            return False
+        if is_outlier_reporting_enabled:
+            try:
+                delta_snr_outlier_detection_policy_from_state(state)
+            except ValueError:
+                return False
+        return is_scope_valid
+    return is_scope_valid
 
 
 def is_guided_node_complete(node_id: str, state: Mapping[str, Any]) -> bool:
@@ -220,7 +244,19 @@ def scope_matches_general_defaults(state: Mapping[str, Any]) -> bool:
         ],
         "val_min_stations": defaults["min_joint_stations_per_map_segment"],
     }
-    return all(state.get(key) == value for key, value in expected_values.items())
+    if _population_exclusion_result_type(state) == BENCHMARK_RESULT_TYPE:
+        expected_values["val_report_delta_snr_outlier_candidates"] = defaults[
+            "report_delta_snr_outlier_candidates"
+        ]
+    for state_key, expected_value in expected_values.items():
+        if (
+            state_key == "val_report_delta_snr_outlier_candidates"
+            and state_key not in state
+        ):
+            continue
+        if state.get(state_key) != expected_value:
+            return False
+    return True
 
 
 def apply_general_scope_defaults(state: MutableMapping[str, Any]) -> None:
@@ -237,6 +273,17 @@ def apply_general_scope_defaults(state: MutableMapping[str, Any]) -> None:
         "min_confirmed_opportunities_per_peer"
     ]
     state["val_min_stations"] = defaults["min_joint_stations_per_map_segment"]
+    state["val_report_delta_snr_outlier_candidates"] = defaults[
+        "report_delta_snr_outlier_candidates"
+    ]
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        state[f"val_{config_field}"] = getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
+    normalize_compare_station_selection_for_outlier_reporting(state)
 
 
 def _population_exclusion_result_type(state: Mapping[str, Any]) -> str:

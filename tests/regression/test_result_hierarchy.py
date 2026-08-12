@@ -835,26 +835,14 @@ def test_scope_copy_preserves_remote_station_role_and_selection_depth(
     )
 
 
-@pytest.mark.parametrize(
-    "station_identities",
-    (
-        pytest.param((), id="zero-identities"),
-        pytest.param(
-            ("G1AAA (IO91)", "G2BBB (IO92)"),
-            id="multiple-identities",
-        ),
-    ),
-)
-def test_selected_station_helpers_require_exactly_one_identity(
-    station_identities,
-):
-    """Reject absent and combined station selections at every hierarchy level."""
+def test_selected_station_helpers_preserve_default_singleton_contract():
+    """Reject absent selections unless the Compare multi-path opt-in is set."""
     with pytest.raises(
         ValueError,
         match=r"Selected-station labels require exactly one identity\.",
     ):
         selected_station_label(
-            station_identities,
+            (),
             analysis_id="RX_COMP",
             translations=T["en"],
         )
@@ -864,7 +852,7 @@ def test_selected_station_helpers_require_exactly_one_identity(
         match=r"Selected-station context requires exactly one identity\.",
     ):
         selected_station_context(
-            station_identities,
+            (),
             12,
             analysis_id="RX_COMP",
             is_sequential=False,
@@ -876,10 +864,53 @@ def test_selected_station_helpers_require_exactly_one_identity(
         match=r"Drill-Down context requires exactly one station\.",
     ):
         drilldown_subtitle(
-            station_identities,
+            (),
             "RX_COMP",
             T["en"],
         )
+
+
+def test_selected_station_helpers_describe_multiple_compare_identities():
+    """Describe a combined Compare selection without discarding identities."""
+    station_identities = ("G1AAA (IO91)", "G2BBB (IO92)")
+
+    with pytest.raises(
+        ValueError,
+        match=r"Selected-station labels require exactly one identity\.",
+    ):
+        selected_station_label(
+            station_identities,
+            analysis_id="RX_COMP",
+            translations=T["en"],
+        )
+
+    selection_label = selected_station_label(
+        station_identities,
+        analysis_id="RX_COMP",
+        translations=T["en"],
+        allow_multiple=True,
+    )
+    assert selection_label == (
+        "2 selected TX stations: G1AAA (IO91), G2BBB (IO92)"
+    )
+    assert selected_station_context(
+        station_identities,
+        12,
+        analysis_id="RX_COMP",
+        is_sequential=False,
+        translations=T["en"],
+        allow_multiple=True,
+    ) == (
+        f"{selection_label} · combined view · 12 joint spots"
+    )
+    assert drilldown_subtitle(
+        station_identities,
+        "RX_COMP",
+        T["en"],
+        allow_multiple=True,
+    ) == (
+        "Row-level evidence for 2 selected TX stations within the active scope."
+    )
 
 
 @pytest.mark.parametrize("language", ("en", "de"))

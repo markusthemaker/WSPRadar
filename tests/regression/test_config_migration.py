@@ -15,6 +15,10 @@ from config import (
     STATION_EVIDENCE_TIME_BINS,
     prepare_config_document,
 )
+from config.delta_snr_outlier import (
+    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
+)
 from i18n import T
 from ui import config_io
 
@@ -1289,3 +1293,305 @@ def test_performance_only_rejects_hidden_comparison_view_fields():
         match=r"Unknown settings\.results_view field.*benchmark",
     ):
         config_io.validate_config_document(_config_document(settings))
+
+
+def test_delta_snr_outlier_reporting_is_optional_for_old_compare_configs():
+    """Default the new presentation setting without changing schema version 1."""
+    settings = _valid_settings()
+
+    normalized = config_io.validate_config_document(_config_document(settings))
+
+    assert normalized["report_delta_snr_outlier_candidates"] is False
+
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = True
+    normalized = config_io.validate_config_document(_config_document(settings))
+
+    assert normalized["report_delta_snr_outlier_candidates"] is True
+
+
+def test_delta_snr_outlier_reporting_writer_is_compare_only_and_explicit():
+    """Persist one explicit bool for Benchmark and omit inactive Performance state."""
+    normalized = config_io.normalize_config_settings(_valid_settings())
+    session_state = {"lang": "en"}
+    config_io.apply_config_state_values(normalized, session_state)
+    session_state["val_report_delta_snr_outlier_candidates"] = True
+
+    benchmark_settings = config_io._settings_from_session_state(
+        session_state,
+        "en",
+    )
+
+    assert benchmark_settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] is True
+
+    performance = config_io.normalize_config_settings(
+        _valid_settings(comparison_mode="none")
+    )
+    config_io.apply_config_state_values(performance, session_state)
+    performance_settings = config_io._settings_from_session_state(
+        session_state,
+        "en",
+    )
+
+    assert session_state["val_report_delta_snr_outlier_candidates"] is False
+    assert (
+        "report_delta_snr_outlier_candidates"
+        not in performance_settings["advanced_parameters"]
+    )
+
+
+def test_enabled_outlier_reporting_round_trips_multi_station_view_state():
+    """Persist combined Benchmark paths only under the explicit opt-in."""
+    settings = _valid_settings()
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = True
+    selected_stations = [
+        {"callsign": "F4WBN", "locator": "JN18"},
+        {"callsign": "G0IDE", "locator": "IO83"},
+    ]
+    settings["results_view"]["benchmark"][
+        "selected_stations"
+    ] = selected_stations
+
+    normalized = config_io.validate_config_document(
+        _config_document(settings)
+    )
+    session_state = {"lang": "en"}
+    config_io.apply_config_state_values(normalized, session_state)
+    rewritten = config_io._settings_from_session_state(
+        session_state,
+        "en",
+    )
+
+    assert normalized["selected_stations_compare"] == selected_stations
+    assert session_state[
+        "val_results_selected_stations_compare"
+    ] == selected_stations
+    assert rewritten["results_view"]["benchmark"][
+        "selected_stations"
+    ] == selected_stations
+    assert rewritten["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] is True
+
+
+def test_delta_snr_outlier_reporting_rejects_invalid_or_inapplicable_values():
+    """Require a JSON bool in Compare and reject the field in Performance."""
+    settings = _valid_settings()
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = "yes"
+    with pytest.raises(
+        ValueError,
+        match="report_delta_snr_outlier_candidates must be true or false",
+    ):
+        config_io.normalize_config_settings(settings)
+
+    settings = _valid_settings(comparison_mode="none")
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = False
+    with pytest.raises(
+        ValueError,
+        match=r"Unknown settings\.advanced_parameters field.*report_delta_snr_outlier_candidates",
+    ):
+        config_io.normalize_config_settings(settings)
+
+
+def test_enabled_outlier_detector_settings_default_and_round_trip():
+    """Default and persist exactly the three shared detector gates."""
+    assert DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_departure_db == 3.0
+    assert DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_robust_z == 4.0
+    assert (
+        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.maximum_baseline_difference_db
+        == 3.0
+    )
+
+    settings = _valid_settings()
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = True
+
+    normalized = config_io.normalize_config_settings(settings)
+
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        assert normalized[config_field] == getattr(
+            DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+            policy_field,
+        )
+
+    session_state = {"lang": "en"}
+    config_io.apply_config_state_values(normalized, session_state)
+    session_state["val_delta_snr_outlier_minimum_departure_db"] = 3.25
+    rewritten = config_io._settings_from_session_state(session_state, "en")
+    advanced = rewritten["advanced_parameters"]
+
+    assert advanced["delta_snr_outlier_minimum_departure_db"] == 3.25
+    assert {
+        config_field
+        for config_field, _policy_field in (
+            DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+        )
+    }.issubset(advanced)
+    assert not any(
+        "_spot_" in field_name
+        or "_burst_" in field_name
+        or "_sustained_" in field_name
+        for field_name in advanced
+    )
+    assert config_io.normalize_config_settings(rewritten)[
+        "delta_snr_outlier_minimum_departure_db"
+    ] == 3.25
+
+
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value"),
+    (
+        ("delta_snr_outlier_minimum_departure_db", "5.0"),
+        ("delta_snr_outlier_minimum_robust_z", float("nan")),
+        ("delta_snr_outlier_maximum_baseline_difference_db", 0.0),
+        ("delta_snr_outlier_minimum_departure_db", 100.1),
+    ),
+)
+def test_enabled_outlier_detector_settings_require_bounded_finite_numbers(
+    field_name,
+    invalid_value,
+):
+    """Reject nonnumeric, nonfinite, and out-of-range detector thresholds."""
+    settings = _valid_settings()
+    advanced = settings["advanced_parameters"]
+    advanced["report_delta_snr_outlier_candidates"] = True
+    advanced[field_name] = invalid_value
+
+    with pytest.raises(ValueError, match=field_name):
+        config_io.normalize_config_settings(settings)
+
+
+def test_legacy_outlier_detector_settings_migrate_from_short_burst_values():
+    """Map an experimental duration policy to the former Short burst midpoint."""
+    settings = _valid_settings()
+    advanced = settings["advanced_parameters"]
+    advanced["report_delta_snr_outlier_candidates"] = True
+    advanced.update(
+        {
+            "delta_snr_outlier_spot_minimum_departure_db": 6.0,
+            "delta_snr_outlier_burst_minimum_departure_db": 3.25,
+            "delta_snr_outlier_sustained_minimum_departure_db": 2.0,
+            "delta_snr_outlier_spot_minimum_robust_z": 6.5,
+            "delta_snr_outlier_burst_minimum_robust_z": 4.25,
+            "delta_snr_outlier_sustained_minimum_robust_z": 3.0,
+            "delta_snr_outlier_maximum_baseline_difference_db": 2.75,
+        }
+    )
+
+    normalized = config_io.validate_config_document(
+        _config_document(settings)
+    )
+
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.25
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == 4.25
+    assert (
+        normalized["delta_snr_outlier_maximum_baseline_difference_db"]
+        == 2.75
+    )
+    assert not any(
+        legacy_fragment in field_name
+        for field_name in normalized
+        for legacy_fragment in ("_spot_", "_burst_", "_sustained_")
+    )
+
+
+def test_legacy_outlier_detector_settings_default_missing_short_burst_values():
+    """Use the former Short burst defaults when legacy siblings omit them."""
+    settings = _valid_settings()
+    advanced = settings["advanced_parameters"]
+    advanced["report_delta_snr_outlier_candidates"] = True
+    advanced.update(
+        {
+            "delta_snr_outlier_spot_minimum_departure_db": 7.0,
+            "delta_snr_outlier_sustained_minimum_robust_z": 2.5,
+        }
+    )
+
+    normalized = config_io.validate_config_document(
+        _config_document(settings)
+    )
+
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.0
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == 3.5
+
+
+@pytest.mark.parametrize(
+    "shared_field",
+    (
+        "delta_snr_outlier_minimum_departure_db",
+        "delta_snr_outlier_minimum_robust_z",
+    ),
+)
+def test_legacy_outlier_detector_settings_reject_mixed_shared_gates(
+    shared_field,
+):
+    """Reject ambiguous documents that combine legacy and shared thresholds."""
+    settings = _valid_settings()
+    advanced = settings["advanced_parameters"]
+    advanced["report_delta_snr_outlier_candidates"] = True
+    advanced["delta_snr_outlier_burst_minimum_departure_db"] = 3.25
+    advanced[shared_field] = 4.0
+
+    with pytest.raises(
+        ValueError,
+        match="cannot mix legacy duration-specific.*shared detector thresholds",
+    ):
+        config_io.validate_config_document(_config_document(settings))
+
+
+def test_normalizer_rejects_legacy_outlier_fields_outside_document_migration():
+    """Keep legacy conversion isolated to the versioned document boundary."""
+    settings = _valid_settings()
+    settings["advanced_parameters"].update(
+        {
+            "report_delta_snr_outlier_candidates": True,
+            "delta_snr_outlier_burst_minimum_departure_db": 3.25,
+        }
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"Unknown settings\.advanced_parameters field",
+    ):
+        config_io.normalize_config_settings(settings)
+
+
+def test_disabled_outlier_detector_settings_are_retained_only_in_session_state():
+    """Keep opt-out tuning for re-enable without serializing scientific identity."""
+    normalized = config_io.normalize_config_settings(_valid_settings())
+    session_state = {"lang": "en"}
+    config_io.apply_config_state_values(normalized, session_state)
+    custom_state_key = "val_delta_snr_outlier_minimum_departure_db"
+    session_state[custom_state_key] = float("nan")
+
+    rewritten = config_io._settings_from_session_state(session_state, "en")
+
+    assert custom_state_key in session_state
+    assert all(
+        config_field not in rewritten["advanced_parameters"]
+        for config_field, _policy_field in (
+            DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+        )
+    )
+
+    inactive_settings = _valid_settings()
+    inactive_settings["advanced_parameters"][
+        "delta_snr_outlier_minimum_departure_db"
+    ] = 5.0
+    with pytest.raises(
+        ValueError,
+        match=r"Unknown settings\.advanced_parameters field",
+    ):
+        config_io.normalize_config_settings(inactive_settings)

@@ -66,6 +66,25 @@ def test_application_navigation_request_is_allowlisted_unique_and_one_shot():
     assert second_request["should_scroll"] is True
     assert second_request["request_token"] != first_request["request_token"]
 
+    page_navigation.request_page_navigation(
+        session_state,
+        page_navigation.STATION_INSIGHTS_ANCHOR_ID,
+        should_scroll=True,
+    )
+    station_request = page_navigation.consume_page_navigation_request(
+        session_state
+    )
+
+    assert station_request is not None
+    assert station_request["anchor_id"] == (
+        page_navigation.STATION_INSIGHTS_ANCHOR_ID
+    )
+    assert station_request["should_scroll"] is True
+    assert station_request["request_token"] not in {
+        first_request["request_token"],
+        second_request["request_token"],
+    }
+
     with pytest.raises(ValueError, match="Unknown application anchor"):
         page_navigation.request_page_navigation(
             session_state,
@@ -234,4 +253,20 @@ def test_runtime_anchors_bound_the_top_settings_and_results_regions():
     assert (
         "PARAMETER_SETTINGS_ANCHOR_ID,\n        should_scroll=True"
         in renderer_source
+    )
+
+
+def test_station_insights_anchor_is_allowlisted_and_precedes_its_level():
+    """Give report actions one stable target immediately above Station Insights."""
+    inspector_source = (
+        REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
+    ).read_text(encoding="utf-8")
+
+    assert page_navigation.APPLICATION_ANCHOR_IDS[-1] == (
+        page_navigation.STATION_INSIGHTS_ANCHOR_ID
+    )
+    assert re.search(
+        r"render_page_anchor\(\s*STATION_INSIGHTS_ANCHOR_ID\s*\)\s*"
+        r"level_three_container\s*=\s*st\.container\(",
+        inspector_source,
     )

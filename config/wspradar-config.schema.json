@@ -323,6 +323,40 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "advanced_parameters": {
+                "properties": {
+                  "report_delta_snr_outlier_candidates": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "report_delta_snr_outlier_candidates"
+                ]
+              }
+            },
+            "required": [
+              "advanced_parameters"
+            ]
+          },
+          "else": {
+            "properties": {
+              "results_view": {
+                "properties": {
+                  "benchmark": {
+                    "properties": {
+                      "selected_stations": {
+                        "$ref": "#/$defs/selectedStations"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1405,6 +1439,32 @@
         "min_joint_spots_per_station": {
           "$ref": "#/$defs/minJointSpotsPerStation"
         },
+        "report_delta_snr_outlier_candidates": {
+          "type": "boolean",
+          "description": "Whether Benchmark result presentation lazily reports Delta-SNR episode candidates detected from native Joint Spots or complete Scheduled Pairs using candidate-excluded 10-minute baseline-support cells and one shared set of qualification gates. This presentation-only option does not change provider requests or canonical Benchmark results.",
+          "default": false
+        },
+        "delta_snr_outlier_minimum_departure_db": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 100.0,
+          "description": "Minimum absolute candidate-median Delta-SNR departure in dB shared by spot impulses, short bursts, and sustained excursions.",
+          "default": 3.0
+        },
+        "delta_snr_outlier_minimum_robust_z": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 100.0,
+          "description": "Minimum absolute robust z-score shared by spot impulses, short bursts, and sustained excursions.",
+          "default": 4.0
+        },
+        "delta_snr_outlier_maximum_baseline_difference_db": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 100.0,
+          "description": "Maximum permitted absolute difference in dB between the candidate-excluded pre-episode and post-episode baseline medians.",
+          "default": 3.0
+        },
         "min_confirmed_opportunities_per_peer": {
           "$ref": "#/$defs/minConfirmedOpportunitiesPerPeer"
         },
@@ -1412,7 +1472,42 @@
           "$ref": "#/$defs/minJointStationsPerMapSegment"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "report_delta_snr_outlier_candidates": {
+                "const": true
+              }
+            },
+            "required": [
+              "report_delta_snr_outlier_candidates"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "delta_snr_outlier_minimum_departure_db"
+                  ]
+                },
+                {
+                  "required": [
+                    "delta_snr_outlier_minimum_robust_z"
+                  ]
+                },
+                {
+                  "required": [
+                    "delta_snr_outlier_maximum_baseline_difference_db"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "solarState": {
       "type": "string",
@@ -1573,7 +1668,7 @@
           "$ref": "#/$defs/stationEvidenceTimeBin"
         },
         "selected_stations": {
-          "$ref": "#/$defs/selectedStations"
+          "$ref": "#/$defs/benchmarkSelectedStations"
         }
       },
       "additionalProperties": false
@@ -1686,6 +1781,22 @@
         {
           "type": "array",
           "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/selectedStation"
+          },
+          "uniqueItems": true
+        }
+      ]
+    },
+    "benchmarkSelectedStations": {
+      "description": "Benchmark station-selection intent. null requests the normal initial table selection; an empty array records deliberate deselection; an array records the ordered exact identities selected together.",
+      "default": null,
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/selectedStation"
           },

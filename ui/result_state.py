@@ -22,12 +22,50 @@ INSPECTOR_CACHE_STATE_KEY = "segment_inspector_cache"
 ACTIVE_RUN_DATABASE_SOURCE_KEY = "active_run_database_source"
 COMPLETED_RUN_SNAPSHOT_KEY = "completed_run_snapshot"
 COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION = 1
+RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = (
+    "val_results_selected_stations_compare"
+)
+RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY = (
+    "results_station_insights_focus_compare"
+)
+RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY = (
+    "val_report_delta_snr_outlier_candidates"
+)
 
 PREPARED_RESULT_STATE_KEYS = (
     EXPORT_ZIP_BYTES_KEY,
     EXPORT_ZIP_FILENAME_KEY,
     EXPORT_ZIP_SIGNATURE_KEY,
 )
+
+
+def normalize_compare_station_selection_for_outlier_reporting(
+    session_state: MutableMapping[str, Any],
+) -> bool:
+    """Restore the singleton Compare selection whenever reporting is off.
+
+    Return whether an enabled multi-selection was truncated. This lightweight
+    boundary is shared by widget callbacks and programmatic Guided presets so
+    config and URL serialization never observe an invalid opt-out state.
+    """
+    if (
+        session_state.get(
+            RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY,
+            False,
+        )
+        is True
+    ):
+        return False
+    session_state.pop(RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY, None)
+    selected_stations = session_state.get(
+        RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+    )
+    if not isinstance(selected_stations, list) or len(selected_stations) <= 1:
+        return False
+    session_state[RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY] = (
+        selected_stations[:1]
+    )
+    return True
 
 
 def clear_prepared_result_state(session_state: MutableMapping[str, Any]) -> None:
@@ -53,6 +91,10 @@ def clear_rendered_result_state(
     session_state[EXPORT_RUN_ID_KEY] = session_state.get("run_id", 0)
     if not preserve_inspector_cache:
         session_state.pop(INSPECTOR_CACHE_STATE_KEY, None)
+        session_state.pop(
+            RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
+            None,
+        )
     clear_prepared_result_state(session_state)
 
 
