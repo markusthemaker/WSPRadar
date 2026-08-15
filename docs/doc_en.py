@@ -139,6 +139,11 @@ The aim is not to produce a flattering number. It is to obtain a result you can 
         * [2.4.3 Reference Station / Buddy Test](#sec-3-tx-benchmark-buddy)
         * [2.4.4 Local Median Neighborhood](#sec-3-tx-benchmark-local-median)
         * [2.4.5 Local Best Station](#sec-3-tx-benchmark-local-best)
+    * [2.5 Find and Review Temporary ΔSNR Departures](#sec-outlier)
+        * [2.5.1 When to use this expert diagnostic](#sec-outlier-1)
+        * [2.5.2 How detection works in practice](#sec-outlier-2)
+        * [2.5.3 Read and investigate a reported event](#sec-outlier-4)
+        * [2.5.4 Adjust selectivity and preserve the result](#sec-outlier-7)
 * [3. Strengthen and Communicate Your Result](#sec-4)
     * [3.1 Judge breadth, consistency and repeatability](#sec-4-1)
     * [3.2 Strengthen a result through repetition and control](#sec-4-2)
@@ -147,30 +152,22 @@ The aim is not to produce a flattering number. It is to obtain a result you can 
 
 
 
-**Part II: Controls, Troubleshooting, and Outlier Detection**
+**Part II: Controls and Troubleshooting**
 
-* [4. Controls, Configuration, and Troubleshooting](#sec-5)
+* [4. Controls and Configuration](#sec-5)
     * [4.1 Workflow controls](#sec-5-1)
     * [4.2 Question, Target and measurement-window controls](#sec-5-2)
     * [4.3 Benchmark-design controls](#sec-5-3)
     * [4.4 Filters and evidence thresholds](#sec-5-4)
     * [4.5 Map, inspector and export controls](#sec-5-5)
     * [4.6 Benchmark outlier-detection controls](#sec-5-6)
-    * [4.7 Troubleshooting and Data Quality](#sec-5-7)
-        * [4.7.1 Confirm the run definition first](#sec-6-1)
-        * [4.7.2 Diagnose by symptom](#sec-6-2)
-        * [4.7.3 Callsign and locator checks](#sec-6-3)
-        * [4.7.4 Historical decode-code fallback](#sec-6-4)
-        * [4.7.5 How the Target-Active Gate shapes evidence](#sec-6-5)
-        * [4.7.6 Working with upstream data](#sec-6-6)
-* [5. Delta SNR Outlier Detection](#sec-outlier)
-    * [5.1 Purpose and evidence scope](#sec-outlier-1)
-    * [5.2 Local baseline and robust variability](#sec-outlier-2)
-    * [5.3 Candidate grouping and baseline refinement](#sec-outlier-3)
-    * [5.4 Qualification, rescue and reported boundaries](#sec-outlier-4)
-    * [5.5 Descriptive event classes](#sec-outlier-5)
-    * [5.6 Cross-path context and diagnostics](#sec-outlier-6)
-    * [5.7 Interpretation and troubleshooting](#sec-outlier-7)
+* [5. Troubleshooting and Data Quality](#sec-6)
+    * [5.1 Confirm the run definition first](#sec-6-1)
+    * [5.2 Diagnose by symptom](#sec-6-2)
+    * [5.3 Callsign and locator checks](#sec-6-3)
+    * [5.4 Historical decode-code fallback](#sec-6-4)
+    * [5.5 How the Target-Active Gate shapes evidence](#sec-6-5)
+    * [5.6 Working with upstream data](#sec-6-6)
 
 **Part III: Scientific Foundations, Methods and Claims**
 
@@ -227,7 +224,7 @@ The aim is not to produce a flattering number. It is to obtain a result you can 
 
 ## Part I: Operator Guide
 
-This part takes you from an operating question to an evidence-matched conclusion. Chapter 1 establishes the common experiment, selects RX or TX and Performance or Benchmark, and introduces the shared evidence path. Chapter 2 then follows that path within the exact analysis family and Reference design. Chapter 3 explains how to strengthen, report and preserve the result. Exact controls remain in Part II; exact calculations and scientific edge cases remain in Part III.
+This part takes you from an operating question to an evidence-matched conclusion. Chapter 1 establishes the common experiment, selects RX or TX and Performance or Benchmark, and introduces the shared evidence path. Chapter 2 then follows that path within the exact analysis family and Reference design and closes with an optional expert diagnostic for temporary Delta SNR departures. Chapter 3 explains how to strengthen, report and preserve the result. Exact controls remain in Part II; exact calculations and scientific edge cases remain in Part III.
 
 In this guide, the **experiment** is the physical on-air operation and station configuration. A **run** or **analysis** is WSPRadar's configured processing of the resulting observations. A **result** is the Performance or Benchmark evidence produced by that run.
 
@@ -524,6 +521,71 @@ Inspect which station supplies the Reference, its reported power and whether the
 
 <blockquote class="evidence-conclusion"><p>Relative to the strongest qualifying local transmitter selected for each receiver path and cycle inside the stated radius, the Target showed the reported paired Delta SNR and Decode Outcomes.</p></blockquote>
 
+<a id="sec-outlier"></a>
+
+#### 2.5 Find and Review Temporary ΔSNR Departures
+
+**This is an optional expert diagnostic tool, not a routine step intended for every operator or every Benchmark analysis.** Use it when a controlled Benchmark has enough paired evidence around the period of interest and the question specifically concerns a temporary departure from one radio path's usual Target-versus-Reference behavior. Start with the ordinary Benchmark evidence path first; enable outlier reporting only when its additional event-level detail serves the investigation.
+
+The detector does not search for the largest raw Delta SNR in the run. It asks whether one exact `callsign + locator` path temporarily moved above or below a stable local expected Delta SNR by enough to pass the configured departure, robust-score and baseline-stability requirements. The result is a set of intervals for expert review, not an automatic explanation of why the observations changed.
+
+<a id="sec-outlier-1"></a>
+
+##### 2.5.1 When to use this expert diagnostic
+
+Use the detector only with Benchmark evidence. Its native evidence unit is a simultaneous **Joint Spot** or, for sequential TX Hardware A/B, one **complete Scheduled Pair**. Only those units contain both Target and corrected Reference SNR and therefore a paired Delta SNR. Only Target and Only Reference outcomes remain useful diagnostic context but cannot themselves qualify an event.
+
+The method is most useful when the selected path has repeated paired observations before, during and after a suspected change. It deliberately abstains when a reliable local baseline cannot be supported on both sides. No reported event can therefore mean either that the retained evidence did not pass the configured gates or that the local evidence was insufficient or unstable; it does not establish that the path was unchanged.
+
+Enable **`Report ΔSNR outlier candidates`** and set the three expert controls described in [Section 4.6](#sec-5-6), then run the analysis manually. Changing the toggle or a threshold marks the analysis definition as changed but does not automatically start another run.
+
+<a id="sec-outlier-2"></a>
+<a id="sec-outlier-3"></a>
+
+##### 2.5.2 How detection works in practice
+
+For each exact path, WSPRadar:
+
+1. keeps the paired observations at their native WSPR-cycle or Scheduled-Pair times;
+2. estimates the path's expected local Delta SNR from robust summaries before and after a possible departure, excluding the candidate itself;
+3. requires those two baseline sides to have enough populated evidence and to agree within the configured maximum;
+4. groups nearby, same-sign residuals using the path's observed evidence cadence;
+5. tests the grouped event against the same absolute-departure, robust-score and sign-agreement rules regardless of its duration; and
+6. trims weak leading and trailing evidence so that the reported interval begins and ends on observations that individually meet both user thresholds.
+
+Weaker observations can remain inside an interval when they connect stronger observations, but they cannot extend its outer boundaries. A failed broad candidate can be split at a supported return to baseline so that a strong internal section is tested on its own without choosing a new, more favorable baseline.
+
+Detection is completed before the Temporal Evidence display is aggregated. Changing a `1h`, `6h` or other display bin therefore cannot create, merge, split or remove an event. After path events qualify independently, contemporaneous same-sign events can be grouped for review: **path-specific** means one path, **directionally coherent** means several paths in adjacent compass sectors, **scope-wide** means several separated directions, and **multiple paths** means several paths with direction unavailable for at least one contributor. That context does not change whether an individual path qualified. The exact construction, support counts, timing rules and formulas are in [Section 7.11](#sec-7-11).
+
+<a id="sec-outlier-4"></a>
+<a id="sec-outlier-5"></a>
+<a id="sec-outlier-6"></a>
+
+##### 2.5.3 Read and investigate a reported event
+
+Read an event card from the interval down to its source evidence:
+
+* **Spot impulse**, **Short burst** and **Sustained excursion** describe the retained temporal shape after boundary trimming. They do not use different qualification thresholds or express different certainty.
+* Each path line identifies the exact `callsign + locator` and direction. **Expected local Delta SNR** is the candidate-excluded two-sided baseline; **Observed median Delta SNR** summarizes the retained units in the reported interval; **Largest single-cycle departure** is the most extreme retained residual from that baseline.
+* For a multi-unit event, **Chronological WSPR-cycle evidence** lists the contributing UTC time, path, direction, local baseline, Delta SNR and residual. A one-unit Spot impulse needs no duplicate evidence table.
+* **Show in Station Insights** selects the path for its wider run history. **Drill-Down Data** exposes the underlying Target and corrected Reference SNR values and nearby one-sided outcomes. Use those views to check whether the Delta SNR movement came mainly from one side, whether either signal approached the decode edge, and whether pairability changed nearby.
+
+The displayed first-to-last span is the interval between retained observations. It does not assert uninterrupted behavior between them. Compare the interval with contemporaneous paths, station logs, switching schedules, gain or power changes, interference observations and independent measurements before assigning a cause.
+
+<a id="sec-outlier-7"></a>
+
+##### 2.5.4 Adjust selectivity and preserve the result
+
+The three controls always retain their literal meaning:
+
+* increasing **`Minimum absolute ΔSNR departure (dB)`** requires a larger departure;
+* increasing **`Minimum robust z-score`** requires the departure to be larger relative to nearby robust variability; and
+* decreasing **`Maximum pre/post baseline difference (dB)`** requires a more stable two-sided baseline.
+
+The opposite changes make reporting more permissive. The same three values apply to Spot impulses, Short bursts and Sustained excursions; duration provides no hidden discount. For exploratory work, use candidates to identify intervals worth auditing and record any threshold changes. For confirmatory work, fix and preserve the thresholds, Benchmark design, correction, path population, band and UTC scope before inspecting the result, then test whether a comparable departure recurs in a separate suitably controlled run.
+
+Report the observation as a **temporary local Delta SNR departure in the retained paired evidence**, together with its exact path, interval, sign, supporting units and detector settings. The detector is descriptive: it does not calculate a p-value, correct for the number of searched paths or events, or determine the physical cause.
+
 <a id="sec-3-9"></a>
 
 ---
@@ -643,15 +705,15 @@ WSPRadar can preserve the configured analysis and processed evidence, but it can
 
 <a id="part-ii"></a>
 
-## Part II: Controls, Troubleshooting, and Outlier Detection
+## Part II: Controls and Troubleshooting
 
 Use this part as an operating reference while setting up, repeating or diagnosing an analysis. It documents the exact controls, defaults, saved behavior and scientific consequences that affect the operator.
 
-Chapter 5 documents Benchmark Delta SNR outlier detection as an expert inspection method. Its formal scientific definition is in [Section 7.11](#sec-7-11); it is intentionally kept outside the Part I operator path.
+Optional expert use of Benchmark Delta SNR outlier detection is introduced in [Section 2.5](#sec-outlier). Section 4.6 owns its controls; its formal scientific definition is in [Section 7.11](#sec-7-11).
 
 <a id="sec-5"></a>
 
-### 4. Controls, Configuration, and Troubleshooting
+### 4. Controls and Configuration
 
 WSPRadar distinguishes controls that change the retained scientific evidence from controls that only change how completed evidence is inspected.
 
@@ -760,7 +822,7 @@ Choose filters and thresholds from the intended population and evidence floor be
 
 The two exclusion defaults apply only to untouched interactive setups. A Performance setup starts with both exclusions on; a Benchmark setup starts with both off. After the operator changes either exclusion manually, that explicit value persists across Question changes rather than being replaced by a result-type default. Loaded configurations, demos and analysis URLs likewise retain their explicitly saved choices.
 
-`Maximum peer distance from Target (km)` limits the analysed population after the archive rows have been retrieved, so reducing it does not avoid the archive row limit. A smaller Local Neighborhood radius and `Exclude Special Callsigns Q, 0, 1` can reduce the population retrieved for some analyses; [Section 4.7.6](#sec-6-6) covers oversized requests.
+`Maximum peer distance from Target (km)` limits the analysed population after the archive rows have been retrieved, so reducing it does not avoid the archive row limit. A smaller Local Neighborhood radius and `Exclude Special Callsigns Q, 0, 1` can reduce the population retrieved for some analyses; [Section 5.6](#sec-6-6) covers oversized requests.
 
 <a id="sec-5-5"></a>
 
@@ -782,7 +844,7 @@ Chronological aggregation never changes opportunity classification, Benchmark pa
 
 #### 4.6 Benchmark outlier-detection controls
 
-Benchmark Delta SNR outlier detection is an optional expert analysis over retained native paired evidence. A native paired unit is a simultaneous **Joint Spot** or, for sequential TX Hardware A/B, one **complete Scheduled Pair**. Detection runs separately for every exact peer `callsign + locator` path and is independent of the selected Temporal Evidence display bin. One-sided evidence cannot supply a missing Delta SNR. [Chapter 5](#sec-outlier) explains operation and interpretation; [Section 7.11](#sec-7-11) defines the method formally.
+Benchmark Delta SNR outlier detection is an optional expert analysis over retained native paired evidence. A native paired unit is a simultaneous **Joint Spot** or, for sequential TX Hardware A/B, one **complete Scheduled Pair**. Detection runs separately for every exact peer `callsign + locator` path and is independent of the selected Temporal Evidence display bin. One-sided evidence cannot supply a missing Delta SNR. [Section 2.5](#sec-outlier) explains operation and interpretation; [Section 7.11](#sec-7-11) defines the method formally.
 
 | Control | Default / range | Method symbol | Scientific effect |
 |---|---|---|---|
@@ -796,13 +858,13 @@ The toggle and three thresholds are saved when applicable. Changing any of them 
 <a id="sec-6"></a>
 <a id="sec-5-7"></a>
 
-#### 4.7 Troubleshooting and Data Quality
+### 5. Troubleshooting and Data Quality
 
 Confirm the run definition before changing filters or thresholds. A wider scope can retain more evidence, but it cannot repair a wrong identity, band, time window or physical schedule.
 
 <a id="sec-6-1"></a>
 
-##### 4.7.1 Confirm the run definition first
+#### 5.1 Confirm the run definition first
 
 1. **Target identity:** exact callsign or reporting identifier, including suffix.
 2. **QTH:** configured locator and the first four characters actually uploaded.
@@ -816,7 +878,7 @@ Only after these checks should you change evidence thresholds, exclusions, solar
 
 <a id="sec-6-2"></a>
 
-##### 4.7.2 Diagnose by symptom
+#### 5.2 Diagnose by symptom
 
 | Symptom | Next checks |
 |---|---|
@@ -835,7 +897,7 @@ An upstream-data problem changes what the source supplied. An experiment-design 
 
 <a id="sec-6-3"></a>
 
-##### 4.7.3 Callsign and locator checks
+#### 5.3 Callsign and locator checks
 
 Performance and every Benchmark design match Target archive rows by exact callsign plus Target QTH grid-4. A Target uploading `JN37` while configured as `JN38` does not match.
 
@@ -845,13 +907,13 @@ Callsigns must satisfy the documented 3–15-character reporting-token rule. Loc
 
 <a id="sec-6-4"></a>
 
-##### 4.7.4 Historical decode-code fallback
+#### 5.4 Historical decode-code fallback
 
 WSPRadar first requests WSPR-2 rows with `code = 1`. If that strict request returns no Target-side evidence, it retries without the predicate for historical compatibility and reports the fallback in run status. The fallback broadens selection and can differ between Performance and Benchmark.
 
 <a id="sec-6-5"></a>
 
-##### 4.7.5 How the Target-Active Gate shapes evidence
+#### 5.5 How the Target-Active Gate shapes evidence
 
 The Target-Active Gate retains simultaneous cycles only when Target participation is observable. Reference reports from periods when the Target was offline are therefore not counted as automatic Target failures.
 
@@ -859,7 +921,7 @@ The gate is intentionally Target-centric. Reference uptime remains an experiment
 
 <a id="sec-6-6"></a>
 
-##### 4.7.6 Working with upstream data
+#### 5.6 Working with upstream data
 
 Public WSPR archives can contain duplicates, false spots, incorrect locators or power values, delayed uploads and later corrections. wspr.live describes fresh data as arriving after a delay of a few minutes; waiting about **five minutes** after the final cycle is a practical estimate, not a completeness guarantee <a href="#ref-10">[Ref-10]</a>.
 
@@ -874,90 +936,7 @@ WSPRadar reduces sensitivity to isolated bad rows through identity consolidation
 
 These status items document where the evidence came from and whether the historical compatibility fallback was used; they do not define a different scientific method.
 
-An archive retrieval larger than 1,000,000 complete rows is rejected before analysis rather than silently truncated. Shorten the window or use a relevant archive-side population filter as described in [Section 4.7.2](#sec-6-2).
-
-<a id="sec-outlier"></a>
-### 5. Delta SNR Outlier Detection
-
-Benchmark summaries describe typical Target-versus-Reference behavior across retained paired evidence. Delta SNR outlier detection asks a narrower, time-local question: **did one exact radio path temporarily depart from its own expected local Delta SNR?** WSPRadar answers this with a robust local-baseline event detector. It examines native paired evidence, forms provisional same-sign events, excludes each candidate from its own baseline calculation and reports only the strongly anchored interval that still passes every configured gate.
-
-This is an expert diagnostic, not an automatic explanation. A reported event is a bounded pattern in retained paired observations. It does not by itself establish a hardware fault, propagation mode, antenna change, causal mechanism, statistical significance or uninterrupted physical duration. Conversely, absence of a reported event can mean that the detector lacked stable local baseline support, not that no physical change occurred. [Section 7.11](#sec-7-11) gives the formal method and notation.
-
-<a id="sec-outlier-1"></a>
-#### 5.1 Purpose and evidence scope
-
-The detection unit is one complete native paired observation: a same-cycle **Joint Spot** in simultaneous Benchmark designs or one **complete Scheduled Pair** in sequential TX Hardware A/B. Corrected Target-minus-Reference Delta SNR already exists for either unit. Only this paired evidence can qualify an event. An Only Target or Only Reference outcome has no missing-side SNR and cannot be converted into detector evidence.
-
-Detection runs independently for every exact peer `callsign + locator` path. A large positive residual on one path and a large negative residual on another are separate candidates. Detection occurs before Temporal Evidence display aggregation, so changing the display bin cannot create, merge, split or remove an event.
-
-Target and Reference SNR decomposition and nearby one-sided outcomes remain available as diagnostics. They can help determine whether a reported Delta-SNR excursion coincided with movement on one side or with changing pairability, but they do not qualify, strengthen or extend an event.
-
-<a id="sec-outlier-2"></a>
-#### 5.2 Local baseline and robust variability
-
-For each candidate interval, WSPRadar estimates the expected local Delta SNR from evidence before and after the candidate. Native paired observations are reduced to one median per UTC-aligned 10-minute cell for this baseline calculation; event detection and reported boundaries remain at native paired-unit resolution.
-
-The detector examines up to six hours of populated evidence on each side. It excludes the candidate and a surrounding guard interval, requires at least four populated 10-minute cells before and at least four after, and never imputes missing cells. The median of each flank becomes the pre-event or post-event baseline. Their difference must not exceed **`Maximum pre/post baseline difference (dB)`**. The equally weighted centre of the two flank medians becomes the local expected Delta SNR. When either flank lacks support or the two flanks disagree too strongly, the path remains unclassified for that candidate and no outlier is reported.
-
-Each native paired unit is then expressed as a residual from that local baseline. Positive residuals are above the expected local Target-minus-Reference Delta SNR; negative residuals are below it. Local variability is estimated robustly from the two flanks after each flank has been centred on its own median. The scale uses the median absolute deviation; if that is zero, half the interquartile range; and if both are zero, a `0.5 dB` quantization floor.
-
-The resulting modified robust z-score describes departure relative to this local robust scale. It is useful for comparing a residual with the path's nearby variability, but it is not a calibrated probability, p-value or conventional Gaussian significance level.
-
-<a id="sec-outlier-3"></a>
-#### 5.3 Candidate grouping and baseline refinement
-
-WSPRadar first estimates the path's usual evidence cadence from eligible paired and one-sided outcomes. Positive intervals longer than 45 minutes are treated as outages; at least two retained intervals are required, otherwise the configured paired-unit cadence is used. The allowed gap inside one provisional event is bounded between 15 and 45 minutes and otherwise follows 1.5 times the estimated path cadence.
-
-Candidate formation deliberately starts below the final user threshold. A broad pilot baseline is first estimated for each supported 10-minute cell with a guard of at least 60 minutes or twice the estimated path cadence, whichever is longer. The provisional membership threshold is the smaller of `1 dB` and **`Minimum absolute ΔSNR departure (dB)`**. Nearby pilot residuals of the same sign whose magnitudes are at least that permissive threshold form a provisional event. Grouping ends at an excessive gap, a material sign reversal or a supported return to baseline. One supported neutral paired unit may bridge the event when the same-sign departure resumes; two consecutive supported neutral units end it. Evidence without pilot-baseline support is left unclassified and is never imputed.
-
-The complete provisional event is then excluded from the final baseline calculation, together with a guard of at least 10 minutes or one estimated path cadence, whichever is longer. Its same-sign shoulders may expand against the refined baseline for up to three passes when their residual magnitude is at least `1 dB`. Excluding and refining the complete candidate prevents the excursion from pulling its own expected baseline toward itself.
-
-<a id="sec-outlier-4"></a>
-#### 5.4 Qualification, rescue and reported boundaries
-
-Every provisional event, regardless of duration, must pass the same gates. Its median residual magnitude must meet **`Minimum absolute ΔSNR departure (dB)`**; the absolute robust score of that median must meet **`Minimum robust z-score`**; and the two flank medians must remain within **`Maximum pre/post baseline difference (dB)`**. At least two-thirds of the retained paired units must also agree with the event sign. A Sustained excursion receives no lower threshold merely because it lasts longer.
-
-If the complete refined event cannot yield a qualifying strongly anchored interval, it is not immediately discarded. Using the same final local baseline and flank support, WSPRadar splits it at final-baseline returns into contiguous same-sign sections without another neutral bridge, then tests those sections independently. Every rescued section must pass the same thresholds and sign-agreement rule. The baseline is not refitted around the smaller section. This can preserve a genuinely strong core that would otherwise be suppressed by weak surrounding evidence without allowing the core to select a more favorable local reference.
-
-After an event qualifies, WSPRadar identifies **strong anchors**. A strong anchor has the event sign and individually meets both the absolute-departure and robust-score thresholds against the same final baseline and robust spread. The reported event is trimmed to the first and last strong anchor and then rebuilt and checked again against all event-level gates without refitting its baseline.
-
-This creates hysteretic boundaries: weak leading and trailing paired units are removed, while weaker units already grouped between the first and last strong anchors remain as internal evidence. One remaining strong anchor becomes a Spot impulse. If no strongly anchored interval passes the unchanged gates, no event is reported.
-
-<a id="sec-outlier-5"></a>
-#### 5.5 Descriptive event classes
-
-Classification occurs only after strong-anchor trimming:
-
-| Event class | Retained temporal evidence shape |
-|---|---|
-| **Spot impulse** | Exactly one retained native paired unit. |
-| **Sustained excursion** | At least three retained native paired units spanning at least 30 minutes from first to last. |
-| **Short burst** | Every other retained multi-unit event. |
-
-These labels describe the observed temporal shape only. They do not alter qualification thresholds, imply different certainty or assign a physical cause. The displayed first-to-last span is an observed evidence interval; it is not proof that the underlying effect remained continuous between the retained observations.
-
-<a id="sec-outlier-6"></a>
-#### 5.6 Cross-path context and diagnostics
-
-Path events are detected independently and then compared in time. Same-sign events that overlap or lie within the greater of 10 minutes and half the configured paired-unit cadence are grouped for review as:
-
-* **path-specific** when only one path contributes;
-* **directionally coherent** when several paths in adjacent compass sectors contribute;
-* **scope-wide** when several separated directions contribute; or
-* **multiple paths** when several paths contribute but direction is unavailable for at least one of them.
-
-Cross-path coherence can make an event more useful for interpretation because the same signed departure appears beyond one radio path. It is not required for an individual path event to be reported, does not change its thresholds and is not an independence or significance calculation.
-
-Target/Reference decomposition and nearby one-sided outcomes remain diagnostic context only. For example, they may show whether the Target, Reference or pairability changed near the event, but they cannot manufacture a missing paired observation or increase an event's qualification score.
-
-<a id="sec-outlier-7"></a>
-#### 5.7 Interpretation and troubleshooting
-
-Begin with the exact path, sign, retained Joint Spots or complete Scheduled Pairs, the reported first and last strong anchors, the expected local Delta SNR, the observed event median and the largest single-unit departure. The detector applies the required pre-event/post-event support and baseline-stability check internally; the compact report does not expose those flank values as separate diagnostics. Use **Show in Station Insights** and **Drill-Down Data** to inspect the source Target and corrected Reference SNR values and nearby one-sided outcomes, and compare contemporaneous events on other paths. Then compare the interval with station logs, switching schedules, power or gain changes, interference observations and other independent measurements before assigning a cause.
-
-A candidate can remain unreported because either flank has fewer than four populated baseline cells, the flanks differ by more than the configured maximum, the event median misses the absolute-departure or robust-score threshold, fewer than two-thirds of its paired units agree in sign, cadence gaps split the candidate, or no strongly anchored interval survives the final check. These are different forms of detector abstention or rejection and should not be summarized as proof that the path was unchanged.
-
-For exploratory work, the detector can identify intervals worth auditing. For confirmatory work, preserve the three thresholds, band, Benchmark design, correction, path population and UTC scope before examining the result, then test whether a comparable event recurs in a separate suitably controlled run. Report an event as a **temporary local Delta SNR departure in the retained paired evidence**. Stronger claims require the external experiment controls appropriate to the proposed explanation.
+An archive retrieval larger than 1,000,000 complete rows is rejected before analysis rather than silently truncated. Shorten the window or use a relevant archive-side population filter as described in [Section 5.2](#sec-6-2).
 
 <a id="part-iii"></a>
 ## Part III: Scientific Foundations, Methods and Claims
@@ -1092,7 +1071,7 @@ The lowest unit differs by design:
 
 These units are constructed from reported spots; they are not additional radio measurements. Their purpose is to define unambiguously the conditions under which a success, missed decode or paired difference is counted.
 
-Historical `code = 1` fallback changes the source-row selection only when the strict request has no Target-side evidence. Run status records which source path was used. Upstream delay and data-quality limitations are described in [Section 4.7.6](#sec-6-6).
+Historical `code = 1` fallback changes the source-row selection only when the strict request has no Target-side evidence. Run status records which source path was used. Upstream delay and data-quality limitations are described in [Section 5.6](#sec-6-6).
 
 <a id="sec-7-2"></a>
 #### 7.2 Identity, matching and row consolidation
@@ -1379,7 +1358,7 @@ Two rules precede the geographic scope:
 
 Solar classification uses solar elevation at Target QTH. Same-cycle evidence uses the cycle timestamp. Scheduled TX A/B uses the midpoint between the planned Target and Reference starts so one pair cannot be split across solar classes.
 
-The archive row limit and the controls that can reduce the retrieved source population are operational matters documented in [Section 4.7.6](#sec-6-6); they do not change the scientific summaries after the retained population has been formed.
+The archive row limit and the controls that can reduce the retrieved source population are operational matters documented in [Section 5.6](#sec-6-6); they do not change the scientific summaries after the retained population has been formed.
 
 <a id="sec-7-10"></a>
 #### 7.10 Dependence, uncertainty and validation scope
@@ -1403,108 +1382,143 @@ Empirical software-validation audits are not timeless method definitions. Any re
 <a id="sec-7-11"></a>
 #### 7.11 Robust local-baseline Delta SNR event detection
 
-The detector's analysis target is a temporary same-sign departure in one path's paired Delta SNR from a stable local expected value. It is not a search for the largest raw Delta SNR in the run and does not estimate the probability that an event is physically anomalous. [Chapter 5](#sec-outlier) owns operating use and interpretation; this section defines the scientific construction.
+The detector's analysis target is a temporary same-sign departure in one path's paired Delta SNR from a stable local expected value. It is not a ranking of the largest raw values and does not estimate an event probability. [Section 2.5](#sec-outlier) explains when and how an operator should use the diagnostic; this section defines the exact scientific construction.
 
-The notation below extends the Chapter 7 notation. $i$ is one exact peer `callsign + locator` path, $u$ is one native paired unit — a same-cycle Joint Spot or a complete Scheduled Pair — and $D_{i,u}$ is the corrected paired Target-minus-Reference Delta SNR already defined in [Section 7.5](#sec-7-5). The three user controls are written as $D_{\min}$ for **`Minimum absolute ΔSNR departure (dB)`**, $Z_{\min}$ for **`Minimum robust z-score`** and $H_{\max}$ for **`Maximum pre/post baseline difference (dB)`**.
+The notation is local to this section except for the three control symbols already introduced in [Section 4.6](#sec-5-6): $D_{\min}$ is **`Minimum absolute ΔSNR departure (dB)`**, $Z_{\min}$ is **`Minimum robust z-score`**, and $H_{\max}$ is **`Maximum pre/post baseline difference (dB)`**. No notation elsewhere in Chapter 7 is redefined.
 
-**1. Detection evidence and resolution.** Only native paired units contribute detector values. One-sided outcomes have no paired Delta SNR and are excluded from qualification, although their times contribute to the path-cadence estimate and they remain diagnostic context. Detection runs separately for each path $i$ before Temporal Evidence display aggregation, so changing the display bin cannot create, merge, split or remove an event. When **`Report ΔSNR outlier candidates`** is off, the detector is not run and no outlier semantics are added to the result.
+| Symbol | English mnemonic and meaning in this section |
+|---|---|
+| $i$ | one exact peer `callsign + locator` path identity |
+| $u$ | one native paired unit: a same-cycle Joint Spot or complete Scheduled Pair |
+| $k$ | one UTC-aligned 10-minute baseline-cell index |
+| $D_{i,u}$ | corrected paired Target-minus-Reference Delta SNR for unit $u$, following Section 7.5 |
+| $\widetilde D_{i,k}$ | median Delta SNR in populated baseline cell $k$ |
+| $\mathcal{B}_{\mathrm{pre}},\mathcal{B}_{\mathrm{post}}$ | retained pre-event and post-event Baseline evidence values |
+| $B_{\mathrm{pre}},B_{\mathrm{post}},B$ | pre-event, post-event and final local Baseline |
+| $B^P_{i,k}$ | Pilot Baseline for path $i$ and cell $k$ |
+| $r^P_{i,u},r_{i,u}$ | Pilot and final Residual for native unit $u$ |
+| $\mathcal{V},S_{\mathrm{robust}}$ | centred flank Variability sample and robust local Scale |
+| $z_{i,u}$ | robust z-score of one native paired unit |
+| $C_i,G_i,F$ | typical path Cadence, maximum internal Gap and provisional grouping Floor |
+| $W_i^P,W_i^B$ | Pilot- and final-Baseline exclusion Widths |
+| $E,m_E,z_E,\operatorname{agree}(E)$ | candidate Event, its Median residual, event robust z-score and sign-agreement fraction |
 
-**2. UTC-aligned baseline cells and flank support.** Native $D_{i,u}$ observations are reduced to one median $Q_{i,k}$ in each populated UTC-aligned 10-minute cell $k$. These cell medians are used for baseline and robust-scale estimation; candidate formation and boundaries retain native paired-unit times.
+**1. Evidence and resolution.** Only native paired units supply detector Delta SNR. One-sided outcomes have no paired value and cannot qualify an event, although their times contribute to cadence estimation and the outcomes remain diagnostic context. Detection runs independently for each path $i$ before Temporal Evidence display aggregation. Changing a display bin cannot create, merge, split or remove an event. When **`Report ΔSNR outlier candidates`** is off, the detector is not run and no outlier semantics are added to the result.
 
-For a candidate interval, the detector examines up to six hours of cells before and six hours after it. The complete candidate and a surrounding guard interval are excluded. Each flank must contain at least four populated cells, and missing cells are not imputed. Let $\mathcal{Q}_{\mathrm{pre}}$ and $\mathcal{Q}_{\mathrm{post}}$ be the retained cell values on the two flanks. Their baselines are:
+Native values are reduced to $\widetilde D_{i,k}$ for baseline and robust-scale estimation. Candidate grouping and reported boundaries retain the native paired-unit times.
 
-$$B_{\mathrm{pre}}=\operatorname{median}(\mathcal{Q}_{\mathrm{pre}})$$
+**2. Stable local baseline and robust variability.** For the candidate under evaluation, the detector examines populated 10-minute cells up to six hours before and six hours after it. The candidate and its exclusion width are omitted. Each flank must contain at least four populated cells; missing cells are never imputed. The retained cell values form $\mathcal{B}_{\mathrm{pre}}$ and $\mathcal{B}_{\mathrm{post}}$:
 
-$$B_{\mathrm{post}}=\operatorname{median}(\mathcal{Q}_{\mathrm{post}})$$
+$$
+B_{\mathrm{pre}}=\operatorname{median}(\mathcal{B}_{\mathrm{pre}}),\qquad
+B_{\mathrm{post}}=\operatorname{median}(\mathcal{B}_{\mathrm{post}})
+$$
 
-The candidate has acceptable baseline stability only when:
+The final expected local Delta SNR gives the two flanks equal weight, while the stability gate limits their disagreement:
 
-$$\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}$$
+$$
+B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2},\qquad
+\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}
+$$
 
-The expected local Delta SNR is the equally weighted centre of the two sides:
+Equal flank weighting prevents the side with more populated cells from dominating. If either flank lacks support or the stability gate fails, the path remains unclassified for that candidate and no event is reported.
 
-$$B=\operatorname{median}(B_{\mathrm{pre}},B_{\mathrm{post}})$$
+To measure nearby variability without treating a baseline shift as noise, each flank is centred on its own baseline:
 
-Equal flank weighting prevents the side with more populated cells from dominating the local centre. If either flank lacks the minimum support or the stability gate fails, the path remains unclassified for that candidate and no outlier is reported.
+$$
+\mathcal{V}=\left\{x-B_{\mathrm{pre}}:x\in\mathcal{B}_{\mathrm{pre}}\right\}
+\cup\left\{x-B_{\mathrm{post}}:x\in\mathcal{B}_{\mathrm{post}}\right\}
+$$
 
-**3. Native paired-unit residual.** Every native paired unit in the candidate receives:
-
-$$r_{i,u}=D_{i,u}-B$$
-
-A positive residual is above the path's expected local Target-minus-Reference Delta SNR; a negative residual is below it. The detector groups and qualifies the sign of this residual, not the sign of raw $D_{i,u}$ relative to absolute `0 dB` equality.
-
-**4. Robust local variability and score.** The pre-event cell values are centred on $B_{\mathrm{pre}}$ and the post-event cell values on $B_{\mathrm{post}}$. Let $\mathcal{U}$ be the combined set of these flank-centred values, $M=\operatorname{MAD}(\mathcal{U})$ and $I=\operatorname{IQR}(\mathcal{U})$. The robust local scale is:
+The robust local scale is:
 
 $$
 S_{\mathrm{robust}}=
 \begin{cases}
-M, & M>0,\\
-\frac{1}{2}I, & M=0\ \land\ I>0,\\
-0.5\ \mathrm{dB}, & M=0\ \land\ I=0.
+\operatorname{MAD}(\mathcal{V}), & \operatorname{MAD}(\mathcal{V})>0,\\
+\frac{1}{2}\operatorname{IQR}(\mathcal{V}), & \operatorname{MAD}(\mathcal{V})=0\ \land\ \operatorname{IQR}(\mathcal{V})>0,\\
+0.5\ \mathrm{dB}, & \operatorname{MAD}(\mathcal{V})=0\ \land\ \operatorname{IQR}(\mathcal{V})=0.
 \end{cases}
 $$
 
-MAD is the median absolute deviation and IQR is the interquartile range. The final `0.5 dB` floor prevents a zero denominator when locally quantized flank values have no measured spread. The modified robust score of one native paired unit is:
+MAD is the median absolute deviation and IQR is the interquartile range. The `0.5 dB` floor prevents division by zero for locally quantized evidence. Against the final baseline, one native unit has:
 
-$$z_{i,u}=0.6745\frac{r_{i,u}}{S_{\mathrm{robust}}}$$
+$$
+r_{i,u}=D_{i,u}-B,\qquad
+z_{i,u}=0.6745\frac{r_{i,u}}{S_{\mathrm{robust}}}
+$$
 
-The factor `0.6745` gives the conventional modified robust-score scaling when MAD supplies the scale. The resulting $z_{i,u}$ remains a standardized descriptive score. It is not a calibrated tail probability, p-value or conventional Gaussian significance level, especially when the IQR or quantization fallback is active.
+A positive residual is above the expected local Target-minus-Reference Delta SNR and a negative residual is below it; this residual sign, not the sign of raw $D_{i,u}$ relative to `0 dB`, drives grouping and qualification. The factor `0.6745` supplies conventional modified-score scaling when MAD is active. The score remains descriptive rather than a calibrated probability, p-value or Gaussian significance level.
 
-**5. Path cadence and maximum internal gap.** The detector estimates the typical evidence cadence $C_i$ in minutes from unique eligible paired and one-sided outcome times for the path. It retains positive intervals no longer than 45 minutes and requires at least two such intervals; otherwise the configured paired-unit cadence supplies $C_i$. The maximum gap allowed within a provisional event is:
+**3. Cadence-aware pilot grouping.** The typical path cadence $C_i$ is estimated in minutes from unique eligible paired and one-sided outcome times. Positive intervals no longer than 45 minutes are retained, and at least two are required; otherwise the configured paired-unit cadence supplies $C_i$. The maximum internal gap is:
 
 $$G_i=\min\left(45,\max\left(15,1.5C_i\right)\right)\ \mathrm{minutes}$$
 
 Thus sparse paths receive a cadence-aware grouping allowance, but no event can bridge more than 45 minutes and no estimated cadence reduces the allowance below 15 minutes.
 
-**6. Pilot baseline and permissive provisional grouping.** To seed candidates without allowing the point under test to define its own local centre, the detector calculates a pilot baseline for every supported 10-minute cell. Its exclusion guard is the greater of 60 minutes and twice $C_i$; the same flank-support and $H_{\max}$ rules apply. A native unit inherits the pilot baseline of its 10-minute cell and has a pilot residual only when that cell has supported flanks. The initial residual-magnitude threshold is:
-
-$$L=\min(1\ \mathrm{dB},D_{\min})$$
-
-Nearby pilot residuals of the same sign with magnitude at least $L$ form a provisional event. Grouping stops at a gap greater than $G_i$, an opposite-sign member or a supported return to baseline. One supported neutral unit may bridge the evidence when the same-sign departure resumes; a second consecutive supported neutral unit ends the event. Unsupported units are left unclassified and are not imputed. This pass is intentionally permissive: $L$ finds candidate continuity, while the stricter user thresholds qualify the final event.
-
-**7. Candidate-excluded baseline refinement.** The complete provisional event is excluded from the final baseline calculation with guard width:
-
-$$W_i=\max(10\ \mathrm{minutes},C_i)$$
-
-Against this refined baseline, same-sign shoulders with residual magnitude at least `1 dB` may expand the provisional event for up to three passes. The complete expanded interval remains excluded whenever the local baseline is refitted. This prevents the candidate from shifting its own expected value toward the excursion.
-
-**8. Event-level qualification.** Let $E$ be one refined provisional event and let its median residual be:
-
-$$m_E=\operatorname{median}_{u\in E}(r_{i,u})$$
-
-The event qualifies only when all three user gates hold:
-
-$$|m_E|\geq D_{\min}$$
-
-$$\left|0.6745\frac{m_E}{S_{\mathrm{robust}}}\right|\geq Z_{\min}$$
-
-$$\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}$$
-
-It must also satisfy the sign-agreement gate:
+To seed candidates without allowing the point under test to define its own expected value, each supported cell receives a Pilot Baseline $B^P_{i,k}$. Its exclusion width and the permissive grouping Floor are:
 
 $$
-\frac{\left|\left\{u\in E:\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E)\right\}\right|}{|E|}\geq\frac{2}{3}
+W_i^P=\max(60,2C_i)\ \mathrm{minutes},\qquad
+F=\min(1\ \mathrm{dB},D_{\min})
 $$
 
-Every duration and eventual event class uses these same gates. There is no duration bonus, accumulated-evidence discount or weaker threshold for a sustained event.
+The pilot fit uses the same six-hour flank reach, four-populated-cell minimum on each side and $H_{\max}$ stability gate. A native unit $u$ in cell $k(u)$ receives a pilot residual only when that cell has supported flanks:
 
-**9. Rescue of a strong core.** If the complete refined event cannot yield a qualifying strongly anchored interval, the detector splits it at final-baseline returns into contiguous same-sign sections without neutral bridging and tests those sections independently. Each section must pass the same $D_{\min}$, $Z_{\min}$, $H_{\max}$ and sign-agreement gates. The final baseline and flank support established for the complete provisional event are reused rather than recalculated around a smaller rescued section. This prevents weak surrounding evidence from suppressing a strong core without allowing that core to select a more favorable local reference.
+$$r^P_{i,u}=D_{i,u}-B^P_{i,k(u)}$$
 
-**10. Strong-anchor trimming.** After event-level qualification, a native paired unit can anchor a reported boundary only when:
+Nearby pilot residuals of the same sign and magnitude at least $F$ form a provisional event. Grouping stops at a gap greater than $G_i$, an opposite-sign member or a supported return to baseline. One supported neutral unit may bridge the evidence when the same-sign departure resumes; a second consecutive supported neutral unit ends the event. Unsupported units remain unclassified and are not imputed. The low Floor finds continuity; it does not relax final qualification.
 
-$$\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad |r_{i,u}|\geq D_{\min},\qquad |z_{i,u}|\geq Z_{\min}$$
+**4. Candidate-excluded final baseline.** The complete provisional event is excluded from the final baseline fit with width:
 
-The event is trimmed to the first and last strong anchors. Units already grouped between those anchors remain internal evidence even when they individually miss one or both anchor thresholds. The trimmed event is rebuilt and retested against every event-level gate using the same final baseline, robust spread and flank support. Weak leading and trailing units are therefore removed, while weaker internal bridging units can remain. One surviving anchor yields a Spot impulse; if no strongly anchored interval passes the unchanged gates, no event is reported. The lower grouping threshold and higher boundary threshold together give the detector hysteretic boundaries.
+$$W_i^B=\max(10,C_i)\ \mathrm{minutes}$$
 
-**11. Descriptive event class and span.** Classification occurs after trimming:
+The final fit uses the baseline and robust-scale construction in Step 2. Against that shared final baseline, same-sign shoulders with residual magnitude at least `1 dB` may expand the event for up to three passes. The complete expanded interval remains excluded at every refit, preventing the candidate from pulling its own expected value toward the excursion.
+
+**5. Qualification, strong-core rescue and reported boundaries.** For one refined candidate Event $E$, define its Median residual, event robust z-score and sign-agreement fraction as:
+
+$$
+m_E=\operatorname{median}_{u\in E}(r_{i,u}),\qquad
+z_E=0.6745\frac{m_E}{S_{\mathrm{robust}}}
+$$
+
+$$
+\operatorname{agree}(E)=
+\frac{\left|\left\{u\in E:\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E)\right\}\right|}{|E|}
+$$
+
+The event qualifies only when every gate holds:
+
+$$
+|m_E|\geq D_{\min},\qquad
+|z_E|\geq Z_{\min},\qquad
+\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max},\qquad
+\operatorname{agree}(E)\geq\frac{2}{3}
+$$
+
+Every duration and eventual class uses these same gates. There is no duration bonus, accumulated-evidence discount or weaker threshold for a sustained event.
+
+If the complete refined event cannot yield a qualifying strongly anchored interval, it is split at final-baseline returns into contiguous same-sign sections without neutral bridging. Each section is tested against the same gates while reusing the complete candidate's final baseline, robust scale and flank support. This can rescue a strong core suppressed by weak surroundings without allowing the smaller section to select a more favorable reference.
+
+After qualification, a native unit is a strong boundary anchor only when:
+
+$$
+\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad
+|r_{i,u}|\geq D_{\min},\qquad
+|z_{i,u}|\geq Z_{\min}
+$$
+
+The reported interval is trimmed to the first and last strong anchors. Units already grouped between them remain internal evidence even when they individually miss an anchor threshold. The trimmed interval is rebuilt and retested against every event-level gate using the same final baseline, robust scale and flank support. Weak leading and trailing units are removed; weaker internal bridges can remain. One surviving anchor becomes a Spot impulse. If no strongly anchored interval passes, no event is reported. The lower grouping Floor and higher boundary requirements therefore produce hysteretic event boundaries.
+
+**6. Descriptive class and cross-path context.** Classification occurs after trimming:
 
 * **Spot impulse:** one retained native paired unit;
 * **Sustained excursion:** at least three retained native paired units spanning at least 30 minutes; and
 * **Short burst:** every other retained multi-unit event.
 
-The classes describe temporal evidence shape and do not change qualification. The displayed first-to-last interval is the span between observed retained units, not evidence that the physical effect was continuous between them.
+The classes describe temporal evidence shape and do not change qualification. The displayed first-to-last interval spans observed retained units; it does not establish uninterrupted behavior between them.
 
-**12. Cross-path context.** Path events are qualified independently. Same-sign events are grouped into one review card when they overlap or lie within a tolerance equal to the greater of 10 minutes and half the configured paired-unit cadence. The resulting context is path-specific when one path contributes, directionally coherent when several paths in adjacent compass sectors contribute, scope-wide when several separated directions contribute, or multiple paths when direction is unavailable for at least one contributor. Cross-path coherence can support a broader descriptive interpretation but is not required to report an individual path and does not alter its qualification.
+Path events qualify independently. Same-sign events are placed in one review card when they overlap or lie within the greater of 10 minutes and half the configured paired-unit cadence. Context is path-specific for one path, directionally coherent for several paths in adjacent compass sectors, scope-wide for several separated directions, or multiple paths when direction is unavailable for at least one contributor. Cross-path context does not alter path qualification and is not an independence or significance calculation.
 
 Target/Reference decomposition and nearby one-sided outcomes are retained as internal diagnostics and can be investigated through the paired evidence and Drill-Down. They do not qualify, extend or strengthen an event. The detector is therefore a deterministic descriptive classifier of the retained paired evidence. Its event count is not an independent sample size, it performs no multiple-event significance correction, and causal attribution still requires the experiment control described in Chapters 2, 3 and 8.
 

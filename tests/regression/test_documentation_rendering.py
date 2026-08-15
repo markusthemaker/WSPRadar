@@ -161,10 +161,75 @@ def test_scientific_methods_keep_bilingual_section_and_formula_parity():
     german_anchors = re.findall(r'<a id="(sec-7(?:-[^"]+)?)"></a>', german_methods)
     english_formulas = re.findall(r"\$\$(.*?)\$\$", english_methods, flags=re.DOTALL)
     german_formulas = re.findall(r"\$\$(.*?)\$\$", german_methods, flags=re.DOTALL)
+    english_formal = english_methods.split('<a id="sec-7-11"></a>', 1)[1]
+    german_formal = german_methods.split('<a id="sec-7-11"></a>', 1)[1]
+    english_outlier_formulas = re.findall(
+        r"\$\$(.*?)\$\$", english_formal, flags=re.DOTALL
+    )
+    german_outlier_formulas = re.findall(
+        r"\$\$(.*?)\$\$", german_formal, flags=re.DOTALL
+    )
 
     assert english_anchors == german_anchors
     assert english_formulas == german_formulas
-    assert len(english_formulas) == 32
+    assert len(english_formulas) == 29
+    assert len(english_outlier_formulas) == 13
+    assert english_outlier_formulas == german_outlier_formulas
+    assert len(english_formulas) - len(english_outlier_formulas) == 16
+
+
+def test_outlier_method_keeps_mnemonic_notation_inside_section_7_11():
+    """Keep the approved symbols local to the formal detector method."""
+    english_before, english_remainder = DOC_EN.split(
+        '<a id="sec-7-11"></a>', 1
+    )
+    english_formal, english_after = english_remainder.split(
+        '<a id="sec-8"></a>', 1
+    )
+    german_before, german_remainder = DOC_DE.split(
+        '<a id="sec-7-11"></a>', 1
+    )
+    german_formal, german_after = german_remainder.split(
+        '<a id="sec-8"></a>', 1
+    )
+
+    mnemonic_symbols = (
+        r"\widetilde D_{i,k}",
+        r"\mathcal{B}_{\mathrm{pre}}",
+        r"B^P_{i,k}",
+        r"r^P_{i,u}",
+        r"\mathcal{V}",
+        r"W_i^P",
+        r"W_i^B",
+        r"z_E",
+        r"\operatorname{agree}(E)",
+    )
+    for symbol in mnemonic_symbols:
+        assert symbol in english_formal
+        assert symbol in german_formal
+        assert symbol not in english_before + english_after
+        assert symbol not in german_before + german_after
+
+    for obsolete_symbol in (
+        r"Q_{i,k}",
+        r"\mathcal{Q}_{\mathrm{pre}}",
+        r"\mathcal{U}",
+        r"L=\min",
+        r"W_i=\max",
+    ):
+        assert obsolete_symbol not in english_formal
+        assert obsolete_symbol not in german_formal
+
+    for formula_fragment in (
+        r"B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2}",
+        r"F=\min(1\ \mathrm{dB},D_{\min})",
+        r"r^P_{i,u}=D_{i,u}-B^P_{i,k(u)}",
+        r"W_i^B=\max(10,C_i)\ \mathrm{minutes}",
+        r"z_E=0.6745\frac{m_E}{S_{\mathrm{robust}}}",
+        r"\operatorname{agree}(E)\geq\frac{2}{3}",
+    ):
+        assert formula_fragment in english_formal
+        assert formula_fragment in german_formal
 
 
 def test_bilingual_preface_introduces_target_peer_and_decode_rate():
@@ -217,10 +282,10 @@ def test_bilingual_manuals_document_the_outlier_detector_contract():
         '<a id="sec-6"></a>', 1
     )[0]
     english_outlier = DOC_EN.split('<a id="sec-outlier"></a>', 1)[1].split(
-        '<a id="part-iii"></a>', 1
+        '<a id="sec-3-9"></a>', 1
     )[0]
     german_outlier = DOC_DE.split('<a id="sec-outlier"></a>', 1)[1].split(
-        '<a id="part-iii"></a>', 1
+        '<a id="sec-3-9"></a>', 1
     )[0]
     english_formal = DOC_EN.split('<a id="sec-7-11"></a>', 1)[1].split(
         '<a id="sec-8"></a>', 1
@@ -260,19 +325,33 @@ def test_bilingual_manuals_document_the_outlier_detector_contract():
         assert "Joint Spot" in section
         assert "vollständige" in section
         assert "Paar" in section
-    assert "changing the display bin cannot create, merge, split or remove an event" in english_outlier
-    assert "verändert den Detektor nicht" in german_outlier
-    assert "at least four populated 10-minute cells before and at least four after" in english_outlier
-    assert "never imputes missing cells" in english_outlier
-    assert "davor wie danach mindestens vier belegte 10-Minuten-Zellen" in german_outlier
-    assert "ergänzt keine fehlenden Zellen" in german_outlier
+    assert "optional expert diagnostic tool" in english_outlier
+    assert "not a routine step intended for every operator" in english_outlier
+    assert "[Section 7.11](#sec-7-11)" in english_outlier
+    assert "optionales Diagnosewerkzeug für erfahrene Anwender" in german_outlier
+    assert "nicht für den routinemäßigen Einsatz" in german_outlier
+    assert "[Abschnitt 7.11](#sec-7-11)" in german_outlier
+    assert "cannot create, merge, split or remove an event" in english_outlier
+    assert (
+        "kann daher kein Ereignis erzeugen, zusammenführen, teilen oder entfernen"
+        in german_outlier
+    )
+    assert "at least four populated cells" in english_formal
+    assert "missing cells are never imputed" in english_formal
+    assert "mindestens vier belegte Zellen" in german_formal
+    assert "fehlende Zellen werden niemals ergänzt" in german_formal
     assert "trimmed to the first and last strong anchor" in english_formal
-    assert "between those anchors" in english_formal
+    assert "Units already grouped between them remain internal evidence" in english_formal
     assert "auf den ersten und letzten starken Anker gekürzt" in german_formal
-    assert "zwischen diesen Ankern" in german_formal
-    assert "not an independence or significance calculation" in english_outlier
-    assert "weder Voraussetzung" in german_outlier
-    assert "Signifikanz" in german_outlier
+    assert "dazwischen gruppierte Einheiten" in german_formal
+    assert "does not calculate a p-value" in english_outlier
+    assert "berechnet keinen p-Wert" in german_outlier
+    assert "$$" not in english_outlier
+    assert "$$" not in german_outlier
+    assert "gyroelectric" not in DOC_EN.casefold()
+    assert "gyroelectric" not in DOC_DE.casefold()
+    assert "### 5. Troubleshooting and Data Quality" in DOC_EN
+    assert "### 5. Fehlersuche und Datenqualität" in DOC_DE
 
 
 def test_bilingual_methods_keep_the_approved_plain_language_explanations():

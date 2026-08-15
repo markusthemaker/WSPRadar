@@ -1191,6 +1191,19 @@ duplicates the navigation controller's listeners.
 ### Documentation Pipeline
 
 `docs/doc_en.py` and `docs/doc_de.py` hold the full manuals as source strings.
+The optional Delta-SNR diagnostic has four deliberately separate documentation
+homes: Part I Section 2.5 owns practical expert-tool use, report reading and
+investigation; Section 4.6 owns the exact toggle and three controls; Chapter 5
+owns general Troubleshooting and Data Quality; and Section 7.11 owns the exact
+detector method, notation and formulas. Section 2.5 must identify the feature as
+an expert diagnostic rather than routine guidance. This content restructure does
+not change detector or application behavior. Detector-notation changes are
+confined to Section 7.11, leaving every symbol outside that section unchanged.
+English and German keep parallel semantic ownership with natural localized
+prose and equivalent mathematical meaning. Established inbound compatibility
+anchors remain attached to their relocated meaning and resolve once without
+creating duplicate visible headings; in particular, the legacy `sec-2-5`
+Reference-design anchor is not repurposed for the new Section 2.5.
 `ui/documentation.py` initially renders only the Part 0 preface in a Streamlit fragment.
 `ui/documentation_scroll_trigger.py` mounts a one-pixel browser controller
 immediately before visible Section 0.3 (the stable `sec-1-3` anchor). Its

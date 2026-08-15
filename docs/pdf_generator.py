@@ -191,20 +191,36 @@ def _replace_pdf_math(md_text, translations):
             "D<sub>relative</sub> = 100 &times; n<sub>cell</sub> / "
             "max(n<sub>cell,panel</sub>)"
         ),
-        r"B_{\mathrm{pre}}=\operatorname{median}(\mathcal{Q}_{\mathrm{pre}})": _formula(
-            "B<sub>pre</sub> = median(Q<sub>pre</sub>)"
+        (
+            "\n"
+            r"B_{\mathrm{pre}}=\operatorname{median}(\mathcal{B}_{\mathrm{pre}}),\qquad"
+            "\n"
+            r"B_{\mathrm{post}}=\operatorname{median}(\mathcal{B}_{\mathrm{post}})"
+            "\n"
+        ): _formula(
+            "B<sub>pre</sub> = median(&#8492;<sub>pre</sub>), "
+            "&nbsp;&nbsp;B<sub>post</sub> = median(&#8492;<sub>post</sub>)"
         ),
-        r"B_{\mathrm{post}}=\operatorname{median}(\mathcal{Q}_{\mathrm{post}})": _formula(
-            "B<sub>post</sub> = median(Q<sub>post</sub>)"
+        (
+            "\n"
+            r"B=\frac{B_{\mathrm{pre}}+B_{\mathrm{post}}}{2},\qquad"
+            "\n"
+            r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}"
+            "\n"
+        ): _formula(
+            "B = (B<sub>pre</sub> + B<sub>post</sub>) / 2, "
+            "&nbsp;&nbsp;|B<sub>pre</sub> - B<sub>post</sub>| "
+            "&le; H<sub>max</sub>"
         ),
-        r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max}": _formula(
-            "|B<sub>pre</sub> - B<sub>post</sub>| &le; H<sub>max</sub>"
-        ),
-        r"B=\operatorname{median}(B_{\mathrm{pre}},B_{\mathrm{post}})": _formula(
-            "B = median(B<sub>pre</sub>, B<sub>post</sub>)"
-        ),
-        r"r_{i,u}=D_{i,u}-B": _formula(
-            "r<sub>i,u</sub> = D<sub>i,u</sub> - B"
+        (
+            "\n"
+            r"\mathcal{V}=\left\{x-B_{\mathrm{pre}}:x\in\mathcal{B}_{\mathrm{pre}}\right\}"
+            "\n"
+            r"\cup\left\{x-B_{\mathrm{post}}:x\in\mathcal{B}_{\mathrm{post}}\right\}"
+            "\n"
+        ): _formula(
+            "V = {x - B<sub>pre</sub>: x &isin; &#8492;<sub>pre</sub>} "
+            "&cup; {x - B<sub>post</sub>: x &isin; &#8492;<sub>post</sub>}"
         ),
         (
             "\n"
@@ -212,60 +228,99 @@ def _replace_pdf_math(md_text, translations):
             "\n"
             r"\begin{cases}"
             "\n"
-            r"M, & M>0,\\"
+            r"\operatorname{MAD}(\mathcal{V}), & \operatorname{MAD}(\mathcal{V})>0,\\"
             "\n"
-            r"\frac{1}{2}I, & M=0\ \land\ I>0,\\"
+            r"\frac{1}{2}\operatorname{IQR}(\mathcal{V}), & \operatorname{MAD}(\mathcal{V})=0\ \land\ \operatorname{IQR}(\mathcal{V})>0,\\"
             "\n"
-            r"0.5\ \mathrm{dB}, & M=0\ \land\ I=0."
+            r"0.5\ \mathrm{dB}, & \operatorname{MAD}(\mathcal{V})=0\ \land\ \operatorname{IQR}(\mathcal{V})=0."
             "\n"
             r"\end{cases}"
             "\n"
         ): _formula(
-            "S<sub>robust</sub> = M (M &gt; 0); "
-            "I / 2 (M = 0, I &gt; 0); "
-            "0.5 dB (M = 0, I = 0)"
+            "S<sub>robust</sub> = MAD(V) [MAD(V) &gt; 0]; "
+            "IQR(V) / 2 [MAD(V) = 0, IQR(V) &gt; 0]; "
+            "0.5 dB [MAD(V) = 0, IQR(V) = 0]"
         ),
-        r"z_{i,u}=0.6745\frac{r_{i,u}}{S_{\mathrm{robust}}}": _formula(
-            "z<sub>i,u</sub> = 0.6745 &times; "
+        (
+            "\n"
+            r"r_{i,u}=D_{i,u}-B,\qquad"
+            "\n"
+            r"z_{i,u}=0.6745\frac{r_{i,u}}{S_{\mathrm{robust}}}"
+            "\n"
+        ): _formula(
+            "r<sub>i,u</sub> = D<sub>i,u</sub> - B, "
+            "&nbsp;&nbsp;z<sub>i,u</sub> = 0.6745 &times; "
             "r<sub>i,u</sub> / S<sub>robust</sub>"
         ),
         (
             r"G_i=\min\left(45,\max\left(15,1.5C_i\right)\right)"
             r"\ \mathrm{minutes}"
         ): _formula(
-            "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) minutes"
-        ),
-        r"L=\min(1\ \mathrm{dB},D_{\min})": _formula(
-            "L = min(1 dB, D<sub>min</sub>)"
-        ),
-        r"W_i=\max(10\ \mathrm{minutes},C_i)": _formula(
-            "W<sub>i</sub> = max(10 minutes, C<sub>i</sub>)"
-        ),
-        r"m_E=\operatorname{median}_{u\in E}(r_{i,u})": _formula(
-            "m<sub>E</sub> = median(u in E)(r<sub>i,u</sub>)"
-        ),
-        r"|m_E|\geq D_{\min}": _formula(
-            "|m<sub>E</sub>| &ge; D<sub>min</sub>"
+            "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) min"
         ),
         (
-            r"\left|0.6745\frac{m_E}{S_{\mathrm{robust}}}\right|"
-            r"\geq Z_{\min}"
+            "\n"
+            r"W_i^P=\max(60,2C_i)\ \mathrm{minutes},\qquad"
+            "\n"
+            r"F=\min(1\ \mathrm{dB},D_{\min})"
+            "\n"
         ): _formula(
-            "|0.6745 &times; m<sub>E</sub> / S<sub>robust</sub>| "
-            "&ge; Z<sub>min</sub>"
+            "W<sup>P</sup><sub>i</sub> = max(60, 2 C<sub>i</sub>) min, "
+            "&nbsp;&nbsp;F = min(1 dB, D<sub>min</sub>)"
+        ),
+        r"r^P_{i,u}=D_{i,u}-B^P_{i,k(u)}": _formula(
+            "r<sup>P</sup><sub>i,u</sub> = D<sub>i,u</sub> - "
+            "B<sup>P</sup><sub>i,k(u)</sub>"
+        ),
+        r"W_i^B=\max(10,C_i)\ \mathrm{minutes}": _formula(
+            "W<sup>B</sup><sub>i</sub> = max(10, C<sub>i</sub>) min"
         ),
         (
+            "\n"
+            r"m_E=\operatorname{median}_{u\in E}(r_{i,u}),\qquad"
+            "\n"
+            r"z_E=0.6745\frac{m_E}{S_{\mathrm{robust}}}"
+            "\n"
+        ): _formula(
+            "m<sub>E</sub> = median(u &isin; E)(r<sub>i,u</sub>), "
+            "&nbsp;&nbsp;z<sub>E</sub> = 0.6745 &times; "
+            "m<sub>E</sub> / S<sub>robust</sub>"
+        ),
+        (
+            "\n"
+            r"\operatorname{agree}(E)="
             "\n"
             r"\frac{\left|\left\{u\in E:\operatorname{sign}(r_{i,u})="
-            r"\operatorname{sign}(m_E)\right\}\right|}{|E|}\geq\frac{2}{3}"
+            r"\operatorname{sign}(m_E)\right\}\right|}{|E|}"
             "\n"
         ): _formula(
-            "|{u in E: sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)}| "
-            "/ |E| &ge; 2 / 3"
+            "agree(E) = |{u &isin; E: sign(r<sub>i,u</sub>) = "
+            "sign(m<sub>E</sub>)}| / |E|"
         ),
         (
-            r"\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad "
-            r"|r_{i,u}|\geq D_{\min},\qquad |z_{i,u}|\geq Z_{\min}"
+            "\n"
+            r"|m_E|\geq D_{\min},\qquad"
+            "\n"
+            r"|z_E|\geq Z_{\min},\qquad"
+            "\n"
+            r"\left|B_{\mathrm{pre}}-B_{\mathrm{post}}\right|\leq H_{\max},\qquad"
+            "\n"
+            r"\operatorname{agree}(E)\geq\frac{2}{3}"
+            "\n"
+        ): _formula(
+            "|m<sub>E</sub>| &ge; D<sub>min</sub>, "
+            "&nbsp;&nbsp;|z<sub>E</sub>| &ge; Z<sub>min</sub>, "
+            "<br/>|B<sub>pre</sub> - B<sub>post</sub>| "
+            "&le; H<sub>max</sub>, &nbsp;&nbsp;agree(E) &ge; 2 / 3"
+        ),
+        (
+            "\n"
+            r"\operatorname{sign}(r_{i,u})=\operatorname{sign}(m_E),\qquad"
+            "\n"
+            r"|r_{i,u}|\geq D_{\min},\qquad"
+            "\n"
+            r"|z_{i,u}|\geq Z_{\min}"
+            "\n"
         ): _formula(
             "sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>), "
             "&nbsp;&nbsp;|r<sub>i,u</sub>| &ge; D<sub>min</sub>, "
@@ -347,10 +402,16 @@ def _replace_pdf_math(md_text, translations):
         r"c'": "c&apos;",
         r"C_R": "C<sub>R</sub>",
         r"C_i": "C<sub>i</sub>",
+        r"C_i,G_i,F": "C<sub>i</sub>, G<sub>i</sub>, F",
         r"D_{\min}": "D<sub>min</sub>",
         r"D_{i,c}": "D<sub>i,c</sub>",
         r"D_{i,u}": "D<sub>i,u</sub>",
+        r"\widetilde D_{i,k}": "D&#771;<sub>i,k</sub>",
         r"E": "E",
+        r"E,m_E,z_E,\operatorname{agree}(E)": (
+            "E, m<sub>E</sub>, z<sub>E</sub>, agree(E)"
+        ),
+        r"F": "F",
         r"G_i": "G<sub>i</sub>",
         r"g": "g",
         r"H_{\max}": "H<sub>max</sub>",
@@ -359,12 +420,10 @@ def _replace_pdf_math(md_text, translations):
         r"i,c": "i,c",
         r"i,u": "i,u",
         r"I_g": "I<sub>g</sub>",
-        r"I=\operatorname{IQR}(\mathcal{U})": "I = IQR(U)",
         r"J_{i,b}": "J<sub>i,b</sub>",
         r"k": "k",
-        r"L": "L",
+        r"k(u)": "k(u)",
         r"M": "M",
-        r"M=\operatorname{MAD}(\mathcal{U})": "M = MAD(U)",
         r"M\pm1": "M &plusmn; 1",
         r"M\pm3": "M &plusmn; 3",
         r"M\pm6": "M &plusmn; 6",
@@ -383,6 +442,9 @@ def _replace_pdf_math(md_text, translations):
         r"R_{i,b}": "R<sub>i,b</sub>",
         r"R_{opportunity}": "R<sub>opportunity</sub>",
         r"R_{station}": "R<sub>station</sub>",
+        r"r^P_{i,u},r_{i,u}": (
+            "r<sup>P</sup><sub>i,u</sub>, r<sub>i,u</sub>"
+        ),
         r"r_{i,u}": "r<sub>i,u</sub>",
         r"r_i": "r<sub>i</sub>",
         r"S_{\mathrm{robust}}": "S<sub>robust</sub>",
@@ -400,13 +462,24 @@ def _replace_pdf_math(md_text, translations):
             "T<sub>i,b</sub>, J<sub>i,b</sub>, R<sub>i,b</sub>"
         ),
         r"u": "u",
-        r"W_i": "W<sub>i</sub>",
+        r"W_i^P,W_i^B": (
+            "W<sup>P</sup><sub>i</sub>, W<sup>B</sup><sub>i</sub>"
+        ),
         r"Z_{\min}": "Z<sub>min</sub>",
+        r"z_E": "z<sub>E</sub>",
         r"z_{i,u}": "z<sub>i,u</sub>",
-        r"\mathcal{Q}_{\mathrm{pre}}": "Q<sub>pre</sub>",
-        r"\mathcal{Q}_{\mathrm{post}}": "Q<sub>post</sub>",
-        r"\mathcal{U}": "U",
-        r"Q_{i,k}": "Q<sub>i,k</sub>",
+        r"\operatorname{agree}(E)": "agree(E)",
+        r"\mathcal{B}_{\mathrm{pre}},\mathcal{B}_{\mathrm{post}}": (
+            "&#8492;<sub>pre</sub>, &#8492;<sub>post</sub>"
+        ),
+        r"\mathcal{B}_{\mathrm{pre}}": "&#8492;<sub>pre</sub>",
+        r"\mathcal{B}_{\mathrm{post}}": "&#8492;<sub>post</sub>",
+        r"\mathcal{V},S_{\mathrm{robust}}": "V, S<sub>robust</sub>",
+        r"\mathcal{V}": "V",
+        r"B^P_{i,k}": "B<sup>P</sup><sub>i,k</sub>",
+        r"B_{\mathrm{pre}},B_{\mathrm{post}},B": (
+            "B<sub>pre</sub>, B<sub>post</sub>, B"
+        ),
         r"B_{\mathrm{pre}}": "B<sub>pre</sub>",
         r"B_{\mathrm{post}}": "B<sub>post</sub>",
         r"B": "B",

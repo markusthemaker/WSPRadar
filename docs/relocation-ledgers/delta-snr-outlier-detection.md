@@ -1,4 +1,4 @@
-# Delta-SNR outlier detection and Part II restructure
+# Delta-SNR outlier detection documentation restructures
 
 ## Scope and accepted source
 
@@ -16,7 +16,7 @@ the pilot-baseline stage, inclusive grouping thresholds, strong-anchor trimming,
 cross-path timing/context, exact defaults and ranges, and the manual Run
 lifecycle.
 
-## Relocated material
+## Initial integration: relocated material
 
 Former Chapter 5, **Troubleshooting and Data Quality**, moved intact in meaning
 to Section 4.7 under **Controls, Configuration, and Troubleshooting**. Its former
@@ -32,7 +32,7 @@ Classification: unique, correct and useful operator guidance relocated without
 semantic removal. No original troubleshooting passage was dropped or rendered
 obsolete, so there is no unretained passage requiring verbatim quotation.
 
-## Added authoritative homes
+## Initial integration: authoritative homes
 
 - Section 4.6 owns the exact optional toggle, three control labels, defaults,
   ranges, saved/manual-run behavior and practical selectivity consequences.
@@ -48,7 +48,7 @@ operator action and interpretation remain in Part II, while formulas and the
 exact scientific method remain in Chapter 7 and are cross-linked rather than
 copied.
 
-## Preservation and compatibility audit
+## Initial integration: preservation and compatibility audit
 
 - All useful pre-existing English and German manual guidance was preserved.
 - No source reference was added, removed or renumbered.
@@ -57,3 +57,43 @@ copied.
 - `README.md` is regenerated from the authoritative English manual; it is not
   edited independently.
 
+## 2026-08-15 approved accessibility restructure
+
+The user subsequently approved a second bilingual restructure to separate
+practical expert use from the formal detector construction. This is a
+documentation-only change: detector version `native-residual-episode-v7`, its
+configuration, report model, output and runtime behavior remain unchanged.
+Mathematical-symbol changes are confined to Section 7.11; symbols outside that
+section retain their established meaning and spelling.
+
+The authoritative destinations are now:
+
+| Previous home | Classification and disposition | New authoritative home |
+| --- | --- | --- |
+| Chapter 5 introduction and practical purpose, report-reading, event-shape, cross-path-context, interpretation and investigation guidance | Unique useful expert guidance, simplified for operator accessibility without changing its evidence or claim boundaries | Part I, Section 2.5, explicitly introduced as an optional expert diagnostic tool rather than routine guidance |
+| Chapter 5 detailed baseline, robust-scale, cadence-aware grouping, qualification, core rescue and boundary-trimming construction | Scientifically useful detail duplicated by, or required to complete, the formal method; consolidated rather than discarded | Section 7.11, the sole home of exact detector notation, formulas and construction |
+| Section 4.7, **Troubleshooting and Data Quality**, including its six subsections | Unique useful general diagnostic guidance; restored intact in meaning to a standalone chapter | Part II, Chapter 5, **Troubleshooting and Data Quality** |
+| Section 4.6 detector controls | Already in the correct operating-reference layer; retained | Section 4.6, the sole home of the exact toggle, three controls, defaults, ranges and Run lifecycle |
+
+Part II is consequently **Controls and Troubleshooting**. Section 2.5 links to
+Section 4.6 for exact controls and to Section 7.11 for the formal method rather
+than repeating either. Chapter 5 remains general troubleshooting and is not a
+second home for the outlier algorithm.
+
+Compatibility-anchor disposition is explicit:
+
+- `sec-outlier` and the established `sec-outlier-*` inbound aliases remain with
+  the corresponding relocated practical or formal outlier meaning;
+- `sec-6`, `sec-6-1` through `sec-6-6`, and `sec-5-7` remain with the restored
+  troubleshooting content;
+- the pre-existing `sec-2-5` Reference-design compatibility anchor is not
+  repurposed for the new visible Section 2.5;
+- every retained anchor resolves once and no compatibility alias creates a
+  second visible heading.
+
+The English and German manuals use the same authoritative destinations and
+claim boundaries. German prose is adapted naturally for radio-amateur readers;
+formulas, thresholds, signs and units remain scientifically equivalent. No
+source reference is removed or renumbered by this restructure, and no useful
+operator or scientific guidance is left solely in the superseded Chapter 5 or
+Section 4.7 locations.

@@ -59,12 +59,26 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             manual,
         )
 
-        assert len(source_block_formulas) == 32
+        assert len(source_block_formulas) == 29
+        formal_manual = manual.split('<a id="sec-7-11"></a>', 1)[1].split(
+            '<a id="sec-8"></a>', 1
+        )[0]
+        assert len(
+            re.findall(r"\$\$(.*?)\$\$", formal_manual, flags=re.DOTALL)
+        ) == 13
         assert rendered.count('<p class="formula"><b>') == len(
             source_block_formulas
         )
         assert rendered.count('<span class="inline-formula">') == len(
             source_inline_formulas
+        )
+        rendered_formula_bodies = re.findall(
+            r'<p class="formula"><b>(.*?)</b></p>', rendered, flags=re.DOTALL
+        )
+        assert all(
+            language_bound_word not in formula_body
+            for formula_body in rendered_formula_bodies
+            for language_bound_word in (" when ", " union ", " minutes")
         )
         assert "$$" not in rendered
         assert not re.search(r"(?<!\$)\$[^$\r\n]+\$(?!\$)", rendered)
@@ -88,20 +102,22 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             "JES<sub>outcome</sub>(b) = 100% &times;",
             "A<sub>i,c</sub> = SNR<sub>i,c</sub> - median<sub>c&apos;</sub>",
             "D<sub>relative</sub> = 100 &times; n<sub>cell</sub>",
-            "B<sub>pre</sub> = median(Q<sub>pre</sub>)",
-            "B<sub>post</sub> = median(Q<sub>post</sub>)",
-            "|B<sub>pre</sub> - B<sub>post</sub>| &le; H<sub>max</sub>",
-            "B = median(B<sub>pre</sub>, B<sub>post</sub>)",
+            "B<sub>pre</sub> = median(&#8492;<sub>pre</sub>)",
+            "B = (B<sub>pre</sub> + B<sub>post</sub>) / 2",
+            "V = {x - B<sub>pre</sub>: x &isin; &#8492;<sub>pre</sub>}",
+            "S<sub>robust</sub> = MAD(V) [MAD(V) &gt; 0]",
             "r<sub>i,u</sub> = D<sub>i,u</sub> - B",
-            "S<sub>robust</sub> = M (M &gt; 0)",
             "z<sub>i,u</sub> = 0.6745 &times; r<sub>i,u</sub>",
-            "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) minutes",
-            "L = min(1 dB, D<sub>min</sub>)",
-            "W<sub>i</sub> = max(10 minutes, C<sub>i</sub>)",
-            "m<sub>E</sub> = median(u in E)(r<sub>i,u</sub>)",
+            "G<sub>i</sub> = min(45, max(15, 1.5 C<sub>i</sub>)) min",
+            "W<sup>P</sup><sub>i</sub> = max(60, 2 C<sub>i</sub>) min",
+            "F = min(1 dB, D<sub>min</sub>)",
+            "r<sup>P</sup><sub>i,u</sub> = D<sub>i,u</sub>",
+            "W<sup>B</sup><sub>i</sub> = max(10, C<sub>i</sub>) min",
+            "m<sub>E</sub> = median(u &isin; E)(r<sub>i,u</sub>)",
+            "z<sub>E</sub> = 0.6745 &times; m<sub>E</sub>",
+            "agree(E) = |{u &isin; E: sign(r<sub>i,u</sub>)",
             "|m<sub>E</sub>| &ge; D<sub>min</sub>",
-            "|0.6745 &times; m<sub>E</sub> / S<sub>robust</sub>|",
-            "|{u in E: sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)}|",
+            "|z<sub>E</sub>| &ge; Z<sub>min</sub>",
             "sign(r<sub>i,u</sub>) = sign(m<sub>E</sub>)",
         )
         for expected_formula_fragment in expected_formula_fragments:
@@ -113,9 +129,13 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             "M &plusmn; 60",
             "n<sub>cell</sub>",
             "D<sub>i,u</sub>",
-            "Q<sub>i,k</sub>",
-            "M = MAD(U)",
-            "I = IQR(U)",
+            "D&#771;<sub>i,k</sub>",
+            "B<sup>P</sup><sub>i,k</sub>",
+            "r<sup>P</sup><sub>i,u</sub>",
+            "V, S<sub>robust</sub>",
+            "W<sup>P</sup><sub>i</sub>",
+            "z<sub>E</sub>",
+            "agree(E)",
             "H<sub>max</sub>",
         ):
             assert expected_inline_formula_fragment in rendered
@@ -134,6 +154,9 @@ def test_pdf_math_replacements_cover_both_manuals_with_font_safe_delta():
             r"\land",
             r"\mathrm",
             r"\geq",
+            r"\mathcal",
+            r"\widetilde",
+            r"\cup",
         ):
             assert unsupported_latex not in rendered
 

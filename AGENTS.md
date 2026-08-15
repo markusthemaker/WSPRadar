@@ -895,8 +895,8 @@ technically correct or already present.
   before relying on them. Do not front-load a dense glossary.
 - Preserve the manual's authoritative order: Part 0 Preface; Part I Operator
   Guide with **Choose and Prepare the Analysis**, **Run and Interpret Your
-  Analysis**, and **Strengthen and Communicate Your Result**; Part II Controls,
-  Troubleshooting, and Outlier Detection; Part III Scientific Foundations,
+  Analysis**, and **Strengthen and Communicate Your Result**; Part II Controls
+  and Troubleshooting; Part III Scientific Foundations,
   Methods and Claims with Literature, Prior Art and Positioning, Scientific
   Methods, and Evidence-Matched Claims and Reproducibility; References; Part IV
   Practical Supplements; then License. Within Part 0 use this sequence: **Why WSPRadar?**;
@@ -910,6 +910,11 @@ technically correct or already present.
   Local Median Neighborhood and Local Best Station. TX Benchmark distinguishes
   simultaneous Hardware A/B, sequential Hardware A/B, Reference Station / Buddy
   Test, Local Median Neighborhood and Local Best Station.
+- Keep Section 2.5 explicitly scoped as an optional expert diagnostic tool for
+  finding and reviewing temporary Delta-SNR departures. It owns practical use,
+  report reading and investigation guidance, not a recommendation that every
+  operator enable the detector. Link exact controls to Section 4.6 and the
+  complete scientific construction to Section 7.11.
 - Use the common evidence path **Map → Segment Inspector →
   Performance/Benchmark Evidence → Temporal Evidence → Station Insights →
   Selected Station Evidence → Drill-Down**. Explain the path once at overview
@@ -1001,11 +1006,11 @@ technically correct or already present.
   Scientific Methods. Part II owns exact control labels, defaults, ranges,
   applicability, configuration behavior and diagnosis. Part I should state the
   operator consequence and link to the authoritative method only where omission
-  would cause a materially wrong operation or interpretation. Chapter 5's
-  operator-facing Delta-SNR outlier chapter is the narrow documented exception:
-  it may explain the method in non-formal language needed to operate and audit
-  the feature, while Section 7.11 remains the sole home of its notation,
-  equations, exact thresholds and complete scientific construction.
+  would cause a materially wrong operation or interpretation. Section 2.5 is a
+  narrow expert-diagnostic exception: it may explain in plain language how to
+  operate, read and investigate optional Delta-SNR outlier reporting, while
+  Section 7.11 remains the sole home of its notation, equations, exact method
+  and complete scientific construction.
 - Distinguish observations, assumptions, heuristics, and supported inferences.
   Explain conditional denominators and asymmetries, and state explicitly which
   claims the evidence does and does not support.
@@ -1110,25 +1115,30 @@ multi-stage-method ownership rule below:
   interpretation patterns, the strongest design-specific boundary and how to
   strengthen the result. Include only the minimum setup reminders needed to
   avoid an invalid experiment; exact controls remain in Part II and exact
-  scientific mechanics remain in Chapter 7.
+  scientific mechanics remain in Chapter 7. Section 2.5 is the deliberately
+  narrow exception for optional expert Delta-SNR diagnostics: it explains when
+  to use the tool, its practical detection flow, how to read and investigate
+  reported candidates, and the principal interpretation limits. It must say
+  clearly that the tool is intended for expert diagnosis rather than routine
+  use, refer exact controls to Section 4.6, and refer the complete method to
+  Section 7.11.
 - **Part I, Chapter 3 — Strengthen and Communicate Your Result:** breadth,
   internal consistency, experimental repeatability, repetition and controls,
   evidence-matched conclusions, and preservation of the run and its physical
   context.
-- **Part II, Chapter 4 — Controls, Configuration, and Troubleshooting:** exact UI
-  labels, defaults, ranges, applicability, scientific consequence, configuration
-  behavior and saved-state behavior, followed by general run-definition,
-  symptom, callsign, locator, historical fallback, Target-Active Gate and
-  upstream-data diagnosis. Prefer compact control tables. Explain
+- **Part II, Chapter 4 — Controls and Configuration:** exact UI labels,
+  defaults, ranges, applicability, scientific consequence, configuration
+  behavior and saved-state behavior. Section 4.6 is the sole operating-reference
+  home of the optional Delta-SNR reporting toggle and its three exact controls.
+  Prefer compact control tables. Explain
   audit/provenance statuses only at the level needed to diagnose a run; omit
   internal state-machine, provider-selection, cache and queue details that do
   not alter operator action or reproducibility.
-- **Part II, Chapter 5 — Delta SNR Outlier Detection:** expert operator-facing
-  purpose, evidence scope, plain-language local-baseline and grouping method,
-  shared-gate and strong-anchor consequences, descriptive event classes,
-  cross-path context, interpretation and diagnosis. Keep equations and the exact
-  scientific construction in Section 7.11, and do not present candidates as
-  detected physical events or causal attribution.
+- **Part II, Chapter 5 — Troubleshooting and Data Quality:** general
+  run-definition, symptom, callsign, locator, historical fallback,
+  Target-Active Gate and upstream-data diagnosis. Keep this as the general
+  diagnostic reference rather than a second home for the optional outlier
+  method.
 - **Part III, Chapter 6 — Literature, Prior Art and Positioning:** the scope and
   evidence class of the review; scientific lineage; prior art; source-specific
   boundaries; and bounded novelty claims. State explicitly when the review is a
@@ -1162,9 +1172,11 @@ Use this timing test when placement is unclear:
 - needed to execute or interpret one specific RX/TX Performance or Benchmark
   analysis -> Chapter 2;
 - needed when repeating, reporting or preserving the experiment -> Chapter 3;
-- needed to operate an exact control or diagnose behavior -> Part II;
-- needed to operate, inspect or troubleshoot Delta-SNR outlier reporting ->
-  Chapter 5, with its exact formulas and complete construction in Section 7.11;
+- needed to operate an exact control -> Chapter 4;
+- needed to diagnose general run or upstream-data behavior -> Chapter 5;
+- needed to decide whether to enable, inspect or investigate optional Delta-SNR
+  outlier reporting -> Section 2.5, with exact controls in Section 4.6 and the
+  complete scientific construction in Section 7.11;
 - needed to establish scientific lineage, prior art or positioning -> Chapter 6;
 - needed to audit data construction, an observation or comparison unit,
   analysis target, derived quantity, descriptive summary, conditioning rule,
@@ -1198,8 +1210,8 @@ Examples:
   7.1 and 7.7 together from practical guidance; retain `pairing is automatic
   and deterministic` in the playbook;
 - define exact schedule choices in Section 4.3; retain `enter each path's actual recurrence and UTC phase` in the playbook;
-- define Delta-SNR outlier controls in Section 4.6, the operator-facing method
-  and interpretation in Chapter 5, and the complete notation and equations in
+- define Delta-SNR outlier controls in Section 4.6, expert practical use and
+  interpretation in Section 2.5, and the complete notation and equations in
   Section 7.11; cross-reference these sections rather than copying the formulas;
 - keep the Ultimate3S and QMX schedule examples in Appendix B, Sections B.3 and
   B.4, and link to them from the playbook.
@@ -1458,10 +1470,13 @@ For a substantial manual restructuring, verify:
   sequence from motivation through WSPR background, capabilities/questions,
   run outputs and first demo; and contains no control, selector, parameter or
   button walkthrough;
+- Part I Section 2.5 identifies optional Delta-SNR outlier reporting as an expert
+  diagnostic tool, owns its practical use and interpretation, and does not
+  duplicate Section 7.11's formal method;
 - Part II remains an operating reference and does not become an internal state,
-  cache or queue specification; Chapter 4 owns controls and general
-  troubleshooting, while Chapter 5 owns operator-facing Delta-SNR outlier use
-  and interpretation without duplicating Section 7.11's formal method;
+  cache or queue specification; Chapter 4 owns controls and configuration,
+  including the exact outlier controls in Section 4.6, while Chapter 5 owns
+  general troubleshooting and data quality;
 - Part III clearly distinguishes reported observations, constructed evidence
   units, derived quantities, descriptive summaries and bounded interpretation;
   defines analysis targets, observation and comparison units, conditioning,
@@ -1494,6 +1509,8 @@ For a substantial manual restructuring, verify:
 - formulas, numerical values, units, signs, thresholds, references, URLs,
   placeholders and supported public-contract identifiers are preserved exactly,
   while visible UI labels use their approved localized wording;
+- detector-notation changes are confined to Section 7.11; symbols and formulas
+  outside that section remain unchanged;
 - documentation tests assert required meaning and structure rather than obsolete
   incidental prose where practical;
 - README synchronization and web/PDF rendering are completed after authoritative
