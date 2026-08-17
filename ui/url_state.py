@@ -34,6 +34,7 @@ from config.delta_snr_outlier import (
     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD,
     LEGACY_BURST_MINIMUM_DEPARTURE_DB,
     LEGACY_BURST_MINIMUM_ROBUST_Z,
+    VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
 )
 from core.time_utils import format_utc_minute, parse_utc_minute
 from ui.analysis_submission_state import begin_analysis_submission
@@ -843,7 +844,7 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
                     parameters,
                     "outlier_baseline_difference_db",
                     getattr(
-                        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                        VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
                         "maximum_baseline_difference_db",
                     ),
                 )
@@ -854,7 +855,7 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
                             parameters,
                             url_parameter,
                             getattr(
-                                DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                                VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
                                 policy_field,
                             ),
                         )
@@ -1127,7 +1128,7 @@ def build_query_from_settings(
             ):
                 configured_value = advanced[config_field]
                 default_value = getattr(
-                    DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                    VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
                     policy_field,
                 )
                 if configured_value != default_value:

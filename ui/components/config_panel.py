@@ -32,7 +32,9 @@ from core.input_validation import (
 )
 from core.time_utils import UtcWindowValidationError
 from ui.callbacks import (
-    reset_audit, handle_analysis_direction_change,
+    reset_audit,
+    reset_experiment_definition,
+    handle_analysis_direction_change,
     handle_classic_benchmark_design_change,
     handle_classic_question_change,
     handle_delta_snr_outlier_reporting_change,
@@ -306,7 +308,7 @@ def _render_reference_identity(
     t,
     *,
     derives_hardware_grid4,
-    on_change=reset_audit,
+    on_change=reset_experiment_definition,
     on_change_args=(),
     help_overrides=None,
 ):
@@ -409,7 +411,7 @@ def _render_reference_identity(
 def _render_tx_ab_method_selector(
     t,
     *,
-    on_change=reset_audit,
+    on_change=reset_experiment_definition,
     on_change_args=(),
     method_content=None,
     help_text=None,
@@ -464,7 +466,7 @@ def _format_utc_minute(minute):
 def _render_tx_ab_schedule(
     t,
     *,
-    on_change=reset_audit,
+    on_change=reset_experiment_definition,
     on_change_args=(),
 ):
     """Render the shared repeat interval, coupled starts, and schedule preview."""
@@ -580,7 +582,7 @@ def _render_analysis_direction_selector(
 def render_target_and_window_fields(
     t,
     *,
-    on_change=reset_audit,
+    on_change=reset_experiment_definition,
     on_change_args=(),
     correction_context_on_change=None,
     correction_context_on_change_args=(),
@@ -749,7 +751,7 @@ def render_core_expander(t, *, step_number=None):
 def render_reference_correction_field(
     t,
     *,
-    on_change=reset_audit,
+    on_change=reset_experiment_definition,
     on_change_args=(),
     help_text=None,
 ):

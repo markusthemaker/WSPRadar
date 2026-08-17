@@ -693,16 +693,38 @@ def test_formal_schema_accepts_explicit_segment_temporal_choices(config_validato
     config_validator.validate(config)
 
 
+@pytest.mark.parametrize(
+    "evidence_field",
+    ("segment_evidence_time_bin", "station_evidence_time_bin"),
+)
 @pytest.mark.parametrize("result_mode", ("performance", "benchmark"))
-def test_formal_schema_rejects_segment_only_minute_station_bins(
+@pytest.mark.parametrize("time_bin", ("2m", "5m", "10m", "15m", "30m"))
+def test_formal_schema_accepts_adaptive_and_legacy_minute_evidence_bins(
     config_validator,
+    evidence_field,
+    result_mode,
+    time_bin,
+):
+    """Accept advertised minute bins and retained legacy saved choices."""
+    config = _tx_hardware_ab_config()
+    config["settings"]["results_view"][result_mode][evidence_field] = time_bin
+
+    config_validator.validate(config)
+
+
+@pytest.mark.parametrize(
+    "evidence_field",
+    ("segment_evidence_time_bin", "station_evidence_time_bin"),
+)
+@pytest.mark.parametrize("result_mode", ("performance", "benchmark"))
+def test_formal_schema_rejects_unsupported_minute_evidence_bin(
+    config_validator,
+    evidence_field,
     result_mode,
 ):
-    """Keep selected-station bins aligned with the shared six-option control."""
+    """Reject minute widths outside the canonical and compatibility sets."""
     config = _tx_hardware_ab_config()
-    config["settings"]["results_view"][result_mode][
-        "station_evidence_time_bin"
-    ] = "30m"
+    config["settings"]["results_view"][result_mode][evidence_field] = "4m"
 
     with pytest.raises(ValidationError):
         config_validator.validate(config)

@@ -220,20 +220,16 @@ def test_selected_benchmark_temporal_titles_are_localized_and_captions_retired(
 
 
 def test_selected_compare_reuses_performance_time_bin_control_without_view_toggle():
-    """Expose the six shared station bins through one full-width selector."""
+    """Reuse the adaptive bin vocabulary through one full-width selector."""
     function_source = inspect.getsource(
         segment_inspector._render_selected_station_evidence
     )
 
-    assert tuple(segment_inspector.SUCCESS_TEMPORAL_TIME_BINS) == (
-        "1h",
-        "2h",
-        "3h",
-        "6h",
-        "12h",
-        "24h",
+    assert "_compare_temporal_time_bin_policy(" in function_source
+    assert (
+        "time_agg_options = tuple(adaptive_time_agg_options)"
+        in function_source
     )
-    assert "time_agg_options = tuple(SUCCESS_TEMPORAL_TIME_BINS)" in function_source
     assert "_render_prompted_segment_time_bin_control(" in function_source
     assert 't["lbl_selected_time_aggregation_bin_size"]' in function_source
     assert "temporal_view" not in function_source
@@ -705,9 +701,18 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
         analysis_context=SimpleNamespace(),
         language="en",
         outlier_model=FakeOutlierModel(),
+        analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
+        analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
     )
 
-    assert inspected_cache_keys == [("selected-base",)]
+    adaptive_cache_key = (
+        "selected-base",
+        "adaptive-time-bin-policy-v1",
+        ("2m", "10m", "30m", "1h", "2h", "3h", "6h"),
+        "10m",
+        None,
+    )
+    assert inspected_cache_keys == [adaptive_cache_key]
     assert selected_pairs == [("G3AAA", "IO90"), ("G4BBB", "IO91")]
     assert len(rendered_calls) == 1
     rendered_recipe, render_call = rendered_calls[0]
@@ -716,7 +721,7 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
         "candidate_signature"
     ] == "selected-candidate-signature"
     assert render_call["cache_key"] == (
-        "selected-base",
+        *adaptive_cache_key,
         "3h",
         "dual-temporal",
         "delta-snr-outlier-markers",
@@ -730,7 +735,7 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
 def test_disabled_selected_evidence_has_no_marker_or_outlier_cache_identity(
     monkeypatch,
 ):
-    """Reuse the historical singleton recipe and cache key when reporting is off."""
+    """Keep disabled singleton identity free of outlier-specific cache fields."""
     selected_identity_df = pd.DataFrame(
         {"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}
     )
@@ -811,15 +816,24 @@ def test_disabled_selected_evidence_has_no_marker_or_outlier_cache_identity(
         analysis_context=SimpleNamespace(),
         language="en",
         outlier_model=None,
+        analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
+        analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
     )
 
-    assert inspected_cache_keys == [("selected-base",)]
+    adaptive_cache_key = (
+        "selected-base",
+        "adaptive-time-bin-policy-v1",
+        ("2m", "10m", "30m", "1h", "2h", "3h", "6h"),
+        "10m",
+        None,
+    )
+    assert inspected_cache_keys == [adaptive_cache_key]
     assert len(rendered_calls) == 1
     rendered_recipe, render_call = rendered_calls[0]
     assert rendered["export_recipe"] is rendered_recipe
     assert "delta_snr_outlier_markers" not in rendered_recipe
     assert render_call["cache_key"] == (
-        "selected-base",
+        *adaptive_cache_key,
         "3h",
         "dual-temporal",
     )
@@ -982,8 +996,17 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
             cache_key=("selected",),
             analysis_context=SimpleNamespace(),
             language="en",
+            analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
+            analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
         )
 
+    adaptive_selected_cache_key = (
+        "selected",
+        "adaptive-time-bin-policy-v1",
+        ("2m", "10m", "30m", "1h", "2h", "3h", "6h"),
+        "10m",
+        None,
+    )
     assert render_calls == [
         (
             "segment temporal evidence",
@@ -1008,22 +1031,22 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
         (
             "selected evidence",
             "1h",
-            ("selected", "1h", "dual-temporal"),
+            (*adaptive_selected_cache_key, "1h", "dual-temporal"),
         ),
         (
             "selected path evidence coverage",
             "1h",
-            ("selected", "1h", "selected coverage"),
+            (*adaptive_selected_cache_key, "1h", "selected coverage"),
         ),
         (
             "selected evidence",
             "6h",
-            ("selected", "6h", "dual-temporal"),
+            (*adaptive_selected_cache_key, "6h", "dual-temporal"),
         ),
         (
             "selected path evidence coverage",
             "6h",
-            ("selected", "6h", "selected coverage"),
+            (*adaptive_selected_cache_key, "6h", "selected coverage"),
         ),
     ]
     assert provider_requests == []
@@ -1045,7 +1068,7 @@ def test_outlier_segment_cache_suffix_is_absent_when_disabled_and_versioned_when
         DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.signature_tuple,
     )
     stricter_policy = DeltaSnrOutlierDetectionPolicy(
-        minimum_departure_db=6.0,
+        minimum_departure_db=7.0,
     )
     assert segment_inspector._delta_snr_outlier_segment_cache_suffix(
         True,
@@ -1778,7 +1801,6 @@ def test_compare_coverage_gate_notes_are_exact_and_route_by_design(
 
 def test_long_selected_windows_include_one_and_two_hour_choices():
     """Base the shared hourly selector on the complete selected UTC window."""
-    expected_options = ["1h", "2h", "3h", "6h", "12h", "24h"]
     start = pd.Timestamp("2017-04-01T00:00:00Z")
 
     seven_day_options, seven_day_default = (
@@ -1794,14 +1816,29 @@ def test_long_selected_windows_include_one_and_two_hour_choices():
         )
     )
 
-    assert seven_day_options == expected_options
-    assert seven_day_default == "3h"
-    assert maximum_options == expected_options
-    assert maximum_default == "6h"
+    assert seven_day_options == [
+        "30m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h",
+    ]
+    assert seven_day_default == "12h"
+    assert maximum_options == [
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h",
+    ]
+    assert maximum_default == "12h"
 
 
 def test_selected_windows_keep_minute_scale_choices_through_24_hours():
-    """Keep the established fine-grained policy for short selected windows."""
+    """Offer cadence-aligned minute bins and retain 2 h through 24 hours."""
     start = pd.Timestamp("2017-04-01T00:00:00Z")
 
     six_hour_options, six_hour_default = (
@@ -1817,9 +1854,25 @@ def test_selected_windows_keep_minute_scale_choices_through_24_hours():
         )
     )
 
-    assert six_hour_options == ["5m", "15m", "30m", "1h", "3h"]
-    assert six_hour_default == "15m"
-    assert day_options == ["15m", "30m", "1h", "3h", "6h"]
+    assert six_hour_options == [
+        "2m",
+        "10m",
+        "30m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+    ]
+    assert six_hour_default == "10m"
+    assert day_options == [
+        "2m",
+        "10m",
+        "30m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+    ]
     assert day_default == "30m"
 
 
@@ -1836,7 +1889,7 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
         )
     )
     assert options == ["5m", "1h", "2h", "3h", "6h", "12h", "24h"]
-    assert default == "6h"
+    assert default == "12h"
     assert cache_token == "5m"
     assert (
         segment_inspector._compare_temporal_time_bin_policy(
@@ -1844,7 +1897,7 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
             start + pd.Timedelta(days=31),
             "6h",
         )
-        == (["1h", "2h", "3h", "6h", "12h", "24h"], "6h", None)
+        == (["1h", "2h", "3h", "6h", "12h", "24h"], "12h", None)
     )
 
     session_state = {
@@ -1869,6 +1922,31 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
         ]
         == "5m"
     )
+
+
+def test_performance_models_key_only_on_an_off_tier_retained_bin():
+    """Reuse precomputed in-tier profiles when either Performance selector changes."""
+    start = pd.Timestamp("2026-07-01T00:00:00Z")
+    assert segment_inspector._compare_temporal_time_bin_policy(
+        start,
+        start + pd.Timedelta(hours=24),
+        "2h",
+    )[2] is None
+    assert segment_inspector._compare_temporal_time_bin_policy(
+        start,
+        start + pd.Timedelta(hours=24),
+        "5m",
+    )[2] == "5m"
+
+    function_source = inspect.getsource(
+        segment_inspector._render_opportunity_scope
+    )
+    assert function_source.count("_compare_temporal_time_bin_policy(") == 2
+    assert "retained_segment_time_bin_cache_token," in function_source
+    assert (
+        "st.session_state.get(RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY),\n"
+        "            )[2],"
+    ) in function_source
 
 
 def test_time_bin_control_stretches_segmented_options_across_container(monkeypatch):
@@ -1959,6 +2037,7 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
         def __init__(self):
             self.session_state = {}
             self.dataframe_calls = []
+            self.popover_labels = []
 
         def __enter__(self):
             return self
@@ -1972,7 +2051,8 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
         def columns(self, widths, **_kwargs):
             return tuple(self for _width in widths)
 
-        def popover(self, *_args, **_kwargs):
+        def popover(self, label, **_kwargs):
+            self.popover_labels.append(label)
             return self
 
         def multiselect(self, *_args, **_kwargs):
@@ -2033,6 +2113,128 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
     )
     assert compare_call["row_height"] == (
         segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
+    )
+    assert fake_streamlit.popover_labels == [
+        T["en"]["lbl_filter_table"],
+        T["en"]["lbl_filter_table"],
+    ]
+
+
+def test_manual_drilldown_controls_use_center_inputs_and_one_line_window(
+    monkeypatch,
+):
+    """Keep plot controls compact and leave the table filter beside the table."""
+
+    class FakeContainer:
+        def __init__(self, streamlit):
+            self.streamlit = streamlit
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def container(self, **kwargs):
+            self.streamlit.container_keys.append(kwargs["key"])
+            return self
+
+        def caption(self, body):
+            self.streamlit.captions.append(body)
+
+    class FakeStreamlit:
+        def __init__(self):
+            self.session_state = {}
+            self.column_specs = []
+            self.container_keys = []
+            self.captions = []
+            self.date_labels = []
+            self.time_labels = []
+
+        def columns(self, widths, **kwargs):
+            self.column_specs.append((list(widths), dict(kwargs)))
+            return tuple(FakeContainer(self) for _width in widths)
+
+        def selectbox(self, _label, options, *, key, **_kwargs):
+            assert tuple(options) == ("off", "1h", "3h", "6h", "12h", "24h")
+            self.session_state[key] = "12h"
+            return "12h"
+
+        def button(self, *_args, **_kwargs):
+            return False
+
+        def date_input(self, label, *, key, **_kwargs):
+            self.date_labels.append(label)
+            return self.session_state[key]
+
+        def time_input(self, label, *, key, **_kwargs):
+            self.time_labels.append(label)
+            return self.session_state[key]
+
+    fake_streamlit = FakeStreamlit()
+    monkeypatch.setattr(segment_inspector, "st", fake_streamlit)
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_page_anchor",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_drilldown_heading",
+        lambda *_args, **_kwargs: None,
+    )
+    translations = {
+        "lbl_drilldown_zoom_off": "Off",
+        "lbl_drilldown_zoom_outlier_focus": "Outlier Focus",
+        "lbl_drilldown_zoom_window": "Zoom window",
+        "lbl_drilldown_center_date_utc": "Center date (UTC)",
+        "lbl_drilldown_center_time_utc": "Center time (UTC)",
+        "btn_drilldown_zoom_earlier": "← Earlier",
+        "btn_drilldown_zoom_later": "Later →",
+        "fmt_drilldown_zoom_selected_window": (
+            "Selected window: {start} to {end} UTC"
+        ),
+    }
+
+    focus_window, focus_time_bin, filter_container = (
+        segment_inspector._render_drilldown_header_and_controls(
+            ["K1AAA (FN31)"],
+            "RX_ABS",
+            71,
+            "rall_dall",
+            translations,
+            False,
+            False,
+            SimpleNamespace(),
+            "en",
+            analysis_start_utc=pd.Timestamp("2026-07-10T00:00:00Z"),
+            analysis_end_utc=pd.Timestamp("2026-07-12T00:00:00Z"),
+            selected_identity=("K1AAA", "FN31"),
+        )
+    )
+
+    assert focus_window.start_utc == pd.Timestamp("2026-07-10T18:00:00Z")
+    assert focus_window.end_utc == pd.Timestamp("2026-07-11T06:00:00Z")
+    assert focus_time_bin == "2m"
+    assert filter_container is None
+    assert fake_streamlit.column_specs == [
+        ([0.28, 0.72], {"vertical_alignment": "center"}),
+        (
+            [0.24, 0.20, 0.12, 0.12, 0.32],
+            {"vertical_alignment": "bottom"},
+        ),
+    ]
+    assert fake_streamlit.date_labels == ["Center date (UTC)"]
+    assert fake_streamlit.time_labels == ["Center time (UTC)"]
+    assert fake_streamlit.captions == [
+        (
+            "Selected window: 2026-07-10 18:00 "
+            "to 2026-07-11 06:00 UTC"
+        )
+    ]
+    assert len(fake_streamlit.container_keys) == 1
+    assert fake_streamlit.container_keys[0].startswith(
+        "d_zoom_selected_window_"
     )
 
 
@@ -2920,6 +3122,8 @@ def test_selected_station_evidence_accepts_enabled_multiple_identities(
         outlier_model=SimpleNamespace(
             marker_recipe=lambda _station_identities: None
         ),
+        analysis_start_t=pd.Timestamp("2026-07-01T00:00Z"),
+        analysis_end_t=pd.Timestamp("2026-07-01T02:00Z"),
     )
 
     assert rendered["comparison_unit_count"] == 12
@@ -3280,6 +3484,10 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
         def container(self, **_kwargs):
             return FakeContainer(self)
 
+        def columns(self, widths, **kwargs):
+            self.column_calls.append((list(widths), kwargs))
+            return tuple(FakeContainer(self) for _ in widths)
+
         def markdown(self, body, **kwargs):
             self.markdown_calls.append((body, kwargs))
             return None
@@ -3292,6 +3500,12 @@ def test_success_new_station_builds_after_segment_cache_hit_without_provider_req
 
         def multiselect(self, *_args, **_kwargs):
             return []
+
+        def selectbox(self, _label, options, *, key, **_kwargs):
+            return self.session_state.get(key, options[0])
+
+        def caption(self, *_args, **_kwargs):
+            return None
 
     fake_streamlit = FakeStreamlit()
     fake_streamlit.session_state[

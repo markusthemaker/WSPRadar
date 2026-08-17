@@ -34,7 +34,9 @@ measurement system.
 - Optional Benchmark Delta-SNR outlier-candidate reporting at native Joint Spot
   or complete Scheduled Pair resolution, with robust local baselines,
   duration-descriptive grouping, path/cross-path review, and traceable paired
-  evidence.
+  evidence. Enabled exports add a qualified path-event summary and its linked
+  chronological paired-evidence table; disabled exports retain the historical
+  package contract without outlier files or metadata.
 - Downloadable analysis exports containing configuration, metadata, tables,
   compact Parquet evidence, and high-resolution figures.
 - Guided demo profiles for historical examples.
@@ -140,7 +142,7 @@ Important defaults currently include:
 
 - Maximum query interval: 31 days.
 - Delta-SNR outlier reporting defaults off. When enabled for Benchmark, its
-  shared gates default to `3.0 dB` minimum absolute departure, `4.0` minimum
+  shared gates default to `6.0 dB` minimum absolute departure, `3.0` minimum
   robust z-score, and `3.0 dB` maximum pre/post baseline difference; each
   numeric setting accepts `0.1` through `100.0` inclusive.
 - New untouched interactive Performance setups enable special-callsign and
@@ -223,7 +225,10 @@ under `extensions` and is preserved across load and re-save.
 Benchmark advanced parameters preserve the outlier-reporting toggle and, only
 when it is enabled, the three shared detector gates. The normal
 configuration-changed lifecycle applies: editing these controls does not run an
-analysis automatically.
+analysis automatically. New analyses default to `6.0 dB`, `3.0`, and `3.0 dB`.
+Version-1 saved configurations and public URLs that omit those fields retain
+their original `3.0 dB`, `4.0`, and `3.0 dB` meaning; current writers serialize
+the changed values explicitly.
 
 `config/config_codec.py` owns document-envelope and current-version validation;
 `ui/config_io.py` owns semantic settings validation, Streamlit-state
@@ -353,9 +358,10 @@ Useful files when tracing behavior:
   presentation, scope copy, and bilingual mode-aware interpretation help.
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
   orchestration and pure view models.
-- `ui/inspector/outlier_candidates.py` and `ui/inspector/outlier_report.py`:
-  optional native-paired-unit detection, cross-path review aggregation, and the
-  pure localized Outlier Report view model.
+- `ui/inspector/outlier_candidates.py`, `ui/inspector/outlier_report.py`, and
+  `ui/inspector/outlier_export.py`: optional native-paired-unit detection,
+  cross-path review aggregation, the pure localized Outlier Report view model,
+  and fixed-schema event-path/paired-evidence export projections.
 - `ui/components/config_fields.py`: shared canonical field-composition surface
   used by Guided and Classic without duplicating scientific controls.
 - `ui/analysis_question_state.py`, `ui/classic_input_state.py`, and
@@ -371,7 +377,8 @@ Useful files when tracing behavior:
 - `ui/url_state.py`, `ui/url_synchronizer.py`, and `ui/share_analysis.py`:
   versioned public-URL adaptation through canonical config validation,
   fragment-safe browser synchronization, and data-only sharing controls.
-- `ui/results_export.py`: lazy export recipe execution and ZIP construction.
+- `ui/results_export.py`: lazy export recipe execution, conditional localized
+  outlier-table serialization, and ZIP construction.
 - `ui/analysis_submission_state.py`: lightweight, token-aware in-flight analysis
   ownership used to guard Streamlit reruns before admission.
 - `ui/result_state.py`: lightweight result/export reset, database provenance,
@@ -428,10 +435,10 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Latest complete serial measurement on 2026-08-12:
+Latest complete serial measurement on 2026-08-17:
 
 ```text
-1920 passed, 1 skipped, 1 warning in 227.24 seconds
+2062 passed, 1 skipped, 1 warning in 234.55 seconds
 ```
 
 The skipped test requires a generated fixture under

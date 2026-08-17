@@ -1449,14 +1449,14 @@
           "minimum": 0.1,
           "maximum": 100.0,
           "description": "Minimum absolute candidate-median Delta-SNR departure in dB shared by spot impulses, short bursts, and sustained excursions.",
-          "default": 3.0
+          "default": 6.0
         },
         "delta_snr_outlier_minimum_robust_z": {
           "type": "number",
           "minimum": 0.1,
           "maximum": 100.0,
           "description": "Minimum absolute robust z-score shared by spot impulses, short bursts, and sustained excursions.",
-          "default": 4.0
+          "default": 3.0
         },
         "delta_snr_outlier_maximum_baseline_difference_db": {
           "type": "number",
@@ -1676,26 +1676,9 @@
     "stationEvidenceTimeBin": {
       "type": "string",
       "enum": [
-        "1h",
-        "2h",
-        "3h",
-        "6h",
-        "12h",
-        "24h"
-      ],
-      "description": "Time-bin width for station-evidence plots.",
-      "default": "3h",
-      "examples": [
-        "1h",
-        "3h",
-        "24h"
-      ]
-    },
-    "segmentEvidenceTimeBin": {
-      "type": "string",
-      "enum": [
-        "auto",
+        "2m",
         "5m",
+        "10m",
         "15m",
         "30m",
         "1h",
@@ -1705,7 +1688,32 @@
         "12h",
         "24h"
       ],
-      "description": "Time-bin width for a segment temporal plot. auto retains automatic selection.",
+      "description": "Explicit time-bin width for station-evidence plots. When no choice exists in fresh UI state, WSPRadar derives the default from the selected run duration before saving. The 5m and 15m values remain accepted for saved-config compatibility but are not offered by the normal adaptive controls.",
+      "examples": [
+        "2m",
+        "10m",
+        "1h",
+        "3h",
+        "24h"
+      ]
+    },
+    "segmentEvidenceTimeBin": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "2m",
+        "5m",
+        "10m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h"
+      ],
+      "description": "Time-bin width for a segment temporal plot. auto retains automatic selection; 5m and 15m remain accepted for saved-config compatibility but are not offered by the normal adaptive controls.",
       "default": "auto",
       "examples": [
         "auto",

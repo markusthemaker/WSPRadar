@@ -675,8 +675,10 @@ def test_query_cleanup_preserves_files_written_after_its_scan_reference(
         artifact_path,
         lambda temporary_path: temporary_path.write_bytes(b"concurrent"),
     )
+    published_at = cleanup_scan_started_at + 1.0
+    os.utime(artifact_path, (published_at, published_at))
 
-    assert artifact_path.stat().st_mtime > cleanup_scan_started_at
+    assert artifact_path.stat().st_mtime == pytest.approx(published_at, abs=0.01)
     assert store.cleanup_namespace(
         tmp_path,
         namespace,

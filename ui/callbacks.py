@@ -69,19 +69,61 @@ def _demo_config_document(profile):
         return profile["configuration"]
     return profile
 
-def reset_audit():
-    """
-    Cancels the active analysis and returns the app to the idle/configuration state.
-    Triggered whenever a core parameter is changed by the user, ensuring that 
-    stale or outdated map data isn't displayed on the screen.
-    """
+def _release_selected_station_state():
+    """Release station intent whose identities belong to retired evidence."""
+    st.session_state.val_results_selected_stations_compare = None
+    st.session_state.val_results_selected_stations_absolute = None
+
+
+def _retire_loaded_profile_context():
+    """Detach metadata and save identity from a changed experiment definition."""
+    st.session_state.val_config_profile = None
+    st.session_state.loaded_config_profile = None
+    st.session_state.guided_loaded_demo_profile = None
+    st.session_state.guided_demo_metadata_open = False
+
+
+def _invalidate_current_audit(
+    *,
+    should_release_selected_stations,
+    should_retire_demo_identity=True,
+):
+    """Return to editable state under one explicit station-selection policy."""
     had_current_result = bool(st.session_state.get("run_mode"))
     cancel_analysis_submission(st.session_state)
     st.session_state.run_mode = None
-    st.session_state.active_demo_profile = None
+    if should_retire_demo_identity:
+        st.session_state.active_demo_profile = None
+    if should_release_selected_stations:
+        _release_selected_station_state()
     reset_result_state(st.session_state)
     if had_current_result:
         st.session_state.configuration_changed_since_run = True
+
+
+def reset_audit():
+    """Invalidate a scientific population, scope, or evidence-filter edit.
+
+    Such edits retain loaded profile metadata as provenance for the starting
+    point, but the completed population and any selected station identities no
+    longer belong to the edited configuration. Exact demo/cache identity is
+    always retired before a later Run action.
+    """
+    _invalidate_current_audit(should_release_selected_stations=True)
+
+
+def reset_experiment_definition():
+    """Invalidate an edit that changes the experiment represented by a profile."""
+    _retire_loaded_profile_context()
+    reset_audit()
+
+
+def reset_shell_audit():
+    """Retire rendered results for a shell action without changing input intent."""
+    _invalidate_current_audit(
+        should_release_selected_stations=False,
+        should_retire_demo_identity=False,
+    )
 
 
 def handle_delta_snr_outlier_reporting_change(
@@ -158,7 +200,7 @@ def handle_reference_correction_context_change():
     if active_mode in comparison_modes or retained_mode in comparison_modes:
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
-    reset_audit()
+    reset_experiment_definition()
 
 
 def _normalize_tx_ab_schedule_state(changed_start=None):
@@ -197,7 +239,7 @@ def _normalize_tx_ab_schedule_state(changed_start=None):
 def _finish_tx_ab_schedule_change(after_change=None, after_change_args=()):
     """Run the requested editor callback after schedule normalization."""
     if after_change is None:
-        reset_audit()
+        reset_experiment_definition()
     else:
         after_change(*(after_change_args or ()))
 
@@ -302,8 +344,8 @@ def load_demo_profile_config(profile_key):
     st.session_state._collapse_config_panels_once = False
     st.session_state.run_mode = None
     _apply_demo_profile_values(profile_key)
-    # The loaded values remain a trusted built-in demo until a scientific
-    # configuration callback calls ``reset_audit`` after an edit.
+    # The loaded values remain a trusted built-in demo until any scientific
+    # callback retires exact demo/cache identity after an edit.
     st.session_state.active_demo_profile = profile_key
     st.session_state.guided_loaded_demo_profile = profile_key
     st.session_state.guided_demo_metadata_open = True
@@ -375,7 +417,7 @@ def handle_comp_mode_change():
     )
     st.session_state.val_benchmark_offset_db = 0.0
     st.session_state.val_snr_correction_mode = "no_offset"
-    reset_audit()
+    reset_experiment_definition()
 
 
 def handle_classic_question_change():
@@ -391,7 +433,7 @@ def handle_classic_question_change():
     )
     st.session_state[CLASSIC_QUESTION_KEY] = canonical_question
     st.session_state.guided_use_case = canonical_question
-    reset_audit()
+    reset_experiment_definition()
 
 
 def handle_classic_benchmark_design_change():
@@ -441,7 +483,7 @@ def handle_analysis_direction_change():
     }:
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
-    reset_audit()
+    reset_experiment_definition()
 
 def set_reset_config(*, reset_time_window=True):
     """

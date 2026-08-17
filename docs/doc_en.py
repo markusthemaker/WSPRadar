@@ -566,9 +566,9 @@ Detection is completed before the Temporal Evidence display is aggregated. Chang
 Read an event card from the interval down to its source evidence:
 
 * **Spot impulse**, **Short burst** and **Sustained excursion** describe the retained temporal shape after boundary trimming. They do not use different qualification thresholds or express different certainty.
-* Each path line identifies the exact `callsign + locator` and direction. **Expected local Delta SNR** is the candidate-excluded two-sided baseline; **Observed median Delta SNR** summarizes the retained units in the reported interval; **Largest single-cycle departure** is the most extreme retained residual from that baseline.
+* Each path line identifies the exact `callsign + locator` and direction. **Expected local Delta SNR** is the candidate-excluded two-sided baseline; **Observed median Delta SNR** summarizes the retained units in the reported interval; **Largest single-cycle departure** is the most extreme retained residual from that baseline. That report/export metric is independent of the all-path temporal `*`, which selects the greatest-absolute-residual unit only among individually qualifying native units in each review event and never uses an unsupported or nonqualifying episode peak.
 * For a multi-unit event, **Chronological WSPR-cycle evidence** lists the contributing UTC time, path, direction, local baseline, Delta SNR and residual. A one-unit Spot impulse needs no duplicate evidence table.
-* **Show in Station Insights** selects the path for its wider run history. **Drill-Down Data** exposes the underlying Target and corrected Reference SNR values and nearby one-sided outcomes. Use those views to check whether the Delta SNR movement came mainly from one side, whether either signal approached the decode edge, and whether pairability changed nearby.
+* The green **`↓ Show in Station Insights`** and **`↓ Show Drill-Down Details`** actions sit to the right of their exact path timeframe. The first selects that path, preloads Drill-Down and navigates to Station Insights for the wider run history; the second makes the same selection and preload but navigates directly to Drill-Down. Both open **`Outlier Focus`** over the complete supported pre-event baseline flank, guarded provisional episode and post-event baseline flank, clipped only to the completed analysis window; this detector-support interval may exceed 24 hours. The focused Delta SNR plot shows one actual retained Joint Spot or complete Scheduled Pair at its native time instead of a bin median, IQR or density layer. Identical `*` markers identify every native unit in the current window that individually meets both configured departure and robust-z gates as part of a reported candidate, including all such units in a multi-unit burst or episode. A muted **Focused episode** band identifies the selected reported episode. It spans that episode's reported retained-evidence interval, padded by half one native evidence-unit width at each end and clipped to the focused window so a one-unit impulse remains visible; it is neither a confidence interval nor a measurement of physical-event duration. Overlays show the expected local Delta SNR, the pre/post flank baselines over their actual support intervals, symmetric robust-z guides at 1, 2 and 3 plus the configured qualifying threshold, and the configured absolute-departure boundary for the focused episode only. Other starred candidate units may have been evaluated against different local baselines and robust spreads. These are detector guides, not confidence intervals, and crossing any one guide cannot qualify a candidate by itself. Use the underlying Target and corrected Reference SNR values and nearby one-sided outcomes to check whether the Delta SNR movement came mainly from one side, whether either signal approached the decode edge, and whether pairability changed nearby.
 
 The displayed first-to-last span is the interval between retained observations. It does not assert uninterrupted behavior between them. Compare the interval with contemporaneous paths, station logs, switching schedules, gain or power changes, interference observations and independent measurements before assigning a cause.
 
@@ -585,6 +585,8 @@ The three controls always retain their literal meaning:
 The opposite changes make reporting more permissive. The same three values apply to Spot impulses, Short bursts and Sustained excursions; duration provides no hidden discount. For exploratory work, use candidates to identify intervals worth auditing and record any threshold changes. For confirmatory work, fix and preserve the thresholds, Benchmark design, correction, path population, band and UTC scope before inspecting the result, then test whether a comparable departure recurs in a separate suitably controlled run.
 
 Report the observation as a **temporary local Delta SNR departure in the retained paired evidence**, together with its exact path, interval, sign, supporting units and detector settings. The detector is descriptive: it does not calculate a p-value, correct for the number of searched paths or events, or determine the physical cause.
+
+When outlier reporting is enabled, preserve the active-scope findings with the analysis export. It adds a path-event summary and a chronological paired-evidence CSV linked by package-local Event and Path event IDs. The evidence table deliberately repeats the path, direction and path-event class so it remains readable on its own. [Section 8.4](#sec-8-4) defines the two files and their conditional inclusion.
 
 <a id="sec-3-9"></a>
 
@@ -732,7 +734,7 @@ Versioned configurations store the applicable scientific settings and supported 
 | Control | What it does | Important behavior |
 |---|---|---|
 | **`Input view`** | Switches between `Guided` and `Classic`. | Both expose the same scientific configuration. The chosen editor is not saved. |
-| **`Load Demo`** | Loads a maintained historical profile. | Loading does not start an analysis. An unchanged profile remains a demo; editing a scientific control makes it an ordinary analysis. |
+| **`Load Demo`** | Loads a maintained historical profile. | Loading does not start an analysis. Filter, evidence-threshold and result-view changes retain the demo context; changing the experiment definition detaches it from the demo. |
 | **`Load Config`** | Loads a versioned JSON `.config`. | Invalid identities, dates, choices, ranges, duplicate fields and unsupported schema versions are rejected rather than guessed. |
 | **`Save Config`** | Saves the applicable scientific inputs and supported durable view settings. | The file stores absolute UTC boundaries but not result rows, external experiment notes or transient table filters. In Classic, saving remains unavailable until the Question and, for a Benchmark, the Benchmark design are complete. |
 | **`Run RX Analysis` / `Run TX Analysis`** | Runs the selected Performance or Benchmark result. | In Classic, running remains unavailable until the Question and, for a Benchmark, the Benchmark design are complete. Changing a scientific control after a run clears the result and requires a new run. |
@@ -741,6 +743,8 @@ Versioned configurations store the applicable scientific settings and supported 
 | **`Prepare PDF`** | Builds the selected-language manual as PDF. | The full web manual does not need to be open first. |
 
 **Configuration compatibility.** Saved files preserve the inputs and durable view choices applicable to the selected analysis. Invalid or unsupported files are rejected rather than silently reinterpreted. The formal JSON Schema is the authoritative exhaustive saved-configuration contract; [Section 8.4](#sec-8-4) gives a concise operator-facing summary of selected public identifiers. Loading or saving a configuration does not create an additional result; only the selected Performance or Benchmark analysis is run.
+
+**Demo context lifecycle.** A loaded demo keeps its visible context when only population filters, evidence thresholds, Inspector scope or other result-view controls are changed, so an adapted view can still be interpreted against the example from which it began. Changing the Question or direction, Target callsign or QTH, band, measurement window, Benchmark design or identity, neighborhood radius, TX schedule, or correction intent/value removes the demo metadata and profile identity from later saves because the setup no longer represents that documented experiment. Any scientific edit also ends exact-demo cache identity, even when the explanatory demo context remains visible. A population- or evidence-changing scientific edit clears any preselected Performance and Benchmark Station Insights identity; the path may no longer exist in the new result. Result-view-only controls do not clear that selection.
 
 <a id="sec-5-2"></a>
 
@@ -834,11 +838,25 @@ The two exclusion defaults apply only to untouched interactive setups. A Perform
 | `Heard only by other stations.` / `Only other signals heard.` | Visibility of Performance peers with only counter-evidence | Yes | No |
 | `Include Unpaired Evidence` | Visibility of Benchmark identities represented only by exclusive or asynchronous evidence | Yes | No |
 | Selected station row | Selected Station Evidence and selected Drill-Down identity | One exact `callsign + locator` per result type | No |
-| Segment time aggregation | Chronological Segment Inspector temporal view | Yes | No |
-| Selected-station time aggregation | Chronological selected-path view | Yes | No |
+| Segment time aggregation | Chronological Segment Inspector temporal view; choices adapt to the run duration | Yes | No |
+| Selected-station time aggregation | Chronological selected-path view; choices adapt to the run duration | Yes | No |
+| **`Zoom window`**, **`Center date (UTC)`**, **`Center time (UTC)`**, **`← Earlier`**, **`Later →`**, **`Outlier Focus`** and **`Filter table`** | Optional native-time Drill-Down plots and centered table interval for exactly one selected station; table filtering affects displayed rows only | No | No |
 | `Prepare All Results for Download` | Export package and current inspection selections | n/a | No |
 
-Chronological aggregation never changes opportunity classification, Benchmark pairing or the fixed one-hour UTC-folded profiles. Empty Performance time or distance bins remain missing evidence rather than synthetic zero-rate observations. Export contents are defined in [Section 8.4](#sec-8-4).
+The chronological choices and the default used when no explicit compatible saved choice exists are:
+
+| Complete run duration | Offered bins | Default |
+|---|---|---|
+| Up to and including 6 hours | `2m`, `10m`, `30m`, `1h`, `2h`, `3h`, `6h` | `10m` |
+| More than 6 hours through 24 hours | `2m`, `10m`, `30m`, `1h`, `2h`, `3h`, `6h` | `30m` |
+| More than 24 hours through 7 days | `30m`, `1h`, `2h`, `3h`, `6h`, `12h`, `24h` | `12h` |
+| More than 7 days | `1h`, `2h`, `3h`, `6h`, `12h`, `24h` | `12h` |
+
+The `2h` choice is therefore available for every run duration. Legacy `5m` and `15m` values remain accepted for saved-configuration and URL compatibility, but they are not offered for a new choice; an explicitly loaded valid legacy value remains selectable so it is not silently changed. Chronological aggregation never changes opportunity classification, Benchmark pairing or the fixed one-hour UTC-folded profiles. Empty Performance time or distance bins remain missing evidence rather than synthetic zero-rate observations.
+
+Drill-Down zoom is transient and is available only for exactly one selected station. Choose **`Off`**, or a complete `1h`, `3h`, `6h`, `12h` or `24h` interval. **`Center date (UTC)`** and **`Center time (UTC)`** select the center of that interval; WSPRadar derives its exact start and end, moves the complete interval against a run boundary instead of shortening it, and lets **`← Earlier`** or **`Later →`** step by one complete selected window. The resolved bounds appear on one line as **`Selected window: {start} to {end} UTC`**. The zoom restricts the focused figures and Drill-Down table; **`Filter table`** then changes only the displayed table and never the focused plots or completed analysis. Its metric plot is deliberately not a two-minute aggregate: simultaneous Benchmark shows one actual Delta SNR dot per retained Joint Spot at its canonical cycle time; sequential TX A/B shows one actual Pair Delta SNR dot per retained complete Scheduled Pair at its planned Target-start coordinate; Performance shows the actual normalized Target SNR of each successful confirmed opportunity at its canonical cycle time. These are individual retained scientific evidence units after WSPRadar's consolidation, matching and filters, not untouched provider rows. No bin median, IQR, density background, colorbar, full-run median or UTC-hour-folded metric panel is drawn in the focused view. The companion Performance outcome or Benchmark coverage view may retain its chronological aggregation, while Segment and full-window Selected Station Evidence remain density-based aggregated views. Both Target and Reference component rows of an admitted sequential pair remain together in the table. Focused figure titles use the compact format **`DG2CAD (JN47mv) - Time Window: {start} to {end} UTC`**.
+
+An outlier action preloads **`Outlier Focus`** over the complete supported pre-event baseline flank, guarded provisional episode and post-event flank, clipped only to the completed analysis window and allowed to exceed 24 hours. Candidate provenance remains attached while the operator moves to a manual fixed window. In a focused Benchmark plot, identical `*` markers identify every native unit in the current window that individually meets both configured departure and robust-z gates as part of a reported candidate; a muted **Focused episode** band distinguishes the selected reported episode. The band covers its reported retained-evidence interval with half one native evidence-unit width of padding at each end, clipped to the focused window so an impulse remains visible. It is a selection cue rather than a confidence interval or physical-duration measurement. Expected local Delta SNR, time-limited pre/post flank baselines, robust-z guides at 1, 2 and 3 plus the configured qualifying threshold, and the configured absolute-departure boundary belong only to the focused episode; other starred candidates can have different baselines and robust spreads. Robust-z and departure lines are detector guides rather than confidence intervals; crossing one line alone does not satisfy the detector's separate support, stability, event and agreement requirements. Manual and outlier-linked focus state stay outside the analysis definition, saved configuration and public URL. When focus is active, the export can add its separate figures without replacing the ordinary full-run selected-station figures. Export contents are defined in [Section 8.4](#sec-8-4).
 
 <a id="sec-5-6"></a>
 
@@ -849,9 +867,11 @@ Benchmark Delta SNR outlier detection is an optional expert analysis over retain
 | Control | Default / range | Method symbol | Scientific effect |
 |---|---|---|---|
 | **`Report ΔSNR outlier candidates`** | off | — | Enables the optional detector and Outlier Report for Benchmark results. When it is off, WSPRadar adds no outlier detection, fields, markers, report semantics or outlier export metadata to the result. |
-| **`Minimum absolute ΔSNR departure (dB)`** | `3.0`; `0.1`–`100.0 dB` inclusive | $D_{\min}$ | Requires the event's median residual, and every reported boundary anchor, to depart from the local baseline by at least this magnitude. |
-| **`Minimum robust z-score`** | `4.0`; `0.1`–`100.0` inclusive | $Z_{\min}$ | Requires the event median and every reported boundary anchor to meet this absolute robust local-variability score. The score is descriptive, not a calibrated probability or conventional Gaussian significance level. |
+| **`Minimum absolute ΔSNR departure (dB)`** | `6.0`; `0.1`–`100.0 dB` inclusive | $D_{\min}$ | Requires the event's median residual, and every reported boundary anchor, to depart from the local baseline by at least this magnitude. |
+| **`Minimum robust z-score`** | `3.0`; `0.1`–`100.0` inclusive | $Z_{\min}$ | Requires the event median and every reported boundary anchor to meet this absolute robust local-variability score. The score is descriptive, not a calibrated probability or conventional Gaussian significance level. |
 | **`Maximum pre/post baseline difference (dB)`** | `3.0`; `0.1`–`100.0 dB` inclusive | $H_{\max}$ | Rejects a candidate when the pre-event and post-event flank medians differ by more than this magnitude, so an unstable or shifted baseline is not reported as a temporary excursion. |
+
+The default combination prioritizes large absolute movements: the 6 dB gate sets the hard floor, while the robust z-score gate still requires that movement to be large relative to the path's local robust variability.
 
 The toggle and three thresholds are saved when applicable. Changing any of them marks the configuration as changed but does not automatically start an analysis; calculate a new result with the normal direction-specific **`Run RX Analysis`** / **`Run TX Analysis`** action. All three thresholds apply unchanged to Spot impulses, Short bursts and Sustained excursions. There is no duration bonus or weaker threshold for a longer event. Lowering $D_{\min}$ or $Z_{\min}$, or increasing $H_{\max}$, makes reporting more permissive; the opposite choices make it more selective. For confirmatory use, set and record the thresholds before inspecting the candidate events rather than tuning them until a desired event appears.
 
@@ -1293,6 +1313,8 @@ Under the Target-Active Gate, Only Target and Only Reference are directional and
 
 Chronological views preserve the actual sequence of the run across the full selected UTC window using the selected time-bin width. Bins begin at the selected start; the final interval may be shorter, and intervals without evidence remain blank rather than becoming 0 dB. UTC-hour views fold evidence from represented dates onto fixed one-hour slots to describe recurring time-of-day structure.
 
+Offered chronological widths are governed by the complete run duration, not by the observed evidence span: runs through 6 hours default to `10m`; longer runs through 24 hours default to `30m`; runs longer than 24 hours default to `12h`. The offered sets are listed in [Section 4.5](#sec-5-5), including the `2h` choice in every duration tier. An explicitly loaded valid legacy `5m` or `15m` choice is preserved without making those widths normal new choices.
+
 For Performance successful-SNR deviation, a peer enters the anomaly population only when it has at least three successful normalized Target-SNR observations in the complete run window. Its baseline is the median of those successes. Each successful observation contributes:
 
 $$A_{i,c}=SNR_{i,c}-\operatorname{median}_{c'}(SNR_{i,c'})$$
@@ -1324,6 +1346,10 @@ For Performance, the selected path reports:
 With one peer, station-balanced and Opportunity-level Decode Rate are numerically identical within a populated bin; the separate support counts still distinguish path presence from evidence volume.
 
 For Benchmark, the selected path reports observation-level Delta SNR for each Joint unit or complete scheduled pair and separately reports Only Target, Joint and Only Reference coverage. Changing the selected path or display bin changes only the retained-evidence view, not matching, eligibility or aggregation upstream.
+
+Drill-Down can temporarily restrict this same selected-path evidence to one centered `1h`, `3h`, `6h`, `12h` or `24h` interval before ordinary table filters run. Its focused metric recipe retains one scientific unit at its native coordinate: one consolidated Joint Spot and actual Delta SNR at canonical cycle UTC for simultaneous Benchmark; one complete Scheduled Pair and actual Pair Delta SNR at planned Target-start UTC for sequential TX A/B; or one successful confirmed opportunity and actual normalized Target SNR at canonical cycle UTC for Performance. Thus “native” describes processed retained evidence after consolidation, matching and scientific filters, not untouched provider rows. The focused metric recipe contains neither temporal-bin medians or quartiles nor a density grid, colorbar, full-run median or folded profile. Companion outcome/coverage panels may retain their chronological aggregation, and the segment and full-window selected-path recipes remain unchanged density summaries. Sequential membership still keeps both Target and Reference component rows of each admitted pair together in the table.
+
+Candidate-linked **`Outlier Focus`** uses the full retained pre-event flank, guarded provisional episode and post-event flank and may exceed 24 hours. The Benchmark overlay uses the already completed detector model rather than redetecting from the focused subset. For every reported candidate intersecting the focus window, it marks with the same `*` each native unit that individually meets both $D_{\min}$ and $Z_{\min}$ against that candidate's final baseline and robust spread; weaker grouped units retained between strong anchors remain ordinary dots. A muted **Focused episode** band distinguishes the selected candidate's reported retained-evidence interval. The renderer pads each end by half one native evidence-unit width and clips the band to the focused window, making a one-unit impulse visible without representing unobserved physical duration or a confidence interval. Expected local Delta SNR across the focus, the pre/post flank medians over their respective support intervals, symmetric guide boundaries for robust-z magnitudes 1, 2, 3 and $Z_{\min}$, and the absolute-departure boundary $D_{\min}$ all belong only to that focused episode; another starred candidate can have a different baseline and robust spread. From the detector definition in [Section 7.11](#sec-7-11), a guide of magnitude `k` lies at the local baseline plus or minus `k × robust spread / 0.6745`. These guides visualize detector coordinates; they are not standard deviations, confidence intervals or independent qualification tests, and crossing one guide alone is insufficient to qualify a candidate. Focus selection and candidate provenance are presentation state only; they do not alter `AnalysisContext`, matching, eligibility, detector results, the provider query, saved configuration or public URL.
 
 <a id="sec-7-8-5"></a>
 ##### 7.8.5 Descriptive spread and visualization transforms
@@ -1510,6 +1536,8 @@ $$
 
 The reported interval is trimmed to the first and last strong anchors. Units already grouped between them remain internal evidence even when they individually miss an anchor threshold. The trimmed interval is rebuilt and retested against every event-level gate using the same final baseline, robust scale and flank support. Weak leading and trailing units are removed; weaker internal bridges can remain. One surviving anchor becomes a Spot impulse. If no strongly anchored interval passes, no event is reported. The lower grouping Floor and higher boundary requirements therefore produce hysteretic event boundaries.
 
+The all-path temporal marker is selected only from these strong anchors: within each cross-path review event, the individually qualifying native unit with the greatest absolute residual supplies the `*`. An unsupported or nonqualifying episode peak cannot become that plot representative. Marker selection is separate from **Largest single-cycle departure**, which remains the true greatest-absolute retained residual in each path event for the report and export.
+
 **6. Descriptive class and cross-path context.** Classification occurs after trimming:
 
 * **Spot impulse:** one retained native paired unit;
@@ -1641,9 +1669,13 @@ benchmark/
   figure_segment_temporal_coverage.png
   figure_selected_station_evidence.png
   figure_selected_station_coverage.png
+  figure_drilldown_zoom_delta_snr_evidence.png
+  figure_drilldown_zoom_coverage.png
   table_station_insights_current_segment.csv
   table_drilldown_selected_stations.csv
   table_drilldown_all_stations_current_segment.csv
+  table_delta_snr_outlier_event_paths.csv
+  table_delta_snr_outlier_paired_evidence.csv
   analysis_cache.parquet
 performance/
   figure_map_highres.png
@@ -1652,6 +1684,8 @@ performance/
   figure_segment_temporal_evidence.png
   figure_selected_station_snr_evidence.png
   figure_selected_station_temporal_evidence.png
+  figure_drilldown_zoom_snr_evidence.png
+  figure_drilldown_zoom_temporal_evidence.png
   table_station_insights_current_segment.csv
   table_drilldown_selected_stations.csv
   table_drilldown_all_stations_current_segment.csv
@@ -1667,11 +1701,19 @@ Files without an applicable result or selected station can be absent.
 | `analysis_cache.parquet` | Processed retained evidence after scientific filters and geographic scope; not an untouched upstream dump. |
 | `table_station_insights_current_segment.csv` | Per-peer summaries for the active Segment Inspector scope. |
 | Drill-Down CSV files | Row-level retained evidence for selected or active-scope identities. |
+| Delta-SNR outlier CSV files | When optional outlier reporting is enabled, qualified path-event summaries and their chronological native paired evidence for the active Segment Inspector scope. |
 | Map and segment figures | Geographic and segment-level descriptive summaries for the completed result. |
 | Temporal figures | Chronological and UTC-folded summaries for the active segment. |
 | Selected-station figures | One exact selected peer identity in normal use; while optional Delta SNR outlier reporting enables an ordered multi-path selection, Benchmark can instead export the corresponding pooled multi-path Delta SNR view. |
+| Drill-Down focus figures | Optional native-time metric and chronological companion figures for the exact selected station and active manual or candidate-linked focus interval; they supplement rather than replace the full-run selected-station figures. |
 
-When Delta SNR outlier reporting is enabled, the export retains the enabled state, detector version, three-threshold policy and applicable figure-marker recipe metadata; exported Benchmark figures can therefore reproduce the same candidate stars. The package does not contain a separate Outlier Report or candidate table. When reporting is disabled, outlier metadata and marker recipes are omitted entirely.
+When a Drill-Down focus is active at preparation time, Performance can add `figure_drilldown_zoom_snr_evidence.png` and `figure_drilldown_zoom_temporal_evidence.png`; Benchmark can add `figure_drilldown_zoom_delta_snr_evidence.png` and `figure_drilldown_zoom_coverage.png`. Each title uses only the selected `callsign (locator)` followed by ` - Time Window: {start} to {end} UTC`. The metric figure preserves the same individual retained native points as the browser focus rather than substituting temporal medians; the companion figure preserves the applicable chronological outcome or coverage recipe. `run_metadata.json` records one `drilldown_zoom` block with its schema version, callsign, locator, exact `start_utc` and `end_utc`, selected focus option, `manual` or `outlier_focus` origin and render contract. When a candidate overlay is present, its registered recipe and signature preserve the focused episode and every individually qualifying candidate unit in the window, the muted focused-episode band, local and pre/post baseline values, robust spread and method, robust-z threshold and absolute-departure threshold used by the exported guides. The guide coordinates remain specific to the focused episode even when another starred candidate in the exported window was assessed against another baseline or spread. No focus block or focus figure is included while focus is off or the one-station requirement is not met.
+
+When Delta SNR outlier reporting is enabled, `table_delta_snr_outlier_event_paths.csv` contains one row per qualified path event. It records the combined review-event class and observed UTC bounds, cross-path context and departure direction, then identifies the exact path, direction, path-event class, paired-evidence timing and count, expected and observed Delta SNR, largest departure, robust score, pre/post baseline diagnostics and nearby Decode Outcome diagnostics. One exact path can occur in more than one row of the same combined review event when it contributes more than one qualifying timeframe. The qualifying-path count remains the number of distinct `callsign + locator` identities.
+
+`table_delta_snr_outlier_paired_evidence.csv` contains one row per retained native paired unit inside those path events, in chronological order. Event ID and Path event ID link it to the summary. For stand-alone readability it repeats the observed event bounds, path, direction and path-event class; the combined event class remains only in the summary because it can differ from an individual path's class. The table includes Target SNR, already-corrected Reference SNR, Delta SNR, expected local Delta SNR, departure from that baseline, per-unit robust score, strong-anchor status and reported-boundary role. Timestamps use ISO UTC and numeric fields remain numeric rather than embedding signs or units in the cells.
+
+The IDs are deterministic joins within one prepared package, not persistent identities across separately prepared analyses and not assertions that a physical event occurred. If reporting is enabled but no path event qualifies, both CSVs remain present with their headers and no invented finding row. `run_metadata.json` records the enabled state, detector version, three-threshold policy, export-schema version, result status, table filenames and event, path and evidence counts once. Applicable exported Benchmark figures retain the same candidate-marker recipe metadata. When reporting is disabled, both CSVs, all outlier metadata and all marker recipes are omitted entirely.
 
 **Selected public machine-readable contract names.** This concise table identifies supported external names useful to operators and downstream consumers; it is not an exhaustive saved-configuration field, URL-parameter or export-metadata catalog. The formal JSON Schema (`config/wspradar-config.schema.json`) is authoritative for saved-configuration fields, while the supported public URL contract is versioned separately. Private implementation identifiers are deliberately omitted. These names are not vocabulary for explaining the scientific method.
 
@@ -1681,7 +1723,8 @@ When Delta SNR outlier reporting is enabled, the export retains the enabled stat
 | Result-type values | `performance`, `benchmark` | Values emitted by new analysis URLs, configurations and exports. |
 | Durable result-view blocks | `results_view.performance`, `results_view.benchmark` | Saved inspection preferences. Their presence does not create or run an additional result. |
 | Result folders | `performance/`, `benchmark/` | Top-level result folders in the export package. |
-| Figure metadata | `selected_evidence_figures`, `benchmark_evidence_figures`, `benchmark_evidence_recipes` | Stable mappings for applicable exported figures and Benchmark recipes. |
+| Outlier tables | `table_delta_snr_outlier_event_paths.csv`, `table_delta_snr_outlier_paired_evidence.csv` | Enabled-only Benchmark tables linked by package-local Event ID and Path event ID; absent when Delta-SNR outlier reporting is disabled. |
+| Figure metadata | `selected_evidence_figures`, `benchmark_evidence_figures`, `benchmark_evidence_recipes`, `drilldown_zoom` | Stable mappings and exact transient zoom identity/bounds for applicable exported figures and Benchmark recipes. |
 | Correction metadata | `benchmark_snr_correction_mode`, `benchmark_snr_correction_db` | The semantic correction choice and its numeric dB value. |
 
 The export package preserves the processed evidence and provenance recorded by WSPRadar. It does not contain authoritative external operating logs, physical setup measurements or unchanged upstream responses. Preserve those separately as described in [Section 8.3](#sec-8-3).

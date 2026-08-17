@@ -646,6 +646,58 @@ def apply_custom_css():
         div[class*="st-key-show_all_outlier_paths_"] button[kind="tertiary"]:hover {
             color: #a6ff8a !important;
         }
+        div[class*="st-key-outlier_episode_"]
+        div[data-testid="stVerticalBlock"] {
+            gap: 0.45rem !important;
+        }
+        div[class*="st-key-outlier_episode_"] h5,
+        div[class*="st-key-outlier_episode_"] h6 {
+            margin-top: 0.1rem !important;
+            margin-bottom: 0.1rem !important;
+            padding-bottom: 0 !important;
+            line-height: 1.3 !important;
+        }
+        div[class*="st-key-outlier_episode_"]
+        div[data-testid="stCaptionContainer"] {
+            margin-bottom: 0 !important;
+        }
+        div[class*="st-key-outlier_episode_"]
+        div[data-testid="stCaptionContainer"] p {
+            margin: 0 0 0.2rem !important;
+            line-height: 1.35 !important;
+        }
+        div[class*="st-key-outlier_episode_"]
+        div[data-testid="stCaptionContainer"] ul {
+            margin: 0.1rem 0 0.15rem !important;
+            padding-left: 1.35rem !important;
+        }
+        div[class*="st-key-outlier_episode_"]
+        div[data-testid="stCaptionContainer"] li {
+            margin: 0.05rem 0 !important;
+            line-height: 1.3 !important;
+        }
+        div[class*="st-key-outlier_path_actions_"] {
+            flex: 0 0 auto !important;
+            margin-left: auto !important;
+        }
+        div[class*="st-key-outlier_path_actions_"]
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+        }
+        div[class*="st-key-outlier_path_actions_"]
+        div[data-testid="stButton"] {
+            display: flex !important;
+            justify-content: flex-end !important;
+        }
+        div[class*="st-key-outlier_path_actions_"]
+        div[data-testid="stButton"] button {
+            white-space: nowrap !important;
+        }
+        div[class*="st-key-d_zoom_selected_window_"]
+        div[data-testid="stCaptionContainer"] p {
+            margin: 0 !important;
+            white-space: nowrap !important;
+        }
         /* Keep direct numeric entry and help while hiding only outlier steppers. */
         div[class*="st-key-val_delta_snr_outlier_"]
         button[data-testid="stNumberInputStepDown"],

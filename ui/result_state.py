@@ -28,6 +28,9 @@ RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = (
 RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY = (
     "results_station_insights_focus_compare"
 )
+RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY = (
+    "results_drilldown_focus_compare"
+)
 RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY = (
     "val_report_delta_snr_outlier_candidates"
 )
@@ -57,6 +60,7 @@ def normalize_compare_station_selection_for_outlier_reporting(
     ):
         return False
     session_state.pop(RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY, None)
+    session_state.pop(RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY, None)
     selected_stations = session_state.get(
         RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     )
@@ -93,6 +97,10 @@ def clear_rendered_result_state(
         session_state.pop(INSPECTOR_CACHE_STATE_KEY, None)
         session_state.pop(
             RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
+            None,
+        )
+        session_state.pop(
+            RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY,
             None,
         )
     clear_prepared_result_state(session_state)

@@ -35,6 +35,10 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
                 {"callsign": "A1AAA", "locator": "AA00"}
             ],
         },
+        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
+            "analysis_id": "RX_COMP",
+            "run_id": 42,
+        },
         "unrelated": "preserved",
     }
 
@@ -53,6 +57,7 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
         result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
         not in session_state
     )
+    assert result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
     assert session_state["unrelated"] == "preserved"
 
 
@@ -96,6 +101,10 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
                 {"callsign": "A1AAA", "locator": "AA00"}
             ],
         },
+        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
+            "analysis_id": "RX_COMP",
+            "run_id": 42,
+        },
     }
 
     result_state.clear_rendered_result_state(session_state)
@@ -113,6 +122,7 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
         result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
         not in session_state
     )
+    assert result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
 
 
 def test_completed_rerender_preserves_inspector_cache_and_station_focus():
@@ -130,6 +140,10 @@ def test_completed_rerender_preserves_inspector_cache_and_station_focus():
             "station_identities": [
                 {"callsign": "A1AAA", "locator": "AA00"}
             ],
+        },
+        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
+            "analysis_id": "RX_COMP",
+            "run_id": 42,
         },
     }
 
@@ -149,6 +163,9 @@ def test_completed_rerender_preserves_inspector_cache_and_station_focus():
     ]["station_identities"] == [
         {"callsign": "A1AAA", "locator": "AA00"}
     ]
+    assert session_state[
+        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+    ]["run_id"] == 42
 
 
 def test_outlier_opt_out_always_clears_station_insights_focus():
@@ -171,6 +188,7 @@ def test_outlier_opt_out_always_clears_station_insights_focus():
         result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
             focus_record
         ),
+        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
     }
 
     selection_changed = (
@@ -184,6 +202,7 @@ def test_outlier_opt_out_always_clears_station_insights_focus():
         result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
         not in session_state
     )
+    assert result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
 
 
 def test_enabled_outlier_reporting_preserves_station_insights_focus():
@@ -203,6 +222,7 @@ def test_enabled_outlier_reporting_preserves_station_insights_focus():
         result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
             focus_record
         ),
+        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
     }
 
     selection_changed = (
@@ -214,6 +234,9 @@ def test_enabled_outlier_reporting_preserves_station_insights_focus():
     assert selection_changed is False
     assert session_state[
         result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+    ] is focus_record
+    assert session_state[
+        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ] is focus_record
 
 

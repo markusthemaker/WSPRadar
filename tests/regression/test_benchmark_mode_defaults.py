@@ -496,13 +496,13 @@ def test_enabled_outlier_reporting_renders_three_shared_gates_directly_below_tog
             "val_delta_snr_outlier_minimum_departure_db",
             "lbl_delta_snr_outlier_minimum_departure_db",
             "tt_delta_snr_outlier_minimum_departure_db",
-            3.0,
+            6.0,
         ),
         (
             "val_delta_snr_outlier_minimum_robust_z",
             "lbl_delta_snr_outlier_minimum_robust_z",
             "tt_delta_snr_outlier_minimum_robust_z",
-            4.0,
+            3.0,
         ),
         (
             "val_delta_snr_outlier_maximum_baseline_difference_db",
@@ -598,8 +598,8 @@ def test_classic_outlier_callbacks_invalidate_results_without_starting_analysis(
 
     assert reset.call_count == 2
     assert session_state.val_report_delta_snr_outlier_candidates is True
-    assert session_state.val_delta_snr_outlier_minimum_departure_db == 3.0
-    assert session_state.val_delta_snr_outlier_minimum_robust_z == 4.0
+    assert session_state.val_delta_snr_outlier_minimum_departure_db == 6.0
+    assert session_state.val_delta_snr_outlier_minimum_robust_z == 3.0
     assert session_state.val_delta_snr_outlier_maximum_baseline_difference_db == 3.0
 
 

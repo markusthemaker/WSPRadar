@@ -85,6 +85,18 @@ def test_application_navigation_request_is_allowlisted_unique_and_one_shot():
         second_request["request_token"],
     }
 
+    page_navigation.request_page_navigation(
+        session_state,
+        page_navigation.DRILLDOWN_ANCHOR_ID,
+        should_scroll=True,
+    )
+    drilldown_request = page_navigation.consume_page_navigation_request(
+        session_state
+    )
+    assert drilldown_request is not None
+    assert drilldown_request["anchor_id"] == page_navigation.DRILLDOWN_ANCHOR_ID
+    assert drilldown_request["should_scroll"] is True
+
     with pytest.raises(ValueError, match="Unknown application anchor"):
         page_navigation.request_page_navigation(
             session_state,
@@ -262,11 +274,40 @@ def test_station_insights_anchor_is_allowlisted_and_precedes_its_level():
         REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
     ).read_text(encoding="utf-8")
 
-    assert page_navigation.APPLICATION_ANCHOR_IDS[-1] == (
+    assert page_navigation.APPLICATION_ANCHOR_IDS[-2] == (
         page_navigation.STATION_INSIGHTS_ANCHOR_ID
+    )
+    assert page_navigation.APPLICATION_ANCHOR_IDS[-1] == (
+        page_navigation.DRILLDOWN_ANCHOR_ID
     )
     assert re.search(
         r"render_page_anchor\(\s*STATION_INSIGHTS_ANCHOR_ID\s*\)\s*"
         r"level_three_container\s*=\s*st\.container\(",
         inspector_source,
     )
+
+
+def test_drilldown_anchor_is_allowlisted_and_precedes_its_level():
+    """Give focused outlier actions a stable target above Drill-Down."""
+    inspector_source = (
+        REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
+    ).read_text(encoding="utf-8")
+
+    assert page_navigation.DRILLDOWN_ANCHOR_ID in (
+        page_navigation.APPLICATION_ANCHOR_IDS
+    )
+    helper_start = inspector_source.index(
+        "def _render_drilldown_header_and_controls("
+    )
+    anchor_call = inspector_source.index(
+        "render_page_anchor(DRILLDOWN_ANCHOR_ID)",
+        helper_start,
+    )
+    heading_call = inspector_source.index(
+        "_render_drilldown_heading(",
+        anchor_call,
+    )
+    assert helper_start < anchor_call < heading_call
+    assert inspector_source.count(
+        "_render_drilldown_header_and_controls("
+    ) >= 3

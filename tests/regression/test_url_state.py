@@ -314,8 +314,8 @@ def test_url_v1_omits_every_stable_default_and_orders_required_fields():
     )
 
 
-def test_compare_outlier_reporting_round_trips_as_presence_flag():
-    """Emit only enabled Compare reporting and restore it from report_outliers=1."""
+def test_compare_outlier_reporting_round_trips_with_explicit_new_defaults():
+    """Emit new defaults explicitly while preserving old omitted URL values."""
     settings = _settings_for_mode("reference_station")
     settings["advanced_parameters"][
         "report_delta_snr_outlier_candidates"
@@ -325,7 +325,11 @@ def test_compare_outlier_reporting_round_trips_as_presence_flag():
     normalized = url_state.build_config_from_url(dict(entries))
 
     assert dict(entries)["report_outliers"] == "1"
+    assert dict(entries)["outlier_departure_db"] == "6"
+    assert dict(entries)["outlier_robust_z"] == "3"
     assert normalized["report_delta_snr_outlier_candidates"] is True
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == 6.0
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == 3.0
     assert tuple(key for key, _value in entries) == tuple(
         key
         for key in url_state.URL_V1_PARAMETER_ORDER
@@ -341,7 +345,7 @@ def test_compare_outlier_reporting_round_trips_as_presence_flag():
 
 
 def test_enabled_outlier_policy_url_emits_only_nondefaults_and_round_trips():
-    """Keep tuning in URL identity only under opt-in and preserve full precision."""
+    """Keep version-1 omission semantics and preserve full tuning precision."""
     settings = _settings_for_mode("reference_station")
     advanced = settings["advanced_parameters"]
     advanced["report_delta_snr_outlier_candidates"] = True
@@ -349,12 +353,9 @@ def test_enabled_outlier_policy_url_emits_only_nondefaults_and_round_trips():
     default_entries = dict(
         url_state.build_query_from_settings(settings, include_run=False)
     )
-    assert all(
-        url_parameter not in default_entries
-        for url_parameter, _config_field, _policy_field in (
-            url_state.URL_V1_OUTLIER_POLICY_PARAMETERS
-        )
-    )
+    assert default_entries["outlier_departure_db"] == "6"
+    assert default_entries["outlier_robust_z"] == "3"
+    assert "outlier_baseline_difference_db" not in default_entries
 
     advanced.update(
         {
@@ -378,6 +379,26 @@ def test_enabled_outlier_policy_url_emits_only_nondefaults_and_round_trips():
         DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
     ):
         assert normalized[config_field] == advanced[config_field]
+
+
+def test_version_1_outlier_url_preserves_omitted_gate_meaning():
+    """Keep existing report-only version-1 links at their original 3/4/3 policy."""
+    entries = dict(
+        url_state.build_query_from_settings(
+            _settings_for_mode("reference_station"),
+            include_run=False,
+        )
+    )
+    entries["report_outliers"] = "1"
+
+    normalized = url_state.build_config_from_url(entries)
+
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.0
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == 4.0
+    assert (
+        normalized["delta_snr_outlier_maximum_baseline_difference_db"]
+        == 3.0
+    )
 
 
 @pytest.mark.parametrize(
@@ -667,6 +688,23 @@ def test_performance_url_maps_only_the_active_result_branch():
     assert normalized["selected_stations_absolute"] == [
         {"callsign": "K1ABC", "locator": "FN42"},
     ]
+
+
+@pytest.mark.parametrize("time_bin", ("2m", "5m", "10m", "15m", "30m"))
+def test_public_url_round_trips_adaptive_and_legacy_minute_bins(time_bin):
+    """Keep new minute bins and both legacy choices stable in URL version 1."""
+    settings = _settings_for_mode("performance")
+    performance_view = settings["results_view"]["performance"]
+    performance_view["segment_evidence_time_bin"] = time_bin
+    performance_view["station_evidence_time_bin"] = time_bin
+
+    entries = url_state.build_query_from_settings(settings, include_run=False)
+    normalized = url_state.build_config_from_url(dict(entries))
+
+    assert dict(entries)["segment_bin"] == time_bin
+    assert dict(entries)["station_bin"] == time_bin
+    assert normalized["segment_evidence_time_bin_absolute"] == time_bin
+    assert normalized["station_evidence_time_bin_absolute"] == time_bin
 
 
 def test_benchmark_url_maps_only_the_active_result_branch():

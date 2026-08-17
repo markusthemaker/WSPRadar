@@ -36,7 +36,7 @@ from i18n import GUIDED_INPUTS, T
 from ui.callbacks import (
     handle_input_view_change,
     load_demo_profile_config,
-    reset_audit,
+    reset_shell_audit,
     run_demo_profile,
     set_reset_config,
     update_lang,
@@ -275,7 +275,7 @@ with col_b1:
         st.session_state.show_demo_launcher = next_demo_state
         if next_demo_state:
             st.session_state.show_config_loader = False
-        reset_audit()
+        reset_shell_audit()
 
 with col_view:
     guided_mode_content = GUIDED_INPUTS[st.session_state.lang]["mode"]
@@ -298,7 +298,7 @@ with col_b2:
         st.session_state.show_config_loader = next_config_state
         if next_config_state:
             st.session_state.show_demo_launcher = False
-        reset_audit()
+        reset_shell_audit()
 
 with col_b3:
     st.button(

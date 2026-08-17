@@ -18,6 +18,7 @@ from ui.analysis_submission_state import (
     get_analysis_submission,
 )
 from ui.components import config_panel
+from ui.guided_inputs import renderer as guided_renderer
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -250,8 +251,8 @@ def test_config_load_replaces_or_clears_loaded_profile_snapshot():
     assert session_state.loaded_config_profile is None
 
 
-def test_parameter_reset_preserves_loaded_profile_snapshot(monkeypatch):
-    """Keep loaded metadata attached when an edit invalidates active results."""
+def test_population_or_evidence_reset_retains_profile_context(monkeypatch):
+    """Keep loaded provenance but release identities from retired evidence."""
     loaded_profile = {
         "id": "portable-rx",
         "title": {"en": "Portable RX"},
@@ -261,6 +262,15 @@ def test_parameter_reset_preserves_loaded_profile_snapshot(monkeypatch):
         run_mode="RX",
         active_demo_profile="portable-rx",
         loaded_config_profile=deepcopy(loaded_profile),
+        val_config_profile=deepcopy(loaded_profile),
+        guided_loaded_demo_profile="portable-rx",
+        guided_demo_metadata_open=True,
+        val_results_selected_stations_compare=[
+            {"callsign": "K1ABC", "locator": "FN42"},
+        ],
+        val_results_selected_stations_absolute=[
+            {"callsign": "W1XYZ", "locator": "FN31"},
+        ],
     )
     monkeypatch.setattr(
         callbacks,
@@ -275,7 +285,134 @@ def test_parameter_reset_preserves_loaded_profile_snapshot(monkeypatch):
     assert session_state.run_mode is None
     assert session_state.active_demo_profile is None
     assert session_state.loaded_config_profile == loaded_profile
+    assert session_state.val_config_profile == loaded_profile
+    assert session_state.guided_loaded_demo_profile == "portable-rx"
+    assert session_state.guided_demo_metadata_open is True
+    assert session_state.val_results_selected_stations_compare is None
+    assert session_state.val_results_selected_stations_absolute is None
     assert get_analysis_submission(session_state) is None
+
+
+def test_experiment_definition_reset_retires_profile_context(monkeypatch):
+    """Detach demo metadata and save identity after an experiment-level edit."""
+    loaded_profile = {
+        "id": "portable-rx",
+        "title": {"en": "Portable RX"},
+    }
+    session_state = _SessionState(
+        run_mode="RX",
+        active_demo_profile="portable-rx",
+        loaded_config_profile=deepcopy(loaded_profile),
+        val_config_profile=deepcopy(loaded_profile),
+        guided_loaded_demo_profile="portable-rx",
+        guided_demo_metadata_open=True,
+        val_results_selected_stations_compare=[
+            {"callsign": "K1ABC", "locator": "FN42"},
+        ],
+        val_results_selected_stations_absolute=[
+            {"callsign": "W1XYZ", "locator": "FN31"},
+        ],
+    )
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+
+    callbacks.reset_experiment_definition()
+
+    assert session_state.run_mode is None
+    assert session_state.active_demo_profile is None
+    assert session_state.loaded_config_profile is None
+    assert session_state.val_config_profile is None
+    assert session_state.guided_loaded_demo_profile is None
+    assert session_state.guided_demo_metadata_open is False
+    assert session_state.val_results_selected_stations_compare is None
+    assert session_state.val_results_selected_stations_absolute is None
+
+
+def test_shell_reset_preserves_profile_and_station_intent(monkeypatch):
+    """Do not classify opening a launcher as a scientific population edit."""
+    loaded_profile = {
+        "id": "portable-rx",
+        "title": {"en": "Portable RX"},
+    }
+    selected_compare = [{"callsign": "K1ABC", "locator": "FN42"}]
+    selected_absolute = [{"callsign": "W1XYZ", "locator": "FN31"}]
+    session_state = _SessionState(
+        run_mode="RX",
+        active_demo_profile="portable-rx",
+        loaded_config_profile=deepcopy(loaded_profile),
+        val_config_profile=deepcopy(loaded_profile),
+        guided_loaded_demo_profile="portable-rx",
+        val_results_selected_stations_compare=deepcopy(selected_compare),
+        val_results_selected_stations_absolute=deepcopy(selected_absolute),
+    )
+    monkeypatch.setattr(
+        callbacks,
+        "st",
+        SimpleNamespace(session_state=session_state),
+    )
+    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+
+    callbacks.reset_shell_audit()
+
+    assert session_state.active_demo_profile == "portable-rx"
+    assert session_state.loaded_config_profile == loaded_profile
+    assert session_state.val_config_profile == loaded_profile
+    assert session_state.guided_loaded_demo_profile == "portable-rx"
+    assert session_state.val_results_selected_stations_compare == selected_compare
+    assert session_state.val_results_selected_stations_absolute == selected_absolute
+
+
+def test_guided_change_categories_apply_the_same_profile_policy(monkeypatch):
+    """Retain demo context for Guided filters and retire it for experiment edits."""
+    loaded_profile = {
+        "id": "portable-rx",
+        "title": {"en": "Portable RX"},
+    }
+    session_state = _SessionState(
+        run_mode=None,
+        active_demo_profile="portable-rx",
+        loaded_config_profile=deepcopy(loaded_profile),
+        val_config_profile=deepcopy(loaded_profile),
+        guided_loaded_demo_profile="portable-rx",
+        guided_demo_metadata_open=True,
+        guided_collapse_all=True,
+        val_results_selected_stations_compare=[
+            {"callsign": "K1ABC", "locator": "FN42"},
+        ],
+        val_results_selected_stations_absolute=[
+            {"callsign": "W1XYZ", "locator": "FN31"},
+        ],
+    )
+    fake_streamlit = SimpleNamespace(session_state=session_state)
+    monkeypatch.setattr(callbacks, "st", fake_streamlit)
+    monkeypatch.setattr(guided_renderer, "st", fake_streamlit)
+    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+
+    guided_renderer._guided_scientific_change("scope_and_evidence")
+
+    assert session_state.loaded_config_profile == loaded_profile
+    assert session_state.val_config_profile == loaded_profile
+    assert session_state.guided_loaded_demo_profile == "portable-rx"
+    assert session_state.val_results_selected_stations_compare is None
+    assert session_state.val_results_selected_stations_absolute is None
+
+    session_state.val_results_selected_stations_compare = [
+        {"callsign": "K1ABC", "locator": "FN42"},
+    ]
+    session_state.val_results_selected_stations_absolute = [
+        {"callsign": "W1XYZ", "locator": "FN31"},
+    ]
+    guided_renderer._guided_experiment_definition_change("target_and_window")
+
+    assert session_state.loaded_config_profile is None
+    assert session_state.val_config_profile is None
+    assert session_state.guided_loaded_demo_profile is None
+    assert session_state.val_results_selected_stations_compare is None
+    assert session_state.val_results_selected_stations_absolute is None
 
 
 @pytest.mark.parametrize(

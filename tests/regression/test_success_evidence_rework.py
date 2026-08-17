@@ -37,7 +37,6 @@ from ui.plots.opportunity_figures import (
     SUCCESS_SNR_BASELINE_VERSION,
     SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
     SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
-    SUCCESS_TEMPORAL_TIME_BINS,
     _aggregate_success_distance_profile,
     _assign_success_distance_bins,
     _format_ham_compact_count,
@@ -318,6 +317,9 @@ def _temporal_recipe_for_test(
     rows: pd.DataFrame | None = None,
     start_t: str = "2026-07-10T00:00:00Z",
     end_t: str = "2026-07-13T00:00:00Z",
+    time_bin_options=None,
+    time_bin_default=None,
+    retained_time_bin=None,
 ) -> dict[str, object]:
     """Build one complete localized Success temporal recipe."""
     evidence_title = _success_temporal_figure_title(
@@ -344,6 +346,9 @@ def _temporal_recipe_for_test(
         ),
         figure_labels=_figure_labels(language, analysis_id),
         snr_title=snr_title,
+        time_bin_options=time_bin_options,
+        time_bin_default=time_bin_default,
+        retained_time_bin=retained_time_bin,
     )
 
 
@@ -1466,7 +1471,18 @@ def test_success_temporal_recipe_balances_station_bin_and_station_date_hour():
     )
     assert recipe["minimum_snr_baseline_observations"] == 3
     assert recipe["snr_baseline_station_count"] == 2
-    assert recipe["time_bin_options"] == list(SUCCESS_TEMPORAL_TIME_BINS)
+    assert recipe["time_bin_options"] == [
+        "30m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h",
+    ]
+    assert recipe["time_bin_default"] == "12h"
+    assert recipe["time_bin"] == "12h"
+    assert list(recipe["chronological_profiles"]) == recipe["time_bin_options"]
     assert recipe["utc_date_count"] == 2
 
     for profile in recipe["chronological_profiles"].values():
@@ -1623,6 +1639,84 @@ def test_success_temporal_recipe_balances_station_bin_and_station_date_hour():
     assert 50.0 in folded["snr_density_pct"][
         np.isfinite(folded["snr_density_pct"])
     ]
+
+
+@pytest.mark.parametrize(
+    ("end_t", "expected_options", "expected_default"),
+    (
+        (
+            "2026-07-10T06:00:00Z",
+            ["2m", "10m", "30m", "1h", "2h", "3h", "6h"],
+            "10m",
+        ),
+        (
+            "2026-07-11T00:00:00Z",
+            ["2m", "10m", "30m", "1h", "2h", "3h", "6h"],
+            "30m",
+        ),
+        (
+            "2026-07-17T00:00:00Z",
+            ["30m", "1h", "2h", "3h", "6h", "12h", "24h"],
+            "12h",
+        ),
+        (
+            "2026-07-18T00:00:00Z",
+            ["1h", "2h", "3h", "6h", "12h", "24h"],
+            "12h",
+        ),
+    ),
+)
+def test_success_temporal_recipe_precomputes_only_adaptive_profiles(
+    end_t,
+    expected_options,
+    expected_default,
+):
+    """Bound Performance cold preparation to the selected duration tier."""
+    recipe = _temporal_recipe_for_test(
+        start_t="2026-07-10T00:00:00Z",
+        end_t=end_t,
+    )
+
+    assert recipe["time_bin_options"] == expected_options
+    assert list(recipe["chronological_profiles"]) == expected_options
+    assert recipe["time_bin_default"] == expected_default
+    assert recipe["time_bin"] == expected_default
+
+
+def test_success_temporal_recipe_retains_legacy_bin_only_when_explicit():
+    """Precompute a legacy profile only to preserve an explicit saved choice."""
+    recipe = _temporal_recipe_for_test(
+        start_t="2026-07-10T00:00:00Z",
+        end_t="2026-07-18T00:00:00Z",
+        retained_time_bin="15m",
+    )
+
+    assert recipe["time_bin_options"] == [
+        "15m",
+        "1h",
+        "2h",
+        "3h",
+        "6h",
+        "12h",
+        "24h",
+    ]
+    assert list(recipe["chronological_profiles"]) == recipe["time_bin_options"]
+    assert recipe["time_bin_default"] == "12h"
+
+
+def test_success_temporal_recipe_accepts_validated_caller_policy():
+    """Let Inspector integration supply one already-resolved adaptive tier."""
+    recipe = _temporal_recipe_for_test(
+        start_t="2026-07-10T00:00:00Z",
+        end_t="2026-07-10T06:00:00Z",
+        time_bin_options=("2m", "2h"),
+        time_bin_default="2h",
+    )
+
+    assert recipe["time_bin_options"] == ["2m", "2h"]
+    assert list(recipe["chronological_profiles"]) == ["2m", "2h"]
+    assert recipe["time_bin_default"] == "2h"
+    assert recipe["time_bin"] == "2h"
 
 
 def test_selected_success_actual_snr_uses_raw_rows_and_date_hour_medians():

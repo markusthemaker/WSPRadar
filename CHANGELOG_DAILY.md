@@ -2,6 +2,74 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## 2026-08-16
+
+- Added duration-adaptive chronological aggregation to RX/TX Performance and
+  Benchmark Segment and selected-station evidence. Runs through 6 hours default
+  to `10m`, runs over 6 through 24 hours to `30m`, and longer runs to `12h`;
+  the offered tiers now extend through `24h` and retain `2h` at every duration.
+  Compatibility-only `5m` and `15m` choices remain accepted when explicitly
+  loaded without appearing as ordinary new choices.
+- Added a transient single-station Drill-Down focus with complete `1h`, `3h`,
+  `6h`, `12h`, and `24h` windows centered through separate **Center date
+  (UTC)** and **Center time (UTC)** inputs, full-window Earlier/Later steps,
+  one-line resolved bounds, pair-safe sequential TX A/B filtering, and table
+  restriction before the table-only **Filter table** control. Its focused metric
+  plots now retain
+  one actual scientific evidence point at native time—Joint Spot or complete
+  Scheduled Pair Delta SNR for Benchmark and successful confirmed-opportunity
+  SNR for Performance—without bin medians, IQR, density, a full-run median or
+  UTC-hour folding. Segment and ordinary selected-station density views remain
+  aggregated. Active focuses add separate Performance or Benchmark figures and
+  exact focus provenance to prepared exports without replacing the full-run
+  selected-station figures.
+- Refined the two green per-timeframe Outlier Report actions as right-aligned
+  **↓ Show in Station Insights** and **↓ Show Drill-Down Details** links. Both
+  select the exact path and preload one **Outlier Focus** over the complete
+  supported pre flank, guarded provisional episode and post flank, even beyond
+  24 hours; the first navigates to Station Insights and the second directly to
+  Drill-Down. Focused Benchmark plots mark every individually qualifying native
+  unit from every reported candidate in the visible window with the same star,
+  while a muted **Focused episode** band identifies the selected reported
+  episode. The band is a padded selection cue rather than physical duration or a
+  confidence interval. Exact local/pre/post baseline, robust-z and
+  absolute-departure guides remain specific to the focused episode; other
+  starred candidates may have different baselines and robust spreads. The
+  single all-path temporal representative is now the greatest-absolute-residual
+  unit among individually qualifying native units in its review event, never an
+  unsupported/nonqualifying episode peak. This does not redefine **Largest
+  single-cycle departure**, which remains the true largest retained residual in
+  the report and export. The existing all-qualifying-path Station Insights
+  action remains available.
+- Refined demo provenance so population filters, evidence thresholds and result
+  views may retain visible demo context, while changes to the Question, Target,
+  measurement window or Benchmark design remove demo metadata and saved profile
+  identity. Every scientific edit still releases exact demo-cache identity, and
+  population/evidence changes clear both result families' preselected station
+  identities so a stale path is not carried into a changed result.
+- Changed the optional Delta-SNR outlier detector's factory gates to `6.0 dB`
+  minimum absolute departure, `3.0` minimum robust z-score, and `3.0 dB`
+  maximum pre/post baseline difference. This prioritizes large absolute
+  departures while retaining the independent path-relative variability and
+  stable two-sided-baseline requirements; detector mechanics, duration classes,
+  ranges, and disabled behavior are unchanged. Version-1 saved configurations
+  and public URLs that omitted the former `3.0`/`4.0`/`3.0` values retain their
+  original meaning, while current writers record the changed values explicitly.
+
+## 2026-08-15
+
+- Extended optional Benchmark Delta-SNR outlier reporting into prepared-result
+  exports. Enabled packages now contain a localized path-event summary and a
+  linked chronological native paired-evidence CSV with package-local event IDs,
+  deliberately repeated path/direction context, corrected Reference SNR,
+  residual and strong-anchor diagnostics. Enabled runs without candidates write
+  both complete header-only schemas; disabled runs retain the historical package
+  contract with no outlier tables, metadata or signature inputs. Export
+  registration validates the cross-table joins, copies the projections, and
+  fingerprints full table contents so same-shaped evidence changes invalidate a
+  prepared ZIP. The English and German manuals and generated README document the
+  new files and their interpretation.
+
 ## 2026-08-05
 
 - Reconciled the authoritative English and German manuals after the scientific-

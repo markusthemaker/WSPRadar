@@ -10,6 +10,8 @@ while preserving the current segment, station, non-joint, and time-bin state.
 import hashlib
 import io
 import json
+import math
+from copy import deepcopy
 from collections.abc import Mapping
 from pathlib import Path
 import time
@@ -68,6 +70,18 @@ from ui.result_state import (
     clear_prepared_result_state,
 )
 from ui.matplotlib_renderer import dispose_matplotlib_figure
+from ui.inspector.drilldown_focus import (
+    DRILLDOWN_FOCUS_SCHEMA_VERSION,
+    DRILLDOWN_OUTLIER_FOCUS_OPTION,
+)
+from ui.inspector.outlier_export import (
+    DELTA_SNR_OUTLIER_EXPORT_SCHEMA_VERSION,
+    DeltaSnrOutlierExportTables,
+    OUTLIER_EVENT_PATH_COLUMNS,
+    OUTLIER_EVENT_PATHS_TABLE_FILENAME,
+    OUTLIER_PAIRED_EVIDENCE_COLUMNS,
+    OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME,
+)
 from ui.plots.temporal_layout import TEMPORAL_EVIDENCE_LAYOUT_VERSION
 from ui.url_state import build_share_url
 
@@ -80,6 +94,38 @@ EXPORTABLE_RESULT_FOLDERS = frozenset(
 PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION = 1
 TEMPORAL_SNR_EXPORT_RENDER_VERSION = 8
 TEMPORAL_IQR_EXPORT_LINEWIDTH = 0.4
+DRILLDOWN_ZOOM_EXPORT_SCHEMA_VERSION = DRILLDOWN_FOCUS_SCHEMA_VERSION
+DRILLDOWN_ZOOM_PERFORMANCE_FIGURE_EXPORTS = (
+    (
+        "figure_drilldown_zoom_snr_evidence.png",
+        "drilldown_zoom_performance_snr_figure_recipe",
+        ("snr_title", "title"),
+    ),
+    (
+        "figure_drilldown_zoom_temporal_evidence.png",
+        "drilldown_zoom_performance_temporal_figure_recipe",
+        ("evidence_title", "title"),
+    ),
+)
+DRILLDOWN_ZOOM_BENCHMARK_FIGURE_EXPORTS = (
+    (
+        "figure_drilldown_zoom_delta_snr_evidence.png",
+        "drilldown_zoom_benchmark_delta_snr_figure_recipe",
+        ("title", "evidence_title"),
+    ),
+    (
+        "figure_drilldown_zoom_coverage.png",
+        "drilldown_zoom_benchmark_coverage_figure_recipe",
+        ("evidence_title", "title"),
+    ),
+)
+DRILLDOWN_ZOOM_RECIPE_KEYS = tuple(
+    recipe_key
+    for _figure_name, recipe_key, _title_keys in (
+        *DRILLDOWN_ZOOM_PERFORMANCE_FIGURE_EXPORTS,
+        *DRILLDOWN_ZOOM_BENCHMARK_FIGURE_EXPORTS,
+    )
+)
 BENCHMARK_EVIDENCE_FIGURE_EXPORTS = (
     (
         "figure_segment_temporal_coverage.png",
@@ -92,6 +138,133 @@ BENCHMARK_EVIDENCE_FIGURE_EXPORTS = (
         ("evidence_title",),
     ),
 )
+
+OUTLIER_EXPORT_TABLE_FILENAMES = (
+    OUTLIER_EVENT_PATHS_TABLE_FILENAME,
+    OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME,
+)
+
+OUTLIER_EXPORT_COLUMN_TRANSLATION_KEYS = {
+    "event_id": "col_export_outlier_event_id",
+    "combined_event_class": "col_export_outlier_combined_event_class",
+    "event_first_evidence_utc": (
+        "col_export_outlier_event_first_evidence_utc"
+    ),
+    "event_last_evidence_utc": "col_export_outlier_event_last_evidence_utc",
+    "cross_path_context": "col_export_outlier_cross_path_context",
+    "departure_direction": "col_export_outlier_departure_direction",
+    "qualifying_path_count": "col_export_outlier_qualifying_path_count",
+    "path_event_id": "col_export_outlier_path_event_id",
+    "path_number": "col_export_outlier_path_number",
+    "path_occurrence": "col_export_outlier_path_occurrence",
+    "path": "col_export_outlier_path",
+    "callsign": "col_export_outlier_callsign",
+    "locator": "col_export_outlier_locator",
+    "direction": "col_export_outlier_direction",
+    "path_event_class": "col_export_outlier_path_event_class",
+    "path_first_evidence_utc": (
+        "col_export_outlier_path_first_evidence_utc"
+    ),
+    "path_last_evidence_utc": "col_export_outlier_path_last_evidence_utc",
+    "paired_unit_type": "col_export_outlier_paired_unit_type",
+    "paired_unit_count": "col_export_outlier_paired_unit_count",
+    "first_to_last_span_minutes": (
+        "col_export_outlier_first_to_last_span_minutes"
+    ),
+    "median_evidence_interval_minutes": (
+        "col_export_outlier_median_evidence_interval_minutes"
+    ),
+    "largest_gap_minutes": "col_export_outlier_largest_gap_minutes",
+    "expected_local_delta_snr_db": (
+        "col_export_outlier_expected_local_delta_snr_db"
+    ),
+    "observed_median_delta_snr_db": (
+        "col_export_outlier_observed_median_delta_snr_db"
+    ),
+    "largest_single_unit_departure_db": (
+        "col_export_outlier_largest_single_unit_departure_db"
+    ),
+    "path_robust_z_score": "col_export_outlier_episode_robust_z_score",
+    "pre_event_baseline_delta_snr_db": (
+        "col_export_outlier_pre_event_baseline_delta_snr_db"
+    ),
+    "post_event_baseline_delta_snr_db": (
+        "col_export_outlier_post_event_baseline_delta_snr_db"
+    ),
+    "absolute_pre_post_baseline_difference_db": (
+        "col_export_outlier_absolute_pre_post_baseline_difference_db"
+    ),
+    "agreeing_paired_unit_count": (
+        "col_export_outlier_agreeing_paired_unit_count"
+    ),
+    "paired_unit_sign_agreement_fraction": (
+        "col_export_outlier_paired_unit_sign_agreement_fraction"
+    ),
+    "decode_edge_warning": "col_export_outlier_decode_edge_warning",
+    "decode_edge_warning_reason": (
+        "col_export_outlier_decode_edge_warning_reason"
+    ),
+    "nearby_joint_unit_count": "col_export_outlier_nearby_joint_unit_count",
+    "nearby_target_only_unit_count": (
+        "col_export_outlier_nearby_target_only_unit_count"
+    ),
+    "nearby_reference_only_unit_count": (
+        "col_export_outlier_nearby_reference_only_unit_count"
+    ),
+    "unit_sequence": "col_export_outlier_unit_sequence",
+    "utc": "col_export_outlier_utc",
+    "target_snr_db": "col_export_outlier_target_snr_db",
+    "corrected_reference_snr_db": (
+        "col_export_outlier_corrected_reference_snr_db"
+    ),
+    "delta_snr_db": "col_export_outlier_delta_snr_db",
+    "departure_from_local_baseline_db": (
+        "col_export_outlier_departure_from_local_baseline_db"
+    ),
+    "cycle_robust_z_score": "col_export_outlier_cycle_robust_z_score",
+    "meets_strong_anchor_gates": (
+        "col_export_outlier_meets_strong_anchor_gates"
+    ),
+    "reported_boundary": "col_export_outlier_reported_boundary",
+}
+
+OUTLIER_EXPORT_EVENT_CLASS_TRANSLATION_KEYS = {
+    "spot_impulse": "txt_outlier_event_spot_impulse",
+    "short_burst": "txt_outlier_event_short_burst",
+    "sustained_excursion": "txt_outlier_event_sustained_excursion",
+    "mixed_duration": "txt_outlier_event_mixed_duration",
+}
+OUTLIER_EXPORT_SCOPE_TRANSLATION_KEYS = {
+    "path_specific": "txt_export_outlier_scope_path_specific",
+    "directionally_coherent": (
+        "txt_export_outlier_scope_directionally_coherent"
+    ),
+    "scope_wide": "txt_export_outlier_scope_scope_wide",
+    "multiple_paths": "txt_export_outlier_scope_multiple_paths",
+}
+OUTLIER_EXPORT_DEPARTURE_TRANSLATION_KEYS = {
+    "positive": "txt_export_outlier_departure_positive",
+    "negative": "txt_export_outlier_departure_negative",
+    "mixed": "txt_export_outlier_departure_mixed",
+    "neutral": "txt_export_outlier_departure_neutral",
+}
+OUTLIER_EXPORT_PAIRED_UNIT_TRANSLATION_KEYS = {
+    "joint_spot": "txt_export_outlier_paired_unit_joint",
+    "complete_scheduled_pair": "txt_export_outlier_paired_unit_scheduled",
+}
+OUTLIER_EXPORT_BOUNDARY_TRANSLATION_KEYS = {
+    "start": "txt_export_outlier_boundary_start",
+    "end": "txt_export_outlier_boundary_end",
+    "start_and_end": "txt_export_outlier_boundary_start_and_end",
+}
+OUTLIER_EXPORT_WARNING_TRANSLATION_KEYS = {
+    "reference_missing_near_positive_episode": (
+        "txt_export_outlier_warning_reference_missing"
+    ),
+    "target_missing_near_negative_episode": (
+        "txt_export_outlier_warning_target_missing"
+    ),
+}
 
 
 class ExportArtifactUnavailableError(RuntimeError):
@@ -421,6 +594,687 @@ def register_map_export_context(
     _clear_prepared_results()
 
 
+def _validated_delta_snr_outlier_export_tables(
+    export_tables,
+) -> DeltaSnrOutlierExportTables:
+    """Validate and isolate both enabled-only outlier table projections."""
+    if not isinstance(export_tables, DeltaSnrOutlierExportTables):
+        raise TypeError(
+            "Enabled Delta-SNR outlier exports require both table projections."
+        )
+    expected_schemas = (
+        (export_tables.event_paths, OUTLIER_EVENT_PATH_COLUMNS, "event paths"),
+        (
+            export_tables.paired_evidence,
+            OUTLIER_PAIRED_EVIDENCE_COLUMNS,
+            "paired evidence",
+        ),
+    )
+    for table_df, expected_columns, table_label in expected_schemas:
+        if not isinstance(table_df, pd.DataFrame):
+            raise TypeError(
+                f"Delta-SNR {table_label} export must be a DataFrame."
+            )
+        if tuple(table_df.columns) != expected_columns:
+            raise ValueError(
+                f"Delta-SNR {table_label} export columns are invalid."
+            )
+    return DeltaSnrOutlierExportTables(
+        event_paths=export_tables.event_paths.copy(deep=True),
+        paired_evidence=export_tables.paired_evidence.copy(deep=True),
+    )
+
+
+def _validated_delta_snr_outlier_export_metadata(
+    metadata,
+    export_tables: DeltaSnrOutlierExportTables,
+) -> dict[str, object]:
+    """Validate enabled-only table status and count metadata atomically."""
+    if not isinstance(metadata, Mapping):
+        raise TypeError(
+            "Enabled Delta-SNR outlier exports require table metadata."
+        )
+    required_keys = {
+        "schema_version",
+        "result_status",
+        "candidate_signature",
+        "detection_resolution",
+        "event_count",
+        "path_event_count",
+        "unique_qualifying_path_count",
+        "paired_evidence_row_count",
+        "populated_paired_unit_count",
+        "evaluable_paired_unit_count",
+        "abstained_paired_unit_count",
+        "tables",
+    }
+    if set(metadata) != required_keys:
+        raise ValueError(
+            "Delta-SNR outlier export metadata fields are invalid."
+        )
+    normalized = deepcopy(dict(metadata))
+    if normalized["schema_version"] != DELTA_SNR_OUTLIER_EXPORT_SCHEMA_VERSION:
+        raise ValueError("Delta-SNR outlier export schema version is invalid.")
+    if normalized["result_status"] not in {
+        "insufficient_paired_evidence",
+        "insufficient_local_baseline",
+        "no_candidates",
+        "candidates",
+    }:
+        raise ValueError("Delta-SNR outlier export result status is invalid.")
+    for text_key in ("candidate_signature", "detection_resolution"):
+        if not isinstance(normalized[text_key], str) or not normalized[
+            text_key
+        ].strip():
+            raise ValueError(
+                f"Delta-SNR outlier export {text_key} must be non-empty."
+            )
+    count_keys = (
+        "event_count",
+        "path_event_count",
+        "unique_qualifying_path_count",
+        "paired_evidence_row_count",
+        "populated_paired_unit_count",
+        "evaluable_paired_unit_count",
+        "abstained_paired_unit_count",
+    )
+    for count_key in count_keys:
+        count_value = normalized[count_key]
+        if isinstance(count_value, bool) or not isinstance(count_value, int):
+            raise TypeError(
+                f"Delta-SNR outlier export {count_key} must be an integer."
+            )
+        if count_value < 0:
+            raise ValueError(
+                f"Delta-SNR outlier export {count_key} must be non-negative."
+            )
+    if normalized["path_event_count"] != len(export_tables.event_paths):
+        raise ValueError(
+            "Delta-SNR path-event metadata must match the summary table."
+        )
+    if normalized["paired_evidence_row_count"] != len(
+        export_tables.paired_evidence
+    ):
+        raise ValueError(
+            "Delta-SNR paired-evidence metadata must match the evidence table."
+        )
+    if not (
+        normalized["unique_qualifying_path_count"]
+        <= normalized["path_event_count"]
+        and normalized["event_count"] <= normalized["path_event_count"]
+    ):
+        raise ValueError("Delta-SNR outlier export event counts are inconsistent.")
+    if (
+        normalized["evaluable_paired_unit_count"]
+        + normalized["abstained_paired_unit_count"]
+        != normalized["populated_paired_unit_count"]
+    ):
+        raise ValueError(
+            "Delta-SNR outlier export evaluable and abstained counts must "
+            "partition populated paired evidence."
+        )
+    has_candidates = normalized["path_event_count"] > 0
+    if (normalized["result_status"] == "candidates") != has_candidates:
+        raise ValueError(
+            "Delta-SNR outlier export status must agree with path events."
+        )
+    expected_tables = {
+        "event_paths": OUTLIER_EVENT_PATHS_TABLE_FILENAME,
+        "paired_evidence": OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME,
+    }
+    if normalized["tables"] != expected_tables:
+        raise ValueError("Delta-SNR outlier export table names are invalid.")
+    _validate_delta_snr_outlier_table_relationships(
+        normalized,
+        export_tables,
+    )
+    return normalized
+
+
+def _validate_delta_snr_outlier_table_relationships(
+    metadata: Mapping[str, object],
+    export_tables: DeltaSnrOutlierExportTables,
+) -> None:
+    """Validate event/path joins and duplicated evidence context."""
+    event_paths = export_tables.event_paths
+    paired_evidence = export_tables.paired_evidence
+    if event_paths.empty:
+        if not paired_evidence.empty:
+            raise ValueError(
+                "Delta-SNR paired evidence requires a path-event summary."
+            )
+        return
+    if event_paths["event_id"].isna().any() or event_paths[
+        "path_event_id"
+    ].isna().any():
+        raise ValueError("Delta-SNR outlier export IDs must be present.")
+    if event_paths["path_event_id"].duplicated().any():
+        raise ValueError("Delta-SNR path-event IDs must be unique.")
+    if int(event_paths["event_id"].nunique()) != metadata["event_count"]:
+        raise ValueError(
+            "Delta-SNR event metadata must match the summary IDs."
+        )
+    unique_path_count = len(
+        event_paths[["callsign", "locator"]].drop_duplicates()
+    )
+    if unique_path_count != metadata["unique_qualifying_path_count"]:
+        raise ValueError(
+            "Delta-SNR qualifying-path metadata must match summary identities."
+        )
+    summary_path_event_ids = set(event_paths["path_event_id"])
+    evidence_path_event_ids = set(paired_evidence["path_event_id"])
+    if evidence_path_event_ids != summary_path_event_ids:
+        raise ValueError(
+            "Delta-SNR paired evidence must cover every summarized path event."
+        )
+
+    repeated_context_columns = (
+        "event_id",
+        "path",
+        "callsign",
+        "locator",
+        "direction",
+        "path_event_class",
+        "paired_unit_type",
+    )
+    for summary_row in event_paths.to_dict(orient="records"):
+        path_event_id = summary_row["path_event_id"]
+        evidence_rows = paired_evidence.loc[
+            paired_evidence["path_event_id"] == path_event_id
+        ]
+        expected_count = int(summary_row["paired_unit_count"])
+        if len(evidence_rows) != expected_count:
+            raise ValueError(
+                "Delta-SNR paired-evidence rows must match each path-event count."
+            )
+        if evidence_rows["unit_sequence"].tolist() != list(
+            range(1, expected_count + 1)
+        ):
+            raise ValueError(
+                "Delta-SNR paired-evidence sequence must be contiguous."
+            )
+        for context_column in repeated_context_columns:
+            if not evidence_rows[context_column].eq(
+                summary_row[context_column]
+            ).all():
+                raise ValueError(
+                    "Delta-SNR paired evidence disagrees with duplicated "
+                    f"{context_column} context."
+                )
+        if not evidence_rows["event_first_evidence_utc"].eq(
+            summary_row["event_first_evidence_utc"]
+        ).all() or not evidence_rows["event_last_evidence_utc"].eq(
+            summary_row["event_last_evidence_utc"]
+        ).all():
+            raise ValueError(
+                "Delta-SNR paired evidence disagrees with event UTC bounds."
+            )
+
+
+def _validated_zoom_iso_utc(value, *, field_name):
+    """Return one normalized focused-export UTC string."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be an ISO timestamp string.")
+    try:
+        timestamp = pd.Timestamp(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a valid ISO timestamp.") from exc
+    if timestamp.tzinfo is None:
+        raise ValueError(f"{field_name} must include a timezone.")
+    return timestamp.tz_convert("UTC")
+
+
+def _validated_drilldown_outlier_candidate_metadata(candidate_metadata):
+    """Validate exact optional detector provenance for a focused export."""
+    if not isinstance(candidate_metadata, Mapping):
+        raise TypeError("Drill-Down outlier candidate metadata must be a mapping.")
+    timestamp_fields = (
+        "representative_utc",
+        "event_start_utc",
+        "event_end_utc",
+        "pre_flank_start_utc",
+        "pre_flank_end_utc",
+        "post_flank_start_utc",
+        "post_flank_end_utc",
+    )
+    numeric_fields = (
+        "representative_delta_snr_db",
+        "local_baseline_db",
+        "pre_baseline_db",
+        "post_baseline_db",
+        "robust_spread_db",
+        "robust_z",
+        "minimum_robust_z",
+        "minimum_departure_db",
+    )
+    text_fields = (
+        "request_token",
+        "detector_version",
+        "candidate_signature",
+        "robust_spread_method",
+    )
+    required_fields = set(timestamp_fields + numeric_fields + text_fields)
+    if set(candidate_metadata) != required_fields:
+        raise ValueError(
+            "Drill-Down outlier candidate metadata fields are invalid."
+        )
+    normalized_text = {
+        field: str(candidate_metadata[field] or "").strip()
+        for field in text_fields
+    }
+    if not all(normalized_text.values()):
+        raise ValueError(
+            "Drill-Down outlier candidate text fields must not be empty."
+        )
+    normalized_timestamps = {
+        field: _validated_zoom_iso_utc(
+            candidate_metadata[field],
+            field_name=f"Drill-Down outlier {field}",
+        )
+        for field in timestamp_fields
+    }
+    if not (
+        normalized_timestamps["event_start_utc"]
+        <= normalized_timestamps["representative_utc"]
+        < normalized_timestamps["event_end_utc"]
+    ):
+        raise ValueError(
+            "Drill-Down outlier representative UTC must lie inside its event."
+        )
+    if not (
+        normalized_timestamps["pre_flank_start_utc"]
+        <= normalized_timestamps["pre_flank_end_utc"]
+        <= normalized_timestamps["event_start_utc"]
+        < normalized_timestamps["event_end_utc"]
+        <= normalized_timestamps["post_flank_start_utc"]
+        <= normalized_timestamps["post_flank_end_utc"]
+    ):
+        raise ValueError(
+            "Drill-Down outlier event and flank bounds are inconsistent."
+        )
+    normalized_numbers = {}
+    for field in numeric_fields:
+        try:
+            numeric_value = float(candidate_metadata[field])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Drill-Down outlier {field} must be finite."
+            ) from exc
+        if not math.isfinite(numeric_value):
+            raise ValueError(f"Drill-Down outlier {field} must be finite.")
+        if field in {
+            "robust_spread_db",
+            "minimum_robust_z",
+            "minimum_departure_db",
+        } and numeric_value <= 0.0:
+            raise ValueError(f"Drill-Down outlier {field} must be positive.")
+        normalized_numbers[field] = numeric_value
+    return {
+        **normalized_text,
+        **normalized_numbers,
+        **{
+            field: timestamp.isoformat().replace("+00:00", "Z")
+            for field, timestamp in normalized_timestamps.items()
+        },
+    }
+
+
+def _validated_drilldown_zoom_metadata(metadata) -> dict[str, object]:
+    """Validate and normalize one active focused Drill-Down export contract."""
+    if not isinstance(metadata, Mapping):
+        raise TypeError("Drill-Down zoom export metadata must be a mapping.")
+    required_keys = {
+        "schema_version",
+        "station",
+        "start_utc",
+        "end_utc",
+        "option",
+        "origin",
+        "time_bin",
+        "resolution",
+        "aggregation",
+        "layout_version",
+    }
+    allowed_keys = required_keys | {"outlier_candidate"}
+    if not required_keys.issubset(metadata) or not set(metadata).issubset(
+        allowed_keys
+    ):
+        raise ValueError("Drill-Down zoom export metadata fields are invalid.")
+    schema_version = metadata.get("schema_version")
+    if (
+        isinstance(schema_version, bool)
+        or schema_version != DRILLDOWN_ZOOM_EXPORT_SCHEMA_VERSION
+    ):
+        raise ValueError("Drill-Down zoom export schema version is invalid.")
+
+    station = metadata.get("station")
+    if not isinstance(station, Mapping) or set(station) != {
+        "callsign",
+        "locator",
+    }:
+        raise ValueError(
+            "Drill-Down zoom export requires one exact station identity."
+        )
+    callsign = str(station.get("callsign") or "").strip().upper()
+    locator = str(station.get("locator") or "").strip().upper()
+    if not callsign or not locator:
+        raise ValueError(
+            "Drill-Down zoom export station callsign and locator are required."
+        )
+
+    start_utc = _validated_zoom_iso_utc(
+        metadata.get("start_utc"),
+        field_name="Drill-Down zoom export start_utc",
+    )
+    end_utc = _validated_zoom_iso_utc(
+        metadata.get("end_utc"),
+        field_name="Drill-Down zoom export end_utc",
+    )
+    if end_utc <= start_utc:
+        raise ValueError(
+            "Drill-Down zoom export end_utc must be after start_utc."
+        )
+
+    origin = str(metadata.get("origin") or "").strip()
+    option = str(metadata.get("option") or "").strip()
+    if origin not in {"manual", DRILLDOWN_OUTLIER_FOCUS_OPTION}:
+        raise ValueError("Drill-Down zoom export origin is invalid.")
+    manual_options = {"1h", "3h", "6h", "12h", "24h"}
+    if origin == "manual" and option not in manual_options:
+        raise ValueError("Fixed Drill-Down zoom export option is invalid.")
+    if (
+        origin == DRILLDOWN_OUTLIER_FOCUS_OPTION
+        and option != DRILLDOWN_OUTLIER_FOCUS_OPTION
+    ):
+        raise ValueError("Outlier Focus Drill-Down option is invalid.")
+    time_bin = str(metadata.get("time_bin") or "").strip()
+    resolution = str(metadata.get("resolution") or "").strip()
+    aggregation = str(metadata.get("aggregation") or "").strip()
+
+    from ui.plots.drilldown_zoom_figures import (
+        DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION,
+        DRILLDOWN_ZOOM_NATIVE_RESOLUTION,
+        DRILLDOWN_ZOOM_NO_AGGREGATION,
+    )
+
+    if (
+        time_bin != "native"
+        or resolution != DRILLDOWN_ZOOM_NATIVE_RESOLUTION
+        or aggregation != DRILLDOWN_ZOOM_NO_AGGREGATION
+    ):
+        raise ValueError(
+            "Drill-Down zoom export must use native unaggregated evidence."
+        )
+
+    layout_version = metadata.get("layout_version")
+    if (
+        isinstance(layout_version, bool)
+        or layout_version != DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION
+    ):
+        raise ValueError("Drill-Down zoom export layout version is invalid.")
+    normalized_metadata = {
+        "schema_version": DRILLDOWN_ZOOM_EXPORT_SCHEMA_VERSION,
+        "station": {"callsign": callsign, "locator": locator},
+        "start_utc": start_utc.isoformat().replace("+00:00", "Z"),
+        "end_utc": end_utc.isoformat().replace("+00:00", "Z"),
+        "option": option,
+        "origin": origin,
+        "time_bin": time_bin,
+        "resolution": resolution,
+        "aggregation": aggregation,
+        "layout_version": DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION,
+    }
+    if "outlier_candidate" in metadata:
+        normalized_metadata["outlier_candidate"] = (
+            _validated_drilldown_outlier_candidate_metadata(
+                metadata["outlier_candidate"]
+            )
+        )
+    return normalized_metadata
+
+
+def _validated_drilldown_zoom_registration(
+    *,
+    metadata,
+    selected_station_count,
+    performance_snr_recipe,
+    performance_temporal_recipe,
+    benchmark_delta_snr_recipe,
+    benchmark_coverage_recipe,
+):
+    """Validate the optional metadata-plus-two-recipes registration atomically."""
+    performance_recipes = (
+        performance_snr_recipe,
+        performance_temporal_recipe,
+    )
+    benchmark_recipes = (
+        benchmark_delta_snr_recipe,
+        benchmark_coverage_recipe,
+    )
+    has_any_recipe = any(
+        recipe is not None
+        for recipe in (*performance_recipes, *benchmark_recipes)
+    )
+    if metadata is None:
+        if has_any_recipe:
+            raise ValueError(
+                "Drill-Down zoom figure recipes require export metadata."
+            )
+        return None, None
+
+    if selected_station_count != 1:
+        raise ValueError(
+            "Drill-Down zoom export requires exactly one selected station."
+        )
+    has_performance_pair = all(
+        recipe is not None for recipe in performance_recipes
+    )
+    has_benchmark_pair = all(recipe is not None for recipe in benchmark_recipes)
+    if any(recipe is not None for recipe in performance_recipes) != (
+        has_performance_pair
+    ) or any(recipe is not None for recipe in benchmark_recipes) != (
+        has_benchmark_pair
+    ):
+        raise ValueError(
+            "Drill-Down zoom export requires both mode-specific figure recipes."
+        )
+    if has_performance_pair == has_benchmark_pair:
+        raise ValueError(
+            "Drill-Down zoom export requires exactly one result-family recipe pair."
+        )
+    active_recipes = (
+        performance_recipes if has_performance_pair else benchmark_recipes
+    )
+    if any(not isinstance(recipe, Mapping) for recipe in active_recipes):
+        raise TypeError("Drill-Down zoom figure recipes must be mappings.")
+    validated_metadata = _validated_drilldown_zoom_metadata(metadata)
+    metric_recipe = active_recipes[0]
+    for field in ("time_bin", "resolution", "aggregation", "layout_version"):
+        if metric_recipe.get(field) != validated_metadata.get(field):
+            raise ValueError(
+                "Drill-Down zoom metric recipe disagrees with export metadata."
+            )
+    candidate_metadata = validated_metadata.get("outlier_candidate")
+    metric_overlay = metric_recipe.get("outlier_overlay")
+    if has_performance_pair and candidate_metadata is not None:
+        raise ValueError(
+            "Performance Drill-Down zoom export cannot carry outlier metadata."
+        )
+    if has_performance_pair and metric_overlay is not None:
+        raise ValueError(
+            "Performance Drill-Down zoom export cannot carry an outlier overlay."
+        )
+    if has_benchmark_pair and (
+        (candidate_metadata is None) != (metric_overlay is None)
+    ):
+        raise ValueError(
+            "Benchmark Drill-Down outlier metadata and plot overlay must agree."
+        )
+    if candidate_metadata is not None:
+        expected_overlay_values = {
+            "representative_utc_ns": int(
+                pd.Timestamp(candidate_metadata["representative_utc"]).value
+            ),
+            "representative_delta_snr_db": candidate_metadata[
+                "representative_delta_snr_db"
+            ],
+            "candidate_start_utc_ns": int(
+                pd.Timestamp(candidate_metadata["event_start_utc"]).value
+            ),
+            "candidate_end_utc_ns": int(
+                pd.Timestamp(candidate_metadata["event_end_utc"]).value
+            ),
+            "local_baseline_db": candidate_metadata["local_baseline_db"],
+            "pre_baseline_db": candidate_metadata["pre_baseline_db"],
+            "post_baseline_db": candidate_metadata["post_baseline_db"],
+            "robust_spread_db": candidate_metadata["robust_spread_db"],
+            "robust_spread_method": candidate_metadata[
+                "robust_spread_method"
+            ],
+            "minimum_robust_z": candidate_metadata["minimum_robust_z"],
+            "minimum_departure_db": candidate_metadata[
+                "minimum_departure_db"
+            ],
+        }
+        if any(
+            metric_overlay.get(field) != expected_value
+            for field, expected_value in expected_overlay_values.items()
+        ):
+            raise ValueError(
+                "Benchmark Drill-Down outlier overlay disagrees with metadata."
+            )
+        try:
+            marker_utc_ns = tuple(
+                int(value)
+                for value in metric_overlay["qualifying_marker_utc_ns"]
+            )
+            marker_delta_snr_db = tuple(
+                float(value)
+                for value in metric_overlay[
+                    "qualifying_marker_delta_snr_db"
+                ]
+            )
+            marker_count = int(metric_overlay["qualifying_marker_count"])
+            native_unit_width_ns = int(
+                metric_overlay["native_evidence_unit_width_ns"]
+            )
+            visual_start_ns = int(
+                metric_overlay["focused_episode_visual_start_utc_ns"]
+            )
+            visual_end_ns = int(
+                metric_overlay["focused_episode_visual_end_utc_ns"]
+            )
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(
+                "Benchmark Drill-Down qualifying-unit overlay is invalid."
+            ) from exc
+        marker_coordinates = tuple(
+            zip(marker_utc_ns, marker_delta_snr_db)
+        )
+        if (
+            marker_count != len(marker_coordinates)
+            or len(marker_utc_ns) != len(marker_delta_snr_db)
+            or len(set(marker_coordinates)) != len(marker_coordinates)
+            or native_unit_width_ns <= 0
+        ):
+            raise ValueError(
+                "Benchmark Drill-Down qualifying-unit overlay is invalid."
+            )
+        focus_start_ns = int(
+            pd.Timestamp(validated_metadata["start_utc"]).value
+        )
+        focus_end_ns = int(
+            pd.Timestamp(validated_metadata["end_utc"]).value
+        )
+        if any(
+            marker_utc < focus_start_ns or marker_utc >= focus_end_ns
+            for marker_utc in marker_utc_ns
+        ):
+            raise ValueError(
+                "Benchmark Drill-Down qualifying-unit markers must lie in "
+                "the focused window."
+            )
+        try:
+            native_utc_ns = tuple(
+                int(value) for value in metric_recipe["point_utc_ns"]
+            )
+            native_delta_snr_db = tuple(
+                float(value) for value in metric_recipe["metric_db"]
+            )
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(
+                "Benchmark Drill-Down native evidence coordinates are invalid."
+            ) from exc
+        if len(native_utc_ns) != len(native_delta_snr_db):
+            raise ValueError(
+                "Benchmark Drill-Down native evidence coordinates are invalid."
+            )
+        native_coordinates = set(
+            zip(native_utc_ns, native_delta_snr_db)
+        )
+        if not set(marker_coordinates).issubset(native_coordinates):
+            raise ValueError(
+                "Benchmark Drill-Down qualifying-unit markers must match "
+                "native evidence points."
+            )
+        representative_coordinate = (
+            expected_overlay_values["representative_utc_ns"],
+            float(
+                expected_overlay_values["representative_delta_snr_db"]
+            ),
+        )
+        if (
+            focus_start_ns <= representative_coordinate[0] < focus_end_ns
+            and representative_coordinate not in marker_coordinates
+        ):
+            raise ValueError(
+                "Benchmark Drill-Down visible representative must be a "
+                "qualifying-unit marker."
+            )
+        expected_visual_start_ns = (
+            expected_overlay_values["candidate_start_utc_ns"]
+            - native_unit_width_ns // 2
+        )
+        expected_visual_end_ns = (
+            expected_overlay_values["candidate_end_utc_ns"]
+            - 1
+            + (native_unit_width_ns - native_unit_width_ns // 2)
+        )
+        if (
+            visual_start_ns != expected_visual_start_ns
+            or visual_end_ns != expected_visual_end_ns
+            or visual_end_ns <= focus_start_ns
+            or visual_start_ns >= focus_end_ns
+        ):
+            raise ValueError(
+                "Benchmark Drill-Down focused-episode band is invalid."
+            )
+    return (
+        validated_metadata,
+        PERFORMANCE_EXPORT_FOLDER
+        if has_performance_pair
+        else BENCHMARK_EXPORT_FOLDER,
+    )
+
+
+def _without_drilldown_outlier_metadata(metadata):
+    """Remove stale candidate provenance without mutating caller metadata."""
+    if not isinstance(metadata, Mapping) or "outlier_candidate" not in metadata:
+        return metadata
+    sanitized_metadata = dict(metadata)
+    sanitized_metadata.pop("outlier_candidate", None)
+    return sanitized_metadata
+
+
+def _without_drilldown_outlier_overlay(recipe):
+    """Remove a stale native overlay without mutating the caller recipe."""
+    if not isinstance(recipe, Mapping) or recipe.get("outlier_overlay") is None:
+        return recipe
+    sanitized_recipe = dict(recipe)
+    sanitized_recipe["outlier_overlay"] = None
+    return sanitized_recipe
+
+
 def register_inspector_export(
     analysis_id,
     selected_segment,
@@ -454,6 +1308,13 @@ def register_inspector_export(
     report_delta_snr_outlier_candidates=False,
     delta_snr_outlier_detector_version=None,
     delta_snr_outlier_detection_policy=None,
+    delta_snr_outlier_export_tables=None,
+    delta_snr_outlier_export_metadata=None,
+    drilldown_zoom_metadata=None,
+    drilldown_zoom_performance_snr_figure_recipe=None,
+    drilldown_zoom_performance_temporal_figure_recipe=None,
+    drilldown_zoom_benchmark_delta_snr_figure_recipe=None,
+    drilldown_zoom_benchmark_coverage_figure_recipe=None,
 ):
     """Register localized Inspector state for lazy high-resolution export.
 
@@ -472,6 +1333,20 @@ def register_inspector_export(
     is_outlier_reporting_enabled = bool(
         report_delta_snr_outlier_candidates
     )
+    if not is_outlier_reporting_enabled:
+        drilldown_zoom_metadata = _without_drilldown_outlier_metadata(
+            drilldown_zoom_metadata
+        )
+        drilldown_zoom_performance_snr_figure_recipe = (
+            _without_drilldown_outlier_overlay(
+                drilldown_zoom_performance_snr_figure_recipe
+            )
+        )
+        drilldown_zoom_benchmark_delta_snr_figure_recipe = (
+            _without_drilldown_outlier_overlay(
+                drilldown_zoom_benchmark_delta_snr_figure_recipe
+            )
+        )
     if len(selected_stations) > 1 and not allow_multiple_selected_stations:
         raise ValueError(
             "Selected-station exports support at most one station."
@@ -481,6 +1356,34 @@ def register_inspector_export(
             "Multi-station Benchmark exports require enabled Delta-SNR "
             "outlier reporting."
         )
+    (
+        validated_drilldown_zoom_metadata,
+        drilldown_zoom_mode_folder,
+    ) = _validated_drilldown_zoom_registration(
+        metadata=drilldown_zoom_metadata,
+        selected_station_count=len(selected_stations),
+        performance_snr_recipe=(
+            drilldown_zoom_performance_snr_figure_recipe
+        ),
+        performance_temporal_recipe=(
+            drilldown_zoom_performance_temporal_figure_recipe
+        ),
+        benchmark_delta_snr_recipe=(
+            drilldown_zoom_benchmark_delta_snr_figure_recipe
+        ),
+        benchmark_coverage_recipe=(
+            drilldown_zoom_benchmark_coverage_figure_recipe
+        ),
+    )
+    if validated_drilldown_zoom_metadata is not None:
+        zoom_station = validated_drilldown_zoom_metadata["station"]
+        expected_selected_label = (
+            f"{zoom_station['callsign']} ({zoom_station['locator']})"
+        )
+        if str(selected_stations[0]).strip().upper() != expected_selected_label:
+            raise ValueError(
+                "Drill-Down zoom station identity must match the selected station."
+            )
     if is_outlier_reporting_enabled:
         detector_version = str(
             delta_snr_outlier_detector_version or ""
@@ -504,8 +1407,21 @@ def register_inspector_export(
                 "DeltaSnrOutlierDetectionPolicy."
             )
         outlier_policy_metadata = resolved_outlier_policy.as_dict()
+        validated_outlier_tables = (
+            _validated_delta_snr_outlier_export_tables(
+                delta_snr_outlier_export_tables
+            )
+        )
+        validated_outlier_export_metadata = (
+            _validated_delta_snr_outlier_export_metadata(
+                delta_snr_outlier_export_metadata,
+                validated_outlier_tables,
+            )
+        )
     else:
         outlier_policy_metadata = None
+        validated_outlier_tables = None
+        validated_outlier_export_metadata = None
         segment_temporal_evidence_figure_recipe = (
             _without_delta_snr_outlier_markers(
                 segment_temporal_evidence_figure_recipe
@@ -533,6 +1449,15 @@ def register_inspector_export(
         )
 
     blocks = _ensure_current_export_state()
+    existing_mode_folder = (blocks.get(analysis_id) or {}).get("mode_folder")
+    if (
+        drilldown_zoom_mode_folder is not None
+        and existing_mode_folder is not None
+        and existing_mode_folder != drilldown_zoom_mode_folder
+    ):
+        raise ValueError(
+            "Drill-Down zoom recipes do not match the registered result family."
+        )
     block = blocks.setdefault(analysis_id, {"analysis_id": analysis_id})
     selected_station_count = len(selected_stations)
     block.update({
@@ -588,12 +1513,52 @@ def register_inspector_export(
                 "delta_snr_outlier_detection_policy": (
                     outlier_policy_metadata
                 ),
+                "delta_snr_outlier_export": (
+                    validated_outlier_export_metadata
+                ),
+                OUTLIER_EVENT_PATHS_TABLE_FILENAME: (
+                    validated_outlier_tables.event_paths
+                ),
+                OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME: (
+                    validated_outlier_tables.paired_evidence
+                ),
             }
         )
     else:
         block.pop("report_delta_snr_outlier_candidates", None)
         block.pop("delta_snr_outlier_detector_version", None)
         block.pop("delta_snr_outlier_detection_policy", None)
+        block.pop("delta_snr_outlier_export", None)
+        for table_filename in OUTLIER_EXPORT_TABLE_FILENAMES:
+            block.pop(table_filename, None)
+
+    if validated_drilldown_zoom_metadata is None:
+        block.pop("drilldown_zoom_metadata", None)
+        for recipe_key in DRILLDOWN_ZOOM_RECIPE_KEYS:
+            block.pop(recipe_key, None)
+    else:
+        block["drilldown_zoom_metadata"] = (
+            validated_drilldown_zoom_metadata
+        )
+        zoom_recipes = {
+            "drilldown_zoom_performance_snr_figure_recipe": (
+                drilldown_zoom_performance_snr_figure_recipe
+            ),
+            "drilldown_zoom_performance_temporal_figure_recipe": (
+                drilldown_zoom_performance_temporal_figure_recipe
+            ),
+            "drilldown_zoom_benchmark_delta_snr_figure_recipe": (
+                drilldown_zoom_benchmark_delta_snr_figure_recipe
+            ),
+            "drilldown_zoom_benchmark_coverage_figure_recipe": (
+                drilldown_zoom_benchmark_coverage_figure_recipe
+            ),
+        }
+        for recipe_key, recipe in zoom_recipes.items():
+            if recipe is None:
+                block.pop(recipe_key, None)
+            else:
+                block[recipe_key] = recipe
 
 
 def _selected_evidence_weighting_label(selected_station_count, translations):
@@ -671,6 +1636,130 @@ def _benchmark_evidence_recipe_signature(block):
             }
         )
     return recipe_signatures
+
+
+def _drilldown_zoom_figure_exports(block):
+    """Return the active result family's focused figure export definitions."""
+    if not isinstance(block.get("drilldown_zoom_metadata"), Mapping):
+        return ()
+    if block.get("mode_folder") == PERFORMANCE_EXPORT_FOLDER:
+        return DRILLDOWN_ZOOM_PERFORMANCE_FIGURE_EXPORTS
+    if block.get("mode_folder") == BENCHMARK_EXPORT_FOLDER:
+        return DRILLDOWN_ZOOM_BENCHMARK_FIGURE_EXPORTS
+    return ()
+
+
+def _drilldown_zoom_figure_descriptions(block):
+    """Return active zoom filenames and their registered localized titles."""
+    descriptions = {}
+    for figure_name, recipe_key, title_keys in _drilldown_zoom_figure_exports(
+        block
+    ):
+        recipe = block.get(recipe_key)
+        if not isinstance(recipe, Mapping):
+            continue
+        description = next(
+            (
+                str(recipe[title_key]).strip()
+                for title_key in title_keys
+                if recipe.get(title_key) is not None
+                and str(recipe[title_key]).strip()
+            ),
+            figure_name,
+        )
+        descriptions[figure_name] = description
+    return descriptions
+
+
+def _drilldown_zoom_metadata_for_block(block):
+    """Return portable zoom metadata plus its conditional figure inventory."""
+    metadata = block.get("drilldown_zoom_metadata")
+    if not isinstance(metadata, Mapping):
+        return None
+    portable_metadata = deepcopy(dict(metadata))
+    portable_metadata["figures"] = _drilldown_zoom_figure_descriptions(block)
+    return portable_metadata
+
+
+def _drilldown_zoom_recipe_signature(block):
+    """Fingerprint focused metadata and compact recipe presentation contracts."""
+    metadata = _drilldown_zoom_metadata_for_block(block)
+    if metadata is None:
+        return None
+    recipes = []
+    for figure_name, recipe_key, title_keys in _drilldown_zoom_figure_exports(
+        block
+    ):
+        recipe = block.get(recipe_key)
+        if not isinstance(recipe, Mapping):
+            continue
+        recipes.append(
+            {
+                "filename": figure_name,
+                "kind": recipe.get("kind"),
+                "schema_version": recipe.get("schema_version"),
+                "layout_version": recipe.get("layout_version"),
+                "time_bin": recipe.get("time_bin"),
+                "resolution": recipe.get("resolution"),
+                "aggregation": recipe.get("aggregation"),
+                "outlier_overlay": (
+                    _drilldown_zoom_outlier_overlay_signature(
+                        recipe.get("outlier_overlay")
+                    )
+                ),
+                "titles": {
+                    title_key: recipe.get(title_key)
+                    for title_key in title_keys
+                    if recipe.get(title_key) is not None
+                },
+            }
+        )
+    return {"metadata": metadata, "recipes": recipes}
+
+
+def _drilldown_zoom_outlier_overlay_signature(overlay):
+    """Return compact exact detector-guide identity for export invalidation."""
+    if not isinstance(overlay, Mapping):
+        return None
+    fields = (
+        "schema_version",
+        "normalization",
+        "representative_utc_ns",
+        "representative_delta_snr_db",
+        "qualifying_marker_count",
+        "candidate_start_utc_ns",
+        "candidate_end_utc_ns",
+        "native_evidence_unit_width_ns",
+        "focused_episode_visual_start_utc_ns",
+        "focused_episode_visual_end_utc_ns",
+        "local_baseline_db",
+        "pre_baseline_db",
+        "post_baseline_db",
+        "pre_flank_utc_ns",
+        "post_flank_utc_ns",
+        "robust_spread_db",
+        "robust_spread_method",
+        "minimum_robust_z",
+        "minimum_departure_db",
+        "absolute_departure_lower_db",
+        "absolute_departure_upper_db",
+        "robust_z_guides",
+        "labels",
+    )
+    signature = {field: deepcopy(overlay.get(field)) for field in fields}
+    for field in (
+        "qualifying_marker_utc_ns",
+        "qualifying_marker_delta_snr_db",
+    ):
+        marker_values = overlay.get(field, ())
+        try:
+            signature[field] = [
+                int(value) if field.endswith("utc_ns") else float(value)
+                for value in marker_values
+            ]
+        except (TypeError, ValueError, OverflowError):
+            signature[field] = deepcopy(marker_values)
+    return signature
 
 
 def _delta_snr_outlier_recipe_signature(recipe):
@@ -764,6 +1853,127 @@ def _dataframe_to_csv_bytes(
         reference_snr_header,
     )
     return format_snr_like_columns_for_csv(export_df).to_csv(index=False).encode("utf-8-sig")
+
+
+def _localized_outlier_export_table(
+    table_df,
+    translations,
+    *,
+    expected_columns,
+):
+    """Localize one canonical outlier table only at CSV presentation time."""
+    if not isinstance(table_df, pd.DataFrame):
+        raise TypeError("Delta-SNR outlier export table must be a DataFrame.")
+    if tuple(table_df.columns) != expected_columns:
+        raise ValueError("Delta-SNR outlier export table columns are invalid.")
+    localized = table_df.copy(deep=True)
+
+    def translated_value(value, translation_keys, field_name):
+        if value is None or (not isinstance(value, str) and pd.isna(value)):
+            return ""
+        canonical_value = str(value)
+        translation_key = translation_keys.get(canonical_value)
+        if translation_key is None:
+            raise ValueError(
+                f"Unsupported Delta-SNR outlier {field_name}: "
+                f"{canonical_value!r}."
+            )
+        return translations[translation_key]
+
+    for class_column in ("combined_event_class", "path_event_class"):
+        if class_column in localized.columns:
+            localized[class_column] = localized[class_column].map(
+                lambda value: translated_value(
+                    value,
+                    OUTLIER_EXPORT_EVENT_CLASS_TRANSLATION_KEYS,
+                    "event class",
+                )
+            )
+    if "cross_path_context" in localized.columns:
+        localized["cross_path_context"] = localized[
+            "cross_path_context"
+        ].map(
+            lambda value: translated_value(
+                value,
+                OUTLIER_EXPORT_SCOPE_TRANSLATION_KEYS,
+                "cross-path context",
+            )
+        )
+    if "departure_direction" in localized.columns:
+        localized["departure_direction"] = localized[
+            "departure_direction"
+        ].map(
+            lambda value: translated_value(
+                value,
+                OUTLIER_EXPORT_DEPARTURE_TRANSLATION_KEYS,
+                "departure direction",
+            )
+        )
+    if "paired_unit_type" in localized.columns:
+        localized["paired_unit_type"] = localized["paired_unit_type"].map(
+            lambda value: translated_value(
+                value,
+                OUTLIER_EXPORT_PAIRED_UNIT_TRANSLATION_KEYS,
+                "paired-evidence type",
+            )
+        )
+    if "direction" in localized.columns:
+        localized["direction"] = localized["direction"].map(
+            lambda value: (
+                translations["txt_outlier_direction_unavailable"]
+                if value is None or pd.isna(value) or not str(value).strip()
+                else str(value).replace(
+                    "E",
+                    translations["abbr_compass_east"],
+                )
+            )
+        )
+    for boolean_column in (
+        "decode_edge_warning",
+        "meets_strong_anchor_gates",
+    ):
+        if boolean_column in localized.columns:
+            localized[boolean_column] = localized[boolean_column].map(
+                lambda value: translations[
+                    "txt_export_outlier_yes"
+                    if bool(value)
+                    else "txt_export_outlier_no"
+                ]
+            )
+    if "decode_edge_warning_reason" in localized.columns:
+        localized["decode_edge_warning_reason"] = localized[
+            "decode_edge_warning_reason"
+        ].map(
+            lambda value: (
+                ""
+                if value is None or pd.isna(value) or not str(value).strip()
+                else translated_value(
+                    value,
+                    OUTLIER_EXPORT_WARNING_TRANSLATION_KEYS,
+                    "decode-edge warning reason",
+                )
+            )
+        )
+    if "reported_boundary" in localized.columns:
+        localized["reported_boundary"] = localized["reported_boundary"].map(
+            lambda value: (
+                ""
+                if value is None or pd.isna(value) or not str(value).strip()
+                else translated_value(
+                    value,
+                    OUTLIER_EXPORT_BOUNDARY_TRANSLATION_KEYS,
+                    "reported boundary",
+                )
+            )
+        )
+
+    localized_headers = {
+        column: translations[OUTLIER_EXPORT_COLUMN_TRANSLATION_KEYS[column]]
+        for column in expected_columns
+    }
+    if len(set(localized_headers.values())) != len(localized_headers):
+        raise ValueError("Localized Delta-SNR outlier headers must be unique.")
+    return localized.rename(columns=localized_headers)
 
 
 def _json_default(value):
@@ -898,12 +2108,27 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 ),
                 **(
                     {
+                        "drilldown_zoom": (
+                            _drilldown_zoom_metadata_for_block(block)
+                        )
+                    }
+                    if isinstance(
+                        block.get("drilldown_zoom_metadata"),
+                        Mapping,
+                    )
+                    else {}
+                ),
+                **(
+                    {
                         "report_delta_snr_outlier_candidates": True,
                         "delta_snr_outlier_detector_version": block.get(
                             "delta_snr_outlier_detector_version"
                         ),
                         "delta_snr_outlier_detection_policy": block.get(
                             "delta_snr_outlier_detection_policy"
+                        ),
+                        "delta_snr_outlier_export": deepcopy(
+                            block.get("delta_snr_outlier_export")
                         ),
                     }
                     if block.get(
@@ -918,10 +2143,23 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
     }
 
 
-def _table_signature_value(df):
+def _table_content_signature(df):
+    """Fingerprint one registered table's schema, order, and canonical values."""
     if not isinstance(df, pd.DataFrame):
-        return [0, 0]
-    return [int(df.shape[0]), int(df.shape[1])]
+        return None
+    normalized = df.astype(object).where(pd.notna(df), None)
+    payload = {
+        "columns": [str(column) for column in normalized.columns],
+        "rows": normalized.to_dict(orient="records"),
+    }
+    serialized = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        default=_json_default,
+    ).encode("utf-8")
+    return hashlib.sha256(serialized).hexdigest()
 
 
 def _artifact_export_signature(path_value):
@@ -1030,12 +2268,37 @@ def _export_signature(blocks):
             ),
             **(
                 {
+                    "drilldown_zoom": (
+                        _drilldown_zoom_recipe_signature(block)
+                    )
+                }
+                if isinstance(
+                    block.get("drilldown_zoom_metadata"),
+                    Mapping,
+                )
+                else {}
+            ),
+            **(
+                {
                     "report_delta_snr_outlier_candidates": True,
                     "delta_snr_outlier_detector_version": block.get(
                         "delta_snr_outlier_detector_version"
                     ),
                     "delta_snr_outlier_detection_policy": block.get(
                         "delta_snr_outlier_detection_policy"
+                    ),
+                    "delta_snr_outlier_export": block.get(
+                        "delta_snr_outlier_export"
+                    ),
+                    "delta_snr_outlier_event_paths_table": (
+                        _table_content_signature(
+                            block.get(OUTLIER_EVENT_PATHS_TABLE_FILENAME)
+                        )
+                    ),
+                    "delta_snr_outlier_paired_evidence_table": (
+                        _table_content_signature(
+                            block.get(OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME)
+                        )
                     ),
                     "segment_delta_snr_outlier_markers": (
                         _delta_snr_outlier_recipe_signature(
@@ -1060,8 +2323,12 @@ def _export_signature(blocks):
             "map_context": _map_context_export_signature(
                 block.get("map_context")
             ),
-            "station_table_shape": _table_signature_value(block.get("table_station_insights_current_segment.csv")),
-            "selected_drilldown_shape": _table_signature_value(block.get("table_drilldown_selected_stations.csv")),
+            "station_table_content": _table_content_signature(
+                block.get("table_station_insights_current_segment.csv")
+            ),
+            "selected_drilldown_content": _table_content_signature(
+                block.get("table_drilldown_selected_stations.csv")
+            ),
             "all_drilldown_station_count": len((block.get("all_drilldown_context") or {}).get("station_meta_df", [])),
         })
     canonical_payload = json.dumps(
@@ -1234,6 +2501,13 @@ def _render_inspector_png_for_block(block, figure_name):
             "selected_station_temporal_evidence_figure_recipe"
         ),
     }
+    drilldown_zoom_recipe_keys = {
+        export_figure_name: recipe_key
+        for export_figure_name, recipe_key, _title_keys in (
+            *DRILLDOWN_ZOOM_PERFORMANCE_FIGURE_EXPORTS,
+            *DRILLDOWN_ZOOM_BENCHMARK_FIGURE_EXPORTS,
+        )
+    }
     benchmark_coverage_recipe_keys = {
         figure_name: recipe_key
         for figure_name, recipe_key, _title_keys in (
@@ -1244,7 +2518,35 @@ def _render_inspector_png_for_block(block, figure_name):
         selected_performance_recipe = selected_performance_recipes[figure_name]
         if selected_performance_recipe is None:
             return None
-    if figure_name in benchmark_coverage_recipe_keys:
+    if figure_name in drilldown_zoom_recipe_keys:
+        drilldown_zoom_recipe = block.get(
+            drilldown_zoom_recipe_keys[figure_name]
+        )
+        if drilldown_zoom_recipe is None:
+            return None
+        from ui.plots.drilldown_zoom_figures import (
+            render_drilldown_zoom_benchmark_coverage_figure,
+            render_drilldown_zoom_benchmark_delta_snr_figure,
+            render_drilldown_zoom_performance_evidence_figure,
+            render_drilldown_zoom_performance_snr_figure,
+        )
+
+        drilldown_zoom_renderers = {
+            "figure_drilldown_zoom_snr_evidence.png": (
+                render_drilldown_zoom_performance_snr_figure
+            ),
+            "figure_drilldown_zoom_temporal_evidence.png": (
+                render_drilldown_zoom_performance_evidence_figure
+            ),
+            "figure_drilldown_zoom_delta_snr_evidence.png": (
+                render_drilldown_zoom_benchmark_delta_snr_figure
+            ),
+            "figure_drilldown_zoom_coverage.png": (
+                render_drilldown_zoom_benchmark_coverage_figure
+            ),
+        }
+        fig = drilldown_zoom_renderers[figure_name](drilldown_zoom_recipe)
+    elif figure_name in benchmark_coverage_recipe_keys:
         coverage_recipe = block.get(
             benchmark_coverage_recipe_keys[figure_name]
         )
@@ -1410,6 +2712,18 @@ def build_results_zip(translations):
                         "figure_selected_station_coverage.png",
                     ]
                 )
+            figure_names.extend(
+                figure_name
+                for figure_name, _recipe_key, _title_keys in (
+                    _drilldown_zoom_figure_exports(block)
+                )
+            )
+            required_drilldown_zoom_figures = {
+                figure_name
+                for figure_name, _recipe_key, _title_keys in (
+                    _drilldown_zoom_figure_exports(block)
+                )
+            }
             for figure_name in figure_names:
                 png_bytes = (
                     _render_map_png_for_block(block)
@@ -1420,6 +2734,14 @@ def build_results_zip(translations):
                     raise ExportArtifactUnavailableError(
                         "Required high-resolution map export produced no image; "
                         "run the analysis again"
+                    )
+                if (
+                    figure_name in required_drilldown_zoom_figures
+                    and not png_bytes
+                ):
+                    raise ExportArtifactUnavailableError(
+                        "Required Drill-Down zoom export produced no image; "
+                        "adjust the focus or run the analysis again"
                     )
                 if png_bytes:
                     zf.writestr(f"{root}/{folder}/{figure_name}", png_bytes)
@@ -1444,6 +2766,31 @@ def build_results_zip(translations):
                         reference_snr_header=block.get("reference_snr_header"),
                     )
                 )
+
+            if block.get("report_delta_snr_outlier_candidates") is True:
+                outlier_table_schemas = (
+                    (
+                        OUTLIER_EVENT_PATHS_TABLE_FILENAME,
+                        OUTLIER_EVENT_PATH_COLUMNS,
+                    ),
+                    (
+                        OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME,
+                        OUTLIER_PAIRED_EVIDENCE_COLUMNS,
+                    ),
+                )
+                for table_name, expected_columns in outlier_table_schemas:
+                    localized_table = _localized_outlier_export_table(
+                        block.get(table_name),
+                        translations,
+                        expected_columns=expected_columns,
+                    )
+                    zf.writestr(
+                        f"{root}/{folder}/{table_name}",
+                        _dataframe_to_csv_bytes(
+                            localized_table,
+                            translations,
+                        ),
+                    )
 
             analysis_cache_path = analysis_cache_paths.get(block_key)
             parquet_path = (block.get("map_context") or {}).get("parquet_path")

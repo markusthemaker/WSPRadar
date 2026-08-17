@@ -53,6 +53,13 @@ class _StreamingResponse:
         yield from self.chunks
 
 
+def _anchor_fresh_cache_mtime(cache_path):
+    """Keep a fresh cache fixture below the strict future-mtime boundary."""
+    published_at = time.time() - 1.0
+    os.utime(cache_path, (published_at, published_at))
+    return published_at
+
+
 def test_csv_fetch_uses_configured_timeout_and_streaming(monkeypatch):
     request_kwargs = {}
 
@@ -309,6 +316,8 @@ def test_dataframe_l1_accounting_failure_reuses_persistent_rows(
     monkeypatch.setattr(data_engine, "_dataframe_memory_bytes", fail_accounting)
 
     direct_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    cache_path = data_engine._query_cache_path(query, is_demo=False)
+    _anchor_fresh_cache_mtime(cache_path)
     disk_result = data_engine.fetch_wspr_data(query, is_demo=False)
     cache_key = data_engine._memory_cache_key(
         query,
@@ -322,7 +331,7 @@ def test_dataframe_l1_accounting_failure_reuses_persistent_rows(
     assert disk_result.error is None
     assert disk_result.source == FetchSource.DISK_CACHE
     assert cache_key not in data_engine._dataframe_cache
-    assert data_engine._query_cache_path(query, is_demo=False).is_file()
+    assert cache_path.is_file()
 
 
 def test_dataframe_l1_copy_failure_falls_back_to_persistent_rows(
@@ -370,6 +379,7 @@ def test_dataframe_l1_copy_failure_falls_back_to_persistent_rows(
     )
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({"has_u": [1]}).to_parquet(cache_path, index=False)
+    _anchor_fresh_cache_mtime(cache_path)
 
     result = data_engine.fetch_wspr_data(
         query,
@@ -635,6 +645,9 @@ def test_demo_compare_disk_cache_informs_strict_and_legacy_request_estimate(
     strict_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({"has_u": [0]}).to_parquet(strict_path, index=False)
     pd.DataFrame({"has_u": [1]}).to_parquet(legacy_path, index=False)
+    published_at = time.time() - 1.0
+    os.utime(strict_path, (published_at, published_at))
+    os.utime(legacy_path, (published_at, published_at))
     strict_published_at = strict_path.stat().st_mtime
     legacy_published_at = legacy_path.stat().st_mtime
 
@@ -684,6 +697,7 @@ def test_complete_demo_compare_cache_requires_strict_and_legacy_rows(
         cache_path = data_engine._query_cache_path(query, wd2, is_demo=True)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         frame.to_parquet(cache_path, index=False)
+        _anchor_fresh_cache_mtime(cache_path)
 
     assert data_engine.estimate_uncached_requests(
         [analysis],
@@ -785,6 +799,7 @@ def test_demo_compare_first_fetch_publishes_and_second_fetch_reuses_disk_rows(
         )
         assert cache_path.is_file()
         assert cache_path.parent.parent.name == ArtifactNamespace.DEMO_QUERY.value
+        _anchor_fresh_cache_mtime(cache_path)
 
     data_engine._dataframe_cache.clear()
 
@@ -878,6 +893,8 @@ def test_large_standard_csv_stays_disk_only_and_avoids_second_request(
     monkeypatch.setattr(data_engine.http_session, "get", fake_get)
 
     direct_result = data_engine.fetch_wspr_data(query, is_demo=False)
+    cache_path = data_engine._query_cache_path(query, is_demo=False)
+    _anchor_fresh_cache_mtime(cache_path)
     disk_result = data_engine.fetch_wspr_data(query, is_demo=False)
     cache_key = data_engine._memory_cache_key(
         query,
@@ -889,7 +906,7 @@ def test_large_standard_csv_stays_disk_only_and_avoids_second_request(
     assert direct_result.source == FetchSource.WSPR_LIVE
     assert disk_result.source == FetchSource.DISK_CACHE
     assert cache_key not in data_engine._dataframe_cache
-    assert data_engine._query_cache_path(query, is_demo=False).is_file()
+    assert cache_path.is_file()
 
 
 def test_standard_csv_disk_cache_informs_strict_and_legacy_request_estimate(
@@ -963,6 +980,7 @@ def test_standard_admission_inspection_deletes_corrupt_l2_without_touching(
     )
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_bytes(b"not a parquet artifact")
+    _anchor_fresh_cache_mtime(cache_path)
 
     request_count = data_engine.estimate_uncached_requests(
         [analysis],
@@ -1006,6 +1024,7 @@ def test_standard_admission_inspection_deletes_oversized_l2_and_keeps_marker(
         cache_path,
         index=False,
     )
+    _anchor_fresh_cache_mtime(cache_path)
     cache_key = data_engine._memory_cache_key(
         query,
         is_demo=False,
@@ -1182,6 +1201,7 @@ def test_demo_compare_cache_invalidation_is_scoped_to_provider_and_mode(
     ):
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame({"has_u": [marker]}).to_parquet(cache_path, index=False)
+        _anchor_fresh_cache_mtime(cache_path)
 
     assert data_engine.invalidate_wspr_query_cache(
         query,

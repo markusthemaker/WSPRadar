@@ -7,8 +7,8 @@ import math
 from numbers import Real
 
 
-DEFAULT_MINIMUM_DEPARTURE_DB = 3.0
-DEFAULT_MINIMUM_ROBUST_Z = 4.0
+DEFAULT_MINIMUM_DEPARTURE_DB = 6.0
+DEFAULT_MINIMUM_ROBUST_Z = 3.0
 DEFAULT_MAXIMUM_BASELINE_DIFFERENCE_DB = 3.0
 LEGACY_BURST_MINIMUM_DEPARTURE_DB = 3.0
 LEGACY_BURST_MINIMUM_ROBUST_Z = 3.5
@@ -103,6 +103,17 @@ class DeltaSnrOutlierDetectionPolicy:
 
 DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY = DeltaSnrOutlierDetectionPolicy()
 
+# Version-1 saved configurations and public URLs originally omitted detector
+# values equal to this policy. Keep that omission meaning stable even when the
+# factory defaults for new analyses change.
+VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY = (
+    DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=3.0,
+        minimum_robust_z=4.0,
+        maximum_baseline_difference_db=3.0,
+    )
+)
+
 
 __all__ = [
     "DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY",
@@ -116,4 +127,5 @@ __all__ = [
     "LEGACY_BURST_MINIMUM_DEPARTURE_DB",
     "LEGACY_BURST_MINIMUM_ROBUST_Z",
     "LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS",
+    "VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY",
 ]

@@ -309,10 +309,12 @@ def test_bilingual_manuals_document_the_outlier_detector_contract():
 
     assert "| off |" in english_controls
     assert "| aus |" in german_controls
-    assert "`3.0`; `0.1`–`100.0 dB` inclusive" in english_controls
-    assert "`4.0`; `0.1`–`100.0` inclusive" in english_controls
-    assert "`3.0`; einschließlich `0.1`–`100.0 dB`" in german_controls
-    assert "`4.0`; einschließlich `0.1`–`100.0`" in german_controls
+    assert "`6.0`; `0.1`–`100.0 dB` inclusive" in english_controls
+    assert "`3.0`; `0.1`–`100.0` inclusive" in english_controls
+    assert "`6.0`; einschließlich `0.1`–`100.0 dB`" in german_controls
+    assert "`3.0`; einschließlich `0.1`–`100.0`" in german_controls
+    assert "prioritizes large absolute movements" in english_controls
+    assert "priorisiert große absolute Auslenkungen" in german_controls
     assert "does not automatically start an analysis" in english_controls
     assert "startet aber nicht automatisch eine Analyse" in german_controls
     assert "All three thresholds apply unchanged" in english_controls
@@ -1059,6 +1061,115 @@ def test_bilingual_manuals_define_temporal_iqr_science_and_axis_contract():
     assert "Leere Bins bleiben fehlend" in DOC_DE
     assert "Rohe Delta-SNR-Werte, Bin-Zuordnung, Anzahlen, Mediane und Quartile bleiben unverändert" in DOC_DE
     assert "Performance-Ansichten des erfolgreichen SNR bleiben auf einer linearen dB-Achse" in DOC_DE
+
+
+def test_bilingual_manuals_define_centered_native_drilldown_focus():
+    """Document focused native evidence without redefining segment summaries."""
+    for phrase in (
+        "`Center date (UTC)`",
+        "`Center time (UTC)`",
+        "`← Earlier`",
+        "`Later →`",
+        "`Outlier Focus`",
+        "`Filter table`",
+        "select the center of that interval",
+        "`Selected window: {start} to {end} UTC`",
+        "changes only the displayed table and never the focused plots or completed analysis",
+        "one actual Delta SNR dot per retained Joint Spot",
+        "one actual Pair Delta SNR dot per retained complete Scheduled Pair",
+        "actual normalized Target SNR of each successful confirmed opportunity",
+        "not untouched provider rows",
+        "No bin median, IQR, density background, colorbar, full-run median",
+        "Segment and full-window Selected Station Evidence remain density-based aggregated views",
+        "DG2CAD (JN47mv) - Time Window: {start} to {end} UTC",
+        "robust-z guides at 1, 2 and 3 plus the configured qualifying threshold",
+        "detector guides, not confidence intervals",
+        "crossing any one guide cannot qualify a candidate by itself",
+        "Identical `*` markers identify every native unit in the current window that individually meets both configured departure and robust-z gates as part of a reported candidate",
+        "A muted **Focused episode** band identifies the selected reported episode",
+        "padded by half one native evidence-unit width at each end",
+        "neither a confidence interval nor a measurement of physical-event duration",
+        "Other starred candidate units may have been evaluated against different local baselines and robust spreads",
+        "weaker grouped units retained between strong anchors remain ordinary dots",
+        "Drill-Down focus figures",
+    ):
+        assert phrase in DOC_EN
+
+    for phrase in (
+        "`Datum der Fenstermitte (UTC)`",
+        "`Uhrzeit der Fenstermitte (UTC)`",
+        "`← Früher`",
+        "`Später →`",
+        "`Ausreißerfokus`",
+        "`Tabelle filtern`",
+        "wählen die Mitte dieses Intervalls",
+        "`Ausgewähltes Zeitfenster: {start} bis {end} UTC`",
+        "verändert anschließend nur die angezeigte Tabelle und niemals die fokussierten Abbildungen oder die abgeschlossene Analyse",
+        "einen tatsächlichen Delta-SNR-Punkt je beibehaltenem Joint Spot",
+        "einen tatsächlichen Paar-Delta-SNR-Punkt je beibehaltenem vollständigem geplanten Paar",
+        "tatsächliche normierte Target-SNR jeder erfolgreichen bestätigten Gelegenheit",
+        "keine unveränderten Provider-Zeilen",
+        "Binmedian, IQR, Dichtehintergrund, Farbskala, Median des vollständigen Laufs",
+        "Segmentansicht und Evidenz der ausgewählten Station über das vollständige Fenster bleiben dichtebasierte aggregierte Ansichten",
+        "DG2CAD (JN47mv) - Zeitfenster: {start} bis {end} UTC",
+        "robuste-z-Hilfslinien bei 1, 2 und 3 sowie an der konfigurierten Qualifikationsschwelle",
+        "Detektorhilfen und keine Konfidenzintervalle",
+        "Überschreiten einer einzelnen Linie kann keinen Kandidaten allein qualifizieren",
+        "Identische `*`-Marker kennzeichnen jede native Einheit im aktuellen Fenster, die innerhalb eines gemeldeten Kandidaten einzeln sowohl das konfigurierte Abweichungs- als auch das robuste-z-Kriterium erfüllt",
+        "Ein dezentes Band **Fokussierte Episode** kennzeichnet die ausgewählte berichtete Episode",
+        "an beiden Enden um eine halbe Breite der nativen Evidenzeinheit erweitert",
+        "weder ein Konfidenzintervall noch eine Messung der Dauer eines physischen Ereignisses",
+        "Andere mit Stern markierte Kandidateneinheiten können gegen andere lokale Baselines und robuste Streuungen bewertet worden sein",
+        "schwächere gruppierte Einheiten, die zwischen starken Ankern beibehalten werden, bleiben normale Punkte",
+        "Drill-Down-Fokusabbildungen",
+    ):
+        assert phrase in DOC_DE
+
+    assert "`Zoom start (UTC)`" not in DOC_EN
+    assert "`Zoom-Start (UTC)`" not in DOC_DE
+    for superseded_phrase in (
+        "`Focus date (UTC)`",
+        "`Focus time (UTC)`",
+        "`12h Event focus`",
+        "`Fit detector context`",
+    ):
+        assert superseded_phrase not in DOC_EN
+    for superseded_phrase in (
+        "`Fokusdatum (UTC)`",
+        "`Fokuszeit (UTC)`",
+        "`12h-Ereignisfokus`",
+        "`Detektorkontext einpassen`",
+    ):
+        assert superseded_phrase not in DOC_DE
+    assert "two-minute chronological bins" not in DOC_EN
+    assert "chronologische Zwei-Minuten-Bins" not in DOC_DE
+
+
+def test_bilingual_manuals_separate_qualifying_plot_marker_from_true_peak():
+    """Keep marker eligibility distinct from the report/export peak metric."""
+    for phrase in (
+        "**Largest single-cycle departure** is the most extreme retained residual",
+        "That report/export metric is independent of the all-path temporal `*`",
+        "only among individually qualifying native units in each review event",
+        "never uses an unsupported or nonqualifying episode peak",
+        "The all-path temporal marker is selected only from these strong anchors",
+        "the individually qualifying native unit with the greatest absolute residual supplies the `*`",
+        "Marker selection is separate from **Largest single-cycle departure**",
+        "remains the true greatest-absolute retained residual in each path event for the report and export",
+    ):
+        assert phrase in DOC_EN
+
+    for phrase in (
+        "**Größte Einzelzyklusabweichung** ist das extremste beibehaltene Residuum",
+        "Diese Berichts-/Exportgröße ist unabhängig vom `*` im Zeitplot aller Funkwege",
+        "ausschließlich unter den einzeln qualifizierenden nativen Einheiten",
+        "nie eine ungestützte oder nicht qualifizierende Episodenspitze",
+        "Der Marker im Zeitplot aller Funkwege wird nur aus diesen starken Ankern ausgewählt",
+        "die einzeln qualifizierende native Einheit mit dem betragsmäßig größten Residuum das `*`",
+        "Die Markerauswahl ist von der Berichtsgröße **Größte Einzelzyklusabweichung** getrennt",
+        "das tatsächliche betragsmäßig größte beibehaltene Residuum jedes Funkwegereignisses",
+    ):
+        assert phrase in DOC_DE
 
 
 def test_benchmark_map_label_matches_station_balanced_delta_contract():

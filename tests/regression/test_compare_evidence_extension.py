@@ -1695,6 +1695,10 @@ def test_joint_projection_preserves_existing_absolute_delta_snr_contract():
         "reference_snr_db",
     ].tolist() == pytest.approx([2.01, -2.08])
     projected = _compare_joint_evidence_points(comparison_units)
+    native_precision_projection = _compare_joint_evidence_points(
+        comparison_units,
+        preserve_metric_precision=True,
+    )
     wrapper_result = _build_evidence_points(
         station_rows,
         identities,
@@ -1712,6 +1716,9 @@ def test_joint_projection_preserves_existing_absolute_delta_snr_contract():
     ]
     assert projected["station"].tolist() == ["A1AAA", "A1AAA"]
     assert projected["metric"].tolist() == [3.0, 1.0]
+    assert native_precision_projection["metric"].tolist() == pytest.approx(
+        [3.03, 1.04]
+    )
     assert projected["plot_time"].tolist() == list(
         pd.to_datetime(
             ["2026-07-01T00:00Z", "2026-07-01T00:02Z"],

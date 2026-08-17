@@ -99,3 +99,90 @@ technical amateur-radio German rather than mirroring English syntax. Equations,
 thresholds, signs, units and detector logic remain equivalent. Established
 English product terms and exact localized German UI labels remain intentional
 localizations. There is no intentional semantic divergence.
+
+## 2026-08-15 additive export parity note
+
+The initial integration checklist records the export behavior that existed at
+that historical review point. Its statement that no dedicated report table was
+present is superseded by the current additive export contract. Sections 2.5.4
+and 8.4 now describe, with matched English/German meaning, the enabled-only
+`table_delta_snr_outlier_event_paths.csv` path-event summary and
+`table_delta_snr_outlier_paired_evidence.csv` chronological native paired-unit
+evidence table. Both languages preserve the same package-local ID boundary,
+deliberate path/direction duplication, combined-versus-path class distinction,
+header-only enabled-empty behavior, and complete disabled omission. No formula,
+detector threshold, event qualification rule, manual anchor or TOC structure
+changed in this additive update.
+
+## 2026-08-16 default-policy parity note
+
+The English and German control tables now give the same new-analysis defaults:
+`6.0 dB` minimum absolute Delta-SNR departure, `3.0` minimum robust z-score, and
+`3.0 dB` maximum pre/post baseline difference. Both manuals explain that this
+combination prioritizes large absolute movements while retaining an independent
+path-relative robust-variability gate. Formulas, symbols, accepted ranges,
+duration-class definitions, event qualification mechanics, anchors and TOC
+structure are unchanged. Version-1 omitted-value compatibility remains an
+engineering contract rather than a different operator-facing default.
+
+## 2026-08-16 Drill-Down context parity note
+
+Section 2.5.3 now gives both per-timeframe actions the same operational meaning
+in English and German. **Show in Station Insights** / **In Station Insights
+anzeigen** selects the exact path, preloads its detector-derived candidate context
+and navigates to Station Insights; **Show Drill-Down Details** /
+**Drill-Down-Details anzeigen** makes the same selection and preload but targets
+Drill-Down directly. Both manuals state that the interval includes the complete
+supported pre-event baseline flank, cadence-guarded provisional episode and
+post-event baseline flank, clipped only to the completed analysis window. They
+also preserve the same exception to the manual 24-hour zoom limit: detector
+context may be longer, while the focused metric figure retains one point per
+native evidence unit rather than aggregating those units into time-bin medians. This
+addition changes no detector formula, qualification threshold, reported strong-
+anchor boundary or causal-claim limitation.
+
+## 2026-08-17 focused Drill-Down terminology parity note
+
+The focused Drill-Down controls now use the approved bilingual phrase matrix:
+**Center date (UTC)** / **Datum der Fenstermitte (UTC)**, **Center time (UTC)** /
+**Uhrzeit der Fenstermitte (UTC)**, **Outlier Focus** / **Ausreißerfokus**, and
+**Filter table** / **Tabelle filtern**. The former visible **Focus date/time**,
+**12h Event focus** and **Fit detector context** variants have no active
+operator-facing role. One Outlier Focus now means the exact retained detector-
+support interval: supported pre-event flank, guarded provisional episode and
+supported post-event flank, clipped to the completed analysis window. Both
+languages state that table filtering affects only displayed rows, while the
+focus interval limits both focused figures and the table. Both also preserve
+the same native-unit definitions and the same warning that robust-z and
+absolute-departure lines are detector guides rather than confidence intervals
+and that crossing one guide alone is insufficient. This is a presentation and
+focus-selection simplification; it changes no detector calculation, threshold,
+candidate boundary, saved scientific configuration or causal-claim limit.
+
+## 2026-08-17 focused-episode marker and band parity note
+
+The focused Benchmark legend now uses **Qualifying candidate unit** /
+**Qualifizierende Kandidateneinheit** for every identical star and **Focused
+episode** / **Fokussierte Episode** for the muted selection band. Both languages
+state the same evidence rule: a star denotes one native unit belonging to a
+reported candidate that individually meets both the configured departure and
+robust-z gates; weaker grouped units retained between strong anchors remain
+ordinary points. The band denotes only the selected candidate's reported
+retained-evidence interval, padded by half one native evidence-unit width at
+each end and clipped to the focus window so an impulse remains visible. It does
+not claim a physical-event duration or confidence interval. Expected local
+Delta SNR, pre/post baselines and detector guides belong only to the focused
+episode; another starred candidate can have a different local baseline and
+robust spread. This presentation change does not alter detector qualification,
+reported candidate bounds, native evidence, saved scientific configuration or
+causal-claim limits.
+
+The single marker in the all-path temporal plot follows the same bilingual
+eligibility distinction. **Strongest individually qualifying native-unit
+residual per review event** / **stärkstes Residuum einer einzeln qualifizierenden
+nativen Einheit je Prüfereignis** is the marker rule; an unsupported or
+nonqualifying episode peak cannot represent the event. **Largest single-cycle
+departure** / **Größte Einzelzyklusabweichung** remains a separate report and
+export metric containing the true greatest-absolute retained residual of the
+path event. No candidate membership, gate, retained evidence or exported peak
+value changes through this marker-selection refinement.

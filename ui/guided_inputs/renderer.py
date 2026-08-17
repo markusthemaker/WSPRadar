@@ -15,7 +15,7 @@ from config.demo_profiles import prepare_demo_description_markdown
 from i18n import GUIDED_INPUTS
 from ui.analysis_submission_state import handoff_analysis_submission
 from ui.analysis_question_state import apply_analysis_question_choice
-from ui.callbacks import reset_audit
+from ui.callbacks import reset_audit, reset_experiment_definition
 from ui.classic_input_state import (
     classic_result_type,
     synchronize_classic_input_state,
@@ -86,9 +86,15 @@ def _activate_step(node_id: str) -> None:
 
 
 def _guided_scientific_change(node_id: str) -> None:
-    """Invalidate stale results while retaining the edited accordion panel."""
+    """Invalidate a population/scope/evidence edit and retain demo context."""
     _activate_step(node_id)
     reset_audit()
+
+
+def _guided_experiment_definition_change(node_id: str) -> None:
+    """Invalidate an experiment edit and retire its loaded profile context."""
+    _activate_step(node_id)
+    reset_experiment_definition()
 
 
 def _guided_correction_context_change(node_id: str) -> None:
@@ -98,7 +104,7 @@ def _guided_correction_context_change(node_id: str) -> None:
     if active_mode in COMPARISON_MODES or retained_mode in COMPARISON_MODES:
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
-    _guided_scientific_change(node_id)
+    _guided_experiment_definition_change(node_id)
 
 
 def _handle_use_case_change() -> None:
@@ -110,7 +116,7 @@ def _handle_use_case_change() -> None:
         return
     st.session_state.guided_use_case = use_case
     apply_analysis_question_choice(st.session_state, use_case)
-    _guided_scientific_change("use_case")
+    _guided_experiment_definition_change("use_case")
 
 
 def _handle_reference_design_change() -> None:
@@ -139,7 +145,7 @@ def _handle_reference_design_change() -> None:
         st.session_state.val_ref_qth = ""
         st.session_state.val_benchmark_offset_db = 0.0
         st.session_state.val_snr_correction_mode = "no_offset"
-    _guided_scientific_change("reference_design")
+    _guided_experiment_definition_change("reference_design")
 
 
 def _handle_offset_intent_change() -> None:
@@ -149,7 +155,7 @@ def _handle_offset_intent_change() -> None:
         return
     if intent in {"no_offset", "establish_offset"}:
         st.session_state.val_benchmark_offset_db = 0.0
-    _guided_scientific_change("offset_calibration")
+    _guided_experiment_definition_change("offset_calibration")
 
 
 def _loaded_demo_scope_values(profile_key: str | None) -> dict[str, Any] | None:
@@ -293,7 +299,7 @@ def _render_target_and_window_fields(t, guided_content):
     messages = guided_content["messages"]
     render_target_and_window_fields(
         t,
-        on_change=_guided_scientific_change,
+        on_change=_guided_experiment_definition_change,
         on_change_args=("target_and_window",),
         correction_context_on_change=_guided_correction_context_change,
         correction_context_on_change_args=("target_and_window",),
@@ -379,7 +385,7 @@ def _render_offset_calibration_fields(t, guided_content):
     if intent == "established_offset":
         render_reference_correction_field(
             t,
-            on_change=_guided_scientific_change,
+            on_change=_guided_experiment_definition_change,
             on_change_args=("offset_calibration",),
         )
     correction_db = float(st.session_state.get("val_benchmark_offset_db", 0.0))

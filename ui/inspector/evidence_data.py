@@ -316,8 +316,9 @@ def _compare_joint_evidence_points(
     comparison_units,
     *,
     require_paired_eligible=False,
+    preserve_metric_precision=False,
 ):
-    """Project non-missing Joint units into the established Delta-SNR schema."""
+    """Project Joint units, optionally retaining canonical metric precision."""
     if comparison_units is None or comparison_units.empty:
         return _empty_evidence_df()
     required_columns = {
@@ -347,7 +348,8 @@ def _compare_joint_evidence_points(
         return _empty_evidence_df()
     # Preserve the established absolute Delta-SNR display contract while the
     # canonical units retain full precision for new scientific aggregation.
-    paired["metric"] = paired["metric"].round(1)
+    if not preserve_metric_precision:
+        paired["metric"] = paired["metric"].round(1)
     paired = paired.rename(
         columns={
             "peer_sign": "station",

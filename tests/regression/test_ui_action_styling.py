@@ -183,6 +183,79 @@ def test_outlier_station_insights_action_matches_transition_prompt_green(
         "color: #a6ff8a !important"
         in stylesheet[hover_rule_open:hover_rule_close]
     )
+    action_container_match = re.search(
+        r'div\[class\*="st-key-outlier_path_actions_"\]\s+'
+        r'div\[data-testid="stButton"\]',
+        stylesheet,
+    )
+    assert action_container_match is not None
+    action_container_start = action_container_match.start()
+    action_container_rule_open = stylesheet.index(
+        "{",
+        action_container_start,
+    )
+    action_container_rule_close = stylesheet.index(
+        "}",
+        action_container_rule_open,
+    )
+    action_container_rule = stylesheet[
+        action_container_rule_open:action_container_rule_close
+    ]
+    assert "display: flex !important" in action_container_rule
+    assert "justify-content: flex-end !important" in action_container_rule
+    assert (
+        'div[class*="st-key-outlier_path_actions_"]\n'
+        '        div[data-testid="stHorizontalBlock"]'
+    ) in stylesheet
+    assert "flex-wrap: nowrap !important" in stylesheet
+    assert "white-space: nowrap !important" in stylesheet
+    assert (
+        'div[class*="st-key-d_zoom_selected_window_"]'
+        in stylesheet
+    )
+    assert (
+        'div[class*="st-key-outlier_episode_"]\n'
+        '        div[data-testid="stVerticalBlock"]'
+    ) in stylesheet
+    assert "gap: 0.45rem !important" in stylesheet
+    assert (
+        'div[class*="st-key-outlier_episode_"] h5,\n'
+        '        div[class*="st-key-outlier_episode_"] h6 {'
+        in stylesheet
+    )
+    outlier_heading_selector = 'div[class*="st-key-outlier_episode_"] h5,'
+    outlier_heading_start = stylesheet.index(outlier_heading_selector)
+    outlier_heading_rule_open = stylesheet.index(
+        "{",
+        outlier_heading_start,
+    )
+    outlier_heading_rule_close = stylesheet.index(
+        "}",
+        outlier_heading_rule_open,
+    )
+    outlier_heading_rule = stylesheet[
+        outlier_heading_rule_open:outlier_heading_rule_close
+    ]
+    assert "padding-bottom: 0 !important" in outlier_heading_rule
+    assert "line-height: 1.3 !important" in stylesheet
+    caption_container_match = re.search(
+        r'div\[class\*="st-key-outlier_episode_"\]\s+'
+        r'div\[data-testid="stCaptionContainer"\]\s*\{',
+        stylesheet,
+    )
+    assert caption_container_match is not None
+    caption_container_rule_open = stylesheet.index(
+        "{",
+        caption_container_match.start(),
+    )
+    caption_container_rule_close = stylesheet.index(
+        "}",
+        caption_container_rule_open,
+    )
+    caption_container_rule = stylesheet[
+        caption_container_rule_open:caption_container_rule_close
+    ]
+    assert "margin-bottom: 0 !important" in caption_container_rule
 
 
 def test_only_outlier_number_input_step_buttons_are_hidden(monkeypatch):

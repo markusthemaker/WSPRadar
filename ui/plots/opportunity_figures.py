@@ -5,7 +5,12 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.dates as mdates
 
-from config import APP_VERSION, STATION_EVIDENCE_TIME_BIN_OPTIONS
+from config import (
+    APP_VERSION,
+    STATION_EVIDENCE_TIME_BINS,
+    STATION_EVIDENCE_TIME_BIN_OPTIONS,
+    temporal_evidence_time_bin_policy_for_duration,
+)
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.opportunity_engine import (
     opportunity_utc_from_time_slot,
@@ -92,22 +97,64 @@ SUCCESS_TEMPORAL_RATE_CEILINGS = (
 SUCCESS_TEMPORAL_EVIDENCE_FIGURE_TOP = 0.76
 
 
-def _opportunity_time_bin(rows, analysis_start_t=None, analysis_end_t=None):
-    """Choose a readable fixed UTC bin for opportunity-rate evidence."""
-    if analysis_start_t is not None and analysis_end_t is not None:
-        span = _as_utc_timestamp(analysis_end_t) - _as_utc_timestamp(analysis_start_t)
+def _resolve_success_temporal_time_bin_policy(
+    start,
+    end,
+    *,
+    time_bin_options=None,
+    time_bin_default=None,
+    retained_time_bin=None,
+):
+    """Resolve validated adaptive or caller-supplied Performance time bins."""
+    adaptive_options, adaptive_default = (
+        temporal_evidence_time_bin_policy_for_duration(
+            end - start,
+            retained_time_bin=retained_time_bin,
+        )
+    )
+    if time_bin_options is None:
+        resolved_options = adaptive_options
     else:
-        if rows.empty:
-            return "3h"
-        times = opportunity_utc_from_time_slot(rows["time_slot"]).dropna()
-        if times.empty:
-            return "3h"
-        span = times.max() - times.min()
-    if span <= pd.Timedelta(days=1):
-        return "1h"
-    if span <= pd.Timedelta(days=7):
-        return "3h"
-    return "12h"
+        resolved_options = list(
+            dict.fromkeys(str(option) for option in time_bin_options)
+        )
+        if not resolved_options:
+            raise ValueError(
+                "Success temporal evidence requires at least one time-bin option."
+            )
+        invalid_options = [
+            option
+            for option in resolved_options
+            if option not in STATION_EVIDENCE_TIME_BINS
+        ]
+        if invalid_options:
+            raise ValueError(
+                "Unsupported Success temporal evidence time bins: "
+                + ", ".join(invalid_options)
+            )
+        retained_token = (
+            str(retained_time_bin)
+            if retained_time_bin is not None
+            else None
+        )
+        if (
+            retained_token in STATION_EVIDENCE_TIME_BINS
+            and retained_token not in resolved_options
+        ):
+            resolved_options.append(retained_token)
+            resolved_options.sort(key=_time_agg_minutes)
+
+    resolved_default = (
+        str(time_bin_default)
+        if time_bin_default is not None
+        else adaptive_default
+    )
+    if resolved_default not in resolved_options:
+        raise ValueError(
+            "Success temporal evidence default must be one of its time-bin options."
+        )
+    return resolved_options, resolved_default
+
 
 def _as_utc_timestamp(value):
     """Normalize a datetime-like value to a timezone-aware UTC Timestamp."""
@@ -115,6 +162,7 @@ def _as_utc_timestamp(value):
     if timestamp.tzinfo is None:
         return timestamp.tz_localize("UTC")
     return timestamp.tz_convert("UTC")
+
 
 def _required_figure_labels(figure_labels, required_keys):
     """Return an immutable-style string copy of required localized figure labels."""
@@ -1928,6 +1976,9 @@ def _opportunity_temporal_recipe(
     snr_title=None,
     population_mode=SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
     snr_representation=SUCCESS_SNR_REPRESENTATION_STATION_RELATIVE,
+    time_bin_options=None,
+    time_bin_default=None,
+    retained_time_bin=None,
 ):
     """Build shared Success temporal evidence for one population and SNR mode.
 
@@ -2020,6 +2071,15 @@ def _opportunity_temporal_recipe(
     end = _as_utc_timestamp(analysis_end_t)
     if end <= start:
         raise ValueError("Success temporal evidence requires a positive UTC window.")
+    resolved_time_bin_options, resolved_time_bin_default = (
+        _resolve_success_temporal_time_bin_policy(
+            start,
+            end,
+            time_bin_options=time_bin_options,
+            time_bin_default=time_bin_default,
+            retained_time_bin=retained_time_bin,
+        )
+    )
 
     eligible_identities = peer_df.loc[
         peer_df["eligible"]
@@ -2110,7 +2170,7 @@ def _opportunity_temporal_recipe(
             anomaly_rows.get("snr_anomaly_db", pd.Series(dtype=float))
         )
     profiles = {}
-    for time_bin in SUCCESS_TEMPORAL_TIME_BINS:
+    for time_bin in resolved_time_bin_options:
         profile = _aggregate_success_chronological_profile(
             work,
             start,
@@ -2203,17 +2263,9 @@ def _opportunity_temporal_recipe(
         "absolute_mode": terminology.get("mode", "RX"),
         "terminology": dict(terminology),
         "labels": labels,
-        "time_bin_options": list(SUCCESS_TEMPORAL_TIME_BINS),
-        "time_bin_default": _opportunity_time_bin(
-            work,
-            analysis_start_t,
-            analysis_end_t,
-        ),
-        "time_bin": _opportunity_time_bin(
-            work,
-            analysis_start_t,
-            analysis_end_t,
-        ),
+        "time_bin_options": list(resolved_time_bin_options),
+        "time_bin_default": resolved_time_bin_default,
+        "time_bin": resolved_time_bin_default,
         "chronological_profiles": profiles,
         "folded_profile": folded_profile,
         "utc_date_count": utc_date_count,

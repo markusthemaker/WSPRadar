@@ -1,6 +1,6 @@
 """Regression contracts for native Delta-SNR episode-candidate detection."""
 
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 import inspect
 
 import numpy as np
@@ -24,6 +24,11 @@ ANALYSIS_START = WALTER_IMPULSE_UTC - pd.Timedelta(hours=8)
 ANALYSIS_END = WALTER_IMPULSE_UTC + pd.Timedelta(hours=8)
 DEFAULT_PRE_OFFSETS_MINUTES = (-300, -270, -240, -210, -180, -150, -120, -90)
 DEFAULT_POST_OFFSETS_MINUTES = (90, 120, 150, 180, 210, 240, 270, 300)
+TEST_DETECTION_POLICY = DeltaSnrOutlierDetectionPolicy(
+    minimum_departure_db=3.0,
+    minimum_robust_z=4.0,
+    maximum_baseline_difference_db=3.0,
+)
 
 
 def _path_units(
@@ -116,7 +121,7 @@ def _detect(
     analysis_start=ANALYSIS_START,
     analysis_end=ANALYSIS_END,
     cadence_minutes=2.0,
-    detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    detection_policy=TEST_DETECTION_POLICY,
 ):
     """Run the native detector with one explicit cadence and UTC window."""
     return outlier_candidates.detect_delta_snr_outlier_candidates(
@@ -157,10 +162,10 @@ def test_default_detection_policy_is_immutable_named_and_stable():
     """Expose one dependency-light default policy for config and detector use."""
     policy = DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY
 
-    assert policy.signature_tuple == (3.0, 4.0, 3.0)
+    assert policy.signature_tuple == (6.0, 3.0, 3.0)
     assert policy.as_dict() == {
-        "minimum_departure_db": 3.0,
-        "minimum_robust_z": 4.0,
+        "minimum_departure_db": 6.0,
+        "minimum_robust_z": 3.0,
         "maximum_baseline_difference_db": 3.0,
     }
     assert DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD == (
@@ -184,6 +189,22 @@ def test_default_detection_policy_is_immutable_named_and_stable():
     )
     with pytest.raises(FrozenInstanceError):
         policy.minimum_departure_db = 6.0
+
+
+def test_factory_default_requires_a_large_absolute_departure():
+    """Reject 5 dB while accepting 6 dB under the new factory policy."""
+    five_db_model = _detect(
+        _path_units(event_points=((0, 8.0),)),
+        detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    )
+    six_db_model = _detect(
+        _path_units(event_points=((0, 9.0),)),
+        detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    )
+
+    assert five_db_model.candidates == ()
+    assert len(six_db_model.candidates) == 1
+    assert six_db_model.candidates[0].median_anomaly_db == pytest.approx(6.0)
 
 
 @pytest.mark.parametrize(
@@ -274,7 +295,10 @@ def test_detector_api_owns_native_resolution_independent_of_display_bins():
     assert "detection_policy" in detector_parameters
     assert "detection_policy" in preparation_parameters
 
-    model = _detect(_path_units())
+    model = _detect(
+        _path_units(),
+        detection_policy=DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+    )
 
     assert model.detection_resolution == (
         outlier_candidates.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
@@ -370,6 +394,8 @@ def test_custom_maximum_baseline_difference_controls_baseline_support():
 
     assert _detect(comparison_units).candidates == ()
     permissive_policy = DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=3.0,
+        minimum_robust_z=4.0,
         maximum_baseline_difference_db=4.0,
     )
     candidate = _detect(
@@ -385,6 +411,8 @@ def test_policy_changes_cache_and_marker_signatures_when_candidates_match():
     """Keep cache identity scientific even when two policies select alike."""
     comparison_units = _path_units(event_points=((0, 8.0),))
     custom_policy = DeltaSnrOutlierDetectionPolicy(
+        minimum_departure_db=3.0,
+        minimum_robust_z=4.0,
         maximum_baseline_difference_db=2.5,
     )
 
@@ -430,6 +458,9 @@ def test_walter_style_single_spot_impulse_uses_exact_cycle_and_components():
     assert candidate.event_kind == outlier_candidates.OUTLIER_EVENT_SPOT_IMPULSE
     assert candidate.start_utc == WALTER_IMPULSE_UTC
     assert candidate.end_utc > candidate.start_utc
+    assert candidate.baseline_anchor_start_utc == WALTER_IMPULSE_UTC
+    assert candidate.baseline_anchor_end_utc == WALTER_IMPULSE_UTC
+    assert candidate.episode_guard_minutes == pytest.approx(30.0)
     assert candidate.representative_utc == WALTER_IMPULSE_UTC
     assert candidate.representative_delta_snr_db == pytest.approx(8.0)
     assert candidate.episode_median_delta_snr_db == pytest.approx(8.0)
@@ -479,6 +510,79 @@ def test_walter_style_single_spot_impulse_uses_exact_cycle_and_components():
     )
     assert marker["marker_delta_snr_db"] == pytest.approx(8.0)
     assert marker["event_kind"] == "spot_impulse"
+
+
+def test_exact_outlier_context_uses_detector_flanks_and_analysis_clipping():
+    """Expose exact half-open pre/post flanks for Drill-Down navigation."""
+    model = _detect(_path_units())
+    candidate = model.candidates[0]
+
+    context = outlier_candidates.build_delta_snr_outlier_context_bounds(
+        candidate,
+        analysis_start_utc=ANALYSIS_START,
+        analysis_end_utc=ANALYSIS_END,
+    )
+
+    assert context.context_start_utc == WALTER_IMPULSE_UTC - pd.Timedelta(
+        hours=6
+    )
+    assert context.context_end_utc == (
+        WALTER_IMPULSE_UTC
+        + pd.Timedelta(hours=6)
+        + pd.Timedelta(nanoseconds=1)
+    )
+    assert context.pre_flank_start_utc == context.context_start_utc
+    assert context.pre_flank_end_utc == WALTER_IMPULSE_UTC - pd.Timedelta(
+        minutes=30
+    )
+    assert context.post_flank_start_utc == (
+        WALTER_IMPULSE_UTC
+        + pd.Timedelta(minutes=30)
+        + pd.Timedelta(nanoseconds=1)
+    )
+    assert context.post_flank_end_utc == context.context_end_utc
+
+    clipped_end = WALTER_IMPULSE_UTC + pd.Timedelta(hours=1)
+    clipped_context = outlier_candidates.build_delta_snr_outlier_context_bounds(
+        candidate,
+        analysis_start_utc=WALTER_IMPULSE_UTC,
+        analysis_end_utc=clipped_end,
+    )
+
+    assert clipped_context.context_start_utc == WALTER_IMPULSE_UTC
+    assert clipped_context.context_end_utc == clipped_end
+    assert clipped_context.pre_flank_start_utc == WALTER_IMPULSE_UTC
+    assert clipped_context.pre_flank_end_utc == WALTER_IMPULSE_UTC
+
+
+def test_baseline_context_fields_participate_in_candidate_signature():
+    """Invalidate the model when retained detector-context semantics change."""
+    model = _detect(_path_units())
+    candidate = model.candidates[0]
+    changed_candidates = (
+        replace(
+            candidate,
+            baseline_anchor_start_utc=(
+                candidate.baseline_anchor_start_utc - pd.Timedelta(minutes=2)
+            ),
+        ),
+        replace(
+            candidate,
+            baseline_anchor_end_utc=(
+                candidate.baseline_anchor_end_utc + pd.Timedelta(minutes=2)
+            ),
+        ),
+        replace(
+            candidate,
+            episode_guard_minutes=candidate.episode_guard_minutes + 2.0,
+        ),
+    )
+
+    for changed_candidate in changed_candidates:
+        assert model.candidate_signature != outlier_candidates._candidate_signature(
+            (changed_candidate,),
+            model.detection_policy,
+        )
 
 
 def test_walter_example_times_form_two_exact_same_path_impulses():
@@ -557,6 +661,11 @@ def test_walter_second_sequence_resegments_and_trims_to_its_strong_anchor():
         WALTER_SECOND_IMPULSE_UTC + pd.Timedelta(nanoseconds=1)
     )
     assert second_candidate.representative_utc == WALTER_SECOND_IMPULSE_UTC
+    assert second_candidate.baseline_anchor_start_utc == WALTER_SECOND_IMPULSE_UTC
+    assert second_candidate.baseline_anchor_end_utc == (
+        first_impulse_utc + pd.Timedelta(minutes=78)
+    )
+    assert second_candidate.episode_guard_minutes == pytest.approx(20.0)
     assert second_candidate.paired_unit_count == 1
     assert second_candidate.observed_span_minutes == pytest.approx(0.0)
     assert second_candidate.largest_gap_minutes == pytest.approx(0.0)
@@ -741,11 +850,95 @@ def test_short_burst_qualifies_at_the_shared_episode_gates():
     assert candidate.median_anomaly_db == pytest.approx(3.2)
     assert candidate.peak_anomaly_db == pytest.approx(3.2)
     assert abs(candidate.median_anomaly_db) >= (
-        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_departure_db
+        TEST_DETECTION_POLICY.minimum_departure_db
     )
     assert candidate.robust_z == pytest.approx(4.3168)
     assert abs(candidate.robust_z) >= (
-        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_robust_z
+        TEST_DETECTION_POLICY.minimum_robust_z
+    )
+
+
+def test_short_burst_retains_only_individually_qualifying_native_units():
+    """Do not turn a weak internal episode member into an outlier marker."""
+    model = _detect(
+        _path_units(
+            event_points=((0, 6.2), (4, 4.0), (8, 6.2)),
+        )
+    )
+
+    candidate = model.candidates[0]
+    assert candidate.paired_unit_count == 3
+    assert isinstance(candidate.qualifying_units, tuple)
+    assert tuple(
+        qualifying_unit.evidence_utc
+        for qualifying_unit in candidate.qualifying_units
+    ) == (
+        WALTER_IMPULSE_UTC,
+        WALTER_IMPULSE_UTC + pd.Timedelta(minutes=8),
+    )
+    assert tuple(
+        qualifying_unit.delta_snr_db
+        for qualifying_unit in candidate.qualifying_units
+    ) == pytest.approx((6.2, 6.2))
+    assert tuple(
+        qualifying_unit.residual_db
+        for qualifying_unit in candidate.qualifying_units
+    ) == pytest.approx((3.2, 3.2))
+    assert tuple(
+        qualifying_unit.robust_z
+        for qualifying_unit in candidate.qualifying_units
+    ) == pytest.approx((4.3168, 4.3168))
+    with pytest.raises(FrozenInstanceError):
+        candidate.qualifying_units[0].delta_snr_db = 99.0
+
+
+def test_unsupported_opposite_bridge_cannot_become_episode_representative(
+    monkeypatch,
+):
+    """Choose the strongest qualifying anchor, not an abstaining bridge."""
+    unsupported_cell = (
+        WALTER_IMPULSE_UTC + pd.Timedelta(minutes=10)
+    ).floor(outlier_candidates.DELTA_SNR_OUTLIER_BASELINE_CELL)
+
+    def forced_pilot_baselines(
+        cell_times,
+        _cell_metrics_db,
+        **_kwargs,
+    ):
+        baselines_db = np.full(len(cell_times), 3.0, dtype=float)
+        baselines_db[cell_times == unsupported_cell] = np.nan
+        return baselines_db
+
+    monkeypatch.setattr(
+        outlier_candidates,
+        "_pilot_baselines_by_cell",
+        forced_pilot_baselines,
+    )
+    model = _detect(
+        _path_units(
+            event_points=((0, 6.2), (10, -20.0), (20, 7.2)),
+        )
+    )
+
+    candidate = model.candidates[0]
+    assert candidate.paired_unit_count == 3
+    assert candidate.paired_unit_sign_agreement_fraction == pytest.approx(
+        2.0 / 3.0
+    )
+    assert tuple(
+        qualifying_unit.evidence_utc
+        for qualifying_unit in candidate.qualifying_units
+    ) == (
+        WALTER_IMPULSE_UTC,
+        WALTER_IMPULSE_UTC + pd.Timedelta(minutes=20),
+    )
+    assert candidate.representative_utc == (
+        WALTER_IMPULSE_UTC + pd.Timedelta(minutes=20)
+    )
+    assert candidate.representative_delta_snr_db == pytest.approx(7.2)
+    assert candidate.peak_anomaly_db == pytest.approx(-23.0)
+    assert candidate.representative_utc != (
+        WALTER_IMPULSE_UTC + pd.Timedelta(minutes=10)
     )
 
 
@@ -1088,7 +1281,7 @@ def test_default_grouping_floor_retains_only_bracketed_one_db_evidence():
     assert candidate.observed_span_minutes == pytest.approx(20.0)
     assert candidate.median_anomaly_db == pytest.approx(3.5)
     assert candidate.median_anomaly_db >= (
-        DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_departure_db
+        TEST_DETECTION_POLICY.minimum_departure_db
     )
 
 
@@ -1363,6 +1556,117 @@ def test_marker_filtering_and_signatures_are_stable_under_row_order():
     assert _detect(changed_units).candidate_signature != (
         first_model.candidate_signature
     )
+
+
+def test_qualifying_unit_marker_recipe_filters_exact_path_and_half_open_window():
+    """Expose deterministic native strong anchors without episode-member inference."""
+    comparison_units = pd.concat(
+        [
+            _path_units(
+                "A1AAA",
+                "AA11",
+                event_points=((0, 6.2), (4, 4.0), (8, 6.2)),
+                identity_order=0,
+            ),
+            _path_units(
+                "B2BBB",
+                "BB22",
+                event_points=((20, 6.2), (24, 4.0), (28, 6.2)),
+                identity_order=1,
+            ),
+        ],
+        ignore_index=True,
+    )
+    model = _detect(comparison_units)
+
+    complete_recipe = model.qualifying_unit_marker_recipe()
+    assert complete_recipe["schema_version"] == 1
+    assert complete_recipe["candidate_signature"] == model.candidate_signature
+    assert complete_recipe["candidate_count"] == 2
+    assert complete_recipe["qualifying_unit_count"] == 4
+    assert len(complete_recipe["marker_signature"]) == 64
+    assert [
+        marker["marker_utc_ns"] for marker in complete_recipe["markers"]
+    ] == sorted(
+        marker["marker_utc_ns"] for marker in complete_recipe["markers"]
+    )
+    first_marker = complete_recipe["markers"][0]
+    assert first_marker == {
+        "callsign": "A1AAA",
+        "locator": "AA11",
+        "marker_utc_ns": int(WALTER_IMPULSE_UTC.value),
+        "marker_delta_snr_db": pytest.approx(6.2),
+        "residual_db": pytest.approx(3.2),
+        "robust_z": pytest.approx(4.3168),
+        "episode_start_utc_ns": int(WALTER_IMPULSE_UTC.value),
+        "episode_end_utc_ns": int(
+            (WALTER_IMPULSE_UTC + pd.Timedelta(minutes=8, nanoseconds=1)).value
+        ),
+        "representative_utc_ns": int(WALTER_IMPULSE_UTC.value),
+        "representative_delta_snr_db": pytest.approx(6.2),
+        "event_kind": outlier_candidates.OUTLIER_EVENT_SHORT_BURST,
+        "candidate_event_signature": first_marker[
+            "candidate_event_signature"
+        ],
+        "detection_policy_signature": model.detection_policy_signature,
+    }
+    assert len(first_marker["candidate_event_signature"]) == 64
+
+    filtered_recipe = model.qualifying_unit_marker_recipe(
+        [{"callsign": "a1aaa", "locator": "aa11"}],
+        start_utc=WALTER_IMPULSE_UTC,
+        end_utc=WALTER_IMPULSE_UTC + pd.Timedelta(minutes=8),
+    )
+    assert filtered_recipe["candidate_count"] == 1
+    assert filtered_recipe["qualifying_unit_count"] == 1
+    assert filtered_recipe["markers"][0]["callsign"] == "A1AAA"
+    assert filtered_recipe["markers"][0]["marker_utc_ns"] == int(
+        WALTER_IMPULSE_UTC.value
+    )
+    assert model.qualifying_unit_marker_recipe(
+        [{"callsign": "C3CCC", "locator": "CC33"}]
+    ) is None
+
+
+def test_qualifying_unit_marker_recipe_rejects_invalid_or_stale_contracts():
+    """Fail closed for incomplete windows and inconsistent strong-anchor data."""
+    model = _detect(
+        _path_units(event_points=((0, 6.2), (4, 4.0), (8, 6.2)))
+    )
+    candidate = model.candidates[0]
+
+    with pytest.raises(ValueError, match="both start_utc and end_utc"):
+        model.qualifying_unit_marker_recipe(start_utc=WALTER_IMPULSE_UTC)
+    with pytest.raises(ValueError, match="positive UTC window"):
+        model.qualifying_unit_marker_recipe(
+            start_utc=WALTER_IMPULSE_UTC,
+            end_utc=WALTER_IMPULSE_UTC,
+        )
+    assert replace(
+        model,
+        detector_version="stale-detector",
+    ).qualifying_unit_marker_recipe() is None
+    assert replace(
+        model,
+        candidates=(replace(candidate, qualifying_units=()),),
+    ).qualifying_unit_marker_recipe() is None
+
+    inconsistent_unit = replace(
+        candidate.qualifying_units[0],
+        residual_db=candidate.qualifying_units[0].residual_db + 1.0,
+    )
+    inconsistent_candidate = replace(
+        candidate,
+        qualifying_units=(
+            inconsistent_unit,
+            *candidate.qualifying_units[1:],
+        ),
+    )
+    with pytest.raises(ValueError, match="coordinates are inconsistent"):
+        replace(
+            model,
+            candidates=(inconsistent_candidate,),
+        ).qualifying_unit_marker_recipe()
 
 
 def test_detector_does_not_mutate_units_and_ignores_invalid_rows():

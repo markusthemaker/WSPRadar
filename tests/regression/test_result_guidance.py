@@ -913,6 +913,169 @@ def test_outlier_report_guidance_uses_shared_gates_and_descriptive_classes():
         )
 
 
+def test_drilldown_focus_copy_defines_centered_native_evidence_and_detector_guides():
+    """Keep the focused-view controls, evidence units and caveats bilingual."""
+    assert T["en"]["btn_outlier_show_path_in_station_insights"] == (
+        "↓ Show in Station Insights"
+    )
+    assert T["en"]["btn_outlier_show_drilldown_details"] == (
+        "↓ Show Drill-Down Details"
+    )
+    assert T["de"]["btn_outlier_show_path_in_station_insights"] == (
+        "↓ In Station Insights anzeigen"
+    )
+    assert T["de"]["btn_outlier_show_drilldown_details"] == (
+        "↓ Drill-Down-Details anzeigen"
+    )
+    assert T["en"]["fig_drilldown_outlier_candidate"] == (
+        "Qualifying candidate unit"
+    )
+    assert T["de"]["fig_drilldown_outlier_candidate"] == (
+        "Qualifizierende Kandidateneinheit"
+    )
+    assert T["en"]["fig_drilldown_outlier_focused_episode"] == (
+        "Focused episode"
+    )
+    assert T["de"]["fig_drilldown_outlier_focused_episode"] == (
+        "Fokussierte Episode"
+    )
+
+    expected_controls = {
+        "en": (
+            "Center date (UTC)",
+            "Center time (UTC)",
+            "← Earlier",
+            "Later →",
+            "Outlier Focus",
+            "Filter table",
+        ),
+        "de": (
+            "Datum der Fenstermitte (UTC)",
+            "Uhrzeit der Fenstermitte (UTC)",
+            "← Früher",
+            "Später →",
+            "Ausreißerfokus",
+            "Tabelle filtern",
+        ),
+    }
+    control_keys = (
+        "lbl_drilldown_center_date_utc",
+        "lbl_drilldown_center_time_utc",
+        "btn_drilldown_zoom_earlier",
+        "btn_drilldown_zoom_later",
+        "lbl_drilldown_zoom_outlier_focus",
+        "lbl_filter_table",
+    )
+    for language, expected_values in expected_controls.items():
+        assert tuple(T[language][key] for key in control_keys) == expected_values
+    assert T["en"]["txt_results_drilldown_filter_note"] == (
+        "Filter table changes only the displayed table; Zoom window limits both "
+        "the focused plots and table, never the completed analysis."
+    )
+    assert T["de"]["txt_results_drilldown_filter_note"] == (
+        "Mit „Tabelle filtern“ wird nur die angezeigte Tabelle verändert; das "
+        "Zoom-Zeitfenster begrenzt fokussierte Abbildungen und Tabelle, niemals "
+        "die abgeschlossene Analyse."
+    )
+
+    assert T["en"]["fmt_drilldown_zoom_time_window"].format(
+        identity="DG2CAD (JN47mv)",
+        start="2021-05-10 17:31",
+        end="2021-05-11 05:31",
+    ) == (
+        "DG2CAD (JN47mv) - Time Window: "
+        "2021-05-10 17:31 to 2021-05-11 05:31 UTC"
+    )
+    assert T["de"]["fmt_drilldown_zoom_time_window"].format(
+        identity="DG2CAD (JN47mv)",
+        start="10.05.2021 17:31",
+        end="11.05.2021 05:31",
+    ) == (
+        "DG2CAD (JN47mv) - Zeitfenster: "
+        "10.05.2021 17:31 bis 11.05.2021 05:31 UTC"
+    )
+    assert T["en"]["fmt_drilldown_zoom_selected_window"].format(
+        start="2021-05-10 17:31",
+        end="2021-05-11 05:31",
+    ) == "Selected window: 2021-05-10 17:31 to 2021-05-11 05:31 UTC"
+    assert T["de"]["fmt_drilldown_zoom_selected_window"].format(
+        start="10.05.2021 17:31",
+        end="11.05.2021 05:31",
+    ) == "Ausgewähltes Zeitfenster: 10.05.2021 17:31 bis 11.05.2021 05:31 UTC"
+
+    for language in ("en", "de"):
+        for superseded_key in (
+            "lbl_drilldown_focus_date_utc",
+            "lbl_drilldown_focus_time_utc",
+            "lbl_drilldown_zoom_event_focus_12h",
+            "lbl_drilldown_zoom_fit_detector_context",
+            "txt_drilldown_zoom_cycle_resolution",
+            "txt_drilldown_outlier_overlay_note",
+            "fig_drilldown_outlier_candidate_interval",
+        ):
+            assert superseded_key not in T[language]
+
+    english_sections = RESULT_GUIDANCE["en"]["sections"]
+    for section_key in ("drilldown_compare_joint", "drilldown_compare_scheduled"):
+        read = english_sections[section_key]["read"]
+        assert "exact centered interval" in read
+        assert "`Filter table` then changes only the displayed rows" in read
+        assert "no temporal median, IQR, density layer, full-run median" in read
+        assert "Segment and full-window Selected Station Evidence remain aggregated density views" in read
+    assert "one actual ΔSNR point for every retained Joint Spot" in english_sections[
+        "drilldown_compare_joint"
+    ]["read"]
+    assert "one actual Pair ΔSNR point per retained complete Scheduled Pair" in english_sections[
+        "drilldown_compare_scheduled"
+    ]["read"]
+    for section_key in ("drilldown_success_rx", "drilldown_success_tx"):
+        read = english_sections[section_key]["read"]
+        assert "each successful confirmed opportunity" in read
+        assert "unsuccessful opportunities have no SNR point" in read
+
+    english_outlier = english_sections["outlier_report"]
+    assert "preloads its `Outlier Focus`" in english_outlier["read"]
+    assert "robust-z guides at 1, 2, 3 and the configured qualifying threshold" in english_outlier["read"]
+    assert "the individually qualifying native unit with the greatest absolute residual in each review event" in english_outlier["read"]
+    assert "never selects an unsupported or nonqualifying episode peak" in english_outlier["read"]
+    assert "separate from **Largest single-cycle departure**, which remains the true greatest-absolute retained residual" in english_outlier["read"]
+    assert "the strongest residual in each review event" not in english_outlier["read"]
+    assert "same star marks every native unit in that window that belongs to a reported candidate and individually meets both configured departure and robust-z gates" in english_outlier["read"]
+    assert "muted band labelled **Focused episode** identifies the selected reported episode" in english_outlier["read"]
+    assert "Other starred candidate units may have been evaluated against different local baselines and robust spreads" in english_outlier["read"]
+    assert "detector guides, not confidence intervals" in english_outlier["limits"]
+    assert "crossing one guide alone is insufficient" in english_outlier["limits"]
+    assert "padded by half one native-unit width at each end" in english_outlier["limits"]
+    assert "neither a confidence interval nor a measurement of physical-event duration" in english_outlier["limits"]
+
+    german_sections = RESULT_GUIDANCE["de"]["sections"]
+    for section_key in ("drilldown_compare_joint", "drilldown_compare_scheduled"):
+        read = german_sections[section_key]["read"]
+        assert "exaktes zentriertes Intervall" in read
+        assert "`Tabelle filtern` verändert anschließend nur die angezeigten Zeilen" in read
+        assert "Zeitmedian, IQR, Dichteschicht, Median des vollständigen Laufs" in read
+        assert "aggregierte Dichteansichten" in read
+    for section_key in ("drilldown_success_rx", "drilldown_success_tx"):
+        read = german_sections[section_key]["read"]
+        assert "jeder erfolgreichen bestätigten Gelegenheit" in read
+        assert "erfolglose Gelegenheiten besitzen keinen SNR-Punkt" in read
+
+    german_outlier = german_sections["outlier_report"]
+    assert "lädt dessen `Ausreißerfokus`" in german_outlier["read"]
+    assert "robuste-z-Hilfslinien bei 1, 2, 3" in german_outlier["read"]
+    assert "die einzeln qualifizierende native Einheit mit dem betragsmäßig größten Residuum" in german_outlier["read"]
+    assert "ungestützte oder nicht qualifizierende Episodenspitze" in german_outlier["read"]
+    assert "von der Berichtsgröße **Größte Einzelzyklusabweichung** getrennt" in german_outlier["read"]
+    assert "das stärkste Residuum jedes Prüfereignisses" not in german_outlier["read"]
+    assert "dasselbe Sternsymbol jede native Einheit in diesem Fenster, die zu einem gemeldeten Kandidaten gehört" in german_outlier["read"]
+    assert "mit **Fokussierte Episode** beschriftetes Band kennzeichnet die ausgewählte berichtete Episode" in german_outlier["read"]
+    assert "Andere markierte Kandidateneinheiten können gegen andere lokale Baselines und robuste Streuungen bewertet worden sein" in german_outlier["read"]
+    assert "Detektorhilfen und keine Konfidenzintervalle" in german_outlier["limits"]
+    assert "Überschreiten einer einzelnen Linie reicht nicht aus" in german_outlier["limits"]
+    assert "an beiden Enden um eine halbe Breite der nativen Evidenzeinheit erweitert" in german_outlier["limits"]
+    assert "weder ein Konfidenzintervall noch eine Messung der Dauer eines physischen Ereignisses" in german_outlier["limits"]
+
+
 def test_success_selected_guidance_stays_near_readability_target():
     """Keep each selected-station popover within the generous copy ceiling."""
     for language in ("en", "de"):

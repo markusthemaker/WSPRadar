@@ -1,6 +1,7 @@
 """Prepared-results package structure regression tests."""
 
 from contextlib import nullcontext
+from copy import deepcopy
 import io
 import inspect
 import json
@@ -24,7 +25,18 @@ from core.artifact_store import (
 )
 from i18n import T
 from ui import results_export
-from ui.plots import benchmark_evidence_figures, evidence_figures
+from ui.inspector.outlier_export import (
+    DeltaSnrOutlierExportTables,
+    OUTLIER_EVENT_PATH_COLUMNS,
+    OUTLIER_EVENT_PATHS_TABLE_FILENAME,
+    OUTLIER_PAIRED_EVIDENCE_COLUMNS,
+    OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME,
+)
+from ui.plots import (
+    benchmark_evidence_figures,
+    drilldown_zoom_figures,
+    evidence_figures,
+)
 
 
 SUCCESS_SELECTED_FIGURE_EXPORTS = (
@@ -65,6 +77,28 @@ COMPARE_COVERAGE_EXPORT_CASES = (
         "Selected Path Evidence Coverage",
     ),
 )
+DRILLDOWN_ZOOM_RENDER_CASES = (
+    (
+        "figure_drilldown_zoom_snr_evidence.png",
+        "drilldown_zoom_performance_snr_figure_recipe",
+        "render_drilldown_zoom_performance_snr_figure",
+    ),
+    (
+        "figure_drilldown_zoom_temporal_evidence.png",
+        "drilldown_zoom_performance_temporal_figure_recipe",
+        "render_drilldown_zoom_performance_evidence_figure",
+    ),
+    (
+        "figure_drilldown_zoom_delta_snr_evidence.png",
+        "drilldown_zoom_benchmark_delta_snr_figure_recipe",
+        "render_drilldown_zoom_benchmark_delta_snr_figure",
+    ),
+    (
+        "figure_drilldown_zoom_coverage.png",
+        "drilldown_zoom_benchmark_coverage_figure_recipe",
+        "render_drilldown_zoom_benchmark_coverage_figure",
+    ),
+)
 RETIRED_COMPARE_FIGURE_EXPORTS = (
     (
         "figure_segment_temporal_delta_change.png",
@@ -77,6 +111,163 @@ RETIRED_COMPARE_FIGURE_EXPORTS = (
         "render_compare_path_consistency_export_figure",
     ),
 )
+
+
+def _drilldown_zoom_metadata(
+    *,
+    start_utc="2026-07-01T03:00:00Z",
+    end_utc="2026-07-01T06:00:00Z",
+    option="3h",
+    origin="manual",
+    time_bin="native",
+    outlier_candidate=None,
+):
+    """Build one valid exact focused-window export contract."""
+    metadata = {
+        "schema_version": results_export.DRILLDOWN_ZOOM_EXPORT_SCHEMA_VERSION,
+        "station": {"callsign": "ok1fcx", "locator": "jn79"},
+        "start_utc": start_utc,
+        "end_utc": end_utc,
+        "option": option,
+        "origin": origin,
+        "time_bin": time_bin,
+        "resolution": drilldown_zoom_figures.DRILLDOWN_ZOOM_NATIVE_RESOLUTION,
+        "aggregation": drilldown_zoom_figures.DRILLDOWN_ZOOM_NO_AGGREGATION,
+        "layout_version": (
+            drilldown_zoom_figures.DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION
+        ),
+    }
+    if outlier_candidate is not None:
+        metadata["outlier_candidate"] = outlier_candidate
+    return metadata
+
+
+def _drilldown_zoom_outlier_candidate_metadata():
+    """Build one exact detector-provenance record matching a plot overlay."""
+    return {
+        "request_token": "request-1",
+        "detector_version": "detector-v1",
+        "candidate_signature": "candidate-1",
+        "representative_utc": "2026-07-01T06:02:00Z",
+        "representative_delta_snr_db": 9.0,
+        "event_start_utc": "2026-07-01T06:00:00Z",
+        "event_end_utc": "2026-07-01T06:04:00Z",
+        "pre_flank_start_utc": "2026-07-01T00:00:00Z",
+        "pre_flank_end_utc": "2026-07-01T05:50:00Z",
+        "post_flank_start_utc": "2026-07-01T06:14:00Z",
+        "post_flank_end_utc": "2026-07-01T12:00:00Z",
+        "local_baseline_db": 1.0,
+        "pre_baseline_db": 0.5,
+        "post_baseline_db": 1.5,
+        "robust_spread_db": 2.0,
+        "robust_spread_method": "mad",
+        "robust_z": 4.5,
+        "minimum_robust_z": 4.0,
+        "minimum_departure_db": 6.0,
+    }
+
+
+def _delta_snr_outlier_export_contract(*, populated=True, empty=False):
+    """Build valid canonical outlier tables and their registration metadata."""
+    event_rows = []
+    evidence_rows = []
+    if not empty:
+        event_rows = [
+            {
+                "event_id": "E0001",
+                "combined_event_class": "spot_impulse",
+                "event_first_evidence_utc": "2021-06-03T03:38:00Z",
+                "event_last_evidence_utc": "2021-06-03T03:38:00Z",
+                "cross_path_context": "path_specific",
+                "departure_direction": "positive",
+                "qualifying_path_count": 1,
+                "path_event_id": "E0001-P01-01",
+                "path_number": 1,
+                "path_occurrence": 1,
+                "path": "DC0DX (JO31LK)",
+                "callsign": "DC0DX",
+                "locator": "JO31LK",
+                "direction": "ENE",
+                "path_event_class": "spot_impulse",
+                "path_first_evidence_utc": "2021-06-03T03:38:00Z",
+                "path_last_evidence_utc": "2021-06-03T03:38:00Z",
+                "paired_unit_type": "joint_spot",
+                "paired_unit_count": 1,
+                "first_to_last_span_minutes": 0.0,
+                "median_evidence_interval_minutes": None,
+                "largest_gap_minutes": None,
+                "expected_local_delta_snr_db": 1.4,
+                "observed_median_delta_snr_db": 6.4,
+                "largest_single_unit_departure_db": 5.0,
+                "path_robust_z_score": 6.745,
+                "pre_event_baseline_delta_snr_db": 1.2,
+                "post_event_baseline_delta_snr_db": 1.6,
+                "absolute_pre_post_baseline_difference_db": 0.4,
+                "agreeing_paired_unit_count": 1,
+                "paired_unit_sign_agreement_fraction": 1.0,
+                "decode_edge_warning": False,
+                "decode_edge_warning_reason": None,
+                "nearby_joint_unit_count": 2,
+                "nearby_target_only_unit_count": 0,
+                "nearby_reference_only_unit_count": 0,
+            }
+        ]
+        evidence_rows = [
+            {
+                "event_id": "E0001",
+                "event_first_evidence_utc": "2021-06-03T03:38:00Z",
+                "event_last_evidence_utc": "2021-06-03T03:38:00Z",
+                "path_event_id": "E0001-P01-01",
+                "path": "DC0DX (JO31LK)",
+                "callsign": "DC0DX",
+                "locator": "JO31LK",
+                "direction": "ENE",
+                "path_event_class": "spot_impulse",
+                "paired_unit_type": "joint_spot",
+                "unit_sequence": 1,
+                "utc": "2021-06-03T03:38:00Z",
+                "target_snr_db": -24.0,
+                "corrected_reference_snr_db": -30.4,
+                "delta_snr_db": 6.4,
+                "expected_local_delta_snr_db": 1.4,
+                "departure_from_local_baseline_db": 5.0,
+                "cycle_robust_z_score": 6.745,
+                "meets_strong_anchor_gates": True,
+                "reported_boundary": "start_and_end",
+            }
+        ]
+    tables = DeltaSnrOutlierExportTables(
+        event_paths=pd.DataFrame(event_rows, columns=OUTLIER_EVENT_PATH_COLUMNS),
+        paired_evidence=pd.DataFrame(
+            evidence_rows,
+            columns=OUTLIER_PAIRED_EVIDENCE_COLUMNS,
+        ),
+    )
+    populated_count = 1 if populated else 0
+    metadata = {
+        "schema_version": 1,
+        "result_status": (
+            "candidates"
+            if not empty
+            else "no_candidates"
+            if populated
+            else "insufficient_paired_evidence"
+        ),
+        "candidate_signature": "candidate-signature",
+        "detection_resolution": "native-paired-unit",
+        "event_count": 0 if empty else 1,
+        "path_event_count": 0 if empty else 1,
+        "unique_qualifying_path_count": 0 if empty else 1,
+        "paired_evidence_row_count": 0 if empty else 1,
+        "populated_paired_unit_count": populated_count,
+        "evaluable_paired_unit_count": populated_count,
+        "abstained_paired_unit_count": 0,
+        "tables": {
+            "event_paths": OUTLIER_EVENT_PATHS_TABLE_FILENAME,
+            "paired_evidence": OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME,
+        },
+    }
+    return tables, metadata
 
 
 def _create_registered_export_artifacts(tmp_path, *, analysis_id="RX_ABS"):
@@ -745,6 +936,51 @@ def test_segment_temporal_figure_uses_its_distinct_export_recipe(monkeypatch):
     assert disposed_figures == [fake_figure]
 
 
+@pytest.mark.parametrize(
+    ("figure_name", "recipe_key", "renderer_name"),
+    DRILLDOWN_ZOOM_RENDER_CASES,
+)
+def test_drilldown_zoom_exports_dispatch_exact_registered_recipes(
+    monkeypatch,
+    figure_name,
+    recipe_key,
+    renderer_name,
+):
+    """Render each focused figure through its chronological-only adapter."""
+    from ui.plots import drilldown_zoom_figures
+
+    recipe = {"kind": recipe_key, "time_bin": "2m"}
+    fake_figure = object()
+    received_recipes = []
+    disposed_figures = []
+    monkeypatch.setattr(
+        drilldown_zoom_figures,
+        renderer_name,
+        lambda received: received_recipes.append(received) or fake_figure,
+    )
+    monkeypatch.setattr(
+        results_export,
+        "figure_to_png_bytes",
+        lambda figure, *, paper_theme: (
+            b"focused-png" if figure is fake_figure and paper_theme else b""
+        ),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "dispose_matplotlib_figure",
+        disposed_figures.append,
+    )
+
+    rendered = results_export._render_inspector_png_for_block(
+        {recipe_key: recipe},
+        figure_name,
+    )
+
+    assert rendered == b"focused-png"
+    assert received_recipes == [recipe]
+    assert disposed_figures == [fake_figure]
+
+
 def test_high_resolution_compare_exports_receive_exact_registered_marker_recipes(
     monkeypatch,
 ):
@@ -1339,6 +1575,349 @@ def test_register_inspector_export_keeps_all_success_temporal_recipes_independen
     assert selected_snr_recipe is not selected_evidence_recipe
 
 
+def test_register_inspector_export_replaces_and_clears_drilldown_zoom_state(
+    monkeypatch,
+):
+    """Keep one exact mode-specific pair and remove stale focused artifacts."""
+    stale_recipe = {"kind": "stale"}
+    blocks = {
+        "RX_ABS": {
+            "analysis_id": "RX_ABS",
+            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
+            "drilldown_zoom_metadata": {"stale": True},
+            **{
+                recipe_key: stale_recipe
+                for recipe_key in results_export.DRILLDOWN_ZOOM_RECIPE_KEYS
+            },
+        }
+    }
+    snr_recipe = {
+        "kind": "drilldown_zoom_performance_native_snr",
+        "schema_version": 2,
+        "layout_version": (
+            drilldown_zoom_figures.DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION
+        ),
+        "time_bin": "native",
+        "resolution": drilldown_zoom_figures.DRILLDOWN_ZOOM_NATIVE_RESOLUTION,
+        "aggregation": drilldown_zoom_figures.DRILLDOWN_ZOOM_NO_AGGREGATION,
+        "snr_title": "Selected Station SNR Evidence, Time Window: x to y UTC",
+    }
+    temporal_recipe = {
+        "kind": "opportunity_performance_temporal",
+        "schema_version": 1,
+        "time_bin": "2m",
+        "evidence_title": (
+            "Selected Station Temporal Evidence, Time Window: x to y UTC"
+        ),
+    }
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: blocks,
+    )
+    common_arguments = {
+        "analysis_id": "RX_ABS",
+        "selected_segment": "Full Range | All Directions",
+        "selected_distance": "Full Range",
+        "selected_direction": "All Directions",
+        "show_non_joint": False,
+        "evidence_time_bin": "3h",
+        "selected_stations": ["OK1FCX (JN79)"],
+        "translations": T["en"],
+    }
+
+    results_export.register_inspector_export(
+        **common_arguments,
+        drilldown_zoom_metadata=_drilldown_zoom_metadata(),
+        drilldown_zoom_performance_snr_figure_recipe=snr_recipe,
+        drilldown_zoom_performance_temporal_figure_recipe=temporal_recipe,
+    )
+
+    block = blocks["RX_ABS"]
+    assert block["drilldown_zoom_metadata"] == {
+        **_drilldown_zoom_metadata(),
+        "station": {"callsign": "OK1FCX", "locator": "JN79"},
+    }
+    assert block["drilldown_zoom_performance_snr_figure_recipe"] is (
+        snr_recipe
+    )
+    assert block["drilldown_zoom_performance_temporal_figure_recipe"] is (
+        temporal_recipe
+    )
+    assert "drilldown_zoom_benchmark_delta_snr_figure_recipe" not in block
+    assert "drilldown_zoom_benchmark_coverage_figure_recipe" not in block
+
+    results_export.register_inspector_export(**common_arguments)
+
+    assert "drilldown_zoom_metadata" not in block
+    assert all(
+        recipe_key not in block
+        for recipe_key in results_export.DRILLDOWN_ZOOM_RECIPE_KEYS
+    )
+
+
+def test_drilldown_zoom_registration_rejects_invalid_or_incomplete_contracts():
+    """Reject invalid bounds and a lone focused recipe before state mutation."""
+    invalid_bounds = _drilldown_zoom_metadata(
+        start_utc="2026-07-01T06:00:00Z",
+        end_utc="2026-07-01T03:00:00Z",
+    )
+    with pytest.raises(ValueError, match="after start_utc"):
+        results_export._validated_drilldown_zoom_registration(
+            metadata=invalid_bounds,
+            selected_station_count=1,
+            performance_snr_recipe={"kind": "snr"},
+            performance_temporal_recipe={"kind": "temporal"},
+            benchmark_delta_snr_recipe=None,
+            benchmark_coverage_recipe=None,
+        )
+
+    with pytest.raises(ValueError, match="both mode-specific"):
+        results_export._validated_drilldown_zoom_registration(
+            metadata=_drilldown_zoom_metadata(),
+            selected_station_count=1,
+            performance_snr_recipe={"kind": "snr"},
+            performance_temporal_recipe=None,
+            benchmark_delta_snr_recipe=None,
+            benchmark_coverage_recipe=None,
+        )
+
+    performance_recipe_with_overlay = {
+        "time_bin": "native",
+        "resolution": drilldown_zoom_figures.DRILLDOWN_ZOOM_NATIVE_RESOLUTION,
+        "aggregation": drilldown_zoom_figures.DRILLDOWN_ZOOM_NO_AGGREGATION,
+        "layout_version": (
+            drilldown_zoom_figures.DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION
+        ),
+        "outlier_overlay": {"stale": True},
+    }
+    with pytest.raises(ValueError, match="cannot carry an outlier overlay"):
+        results_export._validated_drilldown_zoom_registration(
+            metadata=_drilldown_zoom_metadata(),
+            selected_station_count=1,
+            performance_snr_recipe=performance_recipe_with_overlay,
+            performance_temporal_recipe={"kind": "temporal"},
+            benchmark_delta_snr_recipe=None,
+            benchmark_coverage_recipe=None,
+        )
+
+
+def test_benchmark_zoom_registration_requires_exact_outlier_overlay_provenance():
+    """Bind the exported candidate record to the plotted detector guides."""
+    candidate_metadata = _drilldown_zoom_outlier_candidate_metadata()
+    overlay = drilldown_zoom_figures.build_drilldown_zoom_outlier_overlay_recipe(
+        representative_utc=candidate_metadata["representative_utc"],
+        representative_delta_snr_db=(
+            candidate_metadata["representative_delta_snr_db"]
+        ),
+        qualifying_marker_times_utc=[
+            candidate_metadata["representative_utc"]
+        ],
+        qualifying_marker_delta_snr_db=[
+            candidate_metadata["representative_delta_snr_db"]
+        ],
+        candidate_start_utc=candidate_metadata["event_start_utc"],
+        candidate_end_utc=candidate_metadata["event_end_utc"],
+        native_evidence_unit_minutes=2.0,
+        local_baseline_db=candidate_metadata["local_baseline_db"],
+        pre_baseline_db=candidate_metadata["pre_baseline_db"],
+        post_baseline_db=candidate_metadata["post_baseline_db"],
+        pre_flank_start_utc=candidate_metadata["pre_flank_start_utc"],
+        pre_flank_end_utc=candidate_metadata["pre_flank_end_utc"],
+        post_flank_start_utc=candidate_metadata["post_flank_start_utc"],
+        post_flank_end_utc=candidate_metadata["post_flank_end_utc"],
+        robust_spread_db=candidate_metadata["robust_spread_db"],
+        robust_spread_method=candidate_metadata["robust_spread_method"],
+        minimum_robust_z=candidate_metadata["minimum_robust_z"],
+        minimum_departure_db=candidate_metadata["minimum_departure_db"],
+        labels={
+            "marker": "Qualifying candidate unit",
+            "focused_episode": "Focused episode",
+            "local_baseline": "Expected local Delta SNR",
+            "flank_baseline": "Pre/post flank baseline",
+            "robust_z": "Robust-z guide |z| = {value:g}",
+            "qualifying_robust_z": (
+                "Robust-z qualifying threshold |z| = {value:g}"
+            ),
+            "absolute_departure": (
+                "Absolute-departure gate (+/-{value:g} dB)"
+            ),
+        },
+    )
+    metric_recipe = (
+        drilldown_zoom_figures.build_drilldown_zoom_benchmark_delta_snr_recipe(
+            pd.DataFrame(
+                {
+                    "plot_time": pd.to_datetime(
+                        [candidate_metadata["representative_utc"]],
+                        utc=True,
+                    ),
+                    "metric": [
+                        candidate_metadata["representative_delta_snr_db"]
+                    ],
+                }
+            ),
+            start_utc="2026-07-01T00:00:00Z",
+            end_utc="2026-07-01T12:00:00Z",
+            title="OK1FCX (JN79) - Time Window: 00:00 to 12:00 UTC",
+            panel_title="Delta SNR over Time",
+            x_label="Date/Time (UTC)",
+            y_label="Delta SNR (dB)",
+            empty_text="No paired evidence.",
+            evidence_unit_label="Individual Joint Spot",
+            is_sequential=False,
+            outlier_overlay=overlay,
+        )
+    )
+    metadata = _drilldown_zoom_metadata(
+        start_utc="2026-07-01T00:00:00Z",
+        end_utc="2026-07-01T12:00:00Z",
+        option="outlier_focus",
+        origin="outlier_focus",
+        outlier_candidate=candidate_metadata,
+    )
+
+    validated, mode_folder = (
+        results_export._validated_drilldown_zoom_registration(
+            metadata=metadata,
+            selected_station_count=1,
+            performance_snr_recipe=None,
+            performance_temporal_recipe=None,
+            benchmark_delta_snr_recipe=metric_recipe,
+            benchmark_coverage_recipe={"kind": "focused-coverage"},
+        )
+    )
+
+    assert mode_folder == results_export.BENCHMARK_EXPORT_FOLDER
+    assert (
+        validated["outlier_candidate"]["candidate_signature"]
+        == "candidate-1"
+    )
+    overlay_signature = (
+        results_export._drilldown_zoom_outlier_overlay_signature(overlay)
+    )
+    assert overlay_signature["qualifying_marker_utc_ns"] == [
+        int(pd.Timestamp(candidate_metadata["representative_utc"]).value)
+    ]
+    assert overlay_signature["qualifying_marker_delta_snr_db"] == [
+        candidate_metadata["representative_delta_snr_db"]
+    ]
+    assert overlay_signature["qualifying_marker_count"] == 1
+    assert overlay_signature["native_evidence_unit_width_ns"] == int(
+        pd.Timedelta(minutes=2).value
+    )
+
+    mismatched_metadata = {
+        **metadata,
+        "outlier_candidate": {
+            **candidate_metadata,
+            "local_baseline_db": 1.25,
+        },
+    }
+    with pytest.raises(ValueError, match="overlay disagrees"):
+        results_export._validated_drilldown_zoom_registration(
+            metadata=mismatched_metadata,
+            selected_station_count=1,
+            performance_snr_recipe=None,
+            performance_temporal_recipe=None,
+            benchmark_delta_snr_recipe=metric_recipe,
+            benchmark_coverage_recipe={"kind": "focused-coverage"},
+        )
+
+    missing_visible_marker_recipe = deepcopy(metric_recipe)
+    missing_visible_marker_recipe["outlier_overlay"][
+        "qualifying_marker_utc_ns"
+    ] = []
+    missing_visible_marker_recipe["outlier_overlay"][
+        "qualifying_marker_delta_snr_db"
+    ] = []
+    missing_visible_marker_recipe["outlier_overlay"][
+        "qualifying_marker_count"
+    ] = 0
+    with pytest.raises(ValueError, match="visible representative"):
+        results_export._validated_drilldown_zoom_registration(
+            metadata=metadata,
+            selected_station_count=1,
+            performance_snr_recipe=None,
+            performance_temporal_recipe=None,
+            benchmark_delta_snr_recipe=missing_visible_marker_recipe,
+            benchmark_coverage_recipe={"kind": "focused-coverage"},
+        )
+
+    invalid_band_recipe = deepcopy(metric_recipe)
+    invalid_band_recipe["outlier_overlay"][
+        "focused_episode_visual_start_utc_ns"
+    ] += 1
+    with pytest.raises(ValueError, match="focused-episode band"):
+        results_export._validated_drilldown_zoom_registration(
+            metadata=metadata,
+            selected_station_count=1,
+            performance_snr_recipe=None,
+            performance_temporal_recipe=None,
+            benchmark_delta_snr_recipe=invalid_band_recipe,
+            benchmark_coverage_recipe={"kind": "focused-coverage"},
+        )
+
+
+def test_drilldown_zoom_metadata_and_recipe_contract_change_export_signature():
+    """Fingerprint exact identity, bounds, origin, bin, layout, and titles."""
+    base_block = {
+        "analysis_id": "RX_ABS",
+        "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
+        "database_source": "wspr_live",
+        "drilldown_zoom_metadata": results_export._validated_drilldown_zoom_metadata(
+            _drilldown_zoom_metadata()
+        ),
+        "drilldown_zoom_performance_snr_figure_recipe": {
+            "kind": "drilldown_zoom_performance_native_snr",
+            "schema_version": 2,
+            "layout_version": (
+                drilldown_zoom_figures.DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION
+            ),
+            "time_bin": "native",
+            "resolution": (
+                drilldown_zoom_figures.DRILLDOWN_ZOOM_NATIVE_RESOLUTION
+            ),
+            "aggregation": (
+                drilldown_zoom_figures.DRILLDOWN_ZOOM_NO_AGGREGATION
+            ),
+            "snr_title": "SNR, Time Window: x to y UTC",
+        },
+        "drilldown_zoom_performance_temporal_figure_recipe": {
+            "kind": "opportunity_performance_temporal",
+            "schema_version": 1,
+            "time_bin": "2m",
+            "evidence_title": "Evidence, Time Window: x to y UTC",
+        },
+    }
+    changed_bounds = {
+        **base_block,
+        "drilldown_zoom_metadata": results_export._validated_drilldown_zoom_metadata(
+            _drilldown_zoom_metadata(
+                start_utc="2026-07-01T04:00:00Z",
+                end_utc="2026-07-01T07:00:00Z",
+            )
+        ),
+    }
+    changed_title = {
+        **base_block,
+        "drilldown_zoom_performance_snr_figure_recipe": {
+            **base_block[
+                "drilldown_zoom_performance_snr_figure_recipe"
+            ],
+            "snr_title": "Changed focused SNR title",
+        },
+    }
+
+    base_signature = results_export._export_signature({"RX_ABS": base_block})
+    assert base_signature != results_export._export_signature(
+        {"RX_ABS": changed_bounds}
+    )
+    assert base_signature != results_export._export_signature(
+        {"RX_ABS": changed_title}
+    )
+
+
 @pytest.mark.parametrize(
     ("language", "selected_stations", "expected_weighting"),
     [
@@ -1453,7 +2032,17 @@ def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
         "time_bin": "3h",
         "delta_snr_outlier_markers": marker_payload,
     }
-    disabled_blocks = {}
+    stale_tables, stale_metadata = _delta_snr_outlier_export_contract()
+    disabled_blocks = {
+        "RX_COMPARE": {
+            "analysis_id": "RX_COMPARE",
+            "delta_snr_outlier_export": stale_metadata,
+            OUTLIER_EVENT_PATHS_TABLE_FILENAME: stale_tables.event_paths,
+            OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME: (
+                stale_tables.paired_evidence
+            ),
+        }
+    }
     clean_blocks = {}
     pending_states = [disabled_blocks, clean_blocks]
     monkeypatch.setattr(
@@ -1504,6 +2093,9 @@ def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
     assert "report_delta_snr_outlier_candidates" not in disabled_block
     assert "delta_snr_outlier_detector_version" not in disabled_block
     assert "delta_snr_outlier_detection_policy" not in disabled_block
+    assert "delta_snr_outlier_export" not in disabled_block
+    assert OUTLIER_EVENT_PATHS_TABLE_FILENAME not in disabled_block
+    assert OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME not in disabled_block
     assert "delta_snr_outlier_markers" in stale_segment_recipe
     assert "delta_snr_outlier_markers" in stale_selected_recipe
     assert disabled_block["segment_temporal_evidence_figure_recipe"] is not (
@@ -1517,6 +2109,155 @@ def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
     )
 
 
+def test_disabled_registration_strips_stale_zoom_outlier_context(
+    monkeypatch,
+):
+    """Keep false authoritative for focused metadata and native overlays."""
+    candidate_metadata = _drilldown_zoom_outlier_candidate_metadata()
+    stale_overlay = (
+        drilldown_zoom_figures.build_drilldown_zoom_outlier_overlay_recipe(
+            representative_utc=candidate_metadata["representative_utc"],
+            representative_delta_snr_db=(
+                candidate_metadata["representative_delta_snr_db"]
+            ),
+            qualifying_marker_times_utc=[
+                candidate_metadata["representative_utc"]
+            ],
+            qualifying_marker_delta_snr_db=[
+                candidate_metadata["representative_delta_snr_db"]
+            ],
+            candidate_start_utc=candidate_metadata["event_start_utc"],
+            candidate_end_utc=candidate_metadata["event_end_utc"],
+            native_evidence_unit_minutes=2.0,
+            local_baseline_db=candidate_metadata["local_baseline_db"],
+            pre_baseline_db=candidate_metadata["pre_baseline_db"],
+            post_baseline_db=candidate_metadata["post_baseline_db"],
+            pre_flank_start_utc=candidate_metadata["pre_flank_start_utc"],
+            pre_flank_end_utc=candidate_metadata["pre_flank_end_utc"],
+            post_flank_start_utc=candidate_metadata[
+                "post_flank_start_utc"
+            ],
+            post_flank_end_utc=candidate_metadata["post_flank_end_utc"],
+            robust_spread_db=candidate_metadata["robust_spread_db"],
+            robust_spread_method=candidate_metadata[
+                "robust_spread_method"
+            ],
+            minimum_robust_z=candidate_metadata["minimum_robust_z"],
+            minimum_departure_db=candidate_metadata[
+                "minimum_departure_db"
+            ],
+            labels={
+                "marker": "Qualifying candidate unit",
+                "focused_episode": "Focused episode",
+                "local_baseline": "Expected local Delta SNR",
+                "flank_baseline": "Pre/post flank baseline",
+                "robust_z": "Robust-z guide |z| = {value:g}",
+                "qualifying_robust_z": (
+                    "Robust-z qualifying threshold |z| = {value:g}"
+                ),
+                "absolute_departure": (
+                    "Absolute-departure gate (+/-{value:g} dB)"
+                ),
+            },
+        )
+    )
+    stale_metric_recipe = (
+        drilldown_zoom_figures.build_drilldown_zoom_benchmark_delta_snr_recipe(
+            pd.DataFrame(
+                {
+                    "plot_time": pd.to_datetime(
+                        [candidate_metadata["representative_utc"]],
+                        utc=True,
+                    ),
+                    "metric": [
+                        candidate_metadata["representative_delta_snr_db"]
+                    ],
+                }
+            ),
+            start_utc="2026-07-01T00:00:00Z",
+            end_utc="2026-07-01T12:00:00Z",
+            title="OK1FCX (JN79) - Time Window: 00:00 to 12:00 UTC",
+            panel_title="Delta SNR over Time",
+            x_label="Date/Time (UTC)",
+            y_label="Delta SNR (dB)",
+            empty_text="No paired evidence.",
+            evidence_unit_label="Individual Joint Spot",
+            is_sequential=False,
+            outlier_overlay=stale_overlay,
+        )
+    )
+    stale_metadata = _drilldown_zoom_metadata(
+        start_utc="2026-07-01T00:00:00Z",
+        end_utc="2026-07-01T12:00:00Z",
+        option="outlier_focus",
+        origin="outlier_focus",
+        outlier_candidate=candidate_metadata,
+    )
+    clean_metadata = dict(stale_metadata)
+    clean_metadata.pop("outlier_candidate")
+    stale_metric_recipe_before_registration = deepcopy(stale_metric_recipe)
+    clean_metric_recipe = dict(stale_metric_recipe)
+    clean_metric_recipe["outlier_overlay"] = None
+    disabled_blocks = {
+        "RX_COMPARE": {
+            "analysis_id": "RX_COMPARE",
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
+        }
+    }
+    clean_blocks = deepcopy(disabled_blocks)
+    pending_states = [disabled_blocks, clean_blocks]
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: pending_states.pop(0),
+    )
+    common_arguments = {
+        "analysis_id": "RX_COMPARE",
+        "selected_segment": "Full Range | All Directions",
+        "selected_distance": "Full Range",
+        "selected_direction": "All Directions",
+        "show_non_joint": False,
+        "evidence_time_bin": "3h",
+        "selected_stations": ["OK1FCX (JN79)"],
+        "translations": T["en"],
+        "drilldown_zoom_benchmark_coverage_figure_recipe": {
+            "kind": "focused-coverage"
+        },
+    }
+
+    results_export.register_inspector_export(
+        **common_arguments,
+        drilldown_zoom_metadata=stale_metadata,
+        drilldown_zoom_benchmark_delta_snr_figure_recipe=(
+            stale_metric_recipe
+        ),
+        report_delta_snr_outlier_candidates=False,
+    )
+    results_export.register_inspector_export(
+        **common_arguments,
+        drilldown_zoom_metadata=clean_metadata,
+        drilldown_zoom_benchmark_delta_snr_figure_recipe=(
+            clean_metric_recipe
+        ),
+    )
+
+    disabled_block = disabled_blocks["RX_COMPARE"]
+    assert "outlier_candidate" not in disabled_block[
+        "drilldown_zoom_metadata"
+    ]
+    assert disabled_block[
+        "drilldown_zoom_benchmark_delta_snr_figure_recipe"
+    ]["outlier_overlay"] is None
+    assert "outlier_candidate" in stale_metadata
+    assert stale_metric_recipe == stale_metric_recipe_before_registration
+    assert disabled_block[
+        "drilldown_zoom_benchmark_delta_snr_figure_recipe"
+    ] is not stale_metric_recipe
+    assert results_export._export_signature(disabled_blocks) == (
+        results_export._export_signature(clean_blocks)
+    )
+
+
 def test_enabled_outlier_metadata_remains_presentation_only(monkeypatch):
     """Record detector identity per result block, not as a scientific filter."""
     monkeypatch.setattr(
@@ -1525,6 +2266,7 @@ def test_enabled_outlier_metadata_remains_presentation_only(monkeypatch):
         SimpleNamespace(session_state={"lang": "en"}),
     )
     detector_version = "native-residual-episode-v1"
+    _outlier_tables, outlier_metadata = _delta_snr_outlier_export_contract()
     metadata = results_export._build_run_metadata(
         {
             "RX_COMPARE": {
@@ -1534,6 +2276,7 @@ def test_enabled_outlier_metadata_remains_presentation_only(monkeypatch):
                 "selected_stations": [],
                 "report_delta_snr_outlier_candidates": True,
                 "delta_snr_outlier_detector_version": detector_version,
+                "delta_snr_outlier_export": outlier_metadata,
             }
         },
         {
@@ -1552,6 +2295,261 @@ def test_enabled_outlier_metadata_remains_presentation_only(monkeypatch):
     result_block = metadata["result_blocks"][0]
     assert result_block["report_delta_snr_outlier_candidates"] is True
     assert result_block["delta_snr_outlier_detector_version"] == detector_version
+    assert result_block["delta_snr_outlier_export"] == outlier_metadata
+
+
+@pytest.mark.parametrize(
+    ("language", "expected_event_class", "expected_direction"),
+    (
+        ("en", "Spot impulse", "ENE"),
+        ("de", "Spot-Impuls", "ONO"),
+    ),
+)
+def test_outlier_export_tables_localize_without_mutating_canonical_values(
+    language,
+    expected_event_class,
+    expected_direction,
+):
+    """Keep canonical registration stable while localizing analyst-facing CSVs."""
+    tables, _metadata = _delta_snr_outlier_export_contract()
+    source_event_paths = tables.event_paths.copy(deep=True)
+    source_evidence = tables.paired_evidence.copy(deep=True)
+
+    localized_event_paths = results_export._localized_outlier_export_table(
+        tables.event_paths,
+        T[language],
+        expected_columns=OUTLIER_EVENT_PATH_COLUMNS,
+    )
+    localized_evidence = results_export._localized_outlier_export_table(
+        tables.paired_evidence,
+        T[language],
+        expected_columns=OUTLIER_PAIRED_EVIDENCE_COLUMNS,
+    )
+
+    event_class_header = T[language][
+        "col_export_outlier_combined_event_class"
+    ]
+    direction_header = T[language]["col_export_outlier_direction"]
+    boundary_header = T[language]["col_export_outlier_reported_boundary"]
+    assert localized_event_paths.loc[0, event_class_header] == (
+        expected_event_class
+    )
+    assert localized_event_paths.loc[0, direction_header] == expected_direction
+    assert localized_evidence.loc[0, direction_header] == expected_direction
+    assert localized_evidence.loc[0, boundary_header] == T[language][
+        "txt_export_outlier_boundary_start_and_end"
+    ]
+    assert tables.event_paths.equals(source_event_paths)
+    assert tables.paired_evidence.equals(source_evidence)
+
+
+@pytest.mark.parametrize("language", ("en", "de"))
+def test_enabled_empty_outlier_tables_serialize_complete_localized_headers(
+    language,
+):
+    """Export enabled no-candidate results as two header-only readable tables."""
+    tables, metadata = _delta_snr_outlier_export_contract(empty=True)
+    expected_schemas = (
+        (tables.event_paths, OUTLIER_EVENT_PATH_COLUMNS),
+        (tables.paired_evidence, OUTLIER_PAIRED_EVIDENCE_COLUMNS),
+    )
+
+    assert metadata["result_status"] == "no_candidates"
+    for canonical_table, expected_columns in expected_schemas:
+        localized_table = results_export._localized_outlier_export_table(
+            canonical_table,
+            T[language],
+            expected_columns=expected_columns,
+        )
+        csv_text = results_export._dataframe_to_csv_bytes(
+            localized_table,
+            T[language],
+        ).decode("utf-8-sig")
+        expected_headers = [
+            T[language][results_export.OUTLIER_EXPORT_COLUMN_TRANSLATION_KEYS[column]]
+            for column in expected_columns
+        ]
+        assert list(localized_table.columns) == expected_headers
+        assert csv_text.splitlines() == [",".join(expected_headers)]
+
+
+def test_outlier_table_values_participate_in_export_signature():
+    """Invalidate a prepared package when same-shaped evidence values change."""
+    tables, metadata = _delta_snr_outlier_export_contract()
+    base_block = {
+        "analysis_id": "RX_COMPARE",
+        "mode_folder": "benchmark",
+        "database_source": "wspr_live",
+        "report_delta_snr_outlier_candidates": True,
+        "delta_snr_outlier_detector_version": "native-residual-episode-v7",
+        "delta_snr_outlier_detection_policy": {
+            "minimum_departure_db": 3.0,
+            "minimum_robust_z": 4.0,
+            "maximum_baseline_difference_db": 3.0,
+        },
+        "delta_snr_outlier_export": metadata,
+        OUTLIER_EVENT_PATHS_TABLE_FILENAME: tables.event_paths,
+        OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME: tables.paired_evidence,
+    }
+    changed_evidence = tables.paired_evidence.copy(deep=True)
+    changed_evidence.loc[0, "delta_snr_db"] = 7.4
+    changed_block = {
+        **base_block,
+        OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME: changed_evidence,
+    }
+
+    assert results_export._export_signature(
+        {"RX_COMPARE": base_block}
+    ) != results_export._export_signature(
+        {"RX_COMPARE": changed_block}
+    )
+
+
+@pytest.mark.parametrize(
+    "table_filename",
+    (
+        "table_station_insights_current_segment.csv",
+        "table_drilldown_selected_stations.csv",
+    ),
+)
+def test_interactive_table_values_participate_in_export_signature(
+    table_filename,
+):
+    """Invalidate a prepared package when same-shaped visible rows change."""
+    base_table = pd.DataFrame(
+        {
+            "UTC": ["2026-07-01T00:00:00Z"],
+            "SNR": [-17.0],
+        }
+    )
+    changed_table = base_table.copy(deep=True)
+    changed_table.loc[0, "SNR"] = -8.0
+    base_block = {
+        "analysis_id": "RX_ABS",
+        "mode_folder": "performance",
+        "database_source": "wspr_live",
+        table_filename: base_table,
+    }
+    changed_block = {
+        **base_block,
+        table_filename: changed_table,
+    }
+
+    assert results_export._export_signature(
+        {"RX_ABS": base_block}
+    ) != results_export._export_signature(
+        {"RX_ABS": changed_block}
+    )
+
+
+@pytest.mark.parametrize("empty", (False, True))
+def test_enabled_outlier_tables_are_packaged_with_status_and_no_double_correction(
+    monkeypatch,
+    empty,
+):
+    """Package populated or header-only tables without correcting Reference twice."""
+    tables, outlier_metadata = _delta_snr_outlier_export_contract(empty=empty)
+    run_id = 91
+    state = {
+        "run_id": run_id,
+        results_export.EXPORT_RUN_ID_KEY: run_id,
+        "lang": "en",
+        results_export.EXPORT_STATE_KEY: {
+            "RX_COMPARE": {
+                "analysis_id": "RX_COMPARE",
+                "title": "RX Benchmark",
+                "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
+                "database_source": "wspr_live",
+                "is_compare": True,
+                "is_sequential": False,
+                "selected_stations": [],
+                "report_delta_snr_outlier_candidates": True,
+                "delta_snr_outlier_detector_version": (
+                    "native-residual-episode-v7"
+                ),
+                "delta_snr_outlier_detection_policy": {
+                    "minimum_departure_db": 3.0,
+                    "minimum_robust_z": 4.0,
+                    "maximum_baseline_difference_db": 3.0,
+                },
+                "delta_snr_outlier_export": outlier_metadata,
+                OUTLIER_EVENT_PATHS_TABLE_FILENAME: tables.event_paths,
+                OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME: (
+                    tables.paired_evidence
+                ),
+            }
+        },
+    }
+    config_payload = {
+        "format": "wspradar.config",
+        "schema_version": 1,
+        "settings": {
+            "core_parameters": {
+                "analysis_direction": "rx",
+                "callsign": "ON4AWM0",
+                "band": "160m",
+                "time_selection": {
+                    "start_utc": "2021-06-01T00:00Z",
+                    "end_utc": "2021-06-05T00:00Z",
+                },
+            },
+            "comparison_parameters": {
+                "mode": "hardware_ab",
+                "snr_correction_db": 1.6,
+            },
+            "advanced_parameters": {},
+        },
+    }
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state=state),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "build_config_payload",
+        lambda: (
+            json.dumps(config_payload).encode("utf-8"),
+            "wspradar.config",
+        ),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_render_map_png_for_block",
+        lambda _block: b"map-png",
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_render_inspector_png_for_block",
+        lambda _block, _figure_name: None,
+    )
+
+    zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
+    export_root = zip_filename.removesuffix(".zip")
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        event_csv = archive.read(
+            f"{export_root}/benchmark/{OUTLIER_EVENT_PATHS_TABLE_FILENAME}"
+        ).decode("utf-8-sig")
+        evidence_csv = archive.read(
+            f"{export_root}/benchmark/{OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME}"
+        ).decode("utf-8-sig")
+        run_metadata = json.loads(
+            archive.read(f"{export_root}/config/run_metadata.json")
+        )
+
+    expected_status = "no_candidates" if empty else "candidates"
+    assert run_metadata["result_blocks"][0]["delta_snr_outlier_export"][
+        "result_status"
+    ] == expected_status
+    assert len(event_csv.splitlines()) == (1 if empty else 2)
+    assert len(evidence_csv.splitlines()) == (1 if empty else 2)
+    corrected_reference_header = T["en"][
+        "col_export_outlier_corrected_reference_snr_db"
+    ]
+    assert corrected_reference_header in evidence_csv.splitlines()[0]
+    assert "Reference correction" not in evidence_csv.splitlines()[0]
+    assert "spot_impulse" not in event_csv
+    assert "spot_impulse" not in evidence_csv
 
 
 @pytest.mark.parametrize(
@@ -1604,6 +2602,7 @@ def test_register_inspector_export_accepts_enabled_multi_station_evidence(
             ],
         },
     }
+    outlier_tables, outlier_metadata = _delta_snr_outlier_export_contract()
     monkeypatch.setattr(
         results_export,
         "_ensure_current_export_state",
@@ -1624,6 +2623,8 @@ def test_register_inspector_export_accepts_enabled_multi_station_evidence(
         report_delta_snr_outlier_candidates=True,
         delta_snr_outlier_detector_version="native-residual-episode-v1",
         delta_snr_outlier_detection_policy=detection_policy,
+        delta_snr_outlier_export_tables=outlier_tables,
+        delta_snr_outlier_export_metadata=outlier_metadata,
     )
 
     block = blocks["RX_COMPARE"]
@@ -1639,6 +2640,53 @@ def test_register_inspector_export_accepts_enabled_multi_station_evidence(
         "native-residual-episode-v1"
     )
     assert block["delta_snr_outlier_detection_policy"] == detection_policy.as_dict()
+    assert block["delta_snr_outlier_export"] == outlier_metadata
+    assert block[OUTLIER_EVENT_PATHS_TABLE_FILENAME].equals(
+        outlier_tables.event_paths
+    )
+    assert block[OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME].equals(
+        outlier_tables.paired_evidence
+    )
+    assert block[OUTLIER_EVENT_PATHS_TABLE_FILENAME] is not (
+        outlier_tables.event_paths
+    )
+    assert block[OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME] is not (
+        outlier_tables.paired_evidence
+    )
+
+
+def test_register_inspector_export_rejects_mismatched_outlier_joins_atomically(
+    monkeypatch,
+):
+    """Reject same-shaped evidence that disagrees with its path-event row."""
+    export_state_calls = []
+    outlier_tables, outlier_metadata = _delta_snr_outlier_export_contract()
+    outlier_tables.paired_evidence.loc[0, "direction"] = "NNE"
+    monkeypatch.setattr(
+        results_export,
+        "_ensure_current_export_state",
+        lambda: export_state_calls.append(True) or {},
+    )
+
+    with pytest.raises(ValueError, match="direction context"):
+        results_export.register_inspector_export(
+            analysis_id="RX_COMPARE",
+            selected_segment="Full Range | All Directions",
+            selected_distance="Full Range",
+            selected_direction="All Directions",
+            show_non_joint=False,
+            evidence_time_bin="1h",
+            selected_stations=[],
+            translations=T["en"],
+            report_delta_snr_outlier_candidates=True,
+            delta_snr_outlier_detector_version=(
+                "native-residual-episode-v7"
+            ),
+            delta_snr_outlier_export_tables=outlier_tables,
+            delta_snr_outlier_export_metadata=outlier_metadata,
+        )
+
+    assert export_state_calls == []
 
 
 @pytest.mark.parametrize(
@@ -2156,6 +3204,218 @@ def test_success_results_zip_records_selected_figures_and_context(
         "Single selected path"
     )
     assert success_metadata["selected_evidence_figures"] == figure_descriptions
+
+
+@pytest.mark.parametrize(
+    ("folder", "analysis_id", "recipe_entries", "expected_figures"),
+    (
+        (
+            results_export.PERFORMANCE_EXPORT_FOLDER,
+            "RX_ABS",
+            {
+                "drilldown_zoom_performance_snr_figure_recipe": {
+                    "kind": "opportunity_performance_temporal",
+                    "schema_version": 1,
+                    "time_bin": "2m",
+                    "snr_title": (
+                        "Selected Station SNR Evidence OK1FCX (JN79), "
+                        "Time Window: x to y UTC"
+                    ),
+                },
+                "drilldown_zoom_performance_temporal_figure_recipe": {
+                    "kind": "opportunity_performance_temporal",
+                    "schema_version": 1,
+                    "time_bin": "2m",
+                    "evidence_title": (
+                        "Selected Station Temporal Evidence OK1FCX (JN79), "
+                        "Time Window: x to y UTC"
+                    ),
+                },
+            },
+            (
+                "figure_drilldown_zoom_snr_evidence.png",
+                "figure_drilldown_zoom_temporal_evidence.png",
+            ),
+        ),
+        (
+            results_export.BENCHMARK_EXPORT_FOLDER,
+            "RX_COMPARE",
+            {
+                "drilldown_zoom_benchmark_delta_snr_figure_recipe": {
+                    "kind": "selected_benchmark_temporal",
+                    "schema_version": 1,
+                    "time_bin": "2m",
+                    "title": (
+                        "Selected Station Evidence OK1FCX (JN79), "
+                        "Time Window: x to y UTC"
+                    ),
+                },
+                "drilldown_zoom_benchmark_coverage_figure_recipe": {
+                    "kind": "benchmark_selected_path_coverage",
+                    "schema_version": 1,
+                    "time_bin": "2m",
+                    "evidence_title": (
+                        "Selected Path Evidence Coverage OK1FCX (JN79), "
+                        "Time Window: x to y UTC"
+                    ),
+                },
+            },
+            (
+                "figure_drilldown_zoom_delta_snr_evidence.png",
+                "figure_drilldown_zoom_coverage.png",
+            ),
+        ),
+    ),
+)
+def test_results_zip_conditionally_packages_drilldown_zoom_figures_and_metadata(
+    monkeypatch,
+    folder,
+    analysis_id,
+    recipe_entries,
+    expected_figures,
+):
+    """Add both focused PNGs and their exact window inventory only when active."""
+    run_id = 73
+    metadata = results_export._validated_drilldown_zoom_metadata(
+        _drilldown_zoom_metadata()
+    )
+    block = {
+        "analysis_id": analysis_id,
+        "title": "RX result",
+        "mode_folder": folder,
+        "database_source": "wspr_live",
+        "is_compare": folder == results_export.BENCHMARK_EXPORT_FOLDER,
+        "is_sequential": False,
+        "selected_stations": ["OK1FCX (JN79)"],
+        "selected_station_count": 1,
+        "drilldown_zoom_metadata": metadata,
+        **recipe_entries,
+    }
+    state = {
+        "run_id": run_id,
+        results_export.EXPORT_RUN_ID_KEY: run_id,
+        results_export.EXPORT_STATE_KEY: {analysis_id: block},
+        "lang": "en",
+    }
+    config_payload = {
+        "format": "wspradar.config",
+        "schema_version": 1,
+        "settings": {
+            "core_parameters": {
+                "analysis_direction": "rx",
+                "callsign": "TARGET",
+                "band": "20m",
+                "time_selection": {
+                    "start_utc": "2026-07-01T00:00Z",
+                    "end_utc": "2026-07-02T00:00Z",
+                },
+            },
+            "comparison_parameters": {
+                "mode": (
+                    "hardware_ab"
+                    if folder == results_export.BENCHMARK_EXPORT_FOLDER
+                    else "none"
+                )
+            },
+            "advanced_parameters": {},
+        },
+    }
+    rendered_figure_names = []
+
+    def render_inspector_figure(_block, figure_name):
+        rendered_figure_names.append(figure_name)
+        return b"focused-png" if figure_name in expected_figures else None
+
+    monkeypatch.setattr(
+        results_export,
+        "st",
+        SimpleNamespace(session_state=state),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "build_config_payload",
+        lambda: (
+            json.dumps(config_payload).encode("utf-8"),
+            "wspradar.config",
+        ),
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_render_map_png_for_block",
+        lambda _block: b"map-png",
+    )
+    monkeypatch.setattr(
+        results_export,
+        "_render_inspector_png_for_block",
+        render_inspector_figure,
+    )
+
+    zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
+
+    export_root = zip_filename.removesuffix(".zip")
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        package_paths = set(archive.namelist())
+        run_metadata = json.loads(
+            archive.read(f"{export_root}/config/run_metadata.json")
+        )
+    for figure_name in expected_figures:
+        assert figure_name in rendered_figure_names
+        assert f"{export_root}/{folder}/{figure_name}" in package_paths
+    zoom_metadata = run_metadata["result_blocks"][0]["drilldown_zoom"]
+    assert {
+        key: zoom_metadata[key]
+        for key in (
+            "schema_version",
+            "station",
+            "start_utc",
+            "end_utc",
+            "option",
+                "origin",
+                "time_bin",
+                "resolution",
+                "aggregation",
+                "layout_version",
+        )
+    } == metadata
+    assert tuple(zoom_metadata["figures"]) == expected_figures
+
+    missing_figure_name = expected_figures[0]
+
+    def render_incomplete_zoom(_block, figure_name):
+        if figure_name == missing_figure_name:
+            return None
+        return b"focused-png" if figure_name in expected_figures else None
+
+    monkeypatch.setattr(
+        results_export,
+        "_render_inspector_png_for_block",
+        render_incomplete_zoom,
+    )
+    with pytest.raises(
+        results_export.ExportArtifactUnavailableError,
+        match="Required Drill-Down zoom export produced no image",
+    ):
+        results_export.build_results_zip(T["en"])
+
+    block.pop("drilldown_zoom_metadata")
+    for recipe_key in tuple(recipe_entries):
+        block.pop(recipe_key)
+    rendered_figure_names.clear()
+    inactive_zip_bytes, inactive_zip_filename = results_export.build_results_zip(
+        T["en"]
+    )
+    inactive_root = inactive_zip_filename.removesuffix(".zip")
+    with zipfile.ZipFile(io.BytesIO(inactive_zip_bytes)) as archive:
+        inactive_paths = set(archive.namelist())
+        inactive_metadata = json.loads(
+            archive.read(f"{inactive_root}/config/run_metadata.json")
+        )
+    assert not set(expected_figures).intersection(rendered_figure_names)
+    assert all(
+        f"{inactive_root}/{folder}/{figure_name}" not in inactive_paths
+        for figure_name in expected_figures
+    )
+    assert "drilldown_zoom" not in inactive_metadata["result_blocks"][0]
 
 
 def test_benchmark_results_zip_records_coverage_figures_in_stable_order(

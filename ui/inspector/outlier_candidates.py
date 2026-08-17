@@ -32,6 +32,7 @@ from ui.inspector.evidence_data import (
 
 DELTA_SNR_OUTLIER_DETECTOR_VERSION = "native-residual-episode-v7"
 DELTA_SNR_OUTLIER_RECIPE_SCHEMA_VERSION = 3
+DELTA_SNR_OUTLIER_QUALIFYING_UNIT_RECIPE_SCHEMA_VERSION = 1
 DELTA_SNR_OUTLIER_DETECTION_RESOLUTION = "native-paired-unit"
 DELTA_SNR_OUTLIER_BASELINE_CELL = "10min"
 DELTA_SNR_OUTLIER_FLANK_WINDOW_HOURS = 6
@@ -81,6 +82,47 @@ class OutlierStationIdentity:
         return f"{self.callsign} ({self.locator})"
 
 
+@dataclass(frozen=True, order=True)
+class DeltaSnrOutlierQualifyingUnit:
+    """Retain one native unit that independently passes both outlier gates."""
+
+    evidence_utc: pd.Timestamp
+    delta_snr_db: float
+    residual_db: float
+    robust_z: float
+
+    def __post_init__(self) -> None:
+        """Normalize UTC and reject non-finite marker coordinates."""
+        timestamp = pd.Timestamp(self.evidence_utc)
+        if pd.isna(timestamp):
+            raise ValueError("Qualifying-unit evidence_utc must be valid.")
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.tz_localize("UTC")
+        else:
+            timestamp = timestamp.tz_convert("UTC")
+        numeric_fields = {
+            "delta_snr_db": self.delta_snr_db,
+            "residual_db": self.residual_db,
+            "robust_z": self.robust_z,
+        }
+        normalized_values: dict[str, float] = {}
+        for field_name, field_value in numeric_fields.items():
+            try:
+                numeric_value = float(field_value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Qualifying-unit {field_name} must be finite."
+                ) from exc
+            if not math.isfinite(numeric_value):
+                raise ValueError(
+                    f"Qualifying-unit {field_name} must be finite."
+                )
+            normalized_values[field_name] = numeric_value
+        object.__setattr__(self, "evidence_utc", timestamp)
+        for field_name, numeric_value in normalized_values.items():
+            object.__setattr__(self, field_name, numeric_value)
+
+
 @dataclass(frozen=True)
 class DeltaSnrOutlierCandidate:
     """Describe one qualified same-path Delta-SNR episode."""
@@ -90,6 +132,9 @@ class DeltaSnrOutlierCandidate:
     event_kind: str
     start_utc: pd.Timestamp
     end_utc: pd.Timestamp
+    baseline_anchor_start_utc: pd.Timestamp
+    baseline_anchor_end_utc: pd.Timestamp
+    episode_guard_minutes: float
     representative_utc: pd.Timestamp
     representative_delta_snr_db: float
     episode_median_delta_snr_db: float
@@ -123,6 +168,38 @@ class DeltaSnrOutlierCandidate:
     nearby_reference_only_unit_count: int = 0
     decode_edge_warning: bool = False
     decode_edge_warning_reason: str | None = None
+    qualifying_units: tuple[DeltaSnrOutlierQualifyingUnit, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Keep nested qualifying evidence immutable and explicitly typed."""
+        if not isinstance(self.qualifying_units, tuple):
+            raise TypeError("candidate.qualifying_units must be a tuple.")
+        if not all(
+            isinstance(unit, DeltaSnrOutlierQualifyingUnit)
+            for unit in self.qualifying_units
+        ):
+            raise TypeError(
+                "candidate.qualifying_units must contain qualifying-unit records."
+            )
+
+
+@dataclass(frozen=True)
+class DeltaSnrOutlierContextBounds:
+    """Hold one exact clipped half-open Drill-Down context contract.
+
+    The pre-flank interval mirrors the detector's inclusive outer and exclusive
+    guard boundaries. The detector's post-flank interval is exclusive at the
+    guard and inclusive at its outer boundary; adding one nanosecond to both
+    boundaries expresses that same set as a conventional half-open interval.
+    Empty boundary-clipped flanks therefore have equal start and end values.
+    """
+
+    context_start_utc: pd.Timestamp
+    context_end_utc: pd.Timestamp
+    pre_flank_start_utc: pd.Timestamp
+    pre_flank_end_utc: pd.Timestamp
+    post_flank_start_utc: pd.Timestamp
+    post_flank_end_utc: pd.Timestamp
 
 
 @dataclass(frozen=True)
@@ -251,6 +328,126 @@ class DeltaSnrOutlierModel:
             "markers": marker_payload,
         }
 
+    def qualifying_unit_marker_recipe(
+        self,
+        station_identities: object = None,
+        *,
+        start_utc: object = None,
+        end_utc: object = None,
+    ) -> dict[str, object] | None:
+        """Return every individually qualifying native-unit marker.
+
+        The optional UTC restriction uses the same half-open ``[start, end)``
+        convention as the completed analysis and Drill-Down focus. A stale
+        model without the native qualifying-unit field safely contributes no
+        recipe instead of inferring markers from all episode members.
+        """
+        if (
+            self.detector_version != DELTA_SNR_OUTLIER_DETECTOR_VERSION
+            or self.detection_resolution
+            != DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
+        ):
+            return None
+        selected_pairs = _normalized_identity_pairs(station_identities)
+        window_start, window_end = _optional_half_open_marker_window(
+            start_utc=start_utc,
+            end_utc=end_utc,
+        )
+        detection_policy_signature = self.detection_policy_signature
+        marker_payload: list[dict[str, object]] = []
+        marker_event_signatures: set[str] = set()
+        marker_keys: dict[tuple[str, str, int, float], str] = {}
+        for candidate in self.candidates:
+            identity_pair = (
+                candidate.station_identity.callsign,
+                candidate.station_identity.locator,
+            )
+            if selected_pairs is not None and identity_pair not in selected_pairs:
+                continue
+            qualifying_units = _validated_candidate_qualifying_units(
+                candidate,
+                detection_policy=self.detection_policy,
+            )
+            if not qualifying_units:
+                continue
+            candidate_event_signature = _qualifying_candidate_event_signature(
+                candidate,
+                detection_policy_signature=detection_policy_signature,
+            )
+            for qualifying_unit in qualifying_units:
+                if (
+                    window_start is not None
+                    and qualifying_unit.evidence_utc < window_start
+                ):
+                    continue
+                if (
+                    window_end is not None
+                    and qualifying_unit.evidence_utc >= window_end
+                ):
+                    continue
+                marker_key = (
+                    identity_pair[0],
+                    identity_pair[1],
+                    int(qualifying_unit.evidence_utc.value),
+                    float(qualifying_unit.delta_snr_db),
+                )
+                previous_event_signature = marker_keys.get(marker_key)
+                if previous_event_signature is not None:
+                    if previous_event_signature != candidate_event_signature:
+                        raise ValueError(
+                            "One qualifying native unit belongs to conflicting "
+                            "outlier candidates."
+                        )
+                    continue
+                marker_keys[marker_key] = candidate_event_signature
+                marker_event_signatures.add(candidate_event_signature)
+                marker_payload.append(
+                    {
+                        "callsign": identity_pair[0],
+                        "locator": identity_pair[1],
+                        "marker_utc_ns": marker_key[2],
+                        "marker_delta_snr_db": marker_key[3],
+                        "residual_db": float(qualifying_unit.residual_db),
+                        "robust_z": float(qualifying_unit.robust_z),
+                        "episode_start_utc_ns": int(candidate.start_utc.value),
+                        "episode_end_utc_ns": int(candidate.end_utc.value),
+                        "representative_utc_ns": int(
+                            candidate.representative_utc.value
+                        ),
+                        "representative_delta_snr_db": float(
+                            candidate.representative_delta_snr_db
+                        ),
+                        "event_kind": candidate.event_kind,
+                        "candidate_event_signature": candidate_event_signature,
+                        "detection_policy_signature": (
+                            detection_policy_signature
+                        ),
+                    }
+                )
+        if not marker_payload:
+            return None
+        marker_payload.sort(
+            key=lambda marker: (
+                int(marker["marker_utc_ns"]),
+                str(marker["callsign"]),
+                str(marker["locator"]),
+                float(marker["marker_delta_snr_db"]),
+            )
+        )
+        return {
+            "schema_version": (
+                DELTA_SNR_OUTLIER_QUALIFYING_UNIT_RECIPE_SCHEMA_VERSION
+            ),
+            "detector_version": self.detector_version,
+            "detection_resolution": self.detection_resolution,
+            "detection_policy_signature": detection_policy_signature,
+            "candidate_signature": self.candidate_signature,
+            "candidate_count": len(marker_event_signatures),
+            "qualifying_unit_count": len(marker_payload),
+            "marker_signature": _stable_signature(marker_payload),
+            "markers": marker_payload,
+        }
+
 
 def _normalized_utc_timestamp(value: object, *, field: str) -> pd.Timestamp:
     """Return one timezone-aware UTC timestamp or raise a field-specific error."""
@@ -260,6 +457,97 @@ def _normalized_utc_timestamp(value: object, *, field: str) -> pd.Timestamp:
     if timestamp.tzinfo is None:
         return timestamp.tz_localize("UTC")
     return timestamp.tz_convert("UTC")
+
+
+def build_delta_snr_outlier_context_bounds(
+    candidate: DeltaSnrOutlierCandidate,
+    *,
+    analysis_start_utc: object,
+    analysis_end_utc: object,
+) -> DeltaSnrOutlierContextBounds:
+    """Return the detector's exact pre/event/post context clipped to analysis.
+
+    All returned intervals use half-open ``[start, end)`` semantics so they can
+    be applied directly to retained evidence and plot windows without moving a
+    strong-anchor event or splitting an analysis-boundary observation.
+    """
+    if not isinstance(candidate, DeltaSnrOutlierCandidate):
+        raise TypeError(
+            "candidate must be a DeltaSnrOutlierCandidate."
+        )
+    analysis_start = _normalized_utc_timestamp(
+        analysis_start_utc,
+        field="analysis_start_utc",
+    )
+    analysis_end = _normalized_utc_timestamp(
+        analysis_end_utc,
+        field="analysis_end_utc",
+    )
+    if analysis_end <= analysis_start:
+        raise ValueError("Outlier context requires a positive UTC window.")
+
+    baseline_anchor_start = _normalized_utc_timestamp(
+        candidate.baseline_anchor_start_utc,
+        field="candidate.baseline_anchor_start_utc",
+    )
+    baseline_anchor_end = _normalized_utc_timestamp(
+        candidate.baseline_anchor_end_utc,
+        field="candidate.baseline_anchor_end_utc",
+    )
+    if baseline_anchor_end < baseline_anchor_start:
+        raise ValueError(
+            "Outlier baseline-anchor end must not precede its start."
+        )
+    if not (
+        analysis_start <= baseline_anchor_start < analysis_end
+        and analysis_start <= baseline_anchor_end < analysis_end
+    ):
+        raise ValueError(
+            "Outlier baseline anchors must lie inside the supplied analysis window."
+        )
+    try:
+        episode_guard_minutes = float(candidate.episode_guard_minutes)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Outlier episode guard must be positive.") from exc
+    flank_minutes = float(DELTA_SNR_OUTLIER_FLANK_WINDOW_HOURS * 60)
+    if (
+        not math.isfinite(episode_guard_minutes)
+        or episode_guard_minutes <= 0.0
+        or episode_guard_minutes >= flank_minutes
+    ):
+        raise ValueError(
+            "Outlier episode guard must be positive and shorter than the flank window."
+        )
+
+    flank_delta = pd.Timedelta(
+        hours=DELTA_SNR_OUTLIER_FLANK_WINDOW_HOURS
+    )
+    guard_delta = pd.Timedelta(minutes=episode_guard_minutes)
+    one_nanosecond = pd.Timedelta(nanoseconds=1)
+
+    def clip_to_analysis(timestamp: pd.Timestamp) -> pd.Timestamp:
+        return min(max(timestamp, analysis_start), analysis_end)
+
+    pre_flank_start = clip_to_analysis(
+        baseline_anchor_start - flank_delta
+    )
+    pre_flank_end = clip_to_analysis(
+        baseline_anchor_start - guard_delta
+    )
+    post_flank_start = clip_to_analysis(
+        baseline_anchor_end + guard_delta + one_nanosecond
+    )
+    post_flank_end = clip_to_analysis(
+        baseline_anchor_end + flank_delta + one_nanosecond
+    )
+    return DeltaSnrOutlierContextBounds(
+        context_start_utc=pre_flank_start,
+        context_end_utc=post_flank_end,
+        pre_flank_start_utc=pre_flank_start,
+        pre_flank_end_utc=pre_flank_end,
+        post_flank_start_utc=post_flank_start,
+        post_flank_end_utc=post_flank_end,
+    )
 
 
 def _normalized_identity_pairs(
@@ -308,6 +596,169 @@ def _stable_signature(payload: object) -> str:
     return sha256(serialized).hexdigest()
 
 
+def _optional_half_open_marker_window(
+    *,
+    start_utc: object,
+    end_utc: object,
+) -> tuple[pd.Timestamp | None, pd.Timestamp | None]:
+    """Normalize an optional complete half-open marker-filtering window."""
+    if start_utc is None and end_utc is None:
+        return None, None
+    if start_utc is None or end_utc is None:
+        raise ValueError(
+            "Qualifying-unit marker filtering requires both start_utc and end_utc."
+        )
+    window_start = _normalized_utc_timestamp(
+        start_utc,
+        field="start_utc",
+    )
+    window_end = _normalized_utc_timestamp(
+        end_utc,
+        field="end_utc",
+    )
+    if window_end <= window_start:
+        raise ValueError(
+            "Qualifying-unit marker filtering requires a positive UTC window."
+        )
+    return window_start, window_end
+
+
+def _qualifying_unit_signature_payload(
+    qualifying_unit: DeltaSnrOutlierQualifyingUnit,
+) -> dict[str, object]:
+    """Return one JSON-safe exact qualifying-unit signature projection."""
+    return {
+        "evidence_utc_ns": int(qualifying_unit.evidence_utc.value),
+        "delta_snr_db": float(qualifying_unit.delta_snr_db),
+        "residual_db": float(qualifying_unit.residual_db),
+        "robust_z": float(qualifying_unit.robust_z),
+    }
+
+
+def _validated_candidate_qualifying_units(
+    candidate: DeltaSnrOutlierCandidate,
+    *,
+    detection_policy: DeltaSnrOutlierDetectionPolicy,
+) -> tuple[DeltaSnrOutlierQualifyingUnit, ...]:
+    """Validate exact strong anchors without inferring other episode members."""
+    qualifying_units = getattr(candidate, "qualifying_units", ())
+    if qualifying_units is None:
+        return ()
+    if not isinstance(qualifying_units, tuple):
+        raise ValueError("Candidate qualifying units must use an immutable tuple.")
+    if not qualifying_units:
+        return ()
+    candidate_start = _normalized_utc_timestamp(
+        candidate.start_utc,
+        field="candidate.start_utc",
+    )
+    candidate_end = _normalized_utc_timestamp(
+        candidate.end_utc,
+        field="candidate.end_utc",
+    )
+    representative_utc = _normalized_utc_timestamp(
+        candidate.representative_utc,
+        field="candidate.representative_utc",
+    )
+    candidate_sign = int(np.sign(float(candidate.median_anomaly_db)))
+    robust_spread_db = float(candidate.robust_spread_db)
+    if candidate_end <= candidate_start or candidate_sign == 0:
+        raise ValueError("Candidate qualifying-unit bounds or sign are invalid.")
+    if not math.isfinite(robust_spread_db) or robust_spread_db <= 0.0:
+        raise ValueError("Candidate qualifying-unit robust spread is invalid.")
+
+    previous_timestamp: pd.Timestamp | None = None
+    representative_is_qualifying = False
+    validated_units: list[DeltaSnrOutlierQualifyingUnit] = []
+    for qualifying_unit in qualifying_units:
+        if not isinstance(qualifying_unit, DeltaSnrOutlierQualifyingUnit):
+            raise ValueError(
+                "Candidate qualifying units contain an unsupported record."
+            )
+        timestamp = qualifying_unit.evidence_utc
+        if not candidate_start <= timestamp < candidate_end:
+            raise ValueError(
+                "Candidate qualifying-unit time lies outside its episode."
+            )
+        if previous_timestamp is not None and timestamp <= previous_timestamp:
+            raise ValueError(
+                "Candidate qualifying units must be strictly chronological."
+            )
+        previous_timestamp = timestamp
+        expected_residual_db = (
+            qualifying_unit.delta_snr_db - float(candidate.station_baseline_db)
+        )
+        expected_robust_z = _robust_z(
+            expected_residual_db,
+            robust_spread_db,
+        )
+        if not math.isclose(
+            qualifying_unit.residual_db,
+            expected_residual_db,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        ) or not math.isclose(
+            qualifying_unit.robust_z,
+            expected_robust_z,
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        ):
+            raise ValueError(
+                "Candidate qualifying-unit detector coordinates are inconsistent."
+            )
+        if (
+            int(np.sign(qualifying_unit.residual_db)) != candidate_sign
+            or abs(qualifying_unit.residual_db)
+            < detection_policy.minimum_departure_db
+            or abs(qualifying_unit.robust_z)
+            < detection_policy.minimum_robust_z
+        ):
+            raise ValueError(
+                "Candidate qualifying unit does not pass both configured gates."
+            )
+        if timestamp == representative_utc and math.isclose(
+            qualifying_unit.delta_snr_db,
+            float(candidate.representative_delta_snr_db),
+            rel_tol=1e-12,
+            abs_tol=1e-9,
+        ):
+            representative_is_qualifying = True
+        validated_units.append(qualifying_unit)
+    if not representative_is_qualifying:
+        raise ValueError(
+            "Candidate representative is missing from its qualifying native units."
+        )
+    return tuple(validated_units)
+
+
+def _qualifying_candidate_event_signature(
+    candidate: DeltaSnrOutlierCandidate,
+    *,
+    detection_policy_signature: str,
+) -> str:
+    """Fingerprint one path episode for focus-band/marker association."""
+    return _stable_signature(
+        {
+            "callsign": candidate.station_identity.callsign,
+            "locator": candidate.station_identity.locator,
+            "event_kind": candidate.event_kind,
+            "episode_start_utc_ns": int(candidate.start_utc.value),
+            "episode_end_utc_ns": int(candidate.end_utc.value),
+            "representative_utc_ns": int(candidate.representative_utc.value),
+            "representative_delta_snr_db": float(
+                candidate.representative_delta_snr_db
+            ),
+            "station_baseline_db": float(candidate.station_baseline_db),
+            "robust_spread_db": float(candidate.robust_spread_db),
+            "detection_policy_signature": detection_policy_signature,
+            "qualifying_units": [
+                _qualifying_unit_signature_payload(qualifying_unit)
+                for qualifying_unit in candidate.qualifying_units
+            ],
+        }
+    )
+
+
 def _optional_finite(value: object) -> float | None:
     """Return one finite float or ``None`` for unavailable diagnostics."""
     try:
@@ -330,6 +781,13 @@ def _candidate_signature(
             "event_kind": candidate.event_kind,
             "start_utc_ns": int(candidate.start_utc.value),
             "end_utc_ns": int(candidate.end_utc.value),
+            "baseline_anchor_start_utc_ns": int(
+                candidate.baseline_anchor_start_utc.value
+            ),
+            "baseline_anchor_end_utc_ns": int(
+                candidate.baseline_anchor_end_utc.value
+            ),
+            "episode_guard_minutes": candidate.episode_guard_minutes,
             "representative_utc_ns": int(candidate.representative_utc.value),
             "representative_delta_snr_db": candidate.representative_delta_snr_db,
             "episode_median_delta_snr_db": (
@@ -377,6 +835,10 @@ def _candidate_signature(
             ),
             "decode_edge_warning": candidate.decode_edge_warning,
             "decode_edge_warning_reason": candidate.decode_edge_warning_reason,
+            "qualifying_units": [
+                _qualifying_unit_signature_payload(qualifying_unit)
+                for qualifying_unit in candidate.qualifying_units
+            ],
         }
         for candidate in candidates
     ]
@@ -990,9 +1452,42 @@ def _candidate_from_supported_episode(
     ):
         return None
 
-    representative_relative_index = int(np.argmax(np.abs(residuals_db)))
+    native_robust_z_scores = (
+        DELTA_SNR_OUTLIER_MAD_NORMALIZATION
+        * residuals_db
+        / robust_spread_db
+    )
+    qualifying_unit_mask = (
+        (np.sign(residuals_db) == episode_sign)
+        & (
+            np.abs(residuals_db)
+            >= detection_policy.minimum_departure_db
+        )
+        & (
+            np.abs(native_robust_z_scores)
+            >= detection_policy.minimum_robust_z
+        )
+    )
+    qualifying_unit_positions = np.flatnonzero(qualifying_unit_mask)
+    qualifying_units = tuple(
+        DeltaSnrOutlierQualifyingUnit(
+            evidence_utc=episode_times[relative_index],
+            delta_snr_db=float(episode_metrics_db[relative_index]),
+            residual_db=float(residuals_db[relative_index]),
+            robust_z=float(native_robust_z_scores[relative_index]),
+        )
+        for relative_index in qualifying_unit_positions
+    )
+    if not qualifying_units:
+        return None
+
+    representative_relative_index = int(
+        qualifying_unit_positions[
+            np.argmax(np.abs(residuals_db[qualifying_unit_positions]))
+        ]
+    )
     representative_index = start_index + representative_relative_index
-    peak_anomaly_db = float(residuals_db[representative_relative_index])
+    peak_anomaly_db = float(residuals_db[np.argmax(np.abs(residuals_db))])
     pre_slice, post_slice = _flank_slices(
         cell_times,
         episode_start_utc=baseline_start_utc,
@@ -1023,6 +1518,9 @@ def _candidate_from_supported_episode(
         event_kind=event_kind,
         start_utc=episode_times[0],
         end_utc=episode_times[-1] + pd.Timedelta(nanoseconds=1),
+        baseline_anchor_start_utc=baseline_start_utc,
+        baseline_anchor_end_utc=baseline_end_utc,
+        episode_guard_minutes=float(episode_guard_minutes),
         representative_utc=station_times[representative_index],
         representative_delta_snr_db=float(
             station_metrics_db[representative_index]
@@ -1050,6 +1548,7 @@ def _candidate_from_supported_episode(
         reference_median_snr_db=reference_median,
         reference_baseline_db=reference_baseline,
         reference_anomaly_db=reference_anomaly,
+        qualifying_units=qualifying_units,
         path_effective_cadence_minutes=float(
             path_effective_cadence_minutes
         ),

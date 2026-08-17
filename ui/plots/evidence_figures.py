@@ -11,7 +11,12 @@ import matplotlib as mpl
 import matplotlib.dates as mdates
 import matplotlib.patheffects as path_effects
 
-from config import APP_VERSION, TEMPORAL_IQR_BAND_ALPHA
+from config import (
+    APP_VERSION,
+    TEMPORAL_EVIDENCE_TIME_BIN_PRESETS,
+    TEMPORAL_IQR_BAND_ALPHA,
+    temporal_evidence_time_bin_policy_for_duration,
+)
 from core.matplotlib_runtime import create_agg_figure, synchronized_matplotlib
 from core.evidence_statistics import (
     _expanded_metric_limits,
@@ -45,12 +50,7 @@ SEGMENT_TEMPORAL_FIGURE_SIZE_INCHES = (
 SEGMENT_TEMPORAL_FIGURE_LEFT = 0.07
 SEGMENT_TEMPORAL_FIGURE_RIGHT = 0.95
 SEGMENT_TEMPORAL_FIGURE_TOP = 0.82
-EVIDENCE_TIME_AGG_PRESETS = [
-    (pd.Timedelta(hours=6), ["5m", "15m", "30m", "1h", "3h"], "15m"),
-    (pd.Timedelta(hours=24), ["15m", "30m", "1h", "3h", "6h"], "30m"),
-    (pd.Timedelta(days=7), ["1h", "2h", "3h", "6h", "12h", "24h"], "3h"),
-    (None, ["1h", "2h", "3h", "6h", "12h", "24h"], "6h"),
-]
+EVIDENCE_TIME_AGG_PRESETS = TEMPORAL_EVIDENCE_TIME_BIN_PRESETS
 EVIDENCE_HEATMAP_CMAP = mpl.colors.LinearSegmentedColormap.from_list(
     "wspr_evidence_heatmap",
     ["#1849a9", "#00b050", "#ffb000", "#d7191c"]
@@ -948,43 +948,10 @@ def _time_agg_options_for_window(
         analysis_start_t,
         analysis_end_t,
     )
-    span = end - start
-    resolved_options = None
-    resolved_default = None
-    for max_span, options, default in EVIDENCE_TIME_AGG_PRESETS:
-        if max_span is None or span <= max_span:
-            resolved_options = list(options)
-            resolved_default = default
-            break
-
-    if resolved_options is None:
-        resolved_options = list(EVIDENCE_TIME_AGG_PRESETS[-1][1])
-        resolved_default = EVIDENCE_TIME_AGG_PRESETS[-1][2]
-
-    canonical_options = tuple(
-        sorted(
-            dict.fromkeys(
-                option
-                for _maximum_span, preset_options, _default in (
-                    EVIDENCE_TIME_AGG_PRESETS
-                )
-                for option in preset_options
-            ),
-            key=_time_agg_minutes,
-        )
+    return temporal_evidence_time_bin_policy_for_duration(
+        end - start,
+        retained_time_bin=retained_time_bin,
     )
-    if (
-        retained_time_bin in canonical_options
-        and retained_time_bin not in resolved_options
-    ):
-        included_options = set(resolved_options)
-        included_options.add(retained_time_bin)
-        resolved_options = [
-            option
-            for option in canonical_options
-            if option in included_options
-        ]
-    return resolved_options, resolved_default
 
 
 def _selected_window_chronological_axis(start, end, bin_minutes):

@@ -54,7 +54,8 @@ generated end-user and scientific manual, not the repository engineering guide.
   state; `ui/documentation_scroll_trigger.py` owns the browser viewport signal.
 - `ui/inspector/outlier_candidates.py` owns the optional native-paired-unit
   detector and cross-path review model; `ui/inspector/outlier_report.py` owns the
-  pure localized Outlier Report view model.
+  pure localized Outlier Report view model; `ui/inspector/outlier_export.py`
+  owns the pure fixed-schema event-path and paired-evidence export projections.
 - `tests/regression/` is the executable behavioral contract.
 
 ## Setup
@@ -728,8 +729,9 @@ not as optional follow-up work.
 - The optional Delta-SNR detector's native paired-unit input, candidate-excluded
   two-sided local baseline, unchanged three-gate qualification across duration
   classes, descriptive-only class names, and disabled compatibility boundary.
-  When reporting is off, ordinary result, cache, selection, marker, and export
-  paths must remain free of outlier semantics.
+  When reporting is off, ordinary result, cache, selection, marker, export
+  metadata/signatures, and CSV inventory must remain free of outlier semantics;
+  neither optional outlier CSV may survive stale registration.
 - Maidenhead conversion, distance/azimuth geometry, map projection, and range
   bucket boundaries.
 - Cache-key inputs, artifact path layout, TTL/lease behavior, lock ordering, and

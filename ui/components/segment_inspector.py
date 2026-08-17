@@ -9,6 +9,7 @@ import inspect
 import json
 from collections.abc import Mapping
 from contextlib import nullcontext
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from hashlib import sha256
 from html import escape
@@ -81,22 +82,43 @@ from ui.inspector.session_cache import SessionInspectorCache
 from ui.inspector.outlier_candidates import (
     DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
     DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+    build_delta_snr_outlier_context_bounds,
     prepare_delta_snr_outlier_model,
 )
 from ui.inspector.outlier_report import (
     OUTLIER_UNAVAILABLE_VALUE,
     build_delta_snr_outlier_report_view_model,
 )
+from ui.inspector.outlier_export import (
+    build_delta_snr_outlier_export_metadata,
+    build_delta_snr_outlier_export_tables,
+)
 from ui.page_navigation import (
+    DRILLDOWN_ANCHOR_ID,
     STATION_INSIGHTS_ANCHOR_ID,
     render_page_anchor,
     request_page_navigation,
 )
 from ui.result_state import (
     INSPECTOR_CACHE_STATE_KEY,
+    RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY,
     RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY,
     RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY,
     RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
+)
+from ui.inspector.drilldown_focus import (
+    DRILLDOWN_FOCUS_SCHEMA_VERSION,
+    DRILLDOWN_OUTLIER_CONTEXT_SCHEMA_VERSION,
+    DRILLDOWN_OUTLIER_FOCUS_OPTION,
+    DRILLDOWN_ZOOM_DURATION_HOURS,
+    available_manual_zoom_options,
+    default_focus_center_utc,
+    drilldown_outlier_candidate_context_for_scope,
+    filter_station_rows_to_focus_window,
+    focus_center_utc,
+    manual_zoom_center_bounds,
+    resolve_centered_zoom_window,
+    resolve_outlier_focus_window,
 )
 from ui.plots.evidence_figures import (
     _segment_figure_export_recipe,
@@ -115,7 +137,6 @@ from ui.plots.opportunity_figures import (
     SUCCESS_SNR_REPRESENTATION_STATION_RELATIVE,
     SUCCESS_TEMPORAL_POPULATION_ACTIVE_SCOPE,
     SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
-    SUCCESS_TEMPORAL_TIME_BINS,
     _as_utc_timestamp,
     _opportunity_segment_recipe,
     _opportunity_temporal_recipe,
@@ -127,6 +148,16 @@ from ui.plots.benchmark_evidence_figures import (
     render_selected_compare_coverage_export_figure,
 )
 from ui.plots.temporal_layout import TEMPORAL_EVIDENCE_LAYOUT_VERSION
+from ui.plots.drilldown_zoom_figures import (
+    DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION,
+    build_drilldown_zoom_benchmark_delta_snr_recipe,
+    build_drilldown_zoom_outlier_overlay_recipe,
+    build_drilldown_zoom_performance_snr_recipe,
+    render_drilldown_zoom_benchmark_coverage_figure,
+    render_drilldown_zoom_benchmark_delta_snr_figure,
+    render_drilldown_zoom_performance_evidence_figure,
+    render_drilldown_zoom_performance_snr_figure,
+)
 from ui.result_hierarchy import (
     active_scope_text,
     drilldown_subtitle,
@@ -155,8 +186,8 @@ from ui.result_guidance import (
 )
 from ui.reference_correction import configured_snr_correction_notice
 
-INSPECTOR_CACHE_VERSION = 46
-INSPECTOR_PNG_RENDER_VERSION = 38
+INSPECTOR_CACHE_VERSION = 48
+INSPECTOR_PNG_RENDER_VERSION = 39
 RESULTS_SHOW_NON_JOINT_STATE_KEY = "val_results_show_non_joint"
 RESULTS_SHOW_ZERO_TARGET_STATE_KEY = "val_results_show_zero_target"
 RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY = "val_results_selected_ranges_compare"
@@ -1069,6 +1100,10 @@ def _mark_station_selection_changed(selection_changed_key):
         RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
         None,
     )
+    st.session_state.pop(
+        RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY,
+        None,
+    )
 
 
 def _sync_selected_station_state_if_changed(
@@ -1681,6 +1716,482 @@ def _snr_column_config(df):
 
 
 
+def _format_drilldown_focus_utc(value):
+    """Format one UTC bound compactly while retaining non-minute precision."""
+    timestamp = pd.Timestamp(value).tz_convert("UTC")
+    if timestamp.second or timestamp.microsecond or timestamp.nanosecond:
+        return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    return timestamp.strftime("%Y-%m-%d %H:%M")
+
+
+def _drilldown_focus_title(identity_label, focus_window, translations):
+    """Return the compact selected-path identity plus exact focused interval."""
+    if focus_window is None:
+        return str(identity_label)
+    return translations["fmt_drilldown_zoom_time_window"].format(
+        identity=str(identity_label),
+        start=_format_drilldown_focus_utc(focus_window.start_utc),
+        end=_format_drilldown_focus_utc(focus_window.end_utc),
+    )
+
+
+def _drilldown_outlier_context_for_scope(
+    session_state,
+    *,
+    analysis_id,
+    run_id,
+    scope_token,
+    selected_identity,
+    analysis_start_utc,
+    analysis_end_utc,
+):
+    """Return validated candidate provenance belonging to this run and path."""
+    return drilldown_outlier_candidate_context_for_scope(
+        session_state.get(RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY),
+        analysis_id=analysis_id,
+        run_id=run_id,
+        scope_token=scope_token,
+        selected_identity=selected_identity,
+        analysis_start_utc=analysis_start_utc,
+        analysis_end_utc=analysis_end_utc,
+    )
+
+
+def _drilldown_focus_time_bin(focus_window):
+    """Return the cycle-sized companion-profile bin for one focused view."""
+    if focus_window is None:
+        return None
+    return "2m"
+
+
+def _drilldown_focus_identity_token(selected_identity):
+    """Return a stable compact widget namespace for one selected station."""
+    callsign, locator = selected_identity
+    return sha256(
+        f"{str(callsign).strip().upper()}\0{str(locator).strip().upper()}".encode(
+            "utf-8"
+        )
+    ).hexdigest()[:12]
+
+
+def _drilldown_focus_center_from_widget_values(date_value, time_value):
+    """Combine direct calendar/time inputs into one timezone-aware UTC center."""
+    return pd.Timestamp(
+        datetime.combine(
+            date_value,
+            time_value.replace(tzinfo=None),
+            tzinfo=timezone.utc,
+        )
+    )
+
+
+def _store_drilldown_focus_center(
+    session_state,
+    *,
+    date_key,
+    time_key,
+    focus_center,
+):
+    """Write one UTC center into the date/time widget value types."""
+    normalized_center = pd.Timestamp(focus_center).tz_convert("UTC")
+    session_state[date_key] = normalized_center.date()
+    session_state[time_key] = normalized_center.time().replace(tzinfo=None)
+
+
+def _normalize_drilldown_focus_center_state(
+    session_state,
+    date_key,
+    time_key,
+    analysis_start_utc,
+    analysis_end_utc,
+    option,
+):
+    """Clamp direct widget values while preserving the chosen full duration."""
+    try:
+        requested_center = _drilldown_focus_center_from_widget_values(
+            session_state[date_key],
+            session_state[time_key],
+        )
+        focus_window = resolve_centered_zoom_window(
+            analysis_start_utc,
+            analysis_end_utc,
+            option,
+            requested_center,
+        )
+    except (KeyError, TypeError, ValueError, OverflowError):
+        requested_center = default_focus_center_utc(
+            analysis_start_utc,
+            analysis_end_utc,
+            option,
+        )
+        focus_window = resolve_centered_zoom_window(
+            analysis_start_utc,
+            analysis_end_utc,
+            option,
+            requested_center,
+        )
+    if focus_window is None:
+        return
+    _store_drilldown_focus_center(
+        session_state,
+        date_key=date_key,
+        time_key=time_key,
+        focus_center=focus_center_utc(focus_window),
+    )
+
+
+def _shift_drilldown_focus_center_state(
+    session_state,
+    date_key,
+    time_key,
+    analysis_start_utc,
+    analysis_end_utc,
+    option,
+    direction,
+):
+    """Move a manual focus center by one complete selected zoom window."""
+    _normalize_drilldown_focus_center_state(
+        session_state,
+        date_key,
+        time_key,
+        analysis_start_utc,
+        analysis_end_utc,
+        option,
+    )
+    current_center = _drilldown_focus_center_from_widget_values(
+        session_state[date_key],
+        session_state[time_key],
+    )
+    shifted_center = current_center + int(direction) * pd.Timedelta(
+        hours=DRILLDOWN_ZOOM_DURATION_HOURS[option]
+    )
+    focus_window = resolve_centered_zoom_window(
+        analysis_start_utc,
+        analysis_end_utc,
+        option,
+        shifted_center,
+    )
+    if focus_window is None:
+        return
+    _store_drilldown_focus_center(
+        session_state,
+        date_key=date_key,
+        time_key=time_key,
+        focus_center=focus_center_utc(focus_window),
+    )
+
+
+def _render_drilldown_heading(
+    selected_station_labels,
+    analysis_id,
+    run_id,
+    scope_token,
+    translations,
+    is_compare,
+    is_sequential,
+    analysis_context,
+    language,
+    *,
+    allow_multiple_station_selection,
+):
+    """Render the one canonical Drill-Down heading and guidance placement."""
+    drilldown_title = translations["hdr_results_drilldown"]
+    st.markdown(
+        evidence_level_header_html(
+            5,
+            translations["lbl_results_level_rows"],
+            drilldown_title,
+            drilldown_subtitle(
+                selected_station_labels,
+                analysis_id,
+                translations,
+                allow_multiple=allow_multiple_station_selection,
+            ),
+        ),
+        unsafe_allow_html=True,
+    )
+    render_result_guidance_popover(
+        RESULT_GUIDANCE_DRILLDOWN,
+        drilldown_title,
+        language=language,
+        translations=translations,
+        key=(
+            f"results_guidance_drilldown_"
+            f"{analysis_id}_{run_id}_{scope_token}"
+        ),
+        analysis_id=analysis_id,
+        is_compare=is_compare,
+        is_sequential=is_sequential,
+        analysis_context=analysis_context,
+    )
+    normalization_note = translations["txt_snr_values_normalized_30dbm"]
+    filter_note = translations["txt_results_drilldown_filter_note"]
+    st.markdown(
+        scope_context_html(f"{filter_note} · {normalization_note}"),
+        unsafe_allow_html=True,
+    )
+
+
+def _render_drilldown_header_and_controls(
+    selected_station_labels,
+    analysis_id,
+    run_id,
+    scope_token,
+    translations,
+    is_compare,
+    is_sequential,
+    analysis_context,
+    language,
+    *,
+    analysis_start_utc,
+    analysis_end_utc,
+    selected_identity=None,
+    allow_multiple_station_selection=False,
+):
+    """Render plot-focus controls; the table owns its separate filter row."""
+    render_page_anchor(DRILLDOWN_ANCHOR_ID)
+    _render_drilldown_heading(
+        selected_station_labels,
+        analysis_id,
+        run_id,
+        scope_token,
+        translations,
+        is_compare,
+        is_sequential,
+        analysis_context,
+        language,
+        allow_multiple_station_selection=allow_multiple_station_selection,
+    )
+
+    if selected_identity is None:
+        if allow_multiple_station_selection:
+            st.markdown(
+                scope_context_html(
+                    translations["txt_drilldown_zoom_single_station_only"]
+                ),
+                unsafe_allow_html=True,
+            )
+        return None, None, None
+
+    manual_options = list(
+        available_manual_zoom_options(analysis_start_utc, analysis_end_utc)
+    )
+    outlier_context = _drilldown_outlier_context_for_scope(
+        st.session_state,
+        analysis_id=analysis_id,
+        run_id=run_id,
+        scope_token=scope_token,
+        selected_identity=selected_identity,
+        analysis_start_utc=analysis_start_utc,
+        analysis_end_utc=analysis_end_utc,
+    )
+    if (
+        st.session_state.get(RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY)
+        is not None
+        and outlier_context is None
+    ):
+        st.session_state.pop(RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY, None)
+
+    if outlier_context is None:
+        available_options = manual_options
+    else:
+        available_options = [
+            "off",
+            DRILLDOWN_OUTLIER_FOCUS_OPTION,
+            *(option for option in manual_options if option != "off"),
+        ]
+    identity_token = _drilldown_focus_identity_token(selected_identity)
+    widget_scope = f"{analysis_id}_{run_id}_{scope_token}_{identity_token}"
+    zoom_key = f"d_zoom_{widget_scope}"
+    focus_date_key = f"d_zoom_focus_date_{widget_scope}"
+    focus_time_key = f"d_zoom_focus_time_{widget_scope}"
+    applied_focus_key = f"{zoom_key}_applied_outlier_request"
+    applied_option_key = f"{zoom_key}_applied_option"
+    if outlier_context is not None:
+        if st.session_state.get(applied_focus_key) != outlier_context.request_token:
+            st.session_state[zoom_key] = DRILLDOWN_OUTLIER_FOCUS_OPTION
+            st.session_state[applied_focus_key] = outlier_context.request_token
+            _store_drilldown_focus_center(
+                st.session_state,
+                date_key=focus_date_key,
+                time_key=focus_time_key,
+                focus_center=outlier_context.representative_utc,
+            )
+    if st.session_state.get(zoom_key) not in available_options:
+        st.session_state[zoom_key] = "off"
+
+    zoom_container, selected_window_container = st.columns(
+        [0.28, 0.72],
+        vertical_alignment="center",
+    )
+    option_labels = {
+        "off": translations["lbl_drilldown_zoom_off"],
+        DRILLDOWN_OUTLIER_FOCUS_OPTION: translations[
+            "lbl_drilldown_zoom_outlier_focus"
+        ],
+    }
+    with zoom_container:
+        selected_option = st.selectbox(
+            translations["lbl_drilldown_zoom_window"],
+            available_options,
+            format_func=lambda option: option_labels.get(option, option),
+            key=zoom_key,
+        )
+
+    focus_window = None
+    if selected_option == DRILLDOWN_OUTLIER_FOCUS_OPTION:
+        if outlier_context is not None:
+            focus_window = resolve_outlier_focus_window(
+                analysis_start_utc,
+                analysis_end_utc,
+                outlier_context,
+            )
+    elif selected_option != "off":
+        prior_option = st.session_state.get(applied_option_key)
+        if (
+            focus_date_key not in st.session_state
+            or focus_time_key not in st.session_state
+            or (
+                prior_option
+                == DRILLDOWN_OUTLIER_FOCUS_OPTION
+                and outlier_context is not None
+            )
+        ):
+            initial_center = (
+                outlier_context.representative_utc
+                if outlier_context is not None
+                else default_focus_center_utc(
+                    analysis_start_utc,
+                    analysis_end_utc,
+                    selected_option,
+                )
+            )
+            _store_drilldown_focus_center(
+                st.session_state,
+                date_key=focus_date_key,
+                time_key=focus_time_key,
+                focus_center=initial_center,
+            )
+        _normalize_drilldown_focus_center_state(
+            st.session_state,
+            focus_date_key,
+            focus_time_key,
+            analysis_start_utc,
+            analysis_end_utc,
+            selected_option,
+        )
+        earliest_center, latest_center = manual_zoom_center_bounds(
+            analysis_start_utc,
+            analysis_end_utc,
+            selected_option,
+        )
+        (
+            center_date_container,
+            center_time_container,
+            earlier_container,
+            later_container,
+            _manual_control_spacer,
+        ) = st.columns(
+            [0.24, 0.20, 0.12, 0.12, 0.32],
+            vertical_alignment="bottom",
+        )
+        with earlier_container:
+            st.button(
+                translations["btn_drilldown_zoom_earlier"],
+                key=f"d_zoom_earlier_{widget_scope}",
+                type="tertiary",
+                on_click=_shift_drilldown_focus_center_state,
+                args=(
+                    st.session_state,
+                    focus_date_key,
+                    focus_time_key,
+                    analysis_start_utc,
+                    analysis_end_utc,
+                    selected_option,
+                    -1,
+                ),
+            )
+        with later_container:
+            st.button(
+                translations["btn_drilldown_zoom_later"],
+                key=f"d_zoom_later_{widget_scope}",
+                type="tertiary",
+                on_click=_shift_drilldown_focus_center_state,
+                args=(
+                    st.session_state,
+                    focus_date_key,
+                    focus_time_key,
+                    analysis_start_utc,
+                    analysis_end_utc,
+                    selected_option,
+                    1,
+                ),
+            )
+        with center_date_container:
+            selected_focus_date = st.date_input(
+                translations["lbl_drilldown_center_date_utc"],
+                min_value=earliest_center.date(),
+                max_value=latest_center.date(),
+                key=focus_date_key,
+                on_change=_normalize_drilldown_focus_center_state,
+                args=(
+                    st.session_state,
+                    focus_date_key,
+                    focus_time_key,
+                    analysis_start_utc,
+                    analysis_end_utc,
+                    selected_option,
+                ),
+            )
+        with center_time_container:
+            selected_focus_time = st.time_input(
+                translations["lbl_drilldown_center_time_utc"],
+                step=timedelta(minutes=2),
+                key=focus_time_key,
+                on_change=_normalize_drilldown_focus_center_state,
+                args=(
+                    st.session_state,
+                    focus_date_key,
+                    focus_time_key,
+                    analysis_start_utc,
+                    analysis_end_utc,
+                    selected_option,
+                ),
+            )
+        selected_center = _drilldown_focus_center_from_widget_values(
+            selected_focus_date,
+            selected_focus_time,
+        )
+        focus_window = resolve_centered_zoom_window(
+            analysis_start_utc,
+            analysis_end_utc,
+            selected_option,
+            selected_center,
+        )
+    else:
+        st.session_state.pop(
+            RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY,
+            None,
+        )
+        st.session_state.pop(applied_focus_key, None)
+
+    st.session_state[applied_option_key] = selected_option
+    if focus_window is not None:
+        selected_window_text = translations[
+            "fmt_drilldown_zoom_selected_window"
+        ].format(
+            start=_format_drilldown_focus_utc(focus_window.start_utc),
+            end=_format_drilldown_focus_utc(focus_window.end_utc),
+        )
+        selected_window_display = selected_window_container.container(
+            key=f"d_zoom_selected_window_{widget_scope}",
+        )
+        selected_window_display.caption(selected_window_text)
+
+    focus_time_bin = _drilldown_focus_time_bin(focus_window)
+    return focus_window, focus_time_bin, None
+
+
 def _render_drilldown_dataframe(
     drill_df,
     selected_station_labels,
@@ -1694,6 +2205,8 @@ def _render_drilldown_dataframe(
     language,
     allow_multiple_station_selection=False,
     timing_collector=None,
+    filter_container=None,
+    render_header=True,
 ):
     """Render selected drill-down rows with local filters and return the displayed dataframe."""
     if drill_df is None or drill_df.empty:
@@ -1709,46 +2222,29 @@ def _render_drilldown_dataframe(
         )
     )
 
-    drilldown_title = t["hdr_results_drilldown"]
-    st.markdown(
-        evidence_level_header_html(
-            5,
-            t["lbl_results_level_rows"],
-            drilldown_title,
-            drilldown_subtitle(
-                selected_station_labels,
-                analysis_id,
-                t,
-                allow_multiple=allow_multiple_station_selection,
+    if render_header:
+        _render_drilldown_heading(
+            selected_station_labels,
+            analysis_id,
+            run_id,
+            scope_token,
+            t,
+            is_compare,
+            is_sequential,
+            analysis_context,
+            language,
+            allow_multiple_station_selection=(
+                allow_multiple_station_selection
             ),
-        ),
-        unsafe_allow_html=True,
-    )
-    render_result_guidance_popover(
-        RESULT_GUIDANCE_DRILLDOWN,
-        drilldown_title,
-        language=language,
-        translations=t,
-        key=(
-            f"results_guidance_drilldown_"
-            f"{analysis_id}_{run_id}_{scope_token}"
-        ),
-        analysis_id=analysis_id,
-        is_compare=is_compare,
-        is_sequential=is_sequential,
-        analysis_context=analysis_context,
-    )
-    normalization_note = t["txt_snr_values_normalized_30dbm"]
-    filter_note = t["txt_results_drilldown_filter_note"]
-    st.markdown(
-        scope_context_html(f"{filter_note} · {normalization_note}"),
-        unsafe_allow_html=True,
-    )
-
-    _filter_spacer, col_d2 = st.columns([0.7, 0.3], vertical_alignment="center")
-    with col_d2:
+        )
+    if filter_container is None:
+        _filter_spacer, filter_container = st.columns(
+            [0.7, 0.3],
+            vertical_alignment="center",
+        )
+    with filter_container:
         with st.popover(
-            t["lbl_filter"],
+            t["lbl_filter_table"],
             icon=":material/filter_alt:",
             width="stretch",
         ):
@@ -1815,6 +2311,326 @@ def _render_drilldown_dataframe(
     return canonical_drill_df.loc[display_drill_df.index].copy()
 
 
+def _drilldown_zoom_export_metadata(
+    focus_window,
+    *,
+    selected_identity,
+    metric_recipe,
+    outlier_context=None,
+):
+    """Return the strict optional export identity for one focused view."""
+    if (
+        focus_window is None
+        or selected_identity is None
+        or not isinstance(metric_recipe, Mapping)
+    ):
+        return None
+    callsign, locator = selected_identity
+    metadata = {
+        "schema_version": DRILLDOWN_FOCUS_SCHEMA_VERSION,
+        "station": {
+            "callsign": str(callsign).strip().upper(),
+            "locator": str(locator).strip().upper(),
+        },
+        "start_utc": focus_window.start_utc.isoformat(),
+        "end_utc": focus_window.end_utc.isoformat(),
+        "option": focus_window.option,
+        "origin": focus_window.origin,
+        "time_bin": str(metric_recipe.get("time_bin") or ""),
+        "resolution": str(metric_recipe.get("resolution") or ""),
+        "aggregation": str(metric_recipe.get("aggregation") or ""),
+        "layout_version": DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION,
+    }
+    if outlier_context is not None:
+        metadata["outlier_candidate"] = {
+            "request_token": outlier_context.request_token,
+            "detector_version": outlier_context.detector_version,
+            "candidate_signature": outlier_context.candidate_signature,
+            "representative_utc": (
+                outlier_context.representative_utc.isoformat()
+            ),
+            "representative_delta_snr_db": (
+                outlier_context.representative_delta_snr_db
+            ),
+            "event_start_utc": outlier_context.event_start_utc.isoformat(),
+            "event_end_utc": outlier_context.event_end_utc.isoformat(),
+            "pre_flank_start_utc": (
+                outlier_context.pre_flank_start_utc.isoformat()
+            ),
+            "pre_flank_end_utc": (
+                outlier_context.pre_flank_end_utc.isoformat()
+            ),
+            "post_flank_start_utc": (
+                outlier_context.post_flank_start_utc.isoformat()
+            ),
+            "post_flank_end_utc": (
+                outlier_context.post_flank_end_utc.isoformat()
+            ),
+            "local_baseline_db": outlier_context.local_baseline_db,
+            "pre_baseline_db": outlier_context.pre_baseline_db,
+            "post_baseline_db": outlier_context.post_baseline_db,
+            "robust_spread_db": outlier_context.robust_spread_db,
+            "robust_spread_method": outlier_context.robust_spread_method,
+            "robust_z": outlier_context.robust_z,
+            "minimum_robust_z": outlier_context.minimum_robust_z,
+            "minimum_departure_db": outlier_context.minimum_departure_db,
+        }
+    return metadata
+
+
+def _build_performance_drilldown_zoom_recipes(
+    selected_base_recipe,
+    selected_peer_rows,
+    selected_station_rows,
+    selected_identity_label,
+    focus_window,
+    focus_time_bin,
+    translations,
+):
+    """Build native SNR plus cycle-resolution outcome evidence for one path."""
+    if focus_window is None or selected_base_recipe is None:
+        return None, None
+    zoom_title = _drilldown_focus_title(
+        selected_identity_label,
+        focus_window,
+        translations,
+    )
+    native_snr_recipe = build_drilldown_zoom_performance_snr_recipe(
+        selected_station_rows,
+        start_utc=focus_window.start_utc,
+        end_utc=focus_window.end_utc,
+        title=zoom_title,
+        panel_title=translations[
+            "fig_drilldown_native_performance_panel_title"
+        ],
+        x_label=translations["fig_drilldown_native_time_x"],
+        y_label=translations["fig_drilldown_native_performance_y"],
+        empty_text=translations[
+            "fig_drilldown_native_performance_unavailable"
+        ],
+        evidence_unit_label=translations[
+            "fig_drilldown_native_successful_opportunity"
+        ],
+    )
+    focused_evidence_recipe = _opportunity_temporal_recipe(
+        zoom_title,
+        selected_base_recipe["selected_segment"],
+        selected_peer_rows,
+        selected_station_rows,
+        focus_window.start_utc,
+        focus_window.end_utc,
+        selected_base_recipe["terminology"],
+        figure_labels=selected_base_recipe["labels"],
+        snr_title=zoom_title,
+        population_mode=SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+        snr_representation=SUCCESS_SNR_REPRESENTATION_ACTUAL,
+        time_bin_options=(focus_time_bin,),
+        time_bin_default=focus_time_bin,
+    )
+    focused_evidence_recipe["time_bin"] = focus_time_bin
+    return native_snr_recipe, dict(focused_evidence_recipe)
+
+
+def _build_benchmark_drilldown_zoom_recipes(
+    station_df,
+    selected_identity_df,
+    thresholded_station_rows,
+    is_sequential,
+    analysis_context,
+    focus_window,
+    focus_time_bin,
+    full_delta_recipe,
+    full_coverage_recipe,
+    translations,
+    outlier_context=None,
+    outlier_model=None,
+):
+    """Build native selected-path Delta-SNR and focused coverage recipes."""
+    if (
+        focus_window is None
+        or full_delta_recipe is None
+        or full_coverage_recipe is None
+    ):
+        return None, None
+    identity_meta = _prepare_identity_meta(selected_identity_df)
+    if len(identity_meta) != 1:
+        return None, None
+    comparison_units = _build_compare_unit_rows(
+        station_df,
+        identity_meta,
+        is_sequential,
+        paired_identity_df=identity_meta,
+        tx_ab_repeat_interval_minutes=(
+            analysis_context.tx_ab_repeat_interval_minutes
+        ),
+        tx_ab_target_start_minute=(
+            analysis_context.tx_ab_target_start_minute
+        ),
+        tx_ab_reference_start_minute=(
+            analysis_context.tx_ab_reference_start_minute
+        ),
+    )
+    comparison_units = _retain_thresholded_compare_outcomes(
+        comparison_units,
+        thresholded_station_rows,
+    )
+    evidence_utc = pd.to_datetime(
+        comparison_units.get("evidence_utc"),
+        errors="coerce",
+        utc=True,
+    )
+    comparison_units = comparison_units.loc[
+        evidence_utc.notna()
+        & evidence_utc.ge(focus_window.start_utc)
+        & evidence_utc.lt(focus_window.end_utc)
+    ].copy()
+    evidence_df = _compare_joint_evidence_points(
+        comparison_units,
+        preserve_metric_precision=True,
+    )
+    selected_identity_label = str(identity_meta.iloc[0]["identity"])
+    zoom_title = _drilldown_focus_title(
+        selected_identity_label,
+        focus_window,
+        translations,
+    )
+    outlier_overlay = None
+    qualifying_marker_recipe_builder = getattr(
+        outlier_model,
+        "qualifying_unit_marker_recipe",
+        None,
+    )
+    has_current_outlier_model = (
+        outlier_context is not None
+        and getattr(outlier_model, "detector_version", None)
+        == DELTA_SNR_OUTLIER_DETECTOR_VERSION
+        and outlier_context.detector_version
+        == DELTA_SNR_OUTLIER_DETECTOR_VERSION
+        and getattr(outlier_model, "candidate_signature", None)
+        == outlier_context.candidate_signature
+        and callable(qualifying_marker_recipe_builder)
+    )
+    if (
+        has_current_outlier_model
+        and outlier_context.event_start_utc < focus_window.end_utc
+        and outlier_context.event_end_utc > focus_window.start_utc
+    ):
+        qualifying_marker_times_utc = []
+        qualifying_marker_delta_snr_db = []
+        qualifying_marker_recipe = qualifying_marker_recipe_builder(
+            [
+                (
+                    str(identity_meta.iloc[0]["peer_sign"]),
+                    str(identity_meta.iloc[0]["peer_grid"]),
+                )
+            ],
+            start_utc=focus_window.start_utc,
+            end_utc=focus_window.end_utc,
+        )
+        if isinstance(qualifying_marker_recipe, Mapping):
+            for marker in qualifying_marker_recipe.get("markers", ()):
+                if not isinstance(marker, Mapping):
+                    continue
+                qualifying_marker_times_utc.append(
+                    pd.Timestamp(
+                        int(marker["marker_utc_ns"]),
+                        unit="ns",
+                        tz="UTC",
+                    )
+                )
+                qualifying_marker_delta_snr_db.append(
+                    float(marker["marker_delta_snr_db"])
+                )
+
+        native_evidence_unit_minutes = (
+            analysis_context.tx_ab_repeat_interval_minutes
+            if is_sequential
+            else 2.0
+        )
+        outlier_overlay = build_drilldown_zoom_outlier_overlay_recipe(
+            representative_utc=outlier_context.representative_utc,
+            representative_delta_snr_db=(
+                outlier_context.representative_delta_snr_db
+            ),
+            qualifying_marker_times_utc=qualifying_marker_times_utc,
+            qualifying_marker_delta_snr_db=(
+                qualifying_marker_delta_snr_db
+            ),
+            candidate_start_utc=outlier_context.event_start_utc,
+            candidate_end_utc=outlier_context.event_end_utc,
+            native_evidence_unit_minutes=native_evidence_unit_minutes,
+            local_baseline_db=outlier_context.local_baseline_db,
+            pre_baseline_db=outlier_context.pre_baseline_db,
+            post_baseline_db=outlier_context.post_baseline_db,
+            pre_flank_start_utc=outlier_context.pre_flank_start_utc,
+            pre_flank_end_utc=outlier_context.pre_flank_end_utc,
+            post_flank_start_utc=outlier_context.post_flank_start_utc,
+            post_flank_end_utc=outlier_context.post_flank_end_utc,
+            robust_spread_db=outlier_context.robust_spread_db,
+            robust_spread_method=outlier_context.robust_spread_method,
+            minimum_robust_z=outlier_context.minimum_robust_z,
+            minimum_departure_db=outlier_context.minimum_departure_db,
+            labels={
+                "marker": translations["fig_drilldown_outlier_candidate"],
+                "focused_episode": translations[
+                    "fig_drilldown_outlier_focused_episode"
+                ],
+                "local_baseline": translations[
+                    "fig_drilldown_outlier_expected_local_delta_snr"
+                ],
+                "flank_baseline": translations[
+                    "fig_drilldown_outlier_flank_baseline"
+                ],
+                "robust_z": translations[
+                    "fmt_drilldown_outlier_robust_z_guide"
+                ],
+                "qualifying_robust_z": translations[
+                    "fmt_drilldown_outlier_qualifying_robust_z_guide"
+                ],
+                "absolute_departure": translations[
+                    "fmt_drilldown_outlier_absolute_departure_gate"
+                ],
+            },
+        )
+    delta_recipe = build_drilldown_zoom_benchmark_delta_snr_recipe(
+        evidence_df,
+        start_utc=focus_window.start_utc,
+        end_utc=focus_window.end_utc,
+        title=zoom_title,
+        panel_title=translations[
+            "fig_drilldown_native_benchmark_panel_title"
+        ],
+        x_label=translations["fig_drilldown_native_time_x"],
+        y_label=translations["fig_drilldown_native_benchmark_y"],
+        empty_text=translations[
+            "fig_drilldown_native_benchmark_unavailable"
+        ],
+        evidence_unit_label=translations[
+            "fig_drilldown_native_scheduled_pair"
+            if is_sequential
+            else "fig_drilldown_native_joint_spot"
+        ],
+        is_sequential=is_sequential,
+        reference_snr_correction_notice=full_delta_recipe.get(
+            "reference_snr_correction_notice",
+            "",
+        ),
+        outlier_overlay=outlier_overlay,
+    )
+    coverage_recipe = _compare_coverage_recipe(
+        comparison_units,
+        coverage_title=zoom_title,
+        selected_segment=full_coverage_recipe["selected_segment"],
+        analysis_start_t=focus_window.start_utc,
+        analysis_end_t=focus_window.end_utc,
+        time_bin_options=(focus_time_bin,),
+        time_bin_default=focus_time_bin,
+        figure_labels=full_coverage_recipe["labels"],
+        population_mode=SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION,
+    )
+    return delta_recipe, coverage_recipe
+
+
 
 
 def _selected_evidence_figure_title(
@@ -1868,7 +2684,10 @@ def _delta_snr_outlier_marker_recipe(
             for strongest_candidate in (
                 max(
                     report_entry.candidates,
-                    key=lambda candidate: abs(candidate.peak_anomaly_db),
+                    key=lambda candidate: abs(
+                        candidate.representative_delta_snr_db
+                        - candidate.station_baseline_db
+                    ),
                 ),
             )
         }
@@ -2272,6 +3091,8 @@ def _select_outlier_station_identities(
     analysis_id,
     run_id,
     scope_token,
+    navigation_anchor_id=STATION_INSIGHTS_ANCHOR_ID,
+    preserve_drilldown_focus=False,
 ):
     """Select, focus, and navigate to exact detector path identities."""
     selected_identities = [
@@ -2284,6 +3105,11 @@ def _select_outlier_station_identities(
     session_state[
         RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     ] = selected_identities
+    if not preserve_drilldown_focus:
+        session_state.pop(
+            RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY,
+            None,
+        )
     current_revision = session_state.get(
         RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY,
         0,
@@ -2306,7 +3132,7 @@ def _select_outlier_station_identities(
     }
     request_page_navigation(
         session_state,
-        STATION_INSIGHTS_ANCHOR_ID,
+        navigation_anchor_id,
         should_scroll=True,
     )
     return selected_identities
@@ -2330,6 +3156,88 @@ def _select_outlier_path(
     )
 
 
+def _select_outlier_candidate(
+    candidate,
+    outlier_model,
+    session_state,
+    *,
+    analysis_id,
+    run_id,
+    scope_token,
+    navigation_anchor_id,
+):
+    """Preload one exact Outlier Focus and navigate to its selected path."""
+    context_bounds = build_delta_snr_outlier_context_bounds(
+        candidate,
+        analysis_start_utc=outlier_model.analysis_start_utc,
+        analysis_end_utc=outlier_model.analysis_end_utc,
+    )
+    request_payload = {
+        "schema_version": DRILLDOWN_OUTLIER_CONTEXT_SCHEMA_VERSION,
+        "analysis_id": analysis_id,
+        "run_id": run_id,
+        "scope_token": scope_token,
+        "callsign": candidate.station_identity.callsign,
+        "locator": candidate.station_identity.locator,
+        "event_start_utc_ns": int(candidate.start_utc.value),
+        "event_end_utc_ns": int(candidate.end_utc.value),
+        "representative_utc_ns": int(candidate.representative_utc.value),
+        "representative_delta_snr_db": float(
+            candidate.representative_delta_snr_db
+        ),
+        "local_baseline_db": float(candidate.station_baseline_db),
+        "pre_baseline_db": float(candidate.pre_baseline_db),
+        "post_baseline_db": float(candidate.post_baseline_db),
+        "robust_spread_db": float(candidate.robust_spread_db),
+        "robust_spread_method": candidate.robust_spread_method,
+        "robust_z": float(candidate.robust_z),
+        "minimum_robust_z": float(
+            outlier_model.detection_policy.minimum_robust_z
+        ),
+        "minimum_departure_db": float(
+            outlier_model.detection_policy.minimum_departure_db
+        ),
+        "baseline_anchor_start_utc_ns": int(
+            candidate.baseline_anchor_start_utc.value
+        ),
+        "baseline_anchor_end_utc_ns": int(
+            candidate.baseline_anchor_end_utc.value
+        ),
+        "episode_guard_minutes": float(candidate.episode_guard_minutes),
+        "pre_flank_start_utc_ns": int(
+            context_bounds.pre_flank_start_utc.value
+        ),
+        "pre_flank_end_utc_ns": int(
+            context_bounds.pre_flank_end_utc.value
+        ),
+        "post_flank_start_utc_ns": int(
+            context_bounds.post_flank_start_utc.value
+        ),
+        "post_flank_end_utc_ns": int(
+            context_bounds.post_flank_end_utc.value
+        ),
+        "detector_version": outlier_model.detector_version,
+        "candidate_signature": outlier_model.candidate_signature,
+    }
+    request_payload["request_token"] = sha256(
+        json.dumps(
+            request_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    session_state[RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY] = request_payload
+    return _select_outlier_station_identities(
+        (candidate.station_identity,),
+        session_state,
+        analysis_id=analysis_id,
+        run_id=run_id,
+        scope_token=scope_token,
+        navigation_anchor_id=navigation_anchor_id,
+        preserve_drilldown_focus=True,
+    )
+
+
 def _select_outlier_episode_paths(
     report_entry,
     session_state,
@@ -2346,6 +3254,57 @@ def _select_outlier_episode_paths(
         run_id=run_id,
         scope_token=scope_token,
     )
+
+
+def _render_outlier_candidate_navigation(
+    parent_container,
+    candidate,
+    outlier_model,
+    *,
+    candidate_key_suffix,
+    analysis_id,
+    run_id,
+    scope_token,
+    translations,
+):
+    """Render the two candidate-specific downward navigation actions."""
+    action_container = parent_container.container(
+        key=f"outlier_path_actions_{candidate_key_suffix}",
+        horizontal=True,
+        horizontal_alignment="right",
+        vertical_alignment="center",
+        gap="small",
+    )
+    if action_container.button(
+        translations["btn_outlier_show_path_in_station_insights"],
+        key=f"show_outlier_station_{candidate_key_suffix}",
+        type="tertiary",
+    ):
+        _select_outlier_candidate(
+            candidate,
+            outlier_model,
+            st.session_state,
+            analysis_id=analysis_id,
+            run_id=run_id,
+            scope_token=scope_token,
+            navigation_anchor_id=STATION_INSIGHTS_ANCHOR_ID,
+        )
+        st.rerun(scope="app")
+    if action_container.button(
+        translations["btn_outlier_show_drilldown_details"],
+        key=f"show_outlier_drilldown_{candidate_key_suffix}",
+        type="tertiary",
+    ):
+        _select_outlier_candidate(
+            candidate,
+            outlier_model,
+            st.session_state,
+            analysis_id=analysis_id,
+            run_id=run_id,
+            scope_token=scope_token,
+            navigation_anchor_id=DRILLDOWN_ANCHOR_ID,
+        )
+        st.rerun(scope="app")
 
 
 def _render_delta_snr_outlier_report(
@@ -2479,18 +3438,7 @@ def _render_delta_snr_outlier_report(
             grouped_candidates,
             start=1,
         ):
-            path_heading_container = episode_container.container(
-                key=(
-                    f"outlier_path_heading_{episode_key_suffix}_"
-                    f"{path_index}_{station_identity.callsign}_"
-                    f"{station_identity.locator}"
-                ),
-                horizontal=True,
-                horizontal_alignment="distribute",
-                vertical_alignment="center",
-                gap="small",
-            )
-            path_heading_container.markdown(
+            path_heading = (
                 "###### "
                 + t["fmt_outlier_path_heading"].format(
                     index=_format_localized_integer(path_index, t),
@@ -2501,27 +3449,24 @@ def _render_delta_snr_outlier_report(
                     ),
                 )
             )
-            if path_heading_container.button(
-                t["btn_outlier_show_path_in_station_insights"],
-                key=(
-                    f"show_outlier_path_{episode_key_suffix}_"
-                    f"{path_index}_{station_identity.callsign}_"
-                    f"{station_identity.locator}"
-                ),
-                type="tertiary",
-                icon=":material/visibility:",
-            ):
-                _select_outlier_path(
-                    station_identity,
-                    st.session_state,
-                    analysis_id=analysis_id,
-                    run_id=run_id,
-                    scope_token=scope_token,
-                )
-                st.rerun(scope="app")
+            if len(path_candidates) > 1:
+                episode_container.markdown(path_heading)
             for candidate in path_candidates:
+                candidate_key_suffix = (
+                    f"{episode_key_suffix}_{path_index}_"
+                    f"{station_identity.callsign}_{station_identity.locator}_"
+                    f"{int(candidate.start_utc.value)}_"
+                    f"{int(candidate.end_utc.value)}"
+                )
+                path_heading_container = episode_container.container(
+                    key=f"outlier_path_heading_{candidate_key_suffix}",
+                    horizontal=True,
+                    horizontal_alignment="distribute",
+                    vertical_alignment="center",
+                    gap="small",
+                )
                 if len(path_candidates) > 1:
-                    episode_container.markdown(
+                    path_heading_container.markdown(
                         "**"
                         + t["fmt_outlier_candidate_timeframe"].format(
                             utc_range=_format_outlier_utc_range(
@@ -2531,6 +3476,18 @@ def _render_delta_snr_outlier_report(
                         )
                         + "**"
                     )
+                else:
+                    path_heading_container.markdown(path_heading)
+                _render_outlier_candidate_navigation(
+                    path_heading_container,
+                    candidate,
+                    outlier_model,
+                    candidate_key_suffix=candidate_key_suffix,
+                    analysis_id=analysis_id,
+                    run_id=run_id,
+                    scope_token=scope_token,
+                    translations=t,
+                )
                 episode_container.caption(
                     _format_outlier_candidate_facts(
                         candidate,
@@ -2613,6 +3570,25 @@ def _render_selected_station_evidence(
         is_compare=True,
         is_sequential=is_sequential,
     )
+    preferred_time_bin = st.session_state.get(
+        _time_bin_persistent_state_key(True)
+    )
+    (
+        adaptive_time_agg_options,
+        adaptive_time_agg_default,
+        retained_extra_cache_token,
+    ) = _compare_temporal_time_bin_policy(
+        analysis_start_t,
+        analysis_end_t,
+        preferred_time_bin,
+    )
+    cache_key = (
+        *cache_key,
+        "adaptive-time-bin-policy-v1",
+        tuple(adaptive_time_agg_options),
+        adaptive_time_agg_default,
+        retained_extra_cache_token,
+    )
 
     selected_bundle, selected_cache_hit = _inspector_cache_get(
         run_id,
@@ -2658,8 +3634,8 @@ def _render_selected_station_evidence(
             translations=t,
             allow_multiple=(outlier_model is not None),
         )
-        time_agg_options = tuple(SUCCESS_TEMPORAL_TIME_BINS)
-        time_agg_default = "3h"
+        time_agg_options = tuple(adaptive_time_agg_options)
+        time_agg_default = adaptive_time_agg_default
         folded_date_template = t[
             "fig_segment_dates_folded"
         ].replace(
@@ -3129,6 +4105,21 @@ def _render_opportunity_scope(
         "TX" if analysis_id.startswith("TX") else "RX"
     )
     success_figure_labels = _success_figure_labels(t, analysis_id)
+    retained_segment_time_bin = st.session_state.get(
+        RESULTS_SEGMENT_TIME_BIN_ABSOLUTE_STATE_KEY
+    )
+    if analysis_start_t is not None and analysis_end_t is not None:
+        (
+            _segment_time_bin_options,
+            _segment_time_bin_default,
+            retained_segment_time_bin_cache_token,
+        ) = _compare_temporal_time_bin_policy(
+            analysis_start_t,
+            analysis_end_t,
+            retained_segment_time_bin,
+        )
+    else:
+        retained_segment_time_bin_cache_token = retained_segment_time_bin
 
     segment_cache_key = (
         INSPECTOR_CACHE_VERSION,
@@ -3149,6 +4140,7 @@ def _render_opportunity_scope(
         presentation_context.theme,
         title,
         selected_seg,
+        retained_segment_time_bin_cache_token,
     )
     segment_bundle, segment_cache_hit = _inspector_cache_get(
         run_id,
@@ -3251,6 +4243,7 @@ def _render_opportunity_scope(
                 snr_representation=(
                     SUCCESS_SNR_REPRESENTATION_STATION_RELATIVE
                 ),
+                retained_time_bin=retained_segment_time_bin,
             )
         temporal_bundle = {
             "base_recipe": temporal_base_recipe,
@@ -3537,6 +4530,9 @@ def _render_opportunity_scope(
     selected_evidence_figure_descriptions = {}
     selected_time_bin = None
     drilldown_selected_df = pd.DataFrame()
+    drilldown_zoom_metadata = None
+    drilldown_zoom_performance_snr_recipe = None
+    drilldown_zoom_performance_evidence_recipe = None
     selected_rows = [
         row
         for row in (table_event.selection.rows or [])
@@ -3601,6 +4597,11 @@ def _render_opportunity_scope(
             str(analysis_end_t),
             presentation_context.language,
             presentation_context.theme,
+            _compare_temporal_time_bin_policy(
+                analysis_start_t,
+                analysis_end_t,
+                st.session_state.get(RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY),
+            )[2],
         )
         selected_base_recipe, selected_cache_hit = _inspector_cache_get(
             run_id,
@@ -3640,6 +4641,9 @@ def _render_opportunity_scope(
                         SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
                     ),
                     snr_representation=SUCCESS_SNR_REPRESENTATION_ACTUAL,
+                    retained_time_bin=st.session_state.get(
+                        RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
+                    ),
                 )
             _inspector_cache_put(
                 run_id,
@@ -3772,52 +4776,123 @@ def _render_opportunity_scope(
             unsafe_allow_html=True,
         )
 
-        with _timed_span(timing_collector, "drilldown table build"):
-            export_station_col = opportunity_display_model[
-                "export_station_column"
-            ]
-            selected_meta_export_df = selected_meta_df.rename(
-                columns={station_col: export_station_col}
+        level_five_container = st.container(
+            key=(
+                f"results_evidence_level_5_"
+                f"{analysis_id}_{run_id}_{scope_token}"
             )
-            selected_station_rows_export = selected_station_rows.rename(
-                columns={station_col: export_station_col}
-            )
-            drill_df, info_msg = _build_drilldown_table(
-                parquet_path,
-                selected_meta_export_df,
-                export_station_col,
-                loc_col,
-                km_col,
-                az_col,
-                analysis_id,
-                False,
-                False,
-                False,
-                analysis_context.callsign.upper(),
-                "",
-                t,
-                station_rows_df=selected_station_rows_export,
-                tx_ab_repeat_interval_minutes=(
-                    analysis_context.tx_ab_repeat_interval_minutes
-                ),
-                tx_ab_target_start_minute=(
-                    analysis_context.tx_ab_target_start_minute
-                ),
-                tx_ab_reference_start_minute=(
-                    analysis_context.tx_ab_reference_start_minute
-                ),
-                target_callsign=analysis_context.callsign,
-            )
-        if info_msg:
-            level_four_container.info(info_msg, icon=":material/info:")
-        elif not drill_df.empty:
-            level_five_container = st.container(
-                key=(
-                    f"results_evidence_level_5_"
-                    f"{analysis_id}_{run_id}_{scope_token}"
+        )
+        with level_five_container:
+            focus_window, focus_time_bin, drilldown_filter_container = (
+                _render_drilldown_header_and_controls(
+                    selected_station_labels,
+                    analysis_id,
+                    run_id,
+                    scope_token,
+                    t,
+                    False,
+                    False,
+                    analysis_context,
+                    presentation_context.language,
+                    analysis_start_utc=analysis_start_t,
+                    analysis_end_utc=analysis_end_t,
+                    selected_identity=(selected_station, selected_locator),
                 )
             )
-            with level_five_container:
+            focused_station_rows = filter_station_rows_to_focus_window(
+                selected_station_rows,
+                focus_window,
+                is_sequential=False,
+            )
+            if focus_window is not None:
+                (
+                    drilldown_zoom_performance_snr_recipe,
+                    drilldown_zoom_performance_evidence_recipe,
+                ) = _build_performance_drilldown_zoom_recipes(
+                    selected_base_recipe,
+                    selected_peer_rows,
+                    focused_station_rows,
+                    selected_station_labels[0],
+                    focus_window,
+                    focus_time_bin,
+                    t,
+                )
+                drilldown_zoom_metadata = _drilldown_zoom_export_metadata(
+                    focus_window,
+                    selected_identity=(selected_station, selected_locator),
+                    metric_recipe=drilldown_zoom_performance_snr_recipe,
+                )
+                focus_cache_key = (
+                    *selected_cache_key,
+                    "drilldown-focus",
+                    int(focus_window.start_utc.value),
+                    int(focus_window.end_utc.value),
+                    focus_time_bin,
+                    DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION,
+                )
+                _render_cached_recipe(
+                    drilldown_zoom_performance_snr_recipe,
+                    run_id=run_id,
+                    cache_key=(*focus_cache_key, "snr"),
+                    subject="opportunity Drill-Down zoom SNR evidence",
+                    build_label="opportunity Drill-Down zoom SNR figure build",
+                    render_figure=(
+                        render_drilldown_zoom_performance_snr_figure
+                    ),
+                    timing_collector=timing_collector,
+                )
+                _render_cached_recipe(
+                    drilldown_zoom_performance_evidence_recipe,
+                    run_id=run_id,
+                    cache_key=(*focus_cache_key, "outcomes"),
+                    subject="opportunity Drill-Down zoom temporal evidence",
+                    build_label=(
+                        "opportunity Drill-Down zoom temporal figure build"
+                    ),
+                    render_figure=(
+                        render_drilldown_zoom_performance_evidence_figure
+                    ),
+                    timing_collector=timing_collector,
+                )
+            with _timed_span(timing_collector, "drilldown table build"):
+                export_station_col = opportunity_display_model[
+                    "export_station_column"
+                ]
+                selected_meta_export_df = selected_meta_df.rename(
+                    columns={station_col: export_station_col}
+                )
+                selected_station_rows_export = focused_station_rows.rename(
+                    columns={station_col: export_station_col}
+                )
+                drill_df, info_msg = _build_drilldown_table(
+                    parquet_path,
+                    selected_meta_export_df,
+                    export_station_col,
+                    loc_col,
+                    km_col,
+                    az_col,
+                    analysis_id,
+                    False,
+                    False,
+                    False,
+                    analysis_context.callsign.upper(),
+                    "",
+                    t,
+                    station_rows_df=selected_station_rows_export,
+                    tx_ab_repeat_interval_minutes=(
+                        analysis_context.tx_ab_repeat_interval_minutes
+                    ),
+                    tx_ab_target_start_minute=(
+                        analysis_context.tx_ab_target_start_minute
+                    ),
+                    tx_ab_reference_start_minute=(
+                        analysis_context.tx_ab_reference_start_minute
+                    ),
+                    target_callsign=analysis_context.callsign,
+                )
+            if info_msg:
+                st.info(info_msg, icon=":material/info:")
+            elif not drill_df.empty:
                 drilldown_selected_df = _render_drilldown_dataframe(
                     drill_df,
                     selected_station_labels,
@@ -3830,6 +4905,8 @@ def _render_opportunity_scope(
                     analysis_context,
                     presentation_context.language,
                     timing_collector=timing_collector,
+                    filter_container=drilldown_filter_container,
+                    render_header=False,
                 )
     else:
         level_three_container.markdown(
@@ -3917,6 +4994,13 @@ def _render_opportunity_scope(
         selected_station_role=remote_station_type(analysis_id),
         selected_evidence_figure_descriptions=(
             selected_evidence_figure_descriptions
+        ),
+        drilldown_zoom_metadata=drilldown_zoom_metadata,
+        drilldown_zoom_performance_snr_figure_recipe=(
+            drilldown_zoom_performance_snr_recipe
+        ),
+        drilldown_zoom_performance_temporal_figure_recipe=(
+            drilldown_zoom_performance_evidence_recipe
         ),
     )
     st.markdown(
@@ -4255,6 +5339,19 @@ def _render_segment_inspector_body(
                         pd.DataFrame(),
                     )
                 )
+                delta_snr_outlier_export_tables = (
+                    build_delta_snr_outlier_export_tables(
+                        outlier_model,
+                        outlier_report_view_model,
+                        is_sequential=is_sequential,
+                    )
+                )
+                delta_snr_outlier_export_metadata = (
+                    build_delta_snr_outlier_export_metadata(
+                        outlier_model,
+                        delta_snr_outlier_export_tables,
+                    )
+                )
                 _render_delta_snr_outlier_report(
                     outlier_model,
                     outlier_report_view_model,
@@ -4292,6 +5389,16 @@ def _render_segment_inspector_body(
                 ),
                 delta_snr_outlier_detection_policy=(
                     outlier_detection_policy
+                    if is_outlier_reporting_enabled
+                    else None
+                ),
+                delta_snr_outlier_export_tables=(
+                    delta_snr_outlier_export_tables
+                    if is_outlier_reporting_enabled
+                    else None
+                ),
+                delta_snr_outlier_export_metadata=(
+                    delta_snr_outlier_export_metadata
                     if is_outlier_reporting_enabled
                     else None
                 ),
@@ -4756,6 +5863,9 @@ def _render_segment_inspector_body(
         selected_station_labels = []
         drilldown_selected_df = pd.DataFrame()
         all_drilldown_context = None
+        drilldown_zoom_metadata = None
+        drilldown_zoom_benchmark_delta_recipe = None
+        drilldown_zoom_benchmark_coverage_recipe = None
 
         comparison_subtitle_key = (
             "sub_results_comparison_evidence_scheduled"
@@ -5264,22 +6374,43 @@ def _render_segment_inspector_body(
                     ),
                     unsafe_allow_html=True,
                 )
-                with _timed_span(timing_collector, "drilldown table build"):
-                    drill_df, info_msg = _build_drilldown_table(
-                        parquet_path,
-                        selected_meta_df,
-                        station_col,
-                        loc_col,
-                        t['tbl_col_km'],
-                        t['tbl_col_az'],
+                level_five_container = st.container(
+                    key=(
+                        f"results_evidence_level_5_"
+                        f"{analysis_id}_{run_id}_{scope_token}"
+                    )
+                )
+                with level_five_container:
+                    selected_identity_for_zoom = (
+                        selected_identity_pairs[0]
+                        if len(selected_identity_pairs) == 1
+                        else None
+                    )
+                    (
+                        focus_window,
+                        focus_time_bin,
+                        drilldown_filter_container,
+                    ) = _render_drilldown_header_and_controls(
+                        selected_station_labels,
                         analysis_id,
-                        is_sequential,
-                        show_non_joint,
-                        is_local_median,
-                        col_u_name,
-                        ref_header,
+                        run_id,
+                        scope_token,
                         t,
-                        station_rows_df=station_df,
+                        True,
+                        is_sequential,
+                        analysis_context,
+                        presentation_context.language,
+                        analysis_start_utc=analysis_start_t,
+                        analysis_end_utc=analysis_end_t,
+                        selected_identity=selected_identity_for_zoom,
+                        allow_multiple_station_selection=(
+                            is_outlier_reporting_enabled
+                        ),
+                    )
+                    focused_station_df = filter_station_rows_to_focus_window(
+                        station_df,
+                        focus_window,
+                        is_sequential=is_sequential,
                         tx_ab_repeat_interval_minutes=(
                             analysis_context.tx_ab_repeat_interval_minutes
                         ),
@@ -5289,22 +6420,145 @@ def _render_segment_inspector_body(
                         tx_ab_reference_start_minute=(
                             analysis_context.tx_ab_reference_start_minute
                         ),
-                        target_callsign=analysis_context.callsign,
                     )
-
-                if info_msg:
-                    level_four_container.info(
-                        info_msg,
-                        icon=":material/info:",
-                    )
-                elif drill_df is not None and not drill_df.empty:
-                    level_five_container = st.container(
-                        key=(
-                            f"results_evidence_level_5_"
-                            f"{analysis_id}_{run_id}_{scope_token}"
+                    drilldown_outlier_context = (
+                        _drilldown_outlier_context_for_scope(
+                            st.session_state,
+                            analysis_id=analysis_id,
+                            run_id=run_id,
+                            scope_token=scope_token,
+                            selected_identity=selected_identity_for_zoom,
+                            analysis_start_utc=analysis_start_t,
+                            analysis_end_utc=analysis_end_t,
                         )
                     )
-                    with level_five_container:
+                    if focus_window is not None:
+                        (
+                            drilldown_zoom_benchmark_delta_recipe,
+                            drilldown_zoom_benchmark_coverage_recipe,
+                        ) = _build_benchmark_drilldown_zoom_recipes(
+                            focused_station_df,
+                            selected_identity_df,
+                            selected_thresholded_rows,
+                            is_sequential,
+                            analysis_context,
+                            focus_window,
+                            focus_time_bin,
+                            (selected_evidence_export or {}).get(
+                                "export_recipe"
+                            ),
+                            (selected_evidence_export or {}).get(
+                                "coverage_export_recipe"
+                            ),
+                            t,
+                            outlier_context=drilldown_outlier_context,
+                            outlier_model=outlier_model,
+                        )
+                        drilldown_zoom_metadata = (
+                            _drilldown_zoom_export_metadata(
+                                focus_window,
+                                selected_identity=selected_identity_for_zoom,
+                                metric_recipe=(
+                                    drilldown_zoom_benchmark_delta_recipe
+                                ),
+                                outlier_context=(
+                                    drilldown_outlier_context
+                                    if isinstance(
+                                        drilldown_zoom_benchmark_delta_recipe,
+                                        Mapping,
+                                    )
+                                    and drilldown_zoom_benchmark_delta_recipe.get(
+                                        "outlier_overlay"
+                                    )
+                                    is not None
+                                    else None
+                                ),
+                            )
+                        )
+                        focus_cache_key = (
+                            INSPECTOR_CACHE_VERSION,
+                            "comparison-drilldown-focus",
+                            analysis_id,
+                            scope_token,
+                            selected_identity_for_zoom,
+                            bool(is_sequential),
+                            int(focus_window.start_utc.value),
+                            int(focus_window.end_utc.value),
+                            focus_time_bin,
+                            (
+                                drilldown_outlier_context.request_token
+                                if drilldown_outlier_context is not None
+                                else None
+                            ),
+                            presentation_context.language,
+                            presentation_context.theme,
+                            DRILLDOWN_ZOOM_FIGURE_LAYOUT_VERSION,
+                        )
+                        if drilldown_zoom_benchmark_delta_recipe is not None:
+                            _render_cached_recipe(
+                                drilldown_zoom_benchmark_delta_recipe,
+                                run_id=run_id,
+                                cache_key=(*focus_cache_key, "delta-snr"),
+                                subject=(
+                                    "Benchmark Drill-Down zoom Delta-SNR evidence"
+                                ),
+                                build_label=(
+                                    "Benchmark Drill-Down zoom Delta-SNR figure build"
+                                ),
+                                render_figure=(
+                                    render_drilldown_zoom_benchmark_delta_snr_figure
+                                ),
+                                timing_collector=timing_collector,
+                            )
+                        if drilldown_zoom_benchmark_coverage_recipe is not None:
+                            _render_cached_recipe(
+                                drilldown_zoom_benchmark_coverage_recipe,
+                                run_id=run_id,
+                                cache_key=(*focus_cache_key, "coverage"),
+                                subject=(
+                                    "Benchmark Drill-Down zoom coverage"
+                                ),
+                                build_label=(
+                                    "Benchmark Drill-Down zoom coverage figure build"
+                                ),
+                                render_figure=(
+                                    render_drilldown_zoom_benchmark_coverage_figure
+                                ),
+                                timing_collector=timing_collector,
+                            )
+                    with _timed_span(
+                        timing_collector,
+                        "drilldown table build",
+                    ):
+                        drill_df, info_msg = _build_drilldown_table(
+                            parquet_path,
+                            selected_meta_df,
+                            station_col,
+                            loc_col,
+                            t['tbl_col_km'],
+                            t['tbl_col_az'],
+                            analysis_id,
+                            is_sequential,
+                            show_non_joint,
+                            is_local_median,
+                            col_u_name,
+                            ref_header,
+                            t,
+                            station_rows_df=focused_station_df,
+                            tx_ab_repeat_interval_minutes=(
+                                analysis_context.tx_ab_repeat_interval_minutes
+                            ),
+                            tx_ab_target_start_minute=(
+                                analysis_context.tx_ab_target_start_minute
+                            ),
+                            tx_ab_reference_start_minute=(
+                                analysis_context.tx_ab_reference_start_minute
+                            ),
+                            target_callsign=analysis_context.callsign,
+                        )
+                    if info_msg:
+                        st.info(info_msg, icon=":material/info:")
+                    elif drill_df is not None and not drill_df.empty:
                         drilldown_selected_df = _render_drilldown_dataframe(
                             drill_df,
                             selected_station_labels,
@@ -5320,6 +6574,8 @@ def _render_segment_inspector_body(
                                 is_outlier_reporting_enabled
                             ),
                             timing_collector=timing_collector,
+                            filter_container=drilldown_filter_container,
+                            render_header=False,
                         )
 
             except FileNotFoundError as exc:
@@ -5343,6 +6599,23 @@ def _render_segment_inspector_body(
                     ]
                 ),
                 unsafe_allow_html=True,
+            )
+
+        delta_snr_outlier_export_tables = None
+        delta_snr_outlier_export_metadata = None
+        if is_outlier_reporting_enabled:
+            delta_snr_outlier_export_tables = (
+                build_delta_snr_outlier_export_tables(
+                    outlier_model,
+                    outlier_report_view_model,
+                    is_sequential=is_sequential,
+                )
+            )
+            delta_snr_outlier_export_metadata = (
+                build_delta_snr_outlier_export_metadata(
+                    outlier_model,
+                    delta_snr_outlier_export_tables,
+                )
             )
 
         register_inspector_export(
@@ -5371,6 +6644,13 @@ def _render_segment_inspector_body(
             selected_station_coverage_figure_recipe=(
                 selected_evidence_export or {}
             ).get("coverage_export_recipe"),
+            drilldown_zoom_metadata=drilldown_zoom_metadata,
+            drilldown_zoom_benchmark_delta_snr_figure_recipe=(
+                drilldown_zoom_benchmark_delta_recipe
+            ),
+            drilldown_zoom_benchmark_coverage_figure_recipe=(
+                drilldown_zoom_benchmark_coverage_recipe
+            ),
             station_insights_df=sorted_disp_df,
             drilldown_selected_df=drilldown_selected_df,
             all_drilldown_context=all_drilldown_context,
@@ -5390,6 +6670,12 @@ def _render_segment_inspector_body(
                 outlier_detection_policy
                 if is_outlier_reporting_enabled
                 else None
+            ),
+            delta_snr_outlier_export_tables=(
+                delta_snr_outlier_export_tables
+            ),
+            delta_snr_outlier_export_metadata=(
+                delta_snr_outlier_export_metadata
             ),
         )
 

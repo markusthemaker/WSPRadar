@@ -2,7 +2,7 @@
 
 import json
 from copy import deepcopy
-from datetime import date, datetime, time as dt_time, timezone
+from datetime import date, datetime, time as dt_time, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -14,6 +14,7 @@ from config import (
     STATION_EVIDENCE_TIME_BIN_OPTIONS,
     STATION_EVIDENCE_TIME_BINS,
     prepare_config_document,
+    temporal_evidence_time_bin_policy_for_duration,
 )
 from config.delta_snr_outlier import (
     DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
@@ -517,9 +518,12 @@ def test_two_hour_station_evidence_bins_round_trip_through_config_validation():
     assert config["station_evidence_time_bin_absolute"] == "2h"
 
 
-def test_station_evidence_bin_order_and_validation_set_have_exact_parity():
-    """Keep saved validation aligned with the one shared six-option selector."""
+def test_station_evidence_advertised_order_and_legacy_validation_set():
+    """Separate advertised adaptive bins from accepted legacy values."""
     assert STATION_EVIDENCE_TIME_BIN_OPTIONS == (
+        "2m",
+        "10m",
+        "30m",
         "1h",
         "2h",
         "3h",
@@ -528,8 +532,79 @@ def test_station_evidence_bin_order_and_validation_set_have_exact_parity():
         "24h",
     )
     assert STATION_EVIDENCE_TIME_BINS == frozenset(
-        STATION_EVIDENCE_TIME_BIN_OPTIONS
+        STATION_EVIDENCE_TIME_BIN_OPTIONS + ("5m", "15m")
     )
+
+
+@pytest.mark.parametrize(
+    ("duration", "expected_options", "expected_default"),
+    (
+        (
+            timedelta(hours=6),
+            ["2m", "10m", "30m", "1h", "2h", "3h", "6h"],
+            "10m",
+        ),
+        (
+            timedelta(hours=6, minutes=1),
+            ["2m", "10m", "30m", "1h", "2h", "3h", "6h"],
+            "30m",
+        ),
+        (
+            timedelta(hours=24),
+            ["2m", "10m", "30m", "1h", "2h", "3h", "6h"],
+            "30m",
+        ),
+        (
+            timedelta(hours=24, minutes=1),
+            ["30m", "1h", "2h", "3h", "6h", "12h", "24h"],
+            "12h",
+        ),
+        (
+            timedelta(days=7),
+            ["30m", "1h", "2h", "3h", "6h", "12h", "24h"],
+            "12h",
+        ),
+        (
+            timedelta(days=7, minutes=1),
+            ["1h", "2h", "3h", "6h", "12h", "24h"],
+            "12h",
+        ),
+    ),
+)
+def test_temporal_evidence_time_bin_policy(
+    duration,
+    expected_options,
+    expected_default,
+):
+    """Keep adaptive options and defaults exact at every duration boundary."""
+    options, default = temporal_evidence_time_bin_policy_for_duration(duration)
+
+    assert options == expected_options
+    assert default == expected_default
+
+
+@pytest.mark.parametrize(
+    "retained_time_bin",
+    ("2m", "5m", "10m", "15m", "30m"),
+)
+def test_temporal_evidence_policy_retains_one_valid_off_tier_choice(
+    retained_time_bin,
+):
+    """Never silently reinterpret a valid persisted minute-scale bin."""
+    options, default = temporal_evidence_time_bin_policy_for_duration(
+        timedelta(days=8),
+        retained_time_bin=retained_time_bin,
+    )
+
+    assert retained_time_bin in options
+    assert options == sorted(
+        options,
+        key=lambda token: (
+            int(token[:-1])
+            * (1 if token.endswith("m") else 60)
+        ),
+    )
+    assert default == "12h"
 
 
 def test_performance_segment_evidence_bin_rejects_an_unsupported_width():
@@ -545,16 +620,16 @@ def test_performance_segment_evidence_bin_rejects_an_unsupported_width():
 
 
 @pytest.mark.parametrize("result_mode", ("performance", "benchmark"))
-def test_station_evidence_bin_rejects_segment_only_minute_widths(result_mode):
-    """Reserve minute-scale bins for segment evidence in both result modes."""
+@pytest.mark.parametrize("time_bin", ("2m", "5m", "10m", "15m", "30m"))
+def test_station_evidence_minute_bins_round_trip(result_mode, time_bin):
+    """Accept adaptive minute bins and the two legacy persisted choices."""
     settings = _valid_settings()
-    settings["results_view"][result_mode]["station_evidence_time_bin"] = "30m"
+    settings["results_view"][result_mode]["station_evidence_time_bin"] = time_bin
 
-    with pytest.raises(
-        ValueError,
-        match=rf"results_view\.{result_mode}\.station_evidence_time_bin",
-    ):
-        config_io.validate_config_document(_config_document(settings))
+    normalized = config_io.validate_config_document(_config_document(settings))
+
+    suffix = "absolute" if result_mode == "performance" else "compare"
+    assert normalized[f"station_evidence_time_bin_{suffix}"] == time_bin
 
 
 def test_obsolete_selected_benchmark_temporal_view_field_is_strictly_rejected():
@@ -838,7 +913,7 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
             "selected_directions": "all",
             "show_zero_target": False,
             "segment_evidence_time_bin": "12h",
-            "station_evidence_time_bin": "3h",
+            "station_evidence_time_bin": "30m",
             "selected_stations": None,
         }
     }
@@ -852,6 +927,46 @@ def test_config_writer_round_trips_through_current_reader(monkeypatch):
     ]
     assert payload["profile"]["title"] == {"en": "Portable RX"}
     assert filename == f"{payload['profile']['id']}.config"
+
+
+@pytest.mark.parametrize(
+    ("duration", "expected_time_bin"),
+    (
+        (timedelta(hours=6), "10m"),
+        (timedelta(hours=24), "30m"),
+        (timedelta(days=7), "12h"),
+        (timedelta(days=8), "12h"),
+    ),
+)
+def test_config_writer_resolves_uninitialized_station_bin_from_duration(
+    duration,
+    expected_time_bin,
+):
+    """Do not freeze the retired 3 h fallback when saving before Inspector use."""
+    start_utc = datetime(2026, 5, 1, tzinfo=timezone.utc)
+    end_utc = start_utc + duration
+    state = {
+        "lang": "en",
+        "val_analysis_direction": "rx",
+        "val_comp_mode": "reference_station",
+        "val_ref_callsign": "DL2XYZ",
+        "val_ref_qth": "JO62",
+        "val_start_d": start_utc.date(),
+        "val_start_t": start_utc.time().replace(tzinfo=None),
+        "val_end_d": end_utc.date(),
+        "val_end_t": end_utc.time().replace(tzinfo=None),
+        "val_results_time_bin_absolute": None,
+        "val_results_time_bin_compare": None,
+    }
+
+    settings = config_io.build_config_settings_from_state(state)
+
+    assert settings["results_view"]["performance"][
+        "station_evidence_time_bin"
+    ] == expected_time_bin
+    assert settings["results_view"]["benchmark"][
+        "station_evidence_time_bin"
+    ] == expected_time_bin
 
 
 def test_config_writer_preserves_explicit_offset_establishment_mode():
@@ -1404,8 +1519,8 @@ def test_delta_snr_outlier_reporting_rejects_invalid_or_inapplicable_values():
 
 def test_enabled_outlier_detector_settings_default_and_round_trip():
     """Default and persist exactly the three shared detector gates."""
-    assert DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_departure_db == 3.0
-    assert DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_robust_z == 4.0
+    assert DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_departure_db == 6.0
+    assert DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.minimum_robust_z == 3.0
     assert (
         DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.maximum_baseline_difference_db
         == 3.0
@@ -1448,6 +1563,25 @@ def test_enabled_outlier_detector_settings_default_and_round_trip():
     assert config_io.normalize_config_settings(rewritten)[
         "delta_snr_outlier_minimum_departure_db"
     ] == 3.25
+
+
+def test_version_1_document_preserves_omitted_outlier_gate_meaning():
+    """Interpret omitted enabled gates using their original version-1 policy."""
+    settings = _valid_settings()
+    settings["advanced_parameters"][
+        "report_delta_snr_outlier_candidates"
+    ] = True
+
+    normalized = config_io.validate_config_document(
+        _config_document(settings)
+    )
+
+    assert normalized["delta_snr_outlier_minimum_departure_db"] == 3.0
+    assert normalized["delta_snr_outlier_minimum_robust_z"] == 4.0
+    assert (
+        normalized["delta_snr_outlier_maximum_baseline_difference_db"]
+        == 3.0
+    )
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,6 @@
 # WSPRadar Architecture
 
-This document describes the repository as inspected through 2026-08-12. It derives
+This document describes the repository as inspected through 2026-08-16. It derives
 component boundaries and behavior from the application code, configuration, and
 regression tests. Items explicitly marked uncertain were not established by the
 code or by the verification run.
@@ -115,6 +115,21 @@ which the presentation layer exposes through the direction-specific
 counter-only-station controls rather than through that internal name. Table and
 Drill-Down filters, expander state, and other transient controls are
 deliberately not serialized.
+Chronological Segment and selected-station bins use one duration-adaptive
+policy for Performance and Benchmark. Runs through six hours offer `2m`,
+`10m`, `30m`, `1h`, `2h`, `3h`, and `6h` with `10m` as the default; runs over
+six hours through 24 hours offer the same set with `30m` as the default; runs
+over 24 hours through seven days offer `30m`, `1h`, `2h`, `3h`, `6h`, `12h`,
+and `24h` with `12h` as the default; longer runs offer `1h`, `2h`, `3h`, `6h`,
+`12h`, and `24h`, also defaulting to `12h`. Thus `2h` remains offered in every
+tier. Legacy `5m` and `15m` values remain accepted at configuration and URL
+boundaries, but are hidden for new choices unless an explicit valid loaded
+value must remain selectable. If a configuration is saved before either
+selected-station control has initialized its durable state, the writer resolves
+and serializes the applicable duration-derived default rather than a fixed
+fallback; an explicit operator choice remains unchanged. Drill-Down zoom
+selection and bounds remain
+transient and are excluded from saved configuration and public URL state.
 `config/config_codec.py` validates the current document envelope and exact
 schema version, while `ui/config_io.py` validates and applies the semantic
 settings. Version 1 is explicitly pre-production, not a first public production
@@ -169,6 +184,17 @@ baseline; German title and description values are optional and fall back to
 English. The launcher renders descriptions as escaped GitHub-flavored Markdown,
 preserving JSON newline escapes as visible line breaks and allowing Markdown
 links without enabling raw HTML.
+
+Loaded demo context has two deliberately separate lifecycles. Exact demo/cache
+identity ends after any scientific edit, returning subsequent work to ordinary
+cache policy. The visible metadata panel and profile identity used by a later
+save remain while only population filters, evidence thresholds or result-view
+controls are adapted; they are removed when the operator changes the experiment
+definition: Question/direction/result family, Target callsign/QTH/band/window,
+Benchmark design or Reference, neighborhood radius, sequential schedule, or
+correction intent/value. Population- or evidence-changing scientific callbacks
+also release both Performance and Benchmark selected-station identities because
+the former path may not survive the new run. Result-view-only controls do not.
 
 `ui/config_save.py` renders the interactive save workflow as a Streamlit
 fragment. It collects the profile title, optional description and stable ID,
@@ -623,8 +649,11 @@ becoming 0%.
 
 The separate Performance temporal base recipe derives station baselines from the
 complete active-scope UTC window, requiring at least three successful normalized
-Target SNR observations per station. It precomputes all six supported
-chronological profiles and one fixed one-hour UTC-folded profile. Each
+Target SNR observations per station. It precomputes the duration-adaptive
+chronological profiles required by the current run and one fixed one-hour
+UTC-folded profile. The policy is determined from the complete selected window,
+never from the observed evidence span; a valid explicitly loaded legacy `5m` or
+`15m` profile is retained without exposing that width as a normal new choice. Each
 chronological density cell receives at most one station-bin median anomaly per
 station; each folded cell receives one station-date-hour median anomaly.
 The bin median and the Q1/Q3 boundaries of the subtle IQR band use those same
@@ -763,7 +792,7 @@ Qualification uses the same three hard gates for every provisional episode.
 The episode's absolute median residual must meet the configured minimum
 departure, its absolute robust z-score must meet the configured minimum, and
 the absolute difference between the candidate-excluded pre- and post-baseline
-medians must not exceed the configured maximum. Defaults are 3 dB, 4, and 3 dB
+medians must not exceed the configured maximum. Defaults are 6 dB, 3, and 3 dB
 respectively. No duration multiplier, evidence-count boost, reduced effective
 threshold, or separate impulse/burst/sustained gate is applied. Every episode
 must additionally retain at least two-thirds same-sign native-unit support as a
@@ -807,12 +836,16 @@ normal scientific-input lifecycle: the current result is retired, the
 configuration-changed notice is shown, and a new analysis waits for an explicit
 Run action. The widget rerun itself never starts provider or detector work.
 The current configuration writer and public-URL serializer emit only these
-three shared values. At the input boundary, an unpublished version-1 document
-that still contains the former duration-specific fields is converted by taking
-its Short burst departure and robust-z values plus the unchanged baseline
-difference; mixing old and new threshold fields is rejected. Public URL v1
-accepts the same legacy burst mapping for parse-only compatibility and emits
-only the shared parameter names.
+three shared values. The factory policy for new analyses is 6 dB, 3, and 3 dB.
+Because version-1 documents and URLs originally omitted gates equal to the
+former 3 dB, 4, and 3 dB policy, their input adapters retain that exact omitted-
+value meaning; new URLs therefore serialize the changed 6 dB departure and 3
+robust-z values explicitly. At the input boundary, an unpublished version-1
+document that still contains the former duration-specific fields is converted
+by taking its Short burst departure and robust-z values plus the unchanged
+baseline difference; mixing old and new threshold fields is rejected. Public
+URL v1 accepts the same legacy burst mapping for parse-only compatibility and
+emits only the shared parameter names.
 
 Each qualified path episode retains its Target and correction-adjusted
 Reference SNR episode medians, local component baselines, and component
@@ -829,9 +862,12 @@ assert operation at a decoder floor or identify a cause. Outcome counts and the
 warning reason participate in the detector signature but not episode
 qualification.
 
-The chronological plot marker uses the exact native-unit UTC timestamp and
-Delta SNR having the largest absolute local residual, rather than an
-aggregate-bin center or median. Same-sign path episodes that overlap or fall
+The chronological plot marker uses the exact UTC timestamp and Delta SNR of the
+individually qualifying native unit having the largest absolute local residual,
+rather than an aggregate-bin center, median, or an unsupported/nonqualifying
+episode peak. This marker representative is separate from the report/export
+largest single-cycle departure, which remains the true largest retained
+residual in the path event. Same-sign path episodes that overlap or fall
 within the greater of 10 minutes and half the paired-unit cadence are grouped
 into one contemporaneous review card. The card separately counts paths with
 retained paired evidence in that context, paths assessed against supported
@@ -855,33 +891,62 @@ observed span, the median interval between the paired units actually listed for
 that path, largest observed gap, expected local Delta SNR, observed median Delta
 SNR, and largest single-cycle departure. The
 detector's cross-path denominators remain validated internal evidence but are
-not repeated in the default card. Per-path actions replace the Station Insights
-selection with exactly that identity, queue application-level navigation to the
-Station Insights anchor, and presentation-order the focused exact identity into
-the visible table rows without bypassing active table filters. A separate
-multi-path action selects and focuses all qualifying identities. These actions
-change only result presentation and never rerun or redefine detection. A single
-collapsed **WSPR cycle evidence** or **Scheduled-pair evidence** table replaces
-the former technical-details and direction-breakdown tables. It lists only
+not repeated in the default card. Every path timeframe has two vertically
+stacked, green link-style actions aligned to the right of its candidate/path
+heading, with responsive fallback below the heading. **↓ Show in Station
+Insights** replaces the selection with exactly that identity, preloads a
+detector-support **Outlier Focus** spanning the supported pre flank, guarded
+provisional episode and supported post flank, queues application-level
+navigation to the Station Insights anchor, and presentation-orders the identity
+into visible table rows without bypassing active filters. **↓ Show Drill-Down
+Details** applies the same selection and
+preload but navigates directly to the Drill-Down anchor. Both actions remain
+candidate-specific when one path has several qualifying timeframes. The preload
+also retains the refined provisional episode's complete candidate-excluded
+pre/post baseline anchor bounds and cadence-aware guard, rather than deriving
+the focus interval from the strong-anchor-trimmed reported bounds. The complete
+interval is clipped to the completed analysis window and may exceed 24 hours. A
+separate multi-path action selects and focuses all qualifying identities. These
+actions change only result presentation and never rerun or redefine detection.
+A single collapsed **WSPR cycle evidence** or **Scheduled-pair evidence** table
+replaces the former technical-details and direction-breakdown tables. It lists only
 qualified event-member Joint units or complete Scheduled Pairs, in exact UTC,
 path, direction, local-baseline, Delta-SNR, and residual order. Target and
 correction-adjusted Reference SNR remain retained in the detector/report model
 for diagnostic decomposition but are not displayed in this compact table.
 Their shared paired outcome is likewise not repeated as a column; nearby
 one-sided outcomes remain available only in the detector's diagnostic
-decomposition and warning state. The all-path temporal
-figure retains only the strongest representative marker per review card; a
-selected-path figure retains that path's own representative so selection cannot
-hide its event.
+decomposition and warning state. The all-path temporal figure retains one marker
+per review card: the greatest-absolute-residual unit among the card's
+individually qualifying native units. A selected-path figure retains that
+path's own individually qualifying representative so selection cannot hide its
+event. Neither marker substitutes for the true largest retained residual stored
+as the path event's largest single-cycle departure.
+
+`ui/inspector/outlier_export.py` projects that same completed detector/report
+model into two fixed-schema, language-neutral tables without rerunning detection
+or retaining the released comparison-unit frame. The event-path table has one
+row per qualified path event, so repeated qualified intervals on one callsign +
+locator remain distinct. The paired-evidence table has one chronological row per
+retained native unit and deliberately repeats its package-local Event ID, Path
+event ID, path, direction, path-event class, paired-unit type, and inclusive
+event evidence bounds. Deterministic IDs are join keys inside one prepared
+package, not persistent identities across analyses. Actual retained evidence
+timestamps are exported; the detector's internal half-open `end_utc` sentinel is
+never serialized as an observed time. Target SNR and already correction-adjusted
+Reference SNR are preserved in this diagnostic projection, alongside Delta SNR,
+the expected local Delta SNR, residual, per-unit robust z-score, strong-anchor
+status, and reported-boundary status.
 
 The disabled branch is an explicit compatibility boundary: it does not invoke
 baseline, cadence, residual, episode, coherence, report-view-model, or marker
 preparation; it adds no outlier fields to the segment or selected-station cache
 identity; and it preserves the historical singleton Benchmark selection.
-Export registration omits outlier metadata and defensively strips any stale
-marker overlay from supplied figure recipes without mutating those source
-recipes. Consequently, disabling the option leaves ordinary result figures,
-selection semantics, export metadata, and export signatures free of outlier
+Export registration omits outlier metadata and both outlier table projections,
+removes stale registered copies, and defensively strips any stale marker overlay
+from supplied figure recipes without mutating those source recipes.
+Consequently, disabling the option leaves ordinary result figures, selection
+semantics, export metadata, CSV inventory, and export signatures free of outlier
 semantics.
 
 Benchmark Temporal Evidence Coverage keeps all three retained outcomes. In every
@@ -935,10 +1000,16 @@ Benchmark retains `figure_segment_temporal_evidence.png` for absolute Delta SNR
 and adds `figure_segment_temporal_coverage.png`. One Benchmark segment time-bin
 control sets both chronological profiles. Its adaptive choices derive from the
 complete selected-window duration rather than the observed paired-evidence
-span. A valid explicitly persisted bin remains selectable even when that
-adaptive list would not otherwise offer it, so loading a saved configuration
-does not silently reinterpret the choice. Every folded profile remains fixed
-at one hour.
+span. Through six hours the offered set is `2m`, `10m`, `30m`, `1h`, `2h`,
+`3h`, and `6h` with a `10m` default; over six through 24 hours the same set
+defaults to `30m`; over 24 hours through seven days the set is `30m`, `1h`,
+`2h`, `3h`, `6h`, `12h`, and `24h` with a `12h` default; longer windows offer
+`1h`, `2h`, `3h`, `6h`, `12h`, and `24h`, also defaulting to `12h`. A valid
+explicitly persisted bin remains selectable even when that adaptive list would
+not otherwise offer it, so loading a saved configuration does not silently
+reinterpret the choice. Compatibility-only `5m` and `15m` remain hidden unless
+explicitly loaded. Performance and selected-station controls use this same
+policy. Every folded profile remains fixed at one hour.
 
 Selected Station Evidence permits zero or one station in Performance and in
 Benchmark while optional outlier-candidate reporting is disabled. Those Station
@@ -1031,6 +1102,67 @@ same two-date unavailable-state contract keeps the single-path coverage
 figure's folded panel visible without folded data and places the localized
 boxed notice inside it.
 
+For exactly one selected identity, Drill-Down adds transient controls to the
+left of `Filter table`: `Zoom window` (`Off`, `1h`, `3h`, `6h`, `12h`, or
+`24h`), separate `Center date (UTC)` and `Center time (UTC)` inputs, plus
+`← Earlier` and `Later →` actions. Date and time identify the window center.
+Resolution clamps a complete fixed-duration window against the completed run
+rather than shortening it, Earlier/Later steps by one complete selected window,
+and the UI reports the exact resolved bounds as one line:
+`Selected window: {start} to {end} UTC`. The resulting half-open
+`[start_utc, end_utc)` restriction is applied to canonical selected-station
+evidence before table construction. `Filter table` runs afterward and affects
+only displayed/exported Drill-Down rows, never focused figures or the completed
+analysis.
+
+The focused metric recipes are native-time projections, not two-minute versions
+of the aggregated selected-station recipe. Simultaneous Benchmark contributes
+one actual Delta SNR point per retained consolidated Joint Spot at its canonical
+cycle UTC. Sequential TX A/B contributes one actual Pair Delta SNR point per
+retained complete Scheduled Pair at planned Target-start UTC; both Target and
+Reference component rows remain together in the table. Performance contributes
+one actual normalized Target-SNR point per successful confirmed opportunity at
+canonical cycle UTC; unsuccessful opportunities have no SNR value to plot. The
+metric recipes contain no temporal-bin median or quartiles, density grid,
+colorbar, complete-run median or UTC-folded panel. The companion Performance
+outcome and Benchmark single-path coverage figures may retain their existing
+chronological aggregation with folding omitted. Segment and ordinary
+full-window selected-station figures retain their established aggregated density
+contracts. Preview and export titles use only
+`{identity} - Time Window: {start} to {end} UTC` in English, with its compact
+localized equivalent.
+
+A candidate action selects `Outlier Focus`, resolving the supported pre flank,
+guarded provisional episode and supported post flank, clipped to the analysis
+window and allowed to exceed 24 hours. Its retained candidate provenance remains
+active while a manual fixed focus moves. While the selected candidate intersects
+a Benchmark focus, every reported candidate for the selected path that
+intersects the window contributes the same
+`*` marker for each native unit that individually meets both configured
+departure and robust-z gates against that candidate's final baseline and robust
+spread. Weaker grouped units retained between strong anchors remain ordinary
+points. A muted band labelled `Focused episode` identifies only the selected
+candidate's reported retained-evidence interval. Each end is padded by half one
+native evidence-unit width and clipped to the focused window so a single-unit
+impulse remains visible; the band is a selection cue, not a confidence interval
+or measured physical-event duration. The expected local Delta SNR across the
+focus, pre/post flank medians over their actual support intervals and all guide
+coordinates belong only to that focused episode; another starred candidate can
+have a different baseline and robust spread. Symmetric boundaries for robust-z
+magnitudes 1, 2, 3 and the configured qualifying value are deduplicated and
+computed as baseline ± `k * robust_spread / 0.6745`; the configured
+absolute-departure boundary is drawn separately. These are detector-coordinate
+guides, not confidence bands, and crossing one boundary alone is insufficient
+because no one boundary represents all detector gates. The controls, bounds and candidate provenance are
+run/scope transient; they do not enter
+`AnalysisContext`, provider requests, saved configuration or public URLs. The
+focus record is bound to one exact station identity and is ignored outside its
+originating run and scope; an explicit station-selection change removes it.
+Manual focus state may persist across station changes inside the same run and
+scope so the operator can compare the same interval, while every recipe and
+export is rebuilt for the newly selected identity. Active table-column filters
+affect only the displayed/exported Drill-Down rows, not the focus figure recipes.
+
 The run-scoped segment-cache key includes explicit
 `exact-distance-v1` and `station-median-min3-v1` policy versions, the geographic
 scope and the complete UTC window. Selecting another chronological bin reuses
@@ -1077,7 +1209,15 @@ and up to ten queued exports.
 active-run database provenance, the versioned completed-run snapshot, and reset
 lifecycle. Configuration callbacks can retire session artifacts and clear
 export, inspector, snapshot, and provenance state without importing Pandas,
-Matplotlib, the inspector, or export rendering.
+Matplotlib, the inspector, or export rendering. The lightweight run-scoped
+Drill-Down candidate-focus record carries exact station identity, candidate
+provenance, representative UTC, reported interval, outlier-focus bounds and
+the local-baseline/scale inputs required by the overlay. Selection and
+result-reset paths remove it; run/scope/identity checks ignore it outside its
+originating view, and the runtime consumer clips resolved bounds again to the
+completed analysis window. The separate manual focus widgets are keyed by run
+and scope rather than station so their centered interval can be reused
+deliberately across station selections.
 `ui/analysis_submission_state.py` separately owns the UUID-token lifecycle for
 one session's in-flight analysis. Keeping submission state separate from
 `run_mode` is required because `run_mode` remains set while completed results
@@ -1129,6 +1269,43 @@ schema, time bin and title through `benchmark_evidence_recipes` without
 serializing scientific arrays. The optional Performance descriptive fields remain
 unset.
 
+An active valid Drill-Down focus adds distinct figures without replacing the
+ordinary full-window selected-station files. Performance uses
+`figure_drilldown_zoom_snr_evidence.png` and
+`figure_drilldown_zoom_temporal_evidence.png`; Benchmark uses
+`figure_drilldown_zoom_delta_snr_evidence.png` and
+`figure_drilldown_zoom_coverage.png`. Registration stores a `drilldown_zoom`
+metadata/signature block containing its schema version, exact callsign/locator,
+half-open UTC bounds, selected option, `manual`/`outlier_focus` origin and
+render versions. The focused SNR or Delta-SNR figure uses the same individual
+native-time recipe in browser and export; its companion figure uses the same
+chronological outcome/coverage recipe. Candidate-overlay registration and
+signature inputs include every individually qualifying marker point in the
+window, the focused episode's reported interval and padded band, local and
+pre/post baseline values, robust spread and method, qualifying robust-z value
+and absolute-departure threshold. Guide coordinates remain specific to the
+focused episode even when another starred candidate was assessed against a
+different baseline or spread. The compact title is likewise shared. Off,
+stale, multi-selection or otherwise invalid focus state registers neither the
+block nor the optional figures. The selected Drill-Down CSV projection may
+reflect the active focus and subsequent visible
+table filters; the analysis-cache artifact and full-run figures remain unchanged.
+
+When optional Delta-SNR outlier reporting is enabled for Benchmark, registration
+also stores the two projections already built from the active Inspector scope.
+Export preparation localizes their human-readable headers and categorical values
+and writes `table_delta_snr_outlier_event_paths.csv` plus
+`table_delta_snr_outlier_paired_evidence.csv` under `benchmark/`; it never
+redetects candidates. An enabled result with no qualified candidates still
+writes both complete header-only schemas and records whether paired evidence,
+local-baseline support, or final candidates were available. A disabled result
+writes neither file and publishes no outlier-table metadata. The corrected
+Reference SNR column is not passed through the generic correction-header
+annotator because its values already include the configured correction. Full
+canonical table contents participate in the export signature, so a same-shaped
+change to an event, path, timestamp, or measurement invalidates prepared ZIP
+state.
+
 The ZIP is currently constructed in `io.BytesIO` and retained in Streamlit
 session state for download. This is a known peak and idle-memory risk, partially
 contained by single-export admission.
@@ -1164,9 +1341,12 @@ targets `#wspradar-results-inspection`.
 
 ### Page Navigation
 
-`ui/page_navigation.py` owns the language-independent, always-mounted runtime
-anchors `wspradar-page-top`, `wspradar-parameter-settings`, and
-`wspradar-results-inspection`. Its one-pixel browser controller tracks the
+`ui/page_navigation.py` owns the language-independent runtime anchors
+`wspradar-page-top`, `wspradar-parameter-settings`,
+`wspradar-results-inspection`, and `wspradar-drilldown`. The first three delimit
+the always-present application regions; the Drill-Down anchor is mounted with
+that selected-station section and is the direct target of the per-event
+**Show Drill-Down Details** action. Its one-pixel browser controller tracks the
 active application region only while the viewport is above the documentation
 boundary; the documentation controller owns fragments from that boundary
 downward. Passive scrolling replaces the current fragment without adding
@@ -1330,10 +1510,14 @@ omits global active and queued counts.
 
 Loading a built-in demo marks the applied inputs with that profile's trusted
 demo identity, and the ordinary direction-aware Run action preserves it.
-Scientific-control callbacks clear the identity after an edit, returning the
-modified configuration to the ordinary one-hour query-cache policy. Thus an
-unchanged loaded demo and an immediately launched demo share the same 24-hour
-cache namespace and provider-affinity behavior.
+Scientific-control callbacks clear exact demo/cache identity after any edit,
+returning the modified configuration to the ordinary one-hour query-cache
+policy. Visible demo metadata is a separate presentation/provenance field: it
+survives filter/evidence adaptations but is detached by an experiment-definition
+change. Thus an unchanged loaded demo and an immediately launched demo share the
+same 24-hour cache namespace and provider-affinity behavior, while no modified
+scientific request receives that cache policy merely because explanatory demo
+context remains visible.
 
 The first FIFO ticket can become active only when an analysis slot and a
 complete-run provider reservation are both available. Provider reservation uses

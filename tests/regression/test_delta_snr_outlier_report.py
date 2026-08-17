@@ -38,6 +38,7 @@ def _candidate(
     paired_unit_count=3,
     agreeing_unit_count=None,
     peak_anomaly_db=None,
+    representative_anomaly_db=None,
     direction="W",
     target_values=(-10.0, -12.0, 2.0),
     reference_values=(-15.2, -12.0, -3.2),
@@ -60,6 +61,11 @@ def _candidate(
         if peak_anomaly_db is None
         else float(peak_anomaly_db)
     )
+    representative_anomaly_db = (
+        peak_anomaly_db
+        if representative_anomaly_db is None
+        else float(representative_anomaly_db)
+    )
     nearby_joint_unit_count = (
         paired_unit_count
         if nearby_joint_unit_count is None
@@ -75,8 +81,13 @@ def _candidate(
         event_kind=event_kind,
         start_utc=start_utc,
         end_utc=last_observed_utc + pd.Timedelta(nanoseconds=1),
+        baseline_anchor_start_utc=start_utc,
+        baseline_anchor_end_utc=last_observed_utc,
+        episode_guard_minutes=10.0,
         representative_utc=last_observed_utc,
-        representative_delta_snr_db=station_baseline_db + peak_anomaly_db,
+        representative_delta_snr_db=(
+            station_baseline_db + representative_anomaly_db
+        ),
         episode_median_delta_snr_db=station_baseline_db + anomaly_db,
         station_baseline_db=station_baseline_db,
         pre_baseline_db=0.2,
@@ -678,6 +689,56 @@ def test_marker_adapter_condenses_all_paths_but_preserves_selected_paths():
     assert all_path_recipe["candidate_signature"] == expected_signature
 
 
+def test_all_path_marker_ranks_individually_qualifying_representatives():
+    """Do not let an unsupported bridge choose another candidate's plot star."""
+    bridge_dominated_candidate = _candidate(
+        "A1AAA",
+        "AA00",
+        3.2,
+        peak_anomaly_db=-23.0,
+        representative_anomaly_db=4.2,
+    )
+    strongest_qualifying_candidate = _candidate(
+        "B2BBB",
+        "BB11",
+        5.0,
+        peak_anomaly_db=6.0,
+        representative_anomaly_db=6.0,
+    )
+    report_entry = _report_entry(
+        bridge_dominated_candidate,
+        strongest_qualifying_candidate,
+    )
+    model = DeltaSnrOutlierModel(
+        detector_version=DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        detection_resolution=DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        paired_unit_cadence_minutes=2.0,
+        analysis_start_utc=report_entry.start_utc,
+        analysis_end_utc=report_entry.end_utc,
+        populated_station_cycle_count=6,
+        evaluable_station_cycle_count=6,
+        abstained_station_cycle_count=0,
+        candidates=(
+            bridge_dominated_candidate,
+            strongest_qualifying_candidate,
+        ),
+        report_entries=(report_entry,),
+        candidate_signature="representative-ranking",
+    )
+
+    marker_recipe = segment_inspector._delta_snr_outlier_marker_recipe(
+        model,
+        T["en"],
+    )
+
+    assert marker_recipe["candidate_count"] == 1
+    assert marker_recipe["markers"][0]["callsign"] == "B2BBB"
+    assert marker_recipe["markers"][0]["marker_delta_snr_db"] == pytest.approx(
+        6.3
+    )
+    assert bridge_dominated_candidate.peak_anomaly_db == pytest.approx(-23.0)
+
+
 def test_marker_adapter_preserves_legacy_recipe_without_report_entries():
     """Keep compatibility with marker-only cache and integration test doubles."""
     marker_payload = [
@@ -800,7 +861,7 @@ def _install_report_streamlit_fake(
             return button_index in clicked_button_indices
 
     class FakeHorizontalContainer:
-        """Record one path heading and its adjacent Station Insights action."""
+        """Record one path heading and its adjacent candidate actions."""
 
         def __init__(self, card, kwargs):
             self.card = card
@@ -811,6 +872,11 @@ def _install_report_streamlit_fake(
             self.card.markdown_calls.append(body)
             self.card.render_order.append(("markdown", body))
             self.render_order.append(("markdown", body))
+
+        def container(self, **kwargs):
+            child = FakeHorizontalContainer(self.card, kwargs)
+            self.render_order.append(("container", kwargs))
+            return child
 
         def button(self, label, **kwargs):
             button_index = len(render_state.button_calls)
@@ -952,23 +1018,42 @@ def test_report_renders_one_card_per_detector_entry_without_hourly_nesting(
     assert "Typical departure from baseline" not in (
         render_state.cards[0].caption_calls[0]
     )
-    first_path_row = render_state.cards[0].horizontal_containers[0]
-    assert first_path_row.kwargs["horizontal"] is True
-    assert first_path_row.kwargs["horizontal_alignment"] == "distribute"
-    assert first_path_row.kwargs["vertical_alignment"] == "center"
-    assert first_path_row.render_order == [
-        ("markdown", "###### Path 1 · A1AAA (AA00) · Not available"),
-        ("button", T["en"]["btn_outlier_show_path_in_station_insights"]),
-    ]
     assert [len(card.horizontal_containers) for card in render_state.cards] == [
         1,
         2,
     ]
+    for card in render_state.cards:
+        for path_heading_container in card.horizontal_containers:
+            assert path_heading_container.kwargs["horizontal"] is True
+            assert (
+                path_heading_container.kwargs["horizontal_alignment"]
+                == "distribute"
+            )
+            assert path_heading_container.kwargs["vertical_alignment"] == "center"
+            action_container_kwargs = [
+                entry[1]
+                for entry in path_heading_container.render_order
+                if entry[0] == "container"
+                and str(entry[1].get("key", "")).startswith(
+                    "outlier_path_actions_"
+                )
+            ]
+            assert len(action_container_kwargs) == 1
+            assert action_container_kwargs[0]["horizontal"] is True
+            assert (
+                action_container_kwargs[0]["horizontal_alignment"] == "right"
+            )
+            assert (
+                action_container_kwargs[0]["vertical_alignment"] == "center"
+            )
     assert T["en"]["txt_outlier_direction_unavailable"] in first_card_markup
     assert [call[1] for call in render_state.button_calls] == [
         T["en"]["btn_outlier_show_path_in_station_insights"],
+        T["en"]["btn_outlier_show_drilldown_details"],
         T["en"]["btn_outlier_show_path_in_station_insights"],
+        T["en"]["btn_outlier_show_drilldown_details"],
         T["en"]["btn_outlier_show_path_in_station_insights"],
+        T["en"]["btn_outlier_show_drilldown_details"],
         T["en"]["btn_outlier_show_all_paths_in_station_insights"],
     ]
     assert render_state.session_state == {}
@@ -1024,17 +1109,20 @@ def test_repeated_candidates_on_one_path_keep_labeled_timeframes(monkeypatch):
     evidence_table = card.expanders[0].dataframe_calls[0][0]
     assert len(evidence_table) == 5
     assert [call[1] for call in render_state.button_calls] == [
-        T["en"]["btn_outlier_show_path_in_station_insights"]
+        T["en"]["btn_outlier_show_path_in_station_insights"],
+        T["en"]["btn_outlier_show_drilldown_details"],
+        T["en"]["btn_outlier_show_path_in_station_insights"],
+        T["en"]["btn_outlier_show_drilldown_details"],
     ]
 
 
 @pytest.mark.parametrize(
     ("clicked_button_index", "expected_selection"),
     (
-        (1, [{"callsign": "B2BBB", "locator": "BB11"}]),
-        (2, [{"callsign": "C3CCC", "locator": "CC22"}]),
+        (2, [{"callsign": "B2BBB", "locator": "BB11"}]),
+        (4, [{"callsign": "C3CCC", "locator": "CC22"}]),
         (
-            3,
+            6,
             [
                 {"callsign": "B2BBB", "locator": "BB11"},
                 {"callsign": "C3CCC", "locator": "CC22"},
@@ -1075,7 +1163,7 @@ def test_station_insights_actions_select_the_requested_paths(
         ),
     )
 
-    assert len(render_state.button_calls) == 4
+    assert len(render_state.button_calls) == 7
     assert session_state[
         segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     ] == expected_selection
@@ -1095,6 +1183,66 @@ def test_station_insights_actions_select_the_requested_paths(
     assert navigation_state is session_state
     assert anchor_id == segment_inspector.STATION_INSIGHTS_ANCHOR_ID
     assert should_scroll is True
+    assert render_state.rerun_calls == [{"scope": "app"}]
+
+
+@pytest.mark.parametrize("clicked_button_index", (1, 3, 5))
+def test_drilldown_actions_preload_exact_context_and_navigate_directly(
+    monkeypatch,
+    clicked_button_index,
+):
+    """Keep the second candidate action paired with its exact station event."""
+    model = _episode_report_model()
+    session_state = {}
+    render_state = _install_report_streamlit_fake(
+        monkeypatch,
+        clicked_button_indices=(clicked_button_index,),
+        session_state=session_state,
+    )
+
+    segment_inspector._render_delta_snr_outlier_report(
+        model,
+        _report_view_model(model),
+        t=T["en"],
+        language="en",
+        analysis_id="RX_COMP",
+        run_id=9,
+        scope_token="active",
+        is_sequential=False,
+        analysis_context=AnalysisContext(
+            comparison_mode=COMPARISON_REFERENCE_STATION
+        ),
+    )
+
+    focus = session_state[
+        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+    ]
+    assert focus["analysis_id"] == "RX_COMP"
+    assert focus["run_id"] == 9
+    assert focus["scope_token"] == "active"
+    assert (
+        focus["pre_flank_start_utc_ns"]
+        < focus["post_flank_end_utc_ns"]
+    )
+    assert focus["baseline_anchor_start_utc_ns"] <= (
+        focus["baseline_anchor_end_utc_ns"]
+    )
+    assert focus["episode_guard_minutes"] > 0.0
+    parsed_focus = segment_inspector._drilldown_outlier_context_for_scope(
+        session_state,
+        analysis_id="RX_COMP",
+        run_id=9,
+        scope_token="active",
+        selected_identity=(focus["callsign"], focus["locator"]),
+        analysis_start_utc=model.analysis_start_utc,
+        analysis_end_utc=model.analysis_end_utc,
+    )
+    assert parsed_focus is not None
+    assert parsed_focus.request_token == focus["request_token"]
+    assert render_state.navigation_calls[0][1] == (
+        segment_inspector.DRILLDOWN_ANCHOR_ID
+    )
+    assert render_state.navigation_calls[0][2] is True
     assert render_state.rerun_calls == [{"scope": "app"}]
 
 

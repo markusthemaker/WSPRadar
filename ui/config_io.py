@@ -34,6 +34,7 @@ from config.config_schema import (
     SEGMENT_SELECTION_ALL,
     SNR_CORRECTION_MODES,
     STATION_EVIDENCE_TIME_BINS,
+    temporal_evidence_time_bin_policy_for_duration,
     TX_AB_METHODS,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
@@ -44,6 +45,7 @@ from config.delta_snr_outlier import (
     LEGACY_BURST_MINIMUM_DEPARTURE_DB,
     LEGACY_BURST_MINIMUM_ROBUST_Z,
     LEGACY_DELTA_SNR_OUTLIER_CONFIG_FIELDS,
+    VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
     DeltaSnrOutlierDetectionPolicy,
 )
 from config.json_utils import decode_strict_json_bytes
@@ -563,6 +565,9 @@ def _settings_from_session_state(state, lang):
         "start_utc": format_utc_minute(start_utc),
         "end_utc": format_utc_minute(end_utc),
     }
+    _adaptive_station_time_bin_options, adaptive_station_time_bin_default = (
+        temporal_evidence_time_bin_policy_for_duration(end_utc - start_utc)
+    )
 
     benchmark_mode = _canonical_from_translated(
         state.get("val_comp_mode", "none"),
@@ -758,7 +763,7 @@ def _settings_from_session_state(state, lang):
             ),
             "station_evidence_time_bin": (
                 state.get("val_results_time_bin_absolute")
-                or defaults["station_evidence_time_bin_absolute"]
+                or adaptive_station_time_bin_default
             ),
             "selected_stations": _validate_selected_stations(
                 state.get(
@@ -804,7 +809,7 @@ def _settings_from_session_state(state, lang):
                 ),
                 "station_evidence_time_bin": (
                     state.get("val_results_time_bin_compare")
-                    or defaults["station_evidence_time_bin_compare"]
+                    or adaptive_station_time_bin_default
                 ),
                 "selected_stations": _validate_selected_stations(
                     state.get(
@@ -1539,11 +1544,34 @@ def _migrate_legacy_delta_snr_outlier_policy(settings):
         advanced_parameters.pop(legacy_field, None)
 
 
+def _preserve_version_1_omitted_delta_snr_outlier_policy(settings):
+    """Restore the original meaning of omitted version-1 detector gates."""
+    advanced_parameters = settings.get("advanced_parameters")
+    if not isinstance(advanced_parameters, dict) or not advanced_parameters.get(
+        "report_delta_snr_outlier_candidates",
+        False,
+    ):
+        return
+    for config_field, policy_field in (
+        DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+    ):
+        advanced_parameters.setdefault(
+            config_field,
+            getattr(
+                VERSION_1_OMITTED_DELTA_SNR_OUTLIER_DETECTION_POLICY,
+                policy_field,
+            ),
+        )
+
+
 def validate_config_document(payload):
     """Validate and normalize one decoded versioned WSPRadar config document."""
     prepared_document = prepare_config_document(payload)
     _migrate_legacy_results_view_keys(prepared_document["settings"])
     _migrate_legacy_delta_snr_outlier_policy(prepared_document["settings"])
+    _preserve_version_1_omitted_delta_snr_outlier_policy(
+        prepared_document["settings"]
+    )
     normalized_config = normalize_config_settings(prepared_document["settings"])
     normalized_config["profile"] = deepcopy(prepared_document.get("profile"))
     normalized_config["extensions"] = deepcopy(
