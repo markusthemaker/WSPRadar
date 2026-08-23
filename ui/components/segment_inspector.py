@@ -9,6 +9,7 @@ import inspect
 import json
 from collections.abc import Mapping
 from contextlib import nullcontext
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from functools import partial
 from hashlib import sha256
@@ -1774,6 +1775,40 @@ def _drilldown_focus_identity_token(selected_identity):
     ).hexdigest()[:12]
 
 
+@dataclass(frozen=True)
+class _DrilldownZoomStateKeys:
+    """Transient Drill-Down control keys for one run, scope, and station."""
+
+    widget_scope: str
+    zoom_widget: str
+    focus_date_widget: str
+    focus_time_widget: str
+    applied_outlier_request: str
+    applied_option: str
+
+
+def _drilldown_zoom_state_keys(
+    analysis_id,
+    run_id,
+    scope_token,
+    selected_identity,
+):
+    """Return the complete dynamic key namespace for Drill-Down zoom state."""
+    identity_token = _drilldown_focus_identity_token(selected_identity)
+    widget_scope = f"{analysis_id}_{run_id}_{scope_token}_{identity_token}"
+    zoom_widget = f"d_zoom_{widget_scope}"
+    return _DrilldownZoomStateKeys(
+        widget_scope=widget_scope,
+        zoom_widget=zoom_widget,
+        focus_date_widget=f"d_zoom_focus_date_{widget_scope}",
+        focus_time_widget=f"d_zoom_focus_time_{widget_scope}",
+        applied_outlier_request=(
+            f"{zoom_widget}_applied_outlier_request"
+        ),
+        applied_option=f"{zoom_widget}_applied_option",
+    )
+
+
 def _drilldown_focus_center_from_widget_values(date_value, time_value):
     """Combine direct calendar/time inputs into one timezone-aware UTC center."""
     return pd.Timestamp(
@@ -2000,15 +2035,24 @@ def _render_drilldown_header_and_controls(
             DRILLDOWN_OUTLIER_FOCUS_OPTION,
             *(option for option in manual_options if option != "off"),
         ]
-    identity_token = _drilldown_focus_identity_token(selected_identity)
-    widget_scope = f"{analysis_id}_{run_id}_{scope_token}_{identity_token}"
-    zoom_key = f"d_zoom_{widget_scope}"
-    focus_date_key = f"d_zoom_focus_date_{widget_scope}"
-    focus_time_key = f"d_zoom_focus_time_{widget_scope}"
-    applied_focus_key = f"{zoom_key}_applied_outlier_request"
-    applied_option_key = f"{zoom_key}_applied_option"
+    zoom_state_keys = _drilldown_zoom_state_keys(
+        analysis_id,
+        run_id,
+        scope_token,
+        selected_identity,
+    )
+    widget_scope = zoom_state_keys.widget_scope
+    zoom_key = zoom_state_keys.zoom_widget
+    focus_date_key = zoom_state_keys.focus_date_widget
+    focus_time_key = zoom_state_keys.focus_time_widget
+    applied_focus_key = zoom_state_keys.applied_outlier_request
+    applied_option_key = zoom_state_keys.applied_option
     if outlier_context is not None:
-        if st.session_state.get(applied_focus_key) != outlier_context.request_token:
+        if (
+            st.session_state.get(applied_focus_key)
+            != outlier_context.request_token
+            or zoom_key not in st.session_state
+        ):
             st.session_state[zoom_key] = DRILLDOWN_OUTLIER_FOCUS_OPTION
             st.session_state[applied_focus_key] = outlier_context.request_token
             _store_drilldown_focus_center(
@@ -3226,6 +3270,16 @@ def _select_outlier_candidate(
             separators=(",", ":"),
         ).encode("utf-8")
     ).hexdigest()
+    zoom_state_keys = _drilldown_zoom_state_keys(
+        analysis_id,
+        run_id,
+        scope_token,
+        (
+            candidate.station_identity.callsign,
+            candidate.station_identity.locator,
+        ),
+    )
+    session_state.pop(zoom_state_keys.applied_outlier_request, None)
     session_state[RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY] = request_payload
     return _select_outlier_station_identities(
         (candidate.station_identity,),

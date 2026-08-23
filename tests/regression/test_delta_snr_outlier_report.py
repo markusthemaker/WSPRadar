@@ -921,6 +921,117 @@ def _install_report_streamlit_fake(
     return render_state
 
 
+def _install_drilldown_controls_streamlit_fake(
+    monkeypatch,
+    session_state,
+):
+    """Install the narrow Streamlit boundary used by outlier zoom controls."""
+    render_state = SimpleNamespace(
+        column_specs=[],
+        selectbox_calls=[],
+        container_keys=[],
+        captions=[],
+    )
+
+    class FakeContainer:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def container(self, **kwargs):
+            render_state.container_keys.append(kwargs["key"])
+            return self
+
+        def caption(self, body):
+            render_state.captions.append(body)
+
+    class FakeStreamlit:
+        def __init__(self):
+            self.session_state = session_state
+
+        def columns(self, widths, **kwargs):
+            render_state.column_specs.append((tuple(widths), dict(kwargs)))
+            return tuple(FakeContainer() for _width in widths)
+
+        def selectbox(self, label, options, *, key, **_kwargs):
+            render_state.selectbox_calls.append(
+                (label, tuple(options), key)
+            )
+            return self.session_state[key]
+
+    monkeypatch.setattr(segment_inspector, "st", FakeStreamlit())
+    monkeypatch.setattr(
+        segment_inspector,
+        "render_page_anchor",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        segment_inspector,
+        "_render_drilldown_heading",
+        lambda *_args, **_kwargs: None,
+    )
+    return render_state
+
+
+def _outlier_candidate_identity(candidate):
+    """Return the exact station tuple used by Drill-Down state."""
+    return (
+        candidate.station_identity.callsign,
+        candidate.station_identity.locator,
+    )
+
+
+def _select_outlier_candidate_for_test(
+    candidate,
+    model,
+    session_state,
+    navigation_anchor_id,
+):
+    """Apply one candidate action with the shared regression-test scope."""
+    segment_inspector._select_outlier_candidate(
+        candidate,
+        model,
+        session_state,
+        analysis_id="RX_COMP",
+        run_id=9,
+        scope_token="active",
+        navigation_anchor_id=navigation_anchor_id,
+    )
+    return session_state[
+        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+    ]
+
+
+def _render_outlier_drilldown_controls_for_test(
+    monkeypatch,
+    model,
+    candidate,
+    session_state,
+):
+    """Render one candidate's controls with the shared regression-test scope."""
+    render_state = _install_drilldown_controls_streamlit_fake(
+        monkeypatch,
+        session_state,
+    )
+    control_result = segment_inspector._render_drilldown_header_and_controls(
+        ["A1AAA (AA00)"],
+        "RX_COMP",
+        9,
+        "active",
+        T["en"],
+        True,
+        False,
+        AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION),
+        "en",
+        analysis_start_utc=model.analysis_start_utc,
+        analysis_end_utc=model.analysis_end_utc,
+        selected_identity=_outlier_candidate_identity(candidate),
+    )
+    return control_result, render_state
+
+
 @pytest.mark.parametrize(
     ("is_sequential", "expander_label_key"),
     (
@@ -1186,6 +1297,145 @@ def test_station_insights_actions_select_the_requested_paths(
     assert render_state.rerun_calls == [{"scope": "app"}]
 
 
+@pytest.mark.parametrize(
+    ("first_anchor_id", "second_anchor_id"),
+    (
+        (
+            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+            segment_inspector.DRILLDOWN_ANCHOR_ID,
+        ),
+        (
+            segment_inspector.DRILLDOWN_ANCHOR_ID,
+            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+        ),
+        (
+            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+        ),
+        (
+            segment_inspector.DRILLDOWN_ANCHOR_ID,
+            segment_inspector.DRILLDOWN_ANCHOR_ID,
+        ),
+    ),
+)
+def test_explicit_same_candidate_navigation_rearms_outlier_focus(
+    monkeypatch,
+    first_anchor_id,
+    second_anchor_id,
+):
+    """Treat every candidate action as new intent despite its stable token."""
+    model = _episode_report_model()
+    candidate = model.candidates[0]
+    session_state = {}
+    navigation_calls = []
+    monkeypatch.setattr(
+        segment_inspector,
+        "request_page_navigation",
+        lambda _state, anchor_id, *, should_scroll: (
+            navigation_calls.append((anchor_id, should_scroll))
+        ),
+    )
+
+    first_focus = _select_outlier_candidate_for_test(
+        candidate,
+        model,
+        session_state,
+        first_anchor_id,
+    )
+    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+        "RX_COMP",
+        9,
+        "active",
+        _outlier_candidate_identity(candidate),
+    )
+    session_state[zoom_state_keys.zoom_widget] = "off"
+    session_state[zoom_state_keys.applied_outlier_request] = first_focus[
+        "request_token"
+    ]
+
+    repeated_focus = _select_outlier_candidate_for_test(
+        candidate,
+        model,
+        session_state,
+        second_anchor_id,
+    )
+
+    assert repeated_focus["request_token"] == first_focus["request_token"]
+    assert zoom_state_keys.applied_outlier_request not in session_state
+    assert session_state[zoom_state_keys.zoom_widget] == "off"
+    assert navigation_calls == [
+        (first_anchor_id, True),
+        (second_anchor_id, True),
+    ]
+    (
+        (focus_window, _focus_time_bin, _filter_container),
+        _render_state,
+    ) = _render_outlier_drilldown_controls_for_test(
+        monkeypatch,
+        model,
+        candidate,
+        session_state,
+    )
+
+    assert session_state[zoom_state_keys.zoom_widget] == (
+        segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+    )
+    assert session_state[zoom_state_keys.applied_outlier_request] == (
+        repeated_focus["request_token"]
+    )
+    assert focus_window.option == segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+    assert session_state[
+        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+    ] == repeated_focus
+
+
+def test_different_candidate_on_same_path_replaces_focus_request(monkeypatch):
+    """Replace candidate provenance even when its station namespace is shared."""
+    first_candidate = _impulse()
+    second_candidate = _impulse(
+        start_utc=EPISODE_START + pd.Timedelta(minutes=30)
+    )
+    model = _model_for_entries(
+        _report_entry(first_candidate),
+        _report_entry(second_candidate, episode_index=1),
+    )
+    session_state = {}
+    monkeypatch.setattr(
+        segment_inspector,
+        "request_page_navigation",
+        lambda *_args, **_kwargs: None,
+    )
+
+    first_focus = _select_outlier_candidate_for_test(
+        first_candidate,
+        model,
+        session_state,
+        segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+    )
+    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+        "RX_COMP",
+        9,
+        "active",
+        _outlier_candidate_identity(first_candidate),
+    )
+    session_state[zoom_state_keys.applied_outlier_request] = first_focus[
+        "request_token"
+    ]
+
+    second_focus = _select_outlier_candidate_for_test(
+        second_candidate,
+        model,
+        session_state,
+        segment_inspector.DRILLDOWN_ANCHOR_ID,
+    )
+
+    assert second_focus["request_token"] != first_focus["request_token"]
+    assert second_focus["representative_utc_ns"] == int(
+        second_candidate.representative_utc.value
+    )
+    assert zoom_state_keys.applied_outlier_request not in session_state
+
+
 @pytest.mark.parametrize("clicked_button_index", (1, 3, 5))
 def test_drilldown_actions_preload_exact_context_and_navigate_directly(
     monkeypatch,
@@ -1244,6 +1494,112 @@ def test_drilldown_actions_preload_exact_context_and_navigate_directly(
     )
     assert render_state.navigation_calls[0][2] is True
     assert render_state.rerun_calls == [{"scope": "app"}]
+
+
+def test_missing_zoom_widget_state_rehydrates_valid_outlier_context(
+    monkeypatch,
+):
+    """Repair stale-widget cleanup without requiring a new candidate token."""
+    model = _episode_report_model()
+    candidate = model.candidates[0]
+    session_state = {}
+    monkeypatch.setattr(
+        segment_inspector,
+        "request_page_navigation",
+        lambda *_args, **_kwargs: None,
+    )
+    focus_record = _select_outlier_candidate_for_test(
+        candidate,
+        model,
+        session_state,
+        segment_inspector.DRILLDOWN_ANCHOR_ID,
+    )
+    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+        "RX_COMP",
+        9,
+        "active",
+        _outlier_candidate_identity(candidate),
+    )
+    session_state[zoom_state_keys.applied_outlier_request] = focus_record[
+        "request_token"
+    ]
+    assert zoom_state_keys.zoom_widget not in session_state
+    (
+        (focus_window, focus_time_bin, filter_container),
+        render_state,
+    ) = _render_outlier_drilldown_controls_for_test(
+        monkeypatch,
+        model,
+        candidate,
+        session_state,
+    )
+
+    assert session_state[zoom_state_keys.zoom_widget] == (
+        segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+    )
+    assert session_state[zoom_state_keys.applied_outlier_request] == (
+        focus_record["request_token"]
+    )
+    assert session_state[
+        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+    ] == focus_record
+    assert focus_window.option == segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+    assert focus_window.origin == segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+    assert focus_window.start_utc <= candidate.representative_utc
+    assert candidate.representative_utc < focus_window.end_utc
+    assert focus_time_bin == "2m"
+    assert filter_container is None
+    assert render_state.selectbox_calls[0][2] == zoom_state_keys.zoom_widget
+    assert render_state.column_specs == [
+        ((0.28, 0.72), {"vertical_alignment": "center"})
+    ]
+
+
+def test_deliberate_zoom_off_is_not_rehydrated(monkeypatch):
+    """Honor an existing Off widget value and clear its outlier context."""
+    model = _episode_report_model()
+    candidate = model.candidates[0]
+    session_state = {}
+    monkeypatch.setattr(
+        segment_inspector,
+        "request_page_navigation",
+        lambda *_args, **_kwargs: None,
+    )
+    focus_record = _select_outlier_candidate_for_test(
+        candidate,
+        model,
+        session_state,
+        segment_inspector.DRILLDOWN_ANCHOR_ID,
+    )
+    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+        "RX_COMP",
+        9,
+        "active",
+        _outlier_candidate_identity(candidate),
+    )
+    session_state[zoom_state_keys.zoom_widget] = "off"
+    session_state[zoom_state_keys.applied_outlier_request] = focus_record[
+        "request_token"
+    ]
+    (
+        (focus_window, focus_time_bin, filter_container),
+        _render_state,
+    ) = _render_outlier_drilldown_controls_for_test(
+        monkeypatch,
+        model,
+        candidate,
+        session_state,
+    )
+
+    assert focus_window is None
+    assert focus_time_bin is None
+    assert filter_container is None
+    assert session_state[zoom_state_keys.zoom_widget] == "off"
+    assert zoom_state_keys.applied_outlier_request not in session_state
+    assert (
+        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        not in session_state
+    )
 
 
 def test_enabled_empty_report_uses_native_cycle_counters(monkeypatch):

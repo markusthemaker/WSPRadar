@@ -928,10 +928,10 @@ def test_drilldown_focus_copy_defines_centered_native_evidence_and_detector_guid
         "↓ Drill-Down-Details anzeigen"
     )
     assert T["en"]["fig_drilldown_outlier_candidate"] == (
-        "Qualifying candidate unit"
+        "Outlier candidate"
     )
     assert T["de"]["fig_drilldown_outlier_candidate"] == (
-        "Qualifizierende Kandidateneinheit"
+        "Ausreißerkandidat"
     )
     assert T["en"]["fig_drilldown_outlier_focused_episode"] == (
         "Focused episode"

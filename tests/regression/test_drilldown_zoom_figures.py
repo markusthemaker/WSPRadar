@@ -43,7 +43,7 @@ END_UTC = pd.Timestamp("2026-07-10T12:00:00Z")
 
 def _overlay_labels():
     return {
-        "marker": "Qualifying candidate unit",
+        "marker": "Outlier candidate",
         "focused_episode": "Focused episode",
         "local_baseline": "Expected local Delta SNR",
         "flank_baseline": "Pre/post flank baseline",
@@ -544,7 +544,7 @@ def test_native_benchmark_renderer_draws_points_and_detector_guides_without_dens
             for text_artist in axis.get_legend().get_texts()
         ]
         assert "Candidate interval" not in legend_labels
-        assert "Qualifying candidate unit" in legend_labels
+        assert "Outlier candidate" in legend_labels
         assert "Focused episode" in legend_labels
         figure.canvas.draw()
     finally:
@@ -714,7 +714,7 @@ def _integration_translations():
         "fig_drilldown_native_scheduled_pair": (
             "Individual complete Scheduled Pair"
         ),
-        "fig_drilldown_outlier_candidate": "Qualifying candidate unit",
+        "fig_drilldown_outlier_candidate": "Outlier candidate",
         "fig_drilldown_outlier_focused_episode": "Focused episode",
         "fig_drilldown_outlier_expected_local_delta_snr": (
             "Expected local Delta SNR"

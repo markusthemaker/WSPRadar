@@ -186,3 +186,17 @@ departure** / **Größte Einzelzyklusabweichung** remains a separate report and
 export metric containing the true greatest-absolute retained residual of the
 path event. No candidate membership, gate, retained evidence or exported peak
 value changes through this marker-selection refinement.
+
+## 2026-08-23 focused Drill-Down marker terminology parity note
+
+The focused Benchmark legend now uses **Outlier candidate** /
+**Ausreißerkandidat**, replacing the more abstract visible **Qualifying
+candidate unit** / **Qualifizierende Kandidateneinheit** wording recorded in the
+2026-08-17 note. The shorter label deliberately reuses the established Station
+Evidence vocabulary. It is presentation shorthand only: every star in the
+focused Drill-Down still denotes an individually qualifying native unit within
+a reported candidate, several starred units can belong to one candidate, and
+the **Focused episode** / **Fokussierte Episode** band continues to identify the
+selected candidate interval. Internal qualifying-unit names, detector gates,
+candidate boundaries, retained evidence, exports, saved configuration and
+scientific behavior are unchanged.

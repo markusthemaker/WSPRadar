@@ -1731,7 +1731,7 @@ def test_benchmark_zoom_registration_requires_exact_outlier_overlay_provenance()
         minimum_robust_z=candidate_metadata["minimum_robust_z"],
         minimum_departure_db=candidate_metadata["minimum_departure_db"],
         labels={
-            "marker": "Qualifying candidate unit",
+            "marker": "Outlier candidate",
             "focused_episode": "Focused episode",
             "local_baseline": "Expected local Delta SNR",
             "flank_baseline": "Pre/post flank baseline",
@@ -2147,7 +2147,7 @@ def test_disabled_registration_strips_stale_zoom_outlier_context(
                 "minimum_departure_db"
             ],
             labels={
-                "marker": "Qualifying candidate unit",
+                "marker": "Outlier candidate",
                 "focused_episode": "Focused episode",
                 "local_baseline": "Expected local Delta SNR",
                 "flank_baseline": "Pre/post flank baseline",
