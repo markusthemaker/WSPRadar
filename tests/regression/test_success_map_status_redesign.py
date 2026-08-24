@@ -148,6 +148,36 @@ def _artist_with_gid(figure, gid, artist_type):
     return matching_artists[0]
 
 
+def _assert_success_map_without_sector_fills(rendered_result, *, absolute_mode):
+    """Keep station evidence and map context when no sector wedges are visible."""
+    FigureCanvasAgg(rendered_result.figure).draw()
+    map_axis = rendered_result.figure.axes[0]
+    assert not any(
+        collection.get_gid() == SUCCESS_SECTORS_GID
+        for collection in map_axis.collections
+    )
+    _artist_with_gid(
+        rendered_result.figure,
+        SUCCESS_TARGET_MARKERS_GID,
+        PathCollection,
+    )
+    _artist_with_gid(
+        rendered_result.figure,
+        SUCCESS_COUNTER_MARKERS_GID,
+        PathCollection,
+    )
+    _artist_with_gid(rendered_result.figure, SUCCESS_LEGEND_GID, Legend)
+    _artist_with_gid(
+        rendered_result.figure,
+        SUCCESS_FOOTER_GID,
+        type(map_axis),
+    )
+    assert any(
+        axis.get_ylabel() == T["en"][f"cbar_abs_{absolute_mode.lower()}"]
+        for axis in rendered_result.figure.axes
+    )
+
+
 def _raw_opportunity_rows_for_invariance():
     records = []
     time_slot = 1_500_000
@@ -350,6 +380,63 @@ def test_preview_and_export_theme_paths_preserve_success_science_and_categories(
     finally:
         dispose_matplotlib_figure(dark_result.figure)
         dispose_matplotlib_figure(light_result.figure)
+
+
+def test_generated_success_map_renders_when_no_sector_meets_station_threshold(
+    map_canvas_without_cartopy,
+):
+    """Preserve station-level Performance output when every sector is filtered."""
+    rendered = plot_engine.generate_map_plot(
+        _raw_opportunity_rows_for_invariance(),
+        "TX Performance",
+        False,
+        False,
+        datetime(2026, 7, 1, tzinfo=timezone.utc),
+        datetime(2026, 7, 2, tzinfo=timezone.utc),
+        5000,
+        "TX_ABS",
+        10_000,
+        0.0,
+        0.0,
+        analysis_context=_analysis_context(minimum_opportunities=2),
+        presentation_context=_presentation_context(),
+        analysis_kind="opportunity",
+    )
+
+    assert rendered is not None
+    try:
+        assert not rendered.map_data.station_rows.empty
+        assert rendered.map_data.segment_rows.empty
+        _assert_success_map_without_sector_fills(
+            rendered,
+            absolute_mode="TX",
+        )
+    finally:
+        dispose_matplotlib_figure(rendered.figure)
+
+
+def test_success_renderer_handles_all_sectors_outside_visible_extent(
+    map_canvas_without_cartopy,
+):
+    """Use the colorbar-only mappable when stored sectors are outside the map."""
+    map_data = _success_map_data()
+    map_data.segment_rows = map_data.segment_rows.assign(
+        r_min=map_data.segment_rows["r_min"] + 6000.0,
+        r_max=map_data.segment_rows["r_max"] + 6000.0,
+    )
+    station_rows_before = map_data.station_rows.copy(deep=True)
+    segment_rows_before = map_data.segment_rows.copy(deep=True)
+
+    rendered = _render_map(map_data, maximum_distance_km=5000)
+    try:
+        _assert_success_map_without_sector_fills(
+            rendered,
+            absolute_mode="RX",
+        )
+        pd.testing.assert_frame_equal(map_data.station_rows, station_rows_before)
+        pd.testing.assert_frame_equal(map_data.segment_rows, segment_rows_before)
+    finally:
+        dispose_matplotlib_figure(rendered.figure)
 
 
 def test_success_renderer_does_not_mutate_precomputed_map_science(

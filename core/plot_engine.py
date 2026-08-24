@@ -682,14 +682,23 @@ def render_map_figure(
         else:
             heatmap_alpha = SUCCESS_MAP_HEATMAP_ALPHA
         if patches:
-            p = PatchCollection(patches, cmap=cmap, norm=norm, alpha=heatmap_alpha, edgecolor='none', transform=proj, zorder=3)
-            p.set_array(visible_segs['val'].to_numpy())
-            ax.add_collection(p)
+            sector_fill_collection = PatchCollection(
+                patches,
+                cmap=cmap,
+                norm=norm,
+                alpha=heatmap_alpha,
+                edgecolor='none',
+                transform=proj,
+                zorder=3,
+            )
+            sector_fill_collection.set_array(visible_segs['val'].to_numpy())
+            if is_opportunity:
+                sector_fill_collection.set_gid("success-sector-fills")
+            ax.add_collection(sector_fill_collection)
+            colorbar_mappable = sector_fill_collection
         else:
-            p = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-            p.set_array([])
-        if is_opportunity:
-            p.set_gid("success-sector-fills")
+            colorbar_mappable = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+            colorbar_mappable.set_array([])
     
     lbl_both_async = t_lang['leg_both_async']
 
@@ -767,7 +776,7 @@ def render_map_figure(
 
     if is_compare:
         cbar = fig.colorbar(
-            p,
+            colorbar_mappable,
             cax=cax,
             ticks=ticks,
             boundaries=compare_scale.boundaries_db,
@@ -775,7 +784,12 @@ def render_map_figure(
             drawedges=True,
         )
     else:
-        cbar = fig.colorbar(p, cax=cax, ticks=ticks, spacing="uniform")
+        cbar = fig.colorbar(
+            colorbar_mappable,
+            cax=cax,
+            ticks=ticks,
+            spacing="uniform",
+        )
     cbar.ax.set_facecolor(theme_cfg["cbar_face"])
 
     if hasattr(cbar, "solids"):
