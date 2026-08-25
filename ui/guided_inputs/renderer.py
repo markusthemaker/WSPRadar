@@ -33,7 +33,11 @@ from ui.components.config_panel import (
     _prepare_loaded_profile_title_markdown,
     _resolve_loaded_profile_text,
 )
-from ui.config_io import SOLAR_KEYS, validate_config_document
+from ui.components.config_review import (
+    reference_review_value,
+    render_configuration_review,
+)
+from ui.config_io import validate_config_document
 from ui.page_navigation import (
     PARAMETER_SETTINGS_ANCHOR_ID,
     request_page_navigation,
@@ -41,11 +45,7 @@ from ui.page_navigation import (
 from ui.population_exclusion_state import (
     BENCHMARK_RESULT_TYPE,
     PERFORMANCE_RESULT_TYPE,
-    register_explicit_population_exclusion_values,
     transition_population_exclusion_result_type,
-)
-from ui.result_state import (
-    normalize_compare_station_selection_for_outlier_reporting,
 )
 
 from .flow_engine import available_flow_nodes, matching_next_node
@@ -58,15 +58,13 @@ from .flow_loader import (
 from .state import (
     COMPARISON_MODES,
     GUIDED_OFFSET_INTENTS,
-    GUIDED_SCOPE_MODES,
     GUIDED_USE_CASES,
-    apply_general_scope_defaults,
     canonicalize_guided_use_case,
     guided_facts,
     is_guided_node_complete,
     reconstruct_guided_transients,
 )
-from .summaries import SUMMARY_RENDERERS, _window_summary
+from .summaries import SUMMARY_RENDERERS
 
 
 @dataclass(frozen=True)
@@ -209,31 +207,6 @@ def _loaded_demo_scope_matches_current_state() -> bool:
             for state_key, expected_value in expected_values.items()
         )
     )
-
-
-def _apply_loaded_demo_scope() -> None:
-    """Restore only advanced values from the loaded built-in demo profile."""
-    scope_values = _loaded_demo_scope_values(
-        st.session_state.get("guided_loaded_demo_profile")
-    )
-    if scope_values:
-        st.session_state.update(scope_values)
-        normalize_compare_station_selection_for_outlier_reporting(
-            st.session_state
-        )
-        register_explicit_population_exclusion_values(st.session_state)
-
-
-def _handle_scope_mode_change() -> None:
-    """Apply an explicit preset once; Custom leaves every current value intact."""
-    scope_mode = st.session_state.get("guided_scope_mode")
-    if scope_mode not in GUIDED_SCOPE_MODES:
-        return
-    if scope_mode == "general":
-        apply_general_scope_defaults(st.session_state)
-    elif scope_mode == "demo":
-        _apply_loaded_demo_scope()
-    _guided_scientific_change("scope_and_evidence")
 
 
 def _continue_to(next_node: str) -> None:
@@ -401,43 +374,9 @@ def _render_offset_calibration_fields(t, guided_content):
         st.markdown(messages[guidance_key])
 
 
-def _evidence_value_summary(guided_content) -> str:
-    """Return the localized thresholds active for the selected result type."""
-    messages = guided_content["messages"]
-    is_compare = st.session_state.get("val_comp_mode") != "none"
-    return messages[
-        "compare_evidence" if is_compare else "success_evidence"
-    ].format(
-        value=(
-            st.session_state.get("val_min_spots", 1)
-            if is_compare
-            else st.session_state.get("val_min_opportunities", 5)
-        ),
-        stations=st.session_state.get("val_min_stations", 1),
-    )
-
-
 def _render_scope_and_evidence_fields(t, guided_content):
-    """Render the scope preset choice or the relevant grouped shared controls."""
-    options = dict(guided_content["options"]["scope_mode"])
+    """Always render the grouped population, scope, and evidence controls."""
     messages = guided_content["messages"]
-    if not st.session_state.get("guided_loaded_demo_profile"):
-        options.pop("demo", None)
-        if st.session_state.get("guided_scope_mode") == "demo":
-            st.session_state.guided_scope_mode = "custom"
-    st.radio(
-        guided_content["steps"]["scope_and_evidence"]["title"],
-        tuple(options),
-        key="guided_scope_mode",
-        label_visibility="collapsed",
-        format_func=lambda value: options[value]["label"],
-        on_change=_handle_scope_mode_change,
-    )
-    scope_mode = st.session_state.get("guided_scope_mode")
-    if scope_mode in {"general", "demo"}:
-        st.info(messages["general_active" if scope_mode == "general" else "demo_active"])
-        return
-
     st.markdown(f"**{messages['station_population_title']}**")
     st.caption(messages["station_population_body"])
     render_station_population_fields(
@@ -480,136 +419,19 @@ def _render_scope_and_evidence_fields(t, guided_content):
 
 
 def _reference_review_value(guided_content) -> str:
-    """Return one human-readable active Reference value for terminal review."""
-    options = guided_content["options"]
-    benchmark_mode = st.session_state.get("val_comp_mode")
-    if benchmark_mode == "reference_station":
-        return (
-            f"{st.session_state.get('val_ref_callsign', '').upper()} · "
-            f"{st.session_state.get('val_ref_qth', '').upper()} · "
-            f"{options['reference_design'][benchmark_mode]['label']}"
-        )
-    if benchmark_mode == "local_neighborhood":
-        local_method = st.session_state.get("val_local_benchmark", "local_median")
-        return (
-            f"{options['local_benchmark'][local_method]['label']} · "
-            f"{st.session_state.get('val_ref_radius_km', 100)} km"
-        )
-    if (
-        st.session_state.get("val_analysis_direction") == "tx"
-        and st.session_state.get("val_tx_ab_method") == "sequential"
-    ):
-        return guided_content["messages"]["review_tx_sequential_value"].format(
-            method=options["tx_ab_method"]["sequential"]["label"],
-            repeat=st.session_state.get("val_tx_ab_repeat_interval_minutes", 10),
-            target=int(st.session_state.get("val_tx_ab_target_start_minute", 0)),
-            reference=int(
-                st.session_state.get("val_tx_ab_reference_start_minute", 2)
-            ),
-        )
-    if st.session_state.get("val_analysis_direction") == "tx":
-        return guided_content["messages"]["review_tx_simultaneous_value"].format(
-            callsign=st.session_state.get("val_ref_callsign", "").upper(),
-            method=options["tx_ab_method"]["simultaneous"]["label"],
-        )
-    return (
-        f"{st.session_state.get('val_ref_callsign', '').upper()} · "
-        f"{options['reference_design']['hardware_ab']['label']}"
-    )
+    """Retain the Guided adapter over the shared Reference summary."""
+    return reference_review_value(st.session_state, guided_content)
 
 
 def _render_review_and_run(t, guided_content):
-    """Render the complete active-only configuration summary and action placeholder."""
-    messages = guided_content["messages"]
-    use_case = st.session_state.get("guided_use_case")
-    is_compare = use_case in {"rx_benchmark", "tx_benchmark"}
-    lines = [
-        f"- **{messages['review_question']}:** {guided_content['options']['use_cases'][use_case]['label']}",
-        f"- **{messages['review_target']}:** "
-        + messages["review_target_value"].format(
-            callsign=st.session_state.get("val_callsign", "").upper(),
-            qth=st.session_state.get("val_qth", "").upper(),
-        ),
-    ]
-    if is_compare:
-        lines.append(
-            f"- **{messages['review_reference']}:** {_reference_review_value(guided_content)}"
-        )
-    lines.append(
-        f"- **{messages['review_band_window']}:** {st.session_state.get('val_band')} · {_window_summary(st.session_state, guided_content)}"
+    """Render the Guided terminal review through the shared review component."""
+    return render_configuration_review(
+        st,
+        t,
+        guided_content,
+        st.session_state,
+        on_open_classic=_open_classic_view,
     )
-    if is_compare and (
-        st.session_state.get("val_comp_mode") != "local_neighborhood"
-        or float(st.session_state.get("val_benchmark_offset_db", 0.0)) != 0.0
-    ):
-        lines.append(
-            f"- **{messages['review_correction']}:** {float(st.session_state.get('val_benchmark_offset_db', 0.0)):+.1f} dB"
-        )
-    lines.extend(
-        [
-            f"- **{messages['review_population']}:** "
-            + messages["review_population_value"].format(
-                special=(
-                    messages["included"]
-                    if st.session_state.get("val_exclude_special_callsigns")
-                    else messages["not_included"]
-                ),
-                moving=(
-                    messages["included"]
-                    if st.session_state.get("val_filter_moving")
-                    else messages["not_included"]
-                ),
-            ),
-            f"- **{messages['review_scope']}:** {st.session_state.get('val_max_peer_distance_km', 22000)} km · {t[SOLAR_KEYS.get(st.session_state.get('val_solar'), 'opt_solar_all')]}",
-            f"- **{messages['review_evidence']}:** {_evidence_value_summary(guided_content)}",
-            f"- **{messages['review_result']}:** {messages['result_benchmark' if is_compare else 'result_performance']}",
-        ]
-    )
-    if is_compare:
-        is_outlier_reporting_enabled = st.session_state.get(
-            "val_report_delta_snr_outlier_candidates",
-            False,
-        )
-        lines.append(
-            f"- **{t['lbl_report_delta_snr_outlier_candidates']}:** "
-            + (
-                "\u2713"
-                if is_outlier_reporting_enabled
-                else "\u2014"
-            )
-        )
-        if is_outlier_reporting_enabled:
-            lines.append(
-                f"- **{t['lbl_delta_snr_outlier_detector_thresholds']}:** "
-                + t["fmt_delta_snr_outlier_detector_thresholds"].format(
-                    departure=float(
-                        st.session_state[
-                            "val_delta_snr_outlier_minimum_departure_db"
-                        ]
-                    ),
-                    robust_z=float(
-                        st.session_state[
-                            "val_delta_snr_outlier_minimum_robust_z"
-                        ]
-                    ),
-                    baseline_difference=float(
-                        st.session_state[
-                            "val_delta_snr_outlier_maximum_baseline_difference_db"
-                        ]
-                    ),
-                )
-            )
-    st.markdown("\n".join(lines))
-    if st.session_state.get("val_snr_correction_mode") == "establish_offset":
-        st.warning(messages["calibration_run_notice"])
-    st.button(
-        messages["open_classic"],
-        icon=":material/settings:",
-        key="guided_open_classic",
-        on_click=_open_classic_view,
-        width="stretch",
-    )
-    return st.empty()
 
 
 CONTROL_RENDERERS = {
@@ -747,12 +569,18 @@ def render_guided_inputs(t) -> GuidedRenderResult:
         with st.expander(
             expander_label,
             expanded=(
-                not force_collapsed
-                and (
-                    active_node == node_id
-                    or (
-                        node_id == flow["terminal_node"]
-                        and should_expand_stale_review
+                (
+                    node_id == flow["terminal_node"]
+                    and is_ready
+                )
+                or (
+                    not force_collapsed
+                    and (
+                        active_node == node_id
+                        or (
+                            node_id == flow["terminal_node"]
+                            and should_expand_stale_review
+                        )
                     )
                 )
             ),

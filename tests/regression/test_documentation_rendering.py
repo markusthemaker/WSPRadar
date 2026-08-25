@@ -681,9 +681,10 @@ def test_english_playbooks_define_performance_opportunities_and_tx_ab_timing():
     assert "actual recurrence" in DOC_EN
     assert "UTC phase" in DOC_EN
     assert "[Sections 7.1](#sec-7-1) and [7.7](#sec-7-7)" in DOC_EN
-    assert "#### B.3 Ultimate3S schedule example" in DOC_EN
+    assert "#### C.3 Ultimate3S schedule example" in DOC_EN
     assert "`Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`" in DOC_EN
     assert "do not encode path identity through false dBm values" in DOC_EN
+    assert '<a id="sec-sequential-tx-setup-5"></a>' in DOC_EN
     assert '<a id="sec-b-5"></a>' in DOC_EN
 
 
@@ -693,12 +694,16 @@ def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity()
         '<a id="sec-2-4-simultaneous"></a>',
         '<a id="sec-2-4-sequential"></a>',
         '<a id="sec-a-4"></a>',
+        '<a id="sec-simultaneous-tx-setup"></a>',
+        '<a id="sec-sequential-tx-setup"></a>',
+        '<a id="sec-reference-snr-calibration"></a>',
     )
     for manual in (DOC_EN, DOC_DE):
         for anchor in expected_anchors:
             assert anchor in manual
-        assert "1450 Hz" in manual
-        assert "1550 Hz" in manual
+        assert "100 Hz" in manual
+        assert "1450 Hz" not in manual
+        assert "1550 Hz" not in manual
         assert "Setup A" not in manual
         assert "Setup B" not in manual
 
@@ -706,33 +711,394 @@ def test_bilingual_tx_hardware_playbooks_cover_both_methods_and_fixed_identity()
     assert "##### 2.4.2 Hardware A/B: sequential transmit paths" in DOC_EN
     assert "##### 2.4.1 Hardware A/B: simultane Sendepfade" in DOC_DE
     assert "##### 2.4.2 Hardware A/B: sequenzielle Sendepfade" in DOC_DE
-    assert "distinct exact reporting callsigns" in DOC_EN
-    assert "same Target grid-4" in DOC_EN
-    assert "unterschiedliche exakte Melderufzeichen" in DOC_DE
-    assert "dasselbe Target-Grid-4" in DOC_DE
+    assert "different valid exact callsigns" in DOC_EN
+    assert "shared grid-4" in DOC_EN
+    german_simultaneous_playbook = DOC_DE.split(
+        '<a id="sec-3-tx-benchmark-simultaneous"></a>', 1
+    )[1].split('<a id="sec-3-tx-benchmark-sequential"></a>', 1)[0]
+    assert "exakten Rufzeichen" in german_simultaneous_playbook
+    assert "Grid-4" in german_simultaneous_playbook
     assert "deterministic scheduled eligibility" in DOC_EN
     assert "deterministische Zeitplanzulässigkeit" in DOC_DE
+
+
+def test_bilingual_manuals_define_practical_simultaneous_tx_setup_and_legacy_links():
+    """Pin the accepted A/B/C/D ownership, operating limits, and compatibility."""
+    english_a4 = DOC_EN.split('<a id="sec-a-4"></a>', 1)[1].split(
+        '<a id="sec-simultaneous-tx-setup"></a>', 1
+    )[0]
+    german_a4 = DOC_DE.split('<a id="sec-a-4"></a>', 1)[1].split(
+        '<a id="sec-simultaneous-tx-setup"></a>', 1
+    )[0]
+
+    for a4 in (english_a4, german_a4):
+        assert "`Tx Pct`" in a4
+        assert "`100%`" in a4
+        assert "`5–20%`" in a4
+        assert "QMX" in a4
+        assert "Virtual U3S" in a4
+        assert "Ultimate3S" in a4
+        assert "ZachTek" in a4
+        assert "firmware" in a4.casefold()
+    assert "random" in english_a4.casefold()
+    assert "zufällig" in german_a4.casefold()
+    assert "randomized split-lane" in english_a4.casefold()
+    assert "festfrequenz" not in german_a4.casefold()
+    assert "fixed-frequency" not in english_a4.casefold()
+
+    english_simultaneous = DOC_EN.split(
+        '<a id="sec-simultaneous-tx-setup"></a>', 1
+    )[1].split('<a id="sec-sequential-tx-setup"></a>', 1)[0]
+    german_simultaneous = DOC_DE.split(
+        '<a id="sec-simultaneous-tx-setup"></a>', 1
+    )[1].split('<a id="sec-sequential-tx-setup"></a>', 1)[0]
+
+    for simultaneous in (english_simultaneous, german_simultaneous):
+        assert "100 Hz" in simultaneous
+        assert "https://www.wsprnet.org/drupal/wsprnet/spotquery" in simultaneous
+        assert "QMX" in simultaneous
+        assert "Virtual U3S" in simultaneous
+        assert "Ultimate3S" in simultaneous
+        assert "ZachTek" in simultaneous
+        assert "freq = freq + (100ULL * random (-100, 100));" in simultaneous
+        assert "freq = freq - (100ULL * random(31, 91));" in simultaneous
+        assert "freq = freq + (100ULL * random(30, 90));" in simultaneous
+        assert "freq = freq - 5000ULL;" not in simultaneous
+        assert "freq = freq + 5000ULL;" not in simultaneous
+    assert "ZachTek firmware 2.19 fixed-frequency" not in english_simultaneous
+    assert "ZachTek-Firmware 2.19: Festfrequenz" not in german_simultaneous
+    assert "compound callsigns" in english_simultaneous
+    assert "necessary" in english_simultaneous
+    assert "zusammengesetzte Rufzeichen" in german_simultaneous
+    assert "erforderlich" in german_simultaneous
+    assert "15 minutes or more" in english_simultaneous
+    assert "15 Minuten oder länger" in german_simultaneous
+    assert "both" in english_simultaneous
+    assert "occurrences" in english_simultaneous
+    assert "beiden" in german_simultaneous
+    assert "Vorkommen" in german_simultaneous
+    for simultaneous in (english_simultaneous, german_simultaneous):
+        normalized_simultaneous = simultaneous.casefold()
+        assert "kompil" in normalized_simultaneous or "compil" in normalized_simultaneous
+        assert "flash" in normalized_simultaneous
+
+    english_power = english_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-3"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-4"></a>', 1)[0]
+    german_power = german_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-3"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-4"></a>', 1)[0]
+
+    assert "false dBm" in english_power
+    assert "nearest valid WSPR-encoded dBm value" in english_power
+    assert "WSPRadar" in english_power
+    assert "excessive power" in english_power
+    assert "falsch" in german_power.casefold()
+    assert "nächst" in german_power.casefold()
+    assert "gültig" in german_power.casefold()
+    assert "wspr" in german_power.casefold()
+    assert "kodier" in german_power.casefold()
+    assert "WSPRadar" in german_power
+    assert (
+        "unnötig hohe Leistung" in german_power
+        or "übermäßige Leistung" in german_power
+    )
+    for power_guidance in (english_power, german_power):
+        normalized_power_guidance = power_guidance.casefold()
+        assert "20–30 dbm" in normalized_power_guidance
+        assert "intermodulation" in normalized_power_guidance
+    assert "occupied bandwidth" in english_power
+    assert "spurious products" in english_power
+    assert "belegte Bandbreite" in german_power
+    assert "unerwünschte Aussendungen" in german_power
+    assert "coupled power" not in english_power.casefold()
+    assert "desensitize" not in english_power.casefold()
+    assert "Record transmitter, firmware, oscillator or GNSS source" not in english_power
+    assert "oscillator or GNSS source" not in english_power
+    assert "eingekoppelte Sendeleistung" not in german_power
+    assert "desensibilisieren" not in german_power
+    assert "Notiere vor dem Messlauf für beide Pfade Sender, Firmware" not in german_power
+
+    english_archive_check = english_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-4"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-5"></a>', 1)[0]
+    german_archive_check = german_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-4"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-5"></a>', 1)[0]
+    assert "local decoder" not in english_archive_check.casefold()
+    assert "spectrum screenshot" not in english_archive_check.casefold()
+    assert "lokalen Decoders" not in german_archive_check
+    assert "Screenshot des Spektrums" not in german_archive_check
+
+    english_archive_steps = re.findall(r"^\d+\..*$", english_archive_check, re.MULTILINE)
+    german_archive_steps = re.findall(r"^\d+\..*$", german_archive_check, re.MULTILINE)
+    assert any(
+        "WSPRadar" in step
+        and "query" in step.casefold()
+        and "15 minutes or more" in step
+        for step in english_archive_steps
+    )
+    assert any(
+        "WSPRadar" in step
+        and ("abfrag" in step.casefold() or "verfügbar" in step.casefold())
+        and "15 Minuten oder länger" in step
+        for step in german_archive_steps
+    )
+
+    english_combined_devices = english_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-5-1"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-5-3"></a>', 1)[0]
+    german_combined_devices = german_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-5-1"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-5-3"></a>', 1)[0]
+
+    combined_device_anchor_pattern = re.compile(
+        r'<a id="sec-simultaneous-tx-setup-5-1"></a>\s*'
+        r'<a id="sec-simultaneous-tx-setup-5-2"></a>\s*'
+        r'##### B\.5\.1[–/-]B\.5\.2[^\n]*'
+    )
+    for simultaneous in (english_simultaneous, german_simultaneous):
+        combined_heading_match = combined_device_anchor_pattern.search(simultaneous)
+        assert combined_heading_match is not None
+        combined_heading = combined_heading_match.group(0)
+        assert "QMX" in combined_heading
+        assert "Virtual" in combined_heading
+        assert "Ultimate3S" in combined_heading
+
+    for device_setup in (english_combined_devices, german_combined_devices):
+        normalized_device_setup = device_setup.casefold()
+        assert device_setup.count("#####") == 1
+        assert "`1_04_000`" in device_setup
+        assert "`Frame = 20`" in device_setup
+        assert "`Start = 04`" in device_setup
+        assert "`Start = 00`" in device_setup
+        assert "not used" in device_setup
+        assert "determin" in normalized_device_setup
+        assert "spar" in normalized_device_setup
+        assert device_setup.count("+50 Hz") >= 4
+        assert device_setup.count("+150 Hz") >= 4
+        alternating_rows = [
+            line
+            for line in device_setup.splitlines()
+            if re.match(r"^\|\s*[1-4]\s*\|", line)
+            and "+50 Hz" in line
+            and "+150 Hz" in line
+        ]
+        assert len(alternating_rows) == 4
+
+    assert "physical Ultimate3S" in english_combined_devices
+    assert "up to 16" in english_combined_devices
+    assert "Virtual U3S" in english_combined_devices
+    assert "version" in english_combined_devices.casefold()
+    assert "physisch" in german_combined_devices.casefold()
+    assert "Ultimate3S" in german_combined_devices
+    assert "bis zu 16" in german_combined_devices
+    assert "Virtual U3S" in german_combined_devices
+    assert "version" in german_combined_devices.casefold()
+    assert "same-cycle" in english_combined_devices
+    assert "same WSPR cycle" in english_combined_devices
+    assert "frequency-position" in english_combined_devices
+    assert "balance" in english_combined_devices.casefold()
+    assert "reduce" in english_combined_devices.casefold()
+    assert (
+        "does not prove" in english_combined_devices.casefold()
+        or "does not guarantee" in english_combined_devices.casefold()
+    )
+    assert "denselben WSPR-Zyklus" in german_combined_devices
+    assert "Frequenzposition" in german_combined_devices
+    assert "balancier" in german_combined_devices.casefold()
+    assert "verringer" in german_combined_devices.casefold()
+    assert any(
+        bounded_claim in german_combined_devices.casefold()
+        for bounded_claim in ("belegt aber nicht", "garantiert nicht")
+    )
+    assert "QMX+-specific" in english_combined_devices
+    assert "nicht" in german_combined_devices
+    assert "allgemein" in german_combined_devices
+
+    english_zachtek = english_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-5-3"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-6"></a>', 1)[0]
+    german_zachtek = german_simultaneous.split(
+        '<a id="sec-simultaneous-tx-setup-5-3"></a>', 1
+    )[1].split('<a id="sec-simultaneous-tx-setup-6"></a>', 1)[0]
+    for zachtek_setup in (english_zachtek, german_zachtek):
+        assert "freq = freq + (100ULL * random (-100, 100));" in zachtek_setup
+        assert "freq = freq - (100ULL * random(31, 91));" in zachtek_setup
+        assert "freq = freq + (100ULL * random(30, 90));" in zachtek_setup
+        assert "freq = freq - 5000ULL;" not in zachtek_setup
+        assert "freq = freq + 5000ULL;" not in zachtek_setup
+        assert "`Product_Model`" in zachtek_setup
+        assert "`1048`" in zachtek_setup
+        assert "ESP8285" in zachtek_setup
+        assert "NeoGPS" in zachtek_setup
+        assert any(
+            "-90" in line
+            and "-31 Hz" in line
+            and line.index("-90") < line.index("-31 Hz")
+            for line in zachtek_setup.splitlines()
+        )
+        assert any(
+            "+30" in line
+            and "+89 Hz" in line
+            and line.index("+30") < line.index("+89 Hz")
+            for line in zachtek_setup.splitlines()
+        )
+        assert "61 Hz" in zachtek_setup
+        assert "57 Hz" in zachtek_setup
+        assert "10 Hz" in zachtek_setup
+        assert "Joint" in zachtek_setup
+    assert "##### B.5.3 ZachTek firmware 2.19 randomized split-lane builds" in english_zachtek
+    assert "both" in english_zachtek.casefold()
+    assert "occurrences" in english_zachtek.casefold()
+    assert "`0.01 Hz`" in english_zachtek
+    assert "tone-zero" in english_zachtek.casefold()
+    assert "4.4 Hz" in english_zachtek
+    assert "randomization" in english_zachtek.casefold()
+    assert any(
+        benefit_word in english_zachtek.casefold()
+        for benefit_word in ("advantage", "benefit")
+    )
+    assert "lower-versus-upper" in english_zachtek.casefold()
+    assert "passband" in english_zachtek.casefold()
+    assert "Run 1" in english_zachtek
+    assert "Run 2" in english_zachtek
+    assert "source-code" in english_zachtek.casefold()
+    assert "configuration program" in english_zachtek.casefold()
+    assert "after flashing" in english_zachtek.casefold()
+    assert "on-air" in english_zachtek.casefold()
+    assert "preflight" in english_zachtek.casefold()
+    assert "Type 3" in english_zachtek
+    assert "same selected frequency" in english_zachtek
+    english_tone_zero_sentence = next(
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", english_zachtek)
+        if "61 Hz" in sentence
+    )
+    english_complete_signal_sentence = next(
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", english_zachtek)
+        if "57 Hz" in sentence
+    )
+    assert "command" in english_tone_zero_sentence.casefold()
+    assert "tone-zero" in english_tone_zero_sentence.casefold()
+    assert "command" in english_complete_signal_sentence.casefold()
+    assert "actual radiated" in english_zachtek.casefold()
+    english_edge_margin_sentence = next(
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", english_zachtek)
+        if "10 Hz" in sentence
+    )
+    assert "tone-zero" in english_edge_margin_sentence.casefold()
+
+    assert "##### B.5.3" in german_zachtek
+    assert "ZachTek" in german_zachtek
+    assert "2.19" in german_zachtek
+    assert "beide" in german_zachtek.casefold()
+    assert "Vorkommen" in german_zachtek
+    assert "`0,01 Hz`" in german_zachtek or "`0.01 Hz`" in german_zachtek
+    assert "Ton 0" in german_zachtek or "Ton-0" in german_zachtek
+    assert "4,4 Hz" in german_zachtek or "4.4 Hz" in german_zachtek
+    assert "Zufall" in german_zachtek
+    assert "Vorteil" in german_zachtek
+    assert "systematischen Einfluss" in german_zachtek
+    assert "Durchlasskurve" in german_zachtek
+    assert "Lauf 1" in german_zachtek
+    assert "Lauf 2" in german_zachtek
+    assert "Quellcode" in german_zachtek
+    assert "Konfigurationsprogramm" in german_zachtek
+    assert "nach dem flashen" in german_zachtek.casefold()
+    assert "auf Sendung" in german_zachtek
+    assert "Vorabprüfung" in german_zachtek
+    assert "Typ 3" in german_zachtek or "Typ-3" in german_zachtek
+    assert "gewählte Frequenz" in german_zachtek
+    german_tone_zero_sentence = next(
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", german_zachtek)
+        if "61 Hz" in sentence
+    )
+    german_complete_signal_sentence = next(
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", german_zachtek)
+        if "57 Hz" in sentence
+    )
+    assert "programmier" in german_tone_zero_sentence.casefold()
+    assert "ton-0" in german_tone_zero_sentence.casefold()
+    assert "programmier" in german_complete_signal_sentence.casefold()
+    assert "tatsächlichen HF-Signale" in german_zachtek
+    german_edge_margin_sentence = next(
+        sentence
+        for sentence in re.split(r"(?<=[.!?])\s+", german_zachtek)
+        if "10 Hz" in sentence
+    )
+    assert "ton-0" in german_edge_margin_sentence.casefold()
+
+    assert "recoverable stock firmware image" in english_zachtek
+    assert "build prerequisites" in english_zachtek
+    assert "lower and upper lanes" in english_zachtek
+    assert "same-cycle Joint" in english_zachtek
+    assert "wieder einspielbares Abbild der unveränderten Firmware" in german_zachtek
+    assert "Build-Voraussetzungen" in german_zachtek
+    assert "unteren beziehungsweise oberen Fenster" in german_zachtek
+    assert "Joint-Meldungen im selben Zyklus" in german_zachtek
+
+    for manual in (DOC_EN, DOC_DE):
+        simultaneous_anchor_position = manual.index(
+            '<a id="sec-simultaneous-tx-setup"></a>'
+        )
+        sequential_anchor_position = manual.index(
+            '<a id="sec-sequential-tx-setup"></a>'
+        )
+        calibration_anchor_position = manual.index(
+            '<a id="sec-reference-snr-calibration"></a>'
+        )
+        assert (
+            simultaneous_anchor_position
+            < sequential_anchor_position
+            < calibration_anchor_position
+        )
+        sequential_compatibility_position = manual.index('<a id="sec-b"></a>')
+        calibration_compatibility_position = manual.index('<a id="sec-c"></a>')
+        assert (
+            sequential_compatibility_position < sequential_anchor_position
+            and sequential_anchor_position - sequential_compatibility_position < 200
+        )
+        assert (
+            calibration_compatibility_position < calibration_anchor_position
+            and calibration_anchor_position - calibration_compatibility_position < 200
+        )
+        for section_number in range(1, 6):
+            canonical_position = manual.index(
+                f'<a id="sec-sequential-tx-setup-{section_number}"></a>'
+            )
+            compatibility_position = manual.index(
+                f'<a id="sec-b-{section_number}"></a>'
+            )
+            assert compatibility_position < canonical_position
+            assert canonical_position - compatibility_position < 200
 
 
 def test_bilingual_manuals_define_supported_exact_archive_identities():
     """Document letter-only and suffix forms as distinct exact archive tokens."""
     exact_identity_examples = (
-        "`KFS`",
-        "`KFS/SE`",
-        "`DL1MKS`",
-        "`DL1MKS/P`",
-        "`DL1MKS/1`",
-        "`DL1MKS/QRP`",
-        "`DL1MKS-1`",
+        "`CALLSIGN`",
+        "`CALLSIGN/1`",
+        "`CALLSIGN/2`",
+        "`CALLSIGN/P`",
+        "`CALLSIGN/QRP`",
+        "`CALLSIGN-1`",
     )
     for manual in (DOC_EN, DOC_DE):
         for identity in exact_identity_examples:
             assert identity in manual
+        assert "`KFS`" not in manual
+        assert "`KFS/SE`" not in manual
+        assert "`DL1MKS`" not in manual
 
-    assert "distinct identities" in DOC_EN
+    assert "distinct exact identities" in DOC_EN
     assert "does not apply hidden prefix or suffix matching" in DOC_EN
-    assert "eigenständige Identitäten" in DOC_DE
-    assert "keine verdeckte Präfix- oder Suffixzuordnung" in DOC_DE
+    assert "verschiedene exakte Archividentitäten" in DOC_DE
+    assert "verdeckte Präfix- oder Suffixzuordnung" in DOC_DE
 
 
 def test_bilingual_manuals_document_explicit_snr_correction_modes():
@@ -990,15 +1356,19 @@ def test_bilingual_manuals_explain_station_and_observation_benchmark_weighting()
 def test_bilingual_manuals_follow_reference_first_use_and_introductory_term_policy():
     """Meaningful documentation contracts must remain aligned across languages."""
     for manual in (DOC_EN, DOC_DE):
-        before_references = manual.split('<a id="sec-ref"></a>', 1)[0]
+        before_references, references_and_appendices = manual.split(
+            '<a id="sec-ref"></a>', 1
+        )
+        appendices = references_and_appendices.split('<a id="part-iv"></a>', 1)[1]
+        narrative = before_references + appendices
         first_use_order = list(
             dict.fromkeys(
                 int(number)
-                for number in re.findall(r'href="#ref-(\d+)"', before_references)
+                for number in re.findall(r'href="#ref-(\d+)"', narrative)
             )
         )
 
-        assert first_use_order == list(range(1, 19))
+        assert first_use_order == list(range(1, 21))
         assert '<strong class="defined-term">Stability</strong>' not in manual
         assert "90% stability" not in manual.lower()
         assert "90-%-stability" not in manual.lower()
@@ -1281,6 +1651,71 @@ def test_bilingual_manuals_document_classic_question_first_workflow():
     assert "entfällt der Bereich **`Benchmark-Design`** vollständig" in DOC_DE
 
 
+def test_bilingual_manuals_document_shared_review_and_open_panel_contract():
+    """Keep action placement and run-time expansion behavior explicit."""
+    assert "same terminal configuration summary" in DOC_EN
+    assert "**`Review — ready to run ✓`**" in DOC_EN
+    assert "places `Run RX Analysis` / `Run TX Analysis` and `Save Config`" in DOC_EN
+    assert "Review panel remains open while the run starts" in DOC_EN
+    assert "run-status panel remains open when it reaches **`Complete`**" in DOC_EN
+    assert "Classic does not automatically collapse any configuration panel" in DOC_EN
+    assert "ordinary or demo analysis starts" in DOC_EN
+
+    assert "derselben abschließenden Konfigurationsübersicht" in DOC_DE
+    assert "**`Prüfung — startbereit ✓`**" in DOC_DE
+    assert "`RX-Analyse starten` / `TX-Analyse starten` und `Konfig speichern`" in DOC_DE
+    assert "Der Prüfbereich bleibt beim Start des Laufs" in DOC_DE
+    assert "Laufstatus bleibt bei **`Complete`** geöffnet" in DOC_DE
+    assert "kein Konfigurationsbereich automatisch geschlossen" in DOC_DE
+    assert "gewöhnlichen Analyse oder einer Demo" in DOC_DE
+
+
+def test_bilingual_manuals_document_always_visible_scope_and_classic_order():
+    """Describe one visible shared panel without changing default semantics."""
+    assert "**`Optional filters, analysis scope, and evidence requirements`**" in DOC_EN
+    assert "Guided always shows the applicable fields inside that step" in DOC_EN
+    assert "there is no separate preset-choice gate" in DOC_EN
+    assert "loaded configurations and demos populate the same visible fields" in DOC_EN
+    assert "Performance has four Classic panels and Benchmark has five" in DOC_EN
+
+    assert "**`Optionale Filter, Analyseumfang und Evidenzanforderungen`**" in DOC_DE
+    assert "zeigt die geführte Eingabe stets die zutreffenden Felder" in DOC_DE
+    assert "eine getrennte vorgeschaltete Auswahl entfällt" in DOC_DE
+    assert "geladene Konfigurationen und Demos" in DOC_DE
+    assert "Performance besitzt damit vier und Benchmark fünf klassische Bereiche" in DOC_DE
+
+
+def test_bilingual_manuals_distinguish_empty_result_diagnostics():
+    """Separate source, filter, station, and segment states from requirements."""
+    for phrase in (
+        "No exact Target/source evidence was returned",
+        "Source evidence was returned, but filters or scope retained none",
+        "Performance identities remain, but no station meets the confirmed-opportunity requirement",
+        "Performance stations qualify, but no map segment meets its station requirement",
+    ):
+        assert phrase in DOC_EN
+    assert "highest observed: `3` confirmed opportunities" in DOC_EN
+    assert "required: at least `5` per station" in DOC_EN
+    assert "A configured minimum is never presented as an observed count" in DOC_EN
+    assert "Target-only audit observations are not confirmed opportunities" in DOC_EN
+    assert "No qualifying Benchmark result remains" in DOC_EN
+    assert "does not invent observed Benchmark maxima" in DOC_EN
+
+    for phrase in (
+        "Keine exakte Target-/Quellenevidenz wurde geliefert",
+        "Quellenevidenz wurde geliefert, aber Filter oder Umfang behielten nichts bei",
+        "Performance-Identitäten bleiben erhalten, aber keine Station erfüllt die Anforderung an bestätigte Gelegenheiten",
+        "Performance-Stationen qualifizieren sich, aber kein Kartensegment erfüllt seine Stationsanforderung",
+    ):
+        assert phrase in DOC_DE
+    assert "höchster beobachteter Wert: `3` bestätigte Gelegenheiten" in DOC_DE
+    assert "erforderlich: mindestens `5` pro Station" in DOC_DE
+    assert "Ein konfiguriertes Minimum wird nie als beobachtete Anzahl ausgegeben" in DOC_DE
+    assert "Target-only-Auditbeobachtungen keine bestätigten Gelegenheiten" in DOC_DE
+    assert "Kein qualifizierendes Benchmark-Ergebnis bleibt erhalten" in DOC_DE
+    assert "keine beobachteten Benchmark-Maxima" in DOC_DE
+
+
 def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch):
     """Share explicit defined-term emphasis without recoloring ordinary bold text."""
     rendered_styles = []
@@ -1394,6 +1829,9 @@ def test_localized_manuals_preserve_shared_lazy_loading_and_chapter_anchors():
         "sec-a",
         "sec-b",
         "sec-c",
+        "sec-simultaneous-tx-setup",
+        "sec-sequential-tx-setup",
+        "sec-reference-snr-calibration",
         "sec-d",
         "sec-ref",
     }

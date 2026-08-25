@@ -118,17 +118,14 @@
       "content_key": "steps.scope_and_evidence",
       "renderer": "scope_and_evidence_fields",
       "summary_renderer": "scope_and_evidence_summary",
-      "required_fields": [
-        "guided_scope_mode"
-      ],
+      "required_fields": [],
       "transitions": [
         {
           "when": {
-            "field": "guided_scope_mode",
+            "field": "analysis_direction",
             "in": [
-              "general",
-              "custom",
-              "demo"
+              "rx",
+              "tx"
             ]
           },
           "next": "review_and_run"

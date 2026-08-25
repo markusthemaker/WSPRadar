@@ -74,7 +74,6 @@ def guided_facts(state: Mapping[str, Any]) -> dict[str, Any]:
         "local_benchmark": state.get("val_local_benchmark"),
         "tx_ab_method": state.get("val_tx_ab_method"),
         "snr_correction_mode": state.get("val_snr_correction_mode"),
-        "guided_scope_mode": state.get("guided_scope_mode"),
     }
 
 
@@ -171,8 +170,6 @@ def _offset_complete(state: Mapping[str, Any]) -> bool:
 
 def _scope_complete(state: Mapping[str, Any]) -> bool:
     """Validate the shared scope and evidence values used by either result type."""
-    if state.get("guided_scope_mode") not in GUIDED_SCOPE_MODES:
-        return False
     integer_ranges = {
         "val_min_spots": (1, 50),
         "val_min_opportunities": (1, 100),

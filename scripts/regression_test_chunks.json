@@ -85,6 +85,7 @@
         "tests/regression/test_json_utils.py",
         "tests/regression/test_performance_profiling.py",
         "tests/regression/test_performance_terminology_migration.py",
+        "tests/regression/test_result_diagnostics.py",
         "tests/regression/test_result_guidance.py",
         "tests/regression/test_result_state.py",
         "tests/regression/test_run_data_preparation.py",

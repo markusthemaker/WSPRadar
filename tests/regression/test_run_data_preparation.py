@@ -19,6 +19,7 @@ from core.run_data_preparation import (
     ProviderBundlePreparationError,
     prepare_provider_bundle,
 )
+from core.result_diagnostics import NO_SOURCE_ROWS, SOURCE_ROWS_FILTERED_OUT
 
 
 def _comparison_plan():
@@ -388,10 +389,58 @@ def test_valid_empty_strict_and_legacy_responses_do_not_become_provider_errors(t
     ]
     assert bundle.analyses[0].artifact_path is None
     assert bundle.analyses[0].warning_message == "No data: Compare"
+    assert bundle.analyses[0].diagnostic.reason == NO_SOURCE_ROWS
+    assert dict(bundle.analyses[0].diagnostic.measured_counts) == {
+        "source_row_count": 0,
+    }
     assert [
         query_fetch.decode_filter_mode
         for query_fetch in bundle.analyses[0].query_fetches
     ] == [DECODE_FILTER_STRICT, DECODE_FILTER_LEGACY]
+
+
+def test_nonempty_source_rows_filtered_to_empty_receive_provable_diagnostic(
+    tmp_path,
+):
+    plan = _success_plan()
+    controller = _controller()
+    lease = controller.try_acquire_run({"wspr_live": 1, "wd2": 1, "wd1": 1})
+    source_frame = pd.DataFrame({
+        "time_slot": [1, 2, 3],
+        "peer_sign": ["K1AAA", "K2BBB", "K3CCC"],
+        "peer_grid": ["FN31", "EM12", "JN37"],
+        "target_seen": [1, 1, 1],
+        "external_seen": [1, 1, 1],
+        "target_snr": [-10.0, -11.0, -12.0],
+    })
+
+    bundle = prepare_provider_bundle(
+        [plan],
+        provider_lease=lease,
+        is_demo_run=False,
+        analysis_context=object(),
+        center_latitude=47.0,
+        center_longitude=8.0,
+        labels={"warn_no_data": "No data: {title}"},
+        artifact_paths={"RX_ABS": tmp_path / "performance.parquet"},
+        fetch_data=lambda *_args, database_provider, **_kwargs: _result(
+            database_provider.key,
+            source_frame,
+        ),
+        post_fetch_filter=lambda frame, *_args, **_kwargs: (
+            frame.iloc[0:0],
+            "No data: Performance",
+        ),
+    )
+    lease.release()
+
+    prepared = bundle.analyses[0]
+    assert prepared.artifact_path is None
+    assert prepared.diagnostic.reason == SOURCE_ROWS_FILTERED_OUT
+    assert dict(prepared.diagnostic.measured_counts) == {
+        "retained_row_count": 0,
+        "source_row_count": 3,
+    }
 
 
 @pytest.mark.parametrize(

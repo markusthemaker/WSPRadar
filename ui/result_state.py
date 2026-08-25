@@ -21,7 +21,7 @@ EXPORT_ZIP_SIGNATURE_KEY = "result_export_zip_signature"
 INSPECTOR_CACHE_STATE_KEY = "segment_inspector_cache"
 ACTIVE_RUN_DATABASE_SOURCE_KEY = "active_run_database_source"
 COMPLETED_RUN_SNAPSHOT_KEY = "completed_run_snapshot"
-COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION = 1
+COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION = 2
 RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = (
     "val_results_selected_stations_compare"
 )

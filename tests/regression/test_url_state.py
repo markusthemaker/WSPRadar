@@ -1232,10 +1232,11 @@ def test_app_gates_actions_and_url_sync_for_incomplete_classic_benchmark():
         '    if st.session_state.input_view == "classic"'
         in app_source
     )
-    assert (
-        'st.session_state.input_view == "classic" or guided_actions_available'
-        in app_source
-    )
+    assert 'st.session_state.input_view == "classic" or guided_actions_available' in app_source
+    assert "classic_render_result.review_actions_slot.container()" in app_source
+    assert 'if st.session_state.input_view == "guided":' in app_source
+    assert "st.session_state.config_panels_expanded = True" in app_source
+    assert "def collapse_config_panels" not in app_source
     assert "or not input_configuration_ready" in app_source
     assert "is_configuration_ready=input_configuration_ready" in app_source
     assert (

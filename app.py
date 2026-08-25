@@ -3,7 +3,6 @@
 
 import base64
 import time
-from contextlib import nullcontext
 from html import escape
 
 import streamlit as st
@@ -358,15 +357,13 @@ except UtcWindowValidationError as error:
 start_t, end_t = candidate_start_t, candidate_end_t
 
 
-def collapse_config_panels():
-    st.session_state.config_panels_expanded = False
-    st.session_state._collapse_config_panels_once = True
-
-
 def request_main_analysis_submission():
     """Claim the Run action while keeping its live status area in view."""
-    collapse_config_panels()
-    st.session_state.guided_collapse_all = True
+    if st.session_state.input_view == "guided":
+        st.session_state.guided_collapse_all = True
+    else:
+        st.session_state.config_panels_expanded = True
+        st.session_state._collapse_config_panels_once = False
     st.session_state.configuration_changed_since_run = False
     request_page_navigation(
         st.session_state,
@@ -480,7 +477,7 @@ if should_render_actions:
     action_context = (
         guided_render_result.review_actions_slot.container()
         if guided_actions_available
-        else nullcontext()
+        else classic_render_result.review_actions_slot.container()
     )
     with action_context:
         run_col, save_col = st.columns([0.65, 0.35], gap="large")

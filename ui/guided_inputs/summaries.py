@@ -101,17 +101,14 @@ def offset_calibration_summary(state, guided_content, step_number, language):
 
 
 def scope_and_evidence_summary(state, guided_content, step_number, language):
-    """Summarize scope using localized solar and Guided preset labels."""
+    """Summarize the visible scope controls using localized solar wording."""
     labels = T[language]
     solar_state = state.get("val_solar", "all")
     solar_label = labels[SOLAR_KEYS.get(solar_state, "opt_solar_all")]
-    scope_mode = state.get("guided_scope_mode", "custom")
-    mode_label = guided_content["options"]["scope_mode"][scope_mode]["label"]
     return guided_content["summaries"]["scope"].format(
         step=step_number,
         distance=state.get("val_max_peer_distance_km", 22000),
         solar=solar_label,
-        mode=mode_label,
     )
 
 

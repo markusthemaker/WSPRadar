@@ -49,6 +49,7 @@ from core.map_data_artifacts import (
     read_map_data_artifacts,
     write_map_data_artifacts,
 )
+from core.map_models import EmptyMapResult
 from core.math_utils import locator_to_latlon
 from core.matplotlib_runtime import matplotlib_profile_collector
 from core.performance_timer import (
@@ -70,6 +71,14 @@ from core.run_data_preparation import (
     ProviderBundleFetchError,
     ProviderBundlePreparationError,
     prepare_provider_bundle,
+)
+from core.result_diagnostics import (
+    BENCHMARK_NO_QUALIFYING_RESULT,
+    NO_SOURCE_ROWS,
+    PERFORMANCE_NO_ELIGIBLE_STATION,
+    PERFORMANCE_NO_QUALIFYING_SEGMENT,
+    SOURCE_ROWS_FILTERED_OUT,
+    ResultDiagnostic,
 )
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.analysis_submission_state import (
@@ -120,6 +129,57 @@ _SNAPSHOT_OUTCOMES = frozenset({
     _SNAPSHOT_OUTCOME_PREPARED_NO_DATA,
     _SNAPSHOT_OUTCOME_MAP_NO_DATA,
 })
+
+_RESULT_DIAGNOSTIC_WARNING_KEYS = {
+    NO_SOURCE_ROWS: "warn_no_source_rows",
+    SOURCE_ROWS_FILTERED_OUT: "warn_source_rows_filtered_out",
+    PERFORMANCE_NO_ELIGIBLE_STATION: (
+        "warn_performance_no_eligible_station"
+    ),
+    PERFORMANCE_NO_QUALIFYING_SEGMENT: (
+        "warn_performance_no_qualifying_segment"
+    ),
+}
+
+
+def _format_result_diagnostic_warning(t, analysis, diagnostic) -> str:
+    """Localize one validated diagnostic at the Streamlit boundary."""
+    fallback_template = t["warn_no_data"]
+    if diagnostic is None:
+        return fallback_template.format(title=analysis["title"])
+
+    if diagnostic.reason == BENCHMARK_NO_QUALIFYING_RESULT:
+        warning_key = (
+            "warn_benchmark_no_qualifying_result_sequential"
+            if analysis.get("is_sequential")
+            else "warn_benchmark_no_qualifying_result_simultaneous"
+        )
+        warning_template = t.get(
+            warning_key,
+            t.get("warn_benchmark_no_qualifying_result", fallback_template),
+        )
+    else:
+        warning_key = _RESULT_DIAGNOSTIC_WARNING_KEYS.get(diagnostic.reason)
+        warning_template = t.get(warning_key, fallback_template)
+
+    values = {
+        "title": analysis["title"],
+        **dict(diagnostic.applied_thresholds),
+        **dict(diagnostic.measured_counts),
+    }
+    values["minimum_confirmed_opportunities_per_station"] = values.get(
+        "min_confirmed_opportunities_per_peer"
+    )
+    values["minimum_joint_evidence_per_station"] = values.get(
+        "min_joint_spots_per_station"
+    )
+    values["minimum_qualifying_stations_per_map_segment"] = values.get(
+        "min_joint_stations_per_map_segment"
+    )
+    try:
+        return warning_template.format(**values)
+    except (KeyError, TypeError, ValueError):
+        return fallback_template.format(title=analysis["title"])
 
 
 @dataclass(frozen=True)
@@ -477,6 +537,34 @@ def _validate_completed_run_snapshot(
         outcome = snapshot_analysis.get("outcome")
         if outcome not in _SNAPSHOT_OUTCOMES:
             return None
+        if "diagnostic" not in snapshot_analysis:
+            return None
+        serialized_diagnostic = snapshot_analysis["diagnostic"]
+        if serialized_diagnostic is None:
+            diagnostic = None
+        else:
+            try:
+                diagnostic = ResultDiagnostic.from_dict(serialized_diagnostic)
+            except (TypeError, ValueError):
+                return None
+        allowed_diagnostic_reasons = {
+            _SNAPSHOT_OUTCOME_PREPARED_NO_DATA: {
+                NO_SOURCE_ROWS,
+                SOURCE_ROWS_FILTERED_OUT,
+            },
+            _SNAPSHOT_OUTCOME_MAP_NO_DATA: {
+                PERFORMANCE_NO_ELIGIBLE_STATION,
+                BENCHMARK_NO_QUALIFYING_RESULT,
+            },
+            _SNAPSHOT_OUTCOME_RENDERABLE: {
+                PERFORMANCE_NO_QUALIFYING_SEGMENT,
+            },
+        }
+        if (
+            diagnostic is not None
+            and diagnostic.reason not in allowed_diagnostic_reasons[outcome]
+        ):
+            return None
 
         evidence_path = snapshot_analysis.get("evidence_path")
         station_rows_path = snapshot_analysis.get("station_rows_path")
@@ -559,9 +647,11 @@ def _snapshot_analysis_entry(
     *,
     outcome,
     map_data_paths=None,
+    diagnostic=None,
 ) -> dict:
     """Build one language-free completed-analysis snapshot entry."""
     evidence_path = prepared_analysis.artifact_path
+    result_diagnostic = diagnostic or prepared_analysis.diagnostic
     return {
         "analysis": _analysis_snapshot_contract(prepared_analysis.analysis),
         "outcome": str(outcome),
@@ -585,6 +675,11 @@ def _snapshot_analysis_entry(
         ),
         "query_fetches": _serialize_query_fetches(
             prepared_analysis.query_fetches
+        ),
+        "diagnostic": (
+            result_diagnostic.to_dict()
+            if result_diagnostic is not None
+            else None
         ),
     }
 
@@ -1261,10 +1356,31 @@ def _render_completed_analysis_run(
     for index, (analysis, snapshot_analysis) in enumerate(prepared_render_entries):
         admission_permit.touch()
         outcome = snapshot_analysis["outcome"]
+        serialized_diagnostic = snapshot_analysis.get("diagnostic")
+        diagnostic = (
+            ResultDiagnostic.from_dict(serialized_diagnostic)
+            if serialized_diagnostic is not None
+            else None
+        )
         if outcome != _SNAPSHOT_OUTCOME_RENDERABLE:
-            st.warning(t["warn_no_data"].format(title=analysis["title"]))
+            st.warning(
+                _format_result_diagnostic_warning(
+                    t,
+                    analysis,
+                    diagnostic,
+                )
+            )
             st.markdown("---")
             continue
+
+        if diagnostic is not None:
+            st.warning(
+                _format_result_diagnostic_warning(
+                    t,
+                    analysis,
+                    diagnostic,
+                )
+            )
 
         profile_timer = PerformanceTimer()
         map_data_paths = MapDataArtifactPaths(
@@ -1280,6 +1396,7 @@ def _render_completed_analysis_run(
                     is_compare=analysis["is_compare"],
                     is_sequential=analysis["is_sequential"],
                     analysis_kind=analysis["analysis_kind"],
+                    diagnostic=diagnostic,
                 )
             profile_timer.add_memory(
                 "completed map station dataframe",
@@ -1350,7 +1467,7 @@ def _render_completed_analysis_run(
             exc,
             stage="restore_completed_inspectors",
         )
-    status_box.update(label="Complete", state="complete", expanded=False)
+    status_box.update(label="Complete", state="complete", expanded=True)
     return "completed"
 
 
@@ -1667,8 +1784,11 @@ def _render_admitted_analysis_run(
             ))
             profile_timer.log_report(analysis_title=analysis["title"])
             st.warning(
-                prepared_analysis.warning_message
-                or t["warn_no_data"].format(title=analysis["title"])
+                _format_result_diagnostic_warning(
+                    t,
+                    analysis,
+                    prepared_analysis.diagnostic,
+                )
             )
             st.markdown("---")
             continue
@@ -1729,6 +1849,23 @@ def _render_admitted_analysis_run(
             del df
             gc.collect()
 
+            if isinstance(plot_result, EmptyMapResult):
+                snapshot_analysis_entries.append(_snapshot_analysis_entry(
+                    prepared_analysis,
+                    outcome=_SNAPSHOT_OUTCOME_MAP_NO_DATA,
+                    diagnostic=plot_result.diagnostic,
+                ))
+                profile_timer.log_report(analysis_title=analysis["title"])
+                st.warning(
+                    _format_result_diagnostic_warning(
+                        t,
+                        analysis,
+                        plot_result.diagnostic,
+                    )
+                )
+                st.markdown("---")
+                continue
+
             if plot_result is None:
                 snapshot_analysis_entries.append(_snapshot_analysis_entry(
                     prepared_analysis,
@@ -1774,7 +1911,16 @@ def _render_admitted_analysis_run(
                 prepared_analysis,
                 outcome=_SNAPSHOT_OUTCOME_RENDERABLE,
                 map_data_paths=map_data_paths,
+                diagnostic=plot_result.map_data.diagnostic,
             ))
+            if plot_result.map_data.diagnostic is not None:
+                st.warning(
+                    _format_result_diagnostic_warning(
+                        t,
+                        analysis,
+                        plot_result.map_data.diagnostic,
+                    )
+                )
             deferred_render_data.append(_render_map_result_block(
                 t=t,
                 analysis=analysis,
@@ -1819,6 +1965,6 @@ def _render_admitted_analysis_run(
         },
     )
 
-    status_box.update(label="Complete", state="complete", expanded=False)
+    status_box.update(label="Complete", state="complete", expanded=True)
 
     return "completed"

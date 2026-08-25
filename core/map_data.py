@@ -8,8 +8,14 @@ import pandas as pd
 from config import AZIMUTH_STEP, COMPASS, DIST_BINS
 from core.compare_engine import aggregate_compare_map_data
 from core.geographic_scope import great_circle_distances_km
-from core.map_models import MapData
+from core.map_models import MapData, MapDataBuildResult
 from core.opportunity_engine import aggregate_opportunity_peers, aggregate_opportunity_segments
+from core.result_diagnostics import (
+    BENCHMARK_NO_QUALIFYING_RESULT,
+    PERFORMANCE_NO_ELIGIBLE_STATION,
+    PERFORMANCE_NO_QUALIFYING_SEGMENT,
+    ResultDiagnostic,
+)
 
 
 def validate_map_analysis_mode(*, analysis_kind: str, is_compare: bool) -> bool:
@@ -87,6 +93,180 @@ def _attach_map_geometry(frame: pd.DataFrame, *, center_latitude: float, center_
     )
 
 
+def build_map_data_result(
+    frame: pd.DataFrame,
+    *,
+    analysis_id: str,
+    is_compare: bool,
+    is_sequential: bool,
+    analysis_kind: str,
+    center_latitude: float,
+    center_longitude: float,
+    min_spots: int,
+    min_opportunities: int,
+    base_min_stations: int,
+    tx_ab_repeat_interval_minutes: int,
+    tx_ab_target_start_minute: int,
+    tx_ab_reference_start_minute: int,
+    owns_input: bool = False,
+) -> MapDataBuildResult:
+    """Return language-free map aggregates and any reproducible diagnostic."""
+    is_opportunity = validate_map_analysis_mode(
+        analysis_kind=analysis_kind,
+        is_compare=is_compare,
+    )
+    if frame is None or frame.empty:
+        return MapDataBuildResult(map_data=None)
+
+    work = frame if owns_input else frame.copy()
+    diagnostic = None
+    if is_opportunity:
+        work = aggregate_opportunity_peers(
+            work,
+            min_opportunities=int(min_opportunities),
+        )
+        if work.empty:
+            return MapDataBuildResult(
+                map_data=None,
+                diagnostic=ResultDiagnostic.create(
+                    PERFORMANCE_NO_ELIGIBLE_STATION,
+                    applied_thresholds={
+                        "min_confirmed_opportunities_per_peer": int(
+                            min_opportunities
+                        ),
+                        "min_joint_stations_per_map_segment": int(
+                            base_min_stations
+                        ),
+                    },
+                    measured_counts={
+                        "station_identity_count": 0,
+                        "eligible_station_count": 0,
+                        "maximum_confirmed_opportunities_per_station": 0,
+                    },
+                ),
+            )
+
+    _attach_map_geometry(
+        work,
+        center_latitude=center_latitude,
+        center_longitude=center_longitude,
+    )
+
+    if is_opportunity:
+        # Peer aggregation already returns an owned frame, and segment
+        # aggregation does not mutate it, so station rows can reuse that owner.
+        station_rows = work
+        if {"eligible", "rate_pct"}.issubset(station_rows.columns):
+            eligible_station_count = int(
+                (
+                    station_rows["eligible"]
+                    & station_rows["rate_pct"].notna()
+                ).sum()
+            )
+        else:
+            # The production opportunity aggregate always owns these columns.
+            # This fallback keeps the pure ownership seam independently
+            # testable with a minimal aggregate double.
+            eligible_station_count = int(len(station_rows))
+        if eligible_station_count == 0:
+            return MapDataBuildResult(
+                map_data=None,
+                diagnostic=ResultDiagnostic.create(
+                    PERFORMANCE_NO_ELIGIBLE_STATION,
+                    applied_thresholds={
+                        "min_confirmed_opportunities_per_peer": int(
+                            min_opportunities
+                        ),
+                        "min_joint_stations_per_map_segment": int(
+                            base_min_stations
+                        ),
+                    },
+                    measured_counts={
+                        "station_identity_count": int(len(station_rows)),
+                        "eligible_station_count": 0,
+                        "maximum_confirmed_opportunities_per_station": int(
+                            station_rows["opportunities"].max()
+                        ),
+                    },
+                ),
+            )
+        unfiltered_segment_rows = aggregate_opportunity_segments(station_rows)
+        maximum_stations_per_segment = (
+            int(unfiltered_segment_rows["cnt"].max())
+            if not unfiltered_segment_rows.empty
+            else 0
+        )
+        if unfiltered_segment_rows.empty:
+            segment_rows = unfiltered_segment_rows
+        else:
+            segment_rows = unfiltered_segment_rows[
+                unfiltered_segment_rows["cnt"] >= int(base_min_stations)
+            ]
+        if segment_rows.empty:
+            diagnostic = ResultDiagnostic.create(
+                PERFORMANCE_NO_QUALIFYING_SEGMENT,
+                applied_thresholds={
+                    "min_confirmed_opportunities_per_peer": int(
+                        min_opportunities
+                    ),
+                    "min_joint_stations_per_map_segment": int(
+                        base_min_stations
+                    ),
+                },
+                measured_counts={
+                    "station_identity_count": int(len(station_rows)),
+                    "eligible_station_count": eligible_station_count,
+                    "maximum_confirmed_opportunities_per_station": int(
+                        station_rows["opportunities"].max()
+                    ),
+                    "qualifying_segment_count": 0,
+                    "maximum_stations_per_segment": (
+                        maximum_stations_per_segment
+                    ),
+                },
+            )
+    else:
+        station_rows, segment_rows = aggregate_compare_map_data(
+            work,
+            is_sequential=is_sequential,
+            min_spots=int(min_spots),
+            base_min_stations=int(base_min_stations),
+            tx_ab_repeat_interval_minutes=int(tx_ab_repeat_interval_minutes),
+            tx_ab_target_start_minute=int(tx_ab_target_start_minute),
+            tx_ab_reference_start_minute=int(tx_ab_reference_start_minute),
+            owns_input=True,
+        )
+
+    if station_rows.empty or (segment_rows.empty and not is_opportunity):
+        return MapDataBuildResult(
+            map_data=None,
+            diagnostic=(
+                ResultDiagnostic.create(
+                    BENCHMARK_NO_QUALIFYING_RESULT,
+                    applied_thresholds={
+                        "min_joint_spots_per_station": int(min_spots),
+                        "min_joint_stations_per_map_segment": int(
+                            base_min_stations
+                        ),
+                    },
+                    measured_counts={"qualifying_segment_count": 0},
+                )
+                if not is_opportunity
+                else diagnostic
+            ),
+        )
+    map_data = MapData(
+        station_rows=station_rows,
+        segment_rows=segment_rows,
+        analysis_id=str(analysis_id),
+        is_compare=bool(is_compare),
+        is_sequential=bool(is_sequential),
+        analysis_kind=str(analysis_kind),
+        diagnostic=diagnostic,
+    )
+    return MapDataBuildResult(map_data=map_data, diagnostic=diagnostic)
+
+
 def build_map_data(
     frame: pd.DataFrame,
     *,
@@ -104,57 +284,20 @@ def build_map_data(
     tx_ab_reference_start_minute: int,
     owns_input: bool = False,
 ) -> MapData | None:
-    """Return language-free Success or Benchmark aggregates for one map."""
-    is_opportunity = validate_map_analysis_mode(
-        analysis_kind=analysis_kind,
+    """Return map aggregates while preserving the historical public contract."""
+    return build_map_data_result(
+        frame,
+        analysis_id=analysis_id,
         is_compare=is_compare,
-    )
-    if frame is None or frame.empty:
-        return None
-
-    work = frame if owns_input else frame.copy()
-    if is_opportunity:
-        work = aggregate_opportunity_peers(
-            work,
-            min_opportunities=int(min_opportunities),
-        )
-        if work.empty:
-            return None
-
-    _attach_map_geometry(
-        work,
+        is_sequential=is_sequential,
+        analysis_kind=analysis_kind,
         center_latitude=center_latitude,
         center_longitude=center_longitude,
-    )
-
-    if is_opportunity:
-        # Peer aggregation already returns an owned frame, and segment
-        # aggregation does not mutate it, so station rows can reuse that owner.
-        station_rows = work
-        segment_rows = aggregate_opportunity_segments(station_rows)
-        if not segment_rows.empty:
-            segment_rows = segment_rows[
-                segment_rows["cnt"] >= int(base_min_stations)
-            ]
-    else:
-        station_rows, segment_rows = aggregate_compare_map_data(
-            work,
-            is_sequential=is_sequential,
-            min_spots=int(min_spots),
-            base_min_stations=int(base_min_stations),
-            tx_ab_repeat_interval_minutes=int(tx_ab_repeat_interval_minutes),
-            tx_ab_target_start_minute=int(tx_ab_target_start_minute),
-            tx_ab_reference_start_minute=int(tx_ab_reference_start_minute),
-            owns_input=True,
-        )
-
-    if station_rows.empty or (segment_rows.empty and not is_opportunity):
-        return None
-    return MapData(
-        station_rows=station_rows,
-        segment_rows=segment_rows,
-        analysis_id=str(analysis_id),
-        is_compare=bool(is_compare),
-        is_sequential=bool(is_sequential),
-        analysis_kind=str(analysis_kind),
-    )
+        min_spots=min_spots,
+        min_opportunities=min_opportunities,
+        base_min_stations=base_min_stations,
+        tx_ab_repeat_interval_minutes=tx_ab_repeat_interval_minutes,
+        tx_ab_target_start_minute=tx_ab_target_start_minute,
+        tx_ab_reference_start_minute=tx_ab_reference_start_minute,
+        owns_input=owns_input,
+    ).map_data

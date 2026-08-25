@@ -15,6 +15,7 @@ from core.artifact_store import (
 )
 from core.map_data import validate_map_analysis_mode
 from core.map_models import MapData
+from core.result_diagnostics import ResultDiagnostic
 
 
 MAP_DATA_ARTIFACT_SCHEMA_VERSION = 1
@@ -169,6 +170,7 @@ def read_map_data_artifacts(
     is_compare: bool,
     is_sequential: bool,
     analysis_kind: str,
+    diagnostic: ResultDiagnostic | None = None,
     artifact_reader: Callable = read_parquet_artifact,
 ) -> MapData:
     """Read and validate compact tables before reconstructing one ``MapData``."""
@@ -188,4 +190,5 @@ def read_map_data_artifacts(
         is_compare=bool(is_compare),
         is_sequential=bool(is_sequential),
         analysis_kind=str(analysis_kind),
+        diagnostic=diagnostic,
     )

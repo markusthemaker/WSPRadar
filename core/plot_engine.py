@@ -57,9 +57,9 @@ from core.opportunity_engine import (
     opportunity_footer_counts,
 )
 from core.compare_engine import compare_footer_counts
-from core.map_data import build_map_data, validate_map_analysis_mode
+from core.map_data import build_map_data_result, validate_map_analysis_mode
 from core.map_base import create_base_map_figure, create_preview_cached_base_map_figure
-from core.map_models import MapFigure
+from core.map_models import EmptyMapResult, MapFigure
 from core.matplotlib_runtime import ensure_agg_canvas, synchronized_matplotlib
 from core.input_validation import normalize_ascii_upper
 from core.math_utils import locator_to_latlon
@@ -1016,7 +1016,7 @@ def generate_map_plot(
 ):
     """Build pure map aggregates, then render them through presentation context."""
     with _timed_span(timing_collector, "map data aggregation"):
-        map_data = build_map_data(
+        map_data_result = build_map_data_result(
             df,
             analysis_id=analysis_id,
             is_compare=is_compare,
@@ -1036,6 +1036,9 @@ def generate_map_plot(
             ),
             owns_input=True,
         )
+    map_data = map_data_result.map_data
+    if map_data is None and map_data_result.diagnostic is not None:
+        return EmptyMapResult(diagnostic=map_data_result.diagnostic)
     if map_data is None:
         return None
 

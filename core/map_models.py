@@ -7,6 +7,8 @@ from typing import Any
 
 import pandas as pd
 
+from core.result_diagnostics import ResultDiagnostic
+
 
 @dataclass
 class MapData:
@@ -18,6 +20,7 @@ class MapData:
     is_compare: bool
     is_sequential: bool
     analysis_kind: str
+    diagnostic: ResultDiagnostic | None = None
 
 
 @dataclass
@@ -27,3 +30,18 @@ class MapFigure:
     figure: Any
     map_data: MapData
     footer_text: str
+
+
+@dataclass(frozen=True)
+class EmptyMapResult:
+    """A diagnosed aggregate outcome that must not enter map presentation."""
+
+    diagnostic: ResultDiagnostic
+
+
+@dataclass(frozen=True)
+class MapDataBuildResult:
+    """Pure aggregate outcome before language or figure rendering."""
+
+    map_data: MapData | None
+    diagnostic: ResultDiagnostic | None = None

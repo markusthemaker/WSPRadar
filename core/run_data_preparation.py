@@ -28,6 +28,12 @@ from core.fetch_models import (
 from core.opportunity_engine import OPPORTUNITY_QUERY_COLUMNS
 from core.performance_timer import PerformanceTimer
 from core.provider_dispatch import ProviderRunLease
+from core.result_diagnostics import (
+    NO_SOURCE_ROWS,
+    SOURCE_ROWS_FILTERED_OUT,
+    ResultDiagnostic,
+    applied_thresholds_for_analysis,
+)
 
 
 @dataclass(frozen=True)
@@ -48,6 +54,7 @@ class PreparedAnalysisData:
     warning_message: str | None
     query_fetches: tuple[PreparedQueryFetch, ...]
     profile_timer: PerformanceTimer
+    diagnostic: ResultDiagnostic | None = None
 
     @property
     def fetch_seconds(self) -> float:
@@ -373,9 +380,18 @@ def prepare_provider_bundle(
                     ),
                     query_fetches=tuple(query_fetches),
                     profile_timer=profile_timer,
+                    diagnostic=ResultDiagnostic.create(
+                        NO_SOURCE_ROWS,
+                        applied_thresholds=applied_thresholds_for_analysis(
+                            analysis,
+                            analysis_context,
+                        ),
+                        measured_counts={"source_row_count": 0},
+                    ),
                 ))
                 continue
 
+            source_row_count = int(len(frame))
             profile_timer.add_memory(
                 "fetched dataframe",
                 df=frame,
@@ -402,6 +418,23 @@ def prepare_provider_bundle(
                     ),
                     query_fetches=tuple(query_fetches),
                     profile_timer=profile_timer,
+                    diagnostic=(
+                        ResultDiagnostic.create(
+                            SOURCE_ROWS_FILTERED_OUT,
+                            applied_thresholds=(
+                                applied_thresholds_for_analysis(
+                                    analysis,
+                                    analysis_context,
+                                )
+                            ),
+                            measured_counts={
+                                "source_row_count": source_row_count,
+                                "retained_row_count": 0,
+                            },
+                        )
+                        if frame.empty and source_row_count > 0
+                        else None
+                    ),
                 ))
                 del frame
                 gc.collect()

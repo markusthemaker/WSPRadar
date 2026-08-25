@@ -14,7 +14,7 @@ from unittest.mock import Mock
 from streamlit.testing.v1 import AppTest
 
 from i18n import GUIDED_INPUTS, T
-from ui import callbacks, config_io, page_navigation
+from ui import callbacks, classic_inputs, config_io, page_navigation
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.analysis_submission_state import (
     begin_main_analysis_submission,
@@ -160,42 +160,33 @@ def _install_shared_streamlit_state(monkeypatch, session_state):
     monkeypatch.setattr(callbacks, "st", fake_streamlit)
 
 
-def test_loaded_demo_scope_normalizes_multi_selection_when_reporting_turns_off(
+def test_guided_scope_render_never_reapplies_hidden_demo_or_default_presets(
     monkeypatch,
 ):
-    """Keep programmatic Guided presets serialization-safe in the same rerun."""
+    """Display current canonical values without a hidden preset mutation path."""
     session_state = _canonical_state(
         guided_loaded_demo_profile="benchmark-demo",
-        val_report_delta_snr_outlier_candidates=True,
-        val_results_selected_stations_compare=[
-            {"callsign": "A1AAA", "locator": "AA00"},
-            {"callsign": "B2BBB", "locator": "BB11"},
-        ],
+        guided_scope_mode="demo",
+        val_max_peer_distance_km=5000,
     )
     monkeypatch.setattr(
         renderer,
         "st",
-        SimpleNamespace(session_state=session_state),
+        SimpleNamespace(
+            session_state=session_state,
+            markdown=Mock(),
+            caption=Mock(),
+        ),
     )
-    monkeypatch.setattr(
-        renderer,
-        "_loaded_demo_scope_values",
-        lambda _profile_key: {
-            "val_report_delta_snr_outlier_candidates": False
-        },
-    )
-    monkeypatch.setattr(
-        renderer,
-        "register_explicit_population_exclusion_values",
-        lambda _state: None,
-    )
+    monkeypatch.setattr(renderer, "render_station_population_fields", Mock())
+    monkeypatch.setattr(renderer, "render_scope_fields", Mock())
+    monkeypatch.setattr(renderer, "render_evidence_threshold_fields", Mock())
 
-    renderer._apply_loaded_demo_scope()
+    renderer._render_scope_and_evidence_fields(T["en"], GUIDED_INPUTS["en"])
 
-    assert session_state.val_report_delta_snr_outlier_candidates is False
-    assert session_state.val_results_selected_stations_compare == [
-        {"callsign": "A1AAA", "locator": "AA00"}
-    ]
+    assert session_state.val_max_peer_distance_km == 5000
+    assert not hasattr(renderer, "_handle_scope_mode_change")
+    assert not hasattr(renderer, "_apply_loaded_demo_scope")
 
 
 def test_input_view_selector_uses_concise_wizard_and_panel_labels():
@@ -210,6 +201,138 @@ def test_input_view_selector_uses_concise_wizard_and_panel_labels():
             input_view: GUIDED_INPUTS[language]["mode"][input_view]
             for input_view in ("guided", "classic")
         } == labels
+
+
+def test_classic_keeps_every_input_panel_open_and_mounts_actions_in_review(
+    monkeypatch,
+):
+    """Ignore stale collapse state and reuse the ready shared Review panel."""
+    session_state = _canonical_state(
+        input_view="classic",
+        config_panels_expanded=False,
+        _collapse_config_panels_once=True,
+    )
+    panel_state_observations = []
+    review_expanders = []
+
+    def record_input_panel(*_args, **_kwargs):
+        panel_state_observations.append(
+            (
+                session_state.config_panels_expanded,
+                session_state._collapse_config_panels_once,
+            )
+        )
+
+    def record_review_expander(label, *, expanded, icon):
+        review_expanders.append((label, expanded, icon))
+        return _NullContext()
+
+    review_slot = Mock()
+    monkeypatch.setattr(
+        classic_inputs,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            expander=record_review_expander,
+            markdown=Mock(),
+            info=Mock(),
+            empty=Mock(),
+        ),
+    )
+    monkeypatch.setattr(
+        classic_inputs,
+        "render_classic_question_expander",
+        record_input_panel,
+    )
+    monkeypatch.setattr(classic_inputs, "render_core_expander", record_input_panel)
+    monkeypatch.setattr(
+        classic_inputs,
+        "render_benchmark_expander",
+        record_input_panel,
+    )
+    monkeypatch.setattr(
+        classic_inputs,
+        "render_advanced_expander",
+        record_input_panel,
+    )
+    monkeypatch.setattr(
+        classic_inputs,
+        "is_canonical_configuration_ready",
+        lambda _state: True,
+    )
+    shared_review = Mock(return_value=review_slot)
+    monkeypatch.setattr(
+        classic_inputs,
+        "render_configuration_review",
+        shared_review,
+    )
+
+    render_result = classic_inputs.render_classic_inputs(T["en"])
+
+    assert panel_state_observations == [(True, False)] * 3
+    assert review_expanders == [
+        (
+            "4 · Review — ready to run ✓",
+            True,
+            ":material/route:",
+        )
+    ]
+    assert render_result.is_ready is True
+    assert render_result.review_actions_slot is review_slot
+    shared_review.assert_called_once_with(
+        classic_inputs.st,
+        T["en"],
+        GUIDED_INPUTS["en"],
+        session_state,
+    )
+
+
+def test_classic_review_does_not_claim_readiness_for_invalid_configuration(
+    monkeypatch,
+):
+    """Use the neutral Review-and-run title until canonical values validate."""
+    session_state = _canonical_state(
+        input_view="classic",
+        val_callsign="",
+    )
+    review_expanders = []
+    info = Mock()
+    empty_slot = Mock()
+    monkeypatch.setattr(
+        classic_inputs,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            expander=lambda label, **kwargs: (
+                review_expanders.append((label, kwargs)) or _NullContext()
+            ),
+            markdown=Mock(),
+            info=info,
+            empty=Mock(return_value=empty_slot),
+        ),
+    )
+    for renderer_name in (
+        "render_classic_question_expander",
+        "render_core_expander",
+        "render_benchmark_expander",
+        "render_advanced_expander",
+    ):
+        monkeypatch.setattr(classic_inputs, renderer_name, Mock())
+
+    render_result = classic_inputs.render_classic_inputs(T["en"])
+
+    assert review_expanders == [
+        (
+            "4 · Review and run",
+            {"expanded": True, "icon": ":material/route:"},
+        )
+    ]
+    assert render_result.is_ready is False
+    assert render_result.review_actions_slot is empty_slot
+    info.assert_called_once_with(
+        GUIDED_INPUTS["en"]["validation"]["review_and_run"]
+    )
+
 
 def test_guided_definitions_reuse_documentation_defined_term_markup():
     """Highlight introduced domain terms without recoloring ordinary emphasis."""
@@ -583,8 +706,8 @@ def test_guided_continue_advances_without_requesting_a_browser_scroll(monkeypatc
     assert navigation_request["should_scroll"] is False
 
 
-def test_demo_metadata_precedes_forced_collapsed_scientific_steps(monkeypatch):
-    """Keep metadata first and every preset step collapsed on initial demo load."""
+def test_demo_metadata_precedes_steps_but_ready_review_remains_open(monkeypatch):
+    """Keep metadata first while retaining the terminal review on demo load."""
     session_state = _canonical_state(
         guided_scope_mode="demo",
         guided_loaded_demo_profile="example",
@@ -633,7 +756,7 @@ def test_demo_metadata_precedes_forced_collapsed_scientific_steps(monkeypatch):
     )
     step_events = [event for event in events if event[0] == "step"]
     assert step_events
-    assert all(event[2] is False for event in step_events)
+    assert [event[2] for event in step_events] == [False, False, False, True]
     assert render_result.available_nodes == (
         "use_case",
         "target_and_window",
@@ -873,30 +996,39 @@ def test_localized_use_case_descriptions_are_part_of_the_radio_choices(
     markdown.assert_not_called()
 
 
-def test_general_scope_panel_omits_redundant_guidance_and_value_summary(monkeypatch):
-    """Show the preset choice and caveat without repeating panel-six values."""
-    radio = Mock()
-    info = Mock()
-    markdown = Mock()
+def test_scope_panel_always_shows_active_controls_without_preset_choice(monkeypatch):
+    """Expose actual scope values directly for defaults, demos, and edits."""
+    station_population_fields = Mock()
+    scope_fields = Mock()
+    evidence_threshold_fields = Mock()
     caption = Mock()
     monkeypatch.setattr(
         renderer,
         "st",
         SimpleNamespace(
             session_state=_canonical_state(guided_scope_mode="general"),
-            radio=radio,
-            info=info,
-            markdown=markdown,
+            markdown=Mock(),
             caption=caption,
         ),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "render_station_population_fields",
+        station_population_fields,
+    )
+    monkeypatch.setattr(renderer, "render_scope_fields", scope_fields)
+    monkeypatch.setattr(
+        renderer,
+        "render_evidence_threshold_fields",
+        evidence_threshold_fields,
     )
 
     renderer._render_scope_and_evidence_fields(T["en"], GUIDED_INPUTS["en"])
 
-    info.assert_called_once_with(GUIDED_INPUTS["en"]["messages"]["general_active"])
-    markdown.assert_not_called()
-    caption.assert_not_called()
-    assert radio.call_args.args[1] == ("general", "custom")
+    station_population_fields.assert_called_once()
+    scope_fields.assert_called_once()
+    evidence_threshold_fields.assert_called_once()
+    assert len(caption.call_args_list) == 3
 
 
 def test_custom_scope_panel_shows_only_relevant_evidence_guidance(monkeypatch):
@@ -1571,6 +1703,7 @@ def test_german_review_uses_localized_target_and_complete_tx_schedule(monkeypatc
     assert "DL1ABC bei JO62QM" in review_markdown
     assert " at " not in review_markdown
     assert "Remote Stationsfilter" in review_markdown
+    assert "geplante Paare ≥ 1 je Station" in review_markdown
 
 
 def test_switching_to_classic_preserves_configuration_context_and_results(

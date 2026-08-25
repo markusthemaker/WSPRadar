@@ -531,11 +531,11 @@ def test_every_specified_branch_reaches_review(
     flow = load_guided_input_flow()
     facts = {
         "guided_use_case": use_case,
+        "analysis_direction": use_case.split("_", 1)[0],
         "benchmark_mode": benchmark_mode,
         "local_benchmark": local_benchmark,
         "tx_ab_method": tx_ab_method,
         "snr_correction_mode": offset_intent,
-        "guided_scope_mode": "general",
     }
 
     path = resolve_flow_path(flow, facts)
@@ -588,7 +588,7 @@ def test_optional_skip_condition_omits_node_and_follows_its_transition():
         flow,
         {
             "guided_use_case": "rx_performance",
-            "guided_scope_mode": "general",
+            "analysis_direction": "rx",
         },
     )
 
@@ -924,3 +924,9 @@ def test_flow_fields_and_renderers_are_closed_whitelists():
     assert all(callable(renderer) for renderer in CONTROL_RENDERERS.values())
     assert all(callable(renderer) for renderer in SUMMARY_RENDERERS.values())
     assert required_fields <= set(guided_facts(_complete_state()))
+    assert "guided_scope_mode" not in guided_facts(_complete_state())
+    schema = _flow_and_schema()[1]
+    assert (
+        "guided_scope_mode"
+        not in schema["$defs"]["state_field"]["enum"]
+    )

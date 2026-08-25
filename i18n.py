@@ -445,7 +445,7 @@ T = {
         "comp_title_local_best": "Local Best Station (≤{radius} km)",
         "comp_title_local_median": "Local Median Neighborhood (≤{radius} km)",
         "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> | License: <a href='https://github.com/markusthemaker/WSPRadar/blob/main/LICENSE' target='_blank' style='color:#39ff14; text-decoration:none;'>AGPLv3</a><br>Developed by Dr. Markus Brosch (DL1MKS) ",        
-        "exp_adv": "Filters, analysis scope and evidence",
+        "exp_adv": "Optional filters, analysis scope, and evidence requirements",
         "exp_comp": "Benchmark design",
         "exp_core": "Target and measurement window",
         "exp_question": "Question",
@@ -603,6 +603,12 @@ T = {
         "warn_analysis_result_row_limit_special_callsign_advice": "Enabling **{special_callsign_label}** may also reduce the database result. ",
         "status_analysis_result_row_limit": "Analysis stopped at the safe row limit",
         "warn_no_data": "Not enough qualifying data found for **{title}** after applying filters. Are the callsign entries, locator, band, date, and UTC time correct?",
+        "warn_no_source_rows": "No source rows were returned for **{title}**. Check the exact callsign or reporting identity, locator, band, UTC window, and actual operation. The active filters, analysis scope, and evidence requirements are shown in Review above.",
+        "warn_source_rows_filtered_out": "The source returned **{source_row_count} rows** for **{title}**, but none remained after the active post-fetch filters and analysis scope were applied. This does not by itself prove that the scope was too narrow. The applied configuration is shown in Review above.",
+        "warn_performance_no_eligible_station": "The active filters and scope retained **{station_identity_count} station identities (callsign + locator)** for **{title}**, but none met the per-station evidence requirement. Highest observed: **{maximum_confirmed_opportunities_per_station} confirmed opportunities**; required: **at least {minimum_confirmed_opportunities_per_station} per station**. Empty map, Inspector, and table components are omitted. The applied configuration is shown in Review above.",
+        "warn_performance_no_qualifying_segment": "**{eligible_station_count} station identities** met the per-station evidence requirement for **{title}**, but no map segment met its station requirement. Highest observed: **{maximum_stations_per_segment} qualifying stations in one segment**; required: **at least {minimum_qualifying_stations_per_map_segment} per map segment**. Station-level evidence remains available below; only segment-dependent output is omitted. The applied configuration is shown in Review above.",
+        "warn_benchmark_no_qualifying_result_simultaneous": "No qualifying Benchmark result was available for **{title}** after applying the active filters, analysis scope, and evidence requirements. Required: **at least {minimum_joint_evidence_per_station} Joint observations per station** and **at least {minimum_qualifying_stations_per_map_segment} qualifying stations per map segment**. This does not by itself prove that the scope was too narrow. The applied configuration is shown in Review above.",
+        "warn_benchmark_no_qualifying_result_sequential": "No qualifying Benchmark result was available for **{title}** after applying the active filters, analysis scope, and evidence requirements. Required: **at least {minimum_joint_evidence_per_station} complete Scheduled Pairs per station** and **at least {minimum_qualifying_stations_per_map_segment} qualifying stations per map segment**. This does not by itself prove that the scope was too narrow. The applied configuration is shown in Review above.",
         "fig_mean_label": "Mean",
         "fig_share_percent_axis": "Share (%)",
         "fmt_temporal_title_with_bins": "{title} ({time_bin} bins)",
@@ -1095,7 +1101,7 @@ T = {
         "comp_title_local_best": "Beste lokale Station (≤{radius} km)",
         "comp_title_local_median": "Lokaler Nachbarschafts-Median (≤{radius} km)",
         "dev_credit": f"Release {APP_VERSION} | Repo: <a href='https://github.com/markusthemaker/WSPRadar/' target='_blank' style='color:#39ff14; text-decoration:none;'>GitHub</a> | License: <a href='https://github.com/markusthemaker/WSPRadar/blob/main/LICENSE' target='_blank' style='color:#39ff14; text-decoration:none;'>AGPLv3</a><br>Developed by Dr. Markus Brosch (DL1MKS) ",        
-        "exp_adv": "Filter, Analyseumfang und Evidenz",
+        "exp_adv": "Optionale Filter, Analyseumfang und Evidenzanforderungen",
         "exp_comp": "Benchmark-Design",
         "exp_core": "Target und Messzeitraum",
         "exp_question": "Frage",
@@ -1306,7 +1312,13 @@ T = {
         "pdf_formula_delta_snr": "Delta SNR",
         "pdf_formula_approx": "ca.",
         "pdf_page_label": "Seite",
-        "warn_no_data": "Nicht genügend qualifizierte Daten für **{title}** nach Anwendung der Filter gefunden. Sind Rufzeichenangaben, Locator, Band, Datum und UTC-Zeit korrekt?"
+        "warn_no_data": "Nicht genügend qualifizierte Daten für **{title}** nach Anwendung der Filter gefunden. Sind Rufzeichenangaben, Locator, Band, Datum und UTC-Zeit korrekt?",
+        "warn_no_source_rows": "Für **{title}** wurden keine Quellzeilen geliefert. Prüfe die exakte Rufzeichen- oder Meldeidentität, den Locator, das Band, den UTC-Zeitraum und den tatsächlichen Betrieb. Die aktiven Filter, der Analyseumfang und die Evidenzanforderungen stehen oben im Prüfbereich.",
+        "warn_source_rows_filtered_out": "Die Quelle lieferte **{source_row_count} Zeilen** für **{title}**, nach Anwendung der aktiven nachgelagerten Filter und des Analyseumfangs blieb jedoch keine Zeile erhalten. Dies belegt für sich allein nicht, dass der Umfang zu eng war. Die angewandte Konfiguration steht oben im Prüfbereich.",
+        "warn_performance_no_eligible_station": "Die aktiven Filter und der Umfang behielten **{station_identity_count} Stationsidentitäten (Rufzeichen + Locator)** für **{title}** bei, aber keine erfüllte die Evidenzanforderung je Station. Höchster beobachteter Wert: **{maximum_confirmed_opportunities_per_station} bestätigte Gelegenheiten**; erforderlich: **mindestens {minimum_confirmed_opportunities_per_station} je Station**. Leere Karten-, Inspector- und Tabellenbestandteile werden nicht angezeigt. Die angewandte Konfiguration steht oben im Prüfbereich.",
+        "warn_performance_no_qualifying_segment": "**{eligible_station_count} Stationsidentitäten** erfüllten die Evidenzanforderung je Station für **{title}**, aber kein Kartensegment erfüllte seine Stationsanforderung. Höchster beobachteter Wert: **{maximum_stations_per_segment} qualifizierte Stationen in einem Segment**; erforderlich: **mindestens {minimum_qualifying_stations_per_map_segment} je Kartensegment**. Evidenz auf Stationsebene bleibt unten verfügbar; nur segmentabhängige Ausgaben entfallen. Die angewandte Konfiguration steht oben im Prüfbereich.",
+        "warn_benchmark_no_qualifying_result_simultaneous": "Für **{title}** war nach Anwendung der aktiven Filter, des Analyseumfangs und der Evidenzanforderungen kein qualifizierendes Benchmark-Ergebnis verfügbar. Erforderlich: **mindestens {minimum_joint_evidence_per_station} Joint-Beobachtungen je Station** und **mindestens {minimum_qualifying_stations_per_map_segment} qualifizierte Stationen je Kartensegment**. Dies belegt für sich allein nicht, dass der Umfang zu eng war. Die angewandte Konfiguration steht oben im Prüfbereich.",
+        "warn_benchmark_no_qualifying_result_sequential": "Für **{title}** war nach Anwendung der aktiven Filter, des Analyseumfangs und der Evidenzanforderungen kein qualifizierendes Benchmark-Ergebnis verfügbar. Erforderlich: **mindestens {minimum_joint_evidence_per_station} vollständige geplante Paare je Station** und **mindestens {minimum_qualifying_stations_per_map_segment} qualifizierte Stationen je Kartensegment**. Dies belegt für sich allein nicht, dass der Umfang zu eng war. Die angewandte Konfiguration steht oben im Prüfbereich."
     }
 }
 
@@ -1728,8 +1740,8 @@ GUIDED_INPUTS = {
                 "body_md": """An <strong class="defined-term">offset</strong> is a repeatable Target–Reference difference that is already present before the effect you want to study. A Reference-side correction adjusts the Reference SNR before ΔSNR is calculated. Leave the correction at **0.0 dB** unless the offset was established and documented for the same identities or paths, band, hardware and comparison method. The correction shifts every comparison result; it cannot compensate for uncontrolled differences that vary with time, station or radio path.""",
             },
             "scope_and_evidence": {
-                "title": "Scope and evidence",
-                "body_md": """Set the remote station filters, analysis scope, and evidence requirements for this run.""",
+                "title": "Optional filters, analysis scope, and evidence requirements",
+                "body_md": """Review the remote station filters, analysis scope and evidence requirements for this run. The displayed controls always show the active values used by the analysis.""",
             },
             "review_and_run": {
                 "title": "Review and run",
@@ -1803,20 +1815,6 @@ GUIDED_INPUTS = {
                     "description": """Run Benchmark with a 0.0 dB correction to characterize the existing Target–Reference baseline. WSPRadar displays the paired evidence but does not choose a correction automatically. Review and document the result, then enter a defensible signed value in a later run.""",
                 },
             },
-            "scope_mode": {
-                "general": {
-                    "label": "Use general-purpose settings",
-                    "description": "Use WSPRadar's current default values.",
-                },
-                "custom": {
-                    "label": "Review and customize",
-                    "description": "Show the remote station filters, scope controls and evidence thresholds for editing.",
-                },
-                "demo": {
-                    "label": "Keep the guided demo settings",
-                    "description": "Use the values stored in the selected demo profile.",
-                },
-            },
         },
         "summaries": {
             "window_utc": "{start}–{end} UTC",
@@ -1832,7 +1830,7 @@ GUIDED_INPUTS = {
             "offset_none": "{step} · Reference correction — 0.0 dB ✓",
             "offset_established": "{step} · Reference correction — {offset:+.1f} dB ✓",
             "offset_establish": "{step} · Baseline run — 0.0 dB correction ✓",
-            "scope": "{step} · Scope and evidence — max {distance} km · {solar} · {mode} ✓",
+            "scope": "{step} · Optional filters, analysis scope, and evidence requirements — max {distance} km · {solar} ✓",
             "review_ready": "{step} · Review — ready to run ✓",
         },
         "messages": {
@@ -1870,11 +1868,10 @@ GUIDED_INPUTS = {
             "evidence_requirements_title": "Evidence requirements",
             "compare_evidence_requirements_body": """Each station must provide the selected minimum number of joint observations or scheduled TX pairs. A map segment must also contain the selected number of qualifying stations. Higher thresholds require more repeated evidence but reduce station and geographic coverage; they do not remove propagation effects or guarantee measurement quality.""",
             "success_evidence_requirements_body": """Each station must provide the selected minimum number of independently confirmed opportunities. A map segment must also contain the selected number of qualifying stations. Higher thresholds require more repeated evidence but reduce station and geographic coverage; they do not remove propagation effects or guarantee measurement quality.""",
-            "general_active": """General-purpose settings are active. Treat them as a starting point, not a quality grade.""",
-            "demo_active": """The guided demo's saved settings are active. They apply to this example, not universally.""",
             "included": "excluded",
             "not_included": "included",
             "compare_evidence": """joint evidence ≥ {value} per station; qualifying stations ≥ {stations} per map segment""",
+            "scheduled_evidence": """scheduled pairs ≥ {value} per station; qualifying stations ≥ {stations} per map segment""",
             "success_evidence": """confirmed opportunities ≥ {value} per station; qualifying stations ≥ {stations} per map segment""",
             "review_question": "Question",
             "review_target": "Target",
@@ -1900,7 +1897,8 @@ GUIDED_INPUTS = {
             "target_and_window": "Enter a valid Target identity and QTH, select a band, and complete the UTC measurement window before continuing.",
             "reference_design": "Complete the selected Reference design, including the required identity and QTH, neighborhood settings, or TX schedule.",
             "offset_calibration": "Choose whether to use no correction, enter an established correction, or set up an offset-establishment run.",
-            "scope_and_evidence": "Choose general-purpose, customized or demo-defined scope and evidence settings before continuing.",
+            "scope_and_evidence": "Review the active filters, analysis scope and evidence requirements and correct any invalid value before continuing.",
+            "review_and_run": "Complete the required question, Target, measurement window, Reference design when applicable, and the visible scope and evidence fields before running.",
             "flow_invalid": "Guided Input is unavailable because its workflow configuration is invalid: {error}",
         },
     },
@@ -1934,8 +1932,8 @@ GUIDED_INPUTS = {
                 "body_md": """Ein <strong class="defined-term">Offset</strong> ist eine wiederholbare Target–Referenz-Differenz, die bereits vorhanden ist, bevor der eigentliche untersuchte Effekt hinzukommt. Eine referenzseitige Korrektur verändert das Referenz-SNR, bevor ΔSNR berechnet wird. Belasse die Korrektur bei **0,0 dB**, sofern der Offset nicht für dieselben Kennungen oder Pfade, dasselbe Band, dieselbe Hardware und dieselbe Vergleichsmethode ermittelt und dokumentiert wurde. Die Korrektur verschiebt jedes Vergleichsergebnis; sie kann keine unkontrollierten Unterschiede ausgleichen, die sich mit Zeit, Station oder Funkweg ändern.""",
             },
             "scope_and_evidence": {
-                "title": "Umfang und Evidenz",
-                "body_md": """Lege Remote Stationsfilter, Analyseumfang und Evidenzanforderungen für diesen Lauf fest.""",
+                "title": "Optionale Filter, Analyseumfang und Evidenzanforderungen",
+                "body_md": """Prüfe Remote Stationsfilter, Analyseumfang und Evidenzanforderungen für diesen Lauf. Die angezeigten Bedienelemente zeigen stets die aktiven Werte, die in der Analyse verwendet werden.""",
             },
             "review_and_run": {
                 "title": "Prüfen und starten",
@@ -2009,20 +2007,6 @@ GUIDED_INPUTS = {
                     "description": """Führe Benchmark mit 0,0 dB Korrektur aus, um die vorhandene Target–Referenz-Basislinie zu bestimmen. WSPRadar zeigt die gepaarte Evidenz, wählt aber keine Korrektur automatisch aus. Prüfe und dokumentiere das Ergebnis und trage anschließend in einem späteren Lauf einen belastbaren Wert mit korrektem Vorzeichen ein.""",
                 },
             },
-            "scope_mode": {
-                "general": {
-                    "label": "Allgemeine Einstellungen verwenden",
-                    "description": "Verwende die aktuellen Standardwerte von WSPRadar.",
-                },
-                "custom": {
-                    "label": "Prüfen und anpassen",
-                    "description": "Zeige Remote Stationsfilter, Umfangseinstellungen und Evidenzschwellen zur Bearbeitung an.",
-                },
-                "demo": {
-                    "label": "Einstellungen der geführten Demo beibehalten",
-                    "description": "Verwende die im ausgewählten Demo-Profil gespeicherten Werte.",
-                },
-            },
         },
         "summaries": {
             "window_utc": "{start}–{end} UTC",
@@ -2038,7 +2022,7 @@ GUIDED_INPUTS = {
             "offset_none": "{step} · Referenzkorrektur — 0,0 dB ✓",
             "offset_established": "{step} · Referenzkorrektur — {offset:+.1f} dB ✓",
             "offset_establish": "{step} · Basislinienlauf — 0,0 dB Korrektur ✓",
-            "scope": "{step} · Umfang und Evidenz — max. {distance} km · {solar} · {mode} ✓",
+            "scope": "{step} · Optionale Filter, Analyseumfang und Evidenzanforderungen — max. {distance} km · {solar} ✓",
             "review_ready": "{step} · Prüfung — startbereit ✓",
         },
         "messages": {
@@ -2076,11 +2060,10 @@ GUIDED_INPUTS = {
             "evidence_requirements_title": "Evidenzanforderungen",
             "compare_evidence_requirements_body": """Jede Station muss die gewählte Mindestzahl an Joint-Beobachtungen oder geplanten TX-Paaren liefern. Ein Kartensegment benötigt zusätzlich die gewählte Zahl qualifizierter Stationen. Höhere Schwellen verlangen mehr wiederholte Evidenz, verringern aber Stationszahl und geografische Abdeckung; sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
             "success_evidence_requirements_body": """Jede Station muss die gewählte Mindestzahl unabhängig bestätigter Gelegenheiten liefern. Ein Kartensegment benötigt zusätzlich die gewählte Zahl qualifizierter Stationen. Höhere Schwellen verlangen mehr wiederholte Evidenz, verringern aber Stationszahl und geografische Abdeckung; sie beseitigen keine Ausbreitungseffekte und garantieren keine Messqualität.""",
-            "general_active": """Die allgemeinen Einstellungen sind aktiv. Betrachte sie als Ausgangspunkt, nicht als Qualitätsurteil.""",
-            "demo_active": """Die gespeicherten Einstellungen der geführten Demo sind aktiv. Sie gelten für dieses Beispiel, nicht allgemein.""",
             "included": "ausgeschlossen",
             "not_included": "einbezogen",
             "compare_evidence": """Joint-Evidenz ≥ {value} je Station; qualifizierte Stationen ≥ {stations} je Kartensegment""",
+            "scheduled_evidence": """geplante Paare ≥ {value} je Station; qualifizierte Stationen ≥ {stations} je Kartensegment""",
             "success_evidence": """bestätigte Gelegenheiten ≥ {value} je Station; qualifizierte Stationen ≥ {stations} je Kartensegment""",
             "review_question": "Fragestellung",
             "review_target": "Target",
@@ -2106,7 +2089,8 @@ GUIDED_INPUTS = {
             "target_and_window": "Gib eine gültige Target-Kennung und ein gültiges QTH ein, wähle ein Band und vervollständige den UTC-Messzeitraum.",
             "reference_design": "Vervollständige das gewählte Referenzdesign einschließlich der erforderlichen Kennung und des QTH, der Nachbarschaftseinstellungen oder des TX-Zeitplans.",
             "offset_calibration": "Wähle, ob keine Korrektur verwendet, eine ermittelte Korrektur eingegeben oder ein Offset-Ermittlungslauf eingerichtet werden soll.",
-            "scope_and_evidence": "Wähle allgemeine, angepasste oder durch die Demo vorgegebene Umfangs- und Evidenzeinstellungen.",
+            "scope_and_evidence": "Prüfe die aktiven Filter, den Analyseumfang und die Evidenzanforderungen und korrigiere vor dem Fortfahren jeden ungültigen Wert.",
+            "review_and_run": "Vervollständige vor dem Start die erforderliche Fragestellung, das Target, den Messzeitraum, gegebenenfalls das Referenzdesign sowie die sichtbaren Umfangs- und Evidenzfelder.",
             "flow_invalid": "Die Geführte Eingabe ist nicht verfügbar, weil ihre Ablaufkonfiguration ungültig ist: {error}",
         },
     },

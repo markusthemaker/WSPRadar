@@ -32,9 +32,13 @@ Used this way, WSPR becomes more valuable to the wider amateur community as well
 
 #### 0.0 WSPR in 2 Minutes
 
-<strong class="defined-term">WSPR</strong> stands for **Weak Signal Propagation Reporter**. Joe Taylor, K1JT, and Bruce Walker, W1BW, described it as a worldwide network of low-power stations exchanging beacon-like transmissions to explore possible propagation paths. A WSPR-2 transmission lasts just under two minutes and occupies only about 6 Hz. Its message normally contains a callsign, a four-character Maidenhead locator and reported transmit power in dBm. Decoder-reported signal-to-noise ratio (SNR) is referenced to a 2500 Hz bandwidth, and successful decodes are possible at approximately `-28 dB`; a less negative SNR means a stronger signal relative to the receiver noise <a href="#ref-6">[Ref-6]</a> <a href="#ref-8">[Ref-8]</a>.
+<strong class="defined-term">WSPR</strong> stands for **Weak Signal Propagation Reporter**. Joe Taylor, K1JT, and Bruce Walker, W1BW, described it as a worldwide network of low-power stations exchanging beacon-like transmissions to explore possible propagation paths. A WSPR-2 transmission lasts just under two minutes and occupies only about 6 Hz. A normal Type 1 message carries one ordinary callsign, a four-character Maidenhead locator and reported transmit power in dBm in that single transmission. Decoder-reported signal-to-noise ratio (SNR) is referenced to a 2500 Hz bandwidth, and successful decodes are possible at approximately `-28 dB`; a less negative SNR means a stronger signal relative to the receiver noise <a href="#ref-6">[Ref-6]</a> <a href="#ref-8">[Ref-8]</a>.
 
 When reporting is enabled, a receiver uploads each successful decode as a <strong class="defined-term">spot</strong>. A spot records the transmitter and receiver identities, their reported locations, time, band, transmit power and decoder-reported SNR. Public <strong class="defined-term">archives</strong> consequently contain a large, continuously growing record of successful radio observations contributed by independently operated stations around the world. Services such as wspr.live and WSPRDaemon preserve and expose this observational record for analysis <a href="#ref-10">[Ref-10]</a> <a href="#ref-11">[Ref-11]</a>.
+
+Extended WSPR can instead convey a compound callsign and precise six-character locator across two complementary transmissions. A Type 2 message carries the compound callsign and power but no locator; the matching Type 3 message carries a 15-bit hash of that callsign, the six-character locator and power. The two transmissions are separate WSPR cycles, not two fields of one archive row <a href="#ref-12">[Ref-12]</a>.
+
+WSPRadar does not decode these radio messages or reconstruct a compound identity from Type 2 and Type 3 phases. It analyzes the callsign, locator, time and power fields preserved by the selected reporting archive. For simultaneous TX A/B, both exact identities must therefore appear in the archive with the truthful shared grid-4 and aligned message phases; [Sections 2.4.1](#sec-3-tx-benchmark-simultaneous), [7.1](#sec-7-1), [7.2](#sec-7-2) and [7.6](#sec-7-6) explain the practical and scientific consequences.
 
 **Data sources.** WSPRadar uses **wspr.live** as its primary data source. The WSPRadar project is grateful to the people behind wspr.live and WSPRDaemon who make this public database infrastructure available and keep it running.
 
@@ -201,18 +205,27 @@ The aim is not to produce a flattering number. It is to obtain a result you can 
 
 **Part IV: Practical Supplements**
 
-* [Appendix A: Parallel WSJT-X Instances](#sec-a)
+* [Appendix A: Parallel WSJT-X Instances for Simultaneous RX](#sec-a)
     * [A.1 Create the second instance](#sec-a-1)
     * [A.2 Clone the starting configuration if required](#sec-a-2)
     * [A.3 Separate every data path](#sec-a-3)
-    * [A.4 Configure distinguishable simultaneous TX](#sec-a-4)
-* [Appendix B: Sequential TX A/B Scheduling and Switching](#sec-b)
-    * [B.1 Requirements for a valid scheduled experiment](#sec-b-1)
-    * [B.2 WSPRadar Timed A/B Relay Switch](#sec-b-2)
-    * [B.3 Ultimate3S schedule example](#sec-b-3)
-    * [B.4 QMX schedule examples](#sec-b-4)
-    * [B.5 Verify mapping and preserve the experiment](#sec-b-5)
-* [Appendix C: Reference SNR Calibration](#sec-c)
+    * [A.4 Limitations of WSJT-X for simultaneous TX](#sec-a-4)
+* [Appendix B: Simultaneous TX Hardware A/B Setup](#sec-simultaneous-tx-setup)
+    * [B.1 Choose the callsigns](#sec-simultaneous-tx-setup-1)
+    * [B.2 Align the schedule and separate the signals](#sec-simultaneous-tx-setup-2)
+    * [B.3 Check power and simultaneous signal quality](#sec-simultaneous-tx-setup-3)
+    * [B.4 Verify WSPRnet and the selected archive](#sec-simultaneous-tx-setup-4)
+    * [B.5 Device-specific setup](#sec-simultaneous-tx-setup-5)
+        * [B.5.1–B.5.2 QMX and QMX+ Virtual U3S, and Ultimate3S](#sec-simultaneous-tx-setup-5-1)
+        * [B.5.3 ZachTek firmware 2.19 randomized split-lane builds](#sec-simultaneous-tx-setup-5-3)
+    * [B.6 Confirm by exchange or crossover](#sec-simultaneous-tx-setup-6)
+* [Appendix C: Sequential TX A/B Scheduling and Switching](#sec-sequential-tx-setup)
+    * [C.1 Requirements for a valid scheduled experiment](#sec-sequential-tx-setup-1)
+    * [C.2 WSPRadar Timed A/B Relay Switch](#sec-sequential-tx-setup-2)
+    * [C.3 Ultimate3S schedule example](#sec-sequential-tx-setup-3)
+    * [C.4 QMX schedule examples](#sec-sequential-tx-setup-4)
+    * [C.5 Verify mapping and preserve the experiment](#sec-sequential-tx-setup-5)
+* [Appendix D: Reference SNR Calibration](#sec-reference-snr-calibration)
 * [License](#sec-license)
 
 ---
@@ -410,7 +423,7 @@ In **Station Insights**, inspect each transmitter's Joint and one-sided counts t
 
 Use this design for two local antennas, feedlines, filters, preamplifiers, receivers or complete receive chains operated simultaneously at the same physical test QTH. Target and Reference need distinct exact reporting callsigns and the same Target grid-4. Components intended to be common must be physically common; shared grid-4 matching does not prove co-location or path equality.
 
-This is the strongest RX design for attributing a difference to a local path. The result still compares the complete documented receive paths unless receiver, audio, gain, decoder and routing differences have been characterized. A broad recurring Delta-SNR shift plus compatible one-sided evidence supports one path outperforming the other under the tested conditions. A common-input calibration, splitter-output swap or hardware crossover is the most useful confirmation because it can separate the tested component from a persistent chain offset. [Appendix C](#sec-c) describes Reference SNR calibration.
+This is the strongest RX design for attributing a difference to a local path. The result still compares the complete documented receive paths unless receiver, audio, gain, decoder and routing differences have been characterized. A broad recurring Delta-SNR shift plus compatible one-sided evidence supports one path outperforming the other under the tested conditions. A common-input calibration, splitter-output swap or hardware crossover is the most useful confirmation because it can separate the tested component from a persistent chain offset. [Appendix D](#sec-reference-snr-calibration) describes Reference SNR calibration.
 
 <blockquote class="evidence-conclusion"><p>Under the documented simultaneous RX Hardware A/B setup, paired Delta SNR and Decode Outcomes described the observed difference between the Target and Reference receive paths for the shared transmitters, cycles and selected geographic scope.</p></blockquote>
 
@@ -418,7 +431,7 @@ This is the strongest RX design for attributing a difference to a local path. Th
 
 ##### 2.3.2 Reference Station / Buddy Test
 
-Use a known external receiver whose QTH, identity, equipment, operating schedule and local environment are understood. RX pairs share the same remote transmitter and cycle, but the two receiving stations remain at different QTHs with different antennas, terrain, hardware and noise.
+Use a known, separately identifiable complete Reference receiver whose QTH, callsign, equipment, operating schedule and local environment are understood. RX pairs share the same remote transmitter and cycle, but Target and Reference remain distinct complete receiving stations with their own antennas, hardware, signal paths and local noise environments. The separately entered Reference Locator may contain the same grid-4 as Target QTH; equal grid-4 does not prove physical co-location.
 
 Interpret this as a benchmark of complete installed receiving stations. It can show where one station was relatively stronger, how that relationship changed with direction, distance or time, and whether one-sided reach differed. It cannot isolate receiver sensitivity, antenna gain or local noise as the cause. Repetition with the same well-understood Buddy and stable operating conditions is the most useful confirmation.
 
@@ -470,9 +483,9 @@ In **Station Insights**, read each receiver's median Delta SNR with its Joint an
 
 ##### 2.4.1 Hardware A/B: simultaneous transmit paths
 
-Use two distinguishable transmitter chains and callsigns at the same physical test QTH, deliberately synchronized in the same WSPR cycles and placed on clear, non-overlapping frequencies within the WSPR passband. Measure or otherwise establish actual power at the comparison point relevant to the question, and ensure adequate isolation between the active transmitters and antennas.
+Use two distinguishable complete transmitter chains at the same physical test QTH, with different valid exact callsigns, synchronized WSPR cycles, separated clear frequencies, established actual and reported power, and adequate RF isolation. Prefer ordinary callsigns that fit one Type 1 transmission and avoid compound callsigns unless they are necessary. If a compound callsign is unavoidable, keep both chains on the same Type 2/Type 3 message pattern and verify both exact archive identities and their shared truthful grid-4 before the experiment. [Appendix B](#sec-simultaneous-tx-setup) gives the practical setup and preflight.
 
-Same-receiver, same-cycle Delta SNR removes the sequential time gap and is the strongest TX design when the two transmitter chains can be controlled. It still compares the complete documented transmit paths. Frequency-selective QRM, chain response, coupling and power error can remain. Swap audio-frequency assignments and, where practical, cross the tested antennas or components between chains. [Appendix A](#sec-a) covers parallel WSJT-X setup.
+Same-receiver, same-cycle Delta SNR removes the sequential time gap and is the strongest TX design when the two transmitter chains can be controlled. It still compares the complete documented transmit paths. Frequency-selective QRM, chain response, coupling and power error can remain. Swap the frequency positions and, where practical, cross the tested antennas or components between chains.
 
 <blockquote class="evidence-conclusion"><p>Under the documented simultaneous two-transmitter Hardware A/B setup, same-receiver, same-cycle Delta SNR and Decode Outcomes described the observed difference between the Target and Reference transmit paths for the selected receivers and geographic scope.</p></blockquote>
 
@@ -482,7 +495,7 @@ Same-receiver, same-cycle Delta SNR removes the sequential time gap and is the s
 
 ##### 2.4.2 Hardware A/B: sequential transmit paths
 
-Use a deterministic schedule that assigns complete WSPR transmissions to Target and Reference phases. One transmitter switched between two RF paths is normally the strongest arrangement because callsign, frequency reference and transmitter remain common. Enter each path's actual recurrence and UTC phase, verify the physical schedule-to-path mapping without RF, and report actual power. Device-specific scheduling and switching guidance is in [Appendix B](#sec-b).
+Use a deterministic schedule that assigns complete WSPR transmissions to Target and Reference phases. One transmitter switched between two RF paths is normally the strongest arrangement because callsign, frequency reference and transmitter remain common. Enter each path's actual recurrence and UTC phase, verify the physical schedule-to-path mapping without RF, and report actual power. Device-specific scheduling and switching guidance is in [Appendix C](#sec-sequential-tx-setup).
 
 WSPRadar forms one-to-one Scheduled A/B Pairs automatically. Pair Delta remains sequential: short balanced alternation reduces but does not eliminate propagation, interference, schedule-position and switching effects. Inspect incomplete pairs and chronological behavior with the paired median. Reverse the Target and Reference schedule assignments in a confirmatory run; persistence of the physical-path advantage after the role reversal is substantially more persuasive than repetition with the same phase assignment.
 
@@ -492,7 +505,9 @@ WSPRadar forms one-to-one Scheduled A/B Pairs automatically. Pair Delta remains 
 
 ##### 2.4.3 Reference Station / Buddy Test
 
-Use a known external transmitter whose QTH, identity, actual and reported power, equipment and operating schedule are understood. TX pairs share the same remote receiver and cycle, but Target and Reference remain complete stations at different QTHs with different antennas, feedlines, terrain and paths.
+Use a known, separately identifiable complete Reference transmitter whose QTH, callsign, actual and reported power, equipment and operating schedule are understood. TX pairs share the same remote receiver and cycle, but Target and Reference remain distinct complete transmitting stations with their own transmitters, antennas, feedlines and installed environments. The separately entered Reference Locator may contain the same grid-4 as Target QTH; equal grid-4 does not prove physical co-location.
+
+When both transmit paths instead form one locally controlled A/B apparatus, select Hardware A/B. The physical arrangement, not whether two callsigns share a base, determines the design. Simultaneous Hardware A/B requires two valid exact on-air identities; if only one is available, use sequential Hardware A/B.
 
 Interpret the result as a benchmark of complete installed transmitting stations. Same-receiver pairing controls the receiving endpoint, not the two transmit sites or radio paths. Power-reporting accuracy is especially important. Repeat with the same well-understood Buddy and stable configurations rather than treating the Buddy as an absolute calibrated standard.
 
@@ -733,11 +748,13 @@ Versioned configurations store the applicable scientific settings and supported 
 | **`Input view`** | Switches between `Guided` and `Classic`. | Both expose the same scientific configuration. The chosen editor is not saved. |
 | **`Load Demo`** | Loads a maintained historical profile. | Loading does not start an analysis. Filter, evidence-threshold and result-view changes retain the demo context; changing the experiment definition detaches it from the demo. |
 | **`Load Config`** | Loads a versioned JSON `.config`. | Invalid identities, dates, choices, ranges, duplicate fields and unsupported schema versions are rejected rather than guessed. |
-| **`Save Config`** | Saves the applicable scientific inputs and supported durable view settings. | The file stores absolute UTC boundaries but not result rows, external experiment notes or transient table filters. In Classic, saving remains unavailable until the Question and, for a Benchmark, the Benchmark design are complete. |
-| **`Run RX Analysis` / `Run TX Analysis`** | Runs the selected Performance or Benchmark result. | In Classic, running remains unavailable until the Question and, for a Benchmark, the Benchmark design are complete. Changing a scientific control after a run clears the result and requires a new run. |
+| **`Save Config`** | Saves the applicable scientific inputs and supported durable view settings from the terminal Review panel in Guided and Classic. | The file stores absolute UTC boundaries but not result rows, external experiment notes or transient table filters. Saving remains unavailable until the Question and, for a Benchmark, the Benchmark design are complete. |
+| **`Run RX Analysis` / `Run TX Analysis`** | Runs the selected Performance or Benchmark result from the terminal Review panel in Guided and Classic. | Running remains unavailable until the Question and, for a Benchmark, the Benchmark design are complete. Changing a scientific control after a run clears the result and requires a new run. |
 | **`Prepare All Results for Download`** | Builds the current export package. | Uses the completed evidence and current inspector selections. |
 | **`Load full documentation` / `Hide full documentation`** | Shows or hides the complete web manual. | Presentation state only. |
 | **`Prepare PDF`** | Builds the selected-language manual as PDF. | The full web manual does not need to be open first. |
+
+Both input views finish with the same terminal configuration summary. Its **`Review — ready to run ✓`** state places `Run RX Analysis` / `Run TX Analysis` and `Save Config` inside that panel only after the configuration is valid. The Review panel remains open while the run starts and after it finishes, and the run-status panel remains open when it reaches **`Complete`**. Classic does not automatically collapse any configuration panel when either an ordinary or demo analysis starts; operators can still collapse or reopen individual panels manually. Guided may continue to compact earlier completed steps, but its terminal Review panel remains open.
 
 **Configuration compatibility.** Saved files preserve the inputs and durable view choices applicable to the selected analysis. Invalid or unsupported files are rejected rather than silently reinterpreted. The formal JSON Schema is the authoritative exhaustive saved-configuration contract; [Section 8.4](#sec-8-4) gives a concise operator-facing summary of selected public identifiers. Loading or saving a configuration does not create an additional result; only the selected Performance or Benchmark analysis is run.
 
@@ -747,7 +764,7 @@ Versioned configurations store the applicable scientific settings and supported 
 
 #### 4.2 Question, Target and measurement-window controls
 
-Classic presents the scientific setup in a question-led order. The first panel, **`Question`**, requires one of four complete analysis choices: `RX Performance`, `TX Performance`, `RX Benchmark` or `TX Benchmark`. This single choice sets both the RX/TX direction and whether the run produces stand-alone Performance evidence or a Target-versus-Reference Benchmark. The second panel, **`Target and measurement window`**, then collects the existing Target identity, QTH, band and absolute UTC interval.
+Classic presents the scientific setup in a question-led order. The first panel, **`Question`**, requires one of four complete analysis choices: `RX Performance`, `TX Performance`, `RX Benchmark` or `TX Benchmark`. This single choice sets both the RX/TX direction and whether the run produces stand-alone Performance evidence or a Target-versus-Reference Benchmark. The second panel, **`Target and measurement window`**, then collects the existing Target identity, QTH, band and absolute UTC interval. A Benchmark adds **`Benchmark design`** next. Both result types then show **`Optional filters, analysis scope, and evidence requirements`** followed by the terminal Review panel, so Performance has four Classic panels and Benchmark has five.
 
 | UI label | Default | What it controls |
 |---|---|---|
@@ -758,7 +775,7 @@ Classic presents the scientific setup in a question-led order. The first panel, 
 | **UTC measurement window** | fixed 24-hour window ending at the current 15-minute UTC boundary | The absolute evidence interval used by the run. |
 | **Start Date/Time (UTC)** and **End Date/Time (UTC)** | the effective default window | Dates begin in 2008; one run is limited to 31 elapsed days. Edited values are rounded down to effective 15-minute boundaries and shown back in the controls. |
 
-Use the callsign or reporting identifier exactly as uploaded. `KFS`, `KFS/SE`, `DL1MKS`, `DL1MKS/P`, `DL1MKS/1`, `DL1MKS/QRP` and `DL1MKS-1` are distinct identities; WSPRadar does not apply hidden prefix or suffix matching.
+Use the callsign or reporting identifier exactly as uploaded. In schematic form, `CALLSIGN`, `CALLSIGN/1`, `CALLSIGN/2`, `CALLSIGN/P`, `CALLSIGN/QRP` and `CALLSIGN-1` are distinct exact identities; WSPRadar does not apply hidden prefix or suffix matching. These examples describe matching syntax, not whether a particular on-air identity is assigned or permitted.
 
 A four-character Maidenhead locator identifies a broad grid square; six characters identify a smaller subsquare. Performance and Benchmark select Target archive rows from the exact callsign plus the first four characters of Target QTH. The full configured QTH still anchors map, distance, azimuth, solar and local-neighborhood calculations.
 
@@ -772,7 +789,7 @@ For `RX Benchmark` and `TX Benchmark`, Classic displays a third panel named **`B
 - `Known Reference Station`
 - `Local Neighborhood`
 
-Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and `TX Performance`, because Performance has no Reference. The direction-specific `Run RX Analysis` / `Run TX Analysis` action and `Save Config` remain unavailable while the Question is incomplete or while a Benchmark question has no complete Benchmark design. Performance and Benchmark are mutually exclusive result types: one run produces only the selected result. [Section 8.4](#sec-8-4) summarizes selected public machine-readable configuration, URL and export names; it is not an exhaustive field or parameter catalog.
+Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and `TX Performance`, because Performance has no Reference. The terminal Review panel still appears after the shared filters, scope and evidence panel; its direction-specific `Run RX Analysis` / `Run TX Analysis` action and `Save Config` remain unavailable while the Question is incomplete or while a Benchmark question has no complete Benchmark design. Performance and Benchmark are mutually exclusive result types: one run produces only the selected result. [Section 8.4](#sec-8-4) summarizes selected public machine-readable configuration, URL and export names; it is not an exhaustive field or parameter catalog.
 
 | UI label | Default / range | Applies to | Scientific effect |
 |---|---|---|---|
@@ -786,7 +803,7 @@ Classic omits the **`Benchmark design`** panel entirely for `RX Performance` and
 | **Repeat Interval** | `10 min`; `4, 6, 10, 12, 20, 30, 60 min` | Sequential TX A/B | Actual recurrence of each physical path. |
 | **Target Start / Reference Start** | `00 UTC` / `02 UTC`; distinct even phases below Repeat Interval | Sequential TX A/B | Assigns transmissions to Target and Reference schedule phases. |
 
-For TX Hardware A/B, `Repeat Interval` is each path's actual recurrence, not necessarily a transmitter's displayed `Frame` value. Compare the one-hour preview with the observed on-air starts and physical switch mapping. Device examples are in [Appendix B](#sec-b); pair construction is in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7) <a href="#ref-12">[Ref-12]</a>.
+For TX Hardware A/B, `Repeat Interval` is each path's actual recurrence, not necessarily a transmitter's displayed `Frame` value. Compare the one-hour preview with the observed on-air starts and physical switch mapping. Sequential device examples are in [Appendix C](#sec-sequential-tx-setup); pair construction is in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7) <a href="#ref-12">[Ref-12]</a>.
 
 Switching the Question or Benchmark design hides controls that do not apply. Saved configurations contain only the inputs applicable to the selected analysis. Values whose scientific meaning changes under the new design are cleared rather than reinterpreted.
 
@@ -802,11 +819,13 @@ The correction applies to the Reference receive/transmit path or schedule in Har
 | **Use an established correction** | Apply a documented signed additive offset valid for this setup. | Enter the established value |
 | **Set up an offset-establishment run** | Collect evidence from which an offset can be derived; WSPRadar does not choose or calculate the offset automatically. | `0.0 dB` during the establishment run |
 
-A constant correction cannot repair clipping, unstable AGC, intermittent routing, frequency-dependent response or incorrect power reporting. Hardware A/B calibration should use a common input or calibrated reference plane. A geographically separated Reference Station can support only a repeatable baseline for that particular pair, band and setup — not an absolute calibration. [Appendix C](#sec-c) gives the practical procedure.
+A constant correction cannot repair clipping, unstable AGC, intermittent routing, frequency-dependent response or incorrect power reporting. Hardware A/B calibration should use a common input or calibrated reference plane. A geographically separated Reference Station can support only a repeatable baseline for that particular pair, band and setup — not an absolute calibration. [Appendix D](#sec-reference-snr-calibration) gives the practical procedure.
 
 <a id="sec-5-4"></a>
 
 #### 4.4 Filters and evidence thresholds
+
+Guided and Classic use the same panel name, **`Optional filters, analysis scope, and evidence requirements`**, for these controls. Guided always shows the applicable fields inside that step; there is no separate preset-choice gate. Untouched setups initialize the visible fields from the result-specific defaults below; loaded configurations and demos populate the same visible fields with their stored values. Displaying those values does not itself edit them or detach demo context. Here “optional” describes the population filters and scope choices; the active evidence requirements always participate in the analysis.
 
 Choose filters and thresholds from the intended population and evidence floor before a confirmatory run. Changing them after inspecting the result creates a different analysis and should be retained separately.
 
@@ -897,9 +916,15 @@ Only after these checks should you change evidence thresholds, exclusions, solar
 
 #### 5.2 Diagnose by symptom
 
+An empty-result notice reports the scope and evidence parameters captured for the completed run, not subsequently edited controls. It separates an observed diagnostic from its configured requirement: for example, “highest observed: `3` confirmed opportunities” and “required: at least `5` per station.” A configured minimum is never presented as an observed count, and an observed maximum is shown only when WSPRadar actually calculated and retained it. For Performance, Target-only audit observations are not confirmed opportunities.
+
 | Symptom | Next checks |
 |---|---|
-| **No result or no Target evidence** | Check exact identity/QTH/band/window, actual operation, strict `code = 1` or historical-fallback status, and upstream availability. |
+| **No exact Target/source evidence was returned** | Check exact identity/QTH/band/window, actual operation, strict `code = 1` or historical-fallback status, and upstream availability. This is an input/source-evidence state, not evidence that configured filters were too narrow. |
+| **Source evidence was returned, but filters or scope retained none** | Review the displayed station exclusions, solar state and maximum peer distance together with the completed run window. The notice says only that the applied filters and scope left no retained evidence; sparse operation or coverage can also contribute. |
+| **Performance identities remain, but no station meets the confirmed-opportunity requirement** | Compare the displayed observed station count and highest confirmed-opportunity count with the configured minimum confirmed opportunities per station. Empty maps, Inspectors and tables are omitted rather than displayed as zero-valued results. |
+| **Performance stations qualify, but no map segment meets its station requirement** | Keep and inspect the available station-level evidence. Only segment-dependent output is absent; compare its station support with the configured minimum qualifying stations per map segment. |
+| **No qualifying Benchmark result remains** | Review the configured Joint-evidence or complete-Scheduled-Pair requirement, minimum qualifying stations per map segment, filters and scope. WSPRadar reports those applied requirements but does not invent observed Benchmark maxima that the pipeline did not calculate. |
 | **Benchmark has no Delta SNR** | Check shared remote peers in overlapping cycles or scheduled pairs, Reference uptime, clocks, schedule mapping, joint threshold, filters and scope. |
 | **Benchmark has Delta SNR but little pairable evidence** | Read Joint Evidence Share and Decode Outcomes; check Reference uptime, power, thresholds, scope and whether the paired subset represents the wider station population. |
 | **Performance has very few peers** | Check independent network activity, minimum confirmed opportunities, exclusions, solar state, time window and maximum peer distance. |
@@ -919,6 +944,8 @@ An upstream-data problem changes what the source supplied. An experiment-design 
 Performance and every Benchmark design match Target archive rows by exact callsign plus Target QTH grid-4. A Target uploading `JN37` while configured as `JN38` does not match.
 
 Reference Station uses exact Reference callsign plus an independent four-character Reference Locator. RX and simultaneous TX Hardware A/B derive the Reference grid-4 from Target QTH; sequential TX Hardware A/B uses the shared Target identity and distinguishes paths by schedule. Local References are selected geographically.
+
+WSPRadar does not reconstruct a compound callsign from Type 2 and Type 3 messages and does not infer a missing locator. Check the selected data source for both exact identities and their intended shared grid-4. If one identity is missing, appears only without the required locator, or is stored under a different grid-4, simultaneous Hardware A/B cannot match it merely because another archive or map display looks correct.
 
 Callsigns must satisfy the documented 3–15-character reporting-token rule. Locators must contain four or six valid Maidenhead characters. Syntax validation does not prove legal assignment, physical location or actual operation. Peer identity is exact `callsign + full reported locator`; stale or changing locators can split or move one physical station.
 
@@ -1080,6 +1107,8 @@ WSPRadar reads public WSPR reports from one selected read-only archive for each 
 
 A **spot** is one reported successful decode row. A **WSPR cycle** is the two-minute interval aligned to an even UTC minute. Same-cycle analyses consolidate qualifying rows by side, peer identity and cycle before classification. The effective UTC boundaries shown in the controls define the analysis window.
 
+WSPRadar does not classify a row as Type 1, Type 2 or Type 3 and does not join complementary extended-WSPR transmissions across cycles. Each archive row belongs to its reported cycle. In simultaneous TX Hardware A/B, the resolved Target and Reference rows must therefore occur in the same cycle; aligned Type 2 phases can pair with each other and aligned Type 3 phases can pair with each other, but WSPRadar never crosses from one phase or cycle to the next. Sequential Hardware A/B remains governed by its configured schedule instead.
+
 The lowest unit differs by design:
 
 * Performance and simultaneous Benchmark use one peer identity in one eligible WSPR cycle.
@@ -1106,6 +1135,8 @@ WSPRadar treats reported identity as scientific data rather than a cosmetic labe
 | Local Neighborhood Benchmark | exact Target callsign + Target grid-4 | local identity inside radius; remote peer identity | Target/local-Reference peer-cycle |
 
 Target archive selection uses grid-4 even when a six-character QTH is configured. The full QTH remains relevant to distance, azimuth, solar elevation and local-radius geometry. Shared Hardware A/B grid-4 matching does not prove physical co-location.
+
+This matching uses the exact callsign and locator fields supplied by the selected archive. WSPRadar neither reconstructs a compound callsign from its hash nor borrows a locator from a neighboring Type 2 or Type 3 cycle. A simultaneous extended-WSPR sequence can therefore contribute one same-phase comparison unit in each aligned cycle when both archive sides resolve consistently; a missing or differently represented callsign/grid-4 does not become eligible by inference.
 
 If several qualifying non-identical rows represent one logical side/peer/cycle identity, WSPRadar retains the strongest qualifying normalized SNR as the best observed value for that logical identity. This prevents exact repeats or weaker secondary decodes from lowering the retained side value, but it is not a representative central value for one physical receiver. Different multi-receiver/reporting behavior on the two sides can therefore introduce asymmetry. Local Median Neighborhood instead forms a median within each local identity before aggregating across identities.
 
@@ -1199,6 +1230,8 @@ Benchmark answers two linked evidence questions:
 2. the composition of retained evidence into **Only Target**, **Joint**, **Only Reference** and, at identity level, **Both (Async)**.
 
 Delta SNR exists only when both sides produce comparable evidence. The Joint subset is therefore selected on successful observation of both sides. This paired selection is not missing at random in the ordinary statistical sense: weak signals, collisions, QRM, decoder behavior, power differences and path conditions can affect whether a pair exists.
+
+Extended-WSPR Type 3 rows identify a compound callsign through a 15-bit hash. QRP Labs documented a rare archive corruption or misassociation mechanism involving this limited hash space <a href="#ref-19">[Ref-19]</a>. If the affected rows are a tiny, non-clustered fraction among tens of thousands of observations, robust median readings will ordinarily be unchanged or nearly unchanged. Dataset size alone is not protection, however: a systematic, clustered or Target/Reference-asymmetric artifact can still change Joint coverage, one-sided outcomes, individual station medians or a narrow segment. WSPRadar can check whether the configured exact callsign and grid-4 are present in the selected archive; it cannot prove that every upstream hash association was physically correct. The archive preflight and phase-specific audit in [Appendix B](#sec-simultaneous-tx-setup) are therefore required when compound callsigns are used.
 
 One-sided evidence has no missing-side SNR to reconstruct. It cannot be assigned an artificial Delta SNR and is not power-normalized as a pair. In TX Benchmark, unequal actual or reported powers can strongly affect one-sided outcomes even when Joint Delta SNR is normalized.
 
@@ -1386,7 +1419,7 @@ The archive row limit and the controls that can reduce the retrieved source popu
 <a id="sec-7-10"></a>
 #### 7.10 Dependence, uncertainty and validation scope
 
-WSPRadar observations are clustered rather than independent. In ordinary station terms, 1,000 spots are not the same as 1,000 unrelated experiments. Repeated cycles from one peer share hardware and path characteristics; stations in nearby regions share propagation; time bins are autocorrelated; and one ionospheric or interference event can affect many observations simultaneously. A large row count is therefore not an independent sample size.
+WSPRadar observations are clustered rather than independent. In ordinary station terms, 1,000 spots are not the same as 1,000 unrelated experiments. Repeated cycles from one peer share hardware and path characteristics; stations in nearby regions share propagation; time bins are autocorrelated; and one ionospheric or interference event can affect many observations simultaneously. A large row count is therefore not an independent sample size. Likewise, the aligned Type 2 and Type 3 phases of one extended-WSPR sequence provide additional within-run evidence units, not independent experimental repetitions. Experimental repeatability requires a separate suitably controlled run.
 
 Station balancing reduces domination by prolific peers, and medians reduce sensitivity to isolated outliers. Neither creates independence, removes systematic bias nor supplies a sampling distribution. IQRs describe within-run spread and are not uncertainty intervals.
 
@@ -1756,7 +1789,7 @@ WSPRadar is experimental open-source software provided “as is” without warra
 
 * <a id="ref-11"></a><a href="https://www.wsprdaemon.org/">[Ref-11]</a> **Official project website.** WSPRDaemon, *WSPR Daemon*: multi-channel spot acquisition, WSPR/FST4W decoding and reporting, noise estimation, database/Grafana output, and services for third-party applications. Accessed 2026-08-06.
 
-* <a id="ref-12"></a><a href="https://wsjt.sourceforge.io/wsjtx-main_en.html">[Ref-12]</a> **Official operating documentation.** WSJT-X 3.0.1 User Guide: WSPR message formats and decoder performance; Windows `--rig-name` file isolation; Audio settings and file locations. QRP Labs, <a href="https://www.qrp-labs.com/images/qmx/manuals/operation_1_03_000.pdf">*QMX Operating Manual, firmware 1_03_000*</a>: Beacon `Frame` and `Start` scheduling and WSPR repetition guidance; <a href="https://qrp-labs.com/images/ultimate3s/operation3.12a.pdf">*Ultimate3S Operating Manual, firmware v3.12a*</a>: global Frame/Start behavior, sequential mode entries and per-entry `Aux` values; <a href="https://qrp-labs.com/images/appnotes/AN003_A4.pdf">*AN003: Ultimate3/3S relay-switched filters*</a>: filtered relay/driver interfacing and RF-off switching intervals. Accessed 2026-07-15.
+* <a id="ref-12"></a><a href="https://wsjt.sourceforge.io/wsjtx-main_en.html">[Ref-12]</a> **Official operating documentation.** WSJT-X 3.0.1 User Guide: WSPR Type 1, Type 2 and Type 3 message formats; random `Tx Pct` scheduling; Windows `--rig-name` file isolation; Audio settings and file locations. QRP Labs, <a href="https://qrp-labs.com/qmx">*QMX firmware history and manuals*</a> and <a href="https://www.qrp-labs.com/images/qmx/manuals/operation_1_04_004.pdf">*QMX Operating Manual, firmware 1_04_004*</a>: model-specific firmware, Virtual U3S operation and scheduling; <a href="https://www.qrp-labs.com/images/ultimate3s/operation3.12a2.pdf">*Ultimate3S Operating Manual, firmware v3.12a2*</a>: WSPR frequency range, global Frame/Start behavior, extended WSPR, sequential mode entries and per-entry `Aux` values; <a href="https://qrp-labs.com/images/appnotes/AN003_A4.pdf">*AN003: Ultimate3/3S relay-switched filters*</a>: filtered relay/driver interfacing and RF-off switching intervals. Accessed 2026-08-25.
 
 * <a id="ref-13"></a><a href="https://web.tapr.org/meetings/DCC_2020/2020DCC_G3ZIL.pdf">[Ref-13]</a> **Conference paper.** Griffiths, G.; Robinett, R. (2020). *Aids to the Presentation and Analysis of WSPR Spots: TimescaleDB database and Grafana*. ARRL/TAPR Digital Communications Conference 2020.
 
@@ -1770,17 +1803,21 @@ WSPRadar is experimental open-source software provided “as is” without warra
 
 * <a id="ref-18"></a><a href="https://www.gm4eau.com/home-page/wspr/">[Ref-18]</a> **Tool documentation.** GM4EAU, *WATT WSPR Analysis Tool*: Excel/VBA reporting, mapping, filtering and timeline animation.
 
+* <a id="ref-19"></a><a href="https://qrp-labs.com/qmxp/wsprcorruption.html">[Ref-19]</a> **Manufacturer technical investigation.** QRP Labs, *WSPR Type 3 callsign corruption*: observed compound-callsign hash collision or misassociation behavior in large WSPR datasets and its mechanism. Accessed 2026-08-25.
+
+* <a id="ref-20"></a><a href="https://github.com/HarrydeBug/WSPR-transmitters/blob/1657468ea27052167191a7deda2440a535567ecd/Standard%20Firmware/Release/Hardware_Version_2_ESP8285/WSPR-TX2.19/WSPR-TX2.19.ino">[Ref-20]</a> **Published firmware source, immutable revision.** ZachTek WSPR-TX firmware `2.19` for ESP8285 hardware: `DoWSPR()` frequency selection, centihertz frequency units, product-model selection and build prerequisites. Revision `1657468ea27052167191a7deda2440a535567ecd`. Accessed 2026-08-25.
+
 <div style="page-break-before: always;"></div>
 
 <a id="part-iv"></a>
 ## Part IV: Practical Supplements
 
-This part collects optional parallel WSJT-X and simultaneous-TX setup procedures, sequential TX A/B scheduling and switching guidance, Reference-side calibration and the project license. Use the sections that apply to your station and experiment.
+This part collects parallel WSJT-X setup for simultaneous receive paths, the limitation of WSJT-X for sparse synchronized transmit tests, practical simultaneous and sequential TX Hardware A/B procedures, Reference-side calibration and the project license. Use the sections that apply to your station and experiment.
 
 <a id="sec-a"></a>
-### Appendix A: Parallel WSJT-X Instances
+### Appendix A: Parallel WSJT-X Instances for Simultaneous RX
 
-This procedure creates a second isolated WSJT-X instance, for example for simultaneous RX or TX Hardware A/B Test on Windows. The current WSJT-X guide documents `--rig-name` as the supported way to isolate each instance's settings and writable files. WSJT-X versions and installation paths can change, so verify the current guide if your menus differ. <a href="#ref-12">[Ref-12]</a>
+This procedure creates a second isolated WSJT-X instance for a simultaneous RX Hardware A/B Test on Windows. The current WSJT-X guide documents `--rig-name` as the supported way to isolate each instance's settings and writable files. WSJT-X versions and installation paths can change, so verify the current guide if your menus differ. <a href="#ref-12">[Ref-12]</a>
 
 <a id="sec-a-1"></a>
 #### A.1 Create the second instance
@@ -1818,28 +1855,161 @@ A cloned configuration can still point both instances at the same audio input or
 Separate directories do not prove RF-path independence. Confirm empirically that both streams use the intended hardware.
 
 <a id="sec-a-4"></a>
-#### A.4 Configure distinguishable simultaneous TX
+#### A.4 Limitations of WSJT-X for simultaneous TX
 
-For simultaneous TX Hardware A/B, isolation of settings is only the software foundation. Before radiating, verify the complete two-transmitter arrangement into suitable loads or through a safely engineered low-power test path:
+Parallel isolated WSJT-X instances are useful for simultaneous RX, but ordinary WSPR transmit operation does not provide a sparse deterministic same-cycle A/B schedule. WSJT-X selects the enabled two-minute transmit periods randomly according to `Tx Pct`. Any value below `100%` therefore leaves the two instances unsynchronized; `Tx Pct = 100%` would be required for both to attempt every cycle <a href="#ref-12">[Ref-12]</a>.
 
-1. Assign the exact Target callsign and QTH to one instance and the different exact Reference callsign to the other. Configure the Reference instance to report from the same test QTH; WSPRadar displays disabled Target and Reference Locator fields derived from the first four Target-QTH characters and matches both uploaded identities within that shared grid-4.
-2. Route each instance to its intended radio, control interface and audio output. A copied configuration must not key or feed the wrong transmitter.
-3. Use the normal WSPR dial frequency on both radios if appropriate, but assign separated audio TX offsets such as `1450 Hz` and `1550 Hz`. Inspect the waterfall and choose clear, non-overlapping positions rather than assuming those illustrative values are free.
-4. Configure deliberate same-cycle starts. Independent randomized `Tx Pct` settings do not define a synchronized comparison schedule.
-5. Verify frequency, actual RF power, spectral cleanliness, clock alignment and uploaded callsign/QTH/power for both paths before collecting evidence.
-6. Confirm adequate isolation between active transmitters and antennas. Coupled power can desensitize or damage equipment and can create intermodulation or misleading spots; use appropriate filtering, spacing, power levels and RF engineering for the station.
+That setting is not recommended for this experiment. A WSPR-2 transmission occupies about 110.6 seconds of each 120-second cycle, so every-cycle operation approaches a 92% RF key-down duty cycle and occupies the WSPR sub-band in every slot. As practical good practice rather than a protocol rule, WSPRadar recommends selecting only about `5–20%` of available cycles, with the lower end preferred on busy bands or for longer tests. At those percentages WSJT-X timing remains random rather than deterministic.
 
-For a small observed difference, repeat with exchanged audio-frequency assignments and perform a hardware crossover where practical. Preserve both runs separately; do not pool them until the role, correction and analysis scope are aligned.
+For a synchronized sparse simultaneous-TX benchmark, use deterministic beacon hardware instead: two QMX or QMX+ units using Virtual U3S, two Ultimate3S or compatible Virtual U3S implementations, or two ZachTek transmitters with verified randomized split-lane custom firmware. [Appendix B](#sec-simultaneous-tx-setup) gives the practical setup.
+
+<div style="page-break-before: always;"></div>
+
+<a id="sec-simultaneous-tx-setup"></a>
+### Appendix B: Simultaneous TX Hardware A/B Setup
+
+Use this appendix to prepare two locally controlled transmit paths that radiate distinguishable WSPR signals in the same cycles. The result compares the complete documented Target and Reference paths. Do the bench and archive checks before opening the measurement window; callsign legality, RF safety, filtering and station licensing remain the operator's responsibility.
+
+<a id="sec-simultaneous-tx-setup-1"></a>
+#### B.1 Choose the callsigns
+
+The simplest and most robust arrangement uses two different valid callsigns that each fit the ordinary one-transmission WSPR format. Each transmission then carries its callsign, grid-4 and power together, avoiding the two-cycle Type 2/Type 3 sequence and the hash limitation discussed in [Section 7.6](#sec-7-6).
+
+If only one ordinary callsign is available, a permitted suffix can create a second distinguishable identity, but it may also create a compound callsign. Use a suffix only when that on-air identity is valid for the operator and station; archive syntax alone is not authorization. Avoid compound callsigns unless necessary. If one is unavoidable, configure both transmitters for the same extended-WSPR message pattern so their Type 2 phases coincide and their Type 3 phases coincide. Do not mix an ordinary one-cycle pattern on one arm with a two-cycle compound pattern on the other.
+
+Enter the two exact archive identities as Target and Reference and use the same truthful test-QTH grid-4 for both. If two valid identities are not available, use the sequential Hardware A/B method in [Appendix C](#sec-sequential-tx-setup), which distinguishes the two RF paths by schedule while retaining one callsign.
+
+<a id="sec-simultaneous-tx-setup-2"></a>
+#### B.2 Align the schedule and separate the signals
+
+1. Synchronize both transmitters to accurate UTC, preferably from GNSS, and select the same band.
+2. Configure the same deterministic recurrence and the same observed even-minute start. Both paths must transmit complete WSPR messages in the same cycles.
+3. If extended WSPR is unavoidable, confirm that both units start the same Type 2 phase together and the same Type 3 phase together after every restart.
+4. On QMX, Virtual U3S or Ultimate3S, place the two directly programmed RF signals nominally `100 Hz` apart while keeping both complete signals comfortably inside the 200 Hz WSPR transmit sub-band. More separation is not automatically better because it consumes edge margin. For ZachTek randomized split-lane builds, use and verify the disjoint lower and upper lanes in [Section B.5.3](#sec-simultaneous-tx-setup-5-3) instead of expecting a fixed separation.
+
+Practical fixed-frequency starting pairs for QMX, Virtual U3S and Ultimate3S are:
+
+| Band | Lower signal | Upper signal |
+|---|---:|---:|
+| 40 m | `7.040050 MHz` | `7.040150 MHz` |
+| 20 m | `14.097050 MHz` | `14.097150 MHz` |
+
+These are actual radiated RF frequencies, not a receiver's USB dial frequency. A device may describe its programmed WSPR frequency as the signal center or as tone 0, depending on model and firmware. Follow the version-matched manual, then observe both transmitters together on a receiver, frequency counter or spectrum display and verify the expected placement: the actual 100 Hz separation for a fixed pair, or the intended lower and upper regions for randomized split lanes. Repeat the timing and frequency check after a restart or firmware change <a href="#ref-12">[Ref-12]</a>.
+
+<a id="sec-simultaneous-tx-setup-3"></a>
+#### B.3 Check power and simultaneous signal quality
+
+1. Test each transmitter separately into a suitable dummy load or safely attenuated measurement path.
+2. Measure actual RF power at the comparison plane appropriate to the question and report the nearest valid WSPR-encoded dBm value. For this test, WSPRadar recommends `20–30 dBm`; the valid encoded values in that range are `20`, `23`, `27` and `30 dBm`. Do not encode A/B identity through false dBm values. `20–30 dBm` is about `100 mW–1 W`. Do not use excessive power; use no more than the test needs <a href="#ref-12">[Ref-12]</a>.
+3. Operate both transmitters together into loads and inspect frequencies, occupied bandwidth, harmonics, spurious products and intermodulation.
+
+The two-transmitter result includes every uncontrolled difference between those complete paths. A clean individual signal is not enough; simultaneous operation is the condition that must be verified.
+
+<a id="sec-simultaneous-tx-setup-4"></a>
+#### B.4 Verify WSPRnet and the selected archive
+
+1. Transmit several complete synchronized sequences with the final callsign, locator, power, timing and frequency settings.
+2. Search the [WSPRnet Spot Query](https://www.wsprnet.org/drupal/wsprnet/spotquery) for each exact callsign. Do not rely only on the map, which can show a last-known locator.
+3. Check the intended grid-4, reported power, timestamps and separate frequencies.
+4. Find cycles in which the same remote receiver reported both callsigns and verify matching timestamps.
+5. For a two-transmission sequence, check both positions against the known schedule; the archive need not label them explicitly as Type 2 and Type 3.
+6. Run a short WSPRadar preflight and wait until the test spots are actually queryable there. Population of wspr.live and other databases can take `15 minutes or more`.
+7. Once the spots are available, inspect unexpected concentrations of Only Target or Only Reference, then compare Joint Evidence Share, one-sided outcomes and paired Delta SNR between the two sequence positions. A persistent phase difference flags a need to check hash resolution, frequency placement, transmitter heating and power sag.
+
+Do not start the measurement window until both exact callsigns appear consistently in the shared grid-4 and common receivers report both signals in the intended cycles. A successful preflight applies only to the tested combination of transmitters, firmware, decoders and data source.
+
+<a id="sec-simultaneous-tx-setup-5"></a>
+#### B.5 Device-specific setup
+
+The following examples are starting procedures, not substitutes for the manual that matches the installed firmware. Re-run the full timing, frequency, power and archive preflight whenever firmware or configuration changes.
+
+<a id="sec-simultaneous-tx-setup-5-1"></a>
+<a id="sec-simultaneous-tx-setup-5-2"></a>
+##### B.5.1–B.5.2 QMX and QMX+ Virtual U3S, and Ultimate3S
+
+The physical Ultimate3S provides a sequence of up to 16 programmable mode entries, each with its own frequency. QRP Labs describes current QMX and QMX+ Virtual U3S as an implementation of the Ultimate3S architecture, so the operator workflow is effectively the same where the exact installed Virtual U3S version exposes and follows these settings. Verify that version rather than assuming complete behavioral identity. The RF hardware is not the same: firmware, oscillator, filtering and output-stage differences remain part of the complete paths being compared <a href="#ref-12">[Ref-12]</a>.
+
+1. For QMX or QMX+, install the current firmware approved for the exact model and follow its version-matched Virtual U3S instructions. Do not use the initial `1_04_000` release as a general QMX recipe; QRP Labs identifies it as QMX+-specific and later releases include Virtual U3S corrections. For a physical Ultimate3S, fit the correct output filter for the selected band.
+2. Enter the two exact callsigns, the same truthful locator and each unit's measured power using the nearest valid WSPR-encoded dBm value. Ordinary Type 1 callsigns are preferred. If compound callsigns are unavoidable, configure the same extended-WSPR arrangement on both units and verify that the Type 2 and Type 3 phases remain aligned.
+3. Give both units accurate UTC from GNSS or another documented time reference. Use the same deterministic global `Frame` and the same observed even-minute `Start`, and disable unrelated entries so one arm cannot insert an extra transmission. The physical Ultimate3S treats `Start = 00` specially as “not used,” so verify the displayed and observed starts.
+4. Program full RF frequencies nominally 100 Hz apart and keep both complete signals comfortably inside the 200 Hz WSPR sub-band. Suitable starting pairs include `7.040050 MHz` and `7.040150 MHz` on 40 m, or `14.097050 MHz` and `14.097150 MHz` on 20 m. These are actual RF frequencies, not receiver USB dial frequencies. Follow the installed firmware's tone convention and verify the radiated signals rather than trusting the displayed values alone.
+5. Test each unit alone, both together into loads, and finally at the intended low on-air power. Complete the power, simultaneous-signal and archive checks above before collecting the experiment.
+
+**Use a fixed frequency-swap schedule.** Do not permanently assign the Target to the lower frequency and the Reference to the upper frequency. Narrowband QRM, another WSPR signal, receiver passband response or frequency-dependent transmitter response could then favor one path. Instead, program complementary entry sequences so the paths exchange frequency positions between successive scheduled pairs while their callsigns continue to identify Target and Reference.
+
+For ordinary Type 1 callsigns, a practical sparse Ultimate3S starting schedule uses two enabled WSPR entries per unit, a common `Frame = 20` and a common observed even-minute `Start`, for example `Start = 04`. Use the same plan on QMX or QMX+ only after confirming that its installed Virtual U3S version follows this sequence behavior. Program the Target entries lower then upper, and the Reference entries upper then lower. Each verified two-entry sequence produces two consecutive same-cycle A/B pairs and then pauses until the next 20-minute frame. Each transmitter therefore uses two of every ten WSPR cycles, or `20%` of the available cycles.
+
+| Scheduled pair | Target RF position | Reference RF position |
+| ---: | ---: | ---: |
+| 1 | lower (`+50 Hz`) | upper (`+150 Hz`) |
+| 2 | upper (`+150 Hz`) | lower (`+50 Hz`) |
+| 3 | lower (`+50 Hz`) | upper (`+150 Hz`) |
+| 4 | upper (`+150 Hz`) | lower (`+50 Hz`) |
+
+Here `+50 Hz` and `+150 Hz` are offsets from the lower edge of the selected 200 Hz WSPR sub-band; the exact full RF values depend on the band. Pairs 1–2 form one two-entry sequence and pairs 3–4 the next. Every A/B observation still shares the same WSPR cycle and propagation interval, while equal use of the two frequency positions balances sensitivity to fixed frequency-position effects over successive measurements. It reduces that confounding; it does not prove that frequency effects have been removed. Inspect both sequence positions separately during the preflight. If compound callsigns are unavoidable, do not copy this Type 1 example blindly: build and verify a version-matched schedule that preserves the complete Type 2/Type 3 sequence on both paths.
+
+<a id="sec-simultaneous-tx-setup-5-3"></a>
+##### B.5.3 ZachTek firmware 2.19 randomized split-lane builds
+
+Stock ZachTek firmware `2.19` for the published ESP8285 source selects a new random offset from approximately `-100 Hz` through `+99 Hz` around the nominal WSPR frequency. Two stock units therefore do not retain separate A/B frequency regions and can occasionally transmit close to one another. For a controlled simultaneous pair, prepare two separately labelled custom firmware builds from the source that matches the exact transmitter <a href="#ref-20">[Ref-20]</a>.
+
+Confirm that both units use the same nominal frequency at the center of the selected 200 Hz WSPR transmit sub-band. The custom offsets below then divide that range into separate lower and upper regions.
+
+In `DoWSPR()`, the published source contains this statement twice: once after the first `NextFreq()` and again after the later band-cycle `NextFreq()`:
+
+```cpp
+freq = freq + (100ULL * random (-100, 100));
+```
+
+Replace **both** occurrences in transmitter A's source copy with:
+
+```cpp
+freq = freq - (100ULL * random(31, 91));
+// random lower lane: -90 through -31 Hz
+```
+
+Replace **both** occurrences in transmitter B's source copy with:
+
+```cpp
+freq = freq + (100ULL * random(30, 90));
+// random upper lane: +30 through +89 Hz
+```
+
+`freq` uses `0.01 Hz` units. The lower and upper lanes are therefore disjoint and command at least `61 Hz` separation between their tone-zero positions, while each transmitter still changes frequency from one WSPR sequence to the next. The four nominal WSPR tone frequencies span only about `4.4 Hz`, so the closest commanded tone centers of the two signals remain separated by roughly `57 Hz` or more even at the nearest lane positions. The tone-zero endpoints retain about `10 Hz` of margin relative to each outer edge of the roughly ±100 Hz range used by the stock randomization. Because of the tone span, however, the highest tone in the upper lane lies only about `6.6 Hz` below the nominal `+100 Hz` edge. Measure the actual radiated positions and confirm that both complete signals remain inside the transmit sub-band.
+
+Randomized split lanes have an advantage over fixed A/B frequencies: a persistent narrow interferer or local decoder-frequency anomaly is less likely to affect every observation at exactly the same frequency. The design does not, however, remove a systematic lower-versus-upper passband effect because transmitter A always occupies one side and transmitter B the other. For a confirmatory repetition, exchange the lane assignments:
+
+```text
+Run 1: A = lower random lane, B = upper random lane
+Run 2: A = upper random lane, B = lower random lane
+```
+
+An observed advantage that follows the physical antenna or transmit path after this reversal is stronger evidence than one that follows the frequency lane.
+
+Changing only one occurrence of the source statement is insufficient because a later band cycle could return to stock random placement. A following Type 3 transmission uses the **same selected frequency** as its preceding Type 2 partner; the firmware selects a new random lane position only for the next band or sequence. This is a source-code modification, not an option in the ZachTek configuration program.
+
+Before compiling, confirm that the source and its `Product_Model` match the exact hardware. The cited published file selects model `1048`; an incorrect model can select the wrong relay or filter behavior. Follow the ESP8285 and NeoGPS build prerequisites in the source header, retain a recoverable stock firmware image and configuration record, and record the source revision, patch and binary hash.
+
+After flashing, test each transmitter separately and then both together into dummy loads or a safely attenuated arrangement. Verify actual RF frequency, timing, output power, filtering and spectral purity before connecting antennas. During a short on-air preflight, also confirm that the observed frequencies remain inside their intended lower and upper lanes and that both identities produce adequate same-cycle Joint reports before beginning the measurement run.
+
+<a id="sec-simultaneous-tx-setup-6"></a>
+#### B.6 Confirm by exchange or crossover
+
+Use the first run to establish whether a pattern is worth confirming. Before a second run, keep the band, window, schedule, powers, filters and primary evaluation scope fixed, then exchange the two frequency positions. This exposes receiver-passband shape, local QRM and frequency-dependent transmitter response. Where practical, also cross the antennas or tested components between the two transmitter chains while documenting everything else that moved.
+
+Preserve the original, frequency-exchanged and hardware-crossover runs separately. Do not pool them unless Target/Reference roles, corrections and analysis scope are aligned. Agreement across these controlled runs is experimental repeatability; agreement between Type 2 and Type 3 phases inside one run is only within-run consistency.
 
 <div style="page-break-before: always;"></div>
 
 <a id="sec-b"></a>
-### Appendix B: Sequential TX A/B Scheduling and Switching
+<a id="sec-sequential-tx-setup"></a>
+### Appendix C: Sequential TX A/B Scheduling and Switching
 
 This appendix collects the practical schedule and switching guidance behind the TX Hardware A/B playbook. Exact UI controls are in [Section 4.3](#sec-5-3), and exact scheduled-pair construction is in [Sections 7.1](#sec-7-1) and [7.7](#sec-7-7).
 
 <a id="sec-b-1"></a>
-#### B.1 Requirements for a valid scheduled experiment
+<a id="sec-sequential-tx-setup-1"></a>
+#### C.1 Requirements for a valid scheduled experiment
 
 For sequential TX A/B antenna tests, one transmitter feeding two RF paths through a controlled switch is normally preferable to two independent transmitters. Transmitter, frequency reference, WSPR chain, callsign, power setting and timing remain common.
 
@@ -1854,7 +2024,8 @@ Use one normal valid callsign for both paths and identify the paths through diff
 A deterministic scheduler or controller is required. Standard randomized WSJT-X transmit-percentage operation does not create a fixed A/B sequence.
 
 <a id="sec-b-2"></a>
-#### B.2 WSPRadar Timed A/B Relay Switch
+<a id="sec-sequential-tx-setup-2"></a>
+#### C.2 WSPRadar Timed A/B Relay Switch
 
 WSPRadar includes:
 
@@ -1906,21 +2077,24 @@ chmod +x ./Start-Timed-AB-Relay-Switch.sh
 A small USB relay should not normally switch RF directly. It should control a properly rated RF switch or relay system. Verify voltage, current, polarity, fail-safe state, RF power, isolation and interlocks.
 
 <a id="sec-b-3"></a>
-#### B.3 Ultimate3S schedule example
+<a id="sec-sequential-tx-setup-3"></a>
+#### C.3 Ultimate3S schedule example
 
 The QRP Labs Ultimate3S can run a sequence of WSPR entries and apply a per-entry `Aux` output to external path-switching hardware. When a two-entry sequence begins at `00`, a global 10-minute frame can use Target at `00`, Reference at `02`, then pause until the next sequence at `10`; in WSPRadar this is `Repeat Interval = 10`, `Target Start = 00`, `Reference Start = 02`. The same arrangement with a 20-minute global frame gives each path a 20-minute recurrence while retaining two-minute A/B separation.
 
 The Ultimate3S manual documents `Start = 00` specially as "not used", so verify the displayed and observed UTC sequence and enter its actual phases rather than assuming a literal setting-to-time mapping. The `Aux` lines share display signals; use the documented filtered driver or relay interface and switch only in the RF-off interval <a href="#ref-12">[Ref-12]</a>.
 
 <a id="sec-b-4"></a>
-#### B.4 QMX schedule examples
+<a id="sec-sequential-tx-setup-4"></a>
+#### C.4 QMX schedule examples
 
 One QMX with `Frame = 10`, `Start = 0` transmits at `00, 10, 20, 30, 40, 50`. If an external switch alternates those transmissions between paths, Target is `00, 20, 40` and Reference is `10, 30, 50`; each path repeats every 20 minutes. Enter `Repeat Interval = 20`, `Target Start = 00`, `Reference Start = 10`; do not enter `10 / 00 / 02`.
 
 A single QMX cannot produce an adjacent `00/02` pair followed by an eight-minute pause with that beacon scheduler. It can alternate adjacent paths only by transmitting every two minutes, which the QMX manual discourages as antisocial network use. Two independently scheduled QMX units with `Frame = 10`, Starts `00` and `02`, do implement WSPRadar's `10 / 00 / 02` schedule, but their transmitter chains and actual powers must be controlled as separate hardware <a href="#ref-12">[Ref-12]</a>.
 
 <a id="sec-b-5"></a>
-#### B.5 Verify mapping and preserve the experiment
+<a id="sec-sequential-tx-setup-5"></a>
+#### C.5 Verify mapping and preserve the experiment
 
 Before transmitting:
 
@@ -1935,7 +2109,8 @@ Switch loss, isolation, connectors, feedline differences and antenna surrounding
 <div style="page-break-before: always;"></div>
 
 <a id="sec-c"></a>
-### Appendix C: Reference SNR Calibration
+<a id="sec-reference-snr-calibration"></a>
+### Appendix D: Reference SNR Calibration
 
 This procedure estimates a stable additive offset between receive chains or Reference-side paths.
 

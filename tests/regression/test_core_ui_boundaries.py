@@ -19,9 +19,13 @@ from core.analysis_context import (
 from core.analysis_runner import build_analysis_batches
 from core.artifact_store import ArtifactNamespace
 from core.fetch_models import DatabaseSource, FetchSource
-from core.map_data import build_map_data
+from core.map_data import build_map_data, build_map_data_result
 from core.map_models import MapFigure
 from core.presentation_context import PresentationContext
+from core.result_diagnostics import (
+    PERFORMANCE_NO_ELIGIBLE_STATION,
+    PERFORMANCE_NO_QUALIFYING_SEGMENT,
+)
 from i18n import T, absolute_terms
 from ui.inspector import drilldown, evidence_data, view_models
 from ui.plots import opportunity_figures
@@ -170,6 +174,46 @@ def test_no_data_warning_prompts_for_primary_run_definition_inputs():
     assert T["de"]["warn_no_data"].endswith(
         "Sind Rufzeichenangaben, Locator, Band, Datum und UTC-Zeit korrekt?"
     )
+
+
+def test_result_diagnostic_warnings_have_bilingual_placeholder_parity():
+    """Keep every measured value distinct from its configured requirement."""
+    expected_fields_by_key = {
+        "warn_no_source_rows": {"title"},
+        "warn_source_rows_filtered_out": {"title", "source_row_count"},
+        "warn_performance_no_eligible_station": {
+            "title",
+            "station_identity_count",
+            "maximum_confirmed_opportunities_per_station",
+            "minimum_confirmed_opportunities_per_station",
+        },
+        "warn_performance_no_qualifying_segment": {
+            "title",
+            "eligible_station_count",
+            "maximum_stations_per_segment",
+            "minimum_qualifying_stations_per_map_segment",
+        },
+        "warn_benchmark_no_qualifying_result_simultaneous": {
+            "title",
+            "minimum_joint_evidence_per_station",
+            "minimum_qualifying_stations_per_map_segment",
+        },
+        "warn_benchmark_no_qualifying_result_sequential": {
+            "title",
+            "minimum_joint_evidence_per_station",
+            "minimum_qualifying_stations_per_map_segment",
+        },
+    }
+
+    for key, expected_fields in expected_fields_by_key.items():
+        for language in ("en", "de"):
+            fields = {
+                field_name
+                for _literal, field_name, _format_spec, _conversion
+                in Formatter().parse(T[language][key])
+                if field_name is not None
+            }
+            assert fields == expected_fields
 
 
 def test_result_row_limit_warning_has_bilingual_placeholder_parity():
@@ -570,6 +614,99 @@ def test_success_map_reuses_owned_peer_aggregate_for_station_rows(monkeypatch):
     assert result.station_rows is peer_rows
 
 
+def test_performance_no_eligible_station_diagnostic_counts_confirmed_opportunities_only():
+    """Target-only rows must not inflate the independently confirmed maximum."""
+    source = pd.DataFrame({
+        "time_slot": [1, 2, 3, 4, 5, 6, 7],
+        "peer_sign": ["K1AAA"] * 5 + ["K2BBB"] * 2,
+        "peer_grid": ["FN31"] * 5 + ["EM12"] * 2,
+        "peer_lat": [41.0] * 5 + [32.8] * 2,
+        "peer_lon": [-72.0] * 5 + [-96.8] * 2,
+        "target_seen": [1] * 5 + [1, 0],
+        "external_seen": [0] * 5 + [1, 1],
+        "target_snr": [-10.0] * 7,
+        "opportunity": [0] * 5 + [1, 1],
+        "hit": [0] * 5 + [1, 0],
+        "miss": [0] * 5 + [0, 1],
+        "target_only": [1] * 5 + [0, 0],
+    })
+
+    result = build_map_data_result(
+        source,
+        analysis_id="RX_ABS",
+        is_compare=False,
+        is_sequential=False,
+        analysis_kind="opportunity",
+        center_latitude=47.0,
+        center_longitude=8.0,
+        min_spots=1,
+        min_opportunities=3,
+        base_min_stations=2,
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
+    )
+
+    assert result.map_data is None
+    assert result.diagnostic.reason == PERFORMANCE_NO_ELIGIBLE_STATION
+    assert dict(result.diagnostic.applied_thresholds) == {
+        "min_confirmed_opportunities_per_peer": 3,
+        "min_joint_stations_per_map_segment": 2,
+    }
+    assert dict(result.diagnostic.measured_counts) == {
+        "eligible_station_count": 0,
+        "maximum_confirmed_opportunities_per_station": 2,
+        "station_identity_count": 2,
+    }
+
+
+def test_performance_keeps_station_rows_when_no_segment_meets_threshold():
+    """A segment-only empty state must retain qualifying station evidence."""
+    source = pd.DataFrame({
+        "time_slot": [1, 2],
+        "peer_sign": ["K1AAA", "K2BBB"],
+        "peer_grid": ["JJ00AA", "JJ00BB"],
+        "peer_lat": [10.0, 0.0],
+        "peer_lon": [0.0, 10.0],
+        "target_seen": [1, 0],
+        "external_seen": [1, 1],
+        "target_snr": [-10.0, -20.0],
+        "opportunity": [1, 1],
+        "hit": [1, 0],
+        "miss": [0, 1],
+        "target_only": [0, 0],
+    })
+
+    result = build_map_data_result(
+        source,
+        analysis_id="TX_ABS",
+        is_compare=False,
+        is_sequential=False,
+        analysis_kind="opportunity",
+        center_latitude=0.0,
+        center_longitude=0.0,
+        min_spots=1,
+        min_opportunities=1,
+        base_min_stations=2,
+        tx_ab_repeat_interval_minutes=10,
+        tx_ab_target_start_minute=0,
+        tx_ab_reference_start_minute=2,
+    )
+
+    assert result.map_data is not None
+    assert len(result.map_data.station_rows) == 2
+    assert result.map_data.segment_rows.empty
+    assert result.map_data.diagnostic is result.diagnostic
+    assert result.diagnostic.reason == PERFORMANCE_NO_QUALIFYING_SEGMENT
+    assert dict(result.diagnostic.measured_counts) == {
+        "eligible_station_count": 2,
+        "maximum_confirmed_opportunities_per_station": 1,
+        "maximum_stations_per_segment": 1,
+        "qualifying_segment_count": 0,
+        "station_identity_count": 2,
+    }
+
+
 @pytest.mark.parametrize(
     ("analysis_kind", "is_compare"),
     [
@@ -635,7 +772,9 @@ def test_generate_map_plot_returns_explicit_map_figure_contract(monkeypatch):
         1,
         47.0,
         8.0,
-        analysis_context=_analysis_context(),
+        analysis_context=_analysis_context(
+            min_confirmed_opportunities_per_peer=1,
+        ),
         presentation_context=_presentation("en"),
         analysis_kind="opportunity",
     )

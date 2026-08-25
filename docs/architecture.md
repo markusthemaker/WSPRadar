@@ -211,8 +211,15 @@ for the browser session, but the editor choice, the four-way Classic Question,
 and Guided navigation keys are transient presentation state outside
 `AnalysisContext` and the version-1 saved configuration. Classic renders that
 Question first, followed by Target/window fields and, only for Benchmark, a
-required Benchmark-design panel. A newly selected Benchmark may therefore have
-valid transient RX/TX Benchmark intent while canonical `val_comp_mode` remains
+required Benchmark-design panel. Both result types then render the shared
+**Optional filters, analysis scope, and evidence requirements** panel and a
+terminal Review panel. Guided renders every applicable filter, scope, and
+evidence control when that step is available; it has no general-purpose versus
+customize selector. Result-family defaults, loaded configurations, and demos
+populate those canonical visible fields directly. Rendering a loaded value is
+not an edit and therefore does not by itself retire demo provenance. A newly
+selected Benchmark may therefore have valid transient RX/TX Benchmark intent
+while canonical `val_comp_mode` remains
 `none` until Hardware A/B, Reference Station, or Local Neighborhood is chosen.
 During that incomplete state, Run, Save Config, and public-URL synchronization
 are gated, while the advanced panel explicitly routes Benchmark thresholds, so
@@ -231,6 +238,18 @@ composition surface for Target/window, Reference, scope, station-population,
 offset, and evidence-threshold controls; its established implementations remain
 in `ui/components/config_panel.py` so both editors retain the same widget keys,
 normalization, and callbacks.
+
+The terminal Review composition is shared between the two editors. It reads the
+canonical configuration once, exposes one action placeholder, and keeps the
+top-level Run and Save Config implementations centralized. The actions remain
+gated by the active editor's readiness contract. Review stays expanded whenever
+it is available, including while a run starts and after it completes; the
+terminal run-status container likewise remains expanded in its Complete state.
+Starting an ordinary or direct-demo run does not change the expanded state of
+any Classic input panel. Earlier completed Guided steps may still compact as
+part of the Guided progression. These expansion rules are presentation state
+only and do not enter `AnalysisContext`, request fingerprints, saved
+configuration, or public URLs.
 
 The four canonical time fields hold absolute UTC start/end dates and times.
 `ui/time_window.py` initializes them once per session as the 24 hours ending at
@@ -332,6 +351,17 @@ snapshot renders from the compact map aggregates and projected evidence only;
 it performs no database request and does not rematerialize the raw evidence for
 map aggregation. A missing, stale, or incompatible snapshot is retired with an
 explicit rerun warning rather than silently querying a provider.
+
+Completed snapshots also retain each analysis block's language-free result
+diagnostic. A diagnostic carries a typed reason, the applicable configured
+evidence requirements, and only measured scalar counts that the scientific
+pipeline actually calculated. The presentation layer localizes this record and
+must not infer counts from an empty artifact. The active canonical context
+supplies scope only after the request and plan fingerprints prove that it still
+identifies the same completed run. A language change can therefore rerender the
+reason, requirements, and measured counts under that same fingerprinted run
+context. An incompatible diagnostic schema invalidates the snapshot through the
+same explicit-rerun path as any other incompatible completed artifact.
 
 `ui/result_hierarchy.py` owns the pure, escaped HTML builders and localized
 scope-copy helpers for the progressive result flow from map overview through
@@ -522,6 +552,31 @@ conversion, geometry, and solar helpers for the scientific path.
 
 `core/map_data.py` converts comparison or opportunity rows into pure `MapData`
 aggregates. `core/map_models.py` defines the `MapData` and `MapFigure` contracts.
+`core/result_diagnostics.py` owns the closed, language-free diagnostic reason
+vocabulary and validates immutable configured-threshold and measured-count
+mappings. Map preparation returns either renderable aggregates or an explicitly
+diagnosed empty result. The typed diagnostic is authoritative for each
+differentiated and persisted outcome. A legacy localized `warning_message` may
+remain as presentation compatibility, but it does not select the diagnostic
+reason or scientific behavior. The operator-facing states distinguish:
+
+1. no exact Target/source rows returned;
+2. source rows returned but post-fetch filters or scope retained none;
+3. Performance identities retained but no station meeting the configured
+   confirmed-opportunity requirement; and
+4. qualifying Performance stations present but no map segment meeting the
+   configured station-support requirement.
+
+The third state suppresses empty maps, Inspectors, and tables. The fourth keeps
+station-level evidence renderable and omits only segment-dependent output. A
+configured requirement and an observed diagnostic are separate fields: the UI
+may report a highest observed count only when it is present in the diagnostic,
+and it must never display the configured minimum as though it had been
+observed. Performance Target-only audit rows do not contribute to the confirmed
+opportunity count. Benchmark preserves its established generic
+no-qualifying-result boundary and records the applicable Joint or complete
+Scheduled-Pair and segment requirements without inventing station-support
+maxima that the Benchmark pipeline did not calculate.
 Map preparation owns its working evidence frame and transfers that owner into
 Benchmark or Performance aggregation, which may attach transient columns in place;
 standalone Benchmark aggregation remains nonmutating unless ownership is supplied

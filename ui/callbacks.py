@@ -381,8 +381,8 @@ def run_demo_profile(profile_key):
     st.session_state.guided_collapse_all = True
     st.session_state.configuration_changed_since_run = False
     st.session_state.show_demo_launcher = False
-    st.session_state.config_panels_expanded = False
-    st.session_state._collapse_config_panels_once = True
+    st.session_state.config_panels_expanded = True
+    st.session_state._collapse_config_panels_once = False
     _apply_demo_profile_values(profile_key)
     analysis_direction = st.session_state.get("val_analysis_direction")
     if analysis_direction not in {"rx", "tx"}:

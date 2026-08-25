@@ -27,7 +27,7 @@ from core.fetch_models import (
     FetchResult,
     FetchSource,
 )
-from core.map_models import MapData, MapFigure
+from core.map_models import EmptyMapResult, MapData, MapFigure
 from core.provider_dispatch import ProviderDispatchController, ProviderSkipReason
 from core.run_data_preparation import (
     PreparedAnalysisData,
@@ -35,6 +35,10 @@ from core.run_data_preparation import (
     PreparedQueryFetch,
     ProviderBundleFetchError,
     ProviderBundlePreparationError,
+)
+from core.result_diagnostics import (
+    PERFORMANCE_NO_ELIGIBLE_STATION,
+    ResultDiagnostic,
 )
 from i18n import T
 from ui import run_controller
@@ -424,6 +428,7 @@ def _publish_valid_completed_snapshot(
             "segment_rows_path": str(segment_rows_path),
             "selected_decode_filter_mode": selected_decode_filter_mode,
             "query_fetches": tuple(query_fetches),
+            "diagnostic": None,
         },),
     }
     publish_completed_run_snapshot(fake_st.session_state, snapshot)
@@ -745,6 +750,7 @@ def test_invalid_completed_rerender_requires_explicit_run_without_admission(
         "analysis_plan",
         "database_source",
         "analysis_contract",
+        "diagnostic_contract",
         "artifact_registration",
         "artifact_scope",
     ],
@@ -784,6 +790,8 @@ def test_completed_snapshot_validation_rejects_every_identity_boundary(
         )
     elif invalid_contract == "analysis_contract":
         snapshot["analyses"][0]["analysis"]["analysis_kind"] = "opportunity"
+    elif invalid_contract == "diagnostic_contract":
+        snapshot["analyses"][0].pop("diagnostic")
     elif invalid_contract == "artifact_registration":
         fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY].pop()
     elif invalid_contract == "artifact_scope":
@@ -1782,6 +1790,124 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
     assert snapshot["analyses"][0]["station_rows_path"] == str(
         map_paths.station_rows_path.resolve()
     )
+
+
+def test_diagnosed_nonrenderable_performance_skips_map_and_inspector_content(
+    monkeypatch,
+    tmp_path,
+):
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.val_min_stations = 2
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    permit = _AnalysisPermit(controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 1, "wd1": 1}
+    ))
+    analysis = _analysis("RX_ABS", "Performance")
+    evidence_path = tmp_path / "evidence.parquet"
+    evidence_path.write_bytes(b"prepared evidence")
+    diagnostic = ResultDiagnostic.create(
+        PERFORMANCE_NO_ELIGIBLE_STATION,
+        applied_thresholds={
+            "min_confirmed_opportunities_per_peer": 5,
+            "min_joint_stations_per_map_segment": 2,
+        },
+        measured_counts={
+            "station_identity_count": 8,
+            "eligible_station_count": 0,
+            "maximum_confirmed_opportunities_per_station": 3,
+        },
+    )
+    prepared_bundle = PreparedProviderBundle(
+        database_source=DatabaseSource.WSPR_LIVE,
+        analyses=[PreparedAnalysisData(
+            analysis=dict(analysis),
+            artifact_path=evidence_path,
+            warning_message=None,
+            query_fetches=(PreparedQueryFetch(
+                decode_filter_mode=DECODE_FILTER_STRICT,
+                elapsed_seconds=0.1,
+                delivery_source=FetchSource.WSPR_LIVE,
+            ),),
+            profile_timer=_ProfileTimer(),
+        )],
+    )
+    _patch_run_environment(
+        monkeypatch,
+        fake_st,
+        controller,
+        lambda *_args, **_kwargs: prepared_bundle,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "read_parquet_artifact",
+        lambda _path: pd.DataFrame({"prepared": [1]}),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "matplotlib_profile_collector",
+        lambda *_args, **_kwargs: _Context(),
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_render_map_result_block",
+        lambda **_kwargs: pytest.fail("non-renderable result reached map UI"),
+    )
+    deferred_inspector_inputs = []
+    monkeypatch.setattr(
+        run_controller,
+        "_render_deferred_inspectors",
+        lambda values, **_kwargs: deferred_inspector_inputs.extend(values),
+    )
+
+    outcome = run_controller._render_admitted_analysis_run(
+        t={
+            **T["en"],
+            "warn_no_data": "No data: {title}",
+            "warn_performance_no_eligible_station": (
+                "{station_identity_count} stations; maximum "
+                "{maximum_confirmed_opportunities_per_station}; minimum "
+                "{minimum_confirmed_opportunities_per_station}."
+            ),
+        },
+        run_status_slot=_RunStatusSlot(),
+        start_t="start",
+        end_t="end",
+        generate_map_plot=lambda *_args, **_kwargs: EmptyMapResult(diagnostic),
+        admission_permit=permit,
+        analyses=[analysis],
+        analysis_context=SimpleNamespace(
+            max_peer_distance_km=22000,
+            exclude_special_callsigns=False,
+        ),
+        presentation_context=SimpleNamespace(),
+        center_latitude=47.0,
+        center_longitude=8.0,
+        active_demo=None,
+        active_demo_key=None,
+        is_demo_run=False,
+        request_counts_by_provider={"wspr_live": 1, "wd2": 1, "wd1": 1},
+        committed_source=None,
+        request_fingerprint="request-key",
+        analysis_plan_fingerprint="analysis-plan-key",
+    )
+
+    assert outcome == "completed"
+    assert deferred_inspector_inputs == []
+    assert fake_st.warnings == ["8 stations; maximum 3; minimum 5."]
+    snapshot = get_completed_run_snapshot(fake_st.session_state)
+    assert snapshot["analyses"][0]["outcome"] == (
+        run_controller._SNAPSHOT_OUTCOME_MAP_NO_DATA
+    )
+    assert snapshot["analyses"][0]["diagnostic"] == diagnostic.to_dict()
+    assert fake_st.statuses[0].updates[-1] == {
+        "label": "Complete",
+        "state": "complete",
+        "expanded": True,
+    }
 
 
 def test_provider_failure_restarts_active_compare_analysis_on_wd2(monkeypatch):

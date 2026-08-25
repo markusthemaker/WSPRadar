@@ -315,7 +315,7 @@ def test_guided_custom_scope_uses_the_shared_direction_specific_success_help(
     opportunities_help_key,
     stations_help_key,
 ):
-    """Exercise the shared renderer through Guided Review and customize."""
+    """Exercise the shared renderer through the visible Guided scope fields."""
     sliders = Mock()
     session_state = _success_session_state(direction)
     session_state.update(
