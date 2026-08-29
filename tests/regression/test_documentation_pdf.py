@@ -3,6 +3,8 @@ from html import unescape
 import io
 import re
 
+import pytest
+
 from docs import pdf_generator
 from docs.doc_de import DOC_DE
 from docs.doc_en import DOC_EN
@@ -216,6 +218,96 @@ def test_generated_pdf_footer_uses_localized_page_label(monkeypatch):
     conclusion_label_rules = conclusion_label_style_match.group("rules")
     assert re.search(r"page-break-after\s*:\s*avoid", conclusion_label_rules)
     assert re.search(r"-pdf-keep-with-next\s*:\s*true", conclusion_label_rules)
+
+
+@pytest.mark.parametrize(
+    ("language", "accessible_label"),
+    [
+        ("en", "DL1MKS on QRZ.com (opens in a new tab)"),
+        ("de", "DL1MKS auf QRZ.com (öffnet in einem neuen Tab)"),
+    ],
+)
+def test_pdf_credit_recolors_qrz_link_and_icon_for_white_page(
+    monkeypatch,
+    language,
+    accessible_label,
+):
+    """Keep the shared QRZ credit legible in the generated PDF header."""
+    from PIL import Image
+    from xhtml2pdf import pisa
+
+    rendered_templates = []
+
+    class _PdfStatus:
+        err = False
+
+    def capture_pdf_template(source, dest):
+        rendered_templates.append(source.read())
+        dest.write(b"pdf")
+        return _PdfStatus()
+
+    monkeypatch.setattr(pdf_generator, "get_docs", lambda _lang: "Manual")
+    monkeypatch.setattr(pisa, "CreatePDF", capture_pdf_template)
+
+    logo_buffer = io.BytesIO()
+    Image.new("RGBA", (1, 1), (255, 255, 255, 255)).save(
+        logo_buffer,
+        format="PNG",
+    )
+    logo_b64 = base64.b64encode(logo_buffer.getvalue()).decode("ascii")
+
+    assert pdf_generator._generate_pdf_doc(
+        language,
+        logo_b64,
+        "test",
+    ) == b"pdf"
+    rendered_template = rendered_templates[0]
+    credit_start = rendered_template.index("Developed by Dr. Markus Brosch")
+    credit_end = rendered_template.index("</div>", credit_start)
+    rendered_credit = rendered_template[credit_start:credit_end]
+
+    assert "href='https://www.qrz.com/db/DL1MKS'" in rendered_credit
+    assert "target='_blank' rel='noopener noreferrer'" in rendered_credit
+    assert f"aria-label='{accessible_label}'" in rendered_credit
+    assert ">DL1MKS<span" in rendered_credit
+    assert "&#8599;" in rendered_credit
+    assert rendered_credit.count("color:#0a318f") == 2
+    assert "#39ff14" not in rendered_credit
+
+
+def test_generated_pdf_preserves_clickable_qrz_credit_link(monkeypatch):
+    """Expose the callsign profile as a real external PDF link annotation."""
+    from PIL import Image
+    from pypdf import PdfReader
+
+    monkeypatch.setattr(pdf_generator, "get_docs", lambda _lang: "Manual")
+    logo_buffer = io.BytesIO()
+    Image.new("RGBA", (1, 1), (255, 255, 255, 255)).save(
+        logo_buffer,
+        format="PNG",
+    )
+    logo_b64 = base64.b64encode(logo_buffer.getvalue()).decode("ascii")
+
+    pdf_bytes = pdf_generator._generate_pdf_doc("en", logo_b64, "test")
+
+    assert pdf_bytes is not None
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    extracted_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    external_uris = []
+    for page in reader.pages:
+        for annotation_reference in page.get("/Annots", []):
+            annotation = annotation_reference.get_object()
+            action_reference = annotation.get("/A")
+            if action_reference is None:
+                continue
+            action = action_reference.get_object()
+            external_uri = action.get("/URI")
+            if external_uri is not None:
+                external_uris.append(str(external_uri))
+
+    assert "Developed by Dr. Markus Brosch" in extracted_text
+    assert "DL1MKS↗" in extracted_text
+    assert "https://www.qrz.com/db/DL1MKS" in external_uris
 
 
 def test_pdf_markdown_extensions_preserve_fenced_code_blocks():

@@ -48,13 +48,13 @@ def _labels(lang="en"):
             "btn_load_full_documentation": "Vollst\u00e4ndige Dokumentation laden",
             "btn_hide_full_documentation": "Vollst\u00e4ndige Dokumentation ausblenden",
             "sub_documentation": T["de"]["sub_documentation"],
-            "dev_credit": "credit",
+            "dev_credit": T["de"]["dev_credit"],
         }
     return {
         "btn_load_full_documentation": "Load full documentation",
         "btn_hide_full_documentation": "Hide full documentation",
         "sub_documentation": T["en"]["sub_documentation"],
-        "dev_credit": "credit",
+        "dev_credit": T["en"]["dev_credit"],
     }
 
 
@@ -2083,7 +2083,13 @@ def test_expanded_render_restores_toc_exact_remainder_and_hide_control(monkeypat
     assert remaining_sections in rendered_bodies
     assert section_one + table_of_contents + remaining_sections == DOC_DE
     assert "(#sec-2)" in table_of_contents
-    assert any(labels["dev_credit"] in body for body in rendered_bodies)
+    credit_markdowns = [
+        kwargs
+        for body, kwargs in fake_st.markdowns
+        if labels["dev_credit"] in body
+    ]
+    assert len(credit_markdowns) == 1
+    assert credit_markdowns[0]["unsafe_allow_html"] is True
     assert fake_st.buttons[0]["label"] == labels["btn_hide_full_documentation"]
     assert fake_st.buttons[0]["icon"] == ":material/expand_less:"
     assert fake_st.buttons[0]["width"] == "stretch"
