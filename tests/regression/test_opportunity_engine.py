@@ -145,6 +145,114 @@ def test_opportunity_science_and_aggregates_match_across_owned_and_copied_inputs
     )
 
 
+@pytest.mark.parametrize("owns_input", [False, True])
+@pytest.mark.parametrize(
+    "target_identity,external_identity",
+    [
+        (("HB9AAA", "JN47mv"), ("HB9AAA", "JN47MV")),
+        ((" hb9aaa ", "JN47MV"), ("HB9AAA", "JN47MV")),
+        ((" hb9aaa ", " jn47mv "), ("HB9AAA", "JN47MV")),
+    ],
+    ids=["locator-case", "callsign-case-and-whitespace", "both-identities"],
+)
+def test_canonical_identity_collision_combines_target_and_external_evidence(
+    owns_input, target_identity, external_identity,
+):
+    source = pd.DataFrame([
+        _server_row(100, *target_identity, 1, 0, -12.04),
+        _server_row(100, *external_identity, 0, 1, None),
+    ])
+    original = source.copy(deep=True)
+
+    rows = prepare_opportunity_rows(
+        source, target_callsign="DL1MKS", owns_input=owns_input,
+    )
+
+    if not owns_input:
+        pd.testing.assert_frame_equal(source, original)
+    assert len(rows) == 1
+    assert rows[["time_slot", "peer_sign", "peer_grid"]].iloc[0].tolist() == [
+        100, "HB9AAA", "JN47MV",
+    ]
+    assert rows["outcome"].tolist() == ["H"]
+    assert rows["target_snr"].tolist() == [-12.0]
+    peer = aggregate_opportunity_peers(rows, min_opportunities=1).iloc[0]
+    assert int(peer["opportunities"]) == 1
+    assert int(peer["hits"]) == 1
+    assert int(peer["misses"]) == 0
+    assert int(peer["target_only"]) == 0
+    assert int(peer["target_observations"]) == 1
+    assert float(peer["rate_pct"]) == 100.0
+    assert float(peer["successful_snr_median"]) == -12.0
+
+
+@pytest.mark.parametrize("owns_input", [False, True])
+@pytest.mark.parametrize("reverse_rows", [False, True])
+def test_canonical_peer_cycle_consolidation_preserves_evidence_and_identity_boundaries(
+    owns_input, reverse_rows,
+):
+    server_rows = [
+        _server_row(100, "K1AAA", "FN31aa", 1, 1, -20),
+        _server_row(101, "K1AAA", "FN31aa", 0, 1, None),
+        _server_row(100, "K1AAA", "FN31ab", 0, 1, None),
+        _server_row(100, "K2BBB", "FN31AA", 1, 0, -5),
+        _server_row(100, "k1aaa", " FN31AA ", 1, 1, -10.04),
+        _server_row(101, " k1aaa ", "FN31AA", 0, 1, None),
+        _server_row(102, "K1AAA", "FN31AA", 1, 0, -30),
+        _server_row(102, "K1AAA", "FN31AA", 1, 0, -15),
+        _server_row(103, "K1AAA", "FN31aa", 0, 0, None),
+        _server_row(103, "K1AAA", "FN31AA", 0, 0, None),
+        _server_row(104, "K1AAA", "FN31aa", 1, 0, None),
+        _server_row(104, "K1AAA", "FN31AA", 0, 1, None),
+        _server_row(100, " dl1mks ", "JO31aa", 1, 0, -3),
+        _server_row(100, "DL1MKS", "JO31AA", 0, 1, None),
+        _server_row(100, "K3CCC", "INVALID", 1, 0, -4),
+        _server_row(100, "K3CCC", "invalid", 0, 1, None),
+    ]
+    source = pd.DataFrame(server_rows[::-1] if reverse_rows else server_rows)
+    source.index = pd.Index(range(10, 10 + len(source)))
+    original = source.copy(deep=True)
+    expected = pd.DataFrame([
+        _server_row(100, "K1AAA", "FN31AA", 1, 1, -10.0),
+        _server_row(101, "K1AAA", "FN31AA", 0, 1, None),
+        _server_row(100, "K1AAA", "FN31AB", 0, 1, None),
+        _server_row(100, "K2BBB", "FN31AA", 1, 0, -5.0),
+        _server_row(102, "K1AAA", "FN31AA", 1, 0, -15.0),
+        _server_row(103, "K1AAA", "FN31AA", 0, 0, None),
+        _server_row(104, "K1AAA", "FN31AA", 1, 1, None),
+    ])
+    expected["opportunity"] = [1, 1, 1, 0, 0, 0, 1]
+    expected["hit"] = [1, 0, 0, 0, 0, 0, 1]
+    expected["miss"] = [0, 1, 1, 0, 0, 0, 0]
+    expected["target_only"] = [0, 0, 0, 1, 1, 0, 0]
+    expected["outcome"] = ["H", "M", "M", "T", "T", "", "H"]
+
+    rows = prepare_opportunity_rows(
+        source, target_callsign="DL1MKS", owns_input=owns_input,
+    )
+
+    if not owns_input:
+        pd.testing.assert_frame_equal(source, original)
+    identity_columns = ["time_slot", "peer_sign", "peer_grid"]
+    actual = rows.loc[:, expected.columns].astype({
+        "peer_sign": str, "peer_grid": str, "outcome": str,
+    })
+    pd.testing.assert_frame_equal(
+        actual.sort_values(identity_columns).reset_index(drop=True),
+        expected.sort_values(identity_columns).reset_index(drop=True),
+        check_dtype=False,
+    )
+    assert not rows.duplicated(identity_columns).any()
+    assert rows.index.equals(pd.RangeIndex(len(rows)))
+    assert tuple(rows.columns) == PROCESSED_OPPORTUNITY_COLUMNS
+    for column in ["peer_sign", "peer_grid", "outcome"]:
+        assert isinstance(rows[column].dtype, pd.CategoricalDtype)
+    for column in ["target_seen", "external_seen", "opportunity", "hit", "miss", "target_only"]:
+        assert str(rows[column].dtype) == "int8"
+    assert str(rows["target_snr"].dtype) == "float64"
+    assert np.isfinite(rows[["peer_lat", "peer_lon"]].to_numpy()).all()
+
+
 def test_prepare_opportunity_rows_respects_input_ownership_contract():
     source = pd.DataFrame([
         _server_row(100, "k1aaa", "fn31aa", 1, 1, -12),

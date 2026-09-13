@@ -570,14 +570,12 @@
         "local_benchmark": {
           "type": "string",
           "enum": [
-            "local_median",
-            "local_best"
+            "local_median"
           ],
-          "description": "Neighborhood aggregation: median eligible peer or best eligible peer.",
+          "description": "Neighborhood aggregation: one median normalized-SNR contribution per eligible local callsign/locator identity for each peer and cycle, followed by the median across those contributions.",
           "default": "local_median",
           "examples": [
-            "local_median",
-            "local_best"
+            "local_median"
           ]
         },
         "neighborhood_radius_km": {

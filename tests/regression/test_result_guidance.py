@@ -15,7 +15,6 @@ from core.analysis_context import (
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
-    LOCAL_BENCHMARK_BEST,
     LOCAL_BENCHMARK_MEDIAN,
 )
 from i18n import GUIDED_INPUTS, RESULT_GUIDANCE, T
@@ -1571,14 +1570,8 @@ def test_every_valid_result_family_resolves_all_of_its_sections(
         (
             COMPARISON_LOCAL_NEIGHBORHOOD,
             LOCAL_BENCHMARK_MEDIAN,
-            "typical qualifying local station within 175 km",
+            "qualifying nearby station observations within 175 km",
             "strongest qualifying local station",
-        ),
-        (
-            COMPARISON_LOCAL_NEIGHBORHOOD,
-            LOCAL_BENCHMARK_BEST,
-            "strongest qualifying local station available within 175 km",
-            "typical qualifying local station",
         ),
     ),
 )
@@ -2167,11 +2160,10 @@ def test_local_median_drilldown_appends_dynamic_reference_explanation():
             local_benchmark=LOCAL_BENCHMARK_MEDIAN,
         ),
     )
-    local_best = _build_guidance(
+    fixed_reference = _build_guidance(
         RESULT_GUIDANCE_DRILLDOWN,
         analysis_context=AnalysisContext(
-            comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
-            local_benchmark=LOCAL_BENCHMARK_BEST,
+            comparison_mode=COMPARISON_REFERENCE_STATION,
         ),
     )
 
@@ -2183,8 +2175,8 @@ def test_local_median_drilldown_appends_dynamic_reference_explanation():
     ]["limits"]
     assert median_read in local_median
     assert median_limits in local_median
-    assert median_read not in local_best
-    assert median_limits not in local_best
+    assert median_read not in fixed_reference
+    assert median_limits not in fixed_reference
     assert RESULT_GUIDANCE["en"]["sections"]["drilldown_compare_joint"][
         "read"
     ] in local_median

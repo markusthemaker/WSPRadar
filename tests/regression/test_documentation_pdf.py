@@ -341,9 +341,9 @@ def test_pdf_preserves_section_zero_analysis_hierarchy_markup():
         pdf_generator.PDF_INTRO_ANALYSIS_COLUMN_WIDTHS_PERCENT,
     ):
         assert f'<th style="width: {width_percent}%">{header}</th>' in rendered
-    assert rendered.count('class="analysis-choice"') == 5
-    assert rendered.count('class="analysis-family"') == 5
-    assert rendered.count('class="analysis-variant"') == 5
+    assert rendered.count('class="analysis-choice"') == 4
+    assert rendered.count('class="analysis-family"') == 4
+    assert rendered.count('class="analysis-variant"') == 4
     assert (
         '<span class="analysis-family">RX/TX Benchmark</span><br>'
         '<strong class="analysis-variant">Reference Station / Buddy Test</strong>'
@@ -382,7 +382,7 @@ def test_pdf_preprocessing_preserves_english_section_two_conclusion_callouts():
     """Retain the scoped conclusion class for print-specific contrast styling."""
     rendered = pdf_generator._render_pdf_html(DOC_EN, T["en"])
 
-    assert rendered.count('<blockquote class="evidence-conclusion">') == 11
+    assert rendered.count('<blockquote class="evidence-conclusion">') == 9
     assert rendered.count('<p class="evidence-conclusion-label">') == 2
 
 
@@ -515,7 +515,7 @@ def test_pdf_preprocessing_marks_only_each_chapter_seven_method_matrix():
 
     german_rendered = pdf_generator._render_pdf_html(DOC_DE, T["de"])
     assert "Target-/<br/>lokaler-Referenz-<br/>Peer-Zyklus" in german_rendered
-    assert "Target-/<br/>beste-lokale-Station-<br/>Peer-Zyklus" in german_rendered
+    assert "Target-/<br/>beste-lokale-Station-<br/>Peer-Zyklus" not in german_rendered
 
 
 def test_generated_pdf_keeps_method_matrix_in_portrait(monkeypatch):

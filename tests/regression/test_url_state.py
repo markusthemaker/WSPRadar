@@ -109,7 +109,7 @@ def _settings_for_mode(
             "direction": "tx",
             "comparison": {
                 "mode": "local_neighborhood",
-                "local_benchmark": "local_best",
+                "local_benchmark": "local_median",
                 "neighborhood_radius_km": 100,
                 "snr_correction_mode": "established_offset",
                 "snr_correction_db": 2.5,
@@ -775,6 +775,22 @@ def test_benchmark_accepts_valid_legacy_temporal_view_as_a_noop(
     assert "temporal_view" not in canonical_entries
 
 
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+@pytest.mark.parametrize("local_benchmark", ["local_best", "unknown", ""])
+def test_local_neighborhood_url_rejects_unsupported_method(direction, local_benchmark):
+    """Reject invalid explicit URL methods without changing the scientific reference."""
+    settings = _settings_for_mode("local_neighborhood")
+    settings["core_parameters"]["analysis_direction"] = direction
+    entries = dict(url_state.build_query_from_settings(settings, include_run=False))
+    entries["local_benchmark"] = local_benchmark
+
+    with pytest.raises(url_state.UrlStateError, match="local_benchmark") as validation_error:
+        url_state.build_config_from_url(url_state.parse_url_query(entries))
+    assert validation_error.value.code == (
+        "invalid_local_benchmark" if local_benchmark else "invalid"
+    )
+
+
 def test_benchmark_rejects_an_unknown_legacy_temporal_view():
     """Validate retired URL values before discarding the compatibility no-op."""
     entries = dict(
@@ -803,7 +819,7 @@ def test_benchmark_rejects_an_unknown_legacy_temporal_view():
         ("hardware_rx", "tx_ab_method", "simultaneous"),
         ("hardware_rx", "show_zero", "1"),
         ("hardware_tx_sequential", "reference", "DL2XYZ"),
-        ("reference_station", "local_benchmark", "local_best"),
+        ("reference_station", "local_benchmark", "local_median"),
         ("local_neighborhood", "reference_qth", "JO62"),
     ],
 )

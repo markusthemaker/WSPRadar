@@ -240,6 +240,15 @@ Unsupported versions are rejected instead of being interpreted with guessed
 defaults. The formal JSON Schema enumerates valid fields, values, and
 conditional branches.
 
+Local Neighborhood uses Local Median Neighborhood in both input views. The
+scientific method remains explicit as `local_benchmark: "local_median"` in
+saved configurations and public URLs, even though there is no method selector.
+Unsupported local-method values are rejected at configuration, URL, and core
+analysis boundaries; explicit invalid session values are retained for validation
+until the operator resets the configuration. The neighborhood median retains
+one contribution per observed local callsign-and-locator identity and permits
+a single contributor for a remote peer-cycle.
+
 Guided and Classic are two editors over the same canonical Streamlit session
 fields; neither owns a separate scientific configuration. The selected
 `input_view`, four-way Classic Question, and Guided navigation choices are
@@ -340,7 +349,8 @@ Useful files when tracing behavior:
 - `ui/run_controller.py`: end-to-end analysis orchestration.
 - `core/analysis_runner.py`: SQL and post-fetch analysis contracts.
 - `core/geographic_scope.py`: strict great-circle peer-scope validation and
-  vectorized post-fetch filtering.
+  vectorized post-fetch filtering, plus conservative date-line/pole-aware
+  bounding boxes for the SQL Local Neighborhood prefilter.
 - `core/tx_ab_schedule.py`: periodic TX A/B validation, exact schedule SQL, and
   stable planned-pair assignment.
 - `core/data_engine.py`: bounded upstream HTTP and query cache.
@@ -435,7 +445,29 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Latest complete serial measurement on 2026-08-17:
+Latest complete serial measurement on 2026-09-13 through the Windows launcher,
+including completed-result language switching and manifest-validation coverage:
+
+```text
+2440 passed, 1 skipped, 1 warning in 241.86 seconds
+```
+
+Earlier complete serial measurement on 2026-09-13, including the Benchmark
+callsign-plus-full-locator weighting/support correction and its bilingual
+explanations:
+
+```text
+2326 passed, 1 skipped, 1 warning in 275.67 seconds
+```
+
+Earlier complete serial measurement on 2026-09-13, including the conservative
+Local Neighborhood date-line/pole bounding-box correction:
+
+```text
+2279 passed, 1 skipped, 1 warning in 263.53 seconds
+```
+
+Earlier complete serial measurement on 2026-08-17:
 
 ```text
 2062 passed, 1 skipped, 1 warning in 234.55 seconds
@@ -461,9 +493,13 @@ git diff --check
 Both commands passed during the 2026-07-11 review.
 
 There is no configured project linter, formatter, type checker, pre-commit hook,
-or GitHub test workflow. The sole GitHub workflow, `wake.yml`, opens the deployed
-application every six hours and on manual dispatch. Compilation is a syntax
-check, not a substitute for static analysis.
+or full regression workflow. The `regression-manifest.yml` GitHub workflow runs
+`scripts\run_regression.cmd -ValidateChunks` on Windows for pushes, pull requests,
+and manual dispatch, without installing application dependencies. It rejects
+unassigned, duplicate, or stale test-module entries before they can break the
+launcher. The `wake.yml` workflow opens the deployed application every six hours
+and on manual dispatch. Compilation is a syntax check, not a substitute for
+static analysis.
 
 To build a regression fixture from an exported demo folder, inspect and use
 `scripts/build_regression_fixture_from_demo_folder.py`. Folders placed under
@@ -509,7 +545,10 @@ policy. A completed run stores scoped evidence plus compact station/segment map
 aggregates under its session-artifact owner. Later full Streamlit rerenders
 validate a lightweight completed-run snapshot and reuse those aggregates without
 another database request or full raw-frame map aggregation; stale or missing
-artifacts require an explicit new run. Derived basemaps
+artifacts require an explicit new run. Switching EN/DE preserves the completed
+run and renders its evidence in the selected language. A language change retires
+an in-flight UI submission; without a completed snapshot, a new Run action is
+required. Derived basemaps
 are shared across sessions and are not currently subject to TTL cleanup. Process
 memory also holds the query DataFrame LRU, admission state, inspector session
 models/PNGs, generated documentation PDF cache, and provider rolling-request,

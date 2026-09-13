@@ -2,6 +2,136 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
+## Unsubmitted - recorded 2026-09-13
+
+This entry tracks the current working-tree fixes since the last GitHub
+submission, [f15b2d2 - QRZ link](https://github.com/markusthemaker/WSPRadar/commit/f15b2d2d9d6a9d9dab0c14b47486ecc7cbfc9041)
+(2026-08-29). GitHub `main` and `temp` were both verified at that commit on
+2026-09-13. These changes have not been committed or submitted; the date above
+is the recording date. Consolidate this entry under the actual UTC submission
+date when the changes are published.
+
+- **Local Neighborhood geographic selection:** repaired the RX/TX SQL bounding
+  prefilter so eligible nearby Reference identities are not excluded across the
+  antimeridian, at high latitudes, or in neighborhoods reaching a pole. Wrapped
+  longitude ranges and conservative latitude bounds precede the unchanged
+  inclusive `geoDistance(...) <= neighborhood_radius_km * 1000` cutoff. The
+  requested radius and Local Median calculation remain unchanged.
+  Trace: [geographic bounds](core/geographic_scope.py),
+  [SQL construction](core/analysis_runner.py),
+  [geometry regressions](tests/regression/test_geographic_scope.py), and
+  [generated-query regressions](tests/regression/test_analysis_runner_contracts.py).
+
+- **Benchmark station-support counts:** aligned segment support with the exact
+  `callsign + full reported locator` identities already used for station-balanced
+  Delta-SNR medians. Two qualifying locator identities sharing a callsign now
+  count twice toward the segment minimum, preventing an otherwise supported
+  segment from being suppressed. Each identity must independently pass its
+  Joint-evidence or complete-Scheduled-Pair threshold; one-sided-only evidence
+  does not support the paired segment median. These are reported identities,
+  not a measurement of independent physical stations.
+  Trace: [Benchmark aggregation](core/compare_engine.py),
+  [aggregation and presentation regressions](tests/regression/test_compare_engine.py),
+  and the corresponding English/German identity explanations in
+  [i18n.py](i18n.py), [doc_en.py](docs/doc_en.py), and [doc_de.py](docs/doc_de.py).
+
+- **Performance peer-cycle classification:** consolidate rows that collide after
+  callsign/locator case and whitespace normalization before classifying outcomes.
+  For each canonical peer identity and cycle, Target and external-evidence flags
+  are combined and the strongest Target SNR is retained; all-missing SNR remains
+  missing. Complementary reports can therefore form one confirmed Target
+  success instead of remaining separate rows with incorrect outcome counts or
+  Decode Rate. `opportunity-v2` prevents reuse of pre-fix completed Performance
+  results; a new run can still reuse valid raw-query caches. Cycle duration,
+  denominator definitions, output schema, and the owned-input fast path remain.
+  Trace: [Performance engine](core/opportunity_engine.py),
+  [classification regressions](tests/regression/test_opportunity_engine.py),
+  [analysis-plan contracts](tests/regression/test_analysis_runner_contracts.py), and
+  [completed-result compatibility checks](tests/regression/test_run_controller_data_source.py).
+
+- **Malformed numeric CSV evidence and failover:** validate known numeric CSV
+  columns before transport normalization or cache publication for ordinary and
+  demo requests. Malformed values, booleans, infinities, and rounding overflow
+  now produce provider-scoped `decode_error` failures so complete-bundle failover
+  can restart on another provider. Valid missing values remain supported. Invalid
+  older CSV-derived disk-cache entries are removed; a replacement request still
+  requires reserved capacity, and cached corruption alone does not penalize the
+  provider. Optional disk-cache write failures still leave valid query data usable.
+  Trace: [CSV and cache boundaries](core/data_engine.py),
+  [numeric/cache regressions](tests/regression/test_data_engine_limits.py), and
+  [whole-bundle failover regressions](tests/regression/test_run_controller_data_source.py).
+
+- **Invalid analysis-context recovery:** moved scientific-context construction
+  inside the controller's validation boundary. A validation error while building
+  contexts or analysis batches now produces localized feedback and clears obsolete
+  result, export, Inspector, and committed-provider state before admission or
+  query execution. Invalid Local Neighborhood state is retained, with a visible
+  error and Reset Config recovery; configuration/session/URL boundaries reject
+  unsupported methods instead of silently replacing them with a different
+  scientific method.
+  Trace: [run controller](ui/run_controller.py),
+  [configuration validation](ui/config_io.py), [session normalization](ui/state_manager.py),
+  [context adapter](ui/analysis_context_adapter.py), [URL validation](ui/url_state.py),
+  [recovery regressions](tests/regression/test_run_controller_data_source.py),
+  [configuration regressions](tests/regression/test_config_migration.py), and
+  [URL regressions](tests/regression/test_url_state.py).
+
+- **Exported decode-filter provenance:** added each result block's registered
+  `decode_filter_mode` to `run_metadata.json` and the export signature. Prepared
+  ZIPs now distinguish `strict_code_1` from `legacy_no_code`, including selection
+  restored from completed evidence, and are invalidated when that field changes.
+  Missing or unrecorded selection stays JSON `null`; no policy is inferred from
+  saved inputs. This additive metadata records query selection and does not
+  establish physical transmission-mode purity in historical observations.
+  Trace: [export metadata and signatures](ui/results_export.py),
+  [ZIP provenance regressions](tests/regression/test_results_export_package.py), and
+  [completed-render provenance checks](tests/regression/test_run_controller_data_source.py).
+
+- **Completed results after language changes:** changing EN/DE now preserves the
+  completed run's identity and rerenders retained evidence in the chosen language.
+  The callback retires the current UI submission token while retaining `run_mode`
+  when a current-version completed snapshot exists, including an interrupted
+  rerender. Without completed evidence, another Run remains explicit; expired or
+  incompatible evidence follows the existing validation warning. This does not
+  promise forced termination of an HTTP request already executing.
+  Trace: [language callback](ui/callbacks.py),
+  [submission ownership](ui/analysis_submission_state.py), and
+  [callback and real-widget regressions](tests/regression/test_run_controller_data_source.py).
+
+- **Windows regression launcher and CI guard:** assigned `test_developer_credit.py`
+  to the fixed serial chunk manifest, restoring launcher validation before pytest.
+  Added a Windows GitHub Actions workflow that invokes the actual launcher with
+  `-ValidateChunks` on push, pull request, and manual dispatch, without installing
+  application dependencies. Missing, duplicate, and stale module assignments are
+  covered by isolated launcher tests. This CI job validates the partition; it does
+  not run the full regression suite.
+  Trace: [chunk manifest](scripts/regression_test_chunks.json),
+  [CI workflow](.github/workflows/regression-manifest.yml), and
+  [launcher regressions](tests/regression/test_regression_runner.py).
+
+Related supported-method change in the same pending batch: retired Local Best
+Station and retained explicit `local_benchmark: "local_median"` as the sole Local
+Neighborhood method in configuration, URLs, SQL, Guided/Classic inputs, results,
+and documentation. Stale `local_best` is rejected. The existing Local Median
+formula and one-contributor behavior are preserved. Classic uses compact help;
+Guided retains the visible explanation. The bilingual manuals also clarify
+changing neighborhood membership, correction assumptions, and the distinction
+between observed complete-station differences and antenna-gain claims.
+Trace: [formal schema](config/wspradar-config.schema.json),
+[reference controls](ui/components/config_panel.py),
+[method/configuration regressions](tests/regression/test_benchmark_mode_defaults.py),
+[schema regressions](tests/regression/test_json_config_schemas.py), and
+[documentation regressions](tests/regression/test_documentation_rendering.py).
+
+Implementation verification recorded on 2026-09-13: the foreground Windows
+launcher completed with **2440 passed, 1 skipped, 1 warning in 241.86 seconds**;
+the skip requires the absent generated fixture and the warning is the existing
+Matplotlib `set_bad` pending deprecation. After the final EN/DE workflow wording
+clarification, **102 documentation/rendering/PDF checks passed**. Full Python
+compilation, README synchronization, workflow YAML parsing, and `git diff --check`
+passed. The new CI workflow has been checked locally; its GitHub execution awaits
+submission. This changelog update itself changes no runtime behavior.
+
 ## 2026-08-16
 
 - Added duration-adaptive chronological aggregation to RX/TX Performance and

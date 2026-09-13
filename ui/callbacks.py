@@ -40,6 +40,7 @@ from ui.page_navigation import (
     request_page_navigation,
 )
 from ui.result_state import (
+    get_completed_run_snapshot,
     normalize_compare_station_selection_for_outlier_reporting,
     reset_result_state,
 )
@@ -273,12 +274,19 @@ def swap_tx_ab_starts(after_change=None, after_change_args=()):
     _finish_tx_ab_schedule_change(after_change, after_change_args)
 
 def update_lang():
-    """Apply the selected display language while canonical state stays unchanged."""
+    """Relocalize completed evidence, retiring any in-flight UI submission.
+
+    Preserve canonical inputs and the completed run's identity. Unfinished runs
+    without a committed snapshot require an explicit new Run action.
+    """
     new_lang = {"EN": "en", "DE": "de"}[st.session_state.lang_selector_ui]
 
     cancel_analysis_submission(st.session_state)
     st.session_state.lang = new_lang
-    st.session_state.run_mode = None
+    # The next script must retain the mode to enter completed-result validation
+    # and rendering, including when this change interrupts an earlier rerender.
+    if get_completed_run_snapshot(st.session_state) is None:
+        st.session_state.run_mode = None
 
 
 def handle_input_view_change():

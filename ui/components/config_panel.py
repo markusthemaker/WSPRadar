@@ -796,45 +796,26 @@ def render_reference_design_fields(
     on_change=handle_reference_correction_context_change,
     on_change_args=(),
     help_overrides=None,
-    local_benchmark_content=None,
     tx_ab_method_content=None,
+    should_show_local_benchmark_explanation=False,
 ):
     """Render canonical Reference fields with optional Guided choice captions."""
     help_overrides = help_overrides or {}
     comp_mode = st.session_state.get("val_comp_mode")
     analysis_direction = st.session_state.get("val_analysis_direction")
     if comp_mode == "local_neighborhood":
-        local_methods = ("local_median", "local_best")
-        local_radio_kwargs = {}
-        if local_benchmark_content is not None:
-            format_local_benchmark = (
-                lambda method: local_benchmark_content[method]["label"]
-            )
-            local_radio_kwargs = {
-                "captions": tuple(
-                    local_benchmark_content[method]["description"]
-                    for method in local_methods
-                ),
-                "width": "stretch",
-            }
-        else:
-            format_local_benchmark = lambda method: t[
-                (
-                    "opt_local_median"
-                    if method == "local_median"
-                    else "opt_local_best"
-                )
-            ]
-        st.radio(
-            t["lbl_local_benchmark"],
-            local_methods,
-            key="val_local_benchmark",
-            help=help_overrides.get("local_benchmark"),
-            on_change=on_change,
-            args=on_change_args,
-            format_func=format_local_benchmark,
-            **local_radio_kwargs,
+        st.markdown(
+            f"**{t['opt_local_median']}**",
+            help=(
+                None
+                if should_show_local_benchmark_explanation
+                else t["txt_local_median_explanation"]
+            ),
         )
+        if should_show_local_benchmark_explanation:
+            st.caption(t["txt_local_median_explanation"])
+        if st.session_state.get("val_local_benchmark", "local_median") != "local_median":
+            st.error(t["err_local_benchmark"])
         st.slider(
             t["lbl_ref_radius_km"],
             10,

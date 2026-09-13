@@ -11,7 +11,6 @@ from core.analysis_context import (
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_NONE,
     COMPARISON_REFERENCE_STATION,
-    LOCAL_BENCHMARK_BEST,
     LOCAL_BENCHMARK_MEDIAN,
 )
 from i18n import RESULT_GUIDANCE
@@ -89,8 +88,6 @@ def _comparison_benchmark_guidance_key(analysis_context):
         )
         if local_benchmark == LOCAL_BENCHMARK_MEDIAN:
             return "benchmark_local_median"
-        if local_benchmark == LOCAL_BENCHMARK_BEST:
-            return "benchmark_local_best"
         raise ValueError(f"Unsupported local benchmark: {local_benchmark}")
     raise ValueError(
         "Benchmark result guidance requires a supported comparison mode"

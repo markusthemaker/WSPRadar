@@ -12,7 +12,6 @@ from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_REFERENCE_STATION,
-    LOCAL_BENCHMARK_BEST,
     LOCAL_BENCHMARK_MEDIAN,
 )
 from i18n import T
@@ -668,7 +667,6 @@ def test_fixed_reference_grid4_is_part_of_compare_metadata(
     ("local_benchmark", "benchmark_key"),
     (
         (LOCAL_BENCHMARK_MEDIAN, "comp_title_local_median"),
-        (LOCAL_BENCHMARK_BEST, "comp_title_local_best"),
     ),
 )
 def test_local_compare_metadata_names_the_benchmark_and_radius(

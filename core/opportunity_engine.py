@@ -1,9 +1,10 @@
 """
 Opportunity-based Success analysis for WSPRadar.
 
-The server query returns one row per UTC WSPR cycle and remote
-callsign/locator identity. All scientific classification and peer-balanced
-aggregation is then performed locally from that compact evidence table.
+The server query returns one row per UTC WSPR cycle and raw remote
+callsign/locator identity. Canonical identity collisions are consolidated locally.
+All scientific classification and peer-balanced aggregation is then performed
+locally from that compact evidence table.
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ from core.math_utils import locator_to_latlon
 from core.tx_ab_schedule import tx_ab_schedule_sql
 
 
-ABSOLUTE_METHOD_VERSION = "opportunity-v1"
+ABSOLUTE_METHOD_VERSION = "opportunity-v2"
 OPPORTUNITY_SLOT_SECONDS = 120
 OPPORTUNITY_OUTCOME_CATEGORIES = ("H", "M", "T", "")
 OPPORTUNITY_QUERY_COLUMNS = (
@@ -337,6 +338,8 @@ def prepare_opportunity_rows(
 
     ``opportunity`` is independently confirmed evidence. ``target_only`` is
     retained separately and never contributes to the denominator.
+    Canonical peer-cycle collisions combine evidence flags and Target SNR by
+    maximum, preserving the server query's aggregation before classification.
     """
     required = set(OPPORTUNITY_QUERY_COLUMNS)
     if df is None or df.empty:
@@ -376,6 +379,20 @@ def prepare_opportunity_rows(
             work = work.loc[~is_target_identity].copy()
         if work.empty:
             return _empty_processed_opportunity_rows()
+
+    with _timed_span(timing_collector, "opportunity canonical peer-cycle consolidation"):
+        identity_columns = ["time_slot", "peer_sign", "peer_grid"]
+        if bool(work.duplicated(identity_columns).any()):
+            # SQL groups raw spellings; normalization can join complementary
+            # evidence. Keep its OR flags and strongest Target SNR, including
+            # missing SNR when every contributing report has no measurement.
+            work = work.groupby(
+                identity_columns, as_index=False, sort=False, observed=True,
+            ).agg(
+                target_seen=("target_seen", "max"),
+                external_seen=("external_seen", "max"),
+                target_snr=("target_snr", "max"),
+            )
 
     with _timed_span(timing_collector, "opportunity locator coordinate resolution"):
         coordinates = _locator_coordinates(work["peer_grid"])

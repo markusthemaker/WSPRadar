@@ -12,6 +12,7 @@ import threading
 import time
 from typing import NamedTuple
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -45,7 +46,7 @@ from core.fetch_models import (
     RESULT_ROW_LIMIT_EXCEEDED_CODE,
 )
 from core.provider_dispatch import ProviderRateLimitExceeded
-from core.snr_utils import round_snr_like_columns
+from core.snr_utils import SNR_VALUE_COLUMNS, round_snr_like_columns
 
 
 http_session = requests.Session()
@@ -800,6 +801,53 @@ def _normalize_csv_query_frame(frame: pd.DataFrame, *, is_demo: bool) -> pd.Data
     return round_snr_like_columns(frame, owns_input=True)
 
 
+def _validate_csv_query_numeric_values(frame: pd.DataFrame, *, is_demo: bool) -> None:
+    """Reject malformed numeric CSV values without mutating raw cache rows.
+
+    Validate both cache policies before publication or transport normalization,
+    including columns the shared SNR helper would otherwise silently coerce.
+    Missing values remain valid, for example an absent Reference statistic.
+    Invalid values or SNR rounding overflow raise a column-specific ValueError.
+    Conversion uses the established policy's widths without retaining a second
+    full frame; raw L2 precision and owned-frame normalization remain unchanged.
+    """
+    for column in frame.columns:
+        if column in _STANDARD_CSV_FLOAT_COLUMNS:
+            downcast = None if is_demo else "float"
+        elif column in _STANDARD_CSV_INTEGER_COLUMNS:
+            downcast = None if is_demo else "integer"
+        elif column in SNR_VALUE_COLUMNS:
+            downcast = None
+        else:
+            continue
+        if pd.api.types.is_bool_dtype(frame[column].dtype) or (
+            pd.api.types.is_object_dtype(frame[column].dtype)
+            and pd.api.types.infer_dtype(frame[column], skipna=True) == "boolean"
+        ):
+            raise ValueError(
+                f"ClickHouse CSV column '{column}' contains boolean numeric values"
+            )
+        try:
+            # Rounding can overflow even when the parsed source value is finite.
+            # Inspect that result explicitly instead of retaining invalid evidence.
+            with np.errstate(over="ignore", invalid="ignore"):
+                numeric_values = pd.to_numeric(
+                    frame[column], errors="raise", downcast=downcast,
+                )
+                if column in SNR_VALUE_COLUMNS:
+                    numeric_values = round_snr_like_columns(
+                        numeric_values.to_frame(), owns_input=True,
+                    )[column]
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(
+                f"ClickHouse CSV column '{column}' contains invalid numeric values"
+            ) from exc
+        if numeric_values.isin([math.inf, -math.inf]).any():
+            raise ValueError(
+                f"ClickHouse CSV column '{column}' contains infinite numeric values"
+            )
+
+
 def _parquet_result_row_count(path):
     """Read only Parquet footer metadata and return its logical row count."""
     import pyarrow.parquet as parquet
@@ -981,8 +1029,9 @@ def _fetch_wspr_data_standard(
 ):
     """Fetch source-pinned CSV rows through a byte-bounded L1 and raw disk L2.
 
-    Every accepted exact query is written through to a provider- and
-    policy-isolated raw Parquet artifact before CSV transport normalization.
+    Every accepted exact query has its numeric values validated before being
+    written through to a provider- and policy-isolated raw Parquet artifact,
+    followed by CSV transport normalization.
     Standard artifacts have sliding one-hour freshness; demos retain their
     absolute 24-hour publication deadline. Large frames remain disk-only when
     the optional process-memory L1 declines them by byte policy.
@@ -1164,11 +1213,24 @@ def _fetch_wspr_data_standard(
                 ),
             )
 
+        failure_stage = "decode_csv_response"
         try:
             frame = _read_wspr_csv_response(
                 response_buffer,
                 encoding=response_encoding,
             )
+            if len(frame) > MAX_ANALYSIS_RESULT_ROWS:
+                _result_row_limit_cache_put(
+                    cache_key,
+                    ttl_seconds=cache_ttl_seconds,
+                )
+                return _result_row_limit_error_result(
+                    sql_query,
+                    database_provider=provider,
+                    failure_stage="validate_materialized_csv_rows",
+                )
+            failure_stage = "validate_csv_response_values"
+            _validate_csv_query_numeric_values(frame, is_demo=is_demo)
         except (OSError, ValueError) as exc:
             response_buffer.seek(0)
             error_payload = response_buffer.read(_HTTP_ERROR_BODY_MAX_BYTES)
@@ -1187,21 +1249,11 @@ def _fetch_wspr_data_standard(
                     scope=FetchFailureScope.PROVIDER,
                     response_text=response_text,
                     query=sql_query,
+                    failure_stage=failure_stage,
                 ),
             )
         finally:
             response_buffer.close()
-
-        if len(frame) > MAX_ANALYSIS_RESULT_ROWS:
-            _result_row_limit_cache_put(
-                cache_key,
-                ttl_seconds=cache_ttl_seconds,
-            )
-            return _result_row_limit_error_result(
-                sql_query,
-                database_provider=provider,
-                failure_stage="validate_materialized_csv_rows",
-            )
 
         try:
             with ARTIFACT_STORE.atomic_output_path(cache_path) as temporary_path:
@@ -1254,11 +1306,10 @@ def _read_raw_query_parquet(path) -> pd.DataFrame:
 
 
 def _read_csv_query_parquet(path, *, is_demo: bool) -> pd.DataFrame:
-    """Read raw CSV query rows and reapply their policy-specific normalization."""
-    return _normalize_csv_query_frame(
-        _read_raw_query_parquet(path),
-        is_demo=is_demo,
-    )
+    """Validate raw cached CSV values before policy-specific normalization."""
+    frame = _read_raw_query_parquet(path)
+    _validate_csv_query_numeric_values(frame, is_demo=is_demo)
+    return _normalize_csv_query_frame(frame, is_demo=is_demo)
 
 
 def _read_query_parquet(path, *, downcast_integer_columns=True):

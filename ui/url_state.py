@@ -39,6 +39,7 @@ from config.delta_snr_outlier import (
 from core.time_utils import format_utc_minute, parse_utc_minute
 from ui.analysis_submission_state import begin_analysis_submission
 from ui.config_io import (
+    LocalBenchmarkValidationError,
     apply_config_state_values,
     apply_config_values_to_state,
     build_config_settings_from_state,
@@ -885,6 +886,8 @@ def build_config_from_url(parameters: Mapping[str, str]) -> dict[str, Any]:
         _require_complete_normalized_config(normalized_config)
     except UrlStateError:
         raise
+    except LocalBenchmarkValidationError as error:
+        raise UrlStateError("invalid_local_benchmark", str(error)) from error
     except ValueError as error:
         raise UrlStateError(
             "invalid",

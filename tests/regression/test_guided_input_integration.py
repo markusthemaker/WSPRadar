@@ -11,6 +11,7 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 from i18n import GUIDED_INPUTS, T
@@ -443,9 +444,8 @@ def test_guided_reference_subchoices_move_into_shared_caption_controls(
         markdown.assert_called_once_with("**Reference designs**")
         caption.assert_not_called()
         keyword_args = shared_reference_fields.call_args.kwargs
-        assert keyword_args["local_benchmark_content"] is (
-            GUIDED_INPUTS["en"]["options"]["local_benchmark"]
-        )
+        assert "local_benchmark_content" not in keyword_args
+        assert keyword_args["should_show_local_benchmark_explanation"] is True
         assert keyword_args["tx_ab_method_content"] is (
             GUIDED_INPUTS["en"]["options"]["tx_ab_method"]
         )
@@ -1031,9 +1031,13 @@ def test_scope_panel_always_shows_active_controls_without_preset_choice(monkeypa
     assert len(caption.call_args_list) == 3
 
 
-def test_custom_scope_panel_shows_only_relevant_evidence_guidance(monkeypatch):
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_custom_scope_panel_shows_only_relevant_evidence_guidance(
+    monkeypatch,
+    language,
+):
     """Explain Performance or Benchmark thresholds for the active result."""
-    messages = GUIDED_INPUTS["en"]["messages"]
+    messages = GUIDED_INPUTS[language]["messages"]
     cases = (
         (
             "none",
@@ -1080,7 +1084,9 @@ def test_custom_scope_panel_shows_only_relevant_evidence_guidance(monkeypatch):
             render_outlier_reporting,
         )
 
-        renderer._render_scope_and_evidence_fields(T["en"], GUIDED_INPUTS["en"])
+        renderer._render_scope_and_evidence_fields(
+            T[language], GUIDED_INPUTS[language]
+        )
 
         captions = [call.args[0] for call in caption.call_args_list]
         assert messages[expected_key] in captions
@@ -1755,7 +1761,7 @@ def test_returning_from_classic_reconstructs_guided_state_without_resetting_resu
         guided_collapse_all=True,
         val_analysis_direction="tx",
         val_comp_mode="local_neighborhood",
-        val_local_benchmark="local_best",
+        val_local_benchmark="local_median",
         val_ref_radius_km=250,
         val_benchmark_offset_db=0.0,
         result_export_blocks={"benchmark": ["retained"]},

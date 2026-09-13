@@ -1,8 +1,11 @@
+from contextlib import closing
 from datetime import datetime, timezone
+import sqlite3
 
 import numpy as np
 import pandas as pd
 import pytest
+from pyproj import Geod
 
 from core.analysis_context import (
     AnalysisContext,
@@ -13,6 +16,7 @@ from core.analysis_context import (
 )
 from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
 from core.geographic_scope import (
+    build_neighborhood_bounding_box,
     filter_peer_rows_by_distance,
     great_circle_distances_km,
     validate_max_peer_distance_km,
@@ -279,3 +283,297 @@ def test_opportunity_rows_are_scoped_before_the_processed_result_is_returned():
     assert warning is None
     assert filtered["peer_sign"].astype(str).tolist() == ["K1AAA"]
     assert filtered["outcome"].astype(str).tolist() == ["H"]
+
+
+def _select_neighborhood_coordinates_with_sql(
+    bounding_box,
+    coordinates,
+    *,
+    coordinate_prefix="tx",
+):
+    """Execute the generated predicate against bound station coordinates."""
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.execute(
+            "CREATE TABLE stations (station_id INTEGER, tx_lat REAL, "
+            "tx_lon REAL, rx_lat REAL, rx_lon REAL, is_reference INTEGER)"
+        )
+        station_rows = [
+            (station_id, latitude, longitude, latitude, longitude, 1)
+            for station_id, (latitude, longitude) in enumerate(coordinates)
+        ]
+        # Excluded duplicates on each wrapped side expose an ungrouped SQL OR.
+        station_rows.extend(
+            (-station_id - 1, latitude, longitude, latitude, longitude, 0)
+            for station_id, (latitude, longitude) in enumerate(coordinates)
+        )
+        connection.executemany(
+            "INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?)",
+            station_rows,
+        )
+        bounding_predicate = bounding_box.to_sql(
+            f"{coordinate_prefix}_lat",
+            f"{coordinate_prefix}_lon",
+        )
+        return [
+            station_id
+            for (station_id,) in connection.execute(
+                "SELECT station_id FROM stations WHERE is_reference = 1 AND "
+                + bounding_predicate
+                + " ORDER BY station_id"
+            )
+        ]
+
+
+@pytest.mark.parametrize("coordinate_prefix", ["tx", "rx"])
+@pytest.mark.parametrize("center_longitude", [-179.0, 179.0])
+def test_neighborhood_prefilter_keeps_references_across_the_date_line(
+    coordinate_prefix,
+    center_longitude,
+):
+    """Retain the reported 139 km Reference and reject distant coordinates."""
+    bounding_box = build_neighborhood_bounding_box(
+        center_latitude=51.5,
+        center_longitude=center_longitude,
+        radius_km=200,
+    )
+    _, _, reference_distance_m = Geod(ellps="WGS84").inv(
+        center_longitude,
+        51.5,
+        -center_longitude,
+        51.5,
+    )
+    coordinates = [
+        (51.5, center_longitude),
+        (51.5, -center_longitude),
+        (51.5, -180.0),
+        (51.5, 180.0),
+        (51.5, 0.0),
+        (40.0, -center_longitude),
+    ]
+
+    assert reference_distance_m < 200_000
+    assert len(bounding_box.longitude_ranges) == 2
+    assert _select_neighborhood_coordinates_with_sql(
+        bounding_box,
+        coordinates,
+        coordinate_prefix=coordinate_prefix,
+    ) == [0, 1, 2, 3]
+
+
+@pytest.mark.parametrize("coordinate_prefix", ["tx", "rx"])
+def test_neighborhood_prefilter_treats_both_date_line_centers_equally(
+    coordinate_prefix,
+):
+    """Both legal representations of the date line describe the same region."""
+    coordinates = [
+        (0.0, -180.0),
+        (0.0, 180.0),
+        (0.0, -179.95),
+        (0.0, 179.95),
+        (0.0, -179.0),
+        (0.0, 179.0),
+        (1.0, 180.0),
+    ]
+    for center_longitude in (-180.0, 180.0):
+        bounding_box = build_neighborhood_bounding_box(
+            center_latitude=0.0,
+            center_longitude=center_longitude,
+            radius_km=10,
+        )
+        assert _select_neighborhood_coordinates_with_sql(
+            bounding_box,
+            coordinates,
+            coordinate_prefix=coordinate_prefix,
+        ) == [0, 1, 2, 3]
+
+
+@pytest.mark.parametrize("center_latitude", [-90.0, -89.9, 89.9, 90.0])
+@pytest.mark.parametrize("coordinate_prefix", ["tx", "rx"])
+def test_neighborhood_prefilter_allows_all_longitudes_when_a_pole_is_reached(
+    center_latitude,
+    coordinate_prefix,
+):
+    """Longitude must not remove nearby stations in a pole-spanning cap."""
+    bounding_box = build_neighborhood_bounding_box(
+        center_latitude=center_latitude,
+        center_longitude=40.0,
+        radius_km=100,
+    )
+    pole_latitude = 90.0 if center_latitude > 0.0 else -90.0
+    coordinates = [
+        (pole_latitude, longitude)
+        for longitude in (-180.0, -90.0, 0.0, 90.0, 180.0)
+    ]
+    coordinates.append((0.0, 40.0))
+
+    assert bounding_box.longitude_ranges == ()
+    assert -90.0 <= bounding_box.minimum_latitude
+    assert bounding_box.maximum_latitude <= 90.0
+    assert _select_neighborhood_coordinates_with_sql(
+        bounding_box,
+        coordinates,
+        coordinate_prefix=coordinate_prefix,
+    ) == list(range(5))
+
+
+@pytest.mark.parametrize("latitude_sign", [-1.0, 1.0])
+def test_neighborhood_prefilter_keeps_high_latitude_longitude_extremes(
+    latitude_sign,
+):
+    """Keep a 248.94 km station beyond the former 25.84-degree half-width."""
+    center_latitude = latitude_sign * 85.0
+    reference_latitude = latitude_sign * 85.5
+    _, _, reference_distance_m = Geod(ellps="WGS84").inv(
+        0.0,
+        center_latitude,
+        26.5,
+        reference_latitude,
+    )
+    bounding_box = build_neighborhood_bounding_box(
+        center_latitude=center_latitude,
+        center_longitude=0.0,
+        radius_km=250,
+    )
+
+    assert reference_distance_m == pytest.approx(248_941.64, abs=0.01)
+    assert _select_neighborhood_coordinates_with_sql(
+        bounding_box,
+        [(reference_latitude, -26.5), (reference_latitude, 26.5)],
+    ) == [0, 1]
+
+
+@pytest.mark.parametrize("radius_km", [10, 100, 200, 250])
+@pytest.mark.parametrize(
+    ("center_latitude", "center_longitude"),
+    [
+        (0.0, 0.0),
+        (0.0, -180.0),
+        (0.0, 180.0),
+        (47.0, 8.0),
+        (-47.0, -8.0),
+        (51.5, 179.0),
+        (51.5, -179.0),
+        (85.0, 0.0),
+        (-85.0, 0.0),
+        (88.0, 179.0),
+        (-88.0, -179.0),
+        (89.95, -120.0),
+        (-89.95, 120.0),
+        (90.0, 0.0),
+        (-90.0, 0.0),
+    ],
+)
+def test_neighborhood_prefilter_contains_wgs84_circle_and_interior(
+    center_latitude,
+    center_longitude,
+    radius_km,
+):
+    """An independent ellipsoidal oracle probes bearings and radius fractions."""
+    bounding_box = build_neighborhood_bounding_box(
+        center_latitude=center_latitude,
+        center_longitude=center_longitude,
+        radius_km=radius_km,
+    )
+    geodesic = Geod(ellps="WGS84")
+    coordinates = [(center_latitude, center_longitude)]
+    for radius_fraction in (0.25, 0.5, 0.75, 0.999999, 1.0):
+        for azimuth_degrees in range(0, 360, 5):
+            reference_longitude, reference_latitude, _ = geodesic.fwd(
+                center_longitude,
+                center_latitude,
+                azimuth_degrees,
+                radius_fraction * radius_km * 1000,
+            )
+            coordinates.append((reference_latitude, reference_longitude))
+
+    assert _select_neighborhood_coordinates_with_sql(
+        bounding_box,
+        coordinates,
+    ) == list(range(len(coordinates)))
+
+
+def test_neighborhood_prefilter_retains_a_narrow_ordinary_bounding_box():
+    """The corrected prefilter still discards distant rows before distance work."""
+    bounding_box = build_neighborhood_bounding_box(
+        center_latitude=0.0,
+        center_longitude=0.0,
+        radius_km=100,
+    )
+    coordinates = [(0.0, 0.0), (0.8, 0.8), (1.0, 0.0), (0.0, 1.0)]
+
+    assert len(bounding_box.longitude_ranges) == 1
+    # The rectangle intentionally admits a corner outside the 100 km circle;
+    # the existing authoritative geoDistance predicate removes that candidate.
+    assert _select_neighborhood_coordinates_with_sql(
+        bounding_box,
+        coordinates,
+    ) == [0, 1]
+
+
+@pytest.mark.parametrize(
+    "invalid_radius_km",
+    [True, np.bool_(False), 0, -1, np.nan, np.inf, -np.inf, 251, None, "invalid"],
+)
+def test_neighborhood_prefilter_rejects_invalid_radius_at_core_boundary(
+    invalid_radius_km,
+):
+    with pytest.raises(ValueError):
+        build_neighborhood_bounding_box(
+            center_latitude=0.0,
+            center_longitude=0.0,
+            radius_km=invalid_radius_km,
+        )
+
+
+@pytest.mark.parametrize(
+    ("coordinate_name", "invalid_coordinate"),
+    [
+        ("center_latitude", -90.01),
+        ("center_latitude", 90.01),
+        ("center_longitude", -180.01),
+        ("center_longitude", 180.01),
+        ("center_latitude", True),
+        ("center_longitude", np.bool_(False)),
+        ("center_latitude", np.nan),
+        ("center_longitude", np.nan),
+        ("center_latitude", np.inf),
+        ("center_longitude", -np.inf),
+        ("center_latitude", None),
+        ("center_longitude", "invalid"),
+    ],
+)
+def test_neighborhood_prefilter_rejects_invalid_coordinates_at_core_boundary(
+    coordinate_name,
+    invalid_coordinate,
+):
+    arguments = {
+        "center_latitude": 0.0,
+        "center_longitude": 0.0,
+        "radius_km": 100,
+        coordinate_name: invalid_coordinate,
+    }
+    with pytest.raises(ValueError):
+        build_neighborhood_bounding_box(**arguments)
+
+
+@pytest.mark.parametrize(
+    ("latitude_column", "longitude_column"),
+    [
+        ("tx_lat", "rx_lon"),
+        ("rx_lat", "tx_lon"),
+        ("peer_lat", "peer_lon"),
+        ("tx_lat OR 1=1", "tx_lon"),
+        ("rx_lat", "rx_lon); DROP TABLE stations; --"),
+    ],
+)
+def test_neighborhood_prefilter_rejects_unapproved_sql_coordinate_columns(
+    latitude_column,
+    longitude_column,
+):
+    bounding_box = build_neighborhood_bounding_box(
+        center_latitude=0.0,
+        center_longitude=0.0,
+        radius_km=10,
+    )
+    with pytest.raises(ValueError):
+        bounding_box.to_sql(latitude_column, longitude_column)

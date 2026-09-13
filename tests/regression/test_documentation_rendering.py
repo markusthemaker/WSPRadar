@@ -594,8 +594,7 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
         "Did two local receive paths differ while observing the same remote transmissions?",
         "Did two local transmit paths differ under simultaneous or tightly scheduled operation?",
         "How does my complete station compare with one known station?",
-        "How does my station compare with the typical active WSPR group nearby?",
-        "How does my station compare with the strongest active nearby peer available on each path and cycle?",
+        "How does my complete station compare with the observed nearby WSPR peers?",
     ):
         assert operating_question in DOC_EN
     for benchmark_family, benchmark_variant in (
@@ -603,14 +602,13 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
         ("TX Benchmark", "Hardware A/B"),
         ("RX/TX Benchmark", "Reference Station / Buddy Test"),
         ("RX/TX Benchmark", "Local Median Neighborhood"),
-        ("RX/TX Benchmark", "Local Best Station"),
     ):
         assert (
             f'<span class="analysis-family">{benchmark_family}</span><br>'
             f'<strong class="analysis-variant">{benchmark_variant}</strong>'
             in DOC_EN
         )
-    assert DOC_EN.count('class="analysis-choice"') == 5
+    assert DOC_EN.count('class="analysis-choice"') == 4
     assert DOC_EN.count('class="analysis-choice-single"') == 2
     for scientific_safeguard in (
         "as complete receive paths",
@@ -619,8 +617,8 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
         "without treating the Buddy as an absolute calibrated standard",
         "cycle- and path-specific median",
         "checking neighborhood membership and radius sensitivity",
-        "in comparable repeat runs",
-        "without treating the result as a ranking against one permanent competitor or a stable calibrated baseline",
+        "complete stations under the observed conditions",
+        "does not isolate antenna gain or rank all nearby stations",
     ):
         assert scientific_safeguard in DOC_EN
     assert "Benchmark —" not in DOC_EN[: DOC_EN.index('<a id="sec-1-3"></a>')]
@@ -630,6 +628,140 @@ def test_english_preface_numbering_and_key_defined_terms_are_explicit():
     assert '<strong class="defined-term">Target</strong>' in DOC_EN
     assert '<strong class="defined-term">Reference</strong>' in DOC_EN
     assert '<strong class="defined-term">Performance</strong>' in DOC_EN
+
+
+@pytest.mark.parametrize("documentation_text", (DOC_EN, DOC_DE), ids=("en", "de"))
+def test_local_neighborhood_manuals_present_only_the_median_method(documentation_text):
+    """Keep the supported local design and remove its obsolete alternative and selector."""
+    for retired_term in (
+        "Local Best Station",
+        "Beste lokale Station",
+        "besten lokalen Station",
+        "Local Median/Best",
+        "Median- und Best-Peer",
+        "sec-3-rx-benchmark-local-best",
+        "sec-3-tx-benchmark-local-best",
+        "**Local Benchmark Method**",
+        "**Lokale Benchmark-Methode**",
+    ):
+        assert retired_term not in documentation_text
+    assert documentation_text.count('class="analysis-choice"') == 4
+    assert '<a id="sec-3-rx-benchmark-local-median"></a>' in documentation_text
+    assert '<a id="sec-3-tx-benchmark-local-median"></a>' in documentation_text
+
+
+@pytest.mark.parametrize(
+    ("documentation_text", "required_meaning"),
+    (
+        (
+            DOC_EN,
+            {
+                "rx": (
+                    "same remote transmitter in the same WSPR cycle",
+                    "Paired Delta SNR additionally requires a qualifying Target report",
+                    "complete installed receiving stations",
+                    "local noise and interference",
+                    "only one contributing receiver",
+                    "does not establish that its antenna has a corresponding gain advantage",
+                ),
+                "tx": (
+                    "same remote receiver during the same WSPR cycle",
+                    "not every nearby transmitter or every attempted transmission",
+                    "does not verify actual transmitter power",
+                    "unknown feedline losses",
+                    "only one contributing transmitter",
+                    "For a confirmatory run",
+                ),
+                "method": (
+                    "within-identity median",
+                    "Target-side consolidation retains the strongest",
+                    "full reported locator",
+                    "independent physical sites",
+                    "no separate minimum number of local contributors",
+                    "With no contributors, no Reference SNR or paired Delta SNR",
+                    "do not impose a minimum neighborhood size",
+                    "selection effects or dependence between observations",
+                ),
+                "correction": (
+                    "use `0.0 dB` when no independently justified correction",
+                    "same additive offset applies to the contributing Reference population",
+                    "does not establish calibration",
+                    "different unknown errors in individual neighboring stations",
+                ),
+                "claims": (
+                    "neither a permanent station ranking nor a calibrated antenna comparison",
+                    "Joint Evidence Share describes pairability or coverage",
+                    "not a Target win rate",
+                    "within-run consistency",
+                    "does not isolate antenna gain",
+                ),
+            },
+        ),
+        (
+            DOC_DE,
+            {
+                "rx": (
+                    "desselben entfernten Senders im selben WSPR-Zyklus",
+                    "Gepaartes Delta SNR erfordert zusätzlich eine qualifizierende Target-Meldung",
+                    "vollständig aufgebaute Empfangsstationen",
+                    "lokales Rauschen und Störungen",
+                    "nur einem beitragenden Empfänger",
+                    "keinen entsprechenden Gewinnvorteil ihrer Antenne",
+                ),
+                "tx": (
+                    "derselbe entfernte Empfänger während desselben WSPR-Zyklus",
+                    "nicht jeden Sender in der Umgebung oder jeden Sendeversuch",
+                    "überprüft weder die tatsächliche Senderleistung",
+                    "unbekannte Speiseleitungsverluste",
+                    "nur einem beitragenden Sender",
+                    "für einen bestätigenden Lauf",
+                ),
+                "method": (
+                    "Median innerhalb dieser Identität",
+                    "Zusammenführung auf der Target-Seite behält das stärkste",
+                    "vollständig gemeldetem Locator",
+                    "unabhängiger physischer Standorte",
+                    "keine gesonderte Mindestzahl lokaler Beitragender",
+                    "Ohne Beitragende steht weder ein Referenz-SNR noch gepaartes Delta SNR",
+                    "keine Mindestgröße der Nachbarschaft",
+                    "Selektionseffekte oder Abhängigkeiten zwischen Beobachtungen",
+                ),
+                "correction": (
+                    "`0.0 dB`, wenn keine unabhängig begründete Korrektur",
+                    "derselbe additive Offset unter den ausgewählten Bedingungen für die beitragende Referenzpopulation gilt",
+                    "begründet keine Kalibrierung",
+                    "unterschiedliche unbekannte Fehler einzelner Nachbarstationen",
+                ),
+                "claims": (
+                    "weder eine dauerhafte Stationsrangliste noch ein kalibrierter Antennenvergleich",
+                    "Joint-Evidenzanteil beschreibt Paarbarkeit oder Abdeckung",
+                    "keine Gewinnrate des Targets",
+                    "Konsistenz innerhalb eines Laufs",
+                    "isoliert keinen Antennengewinn",
+                ),
+            },
+        ),
+    ),
+    ids=("en", "de"),
+)
+def test_local_median_manuals_bound_observation_selection_and_station_claims(
+    documentation_text, required_meaning
+):
+    """Keep RX/TX selection, weighting, correction and claim limits in their content homes."""
+    section_anchors = {
+        "rx": ("sec-3-rx-benchmark-local-median", "sec-3-tx-benchmark"),
+        "tx": ("sec-3-tx-benchmark-local-median", "sec-outlier"),
+        "method": ("sec-7-7", "sec-7-8"),
+        "correction": ("sec-5-3", "sec-5-4"),
+        "claims": ("sec-8-1", "sec-8-2"),
+    }
+    for meaning_scope, required_fragments in required_meaning.items():
+        start_anchor, end_anchor = section_anchors[meaning_scope]
+        section_text = documentation_text.split(
+            f'<a id="{start_anchor}"></a>', 1
+        )[1].split(f'<a id="{end_anchor}"></a>', 1)[0]
+        for required_fragment in required_fragments:
+            assert required_fragment in section_text, (meaning_scope, required_fragment)
 
 
 def test_english_evidence_path_is_a_defined_term_in_both_guide_locations():
@@ -655,7 +787,7 @@ def test_english_section_two_conclusions_use_scoped_callout_markup():
     )
     conclusion_opening = '<blockquote class="evidence-conclusion">'
 
-    assert section_two.count(conclusion_opening) == 11
+    assert section_two.count(conclusion_opening) == 9
     assert conclusion_opening not in before_section_two
     assert conclusion_opening not in section_three_and_later
 
@@ -1338,6 +1470,55 @@ def test_bilingual_manuals_require_map_values_to_be_read_with_support():
     assert "Lies die Sektorfarbe stets zusammen mit der Unterstützung" in DOC_DE
     assert "noch keine Schlussfolgerung" in DOC_DE
     assert "Sektorfarbe die stationsgleichgewichtete Dekodierrate" in DOC_DE
+
+
+@pytest.mark.parametrize(
+    ("documentation_text", "required_meaning"),
+    [
+        (
+            DOC_EN,
+            (
+                "callsign + full reported locator",
+                "Each identity must separately meet",
+                "minimum complete Scheduled-Pair count",
+                "exactly the identities counted",
+                "only one-sided evidence do not contribute",
+                "same callsign at different full locators counts separately",
+                "does not establish independent physical stations or sites",
+                "segment median of `+3 dB` and support count `2`",
+                "minimum of three does not",
+            ),
+        ),
+        (
+            DOC_DE,
+            (
+                "Rufzeichen + vollständig gemeldeter Locator",
+                "Jede Identität muss für sich",
+                "an vollständigen geplanten Paaren erfüllen",
+                "Genau die Identitäten",
+                "ausschließlich einseitiger Evidenz tragen nicht",
+                "unterschiedlichen vollständigen Locatorn zählt getrennt",
+                "keine unabhängigen physischen Stationen oder Standorte",
+                "Segmentmedian von `+3 dB` und eine Unterstützungszahl von `2`",
+                "Mindestanzahl von drei nicht",
+            ),
+        ),
+    ],
+    ids=["en", "de"],
+)
+def test_benchmark_manuals_use_one_identity_for_weighting_and_segment_support(
+    documentation_text,
+    required_meaning,
+):
+    """Keep identity, paired qualification and physical-independence limits explicit."""
+    aggregation_section = documentation_text.split(
+        '<a id="sec-7-7"></a>', 1
+    )[1].split('<a id="sec-7-8"></a>', 1)[0]
+
+    for required_fragment in required_meaning:
+        assert required_fragment in aggregation_section
+    for example_locator in ("JO31AA", "JO31AB"):
+        assert example_locator in aggregation_section
 
 
 def test_bilingual_manuals_explain_station_and_observation_benchmark_weighting():

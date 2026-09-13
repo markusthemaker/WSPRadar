@@ -433,20 +433,6 @@ def test_condition_engine_rejects_an_unsupported_condition():
             ),
         ),
         (
-            "rx_benchmark",
-            "local_neighborhood",
-            "local_best",
-            "simultaneous",
-            "no_offset",
-            (
-                "use_case",
-                "target_and_window",
-                "reference_design",
-                "scope_and_evidence",
-                "review_and_run",
-            ),
-        ),
-        (
             "tx_benchmark",
             "hardware_ab",
             "local_median",
@@ -512,7 +498,6 @@ def test_condition_engine_rejects_an_unsupported_condition():
         "rx-hardware-no-offset",
         "rx-reference-established-offset",
         "rx-local-median",
-        "rx-local-best",
         "tx-hardware-simultaneous-establish-offset",
         "tx-hardware-sequential",
         "tx-reference",
@@ -699,10 +684,13 @@ def test_completion_rules_cover_absolute_time_and_reference_subbranches():
     local_state = _complete_state(
         val_comp_mode="local_neighborhood",
         guided_reference_design="local_neighborhood",
-        val_local_benchmark="local_best",
+        val_local_benchmark="local_median",
         val_ref_radius_km=250,
     )
     assert is_guided_node_complete("reference_design", local_state)
+    local_state["val_local_benchmark"] = "local_best"
+    assert not is_guided_node_complete("reference_design", local_state)
+    local_state["val_local_benchmark"] = "local_median"
     local_state["val_ref_radius_km"] = 255
     assert not is_guided_node_complete("reference_design", local_state)
 

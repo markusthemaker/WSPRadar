@@ -114,6 +114,8 @@ def reference_review_value(
         )
     if benchmark_mode == "local_neighborhood":
         local_method = state.get("val_local_benchmark", "local_median")
+        if local_method != "local_median":
+            return "—"
         return (
             f"{options['local_benchmark'][local_method]['label']} · "
             f"{state.get('val_ref_radius_km', 100)} km"

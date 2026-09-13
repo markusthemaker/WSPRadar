@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path, PurePosixPath
+import shutil
+import subprocess
+
+import pytest
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -105,6 +110,72 @@ def test_windows_launcher_bypasses_policy_only_for_the_checked_in_runner():
     assert '"%~dp0run_regression.ps1" %*' in launcher_source
     assert "exit /b %ERRORLEVEL%" in launcher_source
     assert "Set-ExecutionPolicy" not in launcher_source
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Exercises the native Windows launcher")
+@pytest.mark.parametrize(
+    ("manifest_change", "expected_error"),
+    (
+        ("none", None),
+        ("unassigned", "unassigned:"),
+        ("duplicate", "assigned more than once:"),
+        ("stale", "missing or stale:"),
+    ),
+)
+def test_windows_manifest_validation_needs_no_venv_and_propagates_failures(
+    tmp_path, manifest_change, expected_error
+):
+    """Exercise the CI command against valid and broken isolated checkouts."""
+
+    checkout_root = tmp_path / "checkout with spaces"
+    scripts_root = checkout_root / "scripts"
+    scripts_root.mkdir(parents=True)
+    shutil.copy2(RUNNER_PATH, scripts_root / RUNNER_PATH.name)
+    shutil.copy2(WINDOWS_LAUNCHER_PATH, scripts_root / WINDOWS_LAUNCHER_PATH.name)
+
+    manifest = _load_chunk_manifest()
+    for chunk in manifest["chunks"]:
+        for relative_test_path in chunk["tests"]:
+            test_path = checkout_root / relative_test_path
+            test_path.parent.mkdir(parents=True, exist_ok=True)
+            test_path.touch()
+
+    if manifest_change == "unassigned":
+        # Cover pytest's other default discovery pattern as well as test_*.py.
+        (checkout_root / "tests/regression/unassigned_test.py").touch()
+    elif manifest_change == "duplicate":
+        manifest["chunks"][1]["tests"].append(manifest["chunks"][0]["tests"][0])
+    elif manifest_change == "stale":
+        manifest["chunks"][0]["tests"].append("tests/regression/test_missing.py")
+
+    (scripts_root / MANIFEST_PATH.name).write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    assert not (checkout_root / ".venv").exists()
+
+    validation = subprocess.run(
+        [
+            os.environ.get("COMSPEC", "cmd.exe"),
+            "/d",
+            "/c",
+            r"scripts\run_regression.cmd",
+            "-ValidateChunks",
+        ],
+        cwd=checkout_root,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    validation_output = validation.stdout + validation.stderr
+
+    if expected_error is None:
+        assert validation.returncode == 0, validation_output
+        assert "Regression chunk manifest valid:" in validation_output
+    else:
+        assert validation.returncode != 0, validation_output
+        assert expected_error in validation_output
+    assert "Repository Python interpreter not found" not in validation_output
 
 
 def test_contributor_guidance_uses_foreground_and_scopes_costly_tests():

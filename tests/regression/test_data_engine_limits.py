@@ -104,6 +104,202 @@ def test_csv_fetch_avoids_arrow_parser(monkeypatch):
     assert parse_kwargs["engine"] == "c"
 
 
+@pytest.mark.parametrize("is_demo", [False, True])
+@pytest.mark.parametrize(
+    "column",
+    [
+        "snr", "power", "stat_val", "snr_u_norm", "snr_r_norm",
+        "peer_lat", "peer_lon", "best_ref_dist", "has_u", "has_r",
+        "is_me", "time_slot", "spot_diff",
+    ],
+)
+def test_csv_malformed_numeric_values_are_provider_errors_before_caching(
+    tmp_path, monkeypatch, is_demo, column,
+):
+    """Reject the entire response before malformed evidence enters either tier."""
+    query = "SELECT malformed_numeric_values FORMAT CSVWithNames"
+    payload = f"peer_sign,{column}\nK1AAA,broken\n".encode("utf-8")
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session, "get",
+        lambda *_args, **_kwargs: _StreamingResponse([payload]),
+    )
+    monkeypatch.setattr(
+        data_engine.pd.DataFrame, "to_parquet",
+        lambda *_args, **_kwargs: pytest.fail("malformed rows reached disk publication"),
+    )
+
+    result = data_engine.fetch_wspr_data(query, is_demo=is_demo)
+
+    assert result.dataframe is None
+    assert result.error.code == "decode_error"
+    assert result.error.scope == FetchFailureScope.PROVIDER
+    assert result.error.failure_stage == "validate_csv_response_values"
+    assert column in result.error.message
+    assert result.error.response_text == payload.decode("utf-8")
+    assert result.database_source == DatabaseSource.WSPR_LIVE
+    assert not data_engine._query_cache_path(query, is_demo=is_demo).exists()
+    assert not data_engine._dataframe_cache
+
+
+@pytest.mark.parametrize("is_demo", [False, True])
+@pytest.mark.parametrize("numeric_text", ["inf", "-Infinity", "1e400", "1e308"])
+def test_csv_nonfinite_numeric_values_are_rejected(
+    tmp_path, monkeypatch, is_demo, numeric_text,
+):
+    """An infinite or overflowing statistic cannot become usable evidence."""
+    query = "SELECT nonfinite_statistic FORMAT CSVWithNames"
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session, "get",
+        lambda *_args, **_kwargs: _StreamingResponse([
+            f"peer_sign,stat_val\nK1AAA,{numeric_text}\n".encode("utf-8"),
+        ]),
+    )
+
+    result = data_engine.fetch_wspr_data(query, is_demo=is_demo)
+
+    assert result.dataframe is None
+    assert result.error.scope == FetchFailureScope.PROVIDER
+    assert result.error.code == "decode_error"
+    assert "stat_val" in result.error.message
+    assert not data_engine._query_cache_path(query, is_demo=is_demo).exists()
+    assert not data_engine._dataframe_cache
+
+
+@pytest.mark.parametrize("is_demo", [False, True])
+@pytest.mark.parametrize("numeric_text", ["True", "False"])
+@pytest.mark.parametrize("has_missing_value", [False, True])
+def test_csv_boolean_statistics_are_provider_errors(
+    tmp_path, monkeypatch, is_demo, numeric_text, has_missing_value,
+):
+    """CSV boolean inference must not turn nonnumeric statistics into evidence."""
+    query = "SELECT boolean_statistic FORMAT CSVWithNames"
+    payload = f"peer_sign,stat_val\nK1AAA,{numeric_text}\n"
+    if has_missing_value:
+        payload += "K2BBB,\n"
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(
+        data_engine.http_session, "get",
+        lambda *_args, **_kwargs: _StreamingResponse([
+            payload.encode("utf-8"),
+        ]),
+    )
+
+    result = data_engine.fetch_wspr_data(query, is_demo=is_demo)
+
+    assert result.dataframe is None
+    assert result.error.code == "decode_error"
+    assert result.error.scope == FetchFailureScope.PROVIDER
+    assert "stat_val" in result.error.message
+    assert not data_engine._query_cache_path(query, is_demo=is_demo).exists()
+    assert not data_engine._dataframe_cache
+
+
+@pytest.mark.parametrize("is_demo", [False, True])
+def test_csv_missing_reference_values_preserve_raw_precision_and_cache_parity(
+    tmp_path, monkeypatch, is_demo,
+):
+    """Missing Reference evidence remains missing through direct, RAM and L2 reads."""
+    query = "SELECT missing_reference FORMAT CSVWithNames"
+    requested_urls = []
+
+    def fake_get(url, **_kwargs):
+        requested_urls.append(url)
+        return _StreamingResponse([
+            b"peer_sign,stat_val,snr_r_norm,best_ref_dist,has_u,has_r\n"
+            b"K1AAA,-12.34567,NaN,,1,0\n",
+        ])
+
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", fake_get)
+
+    direct_result = data_engine.fetch_wspr_data(query, is_demo=is_demo)
+    cache_path = data_engine._query_cache_path(query, is_demo=is_demo)
+    raw_frame = pd.read_parquet(cache_path)
+    _anchor_fresh_cache_mtime(cache_path)
+    memory_result = data_engine.fetch_wspr_data(query, is_demo=is_demo)
+    data_engine._dataframe_cache.clear()
+    disk_result = data_engine.fetch_wspr_data(query, is_demo=is_demo)
+
+    assert len(requested_urls) == 1
+    assert raw_frame.loc[0, "stat_val"] == pytest.approx(-12.34567)
+    assert str(raw_frame["stat_val"].dtype) == "float64"
+    assert memory_result.source == FetchSource.MEMORY_CACHE
+    assert disk_result.source == FetchSource.DISK_CACHE
+    for result in (direct_result, memory_result, disk_result):
+        assert result.error is None
+        assert result.dataframe.loc[0, "stat_val"] == pytest.approx(-12.3)
+        assert pd.isna(result.dataframe.loc[0, "snr_r_norm"])
+        assert pd.isna(result.dataframe.loc[0, "best_ref_dist"])
+        assert str(result.dataframe["stat_val"].dtype) == (
+            "float64" if is_demo else "float32"
+        )
+    pd.testing.assert_frame_equal(direct_result.dataframe, disk_result.dataframe)
+    pd.testing.assert_frame_equal(direct_result.dataframe, memory_result.dataframe)
+
+
+@pytest.mark.parametrize("is_demo", [False, True])
+def test_csv_invalid_cached_numeric_values_require_reserved_refetch(
+    tmp_path, monkeypatch, is_demo,
+):
+    """Evict invalid old L2 rows and replan capacity without blaming the provider."""
+    query = "SELECT corrupt_numeric_cache FORMAT CSVWithNames"
+    provider = WSPR_DATABASE_PROVIDERS[0]
+    monkeypatch.setattr(data_engine, "CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    cache_path = data_engine._query_cache_path(query, is_demo=is_demo)
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame({"peer_sign": ["K1AAA"], "stat_val": ["broken"]}).to_parquet(
+        cache_path, index=False,
+    )
+    _anchor_fresh_cache_mtime(cache_path)
+    monkeypatch.setattr(
+        data_engine.http_session, "get",
+        lambda *_args, **_kwargs: pytest.fail("unreserved request reached the provider"),
+    )
+    controller = ProviderDispatchController(
+        (provider,), acquire_timeout_seconds=1.0, poll_interval_seconds=0.01,
+    )
+    cache_lease = controller.try_acquire_run({provider.key: 0})
+    try:
+        rejected = data_engine.fetch_wspr_data(
+            query, is_demo=is_demo, request_permit=cache_lease,
+        )
+    finally:
+        cache_lease.release()
+
+    assert rejected.error.code == "local_rate_limit"
+    assert rejected.error.scope == FetchFailureScope.CAPACITY
+    assert not cache_path.exists()
+    assert not data_engine._dataframe_cache
+    assert controller.snapshot(provider.key).consecutive_failures == 0
+
+    monkeypatch.setattr(
+        data_engine.http_session, "get",
+        lambda *_args, **_kwargs: _StreamingResponse([
+            b"peer_sign,stat_val\nK1AAA,-12.3\n",
+        ]),
+    )
+    request_lease = controller.try_acquire_run({provider.key: 1})
+    try:
+        recovered = data_engine.fetch_wspr_data(
+            query, is_demo=is_demo, request_permit=request_lease,
+        )
+    finally:
+        request_lease.release()
+
+    assert recovered.error is None
+    assert recovered.source == FetchSource.WSPR_LIVE
+    assert recovered.dataframe.loc[0, "stat_val"] == pytest.approx(-12.3)
+    assert cache_path.is_file()
+    assert controller.snapshot(provider.key).consecutive_failures == 0
+
+
 def test_csv_row_limit_accepts_exact_limit_and_quoted_newline(monkeypatch):
     """Count logical CSV records rather than physical lines before Pandas."""
     monkeypatch.setattr(data_engine, "MAX_ANALYSIS_RESULT_ROWS", 2)
@@ -1042,9 +1238,11 @@ def test_standard_admission_inspection_deletes_oversized_l2_and_keeps_marker(
     assert data_engine._result_row_limit_cache[cache_key] > time.time() + 3500.0
 
 
+@pytest.mark.parametrize("is_demo", [False, True])
 def test_standard_csv_disk_write_failure_does_not_discard_valid_rows(
     tmp_path,
     monkeypatch,
+    is_demo,
 ):
     """Keep the persistent L2 optional when local publication fails."""
     query = "SELECT standard_compare_disk_failure FORMAT CSVWithNames"
@@ -1063,12 +1261,12 @@ def test_standard_csv_disk_write_failure_does_not_discard_valid_rows(
 
     monkeypatch.setattr(data_engine.pd.DataFrame, "to_parquet", fail_parquet_write)
 
-    result = data_engine.fetch_wspr_data(query, is_demo=False)
+    result = data_engine.fetch_wspr_data(query, is_demo=is_demo)
 
     assert result.error is None
     assert result.source == FetchSource.WSPR_LIVE
     assert float(result.dataframe.loc[0, "stat_val"]) == pytest.approx(-12.3)
-    assert not data_engine._query_cache_path(query, is_demo=False).exists()
+    assert not data_engine._query_cache_path(query, is_demo=is_demo).exists()
 
 
 def test_standard_csv_write_through_is_single_flight_under_concurrency(

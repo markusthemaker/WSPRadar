@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta, timezone
+from contextlib import closing
+import sqlite3
 
 import pandas as pd
 import pytest
+from pyproj import Geod
 
 from config import MAX_ANALYSIS_RESULT_ROWS
 from core.analysis_context import (
@@ -16,7 +19,11 @@ from core.analysis_context import (
     TX_AB_METHOD_SEQUENTIAL,
     TX_AB_METHOD_SIMULTANEOUS,
 )
-from core.analysis_runner import apply_post_fetch_filters, build_analysis_batches
+from core.analysis_runner import (
+    AnalysisConfigError,
+    apply_post_fetch_filters,
+    build_analysis_batches,
+)
 from core.presentation_context import PresentationContext
 from core.query_limits import apply_analysis_result_row_limit
 from i18n import T
@@ -77,6 +84,10 @@ def test_no_benchmark_builds_only_the_directional_performance_analysis():
         for analysis in tx_analyses + rx_analyses
     )
     assert all(analysis["analysis_kind"] == "opportunity" for analysis in tx_analyses + rx_analyses)
+    assert all(
+        analysis["absolute_method_version"] == "opportunity-v2"
+        for analysis in tx_analyses + rx_analyses
+    )
 
 
 @pytest.mark.parametrize(
@@ -622,6 +633,38 @@ def test_rx_hardware_ab_matching_accepts_one_exact_reference_suffix_callsign():
     assert "rx_sign LIKE 'DL1MKS%'" not in rx_compare["query"]
 
 
+@pytest.mark.parametrize("run_mode", ["RX", "TX"])
+@pytest.mark.parametrize("local_benchmark", ["local_best", "unknown", "", None, []])
+def test_local_neighborhood_rejects_unsupported_method_before_query_preparation(
+    run_mode,
+    local_benchmark,
+):
+    """Reject explicit invalid local methods before labels, dates, or SQL are used."""
+    context = _analysis_context(
+        run_mode=run_mode,
+        comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
+        local_benchmark=local_benchmark,
+    )
+
+    with pytest.raises(AnalysisConfigError, match="local_benchmark.*local_median"):
+        build_analysis_batches(context, None, None, None, None, None)
+
+
+@pytest.mark.parametrize("run_mode", ["RX", "TX"])
+def test_fixed_reference_keeps_maximum_consolidation(run_mode):
+    """Keep fixed-reference consolidation independent of the local median method."""
+    comparison = _analysis_by_id(
+        _analysis_context(run_mode=run_mode),
+        f"{run_mode}_BENCHMARK",
+    )
+
+    for query in (comparison["query"], comparison["legacy_query"]):
+        assert "maxIf((snr - power + 30 + 0.0), is_me = 0) AS snr_r_norm" in query
+        assert "argMaxIf(local_sign, (snr - power + 30 + 0.0), is_me = 0)" in query
+        assert "station_snr_norm" not in query
+    assert comparison["is_local_median"] is False
+
+
 def test_local_median_neighborhood_uses_station_weighted_reference_median_sql():
     context = _analysis_context(
         comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
@@ -681,6 +724,100 @@ def test_rx_local_median_neighborhood_weights_receiver_reference_identities():
     assert "rx_loc AS local_grid" in rx_compare["query"]
     assert "quantileExactInclusive(0.5)((snr - power + 30 + 0.0)) AS station_snr_norm" in rx_compare["query"]
     assert "GROUP BY time_slot, peer_sign, peer_grid, local_sign, local_grid" in rx_compare["query"]
+
+
+@pytest.mark.parametrize("run_mode", ["TX", "RX"])
+@pytest.mark.parametrize(
+    ("center_latitude", "center_longitude", "radius_km", "bearing_degrees"),
+    [
+        (47.0, 8.0, 100, 45.0),
+        (51.5, 179.0, 200, 90.0),
+        (51.5, -179.0, 200, -90.0),
+        (85.0, 10.0, 250, 69.0),
+        (89.5, 45.0, 100, 0.0),
+        (-89.5, -45.0, 100, 180.0),
+        (0.0, 30.0, 10, 45.0),
+    ],
+)
+def test_local_neighborhood_sql_retains_circle_membership_and_other_filters(
+    run_mode, center_latitude, center_longitude, radius_km, bearing_degrees
+):
+    """Execute actual Reference predicates with an independent distance oracle.
+
+    SQLite exercises the generated boolean SQL, while WGS84 geodesics place
+    reports just inside/outside the circle. This checks the query wiring and
+    unchanged cutoff, not ClickHouse's own distance approximation accuracy.
+    """
+    geodesic = Geod(ellps="WGS84")
+    comparisons = build_analysis_batches(
+        _analysis_context(
+            run_mode=run_mode,
+            comparison_mode=COMPARISON_LOCAL_NEIGHBORHOOD,
+            local_benchmark=LOCAL_BENCHMARK_MEDIAN,
+            neighborhood_radius_km=radius_km,
+            exclude_special_callsigns=False,
+        ),
+        START_TIME, END_TIME, center_latitude, center_longitude,
+        "AND band = '14'",
+        presentation_context=PresentationContext(
+            labels=T["en"], solar_label=T["en"]["opt_solar_all"].split()[0]
+        ),
+    )
+    comparison = next(
+        analysis for analysis in comparisons if analysis["id"] == f"{run_mode}_BENCHMARK"
+    )
+    local_prefix = run_mode.lower()
+    remote_prefix = "rx" if run_mode == "TX" else "tx"
+    observations = []
+    for station_name, distance_metres in (
+        ("inside", radius_km * 100.0),
+        ("inside_edge", radius_km * 1000.0 - 1.0),
+        ("outside_edge", radius_km * 1000.0 + 1.0),
+        ("outside", radius_km * 2000.0),
+    ):
+        longitude, latitude, _ = geodesic.fwd(
+            center_longitude, center_latitude, bearing_degrees, distance_metres
+        )
+        observations.append((
+            station_name, "DL2XYZ", latitude, longitude, 40.0,
+            "14", "2026-05-27 12:00:00", 1,
+        ))
+    inside_edge = observations[1]
+    observations.extend([
+        ("target", "DL1MKS", *inside_edge[2:]),
+        ("wrong_band", *inside_edge[1:5], "7", *inside_edge[6:]),
+        ("wrong_time", *inside_edge[1:6], "2026-05-28 12:00:00", 1),
+        ("legacy_decode", *inside_edge[1:7], 2),
+    ])
+
+    def wgs84_distance(longitude_0, latitude_0, longitude_1, latitude_1):
+        """Supply independently calculated metres to the generated SQL cutoff."""
+        return geodesic.inv(longitude_0, latitude_0, longitude_1, latitude_1)[2]
+
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.create_function("geoDistance", 4, wgs84_distance)
+        connection.execute(
+            f"CREATE TABLE observations (name TEXT, {local_prefix}_sign TEXT, "
+            f"{local_prefix}_lat REAL, {local_prefix}_lon REAL, {remote_prefix}_lat REAL, "
+            "band TEXT, time TEXT, code INTEGER)"
+        )
+        connection.executemany("INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?)", observations)
+        for query_key in ("query", "legacy_query"):
+            reference_predicate = comparison[query_key].split("FROM wspr.rx WHERE ")[2].split(" GROUP BY ")[0]
+            assert (
+                f"geoDistance({center_longitude}, {center_latitude}, "
+                f"{local_prefix}_lon, {local_prefix}_lat) <= {radius_km * 1000}"
+                in reference_predicate
+            )
+            selected_names = {
+                row[0] for row in connection.execute(
+                    f"SELECT name FROM observations WHERE {reference_predicate}"
+                )
+            }
+            expected_names = {"inside", "inside_edge"}
+            if query_key == "legacy_query":
+                expected_names.add("legacy_decode")
+            assert selected_names == expected_names
 
 
 @pytest.mark.parametrize(

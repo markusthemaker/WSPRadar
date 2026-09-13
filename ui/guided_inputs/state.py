@@ -105,7 +105,7 @@ def _reference_design_complete(state: Mapping[str, Any]) -> bool:
     if benchmark_mode == "local_neighborhood":
         radius_km = state.get("val_ref_radius_km")
         return (
-            state.get("val_local_benchmark") in {"local_median", "local_best"}
+            state.get("val_local_benchmark") == "local_median"
             and isinstance(radius_km, int)
             and not isinstance(radius_km, bool)
             and 10 <= radius_km <= MAX_DYNAMIC_RADIUS_KM

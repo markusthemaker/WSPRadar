@@ -1,8 +1,12 @@
+from collections import OrderedDict
+from contextlib import nullcontext
+from datetime import date, time
 from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
 import pytest
+from streamlit.testing.v1 import AppTest
 
 from config import DEMO_PROFILES, WSPR_DATABASE_PROVIDERS
 from core.analysis_admission import (
@@ -28,6 +32,7 @@ from core.fetch_models import (
     FetchSource,
 )
 from core.map_models import EmptyMapResult, MapData, MapFigure
+from core.opportunity_engine import ABSOLUTE_METHOD_VERSION
 from core.provider_dispatch import ProviderDispatchController, ProviderSkipReason
 from core.run_data_preparation import (
     PreparedAnalysisData,
@@ -41,10 +46,13 @@ from core.result_diagnostics import (
     ResultDiagnostic,
 )
 from i18n import T
-from ui import run_controller
+from ui import callbacks, run_controller
+from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.analysis_submission_state import (
     begin_analysis_submission,
     claim_analysis_submission_request,
+    get_analysis_submission,
+    update_analysis_submission,
 )
 from ui.result_state import (
     COMPLETED_RUN_SNAPSHOT_KEY,
@@ -594,6 +602,220 @@ def test_analysis_configuration_errors_are_localized_at_the_ui_boundary(
     ]
 
 
+@pytest.mark.parametrize("language", ("en", "de"))
+@pytest.mark.parametrize("is_existing_run_rerender", (False, True))
+def test_invalid_local_method_rejects_run_and_clears_stale_result_state(
+    monkeypatch,
+    language,
+    is_existing_run_rerender,
+):
+    """Invalid live input cannot rerender or export an earlier local result."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.update(
+        val_comp_mode="local_neighborhood",
+        val_local_benchmark="local_best",
+        val_callsign="G3ZIL",
+        val_qth="IO90",
+        result_export_zip_bytes=b"previous result",
+    )
+    fake_st.session_state[EXPORT_STATE_KEY] = {"RX_COMPARE": "previous export"}
+    fake_st.session_state[INSPECTOR_CACHE_STATE_KEY] = {"previous": "evidence"}
+    publish_completed_run_snapshot(
+        fake_st.session_state,
+        {"schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION},
+    )
+    set_active_run_database_source(
+        fake_st.session_state,
+        run_id=fake_st.session_state.run_id,
+        source_key="wd2",
+    )
+    gate = SimpleNamespace(
+        acquire=lambda **_kwargs: pytest.fail(
+            "Invalid configuration must fail before admission"
+        ),
+        counts=lambda: (0, 0),
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_context_from_session_state",
+        build_analysis_context_from_session_state,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_batches",
+        lambda *_args, **_kwargs: pytest.fail(
+            "Unsupported local input must fail before SQL construction"
+        ),
+    )
+
+    run_controller.render_analysis_run(
+        t=T[language],
+        run_status_slot=_RunStatusSlot(),
+        callsign="G3ZIL",
+        qth_locator="IO90",
+        band_filter=7,
+        start_t=SimpleNamespace(isoformat=lambda: "start"),
+        end_t=SimpleNamespace(isoformat=lambda: "end"),
+        generate_map_plot=lambda *_args, **_kwargs: pytest.fail(
+            "Invalid configuration must never render a map"
+        ),
+        is_existing_run_rerender=is_existing_run_rerender,
+    )
+
+    assert fake_st.errors == [T[language]["err_local_benchmark"]]
+    assert fake_st.session_state.val_local_benchmark == "local_best"
+    assert fake_st.session_state.run_mode is None
+    assert fake_st.session_state[EXPORT_STATE_KEY] == {}
+    assert INSPECTOR_CACHE_STATE_KEY not in fake_st.session_state
+    assert "result_export_zip_bytes" not in fake_st.session_state
+    assert get_completed_run_snapshot(fake_st.session_state) is None
+    assert get_active_run_database_source(fake_st.session_state) is None
+
+
+def test_context_adapter_value_error_is_rejected_before_run_admission(monkeypatch):
+    """Context scalar validation uses the same recovery as core validation."""
+    fake_st = _FakeStreamlit()
+    gate = SimpleNamespace(
+        acquire=lambda **_kwargs: pytest.fail(
+            "Invalid scalar input must fail before admission"
+        ),
+        counts=lambda: (0, 0),
+    )
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+
+    def reject_invalid_context(_session_state):
+        raise ValueError("Invalid numeric configuration")
+
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_context_from_session_state",
+        reject_invalid_context,
+    )
+
+    _render_admission_presentation(
+        fake_st,
+        _RunStatusSlot(),
+        translations=T["en"],
+    )
+
+    assert fake_st.errors == [T["en"]["err_analysis_configuration_invalid"]]
+    assert fake_st.session_state.run_mode is None
+
+
+@pytest.mark.parametrize(
+    ("input_view", "language", "direction"),
+    (("guided", "en", "rx"), ("classic", "de", "tx")),
+)
+def test_stale_local_method_recovers_through_application_reset(
+    monkeypatch,
+    input_view,
+    language,
+    direction,
+):
+    """Both editors keep invalid input reviewable and the global Reset usable."""
+    from ui import documentation_scroll_trigger, page_navigation, url_synchronizer
+
+    # Browser components have their own payload/JavaScript tests. Their cached
+    # declarations are not registered in each AppTest runtime within this suite.
+    for component_module, component_attribute in (
+        (page_navigation, "_PAGE_NAVIGATION_CONTROLLER"),
+        (url_synchronizer, "_URL_QUERY_SYNCHRONIZER"),
+        (documentation_scroll_trigger, "_DOCUMENTATION_SCROLL_TRIGGER"),
+    ):
+        monkeypatch.setattr(
+            component_module,
+            component_attribute,
+            lambda **_kwargs: None,
+        )
+    monkeypatch.setattr(
+        run_controller,
+        "build_analysis_batches",
+        lambda *_args, **_kwargs: pytest.fail(
+            "Stale local input must never create a provider query"
+        ),
+    )
+    application = AppTest.from_file(
+        str(Path(__file__).resolve().parents[2] / "app.py"),
+        default_timeout=60,
+    )
+    initial_state = {
+        "_initial_config_loaded": True,
+        "input_view": input_view,
+        "lang": language,
+        "run_mode": direction.upper(),
+        "run_id": 77,
+        "guided_use_case": f"{direction}_benchmark",
+        "guided_reference_design": "local_neighborhood",
+        "val_analysis_direction": direction,
+        "val_callsign": "G3ZIL",
+        "val_qth": "IO90",
+        "val_comp_mode": "local_neighborhood",
+        "val_local_benchmark": "local_best",
+        "val_start_d": date(2026, 7, 1),
+        "val_start_t": time(0, 0),
+        "val_end_d": date(2026, 7, 2),
+        "val_end_t": time(0, 0),
+        COMPLETED_RUN_SNAPSHOT_KEY: {
+            "schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
+        },
+        EXPORT_STATE_KEY: {"RX_COMPARE": "previous export"},
+    }
+    for state_key, state_value in initial_state.items():
+        application.session_state[state_key] = state_value
+
+    application.run()
+
+    assert list(application.exception) == []
+    assert T[language]["err_local_benchmark"] in [
+        error.value for error in application.error
+    ]
+    assert application.session_state["val_local_benchmark"] == "local_best"
+    assert application.session_state["run_mode"] is None
+    assert application.session_state[EXPORT_STATE_KEY] == {}
+    assert COMPLETED_RUN_SNAPSHOT_KEY not in application.session_state
+    assert all(widget.key != "val_local_benchmark" for widget in application.radio)
+
+    application.button(key="reset_configuration").click().run()
+
+    assert list(application.exception) == []
+    assert application.session_state["val_local_benchmark"] == "local_median"
+    assert application.session_state["val_comp_mode"] == "none"
+    assert application.session_state["run_mode"] is None
+    assert T[language]["err_local_benchmark"] not in [
+        error.value for error in application.error
+    ]
+
+    for state_key, state_value in initial_state.items():
+        if state_key not in {
+            "run_mode",
+            "val_local_benchmark",
+            COMPLETED_RUN_SNAPSHOT_KEY,
+            EXPORT_STATE_KEY,
+        }:
+            application.session_state[state_key] = state_value
+    application.session_state["guided_reconstruct_requested"] = True
+    application.run()
+    application.run()
+
+    assert list(application.exception) == []
+    assert application.session_state["val_local_benchmark"] == "local_median"
+    assert all(widget.key != "val_local_benchmark" for widget in application.radio)
+    local_method_headings = [
+        markdown for markdown in application.markdown
+        if markdown.value == f"**{T[language]['opt_local_median']}**"
+    ]
+    assert len(local_method_headings) == 1
+    explanation = T[language]["txt_local_median_explanation"]
+    visible_captions = [caption.value for caption in application.caption]
+    if input_view == "classic":
+        assert local_method_headings[0].proto.help == explanation
+        assert explanation not in visible_captions
+    else:
+        assert local_method_headings[0].proto.help == ""
+        assert explanation in visible_captions
+
+
 def test_waiting_status_shows_only_the_sessions_own_queue_position(monkeypatch):
     """Keep global active and waiting counts out of the personal queue status."""
     fake_st = _FakeStreamlit()
@@ -621,6 +843,139 @@ def test_waiting_status_shows_only_the_sessions_own_queue_position(monkeypatch):
         "All analysis capacity is in use; queued at position 8."
     ]
     assert fake_st.placeholders == []
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("direction", ["RX", "TX"])
+@pytest.mark.parametrize("phase", [None, "submitted", "queued", "running"])
+def test_language_change_preserves_completed_evidence_and_retires_submission(
+    monkeypatch, tmp_path, language, direction, phase,
+):
+    """Keep committed evidence eligible for an implicit localized rerender."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.run_mode = direction
+    fake_st.session_state.lang = "de" if language == "en" else "en"
+    fake_st.session_state.lang_selector_ui = language.upper()
+    analysis = _analysis(f"{direction}_COMP", "Completed map")
+    _publish_valid_completed_snapshot(fake_st, analysis, path_root=tmp_path)
+    expected_state = dict(fake_st.session_state)
+    expected_state["lang"] = language
+    if phase is not None:
+        token = begin_analysis_submission(fake_st.session_state)
+        update_analysis_submission(fake_st.session_state, token, phase=phase)
+    monkeypatch.setattr(callbacks, "st", fake_st)
+
+    callbacks.update_lang()
+
+    assert fake_st.session_state == expected_state
+    assert get_analysis_submission(fake_st.session_state) is None
+    assert claim_analysis_submission_request(fake_st.session_state) is None
+
+
+@pytest.mark.parametrize("phase", [None, "submitted", "queued", "running"])
+@pytest.mark.parametrize("snapshot", [None, {"schema_version": -1}])
+def test_language_change_without_completed_evidence_cancels_pending_run(
+    monkeypatch, phase, snapshot,
+):
+    """A language change must not automatically restart unfinished analysis."""
+    fake_st = _FakeStreamlit()
+    fake_st.session_state.lang_selector_ui = "DE"
+    if snapshot is not None:
+        fake_st.session_state[COMPLETED_RUN_SNAPSHOT_KEY] = snapshot
+    if phase is not None:
+        token = begin_analysis_submission(fake_st.session_state)
+        update_analysis_submission(fake_st.session_state, token, phase=phase)
+    monkeypatch.setattr(callbacks, "st", fake_st)
+
+    callbacks.update_lang()
+
+    assert fake_st.session_state.lang == "de"
+    assert fake_st.session_state.run_mode is None
+    assert fake_st.session_state.run_id == 77
+    assert get_analysis_submission(fake_st.session_state) is None
+    assert claim_analysis_submission_request(fake_st.session_state) is None
+
+
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+@pytest.mark.parametrize("comparison_mode", ["none", "reference_station"])
+def test_language_selector_rerenders_completed_result_in_both_editors(
+    monkeypatch, input_view, direction, comparison_mode,
+):
+    """Exercise the real language widget and app routing without a new Run."""
+    import streamlit as st
+    from ui import documentation_scroll_trigger, page_navigation, url_synchronizer
+
+    for component_module, component_attribute in (
+        (page_navigation, "_PAGE_NAVIGATION_CONTROLLER"),
+        (url_synchronizer, "_URL_QUERY_SYNCHRONIZER"),
+        (documentation_scroll_trigger, "_DOCUMENTATION_SCROLL_TRIGGER"),
+    ):
+        monkeypatch.setattr(
+            component_module, component_attribute, lambda **_kwargs: None,
+        )
+    rendered_languages = []
+    scientific_contexts = []
+
+    def render_completed_result(**kwargs):
+        assert kwargs["is_existing_run_rerender"] is True
+        language = st.session_state.lang
+        assert kwargs["t"] == T[language]
+        rendered_languages.append(language)
+        scientific_contexts.append(
+            build_analysis_context_from_session_state(st.session_state)
+        )
+        st.markdown(f"Completed evidence: {language}")
+
+    monkeypatch.setattr(run_controller, "render_analysis_run", render_completed_result)
+    application = AppTest.from_file(
+        str(Path(__file__).resolve().parents[2] / "app.py"), default_timeout=60,
+    )
+    snapshot = {
+        "schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
+        "run_id": 77,
+    }
+    result_type = "performance" if comparison_mode == "none" else "benchmark"
+    initial_state = {
+        "_initial_config_loaded": True,
+        "input_view": input_view,
+        "lang": "en",
+        "run_mode": direction.upper(),
+        "run_id": 77,
+        "guided_use_case": f"{direction}_{result_type}",
+        "guided_reference_design": (
+            None if comparison_mode == "none" else comparison_mode
+        ),
+        "val_analysis_direction": direction,
+        "val_callsign": "G3ZIL",
+        "val_qth": "IO90",
+        "val_comp_mode": comparison_mode,
+        "val_ref_callsign": "G4HZW",
+        "val_ref_qth": "IO83",
+        "val_start_d": date(2026, 7, 1),
+        "val_start_t": time(0, 0),
+        "val_end_d": date(2026, 7, 2),
+        "val_end_t": time(0, 0),
+        COMPLETED_RUN_SNAPSHOT_KEY: snapshot,
+    }
+    for state_key, state_value in initial_state.items():
+        application.session_state[state_key] = state_value
+
+    application.run()
+    assert list(application.exception) == []
+    for language in ("de", "en"):
+        application.selectbox(key="lang_selector_ui").select(language.upper()).run()
+        assert list(application.exception) == []
+        assert f"Completed evidence: {language}" in [
+            markdown.value for markdown in application.markdown
+        ]
+        assert application.session_state["run_mode"] == direction.upper()
+        assert application.session_state["run_id"] == 77
+        assert application.session_state[COMPLETED_RUN_SNAPSHOT_KEY] == snapshot
+        assert not application.session_state["configuration_changed_since_run"]
+
+    assert rendered_languages == ["en", "de", "en"]
+    assert scientific_contexts == [scientific_contexts[0]] * 3
 
 
 def test_valid_completed_rerender_is_admitted_without_provider_capacity(
@@ -807,6 +1162,55 @@ def test_completed_snapshot_validation_rejects_every_identity_boundary(
         analysis_plan_fingerprint=analysis_plan_fingerprint,
         committed_source=committed_source,
         session_owner="owner",
+    ) is None
+
+
+@pytest.mark.parametrize("mode", ["RX", "TX"])
+def test_completed_performance_snapshot_rejects_pre_consolidation_method(
+    monkeypatch, tmp_path, mode,
+):
+    """Require a fresh run when canonical peer-cycle classification changes."""
+    fake_st = _FakeStreamlit()
+    old_analysis = {
+        **_analysis(f"{mode}_PERFORMANCE", f"{mode} Performance"),
+        "absolute_method_version": "opportunity-v1",
+    }
+    current_analysis = {
+        **old_analysis,
+        "absolute_method_version": ABSOLUTE_METHOD_VERSION,
+    }
+    old_plan_fingerprint = run_controller._analysis_plan_fingerprint([old_analysis])
+    current_plan_fingerprint = run_controller._analysis_plan_fingerprint([current_analysis])
+    assert old_plan_fingerprint != current_plan_fingerprint
+    _publish_valid_completed_snapshot(
+        fake_st,
+        old_analysis,
+        path_root=tmp_path,
+        analysis_plan_fingerprint=old_plan_fingerprint,
+    )
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(run_controller, "CACHE_DIR", tmp_path)
+    validation_arguments = {
+        "request_fingerprint": "request-key",
+        "committed_source": "wd2",
+        "session_owner": "owner-token",
+    }
+    assert run_controller._validate_completed_run_snapshot(
+        analyses=[old_analysis],
+        analysis_plan_fingerprint=old_plan_fingerprint,
+        **validation_arguments,
+    ) is not None
+    assert run_controller._validate_completed_run_snapshot(
+        analyses=[current_analysis],
+        analysis_plan_fingerprint=current_plan_fingerprint,
+        **validation_arguments,
+    ) is None
+    # The stored per-analysis contract also rejects old evidence independently
+    # of the outer plan fingerprint.
+    assert run_controller._validate_completed_run_snapshot(
+        analyses=[current_analysis],
+        analysis_plan_fingerprint=old_plan_fingerprint,
+        **validation_arguments,
     ) is None
 
 
@@ -1908,6 +2312,169 @@ def test_diagnosed_nonrenderable_performance_skips_map_and_inspector_content(
         "state": "complete",
         "expanded": True,
     }
+
+
+@pytest.mark.parametrize("is_demo_run", [False, True])
+def test_malformed_numeric_csv_restarts_complete_bundle_on_wd2(
+    monkeypatch,
+    tmp_path,
+    is_demo_run,
+):
+    """Reject malformed HTTP-200 evidence before cache or result publication."""
+    from core import data_engine, run_data_preparation
+
+    fake_st = _FakeStreamlit()
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    request_counts = {provider.key: 2 for provider in WSPR_DATABASE_PROVIDERS}
+    permit = _AnalysisPermit(controller.try_acquire_run(request_counts))
+    analyses = [
+        _analysis("RX_COMP", "RX Compare"),
+        _analysis("TX_COMP", "TX Compare"),
+    ]
+    for analysis in analyses:
+        analysis["is_sequential"] = True
+        analysis.pop("legacy_query")
+
+    providers_by_url = {
+        provider.url: provider for provider in WSPR_DATABASE_PROVIDERS
+    }
+    requests_received = []
+    filtered_rows = []
+    fetch_failures = []
+    first_primary_artifact = tmp_path / "staged" / "wspr_live" / "RX_COMP.parquet"
+
+    def receive_csv_request(url, *, params, **_kwargs):
+        provider = providers_by_url[url]
+        query = params["query"]
+        requests_received.append((provider.key, query))
+        assert get_active_run_database_source(fake_st.session_state) is None
+        assert get_completed_run_snapshot(fake_st.session_state) is None
+
+        if provider.key == "wspr_live":
+            peer_sign = "K1AAA"
+            if query == analyses[0]["query"]:
+                statistic = "-12.3"
+            else:
+                assert query == analyses[1]["query"]
+                assert first_primary_artifact.is_file()
+                statistic = "broken"
+        else:
+            assert provider.key == "wd2"
+            assert not first_primary_artifact.exists()
+            peer_sign = "K2BBB"
+            statistic = "-8.4"
+
+        payload = (
+            "time,peer_sign,peer_grid,peer_lat,peer_lon,snr,power,stat_val,is_me\n"
+            f"2026-09-01 00:00:00,{peer_sign},FN31,41.5,-72.5,-12,23,{statistic},1\n"
+        ).encode("utf-8")
+        return nullcontext(SimpleNamespace(
+            status_code=200,
+            encoding="utf-8",
+            headers={},
+            iter_content=lambda chunk_size: iter([payload]),
+        ))
+
+    def filter_validated_rows(frame, analysis, *_args, **_kwargs):
+        peer_sign = frame.loc[0, "peer_sign"]
+        if peer_sign == "K1AAA" and analysis["id"] == "TX_COMP":
+            pytest.fail("Malformed primary rows reached scientific filtering")
+        filtered_rows.append((peer_sign, analysis["id"], frame.loc[0, "stat_val"]))
+        if peer_sign == "K1AAA":
+            return frame, None
+        # Complete the replacement bundle through the real no-data path while
+        # keeping map rendering outside this decoding/failover regression.
+        return frame.iloc[0:0], None
+
+    def prepare_real_bundle(plans, **kwargs):
+        try:
+            return run_data_preparation.prepare_provider_bundle(
+                plans,
+                **kwargs,
+                fetch_data=data_engine.fetch_wspr_data,
+                post_fetch_filter=filter_validated_rows,
+            )
+        except ProviderBundleFetchError as exc:
+            fetch_failures.append(exc.fetch_result)
+            raise
+
+    _patch_run_environment(monkeypatch, fake_st, controller, prepare_real_bundle)
+    monkeypatch.setattr(data_engine, "CACHE_DIR", tmp_path / "query-cache")
+    monkeypatch.setattr(data_engine, "_dataframe_cache", OrderedDict())
+    monkeypatch.setattr(data_engine, "_result_row_limit_cache", OrderedDict())
+    monkeypatch.setattr(data_engine.http_session, "get", receive_csv_request)
+    monkeypatch.setattr(
+        run_controller,
+        "_staged_artifact_paths",
+        lambda plans, *, provider_key: {
+            plan["id"]: run_controller._StagedAnalysisArtifactPaths(
+                evidence_path=(
+                    tmp_path / "staged" / provider_key / f"{plan['id']}.parquet"
+                ),
+                map_data_paths=run_controller.MapDataArtifactPaths(
+                    station_rows_path=tmp_path / "unused_stations.parquet",
+                    segment_rows_path=tmp_path / "unused_segments.parquet",
+                ),
+            )
+            for plan in plans
+        },
+    )
+
+    _render_fake_run(
+        fake_st,
+        permit,
+        analyses,
+        is_demo_run=is_demo_run,
+        request_counts_by_provider=request_counts,
+    )
+
+    assert requests_received == [
+        ("wspr_live", analyses[0]["query"]),
+        ("wspr_live", analyses[1]["query"]),
+        ("wd2", analyses[0]["query"]),
+        ("wd2", analyses[1]["query"]),
+    ]
+    assert len(fetch_failures) == 1
+    assert fetch_failures[0].error.code == "decode_error"
+    assert fetch_failures[0].error.scope == FetchFailureScope.PROVIDER
+    assert fetch_failures[0].dataframe is None
+    assert [(peer_sign, analysis_id) for peer_sign, analysis_id, _ in filtered_rows] == [
+        ("K1AAA", "RX_COMP"),
+        ("K2BBB", "RX_COMP"),
+        ("K2BBB", "TX_COMP"),
+    ]
+    assert [statistic for _, _, statistic in filtered_rows] == pytest.approx(
+        [-12.3, -8.4, -8.4]
+    )
+    assert not first_primary_artifact.exists()
+    primary_provider = WSPR_DATABASE_PROVIDERS[0]
+    assert not data_engine._query_cache_path(
+        analyses[1]["query"],
+        primary_provider,
+        is_demo=is_demo_run,
+    ).exists()
+    assert not data_engine.is_wspr_query_cached(
+        analyses[1]["query"],
+        is_demo=is_demo_run,
+        database_provider=primary_provider,
+    )
+    assert controller.snapshot("wspr_live").consecutive_failures == 1
+    assert controller.snapshot("wd2").consecutive_failures == 0
+    assert fake_st.analysis_run_outcome == "completed"
+    assert fake_st.errors == []
+    assert get_active_run_database_source(fake_st.session_state) == "wd2"
+    snapshot = get_completed_run_snapshot(fake_st.session_state)
+    assert snapshot["database_source"] == "wd2"
+    assert len(snapshot["analyses"]) == 2
+    assert all(
+        query_fetch["delivery_source"] == FetchSource.WD2.value
+        for analysis_snapshot in snapshot["analyses"]
+        for query_fetch in analysis_snapshot["query_fetches"]
+    )
 
 
 def test_provider_failure_restarts_active_compare_analysis_on_wd2(monkeypatch):

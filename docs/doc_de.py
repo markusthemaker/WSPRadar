@@ -70,8 +70,7 @@ Die Fragestellung bestimmt das passende Evidenzdesign:
 | <span class="analysis-choice"><span class="analysis-family">RX Benchmark</span><br><strong class="analysis-variant">Hardware A/B</strong></span> | Unterschieden sich zwei lokale Empfangspfade beim gleichzeitigen Beobachten derselben entfernten Aussendungen? | Zwei Antennen vergleichen, die jeweils eine eigene simultane Empfänger- und Decoderkette speisen, wobei das Ergebnis zunächst die vollständigen Empfangspfade beschreibt; einen Unterschied nur dann gezielt den Antennen zuschreiben, wenn die übrigen Ketten abgeglichen, charakterisiert oder durch einen Kreuztausch bestätigt wurden; eine Antenne über einen charakterisierten Verteiler an zwei Empfänger führen, um Empfänger oder Decoderpfade zu vergleichen; Vorverstärker, Filter, Speiseleitung oder Mantelwellensperre nur in einen ansonsten kontrollierten Pfad einfügen und die beiden dokumentierten vollständigen Empfangspfade benchmarken. |
 | <span class="analysis-choice"><span class="analysis-family">TX Benchmark</span><br><strong class="analysis-variant">Hardware A/B</strong></span> | Unterschieden sich zwei lokale Sendepfade bei simultanem oder eng getaktetem Betrieb? | Zwei Antennen über getrennte, kalibrierte Sendeketten speisen und mit synchronisierten Zyklen, unterscheidbaren Signalen und ausreichender Entkopplung gleichzeitig senden; einen Sender über einen kontrollierten HF-Umschalter nach festem UTC-Zeitplan abwechselnd auf zwei Antennen schalten; zwei Speiseleitungen, Anpassnetzwerke, Filter oder vollständige Sendepfade vergleichen und dabei tatsächliche Leistung, Zeitsteuerung und die übrige Kette kontrollieren. |
 | <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Referenzstation / Buddy-Test</strong></span> | Wie schneidet meine vollständige Station gegenüber einer bekannten Station ab? | <strong>RX:</strong> den eigenen Empfänger mit dem bekannten Empfänger eines Funkfreunds vergleichen, während beide in denselben Zyklen dieselben entfernten Sender beobachten; <strong>TX:</strong> den eigenen Sender mit dem Sender eines Funkfreunds an denselben entfernten Empfängern und in denselben Zyklen vergleichen; ein stabiles, gut verstandenes Buddy-Design vor und nach dokumentierten Stationsarbeiten als relative Basislinie für die Gesamtstation wiederholen, ohne die Buddy-Station als absolut kalibrierten Standard zu behandeln. |
-| <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Lokaler Nachbarschafts-Median</strong></span> | Wie schneidet meine Station gegenüber der typischen aktiven WSPR-Gruppe in der Umgebung ab? | Prüfen, ob die eigene Empfangs- oder Sendestation insgesamt über, nahe oder unter dem zyklus- und funkwegspezifischen Median der aktiven lokalen Peers im gewählten Radius liegt; eine Station in Betrieb nehmen, wenn keine einzelne geeignete Buddy-Referenz verfügbar ist; Richtungen, Entfernungen oder UTC-Zeiträume erkennen, in denen die Station von dieser kontextbezogenen lokalen Basislinie abweicht, und dabei Zusammensetzung der Nachbarschaft sowie Radiusabhängigkeit prüfen. |
-| <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Beste lokale Station</strong></span> | Wie schneidet meine Station gegenüber dem stärksten aktiven Peer in der Umgebung ab, der auf dem jeweiligen Funkweg und in dem jeweiligen Zyklus verfügbar ist? | Die eigene Station mit der stärksten qualifizierenden Station in der Umgebung vergleichen, die auf jedem Funkweg und in jedem Zyklus verfügbar ist; Richtungen oder Entfernungsbereiche finden, in denen sich die eigene Station der wechselnden lokalen Bestmarke nähert oder hinter ihr zurückbleibt; in vergleichbaren Wiederholungsläufen verfolgen, ob sich der beobachtete Abstand verkleinert oder vergrößert, während Radius und Poolzusammensetzung geprüft werden – ohne das Ergebnis als Rangliste gegen einen festen Konkurrenten oder als stabile kalibrierte Basislinie zu behandeln. |
+| <span class="analysis-choice"><span class="analysis-family">RX/TX Benchmark</span><br><strong class="analysis-variant">Lokaler Nachbarschafts-Median</strong></span> | Wie schneidet meine vollständige Station gegenüber den beobachteten WSPR-Peers in der Umgebung ab? | Prüfen, ob die eigene Empfangs- oder Sendestation insgesamt über, nahe oder unter dem zyklus- und funkwegspezifischen Median der qualifizierenden beobachteten lokalen Peers im gewählten Radius liegt; eine Station in Betrieb nehmen, wenn keine einzelne geeignete Buddy-Referenz verfügbar ist; Richtungen, Entfernungen oder UTC-Zeiträume erkennen, in denen die Station von dieser kontextbezogenen lokalen Basislinie abweicht, und dabei Zusammensetzung der Nachbarschaft sowie Radiusabhängigkeit prüfen. Verglichen werden vollständige Stationen unter den beobachteten Bedingungen; daraus ergeben sich weder isolierter Antennengewinn noch eine Rangliste aller Stationen in der Umgebung. |
 
 Die Referenz ist Bestandteil der wissenschaftlichen Fragestellung und nicht nur eine Darstellungsoption. Ein kontrollierter <strong class="defined-term">Hardware-A/B-Test</strong> bietet die stärkste Grundlage, einen beobachteten Unterschied lokalen Pfaden oder Bauteilen zuzuordnen – allerdings nur in dem Maß, in dem die übrigen Ketten kontrolliert sind. Ein <strong class="defined-term">Referenzstations-/Buddy-Test</strong> vergleicht zwei vollständig aufgebaute Stationen einschließlich QTH, Geräten, Gelände sowie lokaler Stör- und Rauschumgebung. Nachbarschafts-Benchmarks liefern wechselnde kontextbezogene Basislinien und keine festen oder kalibrierten Standards.
 
@@ -136,13 +135,11 @@ Ziel ist keine schmeichelhafte Zahl. Ziel ist ein Ergebnis, das sich verstehen, 
         * [2.3.1 Hardware A/B: simultane Empfangspfade](#sec-3-rx-benchmark-hardware)
         * [2.3.2 Referenzstation / Buddy-Test](#sec-3-rx-benchmark-buddy)
         * [2.3.3 Lokaler Nachbarschafts-Median](#sec-3-rx-benchmark-local-median)
-        * [2.3.4 Beste lokale Station](#sec-3-rx-benchmark-local-best)
     * [2.4 TX Benchmark](#sec-3-tx-benchmark)
         * [2.4.1 Hardware A/B: simultane Sendepfade](#sec-3-tx-benchmark-simultaneous)
         * [2.4.2 Hardware A/B: sequenzielle Sendepfade](#sec-3-tx-benchmark-sequential)
         * [2.4.3 Referenzstation / Buddy-Test](#sec-3-tx-benchmark-buddy)
         * [2.4.4 Lokaler Nachbarschafts-Median](#sec-3-tx-benchmark-local-median)
-        * [2.4.5 Beste lokale Station](#sec-3-tx-benchmark-local-best)
     * [2.5 Vorübergehende ΔSNR-Abweichungen finden und prüfen](#sec-outlier)
         * [2.5.1 Wann dieses Diagnosewerkzeug sinnvoll ist](#sec-outlier-1)
         * [2.5.2 Wie die Erkennung praktisch arbeitet](#sec-outlier-2)
@@ -280,11 +277,9 @@ Wähle **Benchmark**, wenn die Frage ausdrücklich relativ zu einer Referenz ges
 
 <a id="sec-2-6"></a>
 
-* **Lokaler Nachbarschafts-Median** vergleicht das Target mit einer wechselnden typischen lokalen Basislinie innerhalb des ausgewählten Radius.
+* **Lokaler Nachbarschafts-Median** vergleicht deine vollständige Empfangs- oder Sendestation mit einer wechselnden Referenz aus qualifizierenden WSPR-Beobachtungen der Umgebung innerhalb des ausgewählten Radius. Die Referenz wird für jede entfernte Station und jeden WSPR-Zyklus getrennt berechnet.
 
-<a id="sec-2-7"></a>
-
-* **Beste lokale Station** vergleicht das Target auf jedem qualifizierenden Funkweg und in jedem Zyklus mit einem wechselnden stärksten lokalen Peer.
+Untersuche damit, wo die beobachtete Leistung deiner Station über, nahe oder unter derjenigen der beitragenden lokalen Peers liegt, wenn keine geeignete feste Referenzstation verfügbar ist. Das Ergebnis beschreibt deine Station in ihrem beobachteten lokalen Umfeld; es isoliert weder Antennengewinn noch begründet es eine Rangliste aller Stationen in der Umgebung.
 
 Verwende das engste Referenzdesign, das die beabsichtigte Aussage trägt. Aus einem Benchmark vollständiger Stationen oder einer Nachbarschaft lässt sich durch spätere Filterung oder Mittelung kein isolierter Antennengewinn ableiten.
 
@@ -443,19 +438,13 @@ Interpretiere dies als Benchmark vollständiger installierter Empfangsstationen.
 
 Die Referenz ist der zyklus- und funkwegspezifische Median aus je einem Beitrag jeder aktiven lokalen Empfängeridentität innerhalb des ausgewählten Radius. Die Zusammensetzung kann sich von Zyklus zu Zyklus ändern; das Ergebnis ist daher eine kontextbezogene lokale Basislinie und kein Vergleich mit einer festen Station.
 
+Beitragende lokale Empfänger sind hier diejenigen mit qualifizierenden Meldungen desselben entfernten Senders im selben WSPR-Zyklus. Die Referenz repräsentiert daher die auf diesem Senderpfad und in diesem Zyklus beobachteten Empfänger und nicht jeden Empfänger innerhalb des Radius. Gepaartes Delta SNR erfordert zusätzlich eine qualifizierende Target-Meldung für denselben Sender und Zyklus.
+
 Prüfe die beitragenden lokalen Identitäten, den Joint-Evidenzanteil und die Radiusabhängigkeit. Eine Veränderung kann vom Target, von einer veränderten Zusammensetzung der Nachbarschaft oder von beidem ausgehen. Wähle den primären Radius vor der Interpretation anhand lokaler Geografie und Stationsdichte; verwende weitere begründbare Radien als Sensitivitätsanalysen.
 
-<blockquote class="evidence-conclusion"><p>Relativ zum aktiven medianen Empfangsumfeld innerhalb des ausgewählten Radius zeigte das Target für die beobachteten Senderpfade und Zyklen das berichtete gepaarte Delta SNR und die berichteten Decode Outcomes.</p></blockquote>
+Interpretiere den Vergleich als Evidenz über vollständig aufgebaute Empfangsstationen. Antennen, Speiseleitungen, Empfänger, Decoder- und SNR-Meldeverhalten, lokales Rauschen und Störungen, Gelände und Ausbreitung können zum beobachteten Unterschied beitragen. Derselbe entfernte Sender und Zyklus beseitigen die Unterschiede zwischen den Empfangsstandorten nicht. Besteht die Nachbarschaft aus nur einem beitragenden Empfänger, ist dessen Wert ihr Median; dies liefert keine Evidenz für Übereinstimmung zwischen mehreren Stationen in der Umgebung.
 
-<a id="sec-3-rx-benchmark-local-best"></a>
-
-##### 2.3.4 Beste lokale Station
-
-Die Referenz ist die stärkste qualifizierende lokale Empfangsevidenz, die für jeden entfernten Senderpfad und Zyklus verfügbar ist. Die gewinnende lokale Identität kann fortlaufend wechseln. Dadurch entsteht eine anspruchsvolle Best-Peer-Hüllkurve statt eines lokalen Durchschnitts oder eines festen Konkurrenten.
-
-Prüfe, welche lokale Station die Referenz liefert und ob der beobachtete Abstand breit auftritt oder sich auf wenige Gewinner konzentriert. Radius und Poolzusammensetzung bleiben Bestandteil des Ergebnisses. Berichte es als Abstand des Targets zum wechselnden stärksten lokalen Empfänger und nicht als Rangliste gegenüber einer festen Station.
-
-<blockquote class="evidence-conclusion"><p>Relativ zum stärksten qualifizierenden lokalen Empfänger, der innerhalb des angegebenen Radius für jeden Funkweg und Zyklus ausgewählt wurde, zeigte das Target das berichtete gepaarte Delta SNR und die berichteten Decode Outcomes.</p></blockquote>
+<blockquote class="evidence-conclusion"><p>Für das ausgewählte Band und Zeitfenster sowie die ausgewählten Senderpfade und Zyklen zeigte die vollständige Empfangsstation des Targets das berichtete gepaarte Delta SNR und die berichteten Decode Outcomes relativ zur beitragenden lokalen Empfängernachbarschaft. Dies belegt keinen entsprechenden Gewinnvorteil ihrer Antenne.</p></blockquote>
 
 <a id="sec-3-tx-benchmark"></a>
 
@@ -519,19 +508,15 @@ Interpretiere das Ergebnis als Benchmark vollständiger installierter Sendestati
 
 Die Referenz ist der zyklus- und empfängerpfadspezifische Median aus je einem Beitrag jeder aktiven lokalen Senderidentität innerhalb des ausgewählten Radius. Sie ist eine wechselnde lokale Basislinie und keine feste Station. Das Ergebnis hängt von der aktiven Zusammensetzung und von der Genauigkeit der gemeldeten Leistungen ab.
 
+Beitragende lokale Sender sind diejenigen, die derselbe entfernte Empfänger während desselben WSPR-Zyklus meldet. Gepaartes Delta SNR erfordert zusätzlich, dass dieser Empfänger in diesem Zyklus das Target meldet. Die Referenz repräsentiert daher die qualifizierenden lokalen Aussendungen, die an diesem Empfänger beobachtet wurden, und nicht jeden Sender in der Umgebung oder jeden Sendeversuch.
+
 Prüfe die lokalen Beitragenden, den Joint-Evidenzanteil und die Radiusabhängigkeit. Berichte, ob das Target bei bestimmten Empfängern, Richtungen oder Zeiten eher über, nahe oder unter der aktiven lokalen Basislinie liegt. Eine Veränderung kann vom Target, vom lokalen Pool oder von beidem ausgehen.
 
-<blockquote class="evidence-conclusion"><p>Relativ zum aktiven medianen Sendeumfeld innerhalb des ausgewählten Radius zeigte das Target für die beobachteten Empfängerpfade und Zyklen das berichtete gepaarte Delta SNR und die berichteten Decode Outcomes.</p></blockquote>
+Die Normierung auf Basis der gemeldeten Leistung entfernt den gemeldeten Sendeleistungsunterschied aus den gepaarten SNR-Werten. Sie überprüft weder die tatsächliche Senderleistung noch misst sie die abgestrahlte Leistung oder korrigiert unbekannte Speiseleitungsverluste. Derselbe entfernte Empfänger und Zyklus kontrollieren Empfangsendpunkt und Zeitpunkt; Sender in der Umgebung können dennoch unterschiedliche Installationen, Gelände- und Ausbreitungsbedingungen haben. Besteht die Nachbarschaft aus nur einem beitragenden Sender, ist dessen Wert ihr Median.
 
-<a id="sec-3-tx-benchmark-local-best"></a>
+Wähle den primären Radius vor der Interpretation des Ergebnisses und berichte weitere begründbare Radien als Sensitivitätsanalysen. Lege für einen bestätigenden Lauf Band, Filter, Schwellen und primären Auswertungsbereich vorab fest und prüfe, ob sich die beitragende Nachbarschaft geändert hat.
 
-##### 2.4.5 Beste lokale Station
-
-Die Referenz ist die stärkste qualifizierende lokale Sendeevidenz, die nach Anwendung der zutreffenden Korrektur an jedem entfernten Empfänger und in jedem Zyklus verfügbar ist. Die gewinnende lokale Identität kann fortlaufend wechseln. Dadurch entsteht eine Best-Peer-Hüllkurve statt eines lokalen Durchschnitts oder eines festen Konkurrenten.
-
-Prüfe, welche Station die Referenz liefert, welche Leistung sie meldet und ob der Abstand des Targets über Empfänger, Entfernung, Richtung und Zeit bestehen bleibt. Berichte das Ergebnis als Vergleich mit einem wechselnden stärksten lokalen Sender innerhalb des angegebenen Radius.
-
-<blockquote class="evidence-conclusion"><p>Relativ zum stärksten qualifizierenden lokalen Sender, der innerhalb des angegebenen Radius für jeden Empfängerpfad und Zyklus ausgewählt wurde, zeigte das Target das berichtete gepaarte Delta SNR und die berichteten Decode Outcomes.</p></blockquote>
+<blockquote class="evidence-conclusion"><p>Für das ausgewählte Band und Zeitfenster sowie die ausgewählten Empfängerpfade und Zyklen zeigte die vollständige Sendestation des Targets das berichtete leistungsnormierte gepaarte Delta SNR und die berichteten Decode Outcomes relativ zur beitragenden lokalen Sendernachbarschaft. Dies belegt nicht, dass ihre Antenne um die angezeigte Zahl von Dezibel besser ist.</p></blockquote>
 
 <a id="sec-outlier"></a>
 
@@ -681,14 +666,13 @@ Eine vollständige Performance-Aussage kann zusätzlich nennen, ob die Mindesten
 
 > Für dieses Target, diese Referenz, dieses Band, dieses UTC-Zeitfenster und das ausgewählte Segment begünstigte das stationsgleichgewichtete Delta SNR Target/Referenz um den angezeigten Betrag. Das Delta SNR auf Beobachtungsebene, die Anzahlen der Joint-Stationen und Joint-Spots/-Paare, der Joint-Evidenzanteil und die Decode Outcomes beschreiben die stützende gepaarte und einseitige Evidenz.
 
-Nenne bei einem kontrollierten Hardware-A/B-Ergebnis die vollständigen verglichenen Pfade und jeden Kreuztausch oder jede Kalibrierung. Stelle bei einem Referenzstations-/Buddy-Test klar, dass vollständig aufgebaute Stationen und ihre Umgebungen gebenchmarkt wurden. Nenne bei einem lokalen Nachbarschafts-Benchmark Radius, Methode und wechselnde Referenzdefinition.
+Nenne bei einem kontrollierten Hardware-A/B-Ergebnis die vollständigen verglichenen Pfade und jeden Kreuztausch oder jede Kalibrierung. Stelle bei einem Referenzstations-/Buddy-Test klar, dass vollständig aufgebaute Stationen und ihre Umgebungen gebenchmarkt wurden. Nenne bei einem lokalen Nachbarschafts-Benchmark den Radius und die wechselnde Referenzdefinition des lokalen Nachbarschafts-Medians.
 
 Verwende den Designnamen passend zur beschriebenen Größe:
 
 * Ein **Hardware-A/B-Test** vergleicht die dokumentierten lokalen Pfade.
 * Ein **Buddy-Test** vergleicht vollständig aufgebaute Stationen und ihre Umgebungen.
-* **Lokaler Nachbarschafts-Median** vergleicht das Target mit der aktiven Median-Nachbarschaftsdefinition innerhalb des ausgewählten Radius.
-* **Beste lokale Station** vergleicht das Target mit einer wechselnden Best-Peer-Hüllkurve.
+* **Lokaler Nachbarschafts-Median** vergleicht die vollständige Target-Station mit dem Median der beitragenden Peers in der Umgebung innerhalb des ausgewählten Radius unter den beobachteten Bedingungen.
 * Ein richtungsabhängiges Ergebnis beschreibt die beobachteten WSPR-Funkwege und beteiligten Stationen, nicht ein absolutes Strahlungsdiagramm.
 * Benchmark-Karten verwenden eine laufabhängige symmetrische dB-Farbskala: Blau spricht für die Referenz, Rot für das Target und `0 dB` bedeutet Gleichheit. Vergleiche Karten verschiedener Läufe anhand der numerischen Farbskalenwerte.
 
@@ -745,6 +729,7 @@ Versionierte Konfigurationen speichern die zutreffenden wissenschaftlichen Einst
 
 | Bedienelement | Funktion | Wichtiges Verhalten |
 |---|---|---|
+| **`EN` / `DE`** | Ändert die Anzeigesprache. | Ein abgeschlossenes Ergebnis wird aus seiner aufbewahrten Evidenz ohne erneute Analyse neu dargestellt. Ohne abgeschlossenes Ergebnis startet ein Sprachwechsel die Analyse nicht automatisch neu; starte sie ausdrücklich erneut. Fehlende oder abgelaufene Evidenz erfordert ebenfalls einen ausdrücklich neu gestarteten Lauf. |
 | **`Eingabeansicht`** | Wechselt zwischen `Geführt` und `Klassisch`. | Beide Ansichten bearbeiten dieselbe wissenschaftliche Konfiguration. Die gewählte Eingabeansicht wird nicht gespeichert. |
 | **`Demo laden`** | Lädt ein gepflegtes historisches Profil. | Das Laden startet keine Analyse. Änderungen an Filtern, Evidenzschwellen und Ergebnisansicht behalten den Demo-Kontext; eine Änderung der Versuchsdefinition löst die Konfiguration von der Demo. |
 | **`Konfig laden`** | Lädt eine versionierte JSON-`.config`. | Ungültige Identitäten, Datumswerte, Auswahlwerte, Wertebereiche, doppelte Felder und nicht unterstützte Schemaversionen werden abgelehnt und nicht erraten. |
@@ -797,7 +782,6 @@ Bei `RX Performance` und `TX Performance` entfällt der Bereich **`Benchmark-Des
 | **Referenzseitige SNR-Korrektur (dB)** | leer = `0.0`; `-99.9` bis `+99.9 dB` | Benchmark | Wird zum Referenz-SNR addiert, bevor Delta SNR Target minus Referenz berechnet wird. Dezimalwerte werden mit Punkt eingegeben, beispielsweise `1.2`. |
 | **Referenz-Rufzeichen** | leer | Hardware A/B und Referenzstation | Exakte Meldeidentität der Referenz. |
 | **Referenz-Locator** | unabhängiges Grid-4 bei Referenzstation; abgeleitetes Target-Grid-4 bei Hardware A/B | Benchmark | Steuert die Zuordnung der Referenzzeilen im Archiv. |
-| **Lokale Benchmark-Methode** | `Lokaler Nachbarschafts-Median` | Lokaler Nachbarschafts-Benchmark | Wählt den medianen lokalen Referenzwert oder die strengere wechselnde `Beste lokale Station`. |
 | **Nachbarschaftsradius (km)** | `100`; 10–250 km in 10-km-Schritten | Lokaler Nachbarschafts-Benchmark | Definiert den lokalen Referenzpool um das Target-QTH. |
 | **TX-A/B-Methode** | `Simultanes TX` | TX Hardware A/B | Wählt Paarbildung zweier Sender im selben Zyklus oder deterministische sequenzielle Paarung. |
 | **Wiederholintervall** | `10 min`; `4, 6, 10, 12, 20, 30, 60 min` | Sequenzielles TX A/B | Tatsächliche Wiederkehr jedes physischen Pfads. |
@@ -811,7 +795,7 @@ Beim Wechsel der Frage oder des Benchmark-Designs werden nicht zutreffende Bedie
 
 Eine positive Korrektur erhöht das korrigierte Referenz-SNR und verringert dadurch Delta SNR Target minus Referenz. Gib einen gemessenen Kalibrierversatz `target - reference` mit demselben Vorzeichen ein. Ergibt eine Kalibrierung mit gemeinsamem Eingang beispielsweise `+1.6 dB`, wird `+1.6 dB` eingetragen. [Abschnitt 7.5](#sec-7-5) definiert die Gleichungen.
 
-Die Korrektur gilt für den Referenz-Empfangs- beziehungsweise Sendepfad oder -Zeitplan bei Hardware A/B, die bekannte Referenzstation, den ausgewählten Wert der besten lokalen Station oder jeden lokalen Beitrag vor Bildung des lokalen Nachbarschafts-Medians.
+Die Korrektur gilt für den Referenz-Empfangs- beziehungsweise Sendepfad oder -Zeitplan bei Hardware A/B, die bekannte Referenzstation oder jeden lokalen Beitrag vor Bildung des lokalen Nachbarschafts-Medians.
 
 | Geführte Auswahl | Bedeutung | Erforderlicher Wert |
 |---|---|---|
@@ -820,6 +804,8 @@ Die Korrektur gilt für den Referenz-Empfangs- beziehungsweise Sendepfad oder -Z
 | **Offset-Ermittlungslauf einrichten** | Evidenz sammeln, aus der ein Offset abgeleitet werden kann; WSPRadar berechnet oder verwendet diesen Offset nicht automatisch. | Während des Ermittlungslaufs `0.0 dB` |
 
 Eine konstante Korrektur kann Übersteuerung, instabile AGC, intermittierende Signalführung, frequenzabhängigen Amplitudengang oder falsche Leistungsangaben nicht beheben. Hardware-A/B-Kalibrierung sollte ein gemeinsames Eingangssignal oder eine kalibrierte Bezugsebene verwenden. Eine geografisch getrennte Referenzstation kann nur eine wiederholbare Basislinie für genau dieses Paar, Band und diesen Aufbau stützen – keine absolute Kalibrierung. [Anhang D](#sec-reference-snr-calibration) beschreibt das praktische Verfahren.
+
+Verwende beim lokalen Nachbarschafts-Median `0.0 dB`, wenn keine unabhängig begründete Korrektur ermittelt wurde. Eine Korrektur ungleich null erfordert eine dokumentierte Begründung, warum derselbe additive Offset unter den ausgewählten Bedingungen für die beitragende Referenzpopulation gilt. Die Korrektur so lange anzupassen, bis die Nachbarschaft zum Target passt, begründet keine Kalibrierung. Ein gemeinsamer Offset kann unterschiedliche unbekannte Fehler einzelner Nachbarstationen nicht korrigieren.
 
 <a id="sec-5-4"></a>
 
@@ -1055,7 +1041,7 @@ WSPRadar übernimmt gesammelte WSPR-Beobachtungen, Aktivitätsprüfungen, Korrek
 * einem Auditpfad von Karte über Segment und Station bis zur Zeile; und
 * versionierter Konfiguration, verarbeiteter Evidenz und Reproduzierbarkeitsexport.
 
-Innerhalb der geprüften Quellen sind die deutlichsten spezifischen Ergänzungen von WSPRadar der ausdrücklich definierte konditionale Performance-Nenner, die Trennung gepaarter von einseitiger Evidenz, dynamische lokale Median- und Best-Peer-Referenzen, hierarchische stationsgleichgewichtete geografische Aggregation und ein integrierter Auditpfad über alle unterstützten Designs.
+Innerhalb der geprüften Quellen sind die deutlichsten spezifischen Ergänzungen von WSPRadar der ausdrücklich definierte konditionale Performance-Nenner, die Trennung gepaarter von einseitiger Evidenz, dynamische Referenzen des lokalen Nachbarschafts-Medians, hierarchische stationsgleichgewichtete geografische Aggregation und ein integrierter Auditpfad über alle unterstützten Designs.
 
 Dies ist eine begrenzte Aussage über Integration und Methode und kein globaler Prioritätsanspruch. Medianaggregation an sich ist nicht neu. WSPRadar sollte als strukturierte Versuchs- und Auditschicht oberhalb eines Spot-Browsers beschrieben werden und nicht als Ersatz für Upstream-Archive, andere Analysewerkzeuge oder kalibrierte HF-Messtechnik.
 
@@ -1099,7 +1085,6 @@ Dieses Kapitel verwendet **Zusammenfassung** oder **deskriptive Kennzahl** für 
 | Simultanes TX Hardware A/B / zutreffender Buddy- oder lokaler Benchmark | ein Peer-Zyklus eines entfernten Empfängers | Target aktiv; derselbe Empfänger-Zyklus für gepaartes Delta SNR | Stationsmedian des Delta SNR, danach Median über Stationen | Leistung, Kettenunterschiede und Auswahl nach Joint-Decode |
 | Sequenzielles TX Hardware A/B | ein entfernter Empfänger in einem geplanten Target-/Referenzpaar | deterministischer, überschneidungsfreier Zeitplan und vollständiges Paar im Zeitfenster | Stationsmedian des Paar-Deltas, danach Median über Stationen | zeitliche Trennung sowie Umschalt- und Zeitplaneffekte |
 | Lokaler Nachbarschafts-Median | ein Target-/lokaler-Referenz-Peer-Zyklus | Target aktiv; ein Beitrag je aktiver lokaler Identität | lokaler Median als Referenz, danach Stations- und Segmentmediane des Delta SNR | wechselnde, unkalibrierte Zusammensetzung |
-| Beste lokale Station | ein Target-/beste-lokale-Station-Peer-Zyklus | Target aktiv; stärkste qualifizierende lokale Identität | beste lokale Referenz, danach Stations- und Segmentmediane des Delta SNR | wechselnde Hüllkurve, kein fester Konkurrent |
 
 Die Hierarchie lässt sich von links nach rechts lesen: WSPRadar entscheidet zuerst, welche Evidenzeinheiten zur Analyse gehören, berechnet danach eine Größe auf Peer- oder Funkwegebene und bildet erst dann die angezeigte stationsgleichgewichtete Zusammenfassung. Die folgenden Formeln machen diese Schritte prüfbar; der Text nach jeder Formel erklärt dieselbe Berechnung in Funkpraxis-Sprache.
 
@@ -1277,6 +1262,10 @@ Das erste Ergebnis beschreibt den typischen qualifizierenden Peer bei gleicher P
 
 Dabei ist $m_i$ die typische gepaarte Differenz eines Peers und $M_g$ der Median dieser Peer-Mediane. Jeder qualifizierende Peer trägt somit genau einen Wert zum Segmentergebnis bei. Der Median aller $D_{i,c}$ auf Beobachtungsebene bleibt getrennt erhalten; in dieser Zusammenfassung erhalten Peers mit mehr Joint-Beobachtungen ein größeres Gewicht.
 
+Bei jedem Benchmark-Design gilt für Gewichtung und Segmentunterstützung dieselbe Stationsidentität: das exakte `Rufzeichen + vollständig gemeldeter Locator`. Jede Identität muss für sich die konfigurierte Mindestzahl an Joint-Evidenz beziehungsweise bei sequenziellem TX A/B an vollständigen geplanten Paaren erfüllen. Genau die Identitäten, die jeweils einen Peer-Median beitragen, zählen auch für die Mindestanzahl qualifizierender Stationen pro Kartensegment. Identitäten mit ausschließlich einseitiger Evidenz tragen nicht zu dieser Delta-SNR-Unterstützungszahl bei. Dasselbe Rufzeichen mit unterschiedlichen vollständigen Locatorn zählt getrennt, auch wenn beide Locator im selben Grid-4 liegen. Gezählt werden gemeldete Funkwegidentitäten; daraus folgen keine unabhängigen physischen Stationen oder Standorte.
+
+Beispielsweise ergeben zwei qualifizierende Identitäten mit demselben Rufzeichen und den Locatorn `JO31AA` und `JO31AB` bei Peer-Medianen von `+2 dB` und `+4 dB` einen Segmentmedian von `+3 dB` und eine Unterstützungszahl von `2`. Bei einer Mindestanzahl von zwei qualifizierenden Stationen bleibt dieses Segment erhalten; bei einer Mindestanzahl von drei nicht.
+
 **Sequenzielles TX A/B**
 
 1. Meldungen der exakten Identität behalten, deren Startzeit zur Target- oder Referenzphase passt.
@@ -1289,13 +1278,17 @@ Dabei ist $m_i$ die typische gepaarte Differenz eines Peers und $M_g$ der Median
 
 Der Mikro-Median schützt eine geplante Seite vor duplikatähnlichen Wiederholungszeilen, macht die beiden nacheinander gesendeten Aussendungen aber nicht simultan.
 
-**Lokaler Nachbarschafts-Median**
+<p style="page-break-after: avoid; -pdf-keep-with-next: true;"><strong>Lokaler Nachbarschafts-Median</strong></p>
 
 Für jeden entfernten Peer-Zyklus berechnet WSPRadar zunächst je aktiver lokaler Identität aus `Rufzeichen + Locator` genau einen normierten SNR-Beitrag und danach den exakten Median über die beitragenden lokalen Identitäten. Eine nicht beobachtete lokale Identität wird weggelassen und nicht mit null angesetzt. Die Referenzkorrektur wird vor der Aggregation des lokalen Pools angewendet. Anschließend wird das Target mit diesem zyklus- und funkwegspezifischen Median verglichen; daraus entstehen Peer- und Segmentmediane des Delta SNR.
 
-**Beste lokale Station**
+Gehören mehrere qualifizierende Meldungen zu derselben lokalen Referenzidentität, demselben entfernten Peer und demselben Zyklus, bilden ihre normierten SNR-Werte zunächst einen Median innerhalb dieser Identität. Jede beitragende lokale Identität liefert danach genau einen Wert für den Nachbarschafts-Median. Die bestehende Zusammenführung auf der Target-Seite behält das stärkste qualifizierende normierte SNR; die Nachbarschaftsmethode führt Meldungen auf beiden Seiten daher nicht nach derselben Regel zusammen.
 
-Für jeden entfernten Peer-Zyklus wählt WSPRadar den stärksten qualifizierenden, korrigierten lokalen Beitrag als Referenz. Die resultierende Referenz ist eine wechselnde obere Hüllkurve. Sie ist weder ein lokales Mittel noch ein Vergleich mit einer festen Station.
+Eine lokale Identität besteht aus Rufzeichen und vollständig gemeldetem Locator. Die gleiche Gewichtung dieser Identitäten garantiert keine gleiche Gewichtung unabhängiger physischer Standorte: Mehrere Meldeidentitäten können Geräte oder einen Standort teilen.
+
+Es gibt keine gesonderte Mindestzahl lokaler Beitragender pro Peer-Zyklus. Bei einem Beitrag entspricht die Referenz dessen Wert. Ohne Beitragende steht weder ein Referenz-SNR noch gepaartes Delta SNR zur Verfügung. Die an anderer Stelle geltenden Anforderungen an die Mindestmenge gemeinsamer Evidenz und stützender Stationen legen keine Mindestgröße der Nachbarschaft fest.
+
+Der Nachbarschafts-Median beschreibt qualifizierende gemeldete Beobachtungen. Fehlende Meldungen sind keine Messungen von null SNR, und die beitragende Gruppe kann sich je nach entferntem Peer und Zyklus ändern. Mehr Beobachtungen beseitigen für sich genommen weder systematische Meldeunterschiede noch Selektionseffekte oder Abhängigkeiten zwischen Beobachtungen.
 
 Mediane verringern die Empfindlichkeit gegenüber einzelnen Extremwerten, quantisierten SNR-Ausreißern und duplikatähnlichen Häufungen. Sie beseitigen weder systematische Kalibrierfehler noch Ausbreitungsverzerrungen oder Abhängigkeiten zwischen Zyklen und Stationen.
 
@@ -1615,7 +1608,11 @@ Verwende den Ergebnistyp, der zur Aussage passt:
 * **Benchmark-Delta-SNR** stützt die gepaarte Beschreibung Target minus Referenz innerhalb der Joint-Teilmenge.
 * **Decode Outcomes** stützen Aussagen über Paarbarkeit und einseitige Evidenz.
 * **Entfernungs- oder Richtungsstruktur** stützt Aussagen über beobachtete Funkwegsegmente und nicht über einen direkten Abstrahlwinkel oder ein Gewinnmuster.
-* **Lokaler Nachbarschafts-Benchmark** stützt Aussagen relativ zur gewählten dynamischen lokalen Definition und keine dauerhafte Stationsrangliste.
+* **Lokaler Nachbarschafts-Benchmark** stützt Beschreibungen, wie die vollständige Target-Station unter den ausgewählten Bedingungen gegenüber den beitragenden Peers in der Umgebung abschnitt. Seine Referenz ändert sich mit den qualifizierenden Beobachtungen, dem Radius, dem entfernten Funkweg und dem Zyklus. Sie ist weder eine dauerhafte Stationsrangliste noch ein kalibrierter Antennenvergleich.
+
+Ein positives oder negatives Delta SNR beziffert den nach dieser Konstruktion beobachteten gepaarten SNR-Unterschied. Es bestimmt nicht, welches Bauteil oder welcher Umgebungsunterschied ihn verursacht hat. Der Joint-Evidenzanteil beschreibt Paarbarkeit oder Abdeckung der beibehaltenen Evidenz; er ist keine Gewinnrate des Targets.
+
+Berichte Richtung, Band, UTC-Zeitfenster, Nachbarschaftsradius, geografischen Bereich, angewandte Korrektur und stützende Evidenz. Unterscheide Konsistenz innerhalb eines Laufs von der Reproduktion in einem getrennten, geeignet kontrollierten Lauf.
 
 | Vermeiden | Evidenzgerechte Formulierung |
 |---|---|
@@ -1626,6 +1623,7 @@ Verwende den Ergebnistyp, der zur Aussage passt:
 | „Die Antenne hat einen flacheren Abstrahlwinkel.“ | „Der beobachtete Vorteil konzentrierte sich auf die angegebenen größeren Entfernungssegmente; der Abstrahlwinkel wurde nicht gemessen.“ |
 | „A ist effizienter, weil es mehr exklusive Decodes hatte.“ | „A erzeugte unter den dokumentierten Leistungs-, Zeitplan- und Netzwerkbedingungen mehr einseitige Decode-Evidenz; der Wirkungsgrad wurde nicht isoliert.“ |
 | „Der lokale Median ist die durchschnittliche lokale Station.“ | „Die Referenz war der Zyklus-/Funkwegmedian aus je einem Beitrag jeder aktiven lokalen Identität aus Rufzeichen plus Locator.“ |
+| „Meine Antenne ist X dB besser als benachbarte Antennen.“ | „Für das angegebene Band, Zeitfenster, den Radius und Bereich betrug das stationsgleichgewichtete mediane Delta SNR meiner vollständigen Station X dB relativ zur beobachteten lokalen Nachbarschaftsreferenz. Dies beschreibt die beibehaltene Joint-Evidenz und isoliert keinen Antennengewinn.“ |
 
 <a id="sec-8-2"></a>
 #### 8.2 Interpretationsgrenzen
@@ -1749,6 +1747,8 @@ Dateien ohne anwendbares Ergebnis oder ohne ausgewählte Station können fehlen.
 | Zeitliche Abbildungen | Chronologische und nach UTC-Stunde gefaltete Zusammenfassungen für das aktive Segment. |
 | Abbildungen der ausgewählten Station | Im Normalfall genau eine ausgewählte Peer-Identität; solange die optionale Delta-SNR-Ausreißererkennung eine geordnete Mehrfachauswahl von Funkwegen ermöglicht, kann Benchmark stattdessen die zugehörige zusammengefasste Mehrwegeansicht des Delta SNR exportieren. |
 | Drill-Down-Fokusabbildungen | Optionale Messwertabbildungen in nativer Zeitauflösung und chronologische Ergänzungsabbildungen für die exakte ausgewählte Station und das aktive manuelle oder kandidatenverknüpfte Fokusintervall; sie ergänzen die Abbildungen der ausgewählten Station über den vollständigen Lauf, statt sie zu ersetzen. |
+
+Für jeden Ergebnisblock hält `run_metadata.json` die tatsächlich verwendete Abfrageauswahl in `result_blocks[].decode_filter_mode` fest: `strict_code_1` bedeutet, dass die Abfrage das Prädikat `code = 1` beibehielt; `legacy_no_code` bedeutet, dass der historische Fallback diese Einschränkung wegließ, nachdem die strenge Abfrage keine Target-seitige Evidenz geliefert hatte. Die gespeicherte Konfiguration allein kann diese implizite Entscheidung nicht rekonstruieren; bewahre deshalb beim Vergleich von Evidenzpopulationen auch die Metadaten auf. Ein Wert `null` bedeutet, dass die Auswahl nicht dokumentiert wurde und nicht als strenge Auswahl angenommen werden darf. Dieses Feld dokumentiert die Abfrageauswahl; es bestätigt nicht unabhängig, dass jede Beobachtung derselben physikalischen Übertragungsart angehört.
 
 Ist bei der Vorbereitung ein Drill-Down-Fokus aktiv, kann Performance `figure_drilldown_zoom_snr_evidence.png` und `figure_drilldown_zoom_temporal_evidence.png` ergänzen; Benchmark kann `figure_drilldown_zoom_delta_snr_evidence.png` und `figure_drilldown_zoom_coverage.png` ergänzen. Jeder Titel besteht nur aus ausgewähltem `Rufzeichen (Locator)` und ` - Zeitfenster: {start} bis {end} UTC`. Die Messwertabbildung bewahrt dieselben einzelnen beibehaltenen nativen Punkte wie der Browserfokus, statt Zeitmediane einzusetzen; die Ergänzungsabbildung bewahrt das zutreffende chronologische Outcome- oder Abdeckungsrezept. `run_metadata.json` enthält einen Block `drilldown_zoom` mit Schemaversion, Rufzeichen, Locator, exaktem `start_utc` und `end_utc`, gewählter Fokusoption, Ursprung `manual` oder `outlier_focus` und Rendervertrag. Ist ein Kandidaten-Overlay vorhanden, bewahren dessen registriertes Rezept und Signatur die fokussierte Episode und jede einzeln qualifizierende Kandidateneinheit im Fenster, das dezente Band der fokussierten Episode, lokale Baseline und Baselines davor/danach, robuste Streuung und Methode, robuste-z-Schwelle sowie absolute Abweichungsschwelle der exportierten Hilfslinien. Die Koordinaten der Hilfslinien bleiben auf die fokussierte Episode beschränkt, selbst wenn ein anderer markierter Kandidat im exportierten Fenster gegen eine andere Baseline oder Streuung bewertet wurde. Bei ausgeschaltetem Fokus oder nicht erfüllter Ein-Stations-Bedingung fehlen Fokusblock und Fokusabbildungen.
 

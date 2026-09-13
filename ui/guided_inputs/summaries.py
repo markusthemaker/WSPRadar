@@ -59,12 +59,7 @@ def reference_design_summary(state, guided_content, step_number, language):
             qth=str(state.get("val_ref_qth", "")).upper(),
         )
     if benchmark_mode == "local_neighborhood":
-        summary_key = (
-            "reference_local_best"
-            if state.get("val_local_benchmark") == "local_best"
-            else "reference_local_median"
-        )
-        return summaries[summary_key].format(
+        return summaries["reference_local_median"].format(
             step=step_number,
             radius=state.get("val_ref_radius_km", 100),
         )

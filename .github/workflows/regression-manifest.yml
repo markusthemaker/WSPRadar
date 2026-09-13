@@ -1,0 +1,22 @@
+name: Validate regression manifest
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-regression-manifest:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Validate exact regression module coverage
+        shell: cmd
+        run: scripts\run_regression.cmd -ValidateChunks

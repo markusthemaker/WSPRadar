@@ -1,17 +1,115 @@
-"""Vectorized geographic distance and scientific peer-scope filtering."""
+"""Conservative neighborhood bounds and vectorized scientific peer-scope filtering."""
 
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
-from config import DIST_BINS, EARTH_RADIUS_KM
+from config import DIST_BINS, EARTH_RADIUS_KM, MAX_DYNAMIC_RADIUS_KM
 
 
 MAX_SUPPORTED_PEER_DISTANCE_KM = float(max(DIST_BINS))
 MAXIMUM_GREAT_CIRCLE_DISTANCE_KM = math.pi * EARTH_RADIUS_KM
+
+# Below the minimum WGS-84 curvature radius (6335.439 km), with additional
+# slack for ClickHouse geoDistance's numerical approximations. This radius
+# enlarges only the prefilter; geoDistance still applies the requested cutoff.
+NEIGHBORHOOD_BOUNDING_EARTH_RADIUS_KM = 6300.0
+
+
+@dataclass(frozen=True)
+class GeographicBoundingBox:
+    """Inclusive latitude/longitude bounds in degrees; no ranges means all longitudes."""
+
+    minimum_latitude: float
+    maximum_latitude: float
+    longitude_ranges: tuple[tuple[float, float], ...]
+
+    def to_sql(self, latitude_column: str, longitude_column: str) -> str:
+        """Return a SQL condition for one trusted archive endpoint column pair.
+
+        Wrapped longitude ranges are grouped so surrounding AND predicates
+        apply to both sides of the date line. Reject other SQL identifiers.
+        """
+        if (latitude_column, longitude_column) not in {
+            ("tx_lat", "tx_lon"), ("rx_lat", "rx_lon")
+        }:
+            raise ValueError("Neighborhood bounds require matching TX or RX coordinate columns.")
+        latitude_sql = (
+            f"{latitude_column} BETWEEN {self.minimum_latitude} "
+            f"AND {self.maximum_latitude}"
+        )
+        if not self.longitude_ranges:
+            return latitude_sql
+        longitude_sql = " OR ".join(
+            f"{longitude_column} BETWEEN {minimum_longitude} AND {maximum_longitude}"
+            for minimum_longitude, maximum_longitude in self.longitude_ranges
+        )
+        return f"{latitude_sql} AND ({longitude_sql})"
+
+
+def build_neighborhood_bounding_box(
+    *,
+    center_latitude: float,
+    center_longitude: float,
+    radius_km: float,
+) -> GeographicBoundingBox:
+    """Enclose a local distance circle with cheap, conservative geographic bounds.
+
+    Accept finite coordinates in degrees and a positive radius up to the
+    supported neighborhood maximum. Invalid inputs raise ValueError. Compute
+    a spherical cap using a deliberately small Earth radius to enclose the
+    WGS-84 neighborhood, including high-latitude longitude extrema. Pole-reaching
+    caps require every longitude; other caps use one or two inclusive ranges.
+    These bounds are only a prefilter for the existing geoDistance predicate.
+    """
+    normalized_parameters = []
+    for parameter, field_name, absolute_limit in (
+        (center_latitude, "Neighborhood center latitude", 90.0),
+        (center_longitude, "Neighborhood center longitude", 180.0),
+        (radius_km, "Neighborhood radius", float(MAX_DYNAMIC_RADIUS_KM)),
+    ):
+        if isinstance(parameter, (bool, np.bool_)):
+            raise ValueError(f"{field_name} must be a finite number.")
+        try:
+            normalized_parameter = float(parameter)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(f"{field_name} must be a finite number.") from exc
+        if not math.isfinite(normalized_parameter) or abs(normalized_parameter) > absolute_limit:
+            raise ValueError(f"{field_name} must be finite and within +/-{absolute_limit:g}.")
+        normalized_parameters.append(normalized_parameter)
+    latitude_degrees, longitude_degrees, normalized_radius_km = normalized_parameters
+    if normalized_radius_km <= 0.0:
+        raise ValueError("Neighborhood radius must be greater than 0 km.")
+
+    angular_radius = normalized_radius_km / NEIGHBORHOOD_BOUNDING_EARTH_RADIUS_KM
+    latitude_half_width = math.degrees(angular_radius)
+    minimum_latitude = max(-90.0, latitude_degrees - latitude_half_width)
+    maximum_latitude = min(90.0, latitude_degrees + latitude_half_width)
+    if minimum_latitude <= -90.0 or maximum_latitude >= 90.0:
+        return GeographicBoundingBox(minimum_latitude, maximum_latitude, ())
+
+    longitude_half_width = math.degrees(math.asin(min(
+        1.0, math.sin(angular_radius) / math.cos(math.radians(latitude_degrees))
+    )))
+    minimum_longitude = longitude_degrees - longitude_half_width
+    maximum_longitude = longitude_degrees + longitude_half_width
+    # Include both representations of the date line even when a bound only
+    # touches +/-180 rather than crossing it.
+    if minimum_longitude <= -180.0:
+        longitude_ranges = (
+            (-180.0, maximum_longitude), (minimum_longitude + 360.0, 180.0)
+        )
+    elif maximum_longitude >= 180.0:
+        longitude_ranges = (
+            (minimum_longitude, 180.0), (-180.0, maximum_longitude - 360.0)
+        )
+    else:
+        longitude_ranges = ((minimum_longitude, maximum_longitude),)
+    return GeographicBoundingBox(minimum_latitude, maximum_latitude, longitude_ranges)
 
 
 def validate_max_peer_distance_km(max_peer_distance_km: float) -> float:

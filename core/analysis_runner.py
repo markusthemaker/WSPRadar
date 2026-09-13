@@ -7,7 +7,6 @@ and provides data-filtering utilities (Solar) before plotting.
 from contextlib import nullcontext
 import math
 import pandas as pd
-import numpy as np
 from config import (
     BAND_MAP,
     MAX_DYNAMIC_RADIUS_KM,
@@ -24,7 +23,10 @@ from core.analysis_context import (
     TX_AB_METHOD_SIMULTANEOUS,
     solar_path_state,
 )
-from core.geographic_scope import filter_peer_rows_by_distance
+from core.geographic_scope import (
+    build_neighborhood_bounding_box,
+    filter_peer_rows_by_distance,
+)
 from core.input_validation import (
     is_valid_callsign,
     is_valid_grid4,
@@ -360,6 +362,14 @@ def build_analysis_batches(
     Invalid identities, bands, methods, schedules, or benchmark designs raise
     ``AnalysisConfigError`` before query execution.
     """
+    if (
+        analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD
+        and analysis_context.local_benchmark != LOCAL_BENCHMARK_MEDIAN
+    ):
+        raise AnalysisConfigError(
+            "local_benchmark must be local_median for Local Neighborhood."
+        )
+
     labels = presentation_context.labels if presentation_context is not None else {}
 
     def label(key):
@@ -510,29 +520,25 @@ def build_analysis_batches(
         comp_title = ""
     elif comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         ref_radius_km = min(analysis_context.neighborhood_radius_km, MAX_DYNAMIC_RADIUS_KM)
-        local_benchmark = analysis_context.local_benchmark
-        is_local_median = local_benchmark == LOCAL_BENCHMARK_MEDIAN
         max_rad = ref_radius_km * 1000
         
-        # Prefilter with a bounding box so geoDistance is only evaluated nearby.
-        lat_diff = ref_radius_km / 111.0
-        lon_diff = ref_radius_km / (111.0 * max(abs(np.cos(np.radians(lat_0))), 0.01))
-        
-        bbox_tx = f"AND tx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND tx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
-        bbox_rx = f"AND rx_lat BETWEEN {lat_0 - lat_diff} AND {lat_0 + lat_diff} AND rx_lon BETWEEN {lon_0 - lon_diff} AND {lon_0 + lon_diff}"
+        # Prefilter nearby candidates without clipping the distance circle at
+        # the date line or poles. Both endpoint filters share one calculation.
+        neighborhood_bounds = build_neighborhood_bounding_box(
+            center_latitude=lat_0,
+            center_longitude=lon_0,
+            radius_km=ref_radius_km,
+        )
+        bbox_tx = "AND " + neighborhood_bounds.to_sql("tx_lat", "tx_lon")
+        bbox_rx = "AND " + neighborhood_bounds.to_sql("rx_lat", "rx_lon")
         
         tx_peer_sql = f"tx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
         
         rx_peer_sql = f"rx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
         
-        if is_local_median:
-            comp_title = label("comp_title_local_median").format(
-                radius=ref_radius_km
-            )
-        else:
-            comp_title = label("comp_title_local_best").format(
-                radius=ref_radius_km
-            )
+        comp_title = label("comp_title_local_median").format(
+            radius=ref_radius_km
+        )
         display_callsign = callsign
     else:
         # Every fixed Reference identity is constrained by its exact callsign
@@ -564,7 +570,7 @@ def build_analysis_batches(
     local_ref_dist_sql = f"argMaxIf(local_dist, {benchmark_snr_expr}, is_me = 0)"
     local_ref_detail_sql = ""
     station_weighted_reference_median = False
-    if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD and analysis_context.local_benchmark == LOCAL_BENCHMARK_MEDIAN:
+    if comp_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
         station_weighted_reference_median = True
         local_ref_snr_sql = f"quantileExactInclusiveIf(0.5)({benchmark_snr_expr}, is_me = 0)"
         local_ref_sign_sql = "concat(toString(countIf(is_me = 0)), ' stations')"

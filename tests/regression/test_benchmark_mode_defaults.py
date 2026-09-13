@@ -750,6 +750,92 @@ def test_shared_evidence_fields_render_only_the_active_result_threshold(
     assert T["en"]["lbl_min_stations"] in rendered_labels
 
 
+@pytest.mark.parametrize("language", ["en", "de"])
+@pytest.mark.parametrize("use_two_column_layout", [False, True])
+@pytest.mark.parametrize(
+    ("analysis_direction", "comparison_mode", "tx_ab_method"),
+    [
+        ("rx", "hardware_ab", "simultaneous"),
+        ("tx", "hardware_ab", "simultaneous"),
+        ("tx", "hardware_ab", "sequential"),
+        ("rx", "reference_station", "simultaneous"),
+        ("tx", "reference_station", "simultaneous"),
+        ("rx", "local_neighborhood", "simultaneous"),
+        ("tx", "local_neighborhood", "simultaneous"),
+    ],
+)
+def test_benchmark_segment_threshold_help_uses_reported_peer_identity(
+    monkeypatch,
+    language,
+    use_two_column_layout,
+    analysis_direction,
+    comparison_mode,
+    tx_ab_method,
+):
+    """Route one bilingual identity contract through every shared Benchmark editor path."""
+    sliders = Mock()
+    session_state = _SessionState(
+        {
+            "val_comp_mode": comparison_mode,
+            "val_analysis_direction": analysis_direction,
+            "val_tx_ab_method": tx_ab_method,
+            "val_min_spots": 1,
+            "val_min_opportunities": 5,
+            "val_min_stations": 2,
+        }
+    )
+    monkeypatch.setattr(
+        config_panel,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            slider=sliders,
+            columns=Mock(return_value=(_NullContext(), _NullContext())),
+        ),
+    )
+
+    config_fields.render_evidence_threshold_fields(
+        T[language],
+        result_type="benchmark",
+        use_two_column_layout=use_two_column_layout,
+    )
+
+    station_threshold_calls = [
+        slider_call
+        for slider_call in sliders.call_args_list
+        if slider_call.kwargs["key"] == "val_min_stations"
+    ]
+    assert len(station_threshold_calls) == 1
+    threshold_help = station_threshold_calls[0].kwargs["help"]
+    assert threshold_help == T[language]["hlp_min_stations_compare"]
+    assert session_state.val_min_stations == 2
+    guided_help = GUIDED_INPUTS[language]["messages"][
+        "compare_evidence_requirements_body"
+    ]
+    expected_fragments = {
+        "en": (
+            "callsign + full reported locator",
+            "same callsign at different locators counts separately",
+            "One-sided evidence does not",
+            "independent physical stations",
+        ),
+        "de": (
+            "Rufzeichen + vollständig gemeldetem Locator",
+            "dasselbe Rufzeichen mit unterschiedlichen Locatorn zählt getrennt",
+            "Einseitige Evidenz",
+            "physisch",
+        ),
+    }
+    for required_fragment in expected_fragments[language]:
+        assert required_fragment in threshold_help
+        assert required_fragment in guided_help
+    assert (
+        "one station median" in guided_help
+        if language == "en"
+        else "einen Stationsmedian" in guided_help
+    )
+
+
 def test_guided_scope_fields_use_two_equal_columns(monkeypatch):
     """Place solar state and geographic distance beside each other."""
     selectbox = Mock()
@@ -959,45 +1045,45 @@ def test_guided_tx_ab_method_selector_uses_captioned_radio_rows(
 
 
 @pytest.mark.parametrize("language", ["en", "de"])
-def test_guided_local_benchmark_selector_uses_captioned_radio_rows(
-    monkeypatch,
-    language,
+@pytest.mark.parametrize("direction", ["rx", "tx"])
+@pytest.mark.parametrize("method", ["local_median", "local_best"])
+@pytest.mark.parametrize("should_show_explanation", [False, True])
+def test_local_benchmark_shows_fixed_method_without_mutating_state(
+    monkeypatch, language, direction, method, should_show_explanation,
 ):
-    """Make each complete neighborhood method explanation selectable."""
-    radio = Mock()
-    monkeypatch.setattr(
-        config_panel,
-        "st",
-        SimpleNamespace(
-            session_state=_SessionState(
-                {
-                    "val_comp_mode": "local_neighborhood",
-                    "val_analysis_direction": "rx",
-                }
-            ),
-            radio=radio,
-            slider=Mock(),
-        ),
+    """Use Classic help or Guided copy, preserve radius and reject stale input."""
+    session_state = _SessionState({
+        "val_comp_mode": "local_neighborhood",
+        "val_analysis_direction": direction,
+        "val_local_benchmark": method,
+        "val_ref_radius_km": 150,
+    })
+    surface = SimpleNamespace(
+        session_state=session_state,
+        radio=Mock(), slider=Mock(), markdown=Mock(), caption=Mock(), error=Mock(),
     )
-
-    local_content = GUIDED_INPUTS[language]["options"]["local_benchmark"]
+    monkeypatch.setattr(config_panel, "st", surface)
     config_fields.render_reference_design_fields(
         T[language],
-        local_benchmark_content=local_content,
+        should_show_local_benchmark_explanation=should_show_explanation,
     )
-
-    positional_args, keyword_args = radio.call_args
-    methods = ("local_median", "local_best")
-    assert positional_args == (T[language]["lbl_local_benchmark"], methods)
-    assert keyword_args["key"] == "val_local_benchmark"
-    assert keyword_args["captions"] == tuple(
-        local_content[method]["description"] for method in methods
+    surface.radio.assert_not_called()
+    explanation = T[language]["txt_local_median_explanation"]
+    surface.markdown.assert_called_once_with(
+        f"**{T[language]['opt_local_median']}**",
+        help=None if should_show_explanation else explanation,
     )
-    assert keyword_args["width"] == "stretch"
-    assert [
-        keyword_args["format_func"](method)
-        for method in methods
-    ] == [local_content[method]["label"] for method in methods]
+    if should_show_explanation:
+        surface.caption.assert_called_once_with(explanation)
+    else:
+        surface.caption.assert_not_called()
+    assert surface.slider.call_args.kwargs["key"] == "val_ref_radius_km"
+    assert session_state["val_local_benchmark"] == method
+    assert session_state["val_ref_radius_km"] == 150
+    if method == "local_median":
+        surface.error.assert_not_called()
+    else:
+        surface.error.assert_called_once_with(T[language]["err_local_benchmark"])
 
 
 def test_hardware_identity_renders_derived_grid4_without_mutating_buddy_qth(

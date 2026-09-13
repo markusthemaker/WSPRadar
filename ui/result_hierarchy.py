@@ -9,7 +9,6 @@ from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
     COMPARISON_REFERENCE_STATION,
-    LOCAL_BENCHMARK_BEST,
 )
 from ui.reference_correction import configured_snr_correction_notice
 
@@ -104,16 +103,7 @@ def comparison_constraint_text(analysis, analysis_context, translations):
         return constraint
 
     if comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
-        is_local_best = (
-            getattr(analysis_context, "local_benchmark", "")
-            == LOCAL_BENCHMARK_BEST
-        )
-        benchmark_key = (
-            "comp_title_local_best"
-            if is_local_best
-            else "comp_title_local_median"
-        )
-        benchmark = translations[benchmark_key].format(
+        benchmark = translations["comp_title_local_median"].format(
             radius=int(
                 getattr(analysis_context, "neighborhood_radius_km", 100)
             )

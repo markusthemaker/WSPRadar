@@ -7,6 +7,7 @@
       "tests": [
         "tests/regression/test_analysis_submission_state.py",
         "tests/regression/test_benchmark_mode_defaults.py",
+        "tests/regression/test_developer_credit.py",
         "tests/regression/test_documentation_state.py",
         "tests/regression/test_evidence_statistics.py",
         "tests/regression/test_json_config_schemas.py",

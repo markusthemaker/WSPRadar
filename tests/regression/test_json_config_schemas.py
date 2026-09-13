@@ -592,6 +592,19 @@ def test_formal_schema_rejects_missing_preproduction_correction_mode(
         config_validator.validate(config)
 
 
+@pytest.mark.parametrize("local_benchmark", ["local_best", "unknown", "", None, []])
+def test_formal_schema_rejects_unsupported_local_benchmark(
+    config_validator,
+    local_benchmark,
+):
+    """Match the runtime boundary that permits only explicit local median selection."""
+    config = _local_neighborhood_config()
+    config["settings"]["comparison_parameters"]["local_benchmark"] = local_benchmark
+
+    with pytest.raises(ValidationError):
+        config_validator.validate(config)
+
+
 def test_formal_schema_rejects_local_offset_establishment(config_validator):
     """Exclude controlled offset-establishment workflow from dynamic neighborhoods."""
     config = _local_neighborhood_config()

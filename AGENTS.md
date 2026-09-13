@@ -18,7 +18,7 @@ generated end-user and scientific manual, not the repository engineering guide.
 | `tools/Timed-AB-Relay-Switch/` | Separate USB relay console utility; it is not part of the Streamlit runtime. |
 | `.streamlit/` | Streamlit theme and server configuration. |
 | `.devcontainer/` | Linux development-container definition and native package setup. |
-| `.github/workflows/` | Deployment wake-up automation. There is currently no test or lint workflow. |
+| `.github/workflows/` | Deployment wake-up automation and regression-manifest validation. There is currently no full regression or lint workflow. |
 
 ## Authoritative Files
 
@@ -144,7 +144,8 @@ git diff --check
 
 There is no configured Ruff, Flake8, Black, mypy, pre-commit, or equivalent
 lint command. Do not document or require one until its configuration is added.
-The GitHub workflow currently wakes the deployed app; it does not run tests.
+The GitHub workflows wake the deployed app and validate regression-manifest
+coverage on pushes and pull requests; they do not run the regression suite.
 
 ### Progress Updates for Broad Tasks
 
@@ -909,9 +910,9 @@ technically correct or already present.
   generic inventory of screens. Chapter 2 uses the four analysis families **RX
   Performance**, **TX Performance**, **RX Benchmark**, and **TX Benchmark**.
   RX Benchmark distinguishes Hardware A/B, Reference Station / Buddy Test,
-  Local Median Neighborhood and Local Best Station. TX Benchmark distinguishes
+  and Local Median Neighborhood. TX Benchmark distinguishes
   simultaneous Hardware A/B, sequential Hardware A/B, Reference Station / Buddy
-  Test, Local Median Neighborhood and Local Best Station.
+  Test, and Local Median Neighborhood.
 - Keep Section 2.5 explicitly scoped as an optional expert diagnostic tool for
   finding and reviewing temporary Delta-SNR departures. It owns practical use,
   report reading and investigation guidance, not a recommendation that every

@@ -22,6 +22,7 @@ from config.delta_snr_outlier import (
 )
 from i18n import T
 from ui import config_io
+from ui.analysis_context_adapter import build_analysis_context_from_session_state
 
 
 def _valid_settings(
@@ -359,6 +360,78 @@ def test_uncorrected_modes_reject_nonzero_correction(
 
     with pytest.raises(ValueError, match="snr_correction_db must be 0.0"):
         config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize("analysis_direction", ["rx", "tx"])
+@pytest.mark.parametrize("local_benchmark", ["local_best", "unknown", "", None, []])
+def test_local_neighborhood_rejects_unsupported_config_method(
+    analysis_direction,
+    local_benchmark,
+):
+    """Reject explicit unsupported methods without reinterpreting the comparison."""
+    settings = _valid_settings(
+        comparison_mode="local_neighborhood",
+        analysis_direction=analysis_direction,
+    )
+    settings["comparison_parameters"]["local_benchmark"] = local_benchmark
+
+    with pytest.raises(ValueError, match="local_benchmark.*local_median"):
+        config_io.validate_config_document(_config_document(settings))
+
+
+@pytest.mark.parametrize("analysis_direction", ["rx", "tx"])
+@pytest.mark.parametrize(
+    "local_benchmark",
+    ["local_best", "Local Best Station", "Beste lokale Station", "unknown", None, []],
+)
+def test_local_neighborhood_rejects_invalid_session_method_when_saving_or_running(
+    analysis_direction,
+    local_benchmark,
+):
+    """Protect both state-to-config and state-to-analysis conversion boundaries."""
+    normalized = config_io.validate_config_document(
+        _config_document(_valid_settings(
+            comparison_mode="local_neighborhood",
+            analysis_direction=analysis_direction,
+        ))
+    )
+    session_state = {"lang": "en"}
+    config_io.apply_config_state_values(normalized, session_state)
+    session_state["val_local_benchmark"] = local_benchmark
+
+    for build_from_state in (
+        config_io.build_config_settings_from_state,
+        build_analysis_context_from_session_state,
+    ):
+        with pytest.raises(ValueError, match="local_benchmark.*local_median"):
+            build_from_state(session_state)
+    assert session_state["val_local_benchmark"] == local_benchmark
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_local_neighborhood_accepts_supported_localized_median_state(language):
+    """Keep localized supported session values canonical without accepting alternatives."""
+    assert config_io.validate_local_benchmark_state(
+        T[language]["opt_local_median"]
+    ) == "local_median"
+
+
+@pytest.mark.parametrize("language", ["en", "de"])
+def test_local_benchmark_error_explains_the_supported_method(language):
+    """Render actionable localized feedback without including untrusted method text."""
+    settings = _valid_settings(comparison_mode="local_neighborhood")
+    settings["comparison_parameters"]["local_benchmark"] = "<script>unknown</script>"
+    with pytest.raises(config_io.LocalBenchmarkValidationError) as validation_error:
+        config_io.validate_config_document(_config_document(settings))
+
+    rendered_message = config_io.format_config_validation_error(
+        validation_error.value,
+        T[language],
+    )
+
+    assert rendered_message == T[language]["err_local_benchmark"]
+    assert T[language]["opt_local_median"] in rendered_message
+    assert "<script>" not in rendered_message
 
 
 def test_local_neighborhood_rejects_offset_establishment_mode():

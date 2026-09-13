@@ -171,10 +171,15 @@ def init_session_state():
         "establish_offset",
     }:
         st.session_state.val_benchmark_offset_db = 0.0
-    st.session_state.val_local_benchmark = _canonicalize_localized_state(
-        st.session_state.get("val_local_benchmark"),
-        {"local_median": "opt_local_median", "local_best": "opt_local_best"},
-        "local_median",
+    local_benchmark_state = st.session_state.get("val_local_benchmark", "local_median")
+    st.session_state.val_local_benchmark = (
+        _canonicalize_localized_state(
+            local_benchmark_state,
+            {"local_median": "opt_local_median"},
+            local_benchmark_state,
+        )
+        if isinstance(local_benchmark_state, str)
+        else local_benchmark_state
     )
     if "val_ref_callsign" not in st.session_state: 
         st.session_state.val_ref_callsign = ""

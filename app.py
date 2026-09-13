@@ -114,6 +114,8 @@ if url_hydration_error is not None:
     url_error_key = (
         "err_url_unsupported_version"
         if url_hydration_error.get("code") == "unsupported_version"
+        else "err_local_benchmark"
+        if url_hydration_error.get("code") == "invalid_local_benchmark"
         else "err_url_invalid"
     )
     st.error(t[url_error_key])

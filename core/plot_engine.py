@@ -48,7 +48,6 @@ from config.plot_constants import (
 from core.analysis_context import (
     COMPARISON_HARDWARE_AB,
     COMPARISON_LOCAL_NEIGHBORHOOD,
-    LOCAL_BENCHMARK_MEDIAN,
 )
 from core.opportunity_engine import (
     SUCCESS_RATE_BOUNDS,
@@ -861,11 +860,7 @@ def render_map_figure(
             meta_parts.append(offset_label.format(offset=benchmark_offset_db))
 
         if analysis_context.comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD:
-            local_mode = (
-                t_lang['opt_local_median']
-                if analysis_context.local_benchmark == LOCAL_BENCHMARK_MEDIAN
-                else t_lang['opt_local_best']
-            )
+            local_mode = t_lang['opt_local_median']
             ref_radius = analysis_context.neighborhood_radius_km
             reference_value = f"{local_mode} (≤{ref_radius} km)"
         elif analysis_context.comparison_mode == COMPARISON_HARDWARE_AB:

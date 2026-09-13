@@ -1,13 +1,18 @@
 """Build canonical core analysis context objects from Streamlit UI state."""
 
 from config import DEFAULT_BAND
-from core.analysis_context import AnalysisContext, COMPARISON_HARDWARE_AB
+from core.analysis_context import (
+    AnalysisContext,
+    COMPARISON_HARDWARE_AB,
+    COMPARISON_LOCAL_NEIGHBORHOOD,
+)
 from core.input_validation import normalize_ascii_upper
 from ui.config_io import (
     LOCAL_BENCHMARK_VALUES,
     MODE_VALUES,
     SOLAR_VALUES,
     canonical_from_translated,
+    validate_local_benchmark_state,
 )
 from ui.population_exclusion_state import (
     population_exclusion_defaults,
@@ -39,10 +44,16 @@ def build_analysis_context_from_session_state(session_state):
         qth=target_qth,
         band=session_state.get("val_band", DEFAULT_BAND),
         comparison_mode=comparison_mode,
-        local_benchmark=canonical_from_translated(
-            session_state.get("val_local_benchmark", "local_median"),
-            LOCAL_BENCHMARK_VALUES,
-            "local_median",
+        local_benchmark=(
+            validate_local_benchmark_state(
+                session_state.get("val_local_benchmark", "local_median")
+            )
+            if comparison_mode == COMPARISON_LOCAL_NEIGHBORHOOD
+            else canonical_from_translated(
+                session_state.get("val_local_benchmark", "local_median"),
+                LOCAL_BENCHMARK_VALUES,
+                "local_median",
+            )
         ),
         reference_callsign=normalize_ascii_upper(
             session_state.get("val_ref_callsign", "")

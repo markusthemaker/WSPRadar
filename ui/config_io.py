@@ -86,7 +86,6 @@ MODE_KEYS = {
 }
 LOCAL_BENCHMARK_KEYS = {
     "local_median": "opt_local_median",
-    "local_best": "opt_local_best",
 }
 SOLAR_KEYS = {
     "all": "opt_solar_all",
@@ -101,6 +100,12 @@ SOLAR_VALUES = {value: key for key, value in SOLAR_KEYS.items()}
 
 
 _CONFIG_VALIDATION_LOGGER = logging.getLogger("wspradar.config")
+
+
+class LocalBenchmarkValidationError(ValueError):
+    """Identify an unsupported local method for localized boundary feedback."""
+
+
 _CONFIG_FIELD_TOKEN_RE = re.compile(
     r"(?<![A-Za-z0-9_])"
     r"[A-Za-z_][A-Za-z0-9_]*(?:\[\d+\])?"
@@ -199,6 +204,8 @@ def _config_validation_field_path(error):
 
 def format_config_validation_error(error, translations):
     """Return localized safe UI copy without exposing technical exception prose."""
+    if isinstance(error, LocalBenchmarkValidationError):
+        return translations["err_local_benchmark"]
     field_path = _config_validation_field_path(error)
     if field_path:
         return translations["err_config_validation_field"].format(
@@ -234,6 +241,28 @@ def _canonical_from_translated(state_value, value_map, fallback):
 def canonical_from_translated(state_value, value_map, fallback):
     """Translate a localized UI value into a stable config key."""
     return _canonical_from_translated(state_value, value_map, fallback)
+
+
+def validate_local_benchmark_state(state_value):
+    """Resolve a supported local method without replacing explicit invalid state."""
+    canonical_method = (
+        _canonical_from_translated(state_value, LOCAL_BENCHMARK_VALUES, None)
+        if isinstance(state_value, str)
+        else None
+    )
+    return _validate_local_benchmark(canonical_method)
+
+
+def _validate_local_benchmark(local_benchmark):
+    """Require the canonical local method at persisted configuration boundaries."""
+    try:
+        return _validate_choice(
+            local_benchmark,
+            "local_benchmark",
+            LOCAL_BENCHMARK_KEYS.keys(),
+        )
+    except ValueError as error:
+        raise LocalBenchmarkValidationError(str(error)) from error
 
 
 def _default_config():
@@ -604,13 +633,11 @@ def _settings_from_session_state(state, lang):
             state.get("val_ref_qth", defaults["reference_qth"])
         )
     elif benchmark_mode == "local_neighborhood":
-        comparison_parameters["local_benchmark"] = _canonical_from_translated(
+        comparison_parameters["local_benchmark"] = validate_local_benchmark_state(
             state.get(
                 "val_local_benchmark",
                 "local_median",
             ),
-            LOCAL_BENCHMARK_VALUES,
-            "local_median",
         )
         comparison_parameters["neighborhood_radius_km"] = int(
             state.get(
@@ -1232,10 +1259,8 @@ def normalize_config_settings(raw_settings):
                 "reference-station mode."
             )
     elif benchmark_mode == "local_neighborhood":
-        normalized["local_benchmark"] = _validate_choice(
+        normalized["local_benchmark"] = _validate_local_benchmark(
             comparison["local_benchmark"],
-            "local_benchmark",
-            LOCAL_BENCHMARK_KEYS.keys(),
         )
         normalized["neighborhood_radius_km"] = _validate_int(
             comparison["neighborhood_radius_km"],

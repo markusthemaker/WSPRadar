@@ -15,6 +15,10 @@ from core.snr_utils import round_snr_like_columns
 from core.tx_ab_schedule import assign_tx_ab_pair_columns
 
 
+# Reported peer identity is exact callsign plus full locator, not a unique
+# physical station. Both Benchmark paths aggregate one row per identity/segment.
+COMPARE_PEER_IDENTITY_KEYS = ["peer_sign", "peer_grid"]
+
 COMPARE_GROUP_KEYS = [
     "SegmentID",
     "dist_label",
@@ -22,8 +26,7 @@ COMPARE_GROUP_KEYS = [
     "r_min",
     "r_max",
     "az_bucket",
-    "peer_sign",
-    "peer_grid",
+    *COMPARE_PEER_IDENTITY_KEYS,
 ]
 
 COMPARE_SEGMENT_KEYS = [
@@ -252,6 +255,11 @@ def aggregate_compare_map_data(
     """
     Aggregate raw Benchmark rows into map station rows and segment medians.
 
+    A station row represents one exact callsign/full-reported-locator identity
+    within a segment. Each identity meeting the paired-evidence requirement
+    contributes one median and one support count to that segment, regardless of
+    its observation count or other identities sharing its callsign.
+
     The returned dataframes intentionally preserve the historical plot_engine
     schema so the segment inspector, export flow, and map rendering continue to
     see the same columns. By default the raw input remains unchanged. When
@@ -292,12 +300,20 @@ def aggregate_compare_map_data(
     df_plot = round_snr_like_columns(df_plot, owns_input=True)
 
     def segment_agg(segment_df):
-        vals = segment_df["stat_val"].dropna()
-        cnt = segment_df.loc[segment_df["spot_count"] > 0, "peer_sign"].nunique()
+        """Use the same qualifying identity medians for segment value and support."""
+        # COMPARE_GROUP_KEYS already guarantees one row per peer identity in
+        # this segment. Counting callsigns would merge separately weighted paths.
+        qualifying_station_medians = segment_df.loc[
+            segment_df["spot_count"] > 0, "stat_val"
+        ].dropna()
         return pd.Series(
             {
-                "val": vals.median() if len(vals) > 0 else np.nan,
-                "cnt": cnt,
+                "val": (
+                    qualifying_station_medians.median()
+                    if not qualifying_station_medians.empty
+                    else np.nan
+                ),
+                "cnt": len(qualifying_station_medians),
                 "total_spots": segment_df["spot_count"].sum(),
             }
         )

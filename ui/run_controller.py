@@ -22,7 +22,6 @@ from core.analysis_admission import (
 from core.analysis_runner import (
     DECODE_FILTER_LEGACY,
     DECODE_FILTER_STRICT,
-    AnalysisConfigError,
     build_analysis_batches,
 )
 from core.artifact_store import (
@@ -88,6 +87,7 @@ from ui.analysis_submission_state import (
     update_analysis_submission,
 )
 from ui.components.segment_inspector import render_segment_inspector
+from ui.config_io import LocalBenchmarkValidationError
 from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
     matplotlib_render_span_label,
@@ -730,12 +730,12 @@ def render_analysis_run(
     active_demo_key = st.session_state.get("active_demo_profile")
     active_demo = DEMO_PROFILES.get(active_demo_key) if active_demo_key else None
     is_demo_run = active_demo is not None
-    analysis_context = build_analysis_context_from_session_state(st.session_state)
-    presentation_context = build_presentation_context_from_session_state(
-        st.session_state,
-        theme="dark",
-    )
     try:
+        analysis_context = build_analysis_context_from_session_state(st.session_state)
+        presentation_context = build_presentation_context_from_session_state(
+            st.session_state,
+            theme="dark",
+        )
         analyses = build_analysis_batches(
             analysis_context,
             start_t,
@@ -746,14 +746,20 @@ def render_analysis_run(
             presentation_context=presentation_context,
             warn=st.warning,
         )
-    except AnalysisConfigError as exc:
+    except ValueError as exc:
         log_performance_event(
             "analysis_configuration_failure",
             failure_type=type(exc).__name__,
             technical_error=str(exc),
         )
-        st.error(t["err_analysis_configuration_invalid"])
+        error_message_key = (
+            "err_local_benchmark"
+            if isinstance(exc, LocalBenchmarkValidationError)
+            else "err_analysis_configuration_invalid"
+        )
+        st.error(t[error_message_key])
         st.session_state.run_mode = None
+        reset_result_state(st.session_state)
         return
 
     _refresh_session_artifacts_before_cleanup()

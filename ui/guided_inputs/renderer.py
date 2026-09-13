@@ -322,12 +322,11 @@ def _render_reference_design_fields(t, guided_content):
             t,
             on_change=_guided_correction_context_change,
             on_change_args=("reference_design",),
-            local_benchmark_content=guided_content["options"]["local_benchmark"],
             tx_ab_method_content=guided_content["options"]["tx_ab_method"],
+            should_show_local_benchmark_explanation=True,
             help_overrides={
                 "reference_callsign": messages["reference_callsign_help"],
                 "reference_qth": messages["reference_grid4_help"],
-                "local_benchmark": messages["local_benchmark_help"],
                 "local_radius": messages["local_radius_help"],
                 "tx_ab_method": messages["tx_ab_method_help"],
             },

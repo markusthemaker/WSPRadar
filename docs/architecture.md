@@ -140,6 +140,14 @@ subsequent schema bump is incomplete until every preceding supported production
 version has an explicit ordered migration; unsupported versions are rejected
 rather than interpreted with current defaults.
 
+Local Neighborhood has one supported method, `local_median`, retained explicitly
+in the scientific context, saved configuration, and URL. Guided and Classic show
+its fixed localized explanation and the neighborhood radius. Configuration and
+core analysis boundaries reject unsupported method values rather than replacing
+them with a different scientific comparison. Invalid active input cancels result
+rendering and clears completed result state while preserving the input for
+validation and recovery through Reset Config.
+
 Every active comparison carries an explicit `snr_correction_mode` beside
 `snr_correction_db`. `no_offset` means that no established correction is
 applied; `establish_offset` marks a deliberately uncorrected baseline run; both
@@ -352,6 +360,14 @@ it performs no database request and does not rematerialize the raw evidence for
 map aggregation. A missing, stale, or incompatible snapshot is retired with an
 explicit rerun warning rather than silently querying a provider.
 
+The language callback retains `run_mode` when a current-version completed
+snapshot exists, while retiring any in-flight UI submission token. The next
+script therefore enters completed-result validation and rerenders the same
+evidence in the selected language, including when an earlier rerender was
+interrupted. Without a completed snapshot, the callback clears `run_mode` and
+requires an explicit new Run; cancellation does not forcibly abort an HTTP
+request already executing.
+
 Completed snapshots also retain each analysis block's language-free result
 diagnostic. A diagnostic carries a typed reason, the applicable configured
 evidence requirements, and only measured scalar counts that the scientific
@@ -421,6 +437,17 @@ an experiment invariant that archive rows cannot prove. Local benchmarks select
 geographically eligible callsign/full-locator identities. Sequential TX
 Hardware A/B applies the shared Target callsign and grid-4 to both schedule
 branches.
+
+Local Neighborhood computes one conservative geographic bounding box in
+`core/geographic_scope.py` around the configured Target locator center. Its
+spherical-cap envelope uses an Earth radius of 6300 km, below the minimum WGS-84 curvature
+radius with additional approximation slack. Date-line crossings use grouped
+inclusive longitude ranges; pole-reaching envelopes omit the longitude filter.
+Both TX and RX retain the authoritative inclusive
+`geoDistance(...) <= neighborhood_radius_km * 1000` predicate. Envelope padding
+only broadens the cheap candidate prefilter; it does not enlarge the requested
+neighborhood or change the database distance model. Changed SQL naturally
+receives a different exact-query cache identity.
 
 Every completed strict or legacy analysis query is wrapped once by
 `core/query_limits.py` with an outer `LIMIT MAX_ANALYSIS_RESULT_ROWS + 1`
@@ -516,6 +543,17 @@ in the pair key, takes a micro-median when one peer has multiple decoded rows
 on either side of a scheduled pair, and computes Delta only for a pair with
 both sides. Boundary pairs are admitted only when both planned transmission
 starts satisfy `start <= planned_start < end`.
+
+Benchmark weighting and segment support share the exact peer identity
+`peer_sign` plus full reported `peer_grid`. Each identity independently meets
+the Joint-observation or complete-Scheduled-Pair threshold, contributes one
+peer median, and counts once toward the segment minimum. The segment `cnt`
+therefore counts qualifying peer identities rather than unique callsigns.
+Different full locators under one callsign remain separate, including locators
+within the same grid-4. One-sided-only identities retain their outcome evidence
+but contribute neither a Delta-SNR median nor support for that segment median.
+Footer, Inspector, and export station counts use the same identity contract;
+these counts do not establish independent physical stations or sites.
 
 `core/tx_ab_schedule.py` owns supported repeat-interval and start validation,
 the exact ClickHouse schedule predicate, and stable planned-pair assignment.
@@ -1295,6 +1333,19 @@ missing, corrupt or mismatched compact aggregate aborts preparation with an
 explicit rerun instruction instead of silently omitting the map. Export metadata
 stores a path-free SHA-256 recipe signature rather than local artifact paths.
 
+Each `run_metadata.json` result block also publishes the registered
+`decode_filter_mode`: `strict_code_1` retains the `code = 1` query predicate,
+while `legacy_no_code` records the historical retry without that restriction
+after the strict query returned no Target-side evidence. The value comes from
+the prepared analysis, including the selected policy restored from a completed
+run snapshot; the policy is recorded independently for each registered result
+block. The export signature fingerprints this field for every block so prepared packages
+cannot be reused across different recorded selections. This is an additive
+metadata field: existing configuration, table and evidence schemas are
+unchanged, and absent or `None` registration values serialize as JSON `null`
+without inferring a policy from configuration. The field documents query
+selection, not independent verification of physical transmission-mode purity.
+
 Performance selected evidence is exported under two stable filenames:
 `figure_selected_station_snr_evidence.png` and
 `figure_selected_station_temporal_evidence.png`. They use the same shared
@@ -1520,7 +1571,12 @@ must remain outside `README.md`.
    SNR. Hidden benchmark and scheduled TX A/B settings do not participate in
    this standalone Performance query.
 2. The fetched globally Target-Active frame is normalized into the explicit
-   opportunity schema. Peer coordinates are assigned without a full coordinate
+   opportunity schema. Rows that collide after callsign/locator case and whitespace
+   normalization are consolidated by time slot, callsign and full locator before
+   classification: evidence flags use logical OR and Target SNR retains the
+   maximum, matching the query's aggregation; all-missing SNR remains missing.
+   Frames with unique canonical identities retain the owned-input fast path.
+   Peer coordinates are assigned without a full coordinate
    merge, and outcomes are classified on the owned frame.
 3. Target-QTH solar selection and global moving-station integrity are applied,
    followed by Geographic Analysis Scope; only peers strictly nearer than the
@@ -1531,6 +1587,11 @@ must remain outside `README.md`.
    bounds only after aggregation, and avoids a second full-frame working copy.
    Map and segment aggregates use the corresponding narrow projections.
 6. The inspector loads selected evidence only when required.
+
+The Performance method version is `opportunity-v2`. It distinguishes canonical
+peer-cycle consolidation in export provenance and completed-run identity, so
+pre-fix processed results cannot be reused as current completed results. Raw
+query-cache entries remain valid and pass through consolidation on a new run.
 
 ### Duplicate and Admission Flow
 
@@ -1619,6 +1680,15 @@ the response-size and result-row safety ceilings, normal request/input errors,
 local filesystem errors, post-filter warnings and scientific no-evidence
 outcomes do not trigger cross-database selection.
 
+CSV decoding validates known numeric transport and SNR columns for ordinary and
+demo queries before cache publication. Malformed nonmissing values and infinities
+produce a provider-scoped `decode_error`; legitimate missing values, including
+absent Reference statistics, retain their existing meaning. Raw CSV disk-cache
+reloads repeat this validation before normalization: invalid entries are removed,
+and any refetch still requires reserved request capacity without penalizing the
+provider for cached corruption. Optional disk-cache publication failures remain
+local and do not discard a valid CSV response or trigger provider failover.
+
 ## Persistence and Cache Lifecycles
 
 `core/artifact_store.py` divides local artifacts into four namespaces:
@@ -1665,7 +1735,8 @@ and any RAM L1 entry expires at that same absolute deadline.
 Benchmark continues to request upstream CSV because that is its established
 transport and parser path, but every accepted CSV exact query is converted to
 raw Parquet in its policy-specific disk L2 before transport normalization and
-scientific post-fetch processing. Ordinary Benchmark uses the one-hour
+scientific post-fetch processing, after numeric response validation has passed.
+Ordinary Benchmark uses the one-hour
 last-access `queries` namespace; guided-demo Benchmark uses the absolute 24-hour
 `demo-queries` namespace. Performance keeps its upstream Parquet transport and
 publishes it under the same ordinary/demo namespace policy. The optional
@@ -1713,6 +1784,14 @@ quotas.
 Cartopy supplies map projection support and obtains Natural Earth geographic
 assets when they are not already available locally. First-use asset retrieval or
 first construction of a unique basemap can be materially slower than a cache hit.
+
+### Regression Manifest Validation Workflow
+
+`.github/workflows/regression-manifest.yml` runs the actual Windows launcher
+with `-ValidateChunks` on pushes, pull requests, and manual dispatch. Validation
+needs no virtual environment or application dependencies and rejects missing,
+duplicate, and stale assignments against pytest module discovery. This workflow
+checks the fixed serial partition; it does not execute the regression suite.
 
 ### Deployment Wake Workflow
 
@@ -1851,7 +1930,8 @@ capabilities.
 5. **Export memory:** ZIPs are built and retained in memory. Single-export gating
    limits concurrency but not the size of one export.
 6. **Dependency reproducibility:** Most Python dependencies are unpinned. There
-   is no lock file, hash checking, automated vulnerability audit, or test CI.
+   is no lock file, hash checking, automated vulnerability audit, or full
+   regression CI; the manifest-only workflow validates test-module coverage.
 7. **External availability and divergence:** wspr.live, WD2, WD1 and first-use
    Cartopy asset downloads are outside application control. Bounded HTTP work and
    failover improve availability but cannot guarantee synchronized database

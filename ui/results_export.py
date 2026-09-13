@@ -1996,6 +1996,7 @@ def _canonical_export_analysis_id(block, analysis_direction):
 
 
 def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
+    """Combine saved inputs with registered per-result provenance, leaving unknowns null."""
     settings = config_payload.get("settings", {})
     core_parameters = settings.get("core_parameters", {})
     comparison_parameters = settings.get("comparison_parameters", {})
@@ -2068,6 +2069,7 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
                 "title": block.get("title"),
                 "folder": block.get("mode_folder"),
                 "result_mode": block.get("mode_folder"),
+                "decode_filter_mode": block.get("decode_filter_mode"),
                 "analysis_cache_file": analysis_cache_paths.get(key),
                 "selected_segment": block.get("selected_segment"),
                 "selected_distance": block.get("selected_distance"),
@@ -2241,6 +2243,7 @@ def _export_signature(blocks):
             "title": block.get("title"),
             "mode_folder": block.get("mode_folder"),
             "database_source": block.get("database_source"),
+            "decode_filter_mode": block.get("decode_filter_mode"),
             "selected_segment": block.get("selected_segment"),
             "selected_distance": block.get("selected_distance"),
             "selected_direction": block.get("selected_direction"),

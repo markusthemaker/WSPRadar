@@ -586,6 +586,135 @@ def test_export_signature_is_path_free_and_tracks_artifact_changes(
     assert signature != results_export._export_signature(blocks)
 
 
+@pytest.mark.parametrize("analysis_direction", ("RX", "TX"))
+@pytest.mark.parametrize("is_compare", (False, True))
+@pytest.mark.parametrize(
+    "decode_policy_fields",
+    (
+        {"decode_filter_mode": "strict_code_1"},
+        {"decode_filter_mode": "legacy_no_code"},
+        {"decode_filter_mode": None},
+        {},
+    ),
+    ids=("strict", "historical-fallback", "unknown", "missing"),
+)
+def test_results_zip_preserves_registered_decode_filter_mode(
+    tmp_path, monkeypatch, analysis_direction, is_compare, decode_policy_fields,
+):
+    """Carry actual query selection from registration into each exported result."""
+    analysis_id = f"{analysis_direction}_{'COMP' if is_compare else 'ABS'}"
+    state, artifact_paths = _create_registered_export_artifacts(
+        tmp_path, analysis_id=analysis_id,
+    )
+    state["lang"] = "en"
+    config_payload = {
+        "format": "wspradar.config",
+        "schema_version": 1,
+        "settings": {
+            "core_parameters": {"analysis_direction": analysis_direction.lower()},
+        },
+    }
+    monkeypatch.setattr(results_export, "st", SimpleNamespace(session_state=state))
+    monkeypatch.setattr(results_export, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(
+        results_export,
+        "build_config_payload",
+        lambda: (json.dumps(config_payload).encode("utf-8"), "wspradar.config"),
+    )
+    monkeypatch.setattr(results_export, "_render_map_png_for_block", lambda _block: b"map-png")
+    monkeypatch.setattr(
+        results_export, "_render_inspector_png_for_block",
+        lambda _block, _figure_name: None,
+    )
+    monkeypatch.setattr(
+        results_export, "_build_all_drilldown_for_block", lambda _block: pd.DataFrame(),
+    )
+
+    results_export.register_map_export_context(
+        analysis={
+            "id": analysis_id,
+            "title": f"{analysis_direction} {'Benchmark' if is_compare else 'Performance'}",
+            "is_compare": is_compare,
+            "is_sequential": False,
+            "analysis_kind": "comparison" if is_compare else "opportunity",
+            **decode_policy_fields,
+        },
+        parquet_path=artifact_paths["spots"],
+        map_data_paths=results_export.MapDataArtifactPaths(
+            station_rows_path=artifact_paths["map_stations"],
+            segment_rows_path=artifact_paths["map_segments"],
+        ),
+        start_t="2026-07-01T00:00:00Z",
+        end_t="2026-07-02T00:00:00Z",
+        max_peer_distance_km=10000,
+        base_min_stations=1,
+        lat_0=50.0,
+        lon_0=5.0,
+        analysis_context=SimpleNamespace(to_dict=lambda: {}),
+        presentation_context=SimpleNamespace(
+            language="en", theme="dark", solar_label="All",
+        ),
+        database_source="wspr_live",
+    )
+
+    zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
+
+    export_root = zip_filename.removesuffix(".zip")
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        metadata = json.loads(archive.read(f"{export_root}/config/run_metadata.json"))
+        exported_config = json.loads(
+            archive.read(f"{export_root}/config/wspradar_config.config")
+        )
+    assert len(metadata["result_blocks"]) == 1
+    exported_block = metadata["result_blocks"][0]
+    assert exported_block["decode_filter_mode"] == decode_policy_fields.get(
+        "decode_filter_mode"
+    )
+    assert exported_block["folder"] == (
+        results_export.BENCHMARK_EXPORT_FOLDER
+        if is_compare else results_export.PERFORMANCE_EXPORT_FOLDER
+    )
+    assert exported_config == config_payload
+
+
+def test_decode_filter_modes_remain_per_block_and_change_export_signature(monkeypatch):
+    """Keep distinct block policies and invalidate a ZIP when only policy changes."""
+    monkeypatch.setattr(
+        results_export, "st", SimpleNamespace(session_state={"lang": "en"}),
+    )
+    blocks = {
+        "RX_COMP": {
+            "analysis_id": "RX_COMP",
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+            "decode_filter_mode": "legacy_no_code",
+        },
+        "RX_ABS": {
+            "analysis_id": "RX_ABS",
+            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+            "decode_filter_mode": "strict_code_1",
+        },
+    }
+    metadata = results_export._build_run_metadata(blocks, {"settings": {}})
+
+    assert {
+        block["folder"]: block["decode_filter_mode"]
+        for block in metadata["result_blocks"]
+    } == {
+        results_export.BENCHMARK_EXPORT_FOLDER: "legacy_no_code",
+        results_export.PERFORMANCE_EXPORT_FOLDER: "strict_code_1",
+    }
+    original_signature = metadata["export_signature"]
+    for changed_block_key in blocks:
+        for changed_policy in (None, "strict_code_1", "legacy_no_code"):
+            if changed_policy == blocks[changed_block_key]["decode_filter_mode"]:
+                continue
+            changed_blocks = deepcopy(blocks)
+            changed_blocks[changed_block_key]["decode_filter_mode"] = changed_policy
+            assert results_export._export_signature(changed_blocks) != original_signature
+
+
 def test_run_metadata_records_correction_mode_and_numeric_value(monkeypatch):
     """Preserve operator correction provenance beside its scientific value."""
     monkeypatch.setattr(

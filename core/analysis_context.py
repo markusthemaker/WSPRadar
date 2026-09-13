@@ -11,7 +11,6 @@ COMPARISON_REFERENCE_STATION = "reference_station"
 COMPARISON_HARDWARE_AB = "hardware_ab"
 
 LOCAL_BENCHMARK_MEDIAN = "local_median"
-LOCAL_BENCHMARK_BEST = "local_best"
 
 SELF_TEST_RX = "rx"
 SELF_TEST_TX = "tx"
