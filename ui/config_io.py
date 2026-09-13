@@ -29,11 +29,9 @@ from config.config_schema import (
     LEGACY_RESULTS_VIEW_KEY_ALIASES,
     PERFORMANCE_RESULTS_VIEW_KEY,
     SEGMENT_DIRECTION_OPTIONS,
-    SEGMENT_EVIDENCE_TIME_BINS,
     SEGMENT_RANGE_OPTIONS,
     SEGMENT_SELECTION_ALL,
     SNR_CORRECTION_MODES,
-    STATION_EVIDENCE_TIME_BINS,
     temporal_evidence_time_bin_policy_for_duration,
     TX_AB_METHODS,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
@@ -62,14 +60,21 @@ from core.time_utils import (
     parse_utc_minute,
     resolve_default_utc_window,
 )
-from ui.analysis_submission_state import cancel_analysis_submission
 from ui.classic_input_state import synchronize_classic_input_state
+from ui.inspector.selection import (
+    parse_segment_selection,
+    parse_station_identities,
+    segment_selection_value,
+    station_identity_records,
+    validate_evidence_time_bin,
+)
+from ui.inspector.selection_state import seed_inspector_selection_state
 from ui.population_exclusion_state import (
     population_exclusion_defaults,
     register_explicit_population_exclusion_values,
     result_type_from_comparison_mode,
 )
-from ui.result_state import reset_result_state
+from ui.run_lifecycle import prepare_configuration_load
 from ui.time_window import (
     ABSOLUTE_TIME_WINDOW_INITIALIZED_KEY,
     MINIMUM_ANALYSIS_UTC,
@@ -473,76 +478,16 @@ def _validate_grid4(value, field, allow_empty=True):
 
 def _validate_selected_stations(value, field, *, maximum_count=1):
     """Normalize automatic, empty, or optionally bounded station identities."""
-    if value is None:
-        return None
-    if not isinstance(value, list):
-        raise ValueError(f"{field} must be null or a JSON array.")
-
-    normalized_stations = []
-    seen_station_identities = set()
-    for station_index, station in enumerate(value):
-        station_field = f"{field}[{station_index}]"
-        station = _validate_object_fields(
-            station,
-            station_field,
-            {"callsign", "locator"},
-        )
-        callsign = _validate_callsign(
-            station["callsign"],
-            f"{station_field}.callsign",
-            allow_empty=False,
-        )
-        locator = _validate_locator(
-            station["locator"],
-            f"{station_field}.locator",
-            allow_empty=False,
-        )
-        station_identity = (callsign, locator)
-        if station_identity in seen_station_identities:
-            raise ValueError(
-                f"{field} contains duplicate station identity "
-                f"{callsign}/{locator}."
-            )
-        seen_station_identities.add(station_identity)
-        normalized_stations.append(
-            {"callsign": callsign, "locator": locator}
-        )
-    if (
-        maximum_count is not None
-        and len(normalized_stations) > int(maximum_count)
-    ):
-        if int(maximum_count) == 1:
-            raise ValueError(
-                f"{field} must contain at most one station identity."
-            )
-        raise ValueError(
-            f"{field} must contain at most {int(maximum_count)} station identities."
-        )
-    return normalized_stations
+    return station_identity_records(parse_station_identities(
+        value, field=field, maximum_count=maximum_count,
+    ))
 
 
 def _validate_segment_selection(value, field, choices):
     """Normalize explicit All or one non-empty canonical segment selection."""
-    if value == SEGMENT_SELECTION_ALL:
-        return SEGMENT_SELECTION_ALL
-    if not isinstance(value, list) or not value:
-        raise ValueError(
-            f"{field} must be {SEGMENT_SELECTION_ALL!r} or a non-empty JSON array."
-        )
-
-    normalized_values = []
-    seen_values = set()
-    for selection_index, selected_value in enumerate(value):
-        selection_field = f"{field}[{selection_index}]"
-        if not isinstance(selected_value, str) or selected_value not in choices:
-            raise ValueError(
-                f"{selection_field} must be one of: {', '.join(choices)}."
-            )
-        if selected_value in seen_values:
-            raise ValueError(f"{field} contains duplicate value {selected_value!r}.")
-        seen_values.add(selected_value)
-        normalized_values.append(selected_value)
-    return normalized_values
+    return segment_selection_value(parse_segment_selection(
+        value, field=field, choices=choices,
+    ))
 
 
 def _limit_segment_selection_to_analysis_scope(
@@ -1428,15 +1373,14 @@ def normalize_config_settings(raw_settings):
         performance_results_view["show_zero_target"],
         "results_view.performance.show_zero_target",
     )
-    normalized["segment_evidence_time_bin_absolute"] = _validate_choice(
+    normalized["segment_evidence_time_bin_absolute"] = validate_evidence_time_bin(
         performance_results_view["segment_evidence_time_bin"],
-        "results_view.performance.segment_evidence_time_bin",
-        SEGMENT_EVIDENCE_TIME_BINS,
+        field="results_view.performance.segment_evidence_time_bin",
+        is_segment=True,
     )
-    normalized["station_evidence_time_bin_absolute"] = _validate_choice(
+    normalized["station_evidence_time_bin_absolute"] = validate_evidence_time_bin(
         performance_results_view["station_evidence_time_bin"],
-        "results_view.performance.station_evidence_time_bin",
-        STATION_EVIDENCE_TIME_BINS,
+        field="results_view.performance.station_evidence_time_bin",
     )
     normalized["selected_stations_absolute"] = _validate_selected_stations(
         performance_results_view["selected_stations"],
@@ -1474,15 +1418,14 @@ def normalize_config_settings(raw_settings):
             benchmark_results_view["show_non_joint"],
             "results_view.benchmark.show_non_joint",
         )
-        normalized["segment_evidence_time_bin_compare"] = _validate_choice(
+        normalized["segment_evidence_time_bin_compare"] = validate_evidence_time_bin(
             benchmark_results_view["segment_evidence_time_bin"],
-            "results_view.benchmark.segment_evidence_time_bin",
-            SEGMENT_EVIDENCE_TIME_BINS,
+            field="results_view.benchmark.segment_evidence_time_bin",
+            is_segment=True,
         )
-        normalized["station_evidence_time_bin_compare"] = _validate_choice(
+        normalized["station_evidence_time_bin_compare"] = validate_evidence_time_bin(
             benchmark_results_view["station_evidence_time_bin"],
-            "results_view.benchmark.station_evidence_time_bin",
-            STATION_EVIDENCE_TIME_BINS,
+            field="results_view.benchmark.station_evidence_time_bin",
         )
         normalized["selected_stations_compare"] = _validate_selected_stations(
             benchmark_results_view["selected_stations"],
@@ -1702,6 +1645,14 @@ def apply_config_state_values(config, session_state):
                     DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
                 )
             },
+            "val_config_profile": deepcopy(config.get("profile")),
+            "loaded_config_profile": deepcopy(config.get("profile")),
+            "val_config_extensions": deepcopy(config.get("extensions", {})),
+        }
+    )
+    seed_inspector_selection_state(
+        session_state,
+        {
             "val_results_show_non_joint": config.get("show_non_joint"),
             "val_results_show_zero_target": config["show_zero_target"],
             "val_results_selected_ranges_compare": deepcopy(
@@ -1742,10 +1693,8 @@ def apply_config_state_values(config, session_state):
             "val_results_selected_stations_absolute": deepcopy(
                 config.get("selected_stations_absolute")
             ),
-            "val_config_profile": deepcopy(config.get("profile")),
-            "loaded_config_profile": deepcopy(config.get("profile")),
-            "val_config_extensions": deepcopy(config.get("extensions", {})),
-        }
+        },
+        overwrite=True,
     )
     register_explicit_population_exclusion_values(session_state)
     synchronize_classic_input_state(session_state)
@@ -1753,20 +1702,16 @@ def apply_config_state_values(config, session_state):
 
 def apply_config_values_to_state(config, session_state):
     """Atomically apply validated config values to one mutable state mapping."""
-    cancel_analysis_submission(session_state)
-    session_state["active_demo_profile"] = None
+    prepare_configuration_load(session_state)
     session_state["show_demo_launcher"] = False
     session_state["show_config_loader"] = False
     session_state["config_panels_expanded"] = True
     session_state["_collapse_config_panels_once"] = False
-    session_state["run_mode"] = None
     session_state["guided_loaded_demo_profile"] = None
     session_state["guided_demo_metadata_open"] = False
     session_state["guided_last_benchmark_mode"] = None
     session_state["guided_reconstruct_requested"] = True
     session_state["guided_collapse_all"] = False
-    session_state["configuration_changed_since_run"] = False
-    reset_result_state(session_state)
     for state_key in tuple(session_state.keys()):
         if state_key.startswith("config_save_"):
             session_state.pop(state_key, None)

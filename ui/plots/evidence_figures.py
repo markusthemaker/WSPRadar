@@ -2029,20 +2029,6 @@ def render_segment_temporal_evidence_export_figure(recipe):
         folded_axis,
         x_label=recipe["folded_x_label"],
     )
-    if (
-        is_folded_available
-        and recipe.get("show_folded_date_annotation", False)
-    ):
-        folded_axis.text(
-            0.02,
-            0.04,
-            recipe["folded_date_annotation"],
-            transform=folded_axis.transAxes,
-            color="#cccccc",
-            fontsize=8,
-            ha="left",
-            va="bottom",
-        )
     for axis in (chronological_axis, folded_axis):
         _apply_compare_median_focus_axis(
             axis,
@@ -2150,7 +2136,7 @@ def _selected_evidence_export_recipe(
         median_label=median_label,
         bin_median_label=bin_median_label,
         bin_iqr_label=bin_iqr_label,
-        show_folded_date_annotation=True,
+        show_folded_date_annotation=False,
         kind="selected_benchmark_temporal",
         reference_snr_correction_notice=reference_snr_correction_notice,
         time_bin_options=time_bin_options,

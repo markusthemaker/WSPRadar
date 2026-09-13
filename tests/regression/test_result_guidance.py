@@ -2331,8 +2331,11 @@ def test_every_rendered_result_heading_has_its_expected_guidance_placement():
     assert _guidance_call_sections("ui/results_export.py") == Counter(
         {"RESULT_GUIDANCE_DOWNLOAD": 1}
     )
-    assert _guidance_call_sections(
-        "ui/components/segment_inspector.py"
+    assert sum(
+        (_guidance_call_sections(f"ui/components/{module}.py") for module in (
+            "segment_inspector", "inspector_scope", "inspector_stations",
+            "inspector_outliers", "inspector_selected",
+        )), Counter(),
     ) == Counter(
         {
             "RESULT_GUIDANCE_SEGMENT": 1,

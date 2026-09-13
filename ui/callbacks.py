@@ -9,7 +9,6 @@ import time
 from config import (
     DEFAULT_BAND,
     DEMO_PROFILES,
-    SEGMENT_SELECTION_ALL,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
 from config.delta_snr_outlier import (
@@ -39,10 +38,17 @@ from ui.page_navigation import (
     RESULTS_INSPECTION_ANCHOR_ID,
     request_page_navigation,
 )
-from ui.result_state import (
-    get_completed_run_snapshot,
+from ui.inspector.selection_state import (
     normalize_compare_station_selection_for_outlier_reporting,
-    reset_result_state,
+    seed_inspector_selection_state,
+)
+from ui.run_lifecycle import (
+    change_presentation_language,
+    handoff_input_view_submission,
+    initialize_analysis_run,
+    invalidate_scientific_run,
+    prepare_configuration_load,
+    reset_shell_run,
 )
 from ui.population_exclusion_state import (
     BENCHMARK_RESULT_TYPE,
@@ -60,7 +66,6 @@ from ui.time_window import (
 from ui.analysis_submission_state import (
     begin_analysis_submission,
     cancel_analysis_submission,
-    handoff_analysis_submission,
 )
 
 
@@ -70,38 +75,6 @@ def _demo_config_document(profile):
         return profile["configuration"]
     return profile
 
-def _release_selected_station_state():
-    """Release station intent whose identities belong to retired evidence."""
-    st.session_state.val_results_selected_stations_compare = None
-    st.session_state.val_results_selected_stations_absolute = None
-
-
-def _retire_loaded_profile_context():
-    """Detach metadata and save identity from a changed experiment definition."""
-    st.session_state.val_config_profile = None
-    st.session_state.loaded_config_profile = None
-    st.session_state.guided_loaded_demo_profile = None
-    st.session_state.guided_demo_metadata_open = False
-
-
-def _invalidate_current_audit(
-    *,
-    should_release_selected_stations,
-    should_retire_demo_identity=True,
-):
-    """Return to editable state under one explicit station-selection policy."""
-    had_current_result = bool(st.session_state.get("run_mode"))
-    cancel_analysis_submission(st.session_state)
-    st.session_state.run_mode = None
-    if should_retire_demo_identity:
-        st.session_state.active_demo_profile = None
-    if should_release_selected_stations:
-        _release_selected_station_state()
-    reset_result_state(st.session_state)
-    if had_current_result:
-        st.session_state.configuration_changed_since_run = True
-
-
 def reset_audit():
     """Invalidate a scientific population, scope, or evidence-filter edit.
 
@@ -110,21 +83,20 @@ def reset_audit():
     longer belong to the edited configuration. Exact demo/cache identity is
     always retired before a later Run action.
     """
-    _invalidate_current_audit(should_release_selected_stations=True)
+    invalidate_scientific_run(st.session_state)
 
 
 def reset_experiment_definition():
     """Invalidate an edit that changes the experiment represented by a profile."""
-    _retire_loaded_profile_context()
-    reset_audit()
+    invalidate_scientific_run(
+        st.session_state,
+        experiment_definition_changed=True,
+    )
 
 
 def reset_shell_audit():
     """Retire rendered results for a shell action without changing input intent."""
-    _invalidate_current_audit(
-        should_release_selected_stations=False,
-        should_retire_demo_identity=False,
-    )
+    reset_shell_run(st.session_state)
 
 
 def handle_delta_snr_outlier_reporting_change(
@@ -281,21 +253,14 @@ def update_lang():
     """
     new_lang = {"EN": "en", "DE": "de"}[st.session_state.lang_selector_ui]
 
-    cancel_analysis_submission(st.session_state)
-    st.session_state.lang = new_lang
     # The next script must retain the mode to enter completed-result validation
     # and rendering, including when this change interrupts an earlier rerender.
-    if get_completed_run_snapshot(st.session_state) is None:
-        st.session_state.run_mode = None
+    change_presentation_language(st.session_state, language=new_lang)
 
 
 def handle_input_view_change():
     """Switch editors while retaining the canonical runnable configuration."""
-    if st.session_state.get("run_mode"):
-        handoff_analysis_submission(
-            st.session_state,
-            request_source="input_view_change",
-        )
+    handoff_input_view_submission(st.session_state)
     if st.session_state.get("input_view") == "guided":
         classic_question = canonicalize_analysis_question(
             st.session_state.get(CLASSIC_QUESTION_KEY)
@@ -345,12 +310,11 @@ def load_demo_profile_config(profile_key):
     if not profile:
         return
 
-    reset_audit()
+    prepare_configuration_load(st.session_state)
     st.session_state.show_demo_launcher = False
     st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
-    st.session_state.run_mode = None
     _apply_demo_profile_values(profile_key)
     # The loaded values remain a trusted built-in demo until any scientific
     # callback retires exact demo/cache identity after an edit.
@@ -395,8 +359,11 @@ def run_demo_profile(profile_key):
     analysis_direction = st.session_state.get("val_analysis_direction")
     if analysis_direction not in {"rx", "tx"}:
         raise ValueError(f"Demo profile {profile_key!r} has no analysis direction.")
-    st.session_state.run_mode = analysis_direction.upper()
-    st.session_state.run_id = int(time.time())
+    initialize_analysis_run(
+        st.session_state,
+        run_mode=analysis_direction.upper(),
+        run_id=int(time.time()),
+    )
     begin_analysis_submission(
         st.session_state,
         request_source="demo",
@@ -407,7 +374,6 @@ def run_demo_profile(profile_key):
         should_scroll=True,
     )
     collapse_documentation(st.session_state)
-    reset_result_state(st.session_state)
     for key in list(st.session_state.keys()):
         if key.startswith("img_buf_"):
             del st.session_state[key]
@@ -498,7 +464,7 @@ def set_reset_config(*, reset_time_window=True):
     Resets all user inputs and configurations back to their default factory state.
     Clears any active analysis run.
     """
-    cancel_analysis_submission(st.session_state)
+    prepare_configuration_load(st.session_state)
     st.session_state.val_callsign = ""
     st.session_state.val_analysis_direction = None
     st.session_state.val_qth = ""
@@ -531,18 +497,7 @@ def set_reset_config(*, reset_time_window=True):
             DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
             policy_field,
         )
-    st.session_state.val_results_show_non_joint = None
-    st.session_state.val_results_show_zero_target = False
-    st.session_state.val_results_selected_ranges_compare = SEGMENT_SELECTION_ALL
-    st.session_state.val_results_selected_directions_compare = SEGMENT_SELECTION_ALL
-    st.session_state.val_results_selected_ranges_absolute = SEGMENT_SELECTION_ALL
-    st.session_state.val_results_selected_directions_absolute = SEGMENT_SELECTION_ALL
-    st.session_state.val_results_time_bin_compare = None
-    st.session_state.val_results_time_bin_absolute = None
-    st.session_state.val_results_segment_time_bin_compare = "auto"
-    st.session_state.val_results_segment_time_bin_absolute = "auto"
-    st.session_state.val_results_selected_stations_compare = None
-    st.session_state.val_results_selected_stations_absolute = None
+    seed_inspector_selection_state(st.session_state, overwrite=True)
     st.session_state.val_config_profile = None
     st.session_state.loaded_config_profile = None
     st.session_state.val_config_extensions = {}
@@ -551,7 +506,6 @@ def set_reset_config(*, reset_time_window=True):
     st.session_state.show_config_loader = False
     st.session_state.config_panels_expanded = True
     st.session_state._collapse_config_panels_once = False
-    st.session_state.run_mode = None
     st.session_state.guided_use_case = None
     st.session_state.guided_reference_design = None
     st.session_state.guided_last_benchmark_mode = None
@@ -563,7 +517,6 @@ def set_reset_config(*, reset_time_window=True):
     st.session_state.guided_collapse_all = False
     synchronize_classic_input_state(st.session_state)
     st.session_state.configuration_changed_since_run = False
-    reset_result_state(st.session_state)
     for state_key in tuple(st.session_state.keys()):
         if state_key.startswith("config_save_"):
             st.session_state.pop(state_key, None)

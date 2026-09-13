@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from contextlib import nullcontext
-from datetime import date, time
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -54,6 +54,7 @@ from ui.analysis_submission_state import (
     get_analysis_submission,
     update_analysis_submission,
 )
+from core.completed_run import CompletedAnalysisIdentity, CompletedRun
 from ui.result_state import (
     COMPLETED_RUN_SNAPSHOT_KEY,
     COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
@@ -194,18 +195,57 @@ class _AnalysisPermit:
 
 
 def _analysis(analysis_id, title):
-    return {
+    is_compare = analysis_id.endswith("COMP")
+    analysis = {
         "id": analysis_id,
         "title": title,
         "query": f"SELECT {analysis_id}",
         "legacy_query": f"SELECT {analysis_id} LEGACY",
+        "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
         "decode_filter_mode": DECODE_FILTER_STRICT,
-        "is_compare": analysis_id.endswith("COMP"),
+        "is_compare": is_compare,
         "is_sequential": False,
-        "analysis_kind": (
-            "comparison" if analysis_id.endswith("COMP") else "opportunity"
-        ),
+        "analysis_kind": "comparison" if is_compare else "opportunity",
+        "result_family": "benchmark" if is_compare else "performance",
+        "response_format": "csv" if is_compare else "parquet",
     }
+    if is_compare:
+        analysis.update(
+            analysis_start_utc=datetime(2026, 7, 1, tzinfo=timezone.utc),
+            analysis_end_utc=datetime(2026, 7, 2, tzinfo=timezone.utc),
+        )
+    else:
+        analysis.update(
+            absolute_mode="TX" if analysis_id.startswith("TX") else "RX",
+            absolute_method_version="opportunity-v2",
+        )
+    return analysis
+
+
+def _completed_no_data_snapshot(run_id=77):
+    """Use a complete immutable publication marker in lightweight UI tests."""
+    return CompletedRun.from_dict({
+        "schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
+        "map_data_schema_version": run_controller.MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+        "run_id": run_id,
+        "request_fingerprint": "request-key",
+        "analysis_plan_fingerprint": "analysis-plan-key",
+        "database_source": "wd2",
+        "analyses": ({
+            "analysis": CompletedAnalysisIdentity.from_analysis(_analysis("RX_COMP", "Completed")).to_dict(),
+            "outcome": "prepared_no_data",
+            "evidence_path": None,
+            "station_rows_path": None,
+            "segment_rows_path": None,
+            "selected_decode_filter_mode": DECODE_FILTER_STRICT,
+            "query_fetches": ({
+                "decode_filter_mode": DECODE_FILTER_STRICT,
+                "elapsed_seconds": 0.12,
+                "delivery_source": FetchSource.DISK_CACHE.value,
+            },),
+            "diagnostic": None,
+        },),
+    })
 
 
 def _provider_failure(provider_key, analysis, *, scope=FetchFailureScope.PROVIDER):
@@ -429,8 +469,8 @@ def _publish_valid_completed_snapshot(
         "analysis_plan_fingerprint": analysis_plan_fingerprint,
         "database_source": "wd2",
         "analyses": ({
-            "analysis": run_controller._analysis_snapshot_contract(analysis),
-            "outcome": run_controller._SNAPSHOT_OUTCOME_RENDERABLE,
+            "analysis": CompletedAnalysisIdentity.from_analysis(analysis).to_dict(),
+            "outcome": run_controller.COMPLETED_RENDERABLE,
             "evidence_path": str(evidence_path),
             "station_rows_path": str(station_rows_path),
             "segment_rows_path": str(segment_rows_path),
@@ -622,7 +662,7 @@ def test_invalid_local_method_rejects_run_and_clears_stale_result_state(
     fake_st.session_state[INSPECTOR_CACHE_STATE_KEY] = {"previous": "evidence"}
     publish_completed_run_snapshot(
         fake_st.session_state,
-        {"schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION},
+        _completed_no_data_snapshot(),
     )
     set_active_run_database_source(
         fake_st.session_state,
@@ -931,10 +971,7 @@ def test_language_selector_rerenders_completed_result_in_both_editors(
     application = AppTest.from_file(
         str(Path(__file__).resolve().parents[2] / "app.py"), default_timeout=60,
     )
-    snapshot = {
-        "schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
-        "run_id": 77,
-    }
+    snapshot = _completed_no_data_snapshot()
     result_type = "performance" if comparison_mode == "none" else "benchmark"
     initial_state = {
         "_initial_config_loaded": True,
@@ -1123,7 +1160,8 @@ def test_completed_snapshot_validation_rejects_every_identity_boundary(
         analysis,
         path_root=tmp_path,
     )
-    snapshot = fake_st.session_state[COMPLETED_RUN_SNAPSHOT_KEY]
+    snapshot = fake_st.session_state[COMPLETED_RUN_SNAPSHOT_KEY].to_dict()
+    fake_st.session_state[COMPLETED_RUN_SNAPSHOT_KEY] = snapshot
     request_fingerprint = "request-key"
     analysis_plan_fingerprint = "analysis-plan-key"
     committed_source = "wd2"
@@ -1243,8 +1281,8 @@ def test_completed_snapshot_rejects_artifact_triples_swapped_between_analyses(
     second_registered_paths = list(
         fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY]
     )
-    first_entry = dict(first_snapshot["analyses"][0])
-    second_entry = dict(second_snapshot["analyses"][0])
+    first_entry = first_snapshot.analyses[0].to_dict()
+    second_entry = second_snapshot.analyses[0].to_dict()
     artifact_path_keys = (
         "evidence_path",
         "station_rows_path",
@@ -1264,7 +1302,7 @@ def test_completed_snapshot_rejects_artifact_triples_swapped_between_analyses(
     publish_completed_run_snapshot(
         fake_st.session_state,
         {
-            **first_snapshot,
+            **first_snapshot.to_dict(),
             "analyses": (swapped_first_entry, swapped_second_entry),
         },
     )
@@ -1335,7 +1373,8 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
     """Preserve scientific/export provenance while rebuilding localized figures."""
     fake_st = _FakeStreamlit()
     fake_st.session_state.val_min_stations = 3
-    fake_st.session_state[EXPORT_STATE_KEY] = {"old": "recipe"}
+    existing_export_registry = {"old": "recipe"}
+    fake_st.session_state[EXPORT_STATE_KEY] = existing_export_registry
     inspector_cache = object()
     fake_st.session_state[INSPECTOR_CACHE_STATE_KEY] = inspector_cache
     current_analysis = _analysis("RX_COMP", "Aktueller Kartentitel")
@@ -1394,10 +1433,10 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
         map_data,
         run_controller.MapDataArtifactPaths(
             station_rows_path=Path(
-                completed_snapshot["analyses"][0]["station_rows_path"]
+                completed_snapshot.to_dict()["analyses"][0]["station_rows_path"]
             ),
             segment_rows_path=Path(
-                completed_snapshot["analyses"][0]["segment_rows_path"]
+                completed_snapshot.to_dict()["analyses"][0]["segment_rows_path"]
             ),
         ),
     )
@@ -1455,18 +1494,18 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
     assert block_calls[0]["analysis"]["title"] == "Aktueller Kartentitel"
     assert block_calls[0]["presentation_context"] is presentation_context
     assert block_calls[0]["parquet_path"] == Path(
-        completed_snapshot["analyses"][0]["evidence_path"]
+        completed_snapshot.to_dict()["analyses"][0]["evidence_path"]
     )
     assert block_calls[0]["map_data_paths"] == run_controller.MapDataArtifactPaths(
         station_rows_path=Path(
-            completed_snapshot["analyses"][0]["station_rows_path"]
+            completed_snapshot.to_dict()["analyses"][0]["station_rows_path"]
         ),
         segment_rows_path=Path(
-            completed_snapshot["analyses"][0]["segment_rows_path"]
+            completed_snapshot.to_dict()["analyses"][0]["segment_rows_path"]
         ),
     )
     assert deferred_calls[0][0] == [{"deferred": True}]
-    assert fake_st.session_state[EXPORT_STATE_KEY] == {}
+    assert fake_st.session_state[EXPORT_STATE_KEY] is existing_export_registry
     assert (
         fake_st.session_state[INSPECTOR_CACHE_STATE_KEY]
         is inspector_cache
@@ -2134,7 +2173,7 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
             "inspectors rendered"
         ),
     )
-    real_publish_snapshot = run_controller.publish_completed_run_snapshot
+    real_publish_snapshot = run_controller.publish_completed_analysis_run
 
     def publish_snapshot(session_state, snapshot):
         lifecycle_events.append("snapshot published")
@@ -2142,7 +2181,7 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
 
     monkeypatch.setattr(
         run_controller,
-        "publish_completed_run_snapshot",
+        "publish_completed_analysis_run",
         publish_snapshot,
     )
 
@@ -2186,10 +2225,10 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         str(map_paths.station_rows_path.resolve()),
         str(map_paths.segment_rows_path.resolve()),
     }
-    snapshot = get_completed_run_snapshot(fake_st.session_state)
+    snapshot = get_completed_run_snapshot(fake_st.session_state).to_dict()
     assert snapshot["database_source"] == "wspr_live"
     assert snapshot["analyses"][0]["outcome"] == (
-        run_controller._SNAPSHOT_OUTCOME_RENDERABLE
+        run_controller.COMPLETED_RENDERABLE
     )
     assert snapshot["analyses"][0]["station_rows_path"] == str(
         map_paths.station_rows_path.resolve()
@@ -2302,9 +2341,9 @@ def test_diagnosed_nonrenderable_performance_skips_map_and_inspector_content(
     assert outcome == "completed"
     assert deferred_inspector_inputs == []
     assert fake_st.warnings == ["8 stations; maximum 3; minimum 5."]
-    snapshot = get_completed_run_snapshot(fake_st.session_state)
+    snapshot = get_completed_run_snapshot(fake_st.session_state).to_dict()
     assert snapshot["analyses"][0]["outcome"] == (
-        run_controller._SNAPSHOT_OUTCOME_MAP_NO_DATA
+        run_controller.COMPLETED_MAP_NO_DATA
     )
     assert snapshot["analyses"][0]["diagnostic"] == diagnostic.to_dict()
     assert fake_st.statuses[0].updates[-1] == {
@@ -2338,6 +2377,7 @@ def test_malformed_numeric_csv_restarts_complete_bundle_on_wd2(
     for analysis in analyses:
         analysis["is_sequential"] = True
         analysis.pop("legacy_query")
+        analysis.pop("legacy_decode_filter_mode")
 
     providers_by_url = {
         provider.url: provider for provider in WSPR_DATABASE_PROVIDERS
@@ -2467,7 +2507,7 @@ def test_malformed_numeric_csv_restarts_complete_bundle_on_wd2(
     assert fake_st.analysis_run_outcome == "completed"
     assert fake_st.errors == []
     assert get_active_run_database_source(fake_st.session_state) == "wd2"
-    snapshot = get_completed_run_snapshot(fake_st.session_state)
+    snapshot = get_completed_run_snapshot(fake_st.session_state).to_dict()
     assert snapshot["database_source"] == "wd2"
     assert len(snapshot["analyses"]) == 2
     assert all(

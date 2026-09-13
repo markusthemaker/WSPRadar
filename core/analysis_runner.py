@@ -23,6 +23,11 @@ from core.analysis_context import (
     TX_AB_METHOD_SIMULTANEOUS,
     solar_path_state,
 )
+from core.analysis_plan import (
+    AnalysisPlan,
+    DECODE_FILTER_LEGACY,
+    DECODE_FILTER_STRICT,
+)
 from core.geographic_scope import (
     build_neighborhood_bounding_box,
     filter_peer_rows_by_distance,
@@ -49,8 +54,6 @@ from core.tx_ab_schedule import (
 )
 
 
-DECODE_FILTER_STRICT = "strict_code_1"
-DECODE_FILTER_LEGACY = "legacy_no_code"
 DECODE_CODE_PREDICATE = "code = 1"
 
 
@@ -691,7 +694,7 @@ def build_analysis_batches(
                 ),
             }))
 
-    return analyses
+    return [AnalysisPlan.from_mapping(analysis) for analysis in analyses]
 
 def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, timing_collector=None):
     """Apply scientific post-fetch gates before staging analysis evidence.

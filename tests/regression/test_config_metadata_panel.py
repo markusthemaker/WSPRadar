@@ -10,7 +10,7 @@ import pytest
 
 from config import DEMO_PROFILES
 from i18n import T
-from ui import callbacks, config_io, page_navigation
+from ui import callbacks, config_io, page_navigation, run_lifecycle
 from ui.analysis_submission_state import (
     begin_analysis_submission,
     begin_main_analysis_submission,
@@ -277,7 +277,7 @@ def test_population_or_evidence_reset_retains_profile_context(monkeypatch):
         "st",
         SimpleNamespace(session_state=session_state),
     )
-    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    monkeypatch.setattr(run_lifecycle, "reset_result_state", lambda _state: None)
     begin_analysis_submission(session_state, request_source="main_button")
 
     callbacks.reset_audit()
@@ -318,7 +318,7 @@ def test_experiment_definition_reset_retires_profile_context(monkeypatch):
         "st",
         SimpleNamespace(session_state=session_state),
     )
-    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    monkeypatch.setattr(run_lifecycle, "reset_result_state", lambda _state: None)
 
     callbacks.reset_experiment_definition()
 
@@ -354,7 +354,7 @@ def test_shell_reset_preserves_profile_and_station_intent(monkeypatch):
         "st",
         SimpleNamespace(session_state=session_state),
     )
-    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    monkeypatch.setattr(run_lifecycle, "reset_result_state", lambda _state: None)
 
     callbacks.reset_shell_audit()
 
@@ -390,7 +390,7 @@ def test_guided_change_categories_apply_the_same_profile_policy(monkeypatch):
     fake_streamlit = SimpleNamespace(session_state=session_state)
     monkeypatch.setattr(callbacks, "st", fake_streamlit)
     monkeypatch.setattr(guided_renderer, "st", fake_streamlit)
-    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    monkeypatch.setattr(run_lifecycle, "reset_result_state", lambda _state: None)
 
     guided_renderer._guided_scientific_change("scope_and_evidence")
 
@@ -450,7 +450,7 @@ def test_public_demo_paths_preserve_loaded_metadata_after_execution(
     )
     monkeypatch.setattr(callbacks, "reset_audit", lambda: None)
     monkeypatch.setattr(callbacks, "collapse_documentation", lambda _state: None)
-    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    monkeypatch.setattr(run_lifecycle, "reset_result_state", lambda _state: None)
 
     getattr(callbacks, callback_name)(profile_id)
 
@@ -480,7 +480,7 @@ def test_main_run_preserves_the_unchanged_loaded_demo_identity(monkeypatch):
         "st",
         SimpleNamespace(session_state=session_state, rerun=rerun),
     )
-    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    monkeypatch.setattr(run_lifecycle, "reset_result_state", lambda _state: None)
 
     callbacks.load_demo_profile_config(profile_id)
     begin_main_analysis_submission(session_state)
@@ -512,7 +512,7 @@ def test_factory_reset_clears_loaded_profile_snapshot(monkeypatch):
         "st",
         SimpleNamespace(session_state=session_state),
     )
-    monkeypatch.setattr(callbacks, "reset_result_state", lambda _state: None)
+    monkeypatch.setattr(run_lifecycle, "reset_result_state", lambda _state: None)
 
     callbacks.set_reset_config()
 

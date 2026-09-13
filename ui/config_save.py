@@ -13,6 +13,8 @@ from ui.config_io import (
     format_config_validation_error,
     log_config_validation_error,
 )
+from ui.result_state import EXPORT_ZIP_BYTES_KEY
+from ui.run_lifecycle import commit_saved_profile_metadata
 
 
 CONFIG_SAVE_STATE_PREFIX = "config_save_"
@@ -168,11 +170,19 @@ def render_config_save_control(
                     state=session_state,
                 )
                 prepared_document = json.loads(config_bytes.decode("utf-8"))
-                session_state.val_config_profile = prepared_document["profile"]
+                had_prepared_results = bool(session_state.get(EXPORT_ZIP_BYTES_KEY))
+                profile_changed = commit_saved_profile_metadata(
+                    session_state,
+                    prepared_document["profile"],
+                )
                 session_state[_PREPARED_BYTES_KEY] = config_bytes
                 session_state[_PREPARED_FILENAME_KEY] = config_filename
                 session_state[_PREPARED_SIGNATURE_KEY] = prepared_signature
                 st.success(translations["msg_config_prepared"])
+                if profile_changed and had_prepared_results:
+                    # The results download is outside this save fragment. Its
+                    # already displayed bytes must be replaced after the commit.
+                    st.rerun(scope="app")
             except ValueError as exc:
                 log_config_validation_error(exc, operation="save")
                 st.error(format_config_validation_error(exc, translations))

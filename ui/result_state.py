@@ -1,16 +1,17 @@
 """Lightweight lifecycle helpers for analysis-result session state.
 
-This module deliberately avoids importing export, inspector, DataFrame, or
-plotting code so configuration callbacks can retire stale results without
-loading the scientific runtime on the idle landing page.
+This module uses only the dependency-light inspector state adapter; it avoids
+export rendering, inspector rendering, DataFrames, and plotting so configuration
+callbacks can retire stale results without loading the scientific runtime.
 """
 
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Any, MutableMapping
 
 from core.artifact_store import retire_registered_session_artifacts
+from core.completed_run import COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION, CompletedRun
+from ui.inspector.selection_state import clear_inspector_focus
 
 
 EXPORT_STATE_KEY = "result_export_blocks"
@@ -21,55 +22,12 @@ EXPORT_ZIP_SIGNATURE_KEY = "result_export_zip_signature"
 INSPECTOR_CACHE_STATE_KEY = "segment_inspector_cache"
 ACTIVE_RUN_DATABASE_SOURCE_KEY = "active_run_database_source"
 COMPLETED_RUN_SNAPSHOT_KEY = "completed_run_snapshot"
-COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION = 2
-RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY = (
-    "val_results_selected_stations_compare"
-)
-RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY = (
-    "results_station_insights_focus_compare"
-)
-RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY = (
-    "results_drilldown_focus_compare"
-)
-RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY = (
-    "val_report_delta_snr_outlier_candidates"
-)
 
 PREPARED_RESULT_STATE_KEYS = (
     EXPORT_ZIP_BYTES_KEY,
     EXPORT_ZIP_FILENAME_KEY,
     EXPORT_ZIP_SIGNATURE_KEY,
 )
-
-
-def normalize_compare_station_selection_for_outlier_reporting(
-    session_state: MutableMapping[str, Any],
-) -> bool:
-    """Restore the singleton Compare selection whenever reporting is off.
-
-    Return whether an enabled multi-selection was truncated. This lightweight
-    boundary is shared by widget callbacks and programmatic Guided presets so
-    config and URL serialization never observe an invalid opt-out state.
-    """
-    if (
-        session_state.get(
-            RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY,
-            False,
-        )
-        is True
-    ):
-        return False
-    session_state.pop(RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY, None)
-    session_state.pop(RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY, None)
-    selected_stations = session_state.get(
-        RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
-    )
-    if not isinstance(selected_stations, list) or len(selected_stations) <= 1:
-        return False
-    session_state[RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY] = (
-        selected_stations[:1]
-    )
-    return True
 
 
 def clear_prepared_result_state(session_state: MutableMapping[str, Any]) -> None:
@@ -82,6 +40,7 @@ def clear_rendered_result_state(
     session_state: MutableMapping[str, Any],
     *,
     preserve_inspector_cache: bool = False,
+    preserve_export_state: bool = False,
 ) -> None:
     """Invalidate export and inspector state before publishing refreshed artifacts.
 
@@ -89,21 +48,17 @@ def clear_rendered_result_state(
     when a same-run rerender replaces its staged data without changing the
     run's scientific identity or provenance. A validated completed-result
     rerender may retain its versioned Inspector cache because neither its
-    scientific request nor its registered artifacts changed.
+    scientific request nor its registered artifacts changed. It may also retain
+    its export registry and prepared package while export registration checks
+    the current dependencies. Export and Inspector preservation are independent.
     """
-    session_state[EXPORT_STATE_KEY] = {}
-    session_state[EXPORT_RUN_ID_KEY] = session_state.get("run_id", 0)
+    if not preserve_export_state:
+        session_state[EXPORT_STATE_KEY] = {}
+        session_state[EXPORT_RUN_ID_KEY] = session_state.get("run_id", 0)
+        clear_prepared_result_state(session_state)
     if not preserve_inspector_cache:
         session_state.pop(INSPECTOR_CACHE_STATE_KEY, None)
-        session_state.pop(
-            RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY,
-            None,
-        )
-        session_state.pop(
-            RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY,
-            None,
-        )
-    clear_prepared_result_state(session_state)
+        clear_inspector_focus(session_state)
 
 
 def clear_active_run_database_source(session_state: MutableMapping[str, Any]) -> None:
@@ -113,29 +68,36 @@ def clear_active_run_database_source(session_state: MutableMapping[str, Any]) ->
 
 def get_completed_run_snapshot(
     session_state: MutableMapping[str, Any],
-) -> dict[str, Any] | None:
-    """Return an independent current-version completed-run snapshot, if present."""
+) -> CompletedRun | None:
+    """Reuse immutable metadata, validating older dictionary state only once."""
     snapshot = session_state.get(COMPLETED_RUN_SNAPSHOT_KEY)
+    if isinstance(snapshot, CompletedRun):
+        return (
+            snapshot
+            if snapshot.schema_version == COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION
+            else None
+        )
     if not isinstance(snapshot, dict):
         return None
-    if snapshot.get("schema_version") != COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION:
+    try:
+        completed_run = CompletedRun.from_dict(snapshot)
+    except (KeyError, TypeError, ValueError):
         return None
-    return deepcopy(snapshot)
+    session_state[COMPLETED_RUN_SNAPSHOT_KEY] = completed_run
+    return completed_run
 
 
 def publish_completed_run_snapshot(
     session_state: MutableMapping[str, Any],
-    snapshot: dict[str, Any],
+    snapshot: CompletedRun | dict[str, Any],
 ) -> None:
     """Publish one versioned snapshot as the final completed-result commit marker."""
-    if not isinstance(snapshot, dict):
-        raise TypeError("Completed-run snapshot must be a dictionary")
-    if snapshot.get("schema_version") != COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION:
-        raise ValueError(
-            "Completed-run snapshot schema version must be "
-            f"{COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION}"
-        )
-    session_state[COMPLETED_RUN_SNAPSHOT_KEY] = deepcopy(snapshot)
+    completed_run = (
+        snapshot if isinstance(snapshot, CompletedRun) else CompletedRun.from_dict(snapshot)
+    )
+    if completed_run.schema_version != COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION:
+        raise ValueError("Completed-run snapshot schema version is unsupported")
+    session_state[COMPLETED_RUN_SNAPSHOT_KEY] = completed_run
 
 
 def clear_completed_run_snapshot(

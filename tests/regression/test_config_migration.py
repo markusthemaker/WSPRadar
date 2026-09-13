@@ -1567,6 +1567,42 @@ def test_enabled_outlier_reporting_round_trips_multi_station_view_state():
     ] is True
 
 
+def test_config_load_seeds_inspector_intent_through_its_owner(monkeypatch):
+    """Overwrite old selections once, retaining automatic and empty intent."""
+    settings = _valid_settings()
+    settings["results_view"]["performance"]["selected_stations"] = []
+    settings["results_view"]["benchmark"]["selected_stations"] = [
+        {"callsign": "f4wbn", "locator": "jn18ab"},
+    ]
+    settings["results_view"]["benchmark"]["selected_directions"] = ["NW", "N"]
+    settings["results_view"]["benchmark"]["station_evidence_time_bin"] = "5m"
+    normalized = config_io.normalize_config_settings(settings)
+    seeded_fields = []
+    real_seed = config_io.seed_inspector_selection_state
+
+    def record_seed(session_state, values, *, overwrite=False):
+        seeded_fields.append(dict(values))
+        assert overwrite is True
+        return real_seed(session_state, values, overwrite=overwrite)
+
+    monkeypatch.setattr(config_io, "seed_inspector_selection_state", record_seed)
+    session_state = {
+        "val_results_selected_stations_compare": [],
+        "val_results_selected_stations_absolute": [{"callsign": "G0IDE", "locator": "IO83"}],
+    }
+    config_io.apply_config_state_values(normalized, session_state)
+
+    assert len(seeded_fields) == 1
+    assert session_state["val_results_selected_stations_absolute"] == []
+    assert session_state["val_results_selected_stations_compare"] == [
+        {"callsign": "F4WBN", "locator": "JN18AB"},
+    ]
+    assert session_state["val_results_selected_directions_compare"] == ["NW", "N"]
+    assert session_state["val_results_time_bin_compare"] == "5m"
+    normalized["selected_stations_compare"][0]["callsign"] = "CHANGED"
+    assert session_state["val_results_selected_stations_compare"][0]["callsign"] == "F4WBN"
+
+
 def test_delta_snr_outlier_reporting_rejects_invalid_or_inapplicable_values():
     """Require a JSON bool in Compare and reject the field in Performance."""
     settings = _valid_settings()

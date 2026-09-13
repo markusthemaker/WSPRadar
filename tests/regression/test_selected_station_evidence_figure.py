@@ -783,7 +783,7 @@ def test_selected_compare_recipe_retires_histogram_and_temporal_view_state():
     assert recipe["chronological_subtitle"] is None
     assert recipe["folded_title"] == "\u0394 SNR by UTC Hour"
     assert recipe["folded_subtitle"] is None
-    assert recipe["show_folded_date_annotation"] is True
+    assert recipe["show_folded_date_annotation"] is False
     assert recipe["selected_identity_count"] == 1
     assert len(recipe["plot_time_ns"]) == len(plot_df)
     np.testing.assert_allclose(recipe["metric"], plot_df["metric"])
@@ -1059,7 +1059,7 @@ def test_selected_compare_can_render_folded_utc_hour_density():
         assert folded_axis.get_xlim() == pytest.approx((0.0, 24.0))
         assert folded_axis.get_title() == "UTC profile"
         assert folded_axis.get_xlabel() == "UTC clock hour"
-        assert "2 UTC dates folded" in {
+        assert "2 UTC dates folded" not in {
             text.get_text() for text in folded_axis.texts
         }
         assert colorbar_axis.get_ylabel() == "Relative selected density"

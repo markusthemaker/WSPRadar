@@ -1,3 +1,4 @@
+from ui.inspector import selection_state as inspector_selection
 import pytest
 
 from ui import result_state
@@ -27,7 +28,7 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
             "schema_version": result_state.COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
             "run_id": 42,
         },
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
             "scope_token": "rall_dall",
@@ -35,7 +36,7 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
                 {"callsign": "A1AAA", "locator": "AA00"}
             ],
         },
-        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
         },
@@ -54,10 +55,10 @@ def test_reset_result_state_retires_artifacts_and_clears_all_run_caches(monkeypa
     assert result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY not in session_state
     assert result_state.COMPLETED_RUN_SNAPSHOT_KEY not in session_state
     assert (
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
         not in session_state
     )
-    assert result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
+    assert inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
     assert session_state["unrelated"] == "preserved"
 
 
@@ -93,7 +94,7 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
         result_state.INSPECTOR_CACHE_STATE_KEY: object(),
         result_state.ACTIVE_RUN_DATABASE_SOURCE_KEY: source_binding,
         result_state.COMPLETED_RUN_SNAPSHOT_KEY: completed_snapshot,
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
             "scope_token": "rall_dall",
@@ -101,7 +102,7 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
                 {"callsign": "A1AAA", "locator": "AA00"}
             ],
         },
-        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
         },
@@ -119,10 +120,10 @@ def test_clear_rendered_result_state_preserves_database_source_binding():
         is completed_snapshot
     )
     assert (
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
         not in session_state
     )
-    assert result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
+    assert inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
 
 
 def test_completed_rerender_preserves_inspector_cache_and_station_focus():
@@ -133,7 +134,7 @@ def test_completed_rerender_preserves_inspector_cache_and_station_focus():
         result_state.EXPORT_STATE_KEY: {"old": "recipe"},
         result_state.EXPORT_ZIP_BYTES_KEY: b"zip",
         result_state.INSPECTOR_CACHE_STATE_KEY: inspector_cache,
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
             "scope_token": "rall_dall",
@@ -141,7 +142,7 @@ def test_completed_rerender_preserves_inspector_cache_and_station_focus():
                 {"callsign": "A1AAA", "locator": "AA00"}
             ],
         },
-        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
         },
@@ -159,12 +160,12 @@ def test_completed_rerender_preserves_inspector_cache_and_station_focus():
         is inspector_cache
     )
     assert session_state[
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
     ]["station_identities"] == [
         {"callsign": "A1AAA", "locator": "AA00"}
     ]
     assert session_state[
-        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ]["run_id"] == 42
 
 
@@ -179,30 +180,30 @@ def test_outlier_opt_out_always_clears_station_insights_focus():
         ],
     }
     session_state = {
-        result_state.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: (
+        inspector_selection.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: (
             False
         ),
-        result_state.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
+        inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
             {"callsign": "A1AAA", "locator": "AA00"}
         ],
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
             focus_record
         ),
-        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
     }
 
     selection_changed = (
-        result_state.normalize_compare_station_selection_for_outlier_reporting(
+        inspector_selection.normalize_compare_station_selection_for_outlier_reporting(
             session_state
         )
     )
 
     assert selection_changed is False
     assert (
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
         not in session_state
     )
-    assert result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
+    assert inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY not in session_state
 
 
 def test_enabled_outlier_reporting_preserves_station_insights_focus():
@@ -216,46 +217,28 @@ def test_enabled_outlier_reporting_preserves_station_insights_focus():
         ],
     }
     session_state = {
-        result_state.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: (
+        inspector_selection.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: (
             True
         ),
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: (
             focus_record
         ),
-        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY: focus_record,
     }
 
     selection_changed = (
-        result_state.normalize_compare_station_selection_for_outlier_reporting(
+        inspector_selection.normalize_compare_station_selection_for_outlier_reporting(
             session_state
         )
     )
 
     assert selection_changed is False
     assert session_state[
-        result_state.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
     ] is focus_record
     assert session_state[
-        result_state.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ] is focus_record
-
-
-def test_completed_run_snapshot_publication_and_reads_are_copy_isolated():
-    """Do not let later render code mutate the published completion marker."""
-    session_state = {}
-    snapshot = {
-        "schema_version": result_state.COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
-        "analyses": [{"outcome": "renderable"}],
-    }
-
-    result_state.publish_completed_run_snapshot(session_state, snapshot)
-    snapshot["analyses"][0]["outcome"] = "changed by caller"
-    restored = result_state.get_completed_run_snapshot(session_state)
-    restored["analyses"][0]["outcome"] = "changed by reader"
-
-    assert session_state[result_state.COMPLETED_RUN_SNAPSHOT_KEY]["analyses"] == [
-        {"outcome": "renderable"}
-    ]
 
 
 def test_completed_run_snapshot_rejects_unknown_schema_versions():
@@ -286,3 +269,44 @@ def test_active_database_source_is_committed_only_for_its_matching_run():
     assert result_state.get_active_run_database_source(session_state) == "wd2"
     session_state["run_id"] = 43
     assert result_state.get_active_run_database_source(session_state) is None
+
+@pytest.mark.parametrize("preserve_inspector_cache", [False, True])
+@pytest.mark.parametrize("preserve_export_state", [False, True])
+def test_export_preservation_is_independent_and_keeps_registry_reference(
+    preserve_inspector_cache, preserve_export_state,
+):
+    from types import MappingProxyType
+
+    registry = MappingProxyType({"RX": "owned payload"})
+    inspector_cache = object()
+    prepared = {
+        result_state.EXPORT_ZIP_BYTES_KEY: b"zip",
+        result_state.EXPORT_ZIP_FILENAME_KEY: "results.zip",
+        result_state.EXPORT_ZIP_SIGNATURE_KEY: "signature",
+    }
+    session_state = {
+        "run_id": 42,
+        result_state.EXPORT_RUN_ID_KEY: 42,
+        result_state.EXPORT_STATE_KEY: registry,
+        result_state.INSPECTOR_CACHE_STATE_KEY: inspector_cache,
+        **prepared,
+    }
+
+    result_state.clear_rendered_result_state(
+        session_state,
+        preserve_inspector_cache=preserve_inspector_cache,
+        preserve_export_state=preserve_export_state,
+    )
+
+    assert session_state[result_state.EXPORT_RUN_ID_KEY] == 42
+    if preserve_export_state:
+        assert session_state[result_state.EXPORT_STATE_KEY] is registry
+        for key, value in prepared.items():
+            assert session_state[key] is value
+    else:
+        assert session_state[result_state.EXPORT_STATE_KEY] == {}
+        assert all(key not in session_state for key in prepared)
+    if preserve_inspector_cache:
+        assert session_state[result_state.INSPECTOR_CACHE_STATE_KEY] is inspector_cache
+    else:
+        assert result_state.INSPECTOR_CACHE_STATE_KEY not in session_state

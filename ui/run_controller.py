@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 import gc
 import hashlib
 import json
-import math
 from pathlib import Path
 import time
 import uuid
@@ -18,6 +17,16 @@ from core.analysis_admission import (
     AnalysisDuplicateRequest,
     AnalysisQueueFull,
     AnalysisQueueTimeout,
+)
+from core.analysis_plan import AnalysisPlan
+from core.completed_run import (
+    COMPLETED_MAP_NO_DATA,
+    COMPLETED_PREPARED_NO_DATA,
+    COMPLETED_RENDERABLE,
+    CompletedAnalysis,
+    CompletedAnalysisIdentity,
+    CompletedQueryFetch,
+    CompletedRun,
 )
 from core.analysis_runner import (
     DECODE_FILTER_LEGACY,
@@ -77,7 +86,6 @@ from core.result_diagnostics import (
     PERFORMANCE_NO_ELIGIBLE_STATION,
     PERFORMANCE_NO_QUALIFYING_SEGMENT,
     SOURCE_ROWS_FILTERED_OUT,
-    ResultDiagnostic,
 )
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.analysis_submission_state import (
@@ -106,29 +114,23 @@ from ui.result_guidance import (
     render_result_guidance_popover,
 )
 from ui.results_export import register_map_export_context
+from ui.export_payloads import MapExportPayload
 from ui.presentation_context_adapter import build_presentation_context_from_session_state
+from ui.run_lifecycle import (
+    begin_result_render,
+    fail_analysis_run,
+    publish_completed_analysis_run,
+    retire_unavailable_completed_run,
+)
 from ui.result_state import (
-    COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
-    clear_rendered_result_state,
     get_active_run_database_source,
     get_completed_run_snapshot,
-    publish_completed_run_snapshot,
-    reset_result_state,
     set_active_run_database_source,
 )
 
 
 ANALYSIS_RUN_FOLLOWER_COMPLETED = "duplicate_follower_completed"
 COMPLETED_RUN_RERENDER_UNAVAILABLE = "completed_rerender_unavailable"
-
-_SNAPSHOT_OUTCOME_RENDERABLE = "renderable"
-_SNAPSHOT_OUTCOME_PREPARED_NO_DATA = "prepared_no_data"
-_SNAPSHOT_OUTCOME_MAP_NO_DATA = "map_no_data"
-_SNAPSHOT_OUTCOMES = frozenset({
-    _SNAPSHOT_OUTCOME_RENDERABLE,
-    _SNAPSHOT_OUTCOME_PREPARED_NO_DATA,
-    _SNAPSHOT_OUTCOME_MAP_NO_DATA,
-})
 
 _RESULT_DIAGNOSTIC_WARNING_KEYS = {
     NO_SOURCE_ROWS: "warn_no_source_rows",
@@ -472,26 +474,6 @@ def _refresh_session_artifacts_before_cleanup():
     return cleanup_old_parquets()
 
 
-def _analysis_snapshot_contract(analysis) -> dict:
-    """Return the stable non-presentation contract for one result block."""
-    return {
-        "id": str(analysis.get("id", "")),
-        "analysis_kind": str(analysis.get("analysis_kind", "")),
-        "is_compare": bool(analysis.get("is_compare")),
-        "is_sequential": bool(analysis.get("is_sequential")),
-        "absolute_method_version": analysis.get("absolute_method_version"),
-    }
-
-
-def _serialize_query_fetches(query_fetches) -> tuple[dict, ...]:
-    """Return session-safe strict/legacy provenance for one completed query."""
-    return tuple({
-        "decode_filter_mode": str(query_fetch.decode_filter_mode),
-        "elapsed_seconds": float(query_fetch.elapsed_seconds),
-        "delivery_source": query_fetch.delivery_source.value,
-    } for query_fetch in query_fetches)
-
-
 def _validate_completed_run_snapshot(
     *,
     analyses,
@@ -499,146 +481,38 @@ def _validate_completed_run_snapshot(
     analysis_plan_fingerprint,
     committed_source,
     session_owner,
-):
-    """Return a reusable snapshot only when identity and artifacts still match."""
+) -> CompletedRun | None:
+    """Check current identity and live artifact ownership of validated metadata."""
     snapshot = get_completed_run_snapshot(st.session_state)
     if snapshot is None:
         return None
-    if snapshot.get("run_id") != st.session_state.get("run_id"):
+    if snapshot.run_id != st.session_state.get("run_id"):
         return None
-    if snapshot.get("request_fingerprint") != request_fingerprint:
+    if snapshot.request_fingerprint != request_fingerprint:
         return None
-    if snapshot.get("analysis_plan_fingerprint") != analysis_plan_fingerprint:
+    if snapshot.analysis_plan_fingerprint != analysis_plan_fingerprint:
         return None
-    if snapshot.get("database_source") != committed_source or not committed_source:
+    if snapshot.database_source != committed_source or not committed_source:
         return None
-    try:
-        DatabaseSource(snapshot["database_source"])
-    except (KeyError, TypeError, ValueError):
+    if snapshot.map_data_schema_version != MAP_DATA_ARTIFACT_SCHEMA_VERSION:
         return None
-    if (
-        snapshot.get("map_data_schema_version")
-        != MAP_DATA_ARTIFACT_SCHEMA_VERSION
-    ):
+    if len(snapshot.analyses) != len(analyses) or not analyses:
         return None
-
-    snapshot_analyses = snapshot.get("analyses")
-    if not isinstance(snapshot_analyses, (list, tuple)):
-        return None
-    if len(snapshot_analyses) != len(analyses) or not analyses:
-        return None
-
-    valid_delivery_sources = {source.value for source in FetchSource}
-    for analysis, snapshot_analysis in zip(analyses, snapshot_analyses):
-        if not isinstance(snapshot_analysis, dict):
+    for analysis, completed_analysis in zip(analyses, snapshot.analyses):
+        if completed_analysis.analysis != CompletedAnalysisIdentity.from_analysis(analysis):
             return None
-        if snapshot_analysis.get("analysis") != _analysis_snapshot_contract(analysis):
-            return None
-        outcome = snapshot_analysis.get("outcome")
-        if outcome not in _SNAPSHOT_OUTCOMES:
-            return None
-        if "diagnostic" not in snapshot_analysis:
-            return None
-        serialized_diagnostic = snapshot_analysis["diagnostic"]
-        if serialized_diagnostic is None:
-            diagnostic = None
-        else:
-            try:
-                diagnostic = ResultDiagnostic.from_dict(serialized_diagnostic)
-            except (TypeError, ValueError):
-                return None
-        allowed_diagnostic_reasons = {
-            _SNAPSHOT_OUTCOME_PREPARED_NO_DATA: {
-                NO_SOURCE_ROWS,
-                SOURCE_ROWS_FILTERED_OUT,
-            },
-            _SNAPSHOT_OUTCOME_MAP_NO_DATA: {
-                PERFORMANCE_NO_ELIGIBLE_STATION,
-                BENCHMARK_NO_QUALIFYING_RESULT,
-            },
-            _SNAPSHOT_OUTCOME_RENDERABLE: {
-                PERFORMANCE_NO_QUALIFYING_SEGMENT,
-            },
-        }
-        if (
-            diagnostic is not None
-            and diagnostic.reason not in allowed_diagnostic_reasons[outcome]
-        ):
-            return None
-
-        evidence_path = snapshot_analysis.get("evidence_path")
-        station_rows_path = snapshot_analysis.get("station_rows_path")
-        segment_rows_path = snapshot_analysis.get("segment_rows_path")
-        required_path_specs = []
-        if outcome == _SNAPSHOT_OUTCOME_RENDERABLE:
-            required_path_specs.extend([
-                (evidence_path, "spots"),
-                (station_rows_path, "map_stations"),
-                (segment_rows_path, "map_segments"),
-            ])
-        elif outcome == _SNAPSHOT_OUTCOME_MAP_NO_DATA:
-            required_path_specs.append((evidence_path, "spots"))
-            if station_rows_path is not None or segment_rows_path is not None:
-                return None
-        elif any(
-            path is not None
-            for path in (evidence_path, station_rows_path, segment_rows_path)
-        ):
-            return None
-        if any(
-            not isinstance(path, str) or not path
-            for path, _artifact_kind in required_path_specs
-        ):
-            return None
-        if required_path_specs:
+        artifact_paths = completed_analysis.artifact_paths_by_kind
+        if artifact_paths:
             try:
                 validate_registered_session_artifacts(
                     CACHE_DIR,
                     st.session_state,
                     analysis_id=analysis["id"],
-                    artifact_paths_by_kind={
-                        artifact_kind: path
-                        for path, artifact_kind in required_path_specs
-                    },
+                    artifact_paths_by_kind=artifact_paths,
                     expected_session_owner=session_owner,
                 )
             except (OSError, RuntimeError, TypeError, ValueError):
                 return None
-
-        selected_decode_filter_mode = snapshot_analysis.get(
-            "selected_decode_filter_mode"
-        )
-        if selected_decode_filter_mode not in {
-            DECODE_FILTER_STRICT,
-            DECODE_FILTER_LEGACY,
-        }:
-            return None
-        query_fetches = snapshot_analysis.get("query_fetches")
-        if not isinstance(query_fetches, (list, tuple)) or not query_fetches:
-            return None
-        for query_fetch in query_fetches:
-            if not isinstance(query_fetch, dict):
-                return None
-            if query_fetch.get("decode_filter_mode") not in {
-                DECODE_FILTER_STRICT,
-                DECODE_FILTER_LEGACY,
-            }:
-                return None
-            elapsed_seconds = query_fetch.get("elapsed_seconds")
-            if (
-                isinstance(elapsed_seconds, bool)
-                or not isinstance(elapsed_seconds, (int, float))
-                or not math.isfinite(elapsed_seconds)
-                or elapsed_seconds < 0
-            ):
-                return None
-            if query_fetch.get("delivery_source") not in valid_delivery_sources:
-                return None
-        if (
-            query_fetches[-1].get("decode_filter_mode")
-            != selected_decode_filter_mode
-        ):
-            return None
     return snapshot
 
 
@@ -648,46 +522,43 @@ def _snapshot_analysis_entry(
     outcome,
     map_data_paths=None,
     diagnostic=None,
-) -> dict:
-    """Build one language-free completed-analysis snapshot entry."""
+) -> CompletedAnalysis:
+    """Validate immutable completion metadata before the final run publication."""
     evidence_path = prepared_analysis.artifact_path
-    result_diagnostic = diagnostic or prepared_analysis.diagnostic
-    return {
-        "analysis": _analysis_snapshot_contract(prepared_analysis.analysis),
-        "outcome": str(outcome),
-        "evidence_path": (
+    return CompletedAnalysis(
+        analysis=CompletedAnalysisIdentity.from_analysis(prepared_analysis.analysis),
+        outcome=outcome,
+        evidence_path=(
             str(Path(evidence_path).resolve())
             if evidence_path is not None
             else None
         ),
-        "station_rows_path": (
+        station_rows_path=(
             str(Path(map_data_paths.station_rows_path).resolve())
             if map_data_paths is not None
             else None
         ),
-        "segment_rows_path": (
+        segment_rows_path=(
             str(Path(map_data_paths.segment_rows_path).resolve())
             if map_data_paths is not None
             else None
         ),
-        "selected_decode_filter_mode": str(
-            prepared_analysis.analysis.get("decode_filter_mode", "")
+        selected_decode_filter_mode=prepared_analysis.analysis["decode_filter_mode"],
+        query_fetches=tuple(
+            CompletedQueryFetch(
+                decode_filter_mode=fetch.decode_filter_mode,
+                elapsed_seconds=fetch.elapsed_seconds,
+                delivery_source=fetch.delivery_source.value,
+            )
+            for fetch in prepared_analysis.query_fetches
         ),
-        "query_fetches": _serialize_query_fetches(
-            prepared_analysis.query_fetches
-        ),
-        "diagnostic": (
-            result_diagnostic.to_dict()
-            if result_diagnostic is not None
-            else None
-        ),
-    }
+        diagnostic=diagnostic or prepared_analysis.diagnostic,
+    )
 
 
 def _invalidate_completed_rerender(translations) -> str:
     """Retire an unusable implicit result without starting replacement work."""
-    st.session_state.run_mode = None
-    reset_result_state(st.session_state)
+    retire_unavailable_completed_run(st.session_state)
     st.warning(translations["warn_analysis_cache_expired"])
     return COMPLETED_RUN_RERENDER_UNAVAILABLE
 
@@ -718,12 +589,12 @@ def render_analysis_run(
 
     if not is_valid_callsign(callsign):
         st.error(t["err_callsign_format"])
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         return
 
     if not is_valid_locator(qth_locator):
         st.error(t["err_qth_format"])
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         return
 
     center_latitude, center_longitude = locator_to_latlon(qth_locator)
@@ -758,8 +629,7 @@ def render_analysis_run(
             else "err_analysis_configuration_invalid"
         )
         st.error(t[error_message_key])
-        st.session_state.run_mode = None
-        reset_result_state(st.session_state)
+        fail_analysis_run(st.session_state, retire_results=True)
         return
 
     _refresh_session_artifacts_before_cleanup()
@@ -935,7 +805,7 @@ def render_analysis_run(
     except AnalysisQueueFull:
         log_admission("queue_full")
         if not is_existing_run_rerender:
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
         run_status_slot.warning(t.get(
             "warn_analysis_queue_full",
             "High demand right now. The analysis queue is full. Please try again shortly.",
@@ -944,7 +814,7 @@ def render_analysis_run(
     except AnalysisQueueTimeout:
         log_admission("queue_timeout")
         if not is_existing_run_rerender:
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
         if waiting_status is not None:
             run_status_slot.empty()
         run_status_slot.warning(t.get(
@@ -954,7 +824,7 @@ def render_analysis_run(
         return
     except ProviderDispatchError as exc:
         log_admission(type(exc).__name__)
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         if waiting_status is not None:
             run_status_slot.empty()
         run_status_slot.warning(str(exc))
@@ -1013,8 +883,7 @@ def render_analysis_run(
         run_outcome = type(exc).__name__
         if is_existing_run_rerender:
             return _invalidate_completed_rerender(t)
-        st.session_state.run_mode = None
-        reset_result_state(st.session_state)
+        fail_analysis_run(st.session_state, retire_results=True)
         raise
     except BaseException as exc:
         run_outcome = type(exc).__name__
@@ -1144,18 +1013,20 @@ def _render_map_result_block(
                             subject="map",
                         )
                     register_map_export_context(
-                        analysis=analysis,
-                        parquet_path=parquet_path,
-                        map_data_paths=map_data_paths,
-                        start_t=start_t,
-                        end_t=end_t,
-                        max_peer_distance_km=max_peer_distance_km,
-                        base_min_stations=st.session_state.val_min_stations,
-                        lat_0=center_latitude,
-                        lon_0=center_longitude,
-                        analysis_context=analysis_context,
-                        presentation_context=presentation_context,
-                        database_source=database_source,
+                        MapExportPayload(
+                            analysis=analysis,
+                            parquet_path=parquet_path,
+                            map_data_paths=map_data_paths,
+                            start_t=start_t,
+                            end_t=end_t,
+                            max_peer_distance_km=max_peer_distance_km,
+                            base_min_stations=st.session_state.val_min_stations,
+                            lat_0=center_latitude,
+                            lon_0=center_longitude,
+                            analysis_context=analysis_context,
+                            presentation_context=presentation_context,
+                            database_source=database_source,
+                        ),
                     )
                 finally:
                     with (
@@ -1278,11 +1149,11 @@ def _render_completed_analysis_run(
 ):
     """Render a validated completed snapshot without provider or query work."""
     max_peer_distance_km = analysis_context.max_peer_distance_km
-    selected_source_key = completed_run_snapshot["database_source"]
+    selected_source_key = completed_run_snapshot.database_source
     source_label = DatabaseSource(selected_source_key).display_name
-    clear_rendered_result_state(
+    begin_result_render(
         st.session_state,
-        preserve_inspector_cache=True,
+        is_completed_rerender=True,
     )
 
     with run_status_slot.container():
@@ -1305,26 +1176,25 @@ def _render_completed_analysis_run(
     prepared_render_entries = []
     for analysis, snapshot_analysis in zip(
         analyses,
-        completed_run_snapshot["analyses"],
+        completed_run_snapshot.analyses,
     ):
-        restored_analysis = dict(analysis)
-        restored_analysis["decode_filter_mode"] = snapshot_analysis[
-            "selected_decode_filter_mode"
-        ]
+        restored_analysis = AnalysisPlan.from_mapping(analysis).with_decode_filter_mode(
+            snapshot_analysis.selected_decode_filter_mode
+        )
         query_fetches = tuple(
             PreparedQueryFetch(
-                decode_filter_mode=query_fetch["decode_filter_mode"],
-                elapsed_seconds=float(query_fetch["elapsed_seconds"]),
-                delivery_source=FetchSource(query_fetch["delivery_source"]),
+                decode_filter_mode=query_fetch.decode_filter_mode,
+                elapsed_seconds=float(query_fetch.elapsed_seconds),
+                delivery_source=FetchSource(query_fetch.delivery_source),
             )
-            for query_fetch in snapshot_analysis["query_fetches"]
+            for query_fetch in snapshot_analysis.query_fetches
         )
         query_fetch_status = _format_query_fetch_status(
             query_fetches,
             has_legacy_query=bool(restored_analysis.get("legacy_query")),
             has_usable_result=(
-                snapshot_analysis["outcome"]
-                != _SNAPSHOT_OUTCOME_PREPARED_NO_DATA
+                snapshot_analysis.outcome
+                != COMPLETED_PREPARED_NO_DATA
             ),
         )
         status_log.append(
@@ -1361,14 +1231,9 @@ def _render_completed_analysis_run(
 
     for index, (analysis, snapshot_analysis) in enumerate(prepared_render_entries):
         admission_permit.touch()
-        outcome = snapshot_analysis["outcome"]
-        serialized_diagnostic = snapshot_analysis.get("diagnostic")
-        diagnostic = (
-            ResultDiagnostic.from_dict(serialized_diagnostic)
-            if serialized_diagnostic is not None
-            else None
-        )
-        if outcome != _SNAPSHOT_OUTCOME_RENDERABLE:
+        outcome = snapshot_analysis.outcome
+        diagnostic = snapshot_analysis.diagnostic
+        if outcome != COMPLETED_RENDERABLE:
             st.warning(
                 _format_result_diagnostic_warning(
                     t,
@@ -1390,8 +1255,8 @@ def _render_completed_analysis_run(
 
         profile_timer = PerformanceTimer()
         map_data_paths = MapDataArtifactPaths(
-            station_rows_path=Path(snapshot_analysis["station_rows_path"]),
-            segment_rows_path=Path(snapshot_analysis["segment_rows_path"]),
+            station_rows_path=Path(snapshot_analysis.station_rows_path),
+            segment_rows_path=Path(snapshot_analysis.segment_rows_path),
         )
         plot_result = None
         try:
@@ -1435,7 +1300,7 @@ def _render_completed_analysis_run(
                 t=t,
                 analysis=analysis,
                 plot_result=plot_result,
-                parquet_path=Path(snapshot_analysis["evidence_path"]),
+                parquet_path=Path(snapshot_analysis.evidence_path),
                 map_data_paths=map_data_paths,
                 start_t=start_t,
                 end_t=end_t,
@@ -1528,7 +1393,7 @@ def _render_admitted_analysis_run(
     if not isinstance(provider_lease, ProviderRunLease):
         status_box.update(label="Database capacity error", state="error", expanded=True)
         st.error("The analysis was admitted without a database reservation.")
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         return "failed"
 
     attempted_sources = []
@@ -1617,7 +1482,7 @@ def _render_admitted_analysis_run(
                         analysis_context.exclude_special_callsigns
                     ),
                 )
-                st.session_state.run_mode = None
+                fail_analysis_run(st.session_state)
                 return "failed"
 
             if may_replan_capacity:
@@ -1678,7 +1543,7 @@ def _render_admitted_analysis_run(
                     )
                 else:
                     st.error(str(acquire_error))
-                st.session_state.run_mode = None
+                fail_analysis_run(st.session_state)
                 return "failed"
             if not admission_permit.replace_capacity_lease(provider_lease):
                 status_box.update(
@@ -1686,7 +1551,7 @@ def _render_admitted_analysis_run(
                     state="error",
                     expanded=True,
                 )
-                st.session_state.run_mode = None
+                fail_analysis_run(st.session_state)
                 return "failed"
         except ProviderBundlePreparationError as exc:
             admission_permit.release_capacity_lease()
@@ -1706,7 +1571,7 @@ def _render_admitted_analysis_run(
                 expanded=True,
             )
             st.error(localized_preparation_error)
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
             return "failed"
         else:
             status_log.extend(attempt_status_log)
@@ -1721,7 +1586,7 @@ def _render_admitted_analysis_run(
         source_key=selected_source_key,
     )
     retire_registered_session_artifacts(st.session_state)
-    clear_rendered_result_state(st.session_state)
+    begin_result_render(st.session_state)
     for prepared_analysis in prepared_bundle.analyses:
         if prepared_analysis.artifact_path is not None:
             register_session_artifact(
@@ -1786,7 +1651,7 @@ def _render_admitted_analysis_run(
         if prepared_analysis.warning_message or parquet_path is None:
             snapshot_analysis_entries.append(_snapshot_analysis_entry(
                 prepared_analysis,
-                outcome=_SNAPSHOT_OUTCOME_PREPARED_NO_DATA,
+                outcome=COMPLETED_PREPARED_NO_DATA,
             ))
             profile_timer.log_report(analysis_title=analysis["title"])
             st.warning(
@@ -1808,8 +1673,7 @@ def _render_admitted_analysis_run(
                 expanded=True,
             )
             st.error(f"Error reading prepared analysis data: {exc}")
-            st.session_state.run_mode = None
-            reset_result_state(st.session_state)
+            fail_analysis_run(st.session_state, retire_results=True)
             log_performance_event(
                 "analysis_preparation_failure",
                 source=selected_source_key,
@@ -1858,7 +1722,7 @@ def _render_admitted_analysis_run(
             if isinstance(plot_result, EmptyMapResult):
                 snapshot_analysis_entries.append(_snapshot_analysis_entry(
                     prepared_analysis,
-                    outcome=_SNAPSHOT_OUTCOME_MAP_NO_DATA,
+                    outcome=COMPLETED_MAP_NO_DATA,
                     diagnostic=plot_result.diagnostic,
                 ))
                 profile_timer.log_report(analysis_title=analysis["title"])
@@ -1875,7 +1739,7 @@ def _render_admitted_analysis_run(
             if plot_result is None:
                 snapshot_analysis_entries.append(_snapshot_analysis_entry(
                     prepared_analysis,
-                    outcome=_SNAPSHOT_OUTCOME_MAP_NO_DATA,
+                    outcome=COMPLETED_MAP_NO_DATA,
                 ))
                 profile_timer.log_report(analysis_title=analysis["title"])
                 st.warning(t["warn_no_data"].format(title=analysis["title"]))
@@ -1903,8 +1767,7 @@ def _render_admitted_analysis_run(
                     expanded=True,
                 )
                 st.error(t["err_analysis_processing_failed"])
-                st.session_state.run_mode = None
-                reset_result_state(st.session_state)
+                fail_analysis_run(st.session_state, retire_results=True)
                 log_performance_event(
                     "analysis_preparation_failure",
                     source=selected_source_key,
@@ -1915,7 +1778,7 @@ def _render_admitted_analysis_run(
                 return "failed"
             snapshot_analysis_entries.append(_snapshot_analysis_entry(
                 prepared_analysis,
-                outcome=_SNAPSHOT_OUTCOME_RENDERABLE,
+                outcome=COMPLETED_RENDERABLE,
                 map_data_paths=map_data_paths,
                 diagnostic=plot_result.map_data.diagnostic,
             ))
@@ -1958,17 +1821,16 @@ def _render_admitted_analysis_run(
         presentation_context=presentation_context,
     )
 
-    publish_completed_run_snapshot(
+    publish_completed_analysis_run(
         st.session_state,
-        {
-            "schema_version": COMPLETED_RUN_SNAPSHOT_SCHEMA_VERSION,
-            "map_data_schema_version": MAP_DATA_ARTIFACT_SCHEMA_VERSION,
-            "run_id": st.session_state.get("run_id"),
-            "request_fingerprint": request_fingerprint,
-            "analysis_plan_fingerprint": analysis_plan_fingerprint,
-            "database_source": selected_source_key,
-            "analyses": tuple(snapshot_analysis_entries),
-        },
+        CompletedRun(
+            map_data_schema_version=MAP_DATA_ARTIFACT_SCHEMA_VERSION,
+            run_id=st.session_state.get("run_id"),
+            request_fingerprint=request_fingerprint,
+            analysis_plan_fingerprint=analysis_plan_fingerprint,
+            database_source=selected_source_key,
+            analyses=tuple(snapshot_analysis_entries),
+        ),
     )
 
     status_box.update(label="Complete", state="complete", expanded=True)

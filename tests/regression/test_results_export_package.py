@@ -2,6 +2,7 @@
 
 from contextlib import nullcontext
 from copy import deepcopy
+from dataclasses import FrozenInstanceError, fields, replace
 import io
 import inspect
 import json
@@ -25,6 +26,17 @@ from core.artifact_store import (
 )
 from i18n import T
 from ui import results_export
+from ui.export_payloads import (
+    BenchmarkFigureRecipes,
+    BenchmarkZoomExport,
+    ExportSelection,
+    ExportTables,
+    InspectorExportPayload,
+    MapExportPayload,
+    OutlierExport,
+    PerformanceFigureRecipes,
+    PerformanceZoomExport,
+)
 from ui.inspector.outlier_export import (
     DeltaSnrOutlierExportTables,
     OUTLIER_EVENT_PATH_COLUMNS,
@@ -37,6 +49,128 @@ from ui.plots import (
     drilldown_zoom_figures,
     evidence_figures,
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_export_configuration_signature(monkeypatch):
+    """Keep these wire/render fixtures independent of the full Input form.
+
+    Package fixtures supply their exact config bytes separately. Live config
+    validation and changes while exports are queued have dedicated coverage in
+    the configuration and export-ownership regression modules.
+    """
+    monkeypatch.setattr(
+        results_export, "build_config_state_signature",
+        lambda **_kwargs: "export-package-fixture-config",
+    )
+
+
+def _register_map_export_fixture(**registration_values):
+    """Keep existing map fixtures explicit while using the typed public boundary."""
+    return results_export.register_map_export_context(
+        MapExportPayload(**registration_values)
+    )
+
+
+def _register_inspector_export_fixture(*, family, translations, **registration_values):
+    """Adapt legacy test fixtures to an explicitly selected result-family draft."""
+    def take_fields(record_type):
+        return {
+            record_field.name: registration_values.pop(record_field.name)
+            for record_field in fields(record_type)
+            if record_field.name in registration_values
+        }
+
+    figure_type, zoom_type = {
+        "benchmark": (BenchmarkFigureRecipes, BenchmarkZoomExport),
+        "performance": (PerformanceFigureRecipes, PerformanceZoomExport),
+    }[family]
+    analysis_id = registration_values.pop("analysis_id")
+    selection = ExportSelection(**take_fields(ExportSelection))
+    tables = ExportTables(**take_fields(ExportTables))
+    figures = figure_type(**take_fields(figure_type))
+    has_outliers = registration_values.pop("report_delta_snr_outlier_candidates", False)
+    outlier_fields = take_fields(OutlierExport)
+    outliers = OutlierExport(**outlier_fields) if has_outliers else None
+    zoom_fields = take_fields(zoom_type)
+    zoom = None
+    if any(value is not None for value in zoom_fields.values()):
+        zoom = zoom_type(**{
+            record_field.name: zoom_fields.get(record_field.name)
+            for record_field in fields(zoom_type)
+        })
+    assert not registration_values, f"Unmapped export fixture fields: {registration_values.keys()}"
+    return results_export.register_inspector_export(
+        InspectorExportPayload(
+            analysis_id=analysis_id,
+            family=family,
+            selection=selection,
+            tables=tables,
+            figures=figures,
+            outliers=outliers,
+            zoom=zoom,
+        ),
+        translations=translations,
+    )
+
+
+def _borrowed_benchmark_export_payload():
+    return InspectorExportPayload(
+        analysis_id="RX_COMPARE",
+        family="benchmark",
+        selection=ExportSelection(
+            selected_segment="Full Range | All Directions",
+            selected_distance="Full Range",
+            selected_direction="All Directions",
+            show_non_joint=False,
+            evidence_time_bin="3h",
+            selected_stations=["OK1FCX (JN79)"],
+        ),
+        tables=ExportTables(),
+        figures=BenchmarkFigureRecipes(),
+    )
+
+
+@pytest.mark.parametrize(
+    ("overrides", "error_type", "message"),
+    (
+        ({"family": "unknown"}, ValueError, "export family"),
+        ({"figures": PerformanceFigureRecipes()}, TypeError, "figure recipes"),
+        ({"zoom": PerformanceZoomExport(
+            drilldown_zoom_metadata={},
+            drilldown_zoom_performance_snr_figure_recipe={},
+            drilldown_zoom_performance_temporal_figure_recipe={},
+        )}, TypeError, "zoom recipes"),
+        ({
+            "family": "performance",
+            "figures": PerformanceFigureRecipes(),
+            "outliers": OutlierExport(delta_snr_outlier_detector_version="detector"),
+        }, ValueError, "require Benchmark"),
+    ),
+)
+def test_export_draft_rejects_mismatched_result_variants(overrides, error_type, message):
+    """Reject cross-family recipes before the registration state boundary."""
+    with pytest.raises(error_type, match=message):
+        replace(_borrowed_benchmark_export_payload(), **overrides)
+
+
+def test_export_draft_borrows_evidence_until_registration_captures_it():
+    """Freeze the descriptive wrapper without duplicating producer evidence."""
+    recipe = {"values": [1.0, 2.0]}
+    station_rows = pd.DataFrame({"Station": ["OK1FCX"]})
+    payload = replace(
+        _borrowed_benchmark_export_payload(),
+        figures=BenchmarkFigureRecipes(selected_evidence_figure_recipe=recipe),
+        tables=ExportTables(station_insights_df=station_rows),
+    )
+    projection = payload.to_registration_values()
+    assert projection["selected_evidence_figure_recipe"] is recipe
+    assert projection["station_insights_df"] is station_rows
+    assert projection["selected_stations"] is payload.selection.selected_stations
+    recipe["values"].append(3.0)
+    assert payload.figures.selected_evidence_figure_recipe["values"] == [1.0, 2.0, 3.0]
+    with pytest.raises(FrozenInstanceError):
+        payload.family = "performance"
 
 
 SUCCESS_SELECTED_FIGURE_EXPORTS = (
@@ -619,18 +753,18 @@ def test_results_zip_preserves_registered_decode_filter_mode(
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
-        lambda: (json.dumps(config_payload).encode("utf-8"), "wspradar.config"),
+        lambda **_kwargs: (json.dumps(config_payload).encode("utf-8"), "wspradar.config"),
     )
-    monkeypatch.setattr(results_export, "_render_map_png_for_block", lambda _block: b"map-png")
+    monkeypatch.setattr(results_export, "_render_map_png_for_block", lambda _block, **_kwargs: b"map-png")
     monkeypatch.setattr(
         results_export, "_render_inspector_png_for_block",
         lambda _block, _figure_name: None,
     )
     monkeypatch.setattr(
-        results_export, "_build_all_drilldown_for_block", lambda _block: pd.DataFrame(),
+        results_export, "_build_all_drilldown_for_block", lambda _block, **_kwargs: pd.DataFrame(),
     )
 
-    results_export.register_map_export_context(
+    _register_map_export_fixture(
         analysis={
             "id": analysis_id,
             "title": f"{analysis_direction} {'Benchmark' if is_compare else 'Performance'}",
@@ -869,7 +1003,7 @@ def test_results_footer_always_renders_redundant_save_control(
     monkeypatch.setattr(
         results_export,
         "_export_signature",
-        lambda _blocks: "current-signature",
+        lambda _blocks, _translations=None: "current-signature",
     )
     monkeypatch.setattr(
         results_export,
@@ -955,7 +1089,7 @@ def test_open_share_popover_builds_canonical_url_and_localized_browser_copy(
     monkeypatch.setattr(
         results_export,
         "_export_signature",
-        lambda _blocks: "share-signature",
+        lambda _blocks, _translations=None: "share-signature",
     )
     monkeypatch.setattr(
         results_export,
@@ -1201,31 +1335,14 @@ def test_export_marker_signature_tracks_payload_even_if_declared_hash_is_stale()
     }
     second_recipe = {"delta_snr_outlier_markers": changed_marker_recipe}
 
-    first_signature = results_export._delta_snr_outlier_recipe_signature(
-        first_recipe
-    )
-    assert first_signature == {
-        **{
-            key: marker_recipe[key]
-            for key in (
-                "schema_version",
-                "detector_version",
-                "detection_resolution",
-                "candidate_count",
-                "candidate_signature",
-                "legend_label",
-            )
-        },
-        "detection_policy_signature": None,
-        "markers": [
-            {
-                **marker_recipe["markers"][0],
-                "detection_policy_signature": None,
-            }
-        ],
-    }
+    first_signature = results_export._export_signature({
+        "RX_COMPARE": {"selected_evidence_figure_recipe": first_recipe},
+    })
+    assert len(first_signature) == 64
     assert first_signature != (
-        results_export._delta_snr_outlier_recipe_signature(second_recipe)
+        results_export._export_signature({
+            "RX_COMPARE": {"selected_evidence_figure_recipe": second_recipe},
+        })
     )
 
 
@@ -1313,7 +1430,7 @@ def test_map_export_registration_rejects_unowned_artifact_paths(
     monkeypatch.setattr(results_export, "CACHE_DIR", tmp_path)
 
     with pytest.raises(ValueError, match=expected_message):
-        results_export.register_map_export_context(
+        _register_map_export_fixture(
             analysis={
                 "id": "RX_ABS",
                 "title": "RX Performance",
@@ -1563,7 +1680,13 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
     monkeypatch,
 ):
     """Store both coverage recipes and fingerprint their stable identities."""
-    blocks = {}
+    blocks = {
+        "RX_COMPARE": {
+            "analysis_id": "RX_COMPARE",
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
+            "database_source": "wspr_live",
+        },
+    }
     recipes = {
         recipe_key: {
             "kind": (
@@ -1595,7 +1718,9 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
         SimpleNamespace(session_state={"lang": "en"}),
     )
 
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+
+        family="benchmark",
         analysis_id="RX_COMPARE",
         selected_segment="Full Range | All Directions",
         selected_distance="Full Range",
@@ -1609,14 +1734,9 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
     )
 
     block = blocks["RX_COMPARE"]
-    block.update(
-        {
-            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
-            "database_source": "wspr_live",
-        }
-    )
     for recipe_key, recipe in recipes.items():
-        assert block[recipe_key] is recipe
+        assert block[recipe_key] == recipe
+        assert block[recipe_key] is not recipe
 
     metadata = results_export._build_run_metadata(
         blocks,
@@ -1635,10 +1755,9 @@ def test_register_inspector_export_keeps_compare_coverage_recipes_independent(
     assert metadata["result_blocks"][0]["benchmark_evidence_figures"] == (
         expected_descriptions
     )
-    assert [
-        recipe["filename"]
-        for recipe in results_export._benchmark_evidence_recipe_signature(block)
-    ] == list(expected_descriptions)
+    assert list(
+        metadata["result_blocks"][0]["benchmark_evidence_figures"]
+    ) == list(expected_descriptions)
     assert len(metadata["export_signature"]) == 64
     without_selected_coverage = {
         "RX_COMPARE": {
@@ -1670,7 +1789,9 @@ def test_register_inspector_export_keeps_all_success_temporal_recipes_independen
         lambda: blocks,
     )
 
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+
+        family="performance",
         analysis_id="RX_ABS",
         selected_segment="Full Range | All Directions",
         selected_distance="Full Range",
@@ -1688,18 +1809,14 @@ def test_register_inspector_export_keeps_all_success_temporal_recipes_independen
     )
 
     block = blocks["RX_ABS"]
-    assert block["segment_temporal_evidence_figure_recipe"] is (
-        evidence_recipe
-    )
-    assert block[
-        "segment_temporal_snr_deviation_figure_recipe"
-    ] is snr_recipe
-    assert block["selected_station_snr_evidence_figure_recipe"] is (
-        selected_snr_recipe
-    )
-    assert block["selected_station_temporal_evidence_figure_recipe"] is (
-        selected_evidence_recipe
-    )
+    assert block["segment_temporal_evidence_figure_recipe"] == evidence_recipe
+    assert block["segment_temporal_evidence_figure_recipe"] is not evidence_recipe
+    assert block["segment_temporal_snr_deviation_figure_recipe"] == snr_recipe
+    assert block["segment_temporal_snr_deviation_figure_recipe"] is not snr_recipe
+    assert block["selected_station_snr_evidence_figure_recipe"] == selected_snr_recipe
+    assert block["selected_station_snr_evidence_figure_recipe"] is not selected_snr_recipe
+    assert block["selected_station_temporal_evidence_figure_recipe"] == selected_evidence_recipe
+    assert block["selected_station_temporal_evidence_figure_recipe"] is not selected_evidence_recipe
     assert block["selected_evidence_figure_recipe"] is None
     assert selected_snr_recipe is not selected_evidence_recipe
 
@@ -1755,7 +1872,9 @@ def test_register_inspector_export_replaces_and_clears_drilldown_zoom_state(
         "translations": T["en"],
     }
 
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+
+        family="performance",
         **common_arguments,
         drilldown_zoom_metadata=_drilldown_zoom_metadata(),
         drilldown_zoom_performance_snr_figure_recipe=snr_recipe,
@@ -1767,17 +1886,19 @@ def test_register_inspector_export_replaces_and_clears_drilldown_zoom_state(
         **_drilldown_zoom_metadata(),
         "station": {"callsign": "OK1FCX", "locator": "JN79"},
     }
-    assert block["drilldown_zoom_performance_snr_figure_recipe"] is (
-        snr_recipe
-    )
-    assert block["drilldown_zoom_performance_temporal_figure_recipe"] is (
-        temporal_recipe
-    )
+    assert block["drilldown_zoom_performance_snr_figure_recipe"] == snr_recipe
+    assert block["drilldown_zoom_performance_snr_figure_recipe"] is not snr_recipe
+    assert block["drilldown_zoom_performance_temporal_figure_recipe"] == temporal_recipe
+    assert block["drilldown_zoom_performance_temporal_figure_recipe"] is not temporal_recipe
     assert "drilldown_zoom_benchmark_delta_snr_figure_recipe" not in block
     assert "drilldown_zoom_benchmark_coverage_figure_recipe" not in block
 
-    results_export.register_inspector_export(**common_arguments)
+    _register_inspector_export_fixture(
+        family="performance", **common_arguments
+    )
 
+    assert "drilldown_zoom_metadata" in block
+    block = blocks["RX_ABS"]
     assert "drilldown_zoom_metadata" not in block
     assert all(
         recipe_key not in block
@@ -1922,19 +2043,29 @@ def test_benchmark_zoom_registration_requires_exact_outlier_overlay_provenance()
         validated["outlier_candidate"]["candidate_signature"]
         == "candidate-1"
     )
-    overlay_signature = (
-        results_export._drilldown_zoom_outlier_overlay_signature(overlay)
-    )
-    assert overlay_signature["qualifying_marker_utc_ns"] == [
+    assert list(overlay["qualifying_marker_utc_ns"]) == [
         int(pd.Timestamp(candidate_metadata["representative_utc"]).value)
     ]
-    assert overlay_signature["qualifying_marker_delta_snr_db"] == [
+    assert list(overlay["qualifying_marker_delta_snr_db"]) == [
         candidate_metadata["representative_delta_snr_db"]
     ]
-    assert overlay_signature["qualifying_marker_count"] == 1
-    assert overlay_signature["native_evidence_unit_width_ns"] == int(
+    assert overlay["qualifying_marker_count"] == 1
+    assert overlay["native_evidence_unit_width_ns"] == int(
         pd.Timedelta(minutes=2).value
     )
+    original_signature = results_export._export_signature({
+        "RX_COMPARE": {"drilldown_zoom_benchmark_delta_snr_figure_recipe": metric_recipe},
+    })
+    changed_overlay_recipe = {
+        **metric_recipe,
+        "outlier_overlay": {
+            **overlay,
+            "qualifying_marker_delta_snr_db": overlay["qualifying_marker_delta_snr_db"] + 0.5,
+        },
+    }
+    assert original_signature != results_export._export_signature({
+        "RX_COMPARE": {"drilldown_zoom_benchmark_delta_snr_figure_recipe": changed_overlay_recipe},
+    })
 
     mismatched_metadata = {
         **metadata,
@@ -2069,7 +2200,9 @@ def test_register_inspector_export_localizes_selected_evidence_weighting(
         lambda: blocks,
     )
 
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+
+        family="benchmark",
         analysis_id="RX_COMPARE",
         selected_segment="Full Range | All Directions",
         selected_distance="Full Range",
@@ -2108,15 +2241,36 @@ def test_disabled_outlier_fields_do_not_change_result_metadata_or_signature(
         "report_delta_snr_outlier_candidates": False,
         "delta_snr_outlier_detector_version": None,
     }
-
-    assert results_export._export_signature(
-        {"RX_ABS": base_block}
-    ) == results_export._export_signature(
-        {"RX_ABS": false_field_block}
+    implicit_blocks = {"RX_ABS": base_block}
+    explicit_blocks = {"RX_ABS": false_field_block}
+    pending_states = [implicit_blocks, explicit_blocks]
+    monkeypatch.setattr(
+        results_export, "_ensure_current_export_state",
+        lambda: pending_states.pop(0),
+    )
+    common_arguments = {
+        "family": "performance",
+        "analysis_id": "RX_ABS",
+        "selected_segment": "Full Range | All Directions",
+        "selected_distance": "Full Range",
+        "selected_direction": "All Directions",
+        "show_non_joint": False,
+        "evidence_time_bin": "3h",
+        "selected_stations": [],
+        "translations": T["en"],
+    }
+    _register_inspector_export_fixture(**common_arguments)
+    _register_inspector_export_fixture(
+        **common_arguments,
+        report_delta_snr_outlier_candidates=False,
+        delta_snr_outlier_detector_version=None,
+    )
+    assert results_export._export_signature(implicit_blocks) == (
+        results_export._export_signature(explicit_blocks)
     )
 
     metadata = results_export._build_run_metadata(
-        {"RX_ABS": false_field_block},
+        explicit_blocks,
         {
             "settings": {
                 "advanced_parameters": {
@@ -2165,6 +2319,7 @@ def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
     disabled_blocks = {
         "RX_COMPARE": {
             "analysis_id": "RX_COMPARE",
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
             "delta_snr_outlier_export": stale_metadata,
             OUTLIER_EVENT_PATHS_TABLE_FILENAME: stale_tables.event_paths,
             OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME: (
@@ -2172,7 +2327,12 @@ def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
             ),
         }
     }
-    clean_blocks = {}
+    clean_blocks = {
+        "RX_COMPARE": {
+            "analysis_id": "RX_COMPARE",
+            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
+        },
+    }
     pending_states = [disabled_blocks, clean_blocks]
     monkeypatch.setattr(
         results_export,
@@ -2190,7 +2350,8 @@ def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
         "selected_stations": [],
         "translations": T["en"],
     }
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+        family="benchmark",
         **common_arguments,
         segment_temporal_evidence_figure_recipe=stale_segment_recipe,
         selected_evidence_figure_recipe=stale_selected_recipe,
@@ -2200,7 +2361,8 @@ def test_disabled_registration_strips_stale_markers_without_mutating_recipes(
             minimum_departure_db=6.0,
         ),
     )
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+        family="benchmark",
         **common_arguments,
         segment_temporal_evidence_figure_recipe={
             "kind": "segment_benchmark_temporal",
@@ -2354,7 +2516,9 @@ def test_disabled_registration_strips_stale_zoom_outlier_context(
         },
     }
 
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+
+        family="benchmark",
         **common_arguments,
         drilldown_zoom_metadata=stale_metadata,
         drilldown_zoom_benchmark_delta_snr_figure_recipe=(
@@ -2362,7 +2526,8 @@ def test_disabled_registration_strips_stale_zoom_outlier_context(
         ),
         report_delta_snr_outlier_candidates=False,
     )
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+        family="benchmark",
         **common_arguments,
         drilldown_zoom_metadata=clean_metadata,
         drilldown_zoom_benchmark_delta_snr_figure_recipe=(
@@ -2637,7 +2802,7 @@ def test_enabled_outlier_tables_are_packaged_with_status_and_no_double_correctio
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
-        lambda: (
+        lambda **_kwargs: (
             json.dumps(config_payload).encode("utf-8"),
             "wspradar.config",
         ),
@@ -2645,7 +2810,7 @@ def test_enabled_outlier_tables_are_packaged_with_status_and_no_double_correctio
     monkeypatch.setattr(
         results_export,
         "_render_map_png_for_block",
-        lambda _block: b"map-png",
+        lambda _block, **_kwargs: b"map-png",
     )
     monkeypatch.setattr(
         results_export,
@@ -2738,7 +2903,9 @@ def test_register_inspector_export_accepts_enabled_multi_station_evidence(
         lambda: blocks,
     )
 
-    results_export.register_inspector_export(
+    _register_inspector_export_fixture(
+
+        family="benchmark",
         analysis_id="RX_COMPARE",
         selected_segment="Full Range | All Directions",
         selected_distance="Full Range",
@@ -2763,7 +2930,8 @@ def test_register_inspector_export_accepts_enabled_multi_station_evidence(
     ]
     assert block["selected_station_count"] == 2
     assert block["selected_evidence_weighting"] == expected_weighting
-    assert block["selected_evidence_figure_recipe"] is marker_recipe
+    assert block["selected_evidence_figure_recipe"] == marker_recipe
+    assert block["selected_evidence_figure_recipe"] is not marker_recipe
     assert block["report_delta_snr_outlier_candidates"] is True
     assert block["delta_snr_outlier_detector_version"] == (
         "native-residual-episode-v1"
@@ -2798,7 +2966,8 @@ def test_register_inspector_export_rejects_mismatched_outlier_joins_atomically(
     )
 
     with pytest.raises(ValueError, match="direction context"):
-        results_export.register_inspector_export(
+        _register_inspector_export_fixture(
+            family="benchmark",
             analysis_id="RX_COMPARE",
             selected_segment="Full Range | All Directions",
             selected_distance="Full Range",
@@ -2838,7 +3007,8 @@ def test_register_inspector_export_rejects_invalid_station_cardinality_atomicall
     )
 
     with pytest.raises(ValueError):
-        results_export.register_inspector_export(
+        _register_inspector_export_fixture(
+            family="benchmark",
             analysis_id="RX_COMPARE",
             selected_segment="Full Range | All Directions",
             selected_distance="Full Range",
@@ -2864,7 +3034,8 @@ def test_register_export_rejects_multi_selection_without_enabled_reporting(
     )
 
     with pytest.raises(ValueError, match="require enabled Delta-SNR"):
-        results_export.register_inspector_export(
+        _register_inspector_export_fixture(
+            family="benchmark",
             analysis_id="RX_COMPARE",
             selected_segment="Full Range | All Directions",
             selected_distance="Full Range",
@@ -2957,7 +3128,7 @@ def test_run_metadata_zip_preserves_literal_utf8_and_json_round_trip(
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
-        lambda: (
+        lambda **_kwargs: (
             json.dumps(config_payload).encode("utf-8"),
             "wspradar.config",
         ),
@@ -2965,7 +3136,7 @@ def test_run_metadata_zip_preserves_literal_utf8_and_json_round_trip(
     monkeypatch.setattr(
         results_export,
         "_render_map_png_for_block",
-        lambda _block: b"map-png",
+        lambda _block, **_kwargs: b"map-png",
     )
     monkeypatch.setattr(
         results_export,
@@ -2975,7 +3146,7 @@ def test_run_metadata_zip_preserves_literal_utf8_and_json_round_trip(
     monkeypatch.setattr(
         results_export,
         "_build_all_drilldown_for_block",
-        lambda _block: pd.DataFrame(),
+        lambda _block, **_kwargs: pd.DataFrame(),
     )
 
     zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
@@ -3210,12 +3381,23 @@ def test_success_results_zip_records_selected_figures_and_context(
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
-        lambda: (
+        lambda **_kwargs: (
             json.dumps(config_payload).encode("utf-8"),
             "wspradar.config",
         ),
     )
-    results_export.register_inspector_export(
+    state[results_export.EXPORT_STATE_KEY]["RX_ABS"] = {
+        "analysis_id": "RX_ABS",
+        "title": "RX Performance",
+        "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
+        "database_source": "wspr_live",
+        "is_compare": False,
+        "is_sequential": False,
+        "analysis_kind": "opportunity",
+        "performance_method_version": "opportunity-v1",
+    }
+    _register_inspector_export_fixture(
+        family="performance",
         analysis_id="RX_ABS",
         selected_segment="Full Range | All Directions",
         selected_distance="Full Range",
@@ -3232,18 +3414,6 @@ def test_success_results_zip_records_selected_figures_and_context(
         selected_station_context_label=selected_context,
         selected_station_role="TX",
         selected_evidence_figure_descriptions=figure_descriptions,
-    )
-    success_block = state[results_export.EXPORT_STATE_KEY]["RX_ABS"]
-    success_block.update(
-        {
-            "title": "RX Performance",
-            "mode_folder": results_export.PERFORMANCE_EXPORT_FOLDER,
-            "database_source": "wspr_live",
-            "is_compare": False,
-            "is_sequential": False,
-            "analysis_kind": "opportunity",
-            "performance_method_version": "opportunity-v1",
-        }
     )
     rendered_figure_names = []
     selected_filenames = {
@@ -3271,7 +3441,7 @@ def test_success_results_zip_records_selected_figures_and_context(
     monkeypatch.setattr(
         results_export,
         "_render_map_png_for_block",
-        lambda _block: b"map-png",
+        lambda _block, **_kwargs: b"map-png",
     )
 
     zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
@@ -3463,7 +3633,7 @@ def test_results_zip_conditionally_packages_drilldown_zoom_figures_and_metadata(
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
-        lambda: (
+        lambda **_kwargs: (
             json.dumps(config_payload).encode("utf-8"),
             "wspradar.config",
         ),
@@ -3471,7 +3641,7 @@ def test_results_zip_conditionally_packages_drilldown_zoom_figures_and_metadata(
     monkeypatch.setattr(
         results_export,
         "_render_map_png_for_block",
-        lambda _block: b"map-png",
+        lambda _block, **_kwargs: b"map-png",
     )
     monkeypatch.setattr(
         results_export,
@@ -3526,9 +3696,17 @@ def test_results_zip_conditionally_packages_drilldown_zoom_figures_and_metadata(
     ):
         results_export.build_results_zip(T["en"])
 
-    block.pop("drilldown_zoom_metadata")
-    for recipe_key in tuple(recipe_entries):
-        block.pop(recipe_key)
+    _register_inspector_export_fixture(
+        family=folder,
+        analysis_id=analysis_id,
+        selected_segment="Full Range | All Directions",
+        selected_distance="Full Range",
+        selected_direction="All Directions",
+        show_non_joint=False,
+        evidence_time_bin="3h",
+        selected_stations=["OK1FCX (JN79)"],
+        translations=T["en"],
+    )
     rendered_figure_names.clear()
     inactive_zip_bytes, inactive_zip_filename = results_export.build_results_zip(
         T["en"]
@@ -3608,12 +3786,22 @@ def test_benchmark_results_zip_records_coverage_figures_in_stable_order(
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
-        lambda: (
+        lambda **_kwargs: (
             json.dumps(config_payload).encode("utf-8"),
             "wspradar.config",
         ),
     )
-    results_export.register_inspector_export(
+    state[results_export.EXPORT_STATE_KEY]["RX_COMPARE"] = {
+        "analysis_id": "RX_COMPARE",
+        "title": "RX Benchmark",
+        "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
+        "database_source": "wspr_live",
+        "is_compare": True,
+        "is_sequential": False,
+        "analysis_kind": "comparison",
+    }
+    _register_inspector_export_fixture(
+        family="benchmark",
         analysis_id="RX_COMPARE",
         selected_segment="Full Range | All Directions",
         selected_distance="Full Range",
@@ -3624,17 +3812,6 @@ def test_benchmark_results_zip_records_coverage_figures_in_stable_order(
         translations=T["en"],
         selected_evidence_figure_recipe=selected_recipe,
         **coverage_recipes,
-    )
-    compare_block = state[results_export.EXPORT_STATE_KEY]["RX_COMPARE"]
-    compare_block.update(
-        {
-            "title": "RX Benchmark",
-            "mode_folder": results_export.BENCHMARK_EXPORT_FOLDER,
-            "database_source": "wspr_live",
-            "is_compare": True,
-            "is_sequential": False,
-            "analysis_kind": "comparison",
-        }
     )
 
     rendered_figure_names = []
@@ -3660,7 +3837,7 @@ def test_benchmark_results_zip_records_coverage_figures_in_stable_order(
     monkeypatch.setattr(
         results_export,
         "_render_map_png_for_block",
-        lambda _block: b"map-png",
+        lambda _block, **_kwargs: b"map-png",
     )
 
     zip_bytes, zip_filename = results_export.build_results_zip(T["en"])
@@ -3785,7 +3962,7 @@ def test_performance_export_uses_performance_folder_and_metadata(
     monkeypatch.setattr(
         results_export,
         "build_config_payload",
-        lambda: (config_bytes, "wspradar.config"),
+        lambda **_kwargs: (config_bytes, "wspradar.config"),
     )
     monkeypatch.setattr(results_export.ARTIFACT_STORE, "touch", lambda _path: True)
     monkeypatch.setattr(
@@ -3793,7 +3970,7 @@ def test_performance_export_uses_performance_folder_and_metadata(
         "lease",
         lambda _path: nullcontext(parquet_path),
     )
-    results_export.register_map_export_context(
+    _register_map_export_fixture(
         analysis={
             "id": "RX_ABS",
             "title": "RX Performance",
@@ -3832,10 +4009,19 @@ def test_performance_export_uses_performance_folder_and_metadata(
         "station_rows_path": str(artifact_paths["map_stations"].resolve()),
         "segment_rows_path": str(artifact_paths["map_segments"].resolve()),
     }
-    success_block["table_station_insights_current_segment.csv"] = pd.DataFrame(
-        {"Peer": ["TEST"]}
+    _register_inspector_export_fixture(
+        family="performance",
+        analysis_id="RX_ABS",
+        selected_segment="Full Range | All Directions",
+        selected_distance="Full Range",
+        selected_direction="All Directions",
+        show_non_joint=False,
+        evidence_time_bin="3h",
+        selected_stations=[],
+        translations=T["en"],
+        station_insights_df=pd.DataFrame({"Peer": ["TEST"]}),
+        drilldown_selected_df=pd.DataFrame(),
     )
-    success_block["table_drilldown_selected_stations.csv"] = pd.DataFrame()
     rendered_inspector_names = []
 
     def render_success_inspector_figure(_block, figure_name):
@@ -3852,7 +4038,7 @@ def test_performance_export_uses_performance_folder_and_metadata(
     monkeypatch.setattr(
         results_export,
         "_render_map_png_for_block",
-        lambda _block: b"map-png",
+        lambda _block, **_kwargs: b"map-png",
     )
 
     zip_bytes, zip_filename = results_export.build_results_zip(T["en"])

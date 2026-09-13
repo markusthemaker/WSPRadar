@@ -1,10 +1,12 @@
 from pathlib import Path
+from datetime import datetime, timezone
 
 import pandas as pd
 import pytest
 
 from config import WSPR_DATABASE_PROVIDERS
 from core import run_data_preparation
+from core.analysis_plan import AnalysisPlan
 from core.analysis_runner import DECODE_FILTER_LEGACY, DECODE_FILTER_STRICT
 from core.fetch_models import (
     DatabaseSource,
@@ -28,7 +30,11 @@ def _comparison_plan():
         "id": "RX_COMP",
         "title": "Compare",
         "analysis_kind": "comparison",
+        "result_family": "benchmark",
+        "is_compare": True,
         "is_sequential": False,
+        "analysis_start_utc": datetime(2026, 9, 1, tzinfo=timezone.utc),
+        "analysis_end_utc": datetime(2026, 9, 2, tzinfo=timezone.utc),
         "decode_filter_mode": DECODE_FILTER_STRICT,
         "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
         "query": "COMPARE STRICT",
@@ -43,7 +49,11 @@ def _success_plan():
         "id": "RX_ABS",
         "title": "Performance",
         "analysis_kind": "opportunity",
+        "result_family": "performance",
+        "is_compare": False,
         "is_sequential": False,
+        "absolute_mode": "RX",
+        "absolute_method_version": "opportunity-v2",
         "decode_filter_mode": DECODE_FILTER_STRICT,
         "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
         "query": "SUCCESS STRICT",
@@ -118,7 +128,7 @@ def test_fetch_source_delivery_label_separates_origin_from_tier(
 
 def test_compare_strict_and_legacy_queries_stay_on_one_source(tmp_path):
     """Keep one Compare analysis on its provider across strict and legacy reads."""
-    plan = _comparison_plan()
+    plan = AnalysisPlan.from_mapping(_comparison_plan())
     controller = _controller()
     lease = controller.try_acquire_run({"wspr_live": 2, "wd2": 2, "wd1": 2})
     requests = []
@@ -151,11 +161,42 @@ def test_compare_strict_and_legacy_queries_stay_on_one_source(tmp_path):
         ("wspr_live", "COMPARE LEGACY"),
     ]
     assert bundle.analyses[0].analysis["decode_filter_mode"] == DECODE_FILTER_LEGACY
+    assert isinstance(bundle.analyses[0].analysis, AnalysisPlan)
+    assert bundle.analyses[0].analysis.query == plan.legacy_query
+    assert plan.query == "COMPARE STRICT"
+    assert plan.decode_filter_mode == DECODE_FILTER_STRICT
     assert [
         query_fetch.decode_filter_mode
         for query_fetch in bundle.analyses[0].query_fetches
     ] == [DECODE_FILTER_STRICT, DECODE_FILTER_LEGACY]
     assert bundle.analyses[0].artifact_path.is_file()
+
+
+def test_bundle_validates_all_analysis_plans_before_fetching(tmp_path):
+    """A malformed later plan must not acquire or stage any earlier evidence."""
+    invalid_plan = _comparison_plan()
+    invalid_plan.pop("result_family")
+    controller = _controller()
+    lease = controller.try_acquire_run({"wspr_live": 0, "wd2": 0, "wd1": 0})
+
+    def unexpected_fetch(*_args, **_kwargs):
+        pytest.fail("Plan validation must finish before fetching")
+
+    try:
+        with pytest.raises(ProviderBundlePreparationError, match="result_family"):
+            prepare_provider_bundle(
+                [_success_plan(), invalid_plan],
+                provider_lease=lease,
+                is_demo_run=False,
+                analysis_context=object(),
+                center_latitude=47.0,
+                center_longitude=8.0,
+                labels={"warn_no_data": "No data: {title}"},
+                artifact_paths={},
+                fetch_data=unexpected_fetch,
+            )
+    finally:
+        lease.release()
 
 
 def test_query_fetch_trace_preserves_strict_and_legacy_tiers_and_timings(tmp_path):

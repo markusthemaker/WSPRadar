@@ -2,6 +2,8 @@ from core.analysis_admission import AdmissionSnapshot, AnalysisQueueFull
 from core.export_admission import EXPORT_ADMISSION_GATE
 from i18n import T
 from ui import results_export
+from ui.export_content import OwnedExportContent
+from ui.export_registry import ExportPackagePayload
 
 
 class _Context:
@@ -125,6 +127,17 @@ def _patch_profiling(monkeypatch):
     return events
 
 
+def _patch_package_capture(monkeypatch):
+    """Keep admission tests independent of configuration and artifact fixtures."""
+    payload = ExportPackagePayload(
+        blocks=(), config_bytes=b"{}", translations=OwnedExportContent.capture(T["en"]),
+        language="en", run_id=7, signature="captured-package",
+        exported_utc="2026-09-13T10:00:00Z", root_folder="WSPRadar_export_test",
+    )
+    monkeypatch.setattr(results_export, "_capture_export_package", lambda _translations: payload)
+    return payload
+
+
 def test_export_gate_is_configured_independently_for_one_active_export():
     from core.analysis_admission import ANALYSIS_ADMISSION_GATE
 
@@ -140,9 +153,11 @@ def test_export_preparation_waits_for_admission_and_releases_permit(monkeypatch)
     events = _patch_profiling(monkeypatch)
     monkeypatch.setattr(results_export, "st", fake_st)
     monkeypatch.setattr(results_export, "EXPORT_ADMISSION_GATE", gate)
+    captured_payload = _patch_package_capture(monkeypatch)
 
-    def build_zip(translations):
+    def build_zip(translations, *, payload):
         assert translations is T["en"]
+        assert payload is captured_payload
         assert permit.entered is True
         assert permit.released is False
         return b"prepared-zip", "results.zip"
@@ -178,10 +193,11 @@ def test_required_map_artifact_failure_is_reported_and_releases_permit(
     events = _patch_profiling(monkeypatch)
     monkeypatch.setattr(results_export, "st", fake_st)
     monkeypatch.setattr(results_export, "EXPORT_ADMISSION_GATE", gate)
+    _patch_package_capture(monkeypatch)
     monkeypatch.setattr(
         results_export,
         "build_results_zip",
-        lambda _translations: (_ for _ in ()).throw(
+        lambda _translations, *, payload: (_ for _ in ()).throw(
             results_export.ExportArtifactUnavailableError(
                 "Required compact map data is unavailable; run the analysis again"
             )
@@ -205,10 +221,11 @@ def test_full_export_queue_does_not_start_zip_construction(monkeypatch):
     events = _patch_profiling(monkeypatch)
     monkeypatch.setattr(results_export, "st", fake_st)
     monkeypatch.setattr(results_export, "EXPORT_ADMISSION_GATE", _FullGate())
+    _patch_package_capture(monkeypatch)
     monkeypatch.setattr(
         results_export,
         "build_results_zip",
-        lambda _translations: (_ for _ in ()).throw(
+        lambda _translations, *, payload: (_ for _ in ()).throw(
             AssertionError("ZIP build must not start")
         ),
     )

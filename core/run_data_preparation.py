@@ -9,6 +9,7 @@ import time
 from typing import Callable, Mapping
 
 from config import MAX_ANALYSIS_RESULT_ROWS
+from core.analysis_plan import AnalysisPlan
 from core.analysis_runner import (
     DECODE_FILTER_LEGACY,
     DECODE_FILTER_STRICT,
@@ -49,7 +50,7 @@ class PreparedQueryFetch:
 class PreparedAnalysisData:
     """One staged artifact with a non-empty, execution-ordered query trace."""
 
-    analysis: dict
+    analysis: AnalysisPlan
     artifact_path: Path | None
     warning_message: str | None
     query_fetches: tuple[PreparedQueryFetch, ...]
@@ -80,7 +81,7 @@ class PreparedProviderBundle:
 class ProviderBundleFetchError(RuntimeError):
     """Stop one provider attempt after a structured upstream fetch failure."""
 
-    def __init__(self, fetch_result: FetchResult, analysis: dict) -> None:
+    def __init__(self, fetch_result: FetchResult, analysis: AnalysisPlan) -> None:
         self.fetch_result = fetch_result
         self.analysis = analysis
         error = fetch_result.error
@@ -128,7 +129,7 @@ def _expected_database_source(provider_key: str) -> DatabaseSource:
         ) from exc
 
 
-def _schema_error(fetch_result: FetchResult, analysis: dict) -> FetchResult | None:
+def _schema_error(fetch_result: FetchResult, analysis: AnalysisPlan) -> FetchResult | None:
     """Return a provider error when a supplied frame violates its row contract."""
     frame = fetch_result.dataframe
     if frame is None:
@@ -170,7 +171,7 @@ def _schema_error(fetch_result: FetchResult, analysis: dict) -> FetchResult | No
 
 def _raise_for_result_row_limit(
     fetch_result: FetchResult,
-    analysis: dict,
+    analysis: AnalysisPlan,
 ) -> None:
     """Reject an oversized supplied frame before fallback or scientific work."""
     frame = fetch_result.dataframe
@@ -198,7 +199,7 @@ def _raise_for_result_row_limit(
 
 def _raise_for_invalid_query_schema(
     fetch_result: FetchResult,
-    analysis: dict,
+    analysis: AnalysisPlan,
     *,
     is_demo_run: bool,
     database_provider,
@@ -241,7 +242,7 @@ def prepare_provider_bundle(
     center_longitude: float,
     labels,
     artifact_paths: Mapping[str, Path],
-    on_legacy_retry: Callable[[int, int, dict], None] | None = None,
+    on_legacy_retry: Callable[[int, int, AnalysisPlan], None] | None = None,
     fetch_data: Callable = fetch_wspr_data,
     post_fetch_filter: Callable = apply_post_fetch_filters,
     artifact_writer: Callable = write_parquet_artifact,
@@ -261,11 +262,11 @@ def prepare_provider_bundle(
     prepared_analyses: list[PreparedAnalysisData] = []
     staged_paths: list[Path] = []
     analysis_count = len(analyses)
-    analysis: dict = {}
+    analysis: Mapping[str, object] = {}
 
     try:
-        for index, original_analysis in enumerate(analyses):
-            analysis = dict(original_analysis)
+        analysis_plans = tuple(AnalysisPlan.from_mapping(analysis) for analysis in analyses)
+        for index, analysis in enumerate(analysis_plans):
             profile_timer = PerformanceTimer()
             query_fetches: list[PreparedQueryFetch] = []
             fetch_started = clock()
@@ -307,12 +308,7 @@ def prepare_provider_bundle(
                     on_legacy_retry(index, analysis_count, analysis)
                 frame = None
                 fetch_result.dataframe = None
-                legacy_analysis = dict(analysis)
-                legacy_analysis["query"] = analysis["legacy_query"]
-                legacy_analysis["decode_filter_mode"] = analysis.get(
-                    "legacy_decode_filter_mode",
-                    DECODE_FILTER_LEGACY,
-                )
+                legacy_analysis = analysis.for_legacy_query()
                 retry_started = clock()
                 fetch_result = fetch_data(
                     legacy_analysis["query"],

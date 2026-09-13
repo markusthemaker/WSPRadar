@@ -1,1 +1,1 @@
-"""Pure Segment Inspector data and view-model preparation package."""
+"""Segment Inspector selection, navigation, data, and view-model helpers."""

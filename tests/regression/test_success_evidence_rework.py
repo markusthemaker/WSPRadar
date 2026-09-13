@@ -11,12 +11,12 @@ from config import TEMPORAL_IQR_BAND_ALPHA
 from core.opportunity_engine import opportunity_utc_from_time_slot
 from core.presentation_context import PresentationContext
 from i18n import T
-from ui.components.segment_inspector import (
-    _opportunity_export_station_rows,
-    _selected_success_context_line,
-    _selected_success_temporal_figure_title,
-    _success_figure_labels,
-    _success_temporal_figure_title,
+from ui.components.inspector_export import opportunity_export_station_rows as _opportunity_export_station_rows
+from ui.inspector.presentation import (
+    selected_success_context_line as _selected_success_context_line,
+    selected_success_temporal_figure_title as _selected_success_temporal_figure_title,
+    success_figure_labels as _success_figure_labels,
+    success_temporal_figure_title as _success_temporal_figure_title,
 )
 from ui.inspector.view_models import build_opportunity_inspector_view_model
 from ui.matplotlib_renderer import dispose_matplotlib_figure

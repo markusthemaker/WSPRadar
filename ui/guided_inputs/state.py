@@ -35,7 +35,7 @@ from ui.population_exclusion_state import (
     population_exclusion_defaults,
     result_type_from_comparison_mode,
 )
-from ui.result_state import (
+from ui.inspector.selection_state import (
     normalize_compare_station_selection_for_outlier_reporting,
 )
 from ui.time_window import utc_window_from_state

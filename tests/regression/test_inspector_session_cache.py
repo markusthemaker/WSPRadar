@@ -1,5 +1,6 @@
 import ast
 import inspect
+from textwrap import dedent
 from types import SimpleNamespace
 
 import numpy as np
@@ -12,13 +13,65 @@ from config.delta_snr_outlier import (
     DeltaSnrOutlierDetectionPolicy,
 )
 from i18n import T
+from ui.inspector import selection_state as inspector_selection
 from ui.components import segment_inspector
+from ui.components import inspector_common, inspector_scope, inspector_selected, inspector_stations, inspector_export
+from ui.inspector import preparation as inspector_preparation
+from ui.inspector import presentation as inspector_presentation
+from ui.inspector import outlier_candidates
+from ui.inspector.preparation import InspectorPreparation
+from ui.inspector.selection import InspectorSelection
+from ui.plots import evidence_figures, opportunity_figures
 from ui.inspector import drilldown, view_models
 from ui.inspector.session_cache import (
     SessionInspectorCache,
     estimate_cache_value_bytes,
 )
 from ui.result_hierarchy import transition_prompt_html
+
+
+def _set_component_streamlit(monkeypatch, streamlit_ui):
+    """Give separately owned views one consistent fake Streamlit surface."""
+    for component in (
+        segment_inspector, inspector_common, inspector_scope,
+        inspector_selected, inspector_stations,
+    ):
+        monkeypatch.setattr(component, "st", streamlit_ui)
+
+
+def _patch_shared_render_dependency(monkeypatch, name, replacement):
+    """Record the same presentation dependency in segment and selected views."""
+    for component in (inspector_scope, inspector_selected):
+        monkeypatch.setattr(component, name, replacement)
+
+
+def _prepare_and_render_selected_evidence(
+    station_rows, selected_identity_df, is_sequential,
+    repeat_interval_minutes, target_start_minute, reference_start_minute,
+    *, t, analysis_id, run_id, scope_token, cache_key, analysis_context,
+    language, outlier_model=None, timing_collector=None, **preparation_inputs,
+):
+    """Exercise coordinator caching followed by the independent selected view."""
+    session_state = inspector_selected.st.session_state
+    preparation = InspectorPreparation(session_state, run_id, timing_collector)
+    prepared = preparation.prepare_selected_benchmark_evidence(
+        station_rows, selected_identity_df, is_sequential,
+        repeat_interval_minutes, target_start_minute, reference_start_minute,
+        t=t, analysis_id=analysis_id, cache_key=cache_key,
+        analysis_context=analysis_context,
+        preferred_time_bin=session_state.get(inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY),
+        outlier_model=outlier_model, **preparation_inputs,
+    )
+    return inspector_selected.render_selected_station_evidence(
+        prepared, selected_identity_df,
+        selection=InspectorSelection(
+            run_id=run_id, analysis_id=analysis_id, scope_token=scope_token,
+            is_compare=True, is_outlier_reporting_enabled=outlier_model is not None,
+        ),
+        session_state=session_state, preparation=preparation, t=t,
+        analysis_context=analysis_context, language=language,
+        is_sequential=is_sequential, outlier_model=outlier_model,
+    )
 
 
 def _cache(*, max_bytes=64, limits=None, run_id=7):
@@ -31,14 +84,14 @@ def _cache(*, max_bytes=64, limits=None, run_id=7):
 
 def test_compare_segment_summary_reports_distribution_median_and_mean():
     """Show the exact plotted station and joint-spot distribution summaries."""
-    station_summary = segment_inspector._compare_metric_distribution_summary(
+    station_summary = inspector_presentation.compare_metric_distribution_summary(
         [-8.0, -5.0, -4.0, 2.0],
         T["en"]["fmt_results_station_delta_summary"],
         total_count=75,
         joint_count=60,
         joint_label="Joint",
     )
-    spot_summary = segment_inspector._compare_metric_distribution_summary(
+    spot_summary = inspector_presentation.compare_metric_distribution_summary(
         [-10.0, -7.0, -6.0, 1.0],
         T["en"]["fmt_results_joint_spot_delta_summary"],
         total_count=7139,
@@ -46,7 +99,7 @@ def test_compare_segment_summary_reports_distribution_median_and_mean():
         joint_label="Joint",
     )
 
-    assert segment_inspector._segment_summary_lines(
+    assert inspector_presentation.segment_summary_lines(
         station_summary=station_summary,
         spot_summary=spot_summary,
     ) == [
@@ -57,7 +110,7 @@ def test_compare_segment_summary_reports_distribution_median_and_mean():
 
 def test_compare_segment_summary_uses_localized_scheduled_pair_wording():
     """Keep sequential TX A/B summaries distinct from simultaneous joint spots."""
-    summary = segment_inspector._compare_metric_distribution_summary(
+    summary = inspector_presentation.compare_metric_distribution_summary(
         [1.0, 2.0, 6.0],
         T["de"]["fmt_results_scheduled_pair_delta_summary"],
         total_count=12345,
@@ -69,7 +122,7 @@ def test_compare_segment_summary_uses_localized_scheduled_pair_wording():
         "Geplante Paare (n=12'345; Joint-Paare=6'789) · "
         "Median +2.0 dB · Mittelwert +3.0 dB"
     )
-    assert segment_inspector._compare_metric_distribution_summary(
+    assert inspector_presentation.compare_metric_distribution_summary(
         [],
         T["en"]["fmt_results_joint_spot_delta_summary"],
         total_count=0,
@@ -80,7 +133,7 @@ def test_compare_segment_summary_uses_localized_scheduled_pair_wording():
 
 def test_compare_summary_count_uses_apostrophe_thousands_separator():
     """Keep compact evidence counts independent of UI-locale separators."""
-    assert segment_inspector._format_summary_count(7139) == "7'139"
+    assert inspector_presentation.format_summary_count(7139) == "7'139"
 
 
 def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
@@ -88,22 +141,18 @@ def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
 ):
     """Label Benchmark tables from frozen run context without exposing raw HTML."""
     rendered_markup = []
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state={},
             markdown=lambda markup, **kwargs: rendered_markup.append(
                 (markup, kwargs)
             )
-        ),
-    )
+        ))
     analysis_context = SimpleNamespace(
         comparison_mode="hardware_ab",
         reference_callsign="<REF>",
         reference_snr_correction_db=1.2,
     )
 
-    segment_inspector._render_reference_correction_notice(
+    inspector_common.render_reference_correction_notice(
         T["en"],
         is_compare=True,
         is_sequential=False,
@@ -118,7 +167,7 @@ def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
     assert rendered_markup[0][1] == {"unsafe_allow_html": True}
 
     analysis_context.reference_snr_correction_db = 0.0
-    segment_inspector._render_reference_correction_notice(
+    inspector_common.render_reference_correction_notice(
         T["en"],
         is_compare=True,
         is_sequential=False,
@@ -129,42 +178,18 @@ def test_inspector_correction_notice_uses_completed_context_and_hides_zero(
 
 def test_compare_correction_notice_precedes_statistics_and_enters_snr_recipes():
     """Keep correction provenance above summaries and in Delta-SNR figures only."""
-    body_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
-    )
-    comparison_heading_index = body_source.index(
-        '"hdr_results_comparison_evidence"'
-    )
-    notice_index = body_source.index(
-        "_render_reference_correction_notice(",
-        comparison_heading_index,
-    )
-    statistics_index = body_source.index(
-        "segment_statistics_html(segment_summary)",
-        notice_index,
-    )
-
+    body_source = inspect.getsource(inspector_scope.render_benchmark_segment_evidence)
+    comparison_heading_index = body_source.index('"hdr_results_comparison_evidence"')
+    notice_index = body_source.index("render_reference_correction_notice(", comparison_heading_index)
+    statistics_index = body_source.index("segment_statistics_html(segment_summary)", notice_index)
     assert comparison_heading_index < notice_index < statistics_index
-    assert (
-        "_segment_figure_export_recipe("
-        in body_source
-    )
-    assert (
-        "_segment_temporal_evidence_export_recipe("
-        in body_source
-    )
-    assert body_source.count(
-        "reference_snr_correction_notice=("
-    ) == 2
-
-    selected_source = inspect.getsource(
-        segment_inspector._render_selected_station_evidence
-    )
+    preparation_source = inspect.getsource(InspectorPreparation.prepare_benchmark_segment)
+    assert "_segment_figure_export_recipe(" in preparation_source
+    assert "_segment_temporal_evidence_export_recipe(" in preparation_source
+    assert preparation_source.count("reference_snr_correction_notice=(") == 2
+    selected_source = inspect.getsource(InspectorPreparation.prepare_selected_benchmark_evidence)
     assert "reference_snr_correction_notice=(" in selected_source
-    assert (
-        "_compare_coverage_recipe("
-        in selected_source
-    )
+    assert "_compare_coverage_recipe(" in selected_source
 
 
 @pytest.mark.parametrize(
@@ -221,22 +246,14 @@ def test_selected_benchmark_temporal_titles_are_localized_and_captions_retired(
 
 def test_selected_compare_reuses_performance_time_bin_control_without_view_toggle():
     """Reuse the adaptive bin vocabulary through one full-width selector."""
-    function_source = inspect.getsource(
-        segment_inspector._render_selected_station_evidence
-    )
-
-    assert "_compare_temporal_time_bin_policy(" in function_source
-    assert (
-        "time_agg_options = tuple(adaptive_time_agg_options)"
-        in function_source
-    )
-    assert "_render_prompted_segment_time_bin_control(" in function_source
+    preparation_source = inspect.getsource(InspectorPreparation.prepare_selected_benchmark_evidence)
+    function_source = inspect.getsource(inspector_selected.render_selected_station_evidence)
+    assert "compare_temporal_time_bin_policy(" in preparation_source
+    assert "time_agg_options = tuple(adaptive_time_agg_options)" in preparation_source
+    assert "render_prompted_segment_time_bin_control(" in function_source
     assert 't["lbl_selected_time_aggregation_bin_size"]' in function_source
     assert "temporal_view" not in function_source
-    assert not hasattr(
-        segment_inspector,
-        "SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS",
-    )
+    assert not hasattr(inspector_selected, "SELECTED_TEMPORAL_CONTROL_COLUMN_WIDTHS")
 
 
 def test_segment_temporal_controls_have_localized_instruction_prompts():
@@ -281,19 +298,19 @@ def test_segment_inspector_labels_use_the_bilingual_catalog(
     """Resolve scope, figure, and plot labels without renderer language branches."""
     translations = T[language]
 
-    assert segment_inspector._selection_summary(
+    assert inspector_presentation.selection_summary(
         ("A", "B", "C"),
         translations["opt_full_range"],
         "range",
         translations,
     ) == range_summary
-    assert segment_inspector._selection_summary(
+    assert inspector_presentation.selection_summary(
         ("N", "NE", "E", "SE", "S"),
         translations["opt_all_dirs"],
         "direction",
         translations,
     ) == direction_summary
-    assert segment_inspector._selected_evidence_figure_title(
+    assert inspector_presentation.selected_evidence_figure_title(
         ("K1AAA (FN31)",),
         2,
         analysis_id="RX_COMP",
@@ -312,17 +329,13 @@ def test_missing_station_warning_uses_the_active_translation(
 ):
     """Render saved-selection warnings from the supplied translation mapping."""
     warnings = []
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state={},
             warning=lambda message, **kwargs: warnings.append(
                 (message, kwargs)
             )
-        ),
-    )
+        ))
 
-    segment_inspector._warn_missing_station_identities(
+    inspector_stations.warn_missing_station_identities(
         [{"callsign": "K1AAA", "locator": "FN31"}],
         T[language],
     )
@@ -339,10 +352,11 @@ def test_missing_station_warning_uses_the_active_translation(
 
 def test_targeted_inspector_renderers_have_no_language_wording_branches():
     """Keep localized wording in catalog lookups and plumb it into exports."""
-    module_sources = (
-        inspect.getsource(segment_inspector),
-        inspect.getsource(drilldown),
-    )
+    module_sources = tuple(inspect.getsource(module) for module in (
+        segment_inspector, inspector_common, inspector_scope, inspector_selected,
+        inspector_stations, inspector_export, inspector_presentation, inspector_preparation,
+        drilldown,
+    ))
     for module_source in module_sources:
         module_tree = ast.parse(module_source)
         language_conditions = [
@@ -364,7 +378,7 @@ def test_targeted_inspector_renderers_have_no_language_wording_branches():
         assert language_conditions == []
         assert translation_fallbacks == []
 
-    segment_tree = ast.parse(module_sources[0])
+    segment_tree = ast.parse(inspect.getsource(inspector_export))
     export_calls = [
         node
         for node in ast.walk(segment_tree)
@@ -388,40 +402,24 @@ def _render_segment_temporal_for_test(
 ):
     """Render one temporal bundle while recording compact-recipe dispatches."""
     render_calls = []
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state={}, markdown=lambda *_args, **_kwargs: None))
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(markdown=lambda *_args, **_kwargs: None),
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_initialize_time_bin_widget_state",
+        inspector_selection,
+        "initialize_time_bin_widget_state",
         lambda *_args, **_kwargs: "6h",
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_prompted_segment_time_bin_control', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_sync_time_bin_widget_state",
+        inspector_selection,
+        "sync_time_bin_widget_state",
         lambda *_args, **_kwargs: "6h",
     )
 
     def record_render(recipe, **kwargs):
         render_calls.append((recipe, kwargs))
 
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        record_render,
-    )
+    _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', record_render)
     temporal_bundle = {
             "base_recipe": {
                 "kind": (
@@ -439,8 +437,10 @@ def _render_segment_temporal_for_test(
             "kind": "benchmark_temporal_evidence_coverage",
             "time_bin": "3h",
         }
-    result = segment_inspector._render_segment_temporal_evidence(
+    result = inspector_scope.render_segment_temporal_evidence(
         temporal_bundle,
+        preparation=InspectorPreparation(inspector_scope.st.session_state, 7),
+        session_state=inspector_scope.st.session_state,
         analysis_id="RX_COMP" if is_compare else "RX_ABS",
         run_id=7,
         scope_token="all",
@@ -472,10 +472,10 @@ def test_success_segment_temporal_renders_snr_before_lower_evidence(monkeypatch)
     snr_recipe, snr_call = render_calls[0]
     evidence_recipe, evidence_call = render_calls[1]
     assert snr_call["render_figure"] is (
-        segment_inspector.render_segment_temporal_snr_export_figure
+        inspector_scope.render_segment_temporal_snr_export_figure
     )
     assert evidence_call["render_figure"] is (
-        segment_inspector.render_segment_temporal_evidence_export_figure
+        inspector_scope.render_segment_temporal_evidence_export_figure
     )
     assert snr_call["cache_key"] != evidence_call["cache_key"]
     assert snr_recipe["time_bin"] == "6h"
@@ -498,7 +498,7 @@ def test_compare_segment_temporal_keeps_one_combined_figure(monkeypatch):
     assert len(render_calls) == 1
     recipe, render_call = render_calls[0]
     assert render_call["render_figure"] is (
-        segment_inspector.render_segment_temporal_evidence_export_figure
+        inspector_scope.render_segment_temporal_evidence_export_figure
     )
     assert recipe["time_bin"] == "6h"
     assert "delta_snr_outlier_markers" not in recipe
@@ -521,10 +521,10 @@ def test_compare_segment_temporal_reuses_enabled_outlier_marker_recipe(
     marker_recipe = {
         "schema_version": 2,
         "detector_version": (
-            segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION
+            outlier_candidates.DELTA_SNR_OUTLIER_DETECTOR_VERSION
         ),
         "detection_resolution": (
-            segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
+            outlier_candidates.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
         ),
         "candidate_count": 1,
         "candidate_signature": "scope-candidate-signature",
@@ -568,8 +568,8 @@ def test_compare_segment_temporal_reuses_enabled_outlier_marker_recipe(
         "6h",
         "delta-snr-outlier-markers",
         2,
-        segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
-        segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        outlier_candidates.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        outlier_candidates.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
         "scope-candidate-signature",
     )
 
@@ -598,14 +598,10 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
     inspected_cache_keys = []
     rendered_calls = []
     selected_pairs = []
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(
             session_state={"lang": "en"},
             markdown=lambda *_args, **_kwargs: None,
-        ),
-    )
+        ))
 
     def cached_selected_bundle(
         _run_id,
@@ -618,43 +614,31 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
         return selected_bundle, True
 
     monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
+        InspectorPreparation,
+        'cache_get',
         cached_selected_bundle,
     )
     def fail_selected_unit_rebuild(*_args, **_kwargs):
         raise AssertionError("selected units were rebuilt")
 
     monkeypatch.setattr(
-        segment_inspector,
-        "_build_compare_unit_rows",
+        inspector_preparation,
+        '_build_compare_unit_rows',
         fail_selected_unit_rebuild,
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_initialize_time_bin_widget_state",
+        inspector_selection,
+        "initialize_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_prompted_segment_time_bin_control', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_sync_time_bin_widget_state",
+        inspector_selection,
+        "sync_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        lambda recipe, **kwargs: rendered_calls.append((recipe, kwargs)),
-    )
+    _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', lambda recipe, **kwargs: rendered_calls.append((recipe, kwargs)))
 
     class FakeOutlierModel:
         def marker_recipe(self, station_identities=None):
@@ -666,10 +650,10 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
             return {
                 "schema_version": 2,
                 "detector_version": (
-                    segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION
+                    outlier_candidates.DELTA_SNR_OUTLIER_DETECTOR_VERSION
                 ),
                 "detection_resolution": (
-                    segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
+                    outlier_candidates.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION
                 ),
                 "candidate_count": 1,
                 "candidate_signature": "selected-candidate-signature",
@@ -686,7 +670,7 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
                 ],
             }
 
-    rendered = segment_inspector._render_selected_station_evidence(
+    rendered = _prepare_and_render_selected_evidence(
         pd.DataFrame(),
         selected_identity_df,
         False,
@@ -726,8 +710,8 @@ def test_selected_evidence_filters_active_model_without_rebuilding_units(
         "dual-temporal",
         "delta-snr-outlier-markers",
         2,
-        segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
-        segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        outlier_candidates.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        outlier_candidates.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
         "selected-candidate-signature",
     )
 
@@ -752,56 +736,40 @@ def test_disabled_selected_evidence_has_no_marker_or_outlier_cache_identity(
     }
     inspected_cache_keys = []
     rendered_calls = []
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(
             session_state={"lang": "en"},
             markdown=lambda *_args, **_kwargs: None,
-        ),
-    )
+        ))
     monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
+        InspectorPreparation,
+        'cache_get',
         lambda _run_id, _namespace, cache_key, *_args, **_kwargs: (
             inspected_cache_keys.append(cache_key) or selected_bundle,
             True,
         ),
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "_build_compare_unit_rows",
+        inspector_preparation,
+        '_build_compare_unit_rows',
         lambda *_args, **_kwargs: (_ for _ in ()).throw(
             AssertionError("disabled cached evidence rebuilt comparison units")
         ),
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_initialize_time_bin_widget_state",
+        inspector_selection,
+        "initialize_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_prompted_segment_time_bin_control', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_sync_time_bin_widget_state",
+        inspector_selection,
+        "sync_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        lambda recipe, **kwargs: rendered_calls.append((recipe, kwargs)),
-    )
+    _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', lambda recipe, **kwargs: rendered_calls.append((recipe, kwargs)))
 
-    rendered = segment_inspector._render_selected_station_evidence(
+    rendered = _prepare_and_render_selected_evidence(
         pd.DataFrame(),
         selected_identity_df,
         False,
@@ -853,8 +821,8 @@ def test_compare_segment_time_bin_drives_absolute_and_coverage_figures(
         call["render_figure"]
         for _recipe, call in render_calls
     ] == [
-        segment_inspector.render_segment_temporal_evidence_export_figure,
-        segment_inspector.render_compare_temporal_coverage_export_figure,
+        inspector_scope.render_segment_temporal_evidence_export_figure,
+        inspector_scope.render_compare_temporal_coverage_export_figure,
     ]
     assert [recipe["time_bin"] for recipe, _call in render_calls] == [
         "6h",
@@ -884,47 +852,31 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
         "get",
         reject_provider_request,
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(
             session_state={"lang": "en"},
             markdown=lambda *_args, **_kwargs: None,
-        ),
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
+        ))
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
+    _patch_shared_render_dependency(monkeypatch, 'render_prompted_segment_time_bin_control', lambda *_args, **_kwargs: None)
     active_bin = {"value": "1h"}
     monkeypatch.setattr(
-        segment_inspector,
-        "_initialize_time_bin_widget_state",
+        inspector_selection,
+        "initialize_time_bin_widget_state",
         lambda *_args, **_kwargs: active_bin["value"],
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "_sync_time_bin_widget_state",
+        inspector_selection,
+        "sync_time_bin_widget_state",
         lambda *_args, **_kwargs: active_bin["value"],
     )
     render_calls = []
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        lambda recipe, **kwargs: render_calls.append(
+    _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', lambda recipe, **kwargs: render_calls.append(
             (
                 kwargs["subject"],
                 recipe["time_bin"],
                 kwargs["cache_key"],
             )
-        ),
-    )
+        ))
 
     segment_bundle = {
         "base_recipe": {"kind": "segment_benchmark_temporal"},
@@ -936,8 +888,10 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
     }
     for selected_bin in ("1h", "6h"):
         active_bin["value"] = selected_bin
-        segment_inspector._render_segment_temporal_evidence(
+        inspector_scope.render_segment_temporal_evidence(
             segment_bundle,
+            preparation=InspectorPreparation(inspector_scope.st.session_state, 17),
+            session_state=inspector_scope.st.session_state,
             analysis_id="RX_COMPARE",
             run_id=17,
             scope_token="all",
@@ -962,8 +916,8 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
         "comparison_unit_count": 4,
     }
     monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
+        InspectorPreparation,
+        'cache_get',
         lambda *_args, **_kwargs: (selected_bundle, True),
     )
 
@@ -973,8 +927,8 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
         )
 
     monkeypatch.setattr(
-        segment_inspector,
-        "_build_compare_unit_rows",
+        inspector_preparation,
+        '_build_compare_unit_rows',
         reject_unit_rebuild,
     )
     selected_identity = pd.DataFrame(
@@ -982,7 +936,7 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
     )
     for selected_bin in ("1h", "6h"):
         active_bin["value"] = selected_bin
-        segment_inspector._render_selected_station_evidence(
+        _prepare_and_render_selected_evidence(
             pd.DataFrame(),
             selected_identity,
             False,
@@ -1054,23 +1008,23 @@ def test_compare_display_bin_changes_use_retained_recipes_without_provider_reque
 
 def test_outlier_segment_cache_suffix_is_absent_when_disabled_and_versioned_when_enabled():
     """Keep disabled keys unchanged and identify enabled detector policy."""
-    assert segment_inspector._delta_snr_outlier_segment_cache_suffix(
+    assert inspector_preparation.delta_snr_outlier_segment_cache_suffix(
         False,
         object(),
     ) == ()
-    assert segment_inspector._delta_snr_outlier_segment_cache_suffix(
+    assert inspector_preparation.delta_snr_outlier_segment_cache_suffix(
         True,
     ) == (
         "delta-snr-outlier-candidates",
         True,
-        segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
-        segment_inspector.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
+        outlier_candidates.DELTA_SNR_OUTLIER_DETECTOR_VERSION,
+        outlier_candidates.DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
         DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY.signature_tuple,
     )
     stricter_policy = DeltaSnrOutlierDetectionPolicy(
         minimum_departure_db=7.0,
     )
-    assert segment_inspector._delta_snr_outlier_segment_cache_suffix(
+    assert inspector_preparation.delta_snr_outlier_segment_cache_suffix(
         True,
         stricter_policy,
     )[-1] == stricter_policy.signature_tuple
@@ -1079,19 +1033,19 @@ def test_outlier_segment_cache_suffix_is_absent_when_disabled_and_versioned_when
 def test_invalid_live_outlier_policy_pauses_only_optional_reporting():
     """Preserve an existing result through a temporary invalid field edit."""
     valid_state = {
-        segment_inspector.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: True,
+        inspector_selection.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY: True,
         **{
             f"val_{config_field}": getattr(
                 DEFAULT_DELTA_SNR_OUTLIER_DETECTION_POLICY,
                 policy_field,
             )
             for config_field, policy_field in (
-                segment_inspector.DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
+                inspector_preparation.DELTA_SNR_OUTLIER_CONFIG_FIELD_TO_POLICY_FIELD
             )
         },
     }
     assert isinstance(
-        segment_inspector._enabled_delta_snr_outlier_detection_policy(
+        inspector_preparation.enabled_delta_snr_outlier_detection_policy(
             valid_state
         ),
         DeltaSnrOutlierDetectionPolicy,
@@ -1101,97 +1055,70 @@ def test_invalid_live_outlier_policy_pauses_only_optional_reporting():
     invalid_state[
         "val_delta_snr_outlier_minimum_departure_db"
     ] = 0.0
-    assert segment_inspector._enabled_delta_snr_outlier_detection_policy(
+    assert inspector_preparation.enabled_delta_snr_outlier_detection_policy(
         invalid_state
     ) is None
 
     disabled_state = dict(invalid_state)
     disabled_state[
-        segment_inspector.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY
+        inspector_selection.RESULTS_REPORT_DELTA_SNR_OUTLIER_CANDIDATES_STATE_KEY
     ] = False
-    assert segment_inspector._enabled_delta_snr_outlier_detection_policy(
+    assert inspector_preparation.enabled_delta_snr_outlier_detection_policy(
         disabled_state
     ) is None
 
 
 def test_outlier_detector_calls_remain_nested_under_enabled_guard():
     """Guard detection, direction context, and report rendering when disabled."""
-    function_tree = ast.parse(
-        inspect.getsource(
-            segment_inspector._render_segment_inspector_body
-        )
+    guarded_functions = (
+        (InspectorPreparation.prepare_benchmark_segment, {"prepare_delta_snr_outlier_model": 1}, "is_outlier_reporting_enabled"),
+        (InspectorPreparation._prepare_segment_comparison_units, {"prepare_delta_snr_outlier_model": 1, "outlier_station_direction_lookup": 1}, "is_outlier_reporting_enabled"),
+        (segment_inspector.render_inspector_page, {"_render_prepared_outlier_report": 1}, "is_outlier_reporting_enabled"),
+        (segment_inspector._render_empty_scope, {"prepare_empty_outlier_report": 1, "_render_prepared_outlier_report": 1}, "policy is not None"),
     )
-    parent_by_node = {
-        child: parent
-        for parent in ast.walk(function_tree)
-        for child in ast.iter_child_nodes(parent)
-    }
-    expected_call_counts = {
-        "prepare_delta_snr_outlier_model": 3,
-        "_outlier_station_direction_lookup": 1,
-        "_render_delta_snr_outlier_report": 2,
-    }
-    observed_call_counts = {call_name: 0 for call_name in expected_call_counts}
-    for node in ast.walk(function_tree):
-        if (
-            not isinstance(node, ast.Call)
-            or not isinstance(node.func, ast.Name)
-            or node.func.id not in expected_call_counts
-        ):
-            continue
-        observed_call_counts[node.func.id] += 1
-        ancestor = node
-        enabled_guard_found = False
-        while ancestor in parent_by_node:
-            ancestor = parent_by_node[ancestor]
-            if (
-                isinstance(ancestor, ast.If)
-                and "is_outlier_reporting_enabled"
-                in ast.unparse(ancestor.test)
-            ):
-                enabled_guard_found = True
-                break
-        assert enabled_guard_found, (
-            f"{node.func.id} must remain nested under the enabled guard"
-        )
-
-    assert observed_call_counts == expected_call_counts
+    for function, expected_call_counts, required_guard in guarded_functions:
+        function_tree = ast.parse(dedent(inspect.getsource(function)))
+        parent_by_node = {child: parent for parent in ast.walk(function_tree) for child in ast.iter_child_nodes(parent)}
+        observed_call_counts = dict.fromkeys(expected_call_counts, 0)
+        for node in ast.walk(function_tree):
+            if not isinstance(node, ast.Call):
+                continue
+            call_name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else None
+            if call_name not in expected_call_counts:
+                continue
+            observed_call_counts[call_name] += 1
+            ancestor = node
+            enabled_guard_found = False
+            while ancestor in parent_by_node:
+                ancestor = parent_by_node[ancestor]
+                if isinstance(ancestor, ast.If) and required_guard in ast.unparse(ancestor.test):
+                    enabled_guard_found = True
+                    break
+            assert enabled_guard_found, f"{call_name} must remain nested under the enabled guard"
+        assert observed_call_counts == expected_call_counts
 
 
 def test_outlier_detector_resolution_is_independent_of_display_bin():
     """Use native evidence cadence, never the selected plot aggregation."""
-    function_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
-    )
-    function_tree = ast.parse(function_source)
-    prepare_calls = [
-        node
-        for node in ast.walk(function_tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "prepare_delta_snr_outlier_model"
-    ]
-
-    assert prepare_calls
-    assert all(
-        "time_bin" not in {keyword.arg for keyword in call.keywords}
-        for call in prepare_calls
-    )
-    assert all(
-        "paired_unit_cadence_minutes"
-        in {keyword.arg for keyword in call.keywords}
-        for call in prepare_calls
-    )
-    assert function_source.count("paired_unit_cadence_minutes=(") == 3
-    assert function_source.count("if is_sequential") >= 3
-    assert function_source.count("else 2.0") >= 3
-    assert "selected_outlier_time_bin" not in function_source
+    function_tree = ast.parse(inspect.getsource(inspector_preparation))
+    prepare_calls = [node for node in ast.walk(function_tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "prepare_delta_snr_outlier_model"]
+    assert len(prepare_calls) == 3
+    for call in prepare_calls:
+        keywords = {keyword.arg: keyword.value for keyword in call.keywords}
+        assert "time_bin" not in keywords
+        assert "paired_unit_cadence_minutes" in keywords
+        cadence = keywords["paired_unit_cadence_minutes"]
+        assert isinstance(cadence, ast.IfExp)
+        assert "is_sequential" in ast.unparse(cadence.test)
+        assert "tx_ab_repeat_interval_minutes" in ast.unparse(cadence.body)
+        assert ast.literal_eval(cadence.orelse) == 2.0
+    assert "selected_outlier_time_bin" not in inspect.getsource(inspector_preparation)
 
 
 def test_station_insights_toggle_has_room_for_single_line_label():
     """Keep the unpaired-evidence toggle left of a full-width filter control."""
     title_width, toggle_width, filter_width = (
-        segment_inspector.STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS
+        inspector_stations.STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS
     )
 
     assert (title_width, toggle_width, filter_width) == (5, 4, 3)
@@ -1201,11 +1128,11 @@ def test_station_insights_toggle_has_room_for_single_line_label():
 def test_station_insights_has_no_retired_path_consistency_plot():
     """Keep the table as the sole station-selection surface."""
     function_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
+        inspector_stations.render_benchmark_station_insights
     )
 
-    assert "tbl_event = _render_compact_dataframe(" in function_source
-    assert "_sync_selected_station_state_if_changed(" in function_source
+    assert "tbl_event = render_compact_dataframe(" in function_source
+    assert "inspector_selection.sync_selected_station_state_if_changed(" in function_source
     assert "path_consistency" not in function_source
     assert (
         "render_compare_path_consistency_export_figure"
@@ -1218,56 +1145,40 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     markdown_calls = []
     guidance_calls = []
     render_calls = []
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(
             session_state={"lang": "en"},
             markdown=lambda body, **_kwargs: markdown_calls.append(body),
-        ),
-    )
+        ))
     monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
+        InspectorPreparation,
+        'cache_get',
         lambda *_args, **_kwargs: (None, False),
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "_build_compare_unit_rows",
+        inspector_preparation,
+        '_build_compare_unit_rows',
         lambda *_args, **_kwargs: pd.DataFrame(),
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *args, **kwargs: guidance_calls.append((args, kwargs)))
     monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *args, **kwargs: guidance_calls.append((args, kwargs)),
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_put",
+        InspectorPreparation,
+        'cache_put',
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "_initialize_time_bin_widget_state",
+        inspector_selection,
+        "initialize_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_prompted_segment_time_bin_control', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_sync_time_bin_widget_state",
+        inspector_selection,
+        "sync_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        lambda recipe, **kwargs: render_calls.append((recipe, kwargs)),
-    )
+    _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', lambda recipe, **kwargs: render_calls.append((recipe, kwargs)))
 
-    result = segment_inspector._render_selected_station_evidence(
+    result = _prepare_and_render_selected_evidence(
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
         pd.DataFrame({"peer_sign": ["G3AAA"], "peer_grid": ["IO90"]}),
         False,
@@ -1292,7 +1203,7 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     assert result["comparison_unit_count"] == 0
     assert len(render_calls) == 1
     assert render_calls[0][1]["render_figure"] is (
-        segment_inspector.render_selected_evidence_export_figure
+        inspector_selected.render_selected_evidence_export_figure
     )
     assert "04 · SELECTED STATIONS" not in rendered_markup
     assert (
@@ -1306,7 +1217,7 @@ def test_unpaired_compare_selection_keeps_selected_evidence_level(monkeypatch):
     assert len(guidance_calls) == 1
     assert (
         guidance_calls[0][0][0]
-        == segment_inspector.RESULT_GUIDANCE_SELECTED_STATIONS
+        == inspector_selected.RESULT_GUIDANCE_SELECTED_STATIONS
     )
 
 
@@ -1316,54 +1227,38 @@ def test_one_sided_selected_path_renders_empty_absolute_frame_and_coverage(
     """Show the selected window plus directional coverage without a Joint unit."""
     markdown_calls = []
     render_calls = []
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(
             session_state={"lang": "en"},
             markdown=lambda body, **_kwargs: markdown_calls.append(body),
-        ),
-    )
+        ))
     monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
+        InspectorPreparation,
+        'cache_get',
         lambda *_args, **_kwargs: (None, False),
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_put",
+        InspectorPreparation,
+        'cache_put',
         lambda *_args, **_kwargs: None,
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_initialize_time_bin_widget_state",
+        inspector_selection,
+        "initialize_time_bin_widget_state",
         lambda *_args, **_kwargs: "1h",
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_prompted_segment_time_bin_control', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_sync_time_bin_widget_state",
+        inspector_selection,
+        "sync_time_bin_widget_state",
         lambda *_args, **_kwargs: "1h",
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        lambda recipe, **kwargs: render_calls.append((recipe, kwargs)),
-    )
+    _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', lambda recipe, **kwargs: render_calls.append((recipe, kwargs)))
     time_slot = int(
         pd.Timestamp("2026-07-01T00:00Z").timestamp() // 120
     )
 
-    result = segment_inspector._render_selected_station_evidence(
+    result = _prepare_and_render_selected_evidence(
         pd.DataFrame(
             {
                 "peer_sign": ["G3AAA"],
@@ -1411,10 +1306,10 @@ def test_one_sided_selected_path_renders_empty_absolute_frame_and_coverage(
     assert result["comparison_unit_count"] == 1
     assert len(render_calls) == 2
     assert render_calls[0][1]["render_figure"] is (
-        segment_inspector.render_selected_evidence_export_figure
+        inspector_selected.render_selected_evidence_export_figure
     )
     assert render_calls[1][1]["render_figure"] is (
-        segment_inspector.render_selected_compare_coverage_export_figure
+        inspector_selected.render_selected_compare_coverage_export_figure
     )
     assert (
         T["en"]["txt_results_selected_no_paired_evidence"]
@@ -1429,7 +1324,7 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_benchmark_figures():
         "fig_tx_comp_temporal_prefix": "TX Benchmark Temporal",
     }
 
-    assert segment_inspector._segment_temporal_figure_title(
+    assert inspector_presentation.segment_temporal_figure_title(
         "RX Benchmark: G3ZIL (Target) vs. G4HZX (Reference)",
         "RX_COMP",
         "[5000-10000km] | WNW",
@@ -1438,7 +1333,7 @@ def test_segment_temporal_title_distinguishes_rx_and_tx_benchmark_figures():
         "RX Benchmark Temporal: G3ZIL (Target) vs. G4HZX (Reference) - "
         "[5000-10000km] | WNW"
     )
-    assert segment_inspector._segment_temporal_figure_title(
+    assert inspector_presentation.segment_temporal_figure_title(
         "TX Benchmark: G3ZIL (Target) vs. G4HZX (Reference)",
         "TX_COMP",
         "Full Range | All Directions",
@@ -1593,7 +1488,7 @@ def test_compare_coverage_labels_route_all_compare_design_families(
     """Route bilingual RX, TX, and scheduled units into every visible axis."""
     target_label = "Target-only sentinel"
     reference_label = "Reference-only sentinel"
-    labels = segment_inspector._compare_coverage_figure_labels(
+    labels = inspector_presentation.compare_coverage_figure_labels(
         T[language],
         analysis_id,
         is_sequential=is_sequential,
@@ -1634,7 +1529,7 @@ def test_compare_coverage_labels_route_all_compare_design_families(
 
 def test_compare_coverage_preserves_local_benchmark_outcome_label():
     """Pass a configured local benchmark name through the generic TX route."""
-    labels = segment_inspector._compare_coverage_figure_labels(
+    labels = inspector_presentation.compare_coverage_figure_labels(
         T["en"],
         "TX_COMPARE",
         is_sequential=False,
@@ -1663,7 +1558,7 @@ def test_compare_coverage_uses_semantic_outcome_names_in_both_languages(
 ):
     """Name T/J/R categories by meaning rather than record identity."""
     translations = T[language]
-    labels = segment_inspector._compare_coverage_figure_labels(
+    labels = inspector_presentation.compare_coverage_figure_labels(
         translations,
         "RX_COMPARE",
         is_sequential=False,
@@ -1713,7 +1608,7 @@ def test_compare_coverage_share_labels_separate_axes_from_legends(
     expected_selected_legend,
 ):
     """Keep compact axis units distinct from descriptive share legends."""
-    labels = segment_inspector._compare_coverage_figure_labels(
+    labels = inspector_presentation.compare_coverage_figure_labels(
         T[language],
         "RX_COMPARE",
         is_sequential=False,
@@ -1774,7 +1669,7 @@ def test_compare_coverage_gate_notes_are_exact_and_route_by_design(
     translations = T[language]
     for analysis_id in ("RX_COMPARE", "TX_COMPARE"):
         simultaneous_labels = (
-            segment_inspector._compare_coverage_figure_labels(
+            inspector_presentation.compare_coverage_figure_labels(
                 translations,
                 analysis_id,
                 is_sequential=False,
@@ -1788,7 +1683,7 @@ def test_compare_coverage_gate_notes_are_exact_and_route_by_design(
             == expected_simultaneous_note
         )
 
-    scheduled_labels = segment_inspector._compare_coverage_figure_labels(
+    scheduled_labels = inspector_presentation.compare_coverage_figure_labels(
         translations,
         "TX_COMPARE",
         is_sequential=True,
@@ -1804,13 +1699,13 @@ def test_long_selected_windows_include_one_and_two_hour_choices():
     start = pd.Timestamp("2017-04-01T00:00:00Z")
 
     seven_day_options, seven_day_default = (
-        segment_inspector._time_agg_options_for_window(
+        evidence_figures._time_agg_options_for_window(
             start,
             start + pd.Timedelta(days=7),
         )
     )
     maximum_options, maximum_default = (
-        segment_inspector._time_agg_options_for_window(
+        evidence_figures._time_agg_options_for_window(
             start,
             start + pd.Timedelta(days=31),
         )
@@ -1842,13 +1737,13 @@ def test_selected_windows_keep_minute_scale_choices_through_24_hours():
     start = pd.Timestamp("2017-04-01T00:00:00Z")
 
     six_hour_options, six_hour_default = (
-        segment_inspector._time_agg_options_for_window(
+        evidence_figures._time_agg_options_for_window(
             start,
             start + pd.Timedelta(hours=6),
         )
     )
     day_options, day_default = (
-        segment_inspector._time_agg_options_for_window(
+        evidence_figures._time_agg_options_for_window(
             start,
             start + pd.Timedelta(hours=24),
         )
@@ -1882,7 +1777,7 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
     """Preserve a valid loaded fine bin while using selected-window defaults."""
     start = pd.Timestamp("2026-07-01T00:00:00Z")
     options, default, cache_token = (
-        segment_inspector._compare_temporal_time_bin_policy(
+        inspector_preparation.compare_temporal_time_bin_policy(
             start,
             start + pd.Timedelta(days=31),
             "5m",
@@ -1892,7 +1787,7 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
     assert default == "12h"
     assert cache_token == "5m"
     assert (
-        segment_inspector._compare_temporal_time_bin_policy(
+        inspector_preparation.compare_temporal_time_bin_policy(
             start,
             start + pd.Timedelta(days=31),
             "6h",
@@ -1901,24 +1796,21 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
     )
 
     session_state = {
-        segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY: "5m",
+        inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY: "5m",
     }
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    assert segment_inspector._initialize_time_bin_widget_state(
+    assert inspector_selection.initialize_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "segment_time_widget",
-        segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
         options,
         default,
     ) == "5m"
     assert session_state["segment_time_widget"] == "5m"
     assert (
         session_state[
-            segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY
+            inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY
         ]
         == "5m"
     )
@@ -1927,26 +1819,18 @@ def test_compare_shared_bin_policy_retains_explicit_fine_bin_for_long_window(
 def test_performance_models_key_only_on_an_off_tier_retained_bin():
     """Reuse precomputed in-tier profiles when either Performance selector changes."""
     start = pd.Timestamp("2026-07-01T00:00:00Z")
-    assert segment_inspector._compare_temporal_time_bin_policy(
-        start,
-        start + pd.Timedelta(hours=24),
-        "2h",
-    )[2] is None
-    assert segment_inspector._compare_temporal_time_bin_policy(
-        start,
-        start + pd.Timedelta(hours=24),
-        "5m",
-    )[2] == "5m"
-
-    function_source = inspect.getsource(
-        segment_inspector._render_opportunity_scope
-    )
-    assert function_source.count("_compare_temporal_time_bin_policy(") == 2
-    assert "retained_segment_time_bin_cache_token," in function_source
-    assert (
-        "st.session_state.get(RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY),\n"
-        "            )[2],"
-    ) in function_source
+    assert inspector_preparation.compare_temporal_time_bin_policy(start, start + pd.Timedelta(hours=24), "2h")[2] is None
+    assert inspector_preparation.compare_temporal_time_bin_policy(start, start + pd.Timedelta(hours=24), "5m")[2] == "5m"
+    segment_source = inspect.getsource(InspectorPreparation.prepare_performance_segment)
+    selected_source = inspect.getsource(InspectorPreparation.prepare_selected_performance)
+    assert segment_source.count("compare_temporal_time_bin_policy(") == 1
+    assert selected_source.count("compare_temporal_time_bin_policy(") == 1
+    assert "retained_segment_time_bin_cache_token," in segment_source
+    selected_tree = ast.parse(dedent(selected_source))
+    policy_projection = [node for node in ast.walk(selected_tree) if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id == "compare_temporal_time_bin_policy"]
+    assert len(policy_projection) == 1
+    assert ast.literal_eval(policy_projection[0].slice) == 2
+    assert ast.unparse(policy_projection[0].value.args[-1]) == "preferred_time_bin"
 
 
 def test_time_bin_control_stretches_segmented_options_across_container(monkeypatch):
@@ -1957,16 +1841,12 @@ def test_time_bin_control_stretches_segmented_options_across_container(monkeypat
         captured.update(label=label, options=list(options), kwargs=kwargs)
         return "3h"
 
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(segmented_control=segmented_control),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state={}, segmented_control=segmented_control))
 
     def callback():
         return None
 
-    assert segment_inspector._render_stretched_time_bin_control(
+    assert inspector_common.render_stretched_time_bin_control(
         "Time aggregation",
         ["1h", "2h", "3h", "6h", "12h", "24h"],
         "time_widget",
@@ -1997,16 +1877,12 @@ def test_segment_time_bin_prompt_renders_above_full_width_selector(monkeypatch):
         events.append(("segmented_control", label, tuple(options), kwargs))
         return "3h"
 
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state={},
             markdown=markdown,
             segmented_control=segmented_control,
-        ),
-    )
+        ))
 
-    selected = segment_inspector._render_prompted_segment_time_bin_control(
+    selected = inspector_common.render_prompted_segment_time_bin_control(
         T["en"]["lbl_time_aggregation_bin_size"],
         ["1h", "2h", "3h", "6h", "12h", "24h"],
         "segment_time_widget",
@@ -2029,7 +1905,7 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
     monkeypatch,
 ):
     """Keep both result modes compact while retaining every scrollable row."""
-    assert segment_inspector.COMPACT_DATAFRAME_VISIBLE_BODY_ROWS == 5
+    assert inspector_common.COMPACT_DATAFRAME_VISIBLE_BODY_ROWS == 5
 
     class FakeStreamlit:
         """Record the dataframe options used by the drill-down renderer."""
@@ -2063,12 +1939,8 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
             return None
 
     fake_streamlit = FakeStreamlit()
-    monkeypatch.setattr(segment_inspector, "st", fake_streamlit)
-    monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
+    _set_component_streamlit(monkeypatch, fake_streamlit)
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
     drilldown_rows = pd.DataFrame(
         {
             "Date/Time (UTC)": ["01-Jul-2026 00:00:00"],
@@ -2086,14 +1958,14 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
         T["en"],
     )
 
-    segment_inspector._render_drilldown_dataframe(
+    inspector_selected.render_drilldown_dataframe(
         *common_arguments,
         False,
         False,
         SimpleNamespace(),
         "en",
     )
-    segment_inspector._render_drilldown_dataframe(
+    inspector_selected.render_drilldown_dataframe(
         *common_arguments,
         True,
         False,
@@ -2103,16 +1975,16 @@ def test_drilldown_uses_five_row_viewport_for_performance_and_compare(
 
     performance_call, compare_call = fake_streamlit.dataframe_calls
     assert performance_call["height"] == (
-        segment_inspector.COMPACT_DATAFRAME_HEIGHT_PX
+        inspector_common.COMPACT_DATAFRAME_HEIGHT_PX
     )
     assert performance_call["row_height"] == (
-        segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
+        inspector_common.COMPACT_DATAFRAME_ROW_HEIGHT_PX
     )
     assert compare_call["height"] == (
-        segment_inspector.COMPACT_DATAFRAME_HEIGHT_PX
+        inspector_common.COMPACT_DATAFRAME_HEIGHT_PX
     )
     assert compare_call["row_height"] == (
-        segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
+        inspector_common.COMPACT_DATAFRAME_ROW_HEIGHT_PX
     )
     assert fake_streamlit.popover_labels == [
         T["en"]["lbl_filter_table"],
@@ -2172,15 +2044,15 @@ def test_manual_drilldown_controls_use_center_inputs_and_one_line_window(
             return self.session_state[key]
 
     fake_streamlit = FakeStreamlit()
-    monkeypatch.setattr(segment_inspector, "st", fake_streamlit)
+    _set_component_streamlit(monkeypatch, fake_streamlit)
     monkeypatch.setattr(
-        segment_inspector,
+        inspector_selected,
         "render_page_anchor",
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_drilldown_heading",
+        inspector_selected,
+        "render_drilldown_heading",
         lambda *_args, **_kwargs: None,
     )
     translations = {
@@ -2197,7 +2069,7 @@ def test_manual_drilldown_controls_use_center_inputs_and_one_line_window(
     }
 
     focus_window, focus_time_bin, filter_container = (
-        segment_inspector._render_drilldown_header_and_controls(
+        inspector_selected.render_drilldown_header_and_controls(
             ["K1AAA (FN31)"],
             "RX_ABS",
             71,
@@ -2210,6 +2082,7 @@ def test_manual_drilldown_controls_use_center_inputs_and_one_line_window(
             analysis_start_utc=pd.Timestamp("2026-07-10T00:00:00Z"),
             analysis_end_utc=pd.Timestamp("2026-07-12T00:00:00Z"),
             selected_identity=("K1AAA", "FN31"),
+            session_state=inspector_selected.st.session_state,
         )
     )
 
@@ -2240,14 +2113,15 @@ def test_manual_drilldown_controls_use_center_inputs_and_one_line_window(
 
 def test_time_bin_widget_uses_valid_canonical_value_and_syncs_interaction(monkeypatch):
     session_state = {
-        segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "6h",
+        inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "6h",
         "time_widget": "3h",
     }
-    monkeypatch.setattr(segment_inspector, "st", SimpleNamespace(session_state=session_state))
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    selected = segment_inspector._initialize_time_bin_widget_state(
+    selected = inspector_selection.initialize_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "time_widget",
-        segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY,
+        inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY,
         ["3h", "6h"],
         "3h",
     )
@@ -2256,39 +2130,42 @@ def test_time_bin_widget_uses_valid_canonical_value_and_syncs_interaction(monkey
     assert session_state["time_widget"] == "6h"
 
     session_state["time_widget"] = "3h"
-    assert segment_inspector._sync_time_bin_widget_state(
+    assert inspector_selection.sync_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "time_widget",
-        segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY,
+        inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY,
         ["3h", "6h"],
         "3h",
     ) == "3h"
-    assert session_state[segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "3h"
+    assert session_state[inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "3h"
 
 
 def test_time_bin_widget_falls_back_deterministically_when_option_is_unavailable(
     monkeypatch,
 ):
     session_state = {
-        segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY: "5m",
+        inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY: "5m",
     }
-    monkeypatch.setattr(segment_inspector, "st", SimpleNamespace(session_state=session_state))
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    assert segment_inspector._initialize_time_bin_widget_state(
+    assert inspector_selection.initialize_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "time_widget",
-        segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY,
+        inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY,
         ["30m", "1h"],
         "1h",
     ) == "1h"
-    assert session_state[segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY] == "1h"
+    assert session_state[inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY] == "1h"
 
     session_state["time_widget"] = "unsupported"
-    assert segment_inspector._sync_time_bin_widget_state(
+    assert inspector_selection.sync_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "time_widget",
-        segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY,
+        inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY,
         ["30m", "1h"],
         "unsupported-default",
     ) == "30m"
-    assert session_state[segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY] == "30m"
+    assert session_state[inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY] == "30m"
 
 
 def test_segment_time_bin_resolves_auto_and_does_not_change_station_bin(
@@ -2296,19 +2173,16 @@ def test_segment_time_bin_resolves_auto_and_does_not_change_station_bin(
 ):
     """Resolve adaptive segment state once without overwriting the station bin."""
     session_state = {
-        segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "6h",
-        segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY: "auto",
+        inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY: "6h",
+        inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY: "auto",
         "segment_time_widget": "12h",
     }
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    selected = segment_inspector._initialize_time_bin_widget_state(
+    selected = inspector_selection.initialize_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "segment_time_widget",
-        segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
         ["3h", "6h", "12h", "24h"],
         "6h",
     )
@@ -2317,29 +2191,30 @@ def test_segment_time_bin_resolves_auto_and_does_not_change_station_bin(
     assert session_state["segment_time_widget"] == "6h"
     assert (
         session_state[
-            segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY
+            inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY
         ]
         == "6h"
     )
-    assert session_state[segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "6h"
+    assert session_state[inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "6h"
 
     session_state["segment_time_widget"] = "12h"
-    assert segment_inspector._sync_time_bin_widget_state(
+    assert inspector_selection.sync_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "segment_time_widget",
-        segment_inspector.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
+        inspector_selection.RESULTS_SEGMENT_TIME_BIN_COMPARE_STATE_KEY,
         ["3h", "6h", "12h", "24h"],
         "6h",
     ) == "12h"
-    assert session_state[segment_inspector.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "6h"
+    assert session_state[inspector_selection.RESULTS_TIME_BIN_COMPARE_STATE_KEY] == "6h"
 
 
 def test_selected_compare_persists_only_the_selected_chronological_bin():
     """Drive absolute and coverage recipes from one selected-path bin."""
     function_source = inspect.getsource(
-        segment_inspector._render_selected_station_evidence
+        inspector_selected.render_selected_station_evidence
     )
 
-    assert "persistent_time_bin_key = _time_bin_persistent_state_key(True)" in (
+    assert "persistent_time_bin_key = inspector_selection.time_bin_persistent_state_key(True)" in (
         function_source
     )
     assert 'selected_recipe["time_bin"] = time_agg' in function_source
@@ -2360,22 +2235,19 @@ def test_segment_scope_initializes_from_saved_state_and_syncs_user_changes(
     monkeypatch,
 ):
     """Keep Benchmark and Performance scope intent outside transient widget keys."""
-    persistent_key = segment_inspector.RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY
+    persistent_key = inspector_selection.RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY
     session_state = {
         persistent_key: ["[2500-5000km]", "[5000-10000km]"],
     }
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
     specific_options = [
         "[0-2500km]",
         "[2500-5000km]",
         "[5000-10000km]",
     ]
 
-    segment_inspector._initialize_explicit_all_multiselect(
+    inspector_selection.initialize_explicit_all_multiselect(
+        inspector_selected.st.session_state,
         "range_widget",
         "range_widget_previous",
         "Full Range",
@@ -2388,7 +2260,8 @@ def test_segment_scope_initializes_from_saved_state_and_syncs_user_changes(
         "[5000-10000km]",
     ]
     session_state["range_widget"] = ["Full Range"]
-    segment_inspector._update_explicit_all_multiselect(
+    inspector_selection.update_explicit_all_multiselect(
+        inspector_selected.st.session_state,
         "range_widget",
         "range_widget_previous",
         "Full Range",
@@ -2398,7 +2271,8 @@ def test_segment_scope_initializes_from_saved_state_and_syncs_user_changes(
     assert session_state[persistent_key] == "all"
 
     session_state["range_widget"] = ["[0-2500km]", "[5000-10000km]"]
-    segment_inspector._update_explicit_all_multiselect(
+    inspector_selection.update_explicit_all_multiselect(
+        inspector_selected.st.session_state,
         "range_widget",
         "range_widget_previous",
         "Full Range",
@@ -2448,7 +2322,7 @@ def test_inspector_distance_options_stop_at_ten_thousand_kilometres():
         selected_directions=options.valid_directions,
     )
     assert set(selected_rows["r_min"]) == {0, 2500, 5000}
-    assert segment_inspector._success_distance_scope_intervals(
+    assert inspector_preparation.success_distance_scope_intervals(
         station_rows,
         options.valid_distances,
         max_peer_distance_km=10000,
@@ -2485,15 +2359,12 @@ def test_saved_inspector_range_beyond_ten_thousand_km_falls_back_to_all(
     monkeypatch,
 ):
     """Do not let stale saved Inspector state widen the active analysis scope."""
-    persistent_key = segment_inspector.RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY
+    persistent_key = inspector_selection.RESULTS_SELECTED_RANGES_COMPARE_STATE_KEY
     session_state = {persistent_key: ["[10000-15000km]"]}
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    segment_inspector._initialize_explicit_all_multiselect(
+    inspector_selection.initialize_explicit_all_multiselect(
+        inspector_selected.st.session_state,
         "range_widget",
         "range_widget_previous",
         "Full Range",
@@ -2514,13 +2385,13 @@ def test_station_selection_defaults_distinguish_unset_from_explicit_empty():
         }
     )
 
-    assert segment_inspector._station_selection_default_rows(
+    assert inspector_selection.station_selection_default_rows(
         station_table,
         "Station",
         "Locator",
         None,
     ) == ([0], [])
-    assert segment_inspector._station_selection_default_rows(
+    assert inspector_selection.station_selection_default_rows(
         station_table,
         "Station",
         "Locator",
@@ -2540,7 +2411,7 @@ def test_focused_station_identities_are_stably_prioritized_without_mutation():
     )
     source_snapshot = station_table.copy(deep=True)
 
-    prioritized = segment_inspector._prioritize_focused_station_identities(
+    prioritized = inspector_stations.prioritize_focused_station_identities(
         station_table,
         "Station",
         "Locator",
@@ -2587,7 +2458,7 @@ def test_station_focus_leaves_unmatched_display_order_intact(
     )
     source_snapshot = station_table.copy(deep=True)
 
-    prioritized = segment_inspector._prioritize_focused_station_identities(
+    prioritized = inspector_stations.prioritize_focused_station_identities(
         station_table,
         "Station",
         "Locator",
@@ -2605,7 +2476,7 @@ def test_station_focus_is_resolved_only_in_its_originating_scope():
         {"callsign": "B2BBB", "locator": "BB11"},
     ]
     session_state = {
-        segment_inspector.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY: {
             "analysis_id": "RX_COMP",
             "run_id": 42,
             "scope_token": "rall_dall",
@@ -2613,25 +2484,25 @@ def test_station_focus_is_resolved_only_in_its_originating_scope():
         }
     }
 
-    assert segment_inspector._focused_station_identities_for_scope(
+    assert inspector_selection.focused_station_identities_for_scope(
         session_state,
         analysis_id="RX_COMP",
         run_id=42,
         scope_token="rall_dall",
     ) is focused_identities
-    assert segment_inspector._focused_station_identities_for_scope(
+    assert inspector_selection.focused_station_identities_for_scope(
         session_state,
         analysis_id="TX_COMP",
         run_id=42,
         scope_token="rall_dall",
     ) is None
-    assert segment_inspector._focused_station_identities_for_scope(
+    assert inspector_selection.focused_station_identities_for_scope(
         session_state,
         analysis_id="RX_COMP",
         run_id=43,
         scope_token="rall_dall",
     ) is None
-    assert segment_inspector._focused_station_identities_for_scope(
+    assert inspector_selection.focused_station_identities_for_scope(
         session_state,
         analysis_id="RX_COMP",
         run_id=42,
@@ -2649,7 +2520,7 @@ def test_station_selection_matches_one_identity_and_reports_missing():
     )
 
     selected_rows, missing_identities = (
-        segment_inspector._station_selection_default_rows(
+        inspector_selection.station_selection_default_rows(
             station_table,
             "Station",
             "Locator",
@@ -2660,7 +2531,7 @@ def test_station_selection_matches_one_identity_and_reports_missing():
     assert missing_identities == []
 
     selected_rows, missing_identities = (
-        segment_inspector._station_selection_default_rows(
+        inspector_selection.station_selection_default_rows(
             station_table,
             "Station",
             "Locator",
@@ -2689,7 +2560,7 @@ def test_enabled_multi_selection_resolves_against_unfiltered_scope_table():
         {"callsign": "B2BBB", "locator": "BB11"},
     ]
 
-    assert segment_inspector._station_selection_default_rows(
+    assert inspector_selection.station_selection_default_rows(
         filtered_station_table,
         "Station",
         "Locator",
@@ -2699,7 +2570,7 @@ def test_enabled_multi_selection_resolves_against_unfiltered_scope_table():
         [0],
         [{"callsign": "B2BBB", "locator": "BB11"}],
     )
-    assert segment_inspector._station_selection_default_rows(
+    assert inspector_selection.station_selection_default_rows(
         full_station_table,
         "Station",
         "Locator",
@@ -2707,7 +2578,7 @@ def test_enabled_multi_selection_resolves_against_unfiltered_scope_table():
         allow_multiple=True,
     ) == ([0, 1], [])
     function_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
+        inspector_stations.render_benchmark_station_insights
     )
     assert "selected_station_table = full_segment_disp_df" in function_source
 
@@ -2742,7 +2613,7 @@ def test_station_selection_rejects_noncanonical_or_multiple_state(
     )
 
     with pytest.raises(ValueError):
-        segment_inspector._station_selection_default_rows(
+        inspector_selection.station_selection_default_rows(
             station_table,
             "Station",
             "Locator",
@@ -2752,7 +2623,7 @@ def test_station_selection_rejects_noncanonical_or_multiple_state(
 
 def test_station_selection_sync_replaces_then_clears_identity(monkeypatch):
     """Persist A, replace it with B, then preserve explicit deselection."""
-    persistent_key = segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+    persistent_key = inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     session_state = {}
     station_table = pd.DataFrame(
         {
@@ -2760,13 +2631,10 @@ def test_station_selection_sync_replaces_then_clears_identity(monkeypatch):
             "Locator": ["AA00", "BB11"],
         }
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    assert segment_inspector._sync_selected_station_state(
+    assert inspector_selection.sync_selected_station_state(
+        inspector_selected.st.session_state,
         persistent_key,
         station_table,
         [0],
@@ -2775,7 +2643,8 @@ def test_station_selection_sync_replaces_then_clears_identity(monkeypatch):
     ) == [
         {"callsign": "A1AAA", "locator": "AA00"}
     ]
-    assert segment_inspector._sync_selected_station_state(
+    assert inspector_selection.sync_selected_station_state(
+        inspector_selected.st.session_state,
         persistent_key,
         station_table,
         [1],
@@ -2784,7 +2653,8 @@ def test_station_selection_sync_replaces_then_clears_identity(monkeypatch):
     ) == [
         {"callsign": "B2BBB", "locator": "BB11"},
     ]
-    assert segment_inspector._sync_selected_station_state(
+    assert inspector_selection.sync_selected_station_state(
+        inspector_selected.st.session_state,
         persistent_key,
         station_table,
         [],
@@ -2807,17 +2677,15 @@ def test_station_selection_writer_rejects_multiple_rows_atomically(monkeypatch):
             "Locator": ["AA00", "BB11"],
         }
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    segment_inspector._mark_station_selection_changed(
+    inspector_selection.mark_station_selection_changed(
+        inspector_selected.st.session_state,
         "table_selection_changed"
     )
     with pytest.raises(ValueError, match="at most one row"):
-        segment_inspector._sync_selected_station_state_if_changed(
+        inspector_selection.sync_selected_station_state_if_changed(
+            inspector_selected.st.session_state,
             "table_selection_changed",
             "selected",
             station_table,
@@ -2830,11 +2698,13 @@ def test_station_selection_writer_rejects_multiple_rows_atomically(monkeypatch):
     malformed_station_table = pd.DataFrame(
         {"Station": ["123"], "Locator": ["AA00"]}
     )
-    segment_inspector._mark_station_selection_changed(
+    inspector_selection.mark_station_selection_changed(
+        inspector_selected.st.session_state,
         "table_selection_changed"
     )
     with pytest.raises(ValueError, match="callsign"):
-        segment_inspector._sync_selected_station_state_if_changed(
+        inspector_selection.sync_selected_station_state_if_changed(
+            inspector_selected.st.session_state,
             "table_selection_changed",
             "selected",
             malformed_station_table,
@@ -2857,13 +2727,10 @@ def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
         {"callsign": "M7AEO", "locator": "IO82"},
     ]
     session_state = {"selected": configured_identities}
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    assert segment_inspector._sync_selected_station_state_if_changed(
+    assert inspector_selection.sync_selected_station_state_if_changed(
+        inspector_selected.st.session_state,
         "table_selection_changed",
         "selected",
         station_table,
@@ -2873,8 +2740,9 @@ def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
     ) == configured_identities
     assert session_state["selected"] == configured_identities
 
-    segment_inspector._mark_station_selection_changed("table_selection_changed")
-    assert segment_inspector._sync_selected_station_state_if_changed(
+    inspector_selection.mark_station_selection_changed(inspector_selected.st.session_state, "table_selection_changed")
+    assert inspector_selection.sync_selected_station_state_if_changed(
+        inspector_selected.st.session_state,
         "table_selection_changed",
         "selected",
         station_table,
@@ -2888,8 +2756,9 @@ def test_station_selection_state_changes_only_after_user_selection(monkeypatch):
         {"callsign": "F4WBN", "locator": "JN18"},
     ]
 
-    segment_inspector._mark_station_selection_changed("table_selection_changed")
-    assert segment_inspector._sync_selected_station_state_if_changed(
+    inspector_selection.mark_station_selection_changed(inspector_selected.st.session_state, "table_selection_changed")
+    assert inspector_selection.sync_selected_station_state_if_changed(
+        inspector_selected.st.session_state,
         "table_selection_changed",
         "selected",
         station_table,
@@ -2910,21 +2779,21 @@ def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
         }
     )
 
-    assert segment_inspector._selection_requires_zero_hit_rows(
+    assert inspector_stations.selection_requires_zero_hit_rows(
         station_table,
         "Station",
         "Locator",
         "Target Hits",
         [{"callsign": "B2BBB", "locator": "BB11"}],
     )
-    assert not segment_inspector._selection_requires_zero_hit_rows(
+    assert not inspector_stations.selection_requires_zero_hit_rows(
         station_table,
         "Station",
         "Locator",
         "Target Hits",
         [{"callsign": "A1AAA", "locator": "AA00"}],
     )
-    assert not segment_inspector._selection_requires_zero_hit_rows(
+    assert not inspector_stations.selection_requires_zero_hit_rows(
         station_table,
         "Station",
         "Locator",
@@ -2936,11 +2805,11 @@ def test_success_selection_detects_when_zero_hit_rows_must_be_shown():
 def test_compare_station_insights_gates_multi_selection_on_outlier_reporting():
     """Keep disabled Benchmark singleton semantics and opt in to multi-row."""
     function_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
+        inspector_stations.render_benchmark_station_insights
     )
 
     assert (
-        "allow_multiple_station_selection = is_outlier_reporting_enabled"
+        "allow_multiple_station_selection = current_selection.is_outlier_reporting_enabled"
         in function_source
     )
     assert '"single-row"' in function_source
@@ -2951,55 +2820,30 @@ def test_compare_station_insights_gates_multi_selection_on_outlier_reporting():
         "allow_multiple=allow_multiple_station_selection"
         in function_source
     )
-    assert "tbl_event = _render_compact_dataframe(" in function_source
+    assert "tbl_event = render_compact_dataframe(" in function_source
 
 
 def test_enabled_empty_compare_scope_renders_and_exports_empty_outlier_report():
     """Keep the opt-in report visible even when the active scope has no rows."""
-    function_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
-    )
-    empty_scope_branch = function_source.split("if df_seg.empty:", 1)[1].split(
-        "if is_opportunity:",
-        1,
-    )[0]
-
-    assert "if is_outlier_reporting_enabled:" in empty_scope_branch
-    assert "_render_delta_snr_outlier_report(" in empty_scope_branch
-    assert "report_delta_snr_outlier_candidates=(" in empty_scope_branch
-    assert "delta_snr_outlier_detector_version=(" in empty_scope_branch
-    assert "delta_snr_outlier_detection_policy=(" in empty_scope_branch
+    empty_scope_source = inspect.getsource(segment_inspector._render_empty_scope)
+    export_source = inspect.getsource(inspector_export.register_empty_inspector_outputs)
+    assert "if policy is not None:" in empty_scope_source
+    assert "prepare_empty_outlier_report(" in empty_scope_source
+    assert "_render_prepared_outlier_report(" in empty_scope_source
+    assert "register_empty_inspector_outputs(" in empty_scope_source
+    assert "outliers=OutlierExport(" in export_source
+    assert "delta_snr_outlier_detector_version=" in export_source
+    assert "delta_snr_outlier_detection_policy=" in export_source
+    assert ") if is_outlier_reporting_enabled else None" in export_source
 
 
 def test_enabled_compare_exports_use_the_active_outlier_detection_policy():
     """Keep detector output and exported scientific provenance aligned."""
-    function_tree = ast.parse(
-        inspect.getsource(
-            segment_inspector._render_segment_inspector_body
-        )
-    )
-    export_calls = [
-        node
-        for node in ast.walk(function_tree)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "register_inspector_export"
-    ]
-    policy_values = [
-        keyword.value
-        for call in export_calls
-        for keyword in call.keywords
-        if keyword.arg == "delta_snr_outlier_detection_policy"
-    ]
-
+    function_tree = ast.parse(inspect.getsource(inspector_export))
+    export_calls = [node for node in ast.walk(function_tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "OutlierExport"]
+    policy_values = [keyword.value for call in export_calls for keyword in call.keywords if keyword.arg == "delta_snr_outlier_detection_policy"]
     assert len(policy_values) == 2
-    assert all(
-        "outlier_detection_policy"
-        in ast.unparse(policy_value)
-        and "is_outlier_reporting_enabled"
-        in ast.unparse(policy_value)
-        for policy_value in policy_values
-    )
+    assert all("outlier_detection_policy" in ast.unparse(policy_value) and "is_outlier_reporting_enabled" in ast.unparse(policy_value) for policy_value in policy_values)
 
 
 def test_disabling_outlier_reporting_restores_one_selected_station():
@@ -3009,11 +2853,11 @@ def test_disabling_outlier_reporting_restores_one_selected_station():
         {"callsign": "B2BBB", "locator": "BB11"},
     ]
 
-    assert segment_inspector._station_selection_for_outlier_reporting_mode(
+    assert inspector_selection.station_selection_for_outlier_reporting_mode(
         selected_stations,
         is_outlier_reporting_enabled=True,
     ) is selected_stations
-    assert segment_inspector._station_selection_for_outlier_reporting_mode(
+    assert inspector_selection.station_selection_for_outlier_reporting_mode(
         selected_stations,
         is_outlier_reporting_enabled=False,
     ) == [{"callsign": "A1AAA", "locator": "AA00"}]
@@ -3021,12 +2865,12 @@ def test_disabling_outlier_reporting_restores_one_selected_station():
 
 def test_inspector_body_uses_shared_station_rows_for_every_scope_consumer():
     """Prevent a removed duplicate frame owner from returning as a stale name."""
-    function_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
-    )
-
+    function_source = inspect.getsource(segment_inspector.render_inspector_page)
+    function_tree = ast.parse(function_source)
     assert "inspector_source_df" not in function_source
-    assert function_source.count("enriched_df,") >= 3
+    calls = {node.func.attr: node for node in ast.walk(function_tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in {"prepare_options", "success_distance_scope_intervals", "filter_scope_rows"}}
+    assert set(calls) == {"prepare_options", "success_distance_scope_intervals", "filter_scope_rows"}
+    assert all(ast.unparse(call.args[0]) == "enriched_df" for call in calls.values())
 
 
 def test_inspector_fragment_synchronizes_durable_url_state_in_place():
@@ -3053,14 +2897,10 @@ def test_selected_station_evidence_accepts_enabled_multiple_identities(
         }
     )
     rendered_recipes = []
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state={"lang": "en"}, markdown=lambda *_args, **_kwargs: None))
     monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state={"lang": "en"}, markdown=lambda *_args, **_kwargs: None),
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
+        InspectorPreparation,
+        'cache_get',
         lambda *_args, **_kwargs: (
             {
                 "base_recipe": {"kind": "selected_benchmark_temporal"},
@@ -3079,33 +2919,21 @@ def test_selected_station_evidence_accepts_enabled_multiple_identities(
             True,
         ),
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_result_guidance_popover', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_initialize_time_bin_widget_state",
+        inspector_selection,
+        "initialize_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
+    _patch_shared_render_dependency(monkeypatch, 'render_prompted_segment_time_bin_control', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_sync_time_bin_widget_state",
+        inspector_selection,
+        "sync_time_bin_widget_state",
         lambda *_args, **_kwargs: "3h",
     )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        lambda recipe, **_kwargs: rendered_recipes.append(recipe),
-    )
+    _patch_shared_render_dependency(monkeypatch, 'render_cached_recipe', lambda recipe, **_kwargs: rendered_recipes.append(recipe))
 
-    rendered = segment_inspector._render_selected_station_evidence(
+    rendered = _prepare_and_render_selected_evidence(
         pd.DataFrame(),
         selected_identity_df,
         False,
@@ -3135,46 +2963,46 @@ def test_selected_station_evidence_accepts_enabled_multiple_identities(
 
 def test_show_non_joint_toggle_round_trips_through_canonical_state(monkeypatch):
     session_state = {
-        segment_inspector.RESULTS_SHOW_NON_JOINT_STATE_KEY: True,
+        inspector_selection.RESULTS_SHOW_NON_JOINT_STATE_KEY: True,
         "toggle_widget": False,
     }
-    monkeypatch.setattr(segment_inspector, "st", SimpleNamespace(session_state=session_state))
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    assert segment_inspector._initialize_boolean_widget_state(
+    assert inspector_selection.initialize_boolean_widget_state(
+        inspector_selected.st.session_state,
         "toggle_widget",
-        segment_inspector.RESULTS_SHOW_NON_JOINT_STATE_KEY,
+        inspector_selection.RESULTS_SHOW_NON_JOINT_STATE_KEY,
         False,
     ) is True
     assert session_state["toggle_widget"] is True
 
     session_state["toggle_widget"] = False
-    assert segment_inspector._sync_boolean_widget_state(
+    assert inspector_selection.sync_boolean_widget_state(
+        inspector_selected.st.session_state,
         "toggle_widget",
-        segment_inspector.RESULTS_SHOW_NON_JOINT_STATE_KEY,
+        inspector_selection.RESULTS_SHOW_NON_JOINT_STATE_KEY,
     ) is False
-    assert session_state[segment_inspector.RESULTS_SHOW_NON_JOINT_STATE_KEY] is False
+    assert session_state[inspector_selection.RESULTS_SHOW_NON_JOINT_STATE_KEY] is False
 
 
 def test_unset_view_state_preserves_data_dependent_inspector_defaults(monkeypatch):
     """Use adaptive defaults until a config, demo, or user action selects a view."""
     session_state = {
-        segment_inspector.RESULTS_SHOW_NON_JOINT_STATE_KEY: None,
-        segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY: None,
+        inspector_selection.RESULTS_SHOW_NON_JOINT_STATE_KEY: None,
+        inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY: None,
     }
-    monkeypatch.setattr(
-        segment_inspector,
-        "st",
-        SimpleNamespace(session_state=session_state),
-    )
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    assert segment_inspector._initialize_boolean_widget_state(
+    assert inspector_selection.initialize_boolean_widget_state(
+        inspector_selected.st.session_state,
         "toggle_widget",
-        segment_inspector.RESULTS_SHOW_NON_JOINT_STATE_KEY,
+        inspector_selection.RESULTS_SHOW_NON_JOINT_STATE_KEY,
         True,
     ) is True
-    assert segment_inspector._initialize_time_bin_widget_state(
+    assert inspector_selection.initialize_time_bin_widget_state(
+        inspector_selected.st.session_state,
         "time_widget",
-        segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY,
+        inspector_selection.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY,
         ["15m", "30m", "1h", "3h"],
         "30m",
     ) == "30m"
@@ -3236,7 +3064,7 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
     metric_values = ((row_numbers % 401) - 200).astype(np.float64) / 10.0
     station_values = ((np.arange(station_count) % 121) - 60) / 10.0
 
-    segment_figure_recipe = segment_inspector._segment_figure_export_recipe(
+    segment_figure_recipe = evidence_figures._segment_figure_export_recipe(
         title="Observed-scale Benchmark",
         selected_segment="Full Range | All Directions",
         is_sequential=False,
@@ -3256,7 +3084,7 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
         panel_series_labels=["Stations", "Spots"],
     )
     temporal_recipe = (
-        segment_inspector._segment_temporal_evidence_export_recipe(
+        evidence_figures._segment_temporal_evidence_export_recipe(
             pd.DataFrame(
                 {
                     "plot_time": plot_times,
@@ -3336,9 +3164,9 @@ def test_observed_scale_compare_segment_model_survives_shared_cache_pressure():
 
 def test_cached_recipe_builds_and_disposes_figure_only_once(monkeypatch):
     session_state = {}
-    monkeypatch.setattr(segment_inspector, "st", SimpleNamespace(session_state=session_state))
-    monkeypatch.setattr(segment_inspector, "get_matplotlib_render_mode", lambda: "image")
-    monkeypatch.setattr(segment_inspector, "log_performance_event", lambda *args, **kwargs: None)
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
+    monkeypatch.setattr(inspector_common, 'get_matplotlib_render_mode', lambda: "image")
+    monkeypatch.setattr(inspector_preparation, 'log_performance_event', lambda *args, **kwargs: None)
 
     calls = {"build": 0, "render": 0, "display": 0, "dispose": 0}
     image_bytes = b"\x89PNG\r\n\x1a\n" + (b"\x00" * 24)
@@ -3351,30 +3179,30 @@ def test_cached_recipe_builds_and_disposes_figure_only_once(monkeypatch):
         calls["render"] += 1
         return image_bytes
 
-    monkeypatch.setattr(segment_inspector, "render_matplotlib_figure", render_figure)
+    monkeypatch.setattr(inspector_common, 'render_matplotlib_figure', render_figure)
     monkeypatch.setattr(
-        segment_inspector,
-        "render_matplotlib_image_bytes",
+        inspector_common,
+        'render_matplotlib_image_bytes',
         lambda *args, **kwargs: calls.__setitem__("display", calls["display"] + 1),
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "dispose_matplotlib_figure",
+        inspector_common,
+        'dispose_matplotlib_figure',
         lambda figure: calls.__setitem__("dispose", calls["dispose"] + 1),
     )
 
     kwargs = {
-        "run_id": 42,
+        "preparation": InspectorPreparation(session_state, 42),
         "cache_key": ("RX_COMP", "all"),
         "subject": "segment insight",
         "build_label": "segment insight figure build",
         "render_figure": build_figure,
     }
-    assert segment_inspector._render_cached_recipe({"values": [1]}, **kwargs) == image_bytes
-    assert segment_inspector._render_cached_recipe({"values": [1]}, **kwargs) == image_bytes
+    assert inspector_common.render_cached_recipe({"values": [1]}, **kwargs) == image_bytes
+    assert inspector_common.render_cached_recipe({"values": [1]}, **kwargs) == image_bytes
 
     assert calls == {"build": 1, "render": 1, "display": 1, "dispose": 1}
-    cache = session_state[segment_inspector.INSPECTOR_CACHE_STATE_KEY]
+    cache = session_state[inspector_preparation.INSPECTOR_CACHE_STATE_KEY]
     assert cache.run_id == 42
     assert cache.entry_count == 1
 
@@ -3383,8 +3211,8 @@ def test_cached_recipe_key_tracks_shared_temporal_layout_version(monkeypatch):
     """Invalidate preview PNGs when the shared temporal layout changes."""
     captured_keys = []
     monkeypatch.setattr(
-        segment_inspector,
-        "get_matplotlib_render_mode",
+        inspector_common,
+        'get_matplotlib_render_mode',
         lambda: "image",
     )
 
@@ -3393,12 +3221,12 @@ def test_cached_recipe_key_tracks_shared_temporal_layout_version(monkeypatch):
         return None, False
 
     monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
+        InspectorPreparation,
+        'cache_get',
         capture_cache_key,
     )
     kwargs = {
-        "run_id": 42,
+        "preparation": InspectorPreparation({}, 42),
         "cache_key": ("RX_COMP", "all"),
         "subject": "temporal evidence",
         "build_label": "temporal evidence figure build",
@@ -3406,17 +3234,17 @@ def test_cached_recipe_key_tracks_shared_temporal_layout_version(monkeypatch):
     }
 
     monkeypatch.setattr(
-        segment_inspector,
-        "TEMPORAL_EVIDENCE_LAYOUT_VERSION",
+        inspector_common,
+        'TEMPORAL_EVIDENCE_LAYOUT_VERSION',
         1,
     )
-    assert segment_inspector._render_cached_recipe({}, **kwargs) is None
+    assert inspector_common.render_cached_recipe({}, **kwargs) is None
     monkeypatch.setattr(
-        segment_inspector,
-        "TEMPORAL_EVIDENCE_LAYOUT_VERSION",
+        inspector_common,
+        'TEMPORAL_EVIDENCE_LAYOUT_VERSION',
         2,
     )
-    assert segment_inspector._render_cached_recipe({}, **kwargs) is None
+    assert inspector_common.render_cached_recipe({}, **kwargs) is None
 
     assert len(captured_keys) == 2
     assert captured_keys[0] != captured_keys[1]
@@ -3424,669 +3252,67 @@ def test_cached_recipe_key_tracks_shared_temporal_layout_version(monkeypatch):
 
 def test_new_run_replaces_the_session_cache(monkeypatch):
     session_state = {}
-    monkeypatch.setattr(segment_inspector, "st", SimpleNamespace(session_state=session_state))
+    _set_component_streamlit(monkeypatch, SimpleNamespace(session_state=session_state))
 
-    first = segment_inspector._inspector_cache(1)
+    first = InspectorPreparation(session_state, 1)._cache()
     first.put("png", "preview", b"png", size_bytes=3)
-    second = segment_inspector._inspector_cache(2)
+    second = InspectorPreparation(session_state, 2)._cache()
 
     assert second is not first
     assert second.run_id == 2
     assert second.entry_count == 0
 
 
-def test_success_new_station_builds_after_segment_cache_hit_without_provider_request(
-    monkeypatch,
-):
-    """Replace A with B, then clear, without rebuilding or querying the segment."""
-    from core import data_engine
 
-    class FakeContainer:
-        """Provide the context/container surface used by the Performance inspector."""
 
-        def __init__(self, fake_streamlit):
-            self.fake_streamlit = fake_streamlit
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            return False
-
-        def markdown(self, *_args, **_kwargs):
-            return None
-
-        def columns(self, widths, **kwargs):
-            self.fake_streamlit.column_calls.append((list(widths), kwargs))
-            return tuple(FakeContainer(self.fake_streamlit) for _ in widths)
-
-        def dataframe(self, *_args, **kwargs):
-            self.fake_streamlit.dataframe_calls.append(dict(kwargs))
-            on_select = kwargs.get("on_select")
-            if callable(on_select):
-                on_select()
-            return SimpleNamespace(
-                selection=SimpleNamespace(
-                    rows=list(self.fake_streamlit.selected_rows)
-                )
-            )
-
-    class FakeStreamlit:
-        """Retain session cache state while exposing controlled table selections."""
-
-        def __init__(self):
-            self.session_state = {}
-            self.selected_rows = [0]
-            self.markdown_calls = []
-            self.column_calls = []
-            self.dataframe_calls = []
-
-        def container(self, **_kwargs):
-            return FakeContainer(self)
-
-        def columns(self, widths, **kwargs):
-            self.column_calls.append((list(widths), kwargs))
-            return tuple(FakeContainer(self) for _ in widths)
-
-        def markdown(self, body, **kwargs):
-            self.markdown_calls.append((body, kwargs))
-            return None
-
-        def toggle(self, *_args, **_kwargs):
-            return False
-
-        def popover(self, *_args, **_kwargs):
-            return FakeContainer(self)
-
-        def multiselect(self, *_args, **_kwargs):
-            return []
-
-        def selectbox(self, _label, options, *, key, **_kwargs):
-            return self.session_state.get(key, options[0])
-
-        def caption(self, *_args, **_kwargs):
-            return None
-
-    fake_streamlit = FakeStreamlit()
-    fake_streamlit.session_state[
-        segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
-    ] = "2h"
-    monkeypatch.setattr(segment_inspector, "st", fake_streamlit)
-
-    provider_requests = []
-
-    def reject_provider_request(*args, **kwargs):
-        provider_requests.append((args, kwargs))
-        raise AssertionError("Inspector rerenders must not contact a provider.")
-
-    monkeypatch.setattr(
-        data_engine.http_session,
-        "get",
-        reject_provider_request,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "log_performance_event",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_supports_dataframe_selection_default",
-        lambda: False,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "render_result_guidance_popover",
-        lambda *_args, **_kwargs: None,
-    )
-    selected_render_calls = []
-
-    def record_cached_recipe(_recipe, **kwargs):
-        if str(kwargs.get("subject", "")).startswith(
-            "opportunity selected"
-        ):
-            selected_render_calls.append(
-                {"recipe": _recipe, **kwargs}
-            )
-        return None
-
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_cached_recipe",
-        record_cached_recipe,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_segment_temporal_evidence",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_prompted_segment_time_bin_control",
-        lambda *_args, **_kwargs: None,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_selected_success_context_line",
-        lambda *_args, **_kwargs: "Selected station context",
-    )
-    drilldown_builds = []
-    drilldown_renders = []
-    export_calls = []
-
-    def record_drilldown_build(
-        _parquet_path,
-        selected_meta,
-        selected_station_column,
-        selected_locator_column,
-        *_args,
-        station_rows_df,
-        **_kwargs,
-    ):
-        selected_identities = tuple(
-            selected_meta[
-                [selected_station_column, selected_locator_column]
-            ].itertuples(index=False, name=None)
-        )
-        evidence_identities = tuple(
-            station_rows_df[
-                ["peer_sign", "peer_grid"]
-            ].itertuples(index=False, name=None)
-        )
-        drilldown_builds.append(
-            {
-                "selected_identities": selected_identities,
-                "evidence_identities": evidence_identities,
-            }
-        )
-        return (
-            pd.DataFrame(
-                {
-                    "Selected station": [
-                        selected_identities[0][0]
-                    ]
-                }
-            ),
-            None,
-        )
-
-    def record_drilldown_render(
-        drilldown_table,
-        selected_station_labels,
-        *_args,
-        **_kwargs,
-    ):
-        drilldown_renders.append(
-            {
-                "labels": tuple(selected_station_labels),
-                "stations": tuple(
-                    drilldown_table["Selected station"].astype(str)
-                ),
-            }
-        )
-        return drilldown_table
-
-    monkeypatch.setattr(
-        segment_inspector,
-        "_build_drilldown_table",
-        record_drilldown_build,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_render_drilldown_dataframe",
-        record_drilldown_render,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "register_inspector_export",
-        lambda **kwargs: export_calls.append(kwargs),
-    )
-
-    station_column = "RX Station"
-    locator_column = "Locator"
-    distance_column = "km"
-    azimuth_column = "Azimuth"
-    hit_column = "Heard by Target"
-    station_table = pd.DataFrame(
-        {
-            station_column: [
-                "A1AAA",
-                "B2BBB",
-                "C3CCC",
-                "D4DDD",
-                "E5EEE",
-                "F6FFF",
-            ],
-            locator_column: [
-                "AA00",
-                "BB11",
-                "CC22",
-                "DD33",
-                "EE44",
-                "FF55",
-            ],
-            distance_column: [100.0, 200.0, 300.0, 400.0, 500.0, 600.0],
-            azimuth_column: [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
-            hit_column: [1, 1, 1, 1, 1, 1],
-        }
-    )
-    opportunity_view_model = SimpleNamespace(
-        summary_lines=[],
-        confirmed_station_count=6,
-        confirmed_opportunity_count=6,
-        full_station_table=station_table,
-        export_column_renames={},
-        station_column=station_column,
-        locator_column=locator_column,
-        distance_column=distance_column,
-        azimuth_column=azimuth_column,
-        hit_column=hit_column,
-        export_station_column=station_column,
-        export_locator_column=locator_column,
-        confirmed_rows=pd.DataFrame(),
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "build_opportunity_inspector_view_model",
-        lambda *_args, **_kwargs: opportunity_view_model,
-    )
-    monkeypatch.setattr(
-        segment_inspector,
-        "_opportunity_segment_recipe",
-        lambda *_args, **_kwargs: {"kind": "segment"},
-    )
-    selected_recipe_builds = []
-
-    def build_temporal_recipe(
-        evidence_title,
-        _selected_segment,
-        peer_rows,
-        temporal_evidence_rows,
-        *_args,
-        snr_title,
-        population_mode,
-        snr_representation,
-        **_kwargs,
-    ):
-        if (
-            population_mode
-            == segment_inspector.SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
-        ):
-            selected_recipe_builds.append(
-                {
-                    "peer_identities": tuple(
-                        peer_rows[
-                            ["peer_sign", "peer_grid"]
-                        ].itertuples(index=False, name=None)
-                    ),
-                    "evidence_identities": tuple(
-                        temporal_evidence_rows[
-                            ["peer_sign", "peer_grid"]
-                        ].itertuples(index=False, name=None)
-                    ),
-                    "population_mode": population_mode,
-                    "snr_representation": snr_representation,
-                }
-            )
-        return {
-            "evidence_title": evidence_title,
-            "snr_title": snr_title,
-            "time_bin_options": ["1h", "2h"],
-            "time_bin_default": "1h",
-            "population_mode": population_mode,
-            "snr_representation": snr_representation,
-        }
-
-    monkeypatch.setattr(
-        segment_inspector,
-        "_opportunity_temporal_recipe",
-        build_temporal_recipe,
-    )
-
-    evidence_rows = pd.DataFrame(
-        {
-            "time_slot": [1, 1, 1, 1, 1, 1],
-            "peer_sign": [
-                "A1AAA",
-                "B2BBB",
-                "C3CCC",
-                "D4DDD",
-                "E5EEE",
-                "F6FFF",
-            ],
-            "peer_grid": [
-                "AA00",
-                "BB11",
-                "CC22",
-                "DD33",
-                "EE44",
-                "FF55",
-            ],
-            "hit": [1, 1, 1, 1, 1, 1],
-            "miss": [0, 0, 0, 0, 0, 0],
-            "target_snr": [-10.0, -11.0, -12.0, -13.0, -14.0, -15.0],
-        }
-    )
-    segment_read_count = 0
-
-    def read_segment_rows(*_args, **_kwargs):
-        nonlocal segment_read_count
-        segment_read_count += 1
-        return evidence_rows.copy()
-
-    monkeypatch.setattr(
-        segment_inspector,
-        "read_parquet_artifact",
-        read_segment_rows,
-    )
-
-    selected_station_loads = []
-
-    def load_selected_station_rows(
-        _parquet_path,
-        selected_meta,
-        selected_station_column,
-        selected_locator_column,
-        *,
-        columns,
-    ):
-        del columns
-        selected_pairs = [
-            (str(callsign), str(locator))
-            for callsign, locator in selected_meta[
-                [selected_station_column, selected_locator_column]
-            ].itertuples(index=False, name=None)
-        ]
-        selected_station_loads.append(
-            tuple(callsign for callsign, _locator in selected_pairs)
-        )
-        return pd.DataFrame(
-            {
-                "time_slot": list(range(1, len(selected_pairs) + 1)),
-                "peer_sign": [
-                    callsign for callsign, _locator in selected_pairs
-                ],
-                "peer_grid": [
-                    locator for _callsign, locator in selected_pairs
-                ],
-                "hit": [1] * len(selected_pairs),
-                "miss": [0] * len(selected_pairs),
-                "target_only": [0] * len(selected_pairs),
-                "target_snr": [
-                    -10.0 - row_index
-                    for row_index in range(len(selected_pairs))
-                ],
-            }
-        )
-
-    monkeypatch.setattr(
-        segment_inspector,
-        "_load_station_rows_for_drilldown",
-        load_selected_station_rows,
-    )
-
-    cache_events = []
-    original_cache_get = segment_inspector._inspector_cache_get
-
-    def recording_cache_get(
-        run_id,
-        namespace,
-        key,
-        timing_collector=None,
-        *,
-        item="",
-    ):
-        cached_value, is_cache_hit = original_cache_get(
-            run_id,
-            namespace,
-            key,
-            timing_collector,
-            item=item,
-        )
-        if namespace in {"segment", "selected"}:
-            cache_events.append((namespace, is_cache_hit))
-        return cached_value, is_cache_hit
-
-    monkeypatch.setattr(
-        segment_inspector,
-        "_inspector_cache_get",
-        recording_cache_get,
-    )
-
-    analysis_start = pd.Timestamp("2026-07-01T00:00:00Z")
-    analysis_end = pd.Timestamp("2026-07-01T02:00:00Z")
-    analysis_context = SimpleNamespace(
-        min_confirmed_opportunities_per_peer=1,
-        callsign="G3ZIL",
-        tx_ab_repeat_interval_minutes=10,
-        tx_ab_target_start_minute=0,
-        tx_ab_reference_start_minute=2,
-    )
-    opportunity_terms = {
-        "mode": "RX",
-        "show_counter": "Heard only by other stations.",
-    }
-    presentation_context = SimpleNamespace(
-        language="en",
-        theme="dark",
-        absolute_terms=lambda _mode: opportunity_terms,
-    )
-    scope_rows = pd.DataFrame(
-        {
-            "peer_sign": [
-                "A1AAA",
-                "B2BBB",
-                "C3CCC",
-                "D4DDD",
-                "E5EEE",
-                "F6FFF",
-            ],
-            "peer_grid": [
-                "AA00",
-                "BB11",
-                "CC22",
-                "DD33",
-                "EE44",
-                "FF55",
-            ],
-        }
-    )
-    level_two_container = FakeContainer(fake_streamlit)
-    scope_summary_placeholder = FakeContainer(fake_streamlit)
-    render_arguments = {
-        "analysis_id": "RX_ABS",
-        "title": "RX Performance",
-        "df_seg": scope_rows,
-        "parquet_path": "unused-session-artifact.parquet",
-        "line1_str": "audit",
-        "t": T["en"],
-        "selected_seg": "Full Range | All Directions",
-        "selected_ranges": ("Full Range",),
-        "selected_directions": ("All Directions",),
-        "distance_scope_intervals": ((0.0, 1000.0),),
-        "range_summary": "Full Range",
-        "direction_summary": "All Directions",
-        "scope_token": "rall_dall",
-        "run_id": 101,
-        "level_two_container": level_two_container,
-        "active_scope_summary": "Full Range | All Directions",
-        "scope_summary_placeholder": scope_summary_placeholder,
-        "analysis_start_t": analysis_start,
-        "analysis_end_t": analysis_end,
-        "show_export_button": False,
-        "analysis_context": analysis_context,
-        "presentation_context": presentation_context,
+def test_missing_benchmark_selected_artifact_retains_selected_export_identity(monkeypatch):
+    """A lazy-read warning must retain the exact selected identities in exports."""
+    warnings = []
+    failure_logs = []
+    selected_labels = ["G3AAA (IO90)"]
+    container = SimpleNamespace(warning=warnings.append)
+    _set_component_streamlit(monkeypatch, SimpleNamespace(container=lambda **_kwargs: container))
+    selected_metadata = {
+        "selected_meta_df": pd.DataFrame(),
+        "selected_identity_df": pd.DataFrame(),
+        "selected_identity_pairs": (("G3AAA", "IO90"),),
+        "selected_station_labels": selected_labels,
+        "selected_thresholded_rows": pd.DataFrame(),
+        "selected_identity_cache_key": ("G3AAA", "IO90"),
     }
 
-    persisted_success_selections = []
-    for selected_rows in ([0], [1], []):
-        fake_streamlit.selected_rows = list(selected_rows)
-        segment_inspector._render_opportunity_scope(**render_arguments)
-        persisted_success_selections.append(
-            [
-                dict(identity)
-                for identity in fake_streamlit.session_state[
-                    segment_inspector.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
-                ]
-            ]
-        )
+    def expired_selected_rows(*_args):
+        raise FileNotFoundError("retired.parquet")
 
-    assert cache_events == [
-        ("segment", False),
-        ("selected", False),
-        ("segment", True),
-        ("selected", False),
-        ("segment", True),
-    ]
-    assert segment_read_count == 1
-    assert selected_station_loads == [
-        ("A1AAA",),
-        ("B2BBB",),
-    ]
-    assert [
-        recipe_build["peer_identities"]
-        for recipe_build in selected_recipe_builds
-    ] == [
-        (("A1AAA", "AA00"),),
-        (("B2BBB", "BB11"),),
-    ]
-    assert [
-        recipe_build["evidence_identities"]
-        for recipe_build in selected_recipe_builds
-    ] == [
-        (("A1AAA", "AA00"),),
-        (("B2BBB", "BB11"),),
-    ]
-    assert all(
-        recipe_build["population_mode"]
-        == segment_inspector.SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
-        for recipe_build in selected_recipe_builds
+    preparation = SimpleNamespace(
+        prepare_selected_benchmark=lambda *_args: selected_metadata,
+        load_selected_benchmark_rows=expired_selected_rows,
+        log_artifact_read_failure=lambda exception, **details: failure_logs.append((exception, details)),
     )
-    assert all(
-        recipe_build["snr_representation"]
-        == segment_inspector.SUCCESS_SNR_REPRESENTATION_ACTUAL
-        for recipe_build in selected_recipe_builds
+    context = SimpleNamespace(
+        translations=T["en"], analysis_id="RX_COMP", run_id=17,
+        analysis_context=SimpleNamespace(), presentation_context=SimpleNamespace(language="en"),
+        analysis_start_t=None, analysis_end_t=None, parquet_path="retired.parquet",
+        timing_collector=None, is_sequential=False,
     )
-    assert drilldown_builds == [
-        {
-            "selected_identities": (("A1AAA", "AA00"),),
-            "evidence_identities": (("A1AAA", "AA00"),),
-        },
-        {
-            "selected_identities": (("B2BBB", "BB11"),),
-            "evidence_identities": (("B2BBB", "BB11"),),
-        },
-    ]
-    assert drilldown_renders == [
-        {
-            "labels": ("A1AAA (AA00)",),
-            "stations": ("A1AAA",),
-        },
-        {
-            "labels": ("B2BBB (BB11)",),
-            "stations": ("B2BBB",),
-        },
-    ]
-    assert persisted_success_selections == [
-        [{"callsign": "A1AAA", "locator": "AA00"}],
-        [{"callsign": "B2BBB", "locator": "BB11"}],
-        [],
-    ]
-    assert [
-        render_call["render_figure"]
-        for render_call in selected_render_calls
-    ] == [
-        segment_inspector.render_segment_temporal_snr_export_figure,
-        segment_inspector.render_segment_temporal_evidence_export_figure,
-        segment_inspector.render_segment_temporal_snr_export_figure,
-        segment_inspector.render_segment_temporal_evidence_export_figure,
-    ]
-    assert [
-        render_call["recipe"]["time_bin"]
-        for render_call in selected_render_calls
-    ] == ["2h", "2h", "2h", "2h"]
-    assert [
-        dataframe_call["selection_mode"]
-        for dataframe_call in fake_streamlit.dataframe_calls
-    ] == ["single-row", "single-row", "single-row"]
-    assert all(
-        callable(dataframe_call["on_select"])
-        for dataframe_call in fake_streamlit.dataframe_calls
+    station_view = SimpleNamespace(
+        selected_rows=(0,), station_column="Station", locator_column="Locator",
+        show_non_joint=False,
     )
-    assert all(
-        dataframe_call["height"]
-        == segment_inspector.COMPACT_DATAFRAME_HEIGHT_PX
-        for dataframe_call in fake_streamlit.dataframe_calls
+    prepared_segment = SimpleNamespace(bundle={"view_model": SimpleNamespace(
+        is_local_median=False, target_name="Target", reference_header="Reference",
+    )})
+    rendered = inspector_selected.render_benchmark_selected_evidence(
+        context, SimpleNamespace(scope_token="all"),
+        InspectorSelection(run_id=17, analysis_id="RX_COMP", scope_token="all", is_compare=True),
+        station_view, prepared_segment=prepared_segment, preparation=preparation, session_state={},
     )
-    assert all(
-        dataframe_call["row_height"]
-        == segment_inspector.COMPACT_DATAFRAME_ROW_HEIGHT_PX
-        for dataframe_call in fake_streamlit.dataframe_calls
-    )
-    assert (
-        list(
-            segment_inspector.SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS
-        ),
-        {"vertical_alignment": "center"},
-    ) in fake_streamlit.column_calls
-    assert (
-        segment_inspector.SUCCESS_STATION_INSIGHTS_CONTROL_COLUMN_WIDTHS
-        == (9, 2)
-    )
-    assert all(
-        "Heard by Target | Heard by others only" not in markdown_body
-        for markdown_body, _kwargs in fake_streamlit.markdown_calls
-    )
-    assert (
-        [0.64, 0.36],
-        {"vertical_alignment": "top"},
-    ) not in fake_streamlit.column_calls
-    assert [
-        tuple(export_call["selected_stations"])
-        for export_call in export_calls
-    ] == [
-        ("A1AAA (AA00)",),
-        ("B2BBB (BB11)",),
-        (),
-    ]
-    assert [
-        export_call["selected_station_snr_evidence_figure_recipe"] is not None
-        for export_call in export_calls
-    ] == [True, True, False]
-    assert [
-        export_call[
-            "selected_station_temporal_evidence_figure_recipe"
-        ] is not None
-        for export_call in export_calls
-    ] == [True, True, False]
-    assert all(
-        export_call["selected_evidence_figure_recipe"] is None
-        for export_call in export_calls
-    )
-    assert [
-        tuple(
-            export_call["drilldown_selected_df"][
-                "Selected station"
-            ].astype(str)
-        )
-        if not export_call["drilldown_selected_df"].empty
-        else ()
-        for export_call in export_calls
-    ] == [
-        ("A1AAA",),
-        ("B2BBB",),
-        (),
-    ]
-    assert (
-        fake_streamlit.session_state[
-            segment_inspector.RESULTS_TIME_BIN_ABSOLUTE_STATE_KEY
-        ]
-        == "2h"
-    )
-    assert (
-        fake_streamlit.session_state[
-            segment_inspector.RESULTS_SELECTED_STATIONS_ABSOLUTE_STATE_KEY
-        ]
-        == []
-    )
-    assert provider_requests == []
+    assert rendered.selected_station_labels is selected_labels
+    assert rendered.selected_evidence_export is None
+    assert rendered.drilldown_selected_df.empty
+    assert warnings == [T["en"]["warn_analysis_cache_expired"]]
+    assert len(failure_logs) == 1
+    assert failure_logs[0][1] == {
+        "parquet_path": "retired.parquet", "analysis_id": "RX_COMP",
+        "stage": "selected station rows load",
+    }

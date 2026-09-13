@@ -1130,18 +1130,6 @@ def render_compare_temporal_coverage_export_figure(recipe):
             context,
             show_labels=True,
         )
-        folded_station_axis.text(
-            0.98,
-            0.04,
-            labels["utc_dates_folded"].format(
-                count=context["utc_date_count"]
-            ),
-            transform=folded_station_axis.transAxes,
-            color="#cccccc",
-            fontsize=8,
-            ha="right",
-            va="bottom",
-        )
     else:
         for axis, y_label, show_labels in (
             (folded_station_axis, labels["station_folded_y"], False),
@@ -1286,18 +1274,6 @@ def render_selected_compare_coverage_export_figure(recipe):
             folded_axis,
             context,
             show_labels=True,
-        )
-        folded_axis.text(
-            0.02,
-            0.04,
-            labels["utc_dates_folded"].format(
-                count=context["utc_date_count"]
-            ),
-            transform=folded_axis.transAxes,
-            color="#cccccc",
-            fontsize=8,
-            ha="left",
-            va="bottom",
         )
     else:
         _set_metric_axis_labels(

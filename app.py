@@ -69,7 +69,7 @@ from ui.analysis_submission_state import (
     finish_analysis_submission,
     get_analysis_submission,
 )
-from ui.result_state import reset_result_state
+from ui.run_lifecycle import fail_analysis_run, initialize_analysis_run
 from ui.state_manager import init_session_state
 from ui.time_window import (
     time_window_validation_message_key,
@@ -512,18 +512,18 @@ if is_new_analysis_submission:
     )
     if not is_valid_callsign(callsign):
         st.error(t["err_callsign_format"])
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         submission_initialization_failed = True
     elif not is_valid_locator(qth_locator):
         st.error(t["err_qth_format"])
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         submission_initialization_failed = True
     elif time_window_validation_error is not None:
         time_error_key = time_window_validation_message_key(
             time_window_validation_error
         )
         st.error(t[time_error_key])
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         submission_initialization_failed = True
     elif requires_reference_identity:
         reference_callsign = normalize_ascii_upper(
@@ -534,33 +534,34 @@ if is_new_analysis_submission:
         )
         if not reference_callsign:
             st.error(t["err_reference_callsign_required"])
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
             submission_initialization_failed = True
         elif not is_valid_callsign(reference_callsign):
             st.error(t["err_reference_callsign_format"])
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
             submission_initialization_failed = True
         elif reference_callsign == callsign:
             st.error(t["err_reference_callsign_same"])
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
             submission_initialization_failed = True
         elif comp_mode == "reference_station" and not reference_grid4:
             st.error(t["err_reference_qth_required"])
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
             submission_initialization_failed = True
         elif (
             comp_mode == "reference_station"
             and not is_valid_grid4(reference_grid4)
         ):
             st.error(t["err_reference_grid4_format"])
-            st.session_state.run_mode = None
+            fail_analysis_run(st.session_state)
             submission_initialization_failed = True
     if not submission_initialization_failed:
-        st.session_state.run_mode = analysis_direction.upper()
-        st.session_state.run_id = int(time.time())
-        st.session_state.configuration_changed_since_run = False
+        initialize_analysis_run(
+            st.session_state,
+            run_mode=analysis_direction.upper(),
+            run_id=int(time.time()),
+        )
         collapse_documentation(st.session_state)
-        reset_result_state(st.session_state)
         start_t, end_t = candidate_start_t, candidate_end_t
         for key in list(st.session_state.keys()):
             if key.startswith("img_buf_"):
@@ -591,7 +592,7 @@ elif st.session_state.run_mode and should_execute_analysis:
                     render_analysis_run,
                 )
     except ImportError as exc:
-        st.session_state.run_mode = None
+        fail_analysis_run(st.session_state)
         st.error(
             "WSPRadar could not load the scientific analysis engine. "
             "Please verify the deployment's Python and native dependencies."

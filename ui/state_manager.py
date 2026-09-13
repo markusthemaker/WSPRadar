@@ -8,7 +8,6 @@ import streamlit as st
 from config import (
     BAND_MAP,
     DEFAULT_BAND,
-    SEGMENT_SELECTION_ALL,
     SNR_CORRECTION_MODES,
     TX_AB_REPEAT_INTERVAL_OPTIONS,
 )
@@ -18,6 +17,7 @@ from config.delta_snr_outlier import (
 )
 from i18n import LEGACY_LOCALIZED_STATE_VALUES, T
 from ui.classic_input_state import initialize_classic_input_state
+from ui.inspector.selection_state import seed_inspector_selection_state
 from ui.population_exclusion_state import initialize_population_exclusion_state
 from ui.time_window import initialize_utc_window_state
 
@@ -245,30 +245,7 @@ def init_session_state():
             )
 
     # --- Stable Result-View Configuration ---
-    if "val_results_show_non_joint" not in st.session_state:
-        st.session_state.val_results_show_non_joint = None
-    if "val_results_show_zero_target" not in st.session_state:
-        st.session_state.val_results_show_zero_target = False
-    if "val_results_selected_ranges_compare" not in st.session_state:
-        st.session_state.val_results_selected_ranges_compare = SEGMENT_SELECTION_ALL
-    if "val_results_selected_directions_compare" not in st.session_state:
-        st.session_state.val_results_selected_directions_compare = SEGMENT_SELECTION_ALL
-    if "val_results_selected_ranges_absolute" not in st.session_state:
-        st.session_state.val_results_selected_ranges_absolute = SEGMENT_SELECTION_ALL
-    if "val_results_selected_directions_absolute" not in st.session_state:
-        st.session_state.val_results_selected_directions_absolute = SEGMENT_SELECTION_ALL
-    if "val_results_time_bin_compare" not in st.session_state:
-        st.session_state.val_results_time_bin_compare = None
-    if "val_results_time_bin_absolute" not in st.session_state:
-        st.session_state.val_results_time_bin_absolute = None
-    if "val_results_segment_time_bin_compare" not in st.session_state:
-        st.session_state.val_results_segment_time_bin_compare = "auto"
-    if "val_results_segment_time_bin_absolute" not in st.session_state:
-        st.session_state.val_results_segment_time_bin_absolute = "auto"
-    if "val_results_selected_stations_compare" not in st.session_state:
-        st.session_state.val_results_selected_stations_compare = None
-    if "val_results_selected_stations_absolute" not in st.session_state:
-        st.session_state.val_results_selected_stations_absolute = None
+    seed_inspector_selection_state(st.session_state)
 
     # --- Loaded/Saved Config Document State ---
     if "val_config_profile" not in st.session_state:

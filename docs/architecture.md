@@ -348,6 +348,71 @@ builds contexts, computes a request fingerprint, acquires admission, asks
 processing, stores session evidence, renders maps and previews, registers export
 recipes, and invokes the Segment Inspector.
 
+`core/analysis_plan.py` owns the immutable `AnalysisPlan` contract produced
+after query construction. It validates the explicit result family, analysis
+kind, mode flags, transport, applicable time window, and strict/legacy query
+metadata. The record retains the existing mapping interface for scientific
+consumers and omits the same optional fields as the former dictionaries.
+SQL text is retained verbatim, and localized titles remain outside the
+scientific fingerprint. Provider preparation validates all boundary mappings
+before its first fetch, reuses typed plans directly, and selects legacy queries
+through immutable replacement. Restoring a completed result replaces only the
+recorded decode policy, preserving the current plan's query identity.
+
+`core/completed_run.py` owns `CompletedRun`, `CompletedAnalysis`,
+`CompletedAnalysisIdentity`, and `CompletedQueryFetch`. These immutable records
+contain scalar metadata, immutable diagnostics, ordered query traces, and
+artifact references. They never own DataFrames or figures. Construction checks
+required provenance, mode consistency, finite nonnegative fetch durations,
+outcome-specific artifact requirements, and diagnostic compatibility before
+publication. Empty-source, empty-map, and renderable outcomes remain distinct;
+a renderable Performance result may legitimately have no qualifying segments.
+
+The explicit `to_dict`/`from_dict` codec retains snapshot schema version 2 and
+its existing field meanings. `ui/result_state.py` stores validated records and
+returns them directly without recursive copying. An existing version-2
+dictionary is validated and replaced once on restoration; malformed or
+incompatible metadata is unavailable. Dictionaries created for serialization
+are independent of the published record. Structural validation does not replace
+the controller's live checks of run, request, plan, provider, map schema,
+ordered analysis identity, and registered artifact ownership and availability.
+
+### Run Lifecycle Transitions
+
+`ui/run_lifecycle.py` centralizes transitions used by the app, callbacks,
+configuration loading, and run controller. Configuration adapters still own
+individual input/widget values; `ui/result_state.py` owns result keys and
+artifact retirement; `ui/analysis_submission_state.py` owns submission tokens.
+The lifecycle layer performs no acquisition, evidence processing, or rendering
+and remains safe to import from the idle shell.
+
+| Transition | Completed results and input intent | Submission and acquisition | Export handling |
+| --- | --- | --- | --- |
+| Scientific edit | Retire results and selected stations; retain loaded profile context; retire exact demo/cache identity. | Cancel the current UI submission; require an explicit Run. | Clear registered blocks and prepared ZIP state. |
+| Experiment-definition edit | Apply scientific-edit retirement and also detach loaded profile metadata. | Cancel the current UI submission; require an explicit Run. | Clear registered blocks and prepared ZIP state. |
+| Shell reset | Retire results while retaining station intent, profile context and demo identity. | Cancel the current UI submission; require an explicit Run. | Clear registered blocks and prepared ZIP state. |
+| Configuration/demo load | Retire the replaced run, then install validated configuration and selection values. | Cancel the replaced submission; loading does not start acquisition. An explicit demo-run action separately initializes and submits its run. | Clear registered blocks and prepared ZIP state. |
+| Explicit run initialization | Replace old results after input validation and establish the new run ID/mode. | Retain the request's existing submission token. Cached queries may satisfy acquisition. | Clear old registered blocks and prepared ZIP state. |
+| Language change | Preserve valid completed metadata and scientific identity; without a valid record clear the run mode. | Retire the UI submission; do not automatically restart unfinished acquisition. | Clear prepared ZIP state immediately on a changed language; the ensuing result render refreshes localized registration. |
+| Committed profile metadata change | Preserve scientific identity, completed results, artifacts and selection. Draft edits and identical commits preserve all result state. | Keep submission ownership and perform no acquisition. | Clear prepared ZIP state on an actual metadata change; refresh an existing outer download control with an app rerun. |
+| Input-view handoff | Preserve scientific inputs and completed results. | Hand off an active submission token; the controller follows the same scientific request. | The existing result-render path refreshes registration. |
+| Result render | Preserve committed source/snapshot; a completed rerender also preserves inspector cache and focus. | Perform no provider work in the completed-result restoration path. | Fresh renders reset export state. Completed rerenders retain owned registration and prepared ZIPs while checking dependencies; changed contents invalidate the ZIP. |
+| Failure or unusable completed artifacts | Stop the run; retire result state where the failing stage requires it. Unusable completed artifacts always retire the retained result. | Leave token completion to the owning script's guarded `finally`; do not acquire replacement data automatically. | Retiring results also clears export state. |
+| Completion | Publish immutable metadata only after all result blocks, registered artifacts and inspectors are ready. | Keep scientific admission ownership separate from UI-token completion. | Retain the newly registered export context. |
+
+Export dependency policy distinguishes scientific identity, inspector selection,
+presentation, and saved profile/extension metadata. A prepared package is valid
+only while all included dependencies match. A metadata-only or inspector-only
+change must preserve completed scientific evidence, while changed package
+content requires export invalidation. Unchanged dependencies permit reuse.
+The export owner implements this policy with typed registration drafts, detached
+content snapshots and complete package signatures. A queued export builds from
+one captured request and is published only while its dependencies still match.
+No export schema or scientific fingerprint changes are introduced by lifecycle
+or export-ownership consolidation.
+
+### Completed Result Publication and Restoration
+
 The first successful render also persists the language-neutral station and
 segment map aggregates beside the scoped evidence and publishes a versioned
 completed-run snapshot only after all result blocks and Inspectors are ready.
@@ -664,8 +729,77 @@ being retained in pyplot's global registry.
 
 ### Segment Inspector
 
-`ui/components/segment_inspector.py` remains the Streamlit fragment responsible
-for selections and rendering. Preparation is split into pure modules:
+`ui/components/segment_inspector.py` remains the single Streamlit fragment
+responsible for page orchestration. It consumes explicit selection state and delegates
+selection/navigation mutations to `ui/inspector/selection_state.py`.
+
+The fragment binds completed-run and presentation inputs into `InspectorContext`
+and resolves scope controls into `InspectorScope`. These small records in
+`ui/inspector/contracts.py` hold references to existing inputs; they do not copy
+evidence. The page flow is scope controls, segment evidence, the optional Outlier
+Report, Station Insights, selected-station evidence, Drill-Down, and export
+registration. The existing widget keys, keyed containers, navigation anchors,
+and fragment rerun boundary are retained.
+
+`ui/inspector/preparation.py` owns run-scoped cache access and necessary artifact
+reads. It coordinates the existing scientific helpers and separates row/unit
+preparation from localized compact recipe assembly. `PreparedScope` keeps the
+cached compact bundle and an uncached reference to the current scope rows;
+`PreparedEvidence` carries selected recipes and their cache identity.
+`ui/inspector/presentation.py` supplies pure localized titles, labels, and
+summary formatting.
+
+The focused components receive explicit contexts, selections, and prepared
+models:
+
+- `ui/components/inspector_scope.py` renders scope controls and segment evidence;
+- `ui/components/inspector_stations.py` renders Station Insights, filters, and
+  selection through the owning adapter;
+- `ui/components/inspector_outliers.py` renders the prepared Outlier Report and
+  delegates its navigation actions to the selection owner;
+- `ui/components/inspector_selected.py` renders selected-station evidence and
+  Drill-Down, requesting selected or focused preparation only on active paths;
+- `ui/components/inspector_common.py` shares table/figure presentation and asks
+  the coordinator for cached PNGs;
+- `ui/components/inspector_export.py` forwards the existing recipes and visible
+  table projections to the unchanged lazy export-registration contract.
+
+View components do not discover global session state or independently read
+artifacts. Explicit session mappings are passed only to the selection adapter
+and its callbacks. The coordinator preserves the existing cache versions,
+namespace limits, byte budget, and complete keys, including scientific inputs,
+retained time bins, language, theme, and localized scope/title dependencies.
+Numerical preparation remains on the existing cache-miss branches; this split
+does not introduce a second row-level cache or retain additional evidence
+copies. A presentation-key change still prepares the corresponding localized
+bundle, while an unchanged warm key reuses the compact model and PNG caches.
+
+`ui/inspector/selection.py` defines immutable `InspectorSelection` and
+`StationIdentity` records plus shared configuration-boundary validators. Scope
+uses `None` internally for All and a nonempty tuple for explicit choices.
+Station intent distinguishes `None` (automatic first-row default), an empty
+tuple (deliberate deselection), and ordered exact callsign/locator identities.
+Four- and six-character locators remain distinct. A station hidden by the
+current scope or table filter is reported as unavailable without silently
+substituting another station or rewriting saved intent. The existing saved
+configuration and URL representations remain unchanged.
+
+The owning adapter initializes and synchronizes transient widget keys, resolves
+time-bin defaults and retained compatibility choices, persists real table
+selection events, and applies outlier navigation and focus requests. Startup,
+factory reset, configuration loading, scientific invalidation, and result reset
+delegate their selection changes to this same adapter. Only actual table
+selection callbacks replace saved station intent; rendering a default does not.
+Benchmark enables multiple exact identities only while outlier reporting is
+enabled and retains the first identity when reporting is disabled.
+
+The adapter reads a compact typed selection once per nonempty rendered scope;
+it owns no evidence frame. Station lookup reads existing identity columns
+directly without constructing an intermediate two-column DataFrame. Its module
+imports remain dependency-light so idle callbacks do not load scientific or
+rendering libraries. Focus calculations are imported only for active focus work.
+
+Preparation remains split into pure modules:
 
 - `ui/inspector/view_models.py` builds compare and opportunity data view models;
 - `ui/inspector/evidence_data.py` performs projected Parquet reads and prepares
@@ -1083,8 +1217,10 @@ layout reserves and uses that colorbar footprint without adding another
 colorbar, then expands both folded evidence panels 28 px toward the left on the
 1,300 px reference canvas while retaining their shared right edge. The two
 chronological panels share the exact selected-window bounds and bin edges, and
-panel heights remain aligned. Each figure keeps one
-folded-date annotation without repeating it in both panels of a row. Browser
+panel heights remain aligned. Each Performance figure keeps one
+folded-date annotation without repeating it in both panels of a row. Benchmark
+figures omit the folded-date annotation while retaining UTC-date counts for
+aggregation and folded-panel availability. Browser
 preview and high-resolution export use the same two recipes and renderers;
 Performance exports add
 `figure_segment_temporal_snr_deviation.png` and retain
@@ -1114,8 +1250,8 @@ entries remain available for audit. Turning reporting off keeps the first
 selected identity and restores the singleton contract. Drill-Down and Selected
 Station Evidence consume the same persisted selection; clearing it hides the
 selected section.
-`ui/components/segment_inspector.py` validates the durable boundary, loads only
-the retained projected rows for the selected identities, and never starts
+The selection owner validates the durable boundary. The rendering fragment loads
+only the retained projected rows for the selected identities and never starts
 another provider query. The complete Station Insights population and the
 segment-level statistics, Comparison Evidence, and temporal evidence remain
 unchanged.
@@ -1251,9 +1387,9 @@ run/scope transient; they do not enter
 `AnalysisContext`, provider requests, saved configuration or public URLs. The
 focus record is bound to one exact station identity and is ignored outside its
 originating run and scope; an explicit station-selection change removes it.
-Manual focus state may persist across station changes inside the same run and
-scope so the operator can compare the same interval, while every recipe and
-export is rebuilt for the newly selected identity. Active table-column filters
+Manual focus widgets retain their existing run, scope, and exact-station key
+namespace; revisiting a retained widget uses that path's state. Every recipe and
+export is built for the selected identity. Active table-column filters
 affect only the displayed/exported Drill-Down rows, not the focus figure recipes.
 
 The run-scoped segment-cache key includes explicit
@@ -1298,23 +1434,63 @@ run. Export preparation is lazy and protected by a separate admission controller
 from `core/export_admission.py`. The configured policy allows one active export
 and up to ten queued exports.
 
+`ui/export_payloads.py` defines the typed registration drafts: resolved export
+selection, tables, map inputs, and distinct Benchmark/Performance figure and
+zoom variants. These drafts borrow their nested inputs; a frozen draft does not
+claim ownership of a DataFrame or recipe array. The adapter validates the whole
+registration before `ui/export_registry.py` commits a replacement.
+`ui/export_content.py` detaches nested recipes, DataFrame object cells, labels,
+categories and attributes. Numeric recipe arrays use immutable byte storage.
+Registered blocks expose independent projections for rendering and keep cached
+content digests. Incoming mutable drafts are fingerprinted again at registration;
+equal contents retain the existing owned block and prepared ZIP, while changed
+contents replace it atomically and invalidate prepared bytes. Object identity
+alone never authorizes reuse, and footer rerenders do not hash table rows again.
+
+The package signature identifies the run ID, owned scientific and artifact
+generation inputs, resolved Inspector selection, every table and recipe field,
+presentation, renderer versions, and durable configuration/profile/extension
+metadata. Artifact paths contribute only hashed identity, presence and size;
+ordinary access touching does not invalidate an immutable artifact. Generated
+export timestamps do not invalidate an otherwise unchanged prepared package.
+Before entering admission, `ExportPackagePayload` captures configuration bytes,
+translations, metadata time, root filename and the owned blocks. All ZIP members
+and `run_metadata.json` use that same snapshot. Publication checks its signature
+against current inputs, so an obsolete queued package cannot become the current
+download. Registered schemas, folder names, filenames and scientific recipes
+remain the established wire contract.
+
 `ui/result_state.py` owns the lightweight result/export session-state keys,
 active-run database provenance, the versioned completed-run snapshot, and reset
 lifecycle. Configuration callbacks can retire session artifacts and clear
-export, inspector, snapshot, and provenance state without importing Pandas,
-Matplotlib, the inspector, or export rendering. The lightweight run-scoped
+export, inspector, snapshot, and provenance state through the dependency-light
+selection adapter without importing Pandas, Matplotlib, inspector rendering,
+or export rendering. The lightweight run-scoped
 Drill-Down candidate-focus record carries exact station identity, candidate
 provenance, representative UTC, reported interval, outlier-focus bounds and
 the local-baseline/scale inputs required by the overlay. Selection and
 result-reset paths remove it; run/scope/identity checks ignore it outside its
 originating view, and the runtime consumer clips resolved bounds again to the
-completed analysis window. The separate manual focus widgets are keyed by run
-and scope rather than station so their centered interval can be reused
-deliberately across station selections.
+completed analysis window. Candidate provenance remains separate from the
+operator's current zoom window. Candidate request tokens remain deterministic;
+browser navigation uses its separate one-shot token. Repeating a candidate
+action rearms its focus without changing provenance, missing widget state can
+rehydrate a valid request, and an explicit Off choice releases that request.
+Outlier actions targeting a different active run ID return before mutating any
+selection, focus, or browser navigation state. The separate manual focus widgets
+retain keys containing run, scope, and exact station identity.
 `ui/analysis_submission_state.py` separately owns the UUID-token lifecycle for
 one session's in-flight analysis. Keeping submission state separate from
 `run_mode` is required because `run_mode` remains set while completed results
 are reconstructed on later Streamlit reruns.
+
+Validated completed rerenders preserve the export registry and prepared ZIP
+while registration checks current dependencies. Language changes and committed
+profile metadata changes invalidate prepared bytes without retiring completed
+evidence; draft profile edits and identical commits do not. A profile commit
+that invalidates an existing download requests an app rerun from its save
+fragment so the outer download control refreshes. Scientific changes, new runs
+and unavailable completed artifacts retain their existing result-reset policy.
 
 Preparing an export reuses completed analysis and projected artifacts; it does
 not rerun the upstream scientific query. It renders paper-theme, high-resolution
@@ -1371,8 +1547,8 @@ selected active-view choice because each export contains both time panels.
 Benchmark metadata publishes the stable
 `benchmark_evidence_figures` filename-to-description map for the complementary
 evidence figures, and the export signature fingerprints their recipe kind,
-schema, time bin and title through `benchmark_evidence_recipes` without
-serializing scientific arrays. The optional Performance descriptive fields remain
+schema, time bin, title and complete scientific arrays through the owned content
+digest, without serializing those arrays again on footer rerenders. The optional Performance descriptive fields remain
 unset.
 
 An active valid Drill-Down focus adds distinct figures without replacing the
@@ -1559,8 +1735,9 @@ must remain outside `README.md`.
 7. `compare_engine` groups periodic pairs by peer identity and pair ID, applies
    per-side micro-medians, and builds station and segment aggregates.
 8. `map_data` and `plot_engine` render the map preview.
-9. Inspector view models read the necessary evidence and render segment and
-   selected-station views.
+9. The Inspector preparation coordinator reads the necessary evidence through
+   the existing scientific helpers; focused components render segment and
+   selected-station views from the prepared models.
 10. Export recipes are registered for optional later execution.
 11. The permit is released in all completion/error paths.
 

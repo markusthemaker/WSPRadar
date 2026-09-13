@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from contextlib import closing
+from dataclasses import FrozenInstanceError, replace
 import sqlite3
 
 import pandas as pd
@@ -24,6 +25,7 @@ from core.analysis_runner import (
     apply_post_fetch_filters,
     build_analysis_batches,
 )
+from core.analysis_plan import AnalysisPlan, DECODE_FILTER_LEGACY, DECODE_FILTER_STRICT
 from core.presentation_context import PresentationContext
 from core.query_limits import apply_analysis_result_row_limit
 from i18n import T
@@ -113,6 +115,7 @@ def test_no_benchmark_builds_only_the_directional_performance_analysis():
 def test_every_analysis_query_has_one_outer_result_row_sentinel(context):
     """Bound each complete strict and legacy result after unions and grouping."""
     analysis = _build_analyses(context)[0]
+    assert isinstance(analysis, AnalysisPlan)
     sentinel_clause = f"LIMIT {MAX_ANALYSIS_RESULT_ROWS + 1}"
 
     for query in (analysis["query"], analysis["legacy_query"]):
@@ -130,6 +133,101 @@ def test_every_analysis_query_has_one_outer_result_row_sentinel(context):
         assert query.endswith(
             f")\n{sentinel_clause}\nFORMAT {expected_format}"
         )
+
+
+def test_analysis_plan_keeps_sql_and_optional_mapping_fields_unchanged():
+    """Preserve exact query text and optional-field absence across the boundary."""
+    analysis = _build_analyses(_analysis_context(comparison_mode=COMPARISON_NONE))[0]
+    serialized_plan = dict(analysis)
+    restored_plan = AnalysisPlan.from_mapping(serialized_plan)
+
+    assert dict(restored_plan) == serialized_plan
+    assert restored_plan.query is serialized_plan["query"]
+    assert restored_plan.legacy_query is serialized_plan["legacy_query"]
+    assert AnalysisPlan.from_mapping(restored_plan) is restored_plan
+    assert "analysis_start_utc" not in restored_plan
+    assert "analysis_end_utc" not in restored_plan
+    assert "is_local_median" not in restored_plan
+    assert restored_plan.get("is_local_median", False) is False
+    with pytest.raises(KeyError):
+        restored_plan["analysis_start_utc"]
+
+
+def test_analysis_plan_replacements_preserve_strict_plan_and_time_window():
+    """Keep query selection distinct from presentation and restored provenance."""
+    strict_plan = _build_analyses(_analysis_context())[0]
+    legacy_plan = strict_plan.for_legacy_query()
+    restored_plan = strict_plan.with_decode_filter_mode(DECODE_FILTER_LEGACY)
+    translated_plan = replace(strict_plan, title="Lokalisierter Benchmark")
+
+    assert strict_plan.decode_filter_mode == DECODE_FILTER_STRICT
+    assert legacy_plan.decode_filter_mode == DECODE_FILTER_LEGACY
+    assert legacy_plan.query == strict_plan.legacy_query
+    assert restored_plan.query == strict_plan.query
+    assert translated_plan.query == strict_plan.query
+    assert translated_plan.legacy_query == strict_plan.legacy_query
+    assert legacy_plan.analysis_start_utc is strict_plan.analysis_start_utc
+    assert legacy_plan.analysis_end_utc is strict_plan.analysis_end_utc
+    assert strict_plan.with_decode_filter_mode(DECODE_FILTER_STRICT) is strict_plan
+    with pytest.raises(FrozenInstanceError):
+        strict_plan.query = "changed"
+    with pytest.raises(TypeError):
+        strict_plan["query"] = "changed"
+
+
+@pytest.mark.parametrize(
+    ("field_name", "replacement", "message"),
+    [
+        ("is_compare", False, "Benchmark comparison"),
+        ("is_sequential", 1, "boolean"),
+        ("result_family", "performance", "Benchmark comparison"),
+        ("response_format", "parquet", "csv responses"),
+        ("analysis_kind", "unknown", "analysis_kind"),
+        ("absolute_mode", "TX", "Performance method"),
+        ("decode_filter_mode", "unknown", "decode_filter_mode"),
+        ("legacy_decode_filter_mode", "unknown", "legacy_no_code"),
+        ("analysis_start_utc", END_TIME, "end must be after"),
+        ("analysis_end_utc", None, "time window"),
+    ],
+)
+def test_analysis_plan_rejects_inconsistent_comparison_contracts(
+    field_name, replacement, message,
+):
+    """Reject inconsistent scientific or provenance facts before acquisition."""
+    serialized_plan = dict(_build_analyses(_analysis_context())[0])
+    serialized_plan[field_name] = replacement
+
+    with pytest.raises((TypeError, ValueError), match=message):
+        AnalysisPlan.from_mapping(serialized_plan)
+
+
+@pytest.mark.parametrize("field_name", ("result_family", "is_compare", "decode_filter_mode"))
+def test_analysis_plan_rejects_missing_required_fields(field_name):
+    serialized_plan = dict(_build_analyses(_analysis_context())[0])
+    serialized_plan.pop(field_name)
+
+    with pytest.raises(TypeError, match=field_name):
+        AnalysisPlan.from_mapping(serialized_plan)
+
+
+@pytest.mark.parametrize(
+    ("field_name", "replacement", "message"),
+    [
+        ("is_compare", True, "Performance semantics"),
+        ("is_sequential", True, "Performance semantics"),
+        ("is_local_median", True, "Local Median"),
+        ("absolute_mode", None, "absolute_mode"),
+        ("absolute_method_version", None, "absolute_method_version"),
+    ],
+)
+def test_analysis_plan_rejects_inconsistent_opportunity_contracts(
+    field_name, replacement, message,
+):
+    serialized_plan = dict(_build_analyses(_analysis_context(comparison_mode=COMPARISON_NONE))[0])
+    serialized_plan[field_name] = replacement
+
+    with pytest.raises(ValueError, match=message):
+        AnalysisPlan.from_mapping(serialized_plan)
 
 
 def test_result_limit_wraps_complete_union_and_moves_terminal_format():

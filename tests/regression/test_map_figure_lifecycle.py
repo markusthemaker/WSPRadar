@@ -24,7 +24,7 @@ from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
 from core.map_models import MapData
 from core.presentation_context import PresentationContext
 from i18n import T, absolute_terms
-from ui.components.segment_inspector import _success_figure_labels
+from ui.inspector.presentation import success_figure_labels as _success_figure_labels
 from ui.matplotlib_renderer import (
     _draw_figure_preview_image,
     _serialize_preview_png,

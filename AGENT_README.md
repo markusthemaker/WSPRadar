@@ -348,6 +348,12 @@ Useful files when tracing behavior:
 
 - `ui/run_controller.py`: end-to-end analysis orchestration.
 - `core/analysis_runner.py`: SQL and post-fetch analysis contracts.
+- `core/analysis_plan.py`: dependency-light, immutable execution plans with
+  validated mode, time-window, and strict/legacy query provenance; existing
+  scientific consumers retain mapping reads without copying the plan.
+- `core/completed_run.py`: immutable completed-run metadata and the explicit
+  version-2 snapshot codec; records contain artifact references, never evidence
+  DataFrames or figures.
 - `core/geographic_scope.py`: strict great-circle peer-scope validation and
   vectorized post-fetch filtering, plus conservative date-line/pole-aware
   bounding boxes for the SQL Local Neighborhood prefilter.
@@ -368,6 +374,15 @@ Useful files when tracing behavior:
   presentation, scope copy, and bilingual mode-aware interpretation help.
 - `ui/components/segment_inspector.py` and `ui/inspector/`: inspector
   orchestration and pure view models.
+- `ui/inspector/contracts.py`, `ui/inspector/preparation.py`, and
+  `ui/inspector/presentation.py`: explicit completed-run/scope inputs, the
+  run-scoped cache and artifact-read coordinator, and pure localized recipe
+  labels/summary formatting.
+- `ui/components/inspector_scope.py`, `inspector_stations.py`,
+  `inspector_outliers.py`, and `inspector_selected.py`: focused views inside the
+  existing Inspector fragment. `inspector_common.py` shares table and figure
+  presentation; `inspector_export.py` preserves the existing registration
+  boundary for prepared outputs.
 - `ui/inspector/outlier_candidates.py`, `ui/inspector/outlier_report.py`, and
   `ui/inspector/outlier_export.py`: optional native-paired-unit detection,
   cross-path review aggregation, the pure localized Outlier Report view model,
@@ -393,6 +408,16 @@ Useful files when tracing behavior:
   ownership used to guard Streamlit reruns before admission.
 - `ui/result_state.py`: lightweight result/export reset, database provenance,
   and completed-run snapshot lifecycle used by idle configuration callbacks.
+- `ui/run_lifecycle.py`: named transitions for scientific edits, configuration
+  replacement, run initialization, presentation handoff, failure, rendering,
+  and completion; in-flight submission ownership remains token-aware.
+- `ui/inspector/selection.py`: immutable exact station identities and Inspector
+  selection intent, with shared scope, station, and time-bin validation.
+- `ui/inspector/selection_state.py`: the dependency-light owner of durable
+  Inspector selection values, transient widget synchronization, station
+  defaults/deselection, outlier navigation, and separate candidate/zoom state.
+  Configuration loading and lifecycle callbacks delegate their selection
+  mutations here; the existing Inspector fragment consumes its typed record.
 - `ui/page_navigation.py`: stable application-region anchors, coarse scroll
   tracking, and one-shot browser navigation requests above the manual boundary.
 - `ui/documentation_scroll_trigger.py`: browser viewport, history/navigation,
@@ -446,6 +471,119 @@ session, preventing separately named root-level test directories from
 accumulating across runs.
 
 Latest complete serial measurement on 2026-09-13 through the Windows launcher,
+including typed export payloads, detached content ownership, complete package
+signatures and unchanged-rerender reuse, under Python 3.12.14:
+
+```text
+2658 passed, 1 skipped, 1 warning in 268.70 seconds
+```
+
+Full repository compilation, patch/new-file whitespace checks, the 78-module
+serial regression manifest, and the idle-import boundary passed. Real Streamlit
+AppTests verify that a committed profile edit removes an already rendered stale
+download while retaining completed results, and that drafts and identical
+commits preserve prepared exports. Export tests cover nested table/recipe
+ownership, dtype and numerical precision, duplicate columns, complete content
+invalidation, captured queue inputs, stale-publication rejection, current saved
+configuration metadata, established schemas and filenames, and shared
+preview/export recipes. A bounded startup check returned HTTP 200 with `ok`
+and stopped its exact child process.
+
+A local export-bookkeeping diagnostic used seven alternating before/after
+samples with representative ten-column tables, a fixed 160 KB numerical recipe,
+validated saved configuration, the English translation catalog, and three
+session-owned artifacts. Median unchanged registration plus footer time was
+16.27/18.11 ms for empty tables, 14.24/18.24 ms for 10 rows, 42.60/21.85 ms for
+1,000 rows, and 280.81/35.15 ms for 10,000 rows. Warm footer signatures improved
+at every measured size; complete registration checks add 2–4 ms for tiny inputs
+whose full recipe/context content was previously omitted. Unchanged Inspector
+and map registrations retained their owned blocks and prepared ZIP bytes;
+changed map context invalidated the ZIP. These measurements cover export
+bookkeeping only, excluding widgets, scientific preparation, network access,
+figure rendering and ZIP construction; they are not whole-app latency claims.
+
+Earlier complete serial measurement on 2026-09-13 through the Windows launcher,
+including the Inspector preparation coordinator and focused presentation
+components, under Python 3.12.14:
+
+```text
+2593 passed, 1 skipped, 1 warning in 267.59 seconds
+```
+
+Full repository compilation, patch/new-file whitespace checks, the 76-module
+serial regression manifest, and the expanded idle-import boundary passed.
+The Inspector orchestration module now has 265 lines, with a 99-line page-flow
+function. Regression coverage exercises the production component flow,
+selection/navigation callbacks, cache reuse, exact identities, native comparison
+precision, compact display profiles, exported recipes, and unchanged source-frame
+ownership. A real Streamlit scope-control check also passed stable widget keys,
+language switching, hidden-widget rehydration, scope tokens, and clearing a
+selection back to All. A bounded startup check returned HTTP 200 with `ok` and
+stopped its exact child process.
+
+An isolated before/after warm Inspector cache-access diagnostic measured median
+lookup time at 7.48/7.22 microseconds with identical 684-byte cached values.
+Five samples of 20,000 lookups alternated execution order, with logging stubbed
+equally on both paths. This measures cache-access overhead only, not complete
+application latency. Existing scientific helpers, cache versions, byte/entry
+limits, complete presentation/scientific dependencies, and lazy artifact-read
+branches were retained.
+
+Earlier complete serial measurement on 2026-09-13 through the Windows launcher,
+including the canonical Inspector selection contract and selection/navigation
+state owner, under Python 3.12.14:
+
+```text
+2562 passed, 1 skipped, 1 warning in 278.43 seconds
+```
+
+Full repository compilation, patch/new-file whitespace checks, the 73-module
+serial regression manifest, and the idle-import boundary passed. A bounded
+Streamlit startup check returned HTTP 200 with `ok` and stopped its exact child
+process. Real Streamlit AppTests exercised scope callbacks, conditional-widget
+cleanup, candidate-focus rehydration, manual zoom, explicit Off, and stale
+scope handling. The ownership audit allows only Inspector cache writes in the
+renderer; selection mutations belong to the new adapter. Scientific and figure
+preparation retain their existing implementations.
+
+A local before/after comparison retained the same outcomes across 24 station
+selection cases, including automatic selection, deliberate deselection, missing
+identities, and exact ordered selections. Median lookup time for 1,000 rows
+with one selected station was 12.39/10.82 milliseconds; eight selected stations
+measured 12.87/11.31 milliseconds. The new path includes construction and
+validation of `InspectorSelection`. A separate isolated 10,000-row comparison
+measured 111.30/109.25 milliseconds for one selected station and
+110.51/105.98 milliseconds for eight. Each comparison alternated execution
+order over five samples of ten lookups. The adapter avoids the former temporary
+two-column DataFrame allocation and reuses already validated station identities.
+These are local lookup diagnostics, not browser-latency or multi-user load
+measurements. The initial longer timing probe was stopped without using its
+results; the largest fixture was measured again without concurrent verification.
+
+Earlier complete serial measurement on 2026-09-13 through the Windows launcher,
+including immutable analysis/completed-run contracts and centralized lifecycle
+transitions:
+
+```text
+2509 passed, 1 skipped, 1 warning in 279.48 seconds
+```
+
+Full repository compilation, the idle-import boundary, and a bounded Streamlit
+startup check passed; the health endpoint returned HTTP 200 with `ok`, and the
+exact check process was stopped. Independent before/after comparison across 56
+plan cases retained identical mappings, scientific fingerprints, and all 112
+strict/legacy SQL texts.
+
+A small comparison using three fresh processes per version and the same
+browser-component stubs measured median server-side AppTest startup at
+2.73/2.76 seconds and warm idle rerenders at 95.5/93.4 milliseconds
+(before/after). Warm completed-snapshot reads measured 37.5/0.34 microseconds
+after replacing recursive copies with immutable-record reuse. These are local
+diagnostic timings, not browser latency or a multi-user load benchmark. The
+Windows RSS helper returned unavailable values; no memory-performance result
+was established.
+
+Earlier complete serial measurement on 2026-09-13 through the Windows launcher,
 including completed-result language switching and manifest-validation coverage:
 
 ```text

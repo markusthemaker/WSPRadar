@@ -18,7 +18,8 @@ from ui.inspector.drilldown_focus import (
     DrilldownFocusWindow,
     DrilldownOutlierCandidateContext,
 )
-from ui.components import segment_inspector
+from ui.inspector import preparation as inspector_preparation
+from ui.inspector.outlier_candidates import DELTA_SNR_OUTLIER_DETECTOR_VERSION
 from ui.plots.evidence_figures import (
     DELTA_SNR_OUTLIER_MARKER_FACE_COLOR,
     DELTA_SNR_OUTLIER_MARKER_INNER_EDGE_COLOR,
@@ -758,13 +759,13 @@ def test_performance_zoom_integration_uses_native_points_and_compact_title(
         return {"kind": "focused-outcomes"}
 
     monkeypatch.setattr(
-        segment_inspector,
+        inspector_preparation,
         "_opportunity_temporal_recipe",
         _fake_companion,
     )
 
     metric_recipe, companion_recipe = (
-        segment_inspector._build_performance_drilldown_zoom_recipes(
+        inspector_preparation.build_performance_drilldown_zoom_recipes(
             {
                 "selected_segment": {"label": "segment"},
                 "terminology": {},
@@ -847,12 +848,12 @@ def test_benchmark_zoom_integration_adds_matching_detector_overlay(
         minimum_robust_z=4.0,
         minimum_departure_db=6.0,
         detector_version=(
-            segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION
+            DELTA_SNR_OUTLIER_DETECTOR_VERSION
         ),
         candidate_signature="candidate-1",
     )
     monkeypatch.setattr(
-        segment_inspector,
+        inspector_preparation,
         "_compare_coverage_recipe",
         lambda *args, **kwargs: {"kind": "focused-coverage"},
     )
@@ -862,7 +863,7 @@ def test_benchmark_zoom_integration_adds_matching_detector_overlay(
     ]
     outlier_model = SimpleNamespace(
         detector_version=(
-            segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION
+            DELTA_SNR_OUTLIER_DETECTOR_VERSION
         ),
         candidate_signature="candidate-1",
         qualifying_unit_marker_recipe=lambda *args, **kwargs: {
@@ -881,7 +882,7 @@ def test_benchmark_zoom_integration_adds_matching_detector_overlay(
     )
 
     metric_recipe, coverage_recipe = (
-        segment_inspector._build_benchmark_drilldown_zoom_recipes(
+        inspector_preparation.build_benchmark_drilldown_zoom_recipes(
             station_rows,
             pd.DataFrame(
                 {"peer_sign": ["DG2CAD"], "peer_grid": ["JN47mv"]}
@@ -929,7 +930,7 @@ def test_benchmark_zoom_integration_adds_matching_detector_overlay(
 
     stale_model = SimpleNamespace(
         detector_version=(
-            segment_inspector.DELTA_SNR_OUTLIER_DETECTOR_VERSION
+            DELTA_SNR_OUTLIER_DETECTOR_VERSION
         ),
         candidate_signature="changed-candidate-signature",
         qualifying_unit_marker_recipe=lambda *args, **kwargs: pytest.fail(
@@ -937,7 +938,7 @@ def test_benchmark_zoom_integration_adds_matching_detector_overlay(
         ),
     )
     stale_metric_recipe, _stale_coverage_recipe = (
-        segment_inspector._build_benchmark_drilldown_zoom_recipes(
+        inspector_preparation.build_benchmark_drilldown_zoom_recipes(
             station_rows,
             pd.DataFrame(
                 {"peer_sign": ["DG2CAD"], "peer_grid": ["JN47mv"]}

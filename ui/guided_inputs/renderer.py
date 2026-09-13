@@ -13,7 +13,7 @@ from config.delta_snr_outlier import (
 )
 from config.demo_profiles import prepare_demo_description_markdown
 from i18n import GUIDED_INPUTS
-from ui.analysis_submission_state import handoff_analysis_submission
+from ui.run_lifecycle import handoff_input_view_submission
 from ui.analysis_question_state import apply_analysis_question_choice
 from ui.callbacks import reset_audit, reset_experiment_definition
 from ui.classic_input_state import (
@@ -244,11 +244,7 @@ def _open_classic_view() -> None:
         classic_result_type(st.session_state)
         or PERFORMANCE_RESULT_TYPE,
     )
-    if st.session_state.get("run_mode"):
-        handoff_analysis_submission(
-            st.session_state,
-            request_source="input_view_change",
-        )
+    handoff_input_view_submission(st.session_state)
 
 
 def _render_use_case_selector(t, guided_content):

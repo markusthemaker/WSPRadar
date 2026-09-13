@@ -53,7 +53,12 @@ from core.performance_timer import (
 from core.presentation_context import PresentationContext
 from core.snr_utils import format_snr_like_columns_for_csv
 from i18n import T
-from ui.config_io import CONFIG_APP_NAME, build_config_payload
+from ui.config_io import CONFIG_APP_NAME, build_config_payload, build_config_state_signature
+from ui.export_content import OwnedExportContent, content_signature
+from ui.export_payloads import InspectorExportPayload, MapExportPayload
+from ui.export_registry import (
+    ExportPackagePayload, ExportRegistry, RegisteredExportBlock, split_export_block,
+)
 from ui.config_save import render_config_save_control
 from ui.share_analysis import render_share_analysis_browser
 from ui.result_guidance import (
@@ -291,14 +296,37 @@ def _clear_prepared_results():
 
 
 def _ensure_current_export_state():
+    """Return the current run's owned registry, upgrading older session state once."""
     run_id = _current_run_id()
     if st.session_state.get(EXPORT_RUN_ID_KEY) != run_id:
-        st.session_state[EXPORT_STATE_KEY] = {}
+        st.session_state[EXPORT_STATE_KEY] = ExportRegistry()
         st.session_state[EXPORT_RUN_ID_KEY] = run_id
         _clear_prepared_results()
-    if EXPORT_STATE_KEY not in st.session_state:
-        st.session_state[EXPORT_STATE_KEY] = {}
-    return st.session_state[EXPORT_STATE_KEY]
+    blocks = st.session_state.get(EXPORT_STATE_KEY)
+    if not isinstance(blocks, ExportRegistry):
+        blocks = ExportRegistry(blocks if isinstance(blocks, Mapping) else {})
+        st.session_state[EXPORT_STATE_KEY] = blocks
+    return blocks
+
+
+def _commit_export_registration(blocks, analysis_id, fields, *, is_map, family):
+    """Atomically replace owned content and invalidate only changed packages."""
+    previous = blocks.get(analysis_id)
+    if previous is not None and previous.get("mode_folder") not in (None, family):
+        raise ValueError("Export payload does not match the registered result family.")
+    owned_previous = (
+        previous if isinstance(previous, RegisteredExportBlock)
+        else RegisteredExportBlock.capture(previous or {
+            "analysis_id": analysis_id, "mode_folder": family,
+        })
+    )
+    replacement = owned_previous.replace(fields, is_map=is_map)
+    if isinstance(blocks, ExportRegistry):
+        blocks.commit(analysis_id, replacement)
+    else:
+        blocks[analysis_id] = replacement
+    if replacement is not owned_previous or previous is None:
+        _clear_prepared_results()
 
 
 def _set_with_restore(snapshots, obj, getter_name, setter_name, value):
@@ -520,21 +548,22 @@ def figure_to_png_bytes(
             _restore_figure_style(snapshots)
 
 
-def register_map_export_context(
-    analysis,
-    parquet_path,
-    map_data_paths,
-    start_t,
-    end_t,
-    max_peer_distance_km,
-    base_min_stations,
-    lat_0,
-    lon_0,
-    analysis_context,
-    presentation_context,
-    database_source,
-):
-    """Register compact map and raw-evidence recipes with immutable provenance."""
+def register_map_export_context(payload: MapExportPayload):
+    """Validate and own compact map inputs without rebuilding unchanged exports."""
+    if not isinstance(payload, MapExportPayload):
+        raise TypeError("Map export registration requires MapExportPayload.")
+    analysis = payload.analysis
+    parquet_path = payload.parquet_path
+    map_data_paths = payload.map_data_paths
+    start_t = payload.start_t
+    end_t = payload.end_t
+    max_peer_distance_km = payload.max_peer_distance_km
+    base_min_stations = payload.base_min_stations
+    lat_0 = payload.lat_0
+    lon_0 = payload.lon_0
+    analysis_context = payload.analysis_context
+    presentation_context = payload.presentation_context
+    database_source = payload.database_source
     if not isinstance(map_data_paths, MapDataArtifactPaths):
         raise TypeError("Map export context requires compact map artifact paths")
     validated_paths = validate_registered_session_artifacts(
@@ -550,9 +579,7 @@ def register_map_export_context(
     parquet_path = str(validated_paths["spots"])
     station_rows_path = str(validated_paths["map_stations"])
     segment_rows_path = str(validated_paths["map_segments"])
-    blocks = _ensure_current_export_state()
-    block = blocks.setdefault(analysis["id"], {})
-    block.update({
+    block = {
         "analysis_id": analysis["id"],
         "title": analysis["title"],
         "mode_folder": (
@@ -590,14 +617,17 @@ def register_map_export_context(
                 "solar_label": presentation_context.solar_label,
             },
         },
-    })
-    _clear_prepared_results()
+    }
+    _commit_export_registration(
+        _ensure_current_export_state(), analysis["id"], block,
+        is_map=True, family=block["mode_folder"],
+    )
 
 
 def _validated_delta_snr_outlier_export_tables(
     export_tables,
 ) -> DeltaSnrOutlierExportTables:
-    """Validate and isolate both enabled-only outlier table projections."""
+    """Validate both projections; the registration owner detaches them once."""
     if not isinstance(export_tables, DeltaSnrOutlierExportTables):
         raise TypeError(
             "Enabled Delta-SNR outlier exports require both table projections."
@@ -620,8 +650,8 @@ def _validated_delta_snr_outlier_export_tables(
                 f"Delta-SNR {table_label} export columns are invalid."
             )
     return DeltaSnrOutlierExportTables(
-        event_paths=export_tables.event_paths.copy(deep=True),
-        paired_evidence=export_tables.paired_evidence.copy(deep=True),
+        event_paths=export_tables.event_paths,
+        paired_evidence=export_tables.paired_evidence,
     )
 
 
@@ -1275,53 +1305,49 @@ def _without_drilldown_outlier_overlay(recipe):
     return sanitized_recipe
 
 
-def register_inspector_export(
-    analysis_id,
-    selected_segment,
-    selected_distance,
-    selected_direction,
-    show_non_joint,
-    evidence_time_bin,
-    selected_stations,
-    translations,
-    show_zero_target=False,
-    segment_evidence_time_bin=None,
-    selected_ranges=None,
-    selected_directions=None,
-    segment_figure_recipe=None,
-    segment_temporal_evidence_figure_recipe=None,
-    segment_temporal_snr_deviation_figure_recipe=None,
-    segment_temporal_coverage_figure_recipe=None,
-    selected_evidence_figure_recipe=None,
-    selected_station_snr_evidence_figure_recipe=None,
-    selected_station_temporal_evidence_figure_recipe=None,
-    selected_station_coverage_figure_recipe=None,
-    station_insights_df=None,
-    drilldown_selected_df=None,
-    all_drilldown_context=None,
-    reference_snr_header=None,
-    selected_station_label=None,
-    selected_station_context_label=None,
-    selected_station_role=None,
-    selected_evidence_figure_descriptions=None,
-    allow_multiple_selected_stations=False,
-    report_delta_snr_outlier_candidates=False,
-    delta_snr_outlier_detector_version=None,
-    delta_snr_outlier_detection_policy=None,
-    delta_snr_outlier_export_tables=None,
-    delta_snr_outlier_export_metadata=None,
-    drilldown_zoom_metadata=None,
-    drilldown_zoom_performance_snr_figure_recipe=None,
-    drilldown_zoom_performance_temporal_figure_recipe=None,
-    drilldown_zoom_benchmark_delta_snr_figure_recipe=None,
-    drilldown_zoom_benchmark_coverage_figure_recipe=None,
-):
-    """Register localized Inspector state for lazy high-resolution export.
-
-    Performance selected-station artifacts remain bounded to one path.
-    Benchmark callers may explicitly register an ordered multi-path selection.
-    Validate that boundary before mutating pending export state.
-    """
+def register_inspector_export(payload: InspectorExportPayload, translations):
+    """Validate a typed draft, then atomically publish its owned export content."""
+    if not isinstance(payload, InspectorExportPayload):
+        raise TypeError("Inspector export registration requires InspectorExportPayload.")
+    fields = payload.to_registration_values()
+    analysis_id = fields["analysis_id"]
+    selected_segment = fields["selected_segment"]
+    selected_distance = fields["selected_distance"]
+    selected_direction = fields["selected_direction"]
+    show_non_joint = fields["show_non_joint"]
+    evidence_time_bin = fields["evidence_time_bin"]
+    selected_stations = fields["selected_stations"]
+    show_zero_target = fields["show_zero_target"]
+    segment_evidence_time_bin = fields["segment_evidence_time_bin"]
+    selected_ranges = fields["selected_ranges"]
+    selected_directions = fields["selected_directions"]
+    segment_figure_recipe = fields["segment_figure_recipe"]
+    segment_temporal_evidence_figure_recipe = fields["segment_temporal_evidence_figure_recipe"]
+    segment_temporal_snr_deviation_figure_recipe = fields["segment_temporal_snr_deviation_figure_recipe"]
+    segment_temporal_coverage_figure_recipe = fields["segment_temporal_coverage_figure_recipe"]
+    selected_evidence_figure_recipe = fields["selected_evidence_figure_recipe"]
+    selected_station_snr_evidence_figure_recipe = fields["selected_station_snr_evidence_figure_recipe"]
+    selected_station_temporal_evidence_figure_recipe = fields["selected_station_temporal_evidence_figure_recipe"]
+    selected_station_coverage_figure_recipe = fields["selected_station_coverage_figure_recipe"]
+    station_insights_df = fields["station_insights_df"]
+    drilldown_selected_df = fields["drilldown_selected_df"]
+    all_drilldown_context = fields["all_drilldown_context"]
+    reference_snr_header = fields["reference_snr_header"]
+    selected_station_label = fields["selected_station_label"]
+    selected_station_context_label = fields["selected_station_context_label"]
+    selected_station_role = fields["selected_station_role"]
+    selected_evidence_figure_descriptions = fields["selected_evidence_figure_descriptions"]
+    allow_multiple_selected_stations = fields["allow_multiple_selected_stations"]
+    report_delta_snr_outlier_candidates = fields["report_delta_snr_outlier_candidates"]
+    delta_snr_outlier_detector_version = fields["delta_snr_outlier_detector_version"]
+    delta_snr_outlier_detection_policy = fields["delta_snr_outlier_detection_policy"]
+    delta_snr_outlier_export_tables = fields["delta_snr_outlier_export_tables"]
+    delta_snr_outlier_export_metadata = fields["delta_snr_outlier_export_metadata"]
+    drilldown_zoom_metadata = fields["drilldown_zoom_metadata"]
+    drilldown_zoom_performance_snr_figure_recipe = fields["drilldown_zoom_performance_snr_figure_recipe"]
+    drilldown_zoom_performance_temporal_figure_recipe = fields["drilldown_zoom_performance_temporal_figure_recipe"]
+    drilldown_zoom_benchmark_delta_snr_figure_recipe = fields["drilldown_zoom_benchmark_delta_snr_figure_recipe"]
+    drilldown_zoom_benchmark_coverage_figure_recipe = fields["drilldown_zoom_benchmark_coverage_figure_recipe"]
     if selected_stations is None:
         selected_stations = []
     elif not isinstance(selected_stations, (list, tuple)):
@@ -1458,7 +1484,7 @@ def register_inspector_export(
         raise ValueError(
             "Drill-Down zoom recipes do not match the registered result family."
         )
-    block = blocks.setdefault(analysis_id, {"analysis_id": analysis_id})
+    block = {}
     selected_station_count = len(selected_stations)
     block.update({
         "selected_segment": selected_segment,
@@ -1500,8 +1526,8 @@ def register_inspector_export(
         "selected_station_coverage_figure_recipe": (
             selected_station_coverage_figure_recipe
         ),
-        "table_station_insights_current_segment.csv": station_insights_df.copy() if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
-        "table_drilldown_selected_stations.csv": drilldown_selected_df.copy() if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
+        "table_station_insights_current_segment.csv": station_insights_df if isinstance(station_insights_df, pd.DataFrame) else pd.DataFrame(),
+        "table_drilldown_selected_stations.csv": drilldown_selected_df if isinstance(drilldown_selected_df, pd.DataFrame) else pd.DataFrame(),
         "all_drilldown_context": all_drilldown_context,
         "reference_snr_header": reference_snr_header,
     })
@@ -1560,6 +1586,10 @@ def register_inspector_export(
             else:
                 block[recipe_key] = recipe
 
+    _commit_export_registration(
+        blocks, analysis_id, block, is_map=False, family=payload.family,
+    )
+
 
 def _selected_evidence_weighting_label(selected_station_count, translations):
     """Return localized human-readable weighting metadata for a selection."""
@@ -1572,7 +1602,7 @@ def _selected_evidence_weighting_label(selected_station_count, translations):
 
 def _without_delta_snr_outlier_markers(recipe):
     """Remove stale marker payloads from an explicitly disabled export recipe."""
-    if not isinstance(recipe, dict) or "delta_snr_outlier_markers" not in recipe:
+    if not isinstance(recipe, Mapping) or "delta_snr_outlier_markers" not in recipe:
         return recipe
     sanitized_recipe = dict(recipe)
     sanitized_recipe.pop("delta_snr_outlier_markers", None)
@@ -1595,47 +1625,6 @@ def _benchmark_evidence_figure_descriptions(block):
                 descriptions[figure_name] = description
                 break
     return descriptions
-
-
-def _benchmark_evidence_recipe_signature(block):
-    """Fingerprint compact Benchmark recipes without serializing plot arrays."""
-    recipe_signatures = []
-    for figure_name, recipe_key, title_keys in BENCHMARK_EVIDENCE_FIGURE_EXPORTS:
-        recipe = block.get(recipe_key)
-        if recipe is None:
-            continue
-        description = None
-        if isinstance(recipe, dict):
-            for title_key in title_keys:
-                title_value = recipe.get(title_key)
-                if title_value is None:
-                    continue
-                normalized_title = str(title_value).strip()
-                if normalized_title:
-                    description = normalized_title
-                    break
-        recipe_signatures.append(
-            {
-                "filename": figure_name,
-                "kind": (
-                    recipe.get("kind")
-                    if isinstance(recipe, dict)
-                    else type(recipe).__name__
-                ),
-                "schema_version": (
-                    recipe.get("schema_version")
-                    if isinstance(recipe, dict)
-                    else None
-                ),
-                "time_bin": (
-                    recipe.get("time_bin")
-                    if isinstance(recipe, dict)
-                    else None
-                ),
-                "description": description,
-            }
-        )
-    return recipe_signatures
 
 
 def _drilldown_zoom_figure_exports(block):
@@ -1679,125 +1668,6 @@ def _drilldown_zoom_metadata_for_block(block):
     portable_metadata = deepcopy(dict(metadata))
     portable_metadata["figures"] = _drilldown_zoom_figure_descriptions(block)
     return portable_metadata
-
-
-def _drilldown_zoom_recipe_signature(block):
-    """Fingerprint focused metadata and compact recipe presentation contracts."""
-    metadata = _drilldown_zoom_metadata_for_block(block)
-    if metadata is None:
-        return None
-    recipes = []
-    for figure_name, recipe_key, title_keys in _drilldown_zoom_figure_exports(
-        block
-    ):
-        recipe = block.get(recipe_key)
-        if not isinstance(recipe, Mapping):
-            continue
-        recipes.append(
-            {
-                "filename": figure_name,
-                "kind": recipe.get("kind"),
-                "schema_version": recipe.get("schema_version"),
-                "layout_version": recipe.get("layout_version"),
-                "time_bin": recipe.get("time_bin"),
-                "resolution": recipe.get("resolution"),
-                "aggregation": recipe.get("aggregation"),
-                "outlier_overlay": (
-                    _drilldown_zoom_outlier_overlay_signature(
-                        recipe.get("outlier_overlay")
-                    )
-                ),
-                "titles": {
-                    title_key: recipe.get(title_key)
-                    for title_key in title_keys
-                    if recipe.get(title_key) is not None
-                },
-            }
-        )
-    return {"metadata": metadata, "recipes": recipes}
-
-
-def _drilldown_zoom_outlier_overlay_signature(overlay):
-    """Return compact exact detector-guide identity for export invalidation."""
-    if not isinstance(overlay, Mapping):
-        return None
-    fields = (
-        "schema_version",
-        "normalization",
-        "representative_utc_ns",
-        "representative_delta_snr_db",
-        "qualifying_marker_count",
-        "candidate_start_utc_ns",
-        "candidate_end_utc_ns",
-        "native_evidence_unit_width_ns",
-        "focused_episode_visual_start_utc_ns",
-        "focused_episode_visual_end_utc_ns",
-        "local_baseline_db",
-        "pre_baseline_db",
-        "post_baseline_db",
-        "pre_flank_utc_ns",
-        "post_flank_utc_ns",
-        "robust_spread_db",
-        "robust_spread_method",
-        "minimum_robust_z",
-        "minimum_departure_db",
-        "absolute_departure_lower_db",
-        "absolute_departure_upper_db",
-        "robust_z_guides",
-        "labels",
-    )
-    signature = {field: deepcopy(overlay.get(field)) for field in fields}
-    for field in (
-        "qualifying_marker_utc_ns",
-        "qualifying_marker_delta_snr_db",
-    ):
-        marker_values = overlay.get(field, ())
-        try:
-            signature[field] = [
-                int(value) if field.endswith("utc_ns") else float(value)
-                for value in marker_values
-            ]
-        except (TypeError, ValueError, OverflowError):
-            signature[field] = deepcopy(marker_values)
-    return signature
-
-
-def _delta_snr_outlier_recipe_signature(recipe):
-    """Return compact marker identity without serializing temporal plot arrays."""
-    if not isinstance(recipe, dict):
-        return None
-    marker_recipe = recipe.get("delta_snr_outlier_markers")
-    if not isinstance(marker_recipe, dict):
-        return None
-    return {
-        "schema_version": marker_recipe.get("schema_version"),
-        "detector_version": marker_recipe.get("detector_version"),
-        "detection_resolution": marker_recipe.get("detection_resolution"),
-        "detection_policy_signature": marker_recipe.get(
-            "detection_policy_signature"
-        ),
-        "candidate_count": marker_recipe.get("candidate_count"),
-        "candidate_signature": marker_recipe.get("candidate_signature"),
-        "legend_label": marker_recipe.get("legend_label"),
-        "markers": [
-            {
-                "callsign": marker.get("callsign"),
-                "locator": marker.get("locator"),
-                "marker_utc_ns": marker.get("marker_utc_ns"),
-                "marker_delta_snr_db": marker.get("marker_delta_snr_db"),
-                "episode_start_utc_ns": marker.get(
-                    "episode_start_utc_ns"
-                ),
-                "episode_end_utc_ns": marker.get("episode_end_utc_ns"),
-                "event_kind": marker.get("event_kind"),
-                "detection_policy_signature": marker.get(
-                    "detection_policy_signature"
-                ),
-            }
-            for marker in marker_recipe.get("markers", ())
-            if isinstance(marker, Mapping)
-        ],
-    }
 
 
 def _should_annotate_reference_correction(column_name, reference_snr_header=None):
@@ -1995,7 +1865,7 @@ def _canonical_export_analysis_id(block, analysis_direction):
     return f"{direction}_{result_mode}" if direction else result_mode
 
 
-def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
+def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None, *, payload=None):
     """Combine saved inputs with registered per-result provenance, leaving unknowns null."""
     settings = config_payload.get("settings", {})
     core_parameters = settings.get("core_parameters", {})
@@ -2029,9 +1899,9 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
     return {
         "app": CONFIG_APP_NAME,
         "version": APP_VERSION,
-        "export_signature": _export_signature(blocks),
-        "exported_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-        "language": st.session_state.get("lang"),
+        "export_signature": payload.signature if payload is not None else _export_signature(blocks),
+        "exported_utc": payload.exported_utc if payload is not None else datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "language": payload.language if payload is not None else st.session_state.get("lang"),
         "run_mode": str(core_parameters.get("analysis_direction", "")).upper(),
         "database_source": database_source,
         "blocks_present": {
@@ -2145,25 +2015,6 @@ def _build_run_metadata(blocks, config_payload, analysis_cache_paths=None):
     }
 
 
-def _table_content_signature(df):
-    """Fingerprint one registered table's schema, order, and canonical values."""
-    if not isinstance(df, pd.DataFrame):
-        return None
-    normalized = df.astype(object).where(pd.notna(df), None)
-    payload = {
-        "columns": [str(column) for column in normalized.columns],
-        "rows": normalized.to_dict(orient="records"),
-    }
-    serialized = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
-        default=_json_default,
-    ).encode("utf-8")
-    return hashlib.sha256(serialized).hexdigest()
-
-
 def _artifact_export_signature(path_value):
     """Return path-free identity and stat inputs for one immutable artifact."""
     if not isinstance(path_value, (str, Path)) or not str(path_value).strip():
@@ -2221,126 +2072,115 @@ def _map_context_export_signature(context):
     return safe_context
 
 
-def _export_signature(blocks):
-    """Return a compact fingerprint for registered state and render contracts."""
-    payload = []
-    for key, block in sorted(blocks.items()):
-        payload.append({
-            "key": key,
-            "performance_distance_export_render_version": (
-                PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION
-                if block.get("mode_folder") == PERFORMANCE_EXPORT_FOLDER
-                else None
-            ),
-            "temporal_snr_export_render_version": (
-                TEMPORAL_SNR_EXPORT_RENDER_VERSION
-            ),
-            "temporal_evidence_layout_version": (
-                TEMPORAL_EVIDENCE_LAYOUT_VERSION
-            ),
-            "temporal_iqr_band_alpha": TEMPORAL_IQR_BAND_ALPHA,
-            "analysis_id": block.get("analysis_id"),
-            "title": block.get("title"),
-            "mode_folder": block.get("mode_folder"),
-            "database_source": block.get("database_source"),
-            "decode_filter_mode": block.get("decode_filter_mode"),
-            "selected_segment": block.get("selected_segment"),
-            "selected_distance": block.get("selected_distance"),
-            "selected_direction": block.get("selected_direction"),
-            "selected_ranges": block.get("selected_ranges", []),
-            "selected_directions": block.get("selected_directions", []),
-            "selected_stations": block.get("selected_stations", []),
-            "selected_station_label": block.get("selected_station_label"),
-            "selected_station_context": block.get(
-                "selected_station_context_label"
-            ),
-            "selected_station_count": block.get(
-                "selected_station_count",
-                len(block.get("selected_stations", [])),
-            ),
-            "selected_station_role": block.get("selected_station_role"),
-            "selected_evidence_weighting": block.get(
-                "selected_evidence_weighting"
-            ),
-            "selected_evidence_figures": block.get(
-                "selected_evidence_figure_descriptions",
-                {},
-            ),
-            "benchmark_evidence_recipes": (
-                _benchmark_evidence_recipe_signature(block)
-            ),
-            **(
-                {
-                    "drilldown_zoom": (
-                        _drilldown_zoom_recipe_signature(block)
-                    )
-                }
-                if isinstance(
-                    block.get("drilldown_zoom_metadata"),
-                    Mapping,
-                )
-                else {}
-            ),
-            **(
-                {
-                    "report_delta_snr_outlier_candidates": True,
-                    "delta_snr_outlier_detector_version": block.get(
-                        "delta_snr_outlier_detector_version"
-                    ),
-                    "delta_snr_outlier_detection_policy": block.get(
-                        "delta_snr_outlier_detection_policy"
-                    ),
-                    "delta_snr_outlier_export": block.get(
-                        "delta_snr_outlier_export"
-                    ),
-                    "delta_snr_outlier_event_paths_table": (
-                        _table_content_signature(
-                            block.get(OUTLIER_EVENT_PATHS_TABLE_FILENAME)
-                        )
-                    ),
-                    "delta_snr_outlier_paired_evidence_table": (
-                        _table_content_signature(
-                            block.get(OUTLIER_PAIRED_EVIDENCE_TABLE_FILENAME)
-                        )
-                    ),
-                    "segment_delta_snr_outlier_markers": (
-                        _delta_snr_outlier_recipe_signature(
-                            block.get(
-                                "segment_temporal_evidence_figure_recipe"
-                            )
-                        )
-                    ),
-                    "selected_delta_snr_outlier_markers": (
-                        _delta_snr_outlier_recipe_signature(
-                            block.get("selected_evidence_figure_recipe")
-                        )
-                    ),
-                }
-                if block.get("report_delta_snr_outlier_candidates") is True
-                else {}
-            ),
-            "show_non_joint": block.get("show_non_joint"),
-            "show_zero_target": block.get("show_zero_target"),
-            "evidence_time_bin": block.get("evidence_time_bin"),
-            "segment_evidence_time_bin": block.get("segment_evidence_time_bin"),
-            "map_context": _map_context_export_signature(
-                block.get("map_context")
-            ),
-            "station_table_content": _table_content_signature(
-                block.get("table_station_insights_current_segment.csv")
-            ),
-            "selected_drilldown_content": _table_content_signature(
-                block.get("table_drilldown_selected_stations.csv")
-            ),
-            "all_drilldown_station_count": len((block.get("all_drilldown_context") or {}).get("station_meta_df", [])),
-        })
-    canonical_payload = json.dumps(
-        payload,
-        sort_keys=True,
-        separators=(",", ":"),
-        default=_json_default,
+def _export_signature(
+    blocks, translations=None, *, captured_config_signature=None,
+    captured_language=None, captured_run_id=None, captured_translation_signature=None,
+):
+    """Identify a run, owned content, presentation, metadata and render contracts.
+
+    Registered tables and recipes contribute their captured digests, so footer
+    rerenders never walk those rows or copy arrays. Artifact touches do not alter
+    identity; registered generation paths, availability and sizes still do.
+    Run ID plus owned scientific inputs and artifact generation remain stable
+    when the completed-run commit marker is published after the first footer.
+    """
+    language = (
+        st.session_state.get("lang", "en")
+        if captured_language is None else captured_language
     )
-    return hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
+    block_signatures = []
+    for key, block in blocks.items():
+        if isinstance(block, RegisteredExportBlock):
+            signature = block.signature
+        else:
+            map_fields, inspector_fields = split_export_block(block)
+            signature = content_signature((
+                content_signature(map_fields), content_signature(inspector_fields),
+            ))
+        block_signatures.append((
+            key, signature,
+            _map_context_export_signature(block.get("map_context")),
+            PERFORMANCE_DISTANCE_EXPORT_RENDER_VERSION
+            if block.get("mode_folder") == PERFORMANCE_EXPORT_FOLDER else None,
+        ))
+    return content_signature({
+        "run_id": _current_run_id() if captured_run_id is None else captured_run_id,
+        "app_version": APP_VERSION,
+        "config": (
+            build_config_state_signature(title=None, state=st.session_state)
+            if captured_config_signature is None else captured_config_signature
+        ),
+        "language": language,
+        "translations": (
+            content_signature(
+                translations if translations is not None else T.get(language, T["en"])
+            ) if captured_translation_signature is None else captured_translation_signature
+        ),
+        "blocks": block_signatures,
+        "render_versions": (
+            TEMPORAL_SNR_EXPORT_RENDER_VERSION, TEMPORAL_EVIDENCE_LAYOUT_VERSION,
+            TEMPORAL_IQR_BAND_ALPHA, TEMPORAL_IQR_EXPORT_LINEWIDTH,
+            DRILLDOWN_ZOOM_EXPORT_SCHEMA_VERSION,
+        ),
+    })
+
+
+def _exportable_blocks(blocks):
+    return {
+        key: block for key, block in blocks.items()
+        if block.get("mode_folder") in EXPORTABLE_RESULT_FOLDERS
+    }
+
+
+def _capture_export_package(translations, blocks=None):
+    """Capture package content before queueing, without preparing any figures."""
+    blocks = _ensure_current_export_state() if blocks is None else blocks
+    exportable_blocks = _exportable_blocks(blocks)
+    if not exportable_blocks:
+        return None
+    owned_blocks = {
+        key: block if isinstance(block, RegisteredExportBlock)
+        else RegisteredExportBlock.capture(block)
+        for key, block in exportable_blocks.items()
+    }
+    run_id = _current_run_id()
+    language = st.session_state.get("lang", "en")
+    config_bytes, _ = build_config_payload(state=st.session_state, language=language)
+    config_payload = json.loads(config_bytes.decode("utf-8"))
+    config_signature = hashlib.sha256(json.dumps(
+        {
+            "settings": config_payload["settings"],
+            "profile": config_payload.get("profile"),
+            "extensions": config_payload.get("extensions", {}),
+        },
+        sort_keys=True, ensure_ascii=False, allow_nan=False, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    owned_translations = OwnedExportContent.capture(translations)
+    exported_utc = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return ExportPackagePayload(
+        blocks=tuple(owned_blocks.items()),
+        config_bytes=config_bytes,
+        translations=owned_translations,
+        language=language,
+        run_id=run_id,
+        signature=_export_signature(
+            owned_blocks, translations, captured_config_signature=config_signature,
+            captured_language=language, captured_run_id=run_id,
+            captured_translation_signature=owned_translations.signature,
+        ),
+        exported_utc=exported_utc,
+        root_folder=f"WSPRadar_export_{datetime.now().strftime('%Y_%m_%d__%H_%M')}",
+    )
+
+
+def _package_is_current(payload: ExportPackagePayload, translations=None) -> bool:
+    """Discard a queued package if its published inputs have since changed."""
+    if payload.run_id != _current_run_id():
+        return False
+    return payload.signature == _export_signature(
+        _exportable_blocks(_ensure_current_export_state()),
+        translations,
+    )
 
 
 def _safe_analysis_filename(analysis_id):
@@ -2371,7 +2211,7 @@ def _analysis_cache_export_paths(blocks):
     return paths
 
 
-def _render_map_png_for_block(block):
+def _render_map_png_for_block(block, *, translations=None):
     """Render a light-theme map from its compact registered aggregate pair."""
     analysis_id = str(block.get("analysis_id", ""))
     context = block.get("map_context")
@@ -2443,7 +2283,9 @@ def _render_map_png_for_block(block):
         analysis_context = AnalysisContext.from_dict(context["analysis_context"])
         presentation_values = context["presentation_context"]
         presentation_language = presentation_values["language"]
-        presentation_labels = T[presentation_language]
+        presentation_labels = (
+            T[presentation_language] if translations is None else translations
+        )
         presentation_context = PresentationContext(
             language=presentation_language,
             labels=presentation_labels,
@@ -2597,7 +2439,7 @@ def _render_inspector_png_for_block(block, figure_name):
     finally:
         dispose_matplotlib_figure(fig)
 
-def _build_all_drilldown_for_block(block):
+def _build_all_drilldown_for_block(block, *, translations=None):
     """Load and build the full-segment drill-down table only during ZIP preparation."""
     context = block.get("all_drilldown_context") or {}
     map_context = block.get("map_context") or {}
@@ -2610,7 +2452,7 @@ def _build_all_drilldown_for_block(block):
     from ui.inspector.drilldown import _build_drilldown_table, _load_station_rows_for_drilldown
 
     lang = context.get("lang", "en")
-    t = T.get(lang, T["en"])
+    t = T.get(lang, T["en"]) if translations is None else translations
     try:
         station_rows_df = _load_station_rows_for_drilldown(
             parquet_path,
@@ -2652,22 +2494,20 @@ def _build_all_drilldown_for_block(block):
         return pd.DataFrame()
 
 
-def build_results_zip(translations):
-    """Build a results ZIP with localized human-readable presentation metadata."""
-    blocks = _ensure_current_export_state()
-    exportable_blocks = {
-        key: block for key, block in blocks.items()
-        if block.get("mode_folder") in EXPORTABLE_RESULT_FOLDERS
-    }
-    if not exportable_blocks:
+def build_results_zip(translations, *, payload: ExportPackagePayload | None = None):
+    """Build exactly one captured package, retaining established wire projections."""
+    payload = _capture_export_package(translations) if payload is None else payload
+    if payload is None:
         return None, None
-
-    config_bytes, _ = build_config_payload()
+    exportable_blocks = payload.materialize_blocks()
+    translations = payload.translations.materialize()
+    config_bytes = payload.config_bytes
     config_payload = json.loads(config_bytes.decode("utf-8"))
     analysis_cache_paths = _analysis_cache_export_paths(exportable_blocks)
-    metadata = _build_run_metadata(exportable_blocks, config_payload, analysis_cache_paths)
-    timestamp_local = datetime.now().strftime("%Y_%m_%d__%H_%M")
-    root = f"WSPRadar_export_{timestamp_local}"
+    metadata = _build_run_metadata(
+        exportable_blocks, config_payload, analysis_cache_paths, payload=payload,
+    )
+    root = payload.root_folder
 
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -2729,7 +2569,7 @@ def build_results_zip(translations):
             }
             for figure_name in figure_names:
                 png_bytes = (
-                    _render_map_png_for_block(block)
+                    _render_map_png_for_block(block, translations=translations)
                     if figure_name == "figure_map_highres.png"
                     else _render_inspector_png_for_block(block, figure_name)
                 )
@@ -2749,7 +2589,9 @@ def build_results_zip(translations):
                 if png_bytes:
                     zf.writestr(f"{root}/{folder}/{figure_name}", png_bytes)
 
-            lazy_all_drilldown_df = _build_all_drilldown_for_block(block)
+            lazy_all_drilldown_df = _build_all_drilldown_for_block(
+                block, translations=translations,
+            )
             for table_name in [
                 "table_station_insights_current_segment.csv",
                 "table_drilldown_selected_stations.csv",
@@ -2807,8 +2649,11 @@ def build_results_zip(translations):
     return zip_buf.getvalue(), f"{root}.zip"
 
 
-def _prepare_results_zip_with_admission(t):
+def _prepare_results_zip_with_admission(t, *, payload=None):
     """Wait for export capacity and build one prepared result package."""
+    payload = _capture_export_package(t) if payload is None else payload
+    if payload is None:
+        return None, None
     queue_slot = st.empty()
     waiting_status = None
     waiting_body = None
@@ -2881,7 +2726,7 @@ def _prepare_results_zip_with_admission(t):
         with permit:
             permit.touch()
             with st.spinner(t["msg_preparing_all_results"]):
-                result = build_results_zip(t)
+                result = build_results_zip(t, payload=payload)
         if not result[0]:
             export_outcome = "empty"
         return result
@@ -2950,7 +2795,7 @@ def render_download_all_results(t):
     if not exportable_blocks:
         return
 
-    signature = _export_signature(exportable_blocks)
+    signature = _export_signature(exportable_blocks, t)
     if st.session_state.get(EXPORT_ZIP_SIGNATURE_KEY) != signature:
         _clear_prepared_results()
 
@@ -2992,11 +2837,12 @@ def render_download_all_results(t):
             type="secondary",
             width="stretch",
         ):
-            zip_bytes, filename = _prepare_results_zip_with_admission(t)
-            if zip_bytes:
+            payload = _capture_export_package(t, exportable_blocks)
+            zip_bytes, filename = _prepare_results_zip_with_admission(t, payload=payload)
+            if zip_bytes and payload is not None and _package_is_current(payload, t):
                 st.session_state[EXPORT_ZIP_BYTES_KEY] = zip_bytes
                 st.session_state[EXPORT_ZIP_FILENAME_KEY] = filename
-                st.session_state[EXPORT_ZIP_SIGNATURE_KEY] = signature
+                st.session_state[EXPORT_ZIP_SIGNATURE_KEY] = payload.signature
                 st.download_button(
                     t["btn_download_prepared_results"],
                     data=zip_bytes,

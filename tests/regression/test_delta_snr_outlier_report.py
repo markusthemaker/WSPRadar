@@ -10,7 +10,11 @@ import pytest
 
 from core.analysis_context import AnalysisContext, COMPARISON_REFERENCE_STATION
 from i18n import T
-from ui.components import segment_inspector
+from ui.inspector import selection_state as inspector_selection
+from ui import page_navigation
+from ui.components import inspector_outliers, inspector_selected, segment_inspector
+from ui.inspector import preparation
+from ui.inspector.drilldown_focus import DRILLDOWN_OUTLIER_FOCUS_OPTION
 from ui.inspector.outlier_candidates import (
     DELTA_SNR_OUTLIER_DETECTION_RESOLUTION,
     DELTA_SNR_OUTLIER_DETECTOR_VERSION,
@@ -356,15 +360,15 @@ def test_utc_display_hides_positive_half_open_sentinel():
     impulse_entry = _report_entry(_impulse())
     burst_entry = _report_entry(_candidate("B2BBB", "BB11", 4.0))
 
-    assert segment_inspector._format_outlier_utc_range(
+    assert inspector_outliers.format_outlier_utc_range(
         impulse_entry,
         T["en"],
     ) == "01-Jun 18:38 UTC"
-    assert segment_inspector._format_outlier_utc_range(
+    assert inspector_outliers.format_outlier_utc_range(
         impulse_entry,
         T["de"],
     ) == "01.06. 18:38 UTC"
-    assert segment_inspector._format_outlier_utc_range(
+    assert inspector_outliers.format_outlier_utc_range(
         burst_entry,
         T["en"],
     ) == "01-Jun 18:38–18:46 UTC"
@@ -383,7 +387,7 @@ def test_multiple_spot_impulses_in_one_card_render_an_observed_range():
     )
 
     assert entry.event_kind == "spot_impulse"
-    assert segment_inspector._format_outlier_utc_range(entry, T["en"]) == (
+    assert inspector_outliers.format_outlier_utc_range(entry, T["en"]) == (
         "01-Jun 18:38–18:42 UTC"
     )
 
@@ -401,13 +405,13 @@ def test_default_path_summary_is_compact_and_duration_aware():
     impulse_model = _model_for_entries(_report_entry(impulse))
     burst_model = _model_for_entries(_report_entry(burst))
 
-    impulse_text = segment_inspector._format_outlier_candidate_facts(
+    impulse_text = inspector_outliers.format_outlier_candidate_facts(
         impulse,
         _report_view_model(impulse_model).cards[0],
         T["en"],
         False,
     )
-    burst_text = segment_inspector._format_outlier_candidate_facts(
+    burst_text = inspector_outliers.format_outlier_candidate_facts(
         burst,
         _report_view_model(burst_model).cards[0],
         T["en"],
@@ -527,7 +531,7 @@ def test_cycle_evidence_table_uses_joint_only_columns_in_scientific_order():
     )
     card = _report_view_model(model, comparison_units).cards[0]
 
-    table = segment_inspector._build_outlier_cycle_evidence_table(
+    table = inspector_outliers.build_outlier_cycle_evidence_table(
         card,
         T["en"],
     )
@@ -555,14 +559,14 @@ def test_single_path_selection_replaces_existing_station_insights_selection():
     """A path action selects exactly its callsign and locator identity."""
     station_identity = OutlierStationIdentity("A1AAA", "AA00")
     session_state = {
-        segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
+        inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
             {"callsign": "Z9ZZZ", "locator": "ZZ99"},
             {"callsign": "Y8YYY", "locator": "YY88"},
         ],
-        segment_inspector.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY: 2,
+        inspector_selection.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY: 2,
     }
 
-    selected = segment_inspector._select_outlier_path(
+    selected = inspector_selection.select_outlier_path(
         station_identity,
         session_state,
         analysis_id="RX_COMP",
@@ -572,10 +576,10 @@ def test_single_path_selection_replaces_existing_station_insights_selection():
 
     assert selected == [{"callsign": "A1AAA", "locator": "AA00"}]
     assert session_state[
-        segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     ] == selected
     assert session_state[
-        segment_inspector.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
     ] == 3
 
 
@@ -615,7 +619,7 @@ def test_report_entry_rejects_invalid_episode_denominators(entry_kwargs, message
     entry = _report_entry(_impulse(), **entry_kwargs)
 
     with pytest.raises(ValueError, match=message):
-        segment_inspector._validate_outlier_report_entry_counts(entry)
+        inspector_outliers.validate_outlier_report_entry_counts(entry)
 
 
 def test_episode_selection_preserves_detector_path_order():
@@ -625,10 +629,10 @@ def test_episode_selection_preserves_detector_path_order():
         _candidate("A1AAA", "AA00", 4.0),
     )
     session_state = {
-        segment_inspector.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY: 4
+        inspector_selection.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY: 4
     }
 
-    selected = segment_inspector._select_outlier_episode_paths(
+    selected = inspector_selection.select_outlier_episode_paths(
         entry,
         session_state,
         analysis_id="RX_COMP",
@@ -641,10 +645,10 @@ def test_episode_selection_preserves_detector_path_order():
         {"callsign": "A1AAA", "locator": "AA00"},
     ]
     assert session_state[
-        segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     ] == selected
     assert session_state[
-        segment_inspector.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
     ] == 5
 
 
@@ -652,11 +656,11 @@ def test_marker_adapter_condenses_all_paths_but_preserves_selected_paths():
     """Use one episode marker globally and one marker per selected path."""
     model = _episode_report_model()
 
-    all_path_recipe = segment_inspector._delta_snr_outlier_marker_recipe(
+    all_path_recipe = preparation.delta_snr_outlier_marker_recipe(
         model,
         T["en"],
     )
-    selected_path_recipe = segment_inspector._delta_snr_outlier_marker_recipe(
+    selected_path_recipe = preparation.delta_snr_outlier_marker_recipe(
         model,
         T["en"],
         pd.DataFrame(
@@ -726,7 +730,7 @@ def test_all_path_marker_ranks_individually_qualifying_representatives():
         candidate_signature="representative-ranking",
     )
 
-    marker_recipe = segment_inspector._delta_snr_outlier_marker_recipe(
+    marker_recipe = preparation.delta_snr_outlier_marker_recipe(
         model,
         T["en"],
     )
@@ -766,7 +770,7 @@ def test_marker_adapter_preserves_legacy_recipe_without_report_entries():
         marker_recipe=lambda _station_identities: dict(legacy_recipe)
     )
 
-    adapted_recipe = segment_inspector._delta_snr_outlier_marker_recipe(
+    adapted_recipe = preparation.delta_snr_outlier_marker_recipe(
         legacy_model,
         T["en"],
     )
@@ -891,7 +895,7 @@ def _install_report_streamlit_fake(
         return card
 
     monkeypatch.setattr(
-        segment_inspector,
+        inspector_outliers,
         "st",
         SimpleNamespace(
             markdown=lambda body, **_kwargs: render_state.markdown_calls.append(
@@ -904,7 +908,7 @@ def _install_report_streamlit_fake(
         ),
     )
     monkeypatch.setattr(
-        segment_inspector,
+        page_navigation,
         "request_page_navigation",
         lambda session_state, anchor_id, *, should_scroll: (
             render_state.navigation_calls.append(
@@ -914,7 +918,7 @@ def _install_report_streamlit_fake(
         raising=False,
     )
     monkeypatch.setattr(
-        segment_inspector,
+        inspector_outliers,
         "render_result_guidance_popover",
         lambda *_args, **_kwargs: None,
     )
@@ -961,15 +965,15 @@ def _install_drilldown_controls_streamlit_fake(
             )
             return self.session_state[key]
 
-    monkeypatch.setattr(segment_inspector, "st", FakeStreamlit())
+    monkeypatch.setattr(inspector_selected, "st", FakeStreamlit())
     monkeypatch.setattr(
-        segment_inspector,
+        inspector_selected,
         "render_page_anchor",
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(
-        segment_inspector,
-        "_render_drilldown_heading",
+        inspector_selected,
+        "render_drilldown_heading",
         lambda *_args, **_kwargs: None,
     )
     return render_state
@@ -990,7 +994,7 @@ def _select_outlier_candidate_for_test(
     navigation_anchor_id,
 ):
     """Apply one candidate action with the shared regression-test scope."""
-    segment_inspector._select_outlier_candidate(
+    inspector_selection.select_outlier_candidate(
         candidate,
         model,
         session_state,
@@ -1000,7 +1004,7 @@ def _select_outlier_candidate_for_test(
         navigation_anchor_id=navigation_anchor_id,
     )
     return session_state[
-        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ]
 
 
@@ -1015,7 +1019,7 @@ def _render_outlier_drilldown_controls_for_test(
         monkeypatch,
         session_state,
     )
-    control_result = segment_inspector._render_drilldown_header_and_controls(
+    control_result = inspector_selected.render_drilldown_header_and_controls(
         ["A1AAA (AA00)"],
         "RX_COMP",
         9,
@@ -1025,6 +1029,7 @@ def _render_outlier_drilldown_controls_for_test(
         False,
         AnalysisContext(comparison_mode=COMPARISON_REFERENCE_STATION),
         "en",
+        session_state=session_state,
         analysis_start_utc=model.analysis_start_utc,
         analysis_end_utc=model.analysis_end_utc,
         selected_identity=_outlier_candidate_identity(candidate),
@@ -1055,9 +1060,10 @@ def test_report_renders_one_card_per_detector_entry_without_hourly_nesting(
     report_view_model = _report_view_model(model)
     render_state = _install_report_streamlit_fake(monkeypatch)
 
-    segment_inspector._render_delta_snr_outlier_report(
+    inspector_outliers.render_delta_snr_outlier_report(
         model,
         report_view_model,
+        session_state=render_state.session_state,
         t=T["en"],
         language="en",
         analysis_id="RX_COMP",
@@ -1084,7 +1090,7 @@ def test_report_renders_one_card_per_detector_entry_without_hourly_nesting(
         assert card.metric_calls == []
     assert [len(card.expanders) for card in render_state.cards] == [0, 1]
     evidence_expander = render_state.cards[1].expanders[0]
-    expected_range = segment_inspector._format_outlier_utc_range(
+    expected_range = inspector_outliers.format_outlier_utc_range(
         model.report_entries[1],
         T["en"],
     )
@@ -1195,9 +1201,10 @@ def test_repeated_candidates_on_one_path_keep_labeled_timeframes(monkeypatch):
     report_view_model = _report_view_model(model)
     render_state = _install_report_streamlit_fake(monkeypatch)
 
-    segment_inspector._render_delta_snr_outlier_report(
+    inspector_outliers.render_delta_snr_outlier_report(
         model,
         report_view_model,
+        session_state=render_state.session_state,
         t=T["en"],
         language="en",
         analysis_id="RX_COMP",
@@ -1249,10 +1256,10 @@ def test_station_insights_actions_select_the_requested_paths(
     """Wire path and all-path actions to their exact identity sets."""
     model = _episode_report_model()
     session_state = {
-        segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
+        inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY: [
             {"callsign": "Z9ZZZ", "locator": "ZZ99"}
         ],
-        segment_inspector.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY: 4,
+        inspector_selection.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY: 4,
     }
     render_state = _install_report_streamlit_fake(
         monkeypatch,
@@ -1260,9 +1267,10 @@ def test_station_insights_actions_select_the_requested_paths(
         session_state=session_state,
     )
 
-    segment_inspector._render_delta_snr_outlier_report(
+    inspector_outliers.render_delta_snr_outlier_report(
         model,
         _report_view_model(model),
+        session_state=render_state.session_state,
         t=T["en"],
         language="en",
         analysis_id="RX_COMP",
@@ -1276,13 +1284,13 @@ def test_station_insights_actions_select_the_requested_paths(
 
     assert len(render_state.button_calls) == 7
     assert session_state[
-        segment_inspector.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_SELECTED_STATIONS_COMPARE_STATE_KEY
     ] == expected_selection
     assert session_state[
-        segment_inspector.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_SELECTION_REVISION_COMPARE_STATE_KEY
     ] == 5
     assert session_state[
-        segment_inspector.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_STATION_INSIGHTS_FOCUS_COMPARE_STATE_KEY
     ] == {
         "analysis_id": "RX_COMP",
         "run_id": 9,
@@ -1292,7 +1300,7 @@ def test_station_insights_actions_select_the_requested_paths(
     assert len(render_state.navigation_calls) == 1
     navigation_state, anchor_id, should_scroll = render_state.navigation_calls[0]
     assert navigation_state is session_state
-    assert anchor_id == segment_inspector.STATION_INSIGHTS_ANCHOR_ID
+    assert anchor_id == page_navigation.STATION_INSIGHTS_ANCHOR_ID
     assert should_scroll is True
     assert render_state.rerun_calls == [{"scope": "app"}]
 
@@ -1301,20 +1309,20 @@ def test_station_insights_actions_select_the_requested_paths(
     ("first_anchor_id", "second_anchor_id"),
     (
         (
-            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
-            segment_inspector.DRILLDOWN_ANCHOR_ID,
+            page_navigation.STATION_INSIGHTS_ANCHOR_ID,
+            page_navigation.DRILLDOWN_ANCHOR_ID,
         ),
         (
-            segment_inspector.DRILLDOWN_ANCHOR_ID,
-            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+            page_navigation.DRILLDOWN_ANCHOR_ID,
+            page_navigation.STATION_INSIGHTS_ANCHOR_ID,
         ),
         (
-            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
-            segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+            page_navigation.STATION_INSIGHTS_ANCHOR_ID,
+            page_navigation.STATION_INSIGHTS_ANCHOR_ID,
         ),
         (
-            segment_inspector.DRILLDOWN_ANCHOR_ID,
-            segment_inspector.DRILLDOWN_ANCHOR_ID,
+            page_navigation.DRILLDOWN_ANCHOR_ID,
+            page_navigation.DRILLDOWN_ANCHOR_ID,
         ),
     ),
 )
@@ -1329,7 +1337,7 @@ def test_explicit_same_candidate_navigation_rearms_outlier_focus(
     session_state = {}
     navigation_calls = []
     monkeypatch.setattr(
-        segment_inspector,
+        page_navigation,
         "request_page_navigation",
         lambda _state, anchor_id, *, should_scroll: (
             navigation_calls.append((anchor_id, should_scroll))
@@ -1342,7 +1350,7 @@ def test_explicit_same_candidate_navigation_rearms_outlier_focus(
         session_state,
         first_anchor_id,
     )
-    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+    zoom_state_keys = inspector_selection.drilldown_zoom_state_keys(
         "RX_COMP",
         9,
         "active",
@@ -1378,14 +1386,14 @@ def test_explicit_same_candidate_navigation_rearms_outlier_focus(
     )
 
     assert session_state[zoom_state_keys.zoom_widget] == (
-        segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+        DRILLDOWN_OUTLIER_FOCUS_OPTION
     )
     assert session_state[zoom_state_keys.applied_outlier_request] == (
         repeated_focus["request_token"]
     )
-    assert focus_window.option == segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+    assert focus_window.option == DRILLDOWN_OUTLIER_FOCUS_OPTION
     assert session_state[
-        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ] == repeated_focus
 
 
@@ -1401,7 +1409,7 @@ def test_different_candidate_on_same_path_replaces_focus_request(monkeypatch):
     )
     session_state = {}
     monkeypatch.setattr(
-        segment_inspector,
+        page_navigation,
         "request_page_navigation",
         lambda *_args, **_kwargs: None,
     )
@@ -1410,9 +1418,9 @@ def test_different_candidate_on_same_path_replaces_focus_request(monkeypatch):
         first_candidate,
         model,
         session_state,
-        segment_inspector.STATION_INSIGHTS_ANCHOR_ID,
+        page_navigation.STATION_INSIGHTS_ANCHOR_ID,
     )
-    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+    zoom_state_keys = inspector_selection.drilldown_zoom_state_keys(
         "RX_COMP",
         9,
         "active",
@@ -1426,7 +1434,7 @@ def test_different_candidate_on_same_path_replaces_focus_request(monkeypatch):
         second_candidate,
         model,
         session_state,
-        segment_inspector.DRILLDOWN_ANCHOR_ID,
+        page_navigation.DRILLDOWN_ANCHOR_ID,
     )
 
     assert second_focus["request_token"] != first_focus["request_token"]
@@ -1450,9 +1458,10 @@ def test_drilldown_actions_preload_exact_context_and_navigate_directly(
         session_state=session_state,
     )
 
-    segment_inspector._render_delta_snr_outlier_report(
+    inspector_outliers.render_delta_snr_outlier_report(
         model,
         _report_view_model(model),
+        session_state=render_state.session_state,
         t=T["en"],
         language="en",
         analysis_id="RX_COMP",
@@ -1465,7 +1474,7 @@ def test_drilldown_actions_preload_exact_context_and_navigate_directly(
     )
 
     focus = session_state[
-        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ]
     assert focus["analysis_id"] == "RX_COMP"
     assert focus["run_id"] == 9
@@ -1478,7 +1487,7 @@ def test_drilldown_actions_preload_exact_context_and_navigate_directly(
         focus["baseline_anchor_end_utc_ns"]
     )
     assert focus["episode_guard_minutes"] > 0.0
-    parsed_focus = segment_inspector._drilldown_outlier_context_for_scope(
+    parsed_focus = inspector_selection.drilldown_outlier_context_for_scope(
         session_state,
         analysis_id="RX_COMP",
         run_id=9,
@@ -1490,7 +1499,7 @@ def test_drilldown_actions_preload_exact_context_and_navigate_directly(
     assert parsed_focus is not None
     assert parsed_focus.request_token == focus["request_token"]
     assert render_state.navigation_calls[0][1] == (
-        segment_inspector.DRILLDOWN_ANCHOR_ID
+        page_navigation.DRILLDOWN_ANCHOR_ID
     )
     assert render_state.navigation_calls[0][2] is True
     assert render_state.rerun_calls == [{"scope": "app"}]
@@ -1504,7 +1513,7 @@ def test_missing_zoom_widget_state_rehydrates_valid_outlier_context(
     candidate = model.candidates[0]
     session_state = {}
     monkeypatch.setattr(
-        segment_inspector,
+        page_navigation,
         "request_page_navigation",
         lambda *_args, **_kwargs: None,
     )
@@ -1512,9 +1521,9 @@ def test_missing_zoom_widget_state_rehydrates_valid_outlier_context(
         candidate,
         model,
         session_state,
-        segment_inspector.DRILLDOWN_ANCHOR_ID,
+        page_navigation.DRILLDOWN_ANCHOR_ID,
     )
-    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+    zoom_state_keys = inspector_selection.drilldown_zoom_state_keys(
         "RX_COMP",
         9,
         "active",
@@ -1535,16 +1544,16 @@ def test_missing_zoom_widget_state_rehydrates_valid_outlier_context(
     )
 
     assert session_state[zoom_state_keys.zoom_widget] == (
-        segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+        DRILLDOWN_OUTLIER_FOCUS_OPTION
     )
     assert session_state[zoom_state_keys.applied_outlier_request] == (
         focus_record["request_token"]
     )
     assert session_state[
-        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
     ] == focus_record
-    assert focus_window.option == segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
-    assert focus_window.origin == segment_inspector.DRILLDOWN_OUTLIER_FOCUS_OPTION
+    assert focus_window.option == DRILLDOWN_OUTLIER_FOCUS_OPTION
+    assert focus_window.origin == DRILLDOWN_OUTLIER_FOCUS_OPTION
     assert focus_window.start_utc <= candidate.representative_utc
     assert candidate.representative_utc < focus_window.end_utc
     assert focus_time_bin == "2m"
@@ -1561,7 +1570,7 @@ def test_deliberate_zoom_off_is_not_rehydrated(monkeypatch):
     candidate = model.candidates[0]
     session_state = {}
     monkeypatch.setattr(
-        segment_inspector,
+        page_navigation,
         "request_page_navigation",
         lambda *_args, **_kwargs: None,
     )
@@ -1569,9 +1578,9 @@ def test_deliberate_zoom_off_is_not_rehydrated(monkeypatch):
         candidate,
         model,
         session_state,
-        segment_inspector.DRILLDOWN_ANCHOR_ID,
+        page_navigation.DRILLDOWN_ANCHOR_ID,
     )
-    zoom_state_keys = segment_inspector._drilldown_zoom_state_keys(
+    zoom_state_keys = inspector_selection.drilldown_zoom_state_keys(
         "RX_COMP",
         9,
         "active",
@@ -1597,7 +1606,7 @@ def test_deliberate_zoom_off_is_not_rehydrated(monkeypatch):
     assert session_state[zoom_state_keys.zoom_widget] == "off"
     assert zoom_state_keys.applied_outlier_request not in session_state
     assert (
-        segment_inspector.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
+        inspector_selection.RESULTS_DRILLDOWN_FOCUS_COMPARE_STATE_KEY
         not in session_state
     )
 
@@ -1611,9 +1620,10 @@ def test_enabled_empty_report_uses_native_cycle_counters(monkeypatch):
         _empty_model(populated=8, assessed=0, abstained=8),
         _empty_model(populated=10, assessed=7, abstained=3),
     ):
-        segment_inspector._render_delta_snr_outlier_report(
+        inspector_outliers.render_delta_snr_outlier_report(
             model,
             _report_view_model(model, pd.DataFrame()),
+            session_state=render_state.session_state,
             t=T["en"],
             language="en",
             analysis_id="RX_COMP",
@@ -1646,9 +1656,9 @@ def test_enabled_empty_report_uses_native_cycle_counters(monkeypatch):
 
 def test_report_has_no_fixed_hour_grouping_contract():
     """Keep native report entries as the sole user-visible episode model."""
-    module_source = inspect.getsource(segment_inspector)
+    module_source = inspect.getsource(inspector_outliers)
     report_source = inspect.getsource(
-        segment_inspector._render_delta_snr_outlier_report
+        inspector_outliers.render_delta_snr_outlier_report
     )
 
     assert "group_delta_snr_outlier_review_episodes" not in module_source
@@ -1659,22 +1669,22 @@ def test_report_has_no_fixed_hour_grouping_contract():
 
 def test_report_call_is_after_temporal_evidence_and_before_station_insights():
     """Preserve the requested evidence hierarchy without a new large figure."""
-    function_source = inspect.getsource(
-        segment_inspector._render_segment_inspector_body
-    )
+    function_source = inspect.getsource(segment_inspector.render_inspector_page)
     temporal_position = function_source.index(
-        "segment_temporal_export = _render_segment_temporal_evidence("
+        "segment_temporal_export = render_benchmark_segment_evidence("
     )
     report_position = function_source.index(
-        "_render_delta_snr_outlier_report(",
-        temporal_position,
+        "_render_prepared_outlier_report(", temporal_position,
     )
     station_insights_position = function_source.index(
-        "level_three_container = st.container(",
-        report_position,
+        "stations = render_benchmark_station_insights(", report_position,
     )
 
     assert temporal_position < report_position < station_insights_position
-    assert "if is_outlier_reporting_enabled:" in function_source[
+    assert "if selection.is_outlier_reporting_enabled:" in function_source[
         temporal_position:report_position
     ]
+    report_bridge_source = inspect.getsource(
+        segment_inspector._render_prepared_outlier_report
+    )
+    assert "render_delta_snr_outlier_report(" in report_bridge_source

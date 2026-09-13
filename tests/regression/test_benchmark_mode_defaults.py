@@ -1888,7 +1888,7 @@ def test_classic_context_edit_clears_established_reference_correction(monkeypatc
         "st",
         SimpleNamespace(session_state=session_state),
     )
-    monkeypatch.setattr(callbacks, "reset_audit", reset)
+    monkeypatch.setattr(callbacks, "reset_experiment_definition", reset)
 
     callbacks.handle_reference_correction_context_change()
 

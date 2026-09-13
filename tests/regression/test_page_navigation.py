@@ -271,7 +271,7 @@ def test_runtime_anchors_bound_the_top_settings_and_results_regions():
 def test_station_insights_anchor_is_allowlisted_and_precedes_its_level():
     """Give report actions one stable target immediately above Station Insights."""
     inspector_source = (
-        REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
+        REPOSITORY_ROOT / "ui" / "components" / "inspector_stations.py"
     ).read_text(encoding="utf-8")
 
     assert page_navigation.APPLICATION_ANCHOR_IDS[-2] == (
@@ -290,24 +290,24 @@ def test_station_insights_anchor_is_allowlisted_and_precedes_its_level():
 def test_drilldown_anchor_is_allowlisted_and_precedes_its_level():
     """Give focused outlier actions a stable target above Drill-Down."""
     inspector_source = (
-        REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
+        REPOSITORY_ROOT / "ui" / "components" / "inspector_selected.py"
     ).read_text(encoding="utf-8")
 
     assert page_navigation.DRILLDOWN_ANCHOR_ID in (
         page_navigation.APPLICATION_ANCHOR_IDS
     )
     helper_start = inspector_source.index(
-        "def _render_drilldown_header_and_controls("
+        "def render_drilldown_header_and_controls("
     )
     anchor_call = inspector_source.index(
         "render_page_anchor(DRILLDOWN_ANCHOR_ID)",
         helper_start,
     )
     heading_call = inspector_source.index(
-        "_render_drilldown_heading(",
+        "render_drilldown_heading(",
         anchor_call,
     )
     assert helper_start < anchor_call < heading_call
     assert inspector_source.count(
-        "_render_drilldown_header_and_controls("
+        "render_drilldown_header_and_controls("
     ) >= 3

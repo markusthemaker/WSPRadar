@@ -1522,7 +1522,7 @@ def test_run_is_complete_only_after_deferred_inspectors_finish():
 
     assert "render_segment_inspector(" in inspector_helper
     inspector_render_index = result_flow.index("_render_deferred_inspectors(")
-    snapshot_publish_index = result_flow.index("publish_completed_run_snapshot(")
+    snapshot_publish_index = result_flow.index("publish_completed_analysis_run(")
     complete_status_index = result_flow.index(
         'status_box.update(label="Complete"'
     )
@@ -1533,9 +1533,9 @@ def test_run_is_complete_only_after_deferred_inspectors_finish():
 def test_segment_heading_precedes_accessibly_labelled_scope_selectors():
     """Explain the narrowing step before compact, accessibly named controls."""
     source = (
-        REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
+        REPOSITORY_ROOT / "ui" / "components" / "inspector_scope.py"
     ).read_text(encoding="utf-8")
-    body_start = source.index("def _render_segment_inspector_body(")
+    body_start = source.index("def render_scope_controls(")
     body = source[body_start:]
 
     heading_index = body.index('"hdr_results_segment_inspector"')
@@ -1558,7 +1558,7 @@ def test_segment_heading_precedes_accessibly_labelled_scope_selectors():
     ]
     direction_selector = body[
         direction_selector_index:body.index(
-            "selected_directions = _canonical_specific_selection("
+            "selected_directions = inspector_selection.canonical_specific_selection("
         )
     ]
     assert 'placeholder=lbl_dist' in distance_selector
@@ -1598,9 +1598,9 @@ def test_loading_scope_selectors_also_hide_redundant_visible_labels():
 def test_active_scope_and_evidence_share_one_compact_markup_block():
     """Keep inherited scope and its evidence total visually inseparable."""
     source = (
-        REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
+        REPOSITORY_ROOT / "ui" / "components" / "inspector_scope.py"
     ).read_text(encoding="utf-8")
-    body_start = source.index("def _render_segment_inspector_body(")
+    body_start = source.index("def render_scope_controls(")
     body = source[body_start:]
 
     active_scope_index = body.index(
@@ -1623,31 +1623,43 @@ def test_active_scope_and_evidence_share_one_compact_markup_block():
 def test_scope_evidence_precedes_compare_and_success_figure_groups():
     """Show quantitative depth immediately after scope, before interpretation."""
     source = (
-        REPOSITORY_ROOT / "ui" / "components" / "segment_inspector.py"
+        REPOSITORY_ROOT / "ui" / "components" / "inspector_scope.py"
     ).read_text(encoding="utf-8")
+    opportunity_start = source.index("def render_performance_segment_evidence(")
+    compare_start = source.index("def render_benchmark_segment_evidence(")
+    opportunity_body = source[opportunity_start:compare_start]
+    compare_body = source[compare_start:]
 
-    opportunity_start = source.index("def _render_opportunity_scope(")
-    opportunity_end = source.index("def _render_segment_inspector_body(")
-    opportunity_body = source[opportunity_start:opportunity_end]
     assert (
         opportunity_body.index("scope_summary_placeholder.markdown(")
         < opportunity_body.index('"hdr_results_success_evidence"')
     )
     assert "segment_statistics_html(summary)" in opportunity_body
     assert "text-align:center" not in opportunity_body
-
-    inspector_body = source[opportunity_end:]
-    compare_start = inspector_body.index("comparison_subtitle_key =")
-    compare_body = inspector_body[compare_start:]
     assert (
         compare_body.index("scope_summary_placeholder.markdown(")
         < compare_body.index('"hdr_results_comparison_evidence"')
     )
     assert "segment_statistics_html(segment_summary)" in compare_body
     assert "text-align:center" not in compare_body
-    assert inspector_body.count('f"results_evidence_level_3_') == 1
-    assert inspector_body.count('f"results_evidence_level_4_') == 1
-    assert inspector_body.count('f"results_evidence_level_5_') == 1
-    assert opportunity_body.count('f"results_evidence_level_3_') == 1
-    assert opportunity_body.count('f"results_evidence_level_4_') == 1
-    assert opportunity_body.count('f"results_evidence_level_5_') == 1
+
+    station_source = (
+        REPOSITORY_ROOT / "ui" / "components" / "inspector_stations.py"
+    ).read_text(encoding="utf-8")
+    selected_source = (
+        REPOSITORY_ROOT / "ui" / "components" / "inspector_selected.py"
+    ).read_text(encoding="utf-8")
+    for mode in ("performance", "benchmark"):
+        station_start = station_source.index(f"def render_{mode}_station_insights(")
+        station_end = station_source.find("\ndef ", station_start + 1)
+        station_body = station_source[station_start:station_end or None]
+        if station_end < 0:
+            station_body = station_source[station_start:]
+        selected_start = selected_source.index(f"def render_{mode}_selected_evidence(")
+        selected_end = selected_source.find("\ndef ", selected_start + 1)
+        selected_body = selected_source[selected_start:selected_end or None]
+        if selected_end < 0:
+            selected_body = selected_source[selected_start:]
+        assert station_body.count('f"results_evidence_level_3_') == 1
+        assert selected_body.count('f"results_evidence_level_4_') == 1
+        assert selected_body.count('f"results_evidence_level_5_') == 1
