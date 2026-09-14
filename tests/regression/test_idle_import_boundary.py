@@ -38,6 +38,7 @@ forbidden_modules = (
     "core.plot_engine",
     "numpy",
     "pandas",
+    "pyarrow",
     "matplotlib",
     "requests",
     "cartopy",
@@ -141,6 +142,12 @@ def audited_import_module(name, package=None):
     return real_import_module(name, package)
 
 
+# Check the loaded modules as well as direct repository import requests. A
+# framework helper can otherwise import scientific libraries on behalf of an
+# innocent-looking browser component without appearing in the origin audit.
+initially_loaded_forbidden_modules = sorted(
+    name for name in forbidden_modules if name in sys.modules
+)
 builtins.__import__ = audited_import
 importlib.import_module = audited_import_module
 
@@ -149,6 +156,9 @@ app_test = AppTest.from_file(
     default_timeout=60,
 )
 app_test.run()
+loaded_forbidden_modules = sorted(
+    name for name in forbidden_modules if name in sys.modules
+)
 
 positive_control_request = "numpy.__wspradar_import_audit_positive_control__"
 positive_control_origin = application_origin(
@@ -165,6 +175,8 @@ forbidden_imports.discard(positive_control_record)
 
 result = {
     "app_exceptions": [str(exception.value) for exception in app_test.exception],
+    "initially_loaded_forbidden_modules": initially_loaded_forbidden_modules,
+    "loaded_forbidden_modules": loaded_forbidden_modules,
     "positive_control_detected": positive_control_detected,
     "forbidden_imports": [
         {
@@ -220,8 +232,97 @@ def test_idle_app_does_not_request_analysis_or_scientific_dependencies():
     audit_result = json.loads(result_lines[-1][len(AUDIT_RESULT_PREFIX):])
 
     assert audit_result["app_exceptions"] == []
+    assert audit_result["initially_loaded_forbidden_modules"] == [], (
+        "The fresh-process audit started with analysis-only dependencies loaded:\n"
+        + json.dumps(audit_result["initially_loaded_forbidden_modules"], indent=2)
+    )
+    assert audit_result["loaded_forbidden_modules"] == [], (
+        "The idle app loaded analysis-only dependencies directly or indirectly:\n"
+        + json.dumps(audit_result["loaded_forbidden_modules"], indent=2)
+    )
     assert audit_result["positive_control_detected"] is True
     assert audit_result["forbidden_imports"] == [], (
         "The idle app requested analysis-only imports:\n"
         + json.dumps(audit_result["forbidden_imports"], indent=2)
     )
+
+
+def test_idle_browser_component_payloads_preserve_json_transport(monkeypatch):
+    """Keep browser arrays and scalar values identical through v2 serialization."""
+    from streamlit.components.v2.bidi_component.serialization import serialize_mixed_data
+    from streamlit.proto.BidiComponent_pb2 import BidiComponent
+
+    from ui import documentation_scroll_trigger, page_navigation, url_synchronizer
+
+    component_payloads = {}
+    for module, component_attribute, component_name in (
+        (page_navigation, "_PAGE_NAVIGATION_CONTROLLER", "navigation"),
+        (documentation_scroll_trigger, "_DOCUMENTATION_SCROLL_TRIGGER", "documentation"),
+        (url_synchronizer, "_URL_QUERY_SYNCHRONIZER", "url"),
+    ):
+        monkeypatch.setattr(
+            module,
+            component_attribute,
+            lambda component_name=component_name, **kwargs: component_payloads.update(
+                {component_name: kwargs["data"]}
+            ),
+        )
+
+    page_navigation.render_page_navigation_controller(
+        {
+            "anchor_id": page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+            "request_token": "request-1",
+            "should_scroll": False,
+        },
+        analysis_submission_token="analysis-1",
+    )
+    documentation_scroll_trigger.render_documentation_scroll_trigger(
+        key="documentation-json-transport",
+        anchor_ids=("sec-2", "ref-1"),
+        documentation_language="de",
+        is_auto_expand_enabled=True,
+        is_documentation_expanded=False,
+        allow_initial_hash_expansion=True,
+        on_navigation=lambda: None,
+        on_trigger=lambda: None,
+    )
+    url_synchronizer.render_url_query_synchronizer(
+        (("v", "1"), ("callsign", "M0ABC/P"), ("note", 'Grüße & "quoted"')),
+        owned_keys=("v", "callsign", "note", "run"),
+    )
+
+    expected_browser_payloads = {
+        "navigation": {
+            "anchorIds": list(page_navigation.APPLICATION_ANCHOR_IDS),
+            "requestAnchorId": page_navigation.PARAMETER_SETTINGS_ANCHOR_ID,
+            "requestToken": "request-1",
+            "shouldScrollRequest": False,
+            "analysisSubmissionToken": "analysis-1",
+            "analysisStatusAnchorId": page_navigation.RESULTS_INSPECTION_ANCHOR_ID,
+            "analysisMapAnchorId": page_navigation.MAP_RESULTS_ANCHOR_ID,
+        },
+        "documentation": {
+            "anchorIds": ["sec-2", "ref-1"],
+            "language": "de",
+            "isAutoExpandEnabled": True,
+            "isExpanded": False,
+            "allowInitialHashExpansion": True,
+        },
+        "url": {
+            "ownedKeys": ["v", "callsign", "note", "run"],
+            "entries": [
+                ["v", "1"],
+                ["callsign", "M0ABC/P"],
+                ["note", 'Grüße & "quoted"'],
+            ],
+        },
+    }
+    assert set(component_payloads) == set(expected_browser_payloads)
+    for component_name, component_payload in component_payloads.items():
+        component_proto = BidiComponent()
+        serialize_mixed_data(component_payload, component_proto)
+
+        assert component_proto.WhichOneof("data") == "json", component_name
+        assert component_proto.json == json.dumps(
+            expected_browser_payloads[component_name]
+        ), component_name

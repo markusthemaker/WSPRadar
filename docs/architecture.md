@@ -50,6 +50,20 @@ path or database credential was found.
 - renders a Part 0 preface preview and loads the remaining manual after
   browser scroll intent or an explicit request through `ui/documentation.py`.
 
+The initial browser shell uses `img/WSPRadar-140x140.png`; the original logo
+assets remain available under `img/`. Text font faces are bundled under
+`static/fonts/` and served by Streamlit's static-file endpoint. The existing
+Rajdhani and Space Mono styles and character subsets retain `font-display:
+swap`; custom icons reuse Streamlit's Material Symbols Rounded font. The shell
+therefore needs no Google Fonts stylesheet or second icon-font download.
+
+Navigation, URL synchronization, and documentation components retain tuples
+for their plain sequence payloads. They serialize to the same browser JSON
+arrays while avoiding Streamlit 1.58's list/DataFrame inspection, which would
+otherwise import NumPy, pandas, and PyArrow during the first idle render. The
+fresh-process idle regression checks both direct application import requests
+and the modules actually loaded by the framework.
+
 The supported start command is:
 
 ```powershell

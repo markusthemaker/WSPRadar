@@ -36,12 +36,12 @@ def test_query_synchronizer_replaces_only_owned_entries_in_canonical_order(monke
     assert component_calls == [
         {
             "data": {
-                "ownedKeys": ["v", "run", "direction", "ranges"],
-                "entries": [
-                    ["v", "1"],
-                    ["direction", "RX"],
-                    ["run", "1"],
-                ],
+                "ownedKeys": ("v", "run", "direction", "ranges"),
+                "entries": (
+                    ("v", "1"),
+                    ("direction", "RX"),
+                    ("run", "1"),
+                ),
             },
             "key": "query-sync-test",
             "width": "stretch",

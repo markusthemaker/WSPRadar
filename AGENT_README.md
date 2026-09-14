@@ -344,6 +344,19 @@ The runtime source directories are regular Python packages with committed
 namespace package as a directory, and first-import `__pycache__` writes inside
 that watched directory can otherwise cause overlapping cold-start reruns.
 
+Browser fonts are bundled under `static/fonts/`, with the upstream licenses
+and source URLs recorded there. Keep `server.enableStaticServing` enabled so
+the existing Rajdhani and Space Mono faces resolve from `app/static/fonts/`.
+Custom icons reuse Streamlit's bundled Material Symbols Rounded font; do not
+restore the former Google Fonts import or reference a private hashed Streamlit
+asset URL. The header uses `img/WSPRadar-140x140.png`, while the original logos
+remain available alongside it.
+
+The idle-import regression checks framework-induced imports as well as direct
+WSPRadar imports. Keep plain sequence values in the three browser-controller
+payloads as tuples: their browser JSON is unchanged, but Streamlit 1.58 does
+not invoke scientific DataFrame detection for them.
+
 Useful files when tracing behavior:
 
 - `ui/run_controller.py`: end-to-end analysis orchestration.
@@ -475,7 +488,32 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Latest regression verification on 2026-09-14 covered the shared Guided/Classic
+Latest regression verification on 2026-09-14 covered the initial-page import
+boundary, bundled browser fonts, and the 140-pixel logo in
+`C:\Users\marku\Code\WSPRadar`. The complete foreground Windows run reported:
+
+```text
+2887 passed, 1 skipped, 1 warning in 344.08 seconds
+```
+
+The warning is the existing Matplotlib pending deprecation. The focused
+navigation, URL, documentation-controller, styling, and idle-import checks also
+passed all 83 tests. Full Python compilation, the 81-module/five-chunk manifest,
+and patch whitespace checks passed. The fresh-process audit confirms that the
+idle app leaves NumPy, pandas, and PyArrow unloaded, including indirect framework
+imports; controller payload JSON remains identical.
+
+A bounded local Streamlit smoke check returned HTTP 200 `ok`, and all 15 bundled
+font subsets returned HTTP 200 with exact file bytes. This Windows environment
+labels those static fonts `application/octet-stream`; the Chromium browser check
+rendered the intended text and icon styles without browser errors and confirmed
+the header image's natural dimensions are 140 by 140 pixels. The temporary browser
+and server were closed, with no matching server process remaining. These checks
+do not establish deployed cold-browser timings or other browser/platform results.
+The new PNG is 56,544 bytes versus 114,598 bytes for the original; its base64
+payload is 75,392 bytes versus 152,800 bytes. Original logo files remain intact.
+
+Earlier regression verification on 2026-09-14 covered the shared Guided/Classic
 stale-result fix in `C:\Users\marku\Code\WSPRadar`. The complete foreground
 Windows run reported:
 

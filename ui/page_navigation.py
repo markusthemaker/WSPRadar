@@ -590,9 +590,10 @@ def render_page_navigation_controller(
     """Mount coarse navigation and optional one-shot analysis milestones."""
     if analysis_submission_token is not None:
         _validate_navigation_attribute(analysis_submission_token, "submission token")
+    # Tuples remain JSON arrays without Streamlit's list/DataFrame inspection.
     _PAGE_NAVIGATION_CONTROLLER(
         data={
-            "anchorIds": list(APPLICATION_ANCHOR_IDS),
+            "anchorIds": APPLICATION_ANCHOR_IDS,
             "requestAnchorId": (
                 request["anchor_id"] if request is not None else None
             ),

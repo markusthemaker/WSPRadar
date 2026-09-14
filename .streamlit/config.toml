@@ -20,3 +20,5 @@ font = "monospace"
 [server]
 enableCORS = false
 enableXsrfProtection = false
+# Serve the bundled browser fonts without a third-party stylesheet request.
+enableStaticServing = true

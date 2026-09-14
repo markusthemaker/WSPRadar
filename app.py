@@ -232,7 +232,7 @@ def render_config_loader():
                     st.error(format_config_validation_error(exc, t))
 
 
-logo_base64 = get_base64_of_bin_file("img/WSPRadar.png")
+logo_base64 = get_base64_of_bin_file("img/WSPRadar-140x140.png")
 st.markdown(f"""
 <div class="header-container" style="display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(57, 255, 20, 0.3); padding-top: 0px;">
     <img class="main-logo" src="data:image/png;base64,{logo_base64}" alt="WSPRadar Logo" style="width: 140px; height: 140px; margin-right: 25px; filter: drop-shadow(0 0 10px rgba(57, 255, 20, 0.6)); padding: 5px;">

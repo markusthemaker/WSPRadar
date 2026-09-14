@@ -155,7 +155,7 @@ def test_page_navigation_controller_passes_stable_anchor_and_request_contract(
     assert component_calls == [
         {
             "data": {
-                "anchorIds": list(page_navigation.APPLICATION_ANCHOR_IDS),
+                "anchorIds": page_navigation.APPLICATION_ANCHOR_IDS,
                 "requestAnchorId": (
                     page_navigation.PARAMETER_SETTINGS_ANCHOR_ID
                 ),

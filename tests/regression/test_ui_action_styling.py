@@ -7,6 +7,84 @@ from ui import css as ui_css
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_browser_fonts_are_bundled_with_existing_styles_and_character_ranges(monkeypatch):
+    """Resolve every browser font locally without dropping a requested face."""
+    import toml
+
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st, "markdown", lambda body, **_kwargs: rendered_styles.append(body),
+    )
+    ui_css.apply_custom_css()
+    stylesheet = rendered_styles[0]
+    assert "@import" not in stylesheet
+    assert "fonts.googleapis.com" not in stylesheet
+    assert "fonts.gstatic.com" not in stylesheet
+
+    font_rules = re.findall(r"@font-face\s*\{([^}]+)\}", stylesheet)
+    requested_faces = set()
+    for rule in font_rules:
+        family = re.search(r"font-family:\s*'([^']+)'", rule).group(1)
+        weight = int(re.search(r"font-weight:\s*(\d+)", rule).group(1))
+        style = re.search(r"font-style:\s*(\w+)", rule).group(1)
+        requested_faces.add((family, weight, style))
+        assert "font-display: swap" in rule
+        assert "unicode-range:" in rule
+        relative_path = re.search(r"url\(app/static/([^)]+)\)", rule).group(1)
+        font_bytes = (REPOSITORY_ROOT / "static" / relative_path).read_bytes()
+        assert font_bytes[:4] == b"wOF2"
+        assert int.from_bytes(font_bytes[8:12], "big") == len(font_bytes)
+    assert requested_faces == {
+        ("Rajdhani", 600, "normal"),
+        ("Rajdhani", 700, "normal"),
+        ("Space Mono", 400, "normal"),
+        ("Space Mono", 700, "normal"),
+        ("Space Mono", 400, "italic"),
+    }
+    assert len(font_rules) == 15
+    config = toml.loads(
+        (REPOSITORY_ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8")
+    )
+    assert config["server"]["enableStaticServing"] is True
+    for filename in ("Rajdhani-OFL.txt", "SpaceMono-OFL.txt"):
+        assert "SIL OPEN FONT LICENSE" in (
+            REPOSITORY_ROOT / "static" / "fonts" / filename
+        ).read_text(encoding="utf-8")
+
+
+def test_custom_icons_reuse_streamlit_font_with_complete_ligature_styling(monkeypatch):
+    """Custom busy/section icons keep rendering after the Google CSS is removed."""
+    rendered_styles = []
+    monkeypatch.setattr(
+        ui_css.st, "markdown", lambda body, **_kwargs: rendered_styles.append(body),
+    )
+    ui_css.apply_custom_css()
+    stylesheet = rendered_styles[0]
+    rule = re.search(r"\.material-symbols-rounded\s*\{([^}]+)\}", stylesheet).group(1)
+    for declaration in (
+        "font-family: 'Material Symbols Rounded'",
+        "font-weight: normal", "font-style: normal", "line-height: 1",
+        "letter-spacing: normal", "text-transform: none",
+        "-webkit-font-feature-settings: 'liga'",
+    ):
+        assert declaration in rule
+    assert "MaterialSymbols-Rounded." not in stylesheet
+    assert not any("Material Symbols" in rule for rule in re.findall(
+        r"@font-face\s*\{([^}]+)\}", stylesheet,
+    ))
+
+
+def test_header_uses_the_140_pixel_logo_asset():
+    """Keep the requested small logo on the actual header path."""
+    app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")
+    assert 'get_base64_of_bin_file("img/WSPRadar-140x140.png")' in app_source
+    logo_bytes = (REPOSITORY_ROOT / "img" / "WSPRadar-140x140.png").read_bytes()
+    assert logo_bytes[:8] == b"\x89PNG\r\n\x1a\n"
+    assert int.from_bytes(logo_bytes[16:20], "big") == 140
+    assert int.from_bytes(logo_bytes[20:24], "big") == 140
+    assert len(logo_bytes) < (REPOSITORY_ROOT / "img" / "WSPRadar.png").stat().st_size
+
+
 def test_top_row_places_configuration_actions_before_view_and_language():
     """Keep setup actions first and presentation selectors last."""
     app_source = (REPOSITORY_ROOT / "app.py").read_text(encoding="utf-8")

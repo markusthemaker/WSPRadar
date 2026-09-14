@@ -107,10 +107,11 @@ def render_url_query_synchronizer(
         entries,
         owned_keys,
     )
+    # Tuples remain JSON arrays without Streamlit's list/DataFrame inspection.
     _URL_QUERY_SYNCHRONIZER(
         data={
-            "ownedKeys": list(normalized_owned_keys),
-            "entries": [list(entry) for entry in normalized_entries],
+            "ownedKeys": normalized_owned_keys,
+            "entries": normalized_entries,
         },
         key=key,
         width="stretch",

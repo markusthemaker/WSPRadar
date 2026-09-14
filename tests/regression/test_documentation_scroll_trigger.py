@@ -247,7 +247,7 @@ def test_scroll_trigger_wrapper_passes_stable_mount_and_callback_contract(monkey
     assert component_calls == [
         {
             "data": {
-                "anchorIds": ["sec-2", "ref-1"],
+                "anchorIds": ("sec-2", "ref-1"),
                 "language": "en",
                 "isAutoExpandEnabled": True,
                 "isExpanded": False,

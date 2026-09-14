@@ -4,6 +4,14 @@ This changelog summarizes major project changes by GitHub submission date (UTC),
 
 ## Unsubmitted
 
+- **Lighter first page load:** navigation and documentation controller payloads
+  avoid indirect scientific-library imports during idle startup, with an
+  expanded fresh-process regression guard. Browser text fonts are served
+  locally, custom icons reuse Streamlit's font, and the app uses a separate
+  140-pixel logo while retaining the original assets.
+  Trace: [idle import regressions](tests/regression/test_idle_import_boundary.py),
+  [browser styling](ui/css.py), [font assets](static/fonts/README.md), and
+  [app shell](app.py).
 - **Analysis progress navigation:** an accepted Run scrolls to the processing
   panel, then to the first ready map while all Inspector charts and tables
   continue preparing automatically. Manual navigation cancels the pending map

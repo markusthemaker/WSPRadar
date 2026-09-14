@@ -540,9 +540,10 @@ def render_documentation_scroll_trigger(
     on_trigger: Callable[[], None],
 ) -> None:
     """Mount the manual's viewport, navigation, and table-layout controller."""
+    # Tuples remain JSON arrays without Streamlit's list/DataFrame inspection.
     _DOCUMENTATION_SCROLL_TRIGGER(
         data={
-            "anchorIds": list(anchor_ids),
+            "anchorIds": anchor_ids,
             "language": documentation_language,
             "isAutoExpandEnabled": is_auto_expand_enabled,
             "isExpanded": is_documentation_expanded,
