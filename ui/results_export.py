@@ -2201,7 +2201,10 @@ def _analysis_cache_export_paths(blocks):
         if folder not in EXPORTABLE_RESULT_FOLDERS or not parquet_path:
             continue
         if not ARTIFACT_STORE.touch(parquet_path):
-            continue
+            raise ExportArtifactUnavailableError(
+                f"Required analysis evidence is unavailable for {block.get('analysis_id', '')}; "
+                "run the analysis again"
+            )
 
         folder_count = used_folders.get(folder, 0)
         used_folders[folder] = folder_count + 1
@@ -2442,11 +2445,21 @@ def _render_inspector_png_for_block(block, figure_name):
 def _build_all_drilldown_for_block(block, *, translations=None):
     """Load and build the full-segment drill-down table only during ZIP preparation."""
     context = block.get("all_drilldown_context") or {}
+    if not context:
+        return pd.DataFrame()
     map_context = block.get("map_context") or {}
     station_meta_df = context.get("station_meta_df")
     parquet_path = map_context.get("parquet_path")
-    if not isinstance(station_meta_df, pd.DataFrame) or station_meta_df.empty or not parquet_path:
+    if not isinstance(station_meta_df, pd.DataFrame):
+        raise ExportArtifactUnavailableError(
+            "Required Drill-Down station context is unavailable; run the analysis again"
+        )
+    if station_meta_df.empty:
         return pd.DataFrame()
+    if not parquet_path:
+        raise ExportArtifactUnavailableError(
+            "Required Drill-Down evidence is unavailable; run the analysis again"
+        )
 
     from i18n import T
     from ui.inspector.drilldown import _build_drilldown_table, _load_station_rows_for_drilldown
@@ -2490,8 +2503,10 @@ def _build_all_drilldown_for_block(block, *, translations=None):
             target_callsign=context.get("target_callsign", ""),
         )
         return drilldown_df
-    except (FileNotFoundError, KeyError, ValueError):
-        return pd.DataFrame()
+    except (OSError, KeyError, TypeError, ValueError) as exc:
+        raise ExportArtifactUnavailableError(
+            "Required Drill-Down evidence could not be prepared; run the analysis again"
+        ) from exc
 
 
 def build_results_zip(translations, *, payload: ExportPackagePayload | None = None):
@@ -2643,8 +2658,11 @@ def build_results_zip(translations, *, payload: ExportPackagePayload | None = No
                 try:
                     with ARTIFACT_STORE.lease(parquet_path) as leased_path:
                         zf.write(leased_path, f"{root}/{analysis_cache_path}")
-                except FileNotFoundError:
-                    pass
+                except (OSError, ValueError) as exc:
+                    raise ExportArtifactUnavailableError(
+                        f"Required analysis evidence could not be packaged for {block.get('analysis_id', '')}; "
+                        "run the analysis again"
+                    ) from exc
 
     return zip_buf.getvalue(), f"{root}.zip"
 

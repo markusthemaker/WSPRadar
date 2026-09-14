@@ -696,6 +696,19 @@ def build_analysis_batches(
 
     return [AnalysisPlan.from_mapping(analysis) for analysis in analyses]
 
+
+def _classify_solar_timestamps(timestamps, latitude, longitude):
+    """Classify each distinct instant once, retaining the original row alignment."""
+    if timestamps.empty:
+        # Series.apply preserves the timestamp dtype when there are no rows.
+        return timestamps.copy()
+    states_by_timestamp = {
+        timestamp: get_solar_state(timestamp, latitude, longitude)
+        for timestamp in timestamps.drop_duplicates()
+    }
+    return timestamps.map(states_by_timestamp)
+
+
 def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, timing_collector=None):
     """Apply scientific post-fetch gates before staging analysis evidence.
 
@@ -721,8 +734,8 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
         target_state = solar_path_state(analysis_context.solar_state)
         if target_state is not None:
             with _timed_span(timing_collector, "opportunity solar filter"):
-                df["solar"] = opportunity_utc_from_time_slot(df["time_slot"]).apply(
-                    lambda dt: get_solar_state(dt, lat_0, lon_0)
+                df["solar"] = _classify_solar_timestamps(
+                    opportunity_utc_from_time_slot(df["time_slot"]), lat_0, lon_0
                 )
                 df = df[df["solar"] == target_state]
 
@@ -800,7 +813,7 @@ def apply_post_fetch_filters(df, analysis, analysis_context, lat_0, lon_0, t, ti
             else:
                 df['dt_time'] = pd.to_datetime(df['time'])
 
-            df['solar'] = df['dt_time'].apply(lambda dt: get_solar_state(dt, lat_0, lon_0))
+            df['solar'] = _classify_solar_timestamps(df['dt_time'], lat_0, lon_0)
             df = df[df['solar'] == target_state]
 
     # 2. Exclude moving stations.

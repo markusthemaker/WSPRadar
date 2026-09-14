@@ -470,7 +470,182 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Latest complete serial measurement on 2026-09-13 through the Windows launcher,
+Latest complete serial verification on 2026-09-14 ran directly in
+`C:\Users\marku\Code\WSPRadar` after the approved Performance temporal-key
+preparation and shared temporal bar-collection changes. All charts and offered
+time-bin variants remain prepared immediately. Temporal layout version 3
+invalidates prior preview and prepared-export render caches; scientific recipe
+schemas and persisted evidence remain unchanged.
+
+```text
+2831 passed, 1 skipped, 1 warning in 296.87 seconds
+```
+
+The canonical Windows launcher used
+`--basetemp=.test/pytest-temporal-full-20260913` and
+`--override-ini=cache_dir=.test/pytest-cache-temporal-full-20260913`, preserving
+the existing ownership of older temporary directories. The 81-module manifest,
+full Python compilation, tracked patch whitespace and new-file whitespace checks
+passed. The suite includes 31 new cases for compact station/time keys, timestamp
+resolution, count widening, selected-station raw SNR, categorical identity
+matching, caller ownership, exact bar geometry and preview/export raster checks.
+
+Offline comparisons loaded the actual cached Griffiths Performance and Benchmark
+analyses from the supplied performance log. The 638,847-row Performance input
+produced the exact same complete scope and selected-station recipes for all six
+one-hour through 24-hour variants. Eight additional edge cases covered shared
+callsigns at different locators, unequal coverage, unused categorical levels,
+missing identities, empty evidence, count totals above 255, compatible nonbinary
+inputs and unequal selected-station SNR depth. The original artifacts retained
+their hashes and timestamps; full-chart comparisons also verified that source
+DataFrames were unchanged.
+
+Local timings below are medians of three alternating before/after samples against
+saved pre-change functions, with no concurrent test or benchmark run. Renderer
+measurements exclude one warm-up per implementation and include figure
+construction plus a 100-DPI canvas draw, excluding PNG encoding and browser
+painting. They are component measurements, not an end-to-end or concurrent
+Community Cloud speedup.
+
+| Component | Before | After | Component speedup |
+| --- | ---: | ---: | ---: |
+| Performance scope temporal preparation, all six variants | 5.617 s | 4.273 s | 1.31x |
+| Performance selected temporal preparation, all six variants | 0.746 s | 0.729 s | Essentially unchanged |
+| Performance selected outcome chart, six-hour bins | 1.902 s | 0.832 s | 2.29x |
+| Performance scope outcome chart, one-hour bins | 6.473 s | 0.890 s | 7.28x |
+| Benchmark scope coverage chart, one-hour bins | 9.376 s | 1.091 s | 8.60x |
+
+The Performance scope's prepared temporal DataFrame decreased from 47,822,160
+to 35,351,874 bytes (45.6 to 33.7 MiB, 26.1%). This is the materialized
+DataFrame size, not peak process memory. The one-hour Performance scope chart
+uses eight bar collections instead of 2,976 Rectangle artists; the Benchmark
+scope chart uses twelve collections instead of 4,464 Rectangles.
+
+Eight full-chart comparisons covered Performance and Benchmark, scope and
+selected station, English 100-DPI previews and German 300-DPI exports. All
+recipes, drawn polygon coordinates, axes and text matched exactly. Seven images
+were pixel-identical. One Benchmark selected-station preview differed at 15
+bar-edge pixels out of 728,000 (0.0021%) despite exact geometry; the corresponding
+export image was identical. Visual inspection found no perceptible change.
+No provider requests, commits, pushes, deployment or Cloud load test were made.
+
+Previous complete serial verification on 2026-09-13 ran directly in
+`C:\Users\marku\Code\WSPRadar` after selective transfer of the three
+correctness fixes and four performance optimizations. The checkout retained its
+newer Benchmark folded-date annotation behavior and temporal layout version 2.
+
+```text
+2800 passed, 1 skipped, 1 warning in 288.66 seconds
+```
+
+The canonical Windows launcher used
+`--basetemp=.test/pytest-transfer-20260913` and
+`--override-ini=cache_dir=.test/pytest-cache-transfer-20260913`. Its default
+temporary and cache directories were owned by another Windows account and
+rejected cleanup; the initial focused run therefore had 407 passes and 112
+setup errors. The complete successful run supersedes that incomplete check.
+Existing directory ownership and permissions were left unchanged.
+
+A local offline AppTest replay used the exact cached `vanhamel_rx_buddy`
+observations from the supplied profiling log. The real demo callback launched
+the unchanged application before shell rendering, avoiding AppTest's inability
+to serialize one existing shell widget for a synthetic second-run button click.
+All scientific preparation and chart rendering remained real. The replay
+verified all 110 imported project modules originated in the intended checkout.
+
+The replay retained 7,139 evidence rows from 7,166 raw observations, with 75 map
+stations and 13 segments. Complete evidence and both map-aggregate frames matched
+the original run exactly. The map and all five Inspector PNGs were rendered;
+the map read used ten projected columns, no network request was attempted, no
+ZIP was prepared, and the original cache contents and timestamps were unchanged.
+The recorded analysis duration was 11.650 seconds; the full AppTest execution,
+including initial application work, took 15.856 seconds. This is one local
+serial replay, excluding browser painting and concurrent Community Cloud load;
+it does not establish a controlled end-to-end speedup against the earlier log.
+
+Repeating the same 100,000-row component diagnostics in the intended checkout
+gave the following medians of three alternating before/after samples, with exact
+result equality checked before timing and no concurrent test or diagnostic run:
+
+| Component | Before | After | Component speedup |
+| --- | ---: | ---: | ---: |
+| Map geometry and labels | 5.383 s | 0.159 s | 33.8x |
+| Solar states, 1,000 distinct timestamps | 6.306 s | 0.069 s | 90.8x |
+| Temporal summaries, 1,000 groups | 1.628 s | 0.073 s | 22.4x |
+| Local Median Parquet read, five Reference detail entries per row | 0.042 s | 0.037 s | 1.15x |
+
+The projected Local Median DataFrame again decreased from 28,390,132 to
+10,190,132 bytes (64.1%). This measures materialized DataFrame size, not process
+RSS. Full compilation, patch and new-file whitespace checks, and the 79-module
+regression manifest passed. The existing fixture skip and Matplotlib warning
+remain unchanged. No commit, push, deployment, or Cloud load test was performed.
+
+Local component measurements in the Codex worktree on 2026-09-13 compared the implemented performance
+changes against saved pre-change functions in the same Python 3.12.14 process
+(pandas 3.0.3, NumPy 2.4.6). Each timing is the median of three alternating
+before/after samples, following an exact-result comparison, without concurrent
+pytest or another diagnostic process. All examples contain 100,000 rows:
+
+| Component | Before | After | Component speedup |
+| --- | ---: | ---: | ---: |
+| Map geometry and labels | 5.983 s | 0.159 s | 37.5x |
+| Solar states, 1,000 distinct two-minute timestamps | 6.161 s | 0.074 s | 83.4x |
+| Temporal summaries, 1,000 groups | 1.507 s | 0.072 s | 20.9x |
+| Local Median Parquet read, five Reference detail entries per row | 0.051 s | 0.038 s | 1.33x |
+
+The map example uses seeded random coordinates plus missing/wrap/boundary cases;
+the solar example repeats 1,000 instants starting on 2026-07-01 at Target
+coordinates 52.5, 13.4. Temporal summaries use seeded normal values, a missing
+value every 197 rows, and three additional empty bins. The random seed is
+20260913. Exact quartile interpolation requires two native order-statistic
+passes, so its measured speedup is lower than the earlier simple grouped-linear
+prototype; the implementation preserves the prior scalar arithmetic.
+
+In the synthetic Local Median example, projecting 12 stored columns to the 10
+map-consumed columns reduces `DataFrame.memory_usage(deep=True)` from 28,390,132
+to 10,190,132 bytes (64.1%). Complete Reference details remain in the staged
+Parquet artifact. This is materialized DataFrame size, not process RSS, and the
+read timings include a warm local filesystem cache. These component results do
+not establish end-to-end application speedup or Community Cloud concurrency
+capacity. No deployment or Community Cloud load test was performed.
+
+Previous complete serial verification in the Codex worktree on 2026-09-13
+through the Windows launcher,
+under Python 3.12.14, covers map-label lookups, distinct-timestamp solar
+classification, exact native grouped quartiles, and map-specific Parquet reads:
+
+```text
+2800 passed, 1 skipped, 1 warning in 292.73 seconds
+```
+
+The 86 additional cases cover geometry and bin-label equivalence, solar states
+and timestamp alignment across analysis modes, exact quartile and dtype
+compatibility, and full-versus-projected map aggregates and evidence ownership.
+The existing controller lifecycle test also verifies use of the declared map
+projection. Full repository compilation, patch/new-file whitespace checks, and
+the 79-module serial regression manifest passed. The skipped fixture-integrity
+test and Matplotlib pending-deprecation warning remain unchanged.
+
+Previous complete serial verification in the Codex worktree on 2026-09-13
+through the Windows launcher,
+under Python 3.12.14, covers the admission cache-preparation split, localized
+Performance Drill-Down filtering, and explicit export evidence failures:
+
+```text
+2714 passed, 1 skipped, 1 warning in 299.99 seconds
+```
+
+The 56 additional regression cases cover responsive permit/status operations
+during blocked cache preparation, FIFO/provider reservation and timeout cleanup,
+localized Target/Counter filters, and failed versus legitimately empty export
+evidence. Four seeded Streamlit AppTests exercise the real filter multiselect
+and slider in both languages and directions. Full compilation, tracked and
+changed-untracked-file whitespace checks, and the 78-module manifest passed.
+The worktree reused the existing project virtual environment through an ignored
+`.venv` junction. Verification was local; no Community Cloud load test or
+deployment was performed.
+
+Previous complete serial measurement on 2026-09-13 through the Windows launcher,
 including typed export payloads, detached content ownership, complete package
 signatures and unchanged-rerender reuse, under Python 3.12.14:
 

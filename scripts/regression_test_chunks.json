@@ -14,6 +14,7 @@
         "tests/regression/test_export_content.py",
         "tests/regression/test_export_ownership.py",
         "tests/regression/test_json_config_schemas.py",
+        "tests/regression/test_map_data.py",
         "tests/regression/test_map_data_artifacts.py",
         "tests/regression/test_opportunity_engine.py",
         "tests/regression/test_regression_runner.py",
@@ -22,7 +23,9 @@
         "tests/regression/test_success_input_terminology.py",
         "tests/regression/test_test_workspace.py",
         "tests/regression/test_tx_ab_schedule.py",
-        "tests/regression/test_url_browser_components.py"
+        "tests/regression/test_url_browser_components.py",
+        "tests/regression/test_temporal_bar_collections.py",
+        "tests/regression/test_performance_temporal_keys.py"
       ]
     },
     {

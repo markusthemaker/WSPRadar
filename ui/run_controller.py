@@ -51,6 +51,7 @@ from core.fetch_models import (
     RESULT_ROW_LIMIT_EXCEEDED_CODE,
 )
 from core.input_validation import is_valid_callsign, is_valid_locator
+from core.map_data import map_preparation_columns
 from core.map_data_artifacts import (
     MAP_DATA_ARTIFACT_SCHEMA_VERSION,
     MapDataArtifactPaths,
@@ -315,22 +316,17 @@ def _provider_request_counts(analyses, *, is_demo_run):
 
 
 def _try_reserve_upstream_capacity(
-    analyses,
+    request_counts_by_provider,
     *,
     is_demo_run,
     allowed_sources,
 ):
-    """Reinspect provider caches immediately before one reservation attempt."""
-    request_counts_by_provider = _provider_request_counts(
-        analyses,
-        is_demo_run=is_demo_run,
-    )
-    provider_lease = UPSTREAM_PROVIDER_DISPATCH.try_acquire_run(
+    """Reserve against freshly prepared counts without inspecting cache files."""
+    return UPSTREAM_PROVIDER_DISPATCH.try_acquire_run(
         request_counts_by_provider,
         allowed_sources=allowed_sources,
         prefer_cache_only=is_demo_run,
     )
-    return provider_lease, request_counts_by_provider
 
 
 def _staged_artifact_paths(analyses, *, provider_key):
@@ -637,16 +633,19 @@ def render_analysis_run(
     committed_source = get_active_run_database_source(st.session_state)
     allowed_sources = {committed_source} if committed_source is not None else None
 
-    def reserve_upstream_capacity():
+    def prepare_upstream_capacity():
         nonlocal request_counts_by_provider
-        provider_lease, latest_request_counts = _try_reserve_upstream_capacity(
+        request_counts_by_provider = _provider_request_counts(
             analyses,
+            is_demo_run=is_demo_run,
+        )
+
+    def reserve_upstream_capacity():
+        return _try_reserve_upstream_capacity(
+            request_counts_by_provider,
             is_demo_run=is_demo_run,
             allowed_sources=allowed_sources,
         )
-        if provider_lease is not None:
-            request_counts_by_provider = latest_request_counts
-        return provider_lease
 
     waiting_status = None
     queue_profile = {
@@ -743,6 +742,11 @@ def render_analysis_run(
             owner=owner,
             request_key=request_key,
             on_wait=show_waiting,
+            prepare_capacity=(
+                None
+                if is_existing_run_rerender
+                else prepare_upstream_capacity
+            ),
             reserve_capacity=(
                 None
                 if is_existing_run_rerender
@@ -1665,7 +1669,14 @@ def _render_admitted_analysis_run(
             continue
 
         try:
-            df = read_parquet_artifact(parquet_path)
+            df = read_parquet_artifact(
+                parquet_path,
+                columns=list(map_preparation_columns(
+                    analysis_kind=analysis["analysis_kind"],
+                    is_compare=analysis["is_compare"],
+                    is_sequential=analysis["is_sequential"],
+                )),
+            )
         except (OSError, ValueError) as exc:
             status_box.update(
                 label="Prepared analysis data became unavailable",
@@ -1684,7 +1695,7 @@ def _render_admitted_analysis_run(
             return "failed"
 
         profile_timer.add_memory(
-            "staged post-filter dataframe",
+            "staged map input dataframe",
             df=df,
             detail=prepared_bundle.database_source.display_name,
         )

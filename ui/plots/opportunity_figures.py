@@ -42,6 +42,7 @@ from ui.plots.evidence_figures import (
     _style_evidence_axis,
     _time_agg_minutes,
 )
+from ui.plots.temporal_bars import draw_temporal_bar_collection
 from ui.plots.temporal_layout import (
     TEMPORAL_COLORBAR_FRACTION,
     TEMPORAL_COLORBAR_PAD,
@@ -972,6 +973,57 @@ def _render_opportunity_segment_figure(recipe):
     return fig
 
 
+def _prepare_success_temporal_keys(work, start):
+    """Attach compact exact identity and UTC keys once to owned temporal rows.
+
+    All rows have already passed the canonical identity, numeric and half-open
+    time-window preparation. Sorted identity codes preserve the original
+    lexicographic station aggregation order. These transient columns never
+    enter an evidence artifact, exported row schema or retained figure recipe.
+    """
+    work["_station_code"] = work.groupby(
+        ["peer_sign", "peer_grid"], dropna=False, observed=True, sort=True,
+    ).ngroup().astype("int32")
+    # Datetime arrays may use seconds or microseconds. Explicit conversion is
+    # required before combining their integer values with Timestamp.value.
+    timestamps_ns = work["evidence_utc"].to_numpy(dtype="datetime64[ns]").astype("int64")
+    work["_elapsed_nanoseconds"] = timestamps_ns - start.value
+    work["_utc_hour"] = work["evidence_utc"].dt.hour.astype("int8")
+    work["_utc_date"] = (timestamps_ns // pd.Timedelta(days=1).value).astype("int32")
+    # Preserve nonbinary compatible inputs. Aggregated binary counts are
+    # widened before arithmetic in both chronological and folded reducers.
+    for column in ("hit", "miss"):
+        if work[column].between(0, 1).all():
+            work[column] = work[column].astype("int8")
+    return work
+
+
+def _success_temporal_station_columns(work):
+    """Use the prepared exact station code, retaining standalone helper inputs."""
+    return ["_station_code"] if "_station_code" in work else ["peer_sign", "peer_grid"]
+
+
+def _success_temporal_bin_indexes(work, start, bin_delta):
+    """Reuse exact elapsed nanoseconds, including for partial selected bins."""
+    if "_elapsed_nanoseconds" in work:
+        return work["_elapsed_nanoseconds"] // bin_delta.value
+    return ((work["evidence_utc"] - start) // bin_delta).astype("int64")
+
+
+def _success_temporal_hours(work):
+    """Reuse the prepared UTC hour after row selection or baseline joins."""
+    if "_utc_hour" in work:
+        return work["_utc_hour"]
+    return work["evidence_utc"].dt.hour.astype("int8")
+
+
+def _success_temporal_dates(work):
+    """Reuse exact UTC calendar-date keys without changing represented dates."""
+    if "_utc_date" in work:
+        return work["_utc_date"]
+    return work["evidence_utc"].dt.normalize()
+
+
 def _aggregate_success_chronological_profile(work, start, end, time_bin):
     """Aggregate chronological SNR-independent Success evidence by fixed bin.
 
@@ -1002,19 +1054,20 @@ def _aggregate_success_chronological_profile(work, start, end, time_bin):
     counter_counts = np.zeros(bin_count, dtype=np.int64)
     station_counts = np.zeros(bin_count, dtype=np.int64)
     if not work.empty:
-        binned = work.copy()
-        binned["bin_index"] = (
-            (binned["evidence_utc"] - start) // bin_delta
-        ).astype("int64")
+        station_columns = _success_temporal_station_columns(work)
+        binned = work[[*station_columns, "hit", "miss"]].copy()
+        binned["bin_index"] = _success_temporal_bin_indexes(work, start, bin_delta)
         station_bins = (
             binned.groupby(
-                ["bin_index", "peer_sign", "peer_grid"],
+                ["bin_index", *station_columns],
                 dropna=False,
                 observed=True,
             )
             .agg(hits=("hit", "sum"), misses=("miss", "sum"))
             .reset_index()
         )
+        if "_station_code" in work:
+            station_bins = station_bins.astype({"hits": "int64", "misses": "int64"})
         station_bins["confirmed"] = station_bins["hits"] + station_bins["misses"]
         station_bins = station_bins[station_bins["confirmed"] > 0].copy()
         station_bins["rate_pct"] = (
@@ -1034,7 +1087,7 @@ def _aggregate_success_chronological_profile(work, start, end, time_bin):
                 station_counter_votes=("counter_vote", "sum"),
                 hits=("hits", "sum"),
                 misses=("misses", "sum"),
-                station_count=("peer_sign", "size"),
+                station_count=(station_columns[0], "size"),
             )
             .reset_index()
         )
@@ -1108,12 +1161,17 @@ def _represented_utc_date_hour_counts(work, start, end):
     if work.empty:
         return date_hour_counts
 
-    represented_dates = (
-        work["evidence_utc"]
-        .dropna()
-        .dt.normalize()
-        .drop_duplicates()
-    )
+    if "_utc_date" in work:
+        represented_dates = pd.to_datetime(
+            work["_utc_date"].drop_duplicates().to_numpy(), unit="D", utc=True,
+        )
+    else:
+        represented_dates = (
+            work["evidence_utc"]
+            .dropna()
+            .dt.normalize()
+            .drop_duplicates()
+        )
     one_hour = pd.Timedelta(hours=1)
     for represented_date in represented_dates:
         hour_starts = pd.DatetimeIndex(
@@ -1208,18 +1266,21 @@ def _aggregate_success_folded_profile(work, start, end):
     station_date_hour_presence_counts = np.zeros(24, dtype=np.int64)
     utc_date_counts = np.zeros(24, dtype=np.int64)
     if not work.empty:
-        folded = work.copy()
-        folded["utc_hour"] = folded["evidence_utc"].dt.hour.astype("int8")
-        folded["utc_date"] = folded["evidence_utc"].dt.normalize()
+        station_columns = _success_temporal_station_columns(work)
+        folded = work[[*station_columns, "hit", "miss"]].copy()
+        folded["utc_hour"] = _success_temporal_hours(work)
+        folded["utc_date"] = _success_temporal_dates(work)
         station_hours = (
             folded.groupby(
-                ["utc_hour", "peer_sign", "peer_grid"],
+                ["utc_hour", *station_columns],
                 dropna=False,
                 observed=True,
             )
             .agg(hits=("hit", "sum"), misses=("miss", "sum"))
             .reset_index()
         )
+        if "_station_code" in work:
+            station_hours = station_hours.astype({"hits": "int64", "misses": "int64"})
         station_hours["confirmed"] = (
             station_hours["hits"] + station_hours["misses"]
         )
@@ -1241,7 +1302,7 @@ def _aggregate_success_folded_profile(work, start, end):
                 station_counter_votes=("counter_vote", "sum"),
                 hits=("hits", "sum"),
                 misses=("misses", "sum"),
-                station_count=("peer_sign", "size"),
+                station_count=(station_columns[0], "size"),
             )
             .reset_index()
         )
@@ -1250,8 +1311,7 @@ def _aggregate_success_folded_profile(work, start, end):
                 [
                     "utc_hour",
                     "utc_date",
-                    "peer_sign",
-                    "peer_grid",
+                    *station_columns,
                 ],
                 dropna=False,
                 observed=True,
@@ -1386,9 +1446,10 @@ def _prepare_success_snr_anomalies(work):
             ]
         )
 
+    station_columns = _success_temporal_station_columns(successful)
     station_baselines = (
         successful.groupby(
-            ["peer_sign", "peer_grid"],
+            station_columns,
             dropna=False,
             observed=True,
         )["target_snr"]
@@ -1402,9 +1463,15 @@ def _prepare_success_snr_anomalies(work):
         station_baselines["successful_snr_observation_count"]
         >= SUCCESS_MINIMUM_SNR_BASELINE_OBSERVATIONS
     ].copy()
+    if "_station_code" in successful:
+        station_baselines = station_baselines.merge(
+            successful[["_station_code", "peer_sign", "peer_grid"]].drop_duplicates(),
+            on="_station_code", how="left", sort=False,
+        )
     successful = successful.merge(
-        station_baselines,
-        on=["peer_sign", "peer_grid"],
+        station_baselines.drop(columns=["peer_sign", "peer_grid"])
+        if "_station_code" in successful else station_baselines,
+        on=station_columns,
         how="inner",
     )
     successful["snr_anomaly_db"] = (
@@ -1508,13 +1575,12 @@ def _aggregate_success_chronological_snr(
             columns=["bin_index", "snr_anomaly_db"]
         )
     else:
-        binned = anomaly_rows.copy()
-        binned["bin_index"] = (
-            (binned["evidence_utc"] - start) // bin_delta
-        ).astype("int64")
+        station_columns = _success_temporal_station_columns(anomaly_rows)
+        binned = anomaly_rows[[*station_columns, "snr_anomaly_db"]].copy()
+        binned["bin_index"] = _success_temporal_bin_indexes(anomaly_rows, start, bin_delta)
         station_bins = (
             binned.groupby(
-                ["bin_index", "peer_sign", "peer_grid"],
+                ["bin_index", *station_columns],
                 dropna=False,
                 observed=True,
             )["snr_anomaly_db"]
@@ -1589,16 +1655,16 @@ def _aggregate_success_folded_snr(
             columns=["utc_hour", "snr_anomaly_db"]
         )
     else:
-        folded = anomaly_rows.copy()
-        folded["utc_hour"] = folded["evidence_utc"].dt.hour.astype("int8")
-        folded["utc_date"] = folded["evidence_utc"].dt.normalize()
+        station_columns = _success_temporal_station_columns(anomaly_rows)
+        folded = anomaly_rows[[*station_columns, "snr_anomaly_db"]].copy()
+        folded["utc_hour"] = _success_temporal_hours(anomaly_rows)
+        folded["utc_date"] = _success_temporal_dates(anomaly_rows)
         station_date_hours = (
             folded.groupby(
                 [
                     "utc_hour",
                     "utc_date",
-                    "peer_sign",
-                    "peer_grid",
+                    *station_columns,
                 ],
                 dropna=False,
                 observed=True,
@@ -1756,10 +1822,8 @@ def _aggregate_success_chronological_actual_snr(
     if successful_rows.empty:
         binned_rows = pd.DataFrame(columns=["bin_index", "target_snr"])
     else:
-        binned_rows = successful_rows.copy()
-        binned_rows["bin_index"] = (
-            (binned_rows["evidence_utc"] - start) // bin_delta
-        ).astype("int64")
+        binned_rows = successful_rows[["target_snr"]].copy()
+        binned_rows["bin_index"] = _success_temporal_bin_indexes(successful_rows, start, bin_delta)
         binned_rows = binned_rows[
             binned_rows["bin_index"].between(0, bin_count - 1)
         ].copy()
@@ -1820,13 +1884,9 @@ def _aggregate_success_folded_actual_snr(
             columns=["utc_hour", "target_snr"]
         )
     else:
-        folded_rows = successful_rows.copy()
-        folded_rows["utc_hour"] = (
-            folded_rows["evidence_utc"].dt.hour.astype("int8")
-        )
-        folded_rows["utc_date"] = (
-            folded_rows["evidence_utc"].dt.normalize()
-        )
+        folded_rows = successful_rows[["target_snr"]].copy()
+        folded_rows["utc_hour"] = _success_temporal_hours(successful_rows)
+        folded_rows["utc_date"] = _success_temporal_dates(successful_rows)
         date_hour_medians = (
             folded_rows.groupby(
                 ["utc_hour", "utc_date"],
@@ -2120,8 +2180,15 @@ def _opportunity_temporal_recipe(
             "target_snr",
         ],
     ].copy()
-    work["peer_sign"] = work["peer_sign"].astype(str)
-    work["peer_grid"] = work["peer_grid"].astype(str)
+    for column in ("peer_sign", "peer_grid"):
+        work[column] = pd.Categorical(work[column].astype(str))
+        categories = work[column].cat.categories.union(
+            pd.Index(eligible_identities[column].dropna().unique()), sort=True,
+        )
+        work[column] = work[column].cat.set_categories(categories)
+        eligible_identities[column] = pd.Categorical(
+            eligible_identities[column], categories=categories,
+        )
     work = work.merge(
         eligible_identities,
         on=["peer_sign", "peer_grid"],
@@ -2156,6 +2223,7 @@ def _opportunity_temporal_recipe(
 
     station_baselines = pd.DataFrame()
     successful_actual_snr_rows = pd.DataFrame()
+    work = _prepare_success_temporal_keys(work, start)
     if snr_representation == SUCCESS_SNR_REPRESENTATION_ACTUAL:
         successful_actual_snr_rows = _prepare_success_actual_snr(work)
         actual_snr_edges_db = _success_actual_snr_axis(
@@ -2219,7 +2287,7 @@ def _opportunity_temporal_recipe(
                 anomaly_edges_db,
             )
         )
-    utc_date_count = int(work["evidence_utc"].dt.normalize().nunique())
+    utc_date_count = int(work["_utc_date"].nunique())
     selected_station_summary = (
         _success_selected_station_summary(peer_df, work)
         if population_mode == SUCCESS_TEMPORAL_POPULATION_SELECTED_STATION
@@ -2293,31 +2361,15 @@ def _draw_success_outcome_stack(
         raise ValueError(
             "Success temporal outcome arrays must match their time axis."
         )
-    success_bars = axis.bar(
-        x,
-        success,
-        width=bar_width,
-        color=SUCCESS_OUTCOME_COLOR,
-        edgecolor="#111111",
-        linewidth=0.35,
-        label=labels["target_evidence"],
-        zorder=2,
+    success_bars = draw_temporal_bar_collection(
+        axis, x, success, widths=bar_width, color=SUCCESS_OUTCOME_COLOR,
+        label=labels["target_evidence"], gid=f"{gid_prefix}-success",
     )
-    counter_bars = axis.bar(
-        x,
-        counter,
-        width=bar_width,
-        bottom=success,
+    counter_bars = draw_temporal_bar_collection(
+        axis, x, counter, widths=bar_width, bottoms=success,
         color=SUCCESS_COUNTER_OUTCOME_COLOR,
-        edgecolor="#111111",
-        linewidth=0.35,
-        label=labels["counter_evidence"],
-        zorder=2,
+        label=labels["counter_evidence"], gid=f"{gid_prefix}-counter",
     )
-    for bar in success_bars:
-        bar.set_gid(f"{gid_prefix}-success")
-    for bar in counter_bars:
-        bar.set_gid(f"{gid_prefix}-counter")
     _set_metric_axis_labels(axis, y_label=y_label)
     axis.set_ylim(bottom=0.0)
     axis.yaxis.set_major_locator(

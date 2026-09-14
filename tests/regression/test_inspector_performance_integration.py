@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 
 from i18n import T
 from ui.components import (
@@ -15,6 +16,220 @@ from ui.inspector.contracts import InspectorContext, InspectorScope, ScopeContro
 from ui.inspector.preparation import InspectorPreparation
 from ui.plots import opportunity_figures
 from ui.result_hierarchy import transition_prompt_html
+
+
+@pytest.mark.parametrize(
+    (
+        "language",
+        "analysis_id",
+        "canonical_counter_column",
+        "target_display_column",
+        "counter_display_column",
+    ),
+    (
+        (
+            "en", "RX_ABS", "Elsewhere (E)",
+            "Heard by Target", "Heard by others only",
+        ),
+        (
+            "en", "TX_ABS", "Other Signals (OS)",
+            "Target heard", "Other signals heard",
+        ),
+        (
+            "de", "RX_ABS", "Elsewhere (E)",
+            "Vom Target gehört", "Nur von anderen gehört",
+        ),
+        (
+            "de", "TX_ABS", "Other Signals (OS)",
+            "Target gehört", "Andere Signale gehört",
+        ),
+    ),
+)
+@pytest.mark.parametrize("filter_role", ("target", "counter"))
+@pytest.mark.parametrize("selected_flag", (0, 1))
+def test_performance_drilldown_numeric_filters_preserve_canonical_export_rows(
+    monkeypatch,
+    language,
+    analysis_id,
+    canonical_counter_column,
+    target_display_column,
+    counter_display_column,
+    filter_role,
+    selected_flag,
+):
+    """Filter localized outcome columns and return the matching canonical rows."""
+    display_column = (
+        target_display_column
+        if filter_role == "target"
+        else counter_display_column
+    )
+    canonical_column = (
+        "Target (T)"
+        if filter_role == "target"
+        else canonical_counter_column
+    )
+    canonical = pd.DataFrame(
+        {
+            "Date/Time (UTC)": [
+                "01-Jul-2026 00:00:00",
+                "01-Jul-2026 00:02:00",
+                "01-Jul-2026 00:04:00",
+                "01-Jul-2026 00:06:00",
+            ],
+            "Outcome": ["Target", "Counter", "Target", "Counter"],
+            "Target (T)": [1, 0, 1, 0],
+            canonical_counter_column: [0, 1, 0, 1],
+            "Target SNR": [-16.125, float("nan"), -22.75, float("nan")],
+        },
+        index=[7, 12, 18, 30],
+    )
+    source = canonical.copy(deep=True)
+
+    class FilterWidgets:
+        """Select a visible column and numeric range through the real renderer."""
+
+        def __init__(self):
+            self.slider_calls = []
+            self.rendered_tables = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def markdown(self, *_args, **_kwargs):
+            return None
+
+        def popover(self, *_args, **_kwargs):
+            return self
+
+        def multiselect(self, _label, options, **_kwargs):
+            assert display_column in options
+            assert "Outcome" not in options
+            return [display_column]
+
+        def slider(self, label, minimum, maximum, value, *, step, **_kwargs):
+            self.slider_calls.append((label, minimum, maximum, value, step))
+            return (float(selected_flag), float(selected_flag))
+
+        def dataframe(self, dataframe, **_kwargs):
+            self.rendered_tables.append(dataframe.copy(deep=True))
+
+    widgets = FilterWidgets()
+    monkeypatch.setattr(inspector_selected, "st", widgets)
+
+    filtered_canonical = inspector_selected.render_drilldown_dataframe(
+        canonical,
+        ["K1AAA (FN31)"],
+        analysis_id,
+        71,
+        "rall_dall",
+        T[language],
+        is_compare=False,
+        is_sequential=False,
+        analysis_context=SimpleNamespace(),
+        language=language,
+        filter_container=widgets,
+        render_header=False,
+    )
+
+    assert widgets.slider_calls == [
+        (display_column, 0.0, 1.0, (0.0, 1.0), 1.0),
+    ]
+    expected_canonical = source.loc[source[canonical_column] == selected_flag]
+    pd.testing.assert_frame_equal(filtered_canonical, expected_canonical)
+    pd.testing.assert_frame_equal(canonical, source)
+    assert len(widgets.rendered_tables) == 1
+    expected_display = expected_canonical.drop(columns="Outcome").rename(
+        columns={
+            "Target (T)": target_display_column,
+            canonical_counter_column: counter_display_column,
+        }
+    )
+    expected_display["Target SNR"] = expected_display["Target SNR"].map(
+        lambda value: "" if pd.isna(value) else f"{value:.1f}"
+    )
+    pd.testing.assert_frame_equal(widgets.rendered_tables[0], expected_display)
+
+
+@pytest.mark.parametrize(
+    "language,analysis_id,counter_column,target_display_column",
+    (
+        ("en", "RX_ABS", "Elsewhere (E)", "Heard by Target"),
+        ("en", "TX_ABS", "Other Signals (OS)", "Target heard"),
+        ("de", "RX_ABS", "Elsewhere (E)", "Vom Target gehört"),
+        ("de", "TX_ABS", "Other Signals (OS)", "Target gehört"),
+    ),
+)
+def test_performance_drilldown_filters_through_streamlit_widgets(
+    language,
+    analysis_id,
+    counter_column,
+    target_display_column,
+):
+    """Select a localized column and narrow its real slider across app reruns."""
+    from streamlit.testing.v1 import AppTest
+
+    def render_seeded_drilldown(language, analysis_id):
+        from types import SimpleNamespace
+
+        import streamlit as st
+
+        from i18n import T
+        from ui.components.inspector_selected import render_drilldown_dataframe
+
+        st.session_state["filtered_drilldown"] = render_drilldown_dataframe(
+            st.session_state["source_drilldown"],
+            ["K1AAA (FN31)"],
+            analysis_id,
+            71,
+            "rall_dall",
+            T[language],
+            is_compare=False,
+            is_sequential=False,
+            analysis_context=SimpleNamespace(),
+            language=language,
+            render_header=False,
+        )
+
+    canonical = pd.DataFrame(
+        {
+            "Outcome": ["Target", "Counter", "Target"],
+            "Target (T)": [1, 0, 1],
+            counter_column: [0, 1, 0],
+            "Target SNR": [-16.125, float("nan"), -22.75],
+        },
+        index=[7, 12, 18],
+    )
+    app = AppTest.from_function(
+        render_seeded_drilldown,
+        args=(language, analysis_id),
+        default_timeout=10,
+    )
+    app.session_state["source_drilldown"] = canonical.copy(deep=True)
+    app.run()
+    assert not app.exception
+    assert not app.slider
+    pd.testing.assert_frame_equal(
+        app.session_state["filtered_drilldown"], canonical,
+    )
+
+    app.multiselect[0].set_value([target_display_column]).run()
+    assert not app.exception
+    assert app.slider[0].label == target_display_column
+    assert app.slider[0].step == 1.0
+
+    app.slider[0].set_range(1.0, 1.0).run()
+    assert not app.exception
+    pd.testing.assert_frame_equal(
+        app.session_state["filtered_drilldown"], canonical.loc[[7, 18]],
+    )
+    pd.testing.assert_frame_equal(
+        app.session_state["source_drilldown"], canonical,
+    )
+    assert app.dataframe[0].value[target_display_column].tolist() == [1, 1]
+    assert "Outcome" not in app.dataframe[0].value.columns
 
 
 def _set_component_streamlit(monkeypatch, streamlit_ui):

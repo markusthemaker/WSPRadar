@@ -151,6 +151,10 @@ class AnalysisAdmissionController:
         self.lease_timeout_seconds = float(lease_timeout_seconds)
         self.poll_interval_seconds = float(poll_interval_seconds)
         self._clock = clock
+        # Admission attempts stay serialized while their cache preparation runs
+        # outside the state lock. Always acquire this lock before _condition;
+        # permit release, heartbeats and status reads need only _condition.
+        self._admission_attempt_lock = threading.Lock()
         self._condition = threading.Condition(threading.Lock())
         self._active: dict[str, _ActiveLease] = {}
         self._queue: deque[_QueueTicket] = deque()
@@ -207,78 +211,126 @@ class AnalysisAdmissionController:
         owner: str,
         request_key: str | None = None,
         on_wait: Callable[[AdmissionSnapshot], None] | None = None,
+        prepare_capacity: Callable[[], None] | None = None,
         reserve_capacity: Callable[[], ReleasableCapacity | None] | None = None,
     ) -> AnalysisPermit:
         """Acquire an active slot plus optional external capacity in FIFO order.
 
-        ``reserve_capacity`` must be non-blocking. Returning ``None`` keeps the
-        request queued until the next poll, allowing database readiness to
-        participate in the same bounded queue as CPU/RAM analysis capacity.
+        ``prepare_capacity`` may inspect caches outside the state lock, before
+        each eligible reservation attempt. It must not reserve capacity itself.
+        ``reserve_capacity`` runs under the state lock and must be non-blocking.
+        Returning ``None`` keeps the request queued until the next poll, allowing
+        database readiness to share the bounded CPU/RAM analysis queue.
         """
+        if prepare_capacity is not None and reserve_capacity is None:
+            raise ValueError("prepare_capacity requires reserve_capacity")
         token = uuid.uuid4().hex
         owner = str(owner)
         request_key = str(request_key) if request_key is not None else None
         now = self._clock()
         deadline = now + self.wait_timeout_seconds
 
-        with self._condition:
-            self._expire_stale_leases_unlocked(now)
-            if self._has_duplicate_unlocked(owner, request_key):
-                raise AnalysisDuplicateRequest(
-                    "The same owner already has this request active or queued"
-                )
-            if len(self._active) < self.max_active and not self._queue:
-                capacity_lease = (
-                    reserve_capacity()
-                    if reserve_capacity is not None
-                    else None
-                )
-                if reserve_capacity is None or capacity_lease is not None:
-                    self._active[token] = _ActiveLease(
-                        owner=owner,
-                        request_key=request_key,
-                        touched_at=now,
-                        capacity_lease=capacity_lease,
+        with self._admission_attempt_lock:
+            with self._condition:
+                now = self._clock()
+                self._expire_stale_leases_unlocked(now)
+                if self._has_duplicate_unlocked(owner, request_key):
+                    raise AnalysisDuplicateRequest(
+                        "The same owner already has this request active or queued"
                     )
-                    return AnalysisPermit(self, token)
-            if len(self._queue) >= self.max_queued:
-                raise AnalysisQueueFull("The analysis waiting queue is full")
-            self._queue.append(_QueueTicket(
-                token=token,
-                owner=owner,
-                request_key=request_key,
-                deadline=deadline,
-            ))
-            self._condition.notify_all()
+                if now >= deadline:
+                    raise AnalysisQueueTimeout("Timed out waiting for analysis capacity")
+                immediate_attempt = (
+                    len(self._active) < self.max_active and not self._queue
+                )
+
+            if immediate_attempt and prepare_capacity is not None:
+                prepare_capacity()
+
+            with self._condition:
+                now = self._clock()
+                self._expire_stale_leases_unlocked(now)
+                if now >= deadline:
+                    raise AnalysisQueueTimeout("Timed out waiting for analysis capacity")
+                if (
+                    immediate_attempt
+                    and len(self._active) < self.max_active
+                    and not self._queue
+                ):
+                    capacity_lease = (
+                        reserve_capacity()
+                        if reserve_capacity is not None
+                        else None
+                    )
+                    if reserve_capacity is None or capacity_lease is not None:
+                        self._active[token] = _ActiveLease(
+                            owner=owner,
+                            request_key=request_key,
+                            touched_at=now,
+                            capacity_lease=capacity_lease,
+                        )
+                        return AnalysisPermit(self, token)
+                if len(self._queue) >= self.max_queued:
+                    raise AnalysisQueueFull("The analysis waiting queue is full")
+                self._queue.append(_QueueTicket(
+                    token=token,
+                    owner=owner,
+                    request_key=request_key,
+                    deadline=deadline,
+                ))
+                self._condition.notify_all()
 
         last_snapshot = None
         try:
             while True:
-                with self._condition:
-                    now = self._clock()
-                    self._expire_stale_leases_unlocked(now)
-                    is_first = bool(self._queue and self._queue[0].token == token)
-                    if is_first and len(self._active) < self.max_active:
-                        capacity_lease = (
-                            reserve_capacity()
-                            if reserve_capacity is not None
-                            else None
+                with self._admission_attempt_lock:
+                    with self._condition:
+                        now = self._clock()
+                        self._expire_stale_leases_unlocked(now)
+                        is_first = bool(self._queue and self._queue[0].token == token)
+                        eligible_attempt = (
+                            is_first and len(self._active) < self.max_active
                         )
-                        if reserve_capacity is None or capacity_lease is not None:
-                            self._queue.popleft()
-                            self._active[token] = _ActiveLease(
-                                owner=owner,
-                                request_key=request_key,
-                                touched_at=now,
-                                capacity_lease=capacity_lease,
+                        if now >= deadline or not any(
+                            ticket.token == token for ticket in self._queue
+                        ):
+                            self._remove_ticket_unlocked(token)
+                            raise AnalysisQueueTimeout("Timed out waiting for analysis capacity")
+
+                    if eligible_attempt and prepare_capacity is not None:
+                        prepare_capacity()
+
+                    with self._condition:
+                        now = self._clock()
+                        self._expire_stale_leases_unlocked(now)
+                        if now >= deadline or not any(
+                            ticket.token == token for ticket in self._queue
+                        ):
+                            self._remove_ticket_unlocked(token)
+                            raise AnalysisQueueTimeout("Timed out waiting for analysis capacity")
+                        is_first = bool(self._queue and self._queue[0].token == token)
+                        if (
+                            eligible_attempt
+                            and is_first
+                            and len(self._active) < self.max_active
+                        ):
+                            capacity_lease = (
+                                reserve_capacity()
+                                if reserve_capacity is not None
+                                else None
                             )
-                            self._condition.notify_all()
-                            return AnalysisPermit(self, token)
-                    if now >= deadline:
-                        self._remove_ticket_unlocked(token)
-                        raise AnalysisQueueTimeout("Timed out waiting for analysis capacity")
-                    snapshot = self._snapshot_unlocked(token)
-                    wait_seconds = min(self.poll_interval_seconds, max(deadline - now, 0.0))
+                            if reserve_capacity is None or capacity_lease is not None:
+                                self._queue.popleft()
+                                self._active[token] = _ActiveLease(
+                                    owner=owner,
+                                    request_key=request_key,
+                                    touched_at=now,
+                                    capacity_lease=capacity_lease,
+                                )
+                                self._condition.notify_all()
+                                return AnalysisPermit(self, token)
+                        snapshot = self._snapshot_unlocked(token)
+                        wait_seconds = min(self.poll_interval_seconds, max(deadline - now, 0.0))
 
                 if on_wait is not None and snapshot != last_snapshot:
                     on_wait(snapshot)

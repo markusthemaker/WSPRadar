@@ -43,6 +43,7 @@ from ui.plots.opportunity_figures import (
     _represented_utc_date_hour_counts,
     _success_temporal_rate_axis_max,
 )
+from ui.plots.temporal_bars import draw_temporal_bar_collection
 from ui.plots.temporal_layout import (
     TEMPORAL_EVIDENCE_ROW_SPACE,
     align_folded_evidence_axes_to_colorbar,
@@ -766,19 +767,16 @@ def _draw_compare_outcome_stack(
         ),
     )
     for category, values, color, label in category_specs:
-        bars = axis.bar(
+        bars = draw_temporal_bar_collection(
+            axis,
             x,
             values,
-            width=bar_width,
-            bottom=bottoms,
+            widths=bar_width,
+            bottoms=bottoms,
             color=color,
-            edgecolor="#111111",
-            linewidth=0.35,
             label=label,
-            zorder=2,
+            gid=f"{gid_prefix}-{category}",
         )
-        for bar in bars:
-            bar.set_gid(f"{gid_prefix}-{category}")
         artists.append(bars)
         bottoms = bottoms + values
     _set_metric_axis_labels(axis, y_label=y_label)

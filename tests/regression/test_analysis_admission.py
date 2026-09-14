@@ -421,3 +421,297 @@ def test_stale_analysis_lease_releases_reserved_provider_capacity():
     assert snapshot.reserved_requests == 0
     assert snapshot.active_runs == 0
     assert permit.release() is False
+
+
+class _CountedCapacity:
+    def __init__(self):
+        self.release_count = 0
+
+    def release(self):
+        self.release_count += 1
+        return self.release_count == 1
+
+
+@pytest.mark.parametrize("initially_queued", [False, True])
+def test_cache_preparation_does_not_block_permit_lifecycle_or_status(initially_queued):
+    controller = _controller(max_active=2, wait_timeout_seconds=5.0)
+    active = controller.acquire(owner="active", request_key="active-request")
+    blocker = controller.acquire(owner="blocker") if initially_queued else None
+    preparation_started = threading.Event()
+    finish_preparation = threading.Event()
+    capacity = _CountedCapacity()
+
+    def prepare():
+        preparation_started.set()
+        assert finish_preparation.wait(timeout=5.0)
+
+    def probe_active_lifecycle():
+        assert active.touch()
+        assert controller.counts()[0] == 1
+        assert controller.request_snapshot("active", "active-request").position == 0
+        assert active.release()
+        assert controller.counts()[0] == 0
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        candidate = executor.submit(
+            controller.acquire,
+            owner="candidate",
+            prepare_capacity=prepare,
+            reserve_capacity=lambda: capacity,
+        )
+        try:
+            if blocker is not None:
+                _wait_for_counts(controller, (2, 1))
+                blocker.release()
+            assert preparation_started.wait(timeout=1.0)
+            # A failed assertion still unblocks the cache operation below, so a
+            # regression cannot leave executor shutdown waiting indefinitely.
+            executor.submit(probe_active_lifecycle).result(timeout=1.0)
+        finally:
+            finish_preparation.set()
+            active.release()
+            if blocker is not None:
+                blocker.release()
+        permit = candidate.result(timeout=1.0)
+        permit.release()
+
+    assert capacity.release_count == 1
+    assert controller.counts() == (0, 0)
+
+
+def test_initial_cache_preparation_keeps_admission_order_with_no_waiting_queue():
+    controller = _controller(max_active=2, max_queued=0, wait_timeout_seconds=5.0)
+    preparation_started = threading.Event()
+    finish_preparation = threading.Event()
+    follower_started = threading.Event()
+    follower_reserved = threading.Event()
+    reservations = []
+    capacities = [_CountedCapacity(), _CountedCapacity()]
+
+    def prepare():
+        preparation_started.set()
+        assert finish_preparation.wait(timeout=5.0)
+
+    def reserve(index):
+        reservations.append(index)
+        if index == 1:
+            follower_reserved.set()
+        return capacities[index]
+
+    def acquire_follower():
+        follower_started.set()
+        return controller.acquire(owner="second", reserve_capacity=lambda: reserve(1))
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(
+            controller.acquire,
+            owner="first",
+            prepare_capacity=prepare,
+            reserve_capacity=lambda: reserve(0),
+        )
+        try:
+            assert preparation_started.wait(timeout=1.0)
+            second = executor.submit(acquire_follower)
+            assert follower_started.wait(timeout=1.0)
+            assert controller.counts() == (0, 0)
+            assert not follower_reserved.wait(timeout=0.05)
+        finally:
+            finish_preparation.set()
+        first_permit = first.result(timeout=1.0)
+        second_permit = second.result(timeout=1.0)
+        assert reservations == [0, 1]
+        assert controller.counts() == (2, 0)
+        first_permit.release()
+        second_permit.release()
+
+    assert [capacity.release_count for capacity in capacities] == [1, 1]
+
+
+def test_preparing_queue_head_cannot_be_overtaken_or_reserve_follower_capacity():
+    controller = _controller(max_queued=2, wait_timeout_seconds=5.0)
+    active = controller.acquire(owner="active")
+    preparation_started = threading.Event()
+    finish_preparation = threading.Event()
+    follower_reserved = threading.Event()
+    first_capacity = _CountedCapacity()
+    follower_capacity = _CountedCapacity()
+
+    def prepare():
+        preparation_started.set()
+        assert finish_preparation.wait(timeout=5.0)
+
+    def reserve_follower():
+        follower_reserved.set()
+        return follower_capacity
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(
+            controller.acquire,
+            owner="first", request_key="first-request",
+            prepare_capacity=prepare,
+            reserve_capacity=lambda: first_capacity,
+        )
+        try:
+            _wait_for_counts(controller, (1, 1))
+            follower = executor.submit(
+                controller.acquire, owner="follower", reserve_capacity=reserve_follower,
+            )
+            _wait_for_counts(controller, (1, 2))
+            active.release()
+            assert preparation_started.wait(timeout=1.0)
+            assert controller.counts() == (0, 2)
+            assert controller.request_snapshot("first", "first-request").position == 1
+            assert not follower_reserved.is_set()
+        finally:
+            finish_preparation.set()
+            active.release()
+        first_permit = first.result(timeout=1.0)
+        assert controller.counts() == (1, 1)
+        assert not follower_reserved.is_set()
+        first_permit.release()
+        follower_permit = follower.result(timeout=1.0)
+        follower_permit.release()
+
+    assert first_capacity.release_count == follower_capacity.release_count == 1
+    assert controller.counts() == (0, 0)
+
+
+@pytest.mark.parametrize("initially_queued", [False, True])
+@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt])
+def test_preparation_failure_cleans_up_and_allows_another_request(initially_queued, error_type):
+    controller = _controller(wait_timeout_seconds=5.0)
+    active = controller.acquire(owner="active") if initially_queued else None
+    reservations = []
+
+    def prepare():
+        raise error_type("interrupted preparation")
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(
+            controller.acquire,
+            owner="failed", request_key="request",
+            prepare_capacity=prepare,
+            reserve_capacity=lambda: reservations.append("unexpected"),
+        )
+        try:
+            if active is not None:
+                _wait_for_counts(controller, (1, 1))
+                active.release()
+            with pytest.raises(error_type, match="interrupted preparation"):
+                future.result(timeout=1.0)
+        finally:
+            if active is not None:
+                active.release()
+
+    assert reservations == []
+    assert controller.counts() == (0, 0)
+    with controller.acquire(owner="failed", request_key="request"):
+        assert controller.counts() == (1, 0)
+
+
+@pytest.mark.parametrize("initially_queued", [False, True])
+def test_expired_preparation_never_reserves_capacity(initially_queued):
+    clock = _ManualClock()
+    controller = AnalysisAdmissionController(
+        max_active=1, max_queued=1, wait_timeout_seconds=1.0,
+        lease_timeout_seconds=10.0, poll_interval_seconds=0.005, clock=clock,
+    )
+    active = controller.acquire(owner="active") if initially_queued else None
+    preparation_started = threading.Event()
+    finish_preparation = threading.Event()
+    reservations = []
+
+    def prepare():
+        preparation_started.set()
+        assert finish_preparation.wait(timeout=5.0)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(
+            controller.acquire,
+            owner="expired", request_key="request",
+            prepare_capacity=prepare,
+            reserve_capacity=lambda: reservations.append("unexpected"),
+        )
+        try:
+            if active is not None:
+                _wait_for_counts(controller, (1, 1))
+                active.release()
+            assert preparation_started.wait(timeout=1.0)
+            clock.advance(1.0)
+            # Snapshot cleanup may remove a queued head during its cache read.
+            assert controller.request_snapshot("expired", "request") is None
+        finally:
+            finish_preparation.set()
+            if active is not None:
+                active.release()
+        with pytest.raises(AnalysisQueueTimeout):
+            future.result(timeout=1.0)
+
+    assert reservations == []
+    assert controller.counts() == (0, 0)
+
+
+def test_preparation_requires_an_atomic_reservation_callback():
+    with pytest.raises(ValueError, match="requires reserve_capacity"):
+        _controller().acquire(owner="invalid", prepare_capacity=lambda: None)
+
+
+def test_prepared_unavailable_capacity_respects_zero_queue_limit():
+    controller = _controller(max_queued=0)
+    with pytest.raises(AnalysisQueueFull):
+        controller.acquire(
+            owner="unavailable", prepare_capacity=lambda: None,
+            reserve_capacity=lambda: None,
+        )
+    assert controller.counts() == (0, 0)
+
+
+def test_expired_initial_request_skips_cache_preparation_after_waiting_for_attempt():
+    waiter_clock_read = threading.Event()
+
+    class SignalingClock(_ManualClock):
+        signal_waiter = False
+
+        def __call__(self):
+            current = super().__call__()
+            if self.signal_waiter:
+                waiter_clock_read.set()
+            return current
+
+    clock = SignalingClock()
+    controller = AnalysisAdmissionController(
+        max_active=2, max_queued=0, wait_timeout_seconds=1.0,
+        lease_timeout_seconds=10.0, poll_interval_seconds=0.005, clock=clock,
+    )
+    preparation_started = threading.Event()
+    finish_preparation = threading.Event()
+    unexpected_operations = []
+
+    def prepare_first():
+        preparation_started.set()
+        assert finish_preparation.wait(timeout=5.0)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(
+            controller.acquire, owner="first", prepare_capacity=prepare_first,
+            reserve_capacity=lambda: unexpected_operations.append("first reservation"),
+        )
+        try:
+            assert preparation_started.wait(timeout=1.0)
+            clock.signal_waiter = True
+            waiter = executor.submit(
+                controller.acquire,
+                owner="waiter",
+                prepare_capacity=lambda: unexpected_operations.append("late cache read"),
+                reserve_capacity=lambda: unexpected_operations.append("late reservation"),
+            )
+            assert waiter_clock_read.wait(timeout=1.0)
+            clock.advance(1.0)
+        finally:
+            finish_preparation.set()
+        for future in (first, waiter):
+            with pytest.raises(AnalysisQueueTimeout):
+                future.result(timeout=1.0)
+
+    assert unexpected_operations == []
+    assert controller.counts() == (0, 0)

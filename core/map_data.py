@@ -9,7 +9,11 @@ from config import AZIMUTH_STEP, COMPASS, DIST_BINS
 from core.compare_engine import aggregate_compare_map_data
 from core.geographic_scope import great_circle_distances_km
 from core.map_models import MapData, MapDataBuildResult
-from core.opportunity_engine import aggregate_opportunity_peers, aggregate_opportunity_segments
+from core.opportunity_engine import (
+    OPPORTUNITY_MAP_EXPORT_COLUMNS,
+    aggregate_opportunity_peers,
+    aggregate_opportunity_segments,
+)
 from core.result_diagnostics import (
     BENCHMARK_NO_QUALIFYING_RESULT,
     PERFORMANCE_NO_ELIGIBLE_STATION,
@@ -38,6 +42,31 @@ def validate_map_analysis_mode(*, analysis_kind: str, is_compare: bool) -> bool:
     )
 
 
+def map_preparation_columns(
+    *, analysis_kind: str, is_compare: bool, is_sequential: bool
+) -> tuple[str, ...]:
+    """Return the projection consumed from fully post-filtered evidence.
+
+    Scheduled evidence already carries its authoritative pair IDs. Reference
+    summary fields remain available to simultaneous map aggregation; detailed
+    Reference rows and other inspection/export evidence stay in the artifact.
+    """
+    if validate_map_analysis_mode(analysis_kind=analysis_kind, is_compare=is_compare):
+        return OPPORTUNITY_MAP_EXPORT_COLUMNS
+    peer_columns = ("peer_sign", "peer_grid", "peer_lat", "peer_lon")
+    if is_sequential:
+        return (*peer_columns, "tx_ab_pair_id", "is_me", "stat_val")
+    return (
+        *peer_columns,
+        "snr_u_norm",
+        "snr_r_norm",
+        "has_u",
+        "has_r",
+        "best_ref_sign",
+        "best_ref_dist",
+    )
+
+
 def _attach_map_geometry(frame: pd.DataFrame, *, center_latitude: float, center_longitude: float) -> None:
     """Attach distance, bearing, and stable segment keys to an owned frame."""
     frame["calc_dist"] = great_circle_distances_km(
@@ -60,9 +89,7 @@ def _attach_map_geometry(frame: pd.DataFrame, *, center_latitude: float, center_
     frame["az_bucket"] = (
         ((frame["calc_azimuth"] + (AZIMUTH_STEP / 2.0)) % 360) // AZIMUTH_STEP
     )
-    frame["dir_name"] = frame["az_bucket"].apply(
-        lambda value: COMPASS[int(value)] if pd.notnull(value) else ""
-    )
+    frame["dir_name"] = frame["az_bucket"].map(dict(enumerate(COMPASS))).fillna("")
     frame["r_min"] = pd.cut(
         frame["calc_dist"],
         bins=DIST_BINS,
@@ -75,22 +102,14 @@ def _attach_map_geometry(frame: pd.DataFrame, *, center_latitude: float, center_
         labels=DIST_BINS[1:],
         right=False,
     ).astype(float)
-    frame["dist_label"] = frame.apply(
-        lambda row: (
-            f"[{int(row['r_min'])}-{int(row['r_max'])}km]"
-            if pd.notnull(row["r_min"])
-            else ""
-        ),
-        axis=1,
-    )
-    frame["SegmentID"] = frame.apply(
-        lambda row: (
-            f"{row['dist_label']} {row['dir_name']}"
-            if pd.notnull(row["r_min"])
-            else "Out of Bounds"
-        ),
-        axis=1,
-    )
+    distance_labels = {
+        lower_bound: f"[{int(lower_bound)}-{int(upper_bound)}km]"
+        for lower_bound, upper_bound in zip(DIST_BINS[:-1], DIST_BINS[1:])
+    }
+    frame["dist_label"] = frame["r_min"].map(distance_labels).fillna("")
+    frame["SegmentID"] = (
+        frame["dist_label"] + " " + frame["dir_name"]
+    ).where(frame["r_min"].notna(), "Out of Bounds")
 
 
 def build_map_data_result(

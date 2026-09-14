@@ -1335,16 +1335,49 @@ def _draw_temporal_iqr_overlay(
 
 def _temporal_metric_summary(grouped_metrics, complete_bins):
     """Return raw-value median, count, and quartiles reindexed to all bins."""
-    return (
-        grouped_metrics
-        .agg(
+    if (
+        grouped_metrics.obj.dtype != np.dtype("float64")
+        or not grouped_metrics.ngroups
+        or np.isinf(grouped_metrics.obj.to_numpy()).any()
+    ):
+        # Retain pandas' empty, extension/narrow-dtype, and infinite-value
+        # behavior. Prepared temporal evidence already excludes infinities.
+        return grouped_metrics.agg(
             median="median",
             count="count",
             q1=lambda values: values.quantile(0.25),
             q3=lambda values: values.quantile(0.75),
-        )
-        .reindex(complete_bins)
+        ).reindex(complete_bins)
+
+    summary = grouped_metrics.agg(median="median", count="count")
+    probabilities = np.array([0.25, 0.75])
+    lower_values = (
+        grouped_metrics.quantile(probabilities, interpolation="lower")
+        .unstack(level=-1)
+        .reindex(index=summary.index, columns=probabilities)
+        .to_numpy()
     )
+    upper_values = (
+        grouped_metrics.quantile(probabilities, interpolation="higher")
+        .unstack(level=-1)
+        .reindex(index=summary.index, columns=probabilities)
+        .to_numpy()
+    )
+    positions = (summary["count"].to_numpy()[:, None] - 1) * probabilities
+    weights = positions - np.floor(positions)
+    differences = upper_values - lower_values
+    quartiles = lower_values + differences * weights
+    # Series.quantile uses NumPy's interpolation from the upper endpoint when
+    # the weight is >= 0.5. Native grouped "linear" interpolation can differ in
+    # the last float bit, so retain that arithmetic without per-group callbacks.
+    np.subtract(
+        upper_values,
+        differences * (1 - weights),
+        out=quartiles,
+        where=weights >= 0.5,
+    )
+    summary[["q1", "q3"]] = quartiles
+    return summary.reindex(complete_bins)
 
 
 def _recipe_uses_authoritative_temporal_iqr(recipe):

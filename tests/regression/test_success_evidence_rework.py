@@ -3184,8 +3184,11 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
             folded_station,
             folded_opportunity,
         ):
+            assert not axis.patches
+            assert len(axis.collections) == 2
             facecolors = {
-                to_hex(patch.get_facecolor()) for patch in axis.patches
+                to_hex(collection.get_facecolors()[0])
+                for collection in axis.collections
             }
             assert "#39ff14" in facecolors
             assert "#858585" in facecolors
@@ -3193,13 +3196,14 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
             assert not axis.lines
             assert axis.yaxis.get_major_formatter()(6_400, 0) == "6k4"
         assert {
-            patch.get_gid() for patch in chronological_station.patches
+            collection.get_gid()
+            for collection in chronological_station.collections
         } == {
             "success-temporal-station-vote-success",
             "success-temporal-station-vote-counter",
         }
         assert {
-            patch.get_gid() for patch in folded_station.patches
+            collection.get_gid() for collection in folded_station.collections
         } == {
             "success-temporal-station-support-success",
             "success-temporal-station-support-counter",
@@ -3208,9 +3212,10 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
         def bar_geometry(axis, facecolor):
             """Return ordered x/width geometry for one stack color."""
             return [
-                (patch.get_x(), patch.get_width())
-                for patch in axis.patches
-                if to_hex(patch.get_facecolor()) == facecolor
+                (path.vertices[0, 0], path.vertices[1, 0] - path.vertices[0, 0])
+                for collection in axis.collections
+                if to_hex(collection.get_facecolors()[0]) == facecolor
+                for path in collection.get_paths()
             ]
 
         np.testing.assert_allclose(
@@ -3225,9 +3230,10 @@ def test_success_temporal_renderer_aligns_localized_directional_layers(
         def bar_heights(axis, facecolor):
             """Return ordered stacked-bar heights for one outcome color."""
             return [
-                patch.get_height()
-                for patch in axis.patches
-                if to_hex(patch.get_facecolor()) == facecolor
+                path.vertices[2, 1] - path.vertices[0, 1]
+                for collection in axis.collections
+                if to_hex(collection.get_facecolors()[0]) == facecolor
+                for path in collection.get_paths()
             ]
 
         folded_profile = recipe["folded_profile"]

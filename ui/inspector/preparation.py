@@ -1654,19 +1654,28 @@ class InspectorPreparation:
             )
             raise InspectorArtifactReadError(exc) from exc
         with _timed_span(timing_collector, "opportunity segment prep"):
-            rows["peer_sign"] = rows["peer_sign"].astype(str)
-            rows["peer_grid"] = rows["peer_grid"].astype(str)
-            rows = rows.merge(identity_meta, on=["peer_sign", "peer_grid"], how="inner")
-            row_times = opportunity_utc_from_time_slot(rows["time_slot"]).dropna()
-            if analysis_start_t is None:
-                analysis_start_t = row_times.min() if not row_times.empty else pd.Timestamp.now(tz="UTC")
-            if analysis_end_t is None:
-                analysis_end_t = (
-                    row_times.max() + pd.Timedelta(minutes=2)
-                    if not row_times.empty
-                    else _as_utc_timestamp(analysis_start_t) + pd.Timedelta(minutes=2)
+            for column in ("peer_sign", "peer_grid"):
+                rows[column] = pd.Categorical(rows[column].astype(str))
+                identity_values = identity_meta[column].astype(str)
+                categories = rows[column].cat.categories.union(
+                    pd.Index(identity_values.dropna().unique()), sort=True,
                 )
-            del row_times
+                rows[column] = rows[column].cat.set_categories(categories)
+                identity_meta[column] = pd.Categorical(
+                    identity_values, categories=categories,
+                )
+            rows = rows.merge(identity_meta, on=["peer_sign", "peer_grid"], how="inner")
+            if analysis_start_t is None or analysis_end_t is None:
+                row_times = opportunity_utc_from_time_slot(rows["time_slot"]).dropna()
+                if analysis_start_t is None:
+                    analysis_start_t = row_times.min() if not row_times.empty else pd.Timestamp.now(tz="UTC")
+                if analysis_end_t is None:
+                    analysis_end_t = (
+                        row_times.max() + pd.Timedelta(minutes=2)
+                        if not row_times.empty
+                        else _as_utc_timestamp(analysis_start_t) + pd.Timedelta(minutes=2)
+                    )
+                del row_times
 
         return rows, analysis_start_t, analysis_end_t
 

@@ -550,6 +550,14 @@ peer's locator history is likewise evaluated before scope filtering, so
 choosing a narrower scope cannot hide evidence that the peer moved. Scheduled
 TX A/B pair assignment also precedes geographic filtering.
 
+Solar selection classifies each distinct timestamp once per analysis and maps
+the state back to its original rows. Both Performance and Benchmark use the
+unchanged `get_solar_state` astronomy function at Target QTH. Performance uses
+canonical WSPR-slot timestamps; simultaneous Benchmark retains its existing slot
+conversion, and scheduled TX A/B retains the midpoint between the two planned
+pair timestamps. No timestamp rounding, astronomy approximation, persistent
+solar cache, or change to the day/greyline/night boundaries is introduced.
+
 `core/data_engine.py` executes HTTP requests and returns structured
 `FetchResult`, delivery-tier, database-source, and error data without rendering
 Streamlit UI. It provides:
@@ -684,6 +692,17 @@ Map preparation owns its working evidence frame and transfers that owner into
 Benchmark or Performance aggregation, which may attach transient columns in place;
 standalone Benchmark aggregation remains nonmutating unless ownership is supplied
 explicitly.
+The initial map read uses `map_preparation_columns` through the existing leased
+Parquet reader. Performance reuses its established map/export projection;
+simultaneous Benchmark keeps peer coordinates and identity, both normalized SNRs,
+presence counts, and Reference summary fields. Scheduled Benchmark keeps peer
+coordinates and identity, the already assigned pair ID, path role, and normalized
+SNR. Detailed Local Median Reference rows and other evidence-only columns remain
+in the complete staged artifact for inspection and export. This projection is
+for post-filtered evidence, not raw observations requiring pair assignment.
+Compass and distance labels use lookups over the configured bins. Distance,
+bearing, half-open bin membership, and out-of-bounds segment handling retain
+their established calculations and labels.
 These consumers receive evidence already constrained by Geographic Analysis
 Scope. The same maximum distance controls the rendered extent and footer, so
 the visible map and its reported scope describe the scientific population
@@ -824,7 +843,14 @@ spot vectors; large numeric recipe arrays use a lossless internal compressed
 representation. Benchmark temporal recipes precompute the exact density grid,
 median, count, Q1 and Q3 inputs for every offered chronological bin plus the
 one-hour folded profile, then release the canonical comparison-unit and
-Joint-evidence frames. Every chronological profile retains the selected UTC
+Joint-evidence frames. For canonical float64 metrics, grouped native lower and
+higher order statistics feed vectorized quartile interpolation using the same
+endpoint arithmetic as the previous per-bin `Series.quantile` calculation.
+This preserves exact raw-value quartiles, including sparse bins where native
+grouped linear interpolation alone can differ in the final floating-point bit.
+Median and count remain native aggregations; missing and absent bins retain
+their established values. Empty, other-dtype, and infinite inputs retain the
+previous scalar path for compatibility. Every chronological profile retains the selected UTC
 boundaries. Benchmark Delta SNR and coverage use a common grid whose first edge
 is the exact selected start and whose last edge is the exact selected end;
 intermediate edges are anchored to that start, so the final interval can be
@@ -873,6 +899,20 @@ integer multiples from `0 km`; exact unrounded distances determine membership,
 the final selected upper boundary is included, and inactive bins retain gaps
 between disjoint selected ranges. Missing evidence remains missing rather than
 becoming 0%.
+
+Performance temporal preparation encodes each exact callsign-plus-locator identity
+once and retains categorical identity labels. It prepares elapsed nanoseconds,
+UTC-hour and UTC-date keys once on its owned, clipped evidence frame, then reuses
+those compact keys across every requested chronological outcome and SNR profile
+and the folded profile. Timestamp storage resolution is normalized explicitly
+before nanosecond arithmetic. Canonical binary outcome columns use compact
+integer storage; grouped totals are widened before arithmetic, and compatible
+nonbinary inputs retain their existing numeric path. Inspector row preparation
+only derives fallback time bounds when a bound is missing. All offered time-bin
+profiles remain ready immediately; raw-observation and station/date/hour SNR
+medians, station weighting, opportunity denominators and represented-date
+boundaries retain their established definitions. Internal keys never enter
+persisted evidence or retained figure recipes.
 
 The separate Performance temporal base recipe derives station baselines from the
 complete active-scope UTC window, requiring at least three successful normalized
@@ -945,6 +985,14 @@ contain one-sided retained outcomes.
 `ui/plots/temporal_layout.py` owns the shared two-column geometry, lower-row
 spacing, colorbar-footprint alignment, 28-pixel left expansion, unavailable
 annotation painter and preview/export layout version.
+
+`ui/plots/temporal_bars.py` draws Performance and Benchmark temporal outcome
+stacks with one polygon collection per outcome layer instead of one Rectangle
+artist per bin. The shared renderer preserves every bin, stack, color, edge,
+legend label and requested axis window, including zero-count bins and partial
+final bins. Preview and export use the same collection geometry under the
+existing Matplotlib serialization boundary. The temporal layout version
+invalidates cached previews and prepared exports when this renderer changes.
 
 Benchmark temporal preparation uses one canonical retained-unit frame after the
 completed run's gates, geographic scope and station-level category thresholds.
@@ -1509,6 +1557,12 @@ missing, corrupt or mismatched compact aggregate aborts preparation with an
 explicit rerun instruction instead of silently omitting the map. Export metadata
 stores a path-free SHA-256 recipe signature rather than local artifact paths.
 
+Required Drill-Down evidence read or preparation errors also abort the package
+through the existing localized rerun error. Missing declared evidence and errors
+copying that evidence into the ZIP cannot silently omit the registered Parquet.
+These failures remain distinct from a valid empty Drill-Down table or a result
+without Inspector content; both remain supported export states.
+
 Each `run_metadata.json` result block also publishes the registered
 `decode_filter_mode`: `strict_code_1` retains the `code = 1` query predicate,
 while `legacy_no_code` records the historical retry without that restriction
@@ -1823,6 +1877,16 @@ actual HTTP attempt converts one reservation into a rolling-window timestamp;
 unused slots are released. If every provider is temporarily unavailable, the
 request stays in the existing bounded queue and eventually reaches its normal
 timeout or causes later requests to receive the existing queue-full response.
+
+Admission attempts are serialized separately from the condition protecting
+active leases and queue state. An eligible attempt prepares fresh cache-based
+request counts outside that condition, so artifact-lock waits and Parquet reads
+cannot block permit release, heartbeats or status reads. It then rechecks its
+deadline, FIFO eligibility and active limit before atomically reserving provider
+capacity and publishing the permit. Preparation itself reserves neither an
+active slot nor provider requests. Preparation failures release coordination
+and remove any queued ticket; immediate admissions also support a zero-length
+waiting queue. No additional persisted cache metadata is required.
 
 This combined FIFO decision applies to initial admission. If a provider fails
 after a run has become active, that run keeps its analysis slot while it waits

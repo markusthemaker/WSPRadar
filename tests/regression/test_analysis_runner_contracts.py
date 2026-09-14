@@ -8,6 +8,7 @@ import pytest
 from pyproj import Geod
 
 from config import MAX_ANALYSIS_RESULT_ROWS
+from core import analysis_runner
 from core.analysis_context import (
     AnalysisContext,
     COMPARISON_HARDWARE_AB,
@@ -979,3 +980,150 @@ def test_sequential_comparison_does_not_apply_async_cycle_synchronization():
     assert warning is None
     assert len(filtered) == 2
     assert filtered["tx_ab_pair_id"].nunique() == 1
+
+
+@pytest.mark.parametrize("timestamp_timezone", [None, "UTC", "Europe/Berlin"])
+def test_distinct_solar_timestamps_match_scalar_astronomy_and_preserve_alignment(
+    monkeypatch, timestamp_timezone,
+):
+    """Keep every state transition while sharing classification across peers."""
+    distinct_times = pd.date_range(
+        "2026-03-20", periods=720, freq="2min", tz=timestamp_timezone,
+    )
+    repeated_times = distinct_times.append(distinct_times[::-1])
+    timestamps = pd.Series(
+        repeated_times,
+        index=pd.Index([index % 17 for index in range(len(repeated_times))], name="row"),
+        name="observation_time",
+    )
+    original_timestamps = timestamps.copy()
+    scalar_classification = analysis_runner.get_solar_state
+    expected = timestamps.apply(lambda timestamp: scalar_classification(timestamp, 47.0, 8.0))
+    calls = []
+
+    def classify_timestamp(timestamp, latitude, longitude):
+        calls.append((timestamp, latitude, longitude))
+        return scalar_classification(timestamp, latitude, longitude)
+
+    monkeypatch.setattr(analysis_runner, "get_solar_state", classify_timestamp)
+
+    actual = analysis_runner._classify_solar_timestamps(timestamps, 47.0, 8.0)
+
+    pd.testing.assert_series_equal(actual, expected)
+    pd.testing.assert_series_equal(timestamps, original_timestamps)
+    assert set(actual) == {"day", "grey", "night"}
+    assert calls == [(timestamp, 47.0, 8.0) for timestamp in distinct_times]
+
+
+@pytest.mark.parametrize("timestamp_timezone", [None, "UTC", "Europe/Berlin"])
+def test_distinct_solar_timestamps_keep_empty_dtype_without_astronomy_calls(
+    monkeypatch, timestamp_timezone,
+):
+    timestamps = pd.Series(
+        pd.DatetimeIndex([], tz=timestamp_timezone), name="observation_time",
+    )
+
+    def unexpected_classification(*args):
+        pytest.fail("Empty solar evidence must not invoke astronomy")
+
+    monkeypatch.setattr(analysis_runner, "get_solar_state", unexpected_classification)
+    expected = timestamps.apply(unexpected_classification)
+
+    actual = analysis_runner._classify_solar_timestamps(timestamps, 47.0, 8.0)
+
+    pd.testing.assert_series_equal(actual, expected)
+
+
+def test_distinct_solar_timestamps_do_not_silently_discard_missing_instants():
+    timestamps = pd.Series([pd.Timestamp(START_TIME), pd.NaT, pd.NaT])
+
+    with pytest.raises(ValueError, match="NaTType does not support utcoffset"):
+        timestamps.apply(lambda timestamp: analysis_runner.get_solar_state(timestamp, 47.0, 8.0))
+    with pytest.raises(ValueError, match="NaTType does not support utcoffset"):
+        analysis_runner._classify_solar_timestamps(timestamps, 47.0, 8.0)
+
+
+@pytest.mark.parametrize(
+    ("analysis_kind", "run_mode", "is_sequential"),
+    [
+        ("opportunity", "TX", False),
+        ("opportunity", "RX", False),
+        ("comparison", "TX", False),
+        ("comparison", "RX", False),
+        ("comparison", "TX", True),
+    ],
+)
+@pytest.mark.parametrize("solar_state", ["all", "day", "greyline", "night"])
+def test_solar_filter_shares_exact_instants_across_peers_and_scheduled_pair_sides(
+    monkeypatch, analysis_kind, run_mode, is_sequential, solar_state,
+):
+    """Retain rows and planned pair midpoints under every solar gate and mode."""
+    context = _analysis_context(run_mode=run_mode, solar_state=solar_state)
+    analysis = {
+        "analysis_kind": analysis_kind,
+        "is_compare": analysis_kind == "comparison",
+        "is_sequential": is_sequential,
+        "title": "solar filter",
+        "analysis_start_utc": START_TIME,
+        "analysis_end_utc": END_TIME,
+    }
+    row_records = []
+    for minute in (0, 10, 20):
+        for peer_sign, peer_grid in (("DL2XYZ", "JO62"), ("DL3ABC", "JN58")):
+            for is_me in ((1, 0) if is_sequential else (1,)):
+                timestamp = START_TIME + timedelta(minutes=minute + (2 if is_me == 0 else 0))
+                row_records.append({
+                    "time": timestamp,
+                    "time_slot": int(timestamp.timestamp()) // 120,
+                    "peer_sign": peer_sign,
+                    "peer_grid": peer_grid,
+                    "target_seen": 1,
+                    "external_seen": 1,
+                    "target_snr": -15.0,
+                    "has_u": 1,
+                    "has_r": 1,
+                    "is_me": is_me,
+                    "stat_val": -15.0,
+                })
+    rows = pd.DataFrame(row_records, index=[index * 7 for index in range(len(row_records))])
+    expected_timestamps = [
+        pd.Timestamp(START_TIME + timedelta(minutes=minute + int(is_sequential)))
+        for minute in (0, 10, 20)
+    ]
+    if analysis_kind == "comparison" and not is_sequential:
+        expected_timestamps = [timestamp.tz_localize(None) for timestamp in expected_timestamps]
+    classifications = dict(zip(expected_timestamps, ("day", "grey", "night")))
+    calls = []
+
+    def classify_timestamp(timestamp, latitude, longitude):
+        calls.append((timestamp, latitude, longitude))
+        return classifications[timestamp]
+
+    monkeypatch.setattr(analysis_runner, "get_solar_state", classify_timestamp)
+    actual, warning = apply_post_fetch_filters(
+        rows.copy(), analysis, context, 47.0, 8.0, T["en"],
+    )
+
+    assert warning is None
+    assert calls == (
+        [] if solar_state == "all"
+        else [(timestamp, 47.0, 8.0) for timestamp in expected_timestamps]
+    )
+    expected_row_count = len(rows) if solar_state == "all" else len(rows) // 3
+    assert len(actual) == expected_row_count
+    if solar_state != "all":
+        assert set(actual["solar"]) == {"grey" if solar_state == "greyline" else solar_state}
+
+    # The previous per-row calculation remains an independent compatibility oracle.
+    monkeypatch.setattr(
+        analysis_runner,
+        "_classify_solar_timestamps",
+        lambda timestamps, latitude, longitude: timestamps.apply(
+            lambda timestamp: classifications[timestamp]
+        ),
+    )
+    expected, expected_warning = apply_post_fetch_filters(
+        rows.copy(), analysis, context, 47.0, 8.0, T["en"],
+    )
+    assert expected_warning == warning
+    pd.testing.assert_frame_equal(actual, expected)

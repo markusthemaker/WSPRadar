@@ -1666,15 +1666,17 @@ def test_main_submission_of_loaded_demo_reaches_demo_reservation_policy(monkeypa
     reservation_modes = []
 
     def capture_demo_reservation(
-        _analyses,
+        request_counts,
         *,
         is_demo_run,
         allowed_sources,
     ):
+        assert request_counts == {"wspr_live": 0, "wd2": 0, "wd1": 0}
         reservation_modes.append((is_demo_run, allowed_sources))
-        return SimpleNamespace(), {"wspr_live": 0, "wd2": 0, "wd1": 0}
+        return SimpleNamespace()
 
     def reserve_then_stop(**kwargs):
+        kwargs["prepare_capacity"]()
         kwargs["reserve_capacity"]()
         raise AnalysisQueueFull("stop after reservation classification")
 
@@ -1687,6 +1689,11 @@ def test_main_submission_of_loaded_demo_reaches_demo_reservation_policy(monkeypa
         run_controller,
         "_try_reserve_upstream_capacity",
         capture_demo_reservation,
+    )
+    monkeypatch.setattr(
+        run_controller,
+        "_provider_request_counts",
+        lambda *_args, **_kwargs: {"wspr_live": 0, "wd2": 0, "wd1": 0},
     )
 
     _render_admission_presentation(fake_st, _RunStatusSlot())
@@ -1909,43 +1916,47 @@ def test_unexpected_first_render_failure_clears_partial_result_state(
 
 def test_each_capacity_attempt_reinspects_source_specific_caches(monkeypatch):
     """Do not retain request estimates across a potentially long queue wait."""
+    fake_st = _FakeStreamlit()
     estimates = [
         {"wspr_live": 2, "wd2": 2, "wd1": 2},
         {"wspr_live": 0, "wd2": 2, "wd1": 2},
     ]
     reservations = []
-    fake_dispatch = SimpleNamespace(
-        try_acquire_run=lambda counts, **kwargs: reservations.append(
-            (
-                dict(counts),
-                kwargs["allowed_sources"],
-                kwargs["prefer_cache_only"],
-            )
-        )
+    preparing = False
+
+    def estimate_counts(*_args, **_kwargs):
+        assert preparing, "Cache inspection belongs to preparation, not reservation."
+        return estimates.pop(0)
+
+    def reserve(counts, **kwargs):
+        assert not preparing
+        reservations.append((dict(counts), kwargs["allowed_sources"], kwargs["prefer_cache_only"]))
+
+    def retry_then_stop(**kwargs):
+        nonlocal preparing
+        for _attempt in range(2):
+            preparing = True
+            kwargs["prepare_capacity"]()
+            preparing = False
+            kwargs["reserve_capacity"]()
+        raise AnalysisQueueFull("stop after fresh reservation attempts")
+
+    gate = SimpleNamespace(acquire=retry_then_stop, counts=lambda: (0, 0))
+    _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+    monkeypatch.setattr(
+        run_controller, "UPSTREAM_PROVIDER_DISPATCH", SimpleNamespace(try_acquire_run=reserve),
     )
-    monkeypatch.setattr(run_controller, "UPSTREAM_PROVIDER_DISPATCH", fake_dispatch)
     monkeypatch.setattr(
         run_controller,
         "_provider_request_counts",
-        lambda *_args, **_kwargs: estimates.pop(0),
+        estimate_counts,
     )
+    _render_admission_presentation(fake_st, _RunStatusSlot())
 
-    first = run_controller._try_reserve_upstream_capacity(
-        ["analysis"],
-        is_demo_run=False,
-        allowed_sources=None,
-    )
-    second = run_controller._try_reserve_upstream_capacity(
-        ["analysis"],
-        is_demo_run=False,
-        allowed_sources={"wspr_live"},
-    )
-
-    assert first[1]["wspr_live"] == 2
-    assert second[1]["wspr_live"] == 0
+    assert estimates == []
     assert reservations == [
         ({"wspr_live": 2, "wd2": 2, "wd1": 2}, None, False),
-        ({"wspr_live": 0, "wd2": 2, "wd1": 2}, {"wspr_live"}, False),
+        ({"wspr_live": 0, "wd2": 2, "wd1": 2}, None, False),
     ]
 
 
@@ -1961,11 +1972,11 @@ def test_demo_reservation_enables_cross_provider_cache_affinity(monkeypatch):
     monkeypatch.setattr(
         run_controller,
         "_provider_request_counts",
-        lambda *_args, **_kwargs: dict(request_counts),
+        lambda *_args, **_kwargs: pytest.fail("Atomic reservation must not inspect caches."),
     )
 
-    demo_lease, _counts = run_controller._try_reserve_upstream_capacity(
-        ["analysis"],
+    demo_lease = run_controller._try_reserve_upstream_capacity(
+        request_counts,
         is_demo_run=True,
         allowed_sources=None,
     )
@@ -1973,8 +1984,8 @@ def test_demo_reservation_enables_cross_provider_cache_affinity(monkeypatch):
     assert demo_lease.used_cache_affinity
     demo_lease.release()
 
-    ordinary_lease, _counts = run_controller._try_reserve_upstream_capacity(
-        ["analysis"],
+    ordinary_lease = run_controller._try_reserve_upstream_capacity(
+        request_counts,
         is_demo_run=False,
         allowed_sources=None,
     )
@@ -1982,8 +1993,8 @@ def test_demo_reservation_enables_cross_provider_cache_affinity(monkeypatch):
     assert not ordinary_lease.used_cache_affinity
     ordinary_lease.release()
 
-    pinned_lease, _counts = run_controller._try_reserve_upstream_capacity(
-        ["analysis"],
+    pinned_lease = run_controller._try_reserve_upstream_capacity(
+        request_counts,
         is_demo_run=True,
         allowed_sources={"wspr_live"},
     )
@@ -2135,11 +2146,13 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
             )
         },
     )
-    monkeypatch.setattr(
-        run_controller,
-        "read_parquet_artifact",
-        lambda _path: pd.DataFrame({"prepared": [1]}),
-    )
+    map_read_calls = []
+
+    def read_map_projection(path, *, columns):
+        map_read_calls.append((path, columns))
+        return pd.DataFrame({"prepared": [1]})
+
+    monkeypatch.setattr(run_controller, "read_parquet_artifact", read_map_projection)
     monkeypatch.setattr(
         run_controller,
         "matplotlib_profile_collector",
@@ -2216,6 +2229,9 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         "inspectors rendered",
         "snapshot published",
     ]
+    assert map_read_calls == [(evidence_path, list(run_controller.map_preparation_columns(
+        analysis_kind="opportunity", is_compare=False, is_sequential=False,
+    )))]
     assert rendered_map_blocks[0]["map_data_paths"] == map_paths
     assert map_paths.station_rows_path.is_file()
     assert map_paths.segment_rows_path.is_file()
@@ -2287,7 +2303,7 @@ def test_diagnosed_nonrenderable_performance_skips_map_and_inspector_content(
     monkeypatch.setattr(
         run_controller,
         "read_parquet_artifact",
-        lambda _path: pd.DataFrame({"prepared": [1]}),
+        lambda _path, *, columns: pd.DataFrame({"prepared": [1]}),
     )
     monkeypatch.setattr(
         run_controller,

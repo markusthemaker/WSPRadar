@@ -405,7 +405,7 @@ def render_drilldown_dataframe(
                     min_val = float(display_drill_df[col].min())
                     max_val = float(display_drill_df[col].max())
                     if min_val < max_val:
-                        step = 1.0 if pd.api.types.is_integer_dtype(drill_df[col]) else 0.1
+                        step = 1.0 if pd.api.types.is_integer_dtype(display_drill_df[col]) else 0.1
                         sel_range = st.slider(
                             f"{col}",
                             min_val,

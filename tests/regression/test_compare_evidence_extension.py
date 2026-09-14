@@ -420,16 +420,25 @@ def _assert_compare_coverage_outcome_order(
         axis = next(
             axis for axis in figure.axes if axis.get_gid() == axis_gid
         )
+        collections_by_category = {
+            category: [
+                collection
+                for collection in axis.collections
+                if (collection.get_gid() or "").endswith(f"-{category}")
+            ]
+            for category, _ in expected_categories
+        }
+        assert not axis.patches
+        assert all(
+            len(collections) == 1
+            for collections in collections_by_category.values()
+        )
         bars_by_category = {
             category: sorted(
-                (
-                    bar
-                    for bar in axis.patches
-                    if (bar.get_gid() or "").endswith(f"-{category}")
-                ),
-                key=lambda bar: bar.get_x(),
+                (path.vertices for path in collections[0].get_paths()),
+                key=lambda vertices: vertices[0, 0],
             )
-            for category, _ in expected_categories
+            for category, collections in collections_by_category.items()
         }
         joint_bars = bars_by_category["joint"]
         target_bars = bars_by_category["target-only"]
@@ -441,21 +450,11 @@ def _assert_compare_coverage_outcome_order(
             target_bars,
             reference_bars,
         ):
-            assert target_bar.get_x() == pytest.approx(joint_bar.get_x())
-            assert reference_bar.get_x() == pytest.approx(joint_bar.get_x())
-            assert target_bar.get_width() == pytest.approx(
-                joint_bar.get_width()
-            )
-            assert reference_bar.get_width() == pytest.approx(
-                joint_bar.get_width()
-            )
-            assert joint_bar.get_y() == pytest.approx(0.0)
-            assert target_bar.get_y() == pytest.approx(
-                joint_bar.get_height()
-            )
-            assert reference_bar.get_y() == pytest.approx(
-                joint_bar.get_height() + target_bar.get_height()
-            )
+            np.testing.assert_array_equal(target_bar[:, 0], joint_bar[:, 0])
+            np.testing.assert_array_equal(reference_bar[:, 0], joint_bar[:, 0])
+            assert joint_bar[0, 1] == pytest.approx(0.0)
+            assert target_bar[0, 1] == pytest.approx(joint_bar[2, 1])
+            assert reference_bar[0, 1] == pytest.approx(target_bar[2, 1])
 
 
 def _assert_compare_coverage_share_labels(

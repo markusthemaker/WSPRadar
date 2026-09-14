@@ -26,6 +26,8 @@ from core.artifact_store import (
 )
 from i18n import T
 from ui import results_export
+from ui.export_content import OwnedExportContent
+from ui.export_registry import ExportPackagePayload, RegisteredExportBlock
 from ui.export_payloads import (
     BenchmarkFigureRecipes,
     BenchmarkZoomExport,
@@ -462,6 +464,150 @@ def _map_export_test_block(artifact_paths):
             },
         },
     }
+
+
+def _drilldown_evidence_export_fixture(parquet_path, *, is_compare=False):
+    """Capture one block while keeping real evidence reads and CSV preparation."""
+    analysis_id = "RX_COMPARE" if is_compare else "RX_ABS"
+    block = {
+        "analysis_id": analysis_id,
+        "database_source": "wspr_live",
+        "is_compare": is_compare,
+        "is_sequential": False,
+        "analysis_kind": "comparison" if is_compare else "opportunity",
+        "mode_folder": (
+            results_export.BENCHMARK_EXPORT_FOLDER
+            if is_compare else results_export.PERFORMANCE_EXPORT_FOLDER
+        ),
+        "map_context": {"parquet_path": str(parquet_path)},
+        "all_drilldown_context": {
+            "station_meta_df": pd.DataFrame({
+                "Station": ["K1ABC"], "Grid": ["FN31"],
+                "km": [100.0], "az": [30.0],
+            }),
+            "station_col": "Station", "loc_col": "Grid",
+            "km_col": "km", "az_col": "az",
+            "analysis_id": analysis_id, "is_sequential": False,
+            "show_non_joint": False, "is_local_median": False,
+            "col_u_name": "Target", "ref_header": "Reference", "lang": "en",
+        },
+    }
+    evidence = pd.DataFrame({
+        "peer_sign": ["K1ABC"], "peer_grid": ["FN31"], "time_slot": [100],
+        **({
+            "has_u": [1], "has_r": [1],
+            "snr_u_norm": [-10.0], "snr_r_norm": [-12.0],
+        } if is_compare else {
+            "hit": [1], "miss": [0], "target_only": [0], "target_snr": [-10.0],
+        }),
+    })
+    return block, evidence
+
+
+def _capture_evidence_test_package(block):
+    return ExportPackagePayload(
+        blocks=((block["analysis_id"], RegisteredExportBlock.capture(block)),),
+        config_bytes=b'{"settings": {}}',
+        translations=OwnedExportContent.capture(T["en"]),
+        language="en", run_id=17, signature="evidence-package",
+        exported_utc="2026-09-13T10:00:00Z", root_folder="WSPRadar_export_evidence",
+    )
+
+
+@pytest.mark.parametrize("is_compare", [False, True])
+@pytest.mark.parametrize("failure", ["missing", "corrupt", "wrong_schema", "invalid_values"])
+def test_required_drilldown_evidence_errors_abort_package(
+    monkeypatch, tmp_path, is_compare, failure,
+):
+    """Unreadable required evidence must never become a successful empty CSV."""
+    parquet_path = tmp_path / "evidence.parquet"
+    block, evidence = _drilldown_evidence_export_fixture(
+        parquet_path, is_compare=is_compare,
+    )
+    if failure == "corrupt":
+        parquet_path.write_bytes(b"not a Parquet artifact")
+    elif failure == "wrong_schema":
+        evidence.drop(columns=["time_slot"]).to_parquet(parquet_path)
+    elif failure == "invalid_values":
+        evidence["has_u" if is_compare else "hit"] = "invalid evidence count"
+        evidence.to_parquet(parquet_path)
+    elif failure != "missing":
+        raise AssertionError(f"Unhandled evidence failure: {failure}")
+
+    with pytest.raises(results_export.ExportArtifactUnavailableError, match="Drill-Down evidence"):
+        results_export._build_all_drilldown_for_block(block, translations=T["en"])
+
+    monkeypatch.setattr(results_export, "_render_map_png_for_block", lambda *_args, **_kwargs: b"map")
+    monkeypatch.setattr(results_export, "_render_inspector_png_for_block", lambda *_args: None)
+    with pytest.raises(results_export.ExportArtifactUnavailableError, match="evidence"):
+        results_export.build_results_zip(T["en"], payload=_capture_evidence_test_package(block))
+
+
+@pytest.mark.parametrize("is_compare", [False, True])
+@pytest.mark.parametrize("empty_reason", ["empty_artifact", "no_matching_station", "empty_segment", "no_inspector"])
+def test_valid_empty_drilldown_evidence_preserves_package(
+    monkeypatch, tmp_path, is_compare, empty_reason,
+):
+    """Legitimate absent rows or an unvisited Inspector remain successful exports."""
+    parquet_path = tmp_path / "evidence.parquet"
+    block, evidence = _drilldown_evidence_export_fixture(
+        parquet_path, is_compare=is_compare,
+    )
+    if empty_reason == "empty_artifact":
+        evidence = evidence.iloc[:0]
+    elif empty_reason == "no_matching_station":
+        evidence["peer_sign"] = "K2DEF"
+    elif empty_reason == "empty_segment":
+        context = block["all_drilldown_context"]
+        context["station_meta_df"] = context["station_meta_df"].iloc[:0]
+    else:
+        del block["all_drilldown_context"]
+    evidence.to_parquet(parquet_path)
+    monkeypatch.setattr(results_export, "_render_map_png_for_block", lambda *_args, **_kwargs: b"map")
+    monkeypatch.setattr(results_export, "_render_inspector_png_for_block", lambda *_args: None)
+
+    assert results_export._build_all_drilldown_for_block(block).empty
+    payload = _capture_evidence_test_package(block)
+    zip_bytes, filename = results_export.build_results_zip(T["en"], payload=payload)
+
+    assert filename == f"{payload.root_folder}.zip"
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+        prefix = f"{payload.root_folder}/{block['mode_folder']}"
+        assert archive.read(f"{prefix}/analysis_cache.parquet") == parquet_path.read_bytes()
+        assert archive.read(f"{prefix}/table_drilldown_all_stations_current_segment.csv").decode("utf-8-sig").strip() == ""
+
+
+@pytest.mark.parametrize("is_compare", [False, True])
+def test_evidence_disappearing_before_copy_aborts_package(monkeypatch, tmp_path, is_compare):
+    """A race after successful table preparation cannot silently omit the Parquet."""
+    parquet_path = tmp_path / "evidence.parquet"
+    block, evidence = _drilldown_evidence_export_fixture(parquet_path, is_compare=is_compare)
+    evidence.to_parquet(parquet_path)
+    build_drilldown = results_export._build_all_drilldown_for_block
+
+    def prepare_then_remove(*args, **kwargs):
+        table = build_drilldown(*args, **kwargs)
+        assert not table.empty
+        parquet_path.unlink()
+        return table
+
+    monkeypatch.setattr(results_export, "_render_map_png_for_block", lambda *_args, **_kwargs: b"map")
+    monkeypatch.setattr(results_export, "_render_inspector_png_for_block", lambda *_args: None)
+    monkeypatch.setattr(results_export, "_build_all_drilldown_for_block", prepare_then_remove)
+
+    with pytest.raises(results_export.ExportArtifactUnavailableError, match="could not be packaged"):
+        results_export.build_results_zip(T["en"], payload=_capture_evidence_test_package(block))
+
+
+@pytest.mark.parametrize("missing_field", ["station_meta_df", "parquet_path", "station_col"])
+def test_required_drilldown_context_errors_are_explicit(tmp_path, missing_field):
+    block, evidence = _drilldown_evidence_export_fixture(tmp_path / "evidence.parquet")
+    evidence.to_parquet(tmp_path / "evidence.parquet")
+    context = block["map_context"] if missing_field == "parquet_path" else block["all_drilldown_context"]
+    del context[missing_field]
+
+    with pytest.raises(results_export.ExportArtifactUnavailableError, match="Drill-Down"):
+        results_export._build_all_drilldown_for_block(block)
 
 
 class _FooterColumn:
