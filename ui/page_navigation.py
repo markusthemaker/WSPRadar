@@ -1,6 +1,8 @@
 """Stable browser navigation between the application's top-level regions."""
 
 from collections.abc import MutableMapping
+from html import escape
+import re
 from typing import Any
 from uuid import uuid4
 
@@ -10,12 +12,14 @@ import streamlit as st
 PAGE_TOP_ANCHOR_ID = "wspradar-page-top"
 PARAMETER_SETTINGS_ANCHOR_ID = "wspradar-parameter-settings"
 RESULTS_INSPECTION_ANCHOR_ID = "wspradar-results-inspection"
+MAP_RESULTS_ANCHOR_ID = "wspradar-map-results"
 STATION_INSIGHTS_ANCHOR_ID = "wspradar-station-insights"
 DRILLDOWN_ANCHOR_ID = "wspradar-drilldown"
 APPLICATION_ANCHOR_IDS = (
     PAGE_TOP_ANCHOR_ID,
     PARAMETER_SETTINGS_ANCHOR_ID,
     RESULTS_INSPECTION_ANCHOR_ID,
+    MAP_RESULTS_ANCHOR_ID,
     STATION_INSIGHTS_ANCHOR_ID,
     DRILLDOWN_ANCHOR_ID,
 )
@@ -202,6 +206,9 @@ export default function(component) {
             return;
         }
         replaceCurrentFragment(visibleAnchorId);
+        // The user is already inside this region. A later component remount
+        // must not reinterpret its passively tracked fragment as a deep link.
+        window[processedInitialAnchorProperty] = visibleAnchorId;
     }
 
     let synchronizationFrame = null;
@@ -216,6 +223,7 @@ export default function(component) {
     }
 
     function handleHistoryNavigation() {
+        cancelAnalysisNavigation();
         const anchorId = anchorIdFromHash(window.location.hash);
         if (!allowedApplicationAnchors.has(anchorId)) {
             return;
@@ -251,6 +259,210 @@ export default function(component) {
         return true;
     }
 
+    const analysisNavigationStateProperty =
+        '__wspradarAnalysisNavigationState';
+    const submissionToken = data?.analysisSubmissionToken;
+    let analysisState = null;
+    const previousAnalysisState = window[analysisNavigationStateProperty];
+    if (submissionToken) {
+        if (previousAnalysisState?.token === submissionToken) {
+            analysisState = previousAnalysisState;
+        } else {
+            analysisState = {
+                token: submissionToken,
+                statusScrolled: false,
+                mapScrolled: false,
+                cancelled: false,
+            };
+            // Keep only the latest submission; completed run history is not
+            // retained in the browser or allowed to re-arm an old observer.
+            window[analysisNavigationStateProperty] = analysisState;
+        }
+    } else if (previousAnalysisState && !previousAnalysisState.mapScrolled) {
+        previousAnalysisState.cancelled = true;
+    }
+
+    let analysisObserver = null;
+    let analysisScrollFrame = null;
+    let observedMapImage = null;
+
+    function analysisNavigationIsActive() {
+        return Boolean(
+            analysisState
+            && window[analysisNavigationStateProperty] === analysisState
+            && !analysisState.cancelled
+            && !analysisState.mapScrolled
+        );
+    }
+
+    function detachMapImageListeners() {
+        if (observedMapImage) {
+            observedMapImage.removeEventListener('load', scheduleAnalysisNavigation);
+            observedMapImage.removeEventListener('error', scheduleAnalysisNavigation);
+            observedMapImage = null;
+        }
+    }
+
+    function stopAnalysisNavigationObservation() {
+        analysisObserver?.disconnect();
+        analysisObserver = null;
+        detachMapImageListeners();
+        if (analysisScrollFrame !== null) {
+            window.cancelAnimationFrame(analysisScrollFrame);
+            analysisScrollFrame = null;
+        }
+    }
+
+    function cancelAnalysisNavigation() {
+        if (analysisNavigationIsActive()) {
+            analysisState.cancelled = true;
+        }
+        stopAnalysisNavigationObservation();
+    }
+
+    function scrollAnalysisMilestone(anchor, flag) {
+        clearPendingDocumentationNavigation();
+        replaceCurrentFragment(anchor.id);
+        window[processedInitialAnchorProperty] = anchor.id;
+        anchor.scrollIntoView({ behavior: 'auto', block: 'start' });
+        analysisState[flag] = true;
+    }
+
+    function isCurrentAnalysisElement(element) {
+        return Boolean(element && !element.closest('[data-stale="true"]'));
+    }
+
+    function advanceAnalysisNavigation() {
+        analysisScrollFrame = null;
+        if (!analysisNavigationIsActive()) {
+            return;
+        }
+        if (!analysisState.statusScrolled) {
+            const statusAnchor = document.getElementById(data.analysisStatusAnchorId);
+            if (!statusAnchor) {
+                return;
+            }
+            scrollAnalysisMilestone(statusAnchor, 'statusScrolled');
+        }
+
+        // Streamlit can retain a prior run's dimmed subtree at an earlier
+        // DOM position while the current run renders. Select this submission's
+        // live anchor rather than the first occurrence of the shared HTML ID.
+        const mapAnchor = Array.from(document.querySelectorAll(
+            '[data-analysis-submission-token]'
+        )).find(element => (
+            element.id === data.analysisMapAnchorId
+            && element.getAttribute('data-analysis-submission-token') === submissionToken
+            && isCurrentAnalysisElement(element)
+        ));
+        if (!mapAnchor) {
+            return;
+        }
+        const marker = Array.from(document.querySelectorAll(
+            '[data-wspradar-map-ready-token]'
+        )).find(element => (
+            element.getAttribute('data-wspradar-map-ready-token') === submissionToken
+            && isCurrentAnalysisElement(element)
+        ));
+        if (!marker) {
+            return;
+        }
+        const containerKey = marker.getAttribute('data-map-image-container-key');
+        const mapContainer = marker.closest(`.st-key-${containerKey}`);
+        const mapImage = mapContainer?.querySelector('[data-testid="stImage"] img');
+        if (!isCurrentAnalysisElement(mapImage)) {
+            return;
+        }
+        if (observedMapImage !== mapImage) {
+            detachMapImageListeners();
+            observedMapImage = mapImage;
+            mapImage.addEventListener('load', scheduleAnalysisNavigation);
+            mapImage.addEventListener('error', scheduleAnalysisNavigation);
+        }
+        if (
+            !mapImage.complete
+            || mapImage.naturalWidth <= 0
+            || mapImage.getBoundingClientRect().height <= 0
+        ) {
+            return;
+        }
+        scrollAnalysisMilestone(mapAnchor, 'mapScrolled');
+        stopAnalysisNavigationObservation();
+    }
+
+    function scheduleAnalysisNavigation() {
+        if (!analysisNavigationIsActive() || analysisScrollFrame !== null) {
+            return;
+        }
+        analysisScrollFrame = window.requestAnimationFrame(advanceAnalysisNavigation);
+    }
+
+    function handleDeliberateNavigation(event) {
+        if (event.type === 'keydown') {
+            const navigationKeys = new Set([
+                'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+                'PageUp', 'PageDown', 'Home', 'End', ' ',
+            ]);
+            if (
+                !navigationKeys.has(event.key)
+                || event.target?.isContentEditable
+                || event.target?.closest('input, textarea, select, button, [role="button"], [contenteditable], [role="combobox"], [role="listbox"], [role="slider"]')
+            ) {
+                return;
+            }
+        }
+        cancelAnalysisNavigation();
+    }
+
+    function handleScrollbarNavigation(event) {
+        if (event.button !== 0) {
+            return;
+        }
+        const element = scrollContainer === window ? document.documentElement : scrollContainer;
+        const gutterWidth = element.offsetWidth - element.clientWidth;
+        const bounds = element.getBoundingClientRect();
+        if (
+            gutterWidth > 0
+            && element.scrollHeight > element.clientHeight
+            && event.clientX >= bounds.right - gutterWidth
+            && event.clientX <= bounds.right
+            && event.clientY >= bounds.top
+            && event.clientY <= bounds.bottom
+        ) {
+            cancelAnalysisNavigation();
+        }
+    }
+
+    function handleAnchorNavigation(event) {
+        if (event.target?.closest('a[href]')) {
+            cancelAnalysisNavigation();
+        }
+    }
+
+    if (analysisNavigationIsActive()) {
+        if ('MutationObserver' in window) {
+            analysisObserver = new MutationObserver(scheduleAnalysisNavigation);
+            analysisObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: [
+                    'src', 'class', 'style', 'hidden', 'data-stale',
+                    'data-analysis-submission-token',
+                    'data-wspradar-map-ready-token',
+                    'data-map-image-container-key',
+                ],
+            });
+        }
+        scheduleAnalysisNavigation();
+    }
+    document.addEventListener('wheel', handleDeliberateNavigation, { passive: true });
+    document.addEventListener('touchmove', handleDeliberateNavigation, { passive: true });
+    document.addEventListener('keydown', handleDeliberateNavigation);
+    document.addEventListener('click', handleAnchorNavigation, true);
+    document.addEventListener('pointerdown', handleScrollbarNavigation, true);
+    window.addEventListener('resize', scheduleAnalysisNavigation);
+
     scrollContainer.addEventListener(
         'scroll',
         scheduleVisibleApplicationAnchorSynchronization,
@@ -265,7 +477,7 @@ export default function(component) {
     document.addEventListener('click', handleInteractionBeforeRerun, true);
 
     const didHandleRequest = handleRequestedNavigation();
-    if (!didHandleRequest) {
+    if (!didHandleRequest && !analysisState) {
         const initialAnchorId = anchorIdFromHash(window.location.hash);
         if (
             allowedApplicationAnchors.has(initialAnchorId)
@@ -279,6 +491,13 @@ export default function(component) {
     }
 
     return () => {
+        stopAnalysisNavigationObservation();
+        document.removeEventListener('wheel', handleDeliberateNavigation);
+        document.removeEventListener('touchmove', handleDeliberateNavigation);
+        document.removeEventListener('keydown', handleDeliberateNavigation);
+        document.removeEventListener('click', handleAnchorNavigation, true);
+        document.removeEventListener('pointerdown', handleScrollbarNavigation, true);
+        window.removeEventListener('resize', scheduleAnalysisNavigation);
         scrollContainer.removeEventListener(
             'scroll',
             scheduleVisibleApplicationAnchorSynchronization
@@ -365,8 +584,12 @@ def render_page_anchor(anchor_id: str) -> None:
 
 def render_page_navigation_controller(
     request: dict[str, Any] | None,
+    *,
+    analysis_submission_token: str | None = None,
 ) -> None:
-    """Mount the browser controller for coarse page anchors and one-shot requests."""
+    """Mount coarse navigation and optional one-shot analysis milestones."""
+    if analysis_submission_token is not None:
+        _validate_navigation_attribute(analysis_submission_token, "submission token")
     _PAGE_NAVIGATION_CONTROLLER(
         data={
             "anchorIds": list(APPLICATION_ANCHOR_IDS),
@@ -379,8 +602,48 @@ def render_page_navigation_controller(
             "shouldScrollRequest": bool(
                 request is not None and request["should_scroll"]
             ),
+            "analysisSubmissionToken": analysis_submission_token,
+            "analysisStatusAnchorId": RESULTS_INSPECTION_ANCHOR_ID,
+            "analysisMapAnchorId": MAP_RESULTS_ANCHOR_ID,
         },
         key=PAGE_NAVIGATION_CONTROLLER_KEY,
         width="stretch",
         height=1,
+    )
+
+
+def _validate_navigation_attribute(value: str, field: str) -> None:
+    """Allow bounded internal tokens and Streamlit keys in browser markers."""
+    if not isinstance(value, str) or re.fullmatch(r"[A-Za-z0-9_-]{1,160}", value) is None:
+        raise ValueError(f"Invalid analysis navigation {field}.")
+
+
+def render_analysis_map_anchor(submission_token: str | None) -> None:
+    """Expose the first map target, bound to this submission when applicable."""
+    if submission_token is None:
+        render_page_anchor(MAP_RESULTS_ANCHOR_ID)
+        return
+    _validate_navigation_attribute(submission_token, "submission token")
+    st.html(
+        f'<span id="{MAP_RESULTS_ANCHOR_ID}" class="wspradar-page-anchor" '
+        f'data-analysis-submission-token="{escape(submission_token, quote=True)}" '
+        'aria-hidden="true"></span>'
+    )
+
+
+def render_analysis_map_ready_marker(
+    submission_token: str | None,
+    *,
+    image_container_key: str,
+) -> None:
+    """Signal that the first map was emitted; the browser checks image readiness."""
+    if submission_token is None:
+        return
+    _validate_navigation_attribute(submission_token, "submission token")
+    _validate_navigation_attribute(image_container_key, "image container key")
+    st.html(
+        '<span aria-hidden="true" '
+        f'data-wspradar-map-ready-token="{escape(submission_token, quote=True)}" '
+        f'data-map-image-container-key="{escape(image_container_key, quote=True)}" '
+        'style="display:none"></span>'
     )

@@ -1,5 +1,6 @@
 """Focused regression coverage for the human-readable public URL-v1 adapter."""
 
+import ast
 from copy import deepcopy
 from pathlib import Path
 from urllib.parse import parse_qsl, urlsplit
@@ -1214,7 +1215,7 @@ def test_direction_and_range_lists_parse_to_existing_canonical_order():
 
 
 def test_app_hydrates_before_widgets_and_routes_replay_through_normal_submission():
-    """Pin initial hydration, admitted replay, and post-run anchor synchronization."""
+    """Pin hydration and early replay navigation before admitted analysis work."""
     repository_root = Path(__file__).resolve().parents[2]
     app_source = (repository_root / "app.py").read_text(encoding="utf-8")
 
@@ -1230,9 +1231,10 @@ def test_app_hydrates_before_widgets_and_routes_replay_through_normal_submission
         in app_source
     )
     assert (
-        app_source.index("elif submission_snapshot is not None:")
-        < app_source.index("if consume_url_replay_navigation(")
+        app_source.index("consume_url_replay_navigation(st.session_state)")
         < app_source.index("render_page_navigation_controller(")
+        < app_source.index("with run_status_slot.container():")
+        < app_source.index("analysis_run_outcome = render_analysis_run(")
         < app_source.index("render_current_url_synchronizer(")
         < app_source.index("render_documentation_section(")
     )
@@ -1243,11 +1245,18 @@ def test_app_gates_actions_and_url_sync_for_incomplete_classic_benchmark():
     repository_root = Path(__file__).resolve().parents[2]
     app_source = (repository_root / "app.py").read_text(encoding="utf-8")
 
-    assert (
-        "classic_render_result.is_ready\n"
-        '    if st.session_state.input_view == "classic"'
-        in app_source
+    readiness_assignment = next(
+        node for node in ast.walk(ast.parse(app_source))
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "input_configuration_ready"
+                for target in node.targets)
     )
+    expected_readiness = ast.parse(
+        'bool(classic_render_result.is_ready '
+        'if st.session_state.input_view == "classic" and classic_render_result is not None '
+        'else guided_actions_available)', mode="eval",
+    ).body
+    assert ast.dump(readiness_assignment.value) == ast.dump(expected_readiness)
     assert 'st.session_state.input_view == "classic" or guided_actions_available' in app_source
     assert "classic_render_result.review_actions_slot.container()" in app_source
     assert 'if st.session_state.input_view == "guided":' in app_source

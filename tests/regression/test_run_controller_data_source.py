@@ -50,7 +50,9 @@ from ui import callbacks, run_controller
 from ui.analysis_context_adapter import build_analysis_context_from_session_state
 from ui.analysis_submission_state import (
     begin_analysis_submission,
+    cancel_analysis_submission,
     claim_analysis_submission_request,
+    handoff_analysis_submission,
     get_analysis_submission,
     update_analysis_submission,
 )
@@ -1371,7 +1373,7 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
     tmp_path,
 ):
     """Preserve scientific/export provenance while rebuilding localized figures."""
-    fake_st = _FakeStreamlit()
+    fake_st = _MapNavigationStreamlit()
     fake_st.session_state.val_min_stations = 3
     existing_export_registry = {"old": "recipe"}
     fake_st.session_state[EXPORT_STATE_KEY] = existing_export_registry
@@ -1443,13 +1445,17 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
     render_calls = []
 
     def render_map(restored_map_data, **kwargs):
+        assert map_results_slot.containers == []
         render_calls.append((restored_map_data, kwargs))
         return SimpleNamespace(figure=object(), map_data=restored_map_data)
 
     block_calls = []
+    map_results_slot = _MapResultsSlot(fake_st)
+    map_results_display = run_controller._MapResultsDisplay(map_results_slot)
 
     def render_block(**kwargs):
-        block_calls.append(kwargs)
+        with kwargs["map_results_display"].container():
+            block_calls.append(kwargs)
         return {"deferred": True}
 
     monkeypatch.setattr(
@@ -1468,7 +1474,7 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
     permit = SimpleNamespace(touch=lambda: True)
 
     outcome = run_controller._render_completed_analysis_run(
-        t={"msg_loading": "Laden", "warn_no_data": "Keine Daten: {title}"},
+        t={**T["de"], "msg_loading": "Laden", "warn_no_data": "Keine Daten: {title}"},
         run_status_slot=_RunStatusSlot(),
         start_t="start",
         end_t="end",
@@ -1480,9 +1486,11 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
         center_latitude=47.0,
         center_longitude=8.0,
         completed_run_snapshot=completed_snapshot,
+        map_results_display=map_results_display,
     )
 
     assert outcome == "completed"
+    assert len(map_results_slot.containers) == 1
     pd.testing.assert_frame_equal(
         render_calls[0][0].station_rows,
         map_data.station_rows,
@@ -1493,6 +1501,9 @@ def test_completed_renderer_uses_stored_decode_method_and_current_presentation(
     assert block_calls[0]["analysis"]["decode_filter_mode"] == DECODE_FILTER_LEGACY
     assert block_calls[0]["analysis"]["title"] == "Aktueller Kartentitel"
     assert block_calls[0]["presentation_context"] is presentation_context
+    assert block_calls[0]["is_first_map"] is True
+    assert block_calls[0]["map_results_display"] is map_results_display
+    assert block_calls[0].get("navigation_submission_token") is None
     assert block_calls[0]["parquet_path"] == Path(
         completed_snapshot.to_dict()["analyses"][0]["evidence_path"]
     )
@@ -2014,6 +2025,7 @@ def _render_fake_run(
     request_counts_by_provider=None,
     language="en",
     exclude_special_callsigns=False,
+    map_results_display=None,
 ):
     """Execute the admitted transactional path without map rendering."""
     fake_st.analysis_run_outcome = run_controller._render_admitted_analysis_run(
@@ -2048,17 +2060,23 @@ def _render_fake_run(
         committed_source=committed_source,
         request_fingerprint="request-key",
         analysis_plan_fingerprint="analysis-plan-key",
+        map_results_display=map_results_display,
     )
     return fake_st
 
 
+@pytest.mark.parametrize("leading_no_data", [False, True])
 def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
     monkeypatch,
     tmp_path,
+    leading_no_data,
 ):
     """Commit a reusable result only after both map tables and consumers succeed."""
-    fake_st = _FakeStreamlit()
+    fake_st = _MapNavigationStreamlit()
     fake_st.session_state.val_min_stations = 1
+    navigation_token = begin_analysis_submission(
+        fake_st.session_state, request_source="main_button",
+    )
     controller = ProviderDispatchController(
         WSPR_DATABASE_PROVIDERS,
         acquire_timeout_seconds=1.0,
@@ -2130,6 +2148,16 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
             profile_timer=_ProfileTimer(),
         )],
     )
+    if leading_no_data:
+        prepared_bundle = PreparedProviderBundle(
+            database_source=prepared_bundle.database_source,
+            analyses=[
+                *_no_data_bundle(
+                    "wspr_live", [_analysis("RX_COMP", "Empty first analysis")],
+                ).analyses,
+                *prepared_bundle.analyses,
+            ],
+        )
     _patch_run_environment(
         monkeypatch,
         fake_st,
@@ -2160,8 +2188,11 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
     )
     lifecycle_events = []
     rendered_map_blocks = []
+    map_results_slot = _MapResultsSlot(fake_st)
+    map_results_display = run_controller._MapResultsDisplay(map_results_slot)
 
     def generate_map(*_args, **_kwargs):
+        assert len(map_results_slot.containers) == int(leading_no_data)
         lifecycle_events.append("map generated")
         return MapFigure(
             figure=object(),
@@ -2170,7 +2201,8 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         )
 
     def render_map_block(**kwargs):
-        rendered_map_blocks.append(kwargs)
+        with kwargs["map_results_display"].container():
+            rendered_map_blocks.append(kwargs)
         lifecycle_events.append("map UI rendered")
         return {"deferred": True}
 
@@ -2205,7 +2237,7 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         end_t="end",
         generate_map_plot=generate_map,
         admission_permit=permit,
-        analyses=[analysis],
+        analyses=[entry.analysis for entry in prepared_bundle.analyses],
         analysis_context=SimpleNamespace(
             max_peer_distance_km=22000,
             exclude_special_callsigns=False,
@@ -2220,9 +2252,12 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
         committed_source=None,
         request_fingerprint="request-key",
         analysis_plan_fingerprint="analysis-plan-key",
+        navigation_submission_token=navigation_token,
+        map_results_display=map_results_display,
     )
 
     assert outcome == "completed"
+    assert len(map_results_slot.containers) == 1
     assert lifecycle_events == [
         "map generated",
         "map UI rendered",
@@ -2232,7 +2267,11 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
     assert map_read_calls == [(evidence_path, list(run_controller.map_preparation_columns(
         analysis_kind="opportunity", is_compare=False, is_sequential=False,
     )))]
+    assert len(rendered_map_blocks) == 1
     assert rendered_map_blocks[0]["map_data_paths"] == map_paths
+    assert rendered_map_blocks[0]["is_first_map"] is True
+    assert rendered_map_blocks[0]["map_results_display"] is map_results_display
+    assert rendered_map_blocks[0]["navigation_submission_token"] == navigation_token
     assert map_paths.station_rows_path.is_file()
     assert map_paths.segment_rows_path.is_file()
     registered_paths = set(fake_st.session_state[SESSION_ARTIFACT_PATHS_KEY])
@@ -2243,12 +2282,17 @@ def test_completed_snapshot_is_published_after_compact_map_artifacts_and_ui(
     }
     snapshot = get_completed_run_snapshot(fake_st.session_state).to_dict()
     assert snapshot["database_source"] == "wspr_live"
-    assert snapshot["analyses"][0]["outcome"] == (
+    assert snapshot["analyses"][-1]["outcome"] == (
         run_controller.COMPLETED_RENDERABLE
     )
-    assert snapshot["analyses"][0]["station_rows_path"] == str(
+    assert snapshot["analyses"][-1]["station_rows_path"] == str(
         map_paths.station_rows_path.resolve()
     )
+
+    if leading_no_data:
+        assert snapshot["analyses"][0]["outcome"] == (
+            run_controller.COMPLETED_PREPARED_NO_DATA
+        )
 
 
 def test_diagnosed_nonrenderable_performance_skips_map_and_inspector_content(
@@ -3190,3 +3234,403 @@ def test_failed_attempt_legacy_status_is_not_reported_as_final_method(monkeypatc
 
     final_audit = fake_st.placeholders[0].markdowns[-1]
     assert "strict `code = 1` found no target-side evidence" not in final_audit
+
+
+class _MapNavigationPlaceholder(_Placeholder):
+    def __init__(self):
+        super().__init__()
+        self.captions = []
+        self.empty_calls = 0
+
+    def container(self):
+        return _Context()
+
+    def caption(self, text):
+        self.captions.append(text)
+
+    def empty(self):
+        self.empty_calls += 1
+
+
+class _MapNavigationContainer(_Context):
+    def __init__(self, streamlit):
+        self.streamlit = streamlit
+        self.parent_containers = streamlit.active_containers
+        self._context_stack = []
+
+    def __enter__(self):
+        self._context_stack.append(self.streamlit.active_containers)
+        self.streamlit.active_containers = (*self.parent_containers, self)
+        return self
+
+    def __exit__(self, *_args):
+        self.streamlit.active_containers = self._context_stack.pop()
+        return False
+
+    def markdown(self, text, **kwargs):
+        self.streamlit.markdown(text, **kwargs)
+
+    def empty(self):
+        return self.streamlit.empty()
+
+
+class _MapNavigationStreamlit(_FakeStreamlit):
+    def __init__(self):
+        super().__init__()
+        self.active_containers = ()
+        self.notice_contexts = []
+
+    def error(self, message):
+        self.notice_contexts.append(self.active_containers)
+        super().error(message)
+
+    def warning(self, message):
+        self.notice_contexts.append(self.active_containers)
+        super().warning(message)
+
+    def container(self, **_kwargs):
+        return _MapNavigationContainer(self)
+
+    def empty(self):
+        placeholder = _MapNavigationPlaceholder()
+        self.placeholders.append(placeholder)
+        return placeholder
+
+    def markdown(self, text, **_kwargs):
+        super().markdown(text)
+
+    def caption(self, _text):
+        pass
+
+    def columns(self, count):
+        return [_Context() for _index in range(count)]
+
+    def selectbox(self, *_args, **_kwargs):
+        pass
+
+
+@pytest.fixture
+def map_navigation_harness(monkeypatch):
+    """Exercise real map/Inspector orchestration while replacing external UI work."""
+    fake_st = _MapNavigationStreamlit()
+    fake_st.session_state.val_min_stations = 1
+    token = begin_analysis_submission(fake_st.session_state, request_source="main_button")
+    events = []
+    anchors = []
+    markers = []
+    monkeypatch.setattr(run_controller, "st", fake_st)
+    monkeypatch.setattr(
+        run_controller, "build_result_context",
+        lambda *_args: SimpleNamespace(title="Map context"),
+    )
+    monkeypatch.setattr(run_controller, "result_context_html", lambda _context: "Map context")
+    monkeypatch.setattr(run_controller, "render_result_guidance_popover", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(run_controller, "matplotlib_profile_collector", lambda *_args: _Context())
+    monkeypatch.setattr(run_controller, "render_analysis_map_anchor", anchors.append)
+
+    def mark_ready(submission_token, **kwargs):
+        events.append("map ready")
+        markers.append((submission_token, kwargs["image_container_key"]))
+
+    monkeypatch.setattr(run_controller, "render_analysis_map_ready_marker", mark_ready)
+    monkeypatch.setattr(run_controller, "register_map_export_context", lambda _payload: events.append("export registered"))
+    monkeypatch.setattr(run_controller, "dispose_matplotlib_figure", lambda _figure: events.append("figure disposed"))
+    monkeypatch.setattr(run_controller, "render_matplotlib_figure", lambda *_args, **_kwargs: events.append("map drawn"))
+    monkeypatch.setattr(run_controller, "render_segment_inspector", lambda *_args, **_kwargs: events.append("Inspector rendered"))
+
+    def render_block(*, first_map=True, navigation_token=token, map_results_display=None):
+        return run_controller._render_map_result_block(
+            t=T["en"],
+            analysis=_analysis("RX_ABS", "Performance"),
+            plot_result=SimpleNamespace(
+                figure=object(),
+                map_data=SimpleNamespace(station_rows=pd.DataFrame()),
+                footer_text="footer",
+            ),
+            parquet_path=Path("evidence.parquet"),
+            map_data_paths=SimpleNamespace(),
+            start_t="start",
+            end_t="end",
+            loading_label="Loading",
+            max_peer_distance_km=22000,
+            center_latitude=47.0,
+            center_longitude=8.0,
+            analysis_context=SimpleNamespace(),
+            presentation_context=SimpleNamespace(language="en"),
+            database_source="wspr_live",
+            profile_timer=_ProfileTimer(),
+            is_first_map=first_map,
+            navigation_submission_token=navigation_token,
+            map_results_display=map_results_display,
+        )
+
+    def render_inspectors(entries):
+        run_controller._render_deferred_inspectors(
+            entries,
+            t=T["en"],
+            admission_permit=SimpleNamespace(touch=lambda: True),
+            max_peer_distance_km=22000,
+            analysis_context=SimpleNamespace(),
+            presentation_context=SimpleNamespace(language="en"),
+        )
+
+    return SimpleNamespace(
+        streamlit=fake_st, token=token, events=events, anchors=anchors,
+        markers=markers, render_block=render_block, render_inspectors=render_inspectors,
+    )
+
+
+@pytest.mark.parametrize("scenario", [
+    "current", "later_map", "completed_rerender", "replaced_during_render",
+    "cancelled_during_render", "render_failure",
+])
+def test_map_ready_marker_follows_successful_render_and_current_submission(
+    monkeypatch, map_navigation_harness, scenario,
+):
+    """Signal only the owning first map, after image emission and before Inspector work."""
+    harness = map_navigation_harness
+    replacement_token = None
+
+    def draw_map(*_args, **_kwargs):
+        nonlocal replacement_token
+        assert harness.markers == []
+        harness.events.append("map drawing started")
+        if scenario == "replaced_during_render":
+            replacement_token = handoff_analysis_submission(
+                harness.streamlit.session_state, request_source="input_view_change",
+            )
+        elif scenario == "cancelled_during_render":
+            cancel_analysis_submission(harness.streamlit.session_state)
+        elif scenario == "render_failure":
+            raise RuntimeError("map rendering failed")
+        harness.events.append("map drawn")
+
+    monkeypatch.setattr(run_controller, "render_matplotlib_figure", draw_map)
+    if scenario == "render_failure":
+        with pytest.raises(RuntimeError, match="map rendering failed"):
+            harness.render_block()
+        assert harness.events == ["map drawing started", "figure disposed"]
+        assert harness.markers == []
+        return
+
+    entry = harness.render_block(
+        first_map=scenario != "later_map",
+        navigation_token=None if scenario == "completed_rerender" else harness.token,
+    )
+    harness.render_inspectors([entry])
+    if scenario == "current":
+        assert harness.markers == [(harness.token, "results_evidence_level_1_RX_ABS_77")]
+        assert harness.events.index("map drawn") < harness.events.index("map ready")
+        assert harness.events.index("map ready") < harness.events.index("Inspector rendered")
+    else:
+        assert harness.markers == []
+    assert harness.anchors == (
+        [] if scenario == "later_map"
+        else [None if scenario == "completed_rerender" else harness.token]
+    )
+    assert "figure disposed" in harness.events
+    assert harness.events[-1] == "Inspector rendered"
+    if replacement_token is not None:
+        assert get_analysis_submission(harness.streamlit.session_state).token == replacement_token
+
+
+@pytest.mark.parametrize("inspector_fails", [False, True])
+def test_deferred_inspector_clears_loading_caption_on_success_and_failure(
+    monkeypatch, map_navigation_harness, inspector_fails,
+):
+    """Retain a visible ready map without leaving an endless Inspector-loading caption."""
+    harness = map_navigation_harness
+    entry = harness.render_block()
+
+    def render_inspector(*_args, **_kwargs):
+        loading = harness.streamlit.placeholders[-1]
+        assert loading.captions == [T["en"]["msg_preparing_inspector"]]
+        assert loading.empty_calls == 0
+        assert entry["skeleton_ph"].empty_calls == 1
+        if inspector_fails:
+            raise RuntimeError("Inspector preparation failed")
+
+    monkeypatch.setattr(run_controller, "render_segment_inspector", render_inspector)
+    if inspector_fails:
+        with pytest.raises(RuntimeError, match="Inspector preparation failed"):
+            harness.render_inspectors([entry])
+    else:
+        harness.render_inspectors([entry])
+    assert harness.streamlit.placeholders[-1].empty_calls == 1
+    assert harness.markers == [(harness.token, "results_evidence_level_1_RX_ABS_77")]
+
+
+class _MapResultsSlot:
+    """Record when the cleared area receives a container, including its ancestry."""
+
+    def __init__(self, streamlit):
+        self.streamlit = streamlit
+        self.containers = []
+
+    def container(self):
+        container = _MapNavigationContainer(self.streamlit)
+        self.containers.append(container)
+        return container
+
+
+@pytest.mark.parametrize("use_slot", [False, True])
+def test_map_display_opens_lazily_and_keeps_maps_and_inspectors_in_one_region(
+    monkeypatch, map_navigation_harness, use_slot,
+):
+    """Keep the clear delta intact until map output and retain deferred-child ancestry."""
+    harness = map_navigation_harness
+    slot = _MapResultsSlot(harness.streamlit)
+    display = run_controller._MapResultsDisplay(slot if use_slot else None)
+    assert slot.containers == []
+    map_contexts = []
+    inspector_contexts = []
+    monkeypatch.setattr(
+        run_controller, "render_matplotlib_figure",
+        lambda *_args, **_kwargs: map_contexts.append(harness.streamlit.active_containers),
+    )
+    monkeypatch.setattr(
+        run_controller, "render_segment_inspector",
+        lambda *_args, **_kwargs: inspector_contexts.append(harness.streamlit.active_containers),
+    )
+
+    first_entry = harness.render_block(map_results_display=display)
+    assert len(slot.containers) == int(use_slot)
+    second_entry = harness.render_block(first_map=False, map_results_display=display)
+    assert len(slot.containers) == int(use_slot)
+    assert harness.streamlit.active_containers == ()
+    harness.render_inspectors([first_entry, second_entry])
+
+    assert len(map_contexts) == len(inspector_contexts) == 2
+    for map_context, inspector_context, entry in zip(
+        map_contexts, inspector_contexts, [first_entry, second_entry], strict=True,
+    ):
+        assert inspector_context[-1] is entry["inspector_container"]
+        assert inspector_context[-1].parent_containers == map_context[:-1]
+        if use_slot:
+            assert map_context[0] is slot.containers[0]
+            assert inspector_context[0] is slot.containers[0]
+        else:
+            assert len(map_context) == 3
+            assert len(inspector_context) == 3
+    assert harness.streamlit.active_containers == ()
+    assert len(slot.containers) == int(use_slot)
+    assert harness.markers == [(harness.token, "results_evidence_level_1_RX_ABS_77")]
+
+
+@pytest.mark.parametrize("preparation_fails", [False, True])
+def test_no_data_and_preparation_errors_open_the_map_slot_only_for_final_notices(
+    monkeypatch, preparation_fails,
+):
+    """Keep preparation empty, then place terminal notices in the stable map region."""
+    fake_st = _MapNavigationStreamlit()
+    slot = _MapResultsSlot(fake_st)
+    display = run_controller._MapResultsDisplay(slot)
+    controller = ProviderDispatchController(
+        WSPR_DATABASE_PROVIDERS,
+        acquire_timeout_seconds=1.0,
+        poll_interval_seconds=0.01,
+    )
+    permit = _AnalysisPermit(controller.try_acquire_run(
+        {"wspr_live": 1, "wd2": 1, "wd1": 1}
+    ))
+    analyses = [_analysis("RX_ABS", "Performance")]
+    prepared = []
+
+    def prepare(plans, *, provider_lease, **_kwargs):
+        assert slot.containers == []
+        assert fake_st.active_containers == ()
+        prepared.append(provider_lease.source_key)
+        if preparation_fails:
+            raise ProviderBundlePreparationError("invalid prepared evidence")
+        return _no_data_bundle(provider_lease.source_key, plans)
+
+    _patch_run_environment(monkeypatch, fake_st, controller, prepare)
+    _render_fake_run(fake_st, permit, analyses, map_results_display=display)
+
+    assert prepared == ["wspr_live"]
+    assert len(slot.containers) == 1
+    assert fake_st.notice_contexts == [(slot.containers[0],)]
+    assert fake_st.active_containers == ()
+    if preparation_fails:
+        assert fake_st.analysis_run_outcome == "failed"
+        assert fake_st.errors == [T["en"]["err_analysis_processing_failed"]]
+    else:
+        assert fake_st.analysis_run_outcome == "completed"
+        assert fake_st.warnings == ["No data: Performance"]
+        assert fake_st.errors == []
+
+
+@pytest.mark.parametrize("completed_rerender", [False, True])
+def test_public_controller_preserves_empty_map_slot_until_the_executor_uses_it(
+    monkeypatch, tmp_path, completed_rerender,
+):
+    """Keep new output lazy while retaining the existing completed-result container."""
+    fake_st = _MapNavigationStreamlit()
+    slot = _MapResultsSlot(fake_st)
+    existing_container = (
+        _MapNavigationContainer(fake_st) if completed_rerender else None
+    )
+    executor_calls = []
+
+    def acquire(**_kwargs):
+        assert slot.containers == []
+        return _Context()
+
+    gate = SimpleNamespace(acquire=acquire, counts=lambda: (0, 0))
+    if completed_rerender:
+        analysis = _analysis("RX_COMP", "Completed map")
+        _publish_valid_completed_snapshot(fake_st, analysis, path_root=tmp_path)
+        _patch_completed_rerender_environment(monkeypatch, fake_st, gate, analysis)
+        executor_name = "_render_completed_analysis_run"
+    else:
+        _patch_admission_presentation_environment(monkeypatch, fake_st, gate)
+        executor_name = "_render_admitted_analysis_run"
+
+    def execute(**kwargs):
+        assert slot.containers == []
+        executor_calls.append(kwargs)
+        with kwargs["map_results_display"].container():
+            expected_container = (
+                existing_container if completed_rerender else slot.containers[0]
+            )
+            assert fake_st.active_containers == (expected_container,)
+        return "completed"
+
+    monkeypatch.setattr(run_controller, executor_name, execute)
+    outcome = run_controller.render_analysis_run(
+        t=T["en"],
+        run_status_slot=_RunStatusSlot(),
+        callsign="G3ZIL",
+        qth_locator="IO90",
+        band_filter=7,
+        start_t=SimpleNamespace(isoformat=lambda: "start"),
+        end_t=SimpleNamespace(isoformat=lambda: "end"),
+        generate_map_plot=lambda *_args, **_kwargs: None,
+        render_map_figure=lambda *_args, **_kwargs: None,
+        is_existing_run_rerender=completed_rerender,
+        map_results_slot=None if completed_rerender else slot,
+        map_results_container=existing_container,
+    )
+
+    assert outcome is None
+    assert len(executor_calls) == 1
+    assert len(slot.containers) == int(not completed_rerender)
+    assert fake_st.active_containers == ()
+
+
+def test_existing_map_container_is_reused_without_clearing_or_nesting(monkeypatch):
+    """Retain completed-result geometry while replacing its contents in the same region."""
+    fake_st = _MapNavigationStreamlit()
+    existing_container = _MapNavigationContainer(fake_st)
+
+    def reject_clear_or_child(*_args, **_kwargs):
+        pytest.fail("An existing result region must not be cleared or given another wrapper.")
+
+    monkeypatch.setattr(existing_container, "empty", reject_clear_or_child)
+    monkeypatch.setattr(existing_container, "container", reject_clear_or_child, raising=False)
+    display = run_controller._MapResultsDisplay(existing_container=existing_container)
+    for _map_index in range(2):
+        assert display.container() is existing_container
+        with display.container():
+            assert fake_st.active_containers == (existing_container,)
+        assert fake_st.active_containers == ()

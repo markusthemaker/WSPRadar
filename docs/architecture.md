@@ -1679,7 +1679,8 @@ targets `#wspradar-results-inspection`.
 
 `ui/page_navigation.py` owns the language-independent runtime anchors
 `wspradar-page-top`, `wspradar-parameter-settings`,
-`wspradar-results-inspection`, and `wspradar-drilldown`. The first three delimit
+`wspradar-results-inspection`, `wspradar-map-results`, and
+`wspradar-drilldown`. The first three delimit
 the always-present application regions; the Drill-Down anchor is mounted with
 that selected-station section and is the direct target of the per-event
 **Show Drill-Down Details** action. Its one-pixel browser controller tracks the
@@ -1689,20 +1690,42 @@ downward. Passive scrolling replaces the current fragment without adding
 browser-history entries. Guided Continue replaces a stale manual fragment with
 the parameter-settings anchor without forcing a scroll. Loading a demo and
 either demo navigation action (Walkthrough or Skip) may request a one-shot
-scroll to the appropriate application region. The main Run action clears stale
-manual navigation without issuing a scroll request, so the processing statements
-and their in-place System Audit Status replacement remain in the current
-viewport while passive location tracking continues. Application and manual
+scroll to the appropriate application region. A fresh main-button, demo, or URL
+submission mounts the controller before analysis execution and arms two
+submission-token-bound milestones: the processing panel below Review, then the
+first successfully rendered map. The map anchor and readiness marker must match
+that token, and the image must have loaded and acquired visible dimensions before
+the second scroll. The browser retains one latest submission's milestone state;
+manual scrolling or explicit navigation cancels its pending map landing. A
+continued script with the same active token preserves this state, while a new
+submission, input-view handoff, invalid initialization, or completed-result
+rerender cannot inherit an older token's pending landing. Maps remain visible
+while the existing deferred Inspector flow prepares all charts and tables; the
+loading indication is cleared even if Inspector preparation raises, and Complete
+is published only after the existing completion boundary. Application and manual
 anchors have disjoint ownership, unknown fragments remain untouched, and Back
 or Forward scrolls the anchor owned by the corresponding controller without
 adding another history entry. Application navigation also cancels any
 unresolved manual-navigation request so a later documentation fragment rerun
 cannot reclaim the viewport.
-For a replay URL, `app.py` retains the incoming results fragment through the
-scientific reruns and asks this controller to scroll once only after the normal
-analysis path has completed. The results anchor is mounted before the status
-slot and first result content. Query synchronization never changes fragments or
-duplicates the navigation controller's listeners.
+A replay URL uses the same early processing-panel and first-map milestones as
+an explicit Run; it does not issue another scroll when the analysis completes.
+Configuration, results, and documentation have unconditional outer containers
+allocated before optional loaders and either editor. This keeps their Streamlit
+delta paths stable when Guided and Classic emit different numbers of blocks.
+The map/Inspector area has its own fixed position: new or retired runs clear a
+placeholder before preparation, and the run controller opens its replacement
+container only for the first prepared map or terminal notice. Later maps and
+deferred Inspector fragments reuse that container. Completed-result rerenders
+reuse the existing container directly to retain its height and the reader's
+position. Container keys alone do not prevent Streamlit from retaining stale
+children at a reused delta path. The map milestone therefore also selects the
+current submission's non-stale anchor, marker, and image rather than the first
+matching HTML ID left in the browser during a rerun.
+The results-inspection anchor remains before the status slot, and the distinct
+map-results anchor is mounted with the first renderable result. Query
+synchronization never changes fragments or duplicates the navigation
+controller's listeners.
 
 ### Documentation Pipeline
 

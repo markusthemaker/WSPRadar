@@ -310,361 +310,415 @@ with col_b3:
         width="stretch",
     )
 
-if st.session_state.get("show_demo_launcher", False):
-    render_demo_launcher()
+# Allocate page regions before variable editor/launcher output. Streamlit reuses
+# blocks by their delta path, so container keys alone cannot isolate old results
+# when Guided and Classic emit different numbers of configuration elements.
+configuration_region = st.container(key="application_configuration")
+results_region = st.container(key="application_results")
+documentation_region = st.container(key="application_documentation")
 
-if st.session_state.get("show_config_loader", False):
-    render_config_loader()
+with configuration_region:
+    if st.session_state.get("show_demo_launcher", False):
+        render_demo_launcher()
 
-render_page_anchor(PARAMETER_SETTINGS_ANCHOR_ID)
+    if st.session_state.get("show_config_loader", False):
+        render_config_loader()
 
-guided_render_result = None
-classic_render_result = None
-if st.session_state.input_view == "guided":
-    with st.container(key="guided_input_flow"):
-        guided_render_result = render_guided_inputs(t)
-else:
-    render_metadata_expander(t)
-    classic_render_result = render_classic_inputs(t)
+    render_page_anchor(PARAMETER_SETTINGS_ANCHOR_ID)
 
-if st.session_state.get("configuration_changed_since_run", False):
-    st.warning(
-        GUIDED_INPUTS[st.session_state.lang]["messages"]["configuration_changed"],
-        icon=":material/update:",
-    )
-
-if st.session_state.get("_collapse_config_panels_once", False):
-    st.session_state.config_panels_expanded = True
-    st.session_state._collapse_config_panels_once = False
-
-render_page_anchor(RESULTS_INSPECTION_ANCHOR_ID)
-run_status_slot = st.empty()
-
-callsign = normalize_ascii_upper(st.session_state.val_callsign)
-qth_locator = normalize_ascii_upper(st.session_state.val_qth)
-band = st.session_state.val_band
-comp_mode = st.session_state.val_comp_mode
-
-band_value = BAND_MAP.get(band, "")
-band_filter = f"AND band = '{band_value}'"
-
-try:
-    candidate_start_t, candidate_end_t = utc_window_from_state(
-        st.session_state
-    )
-    time_window_validation_error = None
-except UtcWindowValidationError as error:
-    candidate_start_t = candidate_end_t = None
-    time_window_validation_error = error
-start_t, end_t = candidate_start_t, candidate_end_t
-
-
-def request_main_analysis_submission():
-    """Claim the Run action while keeping its live status area in view."""
+    guided_render_result = None
+    classic_render_result = None
     if st.session_state.input_view == "guided":
-        st.session_state.guided_collapse_all = True
+        with st.container(key="guided_input_flow"):
+            guided_render_result = render_guided_inputs(t)
     else:
+        render_metadata_expander(t)
+        classic_render_result = render_classic_inputs(t)
+
+    if st.session_state.get("configuration_changed_since_run", False):
+        st.warning(
+            GUIDED_INPUTS[st.session_state.lang]["messages"]["configuration_changed"],
+            icon=":material/update:",
+        )
+
+    if st.session_state.get("_collapse_config_panels_once", False):
         st.session_state.config_panels_expanded = True
         st.session_state._collapse_config_panels_once = False
-    st.session_state.configuration_changed_since_run = False
-    request_page_navigation(
-        st.session_state,
-        RESULTS_INSPECTION_ANCHOR_ID,
-        should_scroll=False,
-    )
-    begin_main_analysis_submission(st.session_state)
 
+with results_region:
+    render_page_anchor(RESULTS_INSPECTION_ANCHOR_ID)
+    run_status_slot = st.empty()
+    result_feedback_region = st.container()
 
-analysis_direction = st.session_state.get("val_analysis_direction")
-run_button_labels = {
-    "rx": t["btn_run_analysis_rx"],
-    "tx": t["btn_run_analysis_tx"],
-}
-run_button_icons = {
-    "rx": ":material/headphones:",
-    "tx": ":material/cell_tower:",
-}
-submission_request = claim_analysis_submission_request(st.session_state)
-submission_snapshot = get_analysis_submission(st.session_state)
-is_existing_run_rerender = False
-if (
-    submission_request is None
-    and submission_snapshot is None
-    and st.session_state.get("run_mode")
-):
-    rerender_token = begin_analysis_submission(
-        st.session_state,
-        request_execution=False,
-    )
-    submission_snapshot = get_analysis_submission(st.session_state)
-    is_existing_run_rerender = submission_snapshot is not None
-else:
-    rerender_token = None
+    callsign = normalize_ascii_upper(st.session_state.val_callsign)
+    qth_locator = normalize_ascii_upper(st.session_state.val_qth)
+    band = st.session_state.val_band
+    comp_mode = st.session_state.val_comp_mode
 
-submission_token = (
-    submission_request.token
-    if submission_request is not None
-    else rerender_token or (
-        submission_snapshot.token
-        if submission_snapshot is not None
-        else None
-    )
-)
-should_execute_analysis = bool(
-    submission_request is not None or is_existing_run_rerender
-)
+    band_value = BAND_MAP.get(band, "")
+    band_filter = f"AND band = '{band_value}'"
 
-
-def render_run_analysis_button(*, is_busy):
-    """Render the ready or disabled in-flight Run action in its stable slot."""
-    button_label = run_button_labels.get(
-        analysis_direction,
-        t["btn_select_analysis_direction"],
-    )
-    if is_busy:
-        icon_name = run_button_icons.get(
-            analysis_direction,
-            ":material/play_arrow:",
-        ).removeprefix(":material/").removesuffix(":")
-        return run_analysis_button_slot.markdown(
-            (
-                '<div class="wspr-analysis-run-busy-wrapper">'
-                '<button class="wspr-analysis-run-busy" type="button" '
-                'disabled aria-disabled="true">'
-                f'<span class="material-symbols-rounded">{escape(icon_name)}</span>'
-                f'<span>{escape(button_label)}</span>'
-                "</button>"
-                "</div>"
-                "<style>"
-                ".wspr-analysis-run-busy-wrapper{width:100%;margin:0;padding:0;}"
-                ".wspr-analysis-run-busy{width:100%;min-height:2.5rem;"
-                "display:flex;align-items:center;justify-content:center;gap:.5rem;"
-                "border:1px solid rgba(250,250,250,.2);border-radius:.5rem;"
-                "background:rgba(255,255,255,.06);color:rgba(250,250,250,.45);"
-                "font:inherit;font-weight:600;cursor:not-allowed;}"
-                ".wspr-analysis-run-busy .material-symbols-rounded{font-size:1rem;}"
-                "</style>"
-            ),
-            unsafe_allow_html=True,
-        )
-    return run_analysis_button_slot.button(
-        button_label,
-        icon=run_button_icons.get(analysis_direction, ":material/play_arrow:"),
-        key="run_analysis_button",
-        type="primary",
-        width="stretch",
-        disabled=(
-            analysis_direction not in {"rx", "tx"}
-            or time_window_validation_error is not None
-            or not input_configuration_ready
-        ),
-        on_click=request_main_analysis_submission,
-    )
-
-guided_actions_available = bool(
-    guided_render_result is not None
-    and guided_render_result.is_ready
-    and guided_render_result.review_actions_slot is not None
-)
-input_configuration_ready = bool(
-    classic_render_result.is_ready
-    if st.session_state.input_view == "classic"
-    and classic_render_result is not None
-    else guided_actions_available
-)
-should_render_actions = (
-    st.session_state.input_view == "classic" or guided_actions_available
-)
-if should_render_actions:
-    action_context = (
-        guided_render_result.review_actions_slot.container()
-        if guided_actions_available
-        else classic_render_result.review_actions_slot.container()
-    )
-    with action_context:
-        run_col, save_col = st.columns([0.65, 0.35], gap="large")
-        with run_col:
-            run_analysis_button_slot = st.empty()
-            render_run_analysis_button(is_busy=submission_snapshot is not None)
-        with save_col:
-            render_config_save_control(
-                popover_key="config_save_top_trigger",
-                is_configuration_ready=input_configuration_ready,
-            )
-else:
-    run_analysis_button_slot = st.empty()
-
-is_new_analysis_submission = bool(
-    submission_request is not None
-    and submission_request.source in {"main_button", "url_replay"}
-)
-submission_initialization_failed = False
-if is_new_analysis_submission:
-    requires_reference_identity = (
-        comp_mode == "reference_station"
-        or (
-            comp_mode == "hardware_ab"
-            and (
-                analysis_direction == "rx"
-                or st.session_state.get("val_tx_ab_method") == "simultaneous"
-            )
-        )
-    )
-    if not is_valid_callsign(callsign):
-        st.error(t["err_callsign_format"])
-        fail_analysis_run(st.session_state)
-        submission_initialization_failed = True
-    elif not is_valid_locator(qth_locator):
-        st.error(t["err_qth_format"])
-        fail_analysis_run(st.session_state)
-        submission_initialization_failed = True
-    elif time_window_validation_error is not None:
-        time_error_key = time_window_validation_message_key(
-            time_window_validation_error
-        )
-        st.error(t[time_error_key])
-        fail_analysis_run(st.session_state)
-        submission_initialization_failed = True
-    elif requires_reference_identity:
-        reference_callsign = normalize_ascii_upper(
-            st.session_state.get("val_ref_callsign", "")
-        )
-        reference_grid4 = normalize_ascii_upper(
-            st.session_state.get("val_ref_qth", "")
-        )
-        if not reference_callsign:
-            st.error(t["err_reference_callsign_required"])
-            fail_analysis_run(st.session_state)
-            submission_initialization_failed = True
-        elif not is_valid_callsign(reference_callsign):
-            st.error(t["err_reference_callsign_format"])
-            fail_analysis_run(st.session_state)
-            submission_initialization_failed = True
-        elif reference_callsign == callsign:
-            st.error(t["err_reference_callsign_same"])
-            fail_analysis_run(st.session_state)
-            submission_initialization_failed = True
-        elif comp_mode == "reference_station" and not reference_grid4:
-            st.error(t["err_reference_qth_required"])
-            fail_analysis_run(st.session_state)
-            submission_initialization_failed = True
-        elif (
-            comp_mode == "reference_station"
-            and not is_valid_grid4(reference_grid4)
-        ):
-            st.error(t["err_reference_grid4_format"])
-            fail_analysis_run(st.session_state)
-            submission_initialization_failed = True
-    if not submission_initialization_failed:
-        initialize_analysis_run(
-            st.session_state,
-            run_mode=analysis_direction.upper(),
-            run_id=int(time.time()),
-        )
-        collapse_documentation(st.session_state)
-        start_t, end_t = candidate_start_t, candidate_end_t
-        for key in list(st.session_state.keys()):
-            if key.startswith("img_buf_"):
-                del st.session_state[key]
-
-st.markdown('<hr style="border: none; border-top: 1px solid rgba(57, 255, 20, 0.3); margin: 2rem 0;">', unsafe_allow_html=True)
-
-
-def finish_current_analysis_submission():
-    """Release this script's token and restore the ready Run action in place."""
-    if finish_analysis_submission(st.session_state, submission_token):
-        run_analysis_button_slot.empty()
-        render_run_analysis_button(is_busy=False)
-
-
-if submission_initialization_failed:
-    finish_current_analysis_submission()
-elif st.session_state.run_mode and should_execute_analysis:
     try:
-        with run_status_slot.container():
-            with st.spinner(t.get(
-                "msg_loading_analysis_engine",
-                "Preparing analysis engine...",
-            )):
-                from core.plot_engine import generate_map_plot, render_map_figure
-                from ui.run_controller import (
-                    ANALYSIS_RUN_FOLLOWER_COMPLETED,
-                    render_analysis_run,
-                )
-    except ImportError as exc:
-        fail_analysis_run(st.session_state)
-        st.error(
-            "WSPRadar could not load the scientific analysis engine. "
-            "Please verify the deployment's Python and native dependencies."
+        candidate_start_t, candidate_end_t = utc_window_from_state(
+            st.session_state
         )
-        st.code(str(exc))
-    else:
-        analysis_run_outcome = None
-        try:
-            analysis_run_outcome = render_analysis_run(
-                t=t,
-                run_status_slot=run_status_slot,
-                callsign=callsign,
-                qth_locator=qth_locator,
-                band_filter=band_filter,
-                start_t=start_t,
-                end_t=end_t,
-                generate_map_plot=generate_map_plot,
-                render_map_figure=render_map_figure,
-                is_existing_run_rerender=is_existing_run_rerender,
-            )
-        finally:
-            finish_current_analysis_submission()
-        if analysis_run_outcome == ANALYSIS_RUN_FOLLOWER_COMPLETED:
-            # The latest Streamlit script followed an older request to release.
-            # Reconstruct its now-published result in the current script run so
-            # stale queue text cannot remain beside an enabled Run action.
-            st.rerun()
-    if st.session_state.get("run_mode") is None:
-        finish_current_analysis_submission()
-elif st.session_state.run_mode and submission_snapshot is not None:
-    if (
-        submission_snapshot.phase == SUBMISSION_PHASE_QUEUED
-        and submission_snapshot.position > 0
-    ):
-        pending_label = t.get(
-            "msg_analysis_queue_wait",
-            "All analysis capacity is in use; queued at position {position}.",
-        ).format(position=submission_snapshot.position)
-    else:
-        pending_label = t.get(
-            "msg_analysis_submission_active",
-            "Analysis submitted; Run Analysis is disabled until it finishes.",
-        )
-    with run_status_slot.container():
-        st.status(pending_label, expanded=False, state="running")
-elif submission_snapshot is not None:
-    # A scientific configuration callback intentionally canceled this request
-    # by clearing ``run_mode``; do not strand a disabled Run action if an older
-    # Streamlit script was interrupted before its own ``finally`` block ran.
-    finish_current_analysis_submission()
+        time_window_validation_error = None
+    except UtcWindowValidationError as error:
+        candidate_start_t = candidate_end_t = None
+        time_window_validation_error = error
+    start_t, end_t = candidate_start_t, candidate_end_t
 
-if consume_url_replay_navigation(st.session_state):
-    request_page_navigation(
-        st.session_state,
-        RESULTS_INSPECTION_ANCHOR_ID,
-        should_scroll=True,
+
+    def request_main_analysis_submission():
+        """Claim the Run action while keeping its live status area in view."""
+        if st.session_state.input_view == "guided":
+            st.session_state.guided_collapse_all = True
+        else:
+            st.session_state.config_panels_expanded = True
+            st.session_state._collapse_config_panels_once = False
+        st.session_state.configuration_changed_since_run = False
+        request_page_navigation(
+            st.session_state,
+            RESULTS_INSPECTION_ANCHOR_ID,
+            should_scroll=True,
+        )
+        begin_main_analysis_submission(st.session_state)
+
+
+    analysis_direction = st.session_state.get("val_analysis_direction")
+    run_button_labels = {
+        "rx": t["btn_run_analysis_rx"],
+        "tx": t["btn_run_analysis_tx"],
+    }
+    run_button_icons = {
+        "rx": ":material/headphones:",
+        "tx": ":material/cell_tower:",
+    }
+    submission_request = claim_analysis_submission_request(st.session_state)
+    submission_snapshot = get_analysis_submission(st.session_state)
+    is_existing_run_rerender = False
+    if (
+        submission_request is None
+        and submission_snapshot is None
+        and st.session_state.get("run_mode")
+    ):
+        rerender_token = begin_analysis_submission(
+            st.session_state,
+            request_execution=False,
+        )
+        submission_snapshot = get_analysis_submission(st.session_state)
+        is_existing_run_rerender = submission_snapshot is not None
+    else:
+        rerender_token = None
+
+    submission_token = (
+        submission_request.token
+        if submission_request is not None
+        else rerender_token or (
+            submission_snapshot.token
+            if submission_snapshot is not None
+            else None
+        )
     )
-render_page_navigation_controller(
-    consume_page_navigation_request(st.session_state)
-)
-if st.session_state.input_view != "classic" or input_configuration_ready:
-    render_current_url_synchronizer(
-        st.session_state,
-        key=URL_QUERY_SYNCHRONIZER_PAGE_KEY,
+    should_execute_analysis = bool(
+        submission_request is not None or is_existing_run_rerender
     )
+
+    # Keep this delta path fixed in both branches. A completed-result rerender
+    # retains the current map area's height and the reader's viewport. New or
+    # retired runs clear their old maps before queueing and preparation.
+    if is_existing_run_rerender:
+        map_results_slot = None
+        map_results_container = st.container()
+    else:
+        map_results_slot = st.empty()
+        map_results_container = None
+
+
+    def render_run_analysis_button(*, is_busy):
+        """Render the ready or disabled in-flight Run action in its stable slot."""
+        button_label = run_button_labels.get(
+            analysis_direction,
+            t["btn_select_analysis_direction"],
+        )
+        if is_busy:
+            icon_name = run_button_icons.get(
+                analysis_direction,
+                ":material/play_arrow:",
+            ).removeprefix(":material/").removesuffix(":")
+            return run_analysis_button_slot.markdown(
+                (
+                    '<div class="wspr-analysis-run-busy-wrapper">'
+                    '<button class="wspr-analysis-run-busy" type="button" '
+                    'disabled aria-disabled="true">'
+                    f'<span class="material-symbols-rounded">{escape(icon_name)}</span>'
+                    f'<span>{escape(button_label)}</span>'
+                    "</button>"
+                    "</div>"
+                    "<style>"
+                    ".wspr-analysis-run-busy-wrapper{width:100%;margin:0;padding:0;}"
+                    ".wspr-analysis-run-busy{width:100%;min-height:2.5rem;"
+                    "display:flex;align-items:center;justify-content:center;gap:.5rem;"
+                    "border:1px solid rgba(250,250,250,.2);border-radius:.5rem;"
+                    "background:rgba(255,255,255,.06);color:rgba(250,250,250,.45);"
+                    "font:inherit;font-weight:600;cursor:not-allowed;}"
+                    ".wspr-analysis-run-busy .material-symbols-rounded{font-size:1rem;}"
+                    "</style>"
+                ),
+                unsafe_allow_html=True,
+            )
+        return run_analysis_button_slot.button(
+            button_label,
+            icon=run_button_icons.get(analysis_direction, ":material/play_arrow:"),
+            key="run_analysis_button",
+            type="primary",
+            width="stretch",
+            disabled=(
+                analysis_direction not in {"rx", "tx"}
+                or time_window_validation_error is not None
+                or not input_configuration_ready
+            ),
+            on_click=request_main_analysis_submission,
+        )
+
+    guided_actions_available = bool(
+        guided_render_result is not None
+        and guided_render_result.is_ready
+        and guided_render_result.review_actions_slot is not None
+    )
+    input_configuration_ready = bool(
+        classic_render_result.is_ready
+        if st.session_state.input_view == "classic"
+        and classic_render_result is not None
+        else guided_actions_available
+    )
+    should_render_actions = (
+        st.session_state.input_view == "classic" or guided_actions_available
+    )
+    if should_render_actions:
+        action_context = (
+            guided_render_result.review_actions_slot.container()
+            if guided_actions_available
+            else classic_render_result.review_actions_slot.container()
+        )
+        with action_context:
+            run_col, save_col = st.columns([0.65, 0.35], gap="large")
+            with run_col:
+                run_analysis_button_slot = st.empty()
+                render_run_analysis_button(is_busy=submission_snapshot is not None)
+            with save_col:
+                render_config_save_control(
+                    popover_key="config_save_top_trigger",
+                    is_configuration_ready=input_configuration_ready,
+                )
+    else:
+        run_analysis_button_slot = st.empty()
+
+    is_new_analysis_submission = bool(
+        submission_request is not None
+        and submission_request.source in {"main_button", "url_replay"}
+    )
+    submission_initialization_failed = False
+    if is_new_analysis_submission:
+        requires_reference_identity = (
+            comp_mode == "reference_station"
+            or (
+                comp_mode == "hardware_ab"
+                and (
+                    analysis_direction == "rx"
+                    or st.session_state.get("val_tx_ab_method") == "simultaneous"
+                )
+            )
+        )
+        if not is_valid_callsign(callsign):
+            result_feedback_region.error(t["err_callsign_format"])
+            fail_analysis_run(st.session_state)
+            submission_initialization_failed = True
+        elif not is_valid_locator(qth_locator):
+            result_feedback_region.error(t["err_qth_format"])
+            fail_analysis_run(st.session_state)
+            submission_initialization_failed = True
+        elif time_window_validation_error is not None:
+            time_error_key = time_window_validation_message_key(
+                time_window_validation_error
+            )
+            result_feedback_region.error(t[time_error_key])
+            fail_analysis_run(st.session_state)
+            submission_initialization_failed = True
+        elif requires_reference_identity:
+            reference_callsign = normalize_ascii_upper(
+                st.session_state.get("val_ref_callsign", "")
+            )
+            reference_grid4 = normalize_ascii_upper(
+                st.session_state.get("val_ref_qth", "")
+            )
+            if not reference_callsign:
+                result_feedback_region.error(t["err_reference_callsign_required"])
+                fail_analysis_run(st.session_state)
+                submission_initialization_failed = True
+            elif not is_valid_callsign(reference_callsign):
+                result_feedback_region.error(t["err_reference_callsign_format"])
+                fail_analysis_run(st.session_state)
+                submission_initialization_failed = True
+            elif reference_callsign == callsign:
+                result_feedback_region.error(t["err_reference_callsign_same"])
+                fail_analysis_run(st.session_state)
+                submission_initialization_failed = True
+            elif comp_mode == "reference_station" and not reference_grid4:
+                result_feedback_region.error(t["err_reference_qth_required"])
+                fail_analysis_run(st.session_state)
+                submission_initialization_failed = True
+            elif (
+                comp_mode == "reference_station"
+                and not is_valid_grid4(reference_grid4)
+            ):
+                result_feedback_region.error(t["err_reference_grid4_format"])
+                fail_analysis_run(st.session_state)
+                submission_initialization_failed = True
+        if not submission_initialization_failed:
+            initialize_analysis_run(
+                st.session_state,
+                run_mode=analysis_direction.upper(),
+                run_id=int(time.time()),
+            )
+            collapse_documentation(st.session_state)
+            start_t, end_t = candidate_start_t, candidate_end_t
+            for key in list(st.session_state.keys()):
+                if key.startswith("img_buf_"):
+                    del st.session_state[key]
+
+    result_feedback_region.markdown('<hr style="border: none; border-top: 1px solid rgba(57, 255, 20, 0.3); margin: 2rem 0;">', unsafe_allow_html=True)
+
+
+    # Keep navigation bound to the explicitly submitted run across an in-flight
+    # script rerun. A handoff or a completed-result rerender gets a different token.
+    analysis_navigation_state_key = "_analysis_navigation_submission_token"
+    navigation_submission_snapshot = get_analysis_submission(st.session_state)
+    navigation_owns_submission = (
+        submission_token is None and navigation_submission_snapshot is None
+    ) or (
+        navigation_submission_snapshot is not None
+        and navigation_submission_snapshot.token == submission_token
+    )
+    analysis_navigation_token = None
+    if navigation_owns_submission:
+        if (
+            submission_request is not None
+            and submission_request.source in {"main_button", "demo", "url_replay"}
+            and not submission_initialization_failed
+        ):
+            st.session_state[analysis_navigation_state_key] = submission_request.token
+        analysis_navigation_token = st.session_state.get(analysis_navigation_state_key)
+        if (
+            analysis_navigation_token != submission_token
+            or is_existing_run_rerender
+            or submission_initialization_failed
+        ):
+            st.session_state.pop(analysis_navigation_state_key, None)
+            analysis_navigation_token = None
+
+        # The browser must receive the navigation controller before acquisition and
+        # rendering begin. Its token-bound milestones own fresh-run scrolling.
+        page_navigation_request = consume_page_navigation_request(st.session_state)
+        consume_url_replay_navigation(st.session_state)
+        render_page_navigation_controller(
+            None if analysis_navigation_token else page_navigation_request,
+            analysis_submission_token=analysis_navigation_token,
+        )
+
+
+    def finish_current_analysis_submission():
+        """Release this script's token and restore the ready Run action in place."""
+        if finish_analysis_submission(st.session_state, submission_token):
+            if st.session_state.get(analysis_navigation_state_key) == submission_token:
+                st.session_state.pop(analysis_navigation_state_key, None)
+            run_analysis_button_slot.empty()
+            render_run_analysis_button(is_busy=False)
+
+
+    if submission_initialization_failed:
+        finish_current_analysis_submission()
+    elif st.session_state.run_mode and should_execute_analysis:
+        try:
+            with run_status_slot.container():
+                with st.spinner(t.get(
+                    "msg_loading_analysis_engine",
+                    "Preparing analysis engine...",
+                )):
+                    from core.plot_engine import generate_map_plot, render_map_figure
+                    from ui.run_controller import (
+                        ANALYSIS_RUN_FOLLOWER_COMPLETED,
+                        render_analysis_run,
+                    )
+        except ImportError as exc:
+            fail_analysis_run(st.session_state)
+            st.error(
+                "WSPRadar could not load the scientific analysis engine. "
+                "Please verify the deployment's Python and native dependencies."
+            )
+            st.code(str(exc))
+        else:
+            analysis_run_outcome = None
+            try:
+                analysis_run_outcome = render_analysis_run(
+                    t=t,
+                    run_status_slot=run_status_slot,
+                    callsign=callsign,
+                    qth_locator=qth_locator,
+                    band_filter=band_filter,
+                    start_t=start_t,
+                    end_t=end_t,
+                    generate_map_plot=generate_map_plot,
+                    render_map_figure=render_map_figure,
+                    is_existing_run_rerender=is_existing_run_rerender,
+                    navigation_submission_token=analysis_navigation_token,
+                    map_results_slot=map_results_slot,
+                    map_results_container=map_results_container,
+                )
+            finally:
+                finish_current_analysis_submission()
+            if analysis_run_outcome == ANALYSIS_RUN_FOLLOWER_COMPLETED:
+                # The latest Streamlit script followed an older request to release.
+                # Reconstruct its now-published result in the current script run so
+                # stale queue text cannot remain beside an enabled Run action.
+                st.rerun()
+        if st.session_state.get("run_mode") is None:
+            finish_current_analysis_submission()
+    elif st.session_state.run_mode and submission_snapshot is not None:
+        if (
+            submission_snapshot.phase == SUBMISSION_PHASE_QUEUED
+            and submission_snapshot.position > 0
+        ):
+            pending_label = t.get(
+                "msg_analysis_queue_wait",
+                "All analysis capacity is in use; queued at position {position}.",
+            ).format(position=submission_snapshot.position)
+        else:
+            pending_label = t.get(
+                "msg_analysis_submission_active",
+                "Analysis submitted; Run Analysis is disabled until it finishes.",
+            )
+        with run_status_slot.container():
+            st.status(pending_label, expanded=False, state="running")
+    elif submission_snapshot is not None:
+        # A scientific configuration callback intentionally canceled this request
+        # by clearing ``run_mode``; do not strand a disabled Run action if an older
+        # Streamlit script was interrupted before its own ``finally`` block ran.
+        finish_current_analysis_submission()
+
+    if st.session_state.input_view != "classic" or input_configuration_ready:
+        render_current_url_synchronizer(
+            st.session_state,
+            key=URL_QUERY_SYNCHRONIZER_PAGE_KEY,
+        )
 
 # Load the small documentation preview only after the operational interface.
 from ui.documentation import render_documentation_section
 
-render_documentation_section(
-    t,
-    st.session_state.lang,
-    logo_base64,
-    APP_VERSION,
-)
+with documentation_region:
+    render_documentation_section(
+        t,
+        st.session_state.lang,
+        logo_base64,
+        APP_VERSION,
+    )

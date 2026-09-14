@@ -2,14 +2,137 @@
 
 This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
 
-## Unsubmitted - recorded 2026-09-13
+## Unsubmitted
 
-This entry tracks the current working-tree fixes since the last GitHub
-submission, [f15b2d2 - QRZ link](https://github.com/markusthemaker/WSPRadar/commit/f15b2d2d9d6a9d9dab0c14b47486ecc7cbfc9041)
-(2026-08-29). GitHub `main` and `temp` were both verified at that commit on
-2026-09-13. These changes have not been committed or submitted; the date above
-is the recording date. Consolidate this entry under the actual UTC submission
-date when the changes are published.
+- **Analysis progress navigation:** an accepted Run scrolls to the processing
+  panel, then to the first ready map while all Inspector charts and tables
+  continue preparing automatically. Manual navigation cancels the pending map
+  scroll; completion adds no further scroll. English and German loading
+  guidance is included.
+  Trace: [page navigation](ui/page_navigation.py), [app shell](app.py), and
+  [run controller](ui/run_controller.py).
+- **Stale result blocks in Guided and Classic:** configuration, results and
+  documentation now retain fixed page positions across editor and loader
+  changes. Superseded maps clear before preparation; current maps and deferred
+  Inspectors share one replacement area. Completed-result rerenders retain
+  their existing area to preserve reading position. Automatic map navigation
+  ignores stale anchors and images from earlier renders.
+  Trace: [app shell](app.py), [run controller](ui/run_controller.py),
+  [layout regressions](tests/regression/test_guided_input_integration.py), and
+  [navigation regressions](tests/regression/test_page_navigation.py).
+
+## 2026-09-14
+
+Published in [370c153 - Performance optimization](https://github.com/markusthemaker/WSPRadar/commit/370c153a2c06d97a3fcd35bd794a8075f4287c5c),
+verified on both GitHub `main` and `temp` on 2026-09-14.
+
+- **Responsive analysis admission:** moved blocking cache inspection outside the
+  admission state lock while keeping scheduling and capacity reservations atomic.
+  A slow cache read no longer blocks permit release or queue-status access;
+  ordering, concurrency limits, provider accounting, cancellation and recovery
+  after cache loss remain protected.
+  Trace: [admission control](core/analysis_admission.py),
+  [run controller](ui/run_controller.py), and
+  [concurrency regressions](tests/regression/test_analysis_admission.py).
+
+- **Localized Performance Drill-Down filters:** numeric filters now inspect the
+  displayed DataFrame using its selected column names, fixing RX/TX filtering in
+  English and German while retaining canonical export columns.
+  Trace: [selected-station Inspector](ui/components/inspector_selected.py) and
+  [real-widget regressions](tests/regression/test_inspector_performance_integration.py).
+
+- **Explicit export-evidence failures:** missing or malformed required evidence
+  now fails package preparation instead of producing an apparently complete ZIP
+  with silently empty tables. Legitimately empty results remain exportable.
+  Trace: [export preparation](ui/results_export.py),
+  [package regressions](tests/regression/test_results_export_package.py), and
+  [export admission regressions](tests/regression/test_export_admission.py).
+
+- **Faster map and evidence preparation:** replaced repeated map-label searches
+  with lookups, evaluated the unchanged solar calculation once per distinct
+  timestamp, used exact native grouped temporal quartiles, and read only
+  map-consumed Parquet columns. Geometry, bin membership, scheduled-pair
+  timestamps, solar boundaries, raw-value medians/quartiles and missing-value
+  behavior remain unchanged. Full evidence remains available to Inspectors and
+  exports, including Local Median Reference details.
+  Trace: [map preparation](core/map_data.py),
+  [solar filtering](core/analysis_runner.py),
+  [temporal statistics](ui/plots/evidence_figures.py), and
+  [map projection integration](ui/run_controller.py).
+
+- **Compact Performance temporal preparation:** prepare exact station identities
+  and UTC time keys once and reuse them across outcome and SNR summaries. Avoid
+  deriving fallback timestamps when analysis bounds are already supplied. All
+  charts and offered time-bin variants remain ready immediately, preserving
+  station weighting, opportunity denominators, UTC boundaries and the existing
+  raw-observation SNR statistics. Local comparisons measured a 26.1% smaller
+  prepared temporal DataFrame (45.6 to 33.7 MiB); this is not peak process memory.
+  Trace: [temporal recipes](ui/plots/opportunity_figures.py),
+  [Inspector preparation](ui/inspector/preparation.py), and
+  [identity/time/SNR regressions](tests/regression/test_performance_temporal_keys.py).
+
+- **Faster temporal outcome charts:** Performance outcome and Benchmark coverage
+  charts now draw bars in shared polygon collections. Counts, stacking, widths,
+  colors, axes and legends remain unchanged, and preview/export cache versioning
+  retires images prepared with the earlier renderer. Local repeated comparisons
+  measured 2.29x to 8.60x faster figure construction plus drawing across the
+  tested six-hour and one-hour charts.
+  Trace: [shared bar renderer](ui/plots/temporal_bars.py),
+  [Benchmark charts](ui/plots/benchmark_evidence_figures.py),
+  [layout/cache version](ui/plots/temporal_layout.py), and
+  [geometry/raster regressions](tests/regression/test_temporal_bar_collections.py).
+
+Verification: **2831 passed, 1 skipped, 1 existing warning in 296.87 seconds**,
+plus full Python compilation, manifest and whitespace checks. Scientific recipes
+and bar geometry matched exactly on cached analyses and edge cases; English and
+German preview/export checks passed. See the [verification record](AGENT_README.md)
+for the measurement scope and detailed image comparisons.
+
+Follow-up cached-run logs recorded Benchmark execution decreasing from 15.539
+to 12.928 seconds (16.8%) and Performance from 23.057 to 18.564 seconds (19.5%),
+excluding admission processing. Including the separately logged admission time,
+the reductions were 9.0% and 19.3%, respectively. These are individual matched
+initial runs with no provider requests or queued competitors, not a measured
+concurrent-user throughput gain or a guarantee for other workloads.
+
+## 2026-09-13
+
+Published in [75ed301 - Bug fixes](https://github.com/markusthemaker/WSPRadar/commit/75ed301904c64d9e068f61362cb490bd58085787)
+and [17e6f7e - Improvements](https://github.com/markusthemaker/WSPRadar/commit/17e6f7edf9b6404c98c22941371cb3a6f37475e9).
+GitHub push events confirm both submissions on 2026-09-13 UTC. The fixes below
+were originally recorded as unsubmitted on that date against
+[f15b2d2 - QRZ link](https://github.com/markusthemaker/WSPRadar/commit/f15b2d2d9d6a9d9dab0c14b47486ecc7cbfc9041)
+(2026-08-29). Both GitHub branches were verified at that baseline before these
+submissions.
+
+- **Explicit analysis and completed-result lifecycle:** introduced validated
+  analysis plans and completed-run records, with centralized publication,
+  retirement and failure handling. Scientific request identity and completed
+  evidence remain separate from presentation and transient UI state.
+  Trace: [analysis plans](core/analysis_plan.py),
+  [completed-run records](core/completed_run.py),
+  [run lifecycle](ui/run_lifecycle.py), and
+  [lifecycle regressions](tests/regression/test_run_lifecycle.py).
+
+- **Inspector architecture and selection ownership:** split the large Inspector
+  fragment into focused components with shared preparation and selection
+  contracts. Exact callsign-plus-locator selection, deliberate deselection,
+  temporarily filtered-out selections and Outlier navigation use one consistent
+  state lifecycle while preserving saved representations.
+  Trace: [Inspector orchestration](ui/components/segment_inspector.py),
+  [preparation contracts](ui/inspector/contracts.py),
+  [selection state](ui/inspector/selection_state.py), and
+  [selection regressions](tests/regression/test_inspector_selection_integration.py).
+
+- **Export ownership and invalidation:** export registration captures validated,
+  detached content with complete dependency signatures. Unchanged rerenders
+  retain prepared packages; changed content, language or committed metadata
+  invalidate them. Queued exports publish only while their captured dependencies
+  remain current.
+  Trace: [export payloads](ui/export_payloads.py),
+  [content signatures](ui/export_content.py),
+  [registration](ui/export_registry.py), and
+  [ownership regressions](tests/regression/test_export_ownership.py).
 
 - **Local Neighborhood geographic selection:** repaired the RX/TX SQL bounding
   prefilter so eligible nearby Reference identities are not excluded across the
@@ -109,7 +232,7 @@ date when the changes are published.
   [CI workflow](.github/workflows/regression-manifest.yml), and
   [launcher regressions](tests/regression/test_regression_runner.py).
 
-Related supported-method change in the same pending batch: retired Local Best
+Related supported-method change in the same submission batch: retired Local Best
 Station and retained explicit `local_benchmark: "local_median"` as the sole Local
 Neighborhood method in configuration, URLs, SQL, Guided/Classic inputs, results,
 and documentation. Stale `local_best` is rejected. The existing Local Median
@@ -129,8 +252,9 @@ the skip requires the absent generated fixture and the warning is the existing
 Matplotlib `set_bad` pending deprecation. After the final EN/DE workflow wording
 clarification, **102 documentation/rendering/PDF checks passed**. Full Python
 compilation, README synchronization, workflow YAML parsing, and `git diff --check`
-passed. The new CI workflow has been checked locally; its GitHub execution awaits
-submission. This changelog update itself changes no runtime behavior.
+passed. The new CI workflow was checked locally; its GitHub execution was not
+verified during those pre-submission checks. This changelog update itself changes
+no runtime behavior.
 
 ## 2026-08-16
 

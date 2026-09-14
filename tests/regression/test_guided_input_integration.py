@@ -2144,3 +2144,224 @@ def test_stale_warning_preserves_the_ready_rerun_action():
             "type": "primary",
         }
     ]
+
+
+def _application_tree_nodes_with_paths(application):
+    """Expose AppTest's actual delta paths, including unnamed placeholders."""
+    from streamlit.testing.v1.element_tree import Block
+
+    def visit(node, path):
+        yield path, node
+        if isinstance(node, Block):
+            for index, child in node.children.items():
+                yield from visit(child, (*path, index))
+
+    return list(visit(application._tree, ()))
+
+
+def _application_page_region_paths(application):
+    """Locate each page region by its emitted Streamlit container identity."""
+    region_keys = (
+        "application_configuration",
+        "application_results",
+        "application_documentation",
+    )
+    paths = {}
+    for region_key in region_keys:
+        matches = [
+            path
+            for path, node in _application_tree_nodes_with_paths(application)
+            if str(getattr(getattr(node, "proto", None), "id", "")).endswith(
+                f"-{region_key}"
+            )
+        ]
+        assert len(matches) == 1, (region_key, matches)
+        paths[region_key] = matches[0]
+    assert all(path[:-1] == (0,) for path in paths.values())
+    assert list(paths.values()) == sorted(paths.values())
+    return paths
+
+
+@pytest.fixture
+def page_region_application(monkeypatch):
+    """Run the real shell with tiny slot-owned maps and no scientific work."""
+    import streamlit as st
+    from ui import documentation_scroll_trigger, run_controller, url_synchronizer
+
+    # Component JavaScript has independent behavioral coverage. Its cached
+    # declarations are not registered in every AppTest runtime in this suite.
+    for component_module, component_attribute in (
+        (page_navigation, "_PAGE_NAVIGATION_CONTROLLER"),
+        (url_synchronizer, "_URL_QUERY_SYNCHRONIZER"),
+        (documentation_scroll_trigger, "_DOCUMENTATION_SCROLL_TRIGGER"),
+    ):
+        monkeypatch.setattr(
+            component_module, component_attribute, lambda **_kwargs: None,
+        )
+
+    rendered_slot_paths = []
+
+    def render_tiny_results(
+        *, map_results_slot, map_results_container, is_existing_run_rerender, **_kwargs,
+    ):
+        assert (map_results_container is not None) is is_existing_run_rerender
+        assert (map_results_slot is None) is is_existing_run_rerender
+        result_target = (
+            map_results_container if is_existing_run_rerender else map_results_slot
+        )
+        target_path = tuple(result_target._cursor.delta_path)
+        # Container cursors point at their next child; empty placeholders have
+        # a locked cursor pointing at the replaceable element itself.
+        rendered_slot_paths.append(
+            target_path[:-1] if is_existing_run_rerender else target_path
+        )
+        count = st.session_state["_test_layout_result_count"]
+        if count:
+            result_context = (
+                map_results_container if is_existing_run_rerender
+                else map_results_slot.container()
+            )
+            with result_context:
+                for index in range(count):
+                    with st.container(key=f"test_layout_result_{index}"):
+                        st.markdown(f"WSPRADAR_LAYOUT_RESULT_{index}")
+
+    monkeypatch.setattr(run_controller, "render_analysis_run", render_tiny_results)
+
+    def create(input_view):
+        application = AppTest.from_file(
+            str(REPOSITORY_ROOT / "app.py"), default_timeout=60,
+        )
+        initial_state = _canonical_state(
+            _initial_config_loaded=True,
+            input_view=input_view,
+            run_mode="RX",
+            _test_layout_result_count=2,
+        )
+        for key, value in initial_state.items():
+            application.session_state[key] = value
+        application.run()
+        assert list(application.exception) == []
+        assert rendered_slot_paths
+        return application, rendered_slot_paths
+
+    return create
+
+
+def _assert_application_region_contents(
+    application, expected_region_paths, map_slot_path, expected_result_count,
+    *, require_empty_element=False,
+):
+    """Keep all rendered maps in one stable slot and verify empty replacement."""
+    assert list(application.exception) == []
+    assert _application_page_region_paths(application) == expected_region_paths
+    results_path = expected_region_paths["application_results"]
+    assert map_slot_path[:-1] == results_path
+    nodes = _application_tree_nodes_with_paths(application)
+    result_nodes = [
+        (path, node)
+        for path, node in nodes
+        if node.type == "markdown"
+        and node.value.startswith("WSPRADAR_LAYOUT_RESULT_")
+    ]
+    assert [node.value for _path, node in result_nodes] == [
+        f"WSPRADAR_LAYOUT_RESULT_{index}"
+        for index in range(expected_result_count)
+    ]
+    assert all(
+        path[:len(map_slot_path)] == map_slot_path
+        for path, _node in result_nodes
+    )
+    if expected_result_count == 0:
+        slot_nodes = [node for path, node in nodes if path == map_slot_path]
+        assert len(slot_nodes) == 1
+        if require_empty_element:
+            assert slot_nodes[0].type == "empty"
+        else:
+            assert slot_nodes[0].type == "empty" or not slot_nodes[0].children
+
+
+@pytest.mark.parametrize("initial_view", ["guided", "classic"])
+def test_application_regions_remain_stable_across_editor_and_loader_changes(
+    page_region_application, initial_view,
+):
+    """Variable input panels and launchers never occupy previous result paths."""
+    application, rendered_slot_paths = page_region_application(initial_view)
+    expected_paths = _application_page_region_paths(application)
+    map_slot_path = rendered_slot_paths[0]
+
+    def assert_layout(result_count):
+        _assert_application_region_contents(
+            application, expected_paths, map_slot_path, result_count,
+            require_empty_element=result_count == 0,
+        )
+        assert set(rendered_slot_paths) == {map_slot_path}
+
+    assert_layout(2)
+    next_view = "classic" if initial_view == "guided" else "guided"
+    application.selectbox(key="input_view").select(next_view).run()
+    assert_layout(2)
+
+    application.button(key="load_demo_launcher").click().run()
+    assert application.session_state["show_demo_launcher"] is True
+    assert_layout(0)
+    # AppTest formats radio values outside ScriptRunContext. Reuse the exact
+    # labels the real launcher rendered; its formatter normally reads session
+    # language inside the app thread, which bare test serialization cannot do.
+    from streamlit.runtime.state.common import TESTING_KEY
+
+    demo_radio = application.radio(key="selected_demo_profile")
+    rendered_demo_labels = dict(zip(renderer.DEMO_PROFILES, demo_radio.options, strict=True))
+    application.session_state[TESTING_KEY][demo_radio.id] = rendered_demo_labels.__getitem__
+    application.button(key="load_demo_launcher").click().run()
+    assert application.session_state["show_demo_launcher"] is False
+    assert_layout(0)
+    application.button(key="run_analysis_button").click().run()
+    assert_layout(2)
+
+    next(
+        button for button in application.button
+        if button.label == T["en"]["btn_load_config"]
+    ).click().run()
+    assert application.session_state["show_config_loader"] is True
+    assert len(application.get("file_uploader")) == 1
+    assert_layout(0)
+    next(
+        button for button in application.button
+        if button.label == T["en"]["btn_load_config"]
+    ).click().run()
+    assert application.session_state["show_config_loader"] is False
+    assert len(application.get("file_uploader")) == 0
+    assert_layout(0)
+    application.button(key="run_analysis_button").click().run()
+    assert_layout(2)
+
+
+@pytest.mark.parametrize("input_view", ["guided", "classic"])
+def test_application_result_slot_replaces_shorter_empty_and_invalid_results(
+    page_region_application, input_view,
+):
+    """Two, one, zero, and validation-blocked runs reuse and clear one map slot."""
+    application, rendered_slot_paths = page_region_application(input_view)
+    expected_paths = _application_page_region_paths(application)
+    map_slot_path = rendered_slot_paths[0]
+    _assert_application_region_contents(application, expected_paths, map_slot_path, 2)
+
+    for result_count in (1, 0, 1):
+        application.session_state["_test_layout_result_count"] = result_count
+        application.run()
+        _assert_application_region_contents(
+            application, expected_paths, map_slot_path, result_count,
+        )
+    assert set(rendered_slot_paths) == {map_slot_path}
+
+    calls_before_validation = len(rendered_slot_paths)
+    application.text_input(key="val_callsign").input("!").run()
+    _assert_application_region_contents(
+        application, expected_paths, map_slot_path, 0, require_empty_element=True,
+    )
+    assert len(rendered_slot_paths) == calls_before_validation
+    assert application.session_state["run_mode"] is None
+    assert T["en"]["err_callsign_format"] in [
+        message.value for message in (*application.error, *application.warning)
+    ]

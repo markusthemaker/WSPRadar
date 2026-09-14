@@ -1,5 +1,6 @@
 """Streamlit run orchestration for WSPRadar analyses."""
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import gc
@@ -101,6 +102,10 @@ from ui.matplotlib_renderer import (
     dispose_matplotlib_figure,
     matplotlib_render_span_label,
     render_matplotlib_figure,
+)
+from ui.page_navigation import (
+    render_analysis_map_anchor,
+    render_analysis_map_ready_marker,
 )
 from ui.result_hierarchy import (
     build_result_context,
@@ -559,6 +564,28 @@ def _invalidate_completed_rerender(translations) -> str:
     return COMPLETED_RUN_RERENDER_UNAVAILABLE
 
 
+class _MapResultsDisplay:
+    """Fill the cleared map area only once the first current map is ready.
+
+    Creating its child container before preparation would let Streamlit merge
+    away the placeholder's clear delta and retain the previous run's children.
+    Reuse the same container for later maps and their Inspector fragments.
+    Completed rerenders keep their existing container and page height.
+    """
+
+    def __init__(self, placeholder=None, *, existing_container=None):
+        self._placeholder = placeholder
+        self._container = existing_container
+
+    def container(self):
+        if self._container is not None:
+            return self._container
+        if self._placeholder is None:
+            return nullcontext()
+        self._container = self._placeholder.container()
+        return self._container
+
+
 def render_analysis_run(
     *,
     t,
@@ -571,11 +598,17 @@ def render_analysis_run(
     generate_map_plot,
     render_map_figure=None,
     is_existing_run_rerender=False,
+    navigation_submission_token=None,
+    map_results_slot=None,
+    map_results_container=None,
 ):
     """Admit one active run, then execute it with unconditional slot release."""
     if not st.session_state.run_mode:
         return
 
+    map_results_display = _MapResultsDisplay(
+        map_results_slot, existing_container=map_results_container,
+    )
     submission_snapshot = get_analysis_submission(st.session_state)
     submission_token = (
         submission_snapshot.token
@@ -849,6 +882,7 @@ def render_analysis_run(
         with permit:
             if is_existing_run_rerender:
                 run_outcome = _render_completed_analysis_run(
+                    map_results_display=map_results_display,
                     t=t,
                     run_status_slot=run_status_slot,
                     start_t=start_t,
@@ -864,6 +898,7 @@ def render_analysis_run(
                 )
             else:
                 run_outcome = _render_admitted_analysis_run(
+                    map_results_display=map_results_display,
                     t=t,
                     run_status_slot=run_status_slot,
                     start_t=start_t,
@@ -882,6 +917,7 @@ def render_analysis_run(
                     committed_source=committed_source,
                     request_fingerprint=request_key,
                     analysis_plan_fingerprint=analysis_plan_key,
+                    navigation_submission_token=navigation_submission_token,
                 )
     except Exception as exc:
         run_outcome = type(exc).__name__
@@ -926,6 +962,9 @@ def _render_map_result_block(
     presentation_context,
     database_source,
     profile_timer,
+    is_first_map=False,
+    navigation_submission_token=None,
+    map_results_display=None,
 ):
     """Render one map block and return its deferred Inspector inputs."""
     fig = plot_result.figure
@@ -948,9 +987,16 @@ def _render_map_result_block(
         map_subtitle = t["sub_results_map_success"].format(
             station_type=station_type
         )
-    with st.container(
+    display_context = (
+        map_results_display.container()
+        if map_results_display is not None
+        else nullcontext()
+    )
+    with display_context, st.container(
         key=f"results_evidence_flow_{analysis['id']}_{run_id}"
     ):
+        if is_first_map:
+            render_analysis_map_anchor(navigation_submission_token)
         st.markdown(
             result_context_html(result_context),
             unsafe_allow_html=True,
@@ -1016,6 +1062,18 @@ def _render_map_result_block(
                             timing_collector=profile_timer,
                             subject="map",
                         )
+                    if is_first_map and navigation_submission_token:
+                        current_submission = get_analysis_submission(st.session_state)
+                        if (
+                            current_submission is not None
+                            and current_submission.token == navigation_submission_token
+                        ):
+                            render_analysis_map_ready_marker(
+                                navigation_submission_token,
+                                image_container_key=(
+                                    f"results_evidence_level_1_{analysis['id']}_{run_id}"
+                                ),
+                            )
                     register_map_export_context(
                         MapExportPayload(
                             analysis=analysis,
@@ -1053,6 +1111,7 @@ def _render_map_result_block(
             skeleton_ph = inspector_container.empty()
 
             with skeleton_ph.container():
+                st.caption(t["msg_preparing_inspector"])
                 st.markdown(
                     evidence_level_header_html(
                         2,
@@ -1107,33 +1166,38 @@ def _render_deferred_inspectors(
         admission_permit.touch()
         data["skeleton_ph"].empty()
         with data["inspector_container"]:
+            loading_placeholder = st.empty()
+            loading_placeholder.caption(t["msg_preparing_inspector"])
             inspector_span = (
                 "first Segment Inspector render"
                 if index == 0
                 else "Segment Inspector render"
             )
-            with matplotlib_profile_collector(data["profile_timer"]):
-                render_segment_inspector(
-                    data["analysis"]["id"],
-                    data["analysis"]["title"],
-                    data["analysis"]["is_compare"],
-                    data["analysis"]["is_sequential"],
-                    data["enriched_df"],
-                    data["parquet_path"],
-                    data["line1_str"],
-                    t,
-                    max_peer_distance_km,
-                    analysis_context,
-                    presentation_context,
-                    analysis_start_t=data["start_t"],
-                    analysis_end_t=data["end_t"],
-                    analysis_kind=data["analysis"]["analysis_kind"],
-                    show_export_button=(
-                        index == len(deferred_render_data) - 1
-                    ),
-                    timing_collector=data["profile_timer"],
-                    timing_label=inspector_span,
-                )
+            try:
+                with matplotlib_profile_collector(data["profile_timer"]):
+                    render_segment_inspector(
+                        data["analysis"]["id"],
+                        data["analysis"]["title"],
+                        data["analysis"]["is_compare"],
+                        data["analysis"]["is_sequential"],
+                        data["enriched_df"],
+                        data["parquet_path"],
+                        data["line1_str"],
+                        t,
+                        max_peer_distance_km,
+                        analysis_context,
+                        presentation_context,
+                        analysis_start_t=data["start_t"],
+                        analysis_end_t=data["end_t"],
+                        analysis_kind=data["analysis"]["analysis_kind"],
+                        show_export_button=(
+                            index == len(deferred_render_data) - 1
+                        ),
+                        timing_collector=data["profile_timer"],
+                        timing_label=inspector_span,
+                    )
+            finally:
+                loading_placeholder.empty()
 
 
 def _render_completed_analysis_run(
@@ -1150,8 +1214,11 @@ def _render_completed_analysis_run(
     center_latitude,
     center_longitude,
     completed_run_snapshot,
+    map_results_display=None,
 ):
     """Render a validated completed snapshot without provider or query work."""
+    if map_results_display is None:
+        map_results_display = _MapResultsDisplay()
     max_peer_distance_km = analysis_context.max_peer_distance_km
     selected_source_key = completed_run_snapshot.database_source
     source_label = DatabaseSource(selected_source_key).display_name
@@ -1238,24 +1305,27 @@ def _render_completed_analysis_run(
         outcome = snapshot_analysis.outcome
         diagnostic = snapshot_analysis.diagnostic
         if outcome != COMPLETED_RENDERABLE:
-            st.warning(
-                _format_result_diagnostic_warning(
-                    t,
-                    analysis,
-                    diagnostic,
+            with map_results_display.container():
+                st.warning(
+                    _format_result_diagnostic_warning(
+                        t,
+                        analysis,
+                        diagnostic,
+                    )
                 )
-            )
-            st.markdown("---")
+            with map_results_display.container():
+                st.markdown("---")
             continue
 
         if diagnostic is not None:
-            st.warning(
-                _format_result_diagnostic_warning(
-                    t,
-                    analysis,
-                    diagnostic,
+            with map_results_display.container():
+                st.warning(
+                    _format_result_diagnostic_warning(
+                        t,
+                        analysis,
+                        diagnostic,
+                    )
                 )
-            )
 
         profile_timer = PerformanceTimer()
         map_data_paths = MapDataArtifactPaths(
@@ -1301,6 +1371,7 @@ def _render_completed_analysis_run(
                 )
             del map_data
             deferred_render_entry = _render_map_result_block(
+                map_results_display=map_results_display,
                 t=t,
                 analysis=analysis,
                 plot_result=plot_result,
@@ -1316,6 +1387,7 @@ def _render_completed_analysis_run(
                 presentation_context=presentation_context,
                 database_source=selected_source_key,
                 profile_timer=profile_timer,
+                is_first_map=not deferred_render_data,
             )
             plot_result = None
         except Exception as exc:
@@ -1326,9 +1398,12 @@ def _render_completed_analysis_run(
             )
         deferred_render_data.append(deferred_render_entry)
         gc.collect()
-        st.markdown("---")
+        with map_results_display.container():
+            st.markdown("---")
 
     try:
+        if deferred_render_data:
+            status_box.update(label=t["msg_preparing_inspector"], state="running")
         _render_deferred_inspectors(
             deferred_render_data,
             t=t,
@@ -1366,8 +1441,12 @@ def _render_admitted_analysis_run(
     committed_source,
     request_fingerprint,
     analysis_plan_fingerprint,
+    navigation_submission_token=None,
+    map_results_display=None,
 ):
     """Execute an admitted run and return its terminal telemetry outcome."""
+    if map_results_display is None:
+        map_results_display = _MapResultsDisplay()
 
     max_peer_distance_km = analysis_context.max_peer_distance_km
     touch_registered_session_artifacts(st.session_state)
@@ -1396,7 +1475,8 @@ def _render_admitted_analysis_run(
     provider_lease = admission_permit.capacity_lease
     if not isinstance(provider_lease, ProviderRunLease):
         status_box.update(label="Database capacity error", state="error", expanded=True)
-        st.error("The analysis was admitted without a database reservation.")
+        with map_results_display.container():
+            st.error("The analysis was admitted without a database reservation.")
         fail_analysis_run(st.session_state)
         return "failed"
 
@@ -1479,13 +1559,14 @@ def _render_admitted_analysis_run(
                     state="error",
                     expanded=True,
                 )
-                _render_fetch_error(
-                    final_fetch_failure,
-                    t,
-                    exclude_special_callsigns=(
-                        analysis_context.exclude_special_callsigns
-                    ),
-                )
+                with map_results_display.container():
+                    _render_fetch_error(
+                        final_fetch_failure,
+                        t,
+                        exclude_special_callsigns=(
+                            analysis_context.exclude_special_callsigns
+                        ),
+                    )
                 fail_analysis_run(st.session_state)
                 return "failed"
 
@@ -1538,15 +1619,17 @@ def _render_admitted_analysis_run(
                     expanded=True,
                 )
                 if final_fetch_failure is not None:
-                    _render_fetch_error(
-                        final_fetch_failure,
-                        t,
-                        exclude_special_callsigns=(
-                            analysis_context.exclude_special_callsigns
-                        ),
-                    )
+                    with map_results_display.container():
+                        _render_fetch_error(
+                            final_fetch_failure,
+                            t,
+                            exclude_special_callsigns=(
+                                analysis_context.exclude_special_callsigns
+                            ),
+                        )
                 else:
-                    st.error(str(acquire_error))
+                    with map_results_display.container():
+                        st.error(str(acquire_error))
                 fail_analysis_run(st.session_state)
                 return "failed"
             if not admission_permit.replace_capacity_lease(provider_lease):
@@ -1574,7 +1657,8 @@ def _render_admitted_analysis_run(
                 state="error",
                 expanded=True,
             )
-            st.error(localized_preparation_error)
+            with map_results_display.container():
+                st.error(localized_preparation_error)
             fail_analysis_run(st.session_state)
             return "failed"
         else:
@@ -1658,14 +1742,16 @@ def _render_admitted_analysis_run(
                 outcome=COMPLETED_PREPARED_NO_DATA,
             ))
             profile_timer.log_report(analysis_title=analysis["title"])
-            st.warning(
-                _format_result_diagnostic_warning(
-                    t,
-                    analysis,
-                    prepared_analysis.diagnostic,
+            with map_results_display.container():
+                st.warning(
+                    _format_result_diagnostic_warning(
+                        t,
+                        analysis,
+                        prepared_analysis.diagnostic,
+                    )
                 )
-            )
-            st.markdown("---")
+            with map_results_display.container():
+                st.markdown("---")
             continue
 
         try:
@@ -1683,7 +1769,8 @@ def _render_admitted_analysis_run(
                 state="error",
                 expanded=True,
             )
-            st.error(f"Error reading prepared analysis data: {exc}")
+            with map_results_display.container():
+                st.error(f"Error reading prepared analysis data: {exc}")
             fail_analysis_run(st.session_state, retire_results=True)
             log_performance_event(
                 "analysis_preparation_failure",
@@ -1737,14 +1824,16 @@ def _render_admitted_analysis_run(
                     diagnostic=plot_result.diagnostic,
                 ))
                 profile_timer.log_report(analysis_title=analysis["title"])
-                st.warning(
-                    _format_result_diagnostic_warning(
-                        t,
-                        analysis,
-                        plot_result.diagnostic,
+                with map_results_display.container():
+                    st.warning(
+                        _format_result_diagnostic_warning(
+                            t,
+                            analysis,
+                            plot_result.diagnostic,
+                        )
                     )
-                )
-                st.markdown("---")
+                with map_results_display.container():
+                    st.markdown("---")
                 continue
 
             if plot_result is None:
@@ -1753,8 +1842,10 @@ def _render_admitted_analysis_run(
                     outcome=COMPLETED_MAP_NO_DATA,
                 ))
                 profile_timer.log_report(analysis_title=analysis["title"])
-                st.warning(t["warn_no_data"].format(title=analysis["title"]))
-                st.markdown("---")
+                with map_results_display.container():
+                    st.warning(t["warn_no_data"].format(title=analysis["title"]))
+                with map_results_display.container():
+                    st.markdown("---")
                 continue
 
             map_data_paths = staged_artifact_paths[analysis["id"]].map_data_paths
@@ -1777,7 +1868,8 @@ def _render_admitted_analysis_run(
                     state="error",
                     expanded=True,
                 )
-                st.error(t["err_analysis_processing_failed"])
+                with map_results_display.container():
+                    st.error(t["err_analysis_processing_failed"])
                 fail_analysis_run(st.session_state, retire_results=True)
                 log_performance_event(
                     "analysis_preparation_failure",
@@ -1794,14 +1886,16 @@ def _render_admitted_analysis_run(
                 diagnostic=plot_result.map_data.diagnostic,
             ))
             if plot_result.map_data.diagnostic is not None:
-                st.warning(
-                    _format_result_diagnostic_warning(
-                        t,
-                        analysis,
-                        plot_result.map_data.diagnostic,
+                with map_results_display.container():
+                    st.warning(
+                        _format_result_diagnostic_warning(
+                            t,
+                            analysis,
+                            plot_result.map_data.diagnostic,
+                        )
                     )
-                )
             deferred_render_data.append(_render_map_result_block(
+                map_results_display=map_results_display,
                 t=t,
                 analysis=analysis,
                 plot_result=plot_result,
@@ -1817,12 +1911,17 @@ def _render_admitted_analysis_run(
                 presentation_context=presentation_context,
                 database_source=selected_source_key,
                 profile_timer=profile_timer,
+                is_first_map=not deferred_render_data,
+                navigation_submission_token=navigation_submission_token,
             ))
             del plot_result
             gc.collect()
 
-        st.markdown("---")
+        with map_results_display.container():
+            st.markdown("---")
 
+    if deferred_render_data:
+        status_box.update(label=t["msg_preparing_inspector"], state="running")
     _render_deferred_inspectors(
         deferred_render_data,
         t=t,

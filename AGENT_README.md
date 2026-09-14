@@ -455,6 +455,11 @@ On Linux or macOS, invoke pytest directly:
 python -m pytest tests/regression -q
 ```
 
+The page-navigation event regressions execute the production JavaScript with
+Node.js when `node` is available on `PATH`. Include Node.js to run those event
+scenarios; otherwise pytest explicitly skips them. WSPRadar's application
+runtime does not require Node.js.
+
 pytest-xdist is not part of the development environment. Do not install it or
 pass `-n` until the concurrency, filesystem, Streamlit, Matplotlib, cache, port,
 and process-state tests have been audited for worker isolation.
@@ -470,7 +475,67 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Latest complete serial verification on 2026-09-14 ran directly in
+Latest regression verification on 2026-09-14 covered the shared Guided/Classic
+stale-result fix in `C:\Users\marku\Code\WSPRadar`. The complete foreground
+Windows run reported:
+
+```text
+1 failed, 2882 passed, 1 skipped, 2 warnings in 415.47 seconds
+```
+
+The sole failure was an indentation-sensitive source assertion in
+`test_url_state.py`; the new results-region context changed indentation without
+changing the tested readiness condition. That assertion now compares the Python
+syntax tree, and the complete affected module then passed all 88 tests in
+2.65 seconds. No runtime code changed after the full run. The absent scientific
+fixture remains skipped. The full-run warnings were the existing Matplotlib
+pending deprecation and a local pytest cache-directory permission warning;
+disabling cache writes for the follow-up produced an unused `cache_dir` option
+warning. Full repository compilation and patch whitespace checks passed.
+
+The full run used Node.js on `PATH` and fresh ignored temporary/cache paths
+(`.test/pytest-stale-results-final` and
+`.test/pytest-stale-results-final-cache`). Browser verification used the actual
+app shell, configuration controls, map-block renderer, navigation controller,
+and deferred Inspector placement with synthetic map data and controlled local
+preparation delays. Guided-to-Classic, Classic-to-Guided, and Benchmark-to-
+Performance transitions produced no misplaced or duplicate result headers.
+Old maps cleared before a fresh run; the current map remained visible while
+Inspector preparation waited. Status and first-map landings remained near the
+80 px offset. A completed-result rerender retained exactly the measured scroll
+position (1838.5966 px) and Inspector heading position (362.8015 px) during
+preparation and after completion. The real app entry point returned HTTP 200
+`ok`; all temporary browser tabs and bounded servers were closed. No Community
+Cloud deployment was performed.
+
+Earlier complete serial verification on 2026-09-14 ran in
+`C:\Users\marku\Code\WSPRadar` after the approved processing-panel and first-map
+scroll milestones, manual-navigation cancellation, and viewport-preserving
+rerenders:
+
+```text
+2869 passed, 1 skipped, 1 warning in 295.21 seconds
+```
+
+The canonical foreground Windows runner used fresh ignored temporary/cache
+directories through `PYTEST_ADDOPTS` (`--basetemp=.test/pytest-navigation-final-full-20260914`
+and `--override-ini=cache_dir=.test/pytest-navigation-final-full-cache-20260914`)
+because the older default pytest directories were owned by a different local
+account. Node.js was on `PATH`, so all navigation event scenarios executed. The
+remaining skip is the absent scientific fixture, and the warning is the existing
+Matplotlib pending deprecation. Full Python compilation and patch whitespace
+checks passed. The actual app started, returned HTTP 200 `ok`, and rendered its
+idle interface. A separate controlled Streamlit browser fixture using the
+production navigation controller verified status landing before map readiness,
+map landing while Inspector preparation was held open, manual-scroll
+cancellation, completion without another landing, and an ordinary rerender with
+exactly unchanged scroll position. This browser check used synthetic map data;
+the full regression suite separately verifies the real run-controller ordering,
+first valid map after no-data blocks, token replacement, and failure cleanup.
+English and German navigation guidance were updated together and README was
+regenerated from the authoritative English manual.
+
+Earlier complete serial verification on 2026-09-14 ran directly in
 `C:\Users\marku\Code\WSPRadar` after the approved Performance temporal-key
 preparation and shared temporal bar-collection changes. All charts and offered
 time-bin variants remain prepared immediately. Temporal layout version 3
