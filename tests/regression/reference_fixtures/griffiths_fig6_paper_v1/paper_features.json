@@ -1,0 +1,221 @@
+{
+  "format": "wspradar.paper-only-density-annotations",
+  "version": 1,
+  "source": {
+    "file": "C:/Users/marku/Downloads/ImprovingHFSNR-1.pdf",
+    "sha256": "9d3fe7e8b7230a6c0abbf86787591e5d140f470b72c18c10e44fd8ccd006819f",
+    "printed_page": 25,
+    "pdf_page_1_based": 3,
+    "figure": 6,
+    "embedded_image": "Im1.tif",
+    "rendered_image": "paper_figure6_source.png",
+    "image_width_px": 1382,
+    "image_height_px": 908
+  },
+  "independence": "This annotation task inspected only the source PDF and extracted images, not WSPRadar outputs or expected CSVs. The annotator had seen application results during earlier tasks, so this is a retrospective external extraction, not a blinded or preregistered study.",
+  "selection_principle": "Select the four paper-described temporal density features: early-night negative island, morning positive island, strongest evening positive island, and late-night negative island. For each select the innermost clearly traceable closed contour whose bounding box spans at least the planned 1-hour by 1-dB comparison-cell resolution in both coordinates. This selects enclosing blue/turquoise contours for the two sub-bin night islands and the innermost olive/red contours for the daytime islands. These are feature regions, not confidence intervals or quantiles. Three-hour slices align with the printed major UTC-equivalent ticks and are fixed before comparison.",
+  "axes": {
+    "x_zero_day_px": 119,
+    "x_one_day_px": 1366,
+    "y_positive_25_db_px": 22,
+    "y_negative_15_db_px": 792
+  },
+  "calibration": {
+    "utc_hour": "24 * (x - 119) / 1247",
+    "delta_snr_db": "25 - 40 * (y - 22) / 770",
+    "utc_hours_per_pixel": 0.019246190858059342,
+    "delta_snr_db_per_pixel": 0.05194805194805195
+  },
+  "digitization_uncertainty": {
+    "coordinate_bound_px": 3,
+    "basis": "Observed antialiased contour strokes occupy about 2-4 pixels; +/-3 pixels covers stroke edge/centre choice and manual bounding-box readout. This is a conservative raster-readout bound, not a statistical confidence interval.",
+    "utc_hour_bound": 0.057738572574178026,
+    "delta_snr_db_bound": 0.15584415584415584
+  },
+  "histogram_comparison": {
+    "time_bin_hours": 1,
+    "delta_snr_bin_db": 1,
+    "delta_snr_center_half_bin_allowance_db": 0.5,
+    "meaning": "Bounds cover chosen paper contour region plus explicit raster-readout and half-bin localization allowances. They do not include an invented uncertainty allowance for the unknown original smoother."
+  },
+  "features": [
+    {
+      "id": "early_night_negative_branch",
+      "paper_time_window_utc_hours": [
+        0,
+        3
+      ],
+      "pixel_box": {
+        "x_min": 138,
+        "x_max": 226,
+        "y_min": 519,
+        "y_max": 595
+      },
+      "contour": "blue enclosed contour around the tiny green negative island",
+      "excluded_sub_bin_inner_box": {
+        "x_min": 165,
+        "x_max": 174,
+        "y_min": 553,
+        "y_max": 568
+      },
+      "interpretation": "a negative local density branch; no requirement that a median equal its mode",
+      "contour_box_hour_bounds": [
+        0.3656776263031275,
+        2.0593424218123495
+      ],
+      "contour_box_delta_snr_db_bounds": [
+        -4.766233766233768,
+        -0.8181818181818166
+      ],
+      "digitization_expanded_delta_snr_db_bounds": [
+        -4.922077922077921,
+        -0.6623376623376629
+      ],
+      "one_db_histogram_center_comparison_bounds": [
+        -5.422077922077921,
+        -0.1623376623376629
+      ]
+    },
+    {
+      "id": "morning_positive_branch",
+      "paper_time_window_utc_hours": [
+        6,
+        9
+      ],
+      "pixel_box": {
+        "x_min": 482,
+        "x_max": 563,
+        "y_min": 376,
+        "y_max": 413
+      },
+      "contour": "innermost olive closed positive island",
+      "interpretation": "a positive local density branch; neighbouring lower-SNR branch may coexist",
+      "contour_box_hour_bounds": [
+        6.986367281475541,
+        8.545308740978347
+      ],
+      "contour_box_delta_snr_db_bounds": [
+        4.688311688311689,
+        6.6103896103896105
+      ],
+      "digitization_expanded_delta_snr_db_bounds": [
+        4.532467532467532,
+        6.766233766233768
+      ],
+      "one_db_histogram_center_comparison_bounds": [
+        4.032467532467532,
+        7.266233766233768
+      ]
+    },
+    {
+      "id": "evening_strong_positive_island",
+      "paper_time_window_utc_hours": [
+        18,
+        21
+      ],
+      "pixel_box": {
+        "x_min": 1047,
+        "x_max": 1158,
+        "y_min": 355,
+        "y_max": 446
+      },
+      "contour": "innermost red closed contour of the strongest evening density island",
+      "interpretation": "positive high-density concentration; contour level and probability mass are unspecified",
+      "contour_box_hour_bounds": [
+        17.86046511627907,
+        19.996792301523655
+      ],
+      "contour_box_delta_snr_db_bounds": [
+        2.974025974025974,
+        7.7012987012987
+      ],
+      "digitization_expanded_delta_snr_db_bounds": [
+        2.8181818181818166,
+        7.857142857142858
+      ],
+      "one_db_histogram_center_comparison_bounds": [
+        2.3181818181818166,
+        8.357142857142858
+      ]
+    },
+    {
+      "id": "late_night_negative_branch",
+      "paper_time_window_utc_hours": [
+        21,
+        24
+      ],
+      "pixel_box": {
+        "x_min": 1268,
+        "x_max": 1343,
+        "y_min": 540,
+        "y_max": 579
+      },
+      "contour": "turquoise closed contour enclosing the sub-bin green island",
+      "excluded_sub_bin_inner_box": {
+        "x_min": 1291,
+        "x_max": 1322,
+        "y_min": 553,
+        "y_max": 565
+      },
+      "interpretation": "negative local branch reappears while a positive branch can coexist; do not require global vertical mode or median to be negative",
+      "contour_box_hour_bounds": [
+        22.113873295910185,
+        23.557337610264636
+      ],
+      "contour_box_delta_snr_db_bounds": [
+        -3.9350649350649363,
+        -1.90909090909091
+      ],
+      "digitization_expanded_delta_snr_db_bounds": [
+        -4.09090909090909,
+        -1.7532467532467528
+      ],
+      "one_db_histogram_center_comparison_bounds": [
+        -4.59090909090909,
+        -1.2532467532467528
+      ]
+    }
+  ],
+  "transition_context": {
+    "dawn": {
+      "pixel_x_interval": [
+        327,
+        431
+      ],
+      "utc_hour_interval": [
+        4.003207698476343,
+        6.004811547714515
+      ],
+      "basis": "The steep contour fan appears approximately between 4 and 6 UTC, consistent with the paper text describing a change near 05 UTC.",
+      "status": "contextual check only; the contour fan is not an identified zero crossing of an hourly median or of a unique modal branch"
+    },
+    "evening": {
+      "approximate_utc_hour_from_prose": 21.5,
+      "status": "approximate prose anchor; the late-night branch annotation provides the concrete visual feature"
+    }
+  },
+  "recommended_matcher": {
+    "statistic": "Local maxima of the vertical density profile in each fixed UTC slice; consider multiple local maxima, including tied plateaus. Do not substitute an hourly median or require the global vertical mode to identify every branch.",
+    "input": "Application paired-observation density counts on the planned 1-hour by 1-dB grid; actual source population/window differences remain separately documented.",
+    "time_topology": "Use periodic boundary conditions in UTC hour; midnight must wrap.",
+    "smoothing_sensitivity_grid_sigma_time_hours": [
+      0.75,
+      1,
+      1.25
+    ],
+    "smoothing_sensitivity_grid_sigma_snr_db": [
+      0.75,
+      1,
+      1.25
+    ],
+    "smoothing_status": "An explicitly declared comparison estimator, not a reconstruction of the undocumented author estimator. Freeze all choices before first evaluation; inspect every grid combination and report absent/unstable features without widening bounds.",
+    "acceptance_caution": "Local-branch existence is limited external corroboration, not proof of the full distribution. Do not derive a numerical density-level or probability-mass assertion from unlabelled contour colours; any extra prominence requirement needs an independently justified frozen rule."
+  },
+  "limitations": [
+    "Original contour levels, kernel, bandwidth, smoothing grid and density normalization are not specified.",
+    "Source scatter is visually clipped to -15 through +25 dB. No assertion should treat those limits as the full sample range.",
+    "The paper states April 5-7 and UTC but not precise extraction endpoints; population matching is a separate task.",
+    "No source-paper exact hourly median, quartile, count or probability mass is inferred.",
+    "No WSPRadar output comparison has been performed in this annotation task."
+  ]
+}

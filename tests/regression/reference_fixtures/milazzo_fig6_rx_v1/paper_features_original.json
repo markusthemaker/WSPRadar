@@ -1,0 +1,76 @@
+{
+  "source_url": "https://www.qsl.net/kp4md/wspr.htm",
+  "figure_url": "https://www.qsl.net/kp4md/WSPR%2040m%20at%20VE6PDQ.JPG",
+  "figure_sha256": "2499ecab549f80fd751469841c4498b428af99037ac10afde6c4a4e59d3b6d73",
+  "source_html_sha256": "a9b83074999a119157e4ad2e78f0918691cf5d1f34fa9d4a1664259c3b5e81f1",
+  "image_pixels": [
+    1317,
+    656
+  ],
+  "axis_type": "Chronological dated UTC, not folded time-of-day",
+  "axis_start_utc": "2010-12-19T12:00:00+00:00",
+  "axis_end_utc": "2010-12-20T20:00:00+00:00",
+  "y_axis_label": "SNR dB",
+  "y_axis_limits_db": [
+    -30,
+    5
+  ],
+  "receiver": "VE6PDQ",
+  "band_mhz": 7,
+  "series": {
+    "KP4MD": "blue square markers",
+    "WB6RQN": "red circle markers"
+  },
+  "visible_distinct_markers": {
+    "KP4MD": 31,
+    "WB6RQN": 13
+  },
+  "count_limit": "Visible distinct markers, not a proven count of underlying reports; coincident observations may overlap, and no raw table or thinning policy is stated.",
+  "calibration": {
+    "x_tick_centers": [
+      78.0,
+      146.0,
+      214.0,
+      282.0,
+      349.0,
+      417.0,
+      486.0,
+      553.0,
+      621.0,
+      688.0,
+      757.0,
+      825.0,
+      892.0,
+      960.0,
+      1028.0,
+      1096.0,
+      1164.0
+    ],
+    "tick_spacing_minutes": 120,
+    "minutes_from_axis_start_per_x_pixel": 1.7684644106142557,
+    "minutes_intercept": -138.1123716731817,
+    "y_tick_centers": [
+      104.0,
+      168.0,
+      232.0,
+      297.0,
+      361.0,
+      425.0,
+      489.0,
+      554.0
+    ],
+    "snr_db_per_y_pixel": -0.07780631733100402,
+    "snr_db_intercept": 13.078826822567573
+  },
+  "readout_tolerances": {
+    "minutes": 4,
+    "db": 0.25,
+    "meaning": "Graphical readout allowance, not experimental measurement uncertainty or statistical confidence. SNR annotations are integers; calibrated center estimates corroborate labels but do not establish the normalization baseline."
+  },
+  "extraction_method": "Color masks blue:B>150,R<100,G<120; red:R>150,G<120,B<120. Inside plot, erode3x3 to suppress thin connecting lines, count4-neighbor components of at least5 eroded pixels and use mean center. Inspect labels and full image visually. Linear least-squares axes fit to printed tick grid, independent of archive values.",
+  "independence": "All44 marker centers and31/13 counts were computed before the parent supplied archive counts/ranges. UTC conversion and artifact writing occurred afterwards using only source pixel centers and fixed source tick grid, without archive adjustment.",
+  "normalization_source_statement": "Article says SNR was adjusted additively for transmitted-power differentials. KP4MD5W(37dBm); WB6RQN2or5W(33-37dBm). No explicit common reference power or per-point normalization values are provided.",
+  "global_target_active_gate_stated": false,
+  "gate_caveat": "Absence of a stated global Target-Active Gate does not prove no unstated selection was used. It prevents attributing the software gate to the author.",
+  "continuity_caveat": "Straight lines connect observed markers across long gaps; they are not extra receptions or evidence of continuous coverage."
+}

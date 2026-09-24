@@ -1,0 +1,65 @@
+{
+  "source_article": "https://www.qsl.net/kp4md/wspr.htm",
+  "source_figures": {
+    "6": {
+      "url": "https://www.qsl.net/kp4md/WSPR%2040m%20at%20VE6PDQ.JPG",
+      "sha256": "2499ecab549f80fd751469841c4498b428af99037ac10afde6c4a4e59d3b6d73"
+    },
+    "7": {
+      "url": "https://www.qsl.net/kp4md/WSPR%2040m%20from%20VE6PDQ.JPG",
+      "sha256": "262a21cc23a725f31e52e8c3ce8b52cc0032ef2bab7d6522d67628cd11b4747e"
+    }
+  },
+  "figure6": {
+    "direction": "RX",
+    "sql_reports": 44,
+    "matched_anchors": 44,
+    "max_time_error_seconds": 120.0
+  },
+  "figure7": {
+    "direction": "TX",
+    "sql_reports": 76,
+    "matched_compact_anchors": 47,
+    "anchor_series_counts": {
+      "KP4MD": 32,
+      "WB6RQN": 15
+    },
+    "max_time_error_seconds": 143.696311,
+    "anchor_scope": "Compact colored components only; overlapping/merged markers are not individually counted",
+    "additional_report": "WB6RQN 2010-12-19 13:38 UTC, raw -6 dB at 33 dBm; -2 dB at 37 dBm; no visible marker",
+    "overlap_note": "WB6RQN 20 Dec 10:36 at -19 dB is near the KP4MD 10:34 marker at -19 dB; not an isolated red anchor"
+  },
+  "power_scale": "SQL normalized to 30 dBm plus exactly 7 dB = common 37 dBm. RX all nominal 5 W; TX KP4MD 5 W and WB6RQN 2 W within plot window.",
+  "time_shift_fit": false,
+  "snr_offset_fit": false,
+  "figure7_axis_calibration": {
+    "x_12_utc_dec19": 78,
+    "x_20_utc_dec20": 1164,
+    "y_zero_db": 104,
+    "y_minus30_db": 554
+  },
+  "figure7_extraction": "Blue B>150,R<100,G<120; red R>150,G<120,B<120; 3x3 erosion; 4-neighbor components; 35..90 pixels and width/height <=10; source-only rule to avoid merged centers. Integer SNR read from calibrated ordinate, checked against visible annotations.",
+  "figure7_match_rule": "Require one same-series report within 240 seconds and 0.25 dB of each image-derived anchor at the declared common 37 dBm scale; no archive-based axis fitting",
+  "runtime_scope": "Current generated SQL through regression SQLite adapter, followed by production filtering and inspector preparation. No live provider calls or native ClickHouse verification.",
+  "target_active_gate": {
+    "rule": "global_time_slot",
+    "description": "At least one captured Target report in the exact 120-second WSPR cycle across all eligible peers; no graphical time tolerance or same-peer requirement",
+    "plot_start_utc": "2010-12-19T12:00:00+00:00",
+    "plot_end_utc_exclusive": "2010-12-20T20:00:00+00:00",
+    "scope": {
+      "figure6": "Captured VE6PDQ path only; other transmitters may supply missing Target-activity witnesses in the full archive",
+      "figure7": "All captured receivers contribute Target-activity witnesses; plotted reports are the VE6PDQ path"
+    },
+    "sql_reports_retained": {
+      "figure6": 39,
+      "figure7": 58
+    },
+    "matched_anchors_retained": {
+      "figure6": 39,
+      "figure7": 33
+    },
+    "rendering": "Existing colored SQL rings remain; a larger charcoal ring with white separation marks each gate-retained endpoint",
+    "joint_pairing": "Gate survival alone does not establish a Joint pair; full locator identity still applies"
+  },
+  "script_sha256": "87acf7ffe660f91ab26b6d4f3e1819acf39e702a3ff52621152e46bc64145e17"
+}

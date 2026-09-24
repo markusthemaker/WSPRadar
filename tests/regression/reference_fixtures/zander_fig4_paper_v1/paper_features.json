@@ -1,0 +1,304 @@
+{
+  "frozen_at_utc": "2026-09-24T15:00:52.639708+00:00",
+  "source": {
+    "url": "https://arxiv.org/pdf/2209.08989v1",
+    "abstract_url": "https://arxiv.org/abs/2209.08989",
+    "version": "v1; submitted 2022-09-19",
+    "pdf_sha256": "c03e9cd189da2b0c07abda459064cfebf07c2d515bf6eeb1b7d5610066cfaa8d",
+    "pdf_page": 4,
+    "figure": 4,
+    "embedded_image_size_pixels": [
+      640,
+      480
+    ],
+    "independence": "Extracted from source paper only before examining any WSPRadar output, archive selection, fixture, or demo."
+  },
+  "reported_statistics": {
+    "mean_db": -6.8,
+    "sigma_db": 3.5,
+    "status": "Exact transcription of rounded one-decimal figure annotations.",
+    "sigma_meaning": "Page 5 identifies sigma as estimated sample standard deviation; ddof is not specified.",
+    "conditional_nearest_rounding_intervals": {
+      "mean_db": [
+        -6.85,
+        -6.75
+      ],
+      "sigma_db": [
+        3.45,
+        3.55
+      ]
+    },
+    "interval_caveat": "Intervals assume conventional nearest-one-decimal formatting, which the paper does not specify. These are display-precision intervals, not sampling uncertainty or a license to tune selectors."
+  },
+  "experiment_a_setup": {
+    "source_location": "Section V, page 4; Figure 4 caption; transmitter setup in Section III, pages 2-3.",
+    "band_frequency_mhz": 14,
+    "conditions": "Daylight, spring",
+    "place": "Gotland Island",
+    "transmitter_locator_prefix": "JO97",
+    "measurement_antenna": "Difona HF-P1 portable vertical; 2.5 m; center loaded; resonant; 4 radials",
+    "reference_antenna": "Hy-Gain AV620 Patriot; resonant 5/8 wavelength vertical",
+    "transmitters": "Zachtek; paper states equal fixed 200 mW (+23 dBm) output",
+    "pairing_rule": "Same receiving station, same 2-minute slot, same frequency band; only joint reception enters the SNR comparison.",
+    "difference_sign": "Measured antenna SNR minus reference antenna SNR, in dB (equation 4).",
+    "reported_snr_quantization_db": 1,
+    "selector_gaps": [
+      "Exact calendar date absent",
+      "Exact start and end times absent",
+      "Experiment A callsigns absent",
+      "Full six-character Experiment A locator absent",
+      "Exact per-transmitter radio frequencies absent",
+      "Exact raw count, exact paired count, exact receiver count absent",
+      "Receiver list and duplicate handling absent",
+      "No published raw measurement table or linked analysis script"
+    ],
+    "callsign_caution": "Figure 2 shows SK0WE/P and SK0BU, but its caption explicitly identifies Experiment B (7 MHz T2FD versus dipole). These do not establish Experiment A callsigns."
+  },
+  "experiment_narrative_counts": {
+    "source_location": "Section V, pages 4-5, pooled description applying to each of the two experiments.",
+    "raw_report_count_approx": 1000,
+    "duration_hours_approx": 1,
+    "valid_report_count_range_approx": [
+      150,
+      200
+    ],
+    "receiver_count_range_approx": [
+      15,
+      35
+    ],
+    "useful_samples_for_error_discussion_approx": 100,
+    "mean_standard_deviation_bound_db_stated": 0.5,
+    "status": "Rounded qualitative context; not exact Experiment A counts, time selectors, or a distribution-matching tolerance."
+  },
+  "geography_context": {
+    "source_location": "Section V, page 5, 14 MHz context.",
+    "bulk_distance_km": [
+      1500,
+      2000
+    ],
+    "azimuth_context": "Receivers are more common in Western Europe; paper says most reports in Sweden are likely from the southwest quadrant and its discussion describes measurements concentrated toward southern to western azimuths.",
+    "test_status": "Qualitative diagnostics only. Bulk does not define an exact fraction; likely is not a counted empirical guarantee. Do not use these as selection filters, a hard majority threshold, or an exact geographic reference distribution."
+  },
+  "digitization": {
+    "coordinate_origin": "Top left of the original embedded 640x480 Figure 4 raster; zero-based pixels.",
+    "x_tick_pixels": [
+      133,
+      208,
+      283,
+      358,
+      433,
+      508
+    ],
+    "x_tick_values_db": [
+      -15,
+      -10,
+      -5,
+      0,
+      5,
+      10
+    ],
+    "y_tick_pixels": [
+      427,
+      365,
+      304,
+      242,
+      180,
+      118
+    ],
+    "y_tick_values": [
+      0.0,
+      0.02,
+      0.04,
+      0.06,
+      0.08,
+      0.1
+    ],
+    "x_calibration_db_per_pixel_and_intercept": [
+      0.06666666666666668,
+      -23.866666666666678
+    ],
+    "y_calibration_density_per_pixel_and_intercept": [
+      -0.0003237722512304945,
+      0.13828190050218148
+    ],
+    "density_absolute_readout_tolerance_per_db": 0.0005,
+    "x_edge_absolute_readout_tolerance_db": 0.1,
+    "tolerance_basis": "Conservative roughly 1.5 source pixels: horizontal 15 pixels/dB and vertical 3089 pixels per density unit. Frozen before any archive or app comparison.",
+    "nominal_bin_width_db": 2.1,
+    "nominal_bin_count": 10,
+    "bins": [
+      {
+        "bin_index": 1,
+        "left_pixel": 103,
+        "right_pixel": 134,
+        "top_pixel": 409,
+        "left_readout_db": -17.00000000000001,
+        "right_readout_db": -14.933333333333342,
+        "nominal_left_db": -17.0,
+        "nominal_right_db": -14.9,
+        "density_per_db": 0.005859049748909245,
+        "nominal_probability_mass": 0.012304004472709415,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 2,
+        "left_pixel": 134,
+        "right_pixel": 166,
+        "top_pixel": 356,
+        "left_readout_db": -14.933333333333342,
+        "right_readout_db": -12.80000000000001,
+        "nominal_left_db": -14.9,
+        "nominal_right_db": -12.8,
+        "density_per_db": 0.02301897906412545,
+        "nominal_probability_mass": 0.048339856034663446,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 3,
+        "left_pixel": 166,
+        "right_pixel": 197,
+        "top_pixel": 285,
+        "left_readout_db": -12.80000000000001,
+        "right_readout_db": -10.733333333333341,
+        "nominal_left_db": -12.8,
+        "nominal_right_db": -10.7,
+        "density_per_db": 0.046006808901490545,
+        "nominal_probability_mass": 0.09661429869313015,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 4,
+        "left_pixel": 197,
+        "right_pixel": 229,
+        "top_pixel": 188,
+        "left_readout_db": -10.733333333333341,
+        "right_readout_db": -8.600000000000009,
+        "nominal_left_db": -10.7,
+        "nominal_right_db": -8.6,
+        "density_per_db": 0.07741271727084852,
+        "nominal_probability_mass": 0.1625667062687819,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 5,
+        "left_pixel": 229,
+        "right_pixel": 260,
+        "top_pixel": 135,
+        "left_readout_db": -8.600000000000009,
+        "right_readout_db": -6.533333333333342,
+        "nominal_left_db": -8.6,
+        "nominal_right_db": -6.5,
+        "density_per_db": 0.09457264658606472,
+        "nominal_probability_mass": 0.1986025578307359,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 6,
+        "left_pixel": 260,
+        "right_pixel": 292,
+        "top_pixel": 152,
+        "left_readout_db": -6.533333333333342,
+        "right_readout_db": -4.400000000000006,
+        "nominal_left_db": -6.5,
+        "nominal_right_db": -4.4,
+        "density_per_db": 0.08906851831514631,
+        "nominal_probability_mass": 0.18704388846180725,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 7,
+        "left_pixel": 292,
+        "right_pixel": 324,
+        "top_pixel": 126,
+        "left_readout_db": -4.400000000000006,
+        "right_readout_db": -2.266666666666673,
+        "nominal_left_db": -4.4,
+        "nominal_right_db": -2.3,
+        "density_per_db": 0.09748659684713917,
+        "nominal_probability_mass": 0.20472185337899226,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 8,
+        "left_pixel": 324,
+        "right_pixel": 355,
+        "top_pixel": 330,
+        "left_readout_db": -2.266666666666673,
+        "right_readout_db": -0.2000000000000064,
+        "nominal_left_db": -2.3,
+        "nominal_right_db": -0.2,
+        "density_per_db": 0.0314370575961183,
+        "nominal_probability_mass": 0.06601782095184842,
+        "edge_note": "Visible step boundary or end of blue fill."
+      },
+      {
+        "bin_index": 9,
+        "left_pixel": 355,
+        "right_pixel": 386.5,
+        "top_pixel": 409,
+        "left_readout_db": -0.2000000000000064,
+        "right_readout_db": 1.899999999999995,
+        "nominal_left_db": -0.2,
+        "nominal_right_db": 1.9,
+        "density_per_db": 0.005859049748909245,
+        "nominal_probability_mass": 0.012304004472709415,
+        "edge_note": "Boundary at 1.9 dB inferred by equal-width subdivision of a flat two-bin plateau."
+      },
+      {
+        "bin_index": 10,
+        "left_pixel": 386.5,
+        "right_pixel": 418,
+        "top_pixel": 409,
+        "left_readout_db": 1.899999999999995,
+        "right_readout_db": 3.999999999999993,
+        "nominal_left_db": 1.9,
+        "nominal_right_db": 4.0,
+        "density_per_db": 0.005859049748909245,
+        "nominal_probability_mass": 0.012304004472709415,
+        "edge_note": "Boundary at 1.9 dB inferred by equal-width subdivision of a flat two-bin plateau."
+      }
+    ],
+    "nominal_area": 1.0008189950380877,
+    "normalization_status": "Density inferred from approximate unit area and density-scale orange Gaussian curve; y-axis lacks an explicit normalization label.",
+    "axis_limits_readout": {
+      "x_db": [
+        -18.533333333333346,
+        14.533333333333328
+      ],
+      "y_density": [
+        3.114922676034082e-05,
+        0.1195031099308128
+      ]
+    },
+    "axes_caveat": "Readout of border positions; exact plot limits are not stated in the paper."
+  },
+  "conditional_count_inference": {
+    "status": "Inferred only, not an exact published count and not suitable as a hard paper-proven sample-count assertion.",
+    "assumptions": [
+      "Ten equal-width bins over -17 through 4 dB",
+      "Density normalization",
+      "An integer sample count between 150 and 200 inclusive",
+      "Per-bin density tolerance 0.0005 per dB"
+    ],
+    "candidates": [
+      {
+        "sample_count": 166,
+        "bin_counts": [
+          2,
+          8,
+          16,
+          27,
+          33,
+          31,
+          34,
+          11,
+          2,
+          2
+        ],
+        "maximum_density_residual": 0.00014138119523811332
+      }
+    ],
+    "caveat": "The paper's 150-200 wording is approximate across both experiments. Multiples or other larger sample counts can fit the same normalized histogram. Equal-height final bins have no visible internal seam."
+  },
+  "aggregation_ambiguity": "The Figure 4 caption calls the plotted values Delta S_k, which equation 6 defines as a per-slot average over joint receivers. Section V also describes 150-200 valid signal reports from 15-35 receivers over roughly one hour. The paper does not publish raw data or the processing script, and does not resolve precisely which sample unit is histogrammed. Do not silently equate this to pooled receiver-slot differences or per-receiver means."
+}

@@ -21,7 +21,8 @@ from core.run_data_preparation import (
     ProviderBundlePreparationError,
     prepare_provider_bundle,
 )
-from core.result_diagnostics import NO_SOURCE_ROWS, SOURCE_ROWS_FILTERED_OUT
+from core.result_diagnostics import NO_SOURCE_ROWS, NO_TARGET_MODE_EVIDENCE, SOURCE_ROWS_FILTERED_OUT
+from i18n import T
 
 
 def _comparison_plan():
@@ -33,8 +34,8 @@ def _comparison_plan():
         "result_family": "benchmark",
         "is_compare": True,
         "is_sequential": False,
-        "analysis_start_utc": datetime(2026, 9, 1, tzinfo=timezone.utc),
-        "analysis_end_utc": datetime(2026, 9, 2, tzinfo=timezone.utc),
+        "analysis_start_utc": datetime(2017, 4, 1, tzinfo=timezone.utc),
+        "analysis_end_utc": datetime(2017, 4, 2, tzinfo=timezone.utc),
         "decode_filter_mode": DECODE_FILTER_STRICT,
         "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
         "query": "COMPARE STRICT",
@@ -53,6 +54,8 @@ def _success_plan():
         "is_compare": False,
         "is_sequential": False,
         "absolute_mode": "RX",
+        "analysis_start_utc": datetime(2017, 4, 1, tzinfo=timezone.utc),
+        "analysis_end_utc": datetime(2017, 4, 2, tzinfo=timezone.utc),
         "absolute_method_version": "opportunity-v2",
         "decode_filter_mode": DECODE_FILTER_STRICT,
         "legacy_decode_filter_mode": DECODE_FILTER_LEGACY,
@@ -106,6 +109,59 @@ def _comparison_frame(*, has_u=1):
 
 def _post_fetch(frame, *_args, **_kwargs):
     return frame, None
+
+
+@pytest.mark.parametrize("provider_key", ["wspr_live", "wd2", "wd1"])
+@pytest.mark.parametrize("kind", ["comparison", "opportunity"])
+@pytest.mark.parametrize("has_supporting_rows", [False, True])
+@pytest.mark.parametrize("end", ["2022-01-01", "2022-01-02"])
+def test_cutoff_blocks_legacy_fetch_and_preserves_mode_diagnostic(
+    tmp_path, provider_key, kind, has_supporting_rows, end,
+):
+    plan = _comparison_plan() if kind == "comparison" else _success_plan()
+    plan.update(
+        analysis_start_utc=datetime(2021, 12, 31, tzinfo=timezone.utc),
+        analysis_end_utc=datetime.fromisoformat(end).replace(tzinfo=timezone.utc),
+    )
+    # Deliberately retain old legacy SQL to exercise the execution-side guard.
+    frame = None
+    if has_supporting_rows:
+        frame = _comparison_frame(has_u=0) if kind == "comparison" else pd.DataFrame({
+            "time_slot": [1], "peer_sign": ["G4HZX"], "peer_grid": ["IO91"],
+            "target_seen": [0], "external_seen": [1], "target_snr": [float("nan")],
+        })
+    controller = _controller()
+    lease = controller.try_acquire_run({provider_key: 1}, allowed_sources=[provider_key])
+    requests = []
+
+    def fetch(query, *, database_provider, request_permit, **_kwargs):
+        requests.append(query)
+        request_permit.consume_request()
+        return _result(database_provider.key, frame)
+
+    def unexpected_processing(*_args, **_kwargs):
+        pytest.fail("Missing Target mode evidence must not enter scientific processing")
+
+    try:
+        bundle = prepare_provider_bundle(
+            [plan], provider_lease=lease, is_demo_run=False, analysis_context=object(),
+            center_latitude=50.0, center_longitude=-1.0, labels=T["en"],
+            artifact_paths={plan["id"]: tmp_path / "evidence.parquet"},
+            fetch_data=fetch, post_fetch_filter=unexpected_processing,
+            on_legacy_retry=lambda *_args: pytest.fail("Blocked legacy retry reached the audit"),
+        )
+    finally:
+        lease.release()
+
+    prepared = bundle.analyses[0]
+    assert bundle.database_source == DatabaseSource(provider_key)
+    assert requests == [plan["query"]]
+    assert prepared.analysis.decode_filter_mode == DECODE_FILTER_STRICT
+    assert prepared.artifact_path is None
+    assert prepared.diagnostic.reason == NO_TARGET_MODE_EVIDENCE
+    assert dict(prepared.diagnostic.measured_counts) == {"source_row_count": int(has_supporting_rows)}
+    assert prepared.warning_message == T["en"]["warn_no_target_mode_evidence"]
+    assert len(prepared.query_fetches) == 1
 
 
 @pytest.mark.parametrize(

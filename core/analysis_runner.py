@@ -5,6 +5,7 @@ and provides data-filtering utilities (Solar) before plotting.
 """
 
 from contextlib import nullcontext
+from datetime import datetime, timezone
 import math
 import pandas as pd
 from config import (
@@ -28,6 +29,7 @@ from core.analysis_plan import (
     DECODE_FILTER_LEGACY,
     DECODE_FILTER_STRICT,
 )
+from core.callsign_filters import build_peer_callsign_exclusion_sql
 from core.geographic_scope import (
     build_neighborhood_bounding_box,
     filter_peer_rows_by_distance,
@@ -55,6 +57,7 @@ from core.tx_ab_schedule import (
 
 
 DECODE_CODE_PREDICATE = "code = 1"
+LEGACY_DECODE_CUTOFF_UTC = datetime(2022, 1, 1, tzinfo=timezone.utc)
 
 
 class AnalysisConfigError(ValueError):
@@ -275,14 +278,41 @@ def without_decode_code_filter(query):
     return cleaned
 
 
+def allows_legacy_decode_fallback(analysis):
+    """Allow compatibility only for a complete UTC window before the cutoff.
+
+    A window ending exactly at the cutoff stays strict, even though SQL uses
+    an exclusive end. Naive internal boundaries retain their existing UTC
+    interpretation; absent or invalid boundaries never authorize a retry.
+    """
+    start_utc = analysis.get("analysis_start_utc")
+    end_utc = analysis.get("analysis_end_utc")
+    if not isinstance(start_utc, datetime) or not isinstance(end_utc, datetime):
+        return False
+    start_utc = (
+        start_utc.replace(tzinfo=timezone.utc)
+        if start_utc.tzinfo is None else start_utc.astimezone(timezone.utc)
+    )
+    end_utc = (
+        end_utc.replace(tzinfo=timezone.utc)
+        if end_utc.tzinfo is None else end_utc.astimezone(timezone.utc)
+    )
+    return start_utc < end_utc < LEGACY_DECODE_CUTOFF_UTC
+
+
 def with_decode_fallback(analysis):
-    """Attach bounded strict/legacy SQL and historical decode metadata."""
+    """Attach bounded strict SQL and an eligible historical compatibility query."""
     unbounded_strict_query = analysis["query"]
     unbounded_legacy_query = without_decode_code_filter(unbounded_strict_query)
     strict_query = apply_analysis_result_row_limit(unbounded_strict_query)
     analysis["query"] = strict_query
     analysis["decode_filter_mode"] = DECODE_FILTER_STRICT
-    if unbounded_legacy_query != unbounded_strict_query:
+    analysis.pop("legacy_query", None)
+    analysis.pop("legacy_decode_filter_mode", None)
+    if (
+        allows_legacy_decode_fallback(analysis)
+        and unbounded_legacy_query != unbounded_strict_query
+    ):
         analysis["legacy_query"] = apply_analysis_result_row_limit(
             unbounded_legacy_query
         )
@@ -312,9 +342,10 @@ def has_target_evidence(df, analysis):
 
 
 def should_retry_without_decode_filter(df, analysis):
-    """Retry only when strict code=1 produced no target-side evidence."""
+    """Retry an eligible historical window only when strict Target evidence is absent."""
     return (
         analysis.get("decode_filter_mode") == DECODE_FILTER_STRICT
+        and allows_legacy_decode_fallback(analysis)
         and bool(analysis.get("legacy_query"))
         and not has_target_evidence(df, analysis)
     )
@@ -424,12 +455,6 @@ def build_analysis_batches(
     benchmark_snr_expr = f"(snr - power + 30 + {benchmark_offset_db:.1f})"
     decode_filter_sql = _decode_filter_sql(require_decode_code=True)
     
-    # Special callsign exclusion filter.
-    # Hardcoded prefixes target special balloon telemetry callsigns without exposing raw SQL fragments through free text.
-    if analysis_context.exclude_special_callsigns:
-        for prefix in ["Q", "0", "1"]:
-            time_filter += f" AND tx_sign NOT LIKE '{prefix}%' AND rx_sign NOT LIKE '{prefix}%'"
-    
     is_sequential = False
     reference_qth_grid4 = None
     
@@ -503,13 +528,23 @@ def build_analysis_batches(
         
     # Target identity is the exact callsign plus configured four-character grid.
     # A six-character QTH deliberately selects every reported subsquare in that grid-4.
+    # Filter the remote endpoint identically in Target and Reference branches,
+    # including Local Neighborhood contributors and both scheduled TX paths.
+    tx_remote_peer_filter_sql = build_peer_callsign_exclusion_sql(
+        mode="TX",
+        exclude_special_callsigns=analysis_context.exclude_special_callsigns,
+    )
+    rx_remote_peer_filter_sql = build_peer_callsign_exclusion_sql(
+        mode="RX",
+        exclude_special_callsigns=analysis_context.exclude_special_callsigns,
+    )
     tx_target_sql = (
         f"tx_sign = '{callsign}' AND substring(tx_loc, 1, 4) = '{target_qth_grid4}' "
-        f"{band_filter} AND {time_filter}{decode_filter_sql}"
+        f"{band_filter} AND {time_filter}{decode_filter_sql}{tx_remote_peer_filter_sql}"
     )
     rx_target_sql = (
         f"rx_sign = '{callsign}' AND substring(rx_loc, 1, 4) = '{target_qth_grid4}' "
-        f"{band_filter} AND {time_filter}{decode_filter_sql}"
+        f"{band_filter} AND {time_filter}{decode_filter_sql}{rx_remote_peer_filter_sql}"
     )
 
     # Cycle synchronization is applied after fetching in apply_post_fetch_filters().
@@ -535,9 +570,9 @@ def build_analysis_batches(
         bbox_tx = "AND " + neighborhood_bounds.to_sql("tx_lat", "tx_lon")
         bbox_rx = "AND " + neighborhood_bounds.to_sql("rx_lat", "rx_lon")
         
-        tx_peer_sql = f"tx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
+        tx_peer_sql = f"tx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}{tx_remote_peer_filter_sql} {bbox_tx} AND tx_lat != 0 AND tx_lon != 0 AND geoDistance({lon_0}, {lat_0}, tx_lon, tx_lat) <= {max_rad}"
         
-        rx_peer_sql = f"rx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
+        rx_peer_sql = f"rx_sign != '{callsign}' {band_filter} AND {time_filter}{decode_filter_sql}{rx_remote_peer_filter_sql} {bbox_rx} AND rx_lat != 0 AND rx_lon != 0 AND geoDistance({lon_0}, {lat_0}, rx_lon, rx_lat) <= {max_rad}"
         
         comp_title = label("comp_title_local_median").format(
             radius=ref_radius_km
@@ -556,11 +591,11 @@ def build_analysis_batches(
         )
         tx_peer_sql = (
             f"tx_sign = '{ref_callsign}'{tx_reference_grid_sql} "
-            f"{band_filter} AND {time_filter}{decode_filter_sql}"
+            f"{band_filter} AND {time_filter}{decode_filter_sql}{tx_remote_peer_filter_sql}"
         )
         rx_peer_sql = (
             f"rx_sign = '{ref_callsign}'{rx_reference_grid_sql} "
-            f"{band_filter} AND {time_filter}{decode_filter_sql}"
+            f"{band_filter} AND {time_filter}{decode_filter_sql}{rx_remote_peer_filter_sql}"
         )
             
         display_callsign = callsign
@@ -623,6 +658,8 @@ def build_analysis_batches(
                 "is_sequential": False,
                 "analysis_kind": "opportunity",
                 "absolute_mode": "TX",
+                "analysis_start_utc": start_t,
+                "analysis_end_utc": end_t,
                 "absolute_method_version": ABSOLUTE_METHOD_VERSION,
                 "response_format": "parquet",
                 "query": build_absolute_opportunity_query(
@@ -680,6 +717,8 @@ def build_analysis_batches(
                 "is_sequential": False,
                 "analysis_kind": "opportunity",
                 "absolute_mode": "RX",
+                "analysis_start_utc": start_t,
+                "analysis_end_utc": end_t,
                 "absolute_method_version": ABSOLUTE_METHOD_VERSION,
                 "response_format": "parquet",
                 "query": build_absolute_opportunity_query(

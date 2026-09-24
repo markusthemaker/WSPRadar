@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "frozen_at_utc": "2026-09-24T15:03:01.335861+00:00",
+  "unit": "pooled same-receiver same-cycle Target-minus-Reference differences; publication caption ambiguity explicitly retained",
+  "histogram_source": "right-hand Joint-Spot histogram recipe, retaining all counts",
+  "nominal_edges_db": [
+    -17,
+    -14.9,
+    -12.8,
+    -10.7,
+    -8.6,
+    -6.5,
+    -4.4,
+    -2.3,
+    -0.2,
+    4
+  ],
+  "visible_region_count": 9,
+  "last_region": "Combine the final two equal-height source bins because their internal boundary is not visible",
+  "normalization": "count / (total native sample count * region width in dB)",
+  "height_allowance": "Source-only +/-0.0005 per dB; no fitted or sampling allowance",
+  "rounding": "Use source nearest-decimal intervals for displayed mean and sample standard deviation; not confidence intervals",
+  "inferred_count": "Diagnostic only; exact166 asserted only as independently derived archive baseline",
+  "geography": "Descriptive audit only; no geographic paper oracle",
+  "source_selection": "Installed demo fixed without searching or adjusting its window/callsigns/range to fit extracted bars"
+}

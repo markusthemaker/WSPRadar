@@ -1,0 +1,13 @@
+day_offset,endpoint_assignment,paper_series,tested_archive_endpoint,source_marker_count,marker_neighborhoods_outside_capture,markers_with_time_candidate,candidate_rows,distinct_candidate_reports,markers_with_snr_agreement_at_30_dbm,markers_with_snr_agreement_at_33_dbm,markers_with_snr_agreement_at_37_dbm,status
+-1,published,KP4MD,KP4MD,31,0,3,4,4,0,0,0,unsupported_diagnostic_not_an_accepted_mapping
+-1,published,WB6RQN,WB6RQN,13,0,1,1,1,0,0,0,unsupported_diagnostic_not_an_accepted_mapping
+-1,swapped,KP4MD,WB6RQN,31,0,4,4,4,0,0,0,unsupported_diagnostic_not_an_accepted_mapping
+-1,swapped,WB6RQN,KP4MD,13,0,1,1,1,0,0,0,unsupported_diagnostic_not_an_accepted_mapping
+0,published,KP4MD,KP4MD,31,0,16,16,16,0,0,0,published_mapping
+0,published,WB6RQN,WB6RQN,13,0,2,2,2,0,0,0,published_mapping
+0,swapped,KP4MD,WB6RQN,31,0,5,5,5,0,0,1,unsupported_diagnostic_not_an_accepted_mapping
+0,swapped,WB6RQN,KP4MD,13,0,9,9,9,1,0,0,unsupported_diagnostic_not_an_accepted_mapping
+1,published,KP4MD,KP4MD,31,15,3,3,3,0,0,0,unsupported_diagnostic_not_an_accepted_mapping
+1,published,WB6RQN,WB6RQN,13,7,0,0,0,0,0,0,unsupported_diagnostic_not_an_accepted_mapping
+1,swapped,KP4MD,WB6RQN,31,15,1,1,1,0,0,0,unsupported_diagnostic_not_an_accepted_mapping
+1,swapped,WB6RQN,KP4MD,13,7,2,2,2,0,0,0,unsupported_diagnostic_not_an_accepted_mapping

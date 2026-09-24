@@ -1,0 +1,55 @@
+{
+  "derivation": "Independent standard-library calculation from raw report CSV and fixed configuration; no WSPRadar imports or application output inputs",
+  "source_rows": 12545,
+  "selected_source_rows": 12545,
+  "source_code_counts": {
+    "1": 12545
+  },
+  "window_start_utc": "2021-05-01T17:15:00+00:00",
+  "window_end_utc": "2021-05-15T07:00:00+00:00",
+  "elapsed_time_midpoint_utc": "2021-05-08T12:07:30+00:00",
+  "reference_correction_db": 1.6,
+  "center_latitude": 50.8125,
+  "center_longitude": 5.208333333333334,
+  "sql_group_count": 7166,
+  "retained_group_count": 7139,
+  "target_active_cycles": 4123,
+  "retained_outcomes": {
+    "target_only": 1675,
+    "joint": 5379,
+    "reference_only": 85
+  },
+  "selected_peer_sign": "M7AEO",
+  "selected_peer_grid": "IO82",
+  "selected_unpaired_outcomes": {
+    "target_only": 109,
+    "reference_only": 5
+  },
+  "joint_spots": 1441,
+  "first_paired_utc": "2021-05-01T18:24:00+00:00",
+  "last_paired_utc": "2021-05-15T05:52:00+00:00",
+  "selected_duplicate_endpoint_groups": 0,
+  "selected_report_power_dbm": [
+    23
+  ],
+  "reception_slice_count": 20,
+  "reception_slice_rule": "zero_based_reception_index * 20 // N",
+  "temporal_bin_count": 28,
+  "temporal_bin_seconds": 43200,
+  "temporal_bin_anchor": "Configured window start; final bin ends at the configured window end; reports remain inside the half-open configured window",
+  "density_bin_rule": "Nearest integer round(delta_snr_db), half-even at exact ties; no ties occur with correction1.6 dB",
+  "density_min_bin_db": -7,
+  "density_max_bin_db": 9,
+  "empty_temporal_bins": [
+    1,
+    17,
+    25
+  ],
+  "mean_delta_snr_db": 0.876058292852186,
+  "median_delta_snr_db": 0.4,
+  "q1_delta_snr_db": -0.6,
+  "q3_delta_snr_db": 2.4,
+  "sample_std_delta_snr_db": 2.3035938123191637,
+  "min_delta_snr_db": -6.6,
+  "max_delta_snr_db": 9.4
+}

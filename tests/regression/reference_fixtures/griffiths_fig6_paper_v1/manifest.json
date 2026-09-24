@@ -1,0 +1,39 @@
+{
+  "fixture_id": "griffiths_squibb_fig6_paper_density_features",
+  "schema_version": 1,
+  "created_on": "2026-09-24",
+  "status": "integrated_external_reference",
+  "test_module": "tests/regression/test_griffiths_temporal_reference.py",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 11962,
+      "sha256": "99aca9d5576925ca556246c5340c6f2681cf01dc0d0aeb27e0665f29222b5a58"
+    },
+    {
+      "path": "comparison_policy.json",
+      "bytes": 2810,
+      "sha256": "086750c4bed3955953fa390a88027504a36591471fa8cc215e4ed3da74a58634"
+    },
+    {
+      "path": "independent_image_review.json",
+      "bytes": 1198,
+      "sha256": "8ba0b94cd4b33a07f7bd2cc858aa1379993ff664d7fc46f7fcbfcd8a73af2410"
+    },
+    {
+      "path": "paper_features.json",
+      "bytes": 8824,
+      "sha256": "caa7ce548fa5639d6e00deeac18fac02df1e1f77855640f7eb809d6f80beabaf"
+    },
+    {
+      "path": "paper_figure6.png",
+      "bytes": 777484,
+      "sha256": "bae3aebcaa32e7d4b926234216beded5db10923acca7303a8bcb562014aa4c2c"
+    },
+    {
+      "path": "paper_points.json",
+      "bytes": 3114,
+      "sha256": "bd806ddbc012eb0f1a8149cf37858c1822b0b6ff7cb28376578e9a3d166f3078"
+    }
+  ]
+}

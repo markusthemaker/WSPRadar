@@ -1,0 +1,1 @@
+SELECT id,time,band,code,rx_sign,rx_loc,rx_lat,rx_lon,tx_sign,tx_loc,tx_lat,tx_lon,snr,power FROM wspr.rx PREWHERE band = 14 AND time >= '2022-05-21 09:30:00' AND time < '2022-05-21 10:30:00' WHERE tx_sign IN ('SK0WE/P','SK0WE/1') ORDER BY time,id LIMIT 1000001 FORMAT Parquet

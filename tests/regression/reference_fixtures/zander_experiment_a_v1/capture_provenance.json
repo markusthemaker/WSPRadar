@@ -1,0 +1,89 @@
+{
+  "label": "CURRENT IMPLEMENTATION OBSERVATIONS - NOT INDEPENDENT EXPECTED RESULTS",
+  "profile_id": "zander_tx_buddy",
+  "config_source": "config\\demos\\03_zander_tx_buddy_experiment_a.config",
+  "captured_at_utc": "2026-09-23T20:48:31.321939+00:00",
+  "database_provider": "https://db1.wspr.live/",
+  "git_head": "f922ea8a9dbababfcc2af7d4b4c7213ed73053a1",
+  "git_status_porcelain": " M AGENT_README.md\n M CHANGELOG_DAILY.md\n M README.md\n M config/app_config.py\n M config/wspradar-config.schema.json\n M core/analysis_runner.py\n M core/opportunity_engine.py\n M core/result_diagnostics.py\n M core/run_data_preparation.py\n M docs/architecture.md\n M docs/doc_de.py\n M docs/doc_en.py\n M i18n.py\n M tests/regression/test_analysis_runner_contracts.py\n M tests/regression/test_decode_filter_fallback.py\n M tests/regression/test_documentation_rendering.py\n M tests/regression/test_opportunity_engine.py\n M tests/regression/test_result_diagnostics.py\n M tests/regression/test_run_controller_data_source.py\n M tests/regression/test_run_data_preparation.py\n M ui/run_controller.py\n?? core/callsign_filters.py\n",
+  "source_sha256": {
+    "core/analysis_runner.py": "622ea8fbe914d2d68433671c81da255c9f6a98699052f8191c1441d2580c3a3d",
+    "core/opportunity_engine.py": "c535795c9609ed36e48d92846552ad9b0fa0cda3ab47da2e3dfdb5718ef82871",
+    "core/compare_engine.py": "1850af152298489ac31f878c1573b5973f4136439048b442145b5d7d92db3852",
+    "core/map_data.py": "b1d4fb29072ce2cfaacb6ba458a36d0ec1a8eff6b7f21cbd41ca32620da7c4d8",
+    "core/run_data_preparation.py": "4300dd0142b6dfcebb95b51c10b151b2b64e38a1fe2c816a633713f73c628a06",
+    "core/callsign_filters.py": "4b1a816cb6c1e74526f9847bc4585c0740de057da7ff15b7d81a660a07df9afd",
+    "ui/config_io.py": "ad64692181b190768fd5464c4d7b24cc46d82eb5812d57444d10504d10bb7ecc",
+    "ui/analysis_context_adapter.py": "57f71dc7208ce5003e851b1ef1b780251b0a8e6ba0bd300f365a4325cba4ff5b",
+    "config/app_config.py": "22df9b74883b480f4cf791cbd07ecfc602b63169194e06db578b08866c6e9f3e"
+  },
+  "transport": "bounded direct HTTP request of SQL returned by production build_analysis_batches; no query-cache reads",
+  "scope": "Numerical execution only; UI, figures, and prepared ZIP export were not exercised",
+  "queries": [
+    {
+      "variant": "strict",
+      "decode_filter_mode": "strict_code_1",
+      "rows": 564,
+      "response_bytes": 43100,
+      "elapsed_seconds": 0.156
+    }
+  ],
+  "selected_decode_filter_mode": "strict_code_1",
+  "processed_rows": 457,
+  "processing_warning": null,
+  "station_rows": 85,
+  "segment_rows": 5,
+  "map_diagnostic": null,
+  "source_freeze": {
+    "rows": 731,
+    "response_bytes": 14206,
+    "elapsed_seconds": 0.062,
+    "complete_for_endpoint_population": true,
+    "all_decode_codes_included": true,
+    "scope": "Full selected-band/window population for the two endpoint callsigns, across all endpoint locations; no mode, geographic, peer, cycle or duplicate filtering",
+    "code_counts": {
+      "1": 730,
+      "4": 1
+    }
+  },
+  "status": "numerical_capture_complete",
+  "completed_at_utc": "2026-09-23T20:48:37.409046+00:00",
+  "files": {
+    "analysis_context.json": {
+      "bytes": 737,
+      "sha256": "8bc9cb2fe5bd13f999237275a591ae7279e44080cf9034a15e2c1b111585cc20"
+    },
+    "demo.config": {
+      "bytes": 2693,
+      "sha256": "161c751d3c93306b625150c2d18446a70af5a652b2d918d017dace43f8423be7"
+    },
+    "observed_segment_rows.csv": {
+      "bytes": 385,
+      "sha256": "bce87fb928e2d57dd17784448be79fae3b6377e594be33b26f47693d0926adb4"
+    },
+    "observed_station_rows.csv": {
+      "bytes": 12529,
+      "sha256": "c4fa134d748e4fd190d96bdef70462944a88ea3f5975a5863e901176aa3b3c23"
+    },
+    "processed_rows.parquet": {
+      "bytes": 12038,
+      "sha256": "b56934283c053035f6a0d60483c364f030032fd96717c40ba8c1cf78c39c3320"
+    },
+    "query_strict.sql": {
+      "bytes": 1339,
+      "sha256": "e5c60e81460004ef87c4f7f3f970527118d00675d3b4dd9089e806ec68c8fd21"
+    },
+    "source_rows.parquet": {
+      "bytes": 14206,
+      "sha256": "0c579e9cd744e5ec565fcabb45d9770284abe27ad3f0b2a93d9dc746eeb9be6e"
+    },
+    "source_rows_query.sql": {
+      "bytes": 276,
+      "sha256": "f8c6b1ded4611408f46f9d5d95f92141f9a913e6daeacd5da3374eda84c80c6b"
+    },
+    "sql_output_strict.csv": {
+      "bytes": 43100,
+      "sha256": "050bbebfb77ca51735f6e62cadf4349912004d9010feb760d712d9f075fda527"
+    }
+  }
+}

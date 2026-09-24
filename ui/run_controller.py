@@ -85,6 +85,7 @@ from core.run_data_preparation import (
 from core.result_diagnostics import (
     BENCHMARK_NO_QUALIFYING_RESULT,
     NO_SOURCE_ROWS,
+    NO_TARGET_MODE_EVIDENCE,
     PERFORMANCE_NO_ELIGIBLE_STATION,
     PERFORMANCE_NO_QUALIFYING_SEGMENT,
     SOURCE_ROWS_FILTERED_OUT,
@@ -140,6 +141,7 @@ COMPLETED_RUN_RERENDER_UNAVAILABLE = "completed_rerender_unavailable"
 
 _RESULT_DIAGNOSTIC_WARNING_KEYS = {
     NO_SOURCE_ROWS: "warn_no_source_rows",
+    NO_TARGET_MODE_EVIDENCE: "warn_no_target_mode_evidence",
     SOURCE_ROWS_FILTERED_OUT: "warn_source_rows_filtered_out",
     PERFORMANCE_NO_ELIGIBLE_STATION: (
         "warn_performance_no_eligible_station"

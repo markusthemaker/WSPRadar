@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "kind": "External density-feature compatibility test; not reproduction of unspecified author contour estimator",
+  "choices_frozen_before_first_comparison": true,
+  "retrospective": true,
+  "input": "Actual production folded UTC-hour pooled count grid and its axis coordinates. Never use medians or archived expected-density CSVs.",
+  "smoothing": {
+    "method": "Separable discrete Gaussian with normalized kernels; truncate at ceil(3*sigma/bin_width) bins; periodic UTC time, zero-padded SNR without edge renormalization",
+    "sigma_time_hours": [
+      0.75,
+      1.0,
+      1.25
+    ],
+    "sigma_snr_db": [
+      0.75,
+      1.0,
+      1.25
+    ],
+    "nominal_sigma_time_hours": 1.0,
+    "nominal_sigma_snr_db": 1.0
+  },
+  "branch_match": {
+    "method": "Enumerate all strict vertical local maxima (including tied plateaus no wider than one SNR-bin spacing) over the full SNR axis of every hour; only then compare their positions with independently digitized feature boxes. Require at least one mode in each feature box at every bandwidth combination.",
+    "time_bin_half_width_allowance": true,
+    "snr_bin_half_width_allowance": true,
+    "digitization_bound_px": 4,
+    "unknown_author_smoother_extra_tolerance": 0,
+    "digitization_basis": "Use +/-4 pixels, the larger of the primary +/-3-pixel and fresh independent-review +/-4-pixel bounds for resolved contours. The tentative sub-bin late-night loop is excluded by the annotation resolution rule."
+  },
+  "strongest_density_match": {
+    "feature_id": "evening_strong_positive_island",
+    "method": "Every global maximum of the full smoothed density grid must lie within the external evening contour box plus only declared raster and half-bin allowances, at every bandwidth combination."
+  },
+  "density_ordering": {
+    "morning_utc_hours": [
+      6,
+      9
+    ],
+    "midday_utc_hours": [
+      12,
+      15
+    ],
+    "evening_utc_hours": [
+      18,
+      21
+    ],
+    "expected": "Both three-hour morning and evening sums exceed the three-hour midday sum. This is a qualitative ordering, not an externally specified absolute count.",
+    "source": "Printed page26 describes morning/evening spot-density peaks and fewer midday spots; windows align with published three-hour ticks."
+  },
+  "interpretation": "Passing establishes positional agreement of selected density branches and the strongest island plus the stated qualitative time-of-day density ordering. It does not establish equality of complete distributions, contour levels, probabilities, medians, quantiles or sample counts.",
+  "failure_policy": "Do not change paper boxes, smoothing or tolerances to pass. Retain and report the first comparison. Investigate mismatches or bandwidth sensitivity separately; no automatic baseline refresh."
+}

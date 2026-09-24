@@ -1,1 +1,5 @@
 *.sh text eol=lf
+# Frozen fixture manifests hash exact bytes; preserve source line endings.
+tests/regression/reference_fixtures/** -text
+tests/regression/reference_fixtures/**/*.parquet binary
+tests/regression/reference_fixtures/**/*.png binary

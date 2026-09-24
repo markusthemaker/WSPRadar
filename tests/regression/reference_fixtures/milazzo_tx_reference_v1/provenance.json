@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "created_on": "2026-09-24",
+  "fixture_id": "milazzo_tx_reference_v1",
+  "source_capture_directory": "tmp/publication_validation_20260923/demo_exports/milazzo_tx_buddy",
+  "source_provider": "https://db1.wspr.live/",
+  "captured_at_utc": "2026-09-23T20:48:37.573497+00:00",
+  "source_scope": "Full selected-band/window population for the two endpoint callsigns, across all endpoint locations; no mode, geographic, peer, cycle or duplicate filtering",
+  "source_rows": 1992,
+  "raw_parquet_byte_copy": true,
+  "csv_transform": "Promote all float32 coordinate columns to float64 before round-trip CSV serialization; UTC ISO timestamps; preserve report values/order; UTF-8 LF. Python float or pandas float_precision=round_trip preserves exact captured coordinates.",
+  "input_sha256": {
+    "source_rows.parquet": "a4a3970597bfa697ef85d0297dd0eadbbacafb49e432450c466eb79fbbc55d61",
+    "source_rows.csv": "d9ca950e1fc8798ddbd7af2a7cebaf46675eaadafa070517ccd380bc206e7207",
+    "demo.config": "6e6441efad40318ea16de458a5026c3ae9f6b5193694afd0b831e27dc1338249"
+  },
+  "calculator": {
+    "path": "scripts/build_milazzo_reference_fixture.py",
+    "sha256_at_derivation": "88ef228d39ddce741a38ef6bf1e4b2b47feee991e7dfaf753752bdb25b6d3135",
+    "dependencies": "Python standard library only; -S supported",
+    "reads_application_outputs": false,
+    "imports_application_runtime": false
+  },
+  "publication_scope": "Separate source-only marker facts and fixed-rule archive mapping; independent archive expectations do not claim reproduction of publication values",
+  "verification_scope": "Builder executed normally and with -S; all 10 expected files replay byte-identically. All raw coordinate values round-trip exactly with stdlib float. Ledger covers every source ID once; retained units/null metrics, active witness counts and 3h coverage totals checked. Regression execution is recorded separately by the integrating task. Safeguarded builder replay under -B -O -S is also byte-identical; ten invalid input/destination cases raise ValueError before output mutation.",
+  "publication_resolution": "All 44 Figure 6 markers reconcile with reciprocal RX reports; see ../milazzo_fig6_rx_v1. TX selection/arithmetic expectations unchanged."
+}

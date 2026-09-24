@@ -1,0 +1,11 @@
+{
+  "recorded_before_first_application_comparison_utc": "2026-09-24T13:49:45.648597+00:00",
+  "sha256": {
+    "comparison_policy.json": "b36d245afc73cd6887d91a30d5ee5593ad1d278286d5426a59b421be51d03fcf",
+    "independent_image_review.json": "2e3ecc9db762b1b56778b7d88b4a8dba2ad6bfe5720e0bf1c17a5f85f6ece601",
+    "paper_daily_means.json": "3db28d2d9e1ac734d756cfdd62169cd89bead69427f803341d59fa615a46475b",
+    "paper_features.json": "59e2aa2d79a9629d9e462d390e59c927c2e3441a170ee1ab71f46730234f9cab",
+    "paper_figure3.png": "0d5b114974fd301c256453d08bbe61531c094a7e8cfcfd83cd15c2a55b97543f",
+    "paper_figure4.png": "feaeb640cc4181893a7a76293331b1cf657a3b222768188a0816b4fd10a829fb"
+  }
+}

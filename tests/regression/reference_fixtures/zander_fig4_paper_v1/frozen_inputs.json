@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "frozen_at_utc": "2026-09-24T15:03:01.425443+00:00",
+  "stage": "Before first comparison against generated-SQL production replay",
+  "files": [
+    {
+      "path": "paper_features.json",
+      "bytes": 11792,
+      "sha256": "480ca1bb4323a757666110929187cb2b4394d2ca504b2a68e47ae0484189847e"
+    },
+    {
+      "path": "paper_figure4.png",
+      "bytes": 22554,
+      "sha256": "23893dd3cf6de7b8f418150a7815eb0d2f0d0e49b07dd8f2b2488f4542c3f730"
+    },
+    {
+      "path": "extraction_provenance.md",
+      "bytes": 4533,
+      "sha256": "bf995c57eb6777e1e40cdc0eac5d31fe2fcd17e26bd15ccc928a4bce09ffc363"
+    },
+    {
+      "path": "source_digitization.py",
+      "bytes": 10150,
+      "sha256": "96837ee4c1881e63b991ff8c68791016379356a908f15017a89c16ab6c119af8"
+    },
+    {
+      "path": "comparison_policy.json",
+      "bytes": 1189,
+      "sha256": "bcce4c0c50a83ebdef0cf7a210268c14b2ee19c54a645091e5164e6093351caf"
+    }
+  ]
+}

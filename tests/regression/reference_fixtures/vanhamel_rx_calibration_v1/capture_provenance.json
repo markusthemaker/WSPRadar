@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "frozen_at_utc": "2026-09-24T17:05:57.894395+00:00",
+  "provider_url": "https://db1.wspr.live/",
+  "source": "Two direct provider Parquet captures; no WSPRadar analysis result inputs.",
+  "original_capture_time_note": "Exact network request timestamps were not recorded in a dedicated capture manifest. Filesystem timestamps below identify observed local source-file modification times, not independently authenticated server acquisition times.",
+  "original_inputs": [
+    {
+      "filename": "february_6_8_archive_source.parquet",
+      "sha256": "9ae69efd6b98db19ee40b17e6e1d0ffccbc9e1a6790b71f3e3c4adcfb4fcae0c",
+      "bytes": 27924,
+      "observed_file_mtime_utc": "2026-09-24T17:00:22.881043+00:00",
+      "rows": 1750
+    },
+    {
+      "filename": "february_archive_source.parquet",
+      "sha256": "69cbc7bc49a965eca73a9801513de82bd7e9bedd54d3108edf4748c44779c45e",
+      "bytes": 76713,
+      "observed_file_mtime_utc": "2026-09-24T16:59:01.328452+00:00",
+      "rows": 5986
+    }
+  ],
+  "query_files": [
+    {
+      "filename": "source_query_february_6_8.sql",
+      "sha256": "942caadc1b6a08a71aa92ee1016de824cc0bd7bc42ffcbd9f012917167f94168"
+    },
+    {
+      "filename": "source_query_february_9_16.sql",
+      "sha256": "5e8e5a93dd3d5c99aeda5d410e0ff263c3d3d02b1b4165ae8412f350450cf5e8"
+    }
+  ],
+  "frozen_population": {
+    "start_inclusive_utc": "2021-02-06T05:58:00+00:00",
+    "end_exclusive_utc": "2021-02-13T06:02:00+00:00",
+    "selection": "Same receiver callsigns and band as original capture, all codes and receiver/transmitter locators, one complete 120-second cycle before and after the demo window. No SNR, peer, distance, activity or minimum-support selection applied.",
+    "row_count": 3233,
+    "report_ids_unique": true,
+    "chronological_order": [
+      "time",
+      "id"
+    ],
+    "guard_rows_before_demo": 0,
+    "guard_rows_at_or_after_demo_end": 2,
+    "demo_start_boundary_rows": 2,
+    "demo_end_boundary_rows": 2,
+    "code_counts": {
+      "1": 3233
+    }
+  },
+  "csv_conversion": "Integer values and original strings preserved; Float32 coordinates expanded to their exact Float64 representations before CSV serialization. Use float_precision=round_trip when reading CSV with pandas for exact raw-coordinate checks.",
+  "author_correspondence_provenance": {
+    "scope": "Paraphrased date provenance only; no private email files or full messages redistributed. Neither interval below is asserted to be the original seven-day publication dataset.",
+    "unresolved": "The provenance does not independently identify the hardware state during every earlier day of the chosen seven-day archive reconstruction.",
+    "initial_approximate_window_as_written": [
+      "2021-02-09 21:58",
+      "2021-02-13 05:34"
+    ],
+    "later_more_specific_complete_filter_chain_window_as_written": [
+      "2021-02-09 21:54",
+      "2021-02-12 06:46"
+    ],
+    "time_zone_note": "Correspondence does not explicitly label timezone; current reconstruction interprets WSPR timestamps as UTC."
+  },
+  "transport": {
+    "method": "GET",
+    "endpoint": "https://db1.wspr.live/",
+    "query_transport": "query parameter",
+    "http_status": 200,
+    "evidence": "Confirmed by capturing parent task for both source requests."
+  },
+  "independent_builder": {
+    "path": "scripts/build_vanhamel_reference_fixture.py",
+    "sha256": "16f19107a68d5e19805818c2b1eb8166bb1e8325d2feec3ba65db48f4f79cb31",
+    "verification": "All ten expected files regenerate byte-identically; independent table totals and component identities checked. Standard-library imports only."
+  }
+}

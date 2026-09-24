@@ -1,0 +1,131 @@
+{
+  "fixture_id": "griffiths_squibb_fig6_diurnal_2017_04_05_07",
+  "schema_version": 1,
+  "created_on": "2026-09-24",
+  "status": "integrated_regression_fixture",
+  "expected_joint_spots": 6459,
+  "expected_joint_spots_22000km": 6474,
+  "paper_corroboration": "Figure6 diurnal density reversal;6390is the sum of Figure7 distance-bin counts,not an exact printed Figure6 count. Numeric expected values independently derived from frozen raw source reports.",
+  "files": [
+    {
+      "path": "analysis_context.json",
+      "bytes": 717,
+      "sha256": "30f4a7ca24ce17a822a76832a0a2d2ab6dcd1124623b525bc57e5db761ee6f68"
+    },
+    {
+      "path": "capture_provenance.json",
+      "bytes": 4864,
+      "sha256": "980358c98a3c011726e85291d640b4a7ae8583ebe885d142414fe73031b76d24"
+    },
+    {
+      "path": "demo.config",
+      "bytes": 2181,
+      "sha256": "337b8bcfe47328b42ceffe6dac5124048c3db8bed57ef8816e728d06fcec5dac"
+    },
+    {
+      "path": "expected_1h.csv",
+      "bytes": 6417,
+      "sha256": "f62f2ba0ee6ccc78bc1ad377715717f1258f4092e15c93665999080658025e9a"
+    },
+    {
+      "path": "expected_24h.csv",
+      "bytes": 387,
+      "sha256": "777fe0dc997999a27afc4d84870683691aa49a2b15cae4cdc6a3420fbd448935"
+    },
+    {
+      "path": "expected_3h.csv",
+      "bytes": 2266,
+      "sha256": "a1e17dbce5903ed3e5fe930f29d0efc062f2bc741fc2bafc7309d653b662026a"
+    },
+    {
+      "path": "expected_6h.csv",
+      "bytes": 1152,
+      "sha256": "f1222d56897263b8ba123b8c333b79fa6c3412a0b45e7f33bf4689fff3367f9b"
+    },
+    {
+      "path": "expected_density_1h.csv",
+      "bytes": 32852,
+      "sha256": "5b3404a6622bbf7756cfa883d82f0240358d5a9517ce1e993f84efb0ae74d4b9"
+    },
+    {
+      "path": "expected_density_24h.csv",
+      "bytes": 1365,
+      "sha256": "6354cbe3bd5a555f170f7c95402d34bc18139980896c19cbecaa9662a24113e9"
+    },
+    {
+      "path": "expected_density_3h.csv",
+      "bytes": 10804,
+      "sha256": "ca7b3f907619e5609999453a9129df75da04bbd7692facf541aed416342cadb6"
+    },
+    {
+      "path": "expected_density_6h.csv",
+      "bytes": 5212,
+      "sha256": "362671df3e832253e678f02e3aab6e4b9abea52b8f8bdfafc7a7c10508292b32"
+    },
+    {
+      "path": "expected_density_utc_hour.csv",
+      "bytes": 10802,
+      "sha256": "ba3bbb184d669ced2ea1b3bae16e9a765a0316a5c6b1f090aab6372ff7a94b0b"
+    },
+    {
+      "path": "expected_density_utc_hour_22000km.csv",
+      "bytes": 10802,
+      "sha256": "3f5ec135a06615d3b2bf7a43e7ed440eeb37628034a3711e0a59ecc922274c84"
+    },
+    {
+      "path": "expected_paired_rows.parquet",
+      "bytes": 74108,
+      "sha256": "df10db992a7dae591de2fe7247f2daff94cb5269a630bd3535166fe800feff12"
+    },
+    {
+      "path": "expected_paired_rows_22000km.parquet",
+      "bytes": 74336,
+      "sha256": "0445e1c8db8f5b840124a109222dd7f53322d967e0190bcd118307bf565da1ec"
+    },
+    {
+      "path": "expected_summary.json",
+      "bytes": 8703,
+      "sha256": "5259f3755304a222dfcbeb00c4ff357fd40f5aeea829c22262738ba08e6ccc21"
+    },
+    {
+      "path": "expected_utc_hour.csv",
+      "bytes": 1047,
+      "sha256": "86e161edb9abc8355d265bf0c50ba41a124e314c126125df72d54aa496a09d94"
+    },
+    {
+      "path": "expected_utc_hour_22000km.csv",
+      "bytes": 1048,
+      "sha256": "e2be0e81acca5c16d3e99cdefd03d3fa88c2b18f4da9683227fdcf309fd0ec7f"
+    },
+    {
+      "path": "input_sql_rows.parquet",
+      "bytes": 120285,
+      "sha256": "226f08fef8f4e4cb4c2b134cade7afb956c27f31a5b176835805e83052b90429"
+    },
+    {
+      "path": "query_legacy.sql",
+      "bytes": 1308,
+      "sha256": "2c80bc0197e07e7364c69bd8a56242d1182a2b70ac91a5a1936e80be4456e731"
+    },
+    {
+      "path": "README.md",
+      "bytes": 14764,
+      "sha256": "5475cd83f4ae8554042fde9c583aa8aeb7c0ee535027e1b80e08b455517fc02e"
+    },
+    {
+      "path": "source_rows.parquet",
+      "bytes": 220231,
+      "sha256": "cce5cc7bc0ab1cc5c8d352f11f4087ae487592874bbcc983b1b26ab5aefe0b64"
+    },
+    {
+      "path": "source_rows_query.sql",
+      "bytes": 272,
+      "sha256": "56688ba6b1c05ee9b6867af68c80fa34cb31b2de3825b53c5c05921961cbd527"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 1817,
+      "sha256": "14439151f1ab77d73ca7512840a6950194de222a52e4a6487a8413b5b4f22b18"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "label": "CURRENT IMPLEMENTATION OBSERVATIONS - NOT INDEPENDENT EXPECTED RESULTS",
+  "profile_id": "griffiths_squibb_fig3",
+  "config_source": "config\\demos\\000_griffiths_squibb_fig3.config",
+  "captured_at_utc": "2026-09-23T20:47:58.870499+00:00",
+  "database_provider": "https://db1.wspr.live/",
+  "git_head": "f922ea8a9dbababfcc2af7d4b4c7213ed73053a1",
+  "git_status_porcelain": " M AGENT_README.md\n M CHANGELOG_DAILY.md\n M README.md\n M config/app_config.py\n M config/wspradar-config.schema.json\n M core/analysis_runner.py\n M core/opportunity_engine.py\n M core/result_diagnostics.py\n M core/run_data_preparation.py\n M docs/architecture.md\n M docs/doc_de.py\n M docs/doc_en.py\n M i18n.py\n M tests/regression/test_analysis_runner_contracts.py\n M tests/regression/test_decode_filter_fallback.py\n M tests/regression/test_documentation_rendering.py\n M tests/regression/test_opportunity_engine.py\n M tests/regression/test_result_diagnostics.py\n M tests/regression/test_run_controller_data_source.py\n M tests/regression/test_run_data_preparation.py\n M ui/run_controller.py\n?? core/callsign_filters.py\n",
+  "source_sha256": {
+    "core/analysis_runner.py": "622ea8fbe914d2d68433671c81da255c9f6a98699052f8191c1441d2580c3a3d",
+    "core/opportunity_engine.py": "c535795c9609ed36e48d92846552ad9b0fa0cda3ab47da2e3dfdb5718ef82871",
+    "core/compare_engine.py": "1850af152298489ac31f878c1573b5973f4136439048b442145b5d7d92db3852",
+    "core/map_data.py": "b1d4fb29072ce2cfaacb6ba458a36d0ec1a8eff6b7f21cbd41ca32620da7c4d8",
+    "core/run_data_preparation.py": "4300dd0142b6dfcebb95b51c10b151b2b64e38a1fe2c816a633713f73c628a06",
+    "core/callsign_filters.py": "4b1a816cb6c1e74526f9847bc4585c0740de057da7ff15b7d81a660a07df9afd",
+    "ui/config_io.py": "ad64692181b190768fd5464c4d7b24cc46d82eb5812d57444d10504d10bb7ecc",
+    "ui/analysis_context_adapter.py": "57f71dc7208ce5003e851b1ef1b780251b0a8e6ba0bd300f365a4325cba4ff5b",
+    "config/app_config.py": "22df9b74883b480f4cf791cbd07ecfc602b63169194e06db578b08866c6e9f3e"
+  },
+  "transport": "bounded direct HTTP request of SQL returned by production build_analysis_batches; no query-cache reads",
+  "scope": "Numerical execution only; UI, figures, and prepared ZIP export were not exercised",
+  "queries": [
+    {
+      "variant": "strict",
+      "decode_filter_mode": "strict_code_1",
+      "rows": 0,
+      "response_bytes": 132,
+      "elapsed_seconds": 0.391
+    },
+    {
+      "variant": "legacy",
+      "decode_filter_mode": "legacy_no_code",
+      "rows": 125759,
+      "response_bytes": 8377833,
+      "elapsed_seconds": 1.328
+    }
+  ],
+  "selected_decode_filter_mode": "legacy_no_code",
+  "processed_rows": 124622,
+  "processing_warning": null,
+  "station_rows": 1130,
+  "segment_rows": 29,
+  "map_diagnostic": null,
+  "source_freeze": {
+    "rows": 184352,
+    "response_bytes": 1897979,
+    "elapsed_seconds": 0.516,
+    "complete_for_endpoint_population": true,
+    "all_decode_codes_included": true,
+    "scope": "Full selected-band/window population for the two endpoint callsigns, across all endpoint locations; no mode, geographic, peer, cycle or duplicate filtering",
+    "code_counts": {
+      "0": 184352
+    }
+  },
+  "status": "numerical_capture_complete",
+  "completed_at_utc": "2026-09-23T20:48:06.030800+00:00",
+  "files": {
+    "analysis_context.json": {
+      "bytes": 741,
+      "sha256": "6e6dbcedd437a961c9e31d65ab4b7e2ae018b3fe3b66620694f35c14102167eb"
+    },
+    "demo.config": {
+      "bytes": 2256,
+      "sha256": "5dcdffd5744d13e9695be60f73c10ca1baf939f4931161e792f727feb30f7656"
+    },
+    "observed_segment_rows.csv": {
+      "bytes": 1938,
+      "sha256": "5de8366c5477d1c2733ed0b36f2fe6bef8cb8871145a2492d086043cde772e70"
+    },
+    "observed_station_rows.csv": {
+      "bytes": 155021,
+      "sha256": "b7812a92729e82bebe8bc8745692dd5db550c0207127cd95e45a61367b548b37"
+    },
+    "processed_rows.parquet": {
+      "bytes": 1248833,
+      "sha256": "6e4aa701a1a8bc9449b2ed5575c9e53e1c6820557332fd2b942250b982c89682"
+    },
+    "query_legacy.sql": {
+      "bytes": 1312,
+      "sha256": "f7017590f9b64431d3dc61879babc814090882019d1d75c22018cc186e28fb98"
+    },
+    "query_strict.sql": {
+      "bytes": 1338,
+      "sha256": "684c7c8d1f8aea5040cd04b55baafa7c5f94d11289c4246f848953f82cdb905f"
+    },
+    "source_rows.parquet": {
+      "bytes": 1897979,
+      "sha256": "b15d2c30540f91150da908c6eeb59afd44463f6f345ba3dd5e61624e5de530dd"
+    },
+    "source_rows_query.sql": {
+      "bytes": 271,
+      "sha256": "0641e8e027b413d0ea058233c07c0a4141d54a3f184462bac84d725641ee7e49"
+    },
+    "sql_output_legacy.csv": {
+      "bytes": 8377833,
+      "sha256": "749a18e216201bfaa27a2d06bbcc54b9a52eb309408e6f470bb5eb556127238b"
+    },
+    "sql_output_strict.csv": {
+      "bytes": 132,
+      "sha256": "a7b363abe06dc8f8aff1a0651adc363e85232277d053a61de554450157b01dd8"
+    }
+  }
+}

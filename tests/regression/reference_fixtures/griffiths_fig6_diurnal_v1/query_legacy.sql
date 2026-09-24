@@ -1,0 +1,6 @@
+SELECT *
+FROM (
+SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, maxIf((snr - power + 30 + 0.0), is_me = 0) AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, argMaxIf(local_sign, (snr - power + 30 + 0.0), is_me = 0) AS best_ref_sign, argMaxIf(local_dist, (snr - power + 30 + 0.0), is_me = 0) AS best_ref_dist FROM (SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE rx_sign = 'G3ZIL' AND substring(rx_loc, 1, 4) = 'IO90' AND band = '7' AND time >= '2017-04-05 00:00:00' AND time < '2017-04-07 23:45:00' AND tx_lat != 0 UNION ALL SELECT time, tx_sign AS peer_sign, tx_loc AS peer_grid, tx_lat AS peer_lat, tx_lon AS peer_lon, rx_sign AS local_sign, rx_loc AS local_grid, geoDistance(-1.375, 50.9375, rx_lon, rx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE rx_sign = 'G4HZX' AND substring(rx_loc, 1, 4) = 'IO91' AND band = '7' AND time >= '2017-04-05 00:00:00' AND time < '2017-04-07 23:45:00' AND tx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid
+)
+LIMIT 1000001
+FORMAT CSVWithNames

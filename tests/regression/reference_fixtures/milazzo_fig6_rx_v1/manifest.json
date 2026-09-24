@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "fixture_id": "milazzo_fig6_rx_v1",
+  "created_on": "2026-09-24",
+  "status": "integrated_offline_regression",
+  "builder_path": "scripts/build_milazzo_rx_reference_fixture.py",
+  "files": [
+    {
+      "path": "expected_native_units.csv",
+      "bytes": 1433,
+      "sha256": "dc8efaa16df41f74db71af86d0aea7142b20fef5e89dda8ea824e6ba8d5061f2"
+    },
+    {
+      "path": "expected_paired_rows.csv",
+      "bytes": 274,
+      "sha256": "415345756d15f2cb7e38b9421a46e8bf3c8c991ccbf5c7a3c60f233919f60df9"
+    },
+    {
+      "path": "expected_paper_matches.csv",
+      "bytes": 4620,
+      "sha256": "1946173ef8bf9631d9544a74539641e736beff39a9e2eb17a179318e39f91bff"
+    },
+    {
+      "path": "expected_sql_rows.csv",
+      "bytes": 2185,
+      "sha256": "466f6d6865464efca81e8cc123a2c6d9d4ceb1e3686116ac76100a7cc55ed544"
+    },
+    {
+      "path": "expected_summary.json",
+      "bytes": 557,
+      "sha256": "631a2f37d417a824c23578f7c88143a1b0b75c9fc7a455cc5935152be51e10ae"
+    },
+    {
+      "path": "paper_features_original.json",
+      "bytes": 3119,
+      "sha256": "19b0b55065cc1cb66b166574fb2956f81849ea66e0b7706ddb74986655cad51a"
+    },
+    {
+      "path": "paper_markers.csv",
+      "bytes": 3234,
+      "sha256": "c61521781c2bbcf765f93c70489e595aee15492f455ea19b4ca9368e399f1bac"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7131,
+      "sha256": "fe350841031a304552f7c3058763a7dd23382e35d7c0b38df6e3f2d8a8c759ee"
+    },
+    {
+      "path": "reconciliation.json",
+      "bytes": 2252,
+      "sha256": "138bc00e129b78abb04e398a37e0682263c012ebfd4d0765b8f0628cc74bda21"
+    },
+    {
+      "path": "rx_reference.config",
+      "bytes": 1752,
+      "sha256": "dd251edf3f5d8fedd1ae721127854ebe7ac53d8fa31544d814195695e383277c"
+    },
+    {
+      "path": "source_rows.csv",
+      "bytes": 10734,
+      "sha256": "c8d72dd9f38b1fba9ad5a9860e6dcadceaf3715aba7f7a5eaebc6eb125d9c077"
+    },
+    {
+      "path": "user_kp4md_40m_rows.csv",
+      "bytes": 2140,
+      "sha256": "6588859d04c31949955279a818ff80026939c6fc39ea2ebc847f12cd01fee217"
+    },
+    {
+      "path": "user_wb6rqn_reports.tsv",
+      "bytes": 5194,
+      "sha256": "159f1a4a1a9832188a2625595e3962b03a2d38418b19319f6c5d95c5b2164c05"
+    }
+  ]
+}

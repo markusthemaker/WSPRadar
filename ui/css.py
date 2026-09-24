@@ -288,6 +288,14 @@ def apply_custom_css():
         .st-key-loaded_config_metadata_description div[data-testid="stCaptionContainer"] {
             opacity: 1 !important;
         }
+        /* A paragraph with one bold phrase also matches the heading heuristic:
+         * :only-child ignores surrounding text nodes. Keep profile caption sizing.
+         */
+        .st-key-demo_description div[data-testid="stCaptionContainer"] p,
+        .st-key-loaded_config_metadata_description div[data-testid="stCaptionContainer"] p,
+        .st-key-guided_demo_context div[data-testid="stCaptionContainer"] p {
+            font-size: inherit !important;
+        }
 
         /* Keep the demo explanation blue while matching surrounding captions. */
         .st-key-guided_demo_context div[data-testid="stAlert"] p {
@@ -1017,22 +1025,25 @@ def apply_custom_css():
             margin-bottom: 0.85rem !important;
             line-height: 1.55 !important;
         }
-        .stMarkdown p:has(> strong:only-child) {
-            font-size: 1.05rem;
+        /* Keep legacy emphasis spacing and colors within the manual.
+         * Bold phrases retain the surrounding body-text size; only actual
+         * heading elements receive heading font sizes.
+         */
+        .st-key-documentation_body .stMarkdown p:has(> strong:only-child) {
             line-height: 1.35;
             margin-top: 1.2rem;
             margin-bottom: 0.35rem;
         }
-        .stMarkdown p:has(> strong:only-child) strong:not(.defined-term) {
+        .st-key-documentation_body .stMarkdown p:has(> strong:only-child) strong:not(.defined-term) {
             color: #ffffff !important;
             font-weight: 700 !important;
         }
-        .stMarkdown p:has(> strong:first-child:not(:only-child)) {
+        .st-key-documentation_body .stMarkdown p:has(> strong:first-child:not(:only-child)) {
             margin-top: 1.05rem !important;
             margin-bottom: 1.05rem !important;
             line-height: 1.55 !important;
         }
-        .stMarkdown p:has(> strong:first-child:not(:only-child)) strong:first-child:not(.defined-term) {
+        .st-key-documentation_body .stMarkdown p:has(> strong:first-child:not(:only-child)) strong:first-child:not(.defined-term) {
             color: #ffffff !important;
             font-weight: 700 !important;
         }

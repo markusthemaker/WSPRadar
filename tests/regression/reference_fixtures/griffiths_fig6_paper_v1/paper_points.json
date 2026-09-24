@@ -1,0 +1,58 @@
+{
+  "source_image": "page3_image1.png",
+  "source_image_size_px": [1382, 908],
+  "independence": "Only the source paper raster was read. No WSPRadar outputs or implementation files were inspected. Source-only zooms and dark-pixel component centroids were used.",
+  "selection_rule": "Scan chronologically, selecting the first eligible negative extreme, then the first eligible positive extreme after it, then the first eligible negative extreme after that. Eligibility requires the full +/-2 pixel vertical interval to lie below -10 dB or above +20 dB, at least 20 pixels to another identified black-dot centroid, and more than 10 pixels to colored contours and axes. This alternating-sign rule addresses the incompatibility between literal first-three selection and distinct signs: the literal first three extremes are all negative. No comparison with computed outputs informed selection.",
+  "selection_limit": "The chronological rule takes precedence over the preference for wide coverage of the day. All three selected points occur before 08 UTC.",
+  "axis_calibration": {
+    "left_x_px": 119,
+    "right_x_px": 1366,
+    "top_y_px": 22,
+    "bottom_y_px": 792,
+    "left_hour": 0,
+    "right_hour": 24,
+    "top_delta_snr_db": 25,
+    "bottom_delta_snr_db": -15,
+    "hour_formula": "24 * (x - 119) / 1247",
+    "delta_snr_formula": "25 - 40 * (y - 22) / 770"
+  },
+  "centroid_method": "Mean coordinates of the 8-connected dark-pixel component near the independently selected visual dot, with all RGB channels below 80. Decimal coordinates describe raster arithmetic, not physical measurement precision.",
+  "annotation_uncertainty_px": 2,
+  "pixel_uncertainty_hour": 0.0385,
+  "pixel_uncertainty_delta_snr_db": 0.104,
+  "recommended_comparison_tolerance": {
+    "utc_hour": 0.08,
+    "delta_snr_db": 0.21,
+    "reason": "Conservatively includes annotation and approximate axis-calibration uncertainty. Declare this before comparing outputs."
+  },
+  "points": [
+    {
+      "id": "isolated_negative_1",
+      "centroid_px": [210.278, 751.889],
+      "utc_hour": 1.75675,
+      "delta_snr_db": -12.91631,
+      "nearest_other_dot_centroid_px": 41.44,
+      "nearest_colored_pixel_px": 63.36,
+      "nearest_axis_px": 40.11
+    },
+    {
+      "id": "isolated_positive_1",
+      "centroid_px": [473.412, 78.118],
+      "utc_hour": 6.82108,
+      "delta_snr_db": 22.08480,
+      "nearest_other_dot_centroid_px": 35.09,
+      "nearest_colored_pixel_px": 71.67,
+      "nearest_axis_px": 56.12
+    },
+    {
+      "id": "isolated_negative_2",
+      "centroid_px": [519.722, 751.889],
+      "utc_hour": 7.71238,
+      "delta_snr_db": -12.91631,
+      "nearest_other_dot_centroid_px": 21.02,
+      "nearest_colored_pixel_px": 72.89,
+      "nearest_axis_px": 40.11
+    }
+  ],
+  "interpretation_limit": "These annotations test existence of a plotted UTC-hour and Delta-SNR combination within declared tolerances. The figure does not identify the date or complete station-path evidence for an individual point. Agreement cannot establish complete identity, pairing provenance, or correctness of the full distribution."
+}

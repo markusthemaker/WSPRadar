@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "fixture_id": "milazzo_publication_overlays_v1",
+  "created_on": "2026-09-24",
+  "status": "integrated_paper_anchor_regression_with_audited_overlay_outputs",
+  "files": [
+    {
+      "path": "figure6_anchor_matches.csv",
+      "bytes": 4554,
+      "sha256": "ff64f43419e675e7f6fa206e1abe5be83119b84b06551c5cd0877813f9366e7c"
+    },
+    {
+      "path": "figure6_rx_overlay.png",
+      "bytes": 814086,
+      "sha256": "aa58dfd6f53eae922595298866a26ddf71b941ec70f1cf00f4612f7ee30b76ce"
+    },
+    {
+      "path": "figure6_sql_endpoint_reports.csv",
+      "bytes": 3089,
+      "sha256": "38a09a9a5828a34d62975567b14f2c3274275213e02e2fb1c8ea19ed35febd9e"
+    },
+    {
+      "path": "figure7_anchor_matches.csv",
+      "bytes": 5463,
+      "sha256": "af88a5e84e76dd281e9467c9d02cd7100d3643c05fd6b62a27b8befe48765bb0"
+    },
+    {
+      "path": "figure7_paper_anchors.csv",
+      "bytes": 4697,
+      "sha256": "24c7dcff1f9006bdeddb82f2c0e677080768f3a945706befdd9bf2c54bd93b16"
+    },
+    {
+      "path": "figure7_paper_features.json",
+      "bytes": 2055,
+      "sha256": "787a3bb8971c1503ead5cbc14f2a07ed21db4587c6d5774c65c0fd2feccb9cf5"
+    },
+    {
+      "path": "figure7_sql_endpoint_reports.csv",
+      "bytes": 5369,
+      "sha256": "0376a81a3c9b233f005d2c3bea275137f4be9e447ad54840b893a90261ed8b38"
+    },
+    {
+      "path": "figure7_tx_overlay.png",
+      "bytes": 860034,
+      "sha256": "598fe8351cf11cc9f5d4621d6cc4767b7efe11102fe8ca67c2a88d73c8a25557"
+    },
+    {
+      "path": "overlay_summary.json",
+      "bytes": 3224,
+      "sha256": "0830c18aaaffea63b0a51633361784c5e6e07bb0e6da1ded9ff8a208ba03cfb8"
+    },
+    {
+      "path": "paper_figure6.jpg",
+      "bytes": 96557,
+      "sha256": "2499ecab549f80fd751469841c4498b428af99037ac10afde6c4a4e59d3b6d73"
+    },
+    {
+      "path": "paper_figure7.jpg",
+      "bytes": 100131,
+      "sha256": "262a21cc23a725f31e52e8c3ce8b52cc0032ef2bab7d6522d67628cd11b4747e"
+    },
+    {
+      "path": "README.md",
+      "bytes": 9972,
+      "sha256": "c3ba67d9c49db7ac24b372195e87e93df84cd8035982698267bd1aa743877126"
+    }
+  ]
+}

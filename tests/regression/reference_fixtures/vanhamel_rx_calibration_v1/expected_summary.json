@@ -1,0 +1,48 @@
+{
+  "derivation": "Standard-library calculation from original report CSV and fixed configuration; no WSPRadar imports or output inputs",
+  "source_rows": 3233,
+  "selected_source_rows": 3231,
+  "source_code_counts": {
+    "1": 3233
+  },
+  "window_start_utc": "2021-02-06T06:00:00+00:00",
+  "window_end_utc": "2021-02-13T06:00:00+00:00",
+  "window_duration_hours": 168.0,
+  "center_latitude": 50.8125,
+  "center_longitude": 5.208333333333334,
+  "sql_group_count": 1781,
+  "target_active_cycles": 1391,
+  "retained_group_count": 1770,
+  "retained_outcomes": {
+    "joint": 1450,
+    "target_only": 316,
+    "reference_only": 4
+  },
+  "retained_peer_identities": 59,
+  "all_joint_spots_before_station_threshold": 1450,
+  "all_paired_peer_identities_before_station_threshold": 50,
+  "joint_spots": 1143,
+  "paired_peer_identities": 10,
+  "paired_cycles": 973,
+  "outcomes": {
+    "joint": 1143,
+    "target_only": 114
+  },
+  "minimum_joint_reports_inclusive": 50,
+  "peer_identities_with_exactly_50_joint_reports": 0,
+  "mean_delta_snr_db": 1.2143482064741906,
+  "median_delta_snr_db": 1,
+  "q1_delta_snr_db": 1.0,
+  "q3_delta_snr_db": 2.0,
+  "sample_std_delta_snr_db": 0.6168139491150979,
+  "min_delta_snr_db": -1,
+  "max_delta_snr_db": 3,
+  "negative_pairs": 4,
+  "zero_pairs": 98,
+  "positive_pairs": 1041,
+  "duplicate_endpoint_groups": 0,
+  "paired_report_power_mismatch_count": 0,
+  "station_median_mean_db": 1.0,
+  "station_mean_mean_db": 1.2265613143551892,
+  "temporal_bin_anchor": "Window start; seven consecutive 24-hour bins; station eligibility assessed over full window"
+}

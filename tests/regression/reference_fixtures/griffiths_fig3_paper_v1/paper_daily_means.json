@@ -1,0 +1,367 @@
+{
+  "format": "wspradar.paper-daily-mean-feasibility",
+  "version": 1,
+  "status": "source-only candidate; not compared with archive or application",
+  "source": {
+    "pdf": "C:/Users/marku/Downloads/ImprovingHFSNR-1.pdf",
+    "pdf_sha256": "9d3fe7e8b7230a6c0abbf86787591e5d140f470b72c18c10e44fd8ccd006819f",
+    "figure3": {
+      "printed_page": 24,
+      "image": "tmp/griffiths_fig3_external_review/page2_image0.png",
+      "sha256": "0d5b114974fd301c256453d08bbe61531c094a7e8cfcfd83cd15c2a55b97543f"
+    },
+    "figure4": {
+      "printed_page": 25,
+      "image": "tmp/griffiths_fig6_external_review/page3_image0.png",
+      "sha256": "feaeb640cc4181893a7a76293331b1cf657a3b222768188a0816b4fd10a829fb"
+    }
+  },
+  "independence": "Only source PDF rasters were inspected during this task. WSPRadar outputs and numerical fixtures were not opened. Prior-task exposure to results prevents any claim of complete blinding.",
+  "paper_meaning": "Figure 3 blue markers are daily soil moisture on the right axis. Figure 4 blue diamonds denote April 1-15 SNR differences averaged over a day, plotted against soil moisture. Figure 4 blue values are therefore external daily-average evidence, not the Figure 3 soil-moisture series or a curve fitted to WSPRadar.",
+  "axes": {
+    "figure3": {
+      "soil_moisture_10_percent_y_px": 62,
+      "soil_moisture_30_percent_y_px": 433,
+      "conversion": "10 + 20*(y-62)/371",
+      "date_indexing": "Assign the successive daily blue markers to April 1 through April 15 using their x positions relative to the printed date ticks; do not infer a precise soil-measurement timestamp."
+    },
+    "figure4": {
+      "soil_moisture_16_percent_x_px": 187,
+      "soil_moisture_26_percent_x_px": 705,
+      "delta_snr_0_db_y_px": 602,
+      "delta_snr_10_db_y_px": 82,
+      "soil_conversion": "16 + 10*(x-187)/518",
+      "snr_conversion": "10*(602-y)/520"
+    }
+  },
+  "uncertainty": {
+    "isolated_marker_centroid_bound_px": 2,
+    "axis_endpoint_bound_px": 1,
+    "method": "For isolated symmetric markers, use a colour-segment centroid rather than the marker edge. A conservative +/-2 pixels allows antialias/compression/segmentation asymmetry. Add +/-1 pixel for locating each axis endpoint. Report corner-extreme calibration intervals. Marker radius is not a statistical error bar. Do not assign this narrow bound to merged or line-occluded diamonds.",
+    "figure3_moisture_bound_percentage_points": 0.16172506738544473,
+    "figure4_moisture_bound_percentage_points": 0.05791505791505792,
+    "figure4_snr_bound_db": 0.057692307692307696,
+    "scope": "Raster readout and axis calibration only; no allowance for archive-population or scientific-method differences."
+  },
+  "matching_rule": "A Figure 4 isolated marker is uniquely dated only if its calibrated moisture interval overlaps exactly one of the 15 Figure 3 daily-moisture intervals. No nearest-neighbour assignment or sorting by assumed monotonic soil drying is allowed. Dates are not inferred from WSPRadar values.",
+  "figure3_first_half_moisture_points": [
+    {
+      "date": "2017-04-01",
+      "pixel_centroid": [
+        162.007,
+        352.583
+      ],
+      "moisture_percent": 25.664851752021566,
+      "moisture_interval_percent": [
+        25.503126684636122,
+        25.82657681940701
+      ]
+    },
+    {
+      "date": "2017-04-02",
+      "pixel_centroid": [
+        202.616,
+        350.983
+      ],
+      "moisture_percent": 25.578598382749327,
+      "moisture_interval_percent": [
+        25.41687331536388,
+        25.74032345013477
+      ]
+    },
+    {
+      "date": "2017-04-03",
+      "pixel_centroid": [
+        243.026,
+        351.029
+      ],
+      "moisture_percent": 25.581078167115905,
+      "moisture_interval_percent": [
+        25.419353099730458,
+        25.742803234501345
+      ]
+    },
+    {
+      "date": "2017-04-04",
+      "pixel_centroid": [
+        282.055,
+        318.987
+      ],
+      "moisture_percent": 23.853746630727763,
+      "moisture_interval_percent": [
+        23.692021563342323,
+        24.01547169811321
+      ]
+    },
+    {
+      "date": "2017-04-05",
+      "pixel_centroid": [
+        322.994,
+        325.956
+      ],
+      "moisture_percent": 24.229433962264153,
+      "moisture_interval_percent": [
+        24.067708894878706,
+        24.3911590296496
+      ]
+    },
+    {
+      "date": "2017-04-06",
+      "pixel_centroid": [
+        362.003,
+        310.042
+      ],
+      "moisture_percent": 23.371536388140157,
+      "moisture_interval_percent": [
+        23.209811320754717,
+        23.533261455525604
+      ]
+    },
+    {
+      "date": "2017-04-07",
+      "pixel_centroid": [
+        402.49,
+        322.547
+      ],
+      "moisture_percent": 24.045660377358494,
+      "moisture_interval_percent": [
+        23.883935309973047,
+        24.207385444743934
+      ]
+    },
+    {
+      "date": "2017-04-08",
+      "pixel_centroid": [
+        441.541,
+        290.459
+      ],
+      "moisture_percent": 22.315849056603774,
+      "moisture_interval_percent": [
+        22.154123989218327,
+        22.47757412398922
+      ]
+    },
+    {
+      "date": "2017-04-09",
+      "pixel_centroid": [
+        482.022,
+        293.978
+      ],
+      "moisture_percent": 22.5055525606469,
+      "moisture_interval_percent": [
+        22.343827493261458,
+        22.667277628032345
+      ]
+    },
+    {
+      "date": "2017-04-10",
+      "pixel_centroid": [
+        521.02,
+        274.573
+      ],
+      "moisture_percent": 21.459460916442048,
+      "moisture_interval_percent": [
+        21.2977358490566,
+        21.62118598382749
+      ]
+    },
+    {
+      "date": "2017-04-11",
+      "pixel_centroid": [
+        561.98,
+        274.61
+      ],
+      "moisture_percent": 21.46145552560647,
+      "moisture_interval_percent": [
+        21.299730458221028,
+        21.623180592991915
+      ]
+    },
+    {
+      "date": "2017-04-12",
+      "pixel_centroid": [
+        602.535,
+        262.114
+      ],
+      "moisture_percent": 20.787816711590295,
+      "moisture_interval_percent": [
+        20.626091644204852,
+        20.949541778975743
+      ]
+    },
+    {
+      "date": "2017-04-13",
+      "pixel_centroid": [
+        641.512,
+        241.023
+      ],
+      "moisture_percent": 19.650835579514826,
+      "moisture_interval_percent": [
+        19.48911051212938,
+        19.81256064690027
+      ]
+    },
+    {
+      "date": "2017-04-14",
+      "pixel_centroid": [
+        681.981,
+        258.975
+      ],
+      "moisture_percent": 20.618598382749326,
+      "moisture_interval_percent": [
+        20.456873315363882,
+        20.780323450134773
+      ]
+    },
+    {
+      "date": "2017-04-15",
+      "pixel_centroid": [
+        721,
+        234
+      ],
+      "moisture_percent": 19.2722371967655,
+      "moisture_interval_percent": [
+        19.110512129380055,
+        19.433962264150942
+      ]
+    }
+  ],
+  "unambiguous_dated_daily_average_candidates": [
+    {
+      "id": "isolated_april_06",
+      "figure4_pixel_centroid": [
+        569.018,
+        308.8
+      ],
+      "moisture_percent": 23.374864864864865,
+      "moisture_interval_percent": [
+        23.316949806949808,
+        23.432779922779922
+      ],
+      "daily_average_snr_db": 5.638461538461539,
+      "daily_average_snr_interval_db": [
+        5.580769230769231,
+        5.696153846153846
+      ],
+      "compatible_fig3_dates_by_interval_overlap": [
+        "2017-04-06"
+      ],
+      "uniquely_matched_date": "2017-04-06"
+    },
+    {
+      "id": "isolated_april_13",
+      "figure4_pixel_centroid": [
+        378.83,
+        196.274
+      ],
+      "moisture_percent": 19.70328185328185,
+      "moisture_interval_percent": [
+        19.645366795366794,
+        19.761196911196908
+      ],
+      "daily_average_snr_db": 7.802423076923077,
+      "daily_average_snr_interval_db": [
+        7.744730769230769,
+        7.860115384615384
+      ],
+      "compatible_fig3_dates_by_interval_overlap": [
+        "2017-04-13"
+      ],
+      "uniquely_matched_date": "2017-04-13"
+    },
+    {
+      "id": "isolated_april_15",
+      "figure4_pixel_centroid": [
+        357.025,
+        148.698
+      ],
+      "moisture_percent": 19.282335907335906,
+      "moisture_interval_percent": [
+        19.22442084942085,
+        19.340250965250963
+      ],
+      "daily_average_snr_db": 8.717346153846155,
+      "daily_average_snr_interval_db": [
+        8.659653846153846,
+        8.775038461538463
+      ],
+      "compatible_fig3_dates_by_interval_overlap": [
+        "2017-04-15"
+      ],
+      "uniquely_matched_date": "2017-04-15"
+    }
+  ],
+  "date_independent_first_half_extrema": {
+    "population": "Blue April 1-15 Figure 4 diamonds only; red April 16-30 markers excluded",
+    "minimum": {
+      "id": "first_half_daily_mean_minimum",
+      "figure4_pixel_centroid": [
+        687.993,
+        475.314
+      ],
+      "moisture_percent": 25.671679536679537,
+      "moisture_interval_percent": [
+        25.61376447876448,
+        25.729594594594595
+      ],
+      "daily_average_snr_db": 2.43626923076923,
+      "daily_average_snr_interval_db": [
+        2.3785769230769227,
+        2.4939615384615377
+      ],
+      "compatible_fig3_dates_by_interval_overlap": [
+        "2017-04-01",
+        "2017-04-02",
+        "2017-04-03"
+      ]
+    },
+    "maximum": {
+      "id": "first_half_daily_mean_maximum",
+      "figure4_pixel_centroid": [
+        357.025,
+        148.698
+      ],
+      "moisture_percent": 19.282335907335906,
+      "moisture_interval_percent": [
+        19.22442084942085,
+        19.340250965250963
+      ],
+      "daily_average_snr_db": 8.717346153846155,
+      "daily_average_snr_interval_db": [
+        8.659653846153846,
+        8.775038461538463
+      ],
+      "compatible_fig3_dates_by_interval_overlap": [
+        "2017-04-15"
+      ]
+    },
+    "reason": "The vertically highest and lowest blue markers are isolated and clearly separated from every other blue marker. No date assignment, reconstruction of merged diamonds or fitted trend line is needed."
+  },
+  "ambiguities": [
+    {
+      "dates": [
+        "2017-04-01",
+        "2017-04-02",
+        "2017-04-03"
+      ],
+      "reason": "Figure 3 soil-moisture centroids differ by only about 1.6 pixels or less, within the conservative matching uncertainty; three Figure 4 low-SNR points cannot be uniquely assigned to these individual days."
+    },
+    {
+      "dates": [
+        "2017-04-10",
+        "2017-04-11"
+      ],
+      "reason": "Figure 3 moisture centroids are effectively coincident. Their Figure 4 diamonds are overlapping near 21.5 percent moisture; individual date assignment is unsupported."
+    },
+    {
+      "reason": "Several other Figure 4 diamonds are close, merged or crossed by the fitted line, so generic colour-component centroids are biased and cannot support the isolated-marker uncertainty bound. They have not been assigned."
+    }
+  ],
+  "recommendation": "Use the blue-group minimum and maximum as the simplest external daily-average scale anchors. The three uniquely moisture-matched isolated dates provide optional additional external checks. Defer any exact 15-day point-by-date series or sorted-15-value fixture until merged diamonds are reliably resolved or author data are obtained. A mismatch must be reported as a reproduction discrepancy; do not widen these pixel-derived bounds to absorb an uninvestigated population difference.",
+  "limits": [
+    "The paper describes daily averages but does not supply original SQL, duplicate policy or detailed weighting formula.",
+    "Figure 4 does not explicitly specify exact daily cutoff timestamps; date labels alone do not prove a UTC daily-boundary contract.",
+    "The regression line -0.81*moisture+24 and rounded R2=0.95 are not replacements for actual observed daily means.",
+    "This file does not evaluate application correctness and contains no application-derived expectations."
+  ]
+}

@@ -522,6 +522,20 @@ def test_profile_descriptions_use_white_text_in_scoped_containers(monkeypatch):
     rule_close = stylesheet.index("}", rule_open)
     assert "opacity: 1 !important" in stylesheet[rule_open:rule_close]
 
+    # One inline bold phrase must not turn an entire caption into a heading.
+    selector_start = stylesheet.index(caption_selector, rule_close + 1)
+    rule_open = stylesheet.index("{", selector_start)
+    selector_group = stylesheet[selector_start:rule_open]
+    for container_key in (
+        "loaded_config_metadata_description", "guided_demo_context",
+    ):
+        assert (
+            f'.st-key-{container_key} div[data-testid="stCaptionContainer"] p'
+            in selector_group
+        )
+    rule_close = stylesheet.index("}", rule_open)
+    assert "font-size: inherit !important" in stylesheet[rule_open:rule_close]
+
 
 def test_selectboxes_support_legacy_and_current_streamlit_dom_contracts(
     monkeypatch,

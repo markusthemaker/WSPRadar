@@ -1,0 +1,1 @@
+SELECT id,time,band,code,rx_sign,rx_loc,rx_lat,rx_lon,tx_sign,tx_loc,tx_lat,tx_lon,snr,power FROM wspr.rx PREWHERE band = 7 AND time >= '2017-04-05 00:00:00' AND time < '2017-04-07 23:45:00' WHERE rx_sign IN ('G3ZIL','G4HZX') ORDER BY time,id LIMIT 1000001 FORMAT Parquet

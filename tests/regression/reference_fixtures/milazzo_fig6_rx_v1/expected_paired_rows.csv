@@ -1,0 +1,6 @@
+time_slot,peer_sign,peer_grid,outcome,target_snr_db,reference_snr_db,delta_snr_db
+10773083,VE6PDQ,DO34ir,joint,-5,-13,8
+10773593,VE6PDQ,DO34,joint,-12,-29,17
+10773632,VE6PDQ,DO34ir,joint,-12,-34,22
+10773822,VE6PDQ,DO34,joint,-13,-20,7
+10773833,VE6PDQ,DO34ir,joint,-17,-24,7

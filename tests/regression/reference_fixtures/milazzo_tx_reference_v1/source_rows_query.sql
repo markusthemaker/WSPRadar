@@ -1,0 +1,1 @@
+SELECT id,time,band,code,rx_sign,rx_loc,rx_lat,rx_lon,tx_sign,tx_loc,tx_lat,tx_lon,snr,power FROM wspr.rx PREWHERE band = 7 AND time >= '2010-12-18 00:00:00' AND time < '2010-12-21 00:00:00' WHERE tx_sign IN ('KP4MD','WB6RQN') ORDER BY time,id LIMIT 1000001 FORMAT Parquet

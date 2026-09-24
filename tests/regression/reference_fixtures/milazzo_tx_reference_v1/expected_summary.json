@@ -1,0 +1,104 @@
+{
+  "derivation": "Independent stdlib arithmetic from source reports/configuration; no WSPRadar imports or output inputs",
+  "window_start_utc": "2010-12-18T00:00:00+00:00",
+  "window_end_utc": "2010-12-21T00:00:00+00:00",
+  "center_latitude": 38.5,
+  "center_longitude": -121.0,
+  "radius_km": 5000,
+  "radius_comparison": "strictly less than",
+  "normalization": "reported SNR - reported power dBm + 30",
+  "source_rows": 1992,
+  "selected_source_rows": 1992,
+  "source_code_counts": {
+    "0": 1992
+  },
+  "source_endpoint_counts": {
+    "KP4MD": 1139,
+    "WB6RQN": 853
+  },
+  "sql_group_count": 1946,
+  "target_active_cycles": 179,
+  "target_active_group_count": 1160,
+  "retained_group_count": 1135,
+  "all_group_outcomes": {
+    "reference_only": 807,
+    "target_only": 1093,
+    "joint": 46
+  },
+  "target_active_outcomes_before_distance": {
+    "target_only": 1093,
+    "joint": 46,
+    "reference_only": 21
+  },
+  "retained_outcomes": {
+    "target_only": 1069,
+    "joint": 45,
+    "reference_only": 21
+  },
+  "selection_reasons": {
+    "excluded_target_inactive": 786,
+    "retained": 1135,
+    "excluded_distance": 25
+  },
+  "source_ledger_selection_reasons": {
+    "excluded_target_inactive": 786,
+    "retained": 1180,
+    "excluded_distance": 26
+  },
+  "duplicate_endpoint_groups": 0,
+  "station_count": 80,
+  "paired_station_count": 30,
+  "joint_spots": 45,
+  "joint_cycles": 9,
+  "coverage_bin_seconds": 10800,
+  "coverage_bins_per_scope": 24,
+  "coverage_scopes": [
+    "all",
+    "VE6PDQ"
+  ],
+  "non_joint_metric_policy": "Absent endpoint components and delta_snr_db are null; SQL absent-side aggregate alone is zero",
+  "ve6pdq": {
+    "source_rows": 89,
+    "source_endpoint_counts": {
+      "WB6RQN": 26,
+      "KP4MD": 63
+    },
+    "receiver_locators": [
+      "DO34ir"
+    ],
+    "retained_outcomes": {
+      "target_only": 62,
+      "joint": 1,
+      "reference_only": 0
+    },
+    "joint_rows": [
+      {
+        "time_slot": 10773371,
+        "evidence_utc": "2010-12-20T00:22:00+00:00",
+        "peer_sign": "VE6PDQ",
+        "peer_grid": "DO34ir",
+        "outcome": "joint",
+        "target_report_ids": "44698904",
+        "reference_report_ids": "44698905",
+        "target_selected_report_ids": "44698904",
+        "reference_selected_report_ids": "44698905",
+        "target_report_snr_db": -13,
+        "reference_report_snr_db": -15,
+        "target_report_power_dbm": 37,
+        "reference_report_power_dbm": 33,
+        "target_snr_db": -20,
+        "reference_snr_db": -18,
+        "delta_snr_db": -2,
+        "distance_km": 1895.44242336512,
+        "bearing_degrees": 15.319728886573467
+      }
+    ]
+  },
+  "mean_delta_snr_db": -3.9555555555555557,
+  "median_delta_snr_db": -4,
+  "q1_delta_snr_db": -6,
+  "q3_delta_snr_db": -2,
+  "sample_std_delta_snr_db": 4.150331616299176,
+  "min_delta_snr_db": -12,
+  "max_delta_snr_db": 8
+}

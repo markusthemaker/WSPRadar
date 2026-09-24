@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "documented evidence-unit differences; original author query remains unavailable",
+  "first_comparison": {
+    "command": "pytest tests/regression/test_griffiths_temporal_reference.py -k \"fig3_paper or fig3_first_half or fig3_daily_means\" -q",
+    "passed": 11,
+    "failed": 3,
+    "deselected": 33,
+    "warnings": 1,
+    "seconds": 19.77,
+    "source_and_comparison_policy_unchanged": true
+  },
+  "discrepancies": [
+    {
+      "id": "FIG3-TAIL",
+      "source_feature": "mid_april_negative_tail",
+      "affected_cases": [
+        "3h",
+        "24h"
+      ],
+      "current_production_native_witnesses": 0,
+      "max_collapsed_raw_april16_minimum_db": -14,
+      "duplicate_expanded_source_witnesses_in_unchanged_region": 38,
+      "duplicate_expanded_april16_minimum_db": -33,
+      "diagnosis": "The raw source contains repeated weaker G3ZIL reports in the same transmitter/cycle, chiefly HB9MHB. A many-to-many report join retains negative differences inside the fixed paper region. Keeping only the strongest receiver report removes these witnesses. The archive is not missing all of the negative raw observations.",
+      "source_review": "All31calendar ticks agree within1.533px; plume is discrete black scatter, not an evident axis/gridline. No source box was changed."
+    },
+    {
+      "id": "FIG3-MEAN-APR13",
+      "anchor": "isolated_april_13",
+      "paper_readout_interval_db": [
+        7.744730769230769,
+        7.860115384615384
+      ],
+      "production_mean_db": 8.141611082606465,
+      "raw_max_collapsed_mean_db": 8.135245901639344,
+      "raw_max_collapsed_pairs": 1952,
+      "raw_duplicate_expanded_mean_db": 7.806580259222333,
+      "raw_duplicate_expanded_pairs": 2006,
+      "diagnosis": "Retaining duplicate report combinations lowers the mean into the unchanged paper interval. Callsign-only versus callsign+locator pairing and raw versus power-normalized SNR do not explain this case; paired reported powers are equal.",
+      "source_review": "Marker lies below8dB; the production mean would require moving it upward17.64px, beyond the3px readout bound. Moisture matching selects onlyApril13."
+    }
+  ],
+  "exploratory_reconciliation": {
+    "method": "Exact UTC timestamp plus transmitter callsign and locator join between every G3ZIL and G4HZX source report, retaining many-to-many duplicate combinations across all captured distances. Paired powers are equal. No production aggregation or expected archive values define the result.",
+    "selection_timing": "This alternate pairing interpretation was investigated after the initial external comparison failed; it is an exploratory explanation, not a preregistered estimator or proof of the original authors SQL.",
+    "frozen_paper_anchors_matching": 5,
+    "source_tail_matching": true,
+    "all_expanded_combinations": 59019,
+    "current_production_retained_pairs": 57767,
+    "inference": "Agreement is consistent with duplicate-sensitive report weighting in the paper. It does not prove exactly which query or duplicate policy the authors used, and it does not establish that either evidence unit is universally preferable."
+  },
+  "regression_handling": {
+    "direct_production_exceptions": "Only the two dated-tail cases and April13 mean are strict expected failures, limited to the dedicated ExternalPaperMismatch exception. Integrity, setup, histogram-flow and other errors remain failures; unexpected agreement becomes XPASS(strict) and fails for review.",
+    "other_tests": "All other direct source comparisons remain ordinary mandatory assertions. Additional ordinary tests reproduce all five Figure4 anchors and the negative-tail region with the independently calculated duplicate-expanded source view, and compare every current retained pair with independently recomputed endpoint maxima.",
+    "strict_audit_command": ".\\.venv\\Scripts\\python.exe -m pytest tests/regression/test_griffiths_temporal_reference.py --runxfail -q",
+    "meaning": "Expected failures are explicit evidence-unit boundaries, not successful paper reproduction or established application defects. No scientific runtime behavior was changed."
+  }
+}

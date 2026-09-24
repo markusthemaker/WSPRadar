@@ -2104,7 +2104,7 @@ def test_json_demo_configuration_applies_complete_deterministic_state(monkeypatc
     assert session_state.val_results_time_bin_compare == "3h"
     assert session_state.val_results_time_bin_absolute == "3h"
     assert session_state.val_results_segment_time_bin_absolute == "auto"
-    assert session_state.val_start_d == date(2010, 12, 18)
-    assert session_state.val_start_t == time(0, 0)
-    assert session_state.val_end_d == date(2010, 12, 21)
-    assert session_state.val_end_t == time(0, 0)
+    assert session_state.val_start_d == date(2010, 12, 19)
+    assert session_state.val_start_t == time(12, 0)
+    assert session_state.val_end_d == date(2010, 12, 20)
+    assert session_state.val_end_t == time(20, 0)

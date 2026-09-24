@@ -674,14 +674,16 @@ not as optional follow-up work.
 ## Changelog Policy
 
 - Keep `CHANGELOG_DAILY.md` in reverse chronological order, with the newest
-  submission entry at the top.
+  dated entry at the top.
 - Record only major or significant changes that are useful at project-history
   level; omit minor styling, diagnostics and internal implementation details.
-- Consolidate work from consecutive unsubmitted days into one coherent entry
-  dated when that work is submitted to GitHub. Describe the final submitted
-  outcome rather than retaining intermediate designs that were replaced before
-  submission.
-- Preserve older submitted entries unless a factual correction is required.
+- Record each change under the current date (UTC) when the change is made.
+  Never use an `Unsubmitted` heading, consolidate changes from different days
+  under a later submission date, or redate entries when publishing to GitHub.
+  Describe the implemented outcome rather than retaining intermediate designs
+  that were replaced before completion.
+- Preserve older entries, including their historically recorded submission
+  dates, unless a factual correction is required.
 
 ## Architectural Constraints
 

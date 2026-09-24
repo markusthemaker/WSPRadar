@@ -1,0 +1,42 @@
+{
+  "method": "A second agent with no prior task context inspected only the original embedded raster; its boxes independently support the source geometry. The primary annotator had earlier exposure to application output; this is a retrospective validation.",
+  "axes": {
+    "x_min": 119,
+    "x_max": 1366,
+    "y_min": 22,
+    "y_max": 792
+  },
+  "innermost_visual_boxes_xyxy": {
+    "early_night": [
+      164,
+      552,
+      177,
+      570
+    ],
+    "morning": [
+      480,
+      377,
+      562,
+      411
+    ],
+    "evening": [
+      1045,
+      351,
+      1161,
+      446
+    ],
+    "late_night_tentative": [
+      1277,
+      550,
+      1328,
+      569
+    ]
+  },
+  "uncertainty_px": {
+    "early_night": 3,
+    "morning": 4,
+    "evening": 4,
+    "late_night_tentative": 6
+  },
+  "resolution_decision": "Retain the primary annotation rule requiring the chosen closed contour to span at least 1 hour and 1 dB. The narrow early/late innermost loops are below that resolution; primary source boxes use the next resolvable closed enclosure. Secondary reviewer identified late innermost loop as tentative due to black-dot occlusion. The main daytime boxes agree within about four pixels."
+}

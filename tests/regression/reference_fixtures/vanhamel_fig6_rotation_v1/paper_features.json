@@ -1,0 +1,94 @@
+{
+  "source": {
+    "doi": "10.1155/2022/4809313",
+    "pdf_relative_path": "tmp/publication_validation_20260923/sources/vanhamel_2022.pdf",
+    "pdf_sha256": "4c57bcf4e51f940f26174d0e60d4cb5f3b321bdb2d8b50a81fb6e3a049eb5694",
+    "printed_page": 6,
+    "pdf_page_one_based": 7,
+    "figure": 6,
+    "surrounding_text_printed_pages": [5, 6, 7]
+  },
+  "provenance": {
+    "notes_assembled_utc": "2026-09-24T17:24:55Z",
+    "independence": "The seven landmark readings and their tolerances were communicated to the parent before archive comparison values were supplied. This file was assembled afterwards without changing those readings or tolerances. Thin-line phase measurements were also computed before the comparison, although communicated afterwards.",
+    "scope": "Paper raster only; archive values are excluded from this source feature file.",
+    "precision_warning": "Coordinate transforms retain calculation precision for reproducibility, not measurement precision. Rounded amplitudes have +/-0.4 dB readout tolerance; indices have +/-5 reception tolerance."
+  },
+  "representation": {
+    "type": "embedded JPEG raster",
+    "image_file": "pdf7_image_0.jpg",
+    "view_file": "pdf7_image_0.png",
+    "width_pixels": 1313,
+    "height_pixels": 580,
+    "original_color_space": "CMYK",
+    "page_curve_count": 0,
+    "page_vector_line_count": 6,
+    "page_vector_line_purpose": "Legend swatches; the plotted traces are not vector paths.",
+    "exact_native_point_recovery": false,
+    "limitation": "Approximately 0.90 horizontal pixels per reception, thick overlapping strokes, JPEG artifacts and crossings prevent an exact recoverable native-point series."
+  },
+  "published_labels_and_caption": {
+    "station": "M7AEO",
+    "x_label": "Number of times station received",
+    "x_tick_labels": [250, 500, 750, 1000, 1250],
+    "y_label_literal": "SNR [dB/dBm]",
+    "y_tick_labels": [10, 0, -10, -20, -30, -40],
+    "legend": {"solid_blue": "ITA LWA II", "dotted_red": "Shorted dipole", "solid_black": "Difference"},
+    "difference_direction": "Visually interpreted as ITA LWA II minus adapted shorted dipole. Caption names the difference but supplies no algebraic formula.",
+    "fixed_antenna_duration_weeks": 2,
+    "first_orientation_duration_weeks": 1,
+    "second_orientation_duration_weeks": 1,
+    "rotation_measurement_point": 750,
+    "rotation_degrees": 90,
+    "rotation_plane": "horizontal",
+    "caption_semantics": "Dipole parallel to ITA through measurement point 750; rotated by 90 degrees after point 750. ITA remains fixed for two weeks.",
+    "timestamps_printed": false,
+    "exact_total_receptions_printed": false,
+    "approximate_graph_extent_receptions": [1440, 1445]
+  },
+  "pixel_calibration": {
+    "origin": "Top-left of the extracted image, zero-based pixel coordinates; x increases right, y increases down.",
+    "vertical_tick_centers_x": [227.5, 451.5, 678.0, 904.5, 1130.5],
+    "vertical_tick_pixel_ranges": [[226, 229], [450, 453], [677, 679], [903, 906], [1129, 1132]],
+    "horizontal_tick_centers_y": [2.5, 115.5, 231.5, 347.0, 460.5, 576.5],
+    "index_intercept": -0.7715895155533188,
+    "index_per_x_pixel": 1.1066798194509926,
+    "db_intercept": 10.150989948498404,
+    "db_per_y_pixel": -0.08705274859589866,
+    "dark_mask": "max(R,G,B) < 80",
+    "grey_grid_mask": "min(R,G,B) > 170 and max(R,G,B) < 245 and max(R,G,B)-min(R,G,B) < 45",
+    "zero_guide_caution": "The zero guide is dark at y approximately 115-116 and must be excluded when detecting the black trace. Dark occupied pixels there are not automatically data.",
+    "calibration_systematic_caution": "The regression zero is approximately y116.6, versus the dark guide center115.5, a roughly0.10 dB difference already covered by the unchanged +/-0.4 dB tolerance."
+  },
+  "landmark_readout_policy": {
+    "index_tolerance_receptions": 5,
+    "amplitude_tolerance_db": 0.4,
+    "method": "Visual center-of-stroke estimates, not outer antialias boundaries. Near pointed extrema, center is inferred several pixels inside the rounded stroke cap.",
+    "statistical_status": "Graphical readout tolerance, not confidence interval, measurement uncertainty, or hypothesis-test significance."
+  },
+  "black_trace_landmarks": [
+    {"name": "isolated_pre_rotation_positive", "x_pixel": 411, "y_pixel": 44, "reception_index_approx": 454, "delta_snr_db_approx": 6.3},
+    {"name": "pre_rotation_negative", "x_pixel": 638, "y_pixel": 168, "reception_index_approx": 705, "delta_snr_db_approx": -4.5},
+    {"name": "largest_positive", "x_pixel": 717, "y_pixel": 10, "reception_index_approx": 793, "delta_snr_db_approx": 9.3},
+    {"name": "adjacent_high_positive", "x_pixel": 734, "y_pixel": 19, "reception_index_approx": 812, "delta_snr_db_approx": 8.5},
+    {"name": "deepest_negative", "x_pixel": 769, "y_pixel": 191, "reception_index_approx": 850, "delta_snr_db_approx": -6.5},
+    {"name": "later_positive_1", "x_pixel": 834, "y_pixel": 33, "reception_index_approx": 922, "delta_snr_db_approx": 7.3},
+    {"name": "later_positive_2", "x_pixel": 884, "y_pixel": 30, "reception_index_approx": 978, "delta_snr_db_approx": 7.5}
+  ],
+  "thin_line_phase_diagnostics": [
+    {"x_pixel_range": [336, 338], "dark_y_pixel_range": [133, 137], "y_center": 135, "reception_index_range_approx": [371, 373], "delta_snr_db_approx": -1.6, "tolerance_db": 0.4, "interpretation": "Very short genuine flat trace; not a long plateau or period statistic."},
+    {"x_pixel": 1204, "dark_y_pixel_range": [97, 104], "y_center": 100.5, "reception_index_approx": 1332, "delta_snr_db_approx": 1.4, "tolerance_db": 0.4, "interpretation": "Isolated thin trace center; diagnostic only."}
+  ],
+  "qualitative_and_textual_features": {
+    "pre_rotation_black_band_db_approx": [-2, -1],
+    "later_black_band_db_approx": [2, 4],
+    "band_status": "Visual descriptions, not medians, means, quantiles or exact plateau amplitudes. Thick bands combine many adjacent receptions.",
+    "coherent_pattern": "Isolated positive excursion near454, negative near705, high pair near793 and812, deep negative near850, then positives near922 and978. Two antenna traces broadly co-vary through repeated fades and recoveries.",
+    "published_week_change_db_across_stations": [1, 3],
+    "published_diurnal_variation_up_to_db": 22,
+    "text_scope": "Printed page7 attributes a step-up at point750 to the rotation and describes day/night variation. It does not provide a numerical mean step for M7AEO or dates on the plot.",
+    "reported_correction_db": 1.2,
+    "correction_prose_reference": "Printed page5 says the1.2 dB correction factor is applied to all SNR values in the antenna-performance comparison; preceding calibration text says the receiver-chain difference is taken into account in later comparisons.",
+    "unsupported_claims": ["An exact3 dB M7AEO step", "Published medians or IQR", "Published statistical outlier flags or thresholds", "Exact native trace sample count", "Exact timestamps or raw spot identifiers", "Precisely recoverable full plotted trace", "A figure-specific correction of1.573591164 dB"]
+  }
+}

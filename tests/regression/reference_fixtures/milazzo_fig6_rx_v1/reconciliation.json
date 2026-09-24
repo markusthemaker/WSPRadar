@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "established_on": "2026-09-24",
+  "source_article": "https://www.qsl.net/kp4md/wspr.htm",
+  "caption_claimed_receiver": "VE6PDQ",
+  "matched_transmitter": "VE6PDQ",
+  "matched_receivers": [
+    "KP4MD",
+    "WB6RQN"
+  ],
+  "direction_evidence": "44 unique raw-report matches: 31 KP4MD plus 13 WB6RQN; all annotated SNRs exact, maximum time-readout residual 120 seconds",
+  "time_readout_tolerance_seconds": 240,
+  "snr_readout_tolerance_db": 0.25,
+  "fitted_time_shift_seconds": 0,
+  "fitted_snr_offset_db": 0,
+  "original_caption_status": "Contradicted by all 44 matched observations; likely direction-labelling error. Figure 7 swap not established.",
+  "paper_feature_receiver_field": "Original printed claim only; not the verified observation direction",
+  "user_provenance": {
+    "kp4md": "34 40m rows transcribed from inline user table; unrelated 20m rows omitted",
+    "wb6rqn": "Complete original 52-row attachment Eingefügter Text.txt copied byte for byte",
+    "access": "User supplied wspr.rocks results. No successful independent live-provider retrieval in this side conversation.",
+    "upstream_spot_ids_available": false
+  },
+  "mode_policy": "Unknown displayed mode retained as null code; legacy SQL replay only, no invented code=0 observation",
+  "power_policy": "Displayed nominal 5 W represented by WSPR 37 dBm; SQL normalizes to 30 dBm, so raw-SNR paper comparison restores exactly 7 dB",
+  "coordinates": "Independently decoded centers of the supplied four/six character locators; not original provider coordinate values",
+  "population_limit": "Supplied single-transmitter path subset. Global receiver activity from other transmitters is not available.",
+  "pairing_policy": "Exact cycle, full callsign and full locator; graphical timestamp tolerance is never used to form pairs",
+  "source_sha256": {
+    "user_kp4md_40m_rows.csv": "6588859d04c31949955279a818ff80026939c6fc39ea2ebc847f12cd01fee217",
+    "user_wb6rqn_reports.tsv": "159f1a4a1a9832188a2625595e3962b03a2d38418b19319f6c5d95c5b2164c05",
+    "paper_markers.csv": "c61521781c2bbcf765f93c70489e595aee15492f455ea19b4ca9368e399f1bac",
+    "paper_features_original.json": "19b0b55065cc1cb66b166574fb2956f81849ea66e0b7706ddb74986655cad51a"
+  }
+}

@@ -15,6 +15,7 @@ from contextlib import nullcontext
 import numpy as np
 import pandas as pd
 
+from core.callsign_filters import build_peer_callsign_exclusion_sql
 from core.input_validation import (
     is_valid_callsign,
     is_valid_locator,
@@ -258,11 +259,9 @@ def build_absolute_opportunity_query(
         peer_sign = "rx_sign"
         peer_grid = "rx_loc"
 
-    peer_exclusions = ""
-    if exclude_special_callsigns:
-        peer_exclusions = " " + " ".join(
-            f"AND {peer_sign} NOT LIKE '{prefix}%'" for prefix in ("Q", "0", "1")
-        )
+    peer_exclusions = build_peer_callsign_exclusion_sql(
+        mode=mode, exclude_special_callsigns=exclude_special_callsigns,
+    )
     schedule_filter = ""
     has_repeat_interval = target_repeat_interval_minutes is not None
     has_start_minute = target_start_minute_utc is not None

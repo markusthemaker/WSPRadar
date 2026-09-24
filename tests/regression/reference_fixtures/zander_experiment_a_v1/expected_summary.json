@@ -1,0 +1,35 @@
+{
+  "derivation": "Standard-library calculation from raw reports; no WSPRadar imports or result inputs",
+  "source_rows": 731,
+  "selected_source_rows": 730,
+  "source_code_counts": {
+    "1": 730,
+    "4": 1
+  },
+  "sql_group_count": 564,
+  "target_active_cycles": 14,
+  "retained_group_count": 457,
+  "outcomes": {
+    "target_only": 36,
+    "reference_only": 255,
+    "joint": 166
+  },
+  "retained_peer_identities": 85,
+  "joint_spots": 166,
+  "paired_peer_identities": 37,
+  "paired_cycles": 12,
+  "mean_delta_snr_db": -6.783132530120482,
+  "sample_std_delta_snr_db": 3.51463845382668,
+  "median_delta_snr_db": -7.0,
+  "q1_delta_snr_db": -9.0,
+  "q3_delta_snr_db": -4.0,
+  "min_delta_snr_db": -17,
+  "max_delta_snr_db": 4,
+  "negative_pairs": 162,
+  "zero_pairs": 2,
+  "positive_pairs": 2,
+  "pairs_1500_to_2000_km": 75,
+  "pairs_southwest_quadrant": 147,
+  "duplicate_endpoint_groups": 0,
+  "station_median_mean_db": -6.054054054054054
+}

@@ -1,0 +1,6 @@
+SELECT *
+FROM (
+SELECT floor(toUnixTimestamp(time)/120) AS time_slot, peer_sign, peer_grid, any(peer_lat) AS peer_lat, any(peer_lon) AS peer_lon, maxIf(snr - power + 30, is_me = 1) AS snr_u_norm, maxIf((snr - power + 30 + 0.0), is_me = 0) AS snr_r_norm, countIf(is_me = 1) AS has_u, countIf(is_me = 0) AS has_r, argMaxIf(local_sign, (snr - power + 30 + 0.0), is_me = 0) AS best_ref_sign, argMaxIf(local_dist, (snr - power + 30 + 0.0), is_me = 0) AS best_ref_dist FROM (SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, 0.0 AS local_dist, snr, power, 1 AS is_me FROM wspr.rx WHERE tx_sign = 'KP4MD' AND substring(tx_loc, 1, 4) = 'CM98' AND band = '7' AND time >= '2010-12-18 00:00:00' AND time < '2010-12-21 00:00:00' AND code = 1 AND rx_lat != 0 UNION ALL SELECT time, rx_sign AS peer_sign, rx_loc AS peer_grid, rx_lat AS peer_lat, rx_lon AS peer_lon, tx_sign AS local_sign, tx_loc AS local_grid, geoDistance(-121.0, 38.5, tx_lon, tx_lat) AS local_dist, snr, power, 0 AS is_me FROM wspr.rx WHERE tx_sign = 'WB6RQN' AND substring(tx_loc, 1, 4) = 'CM98' AND band = '7' AND time >= '2010-12-18 00:00:00' AND time < '2010-12-21 00:00:00' AND code = 1 AND rx_lat != 0) GROUP BY time_slot, peer_sign, peer_grid
+)
+LIMIT 1000001
+FORMAT CSVWithNames

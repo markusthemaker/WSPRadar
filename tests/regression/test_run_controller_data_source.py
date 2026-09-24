@@ -42,6 +42,7 @@ from core.run_data_preparation import (
     ProviderBundlePreparationError,
 )
 from core.result_diagnostics import (
+    NO_TARGET_MODE_EVIDENCE,
     PERFORMANCE_NO_ELIGIBLE_STATION,
     ResultDiagnostic,
 )
@@ -222,6 +223,23 @@ def _analysis(analysis_id, title):
             absolute_method_version="opportunity-v2",
         )
     return analysis
+
+
+def test_blocked_mode_fallback_message_survives_diagnostic_restore_and_language_change():
+    diagnostic = ResultDiagnostic.create(
+        NO_TARGET_MODE_EVIDENCE, measured_counts={"source_row_count": 4},
+    )
+    restored = ResultDiagnostic.from_dict(diagnostic.to_dict())
+    analysis = _analysis("RX_COMP", "Compare")
+    for language in ("en", "de", "en"):
+        message = run_controller._format_result_diagnostic_warning(T[language], analysis, restored)
+        assert message == T[language]["warn_no_target_mode_evidence"]
+        assert "WSPR-2" in message
+        assert "`code = 1`" in message
+        assert "2022 (UTC)" in message
+    assert T["en"]["warn_no_target_mode_evidence"].startswith(
+        "No reports for the Target matched the required **WSPR-2 mode filter**"
+    )
 
 
 def _completed_no_data_snapshot(run_id=77):

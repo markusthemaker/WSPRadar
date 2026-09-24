@@ -14,6 +14,8 @@ from core.analysis_runner import (
     DECODE_FILTER_LEGACY,
     DECODE_FILTER_STRICT,
     apply_post_fetch_filters,
+    allows_legacy_decode_fallback,
+    has_target_evidence,
     should_retry_without_decode_filter,
 )
 from core.artifact_store import ARTIFACT_STORE, write_parquet_artifact
@@ -31,6 +33,7 @@ from core.performance_timer import PerformanceTimer
 from core.provider_dispatch import ProviderRunLease
 from core.result_diagnostics import (
     NO_SOURCE_ROWS,
+    NO_TARGET_MODE_EVIDENCE,
     SOURCE_ROWS_FILTERED_OUT,
     ResultDiagnostic,
     applied_thresholds_for_analysis,
@@ -367,22 +370,34 @@ def prepare_provider_bundle(
             # otherwise FetchResult retains the complete raw frame until staging.
             fetch_result.dataframe = None
 
-            if frame is None or frame.empty:
+            is_mode_fallback_blocked = (
+                analysis.decode_filter_mode == DECODE_FILTER_STRICT
+                and not allows_legacy_decode_fallback(analysis)
+                and not has_target_evidence(frame, analysis)
+            )
+            if is_mode_fallback_blocked or frame is None or frame.empty:
                 prepared_analyses.append(PreparedAnalysisData(
                     analysis=analysis,
                     artifact_path=None,
-                    warning_message=labels["warn_no_data"].format(
+                    warning_message=labels.get(
+                        "warn_no_target_mode_evidence"
+                        if is_mode_fallback_blocked else "warn_no_data",
+                        labels["warn_no_data"],
+                    ).format(
                         title=analysis["title"]
                     ),
                     query_fetches=tuple(query_fetches),
                     profile_timer=profile_timer,
                     diagnostic=ResultDiagnostic.create(
-                        NO_SOURCE_ROWS,
+                        NO_TARGET_MODE_EVIDENCE
+                        if is_mode_fallback_blocked else NO_SOURCE_ROWS,
                         applied_thresholds=applied_thresholds_for_analysis(
                             analysis,
                             analysis_context,
                         ),
-                        measured_counts={"source_row_count": 0},
+                        measured_counts={
+                            "source_row_count": 0 if frame is None else int(len(frame)),
+                        },
                     ),
                 ))
                 continue

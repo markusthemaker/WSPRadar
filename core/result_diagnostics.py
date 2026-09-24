@@ -7,6 +7,7 @@ from typing import Mapping
 
 
 NO_SOURCE_ROWS = "no_source_rows"
+NO_TARGET_MODE_EVIDENCE = "no_target_mode_evidence"
 SOURCE_ROWS_FILTERED_OUT = "source_rows_filtered_out"
 PERFORMANCE_NO_ELIGIBLE_STATION = "performance_no_eligible_station"
 PERFORMANCE_NO_QUALIFYING_SEGMENT = "performance_no_qualifying_segment"
@@ -14,6 +15,7 @@ BENCHMARK_NO_QUALIFYING_RESULT = "benchmark_no_qualifying_result"
 
 RESULT_DIAGNOSTIC_REASONS = frozenset({
     NO_SOURCE_ROWS,
+    NO_TARGET_MODE_EVIDENCE,
     SOURCE_ROWS_FILTERED_OUT,
     PERFORMANCE_NO_ELIGIBLE_STATION,
     PERFORMANCE_NO_QUALIFYING_SEGMENT,
@@ -110,6 +112,11 @@ class ResultDiagnostic:
         """Reject incomplete or internally contradictory diagnostic evidence."""
         thresholds = dict(self.applied_thresholds)
         counts = dict(self.measured_counts)
+
+        if self.reason == NO_TARGET_MODE_EVIDENCE:
+            if "source_row_count" not in counts:
+                raise ValueError("no_target_mode_evidence requires source_row_count")
+            return
 
         if self.reason == NO_SOURCE_ROWS:
             if counts.get("source_row_count") != 0:

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "choices_frozen_before_first_comparison": true,
+  "retrospective": true,
+  "feature_interpretation": "occupied_region_witness",
+  "histogram_time_bins": [
+    "3h",
+    "24h"
+  ],
+  "native_pixel_allowance": "sum_source_manual_and_axis_bounds",
+  "native_comparison": "At least one actual production paired observation must lie inside each externally selected pixel rectangle expanded by its manual-edge plus axis-readout bounds. Negative-tail witnesses must also have Delta SNR strictly below -15 dB. No histogram half-bin allowance is applied to native observations.",
+  "histogram_comparison": "Actual production chronological cells intersecting the expanded source region must have nonzero total count in both 3h and 24h profiles. Native membership is additionally required, so a coarse cell cannot provide the only witness.",
+  "negative_tail_strict_upper_db": -15,
+  "daily_mean_trend": {
+    "whole_window_utc": [
+      "2017-04-01T00:00Z",
+      "2017-04-16T00:00Z"
+    ],
+    "early_window_utc": [
+      "2017-04-01T00:00Z",
+      "2017-04-04T00:00Z"
+    ],
+    "late_window_utc": [
+      "2017-04-13T00:00Z",
+      "2017-04-16T00:00Z"
+    ],
+    "assertions": [
+      "OLS slope of 15 daily arithmetic means is positive",
+      "Arithmetic average of last three daily means exceeds first three"
+    ],
+    "meaning": "Qualitative operationalization of the source first-half daily-average trend, not a published exact slope, significance test or monotonicity claim."
+  },
+  "daily_mean_computation": "Full-range production 24h histogram count-weighted integer-dB centres; no truncation at paper plot bounds. Pooled pairs within each UTC day; equal weighting of daily means for trend.",
+  "figure4_mean_anchors": [
+    "isolated_april_06",
+    "isolated_april_13",
+    "isolated_april_15",
+    "first_half_daily_mean_minimum",
+    "first_half_daily_mean_maximum"
+  ],
+  "figure4_mean_comparison": "Require the three uniquely moisture-matched UTC daily means and the first-half min/max daily means within source-only intervals. Extrema avoid ambiguous daily assignments. Figure4 maximum repeats the April15 point and is not independent evidence.",
+  "extra_population_tolerance_db": 0,
+  "excluded_inferences": [
+    "Exact medians or IQR from Figure3",
+    "Global/local statistical modes from black ink",
+    "Calibrated density ratios or counts from darkness",
+    "Exact event minimum or outlier-detector classification",
+    "Exact daily spot-count tolerance from about 2000",
+    "Daily recurrence phase/amplitude",
+    "Causal soil-moisture attribution"
+  ],
+  "failure_policy": "Keep source geometry and readout bounds fixed. Retain the first comparison, report a discrepancy and investigate population/time/weighting differences. Never refresh expectations from the application or widen bounds to obtain a pass."
+}

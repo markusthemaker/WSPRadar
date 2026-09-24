@@ -1,0 +1,87 @@
+{
+  "status": "All paper features matched on first comparison; no source/tolerance changes",
+  "joint_spots": 166,
+  "mean_db": -6.783132530120482,
+  "sample_standard_deviation_db": 3.51463845382668,
+  "regions": [
+    {
+      "lower_db": -17.0,
+      "upper_db": -14.9,
+      "count": 2,
+      "density_per_db": 0.005737234652897304,
+      "paper_density_per_db": 0.005859049748909245,
+      "absolute_difference": 0.0001218150960119414
+    },
+    {
+      "lower_db": -14.9,
+      "upper_db": -12.8,
+      "count": 8,
+      "density_per_db": 0.022948938611589215,
+      "paper_density_per_db": 0.02301897906412545,
+      "absolute_difference": 7.004045253623456e-05
+    },
+    {
+      "lower_db": -12.8,
+      "upper_db": -10.7,
+      "count": 16,
+      "density_per_db": 0.045897877223178396,
+      "paper_density_per_db": 0.046006808901490545,
+      "absolute_difference": 0.00010893167831214912
+    },
+    {
+      "lower_db": -10.7,
+      "upper_db": -8.6,
+      "count": 27,
+      "density_per_db": 0.0774526678141136,
+      "paper_density_per_db": 0.07741271727084852,
+      "absolute_difference": 3.995054326508263e-05
+    },
+    {
+      "lower_db": -8.6,
+      "upper_db": -6.5,
+      "count": 33,
+      "density_per_db": 0.09466437177280551,
+      "paper_density_per_db": 0.09457264658606472,
+      "absolute_difference": 9.172518674079033e-05
+    },
+    {
+      "lower_db": -6.5,
+      "upper_db": -4.4,
+      "count": 31,
+      "density_per_db": 0.08892713711990821,
+      "paper_density_per_db": 0.08906851831514631,
+      "absolute_difference": 0.00014138119523809944
+    },
+    {
+      "lower_db": -4.4,
+      "upper_db": -2.3,
+      "count": 34,
+      "density_per_db": 0.09753298909925413,
+      "paper_density_per_db": 0.09748659684713917,
+      "absolute_difference": 4.639225211496012e-05
+    },
+    {
+      "lower_db": -2.3,
+      "upper_db": -0.2,
+      "count": 11,
+      "density_per_db": 0.031554790590935175,
+      "paper_density_per_db": 0.0314370575961183,
+      "absolute_difference": 0.00011773299481687705
+    },
+    {
+      "lower_db": -0.2,
+      "upper_db": 4.0,
+      "count": 4,
+      "density_per_db": 0.005737234652897303,
+      "paper_density_per_db": 0.005859049748909245,
+      "absolute_difference": 0.00012181509601194226
+    }
+  ],
+  "aggregation_diagnostics": {
+    "paired_receiver_identities": 37,
+    "mean_of_receiver_medians_db": -6.054054054054054,
+    "cycle_mean_count": 12,
+    "mean_of_cycle_means_db": -6.71214145117009,
+    "sample_sd_of_cycle_means_db": 0.9770512209993025
+  }
+}

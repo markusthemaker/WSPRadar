@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "source": {
+    "title": "Using the WSPR Mode for Antenna Performance Evaluation and Propagation Assessment on the 160-m Band",
+    "authors": ["Jurgen Vanhamel", "Walter Machiels", "Herve Lamy"],
+    "publication_year": 2022,
+    "doi": "10.1155/2022/4809313",
+    "url": "https://doi.org/10.1155/2022/4809313",
+    "source_pdf_sha256": "4c57bcf4e51f940f26174d0e60d4cb5f3b321bdb2d8b50a81fb6e3a049eb5694",
+    "page_numbering": "Printed article page N is PDF page N+1 in the TU Delft repository copy because of its cover page.",
+    "evidence_location": "Section 3 and Figure 1, printed page 3; calibration narrative in Section 4, printed pages 4-5."
+  },
+  "published_calibration": {
+    "first_measurement_duration_days": 7,
+    "first_measurement_consecutive": true,
+    "confirmation_measurement_duration_days": 7,
+    "confirmation_timing": "A later separate period; no calendar dates or gap given.",
+    "antenna_setup": "Both RTL receiver chains connected to one ITA LWA II 20 m long-wire antenna through a -6 dB splitter.",
+    "receiver_conditions": "Same computer and WSJT settings, hardware and audio AGC disabled, matched 25 m coaxial cables, chokes, and VNA-matched band-pass filters.",
+    "station_reception_threshold_exclusive": 50,
+    "station_threshold_wording": "More than 50 receptions during the seven-day calibration; exact pairing and counting procedure not specified.",
+    "average_difference_magnitude_db": 1.2,
+    "statistic_wording": "Average difference or average deviation; not identified as a median.",
+    "signed_receiver_identity_mapping_published": false,
+    "calendar_endpoints_published": false,
+    "averaging_weights_published": false,
+    "uncertainty_published": false,
+    "raw_data_publicly_included": false
+  },
+  "comparison_policy": {
+    "mean_rounding_interval_db": [1.15, 1.25],
+    "lower_inclusive": true,
+    "upper_inclusive": false,
+    "rounding_assumption": "Conventional nearest-one-decimal comparison band around the displayed 1.2 dB average. This is a declared comparison policy, not published measurement uncertainty or a confidence interval.",
+    "archive_statistic": "Pooled same-transmitter/full-locator/same-120-second-cycle ON4AWM0 minus ON4AWM1 SNR differences after fixed demo eligibility.",
+    "direction_basis": "The signed Target-minus-Reference direction is defined by the archive reconstruction; the paper does not identify a signed offset for the named receiver callsigns.",
+    "demo_threshold_inclusive": 50,
+    "threshold_relation": "Paper literally specifies >50; demo uses >=50. The frozen independent archive calculation confirms no peer identity has exactly 50 joint observations, so both thresholds select the same peers for this corpus.",
+    "population_boundary": "The chosen February 6-13, 2021 seven-day archive window is not independently authenticated as either original seven-day publication dataset.",
+    "independent_expected_values": "Exact archive counts, means, medians, quartiles, sample spread, per-station values, histogram and temporal cells are calculated from frozen raw reports, not inferred from the paper's rounded 1.2 dB value.",
+    "temporal_policy": "Seven 24-hour intervals anchored to the chosen window start at 06:00 UTC. The publication does not provide this temporal curve."
+  },
+  "excluded_as_calibration_anchors": [
+    "Figures 5-7 compare separate antennas and their orientations; they do not publish common-input calibration timestamps.",
+    "Figures 8-9 and Table 1 concern two separate perpendicular shorted dipoles and an approximately 3 dB orientation difference, not the 1.2 dB receiver-chain calibration.",
+    "Generic UTC WSPR protocol timing does not establish calendar endpoints for the calibration."
+  ]
+}

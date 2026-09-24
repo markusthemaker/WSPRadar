@@ -1,10 +1,25 @@
 import pytest
 
 from core.result_diagnostics import (
+    NO_TARGET_MODE_EVIDENCE,
     PERFORMANCE_NO_ELIGIBLE_STATION,
     PERFORMANCE_NO_QUALIFYING_SEGMENT,
     ResultDiagnostic,
 )
+
+
+@pytest.mark.parametrize("source_row_count", [0, 10])
+def test_no_target_mode_diagnostic_round_trips_empty_or_supporting_rows(source_row_count):
+    diagnostic = ResultDiagnostic.create(
+        NO_TARGET_MODE_EVIDENCE,
+        measured_counts={"source_row_count": source_row_count},
+    )
+    assert ResultDiagnostic.from_dict(diagnostic.to_dict()) == diagnostic
+
+
+def test_no_target_mode_diagnostic_requires_a_measured_source_count():
+    with pytest.raises(ValueError, match="source_row_count"):
+        ResultDiagnostic.create(NO_TARGET_MODE_EVIDENCE)
 
 
 def test_result_diagnostic_round_trip_preserves_applied_thresholds_and_counts():

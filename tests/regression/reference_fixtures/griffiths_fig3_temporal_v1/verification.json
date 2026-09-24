@@ -1,0 +1,47 @@
+{
+  "checked_on": "2026-09-24",
+  "status": "PASS",
+  "checks": {
+    "paired_rows": {
+      "rows": 57767,
+      "keys_utc_target_snr_reference_snr_delta": "exact match"
+    },
+    "temporal_summary_rows": {
+      "24h": 30,
+      "3h": 240,
+      "utc_hour": 24,
+      "count_median_q1_q3": "exact match"
+    },
+    "density_cells": {
+      "cells": 20580,
+      "counts": "exact match"
+    },
+    "chronological_axes": "bin edges and centres exact match",
+    "folded_axes": "edges0..24 and centres0.5..23.5 exact match",
+    "folded_invariance": "entire numeric profile identical for selected chronological24h and3h",
+    "means": {
+      "scope": "Ancillary comparison to pandas; means are not stored by production temporal recipe",
+      "max_abs_difference_db": 1.7763568394002505e-15
+    },
+    "sparse_3h_bin": {
+      "bin_index": 160,
+      "start_utc": "2017-04-21T00:00:00Z",
+      "end_utc": "2017-04-21T03:00:00Z",
+      "count": 2,
+      "median_db": 0.5,
+      "q1_db": -0.25,
+      "q3_db": 1.25,
+      "rendering_note": "Below production IQR minimum count5. Numeric quartiles exist but IQR rail should not display."
+    }
+  },
+  "code_changed": false,
+  "test_module_added": false,
+  "method": "Separate standard-library expected calculations compared with current production paired-evidence and temporal-profile functions; existing frozen data only, no live provider request.",
+  "verified_source_sha256": {
+    "ui/inspector/evidence_data.py": "d6683b1c78fb94d0086511e40984a707f0bea8381b7ada8db708189453db1c10",
+    "ui/inspector/preparation.py": "b84a33d859b78d1b4e349c074b068113338306c1aaaeb551f4f4973325829d55",
+    "ui/plots/evidence_figures.py": "f2cc186cb6d524695a5718a5c25555ec0912da31b8e5020b6a0ba4ec0fac2a47",
+    "core/compare_engine.py": "1850af152298489ac31f878c1573b5973f4136439048b442145b5d7d92db3852",
+    "core/analysis_runner.py": "622ea8fbe914d2d68433671c81da255c9f6a98699052f8191c1441d2580c3a3d"
+  }
+}

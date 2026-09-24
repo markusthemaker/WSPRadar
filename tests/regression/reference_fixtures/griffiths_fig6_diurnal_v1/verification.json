@@ -1,0 +1,55 @@
+{
+  "date": "2026-09-24",
+  "stage": "Independent fixture derivation before integrated pytest execution",
+  "pytest_executed_by_fixture_builder": false,
+  "sql_executed_by_fixture_builder": false,
+  "raw_source_rows": 18791,
+  "accepted_raw_rows": 18791,
+  "raw_code_counts": {
+    "0": 18791
+  },
+  "independent_sql_groups": 12290,
+  "captured_sql_groups": 12290,
+  "group_key_count_normalized_snr_mismatches": 0,
+  "duplicate_endpoint_groups": 20,
+  "source_coordinate_ambiguities": 0,
+  "target_locator_center": {
+    "latitude_degrees": 50.9375,
+    "longitude_degrees": -1.375
+  },
+  "independent_radius_km": 6371.0,
+  "minimum_distance_from_10000km_boundary_km": 1543.6406100769473,
+  "pipeline": {
+    "input_sql_rows": 12290,
+    "processed_rows": 12148,
+    "station_rows": 279,
+    "outcomes": {
+      "joint": 6459,
+      "target_only": 4090,
+      "reference_only": 1599
+    }
+  },
+  "wide_pipeline": {
+    "input_sql_rows": 12290,
+    "processed_rows": 12185,
+    "station_rows": 287,
+    "outcomes": {
+      "joint": 6474,
+      "target_only": 4111,
+      "reference_only": 1600
+    }
+  },
+  "prior_headless_production_analysis": {
+    "date": "2026-09-24",
+    "artifact_sha256": "380054f3e0f671c2ea8ffea18724d8fd527337c481c1239a7bee17596a47a24e",
+    "compared_after_independent_derivation": true,
+    "summary_bins_exactly_matched": 135,
+    "note": "This comparison reuses the separately completed headless production analysis; it is not an integrated pytest result. Wider-scope production replay is left to integration verification."
+  },
+  "one_off_derivation": {
+    "script": "tmp/build_griffiths_fig6_reference_20260924.py",
+    "sha256": "d590a597b2e2ffdbd4bed285548bb933ca8d7fda2ea9ed7812010f3baaabea68",
+    "imports_wspradar_modules": false,
+    "required_by_regression_tests": false
+  }
+}

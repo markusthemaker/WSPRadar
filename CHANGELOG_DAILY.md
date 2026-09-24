@@ -1,8 +1,218 @@
 # WSPRadar Daily Changelog
 
-This changelog summarizes major project changes by GitHub submission date (UTC), with the newest entry first. It is grouped by submission rather than by version because early version labels were not yet stable; work completed across several unsubmitted days is consolidated under the date on which it is submitted.
+This changelog summarizes major project changes by the date of the change (UTC), with the newest entry first. It is grouped by date rather than by version because early version labels were not yet stable. Record each new change under the current date when it is made, without an "Unsubmitted" heading or redating it when it is submitted to GitHub. Older entries retain the submission dates recorded under the previous policy.
 
-## Unsubmitted
+## 2026-09-24
+
+- **Milazzo overlay gate visibility and publication window:** added an outer
+  charcoal ring to each Figure 6/7 endpoint report that passes the
+  Target-Active Gate in the captured source: 39/44 RX and 58/76 TX reports.
+  Colored SQL rings and all pre-gate observations remain visible; the lower
+  panels retain five RX pairs and one TX pair. Per-report and matched-anchor
+  gate flags are checked against independent raw-source cycle witnesses,
+  keeping full-locator pairing separate and documenting the RX path-only
+  activity limit. The installed demo now uses the user-selected publication
+  window, 19 December 2010 12:00–20 December 2010 20:00 UTC; its descriptive
+  totals are corrected to 988 Only Target, 45 Joint and 21 Only Reference,
+  including VE6PDQ's 56 Target-only reports and one Joint pair. The broader
+  three-day scientific fixture and independent paper anchors are preserved.
+  Trace: [gate overlay semantics](tests/regression/reference_fixtures/milazzo_publication_overlays_v1/README.md),
+  [builder](scripts/build_milazzo_publication_overlays.py), and
+  [regression](tests/regression/test_milazzo_reference.py).
+
+- **Milazzo publication overlays:** added original Figure 6/7 rasters and
+  separate RX/TX overlays of freshly executed SQL components, with lower
+  panels for the eligible paired differences. Figure 6 matches all 44 markers;
+  Figure 7 matches 47 compact image-derived anchors at common 37 dBm power,
+  supporting reversed printed direction labels. All 76 TX reports in the
+  plotted interval are overlaid, including one archive-only point explicitly
+  flagged at 19 December 13:38 UTC. Overlapping markers are not claimed as
+  independently resolved. No scientific runtime or demo settings changed.
+  The reference now requires both original figures and overlays during pytest,
+  checks all 44 RX and 76 TX overlay reports against frozen source arithmetic,
+  and adds a Figure 7 oracle for all 47 independent anchors. Negative controls
+  reject shifted SNR, wrong reference power, exchanged series and a missing
+  extreme observation. The extra archive report and distinct-cycle overlap
+  remain explicit rather than being treated as paper matches.
+  Trace: [overlay artifacts and limits](tests/regression/reference_fixtures/milazzo_publication_overlays_v1/README.md),
+  [reproducible builder](scripts/build_milazzo_publication_overlays.py).
+
+- **Milazzo Figure 6 direction reconciliation:** user-supplied wspr.rocks
+  reports match all 31 blue and 13 red markers as VE6PDQ transmissions received
+  by KP4MD and WB6RQN, contradicting the figure's printed direction. All SNRs
+  match exactly within the original graphical time tolerance. Added a separate
+  RX fixture and production-SQL/component checks; retained the TX fixture and
+  installed demo settings, and corrected the demo's unresolved-comparison text.
+  Regression preserves five full-locator pairs (+8, +17, +22, +7, +7 dB),
+  distinguishes three same-cycle coarse/fine-locator mismatches, and rejects
+  receiver reversal and SNR shifts. Graphical time tolerance never relaxes
+  cycle pairing, unknown mode codes are not invented, and the supplied path
+  subset is not presented as complete global receiver activity. The prior TX
+  audit remains as historical evidence, with its superseded conclusion explicit.
+  The later user-supplied TX tables also match all 89 captured VE6PDQ receptions
+  (63 KP4MD and 26 WB6RQN); both inputs are frozen and checked without inferring
+  mode codes or treating a second archive view as an independent measurement.
+  Trace: [RX reconciliation and scope](tests/regression/reference_fixtures/milazzo_fig6_rx_v1/README.md),
+  [independent builder](scripts/build_milazzo_rx_reference_fixture.py), and
+  [regression](tests/regression/test_milazzo_reference.py).
+
+- **Milazzo TX reference and complete non-joint audit:** updated the demo
+  description to its configured 5,000 km population: 1,069 Only Target,
+  45 Joint and 21 Only Reference receiver-cycles. Froze all 1,992 raw reports
+  with independently calculated power normalization, global Target-Active
+  Gate witnesses, exclusion reasons and every retained/non-joint observation.
+  The offline regression executes generated SQL and production filtering,
+  station aggregation, Inspector selection, Drill-Down and three-hour
+  coverage preparation. VE6PDQ's only pair is hand-checkable at -2 dB;
+  its other retained observations are 62 Only Target reports. The separate
+  publication audit includes all 89 VE6PDQ archive reports and all 44
+  independently digitized Figure 6 markers. Its 18 temporal candidates do
+  not reconcile in SNR under the checked raw/declared-power interpretations;
+  publication reproduction was initially unresolved and is now reconciled in
+  the reciprocal RX direction as documented above. Runtime scientific
+  calculations and demo settings are unchanged.
+  Trace: [fixture and scope](tests/regression/reference_fixtures/milazzo_tx_reference_v1/README.md),
+  [publication mapping](tests/regression/reference_fixtures/milazzo_tx_reference_v1/publication_mapping.md),
+  [independent builder](scripts/build_milazzo_reference_fixture.py), and
+  [regression](tests/regression/test_milazzo_reference.py).
+
+- **Vanhamel Figure 6 rotation regression and overlay:** reconciled the M7AEO
+  paired Delta-SNR trace with seven independently read published peaks and
+  troughs, retaining the original graphical tolerances. The rotation demo now
+  uses +1.6 dB Reference correction, with links to the authors' calibration
+  and receiver-correction instructions and an explicit distinction from the
+  paper's stated 1.2 dB. The fixture includes the overlay PNG, source raster,
+  source provenance and 12,545 frozen reports. A separate standard-library
+  calculation supplies exact expectations for 1,441 paired observations,
+  twenty reception slices, before/after summaries and all 28 twelve-hour
+  chart bins. Regression executes production SQL, post-fetch filtering,
+  Inspector pairing and Selected Station Evidence preparation, and rejects
+  wrong corrections, reversed subtraction, clipped extremes and shifted
+  reception order. Scientific runtime calculations are unchanged. Git preserves
+  frozen fixture bytes without line-ending conversion so manifest checksums
+  remain valid after checkout on different platforms.
+  Trace: [fixture and overlay](tests/regression/reference_fixtures/vanhamel_fig6_rotation_v1/README.md),
+  [independent builder](scripts/build_vanhamel_rotation_reference_fixture.py), and
+  [regression](tests/regression/test_vanhamel_rotation_reference.py).
+
+- **Vanhamel RX calibration paper baseline:** updated the calibration demo to
+  2021-02-06 06:00–2021-02-13 06:00 UTC and documented its status as a seven-day
+  archive reconstruction consistent with the paper, whose exact calibration
+  dates are unpublished. A mandatory offline fixture independently derives
+  1,143 qualifying pairs from ten transmitter identities, pooled mean
+  +1.2143482064741906 dB and station medians +1.0 dB. Regression executes actual
+  generated SQL over frozen source rows, then production filtering, threshold,
+  pairing, histogram and daily median/IQR/density preparation. Separate paper
+  and exact archive guards reject shifts to displayed 1.3/1.4 dB, incorrect
+  date-boundary inclusion and changes concealed by rounding. The bounded SQL
+  adapter is shared with the existing Zander regression; application
+  calculations remain unchanged.
+  Trace: [fixture and provenance](tests/regression/reference_fixtures/vanhamel_rx_calibration_v1/README.md),
+  [independent builder](scripts/build_vanhamel_reference_fixture.py), and
+  [regression](tests/regression/test_vanhamel_calibration_reference.py).
+
+- **Zander Experiment A external histogram regression:** added independently
+  digitized Figure 4 mean/spread and nine visible density regions, with source
+  tolerances frozen before comparison. A separate standard-library reference
+  reconstructs 166 Joint receiver-cycles from 731 frozen reports. Mandatory
+  tests execute generated aggregation SQL through a bounded SQLite adapter,
+  then the production filtering, station/paired evidence and Segment Insight
+  histogram path; every paired component, 1 dB count and rendered percentage
+  is checked. All paper features pass without retuning. The publication's
+  incomplete selectors and sample-unit notation remain explicit; this does
+  not claim native ClickHouse engine validation or calibrated antenna gain.
+  Trace: [paper fixture](tests/regression/reference_fixtures/zander_fig4_paper_v1/README.md),
+  [archive reference](tests/regression/reference_fixtures/zander_experiment_a_v1/README.md)
+  and [regression](tests/regression/test_zander_experiment_a_reference.py).
+
+- **Strongest-report SNR policy clarified:** documented the accepted decision
+  to retain strongest qualifying normalized SNR, one observation per existing
+  cycle/path, the conditional replica/spur rationale and WsprDaemon's best-SNR
+  reporting precedent in both manuals. Existing Local Median and Sequential
+  A/B reductions remain explicit. Preserved the median sensitivity review and
+  recorded the limits of Figure 3/6 reconciliation: report weighting explains
+  selected differences before time aggregation, without proving physical
+  artifacts or complete paper reproduction. Runtime and fixture expectations
+  are unchanged; README is regenerated from the English manual.
+  Trace: [policy decision](docs/duplicate_report_snr_policy.md)
+  and [manual Section 7.2](README.md#sec-7-2).
+
+- **External Figure 3 temporal reference and duplicate reconciliation:** added
+  frozen paper-derived occupied regions, a daily-average trend and five
+  Figure 4 mean anchors. The initial comparison exposed a meaningful evidence
+  unit difference: retaining duplicate report combinations reproduces the
+  paper's April 16 negative plume and April 13 mean, while WSPRadar's strongest
+  report pairing does not. Three direct comparisons remain strict expected
+  failures with explicit reasons; seven additional ordinary checks reproduce
+  the selected paper evidence under the alternate pairing interpretation and
+  independently verify production differences against raw endpoint maxima.
+  Source annotations and tolerances were not adjusted to pass. Existing
+  archive fixtures and scientific runtime behavior are unchanged.
+  Trace: [source fixture and reconciliation](tests/regression/reference_fixtures/griffiths_fig3_paper_v1/README.md)
+  and [reference tests](tests/regression/test_griffiths_temporal_reference.py).
+
+- **External Figure 6 density reference:** added a separate source-image fixture
+  with calibrated contour-region annotations, independent image review and
+  comparison choices fixed before evaluating WSPRadar. Mandatory tests compare
+  the real folded density grid with four external regions across nine declared
+  smoothing cases, locate the strongest evening density and check the paper's
+  qualitative morning/evening-versus-midday ordering. The first comparison
+  passed without retuning source annotations or tolerances. These checks
+  validate selected density features; the existing archive fixture separately
+  verifies exact medians and IQR. No application calculations were changed.
+  Three independently extracted isolated extreme dots also match native paired
+  Delta SNR and UTC time-of-day within fixed source-image tolerances; these
+  witnesses are separate from the optional outlier-candidate detector.
+  Trace: [paper-derived fixture](tests/regression/reference_fixtures/griffiths_fig6_paper_v1/README.md)
+  and [external reference tests](tests/regression/test_griffiths_temporal_reference.py).
+
+- **G3ZIL/G4HZX Figure 6 diurnal reference regression:** extended the mandatory
+  offline reference module with the April 5-7 demo. Source-report grouping,
+  duplicate selection, paired differences and temporal statistics were
+  independently reconstructed to freeze 6,459 Joint Spots, all folded UTC-hour
+  counts, medians, quartiles and density cells, and chronological profiles.
+  Tests preserve the 23:45 UTC endpoint, chronological-bin folding invariance
+  and the wider-range result of 6,474 pairs with unchanged hourly medians.
+  The paper corroborates the day/night reversal and approximate magnitude;
+  the fixture documents the limits of comparison with density contours and
+  the unreconciled publication count. Existing Figure 3 data and application
+  runtime behavior are unchanged. Database SQL execution remains outside these
+  offline replays.
+  Trace: [shared reference regression](tests/regression/test_griffiths_temporal_reference.py)
+  and [Figure 6 dataset and scope](tests/regression/reference_fixtures/griffiths_fig6_diurnal_v1/README.md).
+
+- **G3ZIL/G4HZX temporal reference regression:** added a mandatory offline replay
+  of the first publication-linked demo from frozen SQL-result rows through
+  production filtering, station aggregation, paired evidence and temporal
+  profiles. Fixed expectations cover 57,767 paired observations, all daily,
+  three-hour and folded UTC-hour summaries, and heatmap counts. The reference
+  records the paper's approximate corroboration and captured provenance;
+  it does not claim independent validation of SQL execution or every scientific
+  method. Missing or corrupt reference data fails instead of skipping.
+  Trace: [reference regression](tests/regression/test_griffiths_temporal_reference.py),
+  [dataset and scope](tests/regression/reference_fixtures/griffiths_fig3_temporal_v1/README.md),
+  and [runner registration](scripts/regression_test_chunks.json).
+
+- **Consistent special-callsign peer filtering:** Performance and every Benchmark
+  design now exclude only remote peer callsigns beginning with `Q`, `0`, or `1`:
+  transmitting peers in RX and receiving peers in TX. Target and Reference
+  endpoints, including Local Neighborhood reference contributors, remain
+  eligible. Shared prefix policy, bilingual control/manual explanations and
+  predicate regressions preserve this boundary while retaining existing defaults
+  and configuration/export fields.
+  Trace: [shared peer filter](core/callsign_filters.py),
+  [Benchmark queries](core/analysis_runner.py), and
+  [query regressions](tests/regression/test_analysis_runner_contracts.py).
+
+- **Historical decode compatibility boundary:** every analysis starts with
+  `code = 1`; automatic retry without the mode filter is limited to complete
+  observation periods ending before 2022-01-01 00:00 UTC. Boundary and later
+  periods remain strict, with a bilingual WSPR-2 explanation when Target
+  evidence is absent. Historical audit/export provenance remains intact, and
+  both manuals describe the remaining historical mode uncertainty.
+  Trace: [query selection](core/analysis_runner.py),
+  [fallback regressions](tests/regression/test_decode_filter_fallback.py), and
+  [bundle preparation](core/run_data_preparation.py).
 
 - **Lighter first page load:** navigation and documentation controller payloads
   avoid indirect scientific-library imports during idle startup, with an

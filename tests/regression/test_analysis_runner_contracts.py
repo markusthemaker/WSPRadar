@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from contextlib import closing
 from dataclasses import FrozenInstanceError, replace
+import re
 import sqlite3
 
 import pandas as pd
@@ -53,11 +54,11 @@ def _analysis_context(**overrides):
     return AnalysisContext(**values)
 
 
-def _build_analyses(context):
+def _build_analyses(context, *, historical=False):
     return build_analysis_batches(
         context,
-        START_TIME,
-        END_TIME,
+        START_TIME.replace(year=2017) if historical else START_TIME,
+        END_TIME.replace(year=2017) if historical else END_TIME,
         47.0,
         8.0,
         "AND band = '14'",
@@ -68,8 +69,8 @@ def _build_analyses(context):
     )
 
 
-def _analysis_by_id(context, analysis_id):
-    return next(analysis for analysis in _build_analyses(context) if analysis["id"] == analysis_id)
+def _analysis_by_id(context, analysis_id, *, historical=False):
+    return next(analysis for analysis in _build_analyses(context, historical=historical) if analysis["id"] == analysis_id)
 
 
 def test_no_benchmark_builds_only_the_directional_performance_analysis():
@@ -94,6 +95,98 @@ def test_no_benchmark_builds_only_the_directional_performance_analysis():
 
 
 @pytest.mark.parametrize(
+    ("run_mode", "comparison_mode", "tx_ab_method"),
+    [
+        ("RX", COMPARISON_REFERENCE_STATION, TX_AB_METHOD_SIMULTANEOUS),
+        ("TX", COMPARISON_REFERENCE_STATION, TX_AB_METHOD_SIMULTANEOUS),
+        ("RX", COMPARISON_LOCAL_NEIGHBORHOOD, TX_AB_METHOD_SIMULTANEOUS),
+        ("TX", COMPARISON_LOCAL_NEIGHBORHOOD, TX_AB_METHOD_SIMULTANEOUS),
+        ("RX", COMPARISON_HARDWARE_AB, TX_AB_METHOD_SIMULTANEOUS),
+        ("TX", COMPARISON_HARDWARE_AB, TX_AB_METHOD_SIMULTANEOUS),
+        ("TX", COMPARISON_HARDWARE_AB, TX_AB_METHOD_SEQUENTIAL),
+    ],
+    ids=("rx-reference", "tx-reference", "rx-local", "tx-local", "rx-hardware", "tx-hardware", "tx-scheduled"),
+)
+@pytest.mark.parametrize("exclude_special_callsigns", [False, True])
+def test_special_callsign_filter_preserves_benchmark_target_and_reference_roles(
+    run_mode, comparison_mode, tx_ab_method, exclude_special_callsigns,
+):
+    """Execute both generated source predicates for every Benchmark design.
+
+    SQLite checks the actual boolean predicates, including identity and schedule
+    constraints. Aggregation and ClickHouse execution are outside this check.
+    """
+    analyzed_prefix = run_mode.lower()
+    peer_prefix = "tx" if run_mode == "RX" else "rx"
+    ordinary_peers = {"DL2AAA", "DK3BBB", "DL0QAA", "DL1QAA"}
+    special_peers = {"Q1XYZ", "0ABC", "1ABC"}
+    is_sequential = tx_ab_method == TX_AB_METHOD_SEQUENTIAL
+    reference_grid = "JO62" if comparison_mode == COMPARISON_REFERENCE_STATION else "JN37"
+
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.create_function("toMinute", 1, lambda timestamp: datetime.fromisoformat(timestamp).minute)
+        connection.create_function("geoDistance", 4, lambda *_coordinates: 0.0)
+        connection.execute(
+            f"CREATE TABLE observations (name TEXT, {analyzed_prefix}_sign TEXT, "
+            f"{analyzed_prefix}_loc TEXT, {analyzed_prefix}_lat REAL, {analyzed_prefix}_lon REAL, "
+            f"{peer_prefix}_sign TEXT, {peer_prefix}_lat REAL, band TEXT, time TEXT, code INTEGER)"
+        )
+        for special_prefix in ("Q", "0", "1"):
+            target_callsign = f"{special_prefix}1ABC"
+            reference_callsign = target_callsign if is_sequential else f"{special_prefix}2XYZ"
+            context = _analysis_context(
+                run_mode=run_mode,
+                callsign=target_callsign,
+                reference_callsign=reference_callsign,
+                comparison_mode=comparison_mode,
+                self_test_mode=SELF_TEST_RX if run_mode == "RX" else SELF_TEST_TX,
+                tx_ab_method=tx_ab_method,
+                exclude_special_callsigns=exclude_special_callsigns,
+                neighborhood_radius_km=100,
+            )
+            comparison = _build_analyses(context, historical=True)[0]
+            connection.execute("DELETE FROM observations")
+            observations = []
+            for role, callsign, grid, minute in (
+                ("target", target_callsign, "JN37", 0),
+                ("reference", reference_callsign, reference_grid, 2 if is_sequential else 0),
+            ):
+                for peer_callsign in sorted(ordinary_peers | special_peers):
+                    observations.append((
+                        f"{role}:{peer_callsign}", callsign, grid, 47.0, 8.0,
+                        peer_callsign, 48.0, "14", f"2017-05-27 12:{minute:02d}:00", 1,
+                    ))
+                observations.append((
+                    f"{role}:legacy", callsign, grid, 47.0, 8.0,
+                    "DL4CCC", 48.0, "14", f"2017-05-27 12:{minute:02d}:00", 2,
+                ))
+            connection.executemany("INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", observations)
+
+            for query_key in ("query", "legacy_query"):
+                query = comparison[query_key]
+                query_body = query.split("SELECT *\nFROM (\n", 1)[1].rsplit("\n)\nLIMIT ", 1)[0]
+                source_predicates = [
+                    re.split(r" UNION ALL |\)? GROUP BY ", section, maxsplit=1)[0].strip()
+                    for section in query_body.split("FROM wspr.rx WHERE ")[1:]
+                ]
+                assert len(source_predicates) == 2
+                for role, predicate in zip(("target", "reference"), source_predicates):
+                    assert f"{analyzed_prefix}_sign NOT LIKE" not in predicate
+                    for prefix in ("Q", "0", "1"):
+                        assert (f"{peer_prefix}_sign NOT LIKE '{prefix}%'" in predicate) is exclude_special_callsigns
+                    selected_names = {
+                        row[0] for row in connection.execute(
+                            f"SELECT name FROM observations WHERE {predicate}"
+                        )
+                    }
+                    expected_peers = ordinary_peers if exclude_special_callsigns else ordinary_peers | special_peers
+                    expected_names = {f"{role}:{peer}" for peer in expected_peers}
+                    if query_key == "legacy_query":
+                        expected_names.add(f"{role}:legacy")
+                    assert selected_names == expected_names, (special_prefix, query_key, role)
+
+
+@pytest.mark.parametrize(
     "context",
     [
         _analysis_context(run_mode="TX", comparison_mode=COMPARISON_NONE),
@@ -113,13 +206,15 @@ def test_no_benchmark_builds_only_the_directional_performance_analysis():
         ),
     ],
 )
-def test_every_analysis_query_has_one_outer_result_row_sentinel(context):
+@pytest.mark.parametrize("historical", [False, True])
+def test_every_analysis_query_has_one_outer_result_row_sentinel(context, historical):
     """Bound each complete strict and legacy result after unions and grouping."""
-    analysis = _build_analyses(context)[0]
+    analysis = _build_analyses(context, historical=historical)[0]
     assert isinstance(analysis, AnalysisPlan)
     sentinel_clause = f"LIMIT {MAX_ANALYSIS_RESULT_ROWS + 1}"
 
-    for query in (analysis["query"], analysis["legacy_query"]):
+    assert bool(analysis.get("legacy_query")) is historical
+    for query in filter(None, (analysis["query"], analysis.get("legacy_query"))):
         expected_format = (
             "Parquet"
             if analysis["response_format"] == "parquet"
@@ -144,19 +239,20 @@ def test_analysis_plan_keeps_sql_and_optional_mapping_fields_unchanged():
 
     assert dict(restored_plan) == serialized_plan
     assert restored_plan.query is serialized_plan["query"]
-    assert restored_plan.legacy_query is serialized_plan["legacy_query"]
+    assert restored_plan.legacy_query is None
+    assert "legacy_query" not in serialized_plan
     assert AnalysisPlan.from_mapping(restored_plan) is restored_plan
-    assert "analysis_start_utc" not in restored_plan
-    assert "analysis_end_utc" not in restored_plan
+    assert restored_plan.analysis_start_utc == START_TIME
+    assert restored_plan.analysis_end_utc == END_TIME
     assert "is_local_median" not in restored_plan
     assert restored_plan.get("is_local_median", False) is False
     with pytest.raises(KeyError):
-        restored_plan["analysis_start_utc"]
+        restored_plan["legacy_query"]
 
 
 def test_analysis_plan_replacements_preserve_strict_plan_and_time_window():
     """Keep query selection distinct from presentation and restored provenance."""
-    strict_plan = _build_analyses(_analysis_context())[0]
+    strict_plan = _build_analyses(_analysis_context(), historical=True)[0]
     legacy_plan = strict_plan.for_legacy_query()
     restored_plan = strict_plan.with_decode_filter_mode(DECODE_FILTER_LEGACY)
     translated_plan = replace(strict_plan, title="Lokalisierter Benchmark")
@@ -186,7 +282,7 @@ def test_analysis_plan_replacements_preserve_strict_plan_and_time_window():
         ("analysis_kind", "unknown", "analysis_kind"),
         ("absolute_mode", "TX", "Performance method"),
         ("decode_filter_mode", "unknown", "decode_filter_mode"),
-        ("legacy_decode_filter_mode", "unknown", "legacy_no_code"),
+        ("legacy_decode_filter_mode", "unknown", "legacy provenance"),
         ("analysis_start_utc", END_TIME, "end must be after"),
         ("analysis_end_utc", None, "time window"),
     ],
@@ -755,6 +851,7 @@ def test_fixed_reference_keeps_maximum_consolidation(run_mode):
     comparison = _analysis_by_id(
         _analysis_context(run_mode=run_mode),
         f"{run_mode}_BENCHMARK",
+        historical=True,
     )
 
     for query in (comparison["query"], comparison["legacy_query"]):
@@ -856,7 +953,7 @@ def test_local_neighborhood_sql_retains_circle_membership_and_other_filters(
             neighborhood_radius_km=radius_km,
             exclude_special_callsigns=False,
         ),
-        START_TIME, END_TIME, center_latitude, center_longitude,
+        START_TIME.replace(year=2017), END_TIME.replace(year=2017), center_latitude, center_longitude,
         "AND band = '14'",
         presentation_context=PresentationContext(
             labels=T["en"], solar_label=T["en"]["opt_solar_all"].split()[0]
@@ -879,13 +976,13 @@ def test_local_neighborhood_sql_retains_circle_membership_and_other_filters(
         )
         observations.append((
             station_name, "DL2XYZ", latitude, longitude, 40.0,
-            "14", "2026-05-27 12:00:00", 1,
+            "14", "2017-05-27 12:00:00", 1,
         ))
     inside_edge = observations[1]
     observations.extend([
         ("target", "DL1MKS", *inside_edge[2:]),
         ("wrong_band", *inside_edge[1:5], "7", *inside_edge[6:]),
-        ("wrong_time", *inside_edge[1:6], "2026-05-28 12:00:00", 1),
+        ("wrong_time", *inside_edge[1:6], "2017-05-28 12:00:00", 1),
         ("legacy_decode", *inside_edge[1:7], 2),
     ])
 
@@ -928,7 +1025,7 @@ def test_compare_queries_use_half_open_analysis_interval(run_mode, analysis_id):
 
     comparison = _analysis_by_id(context, analysis_id)
 
-    for query in (comparison["query"], comparison["legacy_query"]):
+    for query in filter(None, (comparison["query"], comparison.get("legacy_query"))):
         assert query.count("time >= '2026-05-27 00:00:00'") == 2
         assert query.count("time < '2026-05-28 00:00:00'") == 2
         assert "time BETWEEN" not in query

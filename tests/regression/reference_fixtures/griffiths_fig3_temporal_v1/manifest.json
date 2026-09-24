@@ -1,0 +1,97 @@
+{
+  "fixture_id": "griffiths_squibb_fig3_temporal_2017_04",
+  "schema_version": 1,
+  "created_on": "2026-09-24",
+  "status": "integrated_regression_fixture",
+  "expected_joint_spots": 57767,
+  "paper_corroboration": "approximate daily count and temporal pattern; exact numeric baseline extracted from frozen WSPRadar run",
+  "files": [
+    {
+      "path": "analysis_context.json",
+      "bytes": 717,
+      "sha256": "30f4a7ca24ce17a822a76832a0a2d2ab6dcd1124623b525bc57e5db761ee6f68"
+    },
+    {
+      "path": "capture_provenance.json",
+      "bytes": 4875,
+      "sha256": "b0c50eef38c3a9c44a10af2d28ddfaefc620361880fbe9419674d2c2fd5372a9"
+    },
+    {
+      "path": "demo.config",
+      "bytes": 2256,
+      "sha256": "5dcdffd5744d13e9695be60f73c10ca1baf939f4931161e792f727feb30f7656"
+    },
+    {
+      "path": "expected_24h.csv",
+      "bytes": 2830,
+      "sha256": "4ed5054485008d1eb210db3476d7f87a72a7a5e19ff4e9e9fe97f9c4bb55c0a5"
+    },
+    {
+      "path": "expected_3h.csv",
+      "bytes": 21697,
+      "sha256": "04e6ee4ae8228ff59d60232d7883a4b0e98617e77871ebc51ff4edb4c746b59f"
+    },
+    {
+      "path": "expected_density_24h.csv",
+      "bytes": 17339,
+      "sha256": "f1c3400deaf601b722e1d5c1a0a730e70322b2874e6dc7ee1e155f8d0420be54"
+    },
+    {
+      "path": "expected_density_3h.csv",
+      "bytes": 146879,
+      "sha256": "c1b9e3bdc8233b589961e342962c99b95c569aa84edcec35099d60e48abe68e4"
+    },
+    {
+      "path": "expected_density_utc_hour.csv",
+      "bytes": 13791,
+      "sha256": "cbc0357d8a94299ddf832a82f0da08eecd2aeffc0222b487149d48cef0aa0cbf"
+    },
+    {
+      "path": "expected_paired_rows.parquet",
+      "bytes": 674659,
+      "sha256": "fd5538a4c9f6cafc92592f6bd9f8e98b66f0834b27b43f60d9ce851cd9626fc8"
+    },
+    {
+      "path": "expected_summary.json",
+      "bytes": 3764,
+      "sha256": "58001d0141aae8d33287398ba552a2caa6440fe2076bfd772d389e1fa5208eab"
+    },
+    {
+      "path": "expected_utc_hour.csv",
+      "bytes": 1084,
+      "sha256": "06feda909b76dfc5c98aaeff1dc77e88e250e5da6ca0b85bfcdb6a523703b4ca"
+    },
+    {
+      "path": "input_sql_rows.parquet",
+      "bytes": 1266906,
+      "sha256": "cb94cb636737cfaa8f2fe96876614580d9de220e1e7197c77b3e485f7e0f0b3e"
+    },
+    {
+      "path": "query_legacy.sql",
+      "bytes": 1307,
+      "sha256": "564358699187ed02da811592820b829ccfcf54751bf2452e411c4958539f1383"
+    },
+    {
+      "path": "README.md",
+      "bytes": 10768,
+      "sha256": "75ae6cc2699454072c28641bb758e1acc62e5817bc1315e6a714f654e1581832"
+    },
+    {
+      "path": "source_rows.parquet",
+      "bytes": 1897979,
+      "sha256": "b15d2c30540f91150da908c6eeb59afd44463f6f345ba3dd5e61624e5de530dd"
+    },
+    {
+      "path": "source_rows_query.sql",
+      "bytes": 271,
+      "sha256": "0641e8e027b413d0ea058233c07c0a4141d54a3f184462bac84d725641ee7e49"
+    },
+    {
+      "path": "verification.json",
+      "bytes": 1941,
+      "sha256": "fb73fc4dccc1ed2d5e730f1069efecbfa387b8e9091e09e0041f5c560d909d4d"
+    }
+  ],
+  "test_module": "tests/regression/test_griffiths_temporal_reference.py",
+  "text_encoding": "UTF-8 without BOM; LF line endings"
+}

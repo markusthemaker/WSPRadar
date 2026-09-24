@@ -1,0 +1,48 @@
+{
+  "fixture_id": "vanhamel_fig6_rotation_v1",
+  "fixture_assembled_utc": "2026-09-24T17:43:59Z",
+  "provider": "https://db1.wspr.live/",
+  "capture_session_started_utc": "2026-09-23T20:48:24.823263+00:00",
+  "capture_session_completed_utc": "2026-09-23T20:48:31.158897+00:00",
+  "capture_time_note": "These are recorded session bounds; the exact raw-query request timestamp was not separately recorded.",
+  "source_capture_scope": "Full selected-band/window population for the two endpoint callsigns, across all endpoint locations; no mode, geographic, peer, cycle or duplicate filtering",
+  "complete_for_requested_endpoint_population": true,
+  "all_decode_codes_included": true,
+  "source_rows": 12545,
+  "raw_response_bytes": 169876,
+  "raw_query_result_limit": 1000001,
+  "original_raw_parquet_sha256": "8f684384f12f15a0070cd0aae3167f07545f39ac050d625c15a70b4e9f3400fe",
+  "raw_query_sha256": "82b771951961118f3eafa630ecb88bf13de20f923f5a8956d02024aa315deae7",
+  "original_capture_provenance_sha256": "19d363bae4b2ec128dcbaa35929b7092b367ea0270412302a2f8d92b3a6bc1d3",
+  "source_csv_conversion": "Pandas read_parquet; stable sort time,id; ISO UTC timestamps; promote coordinate float32 columns to float64 before CSV serialization; preserve all source columns and rows.",
+  "source_csv_sha256": "84ab229a22555a365fc16ba707a16fd12c8a7b9b75f5b557768790ea2c07cf28",
+  "builder_path": "scripts/build_vanhamel_rotation_reference_fixture.py",
+  "builder_sha256": "9c4b244db8d795472f9ae49e4c6d8626cd1d091b0ab036416431c9110943d5ea",
+  "expected_input_boundary": "Only raw CSV and frozen configuration; no WSPRadar imports, frozen application outputs, overlay or paper landmark values are calculator inputs.",
+  "config_source": "config/demos/02_vanhamel_rx_ab.config",
+  "config_sha256": "31c2650c1ace7f163e8a80a128ae3e61df9ab99f04f8c40d61b06432ce12c406",
+  "paper": {
+    "doi": "10.1155/2022/4809313",
+    "pdf_sha256": "4c57bcf4e51f940f26174d0e60d4cb5f3b321bdb2d8b50a81fb6e3a049eb5694",
+    "figure": 6,
+    "printed_page": 6,
+    "pdf_page_one_based": 7,
+    "license": "CC BY 4.0",
+    "license_verification": "PDF repository cover says CC BY; printed page1 license text and annotation URI https://creativecommons.org/licenses/by/4.0/.",
+    "original_features_sha256": "d0ed43555d6ad6abbe676ed7c448b74727fdf8b5d1939d8b4c5be19776025cff",
+    "feature_copy_policy": "Byte-for-byte unchanged source extraction; observations and tolerances communicated before archive comparison, feature artifact assembled afterwards."
+  },
+  "correction_choice": {
+    "paper_text_db": 1.2,
+    "author_website_db": 1.573591164,
+    "website_url": "https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-antenna-comparison-instrument",
+    "fixture_reference_correction_db": 1.6,
+    "basis": "User-selected rounding of website value, graphically reconciled with Figure6; does not prove which correction generated the paper or establish a paper error.",
+    "receiver_correction_instructions_url": "https://sites.google.com/myuba.be/wspr-station-compare/home/wspr-station-compare-app/wspr-station-compare-add-on?pli=1&authuser=0#h.8110v9yak2eo"
+  },
+  "review_artifacts": {
+    "paper_figure6.png": "Embedded published JPEG converted to RGB PNG.",
+    "figure6_overlay_1p6.png": "Observed archive reconstruction over fixed paper tick calibration; diagnostic, not a new external oracle.",
+    "observed_landmark_comparison.csv": "Observed comparison only; independent acceptance comes from unchanged paper_features.json."
+  }
+}

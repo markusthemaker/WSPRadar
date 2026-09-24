@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "status": "source_annotations_frozen_before_current_application_comparison",
+  "source": {
+    "title": "Improving HF Band SNR",
+    "authors": ["Gwyn Griffiths G3ZIL", "Nigel Squibb G4HZX"],
+    "publication": "Practical Wireless, October 2017",
+    "pdf_path": "C:/Users/marku/Downloads/ImprovingHFSNR-1.pdf",
+    "pdf_sha256": "9d3fe7e8b7230a6c0abbf86787591e5d140f470b72c18c10e44fd8ccd006819f",
+    "figure": 3,
+    "pdf_page_one_based": 2,
+    "printed_page": 24,
+    "supporting_text_pdf_page_one_based": 3,
+    "supporting_text_printed_page": 25,
+    "embedded_image_name": "Im0.jpg",
+    "image_path": "tmp/griffiths_fig3_external_review/page2_image0.png",
+    "image_sha256": "0d5b114974fd301c256453d08bbe61531c094a7e8cfcfd83cd15c2a55b97543f",
+    "image_size_px": [1502, 540],
+    "extracted_image_rgb_pixels_verified_equal_to_pdf_embedded_image": true,
+    "sign_convention": "Delta SNR = G3ZIL minus G4HZX, in dB, on 40 m",
+    "paper_pairing_description": "The authors selected reports of the same transmitting station at the same time from the two receivers. This description does not fully specify duplicate handling or every archive-selection detail."
+  },
+  "annotation_provenance": {
+    "design": "Retrospective source-only annotation, not a blind prospective validation.",
+    "prior_context_exposure": "The annotator had previously discussed this paper and broad expected Figure 3 patterns in the current task. The annotator did not inspect WSPRadar data, application outputs, implementation code, or existing expected fixture values when selecting these regions.",
+    "method": "Visual inspection of the complete original Figure 3 raster and enlarged source-only crops, with the PDF caption and adjacent explanatory text. Box edges are manual choices around visible populated portions of the black cloud, not extracted isodensity boundaries.",
+    "freeze_rule": "Coordinates and interpretations are fixed before current application comparison. A failed comparison must be investigated and reported; do not silently move source boxes or revise expected meanings to obtain a pass."
+  },
+  "axes": {
+    "x_april1_px": 142,
+    "x_may1_px": 1340,
+    "y_positive30_db_px": 62,
+    "y_negative20_db_px": 434,
+    "x_start_date": "2017-04-01",
+    "x_end_date_exclusive": "2017-05-01",
+    "x_formula_days_after_april1": "30 * (x - 142) / (1340 - 142)",
+    "y_formula_delta_snr_db": "30 - 50 * (y - 62) / (434 - 62)",
+    "pixel_coordinate_origin": "top-left; x increases rightward and y downward",
+    "axis_readout_uncertainty_px": {"x": 2, "y": 2},
+    "axis_readout_uncertainty_days_approximately": 0.05,
+    "axis_readout_uncertainty_delta_snr_db_approximately": 0.27,
+    "time_basis_limit": "The Figure 3 horizontal axis is labelled Time and shows calendar dates; it does not itself print a timezone. A UTC interpretation follows the WSPR report convention and the article's time-of-day discussion, rather than an explicit UTC label on this panel."
+  },
+  "features": [
+    {
+      "id": "early_april_concentration",
+      "kind": "central_concentration",
+      "pixel_box": {"x_min": 190, "x_max": 216, "y_min": 226, "y_max": 288},
+      "manual_box_edge_uncertainty_px": {"x": 5, "y": 8},
+      "approximate_readout": {"date_description": "April 2, roughly morning to evening", "delta_snr_db_interval": [-0.4, 8.0]},
+      "interpretation": "A prominent populated part of the early-April central black cloud. The rectangle is a coarse occupied-region witness within the daily structure, not the enclosing boundary of an isolated statistical component.",
+      "supported_assertion": "Native paired observations and the established temporal grid have nonzero occupancy in the source-derived region, allowing only declared pixel readout uncertainty.",
+      "supports_global_vertical_mode": false,
+      "supports_density_fraction_or_ordering": false
+    },
+    {
+      "id": "mid_april_concentration",
+      "kind": "central_concentration",
+      "pixel_box": {"x_min": 670, "x_max": 698, "y_min": 202, "y_max": 252},
+      "manual_box_edge_uncertainty_px": {"x": 5, "y": 8},
+      "approximate_readout": {"date_description": "April 14, roughly morning to late evening", "delta_snr_db_interval": [4.5, 11.2]},
+      "interpretation": "A visibly populated positive central portion near the end of the first-half rise. It identifies the location of part of the black cloud; it does not identify a daily mean, median, quantile, or global mode.",
+      "supported_assertion": "Native paired observations and the established temporal grid have nonzero occupancy in the source-derived region, allowing only declared pixel readout uncertainty.",
+      "supports_global_vertical_mode": false,
+      "supports_density_fraction_or_ordering": false
+    },
+    {
+      "id": "late_april_concentration",
+      "kind": "central_concentration",
+      "pixel_box": {"x_min": 1222, "x_max": 1258, "y_min": 190, "y_max": 264},
+      "manual_box_edge_uncertainty_px": {"x": 5, "y": 8},
+      "approximate_readout": {"date_description": "April 28, most of the day", "delta_snr_db_interval": [2.8, 12.8]},
+      "interpretation": "A coarse populated portion of the late-April positive central cloud. A blue soil-moisture marker covers some black evidence inside this rectangle; the marker itself must not be treated as a Delta-SNR observation or summary.",
+      "supported_assertion": "Native paired observations and the established temporal grid have nonzero occupancy in the source-derived region, allowing only declared pixel readout uncertainty.",
+      "supports_global_vertical_mode": false,
+      "supports_density_fraction_or_ordering": false
+    },
+    {
+      "id": "mid_april_negative_tail",
+      "kind": "negative_tail",
+      "pixel_box": {"x_min": 756, "x_max": 770, "y_min": 399, "y_max": 424},
+      "manual_box_edge_uncertainty_px": {"x": 3, "y": 2},
+      "approximate_readout": {"date_description": "April 16, approximately 09:00 to 17:30 under the UTC interpretation", "delta_snr_db_interval": [-18.7, -15.3]},
+      "interpretation": "The narrow midmonth downward feature visibly enters this region below -15 dB and above the lower plotting boundary. This is a dated occupied-tail witness, not an exact extremum, event count, or assertion that every low observation belongs to one cause.",
+      "supported_assertion": "At least one native paired observation falls within this dated negative-tail region, allowing declared pixel readout uncertainty. If expanded bounds cross -15 dB, retain the independent physical requirement Delta SNR < -15 dB.",
+      "plot_boundary_limit": "The original cloud approaches the -20 dB plot boundary. Its true minimum and observations outside the visible plotting range cannot be recovered."
+    }
+  ],
+  "text_trend": {
+    "id": "first_half_daily_mean_upward_trend",
+    "source_location": "PDF page 3, printed page 25, SNR and Soil Moisture discussion of Figures 3 and 4",
+    "source_claim_paraphrase": "The authors report increasing SNR difference over the first two weeks of April and say that the April 1-15 trend is clear when the difference is averaged over a day.",
+    "window_start_inclusive": "2017-04-01",
+    "window_end_exclusive": "2017-04-16",
+    "early_anchor_window": {"start_inclusive": "2017-04-01", "end_exclusive": "2017-04-04"},
+    "late_anchor_window": {"start_inclusive": "2017-04-13", "end_exclusive": "2017-04-16"},
+    "anchor_selection": "The first and last three complete calendar days of the paper's explicitly stated April 1-15 interval. These are source-fixed comparison windows, not separately published numeric summaries.",
+    "expected_direction": "upward in daily mean Delta SNR across the first-half interval",
+    "limits": "No exact daily values, minimum slope, endpoint increase, significance, monotonic day-by-day rise, or causal interpretation is supplied by this Figure 3 annotation. The paper's hypothesis about soil moisture is not an independently established cause."
+  },
+  "context": {
+    "daily_banding": "Approximately daily banding is visible and explicitly discussed by the authors. Treat this as context unless a separate source-fixed quantitative recurrence contract is established; no exact phase or amplitude is extracted here.",
+    "blue_markers": "Daily soil moisture at Rothamsted, plotted against the right axis with 10 percent at the top and 30 percent at the bottom. Their rise on the image represents decreasing moisture. They are not Delta-SNR medians or daily means.",
+    "black_shading": "Overplotting, saturation, line thickness, rasterization, quantization, and blue-marker occlusion prevent conversion of black intensity into calibrated density or counts."
+  },
+  "recommendation": {
+    "meaningful_bounds": "The three central rectangles have meaningful reproducible bounds as coarse occupied-region witnesses. They do not have defensible bounds as isolated density peaks or contours.",
+    "comparison_scope": "Use native-pair and established temporal-grid occupancy only for the central rectangles. Use the dated negative-tail presence and the separately sourced daily-mean trend for stronger temporal checks. Do not add a global-mode, density-fraction, exact median, or IQR requirement.",
+    "uncertainty_rule": "Keep the original pixel boxes unchanged. Store any comparison expansion separately and derive it from the stated box-edge and axis-readout uncertainties; report the resulting physical intervals. Do not add an unrelated half-bin allowance to native-point witnesses. A grid comparison can acknowledge its own bin support separately.",
+    "strength_limit": "Nonzero occupancy is a necessary visual correspondence check and may be easy to satisfy. Passing these source witnesses does not establish the full distribution, correct selection of every record, exact reproduction, or independent scientific validity."
+  }
+}

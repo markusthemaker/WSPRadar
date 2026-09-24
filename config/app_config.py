@@ -87,6 +87,11 @@ QUERY_DATAFRAME_CACHE_MAX_ENTRIES = 32
 CACHE_TTL_SEC = STANDARD_QUERY_CACHE_TTL_SEC
 MAX_DAYS_HISTORY = 31
 
+# The fixed prefix policy for Exclude Special Callsigns applies only to remote
+# peers, never to Target or Reference endpoints. Labels and manuals name these
+# prefixes explicitly; a policy change must update those presentation contracts.
+SPECIAL_CALLSIGN_PREFIXES = ("Q", "0", "1")
+
 # Maximum complete query-result rows accepted for one analysis block. SQL asks
 # for one additional sentinel row so an exact-limit result remains distinguishable
 # from a larger result that must be rejected before scientific processing.

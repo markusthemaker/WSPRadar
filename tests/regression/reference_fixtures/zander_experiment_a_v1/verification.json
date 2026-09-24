@@ -1,0 +1,42 @@
+{
+  "verified_on": "2026-09-24",
+  "new_module_final": {
+    "passed": 19,
+    "xfailed": 0,
+    "warnings": 1,
+    "seconds": 5.57
+  },
+  "focused_integration": {
+    "modules": [
+      "test_zander_experiment_a_reference.py",
+      "test_griffiths_temporal_reference.py",
+      "test_compare_evidence_extension.py",
+      "test_evidence_statistics.py",
+      "test_regression_runner.py"
+    ],
+    "passed": 138,
+    "xfailed": 3,
+    "warnings": 1,
+    "seconds": 57.02,
+    "xfailed_scope": "Existing Griffiths Figure3 tail and April13 mean; none in Zander"
+  },
+  "after_integration_changes": "Added bar-center assertion and cycle-average mutation rejection, then reran all19 Zander tests",
+  "first_external_comparison": "Both rounded statistics and all9 visible regions passed without tuning",
+  "initial_test_setup_failure": "Renderer fixture omitted required outcome-series labels; supplied production-derived counts/labels, then passed",
+  "independent_rebuild": "All six expected files reproduced byte-for-byte",
+  "paper_inputs_and_policy_unchanged": true,
+  "checks": [
+    "83-module five-chunk manifest valid",
+    "changed-Python compilation",
+    "patch and new-file whitespace",
+    "existing runtime and fixture preservation hashes"
+  ],
+  "not_run": [
+    "complete regression suite",
+    "live provider",
+    "native ClickHouse execution",
+    "browser walkthrough"
+  ],
+  "builder_sha256": "bdf6d6f27ed1150457a132bc0ad99bd907efdfe4dc653dacc86685048f3e3c01",
+  "test_module_sha256": "03723dfff9f0555e6d3908ba1588f6693aa65266b0ce23ef4ae1b958ad7a1ab7"
+}

@@ -7,9 +7,26 @@ import pytest
 from docs.doc_de import DOC_DE
 from docs.doc_en import DOC_EN
 from docs.pdf_generator import get_docs
-from i18n import T
+from i18n import GUIDED_INPUTS, T
 from ui import documentation
 from ui import css as ui_css
+
+
+@pytest.mark.parametrize(
+    ("manual", "boundary", "uncertainty", "policy"),
+    [
+        (DOC_EN, "1 January 2022 at 00:00 UTC", "physical transmission mode cannot be established", "compatibility policy"),
+        (DOC_DE, "1. Januar 2022 um 00:00 UTC", "physikalische Übertragungsart nicht festgestellt werden kann", "Kompatibilitätsregel"),
+    ],
+    ids=("en", "de"),
+)
+def test_manual_explains_historical_decode_boundary_and_remaining_uncertainty(manual, boundary, uncertainty, policy):
+    historical_section = manual.split('<a id="sec-6-4"></a>')[1].split('<a id="sec-6-5"></a>')[0]
+    assert boundary in historical_section
+    assert uncertainty in historical_section
+    assert policy in historical_section
+    assert "`code = 1`" in historical_section
+    assert "`decode_filter_mode`" in historical_section
 
 
 class _FakeStreamlit:
@@ -491,6 +508,10 @@ def test_bilingual_introductions_highlight_archives_and_explain_data_source_rout
 
 def test_bilingual_reference_entries_use_current_project_landing_pages():
     """Keep the two early archive references on their approved public pages."""
+    approved_merging_reference = (
+        "https://wsprdaemon.readthedocs.io/en/master/FAQ.html"
+        "#how-does-spot-merging-work-with-multiple-receivers"
+    )
     for manual in (DOC_EN, DOC_DE):
         assert (
             '<a id="ref-10"></a><a href="https://wspr.live/">[Ref-10]</a>'
@@ -502,7 +523,14 @@ def test_bilingual_reference_entries_use_current_project_landing_pages():
             in manual
         )
         assert "wspr.live/wspr_downloader.php" not in manual
-        assert "wsprdaemon.readthedocs.io" not in manual
+        reference_entry = manual.split('<a id="ref-11"></a>', 1)[1].split(
+            '<a id="ref-12"></a>', 1
+        )[0]
+        assert f'href="{approved_merging_reference}"' in reference_entry
+        assert manual.count(approved_merging_reference) == 1
+        assert "wsprdaemon.readthedocs.io" not in manual.replace(
+            approved_merging_reference, ""
+        )
 
 
 def test_load_and_hide_controls_have_english_and_german_labels():
@@ -1795,6 +1823,54 @@ def test_bilingual_manuals_document_result_specific_population_defaults():
     assert "Geladene Konfigurationen, Demos und Analyse-URLs" in DOC_DE
 
 
+@pytest.mark.parametrize(
+    ("language", "manual", "control", "semantic_fragments", "telemetry_boundary"),
+    [
+        (
+            "en", DOC_EN, "**Exclude Special Callsigns Q, 0, 1**",
+            (
+                "remote peer callsigns beginning with Q, 0",
+                "transmitters in RX analyses and receivers in TX analyses",
+                "Target and Reference stations",
+                "Local Neighborhood reference contributors",
+                "remain eligible under this filter",
+            ),
+            "The prefix rule does not establish whether a station carries telemetry.",
+        ),
+        (
+            "de", DOC_DE, "**Spezial-Rufzeichen Q, 0, 1 ausschließen**",
+            (
+                "entfernte Peer-Rufzeichen",
+                "mit Q, 0 oder 1 beginnen",
+                "sendende Peers in RX-Analysen und empfangende Peers in TX-Analysen",
+                "Target- und Referenzstationen",
+                "zur Referenz der lokalen Nachbarschaft beitragen",
+                "bleiben von diesem Filter unberührt",
+            ),
+            "Die Präfixregel stellt nicht fest, ob eine Station Telemetrie überträgt.",
+        ),
+    ],
+    ids=("en", "de"),
+)
+def test_special_callsign_guidance_preserves_remote_peer_boundary_across_surfaces(
+    language, manual, control, semantic_fragments, telemetry_boundary,
+):
+    """Keep manual, shared tooltip and Guided help on the same role boundary."""
+    manual_row = next(line for line in manual.splitlines() if line.startswith(f"| {control} |"))
+    surfaces = (
+        manual_row,
+        T[language]["tt_exclude_special"],
+        GUIDED_INPUTS[language]["messages"]["station_population_body"],
+    )
+    for guidance in surfaces:
+        normalized_guidance = guidance.replace("`", "")
+        for fragment in semantic_fragments:
+            assert fragment in normalized_guidance
+    assert telemetry_boundary in manual_row
+    assert "{special}" in GUIDED_INPUTS[language]["messages"]["review_population_value"]
+    assert "{moving}" in GUIDED_INPUTS[language]["messages"]["review_population_value"]
+
+
 def test_bilingual_manuals_document_classic_question_first_workflow():
     """Keep the conditional Classic panel sequence explicit in both manuals."""
     for question in (
@@ -1938,6 +2014,20 @@ def test_documentation_css_highlights_subsections_and_defined_terms(monkeypatch)
     assert ".st-key-documentation_body a[id]:not(.header-anchor)" in stylesheet
     assert "scroll-margin-top: 5rem" in stylesheet
     assert "strong:first-child:not(.defined-term)" in stylesheet
+    # Manual emphasis must neither leak into inputs nor enlarge body text.
+    bold_paragraph_rules = re.findall(
+        r"(?m)^\s*([^\n{}]*\.stMarkdown p:has\(> strong[^\n{}]*)\s*\{([^{}]*)\}",
+        stylesheet,
+    )
+    assert bold_paragraph_rules
+    assert all(
+        selector.startswith(".st-key-documentation_body ")
+        for selector, _rules in bold_paragraph_rules
+    )
+    assert all(
+        not re.search(r"\bfont-size\s*:", rules)
+        for _selector, rules in bold_paragraph_rules
+    )
     assert "color: #39ff14 !important" in stylesheet
     assert 'div[data-testid="stPopover"] button[kind="primary"]' in stylesheet
 

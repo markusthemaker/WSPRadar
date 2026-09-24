@@ -104,6 +104,11 @@
         "tests/regression/test_result_state.py",
         "tests/regression/test_run_data_preparation.py",
         "tests/regression/test_segment_temporal_evidence.py",
+        "tests/regression/test_griffiths_temporal_reference.py",
+        "tests/regression/test_zander_experiment_a_reference.py",
+        "tests/regression/test_vanhamel_calibration_reference.py",
+        "tests/regression/test_vanhamel_rotation_reference.py",
+        "tests/regression/test_milazzo_reference.py",
         "tests/regression/test_selected_station_evidence_figure.py",
         "tests/regression/test_ui_action_styling.py"
       ]

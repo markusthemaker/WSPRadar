@@ -1,0 +1,1 @@
+SELECT id,time,band,code,rx_sign,rx_loc,rx_lat,rx_lon,tx_sign,tx_loc,tx_lat,tx_lon,snr,power FROM wspr.rx PREWHERE band = 1 AND time >= '2021-02-06 00:00:00' AND time < '2021-02-09 00:00:00' WHERE rx_sign IN ('ON4AWM0','ON4AWM1') ORDER BY time,id LIMIT 100001 FORMAT Parquet

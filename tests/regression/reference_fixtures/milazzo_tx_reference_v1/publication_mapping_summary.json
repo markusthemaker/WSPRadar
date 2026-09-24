@@ -1,0 +1,105 @@
+{
+  "status": "Historical TX-direction audit; its unresolved-correspondence conclusion is superseded by the reciprocal RX reconciliation",
+  "source_reports": 1992,
+  "selected_reports": 1992,
+  "ve6pdq_report_count": 89,
+  "ve6pdq_receiver_locators": [
+    "DO34ir"
+  ],
+  "marker_count": 44,
+  "candidate_row_count": 18,
+  "time_tolerance_seconds_inclusive": 240,
+  "snr_readout_tolerance_db": 0.25,
+  "matching_rule": "Same transmitter identity and VE6PDQ receiver; all reports within fixed inclusive+/-4min of unchanged markerUTC; no nearest-only reduction and no fitted offset/date shift",
+  "normalization_rule": "raw_snr - reported_power_dbm + baseline_dbm; independently inspect30,33,37dBm; article does not identify a common baseline",
+  "gate_rule": "Legacy all-code selectedband7/window/txlocatorCM98/nonzeroRXlatitude, global Target-active before strict<5000km radius, full RXidentity",
+  "global_target_active_cycles": 179,
+  "archive_reference_reports_16_to_23_utc_inside_article_dates": 7,
+  "report_ids_assigned_to_multiple_marker_candidate_sets": [],
+  "series": {
+    "KP4MD": {
+      "visible_markers": 31,
+      "archive_reports_full_capture": 63,
+      "archive_reports_article_dates": 63,
+      "archive_reports_figure_axis": 57,
+      "markers_with_time_candidates": 16,
+      "markers_without_time_candidates": 15,
+      "markers_with_multiple_time_candidates": 0,
+      "candidate_rows": 16,
+      "distinct_candidate_reports": 16,
+      "archive_reports_without_nearby_marker": 47,
+      "archive_reports_inside_figure_axis_without_nearby_marker": 41,
+      "ungated_report_outcomes": {
+        "target_only": 62,
+        "joint": 1
+      },
+      "retained_report_outcomes": {
+        "target_only": 62,
+        "joint": 1
+      },
+      "candidate_retained_outcomes": {
+        "target_only": 16
+      },
+      "raw_power_dbm_counts": {
+        "37": 63
+      },
+      "candidate_paper_minus_raw_db_counts": {
+        "4.0": 2,
+        "6.0": 3,
+        "9.0": 3,
+        "10.0": 4,
+        "11.0": 2,
+        "12.0": 1,
+        "14.0": 1
+      },
+      "markers_with_snr_agreement_raw_snr": 0,
+      "markers_with_snr_agreement_30_dbm": 0,
+      "markers_with_snr_agreement_33_dbm": 0,
+      "markers_with_snr_agreement_37_dbm": 0
+    },
+    "WB6RQN": {
+      "visible_markers": 13,
+      "archive_reports_full_capture": 26,
+      "archive_reports_article_dates": 24,
+      "archive_reports_figure_axis": 19,
+      "markers_with_time_candidates": 2,
+      "markers_without_time_candidates": 11,
+      "markers_with_multiple_time_candidates": 0,
+      "candidate_rows": 2,
+      "distinct_candidate_reports": 2,
+      "archive_reports_without_nearby_marker": 24,
+      "archive_reports_inside_figure_axis_without_nearby_marker": 17,
+      "ungated_report_outcomes": {
+        "reference_only": 25,
+        "joint": 1
+      },
+      "retained_report_outcomes": {
+        "excluded_target_inactive": 25,
+        "joint": 1
+      },
+      "candidate_retained_outcomes": {
+        "excluded_target_inactive": 2
+      },
+      "raw_power_dbm_counts": {
+        "33": 24,
+        "37": 2
+      },
+      "candidate_paper_minus_raw_db_counts": {
+        "-8.0": 1,
+        "1.0": 1
+      },
+      "markers_with_snr_agreement_raw_snr": 0,
+      "markers_with_snr_agreement_30_dbm": 0,
+      "markers_with_snr_agreement_33_dbm": 0,
+      "markers_with_snr_agreement_37_dbm": 0
+    }
+  },
+  "alternative_checks": "Fixed+/-1day and swappedendpoint diagnostics are explicitly unsupported by published labels and are not selected to maximize agreement. No free shift, scale, baseline or interpolation was fitted. Neighborhoods outside the frozen capture are counted explicitly and cannot support rejection of a different date.",
+  "source_sha256": {
+    "publication_features.json": "19b0b55065cc1cb66b166574fb2956f81849ea66e0b7706ddb74986655cad51a",
+    "publication_markers.csv": "c61521781c2bbcf765f93c70489e595aee15492f455ea19b4ca9368e399f1bac",
+    "original_raw_parquet": "a4a3970597bfa697ef85d0297dd0eadbbacafb49e432450c466eb79fbbc55d61"
+  },
+  "resolution_fixture": "../milazzo_fig6_rx_v1",
+  "resolution": "31 KP4MD and 13 WB6RQN receptions of VE6PDQ match all 44 Figure 6 markers, with exact annotated SNRs and at most 120 seconds graphical time error. Old TX candidates are different observations."
+}

@@ -1,0 +1,8 @@
+landmark,paper_reception,archive_reception,index_difference,paper_delta_db,archive_delta_db,difference_db,time_utc
+isolated_pre_rotation_positive,454,454,0,6.3,6.4,0.1,2021-05-05 19:34:00+00:00
+pre_rotation_negative,705,705,0,-4.5,-4.6,-0.1,2021-05-07 23:58:00+00:00
+largest_positive,793,792,-1,9.3,9.4,0.1,2021-05-08 23:04:00+00:00
+adjacent_high_positive,812,812,0,8.5,8.4,-0.1,2021-05-09 01:10:00+00:00
+deepest_negative,850,849,-1,-6.5,-6.6,-0.1,2021-05-09 04:52:00+00:00
+later_positive_1,922,922,0,7.3,7.4,0.1,2021-05-10 02:16:00+00:00
+later_positive_2,978,977,-1,7.5,7.4,-0.1,2021-05-10 22:28:00+00:00

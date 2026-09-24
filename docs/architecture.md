@@ -485,7 +485,16 @@ Valid empty/scientific no-evidence results and local processing failures do not
 selectively switch databases.
 
 It also implements compatibility retry behavior for historical rows where a
-strict `code = 1` query returns no target evidence. The retry metadata is exposed
+strict `code = 1` query returns no target evidence and the complete requested
+window ends strictly before 2022-01-01 00:00 UTC. Windows ending at or after
+that boundary have no legacy query in their plans or provider reservations;
+execution rechecks eligibility before retrying. Both Performance and Benchmark
+plans carry their UTC boundaries. A blocked fallback produces the language-free
+`no_target_mode_evidence` diagnostic, including when Reference-only or external
+rows were returned, so the localized WSPR-2 explanation survives completed-run
+rerenders. The existing plan fingerprint includes the optional legacy SQL, which
+invalidates previously completed recent-date plans that allowed a fallback.
+The retry metadata is exposed
 in results and tested. This is scientific compatibility behavior and should not
 be changed as a generic query optimization.
 
@@ -516,6 +525,19 @@ an experiment invariant that archive rows cannot prove. Local benchmarks select
 geographically eligible callsign/full-locator identities. Sequential TX
 Hardware A/B applies the shared Target callsign and grid-4 to both schedule
 branches.
+
+Special-callsign exclusion has the same remote-peer boundary in Performance and
+Benchmark. `config/app_config.py` owns `SPECIAL_CALLSIGN_PREFIXES` (`Q`, `0`,
+and `1`); `core/callsign_filters.py` interprets that policy through
+`build_peer_callsign_exclusion_sql`. The shared predicate filters `tx_sign` in
+RX analyses and `rx_sign` in TX analyses, including every Target and Reference
+query branch and each strict or historical-fallback request. It does not filter
+the analysed endpoint: configured Target and Reference identities and Local
+Neighborhood reference contributors remain eligible regardless of their own
+callsign prefix. This is a callsign-prefix population rule, not a telemetry
+classification. The existing boolean, saved-field contract and
+Performance-on/Benchmark-off defaults remain unchanged; corrected SQL receives
+a different exact-query cache identity.
 
 Local Neighborhood computes one conservative geographic bounding box in
 `core/geographic_scope.py` around the configured Target locator center. Its
@@ -2214,8 +2236,115 @@ capabilities.
    Cartopy asset downloads are outside application control. Bounded HTTP work and
    failover improve availability but cannot guarantee synchronized database
    contents or make every unavailable/incompatible service succeed.
-8. **Regression-fixture gap:** The generated scientific fixture is absent, so one
-   fixture-integrity test is skipped.
+8. **Scientific-reference coverage:** The mandatory G3ZIL/G4HZX temporal fixture
+   under `tests/regression/reference_fixtures/` replays frozen SQL-result rows
+   through production filtering, station aggregation, paired evidence and
+   temporal recipes. Its exact expectations are a reviewed implementation
+   baseline corroborated by the paper's approximate count and pattern, not an
+   author-supplied numerical oracle. The companion Figure 6 diurnal fixture adds
+   independently reconstructed source-pair expectations for 6,459 observations,
+   all folded UTC-hour medians, quartiles, counts and density cells, chronological
+   profiles, the clipped final hour and a 22,000 km sensitivity replay with
+   6,474 pairs. Both cases share mandatory offline production replay helpers;
+   Figure 6's density contours corroborate the reversal without supplying exact
+   hourly median values. The separate `griffiths_fig6_paper_v1` fixture now
+   makes selected external features executable: independently annotated
+   source-image regions constrain local density-mode positions across nine
+   fixed smoothing cases, the strongest evening island and the paper's
+   qualitative morning/evening-versus-midday count ordering. The annotated
+   bounding regions and declared localization allowances do not establish
+   equality of complete contours, their probability levels, medians or IQR.
+   Three independently digitized isolated scatter points additionally constrain
+   native paired Delta SNR and UTC time-of-day, without supplying full source
+   identities or labels for the optional outlier-candidate detector.
+   The additional `griffiths_fig3_paper_v1` supplies source-only chronological
+   occupied regions, a first-half daily-mean trend and Figure 4 numerical mean
+   anchors. Initial comparison exposed duplicate-weighting differences: a raw
+   many-to-many report join reproduces all five selected Figure 4 anchors and
+   the April 16 negative plume, while maximum-per-receiver production pairing
+   differs for the plume and April 13 mean. Three direct assertions remain
+   strict expected failures, limited to the dedicated comparison exception;
+   `--runxfail` exposes the disagreements. Separate ordinary tests cover that
+   exploratory publication interpretation and independently check every
+   retained production difference against raw endpoint maxima. This explains
+   selected differences without changing runtime policy or claiming knowledge
+   of the authors' original query. Paper medians/IQR remain unavailable.
+   The separate [duplicate-report SNR policy review](duplicate_report_snr_policy.md)
+   documents the proposed median-per-endpoint alternative, a frozen-population
+   sensitivity calculation and its unresolved physical interpretation. Its
+   accepted decision retains strongest SNR where currently used, preserves the
+   distinct Local Median and Sequential A/B reductions, and documents the
+   best-report rationale in both manuals. The Figure 3 difference is a
+   report-selection/weighting effect before time aggregation, not proof of
+   physical signal artifacts or full paper reproduction. Current reducers and
+   fixture expectations remain unchanged.
+   The Zander Experiment A reference adds the installed simultaneous TX
+   Hardware A/B case: a standard-library calculation reconstructs 166 Joint
+   receiver-cycles from 731 frozen reports, and a separate paper-only fixture
+   constrains Figure 4's rounded mean/spread and all nine visibly distinct
+   histogram regions. Generated production aggregation SQL executes against
+   those source rows using SQLite and a bounded ClickHouse-function adapter;
+   independent expectations and the captured native ClickHouse response check
+   its scientific projection before the real post-fetch, station, Inspector
+   and Segment Insight histogram path. Renderer checks distinguish Joint-Spot
+   percentages from station weighting. This covers generated SQL expressions,
+   predicates and grouping, but not native ClickHouse engine semantics or its
+   distance approximation. Publication selectors and sample-unit notation are
+   incomplete, so histogram agreement is corroboration of the declared demo
+   reconstruction, not authenticated recovery of the original experiment.
+   The Vanhamel RX calibration reference adds a seven-day February 6-13
+   reconstruction with 1,143 qualifying Joint observations from ten
+   transmitter identities. It tests the external paper's rounded 1.2 dB
+   average separately from exact archive-derived expectations. Generated SQL
+   runs through the same bounded adapter, followed by real post-fetch,
+   station-threshold, Inspector, histogram and daily temporal preparation.
+   Exact SNR components, identities, counts, medians, IQR and density cells
+   protect against changes hidden by the rounded mean; deliberately wrong
+   corrections that display 1.3 or 1.4 dB and reversed boundary inclusivity
+   are rejected. The paper does not publish calibration dates, so the fixture
+   records numerical consistency without claiming the original seven-day
+   dataset has been authenticated. Its independent standard-library builder
+   consumes only frozen raw reports and configuration, never application
+   outputs. The shared SQL adapter is `tests/regression/reference_sql.py`.
+   The Vanhamel Figure 6 rotation reference further freezes the externally
+   reconciled M7AEO/IO82 trace with +1.6 dB Reference correction. Seven
+   independently digitized extrema retain their graphical tolerances; the
+   fixture includes the paper raster and an overlay PNG for human review.
+   A separate standard-library reference derives every selected paired SNR,
+   twenty reception slices, before/after summaries and the 28 twelve-hour
+   UTC profiles from frozen raw reports. Generated SQL, post-fetch and
+   Inspector selection feed the actual Selected Station Evidence recipe;
+   exact median/IQR and complete density-cell checks preserve empty bins and
+   extreme observations. Negative controls detect correction drift, sign
+   reversal, clipping and misalignment. Reception order and UTC time remain
+   separate axes, and archive-derived statistics are not represented as
+   published medians. Website calibration and application instructions are
+   linked separately from the paper's differing 1.2 dB prose.
+   The Milazzo TX reference covers all 1,992 captured reports, including every
+   non-joint and excluded report. A separate standard-library calculation
+   records raw IDs, normalized components, global Target-active witnesses,
+   distance exclusions and native outcomes; generated SQL and production
+   filtering retain 1,069 Only Target, 45 Joint and 21 Only Reference units
+   within the configured 5,000 km scope. Regression also exercises station
+   aggregation, Inspector identities, complete Drill-Down rows and three-hour
+   coverage counts with pooled and station-balanced Joint Evidence Share.
+   At VE6PDQ the single paired difference is hand-checkable at -2 dB, with
+   62 retained Target-only reports. Independent source digitization and an
+   exhaustive all-candidate audit preserve all 44 Figure 6 markers and all
+   89 VE6PDQ reports, including 25 Reference reports excluded by the global
+   gate. That initial TX-direction audit compared different observations:
+   `milazzo_fig6_rx_v1` subsequently matches all 44 markers to VE6PDQ
+   transmissions received at KP4MD and WB6RQN, contradicting the figure's
+   printed direction. Its separate standard-library reference and production
+   RX SQL checks retain exact annotated SNRs within the original graphical
+   time tolerance. Exact cycles and full locator identities yield five pairs;
+   three coarse/fine-locator mismatches remain one-sided. The input is a
+   user-supplied single-path subset, so its conditional gate outcomes are not
+   claims about global receiver activity in a complete live RX run. Original
+   digitization and the historical TX audit are retained with explicit scope.
+   Native database execution over frozen input and wider independent
+   reference coverage remain outstanding. A generated prepared-export package
+   is still absent, so the separate package-integrity test remains skipped.
 9. **Browser/multi-process coverage:** The regression suite covers pure logic,
    contracts, concurrency primitives, and documentation behavior, but no current
    browser end-to-end or multi-process deployment suite was found.

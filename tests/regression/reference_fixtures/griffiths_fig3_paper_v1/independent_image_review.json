@@ -1,0 +1,121 @@
+{
+  "review_status": "independent_source_only_candidate_not_approved_reference",
+  "reviewed_at_utc": "2026-09-24T13:46:43Z",
+  "source": {
+    "path": "tmp/griffiths_fig3_external_review/page2_image0.png",
+    "sha256": "0d5b114974fd301c256453d08bbE61531C094A7E8CFCFD83CD15C2A55B97543F",
+    "width_pixels": 1502,
+    "height_pixels": 540,
+    "inspection": "Original-resolution raster viewed directly; pixel dimensions and file hash read. No application code, application output, archived expected results, or existing feature extraction was inspected. The PDF was not read.",
+    "coordinate_convention": "Image origin at upper left; x increases rightwards and y downwards. All pixel coordinates below are approximate visual readings."
+  },
+  "series_identity": {
+    "dark_scatter": "Delta SNR G3ZIL-G4HZX (dB), left axis",
+    "blue_markers": "Soil moisture (% water content), right axis",
+    "warning": "Blue-marker positions are not Delta-SNR observations. Scatter darkness is printed overplotting, not a labelled quantile, median, or statistical mode."
+  },
+  "axis_calibration": {
+    "plot_bounds_pixels": {"left": 142.5, "right": 1340.5, "top": 62.0, "bottom": 433.0},
+    "x_ticks": [
+      {"date_utc": "2017-04-01T00:00:00Z", "x_pixel": 142.5},
+      {"date_utc": "2017-04-08T00:00:00Z", "x_pixel": 422.0},
+      {"date_utc": "2017-04-15T00:00:00Z", "x_pixel": 702.0},
+      {"date_utc": "2017-04-22T00:00:00Z", "x_pixel": 981.0},
+      {"date_utc": "2017-04-29T00:00:00Z", "x_pixel": 1261.0}
+    ],
+    "x_origin_date_utc": "2017-04-01T00:00:00Z",
+    "x_origin_pixel": 142.5,
+    "x_pixels_per_day": 39.9333333333,
+    "x_formula": "days_since_2017_04_01 = (x_pixel - 142.5) / 39.9333333333",
+    "y_ticks": [
+      {"delta_snr_db": 30, "y_pixel": 62},
+      {"delta_snr_db": 25, "y_pixel": 100},
+      {"delta_snr_db": 20, "y_pixel": 137},
+      {"delta_snr_db": 15, "y_pixel": 174},
+      {"delta_snr_db": 10, "y_pixel": 211},
+      {"delta_snr_db": 5, "y_pixel": 248},
+      {"delta_snr_db": 0, "y_pixel": 285},
+      {"delta_snr_db": -5, "y_pixel": 322},
+      {"delta_snr_db": -10, "y_pixel": 359},
+      {"delta_snr_db": -15, "y_pixel": 396},
+      {"delta_snr_db": -20, "y_pixel": 433}
+    ],
+    "y_pixels_per_db": 7.42,
+    "y_zero_db_pixel": 284.6,
+    "y_formula": "delta_snr_db = 30 - (y_pixel - 62) / 7.42",
+    "visual_axis_uncertainty_pixels": 2,
+    "approximate_axis_only_uncertainty": {"time_days": 0.05, "delta_snr_db": 0.27},
+    "caveats": [
+      "UTC is the candidate coordinate convention; the raster itself labels the horizontal axis only as Time and does not explicitly specify a timezone.",
+      "The inferred right boundary is approximately 2017-05-01, but no labelled May tick is visible.",
+      "Do not confuse the small axis-calibration uncertainty with the much larger uncertainty in selecting a central-darkness band."
+    ]
+  },
+  "central_darkness_candidate_boxes": [
+    {
+      "period": "early_April",
+      "date_start": "2017-04-01",
+      "date_end_exclusive": "2017-04-08",
+      "delta_snr_lower_db": 0,
+      "delta_snr_upper_db": 9,
+      "approximate_pixel_box": {"left": 143, "right": 422, "top": 218, "bottom": 285},
+      "interpretation": "Broad envelope for the most visually concentrated central dark portions of the daily scatter columns. It does not enclose every dark pixel or a defined probability mass."
+    },
+    {
+      "period": "middle_April",
+      "date_start": "2017-04-11",
+      "date_end_exclusive": "2017-04-18",
+      "delta_snr_lower_db": 2,
+      "delta_snr_upper_db": 11,
+      "approximate_pixel_box": {"left": 542, "right": 821, "top": 203, "bottom": 270},
+      "interpretation": "Broad envelope for the central dark concentration; the conspicuous downward April-16 plume is a separate feature, not part of the central-band estimate."
+    },
+    {
+      "period": "late_April",
+      "date_start": "2017-04-24",
+      "date_end_exclusive": "2017-05-01",
+      "delta_snr_lower_db": 3,
+      "delta_snr_upper_db": 12,
+      "approximate_pixel_box": {"left": 1061, "right": 1341, "top": 196, "bottom": 262},
+      "interpretation": "Broad envelope for the central dark concentration. Blue soil-moisture markers partially cover this same visual area and must not be counted as scatter evidence."
+    }
+  ],
+  "central_darkness_uncertainty_and_validity": {
+    "estimated_visual_band_boundary_uncertainty_db": 2,
+    "period_selection": "Three equal seven-day review windows chosen by this reviewer to represent early, middle, and late April; these windows are not defined in the source raster.",
+    "qualitative_observation": "The central dark concentration appears modestly higher later in April, but the candidate bands overlap substantially and individual daily columns vary.",
+    "quantitative_statistical_modal_positions_defensible": false,
+    "broad_geometric_darkness_boxes_defensible": true,
+    "conditions": "Use only as approximate image-derived descriptive envelopes with reviewer uncertainty. Do not name the box centers modes, medians, quantiles, or independent numerical ground truth.",
+    "scientific_regression_limit": "These boxes can support a coarse source-consistency check. Alone they cannot validate the scientific aggregation, sample counts, distribution quantiles, a precise month-long change, or a required ordering of early/middle/late statistical modes. No distinct numerical modal estimate was extracted."
+  },
+  "negative_excursion_candidate": {
+    "date_start": "2017-04-16",
+    "date_end_exclusive": "2017-04-17",
+    "approximate_center_date": "2017-04-16T12:00:00",
+    "delta_snr_lower_db": -18,
+    "delta_snr_upper_db": -8,
+    "approximate_pixel_box": {"left": 742, "right": 782, "top": 344, "bottom": 419},
+    "interpretation": "A narrow, conspicuously dark downward plume is visible near the middle of April 16. This box contains a clear negative portion of that feature and deliberately describes its presence rather than its minimum.",
+    "conservative_clearly_visible_subrange_db": [-15, -8],
+    "approximate_feature_localization_uncertainty_days": 0.25,
+    "approximate_feature_vertical_reading_uncertainty_db": 2,
+    "observed_minimum_delta_snr_db": null,
+    "minimum_reason": "The plume thins towards the lower plot boundary at -20 dB. The raster does not establish an uncensored minimum, and -18 dB is a candidate box boundary, not an asserted minimum observation.",
+    "confidence": "High for the existence and approximate date of a strong negative excursion; lower for tail extent and unsuitable for recovering an exact minimum or count."
+  },
+  "recommended_use": {
+    "strongest_source_features": [
+      "Correct axis direction and scale.",
+      "Broad positive central concentration with substantial distributional spread.",
+      "Conspicuous negative plume around April 16.",
+      "Blue points belong to an independently scaled moisture series."
+    ],
+    "do_not_assert": [
+      "A source-provided numerical median, quantile, or statistical mode.",
+      "An observed minimum equal to the -20 dB plot boundary.",
+      "A precise monotonic progression of central values across the month.",
+      "A scatter-sample count, causal moisture relationship, or scientific equivalence solely from image darkness."
+    ]
+  }
+}

@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
+from contextlib import closing
 import math
+import sqlite3
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from core.callsign_filters import build_peer_callsign_exclusion_sql
 from core.opportunity_engine import (
     OPPORTUNITY_DRILLDOWN_VIEW_COLUMNS,
     OPPORTUNITY_SEGMENT_VIEW_COLUMNS,
@@ -880,6 +883,87 @@ def test_rx_query_uses_exact_target_qth_half_open_time_and_compact_schema():
     assert "tx_lon" not in query
     assert "JOIN" not in query.upper()
     assert query.endswith("FORMAT Parquet")
+
+
+@pytest.mark.parametrize("mode", ["RX", "TX"])
+@pytest.mark.parametrize("exclude_special_callsigns", [False, True])
+def test_special_callsign_filter_preserves_performance_target_and_external_endpoints(
+    mode, exclude_special_callsigns,
+):
+    """Run the generated active-cycle and peer predicates on concrete reports."""
+    analyzed_prefix = mode.lower()
+    peer_prefix = "tx" if mode == "RX" else "rx"
+    ordinary_peers = {"DL2AAA", "DK3BBB", "DL0QAA", "DL1QAA"}
+    special_peers = {"Q1XYZ", "0ABC", "1ABC"}
+    with closing(sqlite3.connect(":memory:")) as connection:
+        connection.create_function("notEmpty", 1, lambda text: bool(text))
+        connection.create_function("intDiv", 2, lambda numerator, denominator: numerator // denominator)
+        connection.create_function(
+            "toUnixTimestamp", 1,
+            lambda timestamp: int(datetime.fromisoformat(timestamp).replace(tzinfo=timezone.utc).timestamp()),
+        )
+        connection.execute(
+            f"CREATE TABLE observations (name TEXT, {analyzed_prefix}_sign TEXT, "
+            f"{analyzed_prefix}_loc TEXT, {peer_prefix}_sign TEXT, {peer_prefix}_loc TEXT, "
+            "band INTEGER, time TEXT, code INTEGER)"
+        )
+        for special_prefix in ("Q", "0", "1"):
+            target_callsign = f"{special_prefix}1ABC"
+            external_callsign = f"{special_prefix}2XYZ"
+            connection.execute("DELETE FROM observations")
+            observations = [
+                (f"{role}:{peer}", callsign, "JN37", peer, "JO62", 14, "2017-05-27 12:00:00", 1)
+                for role, callsign in (("target", target_callsign), ("external", external_callsign))
+                for peer in sorted(ordinary_peers | special_peers)
+            ]
+            observations.extend([
+                ("legacy", target_callsign, "JN37", "DL4CCC", "JO62", 14, "2017-05-27 12:00:00", 2),
+                ("active-target", target_callsign, "JN37", "Q1XYZ", "JO62", 14, "2017-05-27 12:02:00", 1),
+                ("active-external", external_callsign, "JN37", "DL2AAA", "JO62", 14, "2017-05-27 12:02:00", 1),
+            ])
+            connection.executemany("INSERT INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?)", observations)
+            for require_decode_code in (True, False):
+                query = build_absolute_opportunity_query(
+                    mode=mode,
+                    start_t=datetime(2017, 5, 27, tzinfo=timezone.utc),
+                    end_t=datetime(2017, 5, 28, tzinfo=timezone.utc),
+                    band_value="14",
+                    callsign=target_callsign,
+                    qth="JN37",
+                    exclude_special_callsigns=exclude_special_callsigns,
+                    require_decode_code=require_decode_code,
+                )
+                # Preserve every generated predicate; adapt only PREWHERE syntax
+                # and the source-table name for SQLite's execution environment.
+                active_cycles_sql = query.split("\nSELECT\n", 1)[0].replace("wspr.rx", "observations")
+                active_cycles_sql = active_cycles_sql.replace("\n    WHERE ", "\n      AND ").replace("PREWHERE", "WHERE")
+                peer_predicate = query.split("\nWHERE ", 1)[1].split("\nGROUP BY ", 1)[0]
+                assert "NOT LIKE" not in active_cycles_sql
+                assert f"{analyzed_prefix}_sign NOT LIKE" not in peer_predicate
+                for prefix in ("Q", "0", "1"):
+                    assert (f"{peer_prefix}_sign NOT LIKE '{prefix}%'" in peer_predicate) is exclude_special_callsigns
+                selected_names = {
+                    row[0] for row in connection.execute(
+                        f"{active_cycles_sql}\nSELECT name FROM observations WHERE {peer_predicate}"
+                    )
+                }
+                expected_peers = ordinary_peers if exclude_special_callsigns else ordinary_peers | special_peers
+                expected_names = {f"{role}:{peer}" for role in ("target", "external") for peer in expected_peers}
+                # A Target decode still establishes activity when its own remote
+                # peer is excluded from the reported peer population.
+                expected_names.add("active-external")
+                if not exclude_special_callsigns:
+                    expected_names.add("active-target")
+                if not require_decode_code:
+                    expected_names.add("legacy")
+                assert selected_names == expected_names, (special_prefix, require_decode_code)
+
+
+@pytest.mark.parametrize("mode", ["", "BOTH", "RX; DROP TABLE observations"])
+@pytest.mark.parametrize("exclude_special_callsigns", [False, True])
+def test_shared_special_callsign_filter_rejects_unsupported_direction(mode, exclude_special_callsigns):
+    with pytest.raises(ValueError, match="mode must be RX or TX"):
+        build_peer_callsign_exclusion_sql(mode=mode, exclude_special_callsigns=exclude_special_callsigns)
 
 
 @pytest.mark.parametrize(

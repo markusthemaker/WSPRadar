@@ -1,0 +1,95 @@
+{
+  "fixture_kind": "Paper-corroborated fixed-input temporal regression baseline; not an independently published numerical oracle",
+  "date_created": "2026-09-24",
+  "source_capture_date": "2026-09-23",
+  "profile_id": "griffiths_squibb_fig3",
+  "start_utc": "2017-04-01T00:00:00+00:00",
+  "end_utc_exclusive": "2017-05-01T00:00:00+00:00",
+  "scope": "RX Benchmark; Full Range | All Directions; max_peer_distance_km=10000; minimum joint spots per station=1; all solar states; legacy_no_code historical selection; pooled native same-cycle paired observations",
+  "delta_definition": "(SNR_G3ZIL - reported_power_G3ZIL + 30) - (SNR_G4HZX - reported_power_G4HZX + 30); no offset",
+  "global": {
+    "joint_spots": 57767,
+    "mean_delta_snr_db": 6.5490851178008205,
+    "median_delta_snr_db": 7.0,
+    "q1_delta_snr_db": 3.0,
+    "q3_delta_snr_db": 10.0,
+    "paired_peer_identities": 792,
+    "days": 30,
+    "mean_joint_spots_per_day": 1925.5666666666666,
+    "minimum_delta_snr_db": -24.0,
+    "maximum_delta_snr_db": 45.0
+  },
+  "profiles": {
+    "24h": {
+      "bins": 30,
+      "joint_spots_sum": 57767,
+      "density_spots_sum": 57767,
+      "median_values": [
+        2.0,
+        4.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        5.0,
+        6.0,
+        5.0,
+        7.0,
+        6.0,
+        8.0,
+        8.0,
+        8.0,
+        9.0,
+        8.0,
+        8.0,
+        8.0,
+        8.0,
+        6.0,
+        6.0,
+        6.0,
+        7.0,
+        7.0,
+        8.0,
+        7.0,
+        6.0,
+        8.0,
+        7.0,
+        7.0
+      ]
+    },
+    "3h": {
+      "bins": 240,
+      "joint_spots_sum": 57767,
+      "density_spots_sum": 57767,
+      "median_values": null
+    },
+    "utc_hour": {
+      "bins": 24,
+      "joint_spots_sum": 57767,
+      "density_spots_sum": 57767,
+      "median_values": null
+    }
+  },
+  "paper_anchor": {
+    "url": "https://www.wsprnet.org/drupal/sites/wsprnet.org/files/G3ZIL%20G4HZX%20WSPR%20Improving%20HF%20SNR-print.pdf",
+    "printed_page": 25,
+    "figure": 3,
+    "approximate_mean_spots_per_day": 2000,
+    "quote": "On average there are some 2,000 spots each day",
+    "difference_from_approximate_monthly_count_percent": -3.7216666666666676,
+    "interpretation": "Context suggests paired same-transmitter/same-time comparisons. Approximate corroboration only; no justified numerical acceptance interval is specified by the paper. Blue squares are soil moisture on right axis."
+  },
+  "expected_value_method": "Extract both-SNR component rows from frozen processed results, independently subtract and sort; calculate bins, medians, means and linear quartiles with standard-library arithmetic, then cross-check current production canonical evidence and temporal functions. Expected values remain a reviewed implementation baseline corroborated by paper, not author-supplied measurements.",
+  "regression_policy": "Freeze expected files. Exact equality for identities, counts and integer/quarter-dB values in this dataset; absolute tolerance1e-12dB for floating arithmetic summaries. Never regenerate expectations automatically during tests. Deliberate scientific method changes require a reviewed baseline update.",
+  "deferred": "The installed regression module replays input_sql_rows.parquet through production post-fetch filtering, station aggregation, paired-evidence extraction and temporal profiles. SQL execution, provider selection, automatic fallback and upstream power normalization remain outside this test. Original source rows are retained for a later SQL-level test.",
+  "pipeline": {
+    "input_sql_rows": 125759,
+    "processed_rows": 124622,
+    "station_rows": 1130,
+    "outcomes": {
+      "joint": 57767,
+      "target_only": 56260,
+      "reference_only": 10595
+    }
+  }
+}

@@ -361,6 +361,8 @@ Useful files when tracing behavior:
 
 - `ui/run_controller.py`: end-to-end analysis orchestration.
 - `core/analysis_runner.py`: SQL and post-fetch analysis contracts.
+- `core/callsign_filters.py`: shared direction-specific remote-peer SQL
+  exclusions using the fixed prefix policy in `config/app_config.py`.
 - `core/analysis_plan.py`: dependency-light, immutable execution plans with
   validated mode, time-window, and strict/legacy query provenance; existing
   scientific consumers retain mapping reads without copying the plan.
@@ -488,7 +490,79 @@ directory. The `.test/pytest-temp/` tree is cleared at the start of each pytest
 session, preventing separately named root-level test directories from
 accumulating across runs.
 
-Latest regression verification on 2026-09-14 covered the initial-page import
+Focused verification on 2026-09-24 added the mandatory G3ZIL/G4HZX temporal
+reference fixture. The new module and the existing prepared-export integrity,
+segment temporal evidence, evidence-statistics and runner tests reported
+**57 passed, 1 skipped, 1 existing warning in 28.07 seconds**. After making the
+axis assertions explicitly UTC, the new module separately reported
+**8 passed, 1 existing warning in 9.61 seconds**, with 2.82 seconds for its
+shared numerical preparation. The skip still belongs to the absent
+prepared-export package; the new scientific reference never skips. Four
+temporary in-memory faults were rejected: reversed Delta SNR, a three-hour
+timestamp shift, means substituted for bin medians, and an omitted geographic
+filter. The 82-module chunk manifest, changed-test compilation and whitespace
+checks passed. This was a test/data and engineering-documentation addition;
+application runtime code was unchanged, so a full-suite or browser run was not
+required for this focused work.
+
+The companion Figure 6 fixture was integrated later on 2026-09-24 using the same
+reference module. Both publication cases and the directly related modules
+reported **69 passed, 1 skipped, 1 existing warning in 21.75 seconds**. Eight
+in-memory erroneous results/configuration choices were rejected by the actual
+reference assertion helpers: means, station-hour or date-hour medians used in
+place of pooled medians; shifted UTC hours or density cells; reversed Delta SNR;
+an extended final-hour boundary; and an omitted geographic cutoff. These checks
+did not mutate application source or frozen expectations. The Figure 3 fixture
+remained unchanged, and the same 82-module manifest registration applies.
+Changed-test compilation and whitespace checks passed. This focused addition
+changed only tests, fixture data and engineering documentation; full-suite,
+browser and database-SQL checks were not performed.
+
+The subsequent external Figure 6 source-image addition on 2026-09-24 passed
+the same focused module set with **82 passed, 1 skipped, 1 existing warning in
+25.03 seconds**. All 33 Griffiths reference tests are mandatory, including nine
+paper-density sensitivity cases, qualitative density ordering and three
+independently digitized isolated-point witnesses. Expected source positions
+and tolerances remained fixed after their first comparisons. Five in-memory
+faults were rejected: reversed Delta SNR, constant +5 dB differences, a +4 dB
+offset, a six-hour UTC density shift and a uniform density grid. The 82-module
+manifest, changed-test compilation and whitespace checks passed. The prior
+archive fixtures and application runtime were unchanged; no full-suite,
+browser, live-provider or SQL-execution run was performed for this addition.
+
+Latest complete regression verification on 2026-09-23 covered the shared remote-peer
+special-callsign filter in `C:\Users\marku\Code\WSPRadar`, together with the
+pre-existing working-tree changes to historical decode compatibility. The
+complete foreground Windows runner reported:
+
+```text
+2996 passed, 1 skipped, 1 warning in 271.58 seconds
+```
+
+The warning is the existing Matplotlib pending deprecation. All 24 focused
+peer-filter regression cases also passed. Generated Target/Reference predicates
+were executed with SQLite for every supported Benchmark design and RX/TX
+Performance, checking all three prefixes, enabled/disabled filtering, historical
+fallback, and special-prefix Target, Reference and local-reference contributors.
+The Performance check also preserves Target activity established through an
+excluded remote peer. These are local predicate checks, not live ClickHouse
+measurements. Full Python compilation, the runner's regression manifest
+validation, README synchronization, JSON syntax and patch whitespace checks
+passed. The full suite includes documentation rendering, localization, shared
+Guided/Classic state, export and idle-import contracts. No live archive query,
+browser walkthrough or deployment test was performed for this change.
+
+The updated filter guidance is a completed co-authored English/German
+integration under the approved remote-peer-only specification. Review covered
+the manual filter row, shared tooltip, Guided explanation and compact review,
+including RX/TX direction, eligible analysed endpoints and unchanged defaults.
+German uses the established `Referenz` terminology. No semantic divergence or
+unmatched unit remains in this scope. Integrated manual source SHA-256 hashes:
+
+- `docs/doc_en.py`: `C789C9228E5F8133FBC60E57F4790A6A86B0FA4D253B1A82E450FE8CD1F871A7`
+- `docs/doc_de.py`: `6E5288452C91F022C470988C37E75620F3C7C1529E6582D4DE6DE7F21AF4C02B`
+
+Earlier regression verification on 2026-09-14 covered the initial-page import
 boundary, bundled browser fonts, and the 140-pixel logo in
 `C:\Users\marku\Code\WSPRadar`. The complete foreground Windows run reported:
 
@@ -920,7 +994,334 @@ static analysis.
 To build a regression fixture from an exported demo folder, inspect and use
 `scripts/build_regression_fixture_from_demo_folder.py`. Folders placed under
 `tests/demo/` are export-intake inputs, not current regression fixtures; only
-generated packages under `tests/regression/fixtures/` are active fixtures.
+generated packages under `tests/regression/fixtures/` are active prepared-export
+fixtures.
+
+Scientific reference datasets use the separate
+`tests/regression/reference_fixtures/` directory. The mandatory
+`test_griffiths_temporal_reference.py` replays the first G3ZIL/G4HZX demo from
+frozen SQL-result rows through production post-fetch filtering, station
+aggregation, paired evidence and temporal recipes. It compares all 57,767
+paired observations and the daily, three-hour and folded UTC-hour profiles with
+fixed reviewed expectations. Missing or corrupt reference files fail rather
+than skip. The fixture README records the paper comparison, captured provider
+and historical decode provenance, checksums, and baseline-update rules.
+This offline test starts after SQL aggregation; it does not execute SQL or
+validate upstream power normalization, provider selection or mode decoding.
+The paper corroborates the approximate count and temporal pattern; it does not
+supply the fixture's exact expected numerical values.
+
+The same module also replays demo #3 with
+`reference_fixtures/griffiths_fig6_diurnal_v1`, covering April 5 through April 7,
+2017 at the demo's exact exclusive 23:45 UTC endpoint. Independently reconstructed
+source pairs provide 6,459 Joint Spots and the complete folded UTC-hour count,
+median, quartile and density profiles, plus chronological 1-hour, 3-hour,
+6-hour and daily profiles. A separate 22,000 km replay retains 6,474 pairs with
+unchanged hourly medians. Boundary assertions preserve the partial final hour;
+exact hourly-profile comparisons preserve pooled-pair weighting, while folding
+invariance checks keep the folded result independent of chronological bin
+choices. Figure 6 corroborates the nighttime reversal and approximate
+daytime advantage, but its density contours are not exact hourly medians.
+Its fixture README distinguishes the independently reconstructed source
+expectations from the publication's approximate evidence and documents the
+remaining paper-count difference. Both reference cases are mandatory, run
+offline and share the production replay helpers; neither executes database SQL.
+
+A separate `reference_fixtures/griffiths_fig6_paper_v1` provides executable
+external expectations extracted from the original Figure 6 image. Four
+digitized contour-region boxes, an independent image review and a frozen
+comparison policy precede the application comparison. Tests evaluate the
+production folded density grid against those regions with periodic UTC
+smoothing across nine fixed bandwidth combinations, require the strongest
+density in the published evening island, and check the stated morning/evening
+versus midday density ordering. Image-readout and histogram-resolution
+allowances are explicit; unspecified author smoothing does not supply an
+extra tolerance. These are selected density-feature checks, not recovery of
+contour probabilities, exact medians or IQR from the paper. The exact archive
+regressions continue to check medians and IQR separately. The first external
+comparison passed without moving its source annotations or tuning bandwidths.
+Three isolated extreme dots independently extracted from the paper also match
+native paired Delta SNR and folded UTC time within fixed pixel-derived
+tolerances. These are plotted-point witnesses, not author-supplied station/date
+identities or validation of the optional outlier-candidate detector.
+
+The additional `reference_fixtures/griffiths_fig3_paper_v1` freezes original
+Figure 3 occupied-region annotations and the paper's first-half daily-average
+trend, plus three dated means and two mean extrema digitized from Figure 4.
+Source geometry and comparison rules were fixed before application comparison.
+The first check exposed a duplicate-weighting distinction: retaining all raw
+same-time report combinations reproduces all five Figure 4 anchors and the
+April 16 deep negative plume, whereas WSPRadar's maximum-per-receiver policy
+does not reproduce the plume or the April 13 mean. These three direct comparison
+cases remain strict expected failures restricted to a dedicated comparison
+exception; `--runxfail` exposes them as failures. They are documented evidence
+unit differences, not successful reproduction or established runtime defects.
+Additional ordinary tests verify the alternate raw-report interpretation and
+independently recompute the maximum-report difference for every retained
+production pair. The source README distinguishes this exploratory explanation
+from knowledge of the authors' unavailable query. Original archive fixtures
+and runtime calculations remain unchanged; SQL execution is still not tested.
+Focused verification on 2026-09-24 reported **100 passed, 1 skipped,
+3 xfailed, 1 existing warning in 34.70 seconds** across the reference module
+and directly related fixture/evidence/runner modules. The three strict expected
+failures are the documented publication-versus-production pairing differences;
+the skip remains the absent prepared-export fixture. Compilation, whitespace,
+82-module manifest validation and preservation hashes passed. This isolated
+addition did not run the complete suite, browser, live provider or database SQL.
+
+The Zander Experiment A reference adds
+`test_zander_experiment_a_reference.py` with separate
+`reference_fixtures/zander_experiment_a_v1` and `zander_fig4_paper_v1`
+packages. A standard-library builder independently reconstructs the fixed
+simultaneous TX demo from 731 original reports: 166 Joint receiver-cycles,
+37 paired receiver identities, mean -6.783132530120482 dB and sample standard
+deviation 3.51463845382668 dB. Paper-only extraction freezes the published
+-6.8/3.5 dB annotations and nine visibly distinct histogram regions before
+comparison. All external features agree within the original readout allowances;
+the final equal-height bars are combined because their internal boundary is
+not visible. Exact archive statistics and external paper features remain
+separate sources of expectations.
+
+This regression executes the generated production aggregation SQL against
+frozen source rows using an in-memory SQLite compatibility adapter, retaining
+the real predicates, UNION, groups, normalization and conditional aggregates.
+The adapter and a captured native ClickHouse response provide complementary
+checks; they do not validate ClickHouse engine behavior or its geographic
+distance approximation. The real post-fetch, map/station, Inspector and
+Segment Insight histogram calculations then run, with exact paired identities,
+SNR components and 1 dB counts checked. A rendered-artist test checks the
+right-hand Joint-Spot bar percentages and positions. Deliberate incorrect
+mode, normalization, sign, offset and aggregation variants are rejected.
+
+The paper fixture preserves uncertainty about the original date/callsigns,
+source population and Figure 4's sample-unit notation. The observed histogram
+match corroborates the installed pooled receiver-cycle reconstruction without
+claiming recovered author code or direction-independent antenna gain.
+The independent builder is `scripts/build_zander_reference_fixture.py`;
+expectations are never regenerated by tests. Focused verification on
+2026-09-24 reported **138 passed, 3 existing xfailed, 1 existing warning in
+57.02 seconds** across Zander, Griffiths and related evidence/runner modules.
+The three expected failures remain the documented Griffiths Figure 3 cases;
+Zander has no expected failures. The new module is registered once in the
+83-module, five-chunk manifest. This isolated test/fixture addition changes no
+runtime behavior and does not run the complete suite or a live provider.
+
+The Vanhamel receiver-chain calibration reference adds
+`test_vanhamel_calibration_reference.py` and
+`reference_fixtures/vanhamel_rx_calibration_v1`. The installed demo now selects
+2021-02-06 06:00 inclusive through 2021-02-13 06:00 exclusive in UTC. A separate
+standard-library calculator derives 1,143 qualifying Joint observations from
+ten transmitter identities, with pooled mean +1.2143482064741906 dB and a
++1.0 dB median for each qualifying transmitter. The external paper supplies
+the seven-day calibration design and rounded 1.2 dB average; it does not
+identify the dates or averaging weights. Author-supplied shorter February
+windows are documented as provenance,
+without identifying this reconstruction as the paper's exact original dataset.
+
+The mandatory offline test executes generated production SQL against frozen
+raw reports using `tests/regression/reference_sql.py`, the compatibility
+adapter also used by Zander. It then exercises post-fetch filtering,
+station-threshold selection, Inspector pairing, Joint-Spot and Station Medians
+histogram recipes, and seven 06:00-to-06:00 UTC temporal profiles. Independent
+expectations pin SQL and retained rows, every qualifying pair and SNR
+component, station counts/medians, 1 dB histogram counts, and daily median/IQR
+and density. The paper comparison requires the pooled mean in [1.15, 1.25)
+dB, an explicit nearest-tenth comparison policy rather than a claimed
+measurement uncertainty. Deliberate correction errors that produce displayed
+1.3 and 1.4 dB results are rejected, as are incorrect inclusivity changes at
+the real source rows on both window boundaries. Exact archive checks also
+detect changes that leave the rounded paper mean unchanged. The builder is
+`scripts/build_vanhamel_reference_fixture.py`; tests never regenerate the
+expected files. This fixture has no duplicate endpoint reports or non-code-1
+rows and does not independently validate the native ClickHouse engine.
+
+Focused verification on 2026-09-24 reported **317 passed, 3 existing xfailed,
+1 existing warning in 50.07 seconds**, covering Vanhamel, Zander, Griffiths,
+configuration/schema, regression-runner, temporal-evidence and evidence-statistic
+modules. All nine new Vanhamel checks pass. The three expected failures remain
+the documented Griffiths Figure 3 cases. The updated manifest validates 84
+modules across five serial chunks; changed Python compilation and whitespace
+checks pass. The ten independent expected files regenerate byte-identically.
+This demo-data/test addition does not change scientific runtime calculations;
+the complete suite and a native ClickHouse replay were not run for this step.
+
+The Vanhamel Figure 6 antenna-rotation reference adds
+`test_vanhamel_rotation_reference.py` and
+`reference_fixtures/vanhamel_fig6_rotation_v1`. Its stored overlay PNG aligns
+the published black trace with 1,441 M7AEO/IO82 paired observations using the
+paper's reception-number axis. Seven independently read peaks and troughs
+agree within one reception and 0.1 dB; executable paper checks retain the
+original graphical tolerances of five receptions and 0.4 dB. The rotation
+demo uses +1.6 dB Reference correction, rounding the authors' website value
+1.573591164 dB. Both the calibration page and receiver-correction instructions
+are linked in the demo and fixture. The paper text states 1.2 dB; neither
+the overlay nor the website proves which correction generated the figure.
+
+The independent standard-library builder
+`scripts/build_vanhamel_rotation_reference_fixture.py` consumes frozen raw
+reports and configuration. Expectations cover all SQL groups and retained
+rows, each selected pair's SNR components, twenty reception slices and
+before/after summaries. The mandatory offline regression executes generated
+SQL through the bounded adapter, production post-fetch and Inspector
+selection, and the actual Selected Station Evidence recipe. It checks all
+28 twelve-hour counts, medians, quartiles and density cells, including empty
+bins, the clipped final time interval and extreme tails. Deliberate wrong
+corrections, reversed subtraction, tail clipping and reception-order shifts
+must fail. Exact slice statistics are archive-derived expectations reconciled
+with the paper, not exact statistics extracted from its raster. The historical
+source has no duplicate endpoint reports for the selected path and supplies
+no independent outlier-detector classifications. Tests never refresh the
+expected files or require network access. `.gitattributes` disables line-ending
+conversion for all frozen reference fixtures, preserving their byte-level
+checksums across Git checkouts; PNG and Parquet files remain binary.
+
+Focused verification on 2026-09-24 reported **377 passed, 3 existing xfailed,
+1 existing warning in 78.32 seconds**, covering all four publication reference
+modules plus configuration/schema, regression-runner, evidence-statistics,
+segment-temporal and selected-station figure coverage. All thirteen new
+Figure 6 checks pass; expected failures remain the documented Griffiths
+Figure 3 cases, and the warning is the existing Matplotlib deprecation.
+The eight expected files regenerate byte-identically with the standard-library
+builder under `python -S`. All eighteen frozen files match the SHA256 manifest
+and retain identical hashes with Git clean filters applied. The manifest
+validates 85 modules across five serial chunks, and changed Python compilation
+and whitespace checks pass. This isolated fixture/demo-data addition does not
+change shared scientific algorithms; the full regression suite and native
+ClickHouse execution were not rerun for this step.
+
+The Milazzo TX reference adds `test_milazzo_reference.py` and
+`reference_fixtures/milazzo_tx_reference_v1`. The demo description now uses
+the configured 5,000 km population: 1,069 Only Target, 45 Joint and 21 Only
+Reference receiver-cycles, rather than the unrestricted 1,093/46/21 counts.
+The scientific demo settings and runtime calculations are unchanged.
+
+The independent standard-library builder
+`scripts/build_milazzo_reference_fixture.py` accounts for all 1,992 source
+reports and 1,946 receiver-cycle groups, including every non-joint observation
+and mutually exclusive activity/distance exclusion. Expected files retain
+all raw IDs, normalization components, global activity witnesses, 1,135
+native units, 45 pairs, 80 station identities and two sets of 24 three-hour
+coverage bins. The regression executes actual generated SQL through the
+bounded adapter, checks the historical retry predicate, then exercises
+production filtering, station aggregation, Inspector selection, Drill-Down
+with and without non-joint rows, and coverage preparation. It preserves null
+SNR components for absent endpoints and verifies pooled versus station-balanced
+Joint Evidence Share. Removing every Target witness in a real cycle must
+remove its Reference-only evidence. VE6PDQ's one pair is independently
+hand-calculated at -2 dB; its other retained evidence is 62 Only Target rows.
+
+The separately digitized publication reference preserves 44 Figure 6 markers.
+Its exhaustive mapping audit includes all 89 VE6PDQ reports, including the
+25 Reference reports excluded by global activity. Only 18 markers have
+same-transmitter timestamp candidates within the source-derived tolerance;
+none agrees in SNR under the checked raw/30/33/37 dBm interpretations. The
+regression checks candidate enumeration and retention linkage, not publication
+SNR reproduction. `publication_mapping.md` records that initial TX-direction
+investigation without fitting a time shift or SNR offset. Its unresolved
+direction conclusion is superseded by the reciprocal RX evidence below.
+
+All ten calculated expected files regenerate byte-identically under
+`python -S`. The source CSV preserves the original Parquet values exactly,
+including binary coordinate values; all 28 manifest files pass SHA256 and
+Git clean-filter byte-preservation checks. The fixed runner validates
+86 modules across five serial chunks. Changed Python compilation passes.
+
+Focused verification on 2026-09-24 first passed all **17 new Milazzo tests**.
+The related integration run reported **418 passed, 3 existing xfailed and
+one failure in 93.63 seconds**: the new demo description lacked the required
+spaces around em dashes. After that presentation-only correction, rerunning
+the complete Milazzo and configuration modules reported **41 passed in
+28.20 seconds**. Both runs emitted the one existing Matplotlib deprecation
+warning. The expected failures remain the documented Griffiths Figure 3
+cases. Related coverage included all publication reference modules,
+configuration/schema, regression-runner, historical decode fallback,
+non-joint evidence, temporal coverage and evidence statistics. No shared
+scientific calculation changed; the complete regression suite and native
+ClickHouse replay were not run for this isolated fixture/demo-copy addition.
+
+The subsequent Milazzo Figure 6 reconciliation adds the separate
+`reference_fixtures/milazzo_fig6_rx_v1` fixture. All 44 independently digitized
+markers match user-supplied wspr.rocks reports in the reciprocal RX direction:
+VE6PDQ transmitting, KP4MD and WB6RQN receiving. All annotated SNRs match
+exactly, with a maximum two-minute graphical time residual and no fitted shift.
+This contradicts the printed direction; it does not establish a Figure 6/7
+image swap. The installed demo remains TX with unchanged scientific settings,
+and its description now explains the RX publication reconciliation.
+
+The independent standard-library RX builder regenerates all six calculated
+files byte-identically under `python -B -S`. The 86 supplied reports select
+44 paper reports and 39 full-identity SQL groups. The production SQL,
+filtering and Inspector pipeline retains 34 native units within this bounded
+path subset, including five hand-checked pairs with differences +8, +17,
++22, +7 and +7 dB. Three further shared cycles have unequal coarse/fine
+transmitter locators and remain unpaired under the existing identity policy.
+Graphical tolerance never relaxes synchronization; unknown mode remains null.
+The supplied single path does not establish global activity at either receiver.
+
+The later supplied TX tables also match all 89 original VE6PDQ receptions:
+63 from KP4MD and 26 from WB6RQN. The complete 90-row KP4MD attachment and the
+26 inline WB6RQN 40 m records are retained in the TX fixture. The comparison
+checks time, endpoint callsigns and locators, raw SNR and nominal power, without
+inferring mode codes or unavailable upstream IDs. This corroborates the frozen
+archive through the user's wspr.rocks view, not a separate physical measurement.
+The fixture manifests now cover 30 TX files and 13 RX files.
+
+Focused verification on 2026-09-24 passed all **23 Milazzo tests** before the
+additional TX-table cross-check. The final focused run, including that added
+test, configuration/schema, non-joint evidence, decode fallback and runner
+coverage, passed **296 tests with one existing Matplotlib warning in 70.47
+seconds**. The final Milazzo module contains 24 tests. Changed Python source
+compilation, 86-module/five-chunk manifest validation and whitespace checks
+passed. No shared runtime calculation changed; the full suite and native
+ClickHouse replay were not run for this fixture and demo-copy update.
+
+The subsequent Milazzo overlay review adds
+`reference_fixtures/milazzo_publication_overlays_v1` and
+`scripts/build_milazzo_publication_overlays.py`. Original Figure 6/7 images
+are retained alongside RX/TX overlays from freshly executed SQL components.
+Figure 6 matches all 44 anchors; Figure 7 matches 47 compact image-derived
+anchors (32 KP4MD, 15 WB6RQN), with maximum time residual 143.697 seconds and
+exact integer SNR agreement on the common 37 dBm scale. These complementary
+matches support reversed printed direction labels. All 76 TX archive reports
+in the plotted interval remain overlaid, with the extra 19 December 13:38
+WB6RQN report flagged. Overlapping markers are not claimed as individually
+resolved, and the inferred plotting power basis is explicit.
+
+The lower panels show five eligible RX pairs and one TX pair, separately from
+the upper panels' complete endpoint observations before activity gating.
+Figure 7 anchors reproduce from the source image; diagnostic negative checks
+reject a one-dB shift, omitted power restoration and exchanged series. The
+overlay files are supporting review artifacts, not replacement expected
+results or an additional Figure 7 pytest oracle. On 2026-09-24 the complete
+Milazzo module passed **24 tests with one existing warning in 27.55 seconds**.
+Changed-script compilation, artifact hashes and whitespace checks passed.
+No runtime calculation or demo settings changed; native ClickHouse and the
+full suite were not rerun for this artifact addition.
+
+The follow-up integration makes Figures 6 and 7 mandatory reference assets
+in `test_milazzo_reference.py`, including both original JPEGs and overlay PNGs.
+The module verifies all 44 RX and 76 TX endpoint observations within the
+publication window against independent frozen-source arithmetic, before the
+Target-Active Gate. The saved overlay CSVs are audited against that same
+source arithmetic and never act as independent scientific expectations.
+The retained endpoint counts (39 RX and 58 TX) separately protect the gate
+boundary without dropping unpaired reports from the publication comparison.
+
+Figure 7's 47 fixed image-derived anchors now have an executable paper oracle.
+Raw source values bind each anchor to a unique identity before current SQL
+components are inspected. The regression checks the -28 dB tail, an unplotted
+archive report, and a graphical near-overlap that must remain two different
+cycles. Negative controls reject a one-dB shift, wrong Reference power,
+exchanged series and a removed extreme observation. All 29 TX reports without
+selected paper anchors retain source-arithmetic coverage; the regression does
+not pretend that overlapping or absent markers supply independent paper values.
+
+Focused verification on 2026-09-24 passed **33 Milazzo tests with one existing
+Matplotlib warning in 25.49 seconds**. Changed-test source compilation,
+86-module/five-chunk manifest validation and whitespace checks passed.
+This supersedes the earlier overlay-only Figure 7 coverage limit. No runtime
+calculation, demo settings or original publication images changed; the complete
+suite and native ClickHouse replay were not rerun for this isolated addition.
 
 ## Cache and Operational State
 
@@ -1018,8 +1419,10 @@ request will rebuild missing query, basemap, or session artifacts.
   survive only when the hosting environment retains `.wspr_cache`.
 - Most dependencies are unpinned and there is no automated vulnerability or
   dependency audit workflow.
-- The scientific regression fixture is absent, so the fixture-integrity test is
-  skipped.
+- A prepared-export regression package is still absent, so its package-integrity
+  test is skipped. The separate G3ZIL/G4HZX scientific reference fixture is
+  mandatory and exercises the numerical path after SQL aggregation; frozen-row
+  SQL execution and broader independent reference coverage remain outstanding.
 - Browser-level end-to-end behavior and multi-process deployment behavior are
   not covered by the current pytest suite.
 - `README.md` synchronization rewrites the whole file. Repository engineering
