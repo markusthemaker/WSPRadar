@@ -42,7 +42,9 @@
   },
   "review_artifacts": {
     "paper_figure6.png": "Embedded published JPEG converted to RGB PNG.",
-    "figure6_overlay_1p6.png": "Observed archive reconstruction over fixed paper tick calibration; diagnostic, not a new external oracle.",
-    "observed_landmark_comparison.csv": "Observed comparison only; independent acceptance comes from unchanged paper_features.json."
+    "figure6_overlay_1p6.png": "Observed A/B/C comparison: original full publication image at fixed tick calibration; actual WSPRadar reception-order reconstruction; production white Selected Station Evidence at 12h. Diagnostic, not a new external oracle.",
+    "observed_landmark_comparison.csv": "Observed comparison only; independent acceptance comes from unchanged paper_features.json.",
+    "figure6_overlay_1p6.pdf": "Vector-native counterpart to the PNG; original publication image remains raster.",
+    "comparison_presentation.json": "Presentation builder and observed landmarks; does not modify scientific expectations."
   }
 }

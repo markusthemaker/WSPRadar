@@ -7,8 +7,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 11962,
-      "sha256": "99aca9d5576925ca556246c5340c6f2681cf01dc0d0aeb27e0665f29222b5a58"
+      "bytes": 13056,
+      "sha256": "23c5f7ad62a0bfc94a3f26e167e49b41122352056c4da4a2580301de82f609fe"
     },
     {
       "path": "comparison_policy.json",
@@ -34,6 +34,16 @@
       "path": "paper_points.json",
       "bytes": 3114,
       "sha256": "bd806ddbc012eb0f1a8149cf37858c1822b0b6ff7cb28376578e9a3d166f3078"
+    },
+    {
+      "path": "figure6_evidence_comparison.png",
+      "bytes": 1537265,
+      "sha256": "c7930b984949d53e759df3b347bd23848df1788360ff4642d8e4796d9464082a"
+    },
+    {
+      "path": "figure6_evidence_comparison.pdf",
+      "bytes": 487650,
+      "sha256": "afd879855ed8a511d9db504beb897cee9b92695b215ea4a3d7ad5722e0568a03"
     }
   ]
 }

@@ -287,6 +287,20 @@ optional; the launcher falls back to English when they are absent. Description
 strings accept GitHub-flavored Markdown links, and JSON `\n` escapes render as
 visible line breaks. Raw HTML remains escaped by the Streamlit caption renderer.
 
+Publication comparison PDFs can be linked directly in a demo description using
+`[Compare the publication, reconstruction and WSPRadar view (PDF)](app/static/reference_figures/<fixture-folder>/<figure>.pdf)`.
+The corresponding source PDF belongs in
+`tests/regression/reference_fixtures/<fixture-folder>/` and its fixture manifest.
+Run `python scripts/sync_reference_figure_pdfs.py` after rebuilding a figure or
+adding a link, then commit the generated copy under `static/reference_figures/`.
+Run the same command with `--check` to verify every linked copy against the
+source PDF and fixture hash. Links in demo descriptions determine the published
+set; there is no demo-ID mapping, runtime schema change, or PNG dependency.
+Streamlit serves these files locally and on deployments through the existing
+`enableStaticServing` setting. Original publication images remain raster panels
+inside the PDFs; reconstructed points, bars, axes and annotations retain vector
+geometry. Keep the PNG companions for visual review until explicitly removed.
+
 ## Running the Application
 
 Start Streamlit from the repository root:
@@ -530,7 +544,28 @@ manifest, changed-test compilation and whitespace checks passed. The prior
 archive fixtures and application runtime were unchanged; no full-suite,
 browser, live-provider or SQL-execution run was performed for this addition.
 
-Latest complete regression verification on 2026-09-23 covered the shared remote-peer
+Latest complete regression verification on 2026-09-25 covered the publication
+comparison PDF additions, expanded Figure 3 tail review, demo PDF links and all
+existing reference fixtures. The complete foreground Windows runner reported:
+
+```text
+3140 passed, 1 skipped, 3 xfailed, 1 warning in 359.67 seconds
+```
+
+The skip remains the absent prepared-export package; the three strict expected
+failures remain the documented Griffiths paper/strongest-pair differences.
+The warning is the existing Matplotlib `set_bad` pending deprecation. All eleven
+reference-fixture manifests, full source compilation and whitespace checks
+passed. The seven published PDF copies match their fixture sources and are
+served as `application/pdf` with HTTP 200. Browser inspection confirmed the demo
+links resolve to those routes and open in a new tab; the automation browser's
+embedded viewer could not display PDFs, so visual inspection used Poppler
+renderings. Each comparison PDF contains native generated plot geometry and
+searchable text, with only its original publication panel stored as an image.
+Existing demo settings and description text are preserved; no scientific
+runtime calculation or frozen numerical oracle changed.
+
+Previous complete regression verification on 2026-09-23 covered the shared remote-peer
 special-callsign filter in `C:\Users\marku\Code\WSPRadar`, together with the
 pre-existing working-tree changes to historical decode compatibility. The
 complete foreground Windows runner reported:

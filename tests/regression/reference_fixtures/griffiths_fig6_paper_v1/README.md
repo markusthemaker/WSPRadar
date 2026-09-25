@@ -78,3 +78,15 @@ The final focused run of both archive references, the external paper reference a
 At the nominal 1-hour/1-dB smoothing choice, the morning matched modes are +6 dB, the strongest evening grid cell is +6 dB at 18:30 UTC, and the late-night matched modes are -3 dB. These are observed outcomes, not paper-derived expected numbers. Morning, midday and evening three-hour counts were 1,017, 785 and 1,488 respectively. The publication supplies their qualitative ordering, not those exact counts.
 
 The installed external assertions rejected five temporary erroneous results: reversed Delta SNR, all differences collapsed to +5 dB, a +4 dB offset, a six-hour UTC density shift and a uniform density grid. These were in-memory assertion-sensitivity checks, not production-source mutation testing. The original Figure 3/Figure 6 archive fixtures and runtime calculations remained unchanged. No full-suite, browser, live-provider or database-SQL run was performed for this isolated test/data addition.
+
+## Comparison graphics and vector PDF (2026-09-25)
+
+`figure6_evidence_comparison.png` and `figure6_evidence_comparison.pdf` retain the same A-B-C layout: original publication, fixed-policy reconstruction and the native WSPRadar folded UTC-hour view. R1-R4 contour-region labels and P1-P3 isolated-point witnesses are retained in all three panels. The PDF contains vector count-grid cells, markers, lines, annotations and text; the original publication panel remains its unchanged embedded raster. The PDF is rendered directly from the Matplotlib figure, not from the completed PNG.
+
+Regenerate both formats from the repository root into a review directory:
+
+```powershell
+.\.venv\Scripts\python.exe -B scripts/build_griffiths_fig6_comparison.py --output-directory tmp/griffiths_fig6_comparison_candidate
+```
+
+The builder checks all 24 hourly counts, medians and quartiles, all 1,392 density cells, and the production median/IQR artists against the existing frozen numerical fixtures. No source coordinates, smoothing policy, acceptance tolerances or scientific data are changed by PDF export.

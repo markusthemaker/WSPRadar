@@ -163,3 +163,9 @@ The test verifies image decoding and dimensions without regenerating plots.
 This does not claim that all 76 TX reports are individually readable in the
 publication: the 29 without selected anchors retain source-arithmetic and
 selection coverage, rather than invented independent paper measurements.
+
+## Vector PDF companions (2026-09-25)
+
+`figure6_rx_overlay.pdf` and `figure7_tx_overlay.pdf` preserve the existing PNG layouts, reconciliation circles, Target-Active Gate outer rings, annotations and lower paired-evidence panels. The builder command above now emits both formats. The PDF retains those generated elements and its text as vectors; the original publication JPEG remains an embedded raster with the same title mask used in the PNG. The completed PNG is never used as the PDF source.
+
+The PDF companions are included in the mandatory manifest inventory. Their addition changes no source images, paper anchors, endpoint reports, gate flags, numerical fixtures or PNG pixels.

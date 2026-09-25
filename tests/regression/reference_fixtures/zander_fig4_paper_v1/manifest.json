@@ -35,13 +35,23 @@
     },
     {
       "path": "README.md",
-      "bytes": 7283,
-      "sha256": "8bd29e0f7292bc718c761d6e6a9fffacd89dcf1e381ff0564f238416d1e8624d"
+      "bytes": 8253,
+      "sha256": "949d1c6170288f43a76aab85ad0f4214496de17bed9de23481034cc01384c721"
     },
     {
       "path": "source_digitization.py",
       "bytes": 10150,
       "sha256": "96837ee4c1881e63b991ff8c68791016379356a908f15017a89c16ab6c119af8"
+    },
+    {
+      "path": "figure4_histogram_overlay.png",
+      "bytes": 444484,
+      "sha256": "80999531b0c7696ada5e7c3a2ed200c6e02539d489d662104bc7883d053811c8"
+    },
+    {
+      "path": "figure4_histogram_overlay.pdf",
+      "bytes": 169111,
+      "sha256": "7cf2702c33da896900bf0cc754095db088370a058ab5337d3829bef26890f52e"
     }
   ]
 }

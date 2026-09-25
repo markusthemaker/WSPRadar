@@ -6,9 +6,19 @@
   "builder_sha256": "9c4b244db8d795472f9ae49e4c6d8626cd1d091b0ab036416431c9110943d5ea",
   "files": [
     {
+      "path": "README.md",
+      "bytes": 17235,
+      "sha256": "06d6387bb58a77a75b948777094d5c18b62e0e874b51f70fca06ecfc9fdfcbdc"
+    },
+    {
       "path": "capture_provenance.json",
-      "bytes": 3520,
-      "sha256": "4b86a8cdacfca816def5826028885a90a6db08d0d3e3992b84b3caa8c44ad103"
+      "bytes": 3878,
+      "sha256": "8ceefbf05c0d8cef279f5f05d36eb4ee6e6f80b3a953be2ad1e20ce3a35c0d4a"
+    },
+    {
+      "path": "comparison_presentation.json",
+      "bytes": 2254,
+      "sha256": "e2a2398ab580139cfc61ab60063497be2a375db59522e965338c693cb45b4111"
     },
     {
       "path": "demo.config",
@@ -56,9 +66,14 @@
       "sha256": "bc3df33b05c6d0ce1b824217ac6e686d818329c44798b169604c7367aa2bea24"
     },
     {
+      "path": "figure6_overlay_1p6.pdf",
+      "bytes": 796205,
+      "sha256": "725dce6748a27a78d162a37ad156cedc1a5aa7185fbeae0a2d95113df9ed7a7b"
+    },
+    {
       "path": "figure6_overlay_1p6.png",
-      "bytes": 574302,
-      "sha256": "03d897e010f1ad8ce9892d0ed8260230af2aa61c1ea12151cfc40357794b2983"
+      "bytes": 1625832,
+      "sha256": "151056ec47cedbd294b7348bc786cc370414472572e835a5bd65a703e8ad9c68"
     },
     {
       "path": "observed_landmark_comparison.csv",
@@ -76,11 +91,6 @@
       "sha256": "4ed905ca4037733e7143b867e28a90269db7cd99567a5fcf4a8a64523ac44874"
     },
     {
-      "path": "README.md",
-      "bytes": 15103,
-      "sha256": "8216ca0b92bbacecd9619416749970e50be4650804619f3f99c01aa15bab313f"
-    },
-    {
       "path": "source_query.sql",
       "bytes": 275,
       "sha256": "82b771951961118f3eafa630ecb88bf13de20f923f5a8956d02024aa315deae7"
@@ -95,5 +105,7 @@
       "bytes": 169876,
       "sha256": "8f684384f12f15a0070cd0aae3167f07545f39ac050d625c15a70b4e9f3400fe"
     }
-  ]
+  ],
+  "presentation_builder_path": "scripts/build_vanhamel_rotation_comparison.py",
+  "presentation_builder_sha256": "824d4b8f480a1ba16136c1e74fdf6098d1d17f1c8fa718b252e1bfecbdb7821a"
 }

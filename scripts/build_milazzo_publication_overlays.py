@@ -244,6 +244,14 @@ def draw_overlay(image_path, reports, run, direction, output_path, anchor_count)
                  fontsize=8.2, color="#555555")
     fig.text(0.055, 0.009, "Source: qsl.net/kp4md/wspr.htm | Current generated WSPRadar SQL executed offline through the regression SQLite adapter; not native ClickHouse.", fontsize=8, color="#555555")
     fig.savefig(output_path, dpi=160)
+    # Preserve real vector rings, annotations and paired-evidence artists.
+    # Only the original publication image is an embedded raster in the PDF.
+    with matplotlib.rc_context({"pdf.fonttype": 42}):
+        fig.savefig(output_path.with_suffix(".pdf"), metadata={
+            "Title": f"Milazzo Figure {figure_number}: reconciled {direction} direction",
+            "Subject": "Publication raster with vector SQL reconciliation and Target-Active Gate rings",
+            "CreationDate": None, "ModDate": None,
+        })
     plt.close(fig)
 
 

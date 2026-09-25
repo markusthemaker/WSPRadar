@@ -1,0 +1,57 @@
+{
+  "builder": "scripts/build_vanhamel_rotation_comparison.py",
+  "builder_sha256": "824d4b8f480a1ba16136c1e74fdf6098d1d17f1c8fa718b252e1bfecbdb7821a",
+  "figure": 6,
+  "source": "Frozen raw reports, actual generated SQL, production post-fetch and selected-station preparation",
+  "paired_observations": 1441,
+  "reference_correction_db": 1.6,
+  "panel_a": "Original full embedded publication raster, with fixed tick calibration and external landmark rings",
+  "panel_b": "Every WSPRadar paired reception; endpoint SNR subtracts common 7 dB normalization only to match paper display; paired difference unchanged",
+  "panel_c": "Actual selected_benchmark_temporal chronological artists and production white export styling; 12h bins, UTC axis, median-centered nonlinear delta SNR",
+  "scientific_expectations_updated": false,
+  "pdf_raster_boundary": "Only the original published Figure 6 image is raster; reconstruction, production density cells, lines, markers, text and axes remain vector",
+  "observed_landmarks": [
+    {
+      "name": "isolated_pre_rotation_positive",
+      "observed_reception_index": 454,
+      "observed_delta_snr_db": 6.4,
+      "observed_utc": "2021-05-05T19:34:00+00:00"
+    },
+    {
+      "name": "pre_rotation_negative",
+      "observed_reception_index": 705,
+      "observed_delta_snr_db": -4.6,
+      "observed_utc": "2021-05-07T23:58:00+00:00"
+    },
+    {
+      "name": "largest_positive",
+      "observed_reception_index": 792,
+      "observed_delta_snr_db": 9.4,
+      "observed_utc": "2021-05-08T23:04:00+00:00"
+    },
+    {
+      "name": "adjacent_high_positive",
+      "observed_reception_index": 812,
+      "observed_delta_snr_db": 8.4,
+      "observed_utc": "2021-05-09T01:10:00+00:00"
+    },
+    {
+      "name": "deepest_negative",
+      "observed_reception_index": 849,
+      "observed_delta_snr_db": -6.6,
+      "observed_utc": "2021-05-09T04:52:00+00:00"
+    },
+    {
+      "name": "later_positive_1",
+      "observed_reception_index": 922,
+      "observed_delta_snr_db": 7.4,
+      "observed_utc": "2021-05-10T02:16:00+00:00"
+    },
+    {
+      "name": "later_positive_2",
+      "observed_reception_index": 977,
+      "observed_delta_snr_db": 7.4,
+      "observed_utc": "2021-05-10T22:28:00+00:00"
+    }
+  ]
+}

@@ -2,6 +2,28 @@
 
 This changelog summarizes major project changes by the date of the change (UTC), with the newest entry first. It is grouped by date rather than by version because early version labels were not yet stable. Record each new change under the current date when it is made, without an "Unsubmitted" heading or redating it when it is submitted to GitHub. Older entries retain the submission dates recorded under the previous policy.
 
+## 2026-09-25
+
+- **Publication comparison PDFs and demo access:** rebuilt Griffiths Figure 3
+  and Vanhamel Figure 6 as publication / reconstruction / WSPRadar comparisons.
+  Their WSPRadar panels retain the production white-export graphics with 12-hour
+  bins. Expanded the separate Griffiths lower-tail diagnostic to −20…−5 dB:
+  17 strongest pairs and 343 weaker-report combinations lie in the selected
+  paper-tail time window; the original narrow-tail scientific check is unchanged.
+  All seven comparison/overlay figures now have PDF companions with native
+  vector plotting elements and embedded original paper rasters. PNG companions
+  remain available. Five relevant demo descriptions link to the PDFs through
+  locally served static copies. The link-driven
+  `scripts/sync_reference_figure_pdfs.py` publishes those copies and checks them
+  against fixture manifests; it does not depend on PNGs. Existing description
+  text, scientific settings, source rows and independent numerical expectations
+  are preserved. Verification: the complete foreground suite reported
+  **3,140 passed, 1 skipped and 3 expected failures**; compilation, whitespace,
+  all eleven fixture manifests, and all seven served PDF responses passed.
+  Trace: [PDF publication workflow](AGENT_README.md),
+  [sync/check script](scripts/sync_reference_figure_pdfs.py), and
+  [link integrity checks](tests/regression/test_config_package.py).
+
 ## 2026-09-24
 
 - **Milazzo overlay gate visibility and publication window:** added an outer

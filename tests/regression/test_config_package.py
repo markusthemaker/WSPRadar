@@ -1,4 +1,5 @@
 import ast
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -50,6 +51,10 @@ from config.demo_profiles import (
     resolve_demo_profile_text,
 )
 from i18n import GUIDED_INPUTS
+from scripts.sync_reference_figure_pdfs import (
+    collect_reference_pdf_paths,
+    sync_reference_figure_pdfs,
+)
 
 
 EXPECTED_DEMO_FILENAMES = [
@@ -505,3 +510,72 @@ def test_demo_directory_reader_is_independent_from_working_directory(
     monkeypatch.chdir(tmp_path)
 
     assert list(load_demo_profiles()) == list(DEMO_PROFILES)
+
+
+def test_demo_reference_pdf_links_have_current_published_copies():
+    """Every demo PDF works without relying on a retained PNG companion."""
+    reference_paths = sync_reference_figure_pdfs(REPOSITORY_ROOT, check=True)
+    assert len(reference_paths) == 7
+    for relative_path in reference_paths:
+        url = f"app/static/reference_figures/{relative_path.as_posix()}"
+        assert url in prepare_demo_description_markdown(f"[Review (PDF)]({url})")
+
+
+def _create_demo_reference_pdf_repository(repository_root):
+    """Make a complete tiny fixture and demo without any PNGs."""
+    demo_directory = repository_root / "config/demos"
+    fixture_directory = repository_root / "tests/regression/reference_fixtures/example_v1"
+    demo_directory.mkdir(parents=True)
+    fixture_directory.mkdir(parents=True)
+    pdf_bytes = b"%PDF-1.4\nfixture-only test document\n"
+    (fixture_directory / "comparison.pdf").write_bytes(pdf_bytes)
+    (fixture_directory / "manifest.json").write_text(json.dumps({"files": [{
+        "path": "comparison.pdf", "bytes": len(pdf_bytes),
+        "sha256": hashlib.sha256(pdf_bytes).hexdigest(),
+    }]}), encoding="utf-8")
+    (demo_directory / "demo.config").write_text(json.dumps({"profile": {
+        "description": {"en": "[Review (PDF)](app/static/reference_figures/example_v1/comparison.pdf)"},
+    }}), encoding="utf-8")
+    return fixture_directory, demo_directory
+
+
+def test_demo_reference_pdf_sync_requires_manifest_and_detects_stale_copy(tmp_path):
+    fixture_directory, _ = _create_demo_reference_pdf_repository(tmp_path)
+    with pytest.raises(ValueError, match="Missing or stale published PDF"):
+        sync_reference_figure_pdfs(tmp_path, check=True)
+    sync_reference_figure_pdfs(tmp_path)
+    sync_reference_figure_pdfs(tmp_path, check=True)
+    published_path = tmp_path / "static/reference_figures/example_v1/comparison.pdf"
+    assert published_path.read_bytes() == (fixture_directory / "comparison.pdf").read_bytes()
+    published_path.write_bytes(b"%PDF-1.4 stale")
+    with pytest.raises(ValueError, match="Missing or stale published PDF"):
+        sync_reference_figure_pdfs(tmp_path, check=True)
+    (fixture_directory / "comparison.pdf").write_bytes(b"%PDF-1.4 unreviewed change")
+    with pytest.raises(ValueError, match="does not match fixture manifest"):
+        sync_reference_figure_pdfs(tmp_path)
+    assert published_path.read_bytes() == b"%PDF-1.4 stale"
+
+
+@pytest.mark.parametrize("relative_path", [
+    "../secret.pdf", "example_v1/../../secret.pdf", "example_v1/%2e%2e.pdf",
+    "example_v1\\comparison.pdf", "example_v1/comparison.png",
+    "example_v1/comparison.pdf?download=1", "example_v1//comparison.pdf",
+])
+def test_demo_reference_pdf_links_reject_noncanonical_paths(tmp_path, relative_path):
+    _, demo_directory = _create_demo_reference_pdf_repository(tmp_path)
+    (demo_directory / "demo.config").write_text(json.dumps({"profile": {
+        "description": {"en": f"[Review](app/static/reference_figures/{relative_path})"},
+    }}), encoding="utf-8")
+    with pytest.raises(ValueError, match="Invalid reference PDF path"):
+        collect_reference_pdf_paths(demo_directory)
+
+
+def test_demo_reference_pdf_sync_rejects_missing_or_non_pdf_source(tmp_path):
+    fixture_directory, _ = _create_demo_reference_pdf_repository(tmp_path)
+    source_path = fixture_directory / "comparison.pdf"
+    source_path.unlink()
+    with pytest.raises(FileNotFoundError):
+        sync_reference_figure_pdfs(tmp_path)
+    source_path.write_bytes(b"not a PDF")
+    with pytest.raises(ValueError, match="Not a PDF"):
+        sync_reference_figure_pdfs(tmp_path)

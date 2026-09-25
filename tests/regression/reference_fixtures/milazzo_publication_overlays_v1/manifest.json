@@ -47,7 +47,7 @@
     {
       "path": "overlay_summary.json",
       "bytes": 3224,
-      "sha256": "0830c18aaaffea63b0a51633361784c5e6e07bb0e6da1ded9ff8a208ba03cfb8"
+      "sha256": "988274e3458f2ca03b70c670961ca79ec60befe61b759ce8319a6946cd26fe09"
     },
     {
       "path": "paper_figure6.jpg",
@@ -61,8 +61,18 @@
     },
     {
       "path": "README.md",
-      "bytes": 9972,
-      "sha256": "c3ba67d9c49db7ac24b372195e87e93df84cd8035982698267bd1aa743877126"
+      "bytes": 10659,
+      "sha256": "ed4229badc199782f11d787e7372cb2e05349c662f6ca9051de2054b05d4b3c3"
+    },
+    {
+      "path": "figure6_rx_overlay.pdf",
+      "bytes": 354351,
+      "sha256": "6f7279dd86f7b030cc3c4500dea7cef9acaebc54b72e9074aaf47195ee6b1855"
+    },
+    {
+      "path": "figure7_tx_overlay.pdf",
+      "bytes": 373916,
+      "sha256": "bc762fffd668dd0b1e728864053579d163be6ef1014851a4388dc9a284802221"
     }
   ]
 }

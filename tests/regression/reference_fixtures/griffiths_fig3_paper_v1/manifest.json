@@ -5,9 +5,44 @@
   "test_module": "tests/regression/test_griffiths_temporal_reference.py",
   "files": [
     {
+      "path": "README.md",
+      "bytes": 14803,
+      "sha256": "6a11d7c341fbb6f5cba0fb9e910865166784d662e9cfb503bf816edd864c6a1f"
+    },
+    {
       "path": "comparison_policy.json",
       "bytes": 2858,
       "sha256": "b36d245afc73cd6887d91a30d5ee5593ad1d278286d5426a59b421be51d03fcf"
+    },
+    {
+      "path": "figure3_evidence_comparison.pdf",
+      "bytes": 1066925,
+      "sha256": "600fc2ea1de5e077521b5c86a0f596210aacc231b451828471d8b858dd48408c"
+    },
+    {
+      "path": "figure3_evidence_comparison.png",
+      "bytes": 1717882,
+      "sha256": "9628f66f84bee934c3eff90428ee22c9d9e332bad5a3122ae6f39ce6a68d7a0b"
+    },
+    {
+      "path": "figure3_render_checks.json",
+      "bytes": 2262,
+      "sha256": "ed7c53215f1c5d44646bb5e2067ff49c5f18851f4667b4b22bac7d05cd48f570"
+    },
+    {
+      "path": "figure3_tail_diagnostic.pdf",
+      "bytes": 95824,
+      "sha256": "141b33684e996cbffe2d61d43405b5583c8ddd9bbe10cf1990d786a253a9b06e"
+    },
+    {
+      "path": "figure3_tail_diagnostic.png",
+      "bytes": 449645,
+      "sha256": "4367b10bf3ab751ca136429a073ae55fe47dd20599e25ed829a071347932cae0"
+    },
+    {
+      "path": "figure3_tail_report_combinations.csv",
+      "bytes": 37264,
+      "sha256": "5b1bbb535681bad740797baabdd1c41dae06ce89b0f5ff3b24f2859a98b0142c"
     },
     {
       "path": "frozen_inputs.json",
@@ -43,11 +78,6 @@
       "path": "paper_figure4.png",
       "bytes": 193533,
       "sha256": "feaeb640cc4181893a7a76293331b1cf657a3b222768188a0816b4fd10a829fb"
-    },
-    {
-      "path": "README.md",
-      "bytes": 11577,
-      "sha256": "d908866a2dfa903bc351240aef39269f2b24e2042c837744598a86716942c275"
     }
   ]
 }

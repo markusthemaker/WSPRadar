@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "builder": "scripts\\build_griffiths_figure3_comparisons.py",
+  "builder_sha256": "c9009eacd652f080b4bb42e0954dd40515194283b6dbe8a183b79e9cdb890e57",
+  "input_sha256": {
+    "tests\\regression\\reference_fixtures\\griffiths_fig3_paper_v1\\paper_features.json": "59e2aa2d79a9629d9e462d390e59c927c2e3441a170ee1ab71f46730234f9cab",
+    "tests\\regression\\reference_fixtures\\griffiths_fig3_paper_v1\\paper_figure3.png": "0d5b114974fd301c256453d08bbe61531c094a7e8cfcfd83cd15c2a55b97543f",
+    "tests\\regression\\reference_fixtures\\griffiths_fig3_paper_v1\\frozen_inputs.json": "1dbb7413255d417142c44f70cc69904748434354141cea95017de3b588757151",
+    "tests\\regression\\reference_fixtures\\griffiths_fig3_paper_v1\\comparison_policy.json": "b36d245afc73cd6887d91a30d5ee5593ad1d278286d5426a59b421be51d03fcf",
+    "tests\\regression\\reference_fixtures\\griffiths_fig3_temporal_v1\\expected_paired_rows.parquet": "fd5538a4c9f6cafc92592f6bd9f8e98b66f0834b27b43f60d9ce851cd9626fc8",
+    "tests\\regression\\reference_fixtures\\griffiths_fig3_temporal_v1\\source_rows.parquet": "b15d2c30540f91150da908c6eeb59afd44463f6f345ba3dd5e61624e5de530dd",
+    "tests\\regression\\reference_fixtures\\griffiths_fig3_temporal_v1\\demo.config": "5dcdffd5744d13e9695be60f73c10ca1baf939f4931161e792f727feb30f7656"
+  },
+  "comparison": {
+    "paired_observations": 57767,
+    "time_bin": "12h",
+    "temporal_bins": 60,
+    "count_grid_sum": 57767,
+    "independent_12h_summary_check": "counts, medians, Q1 and Q3 exact",
+    "production_artist_check": "all 60 median markers and both IQR curves exact; native nonlinear axis retained"
+  },
+  "tail_diagnostic": {
+    "diagnostic_range_db_inclusive": [
+      -20,
+      -5
+    ],
+    "horizontal_days_after_april1": [
+      15.25041736227045,
+      15.851419031719532
+    ],
+    "retained_strongest_pairs": 17,
+    "weaker_report_combinations": 343,
+    "total_report_combinations": 360,
+    "weaker_by_transmitter": {
+      "HB9MHB": 342,
+      "DL9GCW": 1
+    },
+    "original_fixed_tail": {
+      "retained_strongest_pairs": 0,
+      "duplicate_expanded_combinations": 38
+    }
+  },
+  "pdf_representation": "Native vector reconstruction, temporal cells and annotations; original publication raster only"
+}

@@ -198,3 +198,56 @@ source freeze and are not used as paper-derived numerical expectations.
 No complete-suite, browser, live-provider or SQL-execution check was performed
 for this isolated test/fixture addition. Full verification remains necessary
 before the accumulated changes are finalized for release or submission.
+
+## Publication, reconstruction and WSPRadar graphics (2026-09-25)
+
+`figure3_evidence_comparison.png` and its PDF sibling show three vertically
+aligned panels, preserving the month-long time axis at a readable width:
+
+- **A: Publication.** The complete original Figure 3 image, including the
+  separate blue soil-moisture series and its right-hand axis.
+- **B: Reconstruction.** Every one of the 57,767 frozen WSPRadar paired
+  observations as an unbinned black scatter on the paper's linear dB and
+  calendar ranges. No time shift, SNR offset, jitter or synthetic moisture
+  series is fitted. The paper's displayed range clips both tails; the retained
+  observations themselves are not clipped or filtered before rendering C.
+- **C: WSPRadar view.** The actual chronological temporal export renderer and
+  white export theme, using 12-hour bins. Its production artists retain the
+  one-dB density cells, median markers, IQR, pooled median and median-centered
+  nonlinear dB axis. Thus equal numerical SNR does not occupy equal vertical
+  pixel positions between B and C. The 60 bin counts, medians and quartiles
+  are independently recalculated from the same pairs and checked against
+  the production recipe and displayed artists during generation.
+
+`figure3_tail_diagnostic.png` and its PDF sibling separately extend the
+diagnostic inspection to **-20 through -5 dB, inclusive**. The horizontal
+interval remains the original tail feature's source-defined pixel allowance:
+16 April 2017 approximately 06:00:36 to 20:26:03 UTC. This wider diagnostic
+contains **360 raw-report combinations: 17 retained strongest-report pairs
+and 343 additional combinations involving at least one weaker report**.
+Of the weaker combinations, 342 involve HB9MHB and one involves DL9GCW.
+There are no strongest combinations outside the selected demo population
+in this diagnostic window. `figure3_tail_report_combinations.csv` records
+all 360 combinations, source report IDs, SNRs, reported powers and classifications.
+
+These new counts are calculations from the frozen archive, not independently
+recoverable marker counts from the paper. Raster overlap prevents a one-to-one
+identification of every source dot. The independent source rectangle T and
+its strict Delta SNR < -15 dB criterion remain unchanged: **0 strongest pairs and
+38 duplicate-expanded combinations**. All original source annotations,
+numerical expectations, comparison policy and known discrepancies are retained
+byte-for-byte; the three strict expected failures are still required.
+
+Regenerate the graphics and their diagnostic ledger with:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/build_griffiths_figure3_comparisons.py
+```
+
+The builder also writes `figure3_render_checks.json` with input hashes,
+production-artist checks and diagnostic counts. It does not rewrite numerical
+reference oracles or the manifest; update the manifest only after reviewing
+regenerated outputs. The PDFs are rendered from the same Matplotlib artists,
+with native vector text, scatter, density cells and curves. Only the original
+publication image remains raster; converting it to PDF cannot restore vector
+source detail that the publication did not supply. PNG copies remain available.

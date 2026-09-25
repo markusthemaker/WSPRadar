@@ -3,3 +3,5 @@
 tests/regression/reference_fixtures/** -text
 tests/regression/reference_fixtures/**/*.parquet binary
 tests/regression/reference_fixtures/**/*.png binary
+tests/regression/reference_fixtures/**/*.pdf binary
+static/reference_figures/**/*.pdf binary

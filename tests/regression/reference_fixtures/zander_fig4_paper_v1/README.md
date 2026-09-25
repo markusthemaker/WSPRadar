@@ -45,3 +45,15 @@ All nine visible regions and both printed statistics matched on the first compar
 The pooled receiver-cycle distribution gives mean -6.78313253 dB and sample standard deviation 3.51463845 dB. As diagnostics of the notation ambiguity, averaging within each of the 12 joint cycles first gives a mean of cycle means of -6.71214145 dB and a sample standard deviation of 0.97705122 dB, while the mean of receiver medians is -6.05405405 dB. Those are different distributions. The close pooled histogram match supports the chosen reconstruction; it does not prove the original author's implementation. The regression also rejects substituting either station medians or cycle means for the pooled observations.
 
 The first complete new-module run exposed only a test-setup omission of outcome-series labels in the renderer call; all scientific and paper comparisons passed. Supplying the required labels resolved that setup failure. Focused integration with the Griffiths reference, comparison-evidence, statistics and runner tests passed 138 tests with the three existing Griffiths expected failures and one existing Matplotlib warning. Native ClickHouse, live-provider and full-suite execution were not performed for this isolated addition.
+
+## Comparison graphics and vector PDF (2026-09-25)
+
+`figure4_histogram_overlay.png` and `figure4_histogram_overlay.pdf` retain the same A-B-C layout: original Figure 4, reconstruction in the paper's coarse bins, and the WSPRadar 1 dB percent-of-sample histogram. The residual comparison stays below panel B. The PDF contains vector bars, lines, labels and residuals; only the original publication panel is an embedded raster. It is rendered directly from the Matplotlib figure, not from the completed PNG.
+
+Regenerate both formats from the repository root into a review directory:
+
+```powershell
+.\.venv\Scripts\python.exe -B scripts/build_zander_fig4_comparison.py --output-directory tmp/zander_fig4_comparison_candidate
+```
+
+The builder verifies all 166 pairs, the production 1 dB histogram counts and percentages, and the coarse-bin residual allowance before rendering. PDF export does not change frozen paper evidence, binning policy or expected numerical results.
